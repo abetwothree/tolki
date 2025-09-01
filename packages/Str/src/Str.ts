@@ -81,13 +81,13 @@ export class Str {
      * 
      * Str.before('hannah', 'nah') returns 'han'
      */
-    static before(subject: string, search: string): string
+    static before(subject: string, search: string | number): string
     {
         if (search === '') {
             return subject;
         }
 
-        const result = subject.indexOf(search);
+        const result = subject.indexOf(String(search));
 
         return result === -1 ? subject : subject.slice(0, result);
     }

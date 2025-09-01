@@ -61,23 +61,6 @@ describe("Str tests", () => {
     })
 
     it('before tests', () => {
-        /** PHP Tests
-            $this->assertSame('han', Str::before('hannah', 'nah'));
-            $this->assertSame('ha', Str::before('hannah', 'n'));
-            $this->assertSame('ééé ', Str::before('ééé hannah', 'han'));
-            $this->assertSame('hannah', Str::before('hannah', 'xxxx'));
-            $this->assertSame('hannah', Str::before('hannah', ''));
-            $this->assertSame('han', Str::before('han0nah', '0'));
-            $this->assertSame('han', Str::before('han0nah', 0));
-            $this->assertSame('han', Str::before('han2nah', 2));
-            $this->assertSame('', Str::before('', ''));
-            $this->assertSame('', Str::before('', 'a'));
-            $this->assertSame('', Str::before('a', 'a'));
-            $this->assertSame('foo', Str::before('foo@bar.com', '@'));
-            $this->assertSame('foo', Str::before('foo@@bar.com', '@'));
-            $this->assertSame('', Str::before('@foo@bar.com', '@'));
-         */
-
         expect(Str.before('hannah', 'nah')).toBe('han');
         expect(Str.before('hannah', 'n')).toBe('ha');
         expect(Str.before('ééé hannah', 'han')).toBe('ééé ');
