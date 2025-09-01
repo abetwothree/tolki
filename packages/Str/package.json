@@ -1,0 +1,14 @@
+{
+  "name": "@laravel-js-support/str",
+  "version": "0.0.0",
+  "description": "A string utility similar to Laravel's Str class facade.",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@10.12.1"
+}

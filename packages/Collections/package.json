@@ -1,0 +1,14 @@
+{
+  "name": "@laravel-js-support/collections",
+  "version": "0.0.0",
+  "description": "A collection utility similar to Laravel's Collection class.",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@10.12.1"
+}
