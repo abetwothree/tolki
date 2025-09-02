@@ -1,4 +1,4 @@
-name: 'test'
+name: "test"
 
 on: workflow_call
 
@@ -9,7 +9,7 @@ jobs:
   unit-test:
     runs-on: ubuntu-latest
     env:
-      PUPPETEER_SKIP_DOWNLOAD: 'true'
+      PUPPETEER_SKIP_DOWNLOAD: "true"
     steps:
       - uses: actions/checkout@v5
 
@@ -19,8 +19,8 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.node-version'
-          cache: 'pnpm'
+          node-version-file: ".node-version"
+          cache: "pnpm"
 
       - run: pnpm install
 
@@ -30,7 +30,7 @@ jobs:
   unit-test-windows:
     runs-on: windows-latest
     env:
-      PUPPETEER_SKIP_DOWNLOAD: 'true'
+      PUPPETEER_SKIP_DOWNLOAD: "true"
     steps:
       - uses: actions/checkout@v5
 
@@ -40,8 +40,8 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.node-version'
-          cache: 'pnpm'
+          node-version-file: ".node-version"
+          cache: "pnpm"
 
       - run: pnpm install
 
@@ -51,7 +51,7 @@ jobs:
   lint-and-test-dts:
     runs-on: ubuntu-latest
     env:
-      PUPPETEER_SKIP_DOWNLOAD: 'true'
+      PUPPETEER_SKIP_DOWNLOAD: "true"
     steps:
       - uses: actions/checkout@v5
 
@@ -61,8 +61,8 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.node-version'
-          cache: 'pnpm'
+          node-version-file: ".node-version"
+          cache: "pnpm"
 
       - run: pnpm install
 

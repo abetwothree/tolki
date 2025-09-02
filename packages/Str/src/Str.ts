@@ -1,9 +1,8 @@
 import { Stringable } from "./Stringable.js";
-import { transliterate } from 'transliteration';
-import anyAscii from 'any-ascii';
+import { transliterate } from "transliteration";
+import anyAscii from "any-ascii";
 
 export class Str {
-
     private static $camelCache = new Map<string, string>();
 
     static of(value: string): Stringable {
@@ -40,7 +39,7 @@ export class Str {
      * Str.afterLast('A house on a lake', 'a') returns ' lake'
      */
     static afterLast(subject: string, search: string | number): string {
-        if (search === '') {
+        if (search === "") {
             return subject;
         }
 
@@ -53,27 +52,25 @@ export class Str {
         return subject.slice(position + String(search).length);
     }
 
-     /**
+    /**
      * Transliterate a UTF-8 value to ASCII.
      *
      * @example
-     * 
+     *
      * Str.ascii('Héllo Wörld') returns 'Hello World'
      */
-    static ascii(value: string): string
-    {
+    static ascii(value: string): string {
         return transliterate(value);
     }
 
-     /**
+    /**
      * Transliterate a string to its closest ASCII representation.
-     * 
+     *
      * @example
-     * 
+     *
      * Str.transliterate('ⓣⓔⓢⓣ@ⓛⓐⓡⓐⓥⓔⓛ.ⓒⓞⓜ') returns 'test@laravel.com'
      */
-    static transliterate(value: string): string
-    {
+    static transliterate(value: string): string {
         return anyAscii(value);
     }
 
@@ -81,12 +78,11 @@ export class Str {
      * Get the portion of a string before the first occurrence of a given value.
      *
      * @example
-     * 
+     *
      * Str.before('hannah', 'nah') returns 'han'
      */
-    static before(subject: string, search: string | number): string
-    {
-        if (search === '') {
+    static before(subject: string, search: string | number): string {
+        if (search === "") {
             return subject;
         }
 
@@ -99,12 +95,11 @@ export class Str {
      * Get the portion of a string before the last occurrence of a given value.
      *
      * @example
-     * 
+     *
      * Str.beforeLast('yvette', 'tte') returns 'yve'
      */
-    static beforeLast(subject: string, search: string | number): string
-    {
-        if (search === '') {
+    static beforeLast(subject: string, search: string | number): string {
+        if (search === "") {
             return subject;
         }
 
@@ -124,9 +119,12 @@ export class Str {
      *
      * Str.between('foofoobar', 'foo', 'bar') returns 'foo'
      */
-    static between(subject: string, from: string | number, to: string | number): string
-    {
-        if (from === '' || to === '') {
+    static between(
+        subject: string,
+        from: string | number,
+        to: string | number,
+    ): string {
+        if (from === "" || to === "") {
             return subject;
         }
 
@@ -137,12 +135,15 @@ export class Str {
      * Get the smallest possible portion of a string between two given values.
      *
      * @example
-     * 
+     *
      * Str.betweenFirst('foofoobar', 'foo', 'bar') returns 'foo'
      */
-    static betweenFirst(subject: string, from: string | number, to: string | number): string
-    {
-        if (from === '' || to === '') {
+    static betweenFirst(
+        subject: string,
+        from: string | number,
+        to: string | number,
+    ): string {
+        if (from === "" || to === "") {
             return subject;
         }
 
@@ -153,11 +154,10 @@ export class Str {
      * Convert a value to camel case.
      *
      * @example
-     * 
+     *
      * Str.camel('foo_bar') returns 'fooBar'
      */
-    static camel(value: string): string
-    {
+    static camel(value: string): string {
         if (this.$camelCache.has(value)) {
             return this.$camelCache.get(value)!;
         }
@@ -170,11 +170,10 @@ export class Str {
      * Get the character at the specified index.
      *
      * @example
-     * 
+     *
      * Str.charAt('hello', 1) returns 'e'
      */
-    static charAt(subject: string, index: number): string | false
-    {
+    static charAt(subject: string, index: number): string | false {
         const length = subject.length;
 
         if (index < 0 ? index < -length : index > length - 1) {
@@ -193,12 +192,11 @@ export class Str {
      * Remove the given string(s) if it exists at the start of the haystack.
      *
      * @example
-     * 
+     *
      * Str.chopStart('foobar', 'foo') returns 'bar'
      */
-    static chopStart(subject: string, needle: string | string[]): string
-    {
-        for (const n of (Array.isArray(needle) ? needle : [needle])) {
+    static chopStart(subject: string, needle: string | string[]): string {
+        for (const n of Array.isArray(needle) ? needle : [needle]) {
             if (subject.startsWith(n)) {
                 return subject.slice(n.length);
             }
@@ -214,9 +212,8 @@ export class Str {
      *
      * Str.chopEnd('foobar', 'bar') returns 'foo'
      */
-    static chopEnd(subject: string, needle: string | string[]): string
-    {
-        for (const n of (Array.isArray(needle) ? needle : [needle])) {
+    static chopEnd(subject: string, needle: string | string[]): string {
+        for (const n of Array.isArray(needle) ? needle : [needle]) {
             if (subject.endsWith(n)) {
                 return subject.slice(0, -n.length);
             }
@@ -234,8 +231,11 @@ export class Str {
      * Str.contains('Minion', 'Ni', true) returns true
      * Str.contains('Minion', 'Ni', false) returns false
      */
-    static contains(haystack: string, needles: string | Iterable<string>, ignoreCase = false): boolean
-    {
+    static contains(
+        haystack: string,
+        needles: string | Iterable<string>,
+        ignoreCase = false,
+    ): boolean {
         if (ignoreCase) {
             haystack = haystack.toLowerCase();
         }
@@ -252,7 +252,7 @@ export class Str {
                 needle = needle.toLowerCase();
             }
 
-            if (needle !== '' && haystack.includes(needle)) {
+            if (needle !== "" && haystack.includes(needle)) {
                 return true;
             }
         }
