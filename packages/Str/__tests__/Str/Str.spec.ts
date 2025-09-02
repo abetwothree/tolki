@@ -220,4 +220,19 @@ describe("Str tests", () => {
             expect(Str.contains(haystack, needles, ignoreCase)).toBe(expected);
         });
     });
+
+    it('contains all tests', () => {
+        const data: [string, Iterable<string>, boolean, boolean][] = [
+            ['Taylor Otwell', ['taylor', 'otwell'], false, false],
+            ['Taylor Otwell', ['taylor', 'otwell'], true, true],
+            ['Taylor Otwell', ['taylor'], false, false],
+            ['Taylor Otwell', ['taylor'], true, true],
+            ['Taylor Otwell', ['taylor', 'xxx'], false, false],
+            ['Taylor Otwell', ['taylor', 'xxx'], true, false],
+        ];
+
+        data.forEach(([haystack, needles, ignoreCase, expected]) => {
+            expect(Str.containsAll(haystack, needles, ignoreCase)).toBe(expected);
+        });
+    })
 });

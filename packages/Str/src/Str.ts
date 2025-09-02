@@ -259,4 +259,22 @@ export class Str {
 
         return false;
     }
+
+    /**
+     * Determine if a given string contains all array values.
+     *
+     * @param  string  $haystack
+     * @param  iterable<string>  $needles
+     * @param  bool  $ignoreCase
+     * @return bool
+     */
+    static containsAll(haystack: string, needles: Iterable<string>, ignoreCase = false): boolean {
+        for (const needle of needles) {
+            if (!Str.contains(haystack, needle, ignoreCase)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
