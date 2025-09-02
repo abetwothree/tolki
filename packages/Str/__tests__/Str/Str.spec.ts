@@ -92,4 +92,21 @@ describe("Str tests", () => {
         expect(Str.beforeLast('laravel framework', ' ')).toBe('laravel');
         expect(Str.beforeLast("yvette\tyv0et0te", "\t")).toBe('yvette');
     })
+
+    it('between tests', () => {
+        expect(Str.between('abc', '', 'c')).toBe('abc');
+        expect(Str.between('abc', 'a', '')).toBe('abc');
+        expect(Str.between('abc', '', '')).toBe('abc');
+        expect(Str.between('abc', 'a', 'c')).toBe('b');
+        expect(Str.between('dddabc', 'a', 'c')).toBe('b');
+        expect(Str.between('abcddd', 'a', 'c')).toBe('b');
+        expect(Str.between('dddabcddd', 'a', 'c')).toBe('b');
+        expect(Str.between('hannah', 'ha', 'ah')).toBe('nn');
+        expect(Str.between('[a]ab[b]', '[', ']')).toBe('a]ab[b');
+        expect(Str.between('foofoobar', 'foo', 'bar')).toBe('foo');
+        expect(Str.between('foobarbar', 'foo', 'bar')).toBe('bar');
+        expect(Str.between('12345', 1, 5)).toBe('234');
+        expect(Str.between('123456789', '123', '6789')).toBe('45');
+        expect(Str.between('nothing', 'foo', 'bar')).toBe('nothing');
+    });
 });

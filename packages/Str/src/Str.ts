@@ -113,4 +113,22 @@ export class Str {
 
         return subject.slice(0, pos);
     }
+
+    /**
+     * Get the portion of a string between two given values.
+     *
+     * @example
+     *
+     * Str.between('foofoobar', 'foo', 'bar') returns 'foo'
+     */
+    static between(subject: string, from: string | number, to: string | number): string
+    {
+        if (from === '' || to === '') {
+            return subject;
+        }
+
+        return Str.beforeLast(Str.after(subject, from), to);
+    }
+
+    
 }
