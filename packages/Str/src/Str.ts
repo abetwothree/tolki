@@ -3,6 +3,9 @@ import { transliterate } from 'transliteration';
 import anyAscii from 'any-ascii';
 
 export class Str {
+
+    private static $camelCache = new Map<string, string>();
+
     static of(value: string): Stringable {
         return new Stringable(value);
     }
@@ -130,5 +133,59 @@ export class Str {
         return Str.beforeLast(Str.after(subject, from), to);
     }
 
-    
+    /**
+     * Get the smallest possible portion of a string between two given values.
+     *
+     * @example
+     * 
+     * Str.betweenFirst('foofoobar', 'foo', 'bar') returns 'foo'
+     */
+    static betweenFirst(subject: string, from: string | number, to: string | number): string
+    {
+        if (from === '' || to === '') {
+            return subject;
+        }
+
+        return Str.before(Str.after(subject, from), to);
+    }
+
+    /**
+     * Convert a value to camel case.
+     *
+     * @example
+     * 
+     * Str.camel('foo_bar') returns 'fooBar'
+     */
+    static camel(value: string): string
+    {
+        if (this.$camelCache.has(value)) {
+            return this.$camelCache.get(value)!;
+        }
+
+        // TODO
+        // return this.$camelCache.set(value, lcfirst(this.studly(value)));
+    }
+
+    /**
+     * Get the character at the specified index.
+     *
+     * @example
+     * 
+     * Str.charAt('hello', 1) returns 'e'
+     */
+    static charAt(subject: string, index: number): string | false
+    {
+        const length = subject.length;
+
+        if (index < 0 ? index < -length : index > length - 1) {
+            return false;
+        }
+
+        // if index is a negative number, we need to adjust it
+        if (index < 0) {
+            index += length;
+        }
+
+        return subject.charAt(index);
+    }
 }

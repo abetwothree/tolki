@@ -109,4 +109,47 @@ describe("Str tests", () => {
         expect(Str.between('123456789', '123', '6789')).toBe('45');
         expect(Str.between('nothing', 'foo', 'bar')).toBe('nothing');
     });
+
+    it('between first tests', () => {
+        expect(Str.betweenFirst('abc', '', 'c')).toBe('abc');
+        expect(Str.betweenFirst('abc', 'a', '')).toBe('abc');
+        expect(Str.betweenFirst('abc', '', '')).toBe('abc');
+        expect(Str.betweenFirst('abc', 'a', 'c')).toBe('b');
+        expect(Str.betweenFirst('dddabc', 'a', 'c')).toBe('b');
+        expect(Str.betweenFirst('abcddd', 'a', 'c')).toBe('b');
+        expect(Str.betweenFirst('dddabcddd', 'a', 'c')).toBe('b');
+        expect(Str.betweenFirst('hannah', 'ha', 'ah')).toBe('nn');
+        expect(Str.betweenFirst('[a]ab[b]', '[', ']')).toBe('a');
+        expect(Str.betweenFirst('foofoobar', 'foo', 'bar')).toBe('foo');
+        expect(Str.betweenFirst('foobarbar', 'foo', 'bar')).toBe('');
+    })
+
+    it.skip('camel tests', () => {
+        expect(Str.camel('Laravel_p_h_p_framework')).toBe('laravelPHPFramework');
+        expect(Str.camel('Laravel_php_framework')).toBe('laravelPhpFramework');
+        expect(Str.camel('Laravel-phP-framework')).toBe('laravelPhPFramework');
+        expect(Str.camel('Laravel  -_-  php   -_-   framework   ')).toBe('laravelPhpFramework');
+
+        expect(Str.camel('FooBar')).toBe('fooBar');
+        expect(Str.camel('foo_bar')).toBe('fooBar');
+        expect(Str.camel('foo_bar')).toBe('fooBar');
+        expect(Str.camel('Foo-barBaz')).toBe('fooBarBaz');
+        expect(Str.camel('foo-bar_baz')).toBe('fooBarBaz');
+
+        expect(Str.camel('')).toBe('');
+        expect(Str.camel('LARAVEL_PHP_FRAMEWORK')).toBe('laravelPhpFramework');
+        expect(Str.camel('   laravel   php   framework   ')).toBe('laravelPhpFramework');
+
+        expect(Str.camel('foo1_bar')).toBe('foo1Bar');
+        expect(Str.camel('1 foo bar')).toBe('1FooBar');
+    });
+
+    it('char at tests', () => {
+        expect(Str.charAt('Привет, мир!', 1)).toBe('р');
+        expect(Str.charAt('「こんにちは世界」', 4)).toBe('ち');
+        expect(Str.charAt('Привет, world!', 8)).toBe('w');
+        expect(Str.charAt('「こんにちは世界」', -2)).toBe('界');
+        expect(Str.charAt('「こんにちは世界」', -200)).toBe(false);
+        expect(Str.charAt('Привет, мир!', 100)).toBe(false);
+    })
 });
