@@ -91,4 +91,26 @@ export class Str {
 
         return result === -1 ? subject : subject.slice(0, result);
     }
+
+    /**
+     * Get the portion of a string before the last occurrence of a given value.
+     *
+     * @param  string  $subject
+     * @param  string  $search
+     * @return string
+     */
+    static beforeLast(subject: string, search: string | number): string
+    {
+        if (search === '') {
+            return subject;
+        }
+
+        const pos = subject.lastIndexOf(String(search));
+
+        if (pos === -1) {
+            return subject;
+        }
+
+        return subject.slice(0, pos);
+    }
 }

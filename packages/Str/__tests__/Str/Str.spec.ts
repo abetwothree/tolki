@@ -76,4 +76,20 @@ describe("Str tests", () => {
         expect(Str.before('foo@@bar.com', '@')).toBe('foo');
         expect(Str.before('@foo@bar.com', '@')).toBe('');
     })
+
+    it('before last tests', () => {
+        expect(Str.beforeLast('yvette', 'tte')).toBe('yve');
+        expect(Str.beforeLast('yvette', 't')).toBe('yvet');
+        expect(Str.beforeLast('ééé yvette', 'yve')).toBe('ééé ');
+        expect(Str.beforeLast('yvette', 'yve')).toBe('');
+        expect(Str.beforeLast('yvette', 'xxxx')).toBe('yvette');
+        expect(Str.beforeLast('yvette', '')).toBe('yvette');
+        expect(Str.beforeLast('yv0et0te', '0')).toBe('yv0et');
+        expect(Str.beforeLast('yv0et0te', 0)).toBe('yv0et');
+        expect(Str.beforeLast('yv2et2te', 2)).toBe('yv2et');
+        expect(Str.beforeLast('', 'test')).toBe('');
+        expect(Str.beforeLast('yvette', 'yvette')).toBe('');
+        expect(Str.beforeLast('laravel framework', ' ')).toBe('laravel');
+        expect(Str.beforeLast("yvette\tyv0et0te", "\t")).toBe('yvette');
+    })
 });
