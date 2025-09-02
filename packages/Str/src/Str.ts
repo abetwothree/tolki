@@ -95,9 +95,9 @@ export class Str {
     /**
      * Get the portion of a string before the last occurrence of a given value.
      *
-     * @param  string  $subject
-     * @param  string  $search
-     * @return string
+     * @example
+     * 
+     * Str.beforeLast('yvette', 'tte') returns 'yve'
      */
     static beforeLast(subject: string, search: string | number): string
     {
