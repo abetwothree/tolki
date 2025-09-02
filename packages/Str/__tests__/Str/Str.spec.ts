@@ -46,7 +46,7 @@ describe("Str tests", () => {
     });
 
     it('transliterate tests', () => {
-        [
+        const data: [string, string][] = [
             ['ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ', 'abcdefghijklmnopqrstuvwxyz'],
             ['⓪①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳', '01234567891011121314151617181920'],
             ['⓵⓶⓷⓸⓹⓺⓻⓼⓽⓾', '12345678910'],
@@ -55,8 +55,10 @@ describe("Str tests", () => {
             ['🎂', ':birthday:'],
             ['abcdefghijklmnopqrstuvwxyz', 'abcdefghijklmnopqrstuvwxyz'],
             ['0123456789', '0123456789'],
-        ].forEach(([input, expected]) => {
-            expect(Str.transliterate(String(input))).toBe(expected);
+        ];
+
+        data.forEach(([input, expected]) => {
+            expect(Str.transliterate(input)).toBe(expected);
         });
     })
 
@@ -151,5 +153,43 @@ describe("Str tests", () => {
         expect(Str.charAt('「こんにちは世界」', -2)).toBe('界');
         expect(Str.charAt('「こんにちは世界」', -200)).toBe(false);
         expect(Str.charAt('Привет, мир!', 100)).toBe(false);
+    })
+
+    it('chop start tests', () => {
+        const data: [string, string | string[], string][] = [
+            ['http://laravel.com', 'http://', 'laravel.com'],
+            ['http://-http://', 'http://', '-http://'],
+            ['http://laravel.com', 'htp:/', 'http://laravel.com'],
+            ['http://laravel.com', 'http://www.', 'http://laravel.com'],
+            ['http://laravel.com', '-http://', 'http://laravel.com'],
+            ['http://laravel.com', ['https://', 'http://'], 'laravel.com'],
+            ['http://www.laravel.com', ['http://', 'www.'], 'www.laravel.com'],
+            ['http://http-is-fun.test', 'http://', 'http-is-fun.test'],
+            ['🌊✋', '🌊', '✋'],
+            ['🌊✋', '✋', '🌊✋'],
+        ];
+
+        data.forEach(([input, chop, expected]) => {
+            expect(Str.chopStart(input, chop)).toBe(expected);
+        });
+    })
+
+    it('chop end tests', () => {
+        const data: [string, string | string[], string][] = [
+            ['path/to/file.php', '.php', 'path/to/file'],
+            ['.php-.php', '.php', '.php-'],
+            ['path/to/file.php', '.ph', 'path/to/file.php'],
+            ['path/to/file.php', 'foo.php', 'path/to/file.php'],
+            ['path/to/file.php', '.php-', 'path/to/file.php'],
+            ['path/to/file.php', ['.html', '.php'], 'path/to/file'],
+            ['path/to/file.php', ['.php', 'file'], 'path/to/file'],
+            ['path/to/php.php', '.php', 'path/to/php'],
+            ['✋🌊', '🌊', '✋'],
+            ['✋🌊', '✋', '✋🌊'],
+        ];
+
+        data.forEach(([input, chop, expected]) => {
+            expect(Str.chopEnd(input, chop)).toBe(expected);
+        });
     })
 });

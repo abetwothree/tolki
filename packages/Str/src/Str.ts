@@ -188,4 +188,40 @@ export class Str {
 
         return subject.charAt(index);
     }
+
+    /**
+     * Remove the given string(s) if it exists at the start of the haystack.
+     *
+     * @example
+     * 
+     * Str.chopStart('foobar', 'foo') returns 'bar'
+     */
+    static chopStart(subject: string, needle: string | string[]): string
+    {
+        for (const n of (Array.isArray(needle) ? needle : [needle])) {
+            if (subject.startsWith(n)) {
+                return subject.slice(n.length);
+            }
+        }
+
+        return subject;
+    }
+
+    /**
+     * Remove the given string(s) if it exists at the end of the haystack.
+     *
+     * @example
+     *
+     * Str.chopEnd('foobar', 'bar') returns 'foo'
+     */
+    static chopEnd(subject: string, needle: string | string[]): string
+    {
+        for (const n of (Array.isArray(needle) ? needle : [needle])) {
+            if (subject.endsWith(n)) {
+                return subject.slice(0, -n.length);
+            }
+        }
+
+        return subject;
+    }
 }
