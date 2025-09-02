@@ -263,12 +263,16 @@ export class Str {
     /**
      * Determine if a given string contains all array values.
      *
-     * @param  string  $haystack
-     * @param  iterable<string>  $needles
-     * @param  bool  $ignoreCase
-     * @return bool
+     * @example
+     *
+     * Str.containsAll('Taylor Otwell', ['taylor', 'otwell'], false) returns true
+     * Str.containsAll('Taylor Otwell', ['taylor', 'xxx'], true) returns false
      */
-    static containsAll(haystack: string, needles: Iterable<string>, ignoreCase = false): boolean {
+    static containsAll(
+        haystack: string,
+        needles: Iterable<string>,
+        ignoreCase = false,
+    ): boolean {
         for (const needle of needles) {
             if (!Str.contains(haystack, needle, ignoreCase)) {
                 return false;
@@ -276,5 +280,22 @@ export class Str {
         }
 
         return true;
+    }
+
+    /**
+     * Determine if a given string doesn't contain a given substring.
+     *
+     * @example
+     *
+     * Str.doesntContain('Minion', 'ni') returns false
+     * Str.doesntContain('Minion', 'Ni', true) returns false
+     * Str.doesntContain('Minion', 'Ni', false) returns true
+     */
+    static doesntContain(
+        haystack: string,
+        needles: string | Iterable<string>,
+        ignoreCase = false,
+    ): boolean {
+        return !Str.contains(haystack, needles, ignoreCase);
     }
 }

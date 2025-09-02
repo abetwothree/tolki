@@ -221,18 +221,41 @@ describe("Str tests", () => {
         });
     });
 
-    it('contains all tests', () => {
+    it("contains all tests", () => {
         const data: [string, Iterable<string>, boolean, boolean][] = [
-            ['Taylor Otwell', ['taylor', 'otwell'], false, false],
-            ['Taylor Otwell', ['taylor', 'otwell'], true, true],
-            ['Taylor Otwell', ['taylor'], false, false],
-            ['Taylor Otwell', ['taylor'], true, true],
-            ['Taylor Otwell', ['taylor', 'xxx'], false, false],
-            ['Taylor Otwell', ['taylor', 'xxx'], true, false],
+            ["Taylor Otwell", ["taylor", "otwell"], false, false],
+            ["Taylor Otwell", ["taylor", "otwell"], true, true],
+            ["Taylor Otwell", ["taylor"], false, false],
+            ["Taylor Otwell", ["taylor"], true, true],
+            ["Taylor Otwell", ["taylor", "xxx"], false, false],
+            ["Taylor Otwell", ["taylor", "xxx"], true, false],
         ];
 
         data.forEach(([haystack, needles, ignoreCase, expected]) => {
-            expect(Str.containsAll(haystack, needles, ignoreCase)).toBe(expected);
+            expect(Str.containsAll(haystack, needles, ignoreCase)).toBe(
+                expected,
+            );
         });
-    })
+    });
+
+    it("doesn't contain tests", () => {
+        const data: [string, string | Iterable<string>, boolean, boolean][] = [
+            ["Tar", "ylo", true, true],
+            ["Tar", "ylo", false, true],
+            ["Tar", ["ylo"], true, true],
+            ["Tar", ["ylo"], false, true],
+            ["Tar", ["xxx", "ylo"], true, true],
+            ["Tar", ["xxx", "ylo"], false, true],
+            ["Tar", "xxx", false, true],
+            ["Tar", ["xxx"], false, true],
+            ["Tar", "", false, true],
+            ["", "", false, true],
+        ];
+
+        data.forEach(([haystack, needles, ignoreCase, expected]) => {
+            expect(Str.doesntContain(haystack, needles, ignoreCase)).toBe(
+                expected,
+            );
+        });
+    });
 });
