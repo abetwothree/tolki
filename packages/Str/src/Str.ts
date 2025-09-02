@@ -224,4 +224,39 @@ export class Str {
 
         return subject;
     }
+
+    /**
+     * Determine if a given string contains a given substring.
+     *
+     * @example
+     *
+     * Str.contains('Minion', 'ni') returns true
+     * Str.contains('Minion', 'Ni', true) returns true
+     * Str.contains('Minion', 'Ni', false) returns false
+     */
+    static contains(haystack: string, needles: string | Iterable<string>, ignoreCase = false): boolean
+    {
+        if (ignoreCase) {
+            haystack = haystack.toLowerCase();
+        }
+
+        let needlesArray: string[];
+        if (typeof needles === "string") {
+            needlesArray = [needles];
+        } else {
+            needlesArray = Array.from(needles);
+        }
+
+        for (let needle of needlesArray) {
+            if (ignoreCase) {
+                needle = needle.toLowerCase();
+            }
+
+            if (needle !== '' && haystack.includes(needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

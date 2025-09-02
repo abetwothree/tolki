@@ -192,4 +192,26 @@ describe("Str tests", () => {
             expect(Str.chopEnd(input, chop)).toBe(expected);
         });
     })
+
+    it('contain tests', () => {
+        const data: [string, string | Iterable<string>, boolean, boolean][] = [
+            ['Taylor', 'ylo', true, true],
+            ['Taylor', 'ylo', false, true],
+            ['Taylor', 'taylor', true, true],
+            ['Taylor', 'taylor', false, false],
+            ['Taylor', ['ylo'], true, true],
+            ['Taylor', ['ylo'], false, true],
+            ['Taylor', ['xxx', 'ylo'], true, true],
+            // ['Taylor', collect(['xxx', 'ylo']), true, true], // TODO when collection package is implemented
+            ['Taylor', ['xxx', 'ylo'], false, true],
+            ['Taylor', 'xxx', false, false],
+            ['Taylor', ['xxx'], false, false],
+            ['Taylor', '', false, false],
+            ['', '', false, false],
+        ];
+
+        data.forEach(([haystack, needles, ignoreCase, expected]) => {
+            expect(Str.contains(haystack, needles, ignoreCase)).toBe(expected);
+        });
+    })
 });
