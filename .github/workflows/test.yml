@@ -67,7 +67,7 @@ jobs:
       - run: pnpm install
 
       - name: Run eslint
-        run: pnpm run lint:check
+        run: pnpm run lint
 
       - name: Run prettier
         run: pnpm run format:check
