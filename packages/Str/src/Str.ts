@@ -336,12 +336,15 @@ export class Str {
     /**
      * Extracts an excerpt from text that matches the first instance of a phrase.
      *
-     * @example 
+     * @example
      */
-    static excerpt(text: string, phrase: string = '', options: Record<string, any> = {}): string | null
-    {
-        const radius = options['radius'] ?? 100;
-        const omission = options['omission'] ?? '...';
+    static excerpt(
+        text: string,
+        phrase: string = "",
+        options: Record<string, any> = {},
+    ): string | null {
+        const radius = options["radius"] ?? 100;
+        const omission = options["omission"] ?? "...";
 
         const matches = text.match(/^(.*?)(\$\{phrase\})(.*)$/iu);
 
@@ -366,5 +369,18 @@ export class Str {
         // );
 
         // return start.append(matches[2], end).toString();
+    }
+
+    /**
+     * Cap a string with a single instance of a given value.
+     *
+     * @param  string  $value
+     * @param  string  $cap
+     * @return string
+     */
+    static finish(value: string, cap: string): string {
+        const quoted = cap.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+        return value.replace(new RegExp(`(?:${quoted})+$`, "u"), "") + cap;
     }
 }

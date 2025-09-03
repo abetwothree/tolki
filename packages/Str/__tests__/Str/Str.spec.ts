@@ -299,4 +299,12 @@ describe("Str tests", () => {
             Str.deduplicate(" laravell    foreverrr  ", [" ", "l", "r"]),
         ).toBe(" laravel forever ");
     });
+
+    it.skip("excerpt tests", () => {});
+
+    it("finish tests", () => {
+        expect(Str.finish("ab", "bc")).toBe("abbc");
+        expect(Str.finish("abbcbc", "bc")).toBe("abbc");
+        expect(Str.finish("abcbbcbc", "bc")).toBe("abcbbc");
+    });
 });
