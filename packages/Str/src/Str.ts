@@ -334,6 +334,42 @@ export class Str {
     }
 
     /**
+     * Determine if a given string ends with a given substring.
+     *
+     * @example
+     * 
+     * Str.endsWith("Jason", "on") returns true
+     * Str.endsWith("Jason", "ON") returns false
+     */
+    static endsWith(
+        haystack: string | number | null,
+        needles: string | number | Iterable<string>,
+    ): boolean {
+        if (haystack === null) {
+            return false;
+        }
+
+        haystack = String(haystack);
+
+        if (!Array.isArray(needles)) {
+            needles = [String(needles)];
+        } else {
+            needles = Array.from(needles);
+        }
+
+        for (const needle of needles) {
+            if (needle !== "" && haystack.endsWith(needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // TODO
+    // doesntEndWith
+
+    /**
      * Extracts an excerpt from text that matches the first instance of a phrase.
      *
      * @example

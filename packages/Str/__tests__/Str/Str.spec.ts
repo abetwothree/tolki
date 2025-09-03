@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Str, Stringable, CaseTypes } from "@laravel-js-support/str";
+import { Str, Stringable, CaseTypes } from "@laravel-js/str";
 
 describe("Str tests", () => {
     it("of", () => {
@@ -298,6 +298,38 @@ describe("Str tests", () => {
         expect(
             Str.deduplicate(" laravell    foreverrr  ", [" ", "l", "r"]),
         ).toBe(" laravel forever ");
+    });
+
+    it("endsWith", () => {
+        expect(Str.endsWith("jason", "on")).toBe(true);
+        expect(Str.endsWith("jason", "jason")).toBe(true);
+        expect(Str.endsWith("jason", ["on"])).toBe(true);
+        expect(Str.endsWith("jason", ["no", "on"])).toBe(true);
+        // expect(Str.endsWith("jason", collect(["no", "on"]))).toBe(true); // TODO
+        expect(Str.endsWith("jason", "no")).toBe(false);
+        expect(Str.endsWith("jason", ["no"])).toBe(false);
+        expect(Str.endsWith("jason", "")).toBe(false);
+        expect(Str.endsWith("", "")).toBe(false);
+        expect(Str.endsWith("jason", [null])).toBe(false);
+        expect(Str.endsWith("jason", null)).toBe(false);
+        expect(Str.endsWith("jason", "N")).toBe(false);
+        expect(Str.endsWith("7", " 7")).toBe(false);
+        expect(Str.endsWith("a7", "7")).toBe(true);
+        expect(Str.endsWith("a7", 7)).toBe(true);
+        expect(Str.endsWith("a7.12", 7.12)).toBe(true);
+        expect(Str.endsWith("a7.12", 7.13)).toBe(false);
+        expect(Str.endsWith(0.27, "7")).toBe(true);
+        expect(Str.endsWith(0.27, "0.27")).toBe(true);
+        expect(Str.endsWith(0.27, "8")).toBe(false);
+        expect(Str.endsWith(null, "Marc")).toBe(false);
+        // Test for multibyte string support
+        expect(Str.endsWith("Jönköping", "öping")).toBe(true);
+        expect(Str.endsWith("Malmö", "mö")).toBe(true);
+        expect(Str.endsWith("Jönköping", "oping")).toBe(false);
+        expect(Str.endsWith("Malmö", "mo")).toBe(false);
+        expect(Str.endsWith("你好", "好")).toBe(true);
+        expect(Str.endsWith("你好", "你")).toBe(false);
+        expect(Str.endsWith("你好", "a")).toBe(false);
     });
 
     it.skip("excerpt", () => {});

@@ -1,5 +1,5 @@
 {
-    "name": "@laravel-js-support/str",
+    "name": "@laravel-js/str",
     "version": "0.0.0",
     "description": "A string utility similar to Laravel's Str class facade.",
     "main": "src/index.ts",
