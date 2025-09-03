@@ -310,4 +310,25 @@ export class Str {
     static convertCase(value: string, mode: ConvertCaseMode = CaseTypes.fold) {
         return new ConvertCase(value, mode).convert();
     }
+
+    /**
+     * Replace consecutive instances of a given character with a single character in the given string.
+     *
+     * @example
+     *
+     * Str.deduplicate('hello  world') returns 'hello world'
+     * Str.deduplicate('hello---world', '-') returns 'hello-world'
+     * Str.deduplicate('hello___world', '_') returns 'hello-world'
+     * Str.deduplicate('hello  world', ' ') returns 'hello world'
+     */
+    static deduplicate(value: string, character: string | string[] = " ") {
+        if (Array.isArray(character)) {
+            character.forEach((char) => {
+                value = value.replace(new RegExp(`${char}+`, "g"), char);
+            });
+            return value;
+        }
+
+        return value.replace(new RegExp(`${character}+`, "g"), character);
+    }
 }

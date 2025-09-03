@@ -259,18 +259,44 @@ describe("Str tests", () => {
         });
     });
 
-    it('convert case tests', () => {
+    it("convert case tests", () => {
         expect(Str.convertCase("hello", CaseTypes.upper)).toBe("HELLO");
         expect(Str.convertCase("WORLD", CaseTypes.lower)).toBe("world");
         expect(Str.convertCase("HeLLo", CaseTypes.fold)).toBe("hello");
         expect(Str.convertCase("WoRLD", CaseTypes.fold)).toBe("world");
         expect(Str.convertCase("üöä", CaseTypes.upper)).toBe("ÜÖÄ");
         expect(Str.convertCase("ÜÖÄ", CaseTypes.lower)).toBe("üöä");
-        expect(Str.convertCase("hello world", CaseTypes.title)).toBe("Hello world");
-        expect(Str.convertCase("Hello World", CaseTypes.title)).toBe("Hello World");
-        expect(Str.convertCase("hello-world_test", CaseTypes.simple)).toBe("hello world test");
-        expect(Str.convertCase("hello-world_test", CaseTypes.lower_simple)).toBe("hello world test");
-        expect(Str.convertCase("hello-world_test", CaseTypes.title_simple)).toBe("Hello World Test");
-        expect(Str.convertCase("hello-world_test", CaseTypes.fold_simple)).toBe("hello world test");
-    })
+        expect(Str.convertCase("hello world", CaseTypes.title)).toBe(
+            "Hello world",
+        );
+        expect(Str.convertCase("Hello World", CaseTypes.title)).toBe(
+            "Hello World",
+        );
+        expect(Str.convertCase("hello-world_test", CaseTypes.simple)).toBe(
+            "hello world test",
+        );
+        expect(
+            Str.convertCase("hello-world_test", CaseTypes.lower_simple),
+        ).toBe("hello world test");
+        expect(
+            Str.convertCase("hello-world_test", CaseTypes.title_simple),
+        ).toBe("Hello World Test");
+        expect(Str.convertCase("hello-world_test", CaseTypes.fold_simple)).toBe(
+            "hello world test",
+        );
+    });
+
+    it("deduplicate tests", () => {
+        expect(Str.deduplicate(" laravel   php  framework ")).toBe(
+            " laravel php framework ",
+        );
+        expect(Str.deduplicate("whaaat", "a")).toBe("what");
+        expect(Str.deduplicate("/some//odd//path/", "/")).toBe(
+            "/some/odd/path/",
+        );
+        expect(Str.deduplicate("ムだだム", "だ")).toBe("ムだム");
+        expect(
+            Str.deduplicate(" laravell    foreverrr  ", [" ", "l", "r"]),
+        ).toBe(" laravel forever ");
+    });
 });
