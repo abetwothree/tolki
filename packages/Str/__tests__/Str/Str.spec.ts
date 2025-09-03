@@ -455,4 +455,10 @@ describe("Str tests", () => {
         expect(Str.isJson(null)).toBe(false);
         expect(Str.isJson([])).toBe(false);
     });
+
+    it("isUrl", () => {
+        expect(Str.isUrl("https://laravel.com")).toBe(true);
+        expect(Str.isUrl("http://localhost")).toBe(true);
+        expect(Str.isUrl("invalid url")).toBe(false);
+    });
 });
