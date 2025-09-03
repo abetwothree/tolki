@@ -310,7 +310,9 @@ describe("Str tests", () => {
         expect(Str.endsWith("jason", ["no"])).toBe(false);
         expect(Str.endsWith("jason", "")).toBe(false);
         expect(Str.endsWith("", "")).toBe(false);
+        // @ts-expect-error expect bad parameter type
         expect(Str.endsWith("jason", [null])).toBe(false);
+        // @ts-expect-error expect bad parameter type
         expect(Str.endsWith("jason", null)).toBe(false);
         expect(Str.endsWith("jason", "N")).toBe(false);
         expect(Str.endsWith("7", " 7")).toBe(false);
@@ -330,6 +332,40 @@ describe("Str tests", () => {
         expect(Str.endsWith("你好", "好")).toBe(true);
         expect(Str.endsWith("你好", "你")).toBe(false);
         expect(Str.endsWith("你好", "a")).toBe(false);
+    });
+
+    it("doesntEndWith", () => {
+        expect(Str.doesntEndWith("jason", "on")).toBe(false);
+        expect(Str.doesntEndWith("jason", "jason")).toBe(false);
+        expect(Str.doesntEndWith("jason", ["on"])).toBe(false);
+        expect(Str.doesntEndWith("jason", ["no", "on"])).toBe(false);
+        // expect(Str.doesntEndWith("jason", collect(["no", "on"]))).toBe(false); // TODO
+        expect(Str.doesntEndWith("jason", "no")).toBe(true);
+        expect(Str.doesntEndWith("jason", ["no"])).toBe(true);
+        expect(Str.doesntEndWith("jason", "")).toBe(true);
+        expect(Str.doesntEndWith("", "")).toBe(true);
+        // @ts-expect-error expect bad parameter type
+        expect(Str.doesntEndWith("jason", [null])).toBe(true);
+        // @ts-expect-error expect bad parameter type
+        expect(Str.doesntEndWith("jason", null)).toBe(true);
+        expect(Str.doesntEndWith("jason", "N")).toBe(true);
+        expect(Str.doesntEndWith("7", " 7")).toBe(true);
+        expect(Str.doesntEndWith("a7", "7")).toBe(false);
+        expect(Str.doesntEndWith("a7", 7)).toBe(false);
+        expect(Str.doesntEndWith("a7.12", 7.12)).toBe(false);
+        expect(Str.doesntEndWith("a7.12", 7.13)).toBe(true);
+        expect(Str.doesntEndWith(0.27, "7")).toBe(false);
+        expect(Str.doesntEndWith(0.27, "0.27")).toBe(false);
+        expect(Str.doesntEndWith(0.27, "8")).toBe(true);
+        expect(Str.doesntEndWith(null, "Marc")).toBe(true);
+        // Test for multibyte string support
+        expect(Str.doesntEndWith("Jönköping", "öping")).toBe(false);
+        expect(Str.doesntEndWith("Malmö", "mö")).toBe(false);
+        expect(Str.doesntEndWith("Jönköping", "oping")).toBe(true);
+        expect(Str.doesntEndWith("Malmö", "mo")).toBe(true);
+        expect(Str.doesntEndWith("你好", "好")).toBe(false);
+        expect(Str.doesntEndWith("你好", "你")).toBe(true);
+        expect(Str.doesntEndWith("你好", "a")).toBe(true);
     });
 
     it.skip("excerpt", () => {});

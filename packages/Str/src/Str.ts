@@ -337,7 +337,7 @@ export class Str {
      * Determine if a given string ends with a given substring.
      *
      * @example
-     * 
+     *
      * Str.endsWith("Jason", "on") returns true
      * Str.endsWith("Jason", "ON") returns false
      */
@@ -366,8 +366,20 @@ export class Str {
         return false;
     }
 
-    // TODO
-    // doesntEndWith
+    /**
+     * Determine if a given string doesn't end with a given substring.
+     *
+     * @example
+     *
+     * Str.doesntEndWith("Jason", "on") returns false
+     * Str.doesntEndWith("Jason", "ON") returns true
+     */
+    static doesntEndWith(
+        haystack: string | number | null,
+        needles: string | number | Iterable<string>,
+    ): boolean {
+        return !Str.endsWith(haystack, needles);
+    }
 
     /**
      * Extracts an excerpt from text that matches the first instance of a phrase.
