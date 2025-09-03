@@ -406,17 +406,18 @@ export class Str {
      *
      * Str.unwrap('[hello]', '[', ']') returns 'hello'
      */
-    static unwrap(value: string, before: string, after: string | null = null): string
-    {
+    static unwrap(
+        value: string,
+        before: string,
+        after: string | null = null,
+    ): string {
         // TODO
         // if (static::startsWith($value, $before)) {
         //     $value = static::substr($value, static::length($before));
         // }
-
         // if (static::endsWith($value, $after ??= $before)) {
         //     $value = static::substr($value, 0, -static::length($after));
         // }
-
         // return $value;
     }
 
@@ -424,13 +425,16 @@ export class Str {
      * Determine if a given string matches a given pattern.
      *
      * @example
-     * 
+     *
      * Str.is('hello', 'hello') returns true
      * Str.is('hello', 'Hello', true) returns true
      * Str.is('hello', 'world') returns false
      */
-    static is(pattern: string | Iterable<string>, value: string | number, ignoreCase: boolean = false): boolean
-    {
+    static is(
+        pattern: string | Iterable<string>,
+        value: string | number,
+        ignoreCase: boolean = false,
+    ): boolean {
         value = String(value);
 
         let patterns: string[];
@@ -455,12 +459,12 @@ export class Str {
             }
 
             // Escape regex special characters in the pattern
-            pattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            pattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
             // Asterisks are translated into zero-or-more regular expression wildcards
             // to make it convenient to check if the strings starts with the given
             // pattern such as "library/*", making any string check convenient.
-            pattern = pattern.replace(/\\\*/g, '.*');
+            pattern = pattern.replace(/\\\*/g, ".*");
 
             const regexFlags = ignoreCase ? "iu" : "u";
             // Use JavaScript end-of-string anchor ($) instead of PHP's \z
@@ -477,7 +481,7 @@ export class Str {
      * Determine if a given string is 7 bit ASCII.
      *
      * @example
-     * 
+     *
      * Str.isAscii("Hello World") returns true
      * Str.isAscii("こんにちは") returns false
      * Str.isAscii("12345") returns true
@@ -494,9 +498,8 @@ export class Str {
      * @param  mixed  $value
      * @return bool
      */
-    static isJson(value: unknown): boolean
-    {
-        if (! isString(value)) {
+    static isJson(value: unknown): boolean {
+        if (!isString(value)) {
             return false;
         }
 

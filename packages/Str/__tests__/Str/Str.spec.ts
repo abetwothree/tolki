@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { Str, Stringable, CaseTypes } from "@laravel-js-support/str";
 
 describe("Str tests", () => {
-
     it("of", () => {
         expect(Str.of("ééé hannah")).toBeInstanceOf(Stringable);
     });
@@ -301,7 +300,7 @@ describe("Str tests", () => {
         ).toBe(" laravel forever ");
     });
 
-    it.skip("excerpt", () => { });
+    it.skip("excerpt", () => {});
 
     it("finish", () => {
         expect(Str.finish("ab", "bc")).toBe("abbc");
@@ -314,46 +313,46 @@ describe("Str tests", () => {
         expect(Str.wrap("-bar-", "foo", "baz")).toBe("foo-bar-baz");
     });
 
-    it.skip("unwrap", () => { });
-    
-    it("is", () => {
-        expect(Str.is('/', '/')).toBe(true);
-        expect(Str.is('/', ' /')).toBe(false);
-        expect(Str.is('/', '/a')).toBe(false);
-        expect(Str.is('foo/*', 'foo/bar/baz')).toBe(true);
+    it.skip("unwrap", () => {});
 
-        expect(Str.is('*@*', 'App\\Class@method')).toBe(true);
-        expect(Str.is('*@*', 'app\\Class@')).toBe(true);
-        expect(Str.is('*@*', '@method')).toBe(true);
+    it("is", () => {
+        expect(Str.is("/", "/")).toBe(true);
+        expect(Str.is("/", " /")).toBe(false);
+        expect(Str.is("/", "/a")).toBe(false);
+        expect(Str.is("foo/*", "foo/bar/baz")).toBe(true);
+
+        expect(Str.is("*@*", "App\\Class@method")).toBe(true);
+        expect(Str.is("*@*", "app\\Class@")).toBe(true);
+        expect(Str.is("*@*", "@method")).toBe(true);
 
         // is case sensitive
-        expect(Str.is('*BAZ*', 'foo/bar/baz')).toBe(false);
-        expect(Str.is('*FOO*', 'foo/bar/baz')).toBe(false);
-        expect(Str.is('A', 'a')).toBe(false);
+        expect(Str.is("*BAZ*", "foo/bar/baz")).toBe(false);
+        expect(Str.is("*FOO*", "foo/bar/baz")).toBe(false);
+        expect(Str.is("A", "a")).toBe(false);
 
         // is not case sensitive
-        expect(Str.is('A', 'a', true)).toBe(true);
-        expect(Str.is('*BAZ*', 'foo/bar/baz', true)).toBe(true);
-        expect(Str.is(['A*', 'B*'], 'a/', true)).toBe(true);
-        expect(Str.is(['A*', 'B*'], 'f/', true)).toBe(false);
-        expect(Str.is('FOO', 'foo', true)).toBe(true);
-        expect(Str.is('*FOO*', 'foo/bar/baz', true)).toBe(true);
-        expect(Str.is('foo/*', 'FOO/bar', true)).toBe(true);
+        expect(Str.is("A", "a", true)).toBe(true);
+        expect(Str.is("*BAZ*", "foo/bar/baz", true)).toBe(true);
+        expect(Str.is(["A*", "B*"], "a/", true)).toBe(true);
+        expect(Str.is(["A*", "B*"], "f/", true)).toBe(false);
+        expect(Str.is("FOO", "foo", true)).toBe(true);
+        expect(Str.is("*FOO*", "foo/bar/baz", true)).toBe(true);
+        expect(Str.is("foo/*", "FOO/bar", true)).toBe(true);
 
         // Accepts array of patterns
-        expect(Str.is(['a*', 'b*'], 'a/')).toBe(true);
-        expect(Str.is(['a*', 'b*'], 'b/')).toBe(true);
-        expect(Str.is(['a*', 'b*'], 'f/')).toBe(false);
+        expect(Str.is(["a*", "b*"], "a/")).toBe(true);
+        expect(Str.is(["a*", "b*"], "b/")).toBe(true);
+        expect(Str.is(["a*", "b*"], "f/")).toBe(false);
 
         // numeric values and patterns
-        expect(Str.is(['a*', 'b*'], 123)).toBe(false);
-        expect(Str.is(['*2*', 'b*'], 11211)).toBe(true);
+        expect(Str.is(["a*", "b*"], 123)).toBe(false);
+        expect(Str.is(["*2*", "b*"], 11211)).toBe(true);
 
-        expect(Str.is('*/foo', 'blah/baz/foo')).toBe(true);
+        expect(Str.is("*/foo", "blah/baz/foo")).toBe(true);
 
-        expect(Str.is([], 'test')).toBe(false);
+        expect(Str.is([], "test")).toBe(false);
 
-        expect(Str.is('', 0)).toBe(false);
+        expect(Str.is("", 0)).toBe(false);
         // @ts-expect-error expect bad parameter type
         expect(Str.is([null], 0)).toBe(false);
         // @ts-expect-error expect bad parameter type
@@ -368,19 +367,23 @@ describe("Str tests", () => {
         expect(Str.isAscii("Hello こんにちは")).toBe(false);
     });
 
-    it('isJson', () => {
-        expect(Str.isJson('1')).toBe(true);
-        expect(Str.isJson('[1,2,3]')).toBe(true);
-        expect(Str.isJson('[1,   2,   3]')).toBe(true);
+    it("isJson", () => {
+        expect(Str.isJson("1")).toBe(true);
+        expect(Str.isJson("[1,2,3]")).toBe(true);
+        expect(Str.isJson("[1,   2,   3]")).toBe(true);
         expect(Str.isJson('{"first": "John", "last": "Doe"}')).toBe(true);
-        expect(Str.isJson('[{"first": "John", "last": "Doe"}, {"first": "Jane", "last": "Doe"}]')).toBe(true);
+        expect(
+            Str.isJson(
+                '[{"first": "John", "last": "Doe"}, {"first": "Jane", "last": "Doe"}]',
+            ),
+        ).toBe(true);
 
-        expect(Str.isJson('1,')).toBe(false);
-        expect(Str.isJson('[1,2,3')).toBe(false);
-        expect(Str.isJson('[1,   2   3]')).toBe(false);
+        expect(Str.isJson("1,")).toBe(false);
+        expect(Str.isJson("[1,2,3")).toBe(false);
+        expect(Str.isJson("[1,   2   3]")).toBe(false);
         expect(Str.isJson('{first: "John"}')).toBe(false);
         expect(Str.isJson('[{first: "John"}, {first: "Jane"}]')).toBe(false);
-        expect(Str.isJson('')).toBe(false);
+        expect(Str.isJson("")).toBe(false);
         expect(Str.isJson(null)).toBe(false);
         expect(Str.isJson([])).toBe(false);
     });
