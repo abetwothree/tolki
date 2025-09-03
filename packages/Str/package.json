@@ -12,7 +12,9 @@
     "license": "MIT",
     "packageManager": "pnpm@10.12.1",
     "dependencies": {
+        "@types/lodash-es": "^4.17.12",
         "any-ascii": "^0.3.3",
+        "lodash-es": "^4.17.21",
         "transliteration": "^2.3.5"
     }
 }

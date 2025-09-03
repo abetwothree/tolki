@@ -1,6 +1,7 @@
 import { Stringable } from "./Stringable.js";
 import { transliterate } from "transliteration";
 import anyAscii from "any-ascii";
+import { ConvertCase, type ConvertCaseMode, CaseTypes } from "./ConvertCase.js";
 
 export class Str {
     private static $camelCache = new Map<string, string>();
@@ -297,5 +298,16 @@ export class Str {
         ignoreCase = false,
     ): boolean {
         return !Str.contains(haystack, needles, ignoreCase);
+    }
+
+    /**
+     * Convert the case of a string.
+     *
+     * @example
+     *
+     * Str.convertCase('hello', CaseTypes.upper) returns 'HELLO'
+     */
+    static convertCase(value: string, mode: ConvertCaseMode = CaseTypes.fold) {
+        return new ConvertCase(value, mode).convert();
     }
 }

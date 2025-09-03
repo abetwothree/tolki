@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Str, Stringable } from "@laravel-js-support/str";
+import { Str, Stringable, CaseTypes } from "@laravel-js-support/str";
 
 describe("Str tests", () => {
     it("of tests", () => {
@@ -258,4 +258,19 @@ describe("Str tests", () => {
             );
         });
     });
+
+    it('convert case tests', () => {
+        expect(Str.convertCase("hello", CaseTypes.upper)).toBe("HELLO");
+        expect(Str.convertCase("WORLD", CaseTypes.lower)).toBe("world");
+        expect(Str.convertCase("HeLLo", CaseTypes.fold)).toBe("hello");
+        expect(Str.convertCase("WoRLD", CaseTypes.fold)).toBe("world");
+        expect(Str.convertCase("üöä", CaseTypes.upper)).toBe("ÜÖÄ");
+        expect(Str.convertCase("ÜÖÄ", CaseTypes.lower)).toBe("üöä");
+        expect(Str.convertCase("hello world", CaseTypes.title)).toBe("Hello world");
+        expect(Str.convertCase("Hello World", CaseTypes.title)).toBe("Hello World");
+        expect(Str.convertCase("hello-world_test", CaseTypes.simple)).toBe("hello world test");
+        expect(Str.convertCase("hello-world_test", CaseTypes.lower_simple)).toBe("hello world test");
+        expect(Str.convertCase("hello-world_test", CaseTypes.title_simple)).toBe("Hello World Test");
+        expect(Str.convertCase("hello-world_test", CaseTypes.fold_simple)).toBe("hello world test");
+    })
 });
