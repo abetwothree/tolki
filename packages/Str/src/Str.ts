@@ -374,13 +374,24 @@ export class Str {
     /**
      * Cap a string with a single instance of a given value.
      *
-     * @param  string  $value
-     * @param  string  $cap
-     * @return string
+     * @example
+     *
+     * Str.finish('hello', '!') returns 'hello!'
      */
     static finish(value: string, cap: string): string {
         const quoted = cap.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
         return value.replace(new RegExp(`(?:${quoted})+$`, "u"), "") + cap;
+    }
+
+     /**
+     * Wrap the string with the given strings.
+     *
+     * @example
+     *
+     * Str.wrap('hello', '[', ']') returns '[hello]'
+     */
+    static wrap(value: string, before: string, after: string | null = null): string {
+        return before + value + (after ?? before);
     }
 }

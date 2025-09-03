@@ -307,4 +307,9 @@ describe("Str tests", () => {
         expect(Str.finish("abbcbc", "bc")).toBe("abbc");
         expect(Str.finish("abcbbcbc", "bc")).toBe("abcbbc");
     });
+
+    it('wrap tests', () => {
+        expect(Str.wrap('value', '"')).toBe('"value"');
+        expect(Str.wrap('-bar-', 'foo', 'baz')).toBe('foo-bar-baz');
+    })
 });
