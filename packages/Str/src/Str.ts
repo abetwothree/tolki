@@ -2,7 +2,7 @@ import { Stringable } from "./Stringable.js";
 import { transliterate } from "transliteration";
 import anyAscii from "any-ascii";
 import { ConvertCase, type ConvertCaseMode, CaseTypes } from "./ConvertCase.js";
-import { max, toLower } from "lodash-es";
+import { max, toLower, isString } from "lodash-es";
 
 export class Str {
     private static $camelCache = new Map<string, string>();
@@ -486,5 +486,26 @@ export class Str {
      */
     static isAscii(value: string): boolean {
         return /^[\x00-\x7F]*$/.test(value);
+    }
+
+    /**
+     * Determine if a given value is valid JSON.
+     *
+     * @param  mixed  $value
+     * @return bool
+     */
+    static isJson(value: unknown): boolean
+    {
+        if (! isString(value)) {
+            return false;
+        }
+
+        try {
+            JSON.parse(value as string);
+        } catch {
+            return false;
+        }
+
+        return true;
     }
 }

@@ -367,4 +367,21 @@ describe("Str tests", () => {
         expect(Str.isAscii("!@#$%")).toBe(true);
         expect(Str.isAscii("Hello こんにちは")).toBe(false);
     });
+
+    it('isJson', () => {
+        expect(Str.isJson('1')).toBe(true);
+        expect(Str.isJson('[1,2,3]')).toBe(true);
+        expect(Str.isJson('[1,   2,   3]')).toBe(true);
+        expect(Str.isJson('{"first": "John", "last": "Doe"}')).toBe(true);
+        expect(Str.isJson('[{"first": "John", "last": "Doe"}, {"first": "Jane", "last": "Doe"}]')).toBe(true);
+
+        expect(Str.isJson('1,')).toBe(false);
+        expect(Str.isJson('[1,2,3')).toBe(false);
+        expect(Str.isJson('[1,   2   3]')).toBe(false);
+        expect(Str.isJson('{first: "John"}')).toBe(false);
+        expect(Str.isJson('[{first: "John"}, {first: "Jane"}]')).toBe(false);
+        expect(Str.isJson('')).toBe(false);
+        expect(Str.isJson(null)).toBe(false);
+        expect(Str.isJson([])).toBe(false);
+    });
 });
