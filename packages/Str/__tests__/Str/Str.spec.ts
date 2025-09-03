@@ -463,4 +463,49 @@ describe("Str tests", () => {
         expect(Str.isUrl("http://localhost")).toBe(true);
         expect(Str.isUrl("invalid url")).toBe(false);
     });
+
+    it("isUuid", () => {
+        const data = [
+            ["a0a2a2d2-0b87-4a18-83f2-2529882be2de"],
+            ["145a1e72-d11d-11e8-a8d5-f2801f1b9fd1"],
+            ["00000000-0000-0000-0000-000000000000"],
+            ["e60d3f48-95d7-4d8d-aad0-856f29a27da2"],
+            ["ff6f8cb0-c57d-11e1-9b21-0800200c9a66"],
+            ["ff6f8cb0-c57d-21e1-9b21-0800200c9a66"],
+            ["ff6f8cb0-c57d-31e1-9b21-0800200c9a66"],
+            ["ff6f8cb0-c57d-41e1-9b21-0800200c9a66"],
+            ["ff6f8cb0-c57d-51e1-9b21-0800200c9a66"],
+            ["FF6F8CB0-C57D-11E1-9B21-0800200C9A66"],
+        ];
+
+        data.forEach(([uuid]) => {
+            expect(Str.isUuid(uuid)).toBe(true);
+        });
+
+        expect(Str.isUuid("123e4567-e89b-12d3-a456-426614174000")).toBe(true);
+        expect(Str.isUuid("123e4567-e89b-12d3-a456-426614174000", 1)).toBe(
+            true,
+        );
+        expect(Str.isUuid("123e4567-e89b-12d3-a456-426614174000", 0)).toBe(
+            false,
+        );
+        expect(Str.isUuid("123e4567-e89b-12d3-a456-426614174000", 10)).toBe(
+            false,
+        );
+        expect(Str.isUuid("6ec0bd7f-11c0-43da-975e-2a8ad9ebae0b", 4)).toBe(
+            true,
+        );
+        expect(Str.isUuid("123e4567-e89b-12d3-a456-426614174000", 5)).toBe(
+            false,
+        );
+        expect(Str.isUuid("00000000-0000-0000-0000-000000000000", "nil")).toBe(
+            true,
+        );
+        expect(Str.isUuid("ffffffff-ffff-ffff-ffff-ffffffffffff", "max")).toBe(
+            true,
+        );
+        expect(Str.isUuid("invalid-uuid")).toBe(false);
+        expect(Str.isUuid("invalid-uuid", 7)).toBe(false);
+        expect(Str.isUuid(4746392, 7)).toBe(false);
+    });
 });

@@ -3,6 +3,12 @@ import { transliterate } from "transliteration";
 import anyAscii from "any-ascii";
 import { ConvertCase, type ConvertCaseMode, CaseTypes } from "./ConvertCase.js";
 import { toLower, isString, isEmpty } from "lodash-es";
+import {
+    validate as uuidValidate,
+    version as uuidVersion,
+    NIL as UUID_NIL,
+    MAX as UUID_MAX,
+} from "uuid";
 
 export class Str {
     private static $camelCache = new Map<string, string>();
@@ -564,7 +570,7 @@ export class Str {
      * Determine if a given value is a valid URL.
      *
      * @example
-     * 
+     *
      * Str.isUrl('https://laravel.com'); returns true
      * Str.isUrl('http://localhost'); returns true
      * Str.isUrl('invalid url'); returns false
@@ -624,5 +630,52 @@ export class Str {
         } catch {
             return false;
         }
+    }
+
+    /**
+     * Determine if a given value is a valid UUID.
+     *
+     * @example
+     *
+     * Str.isUuid("550e8400-e29b-41d4-a716-446655440000", 4); // true
+     * Str.isUuid("550e8400-e29b-41d4-a716-446655440000", 5); // false
+     */
+    static isUuid(
+        value: string | unknown,
+        version: number | "nil" | "max" | null = null,
+    ): boolean {
+        if (!isString(value)) {
+            return false;
+        }
+
+        // Quick fail if not a valid UUID at all when version is specified (or will be needed).
+        // When version is null we keep Laravel's looser regex behavior (already close to validate())
+        if (version !== null && !uuidValidate(value)) {
+            return false;
+        }
+
+        if (version === null) {
+            // Keep original regex (Laravels simple UUID format check) instead of uuidValidate for parity
+            return /^[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}$/.test(
+                value,
+            );
+        }
+
+        // Normalize special versions
+        if (version === 0 || version === "nil") {
+            return value.toLowerCase() === UUID_NIL;
+        }
+
+        if (version === "max") {
+            return value.toLowerCase() === UUID_MAX;
+        }
+
+        // Numeric version bounds (Laravel supports 1..8 currently). Reject out of range.
+        if (version < 1 || version > 8) {
+            return false;
+        }
+
+        // Ensure it's a valid UUID string (already validated above for non-null) and compare versions.
+        return uuidVersion(value) === version;
     }
 }
