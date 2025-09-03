@@ -569,7 +569,7 @@ export class Str {
      * Str.isUrl('http://localhost'); returns true
      * Str.isUrl('invalid url'); returns false
      */
-    static isUrl(value: string, protocols: string[] = []): boolean {
+    static isUrl(value: string | unknown, protocols: string[] = []): boolean {
         if (!isString(value)) {
             return false;
         }

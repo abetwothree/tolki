@@ -457,7 +457,9 @@ describe("Str tests", () => {
     });
 
     it("isUrl", () => {
+        expect(Str.isUrl(789)).toBe(false);
         expect(Str.isUrl("https://laravel.com")).toBe(true);
+        expect(Str.isUrl("https://laravel.com", ["http", "https"])).toBe(true);
         expect(Str.isUrl("http://localhost")).toBe(true);
         expect(Str.isUrl("invalid url")).toBe(false);
     });
