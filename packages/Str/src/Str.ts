@@ -2,6 +2,7 @@ import { Stringable } from "./Stringable.js";
 import { transliterate } from "transliteration";
 import anyAscii from "any-ascii";
 import { ConvertCase, type ConvertCaseMode, CaseTypes } from "./ConvertCase.js";
+import { max } from "lodash-es";
 
 export class Str {
     private static $camelCache = new Map<string, string>();
@@ -330,5 +331,40 @@ export class Str {
         }
 
         return value.replace(new RegExp(`${character}+`, "g"), character);
+    }
+
+    /**
+     * Extracts an excerpt from text that matches the first instance of a phrase.
+     *
+     * @example 
+     */
+    static excerpt(text: string, phrase: string = '', options: Record<string, any> = {}): string | null
+    {
+        const radius = options['radius'] ?? 100;
+        const omission = options['omission'] ?? '...';
+
+        const matches = text.match(/^(.*?)(\$\{phrase\})(.*)$/iu);
+
+        if (!matches) {
+            return null;
+        }
+
+        const start = matches[1]?.trim();
+
+        // TODO
+
+        // start = Str.of(start, max(start?.length - radius, 0), radius.length)->ltrim()->unless(
+        //     (startWithRadius) => startWithRadius.exactly(start),
+        //     (startWithRadius) => startWithRadius.prepend(omission),
+        // );
+
+        // const end = rtrim(matches[3]);
+
+        // end = Str.of(mb_substr(end, 0, radius, 'UTF-8'))->rtrim()->unless(
+        //     (endWithRadius) => endWithRadius.exactly(end),
+        //     (endWithRadius) => endWithRadius.append(omission),
+        // );
+
+        // return start.append(matches[2], end).toString();
     }
 }
