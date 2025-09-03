@@ -476,6 +476,13 @@ export class Str {
     /**
      * Determine if a given string is 7 bit ASCII.
      *
+     * @example
+     * 
+     * Str.isAscii("Hello World") returns true
+     * Str.isAscii("こんにちは") returns false
+     * Str.isAscii("12345") returns true
+     * Str.isAscii("!@#$%") returns true
+     * Str.isAscii("Hello こんにちは") returns false
      */
     static isAscii(value: string): boolean {
         return /^[\x00-\x7F]*$/.test(value);
