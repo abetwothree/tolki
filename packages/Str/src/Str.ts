@@ -384,14 +384,18 @@ export class Str {
         return value.replace(new RegExp(`(?:${quoted})+$`, "u"), "") + cap;
     }
 
-     /**
+    /**
      * Wrap the string with the given strings.
      *
      * @example
      *
      * Str.wrap('hello', '[', ']') returns '[hello]'
      */
-    static wrap(value: string, before: string, after: string | null = null): string {
+    static wrap(
+        value: string,
+        before: string,
+        after: string | null = null,
+    ): string {
         return before + value + (after ?? before);
     }
 }
