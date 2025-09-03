@@ -22,7 +22,7 @@ export class Str {
      *
      * @example
      *
-     * Str.after('A house on a lake', 'house ') returns 'on a lake'
+     * Str.after('A house on a lake', 'house '); // -> 'on a lake'
      */
     static after(subject: string, search: string | number): string {
         if (search === "") {
@@ -44,7 +44,7 @@ export class Str {
      *
      * @example
      *
-     * Str.afterLast('A house on a lake', 'a') returns ' lake'
+     * Str.afterLast('A house on a lake', 'a'); // -> ' lake'
      */
     static afterLast(subject: string, search: string | number): string {
         if (search === "") {
@@ -65,7 +65,7 @@ export class Str {
      *
      * @example
      *
-     * Str.ascii('Héllo Wörld') returns 'Hello World'
+     * Str.ascii('Héllo Wörld'); // -> 'Hello World'
      */
     static ascii(value: string): string {
         return transliterate(value);
@@ -76,7 +76,7 @@ export class Str {
      *
      * @example
      *
-     * Str.transliterate('ⓣⓔⓢⓣ@ⓛⓐⓡⓐⓥⓔⓛ.ⓒⓞⓜ') returns 'test@laravel.com'
+     * Str.transliterate('ⓣⓔⓢⓣ@ⓛⓐⓡⓐⓥⓔⓛ.ⓒⓞⓜ'); // -> 'test@laravel.com'
      */
     static transliterate(value: string): string {
         return anyAscii(value);
@@ -87,7 +87,7 @@ export class Str {
      *
      * @example
      *
-     * Str.before('hannah', 'nah') returns 'han'
+     * Str.before('hannah', 'nah'); // -> 'han'
      */
     static before(subject: string, search: string | number): string {
         if (search === "") {
@@ -104,7 +104,7 @@ export class Str {
      *
      * @example
      *
-     * Str.beforeLast('yvette', 'tte') returns 'yve'
+     * Str.beforeLast('yvette', 'tte'); // -> 'yve'
      */
     static beforeLast(subject: string, search: string | number): string {
         if (search === "") {
@@ -125,7 +125,7 @@ export class Str {
      *
      * @example
      *
-     * Str.between('foofoobar', 'foo', 'bar') returns 'foo'
+     * Str.between('foofoobar', 'foo', 'bar'); // -> 'foo'
      */
     static between(
         subject: string,
@@ -144,7 +144,7 @@ export class Str {
      *
      * @example
      *
-     * Str.betweenFirst('foofoobar', 'foo', 'bar') returns 'foo'
+     * Str.betweenFirst('foofoobar', 'foo', 'bar'); // -> 'foo'
      */
     static betweenFirst(
         subject: string,
@@ -163,7 +163,7 @@ export class Str {
      *
      * @example
      *
-     * Str.camel('foo_bar') returns 'fooBar'
+     * Str.camel('foo_bar'); // -> 'fooBar'
      */
     static camel(value: string): string {
         if (this.$camelCache.has(value)) {
@@ -179,7 +179,7 @@ export class Str {
      *
      * @example
      *
-     * Str.charAt('hello', 1) returns 'e'
+     * Str.charAt('hello', 1); // -> 'e'
      */
     static charAt(subject: string, index: number): string | false {
         const length = subject.length;
@@ -201,7 +201,7 @@ export class Str {
      *
      * @example
      *
-     * Str.chopStart('foobar', 'foo') returns 'bar'
+     * Str.chopStart('foobar', 'foo'); // -> 'bar'
      */
     static chopStart(subject: string, needle: string | string[]): string {
         for (const n of Array.isArray(needle) ? needle : [needle]) {
@@ -218,7 +218,7 @@ export class Str {
      *
      * @example
      *
-     * Str.chopEnd('foobar', 'bar') returns 'foo'
+     * Str.chopEnd('foobar', 'bar'); // -> 'foo'
      */
     static chopEnd(subject: string, needle: string | string[]): string {
         for (const n of Array.isArray(needle) ? needle : [needle]) {
@@ -235,9 +235,9 @@ export class Str {
      *
      * @example
      *
-     * Str.contains('Minion', 'ni') returns true
-     * Str.contains('Minion', 'Ni', true) returns true
-     * Str.contains('Minion', 'Ni', false) returns false
+     * Str.contains('Minion', 'ni'); // -> true
+     * Str.contains('Minion', 'Ni', true); // -> true
+     * Str.contains('Minion', 'Ni', false); // -> false
      */
     static contains(
         haystack: string,
@@ -273,8 +273,8 @@ export class Str {
      *
      * @example
      *
-     * Str.containsAll('Taylor Otwell', ['taylor', 'otwell'], false) returns true
-     * Str.containsAll('Taylor Otwell', ['taylor', 'xxx'], true) returns false
+     * Str.containsAll('Taylor Otwell', ['taylor', 'otwell'], false); // -> true
+     * Str.containsAll('Taylor Otwell', ['taylor', 'xxx'], true); // -> false
      */
     static containsAll(
         haystack: string,
@@ -295,9 +295,9 @@ export class Str {
      *
      * @example
      *
-     * Str.doesntContain('Minion', 'ni') returns false
-     * Str.doesntContain('Minion', 'Ni', true) returns false
-     * Str.doesntContain('Minion', 'Ni', false) returns true
+     * Str.doesntContain('Minion', 'ni'); // -> false
+     * Str.doesntContain('Minion', 'Ni', true); // -> false
+     * Str.doesntContain('Minion', 'Ni', false); // -> true
      */
     static doesntContain(
         haystack: string,
@@ -312,7 +312,7 @@ export class Str {
      *
      * @example
      *
-     * Str.convertCase('hello', CaseTypes.upper) returns 'HELLO'
+     * Str.convertCase('hello', CaseTypes.upper); // -> 'HELLO'
      */
     static convertCase(value: string, mode: ConvertCaseMode = CaseTypes.fold) {
         return new ConvertCase(value, mode).convert();
@@ -323,10 +323,10 @@ export class Str {
      *
      * @example
      *
-     * Str.deduplicate('hello  world') returns 'hello world'
-     * Str.deduplicate('hello---world', '-') returns 'hello-world'
-     * Str.deduplicate('hello___world', '_') returns 'hello-world'
-     * Str.deduplicate('hello  world', ' ') returns 'hello world'
+     * Str.deduplicate('hello  world'); // -> 'hello world'
+     * Str.deduplicate('hello---world', '-'); // -> 'hello-world'
+     * Str.deduplicate('hello___world', '_'); // -> 'hello-world'
+     * Str.deduplicate('hello  world', ' '); // -> 'hello world'
      */
     static deduplicate(value: string, character: string | string[] = " ") {
         if (Array.isArray(character)) {
@@ -344,8 +344,8 @@ export class Str {
      *
      * @example
      *
-     * Str.endsWith("Jason", "on") returns true
-     * Str.endsWith("Jason", "ON") returns false
+     * Str.endsWith("Jason", "on"); // -> true
+     * Str.endsWith("Jason", "ON"); // -> false
      */
     static endsWith(
         haystack: string | number | null,
@@ -377,8 +377,8 @@ export class Str {
      *
      * @example
      *
-     * Str.doesntEndWith("Jason", "on") returns false
-     * Str.doesntEndWith("Jason", "ON") returns true
+     * Str.doesntEndWith("Jason", "on"); // -> false
+     * Str.doesntEndWith("Jason", "ON"); // -> true
      */
     static doesntEndWith(
         haystack: string | number | null,
@@ -430,7 +430,7 @@ export class Str {
      *
      * @example
      *
-     * Str.finish('hello', '!') returns 'hello!'
+     * Str.finish('hello', '!'); // -> 'hello!'
      */
     static finish(value: string, cap: string): string {
         const quoted = cap.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -443,7 +443,7 @@ export class Str {
      *
      * @example
      *
-     * Str.wrap('hello', '[', ']') returns '[hello]'
+     * Str.wrap('hello', '[', ']'); // -> '[hello]'
      */
     static wrap(
         value: string,
@@ -458,7 +458,7 @@ export class Str {
      *
      * @example
      *
-     * Str.unwrap('[hello]', '[', ']') returns 'hello'
+     * Str.unwrap('[hello]', '[', ']'); // -> 'hello'
      */
     static unwrap(
         value: string,
@@ -480,9 +480,9 @@ export class Str {
      *
      * @example
      *
-     * Str.is('hello', 'hello') returns true
-     * Str.is('hello', 'Hello', true) returns true
-     * Str.is('hello', 'world') returns false
+     * Str.is('hello', 'hello'); // -> true
+     * Str.is('hello', 'Hello', true); // -> true
+     * Str.is('hello', 'world'); // -> false
      */
     static is(
         pattern: string | Iterable<string>,
@@ -536,11 +536,11 @@ export class Str {
      *
      * @example
      *
-     * Str.isAscii("Hello World") returns true
-     * Str.isAscii("こんにちは") returns false
-     * Str.isAscii("12345") returns true
-     * Str.isAscii("!@#$%") returns true
-     * Str.isAscii("Hello こんにちは") returns false
+     * Str.isAscii("Hello World"); // -> true
+     * Str.isAscii("こんにちは"); // -> false
+     * Str.isAscii("12345"); // -> true
+     * Str.isAscii("!@#$%"); // -> true
+     * Str.isAscii("Hello こんにちは"); // -> false
      */
     static isAscii(value: string): boolean {
         return /^[\x00-\x7F]*$/.test(value);
@@ -549,8 +549,11 @@ export class Str {
     /**
      * Determine if a given value is valid JSON.
      *
-     * @param  mixed  $value
-     * @return bool
+     * @example
+     * 
+     * Str.isJson('{"name": "John", "age": 30}'); // -> true
+     * Str.isJson('{"name": "John", "age": 30'); // -> false
+     * Str.isJson('Hello World'); // -> false
      */
     static isJson(value: unknown): boolean {
         if (!isString(value)) {
@@ -571,9 +574,9 @@ export class Str {
      *
      * @example
      *
-     * Str.isUrl('https://laravel.com'); returns true
-     * Str.isUrl('http://localhost'); returns true
-     * Str.isUrl('invalid url'); returns false
+     * Str.isUrl('https://laravel.com'); // -> true
+     * Str.isUrl('http://localhost'); // -> true
+     * Str.isUrl('invalid url'); // -> false
      */
     static isUrl(value: string | unknown, protocols: string[] = []): boolean {
         if (!isString(value)) {
@@ -637,8 +640,8 @@ export class Str {
      *
      * @example
      *
-     * Str.isUuid("550e8400-e29b-41d4-a716-446655440000", 4); // true
-     * Str.isUuid("550e8400-e29b-41d4-a716-446655440000", 5); // false
+     * Str.isUuid("550e8400-e29b-41d4-a716-446655440000", 4); // -> true
+     * Str.isUuid("550e8400-e29b-41d4-a716-446655440000", 5); // -> false
      */
     static isUuid(
         value: string | unknown,
