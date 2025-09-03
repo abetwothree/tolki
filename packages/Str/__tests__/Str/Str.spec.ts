@@ -3,11 +3,11 @@ import { Str, Stringable, CaseTypes } from "@laravel-js-support/str";
 
 describe("Str tests", () => {
 
-    it("of tests", () => {
+    it("of", () => {
         expect(Str.of("ééé hannah")).toBeInstanceOf(Stringable);
     });
 
-    it("after tests", () => {
+    it("after", () => {
         expect(Str.after("hannah", "han")).toBe("nah");
         expect(Str.after("hannah", "n")).toBe("nah");
         expect(Str.after("ééé hannah", "han")).toBe("nah");
@@ -18,7 +18,7 @@ describe("Str tests", () => {
         expect(Str.after("han2nah", 2)).toBe("nah");
     });
 
-    it("afterLast tests", () => {
+    it("afterLast", () => {
         expect(Str.afterLast("yvette", "yve")).toBe("tte");
         expect(Str.afterLast("yvette", "t")).toBe("e");
         expect(Str.afterLast("ééé yvette", "t")).toBe("e");
@@ -31,7 +31,7 @@ describe("Str tests", () => {
         expect(Str.afterLast("----foo", "---")).toBe("foo");
     });
 
-    it("ascii tests", () => {
+    it("ascii", () => {
         expect(Str.ascii("@")).toBe("@");
         expect(Str.ascii("ü")).toBe("u");
         expect(Str.ascii("")).toBe("");
@@ -46,7 +46,7 @@ describe("Str tests", () => {
         expect(Str.ascii("Straße")).toBe("Strasse");
     });
 
-    it("transliterate tests", () => {
+    it("transliterate", () => {
         const data: [string, string][] = [
             ["ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ", "abcdefghijklmnopqrstuvwxyz"],
             ["⓪①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳", "01234567891011121314151617181920"],
@@ -63,7 +63,7 @@ describe("Str tests", () => {
         });
     });
 
-    it("before tests", () => {
+    it("before", () => {
         expect(Str.before("hannah", "nah")).toBe("han");
         expect(Str.before("hannah", "n")).toBe("ha");
         expect(Str.before("ééé hannah", "han")).toBe("ééé ");
@@ -80,7 +80,7 @@ describe("Str tests", () => {
         expect(Str.before("@foo@bar.com", "@")).toBe("");
     });
 
-    it("before last tests", () => {
+    it("beforeLast", () => {
         expect(Str.beforeLast("yvette", "tte")).toBe("yve");
         expect(Str.beforeLast("yvette", "t")).toBe("yvet");
         expect(Str.beforeLast("ééé yvette", "yve")).toBe("ééé ");
@@ -96,7 +96,7 @@ describe("Str tests", () => {
         expect(Str.beforeLast("yvette\tyv0et0te", "\t")).toBe("yvette");
     });
 
-    it("between tests", () => {
+    it("between", () => {
         expect(Str.between("abc", "", "c")).toBe("abc");
         expect(Str.between("abc", "a", "")).toBe("abc");
         expect(Str.between("abc", "", "")).toBe("abc");
@@ -113,7 +113,7 @@ describe("Str tests", () => {
         expect(Str.between("nothing", "foo", "bar")).toBe("nothing");
     });
 
-    it("between first tests", () => {
+    it("betweenFirst", () => {
         expect(Str.betweenFirst("abc", "", "c")).toBe("abc");
         expect(Str.betweenFirst("abc", "a", "")).toBe("abc");
         expect(Str.betweenFirst("abc", "", "")).toBe("abc");
@@ -127,7 +127,7 @@ describe("Str tests", () => {
         expect(Str.betweenFirst("foobarbar", "foo", "bar")).toBe("");
     });
 
-    it.skip("camel tests", () => {
+    it.skip("camel", () => {
         expect(Str.camel("Laravel_p_h_p_framework")).toBe(
             "laravelPHPFramework",
         );
@@ -153,7 +153,7 @@ describe("Str tests", () => {
         expect(Str.camel("1 foo bar")).toBe("1FooBar");
     });
 
-    it("char at tests", () => {
+    it("charAt", () => {
         expect(Str.charAt("Привет, мир!", 1)).toBe("р");
         expect(Str.charAt("「こんにちは世界」", 4)).toBe("ち");
         expect(Str.charAt("Привет, world!", 8)).toBe("w");
@@ -162,7 +162,7 @@ describe("Str tests", () => {
         expect(Str.charAt("Привет, мир!", 100)).toBe(false);
     });
 
-    it("chop start tests", () => {
+    it("chopStart", () => {
         const data: [string, string | string[], string][] = [
             ["http://laravel.com", "http://", "laravel.com"],
             ["http://-http://", "http://", "-http://"],
@@ -181,7 +181,7 @@ describe("Str tests", () => {
         });
     });
 
-    it("chop end tests", () => {
+    it("chopEnd", () => {
         const data: [string, string | string[], string][] = [
             ["path/to/file.php", ".php", "path/to/file"],
             [".php-.php", ".php", ".php-"],
@@ -200,7 +200,7 @@ describe("Str tests", () => {
         });
     });
 
-    it("contain tests", () => {
+    it("contains", () => {
         const data: [string, string | Iterable<string>, boolean, boolean][] = [
             ["Taylor", "ylo", true, true],
             ["Taylor", "ylo", false, true],
@@ -222,7 +222,7 @@ describe("Str tests", () => {
         });
     });
 
-    it("contains all tests", () => {
+    it("containsAll", () => {
         const data: [string, Iterable<string>, boolean, boolean][] = [
             ["Taylor Otwell", ["taylor", "otwell"], false, false],
             ["Taylor Otwell", ["taylor", "otwell"], true, true],
@@ -239,7 +239,7 @@ describe("Str tests", () => {
         });
     });
 
-    it("doesn't contain tests", () => {
+    it("doesntContain", () => {
         const data: [string, string | Iterable<string>, boolean, boolean][] = [
             ["Tar", "ylo", true, true],
             ["Tar", "ylo", false, true],
@@ -260,7 +260,7 @@ describe("Str tests", () => {
         });
     });
 
-    it("convert case tests", () => {
+    it("convertCase", () => {
         expect(Str.convertCase("hello", CaseTypes.upper)).toBe("HELLO");
         expect(Str.convertCase("WORLD", CaseTypes.lower)).toBe("world");
         expect(Str.convertCase("HeLLo", CaseTypes.fold)).toBe("hello");
@@ -287,7 +287,7 @@ describe("Str tests", () => {
         );
     });
 
-    it("deduplicate tests", () => {
+    it("deduplicate", () => {
         expect(Str.deduplicate(" laravel   php  framework ")).toBe(
             " laravel php framework ",
         );
@@ -301,22 +301,22 @@ describe("Str tests", () => {
         ).toBe(" laravel forever ");
     });
 
-    it.skip("excerpt tests", () => {});
+    it.skip("excerpt", () => { });
 
-    it("finish tests", () => {
+    it("finish", () => {
         expect(Str.finish("ab", "bc")).toBe("abbc");
         expect(Str.finish("abbcbc", "bc")).toBe("abbc");
         expect(Str.finish("abcbbcbc", "bc")).toBe("abcbbc");
     });
 
-    it("wrap tests", () => {
+    it("wrap", () => {
         expect(Str.wrap("value", '"')).toBe('"value"');
         expect(Str.wrap("-bar-", "foo", "baz")).toBe("foo-bar-baz");
     });
 
-    it.skip("unwrap tests", () => { });
+    it.skip("unwrap", () => { });
     
-    it("is tests", () => {
+    it("is", () => {
         expect(Str.is('/', '/')).toBe(true);
         expect(Str.is('/', ' /')).toBe(false);
         expect(Str.is('/', '/a')).toBe(false);
@@ -358,5 +358,13 @@ describe("Str tests", () => {
         expect(Str.is([null], 0)).toBe(false);
         // @ts-expect-error expect bad parameter type
         expect(Str.is([null], null)).toBe(true);
+    });
+
+    it("isAscii", () => {
+        expect(Str.isAscii("Hello World")).toBe(true);
+        expect(Str.isAscii("こんにちは")).toBe(false);
+        expect(Str.isAscii("12345")).toBe(true);
+        expect(Str.isAscii("!@#$%")).toBe(true);
+        expect(Str.isAscii("Hello こんにちは")).toBe(false);
     });
 });

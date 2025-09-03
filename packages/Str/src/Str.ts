@@ -472,4 +472,12 @@ export class Str {
 
         return false;
     }
+
+    /**
+     * Determine if a given string is 7 bit ASCII.
+     *
+     */
+    static isAscii(value: string): boolean {
+        return /^[\x00-\x7F]*$/.test(value);
+    }
 }
