@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Str, Stringable, CaseTypes } from "@laravel-js-support/str";
 
 describe("Str tests", () => {
+
     it("of tests", () => {
         expect(Str.of("ééé hannah")).toBeInstanceOf(Stringable);
     });
@@ -311,5 +312,51 @@ describe("Str tests", () => {
     it("wrap tests", () => {
         expect(Str.wrap("value", '"')).toBe('"value"');
         expect(Str.wrap("-bar-", "foo", "baz")).toBe("foo-bar-baz");
+    });
+
+    it.skip("unwrap tests", () => { });
+    
+    it("is tests", () => {
+        expect(Str.is('/', '/')).toBe(true);
+        expect(Str.is('/', ' /')).toBe(false);
+        expect(Str.is('/', '/a')).toBe(false);
+        expect(Str.is('foo/*', 'foo/bar/baz')).toBe(true);
+
+        expect(Str.is('*@*', 'App\\Class@method')).toBe(true);
+        expect(Str.is('*@*', 'app\\Class@')).toBe(true);
+        expect(Str.is('*@*', '@method')).toBe(true);
+
+        // is case sensitive
+        expect(Str.is('*BAZ*', 'foo/bar/baz')).toBe(false);
+        expect(Str.is('*FOO*', 'foo/bar/baz')).toBe(false);
+        expect(Str.is('A', 'a')).toBe(false);
+
+        // is not case sensitive
+        expect(Str.is('A', 'a', true)).toBe(true);
+        expect(Str.is('*BAZ*', 'foo/bar/baz', true)).toBe(true);
+        expect(Str.is(['A*', 'B*'], 'a/', true)).toBe(true);
+        expect(Str.is(['A*', 'B*'], 'f/', true)).toBe(false);
+        expect(Str.is('FOO', 'foo', true)).toBe(true);
+        expect(Str.is('*FOO*', 'foo/bar/baz', true)).toBe(true);
+        expect(Str.is('foo/*', 'FOO/bar', true)).toBe(true);
+
+        // Accepts array of patterns
+        expect(Str.is(['a*', 'b*'], 'a/')).toBe(true);
+        expect(Str.is(['a*', 'b*'], 'b/')).toBe(true);
+        expect(Str.is(['a*', 'b*'], 'f/')).toBe(false);
+
+        // numeric values and patterns
+        expect(Str.is(['a*', 'b*'], 123)).toBe(false);
+        expect(Str.is(['*2*', 'b*'], 11211)).toBe(true);
+
+        expect(Str.is('*/foo', 'blah/baz/foo')).toBe(true);
+
+        expect(Str.is([], 'test')).toBe(false);
+
+        expect(Str.is('', 0)).toBe(false);
+        // @ts-expect-error expect bad parameter type
+        expect(Str.is([null], 0)).toBe(false);
+        // @ts-expect-error expect bad parameter type
+        expect(Str.is([null], null)).toBe(true);
     });
 });

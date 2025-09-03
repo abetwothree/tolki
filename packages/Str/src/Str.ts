@@ -2,7 +2,7 @@ import { Stringable } from "./Stringable.js";
 import { transliterate } from "transliteration";
 import anyAscii from "any-ascii";
 import { ConvertCase, type ConvertCaseMode, CaseTypes } from "./ConvertCase.js";
-import { max } from "lodash-es";
+import { max, toLower } from "lodash-es";
 
 export class Str {
     private static $camelCache = new Map<string, string>();
@@ -397,5 +397,79 @@ export class Str {
         after: string | null = null,
     ): string {
         return before + value + (after ?? before);
+    }
+
+    /**
+     * Unwrap the string with the given strings.
+     *
+     * @example
+     *
+     * Str.unwrap('[hello]', '[', ']') returns 'hello'
+     */
+    static unwrap(value: string, before: string, after: string | null = null): string
+    {
+        // TODO
+        // if (static::startsWith($value, $before)) {
+        //     $value = static::substr($value, static::length($before));
+        // }
+
+        // if (static::endsWith($value, $after ??= $before)) {
+        //     $value = static::substr($value, 0, -static::length($after));
+        // }
+
+        // return $value;
+    }
+
+    /**
+     * Determine if a given string matches a given pattern.
+     *
+     * @example
+     * 
+     * Str.is('hello', 'hello') returns true
+     * Str.is('hello', 'Hello', true) returns true
+     * Str.is('hello', 'world') returns false
+     */
+    static is(pattern: string | Iterable<string>, value: string | number, ignoreCase: boolean = false): boolean
+    {
+        value = String(value);
+
+        let patterns: string[];
+        if (typeof pattern === "string") {
+            patterns = [pattern];
+        } else {
+            patterns = Array.from(pattern);
+        }
+
+        for (let pattern of patterns) {
+            pattern = String(pattern);
+
+            // If the given value is an exact match we can of course return true right
+            // from the beginning. Otherwise, we will translate asterisks and do an
+            // actual pattern match against the two strings to see if they match.
+            if (pattern === value) {
+                return true;
+            }
+
+            if (ignoreCase && toLower(pattern) === toLower(value)) {
+                return true;
+            }
+
+            // Escape regex special characters in the pattern
+            pattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            // Asterisks are translated into zero-or-more regular expression wildcards
+            // to make it convenient to check if the strings starts with the given
+            // pattern such as "library/*", making any string check convenient.
+            pattern = pattern.replace(/\\\*/g, '.*');
+
+            const regexFlags = ignoreCase ? "iu" : "u";
+            // Use JavaScript end-of-string anchor ($) instead of PHP's \z
+            const regex = new RegExp(`^${pattern}$`, regexFlags);
+            if (regex.test(value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
