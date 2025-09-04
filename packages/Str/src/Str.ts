@@ -15,6 +15,8 @@ import {
     MAX as UUID_MAX,
 } from "uuid";
 import { ulid as createUlid } from "ulid";
+import { Pluralizer } from "./Pluralizer.js";
+import { Number } from "@laravel-js/number";
 
 export class Str {
     private static $camelCache = new Map<string, string>();
@@ -1159,6 +1161,25 @@ export class Str {
         const repeatTimes = Math.ceil(needed / padStr.length);
 
         return padStr.repeat(repeatTimes).slice(0, needed);
+    }
+
+    /**
+     * Get the plural form of an English word.
+     *
+     * @param  string  $value
+     * @param  int|array|\Countable  $count
+     * @param  bool  $prependCount
+     * @return string
+     */
+    static plural(
+        value: string,
+        count: number = 2,
+        prependCount: boolean = false,
+    ): string {
+        return (
+            (prependCount ? Number.format(count) + " " : "") +
+            Pluralizer.plural(value, count)
+        );
     }
 
     /**

@@ -19,12 +19,21 @@ importers:
       "@eslint/markdown":
         specifier: ^7.2.0
         version: 7.2.0
+      "@laravel-js/arr":
+        specifier: workspace:^
+        version: link:packages/Arr
       "@laravel-js/collections":
         specifier: workspace:^
         version: link:packages/Collections
+      "@laravel-js/number":
+        specifier: workspace:^
+        version: link:packages/Number
       "@laravel-js/str":
         specifier: workspace:^
         version: link:packages/Str
+      "@laravel-js/types":
+        specifier: workspace:^
+        version: link:packages/Types
       "@vitest/coverage-istanbul":
         specifier: 3.2.4
         version: 3.2.4(vitest@3.2.4(@types/debug@4.1.12)(jiti@2.5.1)(jsdom@26.1.0))
@@ -69,11 +78,16 @@ importers:
 
   packages/Collections: {}
 
+  packages/Number: {}
+
   packages/Str:
     dependencies:
       "@types/lodash-es":
         specifier: ^4.17.12
         version: 4.17.12
+      "@types/pluralize":
+        specifier: ^0.0.33
+        version: 0.0.33
       any-ascii:
         specifier: ^0.3.3
         version: 0.3.3
@@ -89,6 +103,9 @@ importers:
       markdown-it-task-lists:
         specifier: ^2.1.1
         version: 2.1.1
+      pluralize:
+        specifier: ^8.0.0
+        version: 8.0.0
       transliteration:
         specifier: ^2.3.5
         version: 2.3.5
@@ -1042,6 +1059,12 @@ packages:
     resolution:
       {
         integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==,
+      }
+
+  "@types/pluralize@0.0.33":
+    resolution:
+      {
+        integrity: sha512-JOqsl+ZoCpP4e8TDke9W79FDcSgPAR0l6pixx2JHkhnRjvShyYiAYw2LVsnA7K08Y6DeOnaU6ujmENO4os/cYg==,
       }
 
   "@types/unist@3.0.3":
@@ -2858,6 +2881,13 @@ packages:
         integrity: sha512-SIqCzDRg0s9npO5XQ3tNZioRY1uK06lA41ynBC1YmFTmnY6FjUjVt6s4LoADmwoig1qqD0oK8h1p/8mlMx8Oig==,
       }
 
+  pluralize@8.0.0:
+    resolution:
+      {
+        integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==,
+      }
+    engines: { node: ">=4" }
+
   postcss@8.5.6:
     resolution:
       {
@@ -4125,6 +4155,8 @@ snapshots:
 
   "@types/ms@2.1.0": {}
 
+  "@types/pluralize@0.0.33": {}
+
   "@types/unist@3.0.3": {}
 
   "@typescript-eslint/eslint-plugin@8.41.0(@typescript-eslint/parser@8.41.0(eslint@9.34.0(jiti@2.5.1))(typescript@5.9.2))(eslint@9.34.0(jiti@2.5.1))(typescript@5.9.2)":
@@ -5389,6 +5421,8 @@ snapshots:
       confbox: 0.2.2
       exsolve: 1.0.7
       pathe: 2.0.3
+
+  pluralize@8.0.0: {}
 
   postcss@8.5.6:
     dependencies:
