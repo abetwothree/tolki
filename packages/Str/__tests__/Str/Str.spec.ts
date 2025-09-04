@@ -126,11 +126,12 @@ describe("Str tests", () => {
         expect(Str.betweenFirst("foobarbar", "foo", "bar")).toBe("");
     });
 
-    it.skip("camel", () => {
+    it("camel", () => {
         expect(Str.camel("Laravel_p_h_p_framework")).toBe(
             "laravelPHPFramework",
         );
         expect(Str.camel("Laravel_php_framework")).toBe("laravelPhpFramework");
+        // Matches current camel implementation semantics (internal capitalization in segment retained)
         expect(Str.camel("Laravel-phP-framework")).toBe("laravelPhPFramework");
         expect(Str.camel("Laravel  -_-  php   -_-   framework   ")).toBe(
             "laravelPhpFramework",
@@ -368,7 +369,9 @@ describe("Str tests", () => {
         expect(Str.doesntEndWith("你好", "a")).toBe(true);
     });
 
-    it.skip("excerpt", () => {});
+    it("excerpt", () => {
+        expect(Str.excerpt("some text", "phrase")).toBeNull();
+    });
 
     it("finish", () => {
         expect(Str.finish("ab", "bc")).toBe("abbc");
@@ -381,7 +384,20 @@ describe("Str tests", () => {
         expect(Str.wrap("-bar-", "foo", "baz")).toBe("foo-bar-baz");
     });
 
-    it.skip("unwrap", () => {});
+    it("unwrap", () => {
+        expect(Str.unwrap("[hello]", "[", "]")).toBe("hello");
+        // unwrap only removes a single layer of the provided wrappers
+        expect(Str.unwrap("((value))", "(", ")")).toBe("(value)");
+        // Only a single leading/trailing wrapper removed; inner remains
+        expect(Str.unwrap("**bold**", "*")).toBe("*bold*");
+        expect(Str.unwrap("no-wrappers", "[", "]")).toBe("no-wrappers");
+        
+        expect(Str.unwrap('"value"', '"')).toBe('value');
+        expect(Str.unwrap('"value', '"')).toBe('value');
+        expect(Str.unwrap('value"', '"')).toBe('value');
+        expect(Str.unwrap('foo-bar-baz', 'foo-', '-baz')).toBe('bar');
+        expect(Str.unwrap('{some: "json"}', '{', '}')).toBe('some: "json"');
+    });
 
     it("is", () => {
         expect(Str.is("/", "/")).toBe(true);
@@ -521,10 +537,12 @@ describe("Str tests", () => {
         expect(Str.isUlid(4746392)).toBe(false);
     });
 
-    it.skip("kebab", () => {
+    it("kebab", () => {
         expect(Str.kebab("Laravel PHP Framework")).toBe(
             "laravel-php-framework",
         );
+        expect(Str.kebab("fooBarBaz")).toBe("foo-bar-baz");
+        expect(Str.kebab("Foo_Bar-Baz qux")).toBe("foo-bar-baz-qux");
     });
 
     it("length", () => {
@@ -806,6 +824,31 @@ describe("Str tests", () => {
         expect(Str.mask("maria@email.com", "*", -1)).toBe("maria@email.co*");
         expect(Str.mask("maria@email.com", "*", -15)).toBe("***************");
         expect(Str.mask("maria@email.com", "*", 0)).toBe("***************");
+    });
+
+    it("match", () => {
+        expect(Str.match("/bar/", "foo bar")).toBe("bar");
+        expect(Str.match("/foo (.*)/", "foo bar")).toBe("bar");
+        expect(Str.match("/foo \\(.\\*)$/", "foo bar")).toBe("");
+        expect(Str.match("/nothing/", "foo bar")).toBe("");
+        expect(Str.match("/pattern/", "")).toBe("");
+    });
+
+    it("matchAll", () => {
+        expect(Str.matchAll("/bar/", "bar foo bar")).toEqual([
+            "bar",
+            "bar",
+        ]);
+        expect(Str.matchAll("/f(\\w*)/", "bar fun bar fly")).toEqual([
+            "un",
+            "ly",
+        ]);
+        expect(Str.matchAll("/nothing/", "bar fun bar fly")).toEqual([]);
+        expect(Str.matchAll("/pattern/", "")).toEqual([]);
+        // invalid pattern returns empty
+        expect(Str.matchAll("*invalid", "text")).toEqual([]);
+        // zero-width match safety
+        expect(Str.matchAll("/^/m", "a\nb").length).toBeGreaterThan(0);
     });
 
     it("stripTags", () => {

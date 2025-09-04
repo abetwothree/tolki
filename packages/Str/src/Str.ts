@@ -176,15 +176,26 @@ export class Str {
             return this.$camelCache.get(value)!;
         }
 
-        // Basic implementation: normalize separators then camel-case.
-        const result = value
-            .trim()
+        // Insert spaces before existing camelCase boundaries to normalize words
+        const working = value
+            .replace(/([a-z\d])([A-Z])/g, "$1 $2")
             .replace(/[-_\s]+/g, " ")
-            .toLowerCase()
-            .replace(/(?:^|\s+)([a-z0-9])/g, (_m, c, offset) =>
-                offset === 0 ? c : c.toUpperCase(),
-            )
-            .replace(/\s+/g, "");
+            .trim();
+
+        if (working === "") {
+            this.$camelCache.set(value, "");
+            return "";
+        }
+
+        const parts = working.split(/\s+/);
+        const first = (parts[0] ?? "").toLowerCase();
+        const rest = parts.slice(1).map((w) => {
+            if (/^[A-Z]+$/.test(w) || /^[a-z]+$/.test(w)) {
+                return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+            }
+            return w.charAt(0).toUpperCase() + w.slice(1);
+        });
+        const result = [first, ...rest].join("");
 
         this.$camelCache.set(value, result);
         return result;
@@ -867,6 +878,127 @@ export class Str {
         const end = value.slice(startIndex + segmentLen);
 
         return start + character.slice(0, 1).repeat(segmentLen) + end;
+    }
+
+    /**
+     * Get the string matching the given pattern.
+     *
+     * @param  string  $pattern
+     * @param  string  $subject
+     * @return string
+     */
+    static match(pattern: string, subject: string): string {
+        // Emulate Laravel's Str::match behavior:
+        // - Accept PCRE-style patterns delimited with slashes (e.g. /foo (.*)/i)
+        // - Return the first captured group if it exists; otherwise the full match
+        // - Return empty string when there is no match or pattern invalid
+        let flags = "u"; // always use unicode like Laravel's 'u' modifier
+        let source = pattern;
+
+        if (pattern.length >= 2 && pattern[0] === "/") {
+            // Find the final unescaped delimiter '/'
+            let lastSlash = -1;
+            for (let i = pattern.length - 1; i > 0; i--) {
+                if (pattern[i] === "/") {
+                    // Count preceding backslashes to decide if this slash is escaped
+                    let backslashes = 0;
+                    for (let j = i - 1; j >= 0 && pattern[j] === "\\"; j--) {
+                        backslashes++;
+                    }
+                    if (backslashes % 2 === 0) {
+                        // even => not escaped
+                        lastSlash = i;
+                        break;
+                    }
+                }
+            }
+
+            if (lastSlash > 0) {
+                source = pattern.slice(1, lastSlash);
+                const providedFlags = pattern.slice(lastSlash + 1);
+                if (providedFlags) {
+                    // Allow only JS-supported safe flags (excluding 'g' since we only need first match)
+                    for (const f of providedFlags) {
+                        if (/[imsuy]/.test(f) && !flags.includes(f)) {
+                            flags += f;
+                        }
+                    }
+                }
+            }
+        }
+
+        try {
+            const regex = new RegExp(source, flags);
+            const matches = regex.exec(subject);
+            if (!matches) {
+                return "";
+            }
+            return matches[1] !== undefined ? matches[1] : matches[0];
+        } catch {
+            return ""; // On invalid pattern, stay silent and return empty string like Laravel's graceful failure intent
+        }
+    }
+
+     /**
+     * Get the string matching the given pattern.
+     *
+     * @example
+     * 
+     * Str.matchAll("/foo (.*)/", "foo bar baz"); // -> ["foo bar baz"]
+     */
+    static matchAll(pattern: string, subject: string): string[] {
+        let flags = "u"; // always unicode
+        let source = pattern;
+
+        if (pattern.length >= 2 && pattern[0] === "/") {
+            // Find last unescaped slash delimiter
+            let lastSlash = -1;
+            for (let i = pattern.length - 1; i > 0; i--) {
+                if (pattern[i] === "/") {
+                    let backslashes = 0;
+                    for (let j = i - 1; j >= 0 && pattern[j] === "\\"; j--) {
+                        backslashes++;
+                    }
+                    if (backslashes % 2 === 0) {
+                        lastSlash = i;
+                        break;
+                    }
+                }
+            }
+            if (lastSlash > 0) {
+                source = pattern.slice(1, lastSlash);
+                const providedFlags = pattern.slice(lastSlash + 1);
+                if (providedFlags) {
+                    for (const f of providedFlags) {
+                        if (/[imsuy]/.test(f) && !flags.includes(f)) {
+                            flags += f;
+                        }
+                    }
+                }
+            }
+        }
+
+        // We need global iteration, so ensure 'g'
+        if (!flags.includes("g")) {
+            flags += "g";
+        }
+
+        let results: string[] = [];
+        try {
+            const regex = new RegExp(source, flags);
+            let match: RegExpExecArray | null;
+            while ((match = regex.exec(subject)) !== null) {
+                results.push(match[1] !== undefined ? match[1] : match[0]);
+                // Safety: avoid infinite loops on zero-width matches
+                if (match[0] === "") {
+                    regex.lastIndex++;
+                }
+            }
+        } catch {
+            results = [];
+        }
+
+        return results;
     }
 
     /**

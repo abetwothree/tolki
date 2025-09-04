@@ -7,6 +7,7 @@ export default defineConfig({
         coverage: {
             provider: "istanbul",
             reporter: ["text", "json", "html", "lcov", "text-summary"],
+            exclude: ["**/dist/**", "**/node_modules/**"],
         },
         projects: ["packages/*"],
     },
