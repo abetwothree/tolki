@@ -939,7 +939,37 @@ export class Str {
         }
     }
 
-     /**
+    /**
+     * Determine if a given string matches a given pattern.
+     *
+     * @param  string|iterable<string>  $pattern
+     * @param  string  $value
+     * @return bool
+     */
+    static isMatch(pattern: string | Iterable<string>, value: string): boolean {
+        value = String(value);
+
+        if (!Array.isArray(pattern)) {
+            pattern = Array.from(pattern);
+        }
+
+        for (const p of pattern) {
+            const pStr = String(p);
+
+            try {
+                const regex = new RegExp(pStr, "u");
+                if (regex.test(value)) {
+                    return true;
+                }
+            } catch {
+                // ignore invalid regex patterns
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Get the string matching the given pattern.
      *
      * @example
