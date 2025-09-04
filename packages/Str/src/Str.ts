@@ -1,4 +1,4 @@
-import { MarkdownRenderer, type MarkDownOptions } from "./Markdown.js";
+import { MarkdownRenderer, type MarkDownOptions, type MarkDownExtensions } from "./Markdown.js";
 import { Stringable } from "./Stringable.js";
 import { transliterate } from "transliteration";
 import anyAscii from "any-ascii";
@@ -800,7 +800,7 @@ export class Str {
     static markdown(
         value: string,
         options: MarkDownOptions = { gfm: true, anchors: false },
-        extensions: any[] = [],
+        extensions: MarkDownExtensions = [],
     ): string {
         const md = new MarkdownRenderer(options, extensions).renderer();
         return md.render(value);
@@ -816,7 +816,7 @@ export class Str {
     static inlineMarkdown(
         value: string,
         options: MarkDownOptions = { gfm: true },
-        extensions: any[] = [],
+        extensions: MarkDownExtensions = [],
     ): string {
         const md = new MarkdownRenderer(options, extensions).renderer();
         return md.renderInline(value);

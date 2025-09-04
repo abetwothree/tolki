@@ -8,10 +8,12 @@ export interface MarkDownOptions extends MarkdownItOptions {
     typographer?: boolean;
 }
 
+export type MarkDownExtensions = unknown[];
+
 export class MarkdownRenderer {
     constructor(
         private options: MarkDownOptions = { gfm: true, anchors: false },
-        private extensions: any[] = [],
+        private extensions: MarkDownExtensions = [],
     ) {}
 
     renderer() {
