@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Str, Stringable, CaseTypes } from "@laravel-js/str";
+import { Str, Stringable, CaseTypes, Random } from "@laravel-js/str";
 
 describe("Str tests", () => {
     it("of", () => {
@@ -975,6 +975,10 @@ describe("Str tests", () => {
     it("random", () => {
         expect(Str.random()).toHaveLength(16);
         expect(Str.random(32)).toHaveLength(32);
+        
+        const randomInteger = Random.int(1, 100);
+        expect(Str.random(randomInteger)).toHaveLength(randomInteger);
+        expect(Str.random()).toEqual(expect.any(String));
     })
 
     it("stripTags", () => {
