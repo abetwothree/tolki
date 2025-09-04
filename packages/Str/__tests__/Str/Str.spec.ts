@@ -561,6 +561,27 @@ describe("Str tests", () => {
         expect(Str.stripTags("<div id=\"test\">Hello<br/> こんにちは</div>")).toBe("Hello こんにちは");
     });
 
+    it("lower", () => {
+        expect(Str.lower('FOO BAR BAZ')).toBe('foo bar baz');
+        expect(Str.lower('fOo Bar bAz')).toBe('foo bar baz');
+    });
+
+    it("words", () => {
+        expect(Str.words('Taylor Otwell', 1)).toBe('Taylor...');
+        expect(Str.words('Taylor Otwell', 1, '___')).toBe('Taylor___');
+        expect(Str.words('Taylor Otwell', 3)).toBe('Taylor Otwell');
+        expect(Str.words('Taylor Otwell', -1, '...')).toBe('Taylor Otwell');
+        expect(Str.words('', 3, '...')).toBe('');
+
+        expect(Str.words('这是 段中文', 1)).toBe('这是...');
+        expect(Str.words('这是 段中文', 1, '___')).toBe('这是___');
+        expect(Str.words('这是-段中文', 3, '___')).toBe('这是-段中文');
+        expect(Str.words('这是     段中文', 1, '___')).toBe('这是___');
+
+        expect(Str.words(' Taylor Otwell ', 3)).toBe(' Taylor Otwell ');
+        expect(Str.words(' Taylor Otwell ', 1)).toBe(' Taylor...');
+    });
+
     it("ulid", () => {
         const when = new Date("2024-01-01T00:00:00.000Z").getTime();
         const idA = Str.ulid(when);

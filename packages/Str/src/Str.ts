@@ -755,6 +755,43 @@ export class Str {
     }
 
     /**
+     * Convert the given string to lower-case.
+     *
+     * @example
+     *
+     * Str.lower("Hello World"); // -> "hello world"
+     */
+    static lower(value: string): string {
+        return toLower(value);
+    }
+
+    /**
+     * Limit the number of words in a string.
+     *
+     * @example
+     *
+     * Str.words("Laravel PHP Framework", 2); // -> "Laravel PHP Framework"
+     * Str.words("Laravel PHP Framework", 1); // -> "Laravel..."
+     */
+    static words(value: string, words: number = 100, end: string = '...'): string {
+        if (words <= 0) {
+            return value;
+        }
+
+        // JavaScript RegExp lacks possessive quantifiers; approximate the original PCRE pattern
+        // If the requested word count is zero or negative, keep current test suite semantics (return original string)
+        const safeWords = words; // safeWords >= 1 here
+        const regex = new RegExp(`^\\s*(?:\\S+\\s*){1,${safeWords}}`, 'u');
+        const matches = value.match(regex);
+
+        if (!matches || Str.length(value) === Str.length(matches[0])) {
+            return value;
+        }
+
+        return matches[0].replace(/\s+$/, "") + end;
+    }
+
+    /**
      * Strip HTML tags from a string.
      *
      * @example
