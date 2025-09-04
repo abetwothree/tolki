@@ -636,9 +636,9 @@ describe("Str tests", () => {
             const paragraphAttrPlugin = (md: any, opts?: any) => {
                 const attrName = (opts && opts.attrName) || 'data-ext';
                 const orig = md.renderer.rules.paragraph_open || ((tokens: any, idx: number, _o: any, _e: any, self: any) => self.renderToken(tokens, idx, _o));
-                md.renderer.rules.paragraph_open = (tokens: any, idx: number, options: any, env: any, self: any) => {
+                md.renderer.rules.paragraph_open = (tokens: any, idx: number, options: any, _env: any, self: any) => {
                     tokens[idx].attrPush([attrName, '1']);
-                    return orig(tokens, idx, options, env, self);
+                    return orig(tokens, idx, options, _env, self);
                 };
             };
 
@@ -663,6 +663,46 @@ describe("Str tests", () => {
             const out = Str.markdown('Wait...', { typographer: true });  
             // typographer converts three dots to ellipsis
             expect(out).toContain('Wait…');
+        });
+    });
+
+    describe("inlineMarkdown", () => {
+        it("renders emphasis inline only", () => {
+            expect(Str.inlineMarkdown('*hi* there')).toBe('<em>hi</em> there');
+        });
+
+        it("linkify true by default", () => {
+            const html = Str.inlineMarkdown('See https://example.com');
+            expect(html).toMatch(/<a href="https:\/\/example.com"/);
+        });
+
+        it("linkify can be disabled", () => {
+            const html = Str.inlineMarkdown('See https://example.com', { linkify: false });
+            expect(html).toContain('https://example.com');
+            expect(html).not.toMatch(/<a href/);
+        });
+
+        it("breaks true converts newline to <br>", () => {
+            const html = Str.inlineMarkdown('Hello\nWorld');
+            expect(html).toBe('Hello<br>\nWorld');
+        });
+
+        it("gfm task list ignored inline when disabled", () => {
+            const html = Str.inlineMarkdown('- [x] Done', { gfm: false });
+            // With gfm disabled expect raw task text unchanged
+            expect(html).toContain('- [x] Done');
+        });
+
+        it("extensions applied (simple plugin example)", () => {
+            const plugin = (md: any) => {
+                const orig = md.renderer.rules.em_open || ((tokens: any, idx: number, options: any, _env: any, self: any) => self.renderToken(tokens, idx, options));
+                md.renderer.rules.em_open = function(tokens: any, idx: number, options: any, _env: any, self: any) {
+                    tokens[idx].attrPush(['data-x', 'y']);
+                    return orig(tokens, idx, options, _env, self);
+                };
+            };
+            const html = Str.inlineMarkdown('*hi*', {}, [plugin]);
+            expect(html).toContain('<em data-x="y">');
         });
     });
 

@@ -1,3 +1,4 @@
+import {MarkdownRenderer, type MarkDownOptions} from './Markdown.js';
 import { Stringable } from "./Stringable.js";
 import { transliterate } from "transliteration";
 import anyAscii from "any-ascii";
@@ -10,15 +11,6 @@ import {
     MAX as UUID_MAX,
 } from "uuid";
 import { ulid as createUlid } from "ulid";
-import MarkdownIt, { type Options as MarkdownItOptions } from "markdown-it";
-import markdownItAnchor from "markdown-it-anchor";
-import markdownItTaskLists from "markdown-it-task-lists";
-
-export interface MarkDownOptions extends MarkdownItOptions {
-    gfm?: boolean;
-    anchors?: object | boolean;
-    typographer?: boolean;
-}
 
 export class Str {
     private static $camelCache = new Map<string, string>();
@@ -804,40 +796,24 @@ export class Str {
         options: MarkDownOptions = { gfm: true, anchors: false },
         extensions: any[] = [],
     ): string {
-        const {
-            html = false,
-            linkify = true,
-            breaks = true,
-            gfm = true,
-            anchors = false,
-            ...rest
-        } = options;
-
-        const md = new MarkdownIt({ html, linkify, breaks, ...rest });
-
-        if (gfm) {
-            md.use(markdownItTaskLists, { label: true, labelAfter: true });
-        }
-
-        if (anchors) {
-            md.use(
-                markdownItAnchor,
-                typeof anchors === "object" ? anchors : {},
-            );
-        }
-
-        // Support extension array entries either as plugin or [plugin, opts]
-        for (const ext of extensions) {
-            if (Array.isArray(ext)) {
-                // @ts-ignore - markdown-it plugin typing is permissive
-                md.use(ext[0], ext[1]);
-            } else if (ext) {
-                // @ts-ignore
-                md.use(ext);
-            }
-        }
-
+        const md = new MarkdownRenderer(options, extensions).renderer();
         return md.render(value);
+    }
+
+    /**
+     * Converts inline Markdown into HTML.
+     *
+     * @example
+     *
+     * Str.inlineMarkdown("Hello *World*"); // -> "<p>Hello <em>World</em></p>"
+     */
+    static inlineMarkdown(
+        value: string,
+        options: MarkDownOptions = { gfm: true },
+        extensions: any[] = [],
+    ): string {
+        const md = new MarkdownRenderer(options, extensions).renderer();
+        return md.renderInline(value);
     }
 
     /**
