@@ -582,8 +582,88 @@ describe("Str tests", () => {
         expect(Str.words(' Taylor Otwell ', 1)).toBe(' Taylor...');
     });
 
-    it("markdown", () => {
-        expect(Str.markdown('# Hello World')).toBe('<h1>Hello World</h1>\n');
+    describe("markdown", () => {
+        it("renders basic heading without anchors", () => {
+            expect(Str.markdown('# Hello World')).toBe('<h1>Hello World</h1>\n');
+        });
+
+        it("respects html=false (escapes) vs html=true (allows)", () => {
+            const md = 'A paragraph with <b>bold</b>.';
+            expect(Str.markdown(md)).toContain('&lt;b&gt;bold&lt;/b&gt;'); // default html false
+            const allowed = Str.markdown(md, { html: true });
+            expect(allowed).toContain('<b>bold</b>');
+        });
+
+        it("linkify true by default and can be disabled", () => {
+            const text = 'Visit https://example.com now';
+            const withLink = Str.markdown(text);
+            expect(withLink).toMatch(/<a href="https:\/\/example.com"/);
+            const withoutLink = Str.markdown(text, { linkify: false });
+            expect(withoutLink).not.toMatch(/<a href/);
+        });
+
+        it("breaks true by default converts single newline to <br>", () => {
+            const input = 'Line1\nLine2';
+            const withBreak = Str.markdown(input);
+            expect(withBreak).toContain('Line1<br>');
+            const withoutBreak = Str.markdown(input, { breaks: false });
+            // No <br>, still one paragraph
+            expect(withoutBreak).toContain('<p>Line1\nLine2</p>');
+        });
+
+        it("gfm task list plugin on by default and can be disabled", () => {
+            const task = '- [x] Done\n- [ ] Pending';
+            const withGfm = Str.markdown(task);
+            // Attribute order from markdown-it-task-lists isn't guaranteed; use lookaheads instead of strict ordering.
+            expect(withGfm).toMatch(/<input(?=[^>]*class="task-list-item-checkbox")(?=[^>]*type="checkbox")(?=[^>]*checked)/);
+            const withoutGfm = Str.markdown(task, { gfm: false });
+            expect(withoutGfm).not.toMatch(/<input[^>]*type="checkbox"/);
+            expect(withoutGfm).toContain('[x] Done');
+        });
+
+        it("anchors true (boolean) adds id + tabindex", () => {
+            const out = Str.markdown('# Title', { anchors: true });
+            expect(out).toMatch(/<h1 id="title"[^>]*>Title<\/h1>/);
+        });
+
+        it("anchors object allows custom slugify", () => {
+            const out = Str.markdown('# My Heading', { anchors: { slugify: () => 'custom-slug' } });
+            expect(out).toMatch(/<h1 id="custom-slug"/);
+        });
+
+        it("supports extensions as plugin and [plugin, options] tuple", () => {
+            // Plugin adding data-ext attr to paragraph_open
+            const paragraphAttrPlugin = (md: any, opts?: any) => {
+                const attrName = (opts && opts.attrName) || 'data-ext';
+                const orig = md.renderer.rules.paragraph_open || ((tokens: any, idx: number, _o: any, _e: any, self: any) => self.renderToken(tokens, idx, _o));
+                md.renderer.rules.paragraph_open = (tokens: any, idx: number, options: any, env: any, self: any) => {
+                    tokens[idx].attrPush([attrName, '1']);
+                    return orig(tokens, idx, options, env, self);
+                };
+            };
+
+            // Plugin adding class to h1
+            const headingClassPlugin = (md: any) => {
+                const orig = md.renderer.rules.heading_open || ((tokens: any, idx: number, _o: any, _e: any, self: any) => self.renderToken(tokens, idx, _o));
+                md.renderer.rules.heading_open = (tokens: any, idx: number, options: any, env: any, self: any) => {
+                    const token = tokens[idx];
+                    if (token.tag === 'h1') {
+                        token.attrPush(['data-head', 'yes']);
+                    }
+                    return orig(tokens, idx, options, env, self);
+                };
+            };
+
+            const out = Str.markdown('# Title\n\nParagraph.', {}, [headingClassPlugin, [paragraphAttrPlugin, { attrName: 'data-added' }]]);
+            expect(out).toMatch(/<h1[^>]*data-head="yes"/);
+            expect(out).toMatch(/<p[^>]*data-added="1"/);
+        });
+
+        it("passes through rest options (typographer)", () => {
+            const out = Str.markdown('Wait...', { typographer: true });
+            // typographer converts three dots to ellipsis
+            expect(out).toContain('Wait…');
+        });
     });
 
     it("ulid", () => {
