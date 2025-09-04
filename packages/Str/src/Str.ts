@@ -17,9 +17,38 @@ import {
 import { ulid as createUlid } from "ulid";
 import { Pluralizer } from "./Pluralizer.js";
 import { Number } from "@laravel-js/number";
+import { Random } from "./Random.js";
 
 export class Str {
-    private static $camelCache = new Map<string, string>();
+    /**
+     * The cache of snake-cased words.
+     */
+    protected static snakeCache = new Map<string, string>();
+
+    /**
+     * The cache of camel-cased words.
+     */
+    private static camelCache = new Map<string, string>();
+
+    /**
+     * The cache of studly-cased words.
+     */
+    protected static studlyCache = new Map<string, string>();
+
+    /**
+     * The callback that should be used to generate UUIDs.
+     */
+    protected static uuidFactory: (() => string) | null;
+
+    /**
+     * The callback that should be used to generate ULIDs.
+     */
+    protected static ulidFactory: (() => string) | null;
+
+    /**
+     * The callback that should be used to generate random strings.
+     */
+    protected static randomStringFactory: ((length: number) => string) | null;
 
     static of(value: string): Stringable {
         return new Stringable(value);
@@ -174,8 +203,8 @@ export class Str {
      * Str.camel('foo_bar'); // -> 'fooBar'
      */
     static camel(value: string): string {
-        if (this.$camelCache.has(value)) {
-            return this.$camelCache.get(value)!;
+        if (this.camelCache.has(value)) {
+            return this.camelCache.get(value)!;
         }
 
         // Insert spaces before existing camelCase boundaries to normalize words
@@ -185,7 +214,7 @@ export class Str {
             .trim();
 
         if (working === "") {
-            this.$camelCache.set(value, "");
+            this.camelCache.set(value, "");
             return "";
         }
 
@@ -199,7 +228,7 @@ export class Str {
         });
         const result = [first, ...rest].join("");
 
-        this.$camelCache.set(value, result);
+        this.camelCache.set(value, result);
         return result;
     }
 
@@ -1167,7 +1196,7 @@ export class Str {
      * Get the plural form of an English word.
      *
      * @example
-     * 
+     *
      * Str.plural("child"); // -> "children"
      * Str.plural("apple", 1); // -> "apple"
      * Str.plural("apple", 2, true); // -> "2 apples"
@@ -1194,7 +1223,7 @@ export class Str {
         const parts = value.split(/(?=[A-Z])/);
         const lastWord = String(parts.pop());
 
-        return parts.join('') + Str.plural(lastWord, count);
+        return parts.join("") + Str.plural(lastWord, count);
     }
 
     /**
@@ -1212,10 +1241,17 @@ export class Str {
      * Generate a random, secure password.
      *
      * @example
-     * 
+     *
      * Str.password();
      */
-    static password(length: number = 32, letters: boolean = true, numbers: boolean = true, symbols: boolean = true, spaces: boolean = false): string {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    static password(
+        _length: number = 32,
+        _letters: boolean = true,
+        _numbers: boolean = true,
+        _symbols: boolean = true,
+        _spaces: boolean = false,
+    ): string {
         // TODO when collections are implemented
 
         // const password = new Collection();
@@ -1247,18 +1283,22 @@ export class Str {
         // return $password->merge($options->pipe(
         //     fn ($c) => Collection::times($length, fn () => $c[random_int(0, $c->count() - 1)])
         // ))->shuffle()->implode('');
+        return ""; // placeholder until implemented
     }
 
     /**
      * Find the multi-byte safe position of the first occurrence of a given substring in a string.
      *
      * @example
-     * 
+     *
      * Str.position('Hello, World!', 'World!'); // -> 7
      * Str.position('Hello, World!', 'world!', 0); // -> false
      */
-    static position(haystack: string, needle: string, offset: number = 0): number | false
-    {
+    static position(
+        haystack: string,
+        needle: string,
+        offset: number = 0,
+    ): number | false {
         // PHP mb_strpos compatibility (code point based):
         // - Returns the position of first occurrence (in characters)
         // - Returns false if not found or needle is empty
@@ -1291,6 +1331,18 @@ export class Str {
         }
 
         return false;
+    }
+
+    /**
+     * Generate a more truly "random" alpha-numeric string.
+     *
+     * @param  int  $length
+     * @return string
+     */
+    static random(length: number = 16): string {
+        const factory =
+            Str.randomStringFactory ?? ((len: number) => Random.string(len));
+        return factory(length);
     }
 
     /**

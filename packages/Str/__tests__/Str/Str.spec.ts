@@ -918,42 +918,63 @@ describe("Str tests", () => {
         );
     });
 
-    it('plural', () => {
+    it("plural", () => {
         expect(Str.plural("child")).toBe("children");
         expect(Str.plural("Laracon", 1)).toBe("Laracon");
         expect(Str.plural("Laracon", 3)).toBe("Laracons");
         // expect(Str.plural("Laracon", 1000, true)).toBe("1,000 Laracons"); // TODO when Number helper is done
     });
 
-    it('pluralStudly', () => {
-        expect(Str.pluralStudly("These are my child", 5)).toBe("These are my children");
-        expect(Str.pluralStudly("This is my Laracon", 1)).toBe("This is my Laracon");
-        expect(Str.pluralStudly("This is my Laracon", 3)).toBe("This is my Laracons");
-    })
+    it("pluralStudly", () => {
+        expect(Str.pluralStudly("These are my child", 5)).toBe(
+            "These are my children",
+        );
+        expect(Str.pluralStudly("This is my Laracon", 1)).toBe(
+            "This is my Laracon",
+        );
+        expect(Str.pluralStudly("This is my Laracon", 3)).toBe(
+            "This is my Laracons",
+        );
+    });
 
-    it('pluralPascal', () => {
-        expect(Str.pluralPascal("These are my child", 5)).toBe("These are my children");
-        expect(Str.pluralPascal("This is my Laracon", 1)).toBe("This is my Laracon");
-        expect(Str.pluralPascal("This is my Laracon", 3)).toBe("This is my Laracons");
-    })
+    it("pluralPascal", () => {
+        expect(Str.pluralPascal("These are my child", 5)).toBe(
+            "These are my children",
+        );
+        expect(Str.pluralPascal("This is my Laracon", 1)).toBe(
+            "This is my Laracon",
+        );
+        expect(Str.pluralPascal("This is my Laracon", 3)).toBe(
+            "This is my Laracons",
+        );
+    });
 
-    it.skip("password", () => { })
+    it.skip("password", () => {});
 
     it("position", () => {
-        expect(Str.position('Hello, World!', '')).toBe(false);
-        expect(Str.position('Hello, World!', 'W')).toBe(7);
-        expect(Str.position('Hello, World!', 'world!', 0)).toBe(false);
-        expect(Str.position('This is a test string.', 'test')).toBe(10);
-        expect(Str.position('This is a test string, test again.', 'test', 15)).toBe(23);
-        expect(Str.position('Hello, World!', 'Hello')).toBe(0);
-        expect(Str.position('Hello, World!', 'World!')).toBe(7);
-        expect(Str.position('This is a tEsT string.', 'tEsT', 0)).toBe(10);
-        expect(Str.position('Hello, World!', 'W', -6)).toBe(7);
-        expect(Str.position('Äpfel, Birnen und Kirschen', 'Kirschen', -10)).toBe(18);
-        expect(Str.position('@%€/=!"][$', '$', 0)).toBe(9);
-        expect(Str.position('Hello, World!', 'w', 0)).toBe(false);
-        expect(Str.position('Hello, World!', 'X', 0)).toBe(false);
-        expect(Str.position('', 'test')).toBe(false);
+        expect(Str.position("Hello, World!", "")).toBe(false);
+        expect(Str.position("Hello, World!", "W")).toBe(7);
+        expect(Str.position("Hello, World!", "world!", 0)).toBe(false);
+        expect(Str.position("This is a test string.", "test")).toBe(10);
+        expect(
+            Str.position("This is a test string, test again.", "test", 15),
+        ).toBe(23);
+        expect(Str.position("Hello, World!", "Hello")).toBe(0);
+        expect(Str.position("Hello, World!", "World!")).toBe(7);
+        expect(Str.position("This is a tEsT string.", "tEsT", 0)).toBe(10);
+        expect(Str.position("Hello, World!", "W", -6)).toBe(7);
+        expect(
+            Str.position("Äpfel, Birnen und Kirschen", "Kirschen", -10),
+        ).toBe(18);
+        expect(Str.position('@%€/=!"][$', "$", 0)).toBe(9);
+        expect(Str.position("Hello, World!", "w", 0)).toBe(false);
+        expect(Str.position("Hello, World!", "X", 0)).toBe(false);
+        expect(Str.position("", "test")).toBe(false);
+    });
+
+    it("random", () => {
+        expect(Str.random()).toHaveLength(16);
+        expect(Str.random(32)).toHaveLength(32);
     })
 
     it("stripTags", () => {
