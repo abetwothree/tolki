@@ -1209,6 +1209,47 @@ export class Str {
     }
 
     /**
+     * Generate a random, secure password.
+     *
+     * @example
+     * 
+     * Str.password();
+     */
+    static password(length: number = 32, letters: boolean = true, numbers: boolean = true, symbols: boolean = true, spaces: boolean = false): string {
+        // TODO when collections are implemented
+
+        // const password = new Collection();
+
+        // $options = (new Collection([
+        //     'letters' => $letters === true ? [
+        //         'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
+        //         'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+        //         'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G',
+        //         'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
+        //         'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+        //     ] : null,
+        //     'numbers' => $numbers === true ? [
+        //         '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+        //     ] : null,
+        //     'symbols' => $symbols === true ? [
+        //         '~', '!', '#', '$', '%', '^', '&', '*', '(', ')', '-',
+        //         '_', '.', ',', '<', '>', '?', '/', '\\', '{', '}', '[',
+        //         ']', '|', ':', ';',
+        //     ] : null,
+        //     'spaces' => $spaces === true ? [' '] : null,
+        // ]))
+        //     ->filter()
+        //     ->each(fn ($c) => $password->push($c[random_int(0, count($c) - 1)]))
+        //     ->flatten();
+
+        // $length = $length - $password->count();
+
+        // return $password->merge($options->pipe(
+        //     fn ($c) => Collection::times($length, fn () => $c[random_int(0, $c->count() - 1)])
+        // ))->shuffle()->implode('');
+    }
+
+    /**
      * Strip HTML tags from a string.
      *
      * @example
