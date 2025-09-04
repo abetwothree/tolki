@@ -10,6 +10,9 @@ import {
     MAX as UUID_MAX,
 } from "uuid";
 import { ulid as createUlid } from "ulid";
+import MarkdownIt from "markdown-it";
+import markdownItAnchor from "markdown-it-anchor";
+import markdownItTaskLists from "markdown-it-task-lists";
 
 export class Str {
     private static $camelCache = new Map<string, string>();
@@ -171,8 +174,18 @@ export class Str {
             return this.$camelCache.get(value)!;
         }
 
-        // TODO
-        // return this.$camelCache.set(value, lcfirst(this.studly(value)));
+        // Basic implementation: normalize separators then camel-case.
+        const result = value
+            .trim()
+            .replace(/[-_\s]+/g, " ")
+            .toLowerCase()
+            .replace(/(?:^|\s+)([a-z0-9])/g, (_m, c, offset) =>
+                offset === 0 ? c : c.toUpperCase(),
+            )
+            .replace(/\s+/g, "");
+
+        this.$camelCache.set(value, result);
+        return result;
     }
 
     /**
@@ -394,36 +407,15 @@ export class Str {
      * @example
      */
     static excerpt(
-        text: string,
-        phrase: string = "",
-        options: Record<string, any> = {},
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _text: string,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _phrase?: string,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _options?: Record<string, any>,
     ): string | null {
-        const radius = options["radius"] ?? 100;
-        const omission = options["omission"] ?? "...";
-
-        const matches = text.match(/^(.*?)(\$\{phrase\})(.*)$/iu);
-
-        if (!matches) {
-            return null;
-        }
-
-        const start = matches[1]?.trim();
-
-        // TODO
-
-        // start = Str.of(start, max(start?.length - radius, 0), radius.length)->ltrim()->unless(
-        //     (startWithRadius) => startWithRadius.exactly(start),
-        //     (startWithRadius) => startWithRadius.prepend(omission),
-        // );
-
-        // const end = rtrim(matches[3]);
-
-        // end = Str.of(mb_substr(end, 0, radius, 'UTF-8'))->rtrim()->unless(
-        //     (endWithRadius) => endWithRadius.exactly(end),
-        //     (endWithRadius) => endWithRadius.append(omission),
-        // );
-
-        // return start.append(matches[2], end).toString();
+    // Not implemented yet; keep API returning null consistently
+    return null;
     }
 
     /**
@@ -466,14 +458,14 @@ export class Str {
         before: string,
         after: string | null = null,
     ): string {
-        // TODO
-        // if (static::startsWith($value, $before)) {
-        //     $value = static::substr($value, static::length($before));
-        // }
-        // if (static::endsWith($value, $after ??= $before)) {
-        //     $value = static::substr($value, 0, -static::length($after));
-        // }
-        // return $value;
+        after = after ?? before;
+        if (value.startsWith(before)) {
+            value = value.slice(before.length);
+        }
+        if (value.endsWith(after)) {
+            value = value.slice(0, -after.length);
+        }
+        return value;
     }
 
     /**
@@ -706,7 +698,10 @@ export class Str {
      * Str.kebab("Laravel PHP Framework"); // -> "laravel-php-framework"
      */
     static kebab(value: string): string {
-        return Str.snake(value, "-");
+        return value
+            .replace(/([a-z])([A-Z])/g, "$1-$2")
+            .replace(/[\s_]+/g, "-")
+            .toLowerCase();
     }
 
     /**
@@ -789,6 +784,54 @@ export class Str {
         }
 
         return matches[0].replace(/\s+$/, "") + end;
+    }
+
+    /**
+     * Converts GitHub flavored Markdown into HTML.
+     *
+     * @example
+     * 
+     * Str.markdown('# Hello World'); // -> '<h1>Hello World</h1>\n'
+     */
+    static markdown(
+        value: string,
+        options: Record<string, any> = {},
+        extensions: any[] = [],
+    ): string {
+        const {
+            html = false,
+            linkify = true,
+            breaks = true,
+            gfm = true, // still enable task list support by default
+            anchors = false, // opt-in for heading id anchors
+            ...rest
+        } = options;
+
+        const md = new MarkdownIt({ html, linkify, breaks, ...rest });
+
+        if (gfm) {
+            md.use(markdownItTaskLists, { label: true, labelAfter: true });
+        }
+
+        if (anchors) {
+            md.use(
+                markdownItAnchor,
+                typeof anchors === "object" ? anchors : {},
+            );
+        }
+
+        // Support extension array entries either as plugin or [plugin, opts]
+        for (const ext of extensions) {
+            if (Array.isArray(ext)) {
+                // @ts-ignore - markdown-it plugin typing is permissive
+                md.use(ext[0], ext[1]);
+            } else if (ext) {
+                // @ts-ignore
+                md.use(ext);
+            }
+        }
+
+        return md.render(value);
     }
 
     /**

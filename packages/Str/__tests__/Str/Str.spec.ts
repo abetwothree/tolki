@@ -582,6 +582,10 @@ describe("Str tests", () => {
         expect(Str.words(' Taylor Otwell ', 1)).toBe(' Taylor...');
     });
 
+    it("markdown", () => {
+        expect(Str.markdown('# Hello World')).toBe('<h1>Hello World</h1>\n');
+    });
+
     it("ulid", () => {
         const when = new Date("2024-01-01T00:00:00.000Z").getTime();
         const idA = Str.ulid(when);
