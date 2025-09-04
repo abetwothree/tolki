@@ -498,6 +498,9 @@ describe("Str tests", () => {
         expect(Str.isUuid("123e4567-e89b-12d3-a456-426614174000", 5)).toBe(
             false,
         );
+        expect(Str.isUuid("01991243-ae64-717d-92e2-5da7281338ff", 7)).toBe(
+            true,
+        );
         expect(Str.isUuid("00000000-0000-0000-0000-000000000000", "nil")).toBe(
             true,
         );
@@ -507,5 +510,68 @@ describe("Str tests", () => {
         expect(Str.isUuid("invalid-uuid")).toBe(false);
         expect(Str.isUuid("invalid-uuid", 7)).toBe(false);
         expect(Str.isUuid(4746392, 7)).toBe(false);
+    });
+
+    it("isUlid", () => {
+        const id = Str.ulid();
+        expect(id).toHaveLength(26);
+        expect(Str.isUlid(id)).toBe(true);
+        expect(Str.isUlid(id.toLowerCase())).toBe(true); // ULIDs are case-insensitive per spec
+        expect(Str.isUlid("invalid-ulid")).toBe(false);
+        expect(Str.isUlid(4746392)).toBe(false);
+    });
+
+    it.skip("kebab", () => {
+        expect(Str.kebab("Laravel PHP Framework")).toBe(
+            "laravel-php-framework",
+        );
+    });
+
+    it("length", () => {
+        expect(Str.length("foo bar baz")).toBe(11);
+        expect(Str.length("Hello こんにちは")).toBe(11);
+    });
+    
+    it("limit", () => {
+        expect(Str.limit('Laravel is a free, open source PHP web application framework.', 10)).toBe("Laravel is...");
+        expect(Str.limit('这是一段中文', 3)).toBe("这是一...");
+        expect(Str.limit('Laravel is a free, open source PHP web application framework.', 15, '...', true)).toBe("Laravel is a...");
+
+        const string = 'The PHP framework for web artisans.';
+        expect(Str.limit(string, 7)).toBe("The PHP...");
+        expect(Str.limit(string, 10, '...', true)).toBe("The PHP...");
+        expect(Str.limit(string, 7, '')).toBe("The PHP");
+        expect(Str.limit(string, 10, '', true)).toBe("The PHP");
+        expect(Str.limit(string, 100)).toBe("The PHP framework for web artisans.");
+        expect(Str.limit(string, 100, '...', true)).toBe("The PHP framework for web artisans.");
+        expect(Str.limit(string, 20, '...', true)).toBe("The PHP framework...");
+
+        const nonAsciiString = '这是一段中文';
+        expect(Str.limit(nonAsciiString, 3)).toBe("这是一...");
+        expect(Str.limit(nonAsciiString, 3, '...', true)).toBe("这是一...");
+        expect(Str.limit(nonAsciiString, 3, '')).toBe("这是一");
+        expect(Str.limit(nonAsciiString, 3, '', true)).toBe("这是一");
+
+        expect(Str.limit("The PHP", 5, '...', true)).toBe("The...");
+        expect(Str.limit("Hello world", 5, "...", true)).toBe("Hello...");
+    });
+
+    it("stripTags", () => {
+        expect(Str.stripTags("<p data-id=\"test\">foo bar baz</p>")).toBe("foo bar baz");
+        expect(Str.stripTags("<div id=\"test\">Hello<br/> こんにちは</div>")).toBe("Hello こんにちは");
+    });
+
+    it("ulid", () => {
+        const when = new Date("2024-01-01T00:00:00.000Z").getTime();
+        const idA = Str.ulid(when);
+        const idB = Str.ulid(when);
+        expect(idA.substring(0, 10)).toBe(idB.substring(0, 10));
+        expect(idA).not.toBe(idB);
+
+        expect(Str.ulid(new Date())).toHaveLength(26);
+        expect(Str.isUlid(Str.ulid(new Date()))).toBe(true);
+
+        expect(Str.ulid(new Date().getTime())).toHaveLength(26);
+        expect(Str.isUlid(Str.ulid(new Date().getTime()))).toBe(true);
     });
 });

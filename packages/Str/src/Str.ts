@@ -9,6 +9,7 @@ import {
     NIL as UUID_NIL,
     MAX as UUID_MAX,
 } from "uuid";
+import { ulid as createUlid } from "ulid";
 
 export class Str {
     private static $camelCache = new Map<string, string>();
@@ -550,7 +551,7 @@ export class Str {
      * Determine if a given value is valid JSON.
      *
      * @example
-     * 
+     *
      * Str.isJson('{"name": "John", "age": 30}'); // -> true
      * Str.isJson('{"name": "John", "age": 30'); // -> false
      * Str.isJson('Hello World'); // -> false
@@ -680,5 +681,116 @@ export class Str {
 
         // Ensure it's a valid UUID string (already validated above for non-null) and compare versions.
         return uuidVersion(value) === version;
+    }
+
+    /**
+     * Determine if a given value is a valid ULID.
+     *
+     * @example
+     *
+     * Str.isUlid("01F8MECHZX2D7J8F8C8D4B8F8C"); // -> true
+     */
+    static isUlid(value: unknown): boolean {
+        if (!isString(value)) {
+            return false;
+        }
+        const upper = value.toUpperCase();
+        return /^[0-9A-HJKMNP-TV-Z]{26}$/.test(upper);
+    }
+
+    /**
+     * Convert a string to kebab case.
+     *
+     * @example
+     *
+     * Str.kebab("Laravel PHP Framework"); // -> "laravel-php-framework"
+     */
+    static kebab(value: string): string {
+        return Str.snake(value, "-");
+    }
+
+    /**
+     * Return the length of the given string.
+     *
+     * @example
+     *
+     * Str.length("Hello World"); // -> 11
+     */
+    static length(value: string): number {
+        return value.length;
+    }
+
+    /**
+     * Limit the number of characters in a string.
+     *
+     * @param  string  $value
+     * @param  int  $limit
+     * @param  string  $end
+     * @param  bool  $preserveWords
+     * @return string
+     */
+    static limit(
+        value: string,
+        limit: number = 100,
+        end: string = "...",
+        preserveWords: boolean = false,
+    ): string {
+        if (value.length <= limit) {
+            return value;
+        }
+
+        if (!preserveWords) {
+            return value.slice(0, limit).replace(/\s+$/, "") + end;
+        }
+
+        value = Str.stripTags(value).replace(/[\n\r]+/g, " ").trim();
+
+        const trimmed = value.slice(0, limit).replace(/\s+$/, "");
+
+        if (value.substring(limit, limit + 1) === " ") {
+            return trimmed + end;
+        }
+
+        return trimmed.replace(/(.*)\s.*/, "$1") + end;
+    }
+
+    /**
+     * Strip HTML tags from a string.
+     *
+     * @example
+     *
+     * Str.stripTags("<p>Hello World</p>"); // -> "Hello World"
+     */
+    static stripTags(value: string): string {
+        return value.replace(/<\/?[^>]+(>|$)/g, "");
+    }
+
+    /**
+     * Generate a ULID.
+     *
+     * @example
+     *
+     * Str.ulid(); // -> "01F8MECHZX2D7J8F8C8D4B8F8C"
+     */
+    static ulid(time: Date | number | null = null): string {
+        if (time === null || time === undefined) {
+            return createUlid();
+        }
+
+        let ms: number;
+        if (time instanceof Date) {
+            ms = time.getTime();
+        } else {
+            ms = time;
+        }
+
+        // The ulid package only supports passing monotonic time indirectly; we can emulate by temporarily overriding Date.now
+        const originalNow = Date.now;
+        try {
+            Date.now = () => ms; // force time component
+            return createUlid();
+        } finally {
+            Date.now = originalNow;
+        }
     }
 }

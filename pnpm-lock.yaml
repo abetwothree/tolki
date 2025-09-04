@@ -83,6 +83,9 @@ importers:
       transliteration:
         specifier: ^2.3.5
         version: 2.3.5
+      ulid:
+        specifier: ^2.4.0
+        version: 2.4.0
       uuid:
         specifier: ^11.1.0
         version: 11.1.0
@@ -3208,6 +3211,13 @@ packages:
         integrity: sha512-9a4/uxlTWJ4+a5i0ooc1rU7C7YOw3wT+UGqdeNNHWnOF9qcMBgLRS+4IYUqbczewFx4mLEig6gawh7X6mFlEkA==,
       }
 
+  ulid@2.4.0:
+    resolution:
+      {
+        integrity: sha512-fIRiVTJNcSRmXKPZtGzFQv9WRrZ3M9eoptl/teFJvjOzmpU+/K/JH6HZ8deBfb5vMEpicJcLn7JmvdknlMq7Zg==,
+      }
+    hasBin: true
+
   unist-util-is@6.0.0:
     resolution:
       {
@@ -5482,6 +5492,8 @@ snapshots:
   typescript@5.9.2: {}
 
   ufo@1.6.1: {}
+
+  ulid@2.4.0: {}
 
   unist-util-is@6.0.0:
     dependencies:

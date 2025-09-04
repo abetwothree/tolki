@@ -3,7 +3,7 @@
     "version": "0.0.0",
     "description": "Utility TypeScript types for HTTP response from Laravel.",
     "type": "module",
-    "main": "src/index.ts",
+    "types": "src/index.d.ts",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"
     },

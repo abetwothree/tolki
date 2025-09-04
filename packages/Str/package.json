@@ -18,6 +18,7 @@
         "any-ascii": "^0.3.3",
         "lodash-es": "^4.17.21",
         "transliteration": "^2.3.5",
+        "ulid": "^2.4.0",
         "uuid": "^11.1.0"
     }
 }
