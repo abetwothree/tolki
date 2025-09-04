@@ -896,6 +896,28 @@ describe("Str tests", () => {
         );
     });
 
+    it("padLeft", () => {
+        expect(Str.padLeft("Al", 2, "")).toBe("Al");
+        expect(Str.padLeft("Al", 10, "")).toBe("Al");
+        expect(Str.padLeft("Alien", 10, "-=")).toBe("-=-=-Alien");
+        expect(Str.padLeft("Alien", 10)).toBe("     Alien");
+        expect(Str.padLeft("❤MultiByte☆", 16)).toBe("     ❤MultiByte☆");
+        expect(Str.padLeft("❤MultiByte☆", 16, "❤☆")).toBe(
+            "❤☆❤☆❤❤MultiByte☆",
+        );
+    });
+
+    it("padRight", () => {
+        expect(Str.padLeft("Al", 2, "")).toBe("Al");
+        expect(Str.padLeft("Al", 10, "")).toBe("Al");
+        expect(Str.padRight("Alien", 10, "-=")).toBe("Alien-=-=-");
+        expect(Str.padRight("Alien", 10)).toBe("Alien     ");
+        expect(Str.padRight("❤MultiByte☆", 16)).toBe("❤MultiByte☆     ");
+        expect(Str.padRight("❤MultiByte☆", 16, "❤☆")).toBe(
+            "❤MultiByte☆❤☆❤☆❤",
+        );
+    });
+
     it("stripTags", () => {
         expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(
             "foo bar baz",
