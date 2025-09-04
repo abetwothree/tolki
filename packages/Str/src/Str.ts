@@ -10,7 +10,7 @@ import {
     MAX as UUID_MAX,
 } from "uuid";
 import { ulid as createUlid } from "ulid";
-import MarkdownIt from "markdown-it";
+import MarkdownIt, { type Options as MarkdownItOptions } from "markdown-it";
 import markdownItAnchor from "markdown-it-anchor";
 import markdownItTaskLists from "markdown-it-task-lists";
 
@@ -795,15 +795,15 @@ export class Str {
      */
     static markdown(
         value: string,
-        options: Record<string, any> = {},
+        options: MarkdownItOptions & { gfm: boolean, anchors: boolean } = { gfm: true, anchors: false },
         extensions: any[] = [],
     ): string {
         const {
             html = false,
             linkify = true,
             breaks = true,
-            gfm = true, // still enable task list support by default
-            anchors = false, // opt-in for heading id anchors
+            gfm = true,
+            anchors = false,
             ...rest
         } = options;
 
