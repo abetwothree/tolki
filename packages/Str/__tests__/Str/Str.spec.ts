@@ -886,6 +886,16 @@ describe("Str tests", () => {
         expect(Str.numbers(arrayValue)).toEqual(arrayExpected);
     });
 
+    it("padBoth", () => {
+        expect(Str.padBoth("Al", 10, "")).toBe("Al");
+        expect(Str.padBoth("Alien", 10, "_")).toBe("__Alien___");
+        expect(Str.padBoth("Alien", 10)).toBe("  Alien   ");
+        expect(Str.padBoth("❤MultiByte☆", 16)).toBe("  ❤MultiByte☆   ");
+        expect(Str.padBoth("❤MultiByte☆", 16, "❤☆")).toBe(
+            "❤☆❤MultiByte☆❤☆❤",
+        );
+    });
+
     it("stripTags", () => {
         expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(
             "foo bar baz",

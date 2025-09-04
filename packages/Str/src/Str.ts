@@ -1080,6 +1080,33 @@ export class Str {
     }
 
     /**
+     * Pad both sides of a string with another.
+     *
+     * @param  string  $value
+     * @param  int  $length
+     * @param  string  $pad
+     * @return string
+     */
+    static padBoth(value: string, length: number, pad: string = " "): string {
+        const valueLength = value.length;
+        if (length <= valueLength || pad === "") {
+            return value;
+        }
+
+        const total = length - valueLength;
+        const left = Math.floor(total / 2);
+        const right = total - left; // right gets the extra char when odd (Laravel / PHP str_pad behavior)
+
+        const makePad = (padStr: string, needed: number): string => {
+            if (needed <= 0) return "";
+            const repeatTimes = Math.ceil(needed / padStr.length);
+            return padStr.repeat(repeatTimes).slice(0, needed);
+        };
+
+        return makePad(pad, left) + value + makePad(pad, right);
+    }
+
+    /**
      * Strip HTML tags from a string.
      *
      * @example
