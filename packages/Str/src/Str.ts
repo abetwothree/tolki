@@ -949,20 +949,51 @@ export class Str {
     static isMatch(pattern: string | Iterable<string>, value: string): boolean {
         value = String(value);
 
-        if (!Array.isArray(pattern)) {
-            pattern = Array.from(pattern);
-        }
+        const patterns: string[] =
+            typeof pattern === "string" ? [pattern] : Array.from(pattern);
 
-        for (const p of pattern) {
-            const pStr = String(p);
+        for (const p of patterns) {
+            if (typeof p !== "string" || p === "") continue;
+
+            let flags = "u";
+            let source = p;
+
+            if (p.length >= 2 && p[0] === "/") {
+                // Find last unescaped '/'
+                let lastSlash = -1;
+                for (let i = p.length - 1; i > 0; i--) {
+                    if (p[i] === "/") {
+                        let backslashes = 0;
+                        for (let j = i - 1; j >= 0 && p[j] === "\\"; j--) {
+                            backslashes++;
+                        }
+                        if (backslashes % 2 === 0) {
+                            // not escaped
+                            lastSlash = i;
+                            break;
+                        }
+                    }
+                }
+                if (lastSlash > 0) {
+                    source = p.slice(1, lastSlash);
+                    const providedFlags = p.slice(lastSlash + 1);
+                    if (providedFlags) {
+                        for (const f of providedFlags) {
+                            if (/[imsuy]/.test(f) && !flags.includes(f)) {
+                                flags += f;
+                            }
+                        }
+                    }
+                }
+            }
 
             try {
-                const regex = new RegExp(pStr, "u");
+                const regex = new RegExp(source, flags);
                 if (regex.test(value)) {
                     return true;
                 }
             } catch {
-                // ignore invalid regex patterns
+                // ignore invalid regex pattern
             }
         }
 
@@ -973,7 +1004,7 @@ export class Str {
      * Get the string matching the given pattern.
      *
      * @example
-     * 
+     *
      * Str.matchAll("/foo (.*)/", "foo bar baz"); // -> ["foo bar baz"]
      */
     static matchAll(pattern: string, subject: string): string[] {

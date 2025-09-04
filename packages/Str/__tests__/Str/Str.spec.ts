@@ -392,11 +392,11 @@ describe("Str tests", () => {
         expect(Str.unwrap("**bold**", "*")).toBe("*bold*");
         expect(Str.unwrap("no-wrappers", "[", "]")).toBe("no-wrappers");
 
-        expect(Str.unwrap('"value"', '"')).toBe('value');
-        expect(Str.unwrap('"value', '"')).toBe('value');
-        expect(Str.unwrap('value"', '"')).toBe('value');
-        expect(Str.unwrap('foo-bar-baz', 'foo-', '-baz')).toBe('bar');
-        expect(Str.unwrap('{some: "json"}', '{', '}')).toBe('some: "json"');
+        expect(Str.unwrap('"value"', '"')).toBe("value");
+        expect(Str.unwrap('"value', '"')).toBe("value");
+        expect(Str.unwrap('value"', '"')).toBe("value");
+        expect(Str.unwrap("foo-bar-baz", "foo-", "-baz")).toBe("bar");
+        expect(Str.unwrap('{some: "json"}', "{", "}")).toBe('some: "json"');
     });
 
     it("is", () => {
@@ -834,46 +834,36 @@ describe("Str tests", () => {
         expect(Str.match("/pattern/", "")).toBe("");
     });
 
-    it('isMatch', () => {
-        /**
-            PHP Tests to Implement
-            $this->assertTrue(Str::isMatch('/.*,.*!/', 'Hello, Laravel!'));
-            $this->assertTrue(Str::isMatch('/^.*$(.*)/', 'Hello, Laravel!'));
-            $this->assertTrue(Str::isMatch('/laravel/i', 'Hello, Laravel!'));
-            $this->assertTrue(Str::isMatch('/^(.*(.*(.*)))/', 'Hello, Laravel!'));
+    it("isMatch", () => {
+        expect(Str.isMatch("/.*,.*!/", "Hello, Laravel!")).toBe(true);
+        expect(Str.isMatch("/^.*$(.*)/", "Hello, Laravel!")).toBe(true);
+        expect(Str.isMatch("/laravel/i", "Hello, Laravel!")).toBe(true);
+        expect(Str.isMatch("/^(.*(.*(.*)))/", "Hello, Laravel!")).toBe(true);
 
-            $this->assertFalse(Str::isMatch('/H.o/', 'Hello, Laravel!'));
-            $this->assertFalse(Str::isMatch('/^laravel!/i', 'Hello, Laravel!'));
-            $this->assertFalse(Str::isMatch('/laravel!(.*)/', 'Hello, Laravel!'));
-            $this->assertFalse(Str::isMatch('/^[a-zA-Z,!]+$/', 'Hello, Laravel!'));
+        expect(Str.isMatch("/H.o/", "Hello, Laravel!")).toBe(false);
+        expect(Str.isMatch("/^laravel!/i", "Hello, Laravel!")).toBe(false);
+        expect(Str.isMatch("/laravel!(.*)/", "Hello, Laravel!")).toBe(false);
+        expect(Str.isMatch("/^[a-zA-Z,!]+$/", "Hello, Laravel!")).toBe(false);
 
-            $this->assertTrue(Str::isMatch(['/.*,.*!/', '/H.o/'], 'Hello, Laravel!'));
-            $this->assertTrue(Str::isMatch(['/^laravel!/i', '/^.*$(.*)/'], 'Hello, Laravel!'));
-            $this->assertTrue(Str::isMatch(['/laravel/i', '/laravel!(.*)/'], 'Hello, Laravel!'));
-            $this->assertTrue(Str::isMatch(['/^[a-zA-Z,!]+$/', '/^(.*(.*(.*)))/'], 'Hello, Laravel!'));
-         */
-
-        expect(Str.isMatch('/.*,.*!/', 'Hello, Laravel!')).toBe(true);
-        expect(Str.isMatch('/^.*$(.*)/', 'Hello, Laravel!')).toBe(true);
-        expect(Str.isMatch('/laravel/i', 'Hello, Laravel!')).toBe(true);
-        expect(Str.isMatch('/^(.*(.*(.*)))/', 'Hello, Laravel!')).toBe(true);
-
-        expect(Str.isMatch('/H.o/', 'Hello, Laravel!')).toBe(false);
-        expect(Str.isMatch('/^laravel!/i', 'Hello, Laravel!')).toBe(false);
-        expect(Str.isMatch('/laravel!(.*)/', 'Hello, Laravel!')).toBe(false);
-        expect(Str.isMatch('/^[a-zA-Z,!]+$/', 'Hello, Laravel!')).toBe(false);
-
-        expect(Str.isMatch(['/.*,.*!/', '/H.o/'], 'Hello, Laravel!')).toBe(true);
-        expect(Str.isMatch(['/^laravel!/i', '/^.*$(.*)/'], 'Hello, Laravel!')).toBe(true);
-        expect(Str.isMatch(['/laravel/i', '/laravel!(.*)/'], 'Hello, Laravel!')).toBe(true);
-        expect(Str.isMatch(['/^[a-zA-Z,!]+$/', '/^(.*(.*(.*)))/'], 'Hello, Laravel!')).toBe(true);
+        expect(Str.isMatch(["/.*,.*!/", "/H.o/"], "Hello, Laravel!")).toBe(
+            true,
+        );
+        expect(
+            Str.isMatch(["/^laravel!/i", "/^.*$(.*)/"], "Hello, Laravel!"),
+        ).toBe(true);
+        expect(
+            Str.isMatch(["/laravel/i", "/laravel!(.*)/"], "Hello, Laravel!"),
+        ).toBe(true);
+        expect(
+            Str.isMatch(
+                ["/^[a-zA-Z,!]+$/", "/^(.*(.*(.*)))/"],
+                "Hello, Laravel!",
+            ),
+        ).toBe(true);
     });
 
     it("matchAll", () => {
-        expect(Str.matchAll("/bar/", "bar foo bar")).toEqual([
-            "bar",
-            "bar",
-        ]);
+        expect(Str.matchAll("/bar/", "bar foo bar")).toEqual(["bar", "bar"]);
         expect(Str.matchAll("/f(\\w*)/", "bar fun bar fly")).toEqual([
             "un",
             "ly",
