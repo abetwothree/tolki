@@ -21,7 +21,7 @@ export class Random {
             const remaining = length - out.length;
             const bytesSize = Math.ceil(remaining / 3) * 3; // multiple of 3 like Laravel implementation
             const bytes = secureRandomBytes(bytesSize);
-            const base64 = bytesToBase64(bytes).replace(/[\/+=]/g, "");
+            const base64 = bytesToBase64(bytes).replace(/[/+=]/g, "");
             out += base64.slice(0, remaining);
         }
         return out;
