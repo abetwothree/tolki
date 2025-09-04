@@ -17,7 +17,15 @@ export default defineConfig({
             fileName: "str",
         },
         rollupOptions: {
-            external: ["any-ascii", "lodash-es", "transliteration", "uuid"],
+            external: [
+                "any-ascii",
+                "lodash-es",
+                "transliteration",
+                "uuid",
+                "markdown-it",
+                "markdown-it-anchor",
+                "markdown-it-task-lists",
+            ],
         },
     },
 });
