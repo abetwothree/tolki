@@ -918,15 +918,6 @@ describe("Str tests", () => {
         );
     });
 
-    it("stripTags", () => {
-        expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(
-            "foo bar baz",
-        );
-        expect(
-            Str.stripTags('<div id="test">Hello<br/> こんにちは</div>'),
-        ).toBe("Hello こんにちは");
-    });
-
     it('plural', () => {
         expect(Str.plural("child")).toBe("children");
         expect(Str.plural("Laracon", 1)).toBe("Laracon");
@@ -945,6 +936,34 @@ describe("Str tests", () => {
         expect(Str.pluralPascal("This is my Laracon", 1)).toBe("This is my Laracon");
         expect(Str.pluralPascal("This is my Laracon", 3)).toBe("This is my Laracons");
     })
+
+    it.skip("password", () => { })
+
+    it("position", () => {
+        expect(Str.position('Hello, World!', '')).toBe(false);
+        expect(Str.position('Hello, World!', 'W')).toBe(7);
+        expect(Str.position('Hello, World!', 'world!', 0)).toBe(false);
+        expect(Str.position('This is a test string.', 'test')).toBe(10);
+        expect(Str.position('This is a test string, test again.', 'test', 15)).toBe(23);
+        expect(Str.position('Hello, World!', 'Hello')).toBe(0);
+        expect(Str.position('Hello, World!', 'World!')).toBe(7);
+        expect(Str.position('This is a tEsT string.', 'tEsT', 0)).toBe(10);
+        expect(Str.position('Hello, World!', 'W', -6)).toBe(7);
+        expect(Str.position('Äpfel, Birnen und Kirschen', 'Kirschen', -10)).toBe(18);
+        expect(Str.position('@%€/=!"][$', '$', 0)).toBe(9);
+        expect(Str.position('Hello, World!', 'w', 0)).toBe(false);
+        expect(Str.position('Hello, World!', 'X', 0)).toBe(false);
+        expect(Str.position('', 'test')).toBe(false);
+    })
+
+    it("stripTags", () => {
+        expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(
+            "foo bar baz",
+        );
+        expect(
+            Str.stripTags('<div id="test">Hello<br/> こんにちは</div>'),
+        ).toBe("Hello こんにちは");
+    });
 
     it("ulid", () => {
         const when = new Date("2024-01-01T00:00:00.000Z").getTime();

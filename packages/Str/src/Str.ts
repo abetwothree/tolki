@@ -1250,6 +1250,50 @@ export class Str {
     }
 
     /**
+     * Find the multi-byte safe position of the first occurrence of a given substring in a string.
+     *
+     * @example
+     * 
+     * Str.position('Hello, World!', 'World!'); // -> 7
+     * Str.position('Hello, World!', 'world!', 0); // -> false
+     */
+    static position(haystack: string, needle: string, offset: number = 0): number | false
+    {
+        // PHP mb_strpos compatibility (code point based):
+        // - Returns the position of first occurrence (in characters)
+        // - Returns false if not found or needle is empty
+        // - Negative offset counts from end
+        if (needle === "") {
+            return false;
+        }
+
+        const haystackPoints = Array.from(haystack);
+        const needlePoints = Array.from(needle);
+
+        let start = offset >= 0 ? offset : haystackPoints.length + offset;
+        if (start < 0) start = 0;
+        if (start >= haystackPoints.length) {
+            return false;
+        }
+
+        const lastStart = haystackPoints.length - needlePoints.length;
+        for (let i = start; i <= lastStart; i++) {
+            let match = true;
+            for (let j = 0; j < needlePoints.length; j++) {
+                if (haystackPoints[i + j] !== needlePoints[j]) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                return i;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Strip HTML tags from a string.
      *
      * @example
