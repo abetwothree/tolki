@@ -1,4 +1,4 @@
-import {MarkdownRenderer, type MarkDownOptions} from './Markdown.js';
+import { MarkdownRenderer, type MarkDownOptions } from "./Markdown.js";
 import { Stringable } from "./Stringable.js";
 import { transliterate } from "transliteration";
 import anyAscii from "any-ascii";
@@ -412,8 +412,8 @@ export class Str {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _options?: Record<string, any>,
     ): string | null {
-    // Not implemented yet; keep API returning null consistently
-    return null;
+        // Not implemented yet; keep API returning null consistently
+        return null;
     }
 
     /**
@@ -736,7 +736,9 @@ export class Str {
             return value.slice(0, limit).replace(/\s+$/, "") + end;
         }
 
-        value = Str.stripTags(value).replace(/[\n\r]+/g, " ").trim();
+        value = Str.stripTags(value)
+            .replace(/[\n\r]+/g, " ")
+            .trim();
 
         const trimmed = value.slice(0, limit).replace(/\s+$/, "");
 
@@ -766,7 +768,11 @@ export class Str {
      * Str.words("Laravel PHP Framework", 2); // -> "Laravel PHP Framework"
      * Str.words("Laravel PHP Framework", 1); // -> "Laravel..."
      */
-    static words(value: string, words: number = 100, end: string = '...'): string {
+    static words(
+        value: string,
+        words: number = 100,
+        end: string = "...",
+    ): string {
         if (words <= 0) {
             return value;
         }
@@ -774,7 +780,7 @@ export class Str {
         // JavaScript RegExp lacks possessive quantifiers; approximate the original PCRE pattern
         // If the requested word count is zero or negative, keep current test suite semantics (return original string)
         const safeWords = words; // safeWords >= 1 here
-        const regex = new RegExp(`^\\s*(?:\\S+\\s*){1,${safeWords}}`, 'u');
+        const regex = new RegExp(`^\\s*(?:\\S+\\s*){1,${safeWords}}`, "u");
         const matches = value.match(regex);
 
         if (!matches || Str.length(value) === Str.length(matches[0])) {
@@ -788,7 +794,7 @@ export class Str {
      * Converts GitHub flavored Markdown into HTML.
      *
      * @example
-     * 
+     *
      * Str.markdown('# Hello World'); // -> '<h1>Hello World</h1>\n'
      */
     static markdown(

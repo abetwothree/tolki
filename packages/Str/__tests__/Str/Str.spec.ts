@@ -531,71 +531,93 @@ describe("Str tests", () => {
         expect(Str.length("foo bar baz")).toBe(11);
         expect(Str.length("Hello こんにちは")).toBe(11);
     });
-    
+
     it("limit", () => {
-        expect(Str.limit('Laravel is a free, open source PHP web application framework.', 10)).toBe("Laravel is...");
-        expect(Str.limit('这是一段中文', 3)).toBe("这是一...");
-        expect(Str.limit('Laravel is a free, open source PHP web application framework.', 15, '...', true)).toBe("Laravel is a...");
+        expect(
+            Str.limit(
+                "Laravel is a free, open source PHP web application framework.",
+                10,
+            ),
+        ).toBe("Laravel is...");
+        expect(Str.limit("这是一段中文", 3)).toBe("这是一...");
+        expect(
+            Str.limit(
+                "Laravel is a free, open source PHP web application framework.",
+                15,
+                "...",
+                true,
+            ),
+        ).toBe("Laravel is a...");
 
-        const string = 'The PHP framework for web artisans.';
+        const string = "The PHP framework for web artisans.";
         expect(Str.limit(string, 7)).toBe("The PHP...");
-        expect(Str.limit(string, 10, '...', true)).toBe("The PHP...");
-        expect(Str.limit(string, 7, '')).toBe("The PHP");
-        expect(Str.limit(string, 10, '', true)).toBe("The PHP");
-        expect(Str.limit(string, 100)).toBe("The PHP framework for web artisans.");
-        expect(Str.limit(string, 100, '...', true)).toBe("The PHP framework for web artisans.");
-        expect(Str.limit(string, 20, '...', true)).toBe("The PHP framework...");
+        expect(Str.limit(string, 10, "...", true)).toBe("The PHP...");
+        expect(Str.limit(string, 7, "")).toBe("The PHP");
+        expect(Str.limit(string, 10, "", true)).toBe("The PHP");
+        expect(Str.limit(string, 100)).toBe(
+            "The PHP framework for web artisans.",
+        );
+        expect(Str.limit(string, 100, "...", true)).toBe(
+            "The PHP framework for web artisans.",
+        );
+        expect(Str.limit(string, 20, "...", true)).toBe("The PHP framework...");
 
-        const nonAsciiString = '这是一段中文';
+        const nonAsciiString = "这是一段中文";
         expect(Str.limit(nonAsciiString, 3)).toBe("这是一...");
-        expect(Str.limit(nonAsciiString, 3, '...', true)).toBe("这是一...");
-        expect(Str.limit(nonAsciiString, 3, '')).toBe("这是一");
-        expect(Str.limit(nonAsciiString, 3, '', true)).toBe("这是一");
+        expect(Str.limit(nonAsciiString, 3, "...", true)).toBe("这是一...");
+        expect(Str.limit(nonAsciiString, 3, "")).toBe("这是一");
+        expect(Str.limit(nonAsciiString, 3, "", true)).toBe("这是一");
 
-        expect(Str.limit("The PHP", 5, '...', true)).toBe("The...");
+        expect(Str.limit("The PHP", 5, "...", true)).toBe("The...");
         expect(Str.limit("Hello world", 5, "...", true)).toBe("Hello...");
     });
 
     it("stripTags", () => {
-        expect(Str.stripTags("<p data-id=\"test\">foo bar baz</p>")).toBe("foo bar baz");
-        expect(Str.stripTags("<div id=\"test\">Hello<br/> こんにちは</div>")).toBe("Hello こんにちは");
+        expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(
+            "foo bar baz",
+        );
+        expect(
+            Str.stripTags('<div id="test">Hello<br/> こんにちは</div>'),
+        ).toBe("Hello こんにちは");
     });
 
     it("lower", () => {
-        expect(Str.lower('FOO BAR BAZ')).toBe('foo bar baz');
-        expect(Str.lower('fOo Bar bAz')).toBe('foo bar baz');
+        expect(Str.lower("FOO BAR BAZ")).toBe("foo bar baz");
+        expect(Str.lower("fOo Bar bAz")).toBe("foo bar baz");
     });
 
     it("words", () => {
-        expect(Str.words('Taylor Otwell', 1)).toBe('Taylor...');
-        expect(Str.words('Taylor Otwell', 1, '___')).toBe('Taylor___');
-        expect(Str.words('Taylor Otwell', 3)).toBe('Taylor Otwell');
-        expect(Str.words('Taylor Otwell', -1, '...')).toBe('Taylor Otwell');
-        expect(Str.words('', 3, '...')).toBe('');
+        expect(Str.words("Taylor Otwell", 1)).toBe("Taylor...");
+        expect(Str.words("Taylor Otwell", 1, "___")).toBe("Taylor___");
+        expect(Str.words("Taylor Otwell", 3)).toBe("Taylor Otwell");
+        expect(Str.words("Taylor Otwell", -1, "...")).toBe("Taylor Otwell");
+        expect(Str.words("", 3, "...")).toBe("");
 
-        expect(Str.words('这是 段中文', 1)).toBe('这是...');
-        expect(Str.words('这是 段中文', 1, '___')).toBe('这是___');
-        expect(Str.words('这是-段中文', 3, '___')).toBe('这是-段中文');
-        expect(Str.words('这是     段中文', 1, '___')).toBe('这是___');
+        expect(Str.words("这是 段中文", 1)).toBe("这是...");
+        expect(Str.words("这是 段中文", 1, "___")).toBe("这是___");
+        expect(Str.words("这是-段中文", 3, "___")).toBe("这是-段中文");
+        expect(Str.words("这是     段中文", 1, "___")).toBe("这是___");
 
-        expect(Str.words(' Taylor Otwell ', 3)).toBe(' Taylor Otwell ');
-        expect(Str.words(' Taylor Otwell ', 1)).toBe(' Taylor...');
+        expect(Str.words(" Taylor Otwell ", 3)).toBe(" Taylor Otwell ");
+        expect(Str.words(" Taylor Otwell ", 1)).toBe(" Taylor...");
     });
 
     describe("markdown", () => {
         it("renders basic heading without anchors", () => {
-            expect(Str.markdown('# Hello World')).toBe('<h1>Hello World</h1>\n');
+            expect(Str.markdown("# Hello World")).toBe(
+                "<h1>Hello World</h1>\n",
+            );
         });
 
         it("respects html=false (escapes) vs html=true (allows)", () => {
-            const md = 'A paragraph with <b>bold</b>.';
-            expect(Str.markdown(md)).toContain('&lt;b&gt;bold&lt;/b&gt;'); // default html false
+            const md = "A paragraph with <b>bold</b>.";
+            expect(Str.markdown(md)).toContain("&lt;b&gt;bold&lt;/b&gt;"); // default html false
             const allowed = Str.markdown(md, { html: true });
-            expect(allowed).toContain('<b>bold</b>');
+            expect(allowed).toContain("<b>bold</b>");
         });
 
         it("linkify true by default and can be disabled", () => {
-            const text = 'Visit https://example.com now';
+            const text = "Visit https://example.com now";
             const withLink = Str.markdown(text);
             expect(withLink).toMatch(/<a href="https:\/\/example.com"/);
             const withoutLink = Str.markdown(text, { linkify: false });
@@ -603,105 +625,146 @@ describe("Str tests", () => {
         });
 
         it("breaks true by default converts single newline to <br>", () => {
-            const input = 'Line1\nLine2';
+            const input = "Line1\nLine2";
             const withBreak = Str.markdown(input);
-            expect(withBreak).toContain('Line1<br>');
+            expect(withBreak).toContain("Line1<br>");
             const withoutBreak = Str.markdown(input, { breaks: false });
             // No <br>, still one paragraph
-            expect(withoutBreak).toContain('<p>Line1\nLine2</p>');
+            expect(withoutBreak).toContain("<p>Line1\nLine2</p>");
         });
 
         it("gfm task list plugin on by default and can be disabled", () => {
-            const task = '- [x] Done\n- [ ] Pending';
+            const task = "- [x] Done\n- [ ] Pending";
             const withGfm = Str.markdown(task);
             // Attribute order from markdown-it-task-lists isn't guaranteed; use lookaheads instead of strict ordering.
-            expect(withGfm).toMatch(/<input(?=[^>]*class="task-list-item-checkbox")(?=[^>]*type="checkbox")(?=[^>]*checked)/);
+            expect(withGfm).toMatch(
+                /<input(?=[^>]*class="task-list-item-checkbox")(?=[^>]*type="checkbox")(?=[^>]*checked)/,
+            );
             const withoutGfm = Str.markdown(task, { gfm: false });
             expect(withoutGfm).not.toMatch(/<input[^>]*type="checkbox"/);
-            expect(withoutGfm).toContain('[x] Done');
+            expect(withoutGfm).toContain("[x] Done");
         });
 
         it("anchors true (boolean) adds id + tabindex", () => {
-            const out = Str.markdown('# Title', { anchors: true });
+            const out = Str.markdown("# Title", { anchors: true });
             expect(out).toMatch(/<h1 id="title"[^>]*>Title<\/h1>/);
         });
 
         it("anchors object allows custom slugify", () => {
-            const out = Str.markdown('# My Heading', { anchors: { slugify: () => 'custom-slug' } });
+            const out = Str.markdown("# My Heading", {
+                anchors: { slugify: () => "custom-slug" },
+            });
             expect(out).toMatch(/<h1 id="custom-slug"/);
         });
 
         it("supports extensions as plugin and [plugin, options] tuple", () => {
             // Plugin adding data-ext attr to paragraph_open
             const paragraphAttrPlugin = (md: any, opts?: any) => {
-                const attrName = (opts && opts.attrName) || 'data-ext';
-                const orig = md.renderer.rules.paragraph_open || ((tokens: any, idx: number, _o: any, _e: any, self: any) => self.renderToken(tokens, idx, _o));
-                md.renderer.rules.paragraph_open = (tokens: any, idx: number, options: any, _env: any, self: any) => {
-                    tokens[idx].attrPush([attrName, '1']);
+                const attrName = (opts && opts.attrName) || "data-ext";
+                const orig =
+                    md.renderer.rules.paragraph_open ||
+                    ((tokens: any, idx: number, _o: any, _e: any, self: any) =>
+                        self.renderToken(tokens, idx, _o));
+                md.renderer.rules.paragraph_open = (
+                    tokens: any,
+                    idx: number,
+                    options: any,
+                    _env: any,
+                    self: any,
+                ) => {
+                    tokens[idx].attrPush([attrName, "1"]);
                     return orig(tokens, idx, options, _env, self);
                 };
             };
 
             // Plugin adding class to h1
             const headingClassPlugin = (md: any) => {
-                const orig = md.renderer.rules.heading_open || ((tokens: any, idx: number, _o: any, _e: any, self: any) => self.renderToken(tokens, idx, _o));
-                md.renderer.rules.heading_open = (tokens: any, idx: number, options: any, env: any, self: any) => {
+                const orig =
+                    md.renderer.rules.heading_open ||
+                    ((tokens: any, idx: number, _o: any, _e: any, self: any) =>
+                        self.renderToken(tokens, idx, _o));
+                md.renderer.rules.heading_open = (
+                    tokens: any,
+                    idx: number,
+                    options: any,
+                    env: any,
+                    self: any,
+                ) => {
                     const token = tokens[idx];
-                    if (token.tag === 'h1') {
-                        token.attrPush(['data-head', 'yes']);
+                    if (token.tag === "h1") {
+                        token.attrPush(["data-head", "yes"]);
                     }
                     return orig(tokens, idx, options, env, self);
                 };
             };
 
-            const out = Str.markdown('# Title\n\nParagraph.', {}, [headingClassPlugin, [paragraphAttrPlugin, { attrName: 'data-added' }]]);
+            const out = Str.markdown("# Title\n\nParagraph.", {}, [
+                headingClassPlugin,
+                [paragraphAttrPlugin, { attrName: "data-added" }],
+            ]);
             expect(out).toMatch(/<h1[^>]*data-head="yes"/);
             expect(out).toMatch(/<p[^>]*data-added="1"/);
         });
 
         it("passes through rest options (typographer)", () => {
-            const out = Str.markdown('Wait...', { typographer: true });  
+            const out = Str.markdown("Wait...", { typographer: true });
             // typographer converts three dots to ellipsis
-            expect(out).toContain('Wait…');
+            expect(out).toContain("Wait…");
         });
     });
 
     describe("inlineMarkdown", () => {
         it("renders emphasis inline only", () => {
-            expect(Str.inlineMarkdown('*hi* there')).toBe('<em>hi</em> there');
+            expect(Str.inlineMarkdown("*hi* there")).toBe("<em>hi</em> there");
         });
 
         it("linkify true by default", () => {
-            const html = Str.inlineMarkdown('See https://example.com');
+            const html = Str.inlineMarkdown("See https://example.com");
             expect(html).toMatch(/<a href="https:\/\/example.com"/);
         });
 
         it("linkify can be disabled", () => {
-            const html = Str.inlineMarkdown('See https://example.com', { linkify: false });
-            expect(html).toContain('https://example.com');
+            const html = Str.inlineMarkdown("See https://example.com", {
+                linkify: false,
+            });
+            expect(html).toContain("https://example.com");
             expect(html).not.toMatch(/<a href/);
         });
 
         it("breaks true converts newline to <br>", () => {
-            const html = Str.inlineMarkdown('Hello\nWorld');
-            expect(html).toBe('Hello<br>\nWorld');
+            const html = Str.inlineMarkdown("Hello\nWorld");
+            expect(html).toBe("Hello<br>\nWorld");
         });
 
         it("gfm task list ignored inline when disabled", () => {
-            const html = Str.inlineMarkdown('- [x] Done', { gfm: false });
+            const html = Str.inlineMarkdown("- [x] Done", { gfm: false });
             // With gfm disabled expect raw task text unchanged
-            expect(html).toContain('- [x] Done');
+            expect(html).toContain("- [x] Done");
         });
 
         it("extensions applied (simple plugin example)", () => {
             const plugin = (md: any) => {
-                const orig = md.renderer.rules.em_open || ((tokens: any, idx: number, options: any, _env: any, self: any) => self.renderToken(tokens, idx, options));
-                md.renderer.rules.em_open = function(tokens: any, idx: number, options: any, _env: any, self: any) {
-                    tokens[idx].attrPush(['data-x', 'y']);
+                const orig =
+                    md.renderer.rules.em_open ||
+                    ((
+                        tokens: any,
+                        idx: number,
+                        options: any,
+                        _env: any,
+                        self: any,
+                    ) => self.renderToken(tokens, idx, options));
+                md.renderer.rules.em_open = function (
+                    tokens: any,
+                    idx: number,
+                    options: any,
+                    _env: any,
+                    self: any,
+                ) {
+                    tokens[idx].attrPush(["data-x", "y"]);
                     return orig(tokens, idx, options, _env, self);
                 };
             };
-            const html = Str.inlineMarkdown('*hi*', {}, [plugin]);
+            const html = Str.inlineMarkdown("*hi*", {}, [plugin]);
             expect(html).toContain('<em data-x="y">');
         });
     });

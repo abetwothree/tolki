@@ -12,7 +12,7 @@ export class MarkdownRenderer {
     constructor(
         private options: MarkDownOptions = { gfm: true, anchors: false },
         private extensions: any[] = [],
-    ) { }
+    ) {}
 
     renderer() {
         const {
