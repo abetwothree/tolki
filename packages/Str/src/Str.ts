@@ -942,9 +942,10 @@ export class Str {
     /**
      * Determine if a given string matches a given pattern.
      *
-     * @param  string|iterable<string>  $pattern
-     * @param  string  $value
-     * @return bool
+     * @example
+     *
+     * Str::isMatch('/foo/', 'foo bar'); // true
+     * Str::isMatch('/bar/', 'foo bar'); // false
      */
     static isMatch(pattern: string | Iterable<string>, value: string): boolean {
         value = String(value);
@@ -1060,6 +1061,22 @@ export class Str {
         }
 
         return results;
+    }
+
+    /**
+     * Remove all non-numeric characters from a string.
+     *
+     * @example
+     *
+     * Str.numbers("foo123bar"); // -> "123"
+     * Str.numbers(["foo123bar", "abc456"]); // -> ["123", "456"]
+     */
+    static numbers(value: string | string[]): string | string[] {
+        if (Array.isArray(value)) {
+            return value.map((item) => item.replace(/[^0-9]/g, ""));
+        }
+
+        return value.replace(/[^0-9]/g, "");
     }
 
     /**

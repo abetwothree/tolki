@@ -876,6 +876,16 @@ describe("Str tests", () => {
         expect(Str.matchAll("/^/m", "a\nb").length).toBeGreaterThan(0);
     });
 
+    it("numbers", () => {
+        expect(Str.numbers("(555) 123-4567")).toBe("5551234567");
+        expect(Str.numbers("L4r4v3l!")).toBe("443");
+        expect(Str.numbers("Laravel!")).toBe("");
+
+        const arrayValue = ["(555) 123-4567", "L4r4v3l", "Laravel!"];
+        const arrayExpected = ["5551234567", "443", ""];
+        expect(Str.numbers(arrayValue)).toEqual(arrayExpected);
+    });
+
     it("stripTags", () => {
         expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(
             "foo bar baz",
