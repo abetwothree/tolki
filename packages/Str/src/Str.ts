@@ -1,4 +1,8 @@
-import { MarkdownRenderer, type MarkDownOptions, type MarkDownExtensions } from "./Markdown.js";
+import {
+    MarkdownRenderer,
+    type MarkDownOptions,
+    type MarkDownExtensions,
+} from "./Markdown.js";
 import { Stringable } from "./Stringable.js";
 import { transliterate } from "transliteration";
 import anyAscii from "any-ascii";
@@ -820,6 +824,49 @@ export class Str {
     ): string {
         const md = new MarkdownRenderer(options, extensions).renderer();
         return md.renderInline(value);
+    }
+
+    /**
+     * Masks a portion of a string with a repeated character.
+     *
+     * @example
+     *
+     * Str.mask("taylor@email.com", "*", 3); // -> "tay*************"
+     * Str.mask("taylor@email.com", "*", 0, 6); // -> "******@email.com"
+     * Str.mask("taylor@email.com", "*", -13); // -> "tay*************"
+     * Str.mask("taylor@email.com", "*", -13, 3); // -> "tay***@email.com"
+     */
+    static mask(
+        value: string,
+        character: string,
+        index: number,
+        length: number | null = null,
+    ): string {
+        if (character === "") {
+            return value;
+        }
+
+        const strlen = value.length;
+        let startIndex = index;
+
+        if (index < 0) {
+            startIndex = index < -strlen ? 0 : strlen + index;
+        }
+
+        const segment = value.slice(
+            startIndex,
+            length !== null ? startIndex + length : undefined,
+        );
+
+        if (segment === "") {
+            return value;
+        }
+
+        const start = value.slice(0, startIndex);
+        const segmentLen = segment.length;
+        const end = value.slice(startIndex + segmentLen);
+
+        return start + character.slice(0, 1).repeat(segmentLen) + end;
     }
 
     /**

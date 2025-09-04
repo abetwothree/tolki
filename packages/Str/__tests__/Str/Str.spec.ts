@@ -572,15 +572,6 @@ describe("Str tests", () => {
         expect(Str.limit("Hello world", 5, "...", true)).toBe("Hello...");
     });
 
-    it("stripTags", () => {
-        expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(
-            "foo bar baz",
-        );
-        expect(
-            Str.stripTags('<div id="test">Hello<br/> こんにちは</div>'),
-        ).toBe("Hello こんにちは");
-    });
-
     it("lower", () => {
         expect(Str.lower("FOO BAR BAZ")).toBe("foo bar baz");
         expect(Str.lower("fOo Bar bAz")).toBe("foo bar baz");
@@ -767,6 +758,63 @@ describe("Str tests", () => {
             const html = Str.inlineMarkdown("*hi*", {}, [plugin]);
             expect(html).toContain('<em data-x="y">');
         });
+    });
+
+    it("mask", () => {
+        expect(Str.mask("taylor@email.com", "*", 3)).toBe("tay*************");
+        expect(Str.mask("taylor@email.com", "*", 0, 6)).toBe(
+            "******@email.com",
+        );
+        expect(Str.mask("taylor@email.com", "*", -13)).toBe("tay*************");
+        expect(Str.mask("taylor@email.com", "*", -13, 3)).toBe(
+            "tay***@email.com",
+        );
+
+        expect(Str.mask("taylor@email.com", "*", -17)).toBe("****************");
+        expect(Str.mask("taylor@email.com", "*", -99, 5)).toBe(
+            "*****r@email.com",
+        );
+
+        expect(Str.mask("taylor@email.com", "*", 16)).toBe("taylor@email.com");
+        expect(Str.mask("taylor@email.com", "*", 16, 99)).toBe(
+            "taylor@email.com",
+        );
+
+        expect(Str.mask("taylor@email.com", "", 3)).toBe("taylor@email.com");
+
+        expect(Str.mask("taylor@email.com", "something", 3)).toBe(
+            "taysssssssssssss",
+        );
+        expect(Str.mask("taylor@email.com", "something", 3)).toBe(
+            "taysssssssssssss",
+        );
+
+        expect(Str.mask("这是一段中文", "*", 3)).toBe("这是一***");
+        expect(Str.mask("这是一段中文", "*", 0, 2)).toBe("**一段中文");
+
+        expect(Str.mask("maan@email.com", "*", 2, 1)).toBe("ma*n@email.com");
+        expect(Str.mask("maan@email.com", "*", 2, 3)).toBe("ma***email.com");
+        expect(Str.mask("maan@email.com", "*", 2)).toBe("ma************");
+
+        expect(Str.mask("maria@email.com", "*", 4, 1)).toBe("mari*@email.com");
+        expect(Str.mask("tamara@email.com", "*", 5, 1)).toBe(
+            "tamar*@email.com",
+        );
+
+        expect(Str.mask("maria@email.com", "*", 0, 1)).toBe("*aria@email.com");
+        expect(Str.mask("maria@email.com", "*", -1, 1)).toBe("maria@email.co*");
+        expect(Str.mask("maria@email.com", "*", -1)).toBe("maria@email.co*");
+        expect(Str.mask("maria@email.com", "*", -15)).toBe("***************");
+        expect(Str.mask("maria@email.com", "*", 0)).toBe("***************");
+    });
+
+    it("stripTags", () => {
+        expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(
+            "foo bar baz",
+        );
+        expect(
+            Str.stripTags('<div id="test">Hello<br/> こんにちは</div>'),
+        ).toBe("Hello こんにちは");
     });
 
     it("ulid", () => {
