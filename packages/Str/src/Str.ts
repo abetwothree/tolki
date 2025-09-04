@@ -14,6 +14,12 @@ import MarkdownIt, { type Options as MarkdownItOptions } from "markdown-it";
 import markdownItAnchor from "markdown-it-anchor";
 import markdownItTaskLists from "markdown-it-task-lists";
 
+export interface MarkDownOptions extends MarkdownItOptions {
+    gfm?: boolean;
+    anchors?: object | boolean;
+    typographer?: boolean;
+}
+
 export class Str {
     private static $camelCache = new Map<string, string>();
 
@@ -795,7 +801,7 @@ export class Str {
      */
     static markdown(
         value: string,
-        options: MarkdownItOptions & { gfm: boolean, anchors: boolean } = { gfm: true, anchors: false },
+        options: MarkDownOptions = { gfm: true, anchors: false },
         extensions: any[] = [],
     ): string {
         const {

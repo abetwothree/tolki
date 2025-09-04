@@ -660,7 +660,7 @@ describe("Str tests", () => {
         });
 
         it("passes through rest options (typographer)", () => {
-            const out = Str.markdown('Wait...', { typographer: true });
+            const out = Str.markdown('Wait...', { typographer: true });  
             // typographer converts three dots to ellipsis
             expect(out).toContain('Wait…');
         });
