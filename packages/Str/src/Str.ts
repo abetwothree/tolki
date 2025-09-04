@@ -1166,10 +1166,11 @@ export class Str {
     /**
      * Get the plural form of an English word.
      *
-     * @param  string  $value
-     * @param  int|array|\Countable  $count
-     * @param  bool  $prependCount
-     * @return string
+     * @example
+     * 
+     * Str.plural("child"); // -> "children"
+     * Str.plural("apple", 1); // -> "apple"
+     * Str.plural("apple", 2, true); // -> "2 apples"
      */
     static plural(
         value: string,
@@ -1180,6 +1181,31 @@ export class Str {
             (prependCount ? Number.format(count) + " " : "") +
             Pluralizer.plural(value, count)
         );
+    }
+
+    /**
+     * Pluralize the last word of an English, studly caps case string.
+     *
+     * @example
+     *
+     * Str.pluralStudly("These are the school", 4); // -> "These are the schools"
+     */
+    static pluralStudly(value: string, count: number = 2): string {
+        const parts = value.split(/(?=[A-Z])/);
+        const lastWord = String(parts.pop());
+
+        return parts.join('') + Str.plural(lastWord, count);
+    }
+
+    /**
+     * Pluralize the last word of an English, Pascal caps case string.
+     *
+     * @example
+     *
+     * Str.pluralPascal("These are the school", 4); // -> "These are the schools"
+     */
+    static pluralPascal(value: string, count: number = 2): string {
+        return Str.pluralStudly(value, count);
     }
 
     /**

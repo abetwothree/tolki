@@ -927,6 +927,25 @@ describe("Str tests", () => {
         ).toBe("Hello こんにちは");
     });
 
+    it('plural', () => {
+        expect(Str.plural("child")).toBe("children");
+        expect(Str.plural("Laracon", 1)).toBe("Laracon");
+        expect(Str.plural("Laracon", 3)).toBe("Laracons");
+        // expect(Str.plural("Laracon", 1000, true)).toBe("1,000 Laracons"); // TODO when Number helper is done
+    });
+
+    it('pluralStudly', () => {
+        expect(Str.pluralStudly("These are my child", 5)).toBe("These are my children");
+        expect(Str.pluralStudly("This is my Laracon", 1)).toBe("This is my Laracon");
+        expect(Str.pluralStudly("This is my Laracon", 3)).toBe("This is my Laracons");
+    })
+
+    it('pluralPascal', () => {
+        expect(Str.pluralPascal("These are my child", 5)).toBe("These are my children");
+        expect(Str.pluralPascal("This is my Laracon", 1)).toBe("This is my Laracon");
+        expect(Str.pluralPascal("This is my Laracon", 3)).toBe("This is my Laracons");
+    })
+
     it("ulid", () => {
         const when = new Date("2024-01-01T00:00:00.000Z").getTime();
         const idA = Str.ulid(when);

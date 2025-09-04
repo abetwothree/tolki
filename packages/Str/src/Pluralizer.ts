@@ -1,9 +1,16 @@
 import pluralize from "pluralize";
 
+export interface PluralizerRules {
+    plural: Record<string, string>;
+    singular: Record<string, string>;
+    irregular: Record<string, string>;
+    uncountable: string[];
+}
+
 export class Pluralizer {
     static inflection: typeof pluralize;
 
-    static rules = {
+    static rules: PluralizerRules = {
         plural: {},
         singular: {},
         irregular: {},
@@ -56,13 +63,8 @@ export class Pluralizer {
 
     /**
      * Get the plural form of an English word.
-     *
-     * @param value
-     * @param count
-     *
-     * @return string
      */
-    static plural(value: string, count: number = 2) {
+    static plural(value: string, count: number = 2): string {
         if (Math.abs(count) === 1 || Pluralizer.uncountable(value)) {
             return value;
         }
@@ -74,10 +76,6 @@ export class Pluralizer {
 
     /**
      * Get the singular form of an English word.
-     *
-     * @param value
-     *
-     * @return string
      */
     static singular(value: string): string {
         const single = Pluralizer.inflector().singular(value);
@@ -87,10 +85,6 @@ export class Pluralizer {
 
     /**
      * Determine if the given value is uncountable.
-     *
-     * @param value
-     *
-     * @returns boolean
      */
     static uncountable(value: string): boolean {
         return Pluralizer.rules.uncountable.includes(value.toLowerCase());
@@ -98,10 +92,6 @@ export class Pluralizer {
 
     /**
      * Determine if the given value is plural.
-     *
-     * @param value
-     *
-     * @returns boolean
      */
     static isPlural(value: string = ""): boolean {
         return Pluralizer.inflector().isPlural(value);
@@ -109,10 +99,6 @@ export class Pluralizer {
 
     /**
      * Determine if the given value is singular.
-     *
-     * @param value
-     *
-     * @returns boolean
      */
     static isSingular(value: string = ""): boolean {
         return Pluralizer.inflector().isSingular(value);
@@ -120,11 +106,6 @@ export class Pluralizer {
 
     /**
      * Attempt to match the case on two strings
-     *
-     * @param  value
-     * @param comparison
-     *
-     * @return string
      */
     static matchCase(value: string, comparison: string): string {
         if (comparison.toLowerCase() === comparison) {
@@ -147,8 +128,6 @@ export class Pluralizer {
 
     /**
      * Get the pluralize instance
-     *
-     * @return Pluralizer.inflection
      */
     static inflector(): typeof pluralize {
         if (typeof Pluralizer.inflection === "undefined") {
