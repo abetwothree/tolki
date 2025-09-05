@@ -1082,6 +1082,30 @@ describe("Str tests", () => {
         // expect(Str.replace(collect(['?1', '?2', '?3']), collect(['foo', 'bar', 'baz']), collect(['?1', '?2', '?3']))).toEqual(['foo', 'bar', 'baz']); // TODO when collections are implemented
     });
 
+    it("replaceFirst", () => {
+        expect(Str.replaceFirst("bar", "qux", "foobar foobar")).toBe(
+            "fooqux foobar",
+        );
+        expect(Str.replaceFirst("bar?", "qux?", "foo/bar? foo/bar?")).toBe(
+            "foo/qux? foo/bar?",
+        );
+        expect(Str.replaceFirst("bar", "", "foobar foobar")).toBe("foo foobar");
+        expect(Str.replaceFirst("xxx", "yyy", "foobar foobar")).toBe(
+            "foobar foobar",
+        );
+        expect(Str.replaceFirst("", "yyy", "foobar foobar")).toBe(
+            "foobar foobar",
+        );
+        expect(Str.replaceFirst(0, "1", "0")).toBe("1");
+        // Test for multibyte string support
+        expect(Str.replaceFirst("ö", "xxx", "Jönköping Malmö")).toBe(
+            "Jxxxnköping Malmö",
+        );
+        expect(Str.replaceFirst("", "yyy", "Jönköping Malmö")).toBe(
+            "Jönköping Malmö",
+        );
+    });
+
     it("stripTags", () => {
         expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(
             "foo bar baz",

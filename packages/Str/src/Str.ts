@@ -1491,11 +1491,9 @@ export class Str {
     /**
      * Replace the given value in the given string.
      *
-     * @param  string|iterable<string>  $search
-     * @param  string|iterable<string>  $replace
-     * @param  string|iterable<string>  $subject
-     * @param  bool  $caseSensitive
-     * @return string|string[]
+     * @example
+     *
+     * Str.replace("foo", "bar", "foo baz"); // -> "bar baz"
      */
     static replace(
         search: string | Iterable<string>,
@@ -1532,6 +1530,37 @@ export class Str {
         return typeof subject === "string"
             ? apply(subject)
             : Array.from(subject).map(apply);
+    }
+
+    /**
+     * Replace the first occurrence of a given value in the string.
+     *
+     * @example
+     *
+     * Str.replaceFirst('bar', 'qux', 'foobar foobar'); // -> 'fooqux foobar'
+     */
+    static replaceFirst(
+        search: string | number,
+        replace: string,
+        subject: string,
+    ): string {
+        search = String(search);
+
+        if (search === "") {
+            return subject;
+        }
+
+        const position = subject.indexOf(search);
+
+        if (position !== -1) {
+            return (
+                subject.slice(0, position) +
+                replace +
+                subject.slice(position + search.length)
+            );
+        }
+
+        return subject;
     }
 
     /**
