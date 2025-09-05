@@ -1410,6 +1410,60 @@ export class Str {
     }
 
     /**
+     * Repeat the given string.
+     *
+     * @example
+     *
+     * Str.repeat("foo", 3); // -> "foofoofoo"
+     */
+    static repeat(string: string, times: number): string {
+        if (times <= 0) {
+            return "";
+        }
+
+        return string.repeat(times);
+    }
+
+    /**
+     * Replace a given value in the string sequentially with an array.
+     *
+     * @example
+     *
+     * Str.replaceArray('?', ['foo', 'bar', 'baz'], '?/?/?'); // -> 'foo/bar/baz'
+     * Str.replaceArray('?', ['foo', 'bar', 'baz'], '?/?/?/?'); // -> 'foo/bar/baz/?'
+     * Str.replaceArray('?', {'x' => 'foo', 'y' => 'bar'}, '?/?'); // -> 'foo/bar'
+     */
+    static replaceArray(
+        search: string,
+        replace: Record<string, string> | Iterable<string>,
+        subject: string,
+    ): string {
+        let replacements: string[];
+        if (typeof replace === "object" && !Array.isArray(replace)) {
+            replacements = Object.values(replace);
+        } else {
+            replacements = Array.isArray(replace)
+                ? [...replace]
+                : Array.from(replace);
+        }
+
+        const segments = subject.split(search);
+
+        if (segments.length === 1) {
+            return subject;
+        }
+
+        let result = segments[0];
+
+        for (let i = 1; i < segments.length; i++) {
+            const next = replacements.length ? replacements.shift()! : search;
+            result += next + segments[i];
+        }
+
+        return String(result);
+    }
+
+    /**
      * Strip HTML tags from a string.
      *
      * @example

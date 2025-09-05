@@ -1018,6 +1018,38 @@ describe("Str tests", () => {
         });
     });
 
+    it("repeat", () => {
+        expect(Str.repeat("Hello", 0)).toBe("");
+        expect(Str.repeat("Hello", 1)).toBe("Hello");
+        expect(Str.repeat("Hello", 2)).toBe("HelloHello");
+        expect(Str.repeat("a", 5)).toBe("aaaaa");
+        expect(Str.repeat("", 5)).toBe("");
+    });
+
+    it("replaceArray", () => {
+        expect(Str.replaceArray("?", ["foo", "bar", "baz"], "?/?/?")).toBe(
+            "foo/bar/baz",
+        );
+        expect(Str.replaceArray("?", ["foo", "bar", "baz"], "?/?/?/?")).toBe(
+            "foo/bar/baz/?",
+        );
+        expect(Str.replaceArray("?", ["foo", "bar", "baz"], "?/?")).toBe(
+            "foo/bar",
+        );
+        expect(Str.replaceArray("x", ["foo", "bar", "baz"], "?/?/?")).toBe(
+            "?/?/?",
+        );
+        // Ensure recursive replacements are avoided
+        expect(Str.replaceArray("?", ["foo?", "bar", "baz"], "?/?/?")).toBe(
+            "foo?/bar/baz",
+        );
+        // Test for associative array support
+        expect(Str.replaceArray("?", ["foo", "bar"], "?/?")).toBe("foo/bar");
+        expect(Str.replaceArray("?", { x: "foo", y: "bar" }, "?/?")).toBe(
+            "foo/bar",
+        );
+    });
+
     it("stripTags", () => {
         expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(
             "foo bar baz",
