@@ -975,11 +975,48 @@ describe("Str tests", () => {
     it("random", () => {
         expect(Str.random()).toHaveLength(16);
         expect(Str.random(32)).toHaveLength(32);
-        
+
         const randomInteger = Random.int(1, 100);
         expect(Str.random(randomInteger)).toHaveLength(randomInteger);
         expect(Str.random()).toEqual(expect.any(String));
-    })
+    });
+
+    it("createRandomStringsUsing", () => {
+        Str.createRandomStringsUsing((length) => "x".repeat(length));
+        expect(Str.random()).toBe("xxxxxxxxxxxxxxxx");
+        expect(Str.random(32)).toBe("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+    });
+
+    describe("createRandomStringsUsingSequence", () => {
+        it("createRandomStringsUsingSequence specifies a sequence of random strings to utilize", () => {
+            Str.createRandomStringsUsingSequence(["x", "y", "z", "987true"]);
+
+            expect(Str.random()).toBe("x");
+            expect(Str.random()).toBe("y");
+            expect(Str.random()).toBe("z");
+            expect(Str.random()).toBe("987true");
+            expect(Str.random()).toHaveLength(16);
+            expect(Str.random()).toHaveLength(16);
+
+            Str.createRandomStringsNormally();
+        });
+
+        it("createRandomStringsUsingSequence specify a fallback for random string sequence", () => {
+            Str.createRandomStringsUsingSequence(
+                [Str.random(), Str.random()],
+                () => {
+                    throw new Error("Out of random strings.");
+                },
+            );
+
+            Str.random();
+            Str.random();
+
+            expect(() => {
+                Str.random();
+            }).toThrowError("Out of random strings.");
+        });
+    });
 
     it("stripTags", () => {
         expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(

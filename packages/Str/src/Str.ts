@@ -1336,13 +1336,77 @@ export class Str {
     /**
      * Generate a more truly "random" alpha-numeric string.
      *
-     * @param  int  $length
-     * @return string
+     * @example
+     *
+     * Str.random(); // -> "a1b2c3d4e5f6g7h8"
      */
     static random(length: number = 16): string {
         const factory =
             Str.randomStringFactory ?? ((len: number) => Random.string(len));
         return factory(length);
+    }
+
+    /**
+     * Set the callable that will be used to generate random strings.
+     *
+     * @example
+     *
+     * Str.createRandomStringsUsing((length) => "x".repeat(length));
+     */
+    static createRandomStringsUsing(
+        factory: ((length: number) => string) | null,
+    ): void {
+        Str.randomStringFactory = factory;
+    }
+
+    /**
+     * Set the sequence that will be used to generate random strings.
+     *
+     * @example
+     *
+     * Str.createRandomStringsUsingSequence(['a', 'b', 'c']);
+     * Str.createRandomStringsUsingSequence(['x', 'y', 'z'], (length) => "z".repeat(length));
+     */
+    static createRandomStringsUsingSequence(
+        sequence: string[],
+        whenMissing?: (length: number) => string,
+    ): void {
+        let next = 0;
+
+        const missingHandler: (length: number) => string =
+            whenMissing ??
+            function (length: number) {
+                const factoryCache = Str.randomStringFactory;
+
+                Str.randomStringFactory = null;
+
+                const randomString = Str.random(length);
+
+                Str.randomStringFactory = factoryCache;
+
+                next++;
+
+                return randomString;
+            };
+
+        Str.createRandomStringsUsing((length: number): string => {
+            if (next < sequence.length) {
+                return String(sequence[next++]);
+            }
+
+            return missingHandler(length);
+        });
+    }
+
+    /**
+     * Indicate that random strings should be created normally and not using a custom factory.
+     *
+     * @example
+     *
+     * Str.createRandomStringsNormally();
+     */
+    static createRandomStringsNormally(): void {
+        Str.randomStringFactory = null;
     }
 
     /**
