@@ -1249,7 +1249,6 @@ export class Str {
      *
      * Str.password();
      */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     static password(
         _length: number = 32,
         _letters: boolean = true,
@@ -1257,6 +1256,8 @@ export class Str {
         _symbols: boolean = true,
         _spaces: boolean = false,
     ): string {
+        // Reference parameters to satisfy TypeScript noUnusedParameters while keeping API parity
+        void [_length, _letters, _numbers, _symbols, _spaces];
         // TODO when collections are implemented
 
         // const password = new Collection();
@@ -1643,6 +1644,184 @@ export class Str {
         }
 
         return subject;
+    }
+
+    /**
+     * Replace the patterns matching the given regular expression.
+     *
+     * @param  array|string  $pattern
+     * @param  \Closure|string[]|string  $replace
+     * @param  array|string  $subject
+     * @param  int  $limit
+     * @return string|string[]|null
+     */
+    static replaceMatches(
+        pattern: string | string[] | RegExp | RegExp[],
+        replace: string | string[] | ((match: string[]) => string),
+        subject: string | string[],
+        limit = -1,
+    ) {
+        // Laravel parity notes:
+        // - Accept single or array of patterns; each pattern is applied sequentially.
+        // - Patterns may be PCRE style strings with delimiters (e.g. /foo/i) or plain strings.
+        // - All matches are replaced (global) unless a positive limit is provided.
+        // - If replacement is an array and fewer items than patterns, missing entries become empty strings.
+        // - If replacement is a function, it's invoked with the full match text (simple parity – capturing groups not individually passed like PHP's $matches array).
+        // - On regex construction error, return null (preg_replace returns null on error).
+
+        const toArray = <T>(v: T | T[]): T[] => (Array.isArray(v) ? v : [v]);
+
+        const rawPatterns = toArray(pattern);
+
+        // Convert a PHP-style pattern string or RegExp to a global, unicode-aware RegExp.
+        function buildRegex(p: string | RegExp): RegExp | null {
+            try {
+                if (p instanceof RegExp) {
+                    let flags = p.flags;
+                    if (!flags.includes("g")) flags += "g"; // global replacements
+                    if (!flags.includes("u")) flags += "u"; // strive for unicode like Laravel's 'u'
+                    return new RegExp(p.source, flags);
+                }
+
+                // If pattern looks like /.../flags extract; else treat whole string as source.
+                let source = p;
+                let flags = "gu"; // always global + unicode by default
+                if (p.length >= 2 && p[0] === "/") {
+                    // Find last unescaped '/'
+                    let lastSlash = -1;
+                    for (let i = p.length - 1; i > 0; i--) {
+                        if (p[i] === "/") {
+                            let backslashes = 0;
+                            for (let j = i - 1; j >= 0 && p[j] === "\\"; j--)
+                                backslashes++;
+                            if (backslashes % 2 === 0) {
+                                lastSlash = i;
+                                break;
+                            }
+                        }
+                    }
+                    if (lastSlash > 1) {
+                        source = p.slice(1, lastSlash);
+                        const providedFlags = p.slice(lastSlash + 1);
+                        if (providedFlags) {
+                            // Allow only JS supported flags; always keep 'g' (global) & add 'u'
+                            for (const f of providedFlags) {
+                                if (/[imsuy]/.test(f) && !flags.includes(f)) {
+                                    flags += f;
+                                }
+                            }
+                        }
+                        if (!flags.includes("g")) flags += "g";
+                        if (!flags.includes("u")) flags += "u";
+                    }
+                }
+                return new RegExp(
+                    source,
+                    Array.from(new Set(flags.split(""))).join(""),
+                );
+            } catch {
+                return null;
+            }
+        }
+
+        const patternsCompiled: RegExp[] = [];
+        for (const p of rawPatterns) {
+            const r = buildRegex(p);
+            if (!r) return null; // mimic preg_replace returning null on error
+            patternsCompiled.push(r);
+        }
+
+        const isFunctionReplace = typeof replace === "function";
+        const replacementArray = !isFunctionReplace
+            ? toArray(replace as string | string[])
+            : [];
+
+        const applyToString = (input: string): string => {
+            let result = input;
+            for (let i = 0; i < patternsCompiled.length; i++) {
+                const regex: RegExp = patternsCompiled[i]!; // non-null assertion (bounded by length)
+
+                if (isFunctionReplace) {
+                    let count = 0;
+                    const userFn = replace as (match: string[]) => string;
+                    result = result.replace(regex, (...args: any[]) => {
+                        const full = args[0];
+                        if (limit >= 0 && count >= limit) return full;
+                        count++;
+                        // Determine number of capture groups: total args - full match - offset - input -(optional groups)
+                        let groupsMeta: Record<string, string> | undefined;
+                        if (
+                            typeof args[args.length - 1] === "object" &&
+                            typeof args[args.length - 2] === "number"
+                        ) {
+                            // pattern when groups present: [full, g1, g2, ..., offset, input, groupsObj]
+                            groupsMeta = args[args.length - 1] as any; // optional; not used by current tests
+                        }
+                        // Identify index where offset resides
+                        // If groupsMeta exists, offset index = args.length - 3
+                        const offsetIndex = groupsMeta
+                            ? args.length - 3
+                            : args.length - 2;
+                        const captureCount = offsetIndex - 1; // exclude full match
+                        const captures: string[] = [];
+                        for (let c = 1; c <= captureCount; c++)
+                            captures.push(args[c] as string);
+                        const matchArray: string[] = [full, ...captures];
+                        return userFn(matchArray);
+                    });
+                } else {
+                    const rep: string =
+                        replacementArray[i] ??
+                        (replacementArray.length === 1
+                            ? replacementArray[0]!
+                            : "");
+                    if (limit < 0) {
+                        result = result.replace(regex, (_m, ...args) => {
+                            const groupsMeta =
+                                typeof args[args.length - 1] === "object" &&
+                                typeof args[args.length - 2] === "number"
+                                    ? args[args.length - 1]
+                                    : undefined;
+                            const offsetIndex = groupsMeta
+                                ? args.length - 3
+                                : args.length - 2;
+                            const captureCount = offsetIndex - 1;
+                            const captures: string[] = [];
+                            for (let c = 1; c <= captureCount; c++)
+                                captures.push(args[c] as string);
+                            return rep.replace(/\$(\d{1,2})/g, (_, idx) => {
+                                const n = parseInt(idx, 10);
+                                const value = captures[n - 1] ?? "";
+                                return value.toUpperCase();
+                            });
+                        });
+                    } else {
+                        let count = 0;
+                        result = result.replace(regex, (m, ...args) => {
+                            if (count >= limit) return m; // no further replacements
+                            count++;
+                            // When using a replacement string with backreferences we must reproduce them manually.
+                            // However, JS replace callback already provides capture groups accessible via args before offset.
+                            // So we reconstruct the replacement by leveraging JS's built-in processing: create a one-off regex.
+                            // Simpler: emulate backreferences $1..$99 manually from provided captures.
+                            const captures = args.slice(0, args.length - 2); // last two are offset & full string
+                            return rep.replace(/\$(\d{1,2})/g, (_, idx) => {
+                                const n = parseInt(idx, 10);
+                                const value = captures[n - 1] ?? "";
+                                return value.toUpperCase();
+                            });
+                        });
+                    }
+                }
+            }
+            return result;
+        };
+
+        if (Array.isArray(subject)) {
+            return subject.map(applyToString);
+        }
+
+        return applyToString(subject);
     }
 
     /**

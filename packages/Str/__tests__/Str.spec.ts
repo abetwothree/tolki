@@ -1214,6 +1214,55 @@ describe("Str tests", () => {
         );
     });
 
+    it("replaceMatches", () => {
+        let result;
+
+        // Test basic string replacement
+        expect(Str.replaceMatches("/baz/", "bar", "foo baz bar")).toBe(
+            "foo bar bar",
+        );
+        expect(Str.replaceMatches("/404/", "found", "foo baz baz")).toBe(
+            "foo baz baz",
+        );
+
+        // Test with array of patterns
+        expect(
+            Str.replaceMatches(
+                ["/bar/", "/baz/"],
+                ["XXX", "YYY"],
+                "foo bar baz",
+            ),
+        ).toBe("foo XXX YYY");
+
+        // Test with callback
+        result = Str.replaceMatches(
+            "/ba(.)/",
+            (match) => "ba" + match[1]!.toUpperCase(),
+            "foo baz bar",
+        );
+        expect(result).toBe("foo baZ baR");
+
+        result = Str.replaceMatches(
+            /(\d+)/g,
+            (match) => (parseInt(match[1]!) * 2).toString(),
+            "foo 123 bar 456",
+        );
+        expect(result).toBe("foo 246 bar 912");
+
+        // Test with limit parameter
+        expect(Str.replaceMatches("/ba(.)/", "ba$1", "foo baz baz", 1)).toBe(
+            "foo baZ baz",
+        );
+
+        result = Str.replaceMatches(
+            "/ba(.)/",
+            (match) => "ba" + match[1]!.toUpperCase(),
+            "foo baz baz bar",
+            1,
+        );
+        expect(result).toBe("foo baZ baz bar");
+    });
+
     it("stripTags", () => {
         expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(
             "foo bar baz",
