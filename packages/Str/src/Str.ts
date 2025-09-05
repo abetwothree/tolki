@@ -11,6 +11,7 @@ import {
     toLower,
     isString,
     isEmpty,
+    isFunction,
     replace as lodashReplace,
 } from "lodash-es";
 import {
@@ -1649,18 +1650,18 @@ export class Str {
     /**
      * Replace the patterns matching the given regular expression.
      *
-     * @param  array|string  $pattern
-     * @param  \Closure|string[]|string  $replace
-     * @param  array|string  $subject
-     * @param  int  $limit
-     * @return string|string[]|null
+     * @example
+     *
+     * Str.replaceMatches(/foo/, 'bar', 'foobar'); // -> 'barbar'
+     * Str.replaceMatches(/foo/, ['bar', 'baz'], 'foobar'); // -> ['barbar', 'foobaz']
+     * Str.replaceMatches(/foo/, (match) => match[1]!.toUpperCase(), 'foobar'); // -> 'Bar'
      */
     static replaceMatches(
         pattern: string | string[] | RegExp | RegExp[],
         replace: string | string[] | ((match: string[]) => string),
         subject: string | string[],
         limit = -1,
-    ) {
+    ): string | string[] | null {
         // Laravel parity notes:
         // - Accept single or array of patterns; each pattern is applied sequentially.
         // - Patterns may be PCRE style strings with delimiters (e.g. /foo/i) or plain strings.
@@ -1731,7 +1732,7 @@ export class Str {
             patternsCompiled.push(r);
         }
 
-        const isFunctionReplace = typeof replace === "function";
+        const isFunctionReplace = isFunction(replace);
         const replacementArray = !isFunctionReplace
             ? toArray(replace as string | string[])
             : [];
