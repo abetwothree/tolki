@@ -1274,15 +1274,30 @@ describe("Str tests", () => {
 
     it("remove", () => {
         // Basic removal
-        expect(Str.remove('bar', 'foo bar baz')).toBe('foo  baz');
+        expect(Str.remove("bar", "foo bar baz")).toBe("foo  baz");
         // Multiple needles
-        expect(Str.remove(['bar', 'baz'], 'foo bar baz qux')).toBe('foo   qux');
+        expect(Str.remove(["bar", "baz"], "foo bar baz qux")).toBe("foo   qux");
         // Case insensitive removal
-        expect(Str.remove('BAR', 'foo bAr BAR baz', false)).toBe('foo   baz');
+        expect(Str.remove("BAR", "foo bAr BAR baz", false)).toBe("foo   baz");
         // Iterable subject
-        expect(Str.remove('a', ['apple', 'banana', 'pear'])).toEqual(['pple', 'bnn', 'per']);
+        expect(Str.remove("a", ["apple", "banana", "pear"])).toEqual([
+            "pple",
+            "bnn",
+            "per",
+        ]);
         // Empty needle (should return original)
-        expect(Str.remove('', 'foo')).toBe('foo');
+        expect(Str.remove("", "foo")).toBe("foo");
+
+        expect(Str.remove("o", "Foobar")).toBe("Fbar");
+        expect(Str.remove("bar", "Foobar")).toBe("Foo");
+        expect(Str.remove("F", "Foobar")).toBe("oobar");
+        expect(Str.remove("f", "Foobar")).toBe("Foobar");
+        expect(Str.remove("f", "Foobar", false)).toBe("oobar");
+
+        expect(Str.remove(["o", "a"], "Foobar")).toBe("Fbr");
+        expect(Str.remove(["f", "b"], "Foobar")).toBe("Fooar");
+        expect(Str.remove(["f", "b"], "Foobar", false)).toBe("ooar");
+        expect(Str.remove(["f", "|"], "Foo|bar")).toBe("Foobar");
     });
 
     it("ulid", () => {

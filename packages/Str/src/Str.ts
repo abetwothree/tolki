@@ -1768,6 +1768,7 @@ export class Str {
                         for (let c = 1; c <= captureCount; c++)
                             captures.push(args[c] as string);
                         const matchArray: string[] = [full, ...captures];
+
                         return userFn(matchArray);
                     });
                 } else {
@@ -1788,8 +1789,9 @@ export class Str {
                                 : args.length - 2;
                             const captureCount = offsetIndex - 1;
                             const captures: string[] = [];
-                            for (let c = 1; c <= captureCount; c++)
+                            for (let c = 1; c <= captureCount; c++) {
                                 captures.push(args[c] as string);
+                            }
                             return rep.replace(/\$(\d{1,2})/g, (_, idx) => {
                                 const n = parseInt(idx, 10);
                                 const value = captures[n - 1] ?? "";
