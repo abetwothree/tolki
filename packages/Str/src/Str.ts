@@ -1936,8 +1936,7 @@ export class Str {
      * Str.reverse("world"); // -> "dlrow"
      * Str.reverse(""); // -> ""
      */
-    static reverse(value: string): string
-    {
+    static reverse(value: string): string {
         return Array.from(value).reverse().join("");
     }
 
@@ -1950,11 +1949,10 @@ export class Str {
      * Str.start("/test/string", "/"); // -> "/test/string"
      * Str.start("//test/string", "/"); // -> "/test/string"
      */
-    static start(value: string, prefix: string): string
-    {
+    static start(value: string, prefix: string): string {
         const quoted = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-        return prefix + value.replace(new RegExp(`^(?:${quoted})+`, 'u'), '');
+        return prefix + value.replace(new RegExp(`^(?:${quoted})+`, "u"), "");
     }
 
     /**
@@ -1965,9 +1963,20 @@ export class Str {
      * Str.upper("foo bar baz"); // -> "FOO BAR BAZ"
      * Str.upper("foO bAr BaZ"); // -> "FOO BAR BAZ"
      */
-    static upper(value: string): string
-    {
-        return value.toUpperCase();
+    static upper(value: string): string {
+        return new ConvertCase(value, CaseTypes.upper).convert();
+    }
+
+    /**
+     * Convert the given string to proper case.
+     *
+     * @example
+     *
+     * Str.title("foo bar baz"); // -> "Foo Bar Baz"
+     * Str.title("foO bAr BaZ"); // -> "Foo Bar Baz"
+     */
+    static title(value: string): string {
+        return new ConvertCase(value, CaseTypes.title).convert();
     }
 
     /**

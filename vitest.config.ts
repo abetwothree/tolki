@@ -12,6 +12,6 @@ export default defineConfig({
         projects: ["packages/*"],
         typecheck: {
             enabled: true,
-        }
+        },
     },
 });

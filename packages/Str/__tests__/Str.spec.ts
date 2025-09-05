@@ -268,7 +268,7 @@ describe("Str tests", () => {
         expect(Str.convertCase("üöä", CaseTypes.upper)).toBe("ÜÖÄ");
         expect(Str.convertCase("ÜÖÄ", CaseTypes.lower)).toBe("üöä");
         expect(Str.convertCase("hello world", CaseTypes.title)).toBe(
-            "Hello world",
+            "Hello World",
         );
         expect(Str.convertCase("Hello World", CaseTypes.title)).toBe(
             "Hello World",
@@ -1315,6 +1315,22 @@ describe("Str tests", () => {
     it("upper", () => {
         expect(Str.upper("foo bar baz")).toBe("FOO BAR BAZ");
         expect(Str.upper("foO bAr BaZ")).toBe("FOO BAR BAZ");
+    });
+
+    it("title", () => {
+        expect(Str.title("jefferson costella")).toBe("Jefferson Costella");
+        expect(Str.title("jefFErson coSTella")).toBe("Jefferson Costella");
+
+        expect(Str.title("")).toBe("");
+        expect(Str.title("123 laravel")).toBe("123 Laravel");
+        expect(Str.title("❤laravel")).toBe("❤Laravel");
+        expect(Str.title("laravel ❤")).toBe("Laravel ❤");
+        expect(Str.title("laravel123")).toBe("Laravel123");
+
+        const longString = "lorem ipsum " + "dolor sit amet ".repeat(1000);
+        const expectedResult =
+            "Lorem Ipsum Dolor Sit Amet " + "Dolor Sit Amet ".repeat(999);
+        expect(Str.title(longString)).toBe(expectedResult);
     });
 
     it("ulid", () => {

@@ -26,7 +26,12 @@ export class ConvertCase {
             case CaseTypes.lower:
                 return toLower(this.value);
             case CaseTypes.title:
-                return upperFirst(this.value);
+                return this.value.replace(
+                    /\p{L}[\p{L}\p{M}\p{N}]*/gu,
+                    (word) =>
+                        word.charAt(0).toUpperCase() +
+                        word.slice(1).toLowerCase(),
+                );
             case CaseTypes.fold:
                 return this.value.normalize("NFKD").toLowerCase();
             case CaseTypes.simple:
