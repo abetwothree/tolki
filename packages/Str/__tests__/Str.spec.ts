@@ -1465,6 +1465,37 @@ describe("Str tests", () => {
         expect(Str.singular("mice")).toBe("mouse");
     });
 
+    it("slug", () => {
+        expect(Str.slug("hello world")).toBe("hello-world");
+        expect(Str.slug("hello-world")).toBe("hello-world");
+        expect(Str.slug("hello_world")).toBe("hello-world");
+        expect(Str.slug("hello_world", "_")).toBe("hello_world");
+        expect(Str.slug("user@host")).toBe("user-at-host");
+        expect(Str.slug("سلام دنیا", "-")).toBe("سلام-دنیا");
+        expect(Str.slug("some text", "")).toBe("sometext");
+        expect(Str.slug("", "")).toBe("");
+        expect(Str.slug("")).toBe("");
+        expect(Str.slug("بسم الله", "-", { llh: "allah" })).toBe("bsm-allah");
+        expect(Str.slug("500$ bill", "-", { $: "dollar" })).toBe(
+            "500-dollar-bill",
+        );
+        expect(Str.slug("500--$----bill", "-", { $: "dollar" })).toBe(
+            "500-dollar-bill",
+        );
+        expect(Str.slug("500-$-bill", "-", { $: "dollar" })).toBe(
+            "500-dollar-bill",
+        );
+        expect(Str.slug("500$--bill", "-", { $: "dollar" })).toBe(
+            "500-dollar-bill",
+        );
+        expect(Str.slug("500-$--bill", "-", { $: "dollar" })).toBe(
+            "500-dollar-bill",
+        );
+        expect(Str.slug("أحمد@المدرسة", "-", { "@": "في" })).toBe(
+            "أحمد-في-المدرسة",
+        );
+    });
+
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
             "Laravel_p_h_p_framework",
