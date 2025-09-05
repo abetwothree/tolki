@@ -1188,6 +1188,32 @@ describe("Str tests", () => {
         expect(Str.startsWith("你好", "a")).toBe(false);
     });
 
+    it("replaceEnd", () => {
+        expect(Str.replaceEnd("bar", "qux", "foobar foobar")).toBe(
+            "foobar fooqux",
+        );
+        expect(Str.replaceEnd("bar?", "qux?", "foo/bar? foo/bar?")).toBe(
+            "foo/bar? foo/qux?",
+        );
+        expect(Str.replaceEnd("bar", "", "foobar foobar")).toBe("foobar foo");
+        expect(Str.replaceEnd("xxx", "yyy", "foobar foobar")).toBe(
+            "foobar foobar",
+        );
+        expect(Str.replaceEnd("", "yyy", "foobar foobar")).toBe(
+            "foobar foobar",
+        );
+        expect(Str.replaceEnd("xxx", "yyy", "fooxxx foobar")).toBe(
+            "fooxxx foobar",
+        );
+        // Test for multibyte string support
+        expect(Str.replaceEnd("ö", "xxx", "Malmö Jönköping")).toBe(
+            "Malmö Jönköping",
+        );
+        expect(Str.replaceEnd("öping", "yyy", "Malmö Jönköping")).toBe(
+            "Malmö Jönkyyy",
+        );
+    });
+
     it("stripTags", () => {
         expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(
             "foo bar baz",

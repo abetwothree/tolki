@@ -1593,7 +1593,7 @@ export class Str {
      * Replace the last occurrence of a given value in the string.
      *
      * @example
-     * 
+     *
      * Str.replaceLast('bar', 'qux', 'foobar foobar'); // -> 'foobar foobarqux'
      */
     static replaceLast(
@@ -1615,6 +1615,31 @@ export class Str {
                 replace +
                 subject.slice(position + search.length)
             );
+        }
+
+        return subject;
+    }
+
+    /**
+     * Replace the last occurrence of a given value if it appears at the end of the string.
+     *
+     * @example
+     *
+     * Str.replaceEnd('bar', 'qux', 'foobar foobar'); // -> 'foobar fooqux'
+     */
+    static replaceEnd(
+        search: string | number,
+        replace: string,
+        subject: string,
+    ): string {
+        search = String(search);
+
+        if (search === "") {
+            return subject;
+        }
+
+        if (Str.endsWith(subject, search)) {
+            return Str.replaceLast(search, replace, subject);
         }
 
         return subject;
