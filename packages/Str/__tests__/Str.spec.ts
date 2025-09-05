@@ -1312,6 +1312,11 @@ describe("Str tests", () => {
         expect(Str.start("//test/string", "/")).toBe("/test/string");
     });
 
+    it("upper", () => {
+        expect(Str.upper("foo bar baz")).toBe("FOO BAR BAZ");
+        expect(Str.upper("foO bAr BaZ")).toBe("FOO BAR BAZ");
+    });
+
     it("ulid", () => {
         const when = new Date("2024-01-01T00:00:00.000Z").getTime();
         const idA = Str.ulid(when);

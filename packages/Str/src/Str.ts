@@ -1958,6 +1958,19 @@ export class Str {
     }
 
     /**
+     * Convert the given string to upper-case.
+     *
+     * @example
+     *
+     * Str.upper("foo bar baz"); // -> "FOO BAR BAZ"
+     * Str.upper("foO bAr BaZ"); // -> "FOO BAR BAZ"
+     */
+    static upper(value: string): string
+    {
+        return value.toUpperCase();
+    }
+
+    /**
      * Generate a ULID.
      *
      * @example
