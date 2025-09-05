@@ -1942,6 +1942,22 @@ export class Str {
     }
 
     /**
+     * Begin a string with a single instance of a given value.
+     *
+     * @example
+     *
+     * Str.start("test/string", "/"); // -> "/test/string"
+     * Str.start("/test/string", "/"); // -> "/test/string"
+     * Str.start("//test/string", "/"); // -> "/test/string"
+     */
+    static start(value: string, prefix: string): string
+    {
+        const quoted = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+        return prefix + value.replace(new RegExp(`^(?:${quoted})+`, 'u'), '');
+    }
+
+    /**
      * Generate a ULID.
      *
      * @example

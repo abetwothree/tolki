@@ -1306,6 +1306,12 @@ describe("Str tests", () => {
         expect(Str.reverse("☆etyBitluM❤")).toBe("❤MultiByte☆");
     });
 
+    it("start", () => {
+        expect(Str.start("test/string", "/")).toBe("/test/string");
+        expect(Str.start("/test/string", "/")).toBe("/test/string");
+        expect(Str.start("//test/string", "/")).toBe("/test/string");
+    });
+
     it("ulid", () => {
         const when = new Date("2024-01-01T00:00:00.000Z").getTime();
         const idA = Str.ulid(when);
