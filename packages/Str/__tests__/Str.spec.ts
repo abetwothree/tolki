@@ -1300,6 +1300,12 @@ describe("Str tests", () => {
         expect(Str.remove(["f", "|"], "Foo|bar")).toBe("Foobar");
     });
 
+    it("reverse", () => {
+        expect(Str.reverse("raBooF")).toBe("FooBar");
+        expect(Str.reverse("őtüzsineT")).toBe("Teniszütő");
+        expect(Str.reverse("☆etyBitluM❤")).toBe("❤MultiByte☆");
+    });
+
     it("ulid", () => {
         const when = new Date("2024-01-01T00:00:00.000Z").getTime();
         const idA = Str.ulid(when);

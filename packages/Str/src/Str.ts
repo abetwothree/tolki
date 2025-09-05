@@ -1928,6 +1928,20 @@ export class Str {
     }
 
     /**
+     * Reverse the given string.
+     *
+     * @example
+     *
+     * Str.reverse("hello"); // -> "olleh"
+     * Str.reverse("world"); // -> "dlrow"
+     * Str.reverse(""); // -> ""
+     */
+    static reverse(value: string): string
+    {
+        return Array.from(value).reverse().join("");
+    }
+
+    /**
      * Generate a ULID.
      *
      * @example
