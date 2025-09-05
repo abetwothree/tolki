@@ -1155,7 +1155,7 @@ describe("Str tests", () => {
         expect(Str.startsWith(7.123, "7.12")).toBe(true);
         expect(Str.startsWith(7.123, "7.13")).toBe(false);
         expect(Str.startsWith(null, "Marc")).toBe(false);
-        // // Test for multibyte string support
+        // Test for multibyte string support
         expect(Str.startsWith("Jönköping", "Jö")).toBe(true);
         expect(Str.startsWith("Malmö", "Malmö")).toBe(true);
         expect(Str.startsWith("Jönköping", "Jonko")).toBe(false);

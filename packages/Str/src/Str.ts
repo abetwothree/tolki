@@ -1589,6 +1589,8 @@ export class Str {
         return subject;
     }
 
+    // replaceLast
+
     /**
      * Determine if a given string starts with a given substring.
      *
