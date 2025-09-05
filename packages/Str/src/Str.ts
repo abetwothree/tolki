@@ -1564,6 +1564,80 @@ export class Str {
     }
 
     /**
+     * Replace the first occurrence of the given value if it appears at the start of the string.
+     *
+     * @param  string  $search
+     * @param  string  $replace
+     * @param  string  $subject
+     * @return string
+     */
+    static replaceStart(
+        search: string | number,
+        replace: string,
+        subject: string,
+    ): string {
+        search = String(search);
+
+        if (search === "") {
+            return subject;
+        }
+
+        if (Str.startsWith(subject, search)) {
+            return Str.replaceFirst(search, replace, subject);
+        }
+
+        return subject;
+    }
+
+    /**
+     * Determine if a given string starts with a given substring.
+     *
+     * @example
+     *
+     * Str.startsWith("hello world", "hello"); // -> true
+     * Str.startsWith("hello world", "world"); // -> false
+     */
+    static startsWith(
+        haystack: string | number | null,
+        needles: string | number | null | Iterable<string | number | null>,
+    ): boolean {
+        // Laravel: null haystack -> false
+        if (haystack == null) {
+            return false;
+        }
+
+        // Null / undefined needles can't match
+        if (needles == null) {
+            return false;
+        }
+
+        // Normalize needles into array (support string, number, iterable of strings/numbers)
+        let list: Array<string | number | null> = [
+            needles as string | number | null,
+        ];
+        if (typeof needles === "string" || typeof needles === "number") {
+            list = [needles];
+        } else if (Symbol.iterator in Object(needles)) {
+            list = Array.from(needles as Iterable<string | number | null>);
+        }
+
+        const hay = String(haystack);
+
+        for (const raw of list) {
+            if (raw == null) {
+                continue; // skip null entries in iterable
+            }
+
+            const needle = String(raw);
+            if (needle !== "" && hay.startsWith(needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Strip HTML tags from a string.
      *
      * @example

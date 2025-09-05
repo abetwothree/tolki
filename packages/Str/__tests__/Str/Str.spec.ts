@@ -1106,6 +1106,65 @@ describe("Str tests", () => {
         );
     });
 
+    it("replaceStart", () => {
+        expect(Str.replaceStart("bar", "qux", "foobar foobar")).toBe(
+            "foobar foobar",
+        );
+        expect(Str.replaceStart("bar?", "qux?", "foo/bar? foo/bar?")).toBe(
+            "foo/bar? foo/bar?",
+        );
+
+        expect(Str.replaceStart("foo", "qux", "foobar foobar")).toBe(
+            "quxbar foobar",
+        );
+        expect(Str.replaceStart("foo/bar?", "qux?", "foo/bar? foo/bar?")).toBe(
+            "qux? foo/bar?",
+        );
+        expect(Str.replaceStart("foo", "", "foobar foobar")).toBe("bar foobar");
+        expect(Str.replaceStart(0, "1", "0")).toBe("1");
+        // Test for multibyte string support
+        expect(Str.replaceStart("Jö", "xxx", "Jönköping Malmö")).toBe(
+            "xxxnköping Malmö",
+        );
+        expect(Str.replaceStart("", "yyy", "Jönköping Malmö")).toBe(
+            "Jönköping Malmö",
+        );
+    });
+
+    it("startsWith", () => {
+        expect(Str.startsWith("jason", "jas")).toBe(true);
+        expect(Str.startsWith("jason", "jason")).toBe(true);
+        expect(Str.startsWith("jason", ["jas"])).toBe(true);
+        expect(Str.startsWith("jason", ["day", "jas"])).toBe(true);
+        // expect(Str.startsWith("jason", collect(["day", "jas"]))).toBe(true); // todo
+        expect(Str.startsWith("jason", "day")).toBe(false);
+        expect(Str.startsWith("jason", ["day"])).toBe(false);
+        expect(Str.startsWith("jason", null)).toBe(false);
+        expect(Str.startsWith("jason", [null])).toBe(false);
+        expect(Str.startsWith("0123", [null])).toBe(false);
+        expect(Str.startsWith("0123", 0)).toBe(true);
+        expect(Str.startsWith("jason", "J")).toBe(false);
+        expect(Str.startsWith("jason", "")).toBe(false);
+        expect(Str.startsWith("", "")).toBe(false);
+        expect(Str.startsWith("7", " 7")).toBe(false);
+        expect(Str.startsWith("7a", "7")).toBe(true);
+        expect(Str.startsWith("7a", 7)).toBe(true);
+        expect(Str.startsWith("7.12a", 7.12)).toBe(true);
+        expect(Str.startsWith("7.12a", 7.13)).toBe(false);
+        expect(Str.startsWith(7.123, "7")).toBe(true);
+        expect(Str.startsWith(7.123, "7.12")).toBe(true);
+        expect(Str.startsWith(7.123, "7.13")).toBe(false);
+        expect(Str.startsWith(null, "Marc")).toBe(false);
+        // // Test for multibyte string support
+        expect(Str.startsWith("Jönköping", "Jö")).toBe(true);
+        expect(Str.startsWith("Malmö", "Malmö")).toBe(true);
+        expect(Str.startsWith("Jönköping", "Jonko")).toBe(false);
+        expect(Str.startsWith("Malmö", "Malmo")).toBe(false);
+        expect(Str.startsWith("你好", "你")).toBe(true);
+        expect(Str.startsWith("你好", "好")).toBe(false);
+        expect(Str.startsWith("你好", "a")).toBe(false);
+    });
+
     it("stripTags", () => {
         expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(
             "foo bar baz",
