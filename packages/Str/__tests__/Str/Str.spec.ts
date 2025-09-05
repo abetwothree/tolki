@@ -1050,6 +1050,38 @@ describe("Str tests", () => {
         );
     });
 
+    it("toStringOr", () => {
+        expect(Str.toStringOr("test", "fallback")).toBe("test");
+        expect(Str.toStringOr(123, "fallback")).toBe("123");
+        expect(Str.toStringOr(Array.from([]), "fallback")).toBe("fallback");
+    });
+
+    it("replace", () => {
+        expect(Str.replace("baz", "laravel", "foo bar baz")).toBe(
+            "foo bar laravel",
+        );
+        expect(Str.replace("baz", "laravel", "foo bar Baz", false)).toBe(
+            "foo bar Baz",
+        );
+        expect(Str.replace("?", "8.x", "foo bar baz ?")).toBe(
+            "foo bar baz 8.x",
+        );
+        expect(Str.replace("x", "8.x", "foo bar baz X", false)).toBe(
+            "foo bar baz X",
+        );
+        expect(Str.replace(" ", "/", "foo bar baz")).toBe("foo/bar/baz");
+        expect(
+            Str.replace(["?1", "?2", "?3"], ["foo", "bar", "baz"], "?1 ?2 ?3"),
+        ).toBe("foo bar baz");
+        expect(
+            Str.replace("baz", "laravel", ["baz", "foo", "Baz"]),
+        ).toStrictEqual(["laravel", "foo", "laravel"]);
+        expect(
+            Str.replace("baz", "laravel", ["baz", "foo", "Baz"], false),
+        ).toStrictEqual(["laravel", "foo", "Baz"]);
+        // expect(Str.replace(collect(['?1', '?2', '?3']), collect(['foo', 'bar', 'baz']), collect(['?1', '?2', '?3']))).toEqual(['foo', 'bar', 'baz']); // TODO when collections are implemented
+    });
+
     it("stripTags", () => {
         expect(Str.stripTags('<p data-id="test">foo bar baz</p>')).toBe(
             "foo bar baz",

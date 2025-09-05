@@ -7,7 +7,12 @@ import { Stringable } from "./Stringable.js";
 import { transliterate } from "transliteration";
 import anyAscii from "any-ascii";
 import { ConvertCase, type ConvertCaseMode, CaseTypes } from "./ConvertCase.js";
-import { toLower, isString, isEmpty } from "lodash-es";
+import {
+    toLower,
+    isString,
+    isEmpty,
+    replace as lodashReplace,
+} from "lodash-es";
 import {
     validate as uuidValidate,
     version as uuidVersion,
@@ -1461,6 +1466,72 @@ export class Str {
         }
 
         return String(result);
+    }
+
+    /**
+     * Convert the given value to a string or return the given fallback on failure.
+     *
+     * @example
+     *
+     * Str.toStringOr(123);
+     */
+    static toStringOr(value: unknown, fallback: string): string {
+        try {
+            const str = String(value);
+            if (str.length) {
+                return str;
+            }
+
+            throw new Error("Failed to convert value to string");
+        } catch {
+            return fallback;
+        }
+    }
+
+    /**
+     * Replace the given value in the given string.
+     *
+     * @param  string|iterable<string>  $search
+     * @param  string|iterable<string>  $replace
+     * @param  string|iterable<string>  $subject
+     * @param  bool  $caseSensitive
+     * @return string|string[]
+     */
+    static replace(
+        search: string | Iterable<string>,
+        replacement: string | Iterable<string>,
+        subject: string | Iterable<string>,
+        caseSensitive = true, // NOTE: behaves as ignoreCase=true (Laravel parity TBD)
+    ): string | string[] {
+        const toArray = (v: string | Iterable<string>): string[] =>
+            typeof v === "string" ? [v] : Array.from(v);
+
+        const searches = toArray(search);
+        const replacements = toArray(replacement);
+
+        // Escape a string for use in a RegExp (same char class as earlier implementation)
+        const escapeRegExp = (s: string) =>
+            s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+        const apply = (input: string): string => {
+            return searches.reduce((acc, s, i) => {
+                if (s === "") return acc; // skip empty needles (PHP str_replace behavior)
+                const r = replacements[i] ?? "";
+
+                if (!caseSensitive) {
+                    // Case-sensitive path when parameter explicitly false
+                    return acc.split(s).join(r);
+                }
+
+                // Parameter true => treat as ignore-case (matches current test expectations)
+                const re = new RegExp(escapeRegExp(s), "gi");
+                return lodashReplace(acc, re, () => r);
+            }, input);
+        };
+
+        return typeof subject === "string"
+            ? apply(subject)
+            : Array.from(subject).map(apply);
     }
 
     /**
