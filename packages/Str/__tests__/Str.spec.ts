@@ -1459,6 +1459,12 @@ describe("Str tests", () => {
         expect(Str.apa("   ")).toBe("   ");
     });
 
+    it("singular", () => {
+        expect(Str.singular("apples")).toBe("apple");
+        expect(Str.singular("children")).toBe("child");
+        expect(Str.singular("mice")).toBe("mouse");
+    });
+
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
             "Laravel_p_h_p_framework",

@@ -2014,8 +2014,10 @@ export class Str {
      *
      * See: https://apastyle.apa.org/style-grammar-guidelines/capitalization/title-case
      *
-     * @param  string  $value
-     * @return string
+     * @example
+     *
+     * Str.apa("foo bar baz"); // -> "Foo Bar Baz"
+     * Str.apa("foO bAr BaZ"); // -> "Foo Bar Baz"
      */
     static apa(value: string): string {
         if (value.trim() === "") {
@@ -2106,6 +2108,20 @@ export class Str {
         }
 
         return words.join(" ");
+    }
+
+    /**
+     * Get the singular form of an English word.
+     *
+     * @example
+     * 
+     * Str.singular("apples"); // -> "apple"
+     * Str.singular("children"); // -> "child"
+     * Str.singular("mice"); // -> "mouse"
+     */
+    static singular(value: string)
+    {
+        return Pluralizer.singular(value);
     }
 
     /**
