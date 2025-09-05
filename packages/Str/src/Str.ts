@@ -1980,6 +1980,49 @@ export class Str {
     }
 
     /**
+     * Convert the given string to proper case for each word.
+     *
+     * @example
+     *
+     * Str.headline("foo bar baz"); // -> "Foo Bar Baz"
+     * Str.headline("foO bAr BaZ"); // -> "Foo Bar Baz"
+     */
+    static headline(value: string): string {
+        const trimmed = String(value).trim();
+        if (trimmed === "") {
+            return "";
+        }
+
+        let parts = trimmed.split(/\s+/u);
+
+        if (parts.length > 1) {
+            parts = parts.map((p) => Str.title(p));
+        } else {
+            parts = Str.ucsplit(parts.join("_")).map((p) => Str.title(p));
+        }
+
+        const collapsed = parts.join("_").replace(/[-_ ]+/gu, "_");
+
+        return collapsed
+            .split("_")
+            .filter((s: string) => s.length > 0)
+            .join(" ");
+    }
+
+    /**
+     * Split a string into pieces by uppercase characters.
+     *
+     * @example
+     *
+     * Str.ucsplit('laravelPHPFramework'); // -> ['laravel', 'P', 'H', 'P', 'Framework']
+     * Str.ucsplit('Laravel-phP-framework'); // -> ['Laravel-ph', 'P-framework']
+     * Str.ucsplit('ÖffentlicheÜberraschungen'); // -> ['Öffentliche', 'Überraschungen']
+     */
+    static ucsplit(value: string): string[] {
+        return value.split(/(?=\p{Lu})/u).filter(Boolean);
+    }
+
+    /**
      * Generate a ULID.
      *
      * @example

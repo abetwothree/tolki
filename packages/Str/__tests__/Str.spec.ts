@@ -1333,6 +1333,90 @@ describe("Str tests", () => {
         expect(Str.title(longString)).toBe(expectedResult);
     });
 
+    it("headline", () => {
+        expect(Str.headline("jefferson costella")).toBe("Jefferson Costella");
+        expect(Str.headline("jefFErson coSTella")).toBe("Jefferson Costella");
+        expect(Str.headline("jefferson_costella uses-_Laravel")).toBe(
+            "Jefferson Costella Uses Laravel",
+        );
+        expect(Str.headline("jefferson_costella uses__Laravel")).toBe(
+            "Jefferson Costella Uses Laravel",
+        );
+
+        expect(Str.headline("laravel_p_h_p_framework")).toBe(
+            "Laravel P H P Framework",
+        );
+        expect(Str.headline("laravel _p _h _p _framework")).toBe(
+            "Laravel P H P Framework",
+        );
+        expect(Str.headline("laravel_php_framework")).toBe(
+            "Laravel Php Framework",
+        );
+        expect(Str.headline("laravel-phP-framework")).toBe(
+            "Laravel Ph P Framework",
+        );
+        expect(Str.headline("laravel  -_-  php   -_-   framework   ")).toBe(
+            "Laravel Php Framework",
+        );
+
+        expect(Str.headline("fooBar")).toBe("Foo Bar");
+        expect(Str.headline("foo_bar")).toBe("Foo Bar");
+        expect(Str.headline("foo-barBaz")).toBe("Foo Bar Baz");
+        expect(Str.headline("foo-bar_baz")).toBe("Foo Bar Baz");
+
+        expect(Str.headline("öffentliche-überraschungen")).toBe(
+            "Öffentliche Überraschungen",
+        );
+        expect(Str.headline("-_öffentliche_überraschungen_-")).toBe(
+            "Öffentliche Überraschungen",
+        );
+        expect(Str.headline("-öffentliche überraschungen")).toBe(
+            "Öffentliche Überraschungen",
+        );
+
+        expect(Str.headline("sindÖdeUndSo")).toBe("Sind Öde Und So");
+
+        expect(Str.headline("orwell 1984")).toBe("Orwell 1984");
+        expect(Str.headline("orwell   1984")).toBe("Orwell 1984");
+        expect(Str.headline("-orwell-1984 -")).toBe("Orwell 1984");
+        expect(Str.headline(" orwell_- 1984 ")).toBe("Orwell 1984");
+
+        expect(Str.headline("  ")).toBe("");
+    });
+
+    it("ucsplit", () => {
+        expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
+            "Laravel_p_h_p_framework",
+        ]);
+        expect(Str.ucsplit("Laravel_P_h_p_framework")).toEqual([
+            "Laravel_",
+            "P_h_p_framework",
+        ]);
+        expect(Str.ucsplit("laravelPHPFramework")).toEqual([
+            "laravel",
+            "P",
+            "H",
+            "P",
+            "Framework",
+        ]);
+        expect(Str.ucsplit("Laravel-phP-framework")).toEqual([
+            "Laravel-ph",
+            "P-framework",
+        ]);
+
+        expect(Str.ucsplit("ŻółtaŁódka")).toEqual(["Żółta", "Łódka"]);
+        expect(Str.ucsplit("sindÖdeUndSo")).toEqual([
+            "sind",
+            "Öde",
+            "Und",
+            "So",
+        ]);
+        expect(Str.ucsplit("ÖffentlicheÜberraschungen")).toEqual([
+            "Öffentliche",
+            "Überraschungen",
+        ]);
+    });
+
     it("ulid", () => {
         const when = new Date("2024-01-01T00:00:00.000Z").getTime();
         const idA = Str.ulid(when);
