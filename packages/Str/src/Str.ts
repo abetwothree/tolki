@@ -2010,6 +2010,105 @@ export class Str {
     }
 
     /**
+     * Convert the given string to APA-style title case.
+     *
+     * See: https://apastyle.apa.org/style-grammar-guidelines/capitalization/title-case
+     *
+     * @param  string  $value
+     * @return string
+     */
+    static apa(value: string): string {
+        if (value.trim() === "") {
+            return value;
+        }
+
+        const minorWords = new Set([
+            "and",
+            "as",
+            "but",
+            "for",
+            "if",
+            "nor",
+            "or",
+            "so",
+            "yet",
+            "a",
+            "an",
+            "the",
+            "at",
+            "by",
+            "for",
+            "in",
+            "of",
+            "off",
+            "on",
+            "per",
+            "to",
+            "up",
+            "via",
+            "et",
+            "ou",
+            "un",
+            "une",
+            "la",
+            "le",
+            "les",
+            "de",
+            "du",
+            "des",
+            "par",
+            "à",
+        ]);
+
+        const endPunctuation = new Set([".", "!", "?", ":", "—", ","]);
+
+        const words = value.split(/\s+/u);
+
+        const capFirst = (s: string): string => {
+            if (!s) return s;
+            const chars = Array.from(s);
+            const first = chars[0]!.toLocaleUpperCase();
+            const rest = chars.slice(1).join("");
+            return first + rest;
+        };
+
+        for (let i = 0; i < words.length; i++) {
+            const lower = words[i]!.toLocaleLowerCase();
+
+            if (lower.includes("-")) {
+                const parts = lower.split("-");
+                const mapped = parts.map((part) => {
+                    if (minorWords.has(part) && part.length <= 3) {
+                        return part; // keep lowercase for minor short words inside hyphenated compound
+                    }
+                    return capFirst(part);
+                });
+                words[i] = mapped.join("-");
+            } else {
+                const prev = i > 0 ? words[i - 1]! : "";
+                const prevLast = prev
+                    ? Array.from(prev).slice(-1)[0]
+                    : undefined;
+                const isSentenceStart =
+                    i === 0 ||
+                    (prevLast !== undefined && endPunctuation.has(prevLast));
+
+                if (
+                    minorWords.has(lower) &&
+                    lower.length <= 3 &&
+                    !isSentenceStart
+                ) {
+                    words[i] = lower; // keep lowercase for minor words not at start of sentence/title
+                } else {
+                    words[i] = capFirst(lower);
+                }
+            }
+        }
+
+        return words.join(" ");
+    }
+
+    /**
      * Split a string into pieces by uppercase characters.
      *
      * @example

@@ -1384,6 +1384,81 @@ describe("Str tests", () => {
         expect(Str.headline("  ")).toBe("");
     });
 
+    it("apa", () => {
+        expect(Str.apa("tom and jerry")).toBe("Tom and Jerry");
+        expect(Str.apa("TOM AND JERRY")).toBe("Tom and Jerry");
+        expect(Str.apa("Tom And Jerry")).toBe("Tom and Jerry");
+
+        expect(Str.apa("back to the future")).toBe("Back to the Future");
+        expect(Str.apa("BACK TO THE FUTURE")).toBe("Back to the Future");
+        expect(Str.apa("Back To The future")).toBe("Back to the Future");
+
+        expect(Str.apa("this, then that")).toBe("This, Then That");
+        expect(Str.apa("THIS, THEN THAT")).toBe("This, Then That");
+        expect(Str.apa("This, Then That")).toBe("This, Then That");
+
+        expect(Str.apa("bond. james bond.")).toBe("Bond. James Bond.");
+        expect(Str.apa("BOND. JAMES BOND.")).toBe("Bond. James Bond.");
+        expect(Str.apa("Bond. James Bond.")).toBe("Bond. James Bond.");
+
+        expect(Str.apa("self-report")).toBe("Self-Report");
+        expect(Str.apa("Self-report")).toBe("Self-Report");
+        expect(Str.apa("SELF-REPORT")).toBe("Self-Report");
+
+        expect(
+            Str.apa("as the world turns, so are the days of our lives"),
+        ).toBe("As the World Turns, So Are the Days of Our Lives");
+        expect(
+            Str.apa("AS THE WORLD TURNS, SO ARE THE DAYS OF OUR LIVES"),
+        ).toBe("As the World Turns, So Are the Days of Our Lives");
+        expect(
+            Str.apa("As The World Turns, So Are The Days Of Our Lives"),
+        ).toBe("As the World Turns, So Are the Days of Our Lives");
+
+        expect(Str.apa("TO KILL A MOCKINGBIRD")).toBe("To Kill a Mockingbird");
+        expect(Str.apa("To Kill A Mockingbird")).toBe("To Kill a Mockingbird");
+        expect(Str.apa("to kill a mockingbird")).toBe("To Kill a Mockingbird");
+
+        expect(Str.apa("Être écrivain commence par être un lecteur.")).toBe(
+            "Être Écrivain Commence par Être un Lecteur.",
+        );
+        expect(Str.apa("Être Écrivain Commence par Être un Lecteur.")).toBe(
+            "Être Écrivain Commence par Être un Lecteur.",
+        );
+        expect(Str.apa("ÊTRE ÉCRIVAIN COMMENCE PAR ÊTRE UN LECTEUR.")).toBe(
+            "Être Écrivain Commence par Être un Lecteur.",
+        );
+
+        expect(Str.apa("c'est-à-dire.")).toBe("C'est-à-Dire.");
+        expect(Str.apa("C'est-à-Dire.")).toBe("C'est-à-Dire.");
+        expect(Str.apa("C'EsT-À-DIRE.")).toBe("C'est-à-Dire.");
+
+        expect(
+            Str.apa(
+                "устное слово – не воробей. как только он вылетит, его не поймаешь.",
+            ),
+        ).toBe(
+            "Устное Слово – Не Воробей. Как Только Он Вылетит, Его Не Поймаешь.",
+        );
+        expect(
+            Str.apa(
+                "Устное Слово – Не Воробей. Как Только Он Вылетит, Его Не Поймаешь.",
+            ),
+        ).toBe(
+            "Устное Слово – Не Воробей. Как Только Он Вылетит, Его Не Поймаешь.",
+        );
+        expect(
+            Str.apa(
+                "УСТНОЕ СЛОВО – НЕ ВОРОБЕЙ. КАК ТОЛЬКО ОН ВЫЛЕТИТ, ЕГО НЕ ПОЙМАЕШЬ.",
+            ),
+        ).toBe(
+            "Устное Слово – Не Воробей. Как Только Он Вылетит, Его Не Поймаешь.",
+        );
+
+        expect(Str.apa("")).toBe("");
+        expect(Str.apa("   ")).toBe("   ");
+    });
+
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
             "Laravel_p_h_p_framework",
