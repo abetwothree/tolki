@@ -43,6 +43,7 @@ export interface PaginatorLink {
 }
 
 export interface Model {
+    id?: string | number;
     [key: string]: unknown;
 }
 
@@ -55,9 +56,9 @@ export interface SoftDeletes {
     deleted_at: string | null;
 }
 
-export interface TimestampedModel extends Model, Timestamps {}
-export interface SoftDeletableModel extends Model, SoftDeletes {}
-export interface ModelWithTimestamps extends Model, Timestamps, SoftDeletes {}
+export interface TimestampModel extends Model, Timestamps {}
+export interface SoftDeleteModel extends Model, SoftDeletes {}
+export interface AllTimestampsModel extends Model, Timestamps, SoftDeletes {}
 
 export type AsCount<T extends string> = `${T}_count`;
 export type AsMax<T extends string> = `${T}_max`;

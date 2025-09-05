@@ -15,9 +15,9 @@
         "lint:eslint": "npx eslint . --fix",
         "lint:migrate": "npx @oxlint/migrate",
         "test": "vitest",
-        "test:dev": "vitest --coverage",
-        "test:run": "vitest --run --coverage",
-        "test:ui": "vitest --ui --coverage",
+        "test:dev": "vitest --coverage --typecheck",
+        "test:run": "vitest --run --coverage  --typecheck",
+        "test:ui": "vitest --ui --coverage  --typecheck",
         "ts:check": "tsc --incremental --noEmit"
     },
     "keywords": [],
