@@ -10,5 +10,8 @@ export default defineConfig({
             exclude: ["**/dist/**", "**/node_modules/**"],
         },
         projects: ["packages/*"],
+        typecheck: {
+            enabled: true,
+        }
     },
 });
