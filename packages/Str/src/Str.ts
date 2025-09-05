@@ -1885,6 +1885,47 @@ export class Str {
     }
 
     /**
+     * Remove any occurrence of the given string in the subject.
+     *
+     * @example
+     *
+     * Str.remove("foo", "foobar"); // -> "bar"
+     * Str.remove(["foo", "bar"], "foobar"); // -> ""
+     */
+    static remove(
+        search: string | Iterable<string>,
+        subject: string | Iterable<string>,
+        caseSensitive = true,
+    ): string | string[] {
+        const searches: string[] =
+            typeof search === "string" ? [search] : Array.from(search);
+
+        const escapeRegExp = (s: string) =>
+            s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+        const removeFrom = (value: string): string => {
+            let result = value;
+            for (const needle of searches) {
+                if (needle === "") continue; // mimic PHP str_replace behavior for empty needle
+                if (caseSensitive) {
+                    // Fast path split/join for literal removal
+                    result = result.split(needle).join("");
+                } else {
+                    const re = new RegExp(escapeRegExp(needle), "gi");
+                    result = result.replace(re, "");
+                }
+            }
+            return result;
+        };
+
+        if (typeof subject === "string") {
+            return removeFrom(subject);
+        }
+
+        return Array.from(subject, (s) => removeFrom(String(s)));
+    }
+
+    /**
      * Generate a ULID.
      *
      * @example

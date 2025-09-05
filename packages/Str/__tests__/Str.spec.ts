@@ -1272,6 +1272,19 @@ describe("Str tests", () => {
         ).toBe("Hello こんにちは");
     });
 
+    it("remove", () => {
+        // Basic removal
+        expect(Str.remove('bar', 'foo bar baz')).toBe('foo  baz');
+        // Multiple needles
+        expect(Str.remove(['bar', 'baz'], 'foo bar baz qux')).toBe('foo   qux');
+        // Case insensitive removal
+        expect(Str.remove('BAR', 'foo bAr BAR baz', false)).toBe('foo   baz');
+        // Iterable subject
+        expect(Str.remove('a', ['apple', 'banana', 'pear'])).toEqual(['pple', 'bnn', 'per']);
+        // Empty needle (should return original)
+        expect(Str.remove('', 'foo')).toBe('foo');
+    });
+
     it("ulid", () => {
         const when = new Date("2024-01-01T00:00:00.000Z").getTime();
         const idA = Str.ulid(when);
