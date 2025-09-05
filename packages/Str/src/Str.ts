@@ -1589,7 +1589,36 @@ export class Str {
         return subject;
     }
 
-    // replaceLast
+    /**
+     * Replace the last occurrence of a given value in the string.
+     *
+     * @example
+     * 
+     * Str.replaceLast('bar', 'qux', 'foobar foobar'); // -> 'foobar foobarqux'
+     */
+    static replaceLast(
+        search: string | number,
+        replace: string,
+        subject: string,
+    ): string {
+        search = String(search);
+
+        if (search === "") {
+            return subject;
+        }
+
+        const position = subject.lastIndexOf(search);
+
+        if (position !== -1) {
+            return (
+                subject.slice(0, position) +
+                replace +
+                subject.slice(position + search.length)
+            );
+        }
+
+        return subject;
+    }
 
     /**
      * Determine if a given string starts with a given substring.

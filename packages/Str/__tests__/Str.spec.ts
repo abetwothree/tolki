@@ -1131,6 +1131,29 @@ describe("Str tests", () => {
         );
     });
 
+    it("replaceLast", () => {
+        expect(Str.replaceLast("bar", "qux", "foobar foobar")).toBe(
+            "foobar fooqux",
+        );
+        expect(Str.replaceLast("bar?", "qux?", "foo/bar? foo/bar?")).toBe(
+            "foo/bar? foo/qux?",
+        );
+        expect(Str.replaceLast("bar", "", "foobar foobar")).toBe("foobar foo");
+        expect(Str.replaceLast("xxx", "yyy", "foobar foobar")).toBe(
+            "foobar foobar",
+        );
+        expect(Str.replaceLast("", "yyy", "foobar foobar")).toBe(
+            "foobar foobar",
+        );
+        // Test for multibyte string support
+        expect(Str.replaceLast("ö", "xxx", "Malmö Jönköping")).toBe(
+            "Malmö Jönkxxxping",
+        );
+        expect(Str.replaceLast("", "yyy", "Malmö Jönköping")).toBe(
+            "Malmö Jönköping",
+        );
+    });
+
     it("startsWith", () => {
         expect(Str.startsWith("jason", "jas")).toBe(true);
         expect(Str.startsWith("jason", "jason")).toBe(true);

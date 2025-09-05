@@ -208,7 +208,7 @@ test("SimplePaginator structure + value shapes", () => {
     expectTypeOf(sp.per_page).toEqualTypeOf<number>();
     expectTypeOf(sp.prev_page_url).toEqualTypeOf<string | null>();
     expectTypeOf(sp.to).toEqualTypeOf<number>();
-})
+});
 
 test("LengthAwarePaginator structure + value shapes", () => {
     const sp: LengthAwarePaginator<Data> = {
@@ -225,7 +225,7 @@ test("LengthAwarePaginator structure + value shapes", () => {
         prev_page_url: null,
         to: 1,
         total: 1,
-    }
+    };
 
     expectTypeOf(sp.current_page).toEqualTypeOf<number>();
     expectTypeOf(sp.data).toEqualTypeOf<Data[]>();
@@ -240,7 +240,7 @@ test("LengthAwarePaginator structure + value shapes", () => {
     expectTypeOf(sp.prev_page_url).toEqualTypeOf<string | null>();
     expectTypeOf(sp.to).toEqualTypeOf<number>();
     expectTypeOf(sp.total).toEqualTypeOf<number>();
-})
+});
 
 test("CursorPaginator structure + value shapes", () => {
     const sp: CursorPaginator<Data> = {
@@ -260,7 +260,7 @@ test("CursorPaginator structure + value shapes", () => {
     expectTypeOf(sp.next_page_url).toEqualTypeOf<string | null>();
     expectTypeOf(sp.prev_cursor).toEqualTypeOf<string | null>();
     expectTypeOf(sp.prev_page_url).toEqualTypeOf<string | null>();
-})
+});
 
 test("JsonResource structure + value shapes", () => {
     const jrOk: JsonResource<{ id: number; name?: string }> = {
