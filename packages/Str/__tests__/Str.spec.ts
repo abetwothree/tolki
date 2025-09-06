@@ -1579,6 +1579,39 @@ describe("Str tests", () => {
         });
     });
 
+    it("ltrim", () => {
+        expect(Str.ltrim(" foo    bar ")).toBe("foo    bar ");
+
+        expect(Str.ltrim("   123    ")).toBe("123    ");
+        expect(Str.ltrim("だ")).toBe("だ");
+        expect(Str.ltrim("ム")).toBe("ム");
+        expect(Str.ltrim("   だ    ")).toBe("だ    ");
+        expect(Str.ltrim("   ム    ")).toBe("ム    ");
+
+        expect(Str.ltrim("   foo bar")).toBe("foo bar");
+        expect(Str.ltrim("foo bar   ")).toBe("foo bar   ");
+        expect(Str.ltrim(" foo bar ", " ")).toBe("foo bar ");
+        expect(Str.ltrim("-foo  bar_", "-_")).toBe("foo  bar_");
+        expect(Str.ltrim(" foo    bar ")).toBe("foo    bar ");
+
+        expect(
+            Str.ltrim(`
+            foo bar
+        `),
+        ).toBe(`foo bar
+        `);
+
+        expect(Str.ltrim(" \xE9 ")).toBe("\xE9 ");
+
+        const ltrimDefaultChars = [" ", "\n", "\r", "\t", "\v", "\0"];
+        ltrimDefaultChars.forEach((char) => {
+            expect(Str.ltrim(` ${char} `)).toBe("");
+            expect(Str.ltrim(`foo bar ${char}`)).toBe("foo bar");
+
+            expect(Str.ltrim(`${char} foo bar ${char}`)).toBe("foo bar");
+        });
+    });
+
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
             "Laravel_p_h_p_framework",
