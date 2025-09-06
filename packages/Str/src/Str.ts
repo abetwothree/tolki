@@ -1888,39 +1888,6 @@ export class Str {
     }
 
     /**
-     * Remove all whitespace from both ends of a string.
-     *
-     * @example
-     *
-     * Str.trim("   foo bar   "); // -> "foo bar"
-     */
-    static trim(value: string, charlist: string | null = null): string {
-        return Trimmer.trim(value, charlist);
-    }
-
-    /**
-     * Remove all whitespace from the beginning of a string.
-     *
-     * @example
-     *
-     * Str.ltrim("   foo bar   "); // -> "foo bar   "
-     */
-    static ltrim(value: string, charlist: string | null = null): string {
-        return Trimmer.ltrim(value, charlist);
-    }
-
-    /**
-     * Remove all whitespace from the end of a string.
-     *
-     * @example
-     *
-     * Str.rtrim("   foo bar   "); // -> "   foo bar"
-     */
-    static rtrim(value: string, charlist: string | null = null): string {
-        return Trimmer.rtrim(value, charlist);
-    }
-
-    /**
      * Remove any occurrence of the given string in the subject.
      *
      * @example
@@ -2274,6 +2241,39 @@ export class Str {
 
         this.snakeCache.set(cacheKey, transformed);
         return transformed;
+    }
+
+    /**
+     * Remove all whitespace from both ends of a string.
+     *
+     * @example
+     *
+     * Str.trim("   foo bar   "); // -> "foo bar"
+     */
+    static trim(value: string, charlist: string | null = null): string {
+        return Trimmer.trim(value, charlist);
+    }
+
+    /**
+     * Remove all whitespace from the beginning of a string.
+     *
+     * @example
+     *
+     * Str.ltrim("   foo bar   "); // -> "foo bar   "
+     */
+    static ltrim(value: string, charlist: string | null = null): string {
+        return Trimmer.ltrim(value, charlist);
+    }
+
+    /**
+     * Remove all whitespace from the end of a string.
+     *
+     * @example
+     *
+     * Str.rtrim("   foo bar   "); // -> "   foo bar"
+     */
+    static rtrim(value: string, charlist: string | null = null): string {
+        return Trimmer.rtrim(value, charlist);
     }
 
     /**
