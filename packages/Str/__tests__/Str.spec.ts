@@ -1537,6 +1537,48 @@ describe("Str tests", () => {
         );
     });
 
+    it("trim", () => {
+        expect(Str.trim("   foo bar   ")).toBe("foo bar");
+        expect(Str.trim("foo bar   ")).toBe("foo bar");
+        expect(Str.trim("   foo bar")).toBe("foo bar");
+        expect(Str.trim("foo bar")).toBe("foo bar");
+        expect(Str.trim(" foo bar ", "")).toBe("foo bar");
+        expect(Str.trim(" foo bar ", " ")).toBe("foo bar");
+        expect(Str.trim("-foo  bar_", "-_")).toBe("foo  bar");
+        expect(Str.trim(" foo    bar ")).toBe("foo    bar");
+
+        expect(Str.trim("   123    ")).toBe("123");
+        expect(Str.trim("だ")).toBe("だ");
+        expect(Str.trim("ム")).toBe("ム");
+        expect(Str.trim("   だ    ")).toBe("だ");
+        expect(Str.trim("   ム    ")).toBe("ム");
+
+        expect(
+            Str.trim(`
+            foo bar
+        `),
+        ).toBe("foo bar");
+        expect(
+            Str.trim(`
+                foo
+                bar
+            `),
+        ).toBe(
+            `foo
+                    bar`,
+        );
+
+        expect(Str.trim(" \xE9 ")).toBe("\xE9");
+
+        const trimDefaultChars = [" ", "\n", "\r", "\t", "\v", "\0"];
+        trimDefaultChars.forEach((char) => {
+            expect(Str.trim(` ${char} `)).toBe("");
+            expect(Str.trim(`foo bar ${char}`)).toBe("foo bar");
+
+            expect(Str.trim(`${char} foo bar ${char}`)).toBe("foo bar");
+        });
+    });
+
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
             "Laravel_p_h_p_framework",
