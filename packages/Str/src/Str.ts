@@ -2341,6 +2341,16 @@ export class Str {
     }
 
     /**
+     * Convert a value to Pascal case.
+     *
+     * @param  string  $value
+     * @return string
+     */
+    static pascal(value: string): string {
+        return Str.studly(value);
+    }
+
+    /**
      * Split a string into pieces by uppercase characters.
      *
      * @example

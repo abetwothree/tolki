@@ -1733,6 +1733,24 @@ describe("Str tests", () => {
         );
     });
 
+    it("pascal", () => {
+        expect(Str.pascal("laravel_php_framework")).toBe("LaravelPhpFramework");
+        expect(Str.pascal("laravel-php-framework")).toBe("LaravelPhpFramework");
+        expect(Str.pascal("laravel  -_-  php   -_-   framework   ")).toBe(
+            "LaravelPhpFramework",
+        );
+
+        expect(Str.pascal("fooBar")).toBe("FooBar");
+        expect(Str.pascal("foo_bar")).toBe("FooBar");
+        expect(Str.pascal("foo_bar")).toBe("FooBar");
+        expect(Str.pascal("foo-barBaz")).toBe("FooBarBaz");
+        expect(Str.pascal("foo-bar_baz")).toBe("FooBarBaz");
+
+        expect(Str.pascal("öffentliche-überraschungen")).toBe(
+            "ÖffentlicheÜberraschungen",
+        );
+    });
+
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
             "Laravel_p_h_p_framework",
