@@ -1998,9 +1998,9 @@ export class Str {
     /**
      * Remove all whitespace from the end of a string.
      *
-     * @param  string  $value
-     * @param  string|null  $charlist
-     * @return string
+     * @example
+     * 
+     * Str.rtrim("   foo bar   "); // -> "   foo bar"
      */
     static rtrim(value: string, charlist: string | null = null): string {
         // Default behavior: trim trailing standard whitespace plus Laravel's invisible characters and NUL
