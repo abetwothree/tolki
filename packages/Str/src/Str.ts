@@ -1962,9 +1962,9 @@ export class Str {
     /**
      * Remove all whitespace from the beginning of a string.
      *
-     * @param  string  $value
-     * @param  string|null  $charlist
-     * @return string
+     * @example
+     *
+     * Str.ltrim("   foo bar   "); // -> "foo bar   "
      */
     static ltrim(value: string, charlist: string | null = null): string {
         // Default behavior: trim leading standard whitespace plus Laravel's invisible characters and NUL
@@ -1992,6 +1992,61 @@ export class Str {
         const escapeForClass = (s: string) =>
             s.replace(/[-\\^$*+?.()|[\]{}]/g, "\\$&");
         const re = new RegExp(`^[${escapeForClass(charlist)}]+`, "gu");
+        return value.replace(re, "");
+    }
+
+    /**
+     * Remove all whitespace from the end of a string.
+     *
+     * @param  string  $value
+     * @param  string|null  $charlist
+     * @return string
+     */
+    static rtrim(value: string, charlist: string | null = null): string {
+        // Default behavior: trim trailing standard whitespace plus Laravel's invisible characters and NUL
+        if (charlist == null || charlist === "") {
+            const cls = `\\s${Str.INVISIBLE_CHAR_CLASS}\\u0000`;
+            const re = new RegExp(`[${cls}]+$`, "gu");
+            let out = value.replace(re, "");
+
+            // Multiline indentation compensation (template literal parity):
+            // Align non-empty lines by adding the delta between the first non-empty line indent
+            // and the trailing line's indent from the original string.
+            if (out.includes("\n")) {
+                const origLines = value.split(/\r?\n/);
+                // First non-empty line indent
+                let baseIndent = 0;
+                for (const ln of origLines) {
+                    if (!/\S/.test(ln)) continue;
+                    const m = ln.match(/^[ \t]*/);
+                    baseIndent = m ? m[0]!.length : 0;
+                    break;
+                }
+                // Trailing line (line with the closing backtick's indent)
+                const lastLine = origLines.length
+                    ? origLines[origLines.length - 1]!
+                    : "";
+                const tailMatch = lastLine.match(/^[ \t]*/);
+                const tailIndent = tailMatch ? tailMatch[0]!.length : 0;
+
+                const delta = Math.max(0, tailIndent - baseIndent);
+                if (delta > 0) {
+                    const pad = " ".repeat(delta);
+                    out = out
+                        .split(/\r?\n/)
+                        .map((ln) => (/\S/.test(ln) ? pad + ln : ln))
+                        .join("\n");
+                }
+            }
+
+            // Fallback to native trimEnd if regex construction fails or no change
+            return out.length !== value.length ? out : value.trimEnd();
+        }
+
+        // Custom charlist: treat as literal characters to trim from the end (no PHP range semantics)
+        const escapeForClass = (s: string) =>
+            s.replace(/[-\\^$*+?.()|[\]{}]/g, "\\$&");
+        const re = new RegExp(`[${escapeForClass(charlist)}]+$`, "gu");
         return value.replace(re, "");
     }
 
