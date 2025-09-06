@@ -2294,6 +2294,20 @@ export class Str {
     }
 
     /**
+     * Determine if a given string doesn't start with a given substring.
+     *
+     * @example
+     *
+     * expect(Str.doesntStartWith("jason", ["day"])).toBe(true);
+     */
+    static doesntStartWith(
+        haystack: string | number | null,
+        needles: string | number | null | Iterable<string | number | null>,
+    ): boolean {
+        return !Str.startsWith(haystack, needles);
+    }
+
+    /**
      * Split a string into pieces by uppercase characters.
      *
      * @example

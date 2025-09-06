@@ -1677,6 +1677,41 @@ describe("Str tests", () => {
         );
     });
 
+    it("doesntStartWith", () => {
+        expect(Str.doesntStartWith("jason", "jas")).toBe(false);
+        expect(Str.doesntStartWith("jason", "jason")).toBe(false);
+        expect(Str.doesntStartWith("jason", ["jas"])).toBe(false);
+        expect(Str.doesntStartWith("jason", ["day", "jas"])).toBe(false);
+        // expect(Str.doesntStartWith("jason", collect(["day", "jas"]))).toBe(false); // TODO
+        expect(Str.doesntStartWith("jason", "day")).toBe(true);
+        expect(Str.doesntStartWith("jason", ["day"])).toBe(true);
+        expect(Str.doesntStartWith("jason", null)).toBe(true);
+        expect(Str.doesntStartWith("jason", [null])).toBe(true);
+        expect(Str.doesntStartWith("0123", [null])).toBe(true);
+        expect(Str.doesntStartWith("0123", 0)).toBe(false);
+        expect(Str.doesntStartWith("jason", "J")).toBe(true);
+        expect(Str.doesntStartWith("jason", "")).toBe(true);
+        expect(Str.doesntStartWith("", "")).toBe(true);
+        expect(Str.doesntStartWith("7", " 7")).toBe(true);
+        expect(Str.doesntStartWith("7a", "7")).toBe(false);
+        expect(Str.doesntStartWith("7a", 7)).toBe(false);
+        expect(Str.doesntStartWith("7.12a", 7.12)).toBe(false);
+        expect(Str.doesntStartWith("7.12a", 7.13)).toBe(true);
+        expect(Str.doesntStartWith(7.123, "7")).toBe(false);
+        expect(Str.doesntStartWith(7.123, "7.12")).toBe(false);
+        expect(Str.doesntStartWith(7.123, "7.13")).toBe(true);
+        expect(Str.doesntStartWith(null, "Marc")).toBe(true);
+
+        // Test for multibyte string support
+        expect(Str.doesntStartWith("Jönköping", "Jö")).toBe(false);
+        expect(Str.doesntStartWith("Malmö", "Malmö")).toBe(false);
+        expect(Str.doesntStartWith("Jönköping", "Jonko")).toBe(true);
+        expect(Str.doesntStartWith("Malmö", "Malmo")).toBe(true);
+        expect(Str.doesntStartWith("你好", "你")).toBe(false);
+        expect(Str.doesntStartWith("你好", "好")).toBe(true);
+        expect(Str.doesntStartWith("你好", "a")).toBe(true);
+    });
+
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
             "Laravel_p_h_p_framework",
