@@ -2277,6 +2277,23 @@ export class Str {
     }
 
     /**
+     * Remove all "extra" blank space from the given string.
+     *
+     * @example
+     *
+     * Str.squish(`   
+        foo 
+        bar
+       `); // -> "foo bar"
+     */
+    static squish(value: string): string {
+        const trimmed = Str.trim(value);
+
+        // Collapse runs of: standard whitespace (\s), Hangul Filler (U+3164), or Jungseong Filler (U+1160)
+        return trimmed.replace(/[\s\u3164\u1160]+/gu, " ");
+    }
+
+    /**
      * Split a string into pieces by uppercase characters.
      *
      * @example

@@ -1646,6 +1646,37 @@ describe("Str tests", () => {
         });
     });
 
+    it("squish", () => {
+        expect(Str.squish(" laravel   php  framework ")).toBe(
+            "laravel php framework",
+        );
+        expect(Str.squish("laravel\t\tphp\n\nframework")).toBe(
+            "laravel php framework",
+        );
+        expect(
+            Str.squish(`
+            laravel
+            php
+            framework
+        `),
+        ).toBe("laravel php framework");
+
+        expect(Str.squish("   laravel   php   framework   ")).toBe(
+            "laravel php framework",
+        );
+        expect(Str.squish("   123    ")).toBe("123");
+        expect(Str.squish("だ")).toBe("だ");
+        expect(Str.squish("ム")).toBe("ム");
+        expect(Str.squish("   だ    ")).toBe("だ");
+        expect(Str.squish("   ム    ")).toBe("ム");
+        expect(Str.squish("laravelㅤㅤㅤphpㅤframework")).toBe(
+            "laravel php framework",
+        );
+        expect(Str.squish("laravelᅠᅠᅠᅠᅠᅠᅠᅠᅠᅠphpᅠᅠframework")).toBe(
+            "laravel php framework",
+        );
+    });
+
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
             "Laravel_p_h_p_framework",
