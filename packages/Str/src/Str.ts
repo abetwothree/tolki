@@ -2308,6 +2308,39 @@ export class Str {
     }
 
     /**
+     * Convert a value to studly caps case.
+     *
+     * @example
+     *
+     * Str.studly("fooBar"); // -> "FooBar"
+     * Str.studly("foo_bar"); // -> "FooBar"
+     * Str.studly("foo-barBaz"); // -> "FooBarBaz"
+     */
+    static studly(value: string): string {
+        const key = value;
+
+        if (this.studlyCache.has(key)) {
+            return this.studlyCache.get(key)!;
+        }
+
+        // Replace hyphens/underscores with spaces, then split on whitespace
+        const normalized = String(value).replace(/[-_]+/g, " ");
+        const words = normalized.trim() === "" ? [] : normalized.split(/\s+/u);
+
+        const capFirst = (word: string): string => {
+            if (!word) return word;
+            const chars = Array.from(word);
+            const first = chars[0]!.toUpperCase();
+            const rest = chars.slice(1).join("");
+            return first + rest;
+        };
+
+        const result = words.map(capFirst).join("");
+        this.studlyCache.set(key, result);
+        return result;
+    }
+
+    /**
      * Split a string into pieces by uppercase characters.
      *
      * @example

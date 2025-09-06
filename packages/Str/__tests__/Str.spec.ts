@@ -1712,6 +1712,27 @@ describe("Str tests", () => {
         expect(Str.doesntStartWith("你好", "a")).toBe(true);
     });
 
+    it("studly", () => {
+        expect(Str.studly("laravel_p_h_p_framework")).toBe(
+            "LaravelPHPFramework",
+        );
+        expect(Str.studly("laravel_php_framework")).toBe("LaravelPhpFramework");
+        expect(Str.studly("laravel-phP-framework")).toBe("LaravelPhPFramework");
+        expect(Str.studly("laravel  -_-  php   -_-   framework   ")).toBe(
+            "LaravelPhpFramework",
+        );
+
+        expect(Str.studly("fooBar")).toBe("FooBar");
+        expect(Str.studly("foo_bar")).toBe("FooBar");
+        expect(Str.studly("foo_bar")).toBe("FooBar"); // test cache
+        expect(Str.studly("foo-barBaz")).toBe("FooBarBaz");
+        expect(Str.studly("foo-bar_baz")).toBe("FooBarBaz");
+
+        expect(Str.studly("öffentliche-überraschungen")).toBe(
+            "ÖffentlicheÜberraschungen",
+        );
+    });
+
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
             "Laravel_p_h_p_framework",
