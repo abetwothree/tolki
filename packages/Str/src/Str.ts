@@ -2218,7 +2218,7 @@ export class Str {
      * @param  string  $delimiter
      * @return string
      */
-    static snake(value: string, delimiter: string = '_'): string {
+    static snake(value: string, delimiter: string = "_"): string {
         const key = value;
         const cacheKey = `${key}|${delimiter}`;
 
@@ -2231,28 +2231,15 @@ export class Str {
         let transformed = value;
         if (!/^[a-z]+$/.test(value)) {
             transformed = Str.ucwords(value).replace(/\s+/gu, "");
-            transformed = transformed.replace(/(.)(?=[A-Z])/g, `$1${delimiter}`);
+            transformed = transformed.replace(
+                /(.)(?=[A-Z])/g,
+                `$1${delimiter}`,
+            );
             transformed = Str.lower(transformed);
         }
 
         this.snakeCache.set(cacheKey, transformed);
         return transformed;
-    }
-
-    /**
-     * Uppercase the first letter of each word in a string.
-     *
-     * @example
-     *
-     * Str.ucwords('hello world'); // -> 'Hello World'
-     * Str.ucwords('laravel php framework'); // -> 'Laravel Php Framework'
-     * Str.ucwords('Öffentliche Überraschungen'); // -> 'Öffentliche Überraschungen'
-     */
-    static ucwords(value: string): string
-    {
-        return value.replace(/(^|\s)(\p{L})/gu, (_m, p1: string, p2: string) =>
-                p1 + p2.toUpperCase(),
-            );
     }
 
     /**
@@ -2295,5 +2282,21 @@ export class Str {
         } finally {
             Date.now = originalNow;
         }
+    }
+
+    /**
+     * Uppercase the first letter of each word in a string.
+     *
+     * @example
+     *
+     * Str.ucwords('hello world'); // -> 'Hello World'
+     * Str.ucwords('laravel php framework'); // -> 'Laravel Php Framework'
+     * Str.ucwords('Öffentliche Überraschungen'); // -> 'Öffentliche Überraschungen'
+     */
+    static ucwords(value: string): string {
+        return value.replace(
+            /(^|\s)(\p{L})/gu,
+            (_m, p1: string, p2: string) => p1 + p2.toUpperCase(),
+        );
     }
 }
