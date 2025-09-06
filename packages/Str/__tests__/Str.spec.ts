@@ -1496,6 +1496,29 @@ describe("Str tests", () => {
         );
     });
 
+    it("snake", () => { 
+        expect(Str.snake("LaravelPHPFramework")).toBe("laravel_p_h_p_framework");
+        expect(Str.snake("LaravelPhpFramework")).toBe("laravel_php_framework");
+        expect(Str.snake("LaravelPhpFramework", " ")).toBe("laravel php framework");
+        expect(Str.snake("Laravel Php Framework")).toBe("laravel_php_framework");
+        expect(Str.snake("Laravel    Php      Framework   ")).toBe("laravel_php_framework");
+        
+        // ensure cache keys don't overlap
+        expect(Str.snake("LaravelPhpFramework", "__")).toBe("laravel__php__framework");
+        expect(Str.snake("LaravelPhpFramework_", "_")).toBe("laravel_php_framework_");
+        expect(Str.snake("laravel php Framework")).toBe("laravel_php_framework");
+        expect(Str.snake("laravel php FrameWork")).toBe("laravel_php_frame_work");
+        
+        // prevent breaking changes
+        expect(Str.snake("foo-bar")).toBe("foo-bar");
+        expect(Str.snake("Foo-Bar")).toBe("foo-_bar");
+        expect(Str.snake("Foo_Bar")).toBe("foo__bar");
+        expect(Str.snake("ŻółtaŁódka")).toBe("żółtałódka");
+
+        // test cache
+        expect(Str.snake("LaravelPHPFramework")).toBe("laravel_p_h_p_framework");
+    })
+
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
             "Laravel_p_h_p_framework",
@@ -1541,5 +1564,11 @@ describe("Str tests", () => {
 
         expect(Str.ulid(new Date().getTime())).toHaveLength(26);
         expect(Str.isUlid(Str.ulid(new Date().getTime()))).toBe(true);
+    });
+
+    it("ucwords", () => {
+        expect(Str.ucwords('hello world')).toBe('Hello World');
+        expect(Str.ucwords('laravel php framework')).toBe('Laravel Php Framework');
+        expect(Str.ucwords('Öffentliche Überraschungen')).toBe('Öffentliche Überraschungen');
     });
 });

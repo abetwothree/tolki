@@ -2124,19 +2124,6 @@ export class Str {
     }
 
     /**
-     * Split a string into pieces by uppercase characters.
-     *
-     * @example
-     *
-     * Str.ucsplit('laravelPHPFramework'); // -> ['laravel', 'P', 'H', 'P', 'Framework']
-     * Str.ucsplit('Laravel-phP-framework'); // -> ['Laravel-ph', 'P-framework']
-     * Str.ucsplit('ÖffentlicheÜberraschungen'); // -> ['Öffentliche', 'Überraschungen']
-     */
-    static ucsplit(value: string): string[] {
-        return value.split(/(?=\p{Lu})/u).filter(Boolean);
-    }
-
-    /**
      * Generate a URL friendly "slug" from a given string.
      *
      * @param  string  $title
@@ -2222,6 +2209,63 @@ export class Str {
         const keys = Object.keys(dictionary || {});
         const hasAlphaNumKey = keys.some((k) => /[A-Za-z0-9]/.test(k));
         return hasAlphaNumKey ? asciiVariant : nonAscii;
+    }
+
+    /**
+     * Convert a string to snake case.
+     *
+     * @param  string  $value
+     * @param  string  $delimiter
+     * @return string
+     */
+    static snake(value: string, delimiter: string = '_'): string {
+        const key = value;
+        const cacheKey = `${key}|${delimiter}`;
+
+        if (this.snakeCache.has(cacheKey)) {
+            return this.snakeCache.get(cacheKey)!;
+        }
+
+        // If the string isn't purely lowercase ASCII letters, perform the transformation
+        // (mirrors PHP ctype_lower guard used by Laravel)
+        let transformed = value;
+        if (!/^[a-z]+$/.test(value)) {
+            transformed = Str.ucwords(value).replace(/\s+/gu, "");
+            transformed = transformed.replace(/(.)(?=[A-Z])/g, `$1${delimiter}`);
+            transformed = Str.lower(transformed);
+        }
+
+        this.snakeCache.set(cacheKey, transformed);
+        return transformed;
+    }
+
+    /**
+     * Uppercase the first letter of each word in a string.
+     *
+     * @example
+     *
+     * Str.ucwords('hello world'); // -> 'Hello World'
+     * Str.ucwords('laravel php framework'); // -> 'Laravel Php Framework'
+     * Str.ucwords('Öffentliche Überraschungen'); // -> 'Öffentliche Überraschungen'
+     */
+    static ucwords(value: string): string
+    {
+        return value.replace(/(^|\s)(\p{L})/gu, (_m, p1: string, p2: string) =>
+                p1 + p2.toUpperCase(),
+            );
+    }
+
+    /**
+     * Split a string into pieces by uppercase characters.
+     *
+     * @example
+     *
+     * Str.ucsplit('laravelPHPFramework'); // -> ['laravel', 'P', 'H', 'P', 'Framework']
+     * Str.ucsplit('Laravel-phP-framework'); // -> ['Laravel-ph', 'P-framework']
+     * Str.ucsplit('ÖffentlicheÜberraschungen'); // -> ['Öffentliche', 'Überraschungen']
+     */
+    static ucsplit(value: string): string[] {
+        return value.split(/(?=\p{Lu})/u).filter(Boolean);
     }
 
     /**
