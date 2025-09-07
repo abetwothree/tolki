@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Str, Stringable } from "../src/index.js";
+import { Str, Stringable, CaseTypes } from "@laravel-js/str";
 
 // Helper to compare Stringable method against Str function
 function expectEqual(strResult: string, s: Stringable) {
@@ -20,6 +20,167 @@ describe("Stringable basic delegation", () => {
         expectEqual(
             Str.betweenFirst(input, "-", "-"),
             Str.of(input).betweenFirst("-", "-"),
+        );
+    });
+
+    it("ascii/isAscii/transliterate family delegates to Str", () => {
+        const input = "foo";
+        expect(Str.isAscii(input)).toBe(Str.of(input).isAscii());
+        expectEqual(Str.ascii("fóó"), Str.of("fóó").ascii());
+        expectEqual(Str.transliterate("fóó"), Str.of("fóó").transliterate());
+    });
+
+    it("snake/camel/studly family delegates to Str", () => {
+        expectEqual(Str.camel("foo_bar"), Str.of("foo_bar").camel());
+        expectEqual(Str.snake("fooBar"), Str.of("fooBar").snake());
+        expectEqual(Str.studly("foo bar"), Str.of("foo bar").studly());
+    });
+
+    it("charAt/chopStart/chopEnd", () => {
+        const input = "hello";
+        expect(Str.charAt(input, 1)).toBe(Str.of(input).charAt(1));
+        expectEqual(Str.chopStart(input, "h"), Str.of(input).chopStart("h"));
+        expectEqual(Str.chopEnd(input, "o"), Str.of(input).chopEnd("o"));
+    });
+
+    it("convertCase", () => {
+        const input = "foo bar";
+        expectEqual(
+            Str.convertCase(input, CaseTypes.fold),
+            Str.of(input).convertCase(CaseTypes.fold),
+        );
+        expectEqual(
+            Str.convertCase(input, CaseTypes.title),
+            Str.of(input).convertCase(CaseTypes.title),
+        );
+        expectEqual(
+            Str.convertCase(input, CaseTypes.upper),
+            Str.of(input).convertCase(CaseTypes.upper),
+        );
+    });
+
+    it("deduplicate", () => {
+        const input = "foo bar baz foo";
+        const expected = Str.of("foo bar baz foo").deduplicate();
+        expectEqual(Str.deduplicate(input), expected);
+    });
+
+    it("excerpt", () => {
+        const input = "The quick brown fox jumps over the lazy dog";
+        expect(Str.excerpt(input)).toBe(Str.of(input).excerpt());
+    });
+
+    it("isJson/isUrl", () => {
+        const json = '{"key":"value"}';
+        const notJson = '{"key":"value"';
+        expect(Str.of(json).isJson()).toBe(true);
+        expect(Str.of(notJson).isJson()).toBe(false);
+
+        const url = "https://example.com";
+        const notUrl = "not a url";
+        expect(Str.of(url).isUrl()).toBe(true);
+        expect(Str.of(notUrl).isUrl()).toBe(false);
+    });
+
+    it("lower", () => {
+        expectEqual("foo", Str.of("FOO").lower());
+    });
+
+    it("position", () => {
+        const input = "hello";
+        expect(Str.position(input, "e")).toBe(Str.of(input).position("e"));
+    });
+
+    it("remove", () => {
+        expectEqual(
+            Str.remove("bar", "foo bar baz") as string,
+            Str.of("foo bar baz").remove("bar"),
+        );
+    });
+
+    it("repeat", () => {
+        const input = "hello";
+        expectEqual(Str.repeat(input, 2), Str.of(input).repeat(2));
+    });
+
+    it("replaceArray/replaceMatches", () => {
+        expectEqual(
+            Str.replaceArray("?", ["foo", "bar", "baz"], "?/?/?"),
+            Str.of("?/?/?").replaceArray("?", ["foo", "bar", "baz"]),
+        );
+        expectEqual(
+            String(Str.replaceMatches("/baz/", "bar", "foo baz bar")),
+            Str.of("foo baz bar").replaceMatches("/baz/", "bar"),
+        );
+    });
+
+    it("stripTags", () => {
+        const input = "<p>Hello <strong>World</strong></p>";
+        expectEqual(Str.stripTags(input), Str.of(input).stripTags());
+    });
+
+    it("singular", () => {
+        const input = "apples";
+        expectEqual(Str.singular(input), Str.of(input).singular());
+    });
+
+    it("substr/substrCount/substrReplace", () => {
+        expectEqual(
+            Str.substr("БГДЖИЛЁ", 2, -1),
+            Str.of("БГДЖИЛЁ").substr(2, -1),
+        );
+        expect(Str.substrCount("laravelPHPFramework", "a")).toBe(
+            Str.of("laravelPHPFramework").substrCount("a"),
+        );
+        expectEqual(
+            Str.substrReplace("1200", ":", 2, 0) as string,
+            Str.of("1200").substrReplace(":", 2, 0),
+        );
+    });
+
+    it("swap/take", () => {
+        expectEqual(
+            Str.swap(
+                {
+                    PHP: "PHP 8",
+                    awesome: "fantastic",
+                },
+                "PHP is awesome",
+            ),
+            Str.of("PHP is awesome").swap({
+                PHP: "PHP 8",
+                awesome: "fantastic",
+            }),
+        );
+        expectEqual(Str.take("foo", 2), Str.of("foo").take(2));
+    });
+
+    it("trim/ltrim/rtrim", () => {
+        expectEqual(Str.trim("  foo  "), Str.of("  foo  ").trim());
+        expectEqual(Str.ltrim("  foo  "), Str.of("  foo  ").ltrim());
+        expectEqual(Str.rtrim("  foo  "), Str.of("  foo  ").rtrim());
+    });
+
+    it("lcfirst/ucfirst/ucsplit/ucwords", () => {
+        expectEqual(Str.lcfirst("FOO"), Str.of("FOO").lcfirst());
+        expectEqual(Str.ucfirst("foo"), Str.of("foo").ucfirst());
+        expect(Str.ucsplit("Laravel_P_h_p_framework")).toEqual(
+            Str.of("Laravel_P_h_p_framework").ucsplit(),
+        );
+        expectEqual(
+            Str.ucwords("hello world"),
+            Str.of("hello world").ucwords(),
+        );
+    });
+
+    it("ucwords/words", () => {
+        expectEqual(
+            Str.ucwords("laravel php framework"),
+            Str.of("laravel php framework").ucwords(),
+        );
+        expectEqual(
+            Str.words("The quick brown fox jumps over the lazy dog"),
+            Str.of("The quick brown fox jumps over the lazy dog").words(),
         );
     });
 

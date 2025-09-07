@@ -1906,13 +1906,10 @@ describe("Str tests", () => {
     });
 
     it("substrReplace", () => {
-        // $this->assertSame('12:00', Str::substrReplace('1200', ':', 2, 0));
         expect(Str.substrReplace("1200", ":", 2, 0)).toBe("12:00");
-        // $this->assertSame('The Laravel Framework', Str::substrReplace('The Framework', 'Laravel ', 4, 0));
         expect(Str.substrReplace("The Framework", "Laravel ", 4, 0)).toBe(
             "The Laravel Framework",
         );
-        // $this->assertSame('Laravel – The PHP Framework for Web Artisans', Str::substrReplace('Laravel Framework', '– The PHP Framework for Web Artisans', 8));
         expect(
             Str.substrReplace(
                 "Laravel Framework",

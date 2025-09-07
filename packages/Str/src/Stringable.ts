@@ -164,7 +164,10 @@ export class Stringable {
     /**
      * Extracts an excerpt from text that matches the first instance of a phrase.
      */
-    excerpt(phrase = "", options: Record<string, unknown> = {}): string | null {
+    excerpt(
+        phrase: string | null = "",
+        options: { radius?: number; omission?: string } = {},
+    ): string | null {
         return Str.excerpt(this._value, phrase, options);
     }
 
