@@ -175,8 +175,13 @@ export class Stringable {
      * Explode the string into a collection.
      * TODO
      */
-    explode(delimiter: string, limit: number | null = null) {
-        limit ??= Number.MAX_SAFE_INTEGER;
+    explode(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _delimiter: string,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _limit: number | null = null,
+    ) {
+        _limit ??= Number.MAX_SAFE_INTEGER;
         // return new Collection(explode($delimiter, this._value, $limit));
     }
 
@@ -185,9 +190,12 @@ export class Stringable {
      * TODO
      */
     split(
-        pattern: string | number,
-        limit: number | null = null,
-        flags: number | null = null,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _pattern: string | number,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _limit: number | null = null,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _flags: number | null = null,
     ) {
         // if (filter_var($pattern, FILTER_VALIDATE_INT) !== false) {
         //     return new Collection(mb_str_split($this->value, $pattern));

@@ -42,10 +42,10 @@ export class MarkdownRenderer {
         // Support extension array entries either as plugin or [plugin, opts]
         for (const ext of this.extensions) {
             if (Array.isArray(ext)) {
-                // @ts-ignore - markdown-it plugin typing is permissive
+                // @ts-expect-error - markdown-it plugin typing is permissive
                 md.use(ext[0], ext[1]);
             } else if (ext) {
-                // @ts-ignore
+                // @ts-expect-error
                 md.use(ext);
             }
         }
