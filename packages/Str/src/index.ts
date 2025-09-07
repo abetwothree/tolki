@@ -1,3 +1,4 @@
+export * from "./Base64.js";
 export * from "./ConvertCase.js";
 export * from "./Markdown.js";
 export * from "./Pluralizer.js";
