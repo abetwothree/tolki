@@ -13,18 +13,30 @@ export class Stringable {
         return new Stringable(Str.after(this._value, search));
     }
 
+    /**
+     * Return the remainder of a string after the last occurrence of a given value
+     */
     afterLast(search: string | number): Stringable {
         return new Stringable(Str.afterLast(this._value, search));
     }
 
+    /**
+     * Append the given values to the string.
+     */
     append(...values: Array<string | number>): Stringable {
         return new Stringable(this._value + values.map(String).join(""));
     }
 
+    /**
+     * Append a new line to the string.
+     */
     newLine(count = 1): Stringable {
         return this.append("\n".repeat(Math.max(0, count)));
     }
 
+    /**
+     * Transliterate a UTF-8 value to ASCII.
+     */
     ascii(): Stringable {
         return new Stringable(Str.ascii(this._value));
     }

@@ -62,6 +62,13 @@ export class Str {
      */
     protected static randomStringFactory: ((length: number) => string) | null;
 
+    /**
+     * Get a new stringable object from the given string.
+     * 
+     * @example
+     *
+     * Str.of('foo').append('bar'); // -> 'foobar'
+     */
     static of(value: string): Stringable {
         return new Stringable(value);
     }
