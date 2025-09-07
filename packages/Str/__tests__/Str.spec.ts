@@ -2039,7 +2039,7 @@ describe("Str tests", () => {
             Str.createUuidsNormally();
         });
 
-        it("can specify a fallback for a sequence", () => {
+        it("can specify a fallback for a uuid sequence", () => {
             Str.createUuidsUsingSequence([Str.uuid(), Str.uuid()], () => {
                 throw new Error("Out of Uuids.");
             });
@@ -2084,5 +2084,79 @@ describe("Str tests", () => {
 
         expect(Str.ulid(new Date().getTime())).toHaveLength(26);
         expect(Str.isUlid(Str.ulid(new Date().getTime()))).toBe(true);
+    });
+
+    describe("createUlidsUsingSequence", () => {
+        it("can specify a sequence of ulids to utilise", () => {
+            const zeroth = Str.ulid();
+            const first = Str.ulid();
+            const second = Str.ulid();
+            Str.createUlidsUsingSequence([zeroth, first, second]);
+
+            let retrieved = Str.ulid();
+            expect(retrieved).toBe(zeroth);
+            expect(String(retrieved)).toBe(String(zeroth));
+
+            retrieved = Str.ulid();
+            expect(retrieved).toBe(first);
+            expect(String(retrieved)).toBe(String(first));
+
+            retrieved = Str.ulid();
+            expect(retrieved).toBe(second);
+            expect(String(retrieved)).toBe(String(second));
+
+            retrieved = Str.ulid();
+            expect([zeroth, first, second].includes(retrieved)).toBe(false);
+            expect(
+                [String(zeroth), String(first), String(second)].includes(
+                    String(retrieved),
+                ),
+            ).toBe(false);
+
+            Str.createUlidsNormally();
+        });
+        it("can specify a fallback for a ulid sequence", () => {
+            Str.createUlidsUsingSequence([Str.ulid(), Str.ulid()], () => {
+                throw new Error("Out of Ulids.");
+            });
+
+            Str.ulid();
+            Str.ulid();
+
+            expect(() => {
+                Str.ulid();
+            }).toThrowError("Out of Ulids.");
+
+            Str.createUlidsNormally();
+        });
+    });
+
+    it("createUlidsUsing", () => {
+        try {
+            Str.freezeUlids(function () {
+                Str.createUlidsUsing(() => Str.of("1234").toString());
+                expect(Str.ulid().toString()).toBe("1234");
+                throw new Error("Something failed.");
+            });
+        } catch {
+            expect(Str.ulid().toString()).not.toBe("1234");
+        }
+    });
+
+    it("freezeUlids", () => {
+        expect(Str.ulid().toString()).not.toBe(Str.ulid().toString());
+        expect(Str.ulid()).not.toBe(Str.ulid());
+
+        const ulid = Str.freezeUlids();
+
+        expect(ulid).toBe(Str.ulid());
+        expect(Str.ulid()).toBe(Str.ulid());
+        expect(String(ulid)).toBe(String(Str.ulid()));
+        expect(String(Str.ulid())).toBe(String(Str.ulid()));
+
+        Str.createUlidsNormally();
+
+        expect(Str.ulid()).not.toBe(Str.ulid());
+        expect(String(Str.ulid())).not.toBe(String(Str.ulid()));
     });
 });

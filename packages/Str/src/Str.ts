@@ -2768,6 +2768,10 @@ export class Str {
      * Str.ulid(); // -> "01F8MECHZX2D7J8F8C8D4B8F8C"
      */
     static ulid(time: Date | number | null = null): string {
+        if (this.ulidFactory) {
+            return this.ulidFactory();
+        }
+
         if (time === null || time === undefined) {
             return createUlid();
         }
@@ -2787,5 +2791,88 @@ export class Str {
         } finally {
             Date.now = originalNow;
         }
+    }
+
+    /**
+     * Indicate that ULIDs should be created normally and not using a custom factory.
+     *
+     * @example
+     *
+     * Str.createUlidsNormally();
+     */
+    static createUlidsNormally(): void {
+        this.ulidFactory = null;
+    }
+
+    /**
+     * Set the callable that will be used to generate ULIDs.
+     *
+     * @example
+     *
+     * Str.createUlidsUsing(() => Str.of("1234").toString());
+     */
+    static createUlidsUsing(factory: (() => string) | null = null): void {
+        this.ulidFactory = factory;
+    }
+
+    /**
+     * Set the sequence that will be used to generate ULIDs.
+     *
+     * @example
+     *
+     * Str.createUlidsUsingSequence(["ulid1", "ulid2"], () => "custom-ulid");
+     */
+    static createUlidsUsingSequence(
+        sequence: string[],
+        whenMissing: (() => string) | null = null,
+    ): void {
+        let next = 0;
+
+        whenMissing ??= function () {
+            const factoryCache = Str.ulidFactory;
+
+            Str.ulidFactory = null;
+
+            const ulid = Str.ulid();
+
+            Str.ulidFactory = factoryCache;
+
+            next++;
+
+            return ulid;
+        };
+
+        Str.createUlidsUsing(function () {
+            if (next < sequence.length) {
+                return sequence[next++]!;
+            }
+
+            return whenMissing();
+        });
+    }
+
+    /**
+     * Always return the same ULID when generating new ULIDs.
+     *
+     * @example
+     *
+     * Str.freezeUlids(() => "custom-ulid");
+     */
+    static freezeUlids(
+        callback: ((value: string) => string) | null = null,
+    ): string {
+        const ulid = this.ulid();
+
+        this.createUlidsUsing(() => ulid);
+
+        if (callback !== null) {
+            try {
+                callback(ulid);
+            } finally {
+                this.createUlidsNormally();
+            }
+        }
+
+        return ulid;
     }
 }
