@@ -25,6 +25,7 @@ import { Pluralizer } from "./Pluralizer.js";
 import { Number } from "@laravel-js/number";
 import { Random } from "./Random.js";
 import { Trimmer } from "./Trimmer.js";
+import { Replacer } from "./Replacer.js";
 
 export class Str {
     /**
@@ -2365,38 +2366,7 @@ export class Str {
         start: number,
         length: number | null = null,
     ): string {
-        // Multi-byte safe substring (mb_substr equivalent using Unicode code points)
-        const chars = Array.from(string);
-        const size = chars.length;
-
-        // Normalize start (supports negative start from end)
-        let s = start;
-        if (s < 0) {
-            s = size + s;
-            if (s < 0) s = 0;
-        }
-        if (s > size) {
-            return "";
-        }
-
-        // Determine end
-        let end: number;
-        if (length === null || length === undefined) {
-            end = size;
-        } else if (length < 0) {
-            // Negative length omits characters from the end
-            end = size + length;
-        } else {
-            end = s + length;
-        }
-
-        // Clamp and validate range
-        end = Math.max(0, Math.min(end, size));
-        if (end <= s) {
-            return "";
-        }
-
-        return chars.slice(s, end).join("");
+        return Replacer.substr(string, start, length);
     }
 
     /**
@@ -2414,48 +2384,7 @@ export class Str {
         offset: number = 0,
         length: number | null = null,
     ): number {
-        // Emulate PHP substr_count with multi-byte safety (operate on Unicode code points)
-        if (needle === "") {
-            return 0; // PHP throws for empty needle; we return 0 for safe parity in JS context
-        }
-
-        const chars = Array.from(haystack);
-        const size = chars.length;
-
-        // Normalize start (offset may be negative)
-        let start = offset >= 0 ? offset : size + offset;
-        if (start < 0) start = 0;
-        if (start > size) {
-            return 0;
-        }
-
-        // Determine end index using PHP-like substr semantics
-        let end: number;
-        if (length === null || length === undefined) {
-            end = size;
-        } else if (length < 0) {
-            end = size + length; // omit characters from the end
-        } else {
-            end = start + length;
-        }
-        end = Math.max(0, Math.min(end, size));
-        if (end <= start) {
-            return 0;
-        }
-
-        const segment = chars.slice(start, end).join("");
-
-        // Count non-overlapping occurrences like PHP
-        let count = 0;
-        let pos = 0;
-        while (true) {
-            const idx = segment.indexOf(needle, pos);
-            if (idx === -1) break;
-            count++;
-            pos = idx + needle.length;
-        }
-
-        return count;
+        return Replacer.substrCount(haystack, needle, offset, length);
     }
 
     /**
@@ -2472,49 +2401,7 @@ export class Str {
         offset: number | number[] = 0,
         length: number | number[] | null = null,
     ): string | string[] {
-        // Normalize scalar offset/length (arrays not used in our tests; if arrays are provided, pick first element)
-        const off: number = Array.isArray(offset) ? (offset[0] ?? 0) : offset;
-        const lenArg: number | null = Array.isArray(length)
-            ? ((length[0] as number) ?? null)
-            : length;
-
-        const doReplace = (rep: string): string => {
-            const chars = Array.from(value);
-            const size = chars.length;
-
-            // Compute start index
-            let start = off >= 0 ? off : size + off;
-            if (start < 0) start = 0;
-            if (start > size) start = size;
-
-            // PHP behavior: when length is null, treat as full length of string
-            const usedLen: number =
-                lenArg === null || lenArg === undefined
-                    ? size
-                    : (lenArg as number);
-
-            // Determine end index (exclusive)
-            let end: number;
-            if (usedLen < 0) {
-                end = size + usedLen; // stop this many chars from end
-            } else {
-                end = start + usedLen;
-            }
-
-            // Clamp and ensure non-decreasing range
-            end = Math.max(0, Math.min(end, size));
-            if (end < start) end = start;
-
-            const head = chars.slice(0, start).join("");
-            const tail = chars.slice(end).join("");
-            return head + rep + tail;
-        };
-
-        if (Array.isArray(replace)) {
-            return replace.map((r) => doReplace(String(r)));
-        }
-
-        return doReplace(String(replace));
+        return Replacer.substrReplace(value, replace, offset, length);
     }
 
     /**
