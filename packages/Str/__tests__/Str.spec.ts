@@ -537,11 +537,14 @@ describe("Str tests", () => {
     });
 
     it("kebab", () => {
-        expect(Str.kebab("Laravel PHP Framework")).toBe(
+        expect(Str.kebab("LaravelPhpFramework")).toBe("laravel-php-framework");
+        expect(Str.kebab("Laravel Php Framework")).toBe(
             "laravel-php-framework",
         );
-        expect(Str.kebab("fooBarBaz")).toBe("foo-bar-baz");
-        expect(Str.kebab("Foo_Bar-Baz qux")).toBe("foo-bar-baz-qux");
+        expect(Str.kebab("Laravel ❤ Php Framework")).toBe(
+            "laravel❤-php-framework",
+        );
+        expect(Str.kebab("")).toBe("");
     });
 
     it("length", () => {

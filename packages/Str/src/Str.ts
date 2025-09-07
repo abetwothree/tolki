@@ -499,7 +499,7 @@ export class Str {
             value = Str.substr(value, Str.length(before));
         }
 
-        if (Str.endsWith(value, after ??= before)) {
+        if (Str.endsWith(value, (after ??= before))) {
             value = Str.substr(value, 0, -Str.length(after));
         }
 
@@ -736,10 +736,7 @@ export class Str {
      * Str.kebab("Laravel PHP Framework"); // -> "laravel-php-framework"
      */
     static kebab(value: string): string {
-        return value
-            .replace(/([a-z])([A-Z])/g, "$1-$2")
-            .replace(/[\s_]+/g, "-")
-            .toLowerCase();
+        return Str.snake(value, "-");
     }
 
     /**
