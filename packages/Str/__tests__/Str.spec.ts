@@ -369,7 +369,178 @@ describe("Str tests", () => {
     });
 
     it("excerpt", () => {
-        expect(Str.excerpt("some text", "phrase")).toBeNull();
+        // $this->assertSame('...is a beautiful morn...', Str::excerpt('This is a beautiful morning', 'beautiful', ['radius' => 5]));
+        expect(
+            Str.excerpt("This is a beautiful morning", "beautiful", {
+                radius: 5,
+            }),
+        ).toBe("...is a beautiful morn...");
+        // $this->assertSame('This is a...', Str::excerpt('This is a beautiful morning', 'this', ['radius' => 5]));
+        expect(
+            Str.excerpt("This is a beautiful morning", "this", { radius: 5 }),
+        ).toBe("This is a...");
+        // $this->assertSame('...iful morning', Str::excerpt('This is a beautiful morning', 'morning', ['radius' => 5]));
+        expect(
+            Str.excerpt("This is a beautiful morning", "morning", {
+                radius: 5,
+            }),
+        ).toBe("...iful morning");
+        // $this->assertNull(Str::excerpt('This is a beautiful morning', 'day'));
+        expect(Str.excerpt("This is a beautiful morning", "day")).toBeNull();
+        // $this->assertSame('...is a beautiful! mor...', Str::excerpt('This is a beautiful! morning', 'Beautiful', ['radius' => 5]));
+        expect(
+            Str.excerpt("This is a beautiful! morning", "Beautiful", {
+                radius: 5,
+            }),
+        ).toBe("...is a beautiful! mor...");
+        // $this->assertSame('...is a beautiful? mor...', Str::excerpt('This is a beautiful? morning', 'beautiful', ['radius' => 5]));
+        expect(
+            Str.excerpt("This is a beautiful? morning", "beautiful", {
+                radius: 5,
+            }),
+        ).toBe("...is a beautiful? mor...");
+        // $this->assertSame('', Str::excerpt('', '', ['radius' => 0]));
+        expect(Str.excerpt("", "", { radius: 0 })).toBe("");
+        // $this->assertSame('a', Str::excerpt('a', 'a', ['radius' => 0]));
+        expect(Str.excerpt("a", "a", { radius: 0 })).toBe("a");
+        // $this->assertSame('...b...', Str::excerpt('abc', 'B', ['radius' => 0]));
+        expect(Str.excerpt("abc", "B", { radius: 0 })).toBe("...b...");
+        // $this->assertSame('abc', Str::excerpt('abc', 'b', ['radius' => 1]));
+        expect(Str.excerpt("abc", "b", { radius: 1 })).toBe("abc");
+        // $this->assertSame('abc...', Str::excerpt('abcd', 'b', ['radius' => 1]));
+        expect(Str.excerpt("abcd", "b", { radius: 1 })).toBe("abc...");
+        // $this->assertSame('...abc', Str::excerpt('zabc', 'b', ['radius' => 1]));
+        expect(Str.excerpt("zabc", "b", { radius: 1 })).toBe("...abc");
+        // $this->assertSame('...abc...', Str::excerpt('zabcd', 'b', ['radius' => 1]));
+        expect(Str.excerpt("zabcd", "b", { radius: 1 })).toBe("...abc...");
+        // $this->assertSame('zabcd', Str::excerpt('zabcd', 'b', ['radius' => 2]));
+        expect(Str.excerpt("zabcd", "b", { radius: 2 })).toBe("zabcd");
+        // $this->assertSame('zabcd', Str::excerpt('  zabcd  ', 'b', ['radius' => 4]));
+        expect(Str.excerpt("  zabcd  ", "b", { radius: 4 })).toBe("zabcd");
+        // $this->assertSame('...abc...', Str::excerpt('z  abc  d', 'b', ['radius' => 1]));
+        expect(Str.excerpt("z  abc  d", "b", { radius: 1 })).toBe("...abc...");
+        // $this->assertSame('[...]is a beautiful morn[...]', Str::excerpt('This is a beautiful morning', 'beautiful', ['omission' => '[...]', 'radius' => 5]));
+        expect(
+            Str.excerpt("This is a beautiful morning", "beautiful", {
+                omission: "[...]",
+                radius: 5,
+            }),
+        ).toBe("[...]is a beautiful morn[...]");
+        // $this->assertSame(
+        //     'This is the ultimate supercalifragilisticexpialidocious very looooooooooooooooooong looooooooooooong beautiful morning with amazing sunshine and awesome tempera[...]',
+        //     Str::excerpt('This is the ultimate supercalifragilisticexpialidocious very looooooooooooooooooong looooooooooooong beautiful morning with amazing sunshine and awesome temperatures. So what are you gonna do about it?', 'very',
+        //         ['omission' => '[...]'],
+        //     ));
+        expect(
+            Str.excerpt(
+                "This is the ultimate supercalifragilisticexpialidocious very looooooooooooooooooong looooooooooooong beautiful morning with amazing sunshine and awesome temperatures. So what are you gonna do about it?",
+                "very",
+                { omission: "[...]" },
+            ),
+        ).toBe(
+            "This is the ultimate supercalifragilisticexpialidocious very looooooooooooooooooong looooooooooooong beautiful morning with amazing sunshine and awesome tempera[...]",
+        );
+        // $this->assertSame('...y...', Str::excerpt('taylor', 'y', ['radius' => 0]));
+        expect(Str.excerpt("taylor", "y", { radius: 0 })).toBe("...y...");
+        // $this->assertSame('...ayl...', Str::excerpt('taylor', 'Y', ['radius' => 1]));
+        expect(Str.excerpt("taylor", "Y", { radius: 1 })).toBe("...ayl...");
+        // $this->assertSame('<div> The article description </div>', Str::excerpt('<div> The article description </div>', 'article'));
+        expect(
+            Str.excerpt("<div> The article description </div>", "article"),
+        ).toBe("<div> The article description </div>");
+        // $this->assertSame('...The article desc...', Str::excerpt('<div> The article description </div>', 'article', ['radius' => 5]));
+        expect(
+            Str.excerpt("<div> The article description </div>", "article", {
+                radius: 5,
+            }),
+        ).toBe("...The article desc...");
+        // $this->assertSame('The article description', Str::excerpt(strip_tags('<div> The article description </div>'), 'article'));
+        expect(
+            Str.excerpt(
+                Str.stripTags("<div> The article description </div>"),
+                "article",
+            ),
+        ).toBe("The article description");
+        // $this->assertSame('', Str::excerpt(null));
+        expect(Str.excerpt(null)).toBe("");
+        // $this->assertSame('', Str::excerpt(''));
+        expect(Str.excerpt("")).toBe("");
+        // $this->assertSame('', Str::excerpt(null, ''));
+        expect(Str.excerpt(null, "")).toBe("");
+        // $this->assertSame('T...', Str::excerpt('The article description', null, ['radius' => 1]));
+        expect(
+            Str.excerpt("The article description", null, { radius: 1 }),
+        ).toBe("T...");
+        // $this->assertSame('The arti...', Str::excerpt('The article description', '', ['radius' => 8]));
+        expect(Str.excerpt("The article description", "", { radius: 8 })).toBe(
+            "The arti...",
+        );
+        // $this->assertSame('', Str::excerpt(' '));
+        expect(Str.excerpt(" ")).toBe("");
+        // $this->assertSame('The arti...', Str::excerpt('The article description', ' ', ['radius' => 4]));
+        expect(Str.excerpt("The article description", " ", { radius: 4 })).toBe(
+            "The arti...",
+        );
+        // $this->assertSame('...cle description', Str::excerpt('The article description', 'description', ['radius' => 4]));
+        expect(
+            Str.excerpt("The article description", "description", {
+                radius: 4,
+            }),
+        ).toBe("...cle description");
+        // $this->assertSame('T...', Str::excerpt('The article description', 'T', ['radius' => 0]));
+        expect(Str.excerpt("The article description", "T", { radius: 0 })).toBe(
+            "T...",
+        );
+        // $this->assertSame('What i?', Str::excerpt('What is the article?', 'What', ['radius' => 2, 'omission' => '?']));
+        expect(
+            Str.excerpt("What is the article?", "What", {
+                radius: 2,
+                omission: "?",
+            }),
+        ).toBe("What i?");
+
+        // $this->assertSame('...ö - 二 sān 大åè...', Str::excerpt('åèö - 二 sān 大åèö', '二 sān', ['radius' => 4]));
+        expect(Str.excerpt("åèö - 二 sān 大åèö", "二 sān", { radius: 4 })).toBe(
+            "...ö - 二 sān 大åè...",
+        );
+        // $this->assertSame('åèö - 二...', Str::excerpt('åèö - 二 sān 大åèö', 'åèö', ['radius' => 4]));
+        expect(Str.excerpt("åèö - 二 sān 大åèö", "åèö", { radius: 4 })).toBe(
+            "åèö - 二...",
+        );
+        // $this->assertSame('åèö - 二 sān 大åèö', Str::excerpt('åèö - 二 sān 大åèö', 'åèö - 二 sān 大åèö', ['radius' => 4]));
+        expect(
+            Str.excerpt("åèö - 二 sān 大åèö", "åèö - 二 sān 大åèö", {
+                radius: 4,
+            }),
+        ).toBe("åèö - 二 sān 大åèö");
+        // $this->assertSame('åèö - 二 sān 大åèö', Str::excerpt('åèö - 二 sān 大åèö', 'åèö - 二 sān 大åèö', ['radius' => 4]));
+        expect(
+            Str.excerpt("åèö - 二 sān 大åèö", "åèö - 二 sān 大åèö", {
+                radius: 4,
+            }),
+        ).toBe("åèö - 二 sān 大åèö");
+        // $this->assertSame('...༼...', Str::excerpt('㏗༼㏗', '༼', ['radius' => 0]));
+        expect(Str.excerpt("㏗༼㏗", "༼", { radius: 0 })).toBe("...༼...");
+        // $this->assertSame('...༼...', Str::excerpt('㏗༼㏗', '༼', ['radius' => 0]));
+        expect(Str.excerpt("㏗༼㏗", "༼", { radius: 0 })).toBe("...༼...");
+        // $this->assertSame('...ocê e...', Str::excerpt('Como você está', 'ê', ['radius' => 2]));
+        expect(Str.excerpt("Como você está", "ê", { radius: 2 })).toBe(
+            "...ocê e...",
+        );
+        // $this->assertSame('...ocê e...', Str::excerpt('Como você está', 'Ê', ['radius' => 2]));
+        expect(Str.excerpt("Como você está", "Ê", { radius: 2 })).toBe(
+            "...ocê e...",
+        );
+        // $this->assertSame('João...', Str::excerpt('João Antônio ', 'jo', ['radius' => 2]));
+        expect(Str.excerpt("João Antônio ", "jo", { radius: 2 })).toBe(
+            "João...",
+        );
+        // $this->assertSame('João Antô...', Str::excerpt('João Antônio', 'JOÃO', ['radius' => 5]));
+        expect(Str.excerpt("João Antônio", "JOÃO", { radius: 5 })).toBe(
+            "João Antô...",
+        );
+        // $this->assertNull(Str::excerpt('', '/'));
+        expect(Str.excerpt("", "/")).toBe(null);
     });
 
     it("finish", () => {

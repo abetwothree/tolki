@@ -327,6 +327,62 @@ export class Str {
     }
 
     /**
+     * Extracts an excerpt from text that matches the first instance of a phrase.
+     *
+     * @example
+     * Str.excerpt('The quick brown fox', 'brown', { radius: 5 });
+     */
+    static excerpt(
+        text: string | null,
+        phrase: string | null = "",
+        options: { radius?: number; omission?: string } = {},
+    ): string | null {
+        const radius = options.radius ?? 100;
+        const omission = options.omission ?? "...";
+
+        const subject = String(text ?? "");
+        const phraseStr = phrase ?? "";
+
+        // Build a unicode & case-insensitive regex matching first occurrence of the phrase
+        const escapeRegExp = (s: string) =>
+            s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const pattern = new RegExp(
+            `^(.*?)(${escapeRegExp(phraseStr)})(.*)$`,
+            "iu",
+        );
+        const matches = pattern.exec(subject);
+
+        if (!matches) {
+            return null;
+        }
+
+        // Left segment before phrase
+        const rawStart = Str.ltrim(matches[1] ?? "");
+        const startLen = Array.from(rawStart).length;
+        const startSlice = Str.substr(
+            rawStart,
+            Math.max(startLen - radius, 0),
+            radius,
+        );
+        let startOut = Str.ltrim(startSlice);
+        if (startOut !== rawStart) {
+            startOut = omission + startOut;
+        }
+
+        // Right segment after phrase
+        const rawEnd = Str.rtrim(matches[3] ?? "");
+        const endSlice = Str.substr(rawEnd, 0, radius);
+        let endOut = Str.rtrim(endSlice);
+        if (endOut !== rawEnd) {
+            endOut = endOut + omission;
+        }
+
+        // Middle phrase (may be empty string when phrase is empty)
+        const middle = matches[2] ?? "";
+        return startOut + middle + endOut;
+    }
+
+    /**
      * Determine if a given string contains all array values.
      *
      * @example
@@ -445,22 +501,7 @@ export class Str {
         return !Str.endsWith(haystack, needles);
     }
 
-    /**
-     * Extracts an excerpt from text that matches the first instance of a phrase.
-     * TODO
-     * @example
-     */
-    static excerpt(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _text: string,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _phrase?: string,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _options?: Record<string, any>,
-    ): string | null {
-        // Not implemented yet; keep API returning null consistently
-        return null;
-    }
+    // (excerpt implementation located above)
 
     /**
      * Cap a string with a single instance of a given value.
