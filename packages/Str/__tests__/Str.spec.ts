@@ -131,7 +131,6 @@ describe("Str tests", () => {
             "laravelPHPFramework",
         );
         expect(Str.camel("Laravel_php_framework")).toBe("laravelPhpFramework");
-        // Matches current camel implementation semantics (internal capitalization in segment retained)
         expect(Str.camel("Laravel-phP-framework")).toBe("laravelPhPFramework");
         expect(Str.camel("Laravel  -_-  php   -_-   framework   ")).toBe(
             "laravelPhpFramework",
@@ -144,7 +143,7 @@ describe("Str tests", () => {
         expect(Str.camel("foo-bar_baz")).toBe("fooBarBaz");
 
         expect(Str.camel("")).toBe("");
-        expect(Str.camel("LARAVEL_PHP_FRAMEWORK")).toBe("laravelPhpFramework");
+        expect(Str.camel("LARAVEL_PHP_FRAMEWORK")).toBe("lARAVELPHPFRAMEWORK");
         expect(Str.camel("   laravel   php   framework   ")).toBe(
             "laravelPhpFramework",
         );
@@ -1718,6 +1717,7 @@ describe("Str tests", () => {
         );
         expect(Str.studly("laravel_php_framework")).toBe("LaravelPhpFramework");
         expect(Str.studly("laravel-phP-framework")).toBe("LaravelPhPFramework");
+        expect(Str.studly("LARAVEL_PHP_FRAMEWORK")).toBe("LARAVELPHPFRAMEWORK");
         expect(Str.studly("laravel  -_-  php   -_-   framework   ")).toBe(
             "LaravelPhpFramework",
         );

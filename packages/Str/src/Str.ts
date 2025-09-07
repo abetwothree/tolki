@@ -166,7 +166,7 @@ export class Str {
             return subject;
         }
 
-        return subject.slice(0, pos);
+        return Str.substr(subject, 0, pos);
     }
 
     /**
@@ -219,28 +219,9 @@ export class Str {
             return this.camelCache.get(value)!;
         }
 
-        // Insert spaces before existing camelCase boundaries to normalize words
-        const working = value
-            .replace(/([a-z\d])([A-Z])/g, "$1 $2")
-            .replace(/[-_\s]+/g, " ")
-            .trim();
-
-        if (working === "") {
-            this.camelCache.set(value, "");
-            return "";
-        }
-
-        const parts = working.split(/\s+/);
-        const first = (parts[0] ?? "").toLowerCase();
-        const rest = parts.slice(1).map((w) => {
-            if (/^[A-Z]+$/.test(w) || /^[a-z]+$/.test(w)) {
-                return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-            }
-            return w.charAt(0).toUpperCase() + w.slice(1);
-        });
-        const result = [first, ...rest].join("");
-
+        const result = Str.lcfirst(Str.studly(value));
         this.camelCache.set(value, result);
+
         return result;
     }
 
