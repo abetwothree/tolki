@@ -3,6 +3,15 @@ import type { ConvertCaseMode } from "./ConvertCase.js";
 import type { MarkDownOptions, MarkDownExtensions } from "./Markdown.js";
 import { isFunction } from "lodash-es";
 
+export type ConditionableValue =
+    | string
+    | number
+    | boolean
+    | ((instance: Stringable) => string | number | boolean);
+export type ConditionableClosure =
+    | ((instance: Stringable, value: ConditionableValue) => unknown)
+    | null;
+
 export class Stringable {
     /**
      * Create a new instance of the class.
@@ -728,12 +737,10 @@ export class Stringable {
     /**
      * Apply the callback if the given "value" is (or resolves to) truthy.
      */
-    when<T extends string | ((instance: this) => string)>(
+    when<T extends ConditionableValue>(
         value: T,
-        callback: ((instance: this, value: string) => unknown) | null = null,
-        defaultCallback:
-            | ((instance: this, value: string) => unknown)
-            | null = null,
+        callback: ConditionableClosure = null,
+        defaultCallback: ConditionableClosure = null,
     ): Stringable {
         const resolvedValue = isFunction(value)
             ? (value as (instance: this) => string)(this)
@@ -751,12 +758,10 @@ export class Stringable {
     /**
      * Apply the callback if the given "value" is (or resolves to) falsy.
      */
-    unless<T extends string | ((instance: this) => string)>(
+    unless<T extends ConditionableValue>(
         value: T,
-        callback: ((instance: this, value: string) => unknown) | null = null,
-        defaultCallback:
-            | ((instance: this, value: string) => unknown)
-            | null = null,
+        callback: ConditionableClosure = null,
+        defaultCallback: ConditionableClosure = null,
     ): Stringable {
         const resolvedValue = isFunction(value)
             ? value(this)
@@ -769,6 +774,159 @@ export class Stringable {
         }
 
         return this;
+    }
+
+    /**
+     * Execute the given callback if the string contains a given substring.
+     */
+    whenContains(
+        needles: string | Iterable<string>,
+        callback: ConditionableClosure,
+        defaultCallback: ConditionableClosure = null,
+    ) {
+        return this.when(this.contains(needles), callback, defaultCallback);
+    }
+
+    /**
+     * Execute the given callback if the string contains all array values.
+     */
+    whenContainsAll(
+        needles: string | Iterable<string>,
+        callback: ConditionableClosure,
+        defaultCallback: ConditionableClosure = null,
+    ) {
+        return this.when(this.containsAll(needles), callback, defaultCallback);
+    }
+
+    /**
+     * Execute the given callback if the string is empty.
+     */
+    whenEmpty(
+        callback: ConditionableClosure,
+        defaultCallback: ConditionableClosure = null,
+    ) {
+        return this.when(this.isEmpty(), callback, defaultCallback);
+    }
+
+    /**
+     * Execute the given callback if the string is not empty.
+     */
+    whenNotEmpty(
+        callback: ConditionableClosure,
+        defaultCallback: ConditionableClosure = null,
+    ) {
+        return this.when(this.isNotEmpty(), callback, defaultCallback);
+    }
+
+    /**
+     * Execute the given callback if the string ends with a given substring.
+     */
+    whenEndsWith(
+        needles: string | Iterable<string>,
+        callback: ConditionableClosure,
+        defaultCallback: ConditionableClosure = null,
+    ) {
+        return this.when(this.endsWith(needles), callback, defaultCallback);
+    }
+
+    /**
+     * Execute the given callback if the string doesn't end with a given substring.
+     */
+    whenDoesntEndWith(
+        needles: string | Iterable<string>,
+        callback: ConditionableClosure,
+        defaultCallback: ConditionableClosure = null,
+    ) {
+        return this.when(
+            this.doesntEndWith(needles),
+            callback,
+            defaultCallback,
+        );
+    }
+
+    /**
+     * Execute the given callback if the string is an exact match with the given value.
+     */
+    whenExactly(
+        value: string,
+        callback: ConditionableClosure,
+        defaultCallback: ConditionableClosure = null,
+    ) {
+        return this.when(this.exactly(value), callback, defaultCallback);
+    }
+
+    /**
+     * Execute the given callback if the string is not an exact match with the given value.
+     */
+    whenNotExactly(
+        value: string,
+        callback: ConditionableClosure,
+        defaultCallback: ConditionableClosure = null,
+    ) {
+        return this.when(!this.exactly(value), callback, defaultCallback);
+    }
+
+    /**
+     * Execute the given callback if the string matches a given pattern.
+     */
+    whenIs(
+        pattern: string | Iterable<string>,
+        callback: ConditionableClosure,
+        defaultCallback: ConditionableClosure = null,
+    ) {
+        return this.when(this.is(pattern), callback, defaultCallback);
+    }
+
+    /**
+     * Execute the given callback if the string is 7 bit ASCII.
+     */
+    whenIsAscii(
+        callback: ConditionableClosure,
+        defaultCallback: ConditionableClosure = null,
+    ) {
+        return this.when(this.isAscii(), callback, defaultCallback);
+    }
+
+    /**
+     * Execute the given callback if the string is a valid UUID.
+     */
+    whenIsUuid(
+        callback: ConditionableClosure,
+        defaultCallback: ConditionableClosure = null,
+    ) {
+        return this.when(this.isUuid(), callback, defaultCallback);
+    }
+
+    /**
+     * Execute the given callback if the string is a valid ULID.
+     */
+    whenIsUlid(
+        callback: ConditionableClosure,
+        defaultCallback: ConditionableClosure = null,
+    ) {
+        return this.when(this.isUlid(), callback, defaultCallback);
+    }
+
+    /**
+     * Execute the given callback if the string starts with a given substring.
+     */
+    whenStartsWith(
+        needles: string | Iterable<string>,
+        callback: ConditionableClosure,
+        defaultCallback: ConditionableClosure = null,
+    ) {
+        return this.when(this.startsWith(needles), callback, defaultCallback);
+    }
+
+    /**
+     * Execute the given callback if the string matches the given pattern.
+     */
+    whenTest(
+        pattern: string,
+        callback: ConditionableClosure,
+        defaultCallback: ConditionableClosure = null,
+    ) {
+        return this.when(this.test(pattern), callback, defaultCallback);
     }
 
     /**
