@@ -1942,6 +1942,19 @@ describe("Str tests", () => {
         ).toBe(3);
     });
 
+    it("wordWrap", () => {
+        expect(Str.wordWrap("Hello World", 3, "<br />")).toBe(
+            "Hello<br />World",
+        );
+        expect(Str.wordWrap("Hello World", 3, "<br />", true)).toBe(
+            "Hel<br />lo<br />Wor<br />ld",
+        );
+
+        expect(Str.wordWrap("❤Multi Byte☆❤☆❤☆❤", 3, "<br />")).toBe(
+            "❤Multi<br />Byte☆❤☆❤☆❤",
+        );
+    });
+
     it("ulid", () => {
         const when = new Date("2024-01-01T00:00:00.000Z").getTime();
         const idA = Str.ulid(when);

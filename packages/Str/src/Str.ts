@@ -2531,8 +2531,110 @@ export class Str {
                 : /[\p{L}\p{N}]+/gu;
 
         const matches = value.match(pattern);
-        
+
         return matches ? matches.length : 0;
+    }
+
+    /**
+     * Wrap a string to a given number of characters.
+     *
+     * @example
+     *
+     * Str.wordWrap("Hello World", 3, "<br />"); // -> "Hello<br />World"
+     * Str.wordWrap("Hello World", 3, "<br />", true); // -> "Hel<br />lo<br />Wor<br />ld"
+     * Str.wordWrap("❤Multi Byte☆❤☆❤☆❤", 3, "<br />"); // -> "❤Multi<br />Byte☆❤☆❤☆❤"
+     */
+    static wordWrap(
+        value: string,
+        characters: number = 75,
+        breakStr: string = "\n",
+        cutLongWords: boolean = false,
+    ): string {
+        if (value.length === 0 || characters < 1 || breakStr === "") {
+            return value;
+        }
+
+        const lines = value.split(/\r\n|\n|\r/);
+        const out: string[] = [];
+
+        for (const original of lines) {
+            let line = original;
+
+            if (line.length === 0) {
+                out.push("");
+                continue;
+            }
+
+            if (cutLongWords) {
+                // Hard wrap strictly at width; trim spaces around chunk boundaries
+                while (line.length > 0) {
+                    // Trim leading whitespace so chunks don't start with spaces
+                    if (/^\s/u.test(line)) {
+                        line = line.replace(/^\s+/u, "");
+                        if (line.length === 0) break;
+                    }
+
+                    if (line.length <= characters) {
+                        out.push(line);
+                        line = "";
+                        break;
+                    }
+
+                    let chunk = line.slice(0, characters);
+                    // Remove trailing whitespace from the chunk
+                    chunk = chunk.replace(/\s+$/u, "");
+                    out.push(chunk);
+                    // Advance and remove any leading whitespace from the remainder
+                    line = line.slice(characters).replace(/^\s+/u, "");
+                }
+                continue;
+            }
+
+            // Soft wrap: break only at whitespace; do not split words
+            while (line.length > characters) {
+                // Remove any leading spaces so lines do not start with whitespace
+                const trimmed = line.replace(/^\s+/u, "");
+                if (trimmed.length !== line.length) {
+                    line = trimmed;
+                    if (line.length <= characters) break;
+                }
+
+                // Find last whitespace within the window [0..characters]
+                const window = line.slice(0, characters + 1);
+                let lastSpace = -1;
+                for (let i = window.length - 1; i >= 0; i--) {
+                    if (/\s/u.test(window[i]!)) {
+                        lastSpace = i;
+                        break;
+                    }
+                }
+
+                if (lastSpace > 0) {
+                    out.push(line.slice(0, lastSpace));
+                    line = line.slice(lastSpace + 1);
+                    continue;
+                }
+
+                // No whitespace within window: break at next whitespace ahead if present, else keep the whole line
+                const nextSpace = line.search(/\s/u);
+                if (nextSpace >= 0) {
+                    out.push(line.slice(0, nextSpace));
+                    line = line.slice(nextSpace + 1);
+                    continue;
+                }
+
+                // No whitespace at all; output remainder as a single line
+                out.push(line);
+                line = "";
+                break;
+            }
+
+            if (line.length > 0) {
+                out.push(line);
+            }
+        }
+
+        return out.join(breakStr);
     }
 
     /**
