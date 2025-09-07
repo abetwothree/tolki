@@ -2337,6 +2337,7 @@ export class Str {
 
         const result = words.map(capFirst).join("");
         this.studlyCache.set(key, result);
+
         return result;
     }
 
@@ -2348,6 +2349,51 @@ export class Str {
      */
     static pascal(value: string): string {
         return Str.studly(value);
+    }
+
+    /**
+     * Returns the portion of the string specified by the start and length parameters.
+     *
+     * @example
+     *
+     * Str.substr('hello world', 6, 5); // -> 'world'
+     * Str.substr('hello world', 0, 5); // -> 'hello'
+     * Str.substr('hello world', 6);    // -> 'world'
+     */
+    static substr(string: string, start: number, length: number | null = null): string
+    {
+        // Multi-byte safe substring (mb_substr equivalent using Unicode code points)
+        const chars = Array.from(string);
+        const size = chars.length;
+
+        // Normalize start (supports negative start from end)
+        let s = start;
+        if (s < 0) {
+            s = size + s;
+            if (s < 0) s = 0;
+        }
+        if (s > size) {
+            return "";
+        }
+
+        // Determine end
+        let end: number;
+        if (length === null || length === undefined) {
+            end = size;
+        } else if (length < 0) {
+            // Negative length omits characters from the end
+            end = size + length;
+        } else {
+            end = s + length;
+        }
+
+        // Clamp and validate range
+        end = Math.max(0, Math.min(end, size));
+        if (end <= s) {
+            return "";
+        }
+
+        return chars.slice(s, end).join("");
     }
 
     /**
