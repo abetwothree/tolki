@@ -2875,4 +2875,48 @@ export class Str {
 
         return ulid;
     }
+
+    /**
+     * Get the size of the snake cache.
+     *
+     * @example
+     *
+     * Str.snakeCacheSize();
+     */
+    static snakeCacheSize(): number {
+        return Str.snakeCache.size;
+    }
+
+    /**
+     * Get the size of the camel cache.
+     *
+     * @example
+     *
+     * Str.camelCacheSize();
+     */
+    static camelCacheSize(): number {
+        return Str.camelCache.size;
+    }
+
+    /**
+     * Get the size of the studly cache.
+     *
+     * @example
+     *
+     * Str.studlyCacheSize();
+     */
+    static studlyCacheSize(): number {
+        return Str.studlyCache.size;
+    }
+
+    /**
+     * Remove all strings from the casing caches.
+     *
+     * @return void
+     */
+    static flushCache(): void {
+        Str.snakeCache.clear();
+        Str.camelCache.clear();
+        Str.studlyCache.clear();
+    }
 }

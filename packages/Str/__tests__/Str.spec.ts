@@ -2159,4 +2159,33 @@ describe("Str tests", () => {
         expect(Str.ulid()).not.toBe(Str.ulid());
         expect(String(Str.ulid())).not.toBe(String(Str.ulid()));
     });
+
+    it("flushCache", () => {
+        // Warm the caches by calling snake, camel, and studly with a few inputs
+        Str.snake("LaravelPHPFramework");
+        Str.snake("LaravelPhpFramework", " "); // different delimiter to create a different snake cache key
+        Str.camel("foo_bar");
+        Str.studly("foo_bar");
+
+        // Access internal caches (runtime properties) to assert they were populated
+        const snakeSizeBefore = Str.snakeCacheSize();
+        const camelSizeBefore = Str.camelCacheSize();
+        const studlySizeBefore = Str.studlyCacheSize();
+
+        expect(snakeSizeBefore).toBeGreaterThan(0);
+        expect(camelSizeBefore).toBeGreaterThan(0);
+        expect(studlySizeBefore).toBeGreaterThan(0);
+
+        // Flush and verify caches are cleared
+        Str.flushCache();
+
+        expect(Str.snakeCacheSize()).toBe(0);
+        expect(Str.camelCacheSize()).toBe(0);
+        expect(Str.studlyCacheSize()).toBe(0);
+
+        // Ensure methods still compute correctly after a flush (no stale state)
+        expect(Str.snake("LaravelPhpFramework")).toBe("laravel_php_framework");
+        expect(Str.camel("foo-bar_baz")).toBe("fooBarBaz");
+        expect(Str.studly("foo-bar_baz")).toBe("FooBarBaz");
+    });
 });
