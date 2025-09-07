@@ -4,6 +4,6 @@ export class Stringable {
     constructor(private value: string) {}
 
     toString(): string {
-        return this.value;
+        return String(this.value);
     }
 }

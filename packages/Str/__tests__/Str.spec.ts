@@ -1965,6 +1965,113 @@ describe("Str tests", () => {
         );
     });
 
+    it("uuid", () => {
+        expect(Str.uuid()).not.toBe(Str.uuid());
+
+        const uuid = Str.freezeUuids();
+
+        expect(uuid).toBe(Str.uuid());
+        expect(Str.uuid()).toBe(Str.uuid());
+        expect(String(uuid)).toBe(String(Str.uuid()));
+        expect(String(Str.uuid())).toBe(String(Str.uuid()));
+
+        Str.createUuidsNormally();
+
+        expect(Str.uuid()).not.toBe(Str.uuid());
+        expect(String(Str.uuid())).not.toBe(String(Str.uuid()));
+    });
+
+    it("uuid7", () => {
+        expect(Str.uuid7()).not.toBe(Str.uuid7());
+
+        const uuid = Str.freezeUuids();
+
+        expect(uuid).toBe(Str.uuid7());
+        expect(Str.uuid7()).toBe(Str.uuid7());
+        expect(String(uuid)).toBe(String(Str.uuid7()));
+        expect(String(Str.uuid7())).toBe(String(Str.uuid7()));
+
+        Str.createUuidsNormally();
+
+        expect(Str.uuid7()).not.toBe(Str.uuid7());
+        expect(String(Str.uuid7())).not.toBe(String(Str.uuid7()));
+    });
+
+    it("createUuidsUsing", () => {
+        try {
+            Str.freezeUuids(function () {
+                Str.createUuidsUsing(() => Str.of("1234").toString());
+                expect(Str.uuid().toString()).toBe("1234");
+                throw new Error("Something failed.");
+            });
+        } catch {
+            expect(Str.uuid().toString()).not.toBe("1234");
+        }
+    });
+
+    describe("createUuidsUsingSequence", () => {
+        it("can specify a sequence of uuids to utilise", () => {
+            const zeroth = Str.uuid();
+            const first = Str.uuid7();
+            const second = Str.uuid();
+            Str.createUuidsUsingSequence([zeroth, first, second]);
+
+            let retrieved = Str.uuid();
+            expect(retrieved).toBe(zeroth);
+            expect(String(retrieved)).toBe(String(zeroth));
+
+            retrieved = Str.uuid();
+            expect(retrieved).toBe(first);
+            expect(String(retrieved)).toBe(String(first));
+
+            retrieved = Str.uuid();
+            expect(retrieved).toBe(second);
+            expect(String(retrieved)).toBe(String(second));
+
+            retrieved = Str.uuid();
+            expect([zeroth, first, second].includes(retrieved)).toBe(false);
+            expect(
+                [String(zeroth), String(first), String(second)].includes(
+                    String(retrieved),
+                ),
+            ).toBe(false);
+
+            Str.createUuidsNormally();
+        });
+
+        it("can specify a fallback for a sequence", () => {
+            Str.createUuidsUsingSequence([Str.uuid(), Str.uuid()], () => {
+                throw new Error("Out of Uuids.");
+            });
+
+            Str.uuid();
+            Str.uuid();
+
+            expect(() => {
+                Str.uuid();
+            }).toThrowError("Out of Uuids.");
+
+            Str.createUuidsNormally();
+        });
+    });
+
+    it("freezeUuids", () => {
+        expect(Str.uuid().toString()).not.toBe(Str.uuid().toString());
+        expect(Str.uuid()).not.toBe(Str.uuid());
+
+        const uuid = Str.freezeUuids();
+
+        expect(uuid).toBe(Str.uuid());
+        expect(Str.uuid()).toBe(Str.uuid());
+        expect(String(uuid)).toBe(String(Str.uuid()));
+        expect(String(Str.uuid())).toBe(String(Str.uuid()));
+
+        Str.createUuidsNormally();
+
+        expect(Str.uuid()).not.toBe(Str.uuid());
+        expect(String(Str.uuid())).not.toBe(String(Str.uuid()));
+    });
+
     it("ulid", () => {
         const when = new Date("2024-01-01T00:00:00.000Z").getTime();
         const idA = Str.ulid(when);

@@ -19,6 +19,8 @@ import {
     version as uuidVersion,
     NIL as UUID_NIL,
     MAX as UUID_MAX,
+    v4 as uuidv4,
+    v7 as uuidv7,
 } from "uuid";
 import { ulid as createUlid } from "ulid";
 import { Pluralizer } from "./Pluralizer.js";
@@ -2651,6 +2653,111 @@ export class Str {
         }
 
         return out.join(breakStr);
+    }
+
+    /**
+     * Generate a UUID (version 4).
+     *
+     * @example
+     *
+     * Str.uuid(); // -> "550e8400-e29b-41d4-a716-446655440000"
+     */
+    static uuid(): string {
+        return this.uuidFactory ? this.uuidFactory() : uuidv4();
+    }
+
+    /**
+     * Generate a UUID (version 7).
+     *
+     * @example
+     *
+     * Str.uuid7(); // -> "550e8400-e29b-41d4-a716-446655440000"
+     */
+    static uuid7() {
+        return this.uuidFactory ? this.uuidFactory() : uuidv7();
+    }
+
+    /**
+     * Set the callable that will be used to generate UUIDs.
+     *
+     * @example
+     *
+     * Str.createUuidsUsing(() => "custom-uuid");
+     */
+    static createUuidsUsing(factory: (() => string) | null = null): void {
+        this.uuidFactory = factory;
+    }
+
+    /**
+     * Set the sequence that will be used to generate UUIDs.
+     *
+     * @example
+     *
+     * Str.createUuidsUsingSequence(["uuid1", "uuid2"], () => "custom-uuid");
+     */
+    static createUuidsUsingSequence(
+        sequence: string[],
+        whenMissing: (() => string) | null = null,
+    ): void {
+        let next = 0;
+
+        whenMissing ??= function () {
+            const factoryCache = Str.uuidFactory;
+
+            Str.uuidFactory = null;
+
+            const uuid = Str.uuid();
+
+            Str.uuidFactory = factoryCache;
+
+            next++;
+
+            return uuid;
+        };
+
+        Str.createUuidsUsing(function () {
+            if (next < sequence.length) {
+                return sequence[next++]!;
+            }
+
+            return whenMissing();
+        });
+    }
+
+    /**
+     * Always return the same UUID when generating new UUIDs.
+     *
+     * @example
+     *
+     * Str.freezeUuids();
+     */
+    static freezeUuids(
+        callback: ((value: string) => string) | null = null,
+    ): string {
+        const uuid = Str.uuid();
+
+        Str.createUuidsUsing(() => uuid);
+
+        if (callback !== null) {
+            try {
+                callback(uuid);
+            } finally {
+                Str.createUuidsNormally();
+            }
+        }
+
+        return uuid;
+    }
+
+    /**
+     * Indicate that UUIDs should be created normally and not using a custom factory.
+     *
+     * @example
+     *
+     * Str.createUuidsNormally();
+     */
+    static createUuidsNormally(): void {
+        Str.uuidFactory = null;
     }
 
     /**
