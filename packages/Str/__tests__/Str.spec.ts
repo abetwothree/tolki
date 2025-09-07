@@ -1904,6 +1904,16 @@ describe("Str tests", () => {
         ]);
     });
 
+    it("ucwords", () => {
+        expect(Str.ucwords("hello world")).toBe("Hello World");
+        expect(Str.ucwords("laravel php framework")).toBe(
+            "Laravel Php Framework",
+        );
+        expect(Str.ucwords("Öffentliche Überraschungen")).toBe(
+            "Öffentliche Überraschungen",
+        );
+    });
+
     it("wordCount", () => {
         expect(Str.wordCount("Hello, world!")).toBe(2);
         expect(
@@ -1967,15 +1977,5 @@ describe("Str tests", () => {
 
         expect(Str.ulid(new Date().getTime())).toHaveLength(26);
         expect(Str.isUlid(Str.ulid(new Date().getTime()))).toBe(true);
-    });
-
-    it("ucwords", () => {
-        expect(Str.ucwords("hello world")).toBe("Hello World");
-        expect(Str.ucwords("laravel php framework")).toBe(
-            "Laravel Php Framework",
-        );
-        expect(Str.ucwords("Öffentliche Überraschungen")).toBe(
-            "Öffentliche Überraschungen",
-        );
     });
 });

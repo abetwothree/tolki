@@ -2512,6 +2512,22 @@ export class Str {
     }
 
     /**
+     * Uppercase the first letter of each word in a string.
+     *
+     * @example
+     *
+     * Str.ucwords('hello world'); // -> 'Hello World'
+     * Str.ucwords('laravel php framework'); // -> 'Laravel Php Framework'
+     * Str.ucwords('Öffentliche Überraschungen'); // -> 'Öffentliche Überraschungen'
+     */
+    static ucwords(value: string): string {
+        return value.replace(
+            /(^|\s)(\p{L})/gu,
+            (_m, p1: string, p2: string) => p1 + p2.toUpperCase(),
+        );
+    }
+
+    /**
      * Get the number of words a string contains.
      *
      * @example
@@ -2664,21 +2680,5 @@ export class Str {
         } finally {
             Date.now = originalNow;
         }
-    }
-
-    /**
-     * Uppercase the first letter of each word in a string.
-     *
-     * @example
-     *
-     * Str.ucwords('hello world'); // -> 'Hello World'
-     * Str.ucwords('laravel php framework'); // -> 'Laravel Php Framework'
-     * Str.ucwords('Öffentliche Überraschungen'); // -> 'Öffentliche Überraschungen'
-     */
-    static ucwords(value: string): string {
-        return value.replace(
-            /(^|\s)(\p{L})/gu,
-            (_m, p1: string, p2: string) => p1 + p2.toUpperCase(),
-        );
     }
 }
