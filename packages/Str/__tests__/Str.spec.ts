@@ -1839,7 +1839,23 @@ describe("Str tests", () => {
         expect(Str.take("abcdef", 10)).toBe("abcdef");
         expect(Str.take("abcdef", 6)).toBe("abcdef");
         expect(Str.take("üöä", 1)).toBe("ü");
-    })
+    });
+
+    it("toBase64", () => {
+        expect(Str.toBase64("hello world")).toBe("aGVsbG8gd29ybGQ=");
+        expect(Str.toBase64("laravel")).toBe("bGFyYXZlbA==");
+        expect(Str.toBase64("PHP 8")).toBe("UEhQIDg=");
+        expect(Str.toBase64("foo")).toBe("Zm9v");
+        expect(Str.toBase64("foobar")).toBe("Zm9vYmFy");
+    });
+
+    it("fromBase64", () => {
+        expect(Str.fromBase64("aGVsbG8gd29ybGQ=")).toBe("hello world");
+        expect(Str.fromBase64("bGFyYXZlbA==")).toBe("laravel");
+        expect(Str.fromBase64("UEhQIDg=")).toBe("PHP 8");
+        expect(Str.fromBase64("Zm9v")).toBe("foo");
+        expect(Str.fromBase64("Zm9vYmFy")).toBe("foobar");
+    });
 
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
