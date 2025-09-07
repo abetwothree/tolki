@@ -1864,6 +1864,13 @@ describe("Str tests", () => {
         expect(Str.lcfirst("Мама мыла раму")).toBe("мама мыла раму");
     });
 
+    it("ucfirst", () => {
+        expect(Str.ucfirst("laravel")).toBe("Laravel");
+        expect(Str.ucfirst("laravel framework")).toBe("Laravel framework");
+        expect(Str.ucfirst("мама")).toBe("Мама");
+        expect(Str.ucfirst("мама мыла раму")).toBe("Мама мыла раму");
+    });
+
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
             "Laravel_p_h_p_framework",

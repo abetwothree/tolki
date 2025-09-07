@@ -2488,6 +2488,16 @@ export class Str {
     }
 
     /**
+     * Make a string's first character uppercase.
+     *
+     * @param  string  $string
+     * @return string
+     */
+    static ucfirst(value: string): string {
+        return Str.upper(Str.substr(value, 0, 1)) + Str.substr(value, 1);
+    }
+
+    /**
      * Split a string into pieces by uppercase characters.
      *
      * @example
