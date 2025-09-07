@@ -64,7 +64,7 @@ export class Str {
 
     /**
      * Get a new stringable object from the given string.
-     * 
+     *
      * @example
      *
      * Str.of('foo').append('bar'); // -> 'foobar'
@@ -1032,7 +1032,7 @@ export class Str {
 
     /**
      * Get the string matching the given pattern.
-     *
+     * TODO - should return a collection
      * @example
      *
      * Str.matchAll("/foo (.*)/", "foo bar baz"); // -> ["foo bar baz"]
@@ -2488,6 +2488,7 @@ export class Str {
 
     /**
      * Split a string into pieces by uppercase characters.
+     * TODO - return type should be a collection
      *
      * @example
      *
