@@ -1831,6 +1831,16 @@ describe("Str tests", () => {
         expect(Str.swap({}, "foo bar ⓐⓑ")).toBe("foo bar ⓐⓑ");
     });
 
+    it("take", () => {
+        expect(Str.take("abcdef", 2)).toBe("ab");
+        expect(Str.take("abcdef", -2)).toBe("ef");
+        expect(Str.take("abcdef", 0)).toBe("");
+        expect(Str.take("", 2)).toBe("");
+        expect(Str.take("abcdef", 10)).toBe("abcdef");
+        expect(Str.take("abcdef", 6)).toBe("abcdef");
+        expect(Str.take("üöä", 1)).toBe("ü");
+    })
+
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
             "Laravel_p_h_p_framework",

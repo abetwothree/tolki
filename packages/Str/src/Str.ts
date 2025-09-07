@@ -2437,6 +2437,23 @@ export class Str {
     }
 
     /**
+     * Take the first or last {$limit} characters of a string.
+     *
+     * @example
+     *
+     * Str.take("hello world", 5); // -> "hello"
+     * Str.take("hello world", -5); // -> "world"
+     */
+    static take(value: string, limit: number): string
+    {
+        if (limit < 0) {
+            return Str.substr(value, limit);
+        }
+
+        return Str.substr(value, 0, limit);
+    }
+
+    /**
      * Split a string into pieces by uppercase characters.
      *
      * @example
