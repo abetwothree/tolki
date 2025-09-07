@@ -1776,6 +1776,7 @@ describe("Str tests", () => {
         expect(Str.substrCount("laravelPHPFramework", "a", 1, 2)).toBe(1);
         expect(Str.substrCount("laravelPHPFramework", "a", 1, -2)).toBe(3);
         expect(Str.substrCount("laravelPHPFramework", "a", -10, -3)).toBe(1);
+        expect(Str.substrCount("laravelPHPFramework", "")).toBe(0);
     });
 
     it("substrReplace", () => {
