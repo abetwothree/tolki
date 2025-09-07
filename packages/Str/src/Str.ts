@@ -2490,8 +2490,9 @@ export class Str {
     /**
      * Make a string's first character uppercase.
      *
-     * @param  string  $string
-     * @return string
+     * @example
+     *
+     * Str.ucfirst('hello world'); // -> 'Hello world'
      */
     static ucfirst(value: string): string {
         return Str.upper(Str.substr(value, 0, 1)) + Str.substr(value, 1);
@@ -2508,6 +2509,30 @@ export class Str {
      */
     static ucsplit(value: string): string[] {
         return value.split(/(?=\p{Lu})/u).filter(Boolean);
+    }
+
+    /**
+     * Get the number of words a string contains.
+     *
+     * @example
+     *
+     * Str.wordCount('Hello, world!'); // -> 2
+     * Str.wordCount('мама мыла раму'); // -> 3
+     */
+    static wordCount(value: string, characters: string | null = null): number {
+        // Emulate PHP's str_word_count($string, 0, $characters) using Unicode-aware regex.
+        const extra =
+            characters && characters.length > 0
+                ? characters.replace(/[-\\^$*+?.()|[\]{}]/g, "\\$&")
+                : "";
+        const pattern =
+            extra.length > 0
+                ? new RegExp(`[\\p{L}\\p{N}${extra}]+`, "gu")
+                : /[\p{L}\p{N}]+/gu;
+
+        const matches = value.match(pattern);
+        
+        return matches ? matches.length : 0;
     }
 
     /**

@@ -1904,6 +1904,44 @@ describe("Str tests", () => {
         ]);
     });
 
+    it("wordCount", () => {
+        expect(Str.wordCount("Hello, world!")).toBe(2);
+        expect(
+            Str.wordCount(
+                "Hi, this is my first contribution to the Laravel framework.",
+            ),
+        ).toBe(10);
+
+        expect(Str.wordCount("мама")).toBe(1);
+        expect(Str.wordCount("мама мыла раму")).toBe(3);
+
+        expect(
+            Str.wordCount(
+                "мама",
+                "абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ",
+            ),
+        ).toBe(1);
+        expect(
+            Str.wordCount(
+                "мама мыла раму",
+                "абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ",
+            ),
+        ).toBe(3);
+
+        expect(
+            Str.wordCount(
+                "МАМА",
+                "абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ",
+            ),
+        ).toBe(1);
+        expect(
+            Str.wordCount(
+                "МАМА МЫЛА РАМУ",
+                "абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ",
+            ),
+        ).toBe(3);
+    });
+
     it("ulid", () => {
         const when = new Date("2024-01-01T00:00:00.000Z").getTime();
         const idA = Str.ulid(when);
