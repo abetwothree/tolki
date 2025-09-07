@@ -26,7 +26,10 @@ export class Replacer {
         return { start, end };
     }
 
-    private static countNonOverlapping(haystack: string, needle: string): number {
+    private static countNonOverlapping(
+        haystack: string,
+        needle: string,
+    ): number {
         if (needle === "") return 0;
         let count = 0;
         let pos = 0;

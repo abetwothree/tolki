@@ -2405,6 +2405,38 @@ export class Str {
     }
 
     /**
+     * Swap multiple keywords in a string with other keywords.
+     *
+     * @example
+     *
+     * Str.swap(
+     *     {
+     *         'foo': 'bar',
+     *         'baz': 'qux',
+     *     },
+     *     'foo baz'
+     * ); // -> 'bar qux'
+     */
+    static swap(map: Record<string, string>, subject: string): string {
+        if (!map || Object.keys(map).length === 0) {
+            return subject;
+        }
+
+        const keys = Object.keys(map).filter((k) => k !== "");
+        if (keys.length === 0) {
+            return subject;
+        }
+
+        // Longest keys first to mimic PHP strtr behavior
+        keys.sort((a, b) => b.length - a.length);
+
+        const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const pattern = new RegExp(keys.map(escape).join("|"), "gu");
+
+        return subject.replace(pattern, (match) => map[match] ?? match);
+    }
+
+    /**
      * Split a string into pieces by uppercase characters.
      *
      * @example

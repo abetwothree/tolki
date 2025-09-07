@@ -1800,6 +1800,37 @@ describe("Str tests", () => {
         ]);
     });
 
+    it("swap", () => {
+        expect(
+            Str.swap(
+                {
+                    PHP: "PHP 8",
+                    awesome: "fantastic",
+                },
+                "PHP is awesome",
+            ),
+        ).toBe("PHP 8 is fantastic");
+
+        expect(
+            Str.swap(
+                {
+                    "ⓐⓑ": "baz",
+                },
+                "foo bar ⓐⓑ",
+            ),
+        ).toBe("foo bar baz");
+
+        expect(
+            Str.swap(
+                {
+                    "ⓐⓑ": "",
+                },
+                "foo bar ⓐⓑ",
+            ),
+        ).toBe("foo bar ");
+        expect(Str.swap({}, "foo bar ⓐⓑ")).toBe("foo bar ⓐⓑ");
+    });
+
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
             "Laravel_p_h_p_framework",
