@@ -2477,6 +2477,17 @@ export class Str {
     }
 
     /**
+     * Make a string's first character lowercase.
+     *
+     * @example
+     *
+     * Str.lcfirst('Hello World'); // -> 'hello World'
+     */
+    static lcfirst(value: string): string {
+        return Str.lower(Str.substr(value, 0, 1)) + Str.substr(value, 1);
+    }
+
+    /**
      * Split a string into pieces by uppercase characters.
      *
      * @example
