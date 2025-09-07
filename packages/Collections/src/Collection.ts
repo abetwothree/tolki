@@ -1,3 +1,1 @@
-export class Collection{
-    
-}
+export class Collection {}

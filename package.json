@@ -13,7 +13,7 @@
         "lint": "run-s lint:*",
         "lint:oxlint": "npx oxlint --fix -D correctness --ignore-path .gitignore",
         "lint:eslint": "npx eslint . --fix",
-        "lint:migrate": "npx @oxlint/migrate",
+        "lint-migrate": "npx @oxlint/migrate",
         "test": "vitest",
         "test:dev": "vitest --coverage",
         "test:run": "vitest --run --coverage",

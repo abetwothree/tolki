@@ -622,7 +622,10 @@ export class Str {
      * Str.isAscii("Hello こんにちは"); // -> false
      */
     static isAscii(value: string): boolean {
-        return /^[\x00-\x7F]*$/.test(value);
+        for (let i = 0; i < value.length; i++) {
+            if (value.charCodeAt(i) > 0x7f) return false;
+        }
+        return true;
     }
 
     /**
@@ -1778,32 +1781,26 @@ export class Str {
                 if (isFunctionReplace) {
                     let count = 0;
                     const userFn = replace as (match: string[]) => string;
-                    result = result.replace(regex, (...args: any[]) => {
-                        const full = args[0];
-                        if (limit >= 0 && count >= limit) return full;
-                        count++;
-                        // Determine number of capture groups: total args - full match - offset - input -(optional groups)
-                        let groupsMeta: Record<string, string> | undefined;
-                        if (
-                            typeof args[args.length - 1] === "object" &&
-                            typeof args[args.length - 2] === "number"
-                        ) {
-                            // pattern when groups present: [full, g1, g2, ..., offset, input, groupsObj]
-                            groupsMeta = args[args.length - 1] as any; // optional; not used by current tests
-                        }
-                        // Identify index where offset resides
-                        // If groupsMeta exists, offset index = args.length - 3
-                        const offsetIndex = groupsMeta
-                            ? args.length - 3
-                            : args.length - 2;
-                        const captureCount = offsetIndex - 1; // exclude full match
-                        const captures: string[] = [];
-                        for (let c = 1; c <= captureCount; c++)
-                            captures.push(args[c] as string);
-                        const matchArray: string[] = [full, ...captures];
-
-                        return userFn(matchArray);
-                    });
+                    result = result.replace(
+                        regex,
+                        (full: string, ...rest: unknown[]) => {
+                            if (limit >= 0 && count >= limit) return full;
+                            count++;
+                            // Determine number of capture groups based on presence of named groups
+                            const hasGroupsMeta =
+                                typeof rest[rest.length - 1] === "object" &&
+                                typeof rest[rest.length - 2] === "number";
+                            const numCaptures = hasGroupsMeta
+                                ? rest.length - 3
+                                : rest.length - 2;
+                            const captures: string[] = [];
+                            for (let i = 0; i < numCaptures; i++) {
+                                captures.push(rest[i] as string);
+                            }
+                            const matchArray: string[] = [full, ...captures];
+                            return userFn(matchArray);
+                        },
+                    );
                 } else {
                     const rep: string =
                         replacementArray[i] ??
@@ -1812,19 +1809,15 @@ export class Str {
                             : "");
                     if (limit < 0) {
                         result = result.replace(regex, (_m, ...args) => {
-                            const groupsMeta =
+                            const hasGroupsMeta =
                                 typeof args[args.length - 1] === "object" &&
-                                typeof args[args.length - 2] === "number"
-                                    ? args[args.length - 1]
-                                    : undefined;
-                            const offsetIndex = groupsMeta
+                                typeof args[args.length - 2] === "number";
+                            const numCaptures = hasGroupsMeta
                                 ? args.length - 3
                                 : args.length - 2;
-                            const captureCount = offsetIndex - 1;
-                            const captures: string[] = [];
-                            for (let c = 1; c <= captureCount; c++) {
-                                captures.push(args[c] as string);
-                            }
+                            const captures = args
+                                .slice(0, numCaptures)
+                                .map((x) => String(x));
                             return rep.replace(/\$(\d{1,2})/g, (_, idx) => {
                                 const n = parseInt(idx, 10);
                                 const value = captures[n - 1] ?? "";
@@ -1836,11 +1829,16 @@ export class Str {
                         result = result.replace(regex, (m, ...args) => {
                             if (count >= limit) return m; // no further replacements
                             count++;
-                            // When using a replacement string with backreferences we must reproduce them manually.
-                            // However, JS replace callback already provides capture groups accessible via args before offset.
-                            // So we reconstruct the replacement by leveraging JS's built-in processing: create a one-off regex.
-                            // Simpler: emulate backreferences $1..$99 manually from provided captures.
-                            const captures = args.slice(0, args.length - 2); // last two are offset & full string
+                            // Emulate backreferences $1..$99 manually from provided captures while respecting named groups metadata
+                            const hasGroupsMeta =
+                                typeof args[args.length - 1] === "object" &&
+                                typeof args[args.length - 2] === "number";
+                            const numCaptures = hasGroupsMeta
+                                ? args.length - 3
+                                : args.length - 2;
+                            const captures = args
+                                .slice(0, numCaptures)
+                                .map((x) => String(x));
                             return rep.replace(/\$(\d{1,2})/g, (_, idx) => {
                                 const n = parseInt(idx, 10);
                                 const value = captures[n - 1] ?? "";

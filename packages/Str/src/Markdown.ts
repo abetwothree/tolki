@@ -1,4 +1,8 @@
-import MarkdownIt, { type Options as MarkdownItOptions } from "markdown-it";
+import MarkdownIt, {
+    type Options as MarkdownItOptions,
+    type PluginSimple,
+    type PluginWithOptions,
+} from "markdown-it";
 import markdownItAnchor from "markdown-it-anchor";
 import markdownItTaskLists from "markdown-it-task-lists";
 
@@ -8,7 +12,12 @@ export interface MarkDownOptions extends MarkdownItOptions {
     typographer?: boolean;
 }
 
-export type MarkDownExtensions = unknown[];
+export type MarkDownExtension =
+    | PluginSimple
+    | PluginWithOptions<unknown>
+    | [PluginWithOptions<unknown>, unknown];
+
+export type MarkDownExtensions = MarkDownExtension[];
 
 export class MarkdownRenderer {
     constructor(
@@ -42,11 +51,13 @@ export class MarkdownRenderer {
         // Support extension array entries either as plugin or [plugin, opts]
         for (const ext of this.extensions) {
             if (Array.isArray(ext)) {
-                // @ts-expect-error - markdown-it plugin typing is permissive
-                md.use(ext[0], ext[1]);
+                const [plugin, opts] = ext as [
+                    PluginWithOptions<unknown>,
+                    unknown,
+                ];
+                md.use(plugin, opts);
             } else if (ext) {
-                // @ts-expect-error
-                md.use(ext);
+                md.use(ext as PluginSimple | PluginWithOptions<unknown>);
             }
         }
 

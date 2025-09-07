@@ -1,7 +1,7 @@
 export class Base64 {
     // Get a reference to the global object in any environment
-    private static getGlobal(): any {
-        return globalThis as any;
+    private static getGlobal(): typeof globalThis {
+        return globalThis;
     }
 
     // Convert a JS string to a binary string of UTF-8 bytes
@@ -121,7 +121,17 @@ export class Base64 {
     }
 
     static toBase64(value: string): string {
-        const g = this.getGlobal();
+        const g = this.getGlobal() as unknown as {
+            Buffer?: {
+                from(
+                    input: string | Uint8Array,
+                    encoding?: string,
+                ): { toString(encoding: string): string };
+            };
+            btoa?: (data: string) => string;
+            atob?: (data: string) => string;
+            TextDecoder?: typeof TextDecoder;
+        };
 
         // Node.js
         if (g.Buffer && typeof g.Buffer.from === "function") {
@@ -144,7 +154,16 @@ export class Base64 {
     }
 
     static fromBase64(value: string, strict: boolean = false): string | false {
-        const g = this.getGlobal();
+        const g = this.getGlobal() as unknown as {
+            Buffer?: {
+                from(
+                    input: string,
+                    encoding: "base64",
+                ): { toString(encoding: string): string };
+            };
+            atob?: (data: string) => string;
+            TextDecoder?: typeof TextDecoder;
+        };
 
         let input = String(value);
 

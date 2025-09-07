@@ -7,6 +7,7 @@
     "env": {
         "builtin": true
     },
+    "ignorePatterns": ["**/dist/**", "coverage/**"],
     "rules": {
         "@typescript-eslint/ban-ts-comment": "error",
         "no-array-constructor": "error",

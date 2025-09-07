@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type MarkdownIt from "markdown-it";
+import type { PluginSimple, PluginWithOptions } from "markdown-it";
 import { Str, Stringable, CaseTypes, Random } from "@laravel-js/str";
 
 describe("Str tests", () => {
@@ -793,42 +795,118 @@ describe("Str tests", () => {
 
         it("supports extensions as plugin and [plugin, options] tuple", () => {
             // Plugin adding data-ext attr to paragraph_open
-            const paragraphAttrPlugin = (md: any, opts?: any) => {
-                const attrName = (opts && opts.attrName) || "data-ext";
+            const paragraphAttrPlugin: PluginWithOptions<unknown> = (
+                md: MarkdownIt,
+                opts?: unknown,
+            ) => {
+                const attrName =
+                    (opts as { attrName?: string } | undefined)?.attrName ||
+                    "data-ext";
                 const orig =
-                    md.renderer.rules.paragraph_open ||
-                    ((tokens: any, idx: number, _o: any, _e: any, self: any) =>
-                        self.renderToken(tokens, idx, _o));
-                md.renderer.rules.paragraph_open = (
-                    tokens: any,
+                    md.renderer.rules["paragraph_open"] ||
+                    ((
+                        tokens: unknown[],
+                        idx: number,
+                        _o: unknown,
+                        _e: unknown,
+                        self: {
+                            renderToken: (
+                                tokens: unknown[],
+                                idx: number,
+                                options: unknown,
+                            ) => string;
+                        },
+                    ) => self.renderToken(tokens, idx, _o));
+                md.renderer.rules["paragraph_open"] = (
+                    tokens: unknown[],
                     idx: number,
-                    options: any,
-                    _env: any,
-                    self: any,
+                    options: unknown,
+                    env: unknown,
+                    self: {
+                        renderToken: (
+                            tokens: unknown[],
+                            idx: number,
+                            options: unknown,
+                        ) => string;
+                    },
                 ) => {
-                    tokens[idx].attrPush([attrName, "1"]);
-                    return orig(tokens, idx, options, _env, self);
+                    (
+                        tokens as Array<{
+                            attrPush: (attr: [string, string]) => void;
+                        }>
+                    )[idx]!.attrPush([attrName, "1"]);
+                    return (
+                        orig as unknown as (
+                            tokens: unknown[],
+                            idx: number,
+                            options: unknown,
+                            env: unknown,
+                            self: {
+                                renderToken: (
+                                    tokens: unknown[],
+                                    idx: number,
+                                    options: unknown,
+                                ) => string;
+                            },
+                        ) => string
+                    )(tokens, idx, options, env, self);
                 };
             };
 
             // Plugin adding class to h1
-            const headingClassPlugin = (md: any) => {
+            const headingClassPlugin: PluginSimple = (md: MarkdownIt) => {
                 const orig =
-                    md.renderer.rules.heading_open ||
-                    ((tokens: any, idx: number, _o: any, _e: any, self: any) =>
-                        self.renderToken(tokens, idx, _o));
-                md.renderer.rules.heading_open = (
-                    tokens: any,
+                    md.renderer.rules["heading_open"] ||
+                    ((
+                        tokens: unknown[],
+                        idx: number,
+                        _o: unknown,
+                        _e: unknown,
+                        self: {
+                            renderToken: (
+                                tokens: unknown[],
+                                idx: number,
+                                options: unknown,
+                            ) => string;
+                        },
+                    ) => self.renderToken(tokens, idx, _o));
+                md.renderer.rules["heading_open"] = (
+                    tokens: unknown[],
                     idx: number,
-                    options: any,
-                    env: any,
-                    self: any,
+                    options: unknown,
+                    env: unknown,
+                    self: {
+                        renderToken: (
+                            tokens: unknown[],
+                            idx: number,
+                            options: unknown,
+                        ) => string;
+                    },
                 ) => {
-                    const token = tokens[idx];
+                    const token = (
+                        tokens as Array<{
+                            tag?: string;
+                            attrPush: (attr: [string, string]) => void;
+                        }>
+                    )[idx]!;
                     if (token.tag === "h1") {
                         token.attrPush(["data-head", "yes"]);
                     }
-                    return orig(tokens, idx, options, env, self);
+                    return (
+                        orig as unknown as (
+                            tokens: unknown[],
+                            idx: number,
+                            options: unknown,
+                            env: unknown,
+                            self: {
+                                renderToken: (
+                                    tokens: unknown[],
+                                    idx: number,
+                                    options: unknown,
+                                ) => string;
+                            },
+                        ) => string
+                    )(tokens, idx, options, env, self);
                 };
             };
 
@@ -877,24 +955,34 @@ describe("Str tests", () => {
         });
 
         it("extensions applied (simple plugin example)", () => {
-            const plugin = (md: any) => {
-                const orig =
-                    md.renderer.rules.em_open ||
-                    ((
-                        tokens: any,
-                        idx: number,
-                        options: any,
-                        _env: any,
-                        self: any,
-                    ) => self.renderToken(tokens, idx, options));
-                md.renderer.rules.em_open = function (
-                    tokens: any,
+            const plugin: PluginSimple = (md: MarkdownIt) => {
+                type Rule = (
+                    tokens: unknown[],
                     idx: number,
-                    options: any,
-                    _env: any,
-                    self: any,
-                ) {
-                    tokens[idx].attrPush(["data-x", "y"]);
+                    options: unknown,
+                    env: unknown,
+                    self: {
+                        renderToken: (
+                            tokens: unknown[],
+                            idx: number,
+                            options: unknown,
+                        ) => string;
+                    },
+                ) => string;
+                const rules = md.renderer.rules as unknown as Record<
+                    string,
+                    Rule | undefined
+                >;
+                const orig: Rule =
+                    rules["em_open"] ||
+                    ((tokens, idx, options, _env, self) =>
+                        self.renderToken(tokens, idx, options));
+                rules["em_open"] = function (tokens, idx, options, _env, self) {
+                    (
+                        tokens as Array<{
+                            attrPush: (attr: [string, string]) => void;
+                        }>
+                    )[idx]!.attrPush(["data-x", "y"]);
                     return orig(tokens, idx, options, _env, self);
                 };
             };

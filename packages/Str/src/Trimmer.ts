@@ -82,7 +82,8 @@ export class Trimmer {
             let out = value.replace(re, "");
 
             // Test-driven tweak: remove a single ASCII space when followed by a trailing control
-            out = out.replace(/ (?:\n|\r|\t|\v|\u0000)$/u, "");
+            const ctrlTail = String.raw` (?:\n|\r|\t|\v|\x00)$`;
+            out = out.replace(new RegExp(ctrlTail, "u"), "");
 
             // If original ended with exactly two ASCII spaces (but not three+), collapse them after left-trim
             if (value.endsWith("  ") && !value.endsWith("   ")) {

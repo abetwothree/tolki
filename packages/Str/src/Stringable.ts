@@ -176,9 +176,8 @@ export class Stringable {
      * TODO
      */
     explode(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _delimiter: string,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
         _limit: number | null = null,
     ) {
         _limit ??= Number.MAX_SAFE_INTEGER;
@@ -190,7 +189,6 @@ export class Stringable {
      * TODO
      */
     split(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _pattern: string | number,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _limit: number | null = null,
@@ -534,7 +532,10 @@ export class Stringable {
      * Parse input from a string to a collection, according to a format.
      * TODO
      */
-    scan(format: string) {
+    scan(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _format: string,
+    ) {
         // return new Collection(sscanf($this->value, $format));
     }
 
@@ -624,7 +625,7 @@ export class Stringable {
     startsWith(
         needles: string | number | null | Iterable<string | number | null>,
     ): boolean {
-        return Str.startsWith(this._value, needles as any);
+        return Str.startsWith(this._value, needles);
     }
 
     /**
@@ -633,7 +634,7 @@ export class Stringable {
     doesntStartWith(
         needles: string | number | null | Iterable<string | number | null>,
     ): boolean {
-        return Str.doesntStartWith(this._value, needles as any);
+        return Str.doesntStartWith(this._value, needles);
     }
 
     /**

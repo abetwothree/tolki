@@ -9,6 +9,9 @@ import oxlint from "eslint-plugin-oxlint";
 
 export default defineConfig([
     {
+        ignores: ["**/dist/**", "coverage/**"],
+    },
+    {
         files: ["**/*.{js,mjs,cjs,ts,mts,cts}"],
         plugins: { js },
         extends: ["js/recommended"],

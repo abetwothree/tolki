@@ -80,9 +80,13 @@ function secureRandomBytes(size: number): Uint8Array {
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
-    const B = (globalThis as any).Buffer as
-        | { from(data: Uint8Array): { toString(encoding: string): string } }
-        | undefined;
+    const B = (
+        globalThis as unknown as {
+            Buffer?: {
+                from(data: Uint8Array): { toString(encoding: string): string };
+            };
+        }
+    ).Buffer;
     if (B && typeof B.from === "function") {
         return B.from(bytes).toString("base64");
     }
