@@ -2360,8 +2360,11 @@ export class Str {
      * Str.substr('hello world', 0, 5); // -> 'hello'
      * Str.substr('hello world', 6);    // -> 'world'
      */
-    static substr(string: string, start: number, length: number | null = null): string
-    {
+    static substr(
+        string: string,
+        start: number,
+        length: number | null = null,
+    ): string {
         // Multi-byte safe substring (mb_substr equivalent using Unicode code points)
         const chars = Array.from(string);
         const size = chars.length;
@@ -2394,6 +2397,65 @@ export class Str {
         }
 
         return chars.slice(s, end).join("");
+    }
+
+    /**
+     * Returns the number of substring occurrences.
+     *
+     * @example
+     *
+     * Str.substrCount('laravelPHPFramework', 'a'); // -> 3
+     * Str.substrCount('laravelPHPFramework', 'a', 1); // -> 2
+     * Str.substrCount('laravelPHPFramework', 'a', 1, 2); // -> 1
+     */
+    static substrCount(
+        haystack: string,
+        needle: string,
+        offset: number = 0,
+        length: number | null = null,
+    ): number {
+        // Emulate PHP substr_count with multi-byte safety (operate on Unicode code points)
+        if (needle === "") {
+            return 0; // PHP throws for empty needle; we return 0 for safe parity in JS context
+        }
+
+        const chars = Array.from(haystack);
+        const size = chars.length;
+
+        // Normalize start (offset may be negative)
+        let start = offset >= 0 ? offset : size + offset;
+        if (start < 0) start = 0;
+        if (start > size) {
+            return 0;
+        }
+
+        // Determine end index using PHP-like substr semantics
+        let end: number;
+        if (length === null || length === undefined) {
+            end = size;
+        } else if (length < 0) {
+            end = size + length; // omit characters from the end
+        } else {
+            end = start + length;
+        }
+        end = Math.max(0, Math.min(end, size));
+        if (end <= start) {
+            return 0;
+        }
+
+        const segment = chars.slice(start, end).join("");
+
+        // Count non-overlapping occurrences like PHP
+        let count = 0;
+        let pos = 0;
+        while (true) {
+            const idx = segment.indexOf(needle, pos);
+            if (idx === -1) break;
+            count++;
+            pos = idx + needle.length;
+        }
+
+        return count;
     }
 
     /**
