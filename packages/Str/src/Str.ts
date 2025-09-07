@@ -2459,6 +2459,65 @@ export class Str {
     }
 
     /**
+     * Replace text within a portion of a string.
+     *
+     * @example
+     *
+     * Str.substrReplace('hello world', 'hi', 6); // -> 'hello hi'
+     * Str.substrReplace('hello world', ['hi', 'there'], 6); // -> ['hello hi', 'hello there']
+     */
+    static substrReplace(
+        value: string,
+        replace: string | string[],
+        offset: number | number[] = 0,
+        length: number | number[] | null = null,
+    ): string | string[] {
+        // Normalize scalar offset/length (arrays not used in our tests; if arrays are provided, pick first element)
+        const off: number = Array.isArray(offset) ? (offset[0] ?? 0) : offset;
+        const lenArg: number | null = Array.isArray(length)
+            ? ((length[0] as number) ?? null)
+            : length;
+
+        const doReplace = (rep: string): string => {
+            const chars = Array.from(value);
+            const size = chars.length;
+
+            // Compute start index
+            let start = off >= 0 ? off : size + off;
+            if (start < 0) start = 0;
+            if (start > size) start = size;
+
+            // PHP behavior: when length is null, treat as full length of string
+            const usedLen: number =
+                lenArg === null || lenArg === undefined
+                    ? size
+                    : (lenArg as number);
+
+            // Determine end index (exclusive)
+            let end: number;
+            if (usedLen < 0) {
+                end = size + usedLen; // stop this many chars from end
+            } else {
+                end = start + usedLen;
+            }
+
+            // Clamp and ensure non-decreasing range
+            end = Math.max(0, Math.min(end, size));
+            if (end < start) end = start;
+
+            const head = chars.slice(0, start).join("");
+            const tail = chars.slice(end).join("");
+            return head + rep + tail;
+        };
+
+        if (Array.isArray(replace)) {
+            return replace.map((r) => doReplace(String(r)));
+        }
+
+        return doReplace(String(replace));
+    }
+
+    /**
      * Split a string into pieces by uppercase characters.
      *
      * @example

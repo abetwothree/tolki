@@ -1778,6 +1778,27 @@ describe("Str tests", () => {
         expect(Str.substrCount("laravelPHPFramework", "a", -10, -3)).toBe(1);
     });
 
+    it("substrReplace", () => {
+        // $this->assertSame('12:00', Str::substrReplace('1200', ':', 2, 0));
+        expect(Str.substrReplace("1200", ":", 2, 0)).toBe("12:00");
+        // $this->assertSame('The Laravel Framework', Str::substrReplace('The Framework', 'Laravel ', 4, 0));
+        expect(Str.substrReplace("The Framework", "Laravel ", 4, 0)).toBe(
+            "The Laravel Framework",
+        );
+        // $this->assertSame('Laravel – The PHP Framework for Web Artisans', Str::substrReplace('Laravel Framework', '– The PHP Framework for Web Artisans', 8));
+        expect(
+            Str.substrReplace(
+                "Laravel Framework",
+                "– The PHP Framework for Web Artisans",
+                8,
+            ),
+        ).toBe("Laravel – The PHP Framework for Web Artisans");
+        expect(Str.substrReplace("hello world", ["hi", "there"], 6)).toEqual([
+            "hello hi",
+            "hello there",
+        ]);
+    });
+
     it("ucsplit", () => {
         expect(Str.ucsplit("Laravel_p_h_p_framework")).toEqual([
             "Laravel_p_h_p_framework",
