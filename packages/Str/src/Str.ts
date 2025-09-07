@@ -440,7 +440,7 @@ export class Str {
 
     /**
      * Extracts an excerpt from text that matches the first instance of a phrase.
-     *
+     * TODO
      * @example
      */
     static excerpt(
@@ -495,13 +495,14 @@ export class Str {
         before: string,
         after: string | null = null,
     ): string {
-        after = after ?? before;
-        if (value.startsWith(before)) {
-            value = value.slice(before.length);
+        if (Str.startsWith(value, before)) {
+            value = Str.substr(value, Str.length(before));
         }
-        if (value.endsWith(after)) {
-            value = value.slice(0, -after.length);
+
+        if (Str.endsWith(value, after ??= before)) {
+            value = Str.substr(value, 0, -Str.length(after));
         }
+
         return value;
     }
 
