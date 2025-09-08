@@ -18,4 +18,16 @@ describe("Arr", () => {
         expect(Arr.accessible(new Date())).toBe(false);
         expect(Arr.accessible(() => null)).toBe(false);
     });
+
+    it("arrayable", () => {
+        expect(Arr.arrayable([])).toBe(true);
+
+        expect(Arr.arrayable(null)).toBe(false);
+        expect(Arr.arrayable("abc")).toBe(false);
+        expect(Arr.arrayable(123)).toBe(false);
+        expect(Arr.arrayable(12.34)).toBe(false);
+        expect(Arr.arrayable(true)).toBe(false);
+        expect(Arr.arrayable(new Date())).toBe(false);
+        expect(Arr.arrayable(() => null)).toBe(false);
+    });
 });
