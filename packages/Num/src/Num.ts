@@ -471,6 +471,20 @@ export class Num {
     }
 
     /**
+     * Clamp the given number between the given minimum and maximum.
+     *
+     * @example
+     * 
+     * Num.clamp(5, 1, 10); // 5
+     * Num.clamp(0, 1, 10); // 1
+     * Num.clamp(15, 1, 10); // 10
+     */
+    static clamp(value: number, min: number, max: number): number
+    {
+        return Math.min(Math.max(value, min), max);
+    }
+
+    /**
      * Set the default locale.
      */
     static useLocale(locale: string): void {

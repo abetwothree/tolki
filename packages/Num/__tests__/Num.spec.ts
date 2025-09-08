@@ -300,4 +300,12 @@ describe("Number", () => {
         expect(Num.forHumans(1234, 0, null, true)).toBe("1K");
         expect(Num.forHumans(1234, 2, null, true)).toBe("1.23K");
     });
+
+    it("clamp", () => { 
+        expect(Num.clamp(1, 2, 3)).toBe(2);
+        expect(Num.clamp(5, 2, 3)).toBe(3);
+        expect(Num.clamp(5, 1, 10)).toBe(5);
+        expect(Num.clamp(4.5, 1, 10)).toBe(4.5);
+        expect(Num.clamp(-10, 1, 5)).toBe(1);
+    })
 });
