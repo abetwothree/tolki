@@ -817,6 +817,8 @@ describe("Str tests", () => {
                             ) => string;
                         },
                     ) => self.renderToken(tokens, idx, _o));
+
+                // @ts-expect-error type-not-assignable
                 md.renderer.rules["paragraph_open"] = (
                     tokens: unknown[],
                     idx: number,
@@ -870,6 +872,7 @@ describe("Str tests", () => {
                             ) => string;
                         },
                     ) => self.renderToken(tokens, idx, _o));
+                // @ts-expect-error type-not-assignable
                 md.renderer.rules["heading_open"] = (
                     tokens: unknown[],
                     idx: number,
@@ -1135,7 +1138,7 @@ describe("Str tests", () => {
         expect(Str.plural("child")).toBe("children");
         expect(Str.plural("Laracon", 1)).toBe("Laracon");
         expect(Str.plural("Laracon", 3)).toBe("Laracons");
-        // expect(Str.plural("Laracon", 1000, true)).toBe("1,000 Laracons"); // TODO when Number helper is done
+        expect(Str.plural("Laracon", 1000, true)).toBe("1,000 Laracons");
     });
 
     it("pluralStudly", () => {
