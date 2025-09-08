@@ -150,6 +150,7 @@ export class Number {
 
     /**
      * Spell out the given number in the given locale.
+     * TODO
      */
     static spell(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -161,8 +162,53 @@ export class Number {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _until: number | null = null,
     ): string {
-        // TODO
         return "";
+    }
+
+    /**
+     * Convert the given number to ordinal form.
+     *
+     * @example
+     *
+     * Number.ordinal(1); // "1st"
+     * Number.ordinal(2); // "2nd"
+     * Number.ordinal(3); // "3rd"
+     * Number.ordinal(13); // "13th"
+     */
+    static ordinal(value: number, locale: string | null = null): string {
+        const loc = locale ?? this.locale;
+
+        // Prefer Intl.PluralRules with ordinal type when available; otherwise, fallback to English rules.
+        try {
+            const pr = new Intl.PluralRules(loc, { type: "ordinal" });
+            const rule = pr.select(value);
+            const lang = (loc || "en").split("-")[0] || "en";
+
+            const suffixes: Record<string, Record<string, string>> = {
+                en: { one: "st", two: "nd", few: "rd", other: "th" },
+            };
+
+            const map = suffixes[lang] ?? suffixes["en"];
+            const suffix = map?.[rule] ?? map?.["other"] ?? "th";
+
+            return `${value}${suffix}`;
+        } catch {
+            const v = Math.abs(value);
+            const mod100 = v % 100;
+            if (mod100 >= 11 && mod100 <= 13) {
+                return `${value}th`;
+            }
+            switch (v % 10) {
+                case 1:
+                    return `${value}st`;
+                case 2:
+                    return `${value}nd`;
+                case 3:
+                    return `${value}rd`;
+                default:
+                    return `${value}th`;
+            }
+        }
     }
 
     /**

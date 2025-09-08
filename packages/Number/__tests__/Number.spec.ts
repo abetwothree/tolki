@@ -125,4 +125,31 @@ describe("Number", () => {
             expect(Number.spell(100000, "en", null, 50000)).toBe("100,000");
         });
     });
+
+    it("ordinal", () => {
+        expect(Number.ordinal(1)).toBe("1st");
+        expect(Number.ordinal(2)).toBe("2nd");
+        expect(Number.ordinal(3)).toBe("3rd");
+        expect(Number.ordinal(4)).toBe("4th");
+        expect(Number.ordinal(11)).toBe("11th");
+        expect(Number.ordinal(12)).toBe("12th");
+        expect(Number.ordinal(13)).toBe("13th");
+    });
+
+    it("ordinal - no Intl.PluralRules exist", () => {
+        const original = Intl.PluralRules;
+        // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
+        Intl.PluralRules = undefined;
+
+        expect(Number.ordinal(1)).toBe("1st");
+        expect(Number.ordinal(2)).toBe("2nd");
+        expect(Number.ordinal(3)).toBe("3rd");
+        expect(Number.ordinal(4)).toBe("4th");
+        expect(Number.ordinal(11)).toBe("11th");
+        expect(Number.ordinal(12)).toBe("12th");
+        expect(Number.ordinal(13)).toBe("13th");
+
+        // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
+        Intl.PluralRules = original;
+    });
 });
