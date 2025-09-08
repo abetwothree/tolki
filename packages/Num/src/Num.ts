@@ -364,13 +364,7 @@ export class Num {
             precision,
             maxPrecision,
             abbreviate
-                ? {
-                      3: "K",
-                      6: "M",
-                      9: "B",
-                      12: "T",
-                      15: "Q",
-                  }
+                ? {}
                 : {
                       3: " thousand",
                       6: " million",

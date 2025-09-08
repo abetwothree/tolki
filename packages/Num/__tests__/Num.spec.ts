@@ -295,5 +295,9 @@ describe("Number", () => {
         expect(Num.forHumans(-1000000000000000000)).toBe(
             "-1 thousand quadrillion",
         );
+
+        expect(Num.forHumans(123, 0, null, true)).toBe("123");
+        expect(Num.forHumans(1234, 0, null, true)).toBe("1K");
+        expect(Num.forHumans(1234, 2, null, true)).toBe("1.23K");
     });
 });
