@@ -153,15 +153,15 @@ export class Number {
      * TODO
      */
     static spell(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _number: number | string,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _locale: string | null = null,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _after: number | null = null,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _until: number | null = null,
     ): string {
+        void _number;
+        void _locale;
+        void _after;
+        void _until;
         return "";
     }
 
@@ -221,13 +221,50 @@ export class Number {
      * Number.spellOrdinal(2); // "second"
      * Number.spellOrdinal(3); // "third"
      */
-    static spellOrdinal(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _value: number,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _locale: string | null = null,
-    ): string {
+    static spellOrdinal(_value: number, _locale: string | null = null): string {
+        void _value;
+        void _locale;
         return "";
+    }
+
+    /**
+     * Convert the given number to its percentage equivalent.
+     *
+     * @example
+     *
+     * Number.percentage(1); // "1%"
+     * Number.percentage(1.75, 2); // "1.75%"
+     * Number.percentage(0.12345, 4); // "0.1235%"
+     */
+    static percentage(
+        number: number | string,
+        precision: number = 0,
+        maxPrecision: number | null = null,
+        locale: string | null = null,
+    ): string | false {
+        const loc = locale ?? this.locale;
+        const value =
+            typeof number === "string" ? Number.parse(number, loc) : number;
+
+        const options: Intl.NumberFormatOptions = {
+            style: "percent",
+            useGrouping: true,
+        };
+
+        if (maxPrecision != null) {
+            options.maximumFractionDigits = maxPrecision;
+            options.minimumFractionDigits = 0;
+        } else {
+            options.minimumFractionDigits = precision;
+            options.maximumFractionDigits = precision;
+        }
+
+        // Intl percent multiplies by 100; we divide to match Laravel behavior
+        const formatted = new Intl.NumberFormat(loc, options).format(
+            value / 100,
+        );
+
+        return formatted;
     }
 
     /**

@@ -162,4 +162,25 @@ describe("Number", () => {
         expect(Number.spellOrdinal(12)).toBe("twelfth");
         expect(Number.spellOrdinal(13)).toBe("thirteenth");
     });
+
+    it("percentage", () => {
+        expect(Number.percentage(0, 0)).toBe("0%");
+        expect(Number.percentage(0)).toBe("0%");
+        expect(Number.percentage(1)).toBe("1%");
+        expect(Number.percentage(10, 2)).toBe("10.00%");
+        expect(Number.percentage(100)).toBe("100%");
+        expect(Number.percentage(100, 2)).toBe("100.00%");
+        expect(Number.percentage(100.1234, 0, 3)).toBe("100.123%");
+
+        expect(Number.percentage(300)).toBe("300%");
+        expect(Number.percentage(1000)).toBe("1,000%");
+
+        expect(Number.percentage(1.75)).toBe("2%");
+        expect(Number.percentage(1.75, 2)).toBe("1.75%");
+        expect(Number.percentage(1.75, 3)).toBe("1.750%");
+        expect(Number.percentage(0.12345)).toBe("0%");
+        expect(Number.percentage(0, 2)).toBe("0.00%");
+        expect(Number.percentage(0.12345, 2)).toBe("0.12%");
+        expect(Number.percentage(0.12345, 4)).toBe("0.1235%");
+    });
 });
