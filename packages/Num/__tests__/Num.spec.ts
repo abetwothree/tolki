@@ -301,11 +301,78 @@ describe("Number", () => {
         expect(Num.forHumans(1234, 2, null, true)).toBe("1.23K");
     });
 
-    it("clamp", () => { 
+    it("clamp", () => {
         expect(Num.clamp(1, 2, 3)).toBe(2);
         expect(Num.clamp(5, 2, 3)).toBe(3);
         expect(Num.clamp(5, 1, 10)).toBe(5);
         expect(Num.clamp(4.5, 1, 10)).toBe(4.5);
         expect(Num.clamp(-10, 1, 5)).toBe(1);
-    })
+    });
+
+    it("pairs", () => {
+        expect(Num.pairs(25, 10, 0, 0)).toEqual([
+            [0, 10],
+            [10, 20],
+            [20, 25],
+        ]);
+        expect(Num.pairs(25, 10, 0, 1)).toEqual([
+            [0, 9],
+            [10, 19],
+            [20, 25],
+        ]);
+        expect(Num.pairs(25, 10, 1, 0)).toEqual([
+            [1, 11],
+            [11, 21],
+            [21, 25],
+        ]);
+        expect(Num.pairs(25, 10, 1, 1)).toEqual([
+            [1, 10],
+            [11, 20],
+            [21, 25],
+        ]);
+        expect(Num.pairs(2500, 1000, 0, 0)).toEqual([
+            [0, 1000],
+            [1000, 2000],
+            [2000, 2500],
+        ]);
+        expect(Num.pairs(2500, 1000, 0, 1)).toEqual([
+            [0, 999],
+            [1000, 1999],
+            [2000, 2500],
+        ]);
+        expect(Num.pairs(2500, 1000, 1, 0)).toEqual([
+            [1, 1001],
+            [1001, 2001],
+            [2001, 2500],
+        ]);
+        expect(Num.pairs(2500, 1000, 1, 1)).toEqual([
+            [1, 1000],
+            [1001, 2000],
+            [2001, 2500],
+        ]);
+        expect(Num.pairs(10, 2.5, 0, 0)).toEqual([
+            [0, 2.5],
+            [2.5, 5.0],
+            [5.0, 7.5],
+            [7.5, 10.0],
+        ]);
+        expect(Num.pairs(10, 2.5, 0, 0.5)).toEqual([
+            [0, 2.0],
+            [2.5, 4.5],
+            [5.0, 7.0],
+            [7.5, 9.5],
+        ]);
+        expect(Num.pairs(10, 2.5, 0.5, 0)).toEqual([
+            [0.5, 3.0],
+            [3.0, 5.5],
+            [5.5, 8.0],
+            [8.0, 10],
+        ]);
+        expect(Num.pairs(10, 2.5, 0.5, 0.5)).toEqual([
+            [0.5, 2.5],
+            [3.0, 5.0],
+            [5.5, 7.5],
+            [8.0, 10.0],
+        ]);
+    });
 });

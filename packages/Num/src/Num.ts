@@ -379,7 +379,7 @@ export class Num {
      * Convert the number to its human-readable equivalent.
      *
      * @example
-     * 
+     *
      * Num.summarize(1234); // "1.234 K"
      * Num.summarize(1234567); // "1.234 M"
      * Num.summarize(1234567890); // "1.234 B"
@@ -474,14 +474,41 @@ export class Num {
      * Clamp the given number between the given minimum and maximum.
      *
      * @example
-     * 
+     *
      * Num.clamp(5, 1, 10); // 5
      * Num.clamp(0, 1, 10); // 1
      * Num.clamp(15, 1, 10); // 10
      */
-    static clamp(value: number, min: number, max: number): number
-    {
+    static clamp(value: number, min: number, max: number): number {
         return Math.min(Math.max(value, min), max);
+    }
+
+    /**
+     * Split the given number into pairs of min/max values.
+     *
+     * @example
+     *
+     * Num.pairs(25, 10, 1, 1); // [[1, 11], [11, 21], [21, 25]]
+     */
+    static pairs(
+        to: number,
+        by: number,
+        start: number = 0,
+        offset: number = 1,
+    ): [number, number][] {
+        const output: [number, number][] = [];
+
+        for (let lower = start; lower < to; lower += by) {
+            let upper = lower + by - offset;
+
+            if (upper > to) {
+                upper = to;
+            }
+
+            output.push([lower, upper]);
+        }
+
+        return output;
     }
 
     /**
