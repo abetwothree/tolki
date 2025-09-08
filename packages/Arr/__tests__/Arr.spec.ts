@@ -6,7 +6,7 @@ describe("Arr", () => {
         expect(Arr.accessible([])).toBe(true);
         expect(Arr.accessible([1, 2])).toBe(true);
         expect(Arr.accessible({ a: 1, b: 2 })).toBe(false);
-        // expect(Arr.accessible(new Collection())).toBe(true);
+        // expect(Arr.accessible(new Collection())).toBe(true); // TODO
 
         expect(Arr.accessible(null)).toBe(false);
         expect(Arr.accessible("abc")).toBe(false);

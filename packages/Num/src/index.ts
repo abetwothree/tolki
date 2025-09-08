@@ -1,2 +1,2 @@
-export * from "./Num.js";
-export * from "./Speller.js";
+export * from "./Num";
+export * from "./Speller";

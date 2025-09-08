@@ -1,1 +1,1 @@
-export * from "./Arr.js";
+export * from "./Arr";

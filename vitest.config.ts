@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig, configDefaults } from "vitest/config";
 
 export default defineConfig({
     test: {
@@ -7,7 +7,7 @@ export default defineConfig({
         coverage: {
             provider: "istanbul",
             reporter: ["text", "json", "html", "lcov", "text-summary"],
-            exclude: ["**/dist/**", "**/node_modules/**"],
+            exclude: [...configDefaults.exclude],
         },
         projects: ["packages/*"],
         typecheck: {

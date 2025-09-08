@@ -1,12 +1,5 @@
-import {
-    MarkdownRenderer,
-    type MarkDownOptions,
-    type MarkDownExtensions,
-} from "./Markdown.js";
-import { Stringable } from "./Stringable.js";
 import { transliterate } from "transliteration";
 import anyAscii from "any-ascii";
-import { ConvertCase, type ConvertCaseMode, CaseTypes } from "./ConvertCase.js";
 import {
     toLower,
     isString,
@@ -23,13 +16,21 @@ import {
     v7 as uuidv7,
 } from "uuid";
 import { ulid as createUlid } from "ulid";
-import { Pluralizer } from "./Pluralizer.js";
 import { Num } from "@laravel-js/num";
-import { Random } from "./Random.js";
-import { Trimmer } from "./Trimmer.js";
-import { Replacer } from "./Replacer.js";
-
-import { Base64 } from "./Base64.js";
+import {
+    MarkdownRenderer,
+    type MarkDownOptions,
+    type MarkDownExtensions,
+    Stringable,
+    ConvertCase,
+    type ConvertCaseMode,
+    CaseTypes,
+    Pluralizer,
+    Random,
+    Trimmer,
+    Replacer,
+    Base64,
+} from "@laravel-js/str";
 
 export class Str {
     /**

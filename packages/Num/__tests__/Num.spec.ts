@@ -254,6 +254,7 @@ describe("Number", () => {
         expect(Num.forHumans(1234567890123)).toBe("1 trillion");
         expect(Num.forHumans(1234567890123, 2)).toBe("1.23 trillion");
         expect(Num.forHumans(1234567890123456)).toBe("1 quadrillion");
+        // eslint-disable-next-line
         expect(Num.forHumans(1234567890123456789, 2)).toBe(
             "1.23 thousand quadrillion",
         );

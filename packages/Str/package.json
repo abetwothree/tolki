@@ -15,6 +15,7 @@
     "license": "MIT",
     "packageManager": "pnpm@10.12.1",
     "dependencies": {
+        "@laravel-js/num": "workspace:^",
         "@types/lodash-es": "^4.17.12",
         "@types/pluralize": "^0.0.33",
         "any-ascii": "^0.3.3",

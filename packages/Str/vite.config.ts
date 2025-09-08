@@ -1,5 +1,19 @@
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
+import { glob } from "glob";
+
+const entries = Object.fromEntries(
+    glob
+        .sync("./src/**/*.ts", {
+            ignore: ["src/**/*.d.ts"],
+        })
+        .map((file) => {
+            return [
+                file.replace("src/", "").replace(".ts", "").toLowerCase(),
+                file,
+            ];
+        }),
+);
 
 export default defineConfig({
     plugins: [
@@ -12,12 +26,12 @@ export default defineConfig({
     build: {
         outDir: "dist",
         lib: {
-            entry: "src/index.ts",
+            entry: entries,
             name: "Str",
-            fileName: "str",
         },
         rollupOptions: {
             external: [
+                "@laravel-js/num",
                 "@types/lodash-es",
                 "@types/pluralize",
                 "any-ascii",
@@ -31,5 +45,6 @@ export default defineConfig({
                 "uuid",
             ],
         },
+        sourcemap: true,
     },
 });

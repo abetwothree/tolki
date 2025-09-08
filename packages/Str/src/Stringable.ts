@@ -1,6 +1,10 @@
-import { Str } from "./Str.js";
-import type { ConvertCaseMode } from "./ConvertCase.js";
-import type { MarkDownOptions, MarkDownExtensions } from "./Markdown.js";
+import {
+    Str,
+    type ConvertCaseMode,
+    type MarkDownOptions,
+    type MarkDownExtensions,
+} from "@laravel-js/str";
+
 import { isFunction } from "lodash-es";
 
 export type ConditionableValue =
