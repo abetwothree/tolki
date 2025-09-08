@@ -2,17 +2,20 @@ import { describe, it, expect } from "vitest";
 import { Arr } from "@laravel-js/arr";
 
 describe("Arr", () => {
-    describe("map", () => {
-        it.skip("should apply a function to each element", () => {
-            const result = Arr.map([1, 2, 3], (x) => x * 2);
-            expect(result).toEqual([2, 4, 6]);
-        });
-    });
+    it("accessible", () => {
+        expect(Arr.accessible([])).toBe(true);
+        expect(Arr.accessible([1, 2])).toBe(true);
+        expect(Arr.accessible({ a: 1, b: 2 })).toBe(false);
+        // expect(Arr.accessible(new Collection())).toBe(true);
 
-    describe("filter", () => {
-        it.skip("should filter elements based on a predicate", () => {
-            const result = Arr.filter([1, 2, 3], (x) => x > 1);
-            expect(result).toEqual([2, 3]);
-        });
+        expect(Arr.accessible(null)).toBe(false);
+        expect(Arr.accessible("abc")).toBe(false);
+        expect(Arr.accessible(new Object())).toBe(false);
+        expect(Arr.accessible({ a: 1, b: 2 } as object)).toBe(false);
+        expect(Arr.accessible(123)).toBe(false);
+        expect(Arr.accessible(12.34)).toBe(false);
+        expect(Arr.accessible(true)).toBe(false);
+        expect(Arr.accessible(new Date())).toBe(false);
+        expect(Arr.accessible(() => null)).toBe(false);
     });
 });
