@@ -306,6 +306,7 @@ export class Num {
      * Convert the given number to its file size equivalent.
      *
      * @example
+     *
      * Num.fileSize(1024); // "1 KB"
      * Num.fileSize(2048); // "2 KB"
      * Num.fileSize(1264.12345, 3); // "1.234 KB"
@@ -341,6 +342,138 @@ export class Num {
 
         const formatted = Num.format(value, precision, maxPrecision) as string;
         return `${formatted} ${units[i]}`;
+    }
+
+    /**
+     * Convert the number to its human-readable equivalent.
+     *
+     * @example
+     *
+     * Num.forHumans(1234); // "1.234 thousand"
+     * Num.forHumans(1234567); // "1.234 million"
+     * Num.forHumans(1234567890); // "1.234 billion"
+     */
+    static forHumans(
+        value: number,
+        precision: number = 0,
+        maxPrecision: number | null = null,
+        abbreviate: boolean = false,
+    ): string | false {
+        return Num.summarize(
+            value,
+            precision,
+            maxPrecision,
+            abbreviate
+                ? {
+                      3: "K",
+                      6: "M",
+                      9: "B",
+                      12: "T",
+                      15: "Q",
+                  }
+                : {
+                      3: " thousand",
+                      6: " million",
+                      9: " billion",
+                      12: " trillion",
+                      15: " quadrillion",
+                  },
+        );
+    }
+
+    /**
+     * Convert the number to its human-readable equivalent.
+     *
+     * @example
+     * 
+     * Num.summarize(1234); // "1.234 K"
+     * Num.summarize(1234567); // "1.234 M"
+     * Num.summarize(1234567890); // "1.234 B"
+     */
+    static summarize(
+        value: number,
+        precision: number = 0,
+        maxPrecision: number | null = null,
+        units: Record<number, string> = {},
+    ): string | false {
+        // Default units if none provided (abbreviated form)
+        if (!units || Object.keys(units).length === 0) {
+            units = {
+                3: "K",
+                6: "M",
+                9: "B",
+                12: "T",
+                15: "Q",
+            };
+        }
+
+        // Zero handling
+        if (Number(value) === 0) {
+            return precision > 0
+                ? (Num.format(0, precision, maxPrecision) as string)
+                : "0";
+        }
+
+        // Negative numbers
+        if (value < 0) {
+            const inner = Num.summarize(
+                Math.abs(value),
+                precision,
+                maxPrecision,
+                units,
+            ) as string;
+            return `-${inner}`;
+        }
+
+        // Extremely large numbers: recurse on quadrillions and append the last unit (Laravel-style)
+        if (value >= 1e15) {
+            const keys = Object.keys(units)
+                .map((k) => Number(k))
+                .filter((k) => !Number.isNaN(k))
+                .sort((a, b) => a - b);
+            let lastSuffix = "";
+            if (keys.length > 0) {
+                const lastKey = keys[keys.length - 1];
+                if (typeof lastKey === "number") {
+                    lastSuffix = units[lastKey] ?? "";
+                }
+            }
+            const inner = Num.summarize(
+                value / 1e15,
+                precision,
+                maxPrecision,
+                units,
+            ) as string;
+            return `${inner}${lastSuffix}`.trim();
+        }
+
+        // Determine the display exponent (multiple of 3)
+        const numberExponent = Math.floor(Math.log10(value));
+        const displayExponent = numberExponent - (numberExponent % 3);
+        const scaled = value / Math.pow(10, displayExponent);
+
+        // Precision behavior: mirror Laravel
+        // - If maxPrecision provided: set only maximumFractionDigits
+        // - Otherwise use exact precision (default 0)
+        let formatted: string;
+        if (maxPrecision != null) {
+            formatted = Num.format(scaled, null, maxPrecision) as string;
+        } else if (precision > 0) {
+            formatted = Num.format(scaled, precision, null) as string;
+        } else {
+            // Default behavior:
+            // - For values in thousands and scaled < 10, show one decimal when the original value is a multiple of 10.
+            // - Otherwise, no decimals.
+            const absValue = Math.abs(value);
+            const useOneDecimal =
+                displayExponent === 3 && scaled < 10 && absValue % 10 === 0;
+            formatted = useOneDecimal
+                ? (Num.format(scaled, null, 1) as string)
+                : (Num.format(scaled, 0, null) as string);
+        }
+        const suffix = units[displayExponent] ?? "";
+
+        return `${formatted}${suffix}`.trim();
     }
 
     /**

@@ -225,4 +225,75 @@ describe("Number", () => {
         expect(Num.fileSize(1024 ** 8)).toBe("1 YB");
         expect(Num.fileSize(1024 ** 9)).toBe("1,024 YB");
     });
+
+    it("forHumans", () => {
+        expect(Num.forHumans(1)).toBe("1");
+        expect(Num.forHumans(1, 2)).toBe("1.00");
+        expect(Num.forHumans(10)).toBe("10");
+        expect(Num.forHumans(100)).toBe("100");
+        expect(Num.forHumans(1000)).toBe("1 thousand");
+        expect(Num.forHumans(1000, 2)).toBe("1.00 thousand");
+        expect(Num.forHumans(1000, 0, 2)).toBe("1 thousand");
+        expect(Num.forHumans(1230)).toBe("1.2 thousand");
+        expect(Num.forHumans(1230, 0, 1)).toBe("1.2 thousand");
+        expect(Num.forHumans(1000000)).toBe("1 million");
+        expect(Num.forHumans(1000000000)).toBe("1 billion");
+        expect(Num.forHumans(1000000000000)).toBe("1 trillion");
+        expect(Num.forHumans(1000000000000000)).toBe("1 quadrillion");
+        expect(Num.forHumans(1000000000000000000)).toBe(
+            "1 thousand quadrillion",
+        );
+
+        expect(Num.forHumans(123)).toBe("123");
+        expect(Num.forHumans(1234)).toBe("1 thousand");
+        expect(Num.forHumans(1234, 2)).toBe("1.23 thousand");
+        expect(Num.forHumans(12345)).toBe("12 thousand");
+        expect(Num.forHumans(1234567)).toBe("1 million");
+        expect(Num.forHumans(1234567890)).toBe("1 billion");
+        expect(Num.forHumans(1234567890123)).toBe("1 trillion");
+        expect(Num.forHumans(1234567890123, 2)).toBe("1.23 trillion");
+        expect(Num.forHumans(1234567890123456)).toBe("1 quadrillion");
+        expect(Num.forHumans(1234567890123456789, 2)).toBe(
+            "1.23 thousand quadrillion",
+        );
+        expect(Num.forHumans(489939)).toBe("490 thousand");
+        expect(Num.forHumans(489939, 4)).toBe("489.9390 thousand");
+        expect(Num.forHumans(500000000, 5)).toBe("500.00000 million");
+
+        expect(Num.forHumans(1000000000000000000000)).toBe(
+            "1 million quadrillion",
+        );
+        expect(Num.forHumans(1000000000000000000000000)).toBe(
+            "1 billion quadrillion",
+        );
+        expect(Num.forHumans(1000000000000000000000000000)).toBe(
+            "1 trillion quadrillion",
+        );
+        expect(Num.forHumans(1000000000000000000000000000000)).toBe(
+            "1 quadrillion quadrillion",
+        );
+        expect(Num.forHumans(1000000000000000000000000000000000)).toBe(
+            "1 thousand quadrillion quadrillion",
+        );
+
+        expect(Num.forHumans(0)).toBe("0");
+        expect(Num.forHumans(0.0)).toBe("0");
+        expect(Num.forHumans(0, 2)).toBe("0.00");
+        expect(Num.forHumans(0.0, 2)).toBe("0.00");
+        expect(Num.forHumans(-1)).toBe("-1");
+        expect(Num.forHumans(-1, 2)).toBe("-1.00");
+        expect(Num.forHumans(-10)).toBe("-10");
+        expect(Num.forHumans(-100)).toBe("-100");
+        expect(Num.forHumans(-1000)).toBe("-1 thousand");
+        expect(Num.forHumans(-1234, 2)).toBe("-1.23 thousand");
+        expect(Num.forHumans(-1234, 1)).toBe("-1.2 thousand");
+        expect(Num.forHumans(-1000000)).toBe("-1 million");
+        expect(Num.forHumans(-1000000000)).toBe("-1 billion");
+        expect(Num.forHumans(-1000000000000)).toBe("-1 trillion");
+        expect(Num.forHumans(-1100000000000, 1)).toBe("-1.1 trillion");
+        expect(Num.forHumans(-1000000000000000)).toBe("-1 quadrillion");
+        expect(Num.forHumans(-1000000000000000000)).toBe(
+            "-1 thousand quadrillion",
+        );
+    });
 });
