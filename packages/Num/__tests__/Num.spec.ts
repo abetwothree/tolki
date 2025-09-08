@@ -376,13 +376,37 @@ describe("Number", () => {
         ]);
     });
 
-    it("trim", () => { 
+    it("trim", () => {
         expect(Num.trim(12)).toBe(12);
         expect(Num.trim(120)).toBe(120);
         expect(Num.trim(12.0)).toBe(12);
         expect(Num.trim(12.3)).toBe(12.3);
-        expect(Num.trim(12.30)).toBe(12.3);
+        expect(Num.trim(12.3)).toBe(12.3);
         expect(Num.trim(12.3456789)).toBe(12.3456789);
-        expect(Num.trim(12.34567890000)).toBe(12.3456789);
-    })
+        expect(Num.trim(12.3456789)).toBe(12.3456789);
+    });
+
+    it("withLocale", () => {
+        expect(
+            Num.withLocale("fr", () => {
+                return Num.format(1234.56);
+            }),
+        ).toBe("1 234,56");
+    });
+
+    it("withCurrency", () => {
+        expect(
+            Num.withCurrency("EUR", () => {
+                return Num.format(1234.56);
+            }),
+        ).toBe("1,234.56");
+    });
+
+    it("defaultLocale", () => {
+        expect(Num.defaultLocale()).toBe("en");
+    });
+
+    it("defaultCurrency", () => {
+        expect(Num.defaultCurrency()).toBe("USD");
+    });
 });

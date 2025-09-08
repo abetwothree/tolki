@@ -515,13 +515,55 @@ export class Num {
      * Remove any trailing zero digits after the decimal point of the given number.
      *
      * @example
-     * 
+     *
      * Num.trim(12.3456789); // 12.3456789
      * Num.trim(12.34567890000); // 12.3456789
      */
-     static trim(value: number): number {
-         return JSON.parse(JSON.stringify(value));
-     }
+    static trim(value: number): number {
+        return JSON.parse(JSON.stringify(value));
+    }
+
+    /**
+     * Execute the given callback using the given locale.
+     *
+     * @example
+     *
+     * Num.withLocale("fr", () => {
+     *     return Num.format(1234.56);
+     * }); // "1 234,56"
+     */
+    static withLocale(locale: string, callback: () => unknown): unknown {
+        const previousLocale = this._locale;
+
+        this.useLocale(locale);
+
+        try {
+            return callback();
+        } finally {
+            this.useLocale(previousLocale);
+        }
+    }
+
+    /**
+     * Execute the given callback using the given currency.
+     *
+     * @example
+     *
+     * Num.withCurrency("EUR", () => {
+     *     return Num.format(1234.56);
+     * }); // "€1,234.56"
+     */
+    static withCurrency(currency: string, callback: () => unknown): unknown {
+        const previousCurrency = this._currency;
+
+        this.useCurrency(currency);
+
+        try {
+            return callback();
+        } finally {
+            this.useCurrency(previousCurrency);
+        }
+    }
 
     /**
      * Set the default locale.
@@ -540,14 +582,14 @@ export class Num {
     /**
      * Get the default locale.
      */
-    static defaultLocale(): string | null {
+    static defaultLocale(): string {
         return this._locale;
     }
 
     /**
      * Get the default currency.
      */
-    static defaultCurrency(): string | null {
+    static defaultCurrency(): string {
         return this._currency;
     }
 }
