@@ -152,4 +152,14 @@ describe("Number", () => {
         // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
         Intl.PluralRules = original;
     });
+
+    it.skip("spellOrdinal", () => {
+        expect(Number.spellOrdinal(1)).toBe("first");
+        expect(Number.spellOrdinal(2)).toBe("second");
+        expect(Number.spellOrdinal(3)).toBe("third");
+        expect(Number.spellOrdinal(4)).toBe("fourth");
+        expect(Number.spellOrdinal(11)).toBe("eleventh");
+        expect(Number.spellOrdinal(12)).toBe("twelfth");
+        expect(Number.spellOrdinal(13)).toBe("thirteenth");
+    });
 });

@@ -212,6 +212,25 @@ export class Number {
     }
 
     /**
+     * Spell out the given number in the given locale in ordinal form.
+     * TODO
+     *
+     * @example
+     *
+     * Number.spellOrdinal(1); // "first"
+     * Number.spellOrdinal(2); // "second"
+     * Number.spellOrdinal(3); // "third"
+     */
+    static spellOrdinal(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _value: number,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _locale: string | null = null,
+    ): string {
+        return "";
+    }
+
+    /**
      * Set the default locale.
      */
     static useLocale(locale: string): void {
