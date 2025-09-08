@@ -78,7 +78,11 @@ importers:
 
   packages/Collections: {}
 
-  packages/Num: {}
+  packages/Num:
+    dependencies:
+      to-words:
+        specifier: ^4.7.0
+        version: 4.7.0
 
   packages/Number: {}
 
@@ -3245,6 +3249,13 @@ packages:
       }
     engines: { node: ">=8.0" }
 
+  to-words@4.7.0:
+    resolution:
+      {
+        integrity: sha512-A113L8FrmpHBTbH2Y/c7phYTpeVWYadbXFCAGrc4pnxGzC+x14ju44UO0+8HMJA9SlsuV2dS6UzrHT236SJenw==,
+      }
+    engines: { node: ">=12.0.0" }
+
   tough-cookie@5.1.2:
     resolution:
       {
@@ -5602,6 +5613,8 @@ snapshots:
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
+
+  to-words@4.7.0: {}
 
   tough-cookie@5.1.2:
     dependencies:
