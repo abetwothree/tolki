@@ -1,4 +1,4 @@
-export class Number {
+export class Num {
     /**
      * The current default locale.
      */
@@ -14,9 +14,9 @@ export class Number {
      *
      * @example
      *
-     * Number.format(1234.5678, 2); // "1,234.57"
-     * Number.format(1234.5678, 2, 4); // "1,234.5678"
-     * Number.format(1234.5678, 2, 4, "de"); // "1.234,5678"
+     * Num.format(1234.5678, 2); // "1,234.57"
+     * Num.format(1234.5678, 2, 4); // "1,234.5678"
+     * Num.format(1234.5678, 2, 4, "de"); // "1.234,5678"
      */
     static format(
         number: number,
@@ -49,7 +49,7 @@ export class Number {
      *
      * @example
      *
-     * Number.parse("1,234.57"); // 1234.57
+     * Num.parse("1,234.57"); // 1234.57
      */
     static parse(value: string, locale: string | null = null): number {
         locale = locale ?? this._locale;
@@ -119,15 +119,15 @@ export class Number {
      *
      * @example
      *
-     * Number.parseInt("1,234", "en"); // 1234
+     * Num.parseInt("1,234", "en"); // 1234
      */
     static parseInt(
         value: string,
         locale: string | null = null,
     ): number | false {
-        const parsed = Number.parse(value, locale);
+        const parsed = Num.parse(value, locale);
 
-        if (globalThis.Number.isNaN(parsed)) {
+        if (Number.isNaN(parsed)) {
             return false;
         }
 
@@ -145,7 +145,7 @@ export class Number {
         value: string,
         locale: string | null = null,
     ): number | false {
-        return Number.parse(value, locale);
+        return Num.parse(value, locale);
     }
 
     /**
@@ -170,10 +170,10 @@ export class Number {
      *
      * @example
      *
-     * Number.ordinal(1); // "1st"
-     * Number.ordinal(2); // "2nd"
-     * Number.ordinal(3); // "3rd"
-     * Number.ordinal(13); // "13th"
+     * Num.ordinal(1); // "1st"
+     * Num.ordinal(2); // "2nd"
+     * Num.ordinal(3); // "3rd"
+     * Num.ordinal(13); // "13th"
      */
     static ordinal(value: number, locale: string | null = null): string {
         const loc = locale ?? this._locale;
@@ -217,9 +217,9 @@ export class Number {
      *
      * @example
      *
-     * Number.spellOrdinal(1); // "first"
-     * Number.spellOrdinal(2); // "second"
-     * Number.spellOrdinal(3); // "third"
+     * Num.spellOrdinal(1); // "first"
+     * Num.spellOrdinal(2); // "second"
+     * Num.spellOrdinal(3); // "third"
      */
     static spellOrdinal(_value: number, _locale: string | null = null): string {
         void _value;
@@ -232,9 +232,9 @@ export class Number {
      *
      * @example
      *
-     * Number.percentage(1); // "1%"
-     * Number.percentage(1.75, 2); // "1.75%"
-     * Number.percentage(0.12345, 4); // "0.1235%"
+     * Num.percentage(1); // "1%"
+     * Num.percentage(1.75, 2); // "1.75%"
+     * Num.percentage(0.12345, 4); // "0.1235%"
      */
     static percentage(
         number: number | string,
@@ -244,7 +244,7 @@ export class Number {
     ): string | false {
         const loc = locale ?? this._locale;
         const value =
-            typeof number === "string" ? Number.parse(number, loc) : number;
+            typeof number === "string" ? Num.parse(number, loc) : number;
 
         const options: Intl.NumberFormatOptions = {
             style: "percent",
@@ -272,9 +272,9 @@ export class Number {
      *
      * @example
      *
-     * Number.currency(5.00); // "$5.00"
-     * Number.currency(-5); // "-$5.00"
-     * Number.currency(10, 'EUR'); // "€10.00"
+     * Num.currency(5.00); // "$5.00"
+     * Num.currency(-5); // "-$5.00"
+     * Num.currency(10, 'EUR'); // "€10.00"
      */
     static currency(
         amount: number | string,
@@ -284,7 +284,7 @@ export class Number {
     ): string | false {
         const loc = locale ?? this._locale;
         const value =
-            typeof amount === "string" ? Number.parse(amount, loc) : amount;
+            typeof amount === "string" ? Num.parse(amount, loc) : amount;
         const code =
             currencyCode && currencyCode.length ? currencyCode : this._currency;
 
@@ -300,6 +300,47 @@ export class Number {
         }
 
         return new Intl.NumberFormat(loc, options).format(value);
+    }
+
+    /**
+     * Convert the given number to its file size equivalent.
+     *
+     * @example
+     * Num.fileSize(1024); // "1 KB"
+     * Num.fileSize(2048); // "2 KB"
+     * Num.fileSize(1264.12345, 3); // "1.234 KB"
+     */
+    static fileSize(
+        bytes: number | string,
+        precision: number = 0,
+        maxPrecision: number | null = null,
+    ): string {
+        // Normalize input to a number
+        let value = typeof bytes === "string" ? Number(bytes) : bytes;
+        if (!Number.isFinite(value)) value = 0;
+
+        const units = [
+            "B",
+            "KB",
+            "MB",
+            "GB",
+            "TB",
+            "PB",
+            "EB",
+            "ZB",
+            "YB",
+        ] as const;
+        const unitCount = units.length;
+
+        let i = 0;
+        // Scale bytes up to the largest appropriate unit, matching Laravel's 0.9 threshold
+        while (value / 1024 > 0.9 && i < unitCount - 1) {
+            value /= 1024;
+            i++;
+        }
+
+        const formatted = Num.format(value, precision, maxPrecision) as string;
+        return `${formatted} ${units[i]}`;
     }
 
     /**

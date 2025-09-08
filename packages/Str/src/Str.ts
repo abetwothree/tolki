@@ -24,7 +24,7 @@ import {
 } from "uuid";
 import { ulid as createUlid } from "ulid";
 import { Pluralizer } from "./Pluralizer.js";
-import { Number } from "@laravel-js/number";
+import { Num } from "@laravel-js/number";
 import { Random } from "./Random.js";
 import { Trimmer } from "./Trimmer.js";
 import { Replacer } from "./Replacer.js";
@@ -1249,7 +1249,7 @@ export class Str {
         prependCount: boolean = false,
     ): string {
         return (
-            (prependCount ? Number.format(count) + " " : "") +
+            (prependCount ? Num.format(count) + " " : "") +
             Pluralizer.plural(value, count)
         );
     }
