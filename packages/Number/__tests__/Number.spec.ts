@@ -183,4 +183,38 @@ describe("Number", () => {
         expect(Number.percentage(0.12345, 2)).toBe("0.12%");
         expect(Number.percentage(0.12345, 4)).toBe("0.1235%");
     });
+
+    describe("currency", () => {
+        it("to currency", () => {
+            expect(Number.currency(0)).toBe("$0.00");
+            expect(Number.currency(1)).toBe("$1.00");
+            expect(Number.currency(10)).toBe("$10.00");
+
+            expect(Number.currency(0, "EUR")).toBe("€0.00");
+            expect(Number.currency(1, "EUR")).toBe("€1.00");
+            expect(Number.currency(10, "EUR")).toBe("€10.00");
+
+            expect(Number.currency(-5)).toBe("-$5.00");
+            expect(Number.currency(5.0)).toBe("$5.00");
+            expect(Number.currency(5.325)).toBe("$5.33");
+
+            expect(Number.currency(0, "", null, 0)).toBe("$0");
+            expect(Number.currency(5.0, "", null, 0)).toBe("$5");
+            expect(Number.currency(10.252, "", null, 0)).toBe("$10");
+        });
+
+        it("To Currency With Different Locale", () => {
+            expect(Number.currency(1, "EUR", "de")).toBe("1,00 €");
+            expect(Number.currency(1, "USD", "de")).toBe("1,00 $");
+            expect(Number.currency(1, "GBP", "de")).toBe("1,00 £");
+
+            expect(Number.currency(123456789.12345, "USD", "de")).toBe(
+                "123.456.789,12 $",
+            );
+            expect(Number.currency(123456789.12345, "EUR", "de")).toBe(
+                "123.456.789,12 €",
+            );
+            expect(Number.currency(1234.56, "USD", "fr")).toBe("1 234,56 $US");
+        });
+    });
 });

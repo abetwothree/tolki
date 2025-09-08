@@ -2,12 +2,12 @@ export class Number {
     /**
      * The current default locale.
      */
-    protected static locale: string = "en";
+    protected static _locale: string = "en";
 
     /**
      * The current default currency.
      */
-    protected static currency: string = "USD";
+    protected static _currency: string = "USD";
 
     /**
      * Format the given number according to the current locale.
@@ -24,7 +24,7 @@ export class Number {
         maxPrecision: number | null = null,
         locale: string | null = null,
     ): string | false {
-        locale = locale ?? this.locale;
+        locale = locale ?? this._locale;
 
         const options: Intl.NumberFormatOptions = {
             style: "decimal",
@@ -52,7 +52,7 @@ export class Number {
      * Number.parse("1,234.57"); // 1234.57
      */
     static parse(value: string, locale: string | null = null): number {
-        locale = locale ?? this.locale;
+        locale = locale ?? this._locale;
 
         // Derive locale-specific decimal and group separators using formatToParts
         const sample = 12345.6;
@@ -176,7 +176,7 @@ export class Number {
      * Number.ordinal(13); // "13th"
      */
     static ordinal(value: number, locale: string | null = null): string {
-        const loc = locale ?? this.locale;
+        const loc = locale ?? this._locale;
 
         // Prefer Intl.PluralRules with ordinal type when available; otherwise, fallback to English rules.
         try {
@@ -242,7 +242,7 @@ export class Number {
         maxPrecision: number | null = null,
         locale: string | null = null,
     ): string | false {
-        const loc = locale ?? this.locale;
+        const loc = locale ?? this._locale;
         const value =
             typeof number === "string" ? Number.parse(number, loc) : number;
 
@@ -268,30 +268,65 @@ export class Number {
     }
 
     /**
+     * Convert the given number to its currency equivalent.
+     *
+     * @example
+     *
+     * Number.currency(5.00); // "$5.00"
+     * Number.currency(-5); // "-$5.00"
+     * Number.currency(10, 'EUR'); // "€10.00"
+     */
+    static currency(
+        amount: number | string,
+        currencyCode: string = "",
+        locale: string | null = null,
+        precision: number | null = null,
+    ): string | false {
+        const loc = locale ?? this._locale;
+        const value =
+            typeof amount === "string" ? Number.parse(amount, loc) : amount;
+        const code =
+            currencyCode && currencyCode.length ? currencyCode : this._currency;
+
+        const options: Intl.NumberFormatOptions = {
+            style: "currency",
+            currency: code,
+            useGrouping: true,
+        };
+
+        if (precision != null) {
+            options.minimumFractionDigits = precision;
+            options.maximumFractionDigits = precision;
+        }
+
+        return new Intl.NumberFormat(loc, options).format(value);
+    }
+
+    /**
      * Set the default locale.
      */
     static useLocale(locale: string): void {
-        this.locale = locale;
+        this._locale = locale;
     }
 
     /**
      * Set the default currency.
      */
     static useCurrency(currency: string): void {
-        this.currency = currency;
+        this._currency = currency;
     }
 
     /**
      * Get the default locale.
      */
     static defaultLocale(): string | null {
-        return this.locale;
+        return this._locale;
     }
 
     /**
      * Get the default currency.
      */
     static defaultCurrency(): string | null {
-        return this.currency;
+        return this._currency;
     }
 }
