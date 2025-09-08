@@ -79,6 +79,7 @@ describe("Number", () => {
 
         expect(Num.parseInt("1.234", "de")).toBe(1234);
         expect(Num.parseInt("1 234", "fr")).toBe(1234);
+        expect(Num.parseInt("a string that isn't a number")).toBe(false);
     });
 
     it("parseFloat", () => {
