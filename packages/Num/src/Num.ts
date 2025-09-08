@@ -512,6 +512,18 @@ export class Num {
     }
 
     /**
+     * Remove any trailing zero digits after the decimal point of the given number.
+     *
+     * @example
+     * 
+     * Num.trim(12.3456789); // 12.3456789
+     * Num.trim(12.34567890000); // 12.3456789
+     */
+     static trim(value: number): number {
+         return JSON.parse(JSON.stringify(value));
+     }
+
+    /**
      * Set the default locale.
      */
     static useLocale(locale: string): void {

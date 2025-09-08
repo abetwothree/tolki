@@ -375,4 +375,14 @@ describe("Number", () => {
             [8.0, 10.0],
         ]);
     });
+
+    it("trim", () => { 
+        expect(Num.trim(12)).toBe(12);
+        expect(Num.trim(120)).toBe(120);
+        expect(Num.trim(12.0)).toBe(12);
+        expect(Num.trim(12.3)).toBe(12.3);
+        expect(Num.trim(12.30)).toBe(12.3);
+        expect(Num.trim(12.3456789)).toBe(12.3456789);
+        expect(Num.trim(12.34567890000)).toBe(12.3456789);
+    })
 });
