@@ -25,9 +25,9 @@ importers:
       "@laravel-js/collections":
         specifier: workspace:^
         version: link:packages/Collections
-      "@laravel-js/number":
+      "@laravel-js/num":
         specifier: workspace:^
-        version: link:packages/Number
+        version: link:packages/Num
       "@laravel-js/str":
         specifier: workspace:^
         version: link:packages/Str
@@ -77,6 +77,8 @@ importers:
   packages/Arr: {}
 
   packages/Collections: {}
+
+  packages/Num: {}
 
   packages/Number: {}
 

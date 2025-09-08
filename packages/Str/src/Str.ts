@@ -24,7 +24,7 @@ import {
 } from "uuid";
 import { ulid as createUlid } from "ulid";
 import { Pluralizer } from "./Pluralizer.js";
-import { Num } from "@laravel-js/number";
+import { Num } from "@laravel-js/num";
 import { Random } from "./Random.js";
 import { Trimmer } from "./Trimmer.js";
 import { Replacer } from "./Replacer.js";

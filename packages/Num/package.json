@@ -1,5 +1,5 @@
 {
-    "name": "@laravel-js/number",
+    "name": "@laravel-js/num",
     "version": "0.0.0",
     "description": "A utility for working with numbers.",
     "type": "module",
