@@ -48,6 +48,17 @@ export class Arr {
     }
 
     /**
+     * Determine whether the given value is a Collection.
+     */
+    static isCollection<T>(value: T): boolean {
+        if (value instanceof Collection) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Add an element to an array using "dot" notation if it doesn't exist.
      *
      * @example
@@ -226,13 +237,23 @@ export class Arr {
     }
 
     /**
-     * Determine whether the given value is a Collection.
+     * Return the last element in an array passing a given truth test.
+     *
+     * @template TKey
+     * @template TValue
+     * @template TLastDefault
+     *
+     * @param  iterable<TKey, TValue>  $array
+     * @param  (callable(TValue, TKey): bool)|null  $callback
+     * @param  TLastDefault|(\Closure(): TLastDefault)  $default
+     * @return TValue|TLastDefault
      */
-    static isCollection<T>(value: T): boolean {
-        if (value instanceof Collection) {
-            return true;
+    static last($array, ?callable $callback = null, $default = null)
+    {
+        if (is_null($callback)) {
+            return empty($array) ? value($default) : array_last($array);
         }
 
-        return false;
+        return static::first(array_reverse($array, true), $callback, $default);
     }
 }
