@@ -254,10 +254,10 @@ describe("Number", () => {
         expect(Num.forHumans(1234567890123)).toBe("1 trillion");
         expect(Num.forHumans(1234567890123, 2)).toBe("1.23 trillion");
         expect(Num.forHumans(1234567890123456)).toBe("1 quadrillion");
-        // eslint-disable-next-line
-        expect(Num.forHumans(1234567890123456789, 2)).toBe(
-            "1.23 thousand quadrillion",
-        );
+        
+        // eslint-disable-next-line no-loss-of-precision
+        expect(Num.forHumans(1234567890123456789, 2)).toBe("1.23 thousand quadrillion");
+
         expect(Num.forHumans(489939)).toBe("490 thousand");
         expect(Num.forHumans(489939, 4)).toBe("489.9390 thousand");
         expect(Num.forHumans(500000000, 5)).toBe("500.00000 million");
