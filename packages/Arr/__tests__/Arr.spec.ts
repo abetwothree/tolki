@@ -181,17 +181,17 @@ describe("Arr", () => {
     it("first", () => {
         // Callback is null and array is empty
         expect(Arr.first(null)).toBeNull();
-        expect(Arr.first('', null, null)).toBeNull();
+        expect(Arr.first("", null, null)).toBeNull();
 
         // Callback is null and string is not empty
-        expect(Arr.first('house', null, null)).toBe('h');
+        expect(Arr.first("house", null, null)).toBe("h");
 
         const data = [100, 200, 300];
 
         // Callback is null and array is empty
         expect(Arr.first([], null)).toBeNull();
-        expect(Arr.first([], null, 'foo')).toBe('foo');
-        expect(Arr.first([], null, () => 'bar')).toBe('bar');
+        expect(Arr.first([], null, "foo")).toBe("foo");
+        expect(Arr.first([], null, () => "bar")).toBe("bar");
 
         // Callback is null and array is not empty
         expect(Arr.first(data)).toBe(100);
@@ -206,9 +206,15 @@ describe("Arr", () => {
         // Callback is not null, array is not empty but no satisfied item
         expect(Arr.first(data, (value) => value > 300)).toBeNull();
 
-        expect(Arr.first(data, (value) => value > 300, 'bar')).toBe('bar');
+        expect(Arr.first(data, (value) => value > 300, "bar")).toBe("bar");
 
-        expect(Arr.first(data, (value) => value > 300, () => 'baz')).toBe('baz');
+        expect(
+            Arr.first(
+                data,
+                (value) => value > 300,
+                () => "baz",
+            ),
+        ).toBe("baz");
         expect(Arr.first(data, (_, key) => key < 2)).toBe(100);
 
         expect(

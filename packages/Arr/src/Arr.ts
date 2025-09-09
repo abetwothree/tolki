@@ -2,11 +2,11 @@ import { Collection } from "@laravel-js/collection";
 
 // Extract the element type from either an array or a Collection
 export type InnerValue<X> =
-        X extends ReadonlyArray<infer U>
-                ? U
-                : X extends Collection<infer U>
-                    ? U
-                    : never;
+    X extends ReadonlyArray<infer U>
+        ? U
+        : X extends Collection<infer U>
+          ? U
+          : never;
 
 export class Arr {
     /**
@@ -134,7 +134,7 @@ export class Arr {
      * Divide an array into two arrays. One with keys and the other with values.
      *
      * @example
-     * 
+     *
      * Arr.divide(["Desk", 100, true]); // -> [[0, 1, 2], ['Desk', 100, true]]
      */
     static divide(array: readonly []): [number[], unknown[]];
@@ -145,12 +145,17 @@ export class Arr {
         array: A,
     ): [number[], A extends ReadonlyArray<infer V> ? V[] : unknown[]] {
         const keys = array.map((_, i) => i);
-        return [keys, array.slice() as unknown as A extends ReadonlyArray<infer V> ? V[] : unknown[]];
+        return [
+            keys,
+            array.slice() as unknown as A extends ReadonlyArray<infer V>
+                ? V[]
+                : unknown[],
+        ];
     }
 
     /**
      * Return the first element in an array passing a given truth test.
-     * 
+     *
      * @example
      *
      * Arr.first([100, 200, 300]); // -> 100
@@ -193,7 +198,7 @@ export class Arr {
                 : (defaultValue as D);
         };
 
-        if (data == null)  {
+        if (data == null) {
             return resolveDefault();
         }
 
@@ -227,7 +232,7 @@ export class Arr {
                 return item;
             }
         }
-        
+
         return resolveDefault();
     }
 }
