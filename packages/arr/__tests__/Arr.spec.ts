@@ -280,7 +280,7 @@ describe("Arr", () => {
         ).toBe("baz");
 
         expect(
-            Arr.last(data, (value, key) => {
+            Arr.last(data, (_value, key) => {
                 return key < 2;
             }),
         ).toBe(200);
