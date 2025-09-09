@@ -19,7 +19,7 @@ export class Arr {
      * Arr.accessible({ a: 1, b: 2 }); // false
      * Arr.accessible(new Collection()); // true
      */
-    static accessible<T extends unknown>(value: T): boolean {
+    static accessible<T>(value: T): boolean {
         if (Array.isArray(value)) {
             return true;
         }
@@ -83,17 +83,6 @@ export class Arr {
         }
 
         return out;
-    }
-
-    /**
-     * Determine whether the given value is a Collection.
-     */
-    static isCollection<T extends unknown>(value: T): boolean {
-        if (value instanceof Collection) {
-            return true;
-        }
-
-        return false;
     }
 
     /**
@@ -234,5 +223,16 @@ export class Arr {
         }
 
         return resolveDefault();
+    }
+
+    /**
+     * Determine whether the given value is a Collection.
+     */
+    static isCollection<T>(value: T): boolean {
+        if (value instanceof Collection) {
+            return true;
+        }
+
+        return false;
     }
 }

@@ -30,7 +30,10 @@ export default defineConfig({
             name: "Arr",
         },
         rollupOptions: {
-            external: [],
+            external: [
+                "@laravel-js/collection",
+                "@laravel-js/str",
+            ],
         },
         sourcemap: true,
     },

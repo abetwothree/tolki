@@ -6,7 +6,7 @@ export default defineConfig({
         globals: true,
         coverage: {
             provider: "istanbul",
-            reporter: ["text", "json", "html", "lcov", "text-summary"],
+            reporter: ["text", "html", "lcov", "text-summary"],
             exclude: [...configDefaults.exclude],
         },
         projects: ["packages/*"],

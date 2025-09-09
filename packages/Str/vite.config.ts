@@ -31,6 +31,7 @@ export default defineConfig({
         },
         rollupOptions: {
             external: [
+                "@laravel-js/collection",
                 "@laravel-js/num",
                 "@types/lodash-es",
                 "@types/pluralize",
