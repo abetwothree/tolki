@@ -133,8 +133,9 @@ export class Arr {
     /**
      * Divide an array into two arrays. One with keys and the other with values.
      *
-     * @param  array  $array
-     * @return array
+     * @example
+     * 
+     * Arr.divide(["Desk", 100, true]); // -> [[0, 1, 2], ['Desk', 100, true]]
      */
     static divide(array: readonly []): [number[], unknown[]];
     static divide<A extends readonly unknown[]>(
@@ -144,7 +145,89 @@ export class Arr {
         array: A,
     ): [number[], A extends ReadonlyArray<infer V> ? V[] : unknown[]] {
         const keys = array.map((_, i) => i);
-        // Cast is safe: we only reorder (copy) the existing elements
         return [keys, array.slice() as unknown as A extends ReadonlyArray<infer V> ? V[] : unknown[]];
+    }
+
+    /**
+     * Return the first element in an array passing a given truth test.
+     * 
+     * @example
+     *
+     * Arr.first([100, 200, 300]); // -> 100
+     */
+    // Overload: no predicate, no explicit default -> T | null
+    static first<T>(
+        data: readonly T[] | Iterable<T> | null | undefined,
+        predicate?: null,
+        defaultValue?: undefined,
+    ): T | null;
+    // Overload: no predicate, explicit default value (eager or lazy)
+    static first<T, D>(
+        data: readonly T[] | Iterable<T> | null | undefined,
+        predicate: null | undefined,
+        defaultValue: D | (() => D),
+    ): T | D;
+    // Overload: predicate, no explicit default
+    static first<T>(
+        data: readonly T[] | Iterable<T> | null | undefined,
+        predicate: (value: T, index: number) => boolean,
+    ): T | null;
+    // Overload: predicate with default
+    static first<T, D>(
+        data: readonly T[] | Iterable<T> | null | undefined,
+        predicate: (value: T, index: number) => boolean,
+        defaultValue: D | (() => D),
+    ): T | D;
+    static first<T, D>(
+        data: readonly T[] | Iterable<T> | null | undefined,
+        predicate?: ((value: T, index: number) => boolean) | null,
+        defaultValue?: D | (() => D),
+    ): T | D | null {
+        const resolveDefault = (): D | null => {
+            if (defaultValue === undefined) {
+                return null;
+            }
+
+            return typeof defaultValue === "function"
+                ? (defaultValue as () => D)()
+                : (defaultValue as D);
+        };
+
+        if (data == null)  {
+            return resolveDefault();
+        }
+
+        const isArray = Array.isArray(data);
+        const iterable: Iterable<T> = isArray
+            ? (data as readonly T[])
+            : (data as Iterable<T>);
+
+        // No predicate: just return first element if it exists.
+        if (!predicate) {
+            if (isArray) {
+                const arr = data as readonly T[];
+                if (arr.length === 0) {
+                    return resolveDefault();
+                }
+
+                // After length check arr[0] is defined
+                return arr[0] as T;
+            }
+
+            for (const item of iterable) {
+                return item; // first
+            }
+
+            return resolveDefault();
+        }
+
+        let index = 0;
+        for (const item of iterable) {
+            if (predicate(item, index++)) {
+                return item;
+            }
+        }
+        
+        return resolveDefault();
     }
 }
