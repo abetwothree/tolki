@@ -292,5 +292,25 @@ describe("Arr", () => {
                 })(),
             ),
         ).toBe(1);
+
+        // Non-array iterable with predicate (covers bottom branch in Arr.last)
+        const gen = () =>
+            (function* () {
+                yield 1;
+                yield 2;
+                yield 3;
+            })();
+
+        // Last value < 3 is 2
+        expect(Arr.last(gen(), (v) => v < 3)).toBe(2);
+
+        // No match returns null
+        expect(Arr.last(gen(), (v) => v > 5)).toBeNull();
+
+        // No match with default value
+        expect(Arr.last(gen(), (v) => v > 5, "fallback")).toBe("fallback");
+
+        // No match with lazy default
+        expect(Arr.last(gen(), (v) => v > 5, () => "lazy")).toBe("lazy");
     });
 });
