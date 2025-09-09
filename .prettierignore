@@ -1,3 +1,9 @@
-# Ignore artifacts:
+# Exclude GitHub workflow files from automatic formatting/commits
+.github/workflows/
+
+# (Optional) add coverage output and build artifacts if needed
+coverage/
+dist/
+node_modules/# Ignore artifacts:
 build
 coverage

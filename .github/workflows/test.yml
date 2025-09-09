@@ -70,6 +70,10 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Fix linting and formatting
+          file_pattern: |
+            packages/**/src/**/*.*
+            packages/**/package.json
+            *.md
 
       - name: Run eslint
         run: pnpm run lint
