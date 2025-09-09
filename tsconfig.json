@@ -21,7 +21,10 @@
         "verbatimModuleSyntax": true,
         "isolatedModules": true,
         "moduleDetection": "force",
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "paths": {
+            "@laravel-js/*": ["packages/*/src"]
+        }
     },
     "include": ["packages/**/src", "packages/**/__tests__"]
 }

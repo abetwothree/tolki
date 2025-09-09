@@ -21,19 +21,19 @@ importers:
         version: 7.2.0
       "@laravel-js/arr":
         specifier: workspace:^
-        version: link:packages/Arr
-      "@laravel-js/collections":
+        version: link:packages/arr
+      "@laravel-js/collection":
         specifier: workspace:^
-        version: link:packages/Collections
+        version: link:packages/collection
       "@laravel-js/num":
         specifier: workspace:^
-        version: link:packages/Num
+        version: link:packages/num
       "@laravel-js/str":
         specifier: workspace:^
-        version: link:packages/Str
+        version: link:packages/str
       "@laravel-js/types":
         specifier: workspace:^
-        version: link:packages/Types
+        version: link:packages/types
       "@vitest/coverage-istanbul":
         specifier: 3.2.4
         version: 3.2.4(vitest@3.2.4(@types/debug@4.1.12)(jiti@2.5.1)(jsdom@26.1.0))
@@ -136,6 +136,61 @@ importers:
         version: 14.1.2
 
   packages/Types: {}
+
+  packages/arr: {}
+
+  packages/collection: {}
+
+  packages/num:
+    dependencies:
+      to-words:
+        specifier: ^4.7.0
+        version: 4.7.0
+
+  packages/str:
+    dependencies:
+      "@laravel-js/num":
+        specifier: workspace:^
+        version: link:../num
+      "@types/lodash-es":
+        specifier: ^4.17.12
+        version: 4.17.12
+      "@types/pluralize":
+        specifier: ^0.0.33
+        version: 0.0.33
+      any-ascii:
+        specifier: ^0.3.3
+        version: 0.3.3
+      lodash-es:
+        specifier: ^4.17.21
+        version: 4.17.21
+      markdown-it:
+        specifier: ^14.1.0
+        version: 14.1.0
+      markdown-it-anchor:
+        specifier: ^9.2.0
+        version: 9.2.0(@types/markdown-it@14.1.2)(markdown-it@14.1.0)
+      markdown-it-task-lists:
+        specifier: ^2.1.1
+        version: 2.1.1
+      pluralize:
+        specifier: ^8.0.0
+        version: 8.0.0
+      transliteration:
+        specifier: ^2.3.5
+        version: 2.3.5
+      ulid:
+        specifier: ^2.4.0
+        version: 2.4.0
+      uuid:
+        specifier: ^11.1.0
+        version: 11.1.0
+    devDependencies:
+      "@types/markdown-it":
+        specifier: ^14.1.2
+        version: 14.1.2
+
+  packages/types: {}
 
 packages:
   "@ampproject/remapping@2.3.0":

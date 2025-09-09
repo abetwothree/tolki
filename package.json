@@ -30,7 +30,7 @@
         "@eslint/json": "^0.13.2",
         "@eslint/markdown": "^7.2.0",
         "@laravel-js/arr": "workspace:^",
-        "@laravel-js/collections": "workspace:^",
+        "@laravel-js/collection": "workspace:^",
         "@laravel-js/num": "workspace:^",
         "@laravel-js/str": "workspace:^",
         "@laravel-js/types": "workspace:^",
