@@ -2,11 +2,11 @@ import { Collection } from "@laravel-js/collection";
 
 // Extract the element type from either an array or a Collection
 export type InnerValue<X> =
-    X extends ReadonlyArray<infer U>
-        ? U
-        : X extends Collection<infer U>
-          ? U
-          : never;
+        X extends ReadonlyArray<infer U>
+                ? U
+                : X extends Collection<infer U>
+                    ? U
+                    : never;
 
 export class Arr {
     /**
@@ -128,5 +128,23 @@ export class Arr {
         }
 
         return results;
+    }
+
+    /**
+     * Divide an array into two arrays. One with keys and the other with values.
+     *
+     * @param  array  $array
+     * @return array
+     */
+    static divide(array: readonly []): [number[], unknown[]];
+    static divide<A extends readonly unknown[]>(
+        array: A,
+    ): [number[], A extends ReadonlyArray<infer V> ? V[] : unknown[]];
+    static divide<A extends readonly unknown[]>(
+        array: A,
+    ): [number[], A extends ReadonlyArray<infer V> ? V[] : unknown[]] {
+        const keys = array.map((_, i) => i);
+        // Cast is safe: we only reorder (copy) the existing elements
+        return [keys, array.slice() as unknown as A extends ReadonlyArray<infer V> ? V[] : unknown[]];
     }
 }

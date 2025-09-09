@@ -140,4 +140,41 @@ describe("Arr", () => {
         // Not really a proper usage, still, test for preserving BC
         expect(Arr.crossJoin()).toEqual([[]]);
     });
+
+    it("divide", () => {
+        // Test dividing an empty array
+        let [keys, values] = Arr.divide([]);
+        expect(keys).toEqual([]);
+        expect(values).toEqual([]);
+
+        // Test dividing an array with a single key-value pair
+        [keys, values] = Arr.divide(["Desk"]);
+        expect(keys).toEqual([0]);
+        expect(values).toEqual(["Desk"]);
+
+        // Test dividing an array with multiple key-value pairs
+        [keys, values] = Arr.divide(["Desk", 100, true]);
+        expect(keys).toEqual([0, 1, 2]);
+        expect(values).toEqual(["Desk", 100, true]);
+
+        // Test dividing an array with numeric keys
+        [keys, values] = Arr.divide(["first", "second"]);
+        expect(keys).toEqual([0, 1]);
+        expect(values).toEqual(["first", "second"]);
+
+        // Test dividing an array with null key
+        [keys, values] = Arr.divide(["Null", "one"]);
+        expect(keys).toEqual([0, 1]);
+        expect(values).toEqual(["Null", "one"]);
+
+        // Test dividing an array where the keys are arrays
+        [keys, values] = Arr.divide([[1, "second"], "one"]);
+        expect(keys).toEqual([0, 1]);
+        expect(values).toEqual([[1, "second"], "one"]);
+
+        // Test dividing an array where the values are arrays
+        [keys, values] = Arr.divide([[1, 2], "one"]);
+        expect(keys).toEqual([0, 1]);
+        expect(values).toEqual([[1, 2], "one"]);
+    });
 });
