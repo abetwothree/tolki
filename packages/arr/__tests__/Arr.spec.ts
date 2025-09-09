@@ -225,4 +225,72 @@ describe("Arr", () => {
             ),
         ).toBe(1);
     });
+
+    it("last", () => {
+        // Callback is null and array is empty
+        expect(Arr.last(null)).toBeNull();
+        expect(Arr.last("", null, null)).toBeNull();
+
+        // Callback is null and string is not empty
+        expect(Arr.last("house", null, null)).toBe("e");
+
+        const data = [100, 200, 300];
+
+        // Callback is null and array is empty
+        expect(Arr.last([], null)).toBeNull();
+
+        expect(Arr.last([], null, "foo")).toBe("foo");
+        expect(Arr.last([], null, () => "bar")).toBe("bar");
+
+        // Callback is null and array is not empty
+        expect(Arr.last(data)).toBe(300);
+
+        // Callback is not null and array is not empty
+        expect(
+            Arr.last(data, (value) => {
+                return value < 250;
+            }),
+        ).toBe(200);
+
+        // Callback is not null, array is not empty but no satisfied item
+        expect(
+            Arr.last(data, (value) => {
+                return value > 300;
+            }),
+        ).toBeNull();
+
+        expect(
+            Arr.last(
+                data,
+                (value) => {
+                    return value > 300;
+                },
+                "bar",
+            ),
+        ).toBe("bar");
+
+        expect(
+            Arr.last(
+                data,
+                (value) => {
+                    return value > 300;
+                },
+                () => "baz",
+            ),
+        ).toBe("baz");
+
+        expect(
+            Arr.last(data, (value, key) => {
+                return key < 2;
+            }),
+        ).toBe(200);
+
+        expect(
+            Arr.last(
+                (function* () {
+                    yield 1;
+                })(),
+            ),
+        ).toBe(1);
+    });
 });

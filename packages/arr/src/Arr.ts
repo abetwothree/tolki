@@ -239,21 +239,102 @@ export class Arr {
     /**
      * Return the last element in an array passing a given truth test.
      *
-     * @template TKey
-     * @template TValue
-     * @template TLastDefault
-     *
-     * @param  iterable<TKey, TValue>  $array
-     * @param  (callable(TValue, TKey): bool)|null  $callback
-     * @param  TLastDefault|(\Closure(): TLastDefault)  $default
-     * @return TValue|TLastDefault
+     * @example
+     * Arr.last([100, 200, 300]); // -> 300
      */
-    static last($array, ?callable $callback = null, $default = null)
-    {
-        if (is_null($callback)) {
-            return empty($array) ? value($default) : array_last($array);
+    // Overload: no predicate, no default
+    static last<T>(
+        data: readonly T[] | Iterable<T> | null | undefined,
+        predicate?: null,
+        defaultValue?: undefined,
+    ): T | null;
+    // Overload: no predicate with default (value or lazy)
+    static last<T, D>(
+        data: readonly T[] | Iterable<T> | null | undefined,
+        predicate: null | undefined,
+        defaultValue: D | (() => D),
+    ): T | D;
+    // Overload: predicate, no default
+    static last<T>(
+        data: readonly T[] | Iterable<T> | null | undefined,
+        predicate: (value: T, index: number) => boolean,
+    ): T | null;
+    // Overload: predicate with default
+    static last<T, D>(
+        data: readonly T[] | Iterable<T> | null | undefined,
+        predicate: (value: T, index: number) => boolean,
+        defaultValue: D | (() => D),
+    ): T | D;
+    static last<T, D>(
+        data: readonly T[] | Iterable<T> | null | undefined,
+        predicate?: ((value: T, index: number) => boolean) | null,
+        defaultValue?: D | (() => D),
+    ): T | D | null {
+        const resolveDefault = (): D | null => {
+            if (defaultValue === undefined) {
+                return null;
+            }
+
+            return typeof defaultValue === "function"
+                ? (defaultValue as () => D)()
+                : (defaultValue as D);
+        };
+
+        if (data == null) {
+            return resolveDefault();
         }
 
-        return static::first(array_reverse($array, true), $callback, $default);
+        const isArray = Array.isArray(data);
+        const iterable: Iterable<T> = isArray
+            ? (data as readonly T[])
+            : (data as Iterable<T>);
+
+        // No predicate case
+        if (!predicate) {
+            if (isArray) {
+                const arr = data as readonly T[];
+                if (arr.length === 0) {
+                    return resolveDefault();
+                }
+
+                return arr[arr.length - 1] as T;
+            }
+
+            // Generic iterable: iterate to the end
+            let last: T | undefined; // track last seen
+            let seen = false;
+            for (const item of iterable) {
+                last = item;
+                seen = true;
+            }
+
+            return seen ? (last as T) : resolveDefault();
+        }
+
+        if (isArray) {
+            const arr = data as readonly T[];
+            for (let i = arr.length - 1; i >= 0; i--) {
+                if (predicate(arr[i] as T, i)) {
+                    return arr[i] as T;
+                }
+            }
+
+            return resolveDefault();
+        }
+
+        // Non-array iterable: iterate forward keeping last match
+        let index = 0;
+        let found = false;
+        let candidate: T | undefined;
+        for (const item of iterable) {
+            if (predicate(item, index)) {
+                candidate = item;
+                found = true;
+            }
+
+            index++;
+        }
+
+        return found ? (candidate as T) : resolveDefault();
     }
 }
