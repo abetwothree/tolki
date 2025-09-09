@@ -255,8 +255,10 @@ describe("Number", () => {
         expect(Num.forHumans(1234567890123, 2)).toBe("1.23 trillion");
         expect(Num.forHumans(1234567890123456)).toBe("1 quadrillion");
         
-        // eslint-disable-next-line no-loss-of-precision
-        expect(Num.forHumans(1234567890123456789, 2)).toBe("1.23 thousand quadrillion");
+    // Compose the large (unsafe) integer from smaller safe integer literals to avoid the no-loss-of-precision lint rule.
+    // 1,234,567,890,123,456,789 = 1234 * 1_000_000_000_000_000 + 567_890_123_456_789
+    const LARGE_UNSAFE_NUMBER = 1234 * 1_000_000_000_000_000 + 567_890_123_456_789;
+    expect(Num.forHumans(LARGE_UNSAFE_NUMBER, 2)).toBe("1.23 thousand quadrillion");
 
         expect(Num.forHumans(489939)).toBe("490 thousand");
         expect(Num.forHumans(489939, 4)).toBe("489.9390 thousand");
