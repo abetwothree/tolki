@@ -3,7 +3,7 @@ name: "test"
 on: workflow_call
 
 permissions:
-  contents: read # to fetch code (actions/checkout)
+  contents: write
 
 jobs:
   unit-test:
