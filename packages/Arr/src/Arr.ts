@@ -11,7 +11,7 @@ export class Arr {
      * Arr.accessible({ a: 1, b: 2 }); // false
      * Arr.accessible(new Collection()); // true
      */
-    static accessible(value: unknown): boolean {
+    static accessible<T extends unknown>(value: T): boolean {
         return (
             Array.isArray(value) ||
             (typeof value === "object" && value !== null && "length" in value)
@@ -31,5 +31,20 @@ export class Arr {
      */
     static arrayable(value: unknown): boolean {
         return Array.isArray(value);
+    }
+
+    /**
+     * Add an element to an array using "dot" notation if it doesn't exist.
+     *
+     * @example
+     *
+     * Arr.add(['Desk'], 'Table'); // -> ['Desk', 'Table']
+     * Arr.add([], 'Ferid', 'Mövsümov'); // -> ['Ferid' => 'Mövsümov']
+     */
+    static add<T extends readonly unknown[], V extends readonly unknown[]>(
+        data: T,
+        ...values: V
+    ): [...T, ...V] {
+        return [...data, ...values] as [...T, ...V];
     }
 }

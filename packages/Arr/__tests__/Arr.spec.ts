@@ -30,4 +30,20 @@ describe("Arr", () => {
         expect(Arr.arrayable(new Date())).toBe(false);
         expect(Arr.arrayable(() => null)).toBe(false);
     });
+
+    it("add", () => {
+        expect(Arr.add(["Desk"], 100)).toEqual(["Desk", 100]);
+
+        expect(Arr.add([], "Ferid", "Mövsümov")).toEqual(["Ferid", "Mövsümov"]);
+
+        expect(Arr.add([], "developer.name")).toEqual(["developer.name"]);
+        expect(Arr.add([], 1, "hAz")).toEqual([1, "hAz"]);
+        expect(Arr.add([], 1.1, "hAz")).toEqual([1.1, "hAz"]);
+        expect(Arr.add([], 1.1, "hAz", new Date(), { k: "v" })).toEqual([
+            1.1,
+            "hAz",
+            new Date(),
+            { k: "v" },
+        ]);
+    });
 });
