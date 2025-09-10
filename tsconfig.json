@@ -23,7 +23,7 @@
         "moduleDetection": "force",
         "skipLibCheck": true,
         "paths": {
-            "@laravel-js/*": ["packages/*/src"]
+            "@laravel-js/*": ["packages/*/src/index.ts"]
         }
     },
     "include": ["packages/**/src", "packages/**/__tests__"]
