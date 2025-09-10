@@ -254,11 +254,14 @@ describe("Number", () => {
         expect(Num.forHumans(1234567890123)).toBe("1 trillion");
         expect(Num.forHumans(1234567890123, 2)).toBe("1.23 trillion");
         expect(Num.forHumans(1234567890123456)).toBe("1 quadrillion");
-        
-    // Compose the large (unsafe) integer from smaller safe integer literals to avoid the no-loss-of-precision lint rule.
-    // 1,234,567,890,123,456,789 = 1234 * 1_000_000_000_000_000 + 567_890_123_456_789
-    const LARGE_UNSAFE_NUMBER = 1234 * 1_000_000_000_000_000 + 567_890_123_456_789;
-    expect(Num.forHumans(LARGE_UNSAFE_NUMBER, 2)).toBe("1.23 thousand quadrillion");
+
+        // Compose the large (unsafe) integer from smaller safe integer literals to avoid the no-loss-of-precision lint rule.
+        // 1,234,567,890,123,456,789 = 1234 * 1_000_000_000_000_000 + 567_890_123_456_789
+        const LARGE_UNSAFE_NUMBER =
+            1234 * 1_000_000_000_000_000 + 567_890_123_456_789;
+        expect(Num.forHumans(LARGE_UNSAFE_NUMBER, 2)).toBe(
+            "1.23 thousand quadrillion",
+        );
 
         expect(Num.forHumans(489939)).toBe("490 thousand");
         expect(Num.forHumans(489939, 4)).toBe("489.9390 thousand");
@@ -388,6 +391,75 @@ describe("Number", () => {
         expect(Num.trim(12.3)).toBe(12.3);
         expect(Num.trim(12.3456789)).toBe(12.3456789);
         expect(Num.trim(12.3456789)).toBe(12.3456789);
+    });
+
+    it("minutesToHuman", () => {
+        expect(Num.minutesToHuman(0)).toBe("0 seconds");
+        expect(Num.minutesToHuman(1)).toBe("1 minute");
+        expect(Num.minutesToHuman(60)).toBe("1 hour");
+        expect(Num.minutesToHuman(61)).toBe("1 hour");
+        expect(Num.minutesToHuman(61, false)).toBe("1 hour, 1 minute");
+        expect(Num.minutesToHuman(120)).toBe("2 hours");
+        expect(Num.minutesToHuman(121)).toBe("2 hours");
+        expect(Num.minutesToHuman(121, false)).toBe("2 hours, 1 minute");
+        expect(Num.minutesToHuman(1440)).toBe("1 day");
+        expect(Num.minutesToHuman(1500)).toBe("1 day");
+        expect(Num.minutesToHuman(1500, false)).toBe("1 day, 1 hour");
+        expect(Num.minutesToHuman(2880)).toBe("2 days");
+        expect(Num.minutesToHuman(4320)).toBe("3 days");
+        expect(Num.minutesToHuman(10080)).toBe("1 week");
+        expect(Num.minutesToHuman(20160)).toBe("1 month");
+        expect(Num.minutesToHuman(43200)).toBe("1 month");
+        expect(Num.minutesToHuman(86400)).toBe("2 months");
+        expect(Num.minutesToHuman(525600)).toBe("1 year");
+        expect(Num.minutesToHuman(1051200)).toBe("2 years");
+    });
+
+    it("secondsToHuman - with round", () => {
+        expect(Num.secondsToHuman(-20)).toBe("0 seconds");
+        expect(Num.secondsToHuman(0)).toBe("0 seconds");
+        expect(Num.secondsToHuman(1)).toBe("1 second");
+        expect(Num.secondsToHuman(60)).toBe("1 minute");
+        expect(Num.secondsToHuman(3600)).toBe("1 hour");
+        expect(Num.secondsToHuman(86400)).toBe("1 day");
+        expect(Num.secondsToHuman(604800)).toBe("1 week");
+        expect(Num.secondsToHuman(2419200)).toBe("1 month");
+        expect(Num.secondsToHuman(29030400)).toBe("1 year");
+    });
+
+    it("secondsToHuman - no round", () => {
+        expect(Num.secondsToHuman(0, false)).toBe("0 seconds");
+        expect(Num.secondsToHuman(1, false)).toBe("1 second");
+        expect(Num.secondsToHuman(60, false)).toBe("1 minute");
+        expect(Num.secondsToHuman(3600, false)).toBe("1 hour");
+        expect(Num.secondsToHuman(86400, false)).toBe("1 day");
+        expect(Num.secondsToHuman(604800, false)).toBe("1 week");
+        expect(Num.secondsToHuman(2419200, false)).toBe("1 month");
+        expect(Num.secondsToHuman(29030400, false)).toBe("1 year");
+
+        expect(Num.secondsToHuman(3610, false)).toBe("1 hour, 10 seconds");
+        expect(Num.secondsToHuman(3661, false)).toBe(
+            "1 hour, 1 minute, 1 second",
+        );
+        expect(Num.secondsToHuman(7325, false)).toBe(
+            "2 hours, 2 minutes, 5 seconds",
+        );
+        expect(Num.secondsToHuman(86461, false)).toBe(
+            "1 day, 1 minute, 1 second",
+        );
+        expect(Num.secondsToHuman(90061, false)).toBe(
+            "1 day, 1 hour, 1 minute, 1 second",
+        );
+        expect(Num.secondsToHuman(172800, false)).toBe("2 days");
+        expect(Num.secondsToHuman(604861, false)).toBe(
+            "1 week, 1 minute, 1 second",
+        );
+        expect(Num.secondsToHuman(2419261, false)).toBe(
+            "1 month, 1 minute, 1 second",
+        );
+        expect(Num.secondsToHuman(29031061, false)).toBe(
+            "1 year, 11 minutes, 1 second",
+        );
     });
 
     it("withLocale", () => {

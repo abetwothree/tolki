@@ -524,6 +524,96 @@ export class Num {
     }
 
     /**
+     * Convert a duration in minutes to a human-readable format.
+     *
+     * @param minutes The duration in minutes.
+     * @param round Whether to round to the nearest unit.
+     * @returns The human-readable duration string.
+     *
+     * @example
+     *
+     * Num.minutesToHuman(61); // "1 hour"
+     * Num.minutesToHuman(61, false); // "1 hour, 1 minute"
+     */
+    static minutesToHuman(
+        minutes: number | string,
+        round: boolean = true,
+    ): string {
+        const seconds = Number(minutes) * 60;
+
+        return this.secondsToHuman(seconds, round);
+    }
+
+    /**
+     * Convert a duration in seconds to a human-readable format.
+     *
+     * @param seconds The duration in seconds.
+     * @param round Whether to round to the nearest unit.
+     * @returns The human-readable duration string.
+     *
+     * @example
+     *
+     * Num.secondsToHuman(3661); // "1 hour"
+     * Num.secondsToHuman(3661, false); // "1 hour, 1 minute, 1 second"
+     */
+    static secondsToHuman(
+        seconds: number | string,
+        round: boolean = true,
+    ): string {
+        // When round = true: choose the single most appropriate unit, rounding to nearest.
+        // Threshold to promote to a larger unit is half of that unit (e.g. 30s -> 1 minute).
+        // When round = false: return a full breakdown (e.g. "1 hour, 2 minutes, 5 seconds").
+        let totalSeconds = Number(seconds);
+        if (!Number.isFinite(totalSeconds) || totalSeconds < 0) {
+            totalSeconds = 0;
+        }
+
+        if (totalSeconds === 0) return "0 seconds";
+
+        const SECOND = 1;
+        const MINUTE = 60 * SECOND;
+        const HOUR = 60 * MINUTE;
+        const DAY = 24 * HOUR;
+        const WEEK = 7 * DAY;
+        const MONTH = 4 * WEEK; // consistent with earlier logic (4-week months)
+        const YEAR = 12 * MONTH; // 48 weeks
+
+        const units: [name: string, seconds: number][] = [
+            ["year", YEAR],
+            ["month", MONTH],
+            ["week", WEEK],
+            ["day", DAY],
+            ["hour", HOUR],
+            ["minute", MINUTE],
+            ["second", SECOND],
+        ];
+
+        if (round) {
+            // Pick first unit where ratio >= 0.5 (nearest unit heuristic)
+            for (const [name, unitSeconds] of units) {
+                const ratio = totalSeconds / unitSeconds;
+                if (ratio >= 0.5 || unitSeconds === SECOND) {
+                    const count = Math.round(ratio);
+                    return `${count} ${name}${count === 1 ? "" : "s"}`;
+                }
+            }
+        }
+
+        // Detailed breakdown
+        let remaining = totalSeconds;
+        const parts: string[] = [];
+        for (const [name, unitSeconds] of units) {
+            if (remaining >= unitSeconds) {
+                const count = Math.floor(remaining / unitSeconds);
+                remaining -= count * unitSeconds;
+                parts.push(`${count} ${name}${count === 1 ? "" : "s"}`);
+            }
+        }
+
+        return parts.join(", ");
+    }
+
+    /**
      * Execute the given callback using the given locale.
      *
      * @example
