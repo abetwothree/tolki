@@ -16,11 +16,13 @@ const entries = Object.fromEntries(
         }),
 );
 
-export default defineConfig(mergeConfig(baseViteConfig, {
-    build: {
-        lib: {
-            entry: entries,
-            name: "Num",
+export default defineConfig(
+    mergeConfig(baseViteConfig, {
+        build: {
+            lib: {
+                entry: entries,
+                name: "Num",
+            },
         },
-    },
-}));
+    }),
+);

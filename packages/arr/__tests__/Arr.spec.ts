@@ -319,4 +319,24 @@ describe("Arr", () => {
             ),
         ).toBe("lazy");
     });
+
+    it("take", () => {
+        // $array = [1, 2, 3, 4, 5, 6];
+        const data = [1, 2, 3, 4, 5, 6];
+
+        // Test with a positive limit, should return the first 'limit' elements.
+        expect(Arr.take(data, 3)).toEqual([1, 2, 3]);
+
+        // Test with a negative limit, should return the last 'abs(limit)' elements.
+        expect(Arr.take(data, -3)).toEqual([4, 5, 6]);
+
+        // Test with zero limit, should return an empty array.
+        expect(Arr.take(data, 0)).toEqual([]);
+
+        // Test with a limit greater than the array size, should return the entire array.
+        expect(Arr.take(data, 10)).toEqual([1, 2, 3, 4, 5, 6]);
+
+        // Test with a negative limit greater than the array size, should return the entire array.
+        expect(Arr.take(data, -10)).toEqual([1, 2, 3, 4, 5, 6]);
+    });
 });

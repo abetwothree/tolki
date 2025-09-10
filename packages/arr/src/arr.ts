@@ -336,3 +336,43 @@ export function last<T, D>(
 
     return found ? (candidate as T) : resolveDefault();
 }
+
+/**
+ * Take the first or last `limit` items from an array.
+ *
+ * Positive limit => first `limit` items.
+ * Negative limit => last `abs(limit)` items.
+ * Oversized | zero => returns entire or empty array accordingly.
+ *
+ * @param data The array to take items from.
+ * @param limit The number of items to take. Positive for first N, negative for last N.
+ * @returns A new array containing the taken items.
+ *
+ * @example
+ *
+ * take([1, 2, 3, 4, 5], 2); // -> [1, 2]
+ * take([1, 2, 3, 4, 5], -2); // -> [4, 5]
+ * take([1, 2, 3], 5); // -> [1, 2, 3]
+ */
+export function take<T>(
+    data: readonly T[] | null | undefined,
+    limit: number,
+): T[] {
+    if (!data || limit === 0) {
+        return [];
+    }
+
+    const length = data.length;
+    if (length === 0) return [];
+
+    // Positive: first N
+    if (limit > 0) {
+        if (limit >= length) return data.slice();
+        return data.slice(0, limit);
+    }
+
+    // Negative: last abs(N)
+    const count = Math.abs(limit);
+    if (count >= length) return data.slice();
+    return data.slice(length - count);
+}
