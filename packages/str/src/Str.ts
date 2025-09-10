@@ -16,7 +16,7 @@ import {
     v7 as uuidv7,
 } from "uuid";
 import { ulid as createUlid } from "ulid";
-import { Num } from "@laravel-js/num";
+import { format } from "@laravel-js/num";
 import {
     MarkdownRenderer,
     type MarkDownOptions,
@@ -1250,7 +1250,7 @@ export class Str {
         prependCount: boolean = false,
     ): string {
         return (
-            (prependCount ? Num.format(count) + " " : "") +
+            (prependCount ? format(count) + " " : "") +
             Pluralizer.plural(value, count)
         );
     }
