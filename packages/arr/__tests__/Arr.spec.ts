@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Arr } from "@laravel-js/arr";
+import * as Arr from "@laravel-js/arr";
 import { Collection } from "@laravel-js/collection";
 
 describe("Arr", () => {
@@ -311,6 +311,12 @@ describe("Arr", () => {
         expect(Arr.last(gen(), (v) => v > 5, "fallback")).toBe("fallback");
 
         // No match with lazy default
-        expect(Arr.last(gen(), (v) => v > 5, () => "lazy")).toBe("lazy");
+        expect(
+            Arr.last(
+                gen(),
+                (v) => v > 5,
+                () => "lazy",
+            ),
+        ).toBe("lazy");
     });
 });
