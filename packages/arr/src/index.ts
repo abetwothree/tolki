@@ -1,1 +1,1 @@
-export * from "./Arr";
+export * from "./arr";

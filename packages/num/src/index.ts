@@ -1,2 +1,2 @@
-export * from "./Num";
-export * from "./Speller";
+export * from "./num";
+export * from "./speller";
