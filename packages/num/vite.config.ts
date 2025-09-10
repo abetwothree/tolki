@@ -1,20 +1,9 @@
 import { defineConfig, mergeConfig } from "vite";
-import { glob } from "glob";
 
 import baseViteConfig from "../../vite.config";
+import { buildPackageEntries } from "../../scripts/entries";
 
-const entries = Object.fromEntries(
-    glob
-        .sync("./src/**/*.ts", {
-            ignore: ["src/**/*.d.ts"],
-        })
-        .map((file) => {
-            return [
-                file.replace("src/", "").replace(".ts", "").toLowerCase(),
-                file,
-            ];
-        }),
-);
+const entries = buildPackageEntries("src/**/*.ts", import.meta.url);
 
 export default defineConfig(
     mergeConfig(baseViteConfig, {
