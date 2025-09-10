@@ -20,7 +20,7 @@ export default defineConfig(mergeConfig(baseViteConfig, {
     build: {
         lib: {
             entry: entries,
-            name: "Str",
+            name: "Num",
         },
     },
 }));

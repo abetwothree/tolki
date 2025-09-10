@@ -1,6 +1,7 @@
-import { defineConfig } from "vite";
-import dts from "vite-plugin-dts";
+import { defineConfig, mergeConfig } from "vite";
 import { glob } from "glob";
+
+import baseViteConfig from "../../vite.config";
 
 const entries = Object.fromEntries(
     glob
@@ -15,23 +16,11 @@ const entries = Object.fromEntries(
         }),
 );
 
-export default defineConfig({
-    plugins: [
-        dts({
-            outDir: "dist",
-            entryRoot: "src",
-            staticImport: true,
-        }),
-    ],
+export default defineConfig(mergeConfig(baseViteConfig, {
     build: {
-        outDir: "dist",
         lib: {
             entry: entries,
             name: "Arr",
         },
-        rollupOptions: {
-            external: ["@laravel-js/collection", "@laravel-js/str"],
-        },
-        sourcemap: true,
     },
-});
+}));
