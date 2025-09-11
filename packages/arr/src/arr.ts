@@ -383,9 +383,9 @@ export function take<T>(
  * @param data The array (or Collection) to flatten.
  * @param depth Maximum depth to flatten. Use Infinity for full flattening.
  * @returns A new flattened array.
- * 
+ *
  * @example
- * 
+ *
  * flatten([1, [2, [3, 4]], 5]); // -> [1, 2, 3, 4, 5]
  * flatten([1, [2, [3, 4]], 5], 1); // -> [1, 2, [3, 4], 5]
  * flatten(new Collection([1, new Collection([2, 3]), 4])); // -> [1, 2, 3, 4]

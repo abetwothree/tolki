@@ -342,7 +342,7 @@ describe("Arr", () => {
 
     it("flatten", () => {
         // Flat arrays are unaffected
-    let data: unknown[] = ["#foo", "#bar", "#baz"];
+        let data: unknown[] = ["#foo", "#bar", "#baz"];
         expect(Arr.flatten(data)).toEqual(["#foo", "#bar", "#baz"]);
 
         // Nested arrays are flattened with existing flat items
