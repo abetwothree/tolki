@@ -506,16 +506,8 @@ export function forget<T>(
     };
 
     const forgetPath = <U>(arr: ReadonlyArray<U>, path: number[]): U[] => {
-        if (path.length === 0) {
-            return arr.slice();
-        }
-
         const head = path[0];
         const rest = path.slice(1);
-        if (!Array.isArray(arr)) {
-            return arr.slice();
-        }
-
         const clone = arr.slice();
 
         if (rest.length === 0) {

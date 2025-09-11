@@ -355,6 +355,9 @@ describe("Arr", () => {
 
         // Test with a negative limit greater than the array size, should return the entire array.
         expect(Arr.take(data, -10)).toEqual([1, 2, 3, 4, 5, 6]);
+
+        // Empty array with non-zero limit returns [] (covers early return when length === 0)
+        expect(Arr.take([], 3)).toEqual([]);
     });
 
     it("flatten", () => {
