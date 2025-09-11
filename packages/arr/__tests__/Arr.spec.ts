@@ -179,7 +179,12 @@ describe("Arr", () => {
     });
 
     it("except", () => {
-        expect(Arr.except(["a", "b", "c", "d"], null)).toEqual(["a", "b", "c", "d"]);
+        expect(Arr.except(["a", "b", "c", "d"], null)).toEqual([
+            "a",
+            "b",
+            "c",
+            "d",
+        ]);
         expect(Arr.except(["a", "b", "c", "d"], 1)).toEqual(["a", "c", "d"]);
         expect(Arr.except(["a", "b", "c", "d"], [0, 2])).toEqual(["b", "d"]);
     });
@@ -456,40 +461,40 @@ describe("Arr", () => {
         expect(Arr.forget(base, "0.-1")).toEqual(base);
 
         // 3) Duplicate keys are effectively de-duplicated
-        expect(Arr.forget(["a", "b"], ["1", "1"]))
-            .toEqual(["a"]);
+        expect(Arr.forget(["a", "b"], ["1", "1"])).toEqual(["a"]);
 
         // 4) Mixed keys: nested then top-level removal => top-level dominates
         expect(Arr.forget(base, ["1.0", 1])).toEqual(["products"]);
 
         // 5) Root multi-index deletion should be order independent (descending applied)
-        expect(Arr.forget([10, 20, 30, 40], [0, 2]))
-            .toEqual([20, 40]);
-        expect(Arr.forget([10, 20, 30, 40], [2, 0]))
-            .toEqual([20, 40]);
+        expect(Arr.forget([10, 20, 30, 40], [0, 2])).toEqual([20, 40]);
+        expect(Arr.forget([10, 20, 30, 40], [2, 0])).toEqual([20, 40]);
 
         // 6) Traversal into non-array child is a no-op
         expect(Arr.forget(base, "0.0")).toEqual(base);
 
         // 7) Empty input remains empty regardless of keys
         expect(Arr.forget([], "0")).toEqual([]);
-        expect(Arr.forget([], ["0", "1"]))
-            .toEqual([]);
+        expect(Arr.forget([], ["0", "1"])).toEqual([]);
 
         // 8) Numeric-string with leading zeros acts numerically
         expect(Arr.forget(base, "01")).toEqual(["products"]);
 
         // 9) Mixed valid/invalid multi-keys only apply valid parts
-        expect(Arr.forget(base, ["1.0", "foo", "1.a", "", ".."]))
-            .toEqual(["products", [[100]]]);
+        expect(Arr.forget(base, ["1.0", "foo", "1.a", "", ".."])).toEqual([
+            "products",
+            [[100]],
+        ]);
 
         // 10) Deep out-of-range on a nested path is a no-op
         expect(Arr.forget(base, "1.5.1")).toEqual(base);
 
         // 11) Multiple deletions within the same nested parent
         const nested = ["prices", [100, 200, 300, 400]];
-        expect(Arr.forget(nested, ["1.0", "1.3"]))
-            .toEqual(["prices", [200, 300]]);
+        expect(Arr.forget(nested, ["1.0", "1.3"])).toEqual([
+            "prices",
+            [200, 300],
+        ]);
 
         // 12) Immutability: original input must remain unchanged
         const subject = ["products", ["desk", [100]]];
@@ -500,17 +505,16 @@ describe("Arr", () => {
 
         // 13) Multi-key path: parent index out-of-range triggers updateAtPath early return
         // Provide 2+ keys to bypass single-key fast path
-        expect(Arr.forget(base, ["5.0", 99]))
-                .toEqual(base);
+        expect(Arr.forget(base, ["5.0", 99])).toEqual(base);
 
         // 14) Multi-key path: parent exists but child is not an array -> updateAtPath returns clone unchanged
         // Parent path [0] points to a string 'products', so attempting to delete '0.1' should no-op
-        expect(Arr.forget(base, ["0.1", 99]))
-                .toEqual(base);
+        expect(Arr.forget(base, ["0.1", 99])).toEqual(base);
 
         // 15) Root group with only invalid indices (non-integer/negative) -> sorted becomes empty and is skipped
-        expect(Arr.forget([10, 20, 30], [1.5 as unknown as number, -2]))
-            .toEqual([10, 20, 30]);
+        expect(
+            Arr.forget([10, 20, 30], [1.5 as unknown as number, -2]),
+        ).toEqual([10, 20, 30]);
     });
 
     it("from", () => {
@@ -538,18 +542,26 @@ describe("Arr", () => {
     });
 
     it("get", () => {
-    const data = ["products", ["desk", [100, 200, 400]], ["table", [200, 300], ["chair", [500, 600]]]];
+        const data = [
+            "products",
+            ["desk", [100, 200, 400]],
+            ["table", [200, 300], ["chair", [500, 600]]],
+        ];
         expect(Arr.get(data, 0)).toEqual("products");
         expect(Arr.get(data, 1)).toEqual(["desk", [100, 200, 400]]);
-    // Numeric-only dot paths
-    expect(Arr.get(data, "1.0")).toEqual("desk");
-    expect(Arr.get(data, "1.1.0")).toEqual(100);
-    expect(Arr.get(data, "1.1.1")).toEqual(200);
-    expect(Arr.get(data, "1.1.2")).toEqual(400);
-    expect(Arr.get(data, 2)).toEqual(["table", [200, 300], ["chair", [500, 600]]]);
-    // Out-of-bounds within dot traversal -> default/null
-    expect(Arr.get(data, "1.9")).toBeNull();
-    expect(Arr.get(data, "2.9", "default")).toBe("default");
+        // Numeric-only dot paths
+        expect(Arr.get(data, "1.0")).toEqual("desk");
+        expect(Arr.get(data, "1.1.0")).toEqual(100);
+        expect(Arr.get(data, "1.1.1")).toEqual(200);
+        expect(Arr.get(data, "1.1.2")).toEqual(400);
+        expect(Arr.get(data, 2)).toEqual([
+            "table",
+            [200, 300],
+            ["chair", [500, 600]],
+        ]);
+        // Out-of-bounds within dot traversal -> default/null
+        expect(Arr.get(data, "1.9")).toBeNull();
+        expect(Arr.get(data, "2.9", "default")).toBe("default");
 
         // Test null array values
         const dataNull = ["foo", null, "bar", ["baz", null]];
@@ -577,10 +589,9 @@ describe("Arr", () => {
         expect(Arr.get([], null)).toEqual([]);
         expect(Arr.get([], null, "default")).toEqual([]);
 
-        
-    const data3 = ["products", [{ name: "desk" }, { name: "chair" }]];
-    expect(Arr.get(data3, "1.0")).toEqual({ name: "desk" });
-    expect(Arr.get(data3, "1.1")).toEqual({ name: "chair" });
+        const data3 = ["products", [{ name: "desk" }, { name: "chair" }]];
+        expect(Arr.get(data3, "1.0")).toEqual({ name: "desk" });
+        expect(Arr.get(data3, "1.1")).toEqual({ name: "chair" });
 
         // Test return default value for non-existing key or non-numeric key
         const data4 = ["names", { developer: "taylor" }];
@@ -604,8 +615,8 @@ describe("Arr", () => {
         expect(Arr.get(coll, "1.0")).toBe("y");
         expect(Arr.get(coll, null)).toEqual([["x"], ["y"]]);
 
-    // Default is null when not provided and key missing
-    expect(Arr.get(["a"], 9)).toBeNull();
-    expect(Arr.get(null as unknown as unknown[], 1)).toBeNull();
+        // Default is null when not provided and key missing
+        expect(Arr.get(["a"], 9)).toBeNull();
+        expect(Arr.get(null as unknown as unknown[], 1)).toBeNull();
     });
 });

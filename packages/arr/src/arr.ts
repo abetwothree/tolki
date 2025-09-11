@@ -8,7 +8,12 @@ export type InnerValue<X> =
           ? U
           : never;
 
-export type ArrayKeys = number | string | Array<number | string> | null | undefined;
+export type ArrayKeys =
+    | number
+    | string
+    | Array<number | string>
+    | null
+    | undefined;
 
 /**
  * Determine whether the given value is array accessible.
@@ -160,16 +165,13 @@ export function divide<A extends readonly unknown[]>(
  * @param  data - The array to remove items from.
  * @param  keys - The keys of the items to remove.
  * @returns A new array with the specified items removed.
- * 
+ *
  * @example
  *
  * except(["a", "b", "c"], 1); // -> ['a', 'c']
  * except(["a", "b", "c"], [0, 2]); // -> ['b']
  */
-export function except<T>(
-    data: ReadonlyArray<T>,
-    keys: ArrayKeys,
-): T[] {
+export function except<T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] {
     return forget(data, keys);
 }
 
@@ -511,10 +513,7 @@ export function flatten(
  * forget(['products', ['desk', [100]]], '1.1'); // -> ['products', ['desk']]
  * forget(['products', ['desk', [100]]], 2); // -> ['products', ['desk', [100]]]
  */
-export function forget<T>(
-    data: ReadonlyArray<T>,
-    keys: ArrayKeys,
-): T[] {
+export function forget<T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] {
     const removeAt = <U>(arr: ReadonlyArray<U>, index: number): U[] => {
         if (!Number.isInteger(index) || index < 0 || index >= arr.length) {
             return arr.slice();
@@ -733,9 +732,9 @@ export function from(items: unknown): unknown {
  * @param  key - The key or dot-notated path of the item to get.
  * @param  default - The default value if key is not found
  * @returns The value or the default
- * 
+ *
  * @example
- * 
+ *
  * get(['foo', 'bar', 'baz'], 1); // -> 'bar'
  * get(['foo', 'bar', 'baz'], null); // -> ['foo', 'bar', 'baz']
  * get(['foo', 'bar', 'baz'], 9, 'default'); // -> 'default'
@@ -757,7 +756,10 @@ export function get<T, D = null>(
     }
 
     // Normalize to a plain array for traversal
-    const root: unknown[] = data instanceof Collection ? (data.all() as unknown[]) : (data as unknown[]);
+    const root: unknown[] =
+        data instanceof Collection
+            ? (data.all() as unknown[])
+            : (data as unknown[]);
 
     if (key == null) {
         return root as unknown as ReadonlyArray<T>;
@@ -766,7 +768,8 @@ export function get<T, D = null>(
     // Helper to fetch a direct index with default-on-null
     const fetchIndex = (arr: unknown[], idxLike: number | string): unknown => {
         const idx = typeof idxLike === "number" ? idxLike : Number(idxLike);
-        if (!Number.isInteger(idx) || idx < 0 || idx >= arr.length) return undefined;
+        if (!Number.isInteger(idx) || idx < 0 || idx >= arr.length)
+            return undefined;
         return arr[idx];
     };
 
