@@ -16,7 +16,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: ".nvmrc"
+          node-version-file: ".node-version"
           cache: "pnpm"
 
       - run: pnpm install
@@ -37,7 +37,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: ".nvmrc"
+          node-version-file: ".node-version"
           cache: "pnpm"
 
       - run: pnpm install
@@ -62,18 +62,6 @@ jobs:
           cache: "pnpm"
 
       - run: pnpm install
-        
-      # - name: Lint and Format
-      #   run: pnpm run lint && pnpm run format
-
-      # - name: Commit changes
-      #   uses: stefanzweifel/git-auto-commit-action@v5
-      #   with:
-      #     commit_message: Fix linting and formatting
-      #     file_pattern: |
-      #       packages/**/src/**/*.*
-      #       packages/**/package.json
-      #       *.md
 
       - name: Run eslint
         run: pnpm run lint
