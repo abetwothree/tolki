@@ -502,9 +502,9 @@ export function flatten(
  * @param  data - The array to remove items from.
  * @param  keys - The keys of the items to remove.
  * @returns A new array with the specified items removed.
- * 
+ *
  * @example
- * 
+ *
  * forget(['products', ['desk', [100]]], null); // -> ['products', ['desk', [100]]]
  * forget(['products', ['desk', [100]]], '1'); // -> ['products']
  * forget(['products', ['desk', [100]]], 1); // -> ['products']
@@ -522,7 +522,7 @@ export function forget<T>(
 
         const clone = arr.slice();
         clone.splice(index, 1);
-        
+
         return clone;
     };
 
@@ -596,11 +596,11 @@ export function forget<T>(
         const parts = String(k)
             .split(".")
             .map((p) => (p.length ? Number(p) : NaN));
-        
+
         if (parts.length === 1) {
             return removeAt(data, parts[0]!);
         }
-        
+
         if (parts.some((n) => Number.isNaN(n))) {
             return data.slice();
         }
