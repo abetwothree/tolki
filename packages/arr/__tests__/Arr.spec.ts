@@ -178,6 +178,12 @@ describe("Arr", () => {
         expect(values).toEqual([[1, 2], "one"]);
     });
 
+    it("except", () => {
+        expect(Arr.except(["a", "b", "c", "d"], null)).toEqual(["a", "b", "c", "d"]);
+        expect(Arr.except(["a", "b", "c", "d"], 1)).toEqual(["a", "c", "d"]);
+        expect(Arr.except(["a", "b", "c", "d"], [0, 2])).toEqual(["b", "d"]);
+    });
+
     it("exists", () => {
         expect(Arr.exists([1], 0)).toBe(true);
         expect(Arr.exists([1], "0")).toBe(true);
@@ -529,5 +535,77 @@ describe("Arr", () => {
         expect(() => Arr.from(null)).toThrow(Error);
         expect(() => Arr.from(undefined)).toThrow(Error);
         expect(() => Arr.from(Symbol("sym"))).toThrow(Error);
+    });
+
+    it("get", () => {
+    const data = ["products", ["desk", [100, 200, 400]], ["table", [200, 300], ["chair", [500, 600]]]];
+        expect(Arr.get(data, 0)).toEqual("products");
+        expect(Arr.get(data, 1)).toEqual(["desk", [100, 200, 400]]);
+    // Numeric-only dot paths
+    expect(Arr.get(data, "1.0")).toEqual("desk");
+    expect(Arr.get(data, "1.1.0")).toEqual(100);
+    expect(Arr.get(data, "1.1.1")).toEqual(200);
+    expect(Arr.get(data, "1.1.2")).toEqual(400);
+    expect(Arr.get(data, 2)).toEqual(["table", [200, 300], ["chair", [500, 600]]]);
+    // Out-of-bounds within dot traversal -> default/null
+    expect(Arr.get(data, "1.9")).toBeNull();
+    expect(Arr.get(data, "2.9", "default")).toBe("default");
+
+        // Test null array values
+        const dataNull = ["foo", null, "bar", ["baz", null]];
+        expect(Arr.get(dataNull, "foo", "default")).toBe("default");
+        expect(Arr.get(dataNull, "bar.baz", "default")).toBe("default");
+        expect(Arr.get(dataNull, 0, "default")).toBe("foo");
+        expect(Arr.get(dataNull, "1", "default")).toBe("default");
+        expect(Arr.get(dataNull, 1, "default")).toBe("default");
+        expect(Arr.get(dataNull, 2, "default")).toBe("bar");
+
+        // Test null key returns the whole array
+        const data2 = ["foo", "bar"];
+        expect(Arr.get(data2, null)).toEqual(data2);
+        expect(Arr.get(data2, undefined)).toEqual(data2);
+
+        // Test $array not an array
+        expect(Arr.get(null, "foo", "default")).toBe("default");
+        expect(Arr.get("false", "foo", "default")).toBe("default");
+
+        // Test $array not an array and key is null
+        expect(Arr.get(null, null, "default")).toBe("default");
+        expect(Arr.get("false", null, "default")).toBe("default");
+
+        // Test $array is empty and key is null
+        expect(Arr.get([], null)).toEqual([]);
+        expect(Arr.get([], null, "default")).toEqual([]);
+
+        
+    const data3 = ["products", [{ name: "desk" }, { name: "chair" }]];
+    expect(Arr.get(data3, "1.0")).toEqual({ name: "desk" });
+    expect(Arr.get(data3, "1.1")).toEqual({ name: "chair" });
+
+        // Test return default value for non-existing key or non-numeric key
+        const data4 = ["names", { developer: "taylor" }];
+        expect(Arr.get(data4, "1.5", "dayle")).toBe("dayle");
+        expect(Arr.get(data4, "1.developer", "dayle")).toBe("dayle");
+
+        // Lazy default should be evaluated only when needed
+        let called = 0;
+        const lazy = () => {
+            called++;
+            return "lazy";
+        };
+        expect(Arr.get(["a"], 0, lazy)).toBe("a"); // no default
+        expect(called).toBe(0);
+        expect(Arr.get(["a"], 2, lazy)).toBe("lazy"); // default used
+        expect(called).toBe(1);
+
+        // Collections are supported
+        const coll = new Collection([["x"], ["y"]]);
+        expect(Arr.get(coll, 0)).toEqual(["x"]);
+        expect(Arr.get(coll, "1.0")).toBe("y");
+        expect(Arr.get(coll, null)).toEqual([["x"], ["y"]]);
+
+    // Default is null when not provided and key missing
+    expect(Arr.get(["a"], 9)).toBeNull();
+    expect(Arr.get(null as unknown as unknown[], 1)).toBeNull();
     });
 });

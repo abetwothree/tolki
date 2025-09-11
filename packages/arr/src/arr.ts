@@ -8,6 +8,8 @@ export type InnerValue<X> =
           ? U
           : never;
 
+export type ArrayKeys = number | string | Array<number | string> | null | undefined;
+
 /**
  * Determine whether the given value is array accessible.
  *
@@ -150,6 +152,25 @@ export function divide<A extends readonly unknown[]>(
             ? V[]
             : unknown[],
     ];
+}
+
+/**
+ * Get all of the given array except for a specified array of keys.
+ *
+ * @param  data - The array to remove items from.
+ * @param  keys - The keys of the items to remove.
+ * @returns A new array with the specified items removed.
+ * 
+ * @example
+ *
+ * except(["a", "b", "c"], 1); // -> ['a', 'c']
+ * except(["a", "b", "c"], [0, 2]); // -> ['b']
+ */
+export function except<T>(
+    data: ReadonlyArray<T>,
+    keys: ArrayKeys,
+): T[] {
+    return forget(data, keys);
 }
 
 /**
@@ -492,7 +513,7 @@ export function flatten(
  */
 export function forget<T>(
     data: ReadonlyArray<T>,
-    keys: number | string | Array<number | string> | null | undefined,
+    keys: ArrayKeys,
 ): T[] {
     const removeAt = <U>(arr: ReadonlyArray<U>, index: number): U[] => {
         if (!Number.isInteger(index) || index < 0 || index >= arr.length) {
@@ -703,4 +724,78 @@ export function from(items: unknown): unknown {
 
     // Scalars not supported
     throw new Error("Items cannot be represented by a scalar value.");
+}
+
+/**
+ * Get an item from an array (or Collection) using numeric-only dot notation.
+ *
+ * @param  data - The array or Collection to get the item from.
+ * @param  key - The key or dot-notated path of the item to get.
+ * @param  default - The default value if key is not found
+ * @returns The value or the default
+ * 
+ * @example
+ * 
+ * get(['foo', 'bar', 'baz'], 1); // -> 'bar'
+ * get(['foo', 'bar', 'baz'], null); // -> ['foo', 'bar', 'baz']
+ * get(['foo', 'bar', 'baz'], 9, 'default'); // -> 'default'
+ */
+export function get<T, D = null>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    key: number | string | null | undefined,
+    defaultValue?: D | (() => D),
+): T | D | ReadonlyArray<T> | null {
+    const resolveDefault = (): D | null => {
+        if (defaultValue === undefined) return null;
+        return typeof defaultValue === "function"
+            ? (defaultValue as () => D)()
+            : (defaultValue as D);
+    };
+
+    if (!accessible(data)) {
+        return resolveDefault();
+    }
+
+    // Normalize to a plain array for traversal
+    const root: unknown[] = data instanceof Collection ? (data.all() as unknown[]) : (data as unknown[]);
+
+    if (key == null) {
+        return root as unknown as ReadonlyArray<T>;
+    }
+
+    // Helper to fetch a direct index with default-on-null
+    const fetchIndex = (arr: unknown[], idxLike: number | string): unknown => {
+        const idx = typeof idxLike === "number" ? idxLike : Number(idxLike);
+        if (!Number.isInteger(idx) || idx < 0 || idx >= arr.length) return undefined;
+        return arr[idx];
+    };
+
+    if (typeof key === "number") {
+        const val = fetchIndex(root, key);
+        return val == null ? resolveDefault() : (val as T);
+    }
+
+    // String key: dot path or single numeric-string
+    const path = String(key);
+    if (path.indexOf(".") === -1) {
+        const val = fetchIndex(root, path);
+        return val == null ? resolveDefault() : (val as T);
+    }
+
+    // Dot path traversal (numeric-only segments)
+    const segments = path.split(".");
+    let cursor: unknown = root;
+    for (const seg of segments) {
+        const idx = seg.length ? Number(seg) : NaN;
+        if (!Array.isArray(cursor) || !Number.isInteger(idx) || idx < 0) {
+            return resolveDefault();
+        }
+        const arr = cursor as unknown[];
+        if (idx >= arr.length) {
+            return resolveDefault();
+        }
+        cursor = arr[idx];
+    }
+
+    return cursor == null ? resolveDefault() : (cursor as T);
 }
