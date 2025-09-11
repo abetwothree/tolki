@@ -427,3 +427,59 @@ export function flatten(
 
     return result;
 }
+
+/**
+ * Get the underlying array or object of items from the given argument.
+ *
+ * @param items The array, Collection, Map, or object to extract from.
+ * @returns The underlying array or object.
+ * 
+ * @example
+ * 
+ * from([1, 2, 3]); // -> [1, 2, 3]
+ * from(new Collection([1, 2, 3])); // -> [1, 2, 3]
+ * from({ foo: 'bar' }); // -> { foo: 'bar' }
+ * from(new Map([['foo', 'bar']])); // -> { foo: 'bar' }
+ * 
+ * @throws Error if items is a WeakMap or a scalar value.
+ */
+export function from<T>(items: ReadonlyArray<T>): T[];
+export function from<T extends unknown[]>(items: Collection<T>): T[];
+export function from<V>(items: Map<PropertyKey, V>): Record<string, V>;
+export function from(items: number | string | boolean | symbol | null | undefined): never;
+export function from(items: object): Record<string, unknown>;
+export function from(items: unknown): unknown {
+    // Arrays
+    if (Array.isArray(items)) {
+        return items.slice();
+    }
+
+    // Collections
+    if (items instanceof Collection) {
+        return items.all();
+    }
+
+    // Map -> plain object
+    if (items instanceof Map) {
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of items as Map<PropertyKey, unknown>) {
+            out[String(k)] = v;
+        }
+        return out;
+    }
+
+    // WeakMap cannot be iterated in JS environments
+    if (items instanceof WeakMap) {
+        throw new Error(
+            "WeakMap values cannot be enumerated in JavaScript; cannot convert to array of values.",
+        );
+    }
+
+    // Plain objects (including new Object(...))
+    if (items !== null && typeof items === "object") {
+        return items as Record<string, unknown>;
+    }
+
+    // Scalars not supported
+    throw new Error("Items cannot be represented by a scalar value.");
+}

@@ -377,4 +377,28 @@ describe("Arr", () => {
         data = [["#foo", new Collection(["#bar", ["#zap"]])], ["#baz"]];
         expect(Arr.flatten(data)).toEqual(["#foo", "#bar", "#zap", "#baz"]);
     });
+
+    it("from", () => {
+        expect(Arr.from(new Collection([1,2,3]))).toEqual([1,2,3]);
+
+        expect(Arr.from({ foo: "bar" })).toEqual({ foo: "bar" });
+        expect(Arr.from(new Object({ foo: "bar" }))).toEqual({ foo: "bar" });
+        expect(Arr.from(new Map([["foo", "bar"]]))).toEqual({ foo: "bar" });
+        
+        const subject = [new Object(), new Object()];
+        expect(Arr.from(subject)).toEqual(subject);
+
+        // WeakMap is not iterable in JS, so Arr::from should throw.
+        const temp = {};
+        const weakMap = new WeakMap();
+        weakMap.set(temp, "bar");
+        expect(() => Arr.from(weakMap)).toThrow(Error);
+        
+        expect(() => Arr.from(123)).toThrow(Error);
+        expect(() => Arr.from("string")).toThrow(Error);
+        expect(() => Arr.from(true)).toThrow(Error);
+        expect(() => Arr.from(null)).toThrow(Error);
+        expect(() => Arr.from(undefined)).toThrow(Error);
+        expect(() => Arr.from(Symbol("sym"))).toThrow(Error);
+    });
 });
