@@ -178,6 +178,23 @@ describe("Arr", () => {
         expect(values).toEqual([[1, 2], "one"]);
     });
 
+    it("exists", () => { 
+        expect(Arr.exists([1], 0)).toBe(true);
+        expect(Arr.exists([1], '0')).toBe(true);
+        expect(Arr.exists([1], 'one')).toBe(false);
+        expect(Arr.exists([null], 0)).toBe(true);
+
+        expect(Arr.exists([1], 1)).toBe(false);
+        expect(Arr.exists([null], 1)).toBe(false);
+        expect(Arr.exists(new Collection([null]), "b")).toBe(false);
+
+        expect(Arr.exists(new Collection([1, 3, 5]), 3)).toBe(true);
+        expect(Arr.exists(new Collection([1, 3, 5]), 4)).toBe(false);
+
+        // @ts-expect-error Testing non-array input should return false
+        expect(Arr.exists(5, 4)).toBe(false);
+    })
+
     it("first", () => {
         // Callback is null and array is empty
         expect(Arr.first(null)).toBeNull();

@@ -153,6 +153,45 @@ export function divide<A extends readonly unknown[]>(
 }
 
 /**
+ * Determine if the given key exists in the provided data structure.
+ *
+ * @param  data - array or Collection to check
+ * @param  key  - key to check for
+ * @returns True if the key exists, false otherwise.
+ * 
+ * @example
+ * 
+ * exists([1, 2, 3], 0); // -> true
+ * exists([1, 2, 3], 3); // -> false
+ * exists(new Collection([1, 2, 3]), 2); // -> true
+ * exists(new Collection([1, 2, 3]), 4); // -> false
+ */
+export function exists<T>(data: readonly T[], key: number|string): boolean;
+export function exists<T>(data: Collection<T[]>, key: T): boolean;
+export function exists(
+    data: ReadonlyArray<unknown> | Collection<unknown[]>,
+    key: unknown,
+): boolean {
+    // Array: only numeric keys are supported
+    if (Array.isArray(data)) {
+        const idx = typeof key === "number" ? key : Number(key);
+        if (Number.isNaN(idx)) {
+            return false;
+        }
+
+        return idx >= 0 && idx < data.length;
+    }
+
+    // Collection: check if the value exists among items
+    if (data instanceof Collection) {
+        const items = data.all() as unknown[];
+        return items.includes(key as never);
+    }
+
+    return false;
+}
+
+/**
  * Return the first element in an array passing a given truth test.
  *
  * @example
