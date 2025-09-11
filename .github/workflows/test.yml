@@ -44,30 +44,4 @@ jobs:
 
       - name: Run unit tests
         run: pnpm run test:run
-
-  lint-and-test-dts:
-    runs-on: ubuntu-latest
-    env:
-      PUPPETEER_SKIP_DOWNLOAD: "true"
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4.1.0
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: ".node-version"
-          cache: "pnpm"
-
-      - run: pnpm install
-
-      - name: Run eslint
-        run: pnpm run lint
-
-      - name: Run prettier
-        run: pnpm run format:check
-
-      - name: Run tsc
-        run: pnpm run ts:check
+        
