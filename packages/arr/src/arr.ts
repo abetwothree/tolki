@@ -376,3 +376,54 @@ export function take<T>(
     if (count >= length) return data.slice();
     return data.slice(length - count);
 }
+
+/**
+ * Flatten a multi-dimensional array into a single level.
+ *
+ * @param data The array (or Collection) to flatten.
+ * @param depth Maximum depth to flatten. Use Infinity for full flattening.
+ * @returns A new flattened array.
+ * 
+ * @example
+ * 
+ * flatten([1, [2, [3, 4]], 5]); // -> [1, 2, 3, 4, 5]
+ * flatten([1, [2, [3, 4]], 5], 1); // -> [1, 2, [3, 4], 5]
+ * flatten(new Collection([1, new Collection([2, 3]), 4])); // -> [1, 2, 3, 4]
+ * flatten(new Collection([1, new Collection([2, new Collection([3])]), 4]), 2); // -> [1, 2, 3, 4]
+ */
+export function flatten<T>(data: ReadonlyArray<T>, depth?: number): unknown[];
+export function flatten<T extends unknown[]>(
+    data: Collection<T>,
+    depth?: number,
+): unknown[];
+export function flatten(
+    data: ReadonlyArray<unknown> | Collection<unknown[]>,
+    depth: number = Infinity,
+): unknown[] {
+    const result: unknown[] = [];
+
+    const array =
+        data instanceof Collection
+            ? (data.all() as unknown[])
+            : (data as ReadonlyArray<unknown>);
+
+    for (const raw of array) {
+        const item = raw instanceof Collection ? (raw.all() as unknown) : raw;
+
+        if (!Array.isArray(item)) {
+            result.push(item);
+            continue;
+        }
+
+        const values =
+            depth === 1
+                ? (item.slice() as unknown[])
+                : flatten(item as ReadonlyArray<unknown>, depth - 1);
+
+        for (const value of values) {
+            result.push(value);
+        }
+    }
+
+    return result;
+}

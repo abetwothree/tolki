@@ -339,4 +339,42 @@ describe("Arr", () => {
         // Test with a negative limit greater than the array size, should return the entire array.
         expect(Arr.take(data, -10)).toEqual([1, 2, 3, 4, 5, 6]);
     });
+
+    it("flatten", () => {
+        // Flat arrays are unaffected
+    let data: unknown[] = ["#foo", "#bar", "#baz"];
+        expect(Arr.flatten(data)).toEqual(["#foo", "#bar", "#baz"]);
+
+        // Nested arrays are flattened with existing flat items
+        data = [["#foo", "#bar"], "#baz"];
+        expect(Arr.flatten(data)).toEqual(["#foo", "#bar", "#baz"]);
+
+        // Flattened array includes "null" items
+        data = [["#foo", null], "#baz", null];
+        expect(Arr.flatten(data)).toEqual(["#foo", null, "#baz", null]);
+
+        // Sets of nested arrays are flattened
+        data = [["#foo", "#bar"], ["#baz"]];
+        expect(Arr.flatten(data)).toEqual(["#foo", "#bar", "#baz"]);
+
+        // Deeply nested arrays are flattened
+        data = [["#foo", ["#bar"]], ["#baz"]];
+        expect(Arr.flatten(data)).toEqual(["#foo", "#bar", "#baz"]);
+
+        // Nested arrays are flattened alongside arrays
+        data = [new Collection(["#foo", "#bar"]), ["#baz"]];
+        expect(Arr.flatten(data)).toEqual(["#foo", "#bar", "#baz"]);
+
+        // Nested arrays containing plain arrays are flattened
+        data = [new Collection(["#foo", ["#bar"]]), ["#baz"]];
+        expect(Arr.flatten(data)).toEqual(["#foo", "#bar", "#baz"]);
+
+        // Nested arrays containing arrays are flattened
+        data = [["#foo", new Collection(["#bar"])], ["#baz"]];
+        expect(Arr.flatten(data)).toEqual(["#foo", "#bar", "#baz"]);
+
+        // Nested arrays containing arrays containing arrays are flattened
+        data = [["#foo", new Collection(["#bar", ["#zap"]])], ["#baz"]];
+        expect(Arr.flatten(data)).toEqual(["#foo", "#bar", "#zap", "#baz"]);
+    });
 });
