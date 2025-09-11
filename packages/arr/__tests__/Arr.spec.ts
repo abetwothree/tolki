@@ -178,10 +178,10 @@ describe("Arr", () => {
         expect(values).toEqual([[1, 2], "one"]);
     });
 
-    it("exists", () => { 
+    it("exists", () => {
         expect(Arr.exists([1], 0)).toBe(true);
-        expect(Arr.exists([1], '0')).toBe(true);
-        expect(Arr.exists([1], 'one')).toBe(false);
+        expect(Arr.exists([1], "0")).toBe(true);
+        expect(Arr.exists([1], "one")).toBe(false);
         expect(Arr.exists([null], 0)).toBe(true);
 
         expect(Arr.exists([1], 1)).toBe(false);
@@ -193,7 +193,7 @@ describe("Arr", () => {
 
         // @ts-expect-error Testing non-array input should return false
         expect(Arr.exists(5, 4)).toBe(false);
-    })
+    });
 
     it("first", () => {
         // Callback is null and array is empty
@@ -395,13 +395,46 @@ describe("Arr", () => {
         expect(Arr.flatten(data)).toEqual(["#foo", "#bar", "#zap", "#baz"]);
     });
 
+    it("forget", () => {
+        const data = ["products", ["desk", [100]]];
+        expect(Arr.forget(data, null)).toEqual(["products", ["desk", [100]]]);
+
+        // Test with undefined as keys
+        expect(Arr.forget(data, undefined)).toEqual([
+            "products",
+            ["desk", [100]],
+        ]);
+
+        expect(Arr.forget(data, [])).toEqual(["products", ["desk", [100]]]);
+
+        expect(Arr.forget(data, "1.0")).toEqual(["products", [[100]]]);
+        expect(Arr.forget(data, "1.1")).toEqual(["products", ["desk"]]);
+        expect(Arr.forget(data, "1.1.2")).toEqual([
+            "products",
+            ["desk", [100]],
+        ]);
+
+        expect(Arr.forget(data, "1")).toEqual(["products"]);
+        expect(Arr.forget(data, 1)).toEqual(["products"]);
+
+        const data2 = ["prices", [100, 200, 300]];
+        expect(Arr.forget(data2, "1")).toEqual(["prices"]);
+        expect(Arr.forget(data2, 1)).toEqual(["prices"]);
+        expect(Arr.forget(data2, "1.5")).toEqual(["prices", [100, 200, 300]]);
+        expect(Arr.forget(data2, 2)).toEqual(["prices", [100, 200, 300]]);
+        expect(Arr.forget(data2, ["1.0", "1.2"])).toEqual(["prices", [200]]);
+        expect(Arr.forget(data2, [0, "1.2"])).toEqual([[100, 200]]);
+        expect(Arr.forget(data2, 0)).toEqual([[100, 200, 300]]);
+        expect(Arr.forget(data2, 1)).toEqual(["prices"]);
+    });
+
     it("from", () => {
-        expect(Arr.from(new Collection([1,2,3]))).toEqual([1,2,3]);
+        expect(Arr.from(new Collection([1, 2, 3]))).toEqual([1, 2, 3]);
 
         expect(Arr.from({ foo: "bar" })).toEqual({ foo: "bar" });
         expect(Arr.from(new Object({ foo: "bar" }))).toEqual({ foo: "bar" });
         expect(Arr.from(new Map([["foo", "bar"]]))).toEqual({ foo: "bar" });
-        
+
         const subject = [new Object(), new Object()];
         expect(Arr.from(subject)).toEqual(subject);
 
@@ -410,7 +443,7 @@ describe("Arr", () => {
         const weakMap = new WeakMap();
         weakMap.set(temp, "bar");
         expect(() => Arr.from(weakMap)).toThrow(Error);
-        
+
         expect(() => Arr.from(123)).toThrow(Error);
         expect(() => Arr.from("string")).toThrow(Error);
         expect(() => Arr.from(true)).toThrow(Error);

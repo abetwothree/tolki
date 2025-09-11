@@ -158,15 +158,15 @@ export function divide<A extends readonly unknown[]>(
  * @param  data - array or Collection to check
  * @param  key  - key to check for
  * @returns True if the key exists, false otherwise.
- * 
+ *
  * @example
- * 
+ *
  * exists([1, 2, 3], 0); // -> true
  * exists([1, 2, 3], 3); // -> false
  * exists(new Collection([1, 2, 3]), 2); // -> true
  * exists(new Collection([1, 2, 3]), 4); // -> false
  */
-export function exists<T>(data: readonly T[], key: number|string): boolean;
+export function exists<T>(data: readonly T[], key: number | string): boolean;
 export function exists<T>(data: Collection<T[]>, key: T): boolean;
 export function exists(
     data: ReadonlyArray<unknown> | Collection<unknown[]>,
@@ -468,24 +468,195 @@ export function flatten(
 }
 
 /**
+ * Remove one or many array items from a given array using dot notation.
+ *
+ * @param  data - The array to remove items from.
+ * @param  keys - The keys of the items to remove.
+ * @returns A new array with the specified items removed.
+ * 
+ * @example
+ * 
+ * forget(['products', ['desk', [100]]], null); // -> ['products', ['desk', [100]]]
+ * forget(['products', ['desk', [100]]], '1'); // -> ['products']
+ * forget(['products', ['desk', [100]]], 1); // -> ['products']
+ * forget(['products', ['desk', [100]]], '1.1'); // -> ['products', ['desk']]
+ * forget(['products', ['desk', [100]]], 2); // -> ['products', ['desk', [100]]]
+ */
+export function forget<T>(
+    data: ReadonlyArray<T>,
+    keys: number | string | Array<number | string> | null | undefined,
+): T[] {
+    const removeAt = <U>(arr: ReadonlyArray<U>, index: number): U[] => {
+        if (!Number.isInteger(index) || index < 0 || index >= arr.length) {
+            return arr.slice();
+        }
+
+        const clone = arr.slice();
+        clone.splice(index, 1);
+        
+        return clone;
+    };
+
+    const forgetPath = <U>(arr: ReadonlyArray<U>, path: number[]): U[] => {
+        if (path.length === 0) return arr.slice();
+        const head = path[0];
+        const rest = path.slice(1);
+        if (!Array.isArray(arr)) return arr.slice();
+        const clone = arr.slice();
+
+        if (rest.length === 0) {
+            return removeAt(clone, head!);
+        }
+
+        if (!Number.isInteger(head) || head! < 0 || head! >= clone.length) {
+            return clone;
+        }
+
+        const child = clone[head!] as unknown;
+        if (Array.isArray(child)) {
+            clone[head!] = forgetPath(child as unknown[], rest) as unknown as U;
+        }
+
+        return clone;
+    };
+
+    // Helper to immutably update a nested array at a given parent path
+    const updateAtPath = <U>(
+        arr: ReadonlyArray<U>,
+        parentPath: number[],
+        updater: (child: U[]) => U[],
+    ): U[] => {
+        if (parentPath.length === 0) {
+            return updater(arr.slice() as unknown as U[]) as unknown as U[];
+        }
+
+        const [head, ...rest] = parentPath;
+        if (!Number.isInteger(head) || head! < 0 || head! >= arr.length) {
+            return arr.slice();
+        }
+
+        const clone = arr.slice();
+        const child = clone[head!] as unknown;
+        if (!Array.isArray(child)) {
+            return clone;
+        }
+
+        clone[head!] = updateAtPath(
+            child as unknown[],
+            rest,
+            updater as unknown as (child: unknown[]) => unknown[],
+        ) as unknown as U;
+
+        return clone;
+    };
+
+    if (keys == null) return data.slice();
+    const keyList = Array.isArray(keys) ? keys : [keys];
+    if (keyList.length === 0) return data.slice();
+
+    // Single key fast-path preserves previous behavior
+    if (keyList.length === 1) {
+        const k = keyList[0]!;
+        if (typeof k === "number") {
+            return removeAt(data, k);
+        }
+
+        const parts = String(k)
+            .split(".")
+            .map((p) => (p.length ? Number(p) : NaN));
+        
+        if (parts.length === 1) {
+            return removeAt(data, parts[0]!);
+        }
+        
+        if (parts.some((n) => Number.isNaN(n))) {
+            return data.slice();
+        }
+
+        return forgetPath(data, parts as number[]);
+    }
+
+    type Group = { path: number[]; indices: Set<number> };
+    const groupsMap = new Map<string, Group>();
+
+    for (const k of keyList) {
+        if (typeof k === "number") {
+            const key = ""; // root
+            const entry = groupsMap.get(key) ?? {
+                path: [],
+                indices: new Set(),
+            };
+            entry.indices.add(k);
+            groupsMap.set(key, entry);
+            continue;
+        }
+
+        const parts = String(k)
+            .split(".")
+            .map((p) => (p.length ? Number(p) : NaN));
+        if (parts.length === 0 || parts.some((n) => Number.isNaN(n))) {
+            continue; // skip invalid
+        }
+        const parent = parts.slice(0, -1) as number[];
+        const leaf = parts[parts.length - 1]! as number;
+        const key = parent.join(".");
+        const entry = groupsMap.get(key) ?? {
+            path: parent,
+            indices: new Set(),
+        };
+        entry.indices.add(leaf);
+        groupsMap.set(key, entry);
+    }
+
+    // Apply groups sorted by deepest parent path first to avoid interfering updates
+    const groups = Array.from(groupsMap.values()).sort(
+        (a, b) => b.path.length - a.path.length,
+    );
+
+    let out = data.slice() as unknown[];
+    for (const { path, indices } of groups) {
+        const sorted = Array.from(indices)
+            .filter((i) => Number.isInteger(i) && i >= 0)
+            .sort((a, b) => b - a);
+        if (sorted.length === 0) {
+            continue;
+        }
+
+        out = updateAtPath(out, path, (child) => {
+            const clone = child.slice();
+            for (const idx of sorted) {
+                if (idx >= 0 && idx < clone.length) {
+                    clone.splice(idx, 1);
+                }
+            }
+            return clone as unknown as T[];
+        }) as unknown[];
+    }
+
+    return out as T[];
+}
+
+/**
  * Get the underlying array or object of items from the given argument.
  *
  * @param items The array, Collection, Map, or object to extract from.
  * @returns The underlying array or object.
- * 
+ *
  * @example
- * 
+ *
  * from([1, 2, 3]); // -> [1, 2, 3]
  * from(new Collection([1, 2, 3])); // -> [1, 2, 3]
  * from({ foo: 'bar' }); // -> { foo: 'bar' }
  * from(new Map([['foo', 'bar']])); // -> { foo: 'bar' }
- * 
+ *
  * @throws Error if items is a WeakMap or a scalar value.
  */
 export function from<T>(items: ReadonlyArray<T>): T[];
 export function from<T extends unknown[]>(items: Collection<T>): T[];
 export function from<V>(items: Map<PropertyKey, V>): Record<string, V>;
-export function from(items: number | string | boolean | symbol | null | undefined): never;
+export function from(
+    items: number | string | boolean | symbol | null | undefined,
+): never;
 export function from(items: object): Record<string, unknown>;
 export function from(items: unknown): unknown {
     // Arrays
