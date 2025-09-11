@@ -428,6 +428,68 @@ describe("Arr", () => {
         expect(Arr.forget(data2, 1)).toEqual(["prices"]);
     });
 
+    it("forget - edge cases and robustness", () => {
+        const base = ["products", ["desk", [100]]];
+
+        // 1) Invalid numeric indices at root: non-integer, negative, out-of-bounds
+        expect(Arr.forget(base, 1.5)).toEqual(base);
+        expect(Arr.forget(base, -1)).toEqual(base);
+        expect(Arr.forget(base, 99)).toEqual(base);
+
+        // 2) Invalid path strings should be ignored (no change)
+        expect(Arr.forget(base, "foo")).toEqual(base);
+        expect(Arr.forget(base, "1.a")).toEqual(base);
+        expect(Arr.forget(base, "")).toEqual(base);
+        expect(Arr.forget(base, ".")).toEqual(base);
+        expect(Arr.forget(base, "1.")).toEqual(base);
+        expect(Arr.forget(base, ".1")).toEqual(base);
+        expect(Arr.forget(base, "..")).toEqual(base);
+        expect(Arr.forget(base, "0.-1")).toEqual(base);
+
+        // 3) Duplicate keys are effectively de-duplicated
+        expect(Arr.forget(["a", "b"], ["1", "1"]))
+            .toEqual(["a"]);
+
+        // 4) Mixed keys: nested then top-level removal => top-level dominates
+        expect(Arr.forget(base, ["1.0", 1])).toEqual(["products"]);
+
+        // 5) Root multi-index deletion should be order independent (descending applied)
+        expect(Arr.forget([10, 20, 30, 40], [0, 2]))
+            .toEqual([20, 40]);
+        expect(Arr.forget([10, 20, 30, 40], [2, 0]))
+            .toEqual([20, 40]);
+
+        // 6) Traversal into non-array child is a no-op
+        expect(Arr.forget(base, "0.0")).toEqual(base);
+
+        // 7) Empty input remains empty regardless of keys
+        expect(Arr.forget([], "0")).toEqual([]);
+        expect(Arr.forget([], ["0", "1"]))
+            .toEqual([]);
+
+        // 8) Numeric-string with leading zeros acts numerically
+        expect(Arr.forget(base, "01")).toEqual(["products"]);
+
+        // 9) Mixed valid/invalid multi-keys only apply valid parts
+        expect(Arr.forget(base, ["1.0", "foo", "1.a", "", ".."]))
+            .toEqual(["products", [[100]]]);
+
+        // 10) Deep out-of-range on a nested path is a no-op
+        expect(Arr.forget(base, "1.5.1")).toEqual(base);
+
+        // 11) Multiple deletions within the same nested parent
+        const nested = ["prices", [100, 200, 300, 400]];
+        expect(Arr.forget(nested, ["1.0", "1.3"]))
+            .toEqual(["prices", [200, 300]]);
+
+        // 12) Immutability: original input must remain unchanged
+        const subject = ["products", ["desk", [100]]];
+        const snapshot = JSON.stringify(subject);
+        const res = Arr.forget(subject, "1.0");
+        expect(res).toEqual(["products", [[100]]]);
+        expect(JSON.stringify(subject)).toBe(snapshot);
+    });
+
     it("from", () => {
         expect(Arr.from(new Collection([1, 2, 3]))).toEqual([1, 2, 3]);
 
