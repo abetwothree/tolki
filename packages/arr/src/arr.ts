@@ -402,17 +402,25 @@ export function take<T>(
     }
 
     const length = data.length;
-    if (length === 0) return [];
+    if (length === 0) {
+        return [];
+    }
 
     // Positive: first N
     if (limit > 0) {
-        if (limit >= length) return data.slice();
+        if (limit >= length) {
+            return data.slice();
+        }
+
         return data.slice(0, limit);
     }
 
     // Negative: last abs(N)
     const count = Math.abs(limit);
-    if (count >= length) return data.slice();
+    if (count >= length) {
+        return data.slice();
+    }
+
     return data.slice(length - count);
 }
 
@@ -498,10 +506,16 @@ export function forget<T>(
     };
 
     const forgetPath = <U>(arr: ReadonlyArray<U>, path: number[]): U[] => {
-        if (path.length === 0) return arr.slice();
+        if (path.length === 0) {
+            return arr.slice();
+        }
+
         const head = path[0];
         const rest = path.slice(1);
-        if (!Array.isArray(arr)) return arr.slice();
+        if (!Array.isArray(arr)) {
+            return arr.slice();
+        }
+
         const clone = arr.slice();
 
         if (rest.length === 0) {
@@ -550,9 +564,14 @@ export function forget<T>(
         return clone;
     };
 
-    if (keys == null) return data.slice();
+    if (keys == null) {
+        return data.slice();
+    }
+
     const keyList = Array.isArray(keys) ? keys : [keys];
-    if (keyList.length === 0) return data.slice();
+    if (keyList.length === 0) {
+        return data.slice();
+    }
 
     // Single key fast-path preserves previous behavior
     if (keyList.length === 1) {

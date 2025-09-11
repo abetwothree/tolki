@@ -37,6 +37,7 @@
         "@laravel-js/str": "workspace:^",
         "@laravel-js/types": "workspace:^",
         "@vitest/coverage-istanbul": "3.2.4",
+        "@vitest/ui": "3.2.4",
         "eslint": "^9.34.0",
         "eslint-plugin-oxlint": "^1.14.0",
         "glob": "^11.0.3",

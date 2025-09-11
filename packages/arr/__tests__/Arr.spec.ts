@@ -488,6 +488,20 @@ describe("Arr", () => {
         const res = Arr.forget(subject, "1.0");
         expect(res).toEqual(["products", [[100]]]);
         expect(JSON.stringify(subject)).toBe(snapshot);
+
+        // 13) Multi-key path: parent index out-of-range triggers updateAtPath early return
+        // Provide 2+ keys to bypass single-key fast path
+        expect(Arr.forget(base, ["5.0", 99]))
+                .toEqual(base);
+
+        // 14) Multi-key path: parent exists but child is not an array -> updateAtPath returns clone unchanged
+        // Parent path [0] points to a string 'products', so attempting to delete '0.1' should no-op
+        expect(Arr.forget(base, ["0.1", 99]))
+                .toEqual(base);
+
+        // 15) Root group with only invalid indices (non-integer/negative) -> sorted becomes empty and is skipped
+        expect(Arr.forget([10, 20, 30], [1.5 as unknown as number, -2]))
+            .toEqual([10, 20, 30]);
     });
 
     it("from", () => {
