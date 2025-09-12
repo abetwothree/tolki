@@ -1049,3 +1049,49 @@ export function integer<T, D = null>(
 
     return value as number;
 }
+
+/**
+ * Join all items using a string. The final items can use a separate glue string.
+ * 
+ * @param  data - The array or Collection to join.
+ * @param  glue - The string to join all but the last item.
+ * @param  finalGlue - The string to join the last item.
+ *
+ * @example
+ * 
+ * join(['a', 'b', 'c'], ', ') => 'a, b, c'
+ * join(['a', 'b', 'c'], ', ', ' and ') => 'a, b and c'
+ */
+export function join<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    glue: string,
+    finalGlue: string = "",
+): string {
+    if (!accessible(data)) {
+        return "";
+    }
+
+    const raw: unknown[] =
+        data instanceof Collection
+            ? (data.all() as unknown[])
+            : (data as unknown[]);
+    const items = raw.map((v) => String(v));
+
+    if (finalGlue === "") {
+        return items.join(glue);
+    }
+
+    const length = items.length;
+    if (length === 0) {
+        return "";
+    }
+
+    if (length === 1) {
+        return items[0] as string;
+    }
+
+    const head = items.slice(0, -1).join(glue);
+    const tail = items[length - 1] as string;
+    
+    return head + finalGlue + tail;
+}

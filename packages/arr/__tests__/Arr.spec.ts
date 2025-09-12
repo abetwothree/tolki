@@ -878,4 +878,16 @@ describe("Arr", () => {
         expect(Arr.integer(testArray, 2, 999)).toBe(999);
         expect(() => Arr.integer(testArray, 2)).toThrow(Error);
     });
+
+    it("join", () => {
+        expect(Arr.join(["a", "b", "c"], ", ")).toBe("a, b, c");
+        expect(Arr.join(["a", "b", "c"], ", ", " and ")).toBe("a, b and c");
+        expect(Arr.join(["a", "b"], ", ", " and ")).toBe("a and b");
+        expect(Arr.join(["a"], ", ", " and ")).toBe("a");
+        expect(Arr.join([], ", ", " and ")).toBe("");
+        expect(Arr.join("test", "")).toBe("");
+        expect(Arr.join(null, "")).toBe("");
+        expect(Arr.join(undefined, "")).toBe("");
+        expect(Arr.join(new Collection(["a", "b", "c"]), "")).toBe("abc");
+    });
 });
