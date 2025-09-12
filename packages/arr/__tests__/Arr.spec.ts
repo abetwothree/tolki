@@ -833,4 +833,38 @@ describe("Arr", () => {
 
         expect(Arr.every(5, () => true)).toBe(false);
     });
+
+    it("some", () => {
+        expect(Arr.some([1, 2], (value) => typeof value === "string")).toBe(
+            false,
+        );
+        expect(Arr.some(["foo", 2], (value) => typeof value === "string")).toBe(
+            true,
+        );
+        expect(
+            Arr.some(["foo", "bar"], (value) => typeof value === "string"),
+        ).toBe(true);
+
+        expect(Arr.some([], (value) => typeof value === "string")).toBe(false);
+        expect(Arr.some([], () => false)).toBe(false);
+        expect(Arr.some([], () => true)).toBe(false);
+
+        expect(Arr.some([1, 2], (_value, key) => key >= 1)).toBe(true);
+        expect(Arr.some([1, 2], (_value, key) => key > 1)).toBe(false);
+
+        expect(
+            Arr.some(
+                new Collection([1, "foo"]),
+                (value) => typeof value === "number",
+            ),
+        ).toBe(true);
+        expect(
+            Arr.some(
+                new Collection(["foo", "bar"]),
+                (value) => typeof value === "number",
+            ),
+        ).toBe(false);
+
+        expect(Arr.some(5, () => true)).toBe(false);
+    });
 });

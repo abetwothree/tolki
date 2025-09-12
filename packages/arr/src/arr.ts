@@ -982,3 +982,37 @@ export function every<T>(
 
     return true;
 }
+
+/**
+ * Determine if some items pass the given truth test.
+ *
+ * @param  data - The array or Collection to iterate over.
+ * @param  callback - The function to call for each item.
+ * @returns True if any item passes the test, false otherwise.
+ * 
+ * @example
+ * 
+ * some([1, 2, 3], n => n % 2 === 0); // -> true
+ * some([1, 3, 5], n => n % 2 === 0); // -> false
+ * some(new Collection([1, 2, 3]), n => n % 2 === 0); // -> true
+ * some(new Collection([1, 3, 5]), n => n % 2 === 0); // -> false
+ */
+export function some<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    callback: (value: T, key: number) => boolean,
+): boolean {
+    if (!accessible(data)) {
+        return false;
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+
+    for (let i = 0; i < values.length; i++) {
+        if (callback(values[i] as T, i)) {
+            return true;
+        }
+    }
+
+    return false;
+}
