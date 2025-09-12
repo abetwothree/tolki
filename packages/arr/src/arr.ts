@@ -910,3 +910,42 @@ export function hasAll<T>(
 
     return true;
 }
+
+/**
+ * Determine if any of the keys exist in an array using "dot" notation.
+ *
+ * @param  data - The array or Collection to check.
+ * @param  keys - The key or dot-notated path of the item to check.
+ * @returns True if any key exists, false otherwise.
+ *
+ * @example
+ *
+ * hasAny(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); // -> true
+ * hasAny(['foo', 'bar', ['baz', 'qux']], ['3', '4']); // -> false
+ */
+export function hasAny<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    keys: ArrayKeys,
+): boolean {
+    if (keys == null) {
+        return false;
+    }
+
+    const keyList = Array.isArray(keys) ? keys : [keys];
+
+    if (keyList.length === 0) {
+        return false;
+    }
+
+    if (!accessible(data) || keyList.length === 0) {
+        return false;
+    }
+
+    for (const key of keyList) {
+        if (has(data, key)) {
+            return true;
+        }
+    }
+
+    return false;
+}

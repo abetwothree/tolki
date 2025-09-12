@@ -748,4 +748,55 @@ describe("Arr", () => {
         expect(Arr.hasAll(coll, [undefined])).toBe(false);
         expect(Arr.hasAll(coll, undefined)).toBe(false);
     });
+
+    it("hasAny", () => {
+        const data = [
+            ["name", "Taylor"],
+            ["age", ""],
+            ["city", null],
+        ];
+        expect(Arr.hasAny(data, 0)).toBe(true);
+        expect(Arr.hasAny(data, 1)).toBe(true);
+        expect(Arr.hasAny(data, 2)).toBe(true);
+        expect(Arr.hasAny(data, "0.0")).toBe(true);
+        expect(Arr.hasAny(data, [0, 1])).toBe(true);
+        expect(Arr.hasAny(data, 3)).toBe(false);
+        expect(Arr.hasAny(data, [])).toBe(false);
+        expect(Arr.hasAny(data, [""])).toBe(false);
+
+        const data2 = [
+            ["name", "Taylor"],
+            ["email", "foo"],
+        ];
+        expect(Arr.hasAny(data2, ["name", "email"])).toBe(false);
+        expect(Arr.hasAny(data2, ["surname", "password"])).toBe(false);
+        expect(Arr.hasAny(data2, "surname")).toBe(false);
+        expect(Arr.hasAny(data2, "password")).toBe(false);
+
+        expect(Arr.hasAny(data2, null)).toBe(false);
+        expect(Arr.hasAny(data2, [null])).toBe(false);
+        expect(Arr.hasAny(data2, [undefined])).toBe(false);
+        expect(Arr.hasAny(data2, undefined)).toBe(false);
+
+        expect(Arr.hasAny(null, 0)).toBe(false);
+        expect(Arr.hasAny(null, [0])).toBe(false);
+        expect(Arr.hasAny(null, [0, 1])).toBe(false);
+
+        expect(Arr.hasAny([], [])).toBe(false);
+        expect(Arr.hasAny([], 0)).toBe(false);
+        expect(Arr.hasAny([], [0])).toBe(false);
+        expect(Arr.hasAny([], [0, 1])).toBe(false);
+
+        const coll = new Collection([["x"], ["y"], ["z"]]);
+        expect(Arr.hasAny(coll, 0)).toBe(true);
+        expect(Arr.hasAny(coll, 1)).toBe(true);
+        expect(Arr.hasAny(coll, 2)).toBe(true);
+        expect(Arr.hasAny(coll, "0.0")).toBe(true);
+        expect(Arr.hasAny(coll, [0, 1])).toBe(true);
+        expect(Arr.hasAny(coll, 3)).toBe(false);
+        expect(Arr.hasAny(coll, null)).toBe(false);
+        expect(Arr.hasAny(coll, [null])).toBe(false);
+        expect(Arr.hasAny(coll, [undefined])).toBe(false);
+        expect(Arr.hasAny(coll, undefined)).toBe(false);
+    });
 });
