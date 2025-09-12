@@ -11,9 +11,9 @@ export type InnerValue<X> =
 export type ArrayKeys =
     | number
     | string
-    | Array<number | string>
     | null
-    | undefined;
+    | undefined
+    | Array<number | string | null | undefined>;
 
 /**
  * Determine whether the given value is array accessible.
@@ -744,9 +744,7 @@ export function get<T, D = null>(
     key: number | string | null | undefined,
     defaultValue: D | (() => D) | null = null,
 ): T | D | ReadonlyArray<T> | null {
-
     const resolveDefault = (): D | null => {
-        if (defaultValue === undefined) return null;
         return typeof defaultValue === "function"
             ? (defaultValue as () => D)()
             : (defaultValue as D);
@@ -802,4 +800,82 @@ export function get<T, D = null>(
     }
 
     return cursor == null ? resolveDefault() : (cursor as T);
+}
+
+/**
+ * Check if an item or items exist in an array using "dot" notation.
+ *
+ * @param  data - The array or Collection to check.
+ * @param  keys - The key or dot-notated path of the item to check.
+ * @returns True if the item or items exist, false otherwise.
+ *
+ * @example
+ *
+ * has(['foo', 'bar', ['baz', 'qux']], 1); // -> true
+ * has(['foo', 'bar'], 5); // -> false
+ * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.1']); // -> true
+ * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); // -> false
+ */
+export function has<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    keys: ArrayKeys,
+): boolean {
+    const toArray = (value: unknown): unknown[] | null => {
+        if (Array.isArray(value)) {
+            return value as unknown[];
+        }
+        if (value instanceof Collection) {
+            return value.all() as unknown[];
+        }
+
+        return null;
+    };
+
+    const keyList = Array.isArray(keys) ? keys : [keys];
+    if (!accessible(data) || keyList.length === 0) {
+        return false;
+    }
+
+    const root = toArray(data)!;
+
+    const hasPath = (container: unknown[], key: number | string): boolean => {
+        // Single number or numeric-string without dots
+        if (typeof key === "number") {
+            return Number.isInteger(key) && key >= 0 && key < container.length;
+        }
+
+        const path = String(key);
+        if (path.length === 0) {
+            return false;
+        }
+
+        const segments = path.split(".");
+        let cursor: unknown = container;
+        for (const seg of segments) {
+            const idx = seg.length ? Number(seg) : NaN;
+            const arr = toArray(cursor);
+            if (
+                !Number.isInteger(idx) ||
+                idx < 0 ||
+                !arr ||
+                idx >= arr.length
+            ) {
+                return false;
+            }
+            cursor = arr[idx];
+        }
+        return true;
+    };
+
+    for (const k of keyList) {
+        if (k == null) {
+            return false;
+        }
+
+        if (!hasPath(root, k as number | string)) {
+            return false;
+        }
+    }
+
+    return true;
 }

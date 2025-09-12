@@ -619,4 +619,73 @@ describe("Arr", () => {
         expect(Arr.get(["a"], 9)).toBeNull();
         expect(Arr.get(null as unknown as unknown[], 1)).toBeNull();
     });
+
+    it("has", () => {
+        const data = ["products.desk", ["price", 100]];
+        expect(Arr.has(data, "0")).toBe(true);
+        expect(Arr.has(data, 0)).toBe(true);
+
+        const data2 = ["products", ["desk", ["price", 100]]];
+        expect(Arr.has(data2, "1.0")).toBe(true);
+        expect(Arr.has(data2, "1.1.0")).toBe(true);
+        expect(Arr.has(data2, "1.2")).toBe(false);
+        expect(Arr.has(data2, "1.1.1")).toBe(true);
+
+        const data3 = ["foo", null, "bar", ["baz", null]];
+        expect(Arr.has(data3, "0")).toBe(true);
+        expect(Arr.has(data3, "1")).toBe(true);
+        expect(Arr.has(data3, "2.0")).toBe(false);
+        expect(Arr.has(data3, "2.1")).toBe(false);
+
+        const data4 = ["foo", 10, "bar", ["baz", 10]];
+        expect(Arr.has(data4, "0")).toBe(true);
+        expect(Arr.has(data4, "1")).toBe(true);
+        expect(Arr.has(data4, "2")).toBe(true);
+        expect(Arr.has(data4, "2.0")).toBe(false);
+        expect(Arr.has(data4, "3")).toBe(true);
+        expect(Arr.has(data4, "3.0")).toBe(true);
+        expect(Arr.has(data4, "3.1")).toBe(true);
+        expect(Arr.has(data4, "3.2")).toBe(false);
+        expect(Arr.has(data4, "0.0")).toBe(false);
+        expect(Arr.has(data4, "2.1")).toBe(false);
+
+        const data5 = ["foo", "bar"];
+        expect(Arr.has(data5, null)).toBe(false);
+        expect(Arr.has(data5, undefined)).toBe(false);
+        expect(Arr.has(data5, 0)).toBe(true);
+        expect(Arr.has(data5, 1)).toBe(true);
+
+        expect(Arr.has(null, 0)).toBe(false);
+        expect(Arr.has(false, 0)).toBe(false);
+
+        expect(Arr.has(null, null)).toBe(false);
+        expect(Arr.has([], null)).toBe(false);
+        expect(Arr.has(undefined, null)).toBe(false);
+
+        const data6 = ["products", ["desk", ["price", 100]]];
+        expect(Arr.has(data6, ["1.0"])).toBe(true);
+        expect(Arr.has(data6, [0, 1, "1.0", "1.1"])).toBe(true);
+        expect(Arr.has(data6, ["1", "1"])).toBe(true);
+        expect(Arr.has(data6, ["foo"])).toBe(false);
+        expect(Arr.has(data6, [])).toBe(false);
+        expect(Arr.has(data6, ["1.0", "1.2"])).toBe(false);
+
+        const data7 = ["products", ["name", "desk"]];
+        expect(Arr.has(data7, "1.0")).toBe(true);
+        expect(Arr.has(data7, "1.1")).toBe(true);
+        expect(Arr.has(data7, "1.2")).toBe(false);
+
+        expect(Arr.has(data7, [null])).toBe(false);
+        expect(Arr.has(data7, [undefined])).toBe(false);
+
+        expect(Arr.has(["", "some"], "")).toBe(false);
+        expect(Arr.has(["", "some"], [""])).toBe(false);
+        expect(Arr.has([], "")).toBe(false);
+        expect(Arr.has([], [""])).toBe(false);
+
+        const coll = new Collection([["x"], ["y"]]);
+        expect(Arr.has(coll, 0)).toBe(true);
+        expect(Arr.has(coll, "1.0")).toBe(true);
+        expect(Arr.has(coll, null)).toBe(false);
+    });
 });
