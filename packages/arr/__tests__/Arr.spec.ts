@@ -867,4 +867,15 @@ describe("Arr", () => {
 
         expect(Arr.some(5, () => true)).toBe(false);
     });
+
+    it("integer", () => {
+        const testArray = ["foo bar", 1234];
+
+        // Test integer values are returned as integers
+        expect(Arr.integer(testArray, 1)).toBe(1234);
+        expect(() => Arr.integer(testArray, 0)).toThrow(Error);
+
+        expect(Arr.integer(testArray, 2, 999)).toBe(999);
+        expect(() => Arr.integer(testArray, 2)).toThrow(Error);
+    });
 });

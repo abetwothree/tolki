@@ -8,6 +8,8 @@ export type InnerValue<X> =
           ? U
           : never;
 
+export type ArrayKey = number | string | null | undefined;
+
 export type ArrayKeys =
     | number
     | string
@@ -193,7 +195,7 @@ export function exists<T>(data: readonly T[], key: number | string): boolean;
 export function exists<T>(data: Collection<T[]>, key: T): boolean;
 export function exists(
     data: ReadonlyArray<unknown> | Collection<unknown[]>,
-    key: unknown,
+    key: ArrayKey,
 ): boolean {
     // Array: only numeric keys are supported
     if (Array.isArray(data)) {
@@ -741,7 +743,7 @@ export function from(items: unknown): unknown {
  */
 export function get<T, D = null>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
-    key: number | string | null | undefined,
+    key: ArrayKey,
     defaultValue: D | (() => D) | null = null,
 ): T | D | ReadonlyArray<T> | null {
     const resolveDefault = (): D | null => {
@@ -989,9 +991,9 @@ export function every<T>(
  * @param  data - The array or Collection to iterate over.
  * @param  callback - The function to call for each item.
  * @returns True if any item passes the test, false otherwise.
- * 
+ *
  * @example
- * 
+ *
  * some([1, 2, 3], n => n % 2 === 0); // -> true
  * some([1, 3, 5], n => n % 2 === 0); // -> false
  * some(new Collection([1, 2, 3]), n => n % 2 === 0); // -> true
@@ -1015,4 +1017,35 @@ export function some<T>(
     }
 
     return false;
+}
+
+/**
+ * Get an integer item from an array using "dot" notation.
+ *
+ * @param  data - The array or Collection to get the item from.
+ * @param  key - The key or dot-notated path of the item to get.
+ * @param  default - The default value if key is not found
+ *
+ * @returns The integer value.
+ *
+ * @throws Error if the value is not an integer.
+ *
+ * @example
+ *
+ * integer([10, 20, 30], 1); // -> 20
+ * integer([10, 20, 30], 5, 100); // -> 100
+ * integer(["house"], 0); // -> Error: The value is not an integer.
+ */
+export function integer<T, D = null>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    key: ArrayKey,
+    defaultValue: D | (() => D) | null = null,
+): number {
+    const value = get(data, key, defaultValue);
+
+    if (!Number.isInteger(value)) {
+        throw new Error("The value is not an integer.");
+    }
+
+    return value as number;
 }
