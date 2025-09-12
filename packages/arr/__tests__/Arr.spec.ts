@@ -688,4 +688,64 @@ describe("Arr", () => {
         expect(Arr.has(coll, "1.0")).toBe(true);
         expect(Arr.has(coll, null)).toBe(false);
     });
+
+    it("hasAll", () => {
+        const data = [
+            ["name", "Taylor"],
+            ["age", ""],
+            ["city", null],
+        ];
+        expect(Arr.hasAll(data, "0")).toBe(true);
+        expect(Arr.hasAll(data, ["0"])).toBe(true);
+        expect(Arr.hasAll(data, ["0", "1"])).toBe(true);
+        expect(Arr.hasAll(data, ["0", "1", "2"])).toBe(true);
+        expect(Arr.hasAll(data, ["0", "1", "2", "3"])).toBe(false);
+        expect(Arr.hasAll(data, ["0", "3"])).toBe(false);
+        expect(Arr.hasAll(data, "3")).toBe(false);
+
+        const data2 = ["user", ["name", "Taylor"]];
+        expect(Arr.hasAll(data2, "1.0")).toBe(true);
+        expect(Arr.hasAll(data2, ["1.0"])).toBe(true);
+        expect(Arr.hasAll(data2, ["1.0", "1.1"])).toBe(true);
+        expect(Arr.hasAll(data2, ["1.0", "0"])).toBe(true);
+        expect(Arr.hasAll(data2, ["1.0", "1.1", "0"])).toBe(true);
+        expect(Arr.hasAll(data2, ["1.0", "1.1", "0", "2"])).toBe(false);
+        expect(Arr.hasAll(data2, ["1.0", "2"])).toBe(false);
+        expect(Arr.hasAll(data2, "2")).toBe(false);
+
+        const data3 = [
+            ["name", "Taylor"],
+            ["age", ""],
+            ["city", null],
+        ];
+        expect(Arr.hasAll(data3, "3")).toBe(false);
+        expect(Arr.hasAll(data3, ["3"])).toBe(false);
+        expect(Arr.hasAll(data3, ["3", "4"])).toBe(false);
+        expect(Arr.hasAll(data3, ["3", "4", "5"])).toBe(false);
+        expect(Arr.hasAll(data3, ["3", "4", "5", "6"])).toBe(false);
+
+        expect(Arr.hasAll(data3, null)).toBe(false);
+        expect(Arr.hasAll(data3, [null])).toBe(false);
+        expect(Arr.hasAll(data3, [undefined])).toBe(false);
+        expect(Arr.hasAll(data3, undefined)).toBe(false);
+
+        expect(Arr.hasAll(null, "0")).toBe(false);
+        expect(Arr.hasAll(null, ["0"])).toBe(false);
+        expect(Arr.hasAll(null, ["0", "1"])).toBe(false);
+
+        expect(Arr.hasAll([], "0")).toBe(false);
+        expect(Arr.hasAll([], ["0"])).toBe(false);
+        expect(Arr.hasAll([], ["0", "1"])).toBe(false);
+
+        const coll = new Collection([["x"], ["y"], ["z"]]);
+        expect(Arr.hasAll(coll, 0)).toBe(true);
+        expect(Arr.hasAll(coll, [0])).toBe(true);
+        expect(Arr.hasAll(coll, [0, 1])).toBe(true);
+        expect(Arr.hasAll(coll, [0, 1, 2])).toBe(true);
+        expect(Arr.hasAll(coll, [0, 1, 2, 3])).toBe(false);
+        expect(Arr.hasAll(coll, null)).toBe(false);
+        expect(Arr.hasAll(coll, [null])).toBe(false);
+        expect(Arr.hasAll(coll, [undefined])).toBe(false);
+        expect(Arr.hasAll(coll, undefined)).toBe(false);
+    });
 });
