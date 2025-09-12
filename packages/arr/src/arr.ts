@@ -742,8 +742,9 @@ export function from(items: unknown): unknown {
 export function get<T, D = null>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
     key: number | string | null | undefined,
-    defaultValue?: D | (() => D),
+    defaultValue: D | (() => D) | null = null,
 ): T | D | ReadonlyArray<T> | null {
+
     const resolveDefault = (): D | null => {
         if (defaultValue === undefined) return null;
         return typeof defaultValue === "function"
