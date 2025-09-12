@@ -1052,13 +1052,13 @@ export function integer<T, D = null>(
 
 /**
  * Join all items using a string. The final items can use a separate glue string.
- * 
+ *
  * @param  data - The array or Collection to join.
  * @param  glue - The string to join all but the last item.
  * @param  finalGlue - The string to join the last item.
  *
  * @example
- * 
+ *
  * join(['a', 'b', 'c'], ', ') => 'a, b, c'
  * join(['a', 'b', 'c'], ', ', ' and ') => 'a, b and c'
  */
@@ -1092,6 +1092,6 @@ export function join<T>(
 
     const head = items.slice(0, -1).join(glue);
     const tail = items[length - 1] as string;
-    
+
     return head + finalGlue + tail;
 }
