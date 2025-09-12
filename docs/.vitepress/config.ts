@@ -2,7 +2,7 @@ import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-    title: "Larave JavaScript Utilities",
+    title: "Laravel JavaScript Utilities",
     description:
         "Use the PHP Laravel framework support utilities in your JavaScript codebase",
     themeConfig: {

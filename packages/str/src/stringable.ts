@@ -401,8 +401,7 @@ export class Stringable {
      * Get the plural form of an English word.
      */
     plural(count: number = 2, prependCount: boolean = false): Stringable {
-        const c = Array.isArray(count) ? count.length : Number(count);
-        return new Stringable(Str.plural(this._value, c, prependCount));
+        return new Stringable(Str.plural(this._value, count, prependCount));
     }
 
     /**
