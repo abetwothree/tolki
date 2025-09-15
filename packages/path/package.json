@@ -1,0 +1,14 @@
+{
+    "name": "@laravel-js/path",
+    "version": "0.0.0",
+    "description": "Utilities for working with path-based operations across arrays/objects.",
+    "type": "module",
+    "main": "src/index.ts",
+    "scripts": {
+        "build": "vite build"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "MIT",
+    "packageManager": "pnpm@10.12.1"
+}

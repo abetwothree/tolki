@@ -1,0 +1,14 @@
+{
+    "name": "@laravel-js/all",
+    "version": "0.0.0",
+    "description": "A wrapper package to use all Laravel JS utilities at once.",
+    "type": "module",
+    "main": "src/index.ts",
+    "scripts": {
+        "build": "vite build"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "MIT",
+    "packageManager": "pnpm@10.12.1"
+}
