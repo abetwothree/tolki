@@ -10,7 +10,8 @@
 
 ## Code style
 
-- TypeScript read tsconfig.json
+- Use TypeScript and read tsconfig.json at the root for configuration
+- Use ES modules (import/export)
 - Use `pnpm` as package manager
 - Use `prettier` for formatting
 - Use `oxlint` and `eslint` for linting
