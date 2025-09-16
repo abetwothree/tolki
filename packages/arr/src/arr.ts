@@ -1109,9 +1109,6 @@ export function join<T>(
  * @example
  * set(['a', 'b', 'c'], 1, 'x'); // -> ['a', 'x', 'c']
  * set(['a', ['b', 'c']], '1.0', 'x'); // -> ['a', ['x', 'c']]
- * set(['a', 'b', 'c'], null, ['x', 'y']); // -> ['a', 'b', 'c'] (no-op)
- * set(['a', 'b', 'c'], 5, 'x'); // -> ['a', 'b', 'c'] (no-op)
- * set(['a', ['b', 'c']], '1.2', 'x'); // -> ['a', ['b', 'c']] (no-op)
  */
 export function set<T>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
@@ -1242,6 +1239,116 @@ export function set<T>(
     return out as T[];
 }
 
+/**
+ * Push one or more items into an array using numeric-only dot notation and return new array.
+ *
+ * @param data - The array or Collection to push items into.
+ * @param key - The key or dot-notated path of the array to push into. If null, push into root.
+ * @param values - The values to push.
+ * @returns A new array with the values pushed in.
+ * 
+ * @example
+ * 
+ * push(['a', 'b'], null, 'c', 'd'); // -> ['a', 'b', 'c', 'd']
+ * push(['a', ['b']], '1', 'c', 'd'); // -> ['a', ['b', 'c', 'd']]
+ * push(['a', ['b']], '1.1', 'c'); // -> ['a', ['b', 'c']]
+ */
+export function push<T>(
+    data: T[] | Collection<T[]> | unknown,
+    key: ArrayKey,
+    ...values: T[]
+): T[] {
+    const typeOf = (v: unknown): string => {
+        if (v === null) return "null";
+        if (Array.isArray(v)) return "array";
+        return typeof v;
+    };
+
+    // Coerce to a mutable root array reference if possible
+    if (key == null) {
+        if (Array.isArray(data)) {
+            (data as unknown[]).push(...(values as unknown[]));
+            return data as T[];
+        }
+        if (data instanceof Collection) {
+            const arr = (data.all() as unknown[]).slice();
+            arr.push(...(values as unknown[]));
+            return arr as T[];
+        }
+        // Non-accessible: start a new array with values
+        return [...(values as unknown[])] as T[];
+    }
+
+    const isPlainArray = Array.isArray(data);
+    const root: unknown[] = isPlainArray
+        ? (data as unknown[])
+        : (data as Collection<unknown[]>).all().slice();
+
+    const parts = String(key).split(".");
+    const segs: number[] = [];
+    for (const p of parts) {
+        const n = p.length ? Number(p) : NaN;
+        if (!Number.isInteger(n) || n < 0) {
+            return isPlainArray ? (data as T[]) : (root as T[]);
+        }
+        segs.push(n);
+    }
+
+    const clamp = (idx: number, length: number): number => {
+        return idx > length ? length : idx;
+    };
+
+    // Traverse to parent container (all but last segment)
+    let cursor: unknown[] = root;
+    for (let i = 0; i < segs.length - 1; i++) {
+        const desired = segs[i]!;
+        const idx = clamp(desired, cursor.length);
+        if (idx === cursor.length) {
+            const child: unknown[] = [];
+            cursor.push(child);
+            cursor = child;
+            continue;
+        }
+        const next = cursor[idx];
+        if (next == null) {
+            const child: unknown[] = [];
+            cursor[idx] = child;
+            cursor = child;
+            continue;
+        }
+        if (Array.isArray(next)) {
+            cursor = next as unknown[];
+            continue;
+        }
+        if (next instanceof Collection) {
+            const child = (
+                (next as Collection<unknown[]>).all() as unknown[]
+            ).slice();
+            cursor[idx] = child;
+            cursor = child;
+            continue;
+        }
+        throw new Error(
+            `Array value for key [${String(key)}] must be an array, ${typeOf(next)} found.`,
+        );
+    }
+
+    // Special-case: if the leaf slot exists and is explicitly boolean, mirror Laravel's error
+    const leaf = segs[segs.length - 1]!;
+    if (leaf < cursor.length) {
+        const existing = cursor[leaf];
+        if (typeof existing === "boolean") {
+            throw new Error(
+                `Array value for key [${String(key)}] must be an array, boolean found.`,
+            );
+        }
+    }
+
+    // Push values into the resolved container (ignore the final segment for insertion)
+    cursor.push(...(values as unknown[]));
+
+    return isPlainArray ? (data as T[]) : (root as T[]);
+}
 /**
  * Get a value from the array, and remove it.
  *

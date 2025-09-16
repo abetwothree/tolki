@@ -932,21 +932,56 @@ describe("Arr", () => {
         expect(JSON.stringify(subject)).toBe(snap);
     });
 
+    it("push", () => {
+        let data: unknown[] = [];
+
+        data = Arr.push(data, "0.0", "Desk");
+        expect(data).toEqual([["Desk"]]);
+
+        data = Arr.push(data, "0.0", "Chair", "Lamp");
+        expect(data).toEqual([["Desk", "Chair", "Lamp"]]);
+
+        let data2: unknown[] = [];
+
+        data2 = Arr.push(data2, null, "Chris", "Nuno");
+        expect(data2).toEqual(["Chris", "Nuno"]);
+
+        data2 = Arr.push(data2, null, "Taylor");
+        expect(data2).toEqual(["Chris", "Nuno", "Taylor"]);
+
+        const data3 = ["foo", ["bar", false]];
+        expect(() => Arr.push(data3, "1.1", "baz")).toThrow(
+            "Array value for key [1.1] must be an array, boolean found.",
+        );
+    });
+
     it("pull", () => {
         const data = ["name", "desk", ["price", 100]];
         const d = Arr.pull(data, "1");
         expect(d.value).toBe("desk");
         expect(d.data).toEqual(["name", ["price", 100]]);
 
-        const data2 = [["joe@example.com", "joe"], ["jane@localhost", "Jane"]];
+        const data2 = [
+            ["joe@example.com", "joe"],
+            ["jane@localhost", "Jane"],
+        ];
         const d2 = Arr.pull(data2, "0.0");
         expect(d2.value).toBe("joe@example.com");
-        expect(d2.data).toEqual([["joe"],["jane@localhost", "Jane"]]);
+        expect(d2.data).toEqual([["joe"], ["jane@localhost", "Jane"]]);
 
-        const data3 = ["emails", [["joe@example.com", "Joe"], ["jane@localhost", "Jane"]]];
+        const data3 = [
+            "emails",
+            [
+                ["joe@example.com", "Joe"],
+                ["jane@localhost", "Jane"],
+            ],
+        ];
         const d3 = Arr.pull(data3, "1.0.1");
         expect(d3.value).toBe("Joe");
-        expect(d3.data).toEqual(["emails", [["joe@example.com"], ["jane@localhost", "Jane"]]]);
+        expect(d3.data).toEqual([
+            "emails",
+            [["joe@example.com"], ["jane@localhost", "Jane"]],
+        ]);
 
         const data4 = ["First", "Second"];
         const d4 = Arr.pull(data4, 0);
