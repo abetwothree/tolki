@@ -37,7 +37,7 @@ export default defineConfig({
         coverage: {
             provider: "istanbul",
             reporter: ["text", "html", "lcov", "text-summary"],
-            exclude: [...configDefaults.exclude, "./scripts/**"],
+            exclude: [...configDefaults.exclude, "./scripts/**", "./docs/**"],
         },
         projects: ["packages/*"],
     },

@@ -879,6 +879,125 @@ describe("Arr", () => {
         expect(() => Arr.integer(testArray, 2)).toThrow(Error);
     });
 
+    it("set", () => {
+        const data = ["products", ["desk", ["price", 100]]];
+        expect(Arr.set(data, "1.1.1", 200)).toEqual([
+            "products",
+            ["desk", ["price", 200]],
+        ]);
+
+        // No key is given
+        expect(Arr.set(data, null, ["price", 300])).toEqual(["price", 300]);
+
+        // The key doesn't exist at the depth
+        expect(Arr.set(["products", "desk"], "0.1", "desk")).toEqual([
+            "products",
+            "desk",
+        ]);
+
+        // No corresponding key exists
+        expect(Arr.set(["products"], "1.1", 200)).toEqual(["products", [200]]);
+        expect(Arr.set(data, "2", 500)).toEqual([
+            "products",
+            ["desk", ["price", 100]],
+            500,
+        ]);
+        expect(Arr.set(data, "2.0", 350)).toEqual([
+            "products",
+            ["desk", ["price", 100]],
+            [350],
+        ]);
+        expect(Arr.set([], "0.0.0", 200)).toEqual([[[200]]]);
+
+        expect(Arr.set([1, 2, 3], 1, "hAz")).toEqual([1, "hAz", 3]);
+
+        // Test with undefined as key
+        expect(Arr.set(data, undefined, ["price", 300])).toEqual([
+            "price",
+            300,
+        ]);
+
+        // Collections are supported
+        const coll = new Collection([["products"], ["desk"]]);
+        expect(Arr.set(coll, "1.1", "chair")).toEqual([
+            ["products"],
+            ["desk", "chair"],
+        ]);
+
+        // Immutability: original should remain unchanged
+        const subject = ["products", ["desk", ["price", 100]]];
+        const snap = JSON.stringify(subject);
+        const result = Arr.set(subject, "1.1.1", 200);
+        expect(result).toEqual(["products", ["desk", ["price", 200]]]);
+        expect(JSON.stringify(subject)).toBe(snap);
+    });
+
+    it("pull", () => {
+        const data = ["name", "desk", ["price", 100]];
+        const d = Arr.pull(data, "1");
+        expect(d.value).toBe("desk");
+        expect(d.data).toEqual(["name", ["price", 100]]);
+
+        const data2 = [["joe@example.com", "joe"], ["jane@localhost", "Jane"]];
+        const d2 = Arr.pull(data2, "0.0");
+        expect(d2.value).toBe("joe@example.com");
+        expect(d2.data).toEqual([["joe"],["jane@localhost", "Jane"]]);
+
+        const data3 = ["emails", [["joe@example.com", "Joe"], ["jane@localhost", "Jane"]]];
+        const d3 = Arr.pull(data3, "1.0.1");
+        expect(d3.value).toBe("Joe");
+        expect(d3.data).toEqual(["emails", [["joe@example.com"], ["jane@localhost", "Jane"]]]);
+
+        const data4 = ["First", "Second"];
+        const d4 = Arr.pull(data4, 0);
+        expect(d4.value).toBe("First");
+        expect(d4.data).toEqual(["Second"]);
+
+        const base = ["products", ["desk", [100, null]]];
+
+        // Pull existing leaf value
+        const r1 = Arr.pull(base, "1.1.0");
+        expect(r1.value).toBe(100);
+        expect(r1.data).toEqual(["products", ["desk", [null]]]);
+
+        // Pull existing null value should return null, still remove
+        const r2 = Arr.pull(["products", ["desk", [100, null]]], "1.1.1");
+        expect(r2.value).toBeNull();
+        expect(r2.data).toEqual(["products", ["desk", [100]]]);
+
+        // Missing path returns default and leaves data unchanged
+        const r3 = Arr.pull(["a", ["b"]], "5.0", "def");
+        expect(r3.value).toBe("def");
+        expect(r3.data).toEqual(["a", ["b"]]);
+
+        // Lazy default only evaluated when needed
+        let calls = 0;
+        const lazy = () => {
+            calls++;
+            return "lazy";
+        };
+        const r4 = Arr.pull(["x"], 9, lazy);
+        expect(r4.value).toBe("lazy");
+        expect(calls).toBe(1);
+        const r5 = Arr.pull(["x"], 0, lazy);
+        expect(r5.value).toBe("x");
+        expect(calls).toBe(1);
+
+        // Collections supported
+        const coll = new Collection([["a"], ["b"]]);
+        const r6 = Arr.pull(coll, "1.0");
+        expect(r6.value).toBe("b");
+        expect(r6.data).toEqual([["a"], []]);
+
+        // Immutability: original should remain unchanged
+        const subject = ["products", ["desk", [100]]];
+        const snap = JSON.stringify(subject);
+        const r7 = Arr.pull(subject, "1.1.0");
+        expect(r7.value).toBe(100);
+        expect(r7.data).toEqual(["products", ["desk", []]]);
+        expect(JSON.stringify(subject)).toBe(snap);
+    });
+
     it("join", () => {
         expect(Arr.join(["a", "b", "c"], ", ")).toBe("a, b, c");
         expect(Arr.join(["a", "b", "c"], ", ", " and ")).toBe("a, b and c");
@@ -889,5 +1008,51 @@ describe("Arr", () => {
         expect(Arr.join(null, "")).toBe("");
         expect(Arr.join(undefined, "")).toBe("");
         expect(Arr.join(new Collection(["a", "b", "c"]), "")).toBe("abc");
+    });
+
+    it("dot", () => {
+        expect(Arr.dot([])).toEqual({});
+        expect(Arr.dot(["a"])).toEqual({ "0": "a" });
+        expect(Arr.dot(["a", ["b", ["c"]]])).toEqual({
+            "0": "a",
+            "1.0": "b",
+            "1.1.0": "c",
+        });
+
+        // Collections are treated as arrays
+        const coll = new Collection([
+            "x",
+            new Collection(["y"]),
+        ]) as unknown as Collection<unknown[]>;
+        expect(Arr.dot(coll)).toEqual({ "0": "x", "1.0": "y" });
+
+        // Prepend prefix
+        expect(Arr.dot(["a", ["b"]], "root")).toEqual({
+            "root.0": "a",
+            "root.1.0": "b",
+        });
+    });
+
+    it("undot", () => {
+        expect(Arr.undot({})).toEqual([]);
+        expect(Arr.undot({ "0": "a" })).toEqual(["a"]);
+        expect(Arr.undot({ "0": "a", "1.0": "b", "1.1.0": "c" })).toEqual([
+            "a",
+            ["b", ["c"]],
+        ]);
+
+        // Ignore non-numeric segments
+        const undotted = Arr.undot({ foo: "x", "1.bar": "y", "2": "z" });
+        expect(undotted.length).toBe(3);
+        expect(undotted[0]).toBeUndefined();
+        expect(undotted[1]).toBeUndefined();
+        expect(undotted[2]).toBe("z");
+
+        // Conflicting intermediate path: skip conflicting keys
+        // First sets 0 -> "x", then key "0.1" conflicts (0 is not an array)
+        expect(Arr.undot({ "0": "x", "0.1": "y", "1.0": "z" })).toEqual([
+            "x",
+            ["z"],
+        ]);
     });
 });

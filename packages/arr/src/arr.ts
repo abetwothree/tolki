@@ -1095,3 +1095,357 @@ export function join<T>(
 
     return head + finalGlue + tail;
 }
+
+/**
+ * Set an array item to a given value using "dot" notation.
+ *
+ * If no key is given to the method, the entire array will be replaced.
+ *
+ * @param  data - The array or Collection to set the item in.
+ * @param  key - The key or dot-notated path of the item to set.
+ * @param  value - The value to set.
+ * @returns - A new array with the item set or the original array if the path is invalid.
+ *
+ * @example
+ * set(['a', 'b', 'c'], 1, 'x'); // -> ['a', 'x', 'c']
+ * set(['a', ['b', 'c']], '1.0', 'x'); // -> ['a', ['x', 'c']]
+ * set(['a', 'b', 'c'], null, ['x', 'y']); // -> ['a', 'b', 'c'] (no-op)
+ * set(['a', 'b', 'c'], 5, 'x'); // -> ['a', 'b', 'c'] (no-op)
+ * set(['a', ['b', 'c']], '1.2', 'x'); // -> ['a', ['b', 'c']] (no-op)
+ */
+export function set<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    key: ArrayKey,
+    value: T,
+): T[] {
+    // If no key is provided, replace the entire array (Laravel parity)
+    if (key == null) {
+        return value as unknown as T[];
+    }
+
+    if (!accessible(data)) {
+        return [] as T[];
+    }
+
+    const toArray = (value: unknown): unknown[] => {
+        if (Array.isArray(value)) {
+            return value.slice() as unknown[]; // clone root
+        }
+        if (value instanceof Collection) {
+            return (value.all() as unknown[]).slice();
+        }
+        return [] as unknown[];
+    };
+
+    const root = toArray(data);
+
+    // Helper to clamp an index to avoid creating holes: if beyond length, append at length
+    const clampIndex = (idx: number, length: number): number => {
+        if (!Number.isInteger(idx) || idx < 0) {
+            return -1; // invalid
+        }
+        return idx > length ? length : idx;
+    };
+
+    // Fast path: single numeric key (number or numeric string without dots)
+    if (
+        typeof key === "number" ||
+        (typeof key === "string" && key.indexOf(".") === -1)
+    ) {
+        const raw = typeof key === "number" ? key : Number(key);
+        if (!Number.isInteger(raw) || raw < 0) {
+            return root as T[];
+        }
+        const idx = clampIndex(raw, root.length);
+        if (idx === -1) {
+            return root as T[];
+        }
+        const out = root.slice();
+        if (idx === out.length) {
+            out.push(value as unknown);
+        } else {
+            out[idx] = value as unknown;
+        }
+        return out as T[];
+    }
+
+    // Dot path traversal
+    const parts = String(key).split(".");
+    const segments: number[] = [];
+    for (const p of parts) {
+        const n = p.length ? Number(p) : NaN;
+        if (!Number.isInteger(n) || n < 0) {
+            return root as T[]; // invalid path -> no-op
+        }
+        segments.push(n);
+    }
+
+    // We'll clone along the path to preserve immutability
+    const out = root.slice();
+    let cursor: unknown[] = out;
+
+    for (let i = 0; i < segments.length; i++) {
+        const desired = segments[i]!;
+        const atLast = i === segments.length - 1;
+        const idx = clampIndex(desired, cursor.length);
+        if (idx === -1) {
+            return root as T[]; // invalid index
+        }
+
+        if (atLast) {
+            if (idx === cursor.length) {
+                cursor.push(value as unknown);
+            } else {
+                cursor[idx] = value as unknown;
+            }
+            break;
+        }
+
+        // Intermediate: ensure child is an array; create if appending
+        if (idx === cursor.length) {
+            // Appending a new array at this level
+            const child: unknown[] = [];
+            cursor.push(child);
+            cursor = child;
+            continue;
+        }
+
+        const next = cursor[idx];
+        if (next == null) {
+            const child: unknown[] = [];
+            cursor[idx] = child;
+            cursor = child;
+            continue;
+        }
+
+        if (Array.isArray(next)) {
+            // Clone existing array before descending to keep immutability
+            const cloned = (next as unknown[]).slice();
+            cursor[idx] = cloned;
+            cursor = cloned;
+            continue;
+        }
+
+        if (next instanceof Collection) {
+            const cloned = (
+                (next as Collection<unknown[]>).all() as unknown[]
+            ).slice();
+            cursor[idx] = cloned;
+            cursor = cloned;
+            continue;
+        }
+
+        // Non-array encountered at intermediate segment -> no-op overall
+        return root as T[];
+    }
+
+    return out as T[];
+}
+
+/**
+ * Get a value from the array, and remove it.
+ *
+ * @param data - The array or Collection to pull the item from.
+ * @param key - The key or dot-notated path of the item to pull.
+ * @param defaultValue - The default value if key is not found.
+ * @returns An object containing the pulled value (or default) and the updated array.
+ *
+ * @example
+ *
+ * pull(['a', 'b', 'c'], 1); // -> { value: 'b', data: ['a', 'c'] }
+ * pull(['a', ['b', 'c']], '1.0'); // -> { value: 'b', data: ['a', ['c']] }
+ * pull(['a', 'b', 'c'], 5, 'x'); // -> { value: 'x', data: ['a', 'b', 'c'] }
+ * pull(['a', ['b', 'c']], '1.2', 'x'); // -> { value: 'x', data: ['a', ['b', 'c']] }
+ */
+export function pull<T, D = null>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    key: ArrayKey,
+    defaultValue: D | (() => D) | null = null,
+): { value: T | D | null; data: T[] } {
+    const resolveDefault = (): D | null => {
+        return typeof defaultValue === "function"
+            ? (defaultValue as () => D)()
+            : (defaultValue as D);
+    };
+
+    if (!accessible(data)) {
+        return { value: resolveDefault(), data: [] as T[] };
+    }
+
+    const toArray = (value: unknown): unknown[] | null => {
+        if (Array.isArray(value)) return value as unknown[];
+        if (value instanceof Collection) return value.all() as unknown[];
+        return null;
+    };
+
+    if (key == null) {
+        // Not supported: pulling entire array
+        const original = toArray(data)!.slice();
+        return { value: resolveDefault(), data: original as T[] };
+    }
+
+    const root = toArray(data)!;
+
+    const getRawAtPath = (
+        container: unknown[],
+        k: number | string,
+    ): {
+        found: boolean;
+        value?: unknown;
+    } => {
+        if (typeof k === "number") {
+            if (!Number.isInteger(k) || k < 0 || k >= container.length) {
+                return { found: false };
+            }
+            return { found: true, value: container[k] };
+        }
+        const path = String(k);
+        if (path.length === 0) return { found: false };
+        const segments = path.split(".");
+        let cursor: unknown = container;
+        for (let i = 0; i < segments.length; i++) {
+            const seg = segments[i]!;
+            const idx = seg.length ? Number(seg) : NaN;
+            const arr = toArray(cursor);
+            if (
+                !Number.isInteger(idx) ||
+                idx < 0 ||
+                !arr ||
+                idx >= arr.length
+            ) {
+                return { found: false };
+            }
+            cursor = arr[idx];
+        }
+        return { found: true, value: cursor };
+    };
+
+    const { found, value } = getRawAtPath(root, key as number | string);
+    if (!found) {
+        const original = root.slice();
+        return { value: resolveDefault(), data: original as T[] };
+    }
+
+    const updated = forget(root as T[], key as number | string);
+    return { value: value as unknown as T | D | null, data: updated };
+}
+
+/**
+ * Flatten a multi-dimensional array with "dot" notation.
+ *
+ * @param data - The array or Collection to flatten.
+ * @param prepend - An optional string to prepend to each key.
+ * @returns A new object with dot-notated keys.
+ *
+ * @example
+ *
+ * dot(['a', ['b', 'c']]); // -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
+ * dot(new Collection(['a', new Collection(['b', 'c'])]), 'item'); // -> { 'item.0': 'a', 'item.1.0': 'b', 'item.1.1': 'c' }
+ */
+export function dot(
+    data: ReadonlyArray<unknown> | Collection<unknown[]> | unknown,
+    prepend: string = "",
+): Record<string, unknown> {
+    if (!accessible(data)) {
+        return {};
+    }
+
+    const toArray = (value: unknown): unknown[] => {
+        return value instanceof Collection
+            ? ((value.all() as unknown[]) ?? [])
+            : ((value as unknown[]) ?? []);
+    };
+
+    const root = toArray(data);
+    const out: Record<string, unknown> = {};
+
+    const walk = (node: unknown, path: string): void => {
+        const arr = Array.isArray(node)
+            ? (node as unknown[])
+            : node instanceof Collection
+              ? (node.all() as unknown[])
+              : null;
+
+        if (!arr) {
+            const key = prepend
+                ? path
+                    ? `${prepend}.${path}`
+                    : prepend
+                : path;
+            if (key.length > 0) {
+                out[key] = node as unknown;
+            }
+            return;
+        }
+
+        for (let i = 0; i < arr.length; i++) {
+            const nextPath = path ? `${path}.${i}` : String(i);
+            walk(arr[i], nextPath);
+        }
+    };
+
+    // For top-level array, start with empty path so indices are used directly
+    walk(root, "");
+
+    return out;
+}
+
+/**
+ * Convert a flatten "dot" notation object into an expanded array.
+ *
+ * @param map - The flat object with dot-notated keys.
+ * @returns A new multi-dimensional array.
+ *
+ * @example
+ *
+ * undot({ '0': 'a', '1.0': 'b', '1.1': 'c' }); // -> ['a', ['b', 'c']]
+ * undot({ 'item.0': 'a', 'item.1.0': 'b', 'item.1.1': 'c' }); // -> [['b', 'c']]
+ */
+export function undot(map: Record<string, unknown>): unknown[] {
+    const root: unknown[] = [];
+
+    const isValidIndex = (seg: string): boolean => {
+        const n = seg.length ? Number(seg) : NaN;
+        return Number.isInteger(n) && n >= 0;
+    };
+
+    for (const [rawKey, value] of Object.entries(map ?? {})) {
+        if (typeof rawKey !== "string" || rawKey.length === 0) {
+            continue;
+        }
+        const segments = rawKey.split(".");
+        if (segments.some((s) => !isValidIndex(s))) {
+            continue; // ignore non-numeric paths
+        }
+
+        let cursor: unknown = root;
+        for (let i = 0; i < segments.length; i++) {
+            const idx = Number(segments[i]!);
+            const atEnd = i === segments.length - 1;
+            const arr = Array.isArray(cursor) ? (cursor as unknown[]) : null;
+            if (!arr) {
+                // conflicting structure (non-array encountered), skip this key
+                cursor = null;
+                break;
+            }
+            if (atEnd) {
+                arr[idx] = value as unknown;
+            } else {
+                const next = arr[idx];
+                if (next == null) {
+                    const child: unknown[] = [];
+                    arr[idx] = child;
+                    cursor = child;
+                } else if (Array.isArray(next)) {
+                    cursor = next as unknown[];
+                } else {
+                    // non-array existing value on an intermediate path -> conflict, skip
+                    cursor = null;
+                    break;
+                }
+            }
+        }
+    }
+
+    return root;
+}
