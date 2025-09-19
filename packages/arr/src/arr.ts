@@ -1,4 +1,16 @@
 import { Collection } from "@laravel-js/collection";
+import {
+    isAccessible as _isAccessible,
+    toArray as _toArray,
+    hasPath as _hasPath,
+    getRaw as _getRaw,
+    forgetKeys as _forgetKeys,
+    setImmutable as _setImmutable,
+    pushWithPath as _pushWithPath,
+    dotFlatten as _dotFlatten,
+    undotExpand as _undotExpand,
+} from "./path";
+import type { ArrayKey, ArrayKeys } from "./path";
 
 // Extract the element type from either an array or a Collection
 export type InnerValue<X> =
@@ -7,15 +19,6 @@ export type InnerValue<X> =
         : X extends Collection<infer U>
           ? U
           : never;
-
-export type ArrayKey = number | string | null | undefined;
-
-export type ArrayKeys =
-    | number
-    | string
-    | null
-    | undefined
-    | Array<number | string | null | undefined>;
 
 /**
  * Determine whether the given value is array accessible.
@@ -28,11 +31,7 @@ export type ArrayKeys =
  * accessible(new Collection()); // true
  */
 export function accessible<T>(value: T): boolean {
-    if (Array.isArray(value)) {
-        return true;
-    }
-
-    return isCollection(value);
+    return _isAccessible(value as unknown);
 }
 
 /**
@@ -48,11 +47,7 @@ export function accessible<T>(value: T): boolean {
 export function arrayable(
     value: unknown,
 ): value is ReadonlyArray<unknown> | Collection<unknown[]> {
-    if (Array.isArray(value)) {
-        return true;
-    }
-
-    return isCollection(value);
+    return _isAccessible(value);
 }
 
 /**
@@ -516,157 +511,7 @@ export function flatten(
  * forget(['products', ['desk', [100]]], 2); // -> ['products', ['desk', [100]]]
  */
 export function forget<T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] {
-    const removeAt = <U>(arr: ReadonlyArray<U>, index: number): U[] => {
-        if (!Number.isInteger(index) || index < 0 || index >= arr.length) {
-            return arr.slice();
-        }
-
-        const clone = arr.slice();
-        clone.splice(index, 1);
-
-        return clone;
-    };
-
-    const forgetPath = <U>(arr: ReadonlyArray<U>, path: number[]): U[] => {
-        const head = path[0];
-        const rest = path.slice(1);
-        const clone = arr.slice();
-
-        if (rest.length === 0) {
-            return removeAt(clone, head!);
-        }
-
-        if (!Number.isInteger(head) || head! < 0 || head! >= clone.length) {
-            return clone;
-        }
-
-        const child = clone[head!] as unknown;
-        if (Array.isArray(child)) {
-            clone[head!] = forgetPath(child as unknown[], rest) as unknown as U;
-        }
-
-        return clone;
-    };
-
-    // Helper to immutably update a nested array at a given parent path
-    const updateAtPath = <U>(
-        arr: ReadonlyArray<U>,
-        parentPath: number[],
-        updater: (child: U[]) => U[],
-    ): U[] => {
-        if (parentPath.length === 0) {
-            return updater(arr.slice() as unknown as U[]) as unknown as U[];
-        }
-
-        const [head, ...rest] = parentPath;
-        if (!Number.isInteger(head) || head! < 0 || head! >= arr.length) {
-            return arr.slice();
-        }
-
-        const clone = arr.slice();
-        const child = clone[head!] as unknown;
-        if (!Array.isArray(child)) {
-            return clone;
-        }
-
-        clone[head!] = updateAtPath(
-            child as unknown[],
-            rest,
-            updater as unknown as (child: unknown[]) => unknown[],
-        ) as unknown as U;
-
-        return clone;
-    };
-
-    if (keys == null) {
-        return data.slice();
-    }
-
-    const keyList = Array.isArray(keys) ? keys : [keys];
-    if (keyList.length === 0) {
-        return data.slice();
-    }
-
-    // Single key fast-path preserves previous behavior
-    if (keyList.length === 1) {
-        const k = keyList[0]!;
-        if (typeof k === "number") {
-            return removeAt(data, k);
-        }
-
-        const parts = String(k)
-            .split(".")
-            .map((p) => (p.length ? Number(p) : NaN));
-
-        if (parts.length === 1) {
-            return removeAt(data, parts[0]!);
-        }
-
-        if (parts.some((n) => Number.isNaN(n))) {
-            return data.slice();
-        }
-
-        return forgetPath(data, parts as number[]);
-    }
-
-    type Group = { path: number[]; indices: Set<number> };
-    const groupsMap = new Map<string, Group>();
-
-    for (const k of keyList) {
-        if (typeof k === "number") {
-            const key = ""; // root
-            const entry = groupsMap.get(key) ?? {
-                path: [],
-                indices: new Set(),
-            };
-            entry.indices.add(k);
-            groupsMap.set(key, entry);
-            continue;
-        }
-
-        const parts = String(k)
-            .split(".")
-            .map((p) => (p.length ? Number(p) : NaN));
-        if (parts.length === 0 || parts.some((n) => Number.isNaN(n))) {
-            continue; // skip invalid
-        }
-        const parent = parts.slice(0, -1) as number[];
-        const leaf = parts[parts.length - 1]! as number;
-        const key = parent.join(".");
-        const entry = groupsMap.get(key) ?? {
-            path: parent,
-            indices: new Set(),
-        };
-        entry.indices.add(leaf);
-        groupsMap.set(key, entry);
-    }
-
-    // Apply groups sorted by deepest parent path first to avoid interfering updates
-    const groups = Array.from(groupsMap.values()).sort(
-        (a, b) => b.path.length - a.path.length,
-    );
-
-    let out = data.slice() as unknown[];
-    for (const { path, indices } of groups) {
-        const sorted = Array.from(indices)
-            .filter((i) => Number.isInteger(i) && i >= 0)
-            .sort((a, b) => b - a);
-        if (sorted.length === 0) {
-            continue;
-        }
-
-        out = updateAtPath(out, path, (child) => {
-            const clone = child.slice();
-            for (const idx of sorted) {
-                if (idx >= 0 && idx < clone.length) {
-                    clone.splice(idx, 1);
-                }
-            }
-            return clone as unknown as T[];
-        }) as unknown[];
-    }
-
-    return out as T[];
+    return _forgetKeys<T>(data, keys);
 }
 
 /**
@@ -751,57 +596,15 @@ export function get<T, D = null>(
             ? (defaultValue as () => D)()
             : (defaultValue as D);
     };
-
     if (!accessible(data)) {
         return resolveDefault();
     }
-
-    // Normalize to a plain array for traversal
-    const root: unknown[] =
-        data instanceof Collection
-            ? (data.all() as unknown[])
-            : (data as unknown[]);
-
-    if (key == null) {
-        return root as unknown as ReadonlyArray<T>;
+    const root = _toArray(data)!;
+    const { found, value } = _getRaw(root, key);
+    if (!found) {
+        return resolveDefault();
     }
-
-    // Helper to fetch a direct index with default-on-null
-    const fetchIndex = (arr: unknown[], idxLike: number | string): unknown => {
-        const idx = typeof idxLike === "number" ? idxLike : Number(idxLike);
-        if (!Number.isInteger(idx) || idx < 0 || idx >= arr.length)
-            return undefined;
-        return arr[idx];
-    };
-
-    if (typeof key === "number") {
-        const val = fetchIndex(root, key);
-        return val == null ? resolveDefault() : (val as T);
-    }
-
-    // String key: dot path or single numeric-string
-    const path = String(key);
-    if (path.indexOf(".") === -1) {
-        const val = fetchIndex(root, path);
-        return val == null ? resolveDefault() : (val as T);
-    }
-
-    // Dot path traversal (numeric-only segments)
-    const segments = path.split(".");
-    let cursor: unknown = root;
-    for (const seg of segments) {
-        const idx = seg.length ? Number(seg) : NaN;
-        if (!Array.isArray(cursor) || !Number.isInteger(idx) || idx < 0) {
-            return resolveDefault();
-        }
-        const arr = cursor as unknown[];
-        if (idx >= arr.length) {
-            return resolveDefault();
-        }
-        cursor = arr[idx];
-    }
-
-    return cursor == null ? resolveDefault() : (cursor as T);
+    return value == null ? resolveDefault() : (value as T);
 }
 
 /**
@@ -822,63 +625,15 @@ export function has<T>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
     keys: ArrayKeys,
 ): boolean {
-    const toArray = (value: unknown): unknown[] | null => {
-        if (Array.isArray(value)) {
-            return value as unknown[];
-        }
-        if (value instanceof Collection) {
-            return value.all() as unknown[];
-        }
-
-        return null;
-    };
-
     const keyList = Array.isArray(keys) ? keys : [keys];
     if (!accessible(data) || keyList.length === 0) {
         return false;
     }
-
-    const root = toArray(data)!;
-
-    const hasPath = (container: unknown[], key: number | string): boolean => {
-        // Single number or numeric-string without dots
-        if (typeof key === "number") {
-            return Number.isInteger(key) && key >= 0 && key < container.length;
-        }
-
-        const path = String(key);
-        if (path.length === 0) {
-            return false;
-        }
-
-        const segments = path.split(".");
-        let cursor: unknown = container;
-        for (const seg of segments) {
-            const idx = seg.length ? Number(seg) : NaN;
-            const arr = toArray(cursor);
-            if (
-                !Number.isInteger(idx) ||
-                idx < 0 ||
-                !arr ||
-                idx >= arr.length
-            ) {
-                return false;
-            }
-            cursor = arr[idx];
-        }
-        return true;
-    };
-
+    const root = _toArray(data)!;
     for (const k of keyList) {
-        if (k == null) {
-            return false;
-        }
-
-        if (!hasPath(root, k as number | string)) {
-            return false;
-        }
+        if (k == null) return false;
+        if (!_hasPath(root, k)) return false;
     }
-
     return true;
 }
 
@@ -932,23 +687,18 @@ export function hasAny<T>(
     if (keys == null) {
         return false;
     }
-
     const keyList = Array.isArray(keys) ? keys : [keys];
-
     if (keyList.length === 0) {
         return false;
     }
-
-    if (!accessible(data) || keyList.length === 0) {
+    if (!accessible(data)) {
         return false;
     }
-
     for (const key of keyList) {
         if (has(data, key)) {
             return true;
         }
     }
-
     return false;
 }
 
@@ -1115,128 +865,7 @@ export function set<T>(
     key: ArrayKey,
     value: T,
 ): T[] {
-    // If no key is provided, replace the entire array (Laravel parity)
-    if (key == null) {
-        return value as unknown as T[];
-    }
-
-    if (!accessible(data)) {
-        return [] as T[];
-    }
-
-    const toArray = (value: unknown): unknown[] => {
-        if (Array.isArray(value)) {
-            return value.slice() as unknown[]; // clone root
-        }
-        if (value instanceof Collection) {
-            return (value.all() as unknown[]).slice();
-        }
-        return [] as unknown[];
-    };
-
-    const root = toArray(data);
-
-    // Helper to clamp an index to avoid creating holes: if beyond length, append at length
-    const clampIndex = (idx: number, length: number): number => {
-        if (!Number.isInteger(idx) || idx < 0) {
-            return -1; // invalid
-        }
-        return idx > length ? length : idx;
-    };
-
-    // Fast path: single numeric key (number or numeric string without dots)
-    if (
-        typeof key === "number" ||
-        (typeof key === "string" && key.indexOf(".") === -1)
-    ) {
-        const raw = typeof key === "number" ? key : Number(key);
-        if (!Number.isInteger(raw) || raw < 0) {
-            return root as T[];
-        }
-        const idx = clampIndex(raw, root.length);
-        if (idx === -1) {
-            return root as T[];
-        }
-        const out = root.slice();
-        if (idx === out.length) {
-            out.push(value as unknown);
-        } else {
-            out[idx] = value as unknown;
-        }
-        return out as T[];
-    }
-
-    // Dot path traversal
-    const parts = String(key).split(".");
-    const segments: number[] = [];
-    for (const p of parts) {
-        const n = p.length ? Number(p) : NaN;
-        if (!Number.isInteger(n) || n < 0) {
-            return root as T[]; // invalid path -> no-op
-        }
-        segments.push(n);
-    }
-
-    // We'll clone along the path to preserve immutability
-    const out = root.slice();
-    let cursor: unknown[] = out;
-
-    for (let i = 0; i < segments.length; i++) {
-        const desired = segments[i]!;
-        const atLast = i === segments.length - 1;
-        const idx = clampIndex(desired, cursor.length);
-        if (idx === -1) {
-            return root as T[]; // invalid index
-        }
-
-        if (atLast) {
-            if (idx === cursor.length) {
-                cursor.push(value as unknown);
-            } else {
-                cursor[idx] = value as unknown;
-            }
-            break;
-        }
-
-        // Intermediate: ensure child is an array; create if appending
-        if (idx === cursor.length) {
-            // Appending a new array at this level
-            const child: unknown[] = [];
-            cursor.push(child);
-            cursor = child;
-            continue;
-        }
-
-        const next = cursor[idx];
-        if (next == null) {
-            const child: unknown[] = [];
-            cursor[idx] = child;
-            cursor = child;
-            continue;
-        }
-
-        if (Array.isArray(next)) {
-            // Clone existing array before descending to keep immutability
-            const cloned = (next as unknown[]).slice();
-            cursor[idx] = cloned;
-            cursor = cloned;
-            continue;
-        }
-
-        if (next instanceof Collection) {
-            const cloned = (
-                (next as Collection<unknown[]>).all() as unknown[]
-            ).slice();
-            cursor[idx] = cloned;
-            cursor = cloned;
-            continue;
-        }
-
-        // Non-array encountered at intermediate segment -> no-op overall
-        return root as T[];
-    }
-
-    return out as T[];
+    return _setImmutable<T>(data, key, value);
 }
 
 /**
@@ -1246,9 +875,9 @@ export function set<T>(
  * @param key - The key or dot-notated path of the array to push into. If null, push into root.
  * @param values - The values to push.
  * @returns A new array with the values pushed in.
- * 
+ *
  * @example
- * 
+ *
  * push(['a', 'b'], null, 'c', 'd'); // -> ['a', 'b', 'c', 'd']
  * push(['a', ['b']], '1', 'c', 'd'); // -> ['a', ['b', 'c', 'd']]
  * push(['a', ['b']], '1.1', 'c'); // -> ['a', ['b', 'c']]
@@ -1258,96 +887,7 @@ export function push<T>(
     key: ArrayKey,
     ...values: T[]
 ): T[] {
-    const typeOf = (v: unknown): string => {
-        if (v === null) return "null";
-        if (Array.isArray(v)) return "array";
-        return typeof v;
-    };
-
-    // Coerce to a mutable root array reference if possible
-    if (key == null) {
-        if (Array.isArray(data)) {
-            (data as unknown[]).push(...(values as unknown[]));
-            return data as T[];
-        }
-        if (data instanceof Collection) {
-            const arr = (data.all() as unknown[]).slice();
-            arr.push(...(values as unknown[]));
-            return arr as T[];
-        }
-        // Non-accessible: start a new array with values
-        return [...(values as unknown[])] as T[];
-    }
-
-    const isPlainArray = Array.isArray(data);
-    const root: unknown[] = isPlainArray
-        ? (data as unknown[])
-        : (data as Collection<unknown[]>).all().slice();
-
-    const parts = String(key).split(".");
-    const segs: number[] = [];
-    for (const p of parts) {
-        const n = p.length ? Number(p) : NaN;
-        if (!Number.isInteger(n) || n < 0) {
-            return isPlainArray ? (data as T[]) : (root as T[]);
-        }
-        segs.push(n);
-    }
-
-    const clamp = (idx: number, length: number): number => {
-        return idx > length ? length : idx;
-    };
-
-    // Traverse to parent container (all but last segment)
-    let cursor: unknown[] = root;
-    for (let i = 0; i < segs.length - 1; i++) {
-        const desired = segs[i]!;
-        const idx = clamp(desired, cursor.length);
-        if (idx === cursor.length) {
-            const child: unknown[] = [];
-            cursor.push(child);
-            cursor = child;
-            continue;
-        }
-        const next = cursor[idx];
-        if (next == null) {
-            const child: unknown[] = [];
-            cursor[idx] = child;
-            cursor = child;
-            continue;
-        }
-        if (Array.isArray(next)) {
-            cursor = next as unknown[];
-            continue;
-        }
-        if (next instanceof Collection) {
-            const child = (
-                (next as Collection<unknown[]>).all() as unknown[]
-            ).slice();
-            cursor[idx] = child;
-            cursor = child;
-            continue;
-        }
-        throw new Error(
-            `Array value for key [${String(key)}] must be an array, ${typeOf(next)} found.`,
-        );
-    }
-
-    // Special-case: if the leaf slot exists and is explicitly boolean, mirror Laravel's error
-    const leaf = segs[segs.length - 1]!;
-    if (leaf < cursor.length) {
-        const existing = cursor[leaf];
-        if (typeof existing === "boolean") {
-            throw new Error(
-                `Array value for key [${String(key)}] must be an array, boolean found.`,
-            );
-        }
-    }
-
-    // Push values into the resolved container (ignore the final segment for insertion)
-    cursor.push(...(values as unknown[]));
-
-    return isPlainArray ? (data as T[]) : (root as T[]);
+    return _pushWithPath<T>(data, key, ...values);
 }
 /**
  * Get a value from the array, and remove it.
@@ -1374,65 +914,19 @@ export function pull<T, D = null>(
             ? (defaultValue as () => D)()
             : (defaultValue as D);
     };
-
     if (!accessible(data)) {
         return { value: resolveDefault(), data: [] as T[] };
     }
-
-    const toArray = (value: unknown): unknown[] | null => {
-        if (Array.isArray(value)) return value as unknown[];
-        if (value instanceof Collection) return value.all() as unknown[];
-        return null;
-    };
-
     if (key == null) {
-        // Not supported: pulling entire array
-        const original = toArray(data)!.slice();
+        const original = _toArray(data)!.slice();
         return { value: resolveDefault(), data: original as T[] };
     }
-
-    const root = toArray(data)!;
-
-    const getRawAtPath = (
-        container: unknown[],
-        k: number | string,
-    ): {
-        found: boolean;
-        value?: unknown;
-    } => {
-        if (typeof k === "number") {
-            if (!Number.isInteger(k) || k < 0 || k >= container.length) {
-                return { found: false };
-            }
-            return { found: true, value: container[k] };
-        }
-        const path = String(k);
-        if (path.length === 0) return { found: false };
-        const segments = path.split(".");
-        let cursor: unknown = container;
-        for (let i = 0; i < segments.length; i++) {
-            const seg = segments[i]!;
-            const idx = seg.length ? Number(seg) : NaN;
-            const arr = toArray(cursor);
-            if (
-                !Number.isInteger(idx) ||
-                idx < 0 ||
-                !arr ||
-                idx >= arr.length
-            ) {
-                return { found: false };
-            }
-            cursor = arr[idx];
-        }
-        return { found: true, value: cursor };
-    };
-
-    const { found, value } = getRawAtPath(root, key as number | string);
+    const root = _toArray(data)!;
+    const { found, value } = _getRaw(root, key as number | string);
     if (!found) {
         const original = root.slice();
         return { value: resolveDefault(), data: original as T[] };
     }
-
     const updated = forget(root as T[], key as number | string);
     return { value: value as unknown as T | D | null, data: updated };
 }
@@ -1453,48 +947,7 @@ export function dot(
     data: ReadonlyArray<unknown> | Collection<unknown[]> | unknown,
     prepend: string = "",
 ): Record<string, unknown> {
-    if (!accessible(data)) {
-        return {};
-    }
-
-    const toArray = (value: unknown): unknown[] => {
-        return value instanceof Collection
-            ? ((value.all() as unknown[]) ?? [])
-            : ((value as unknown[]) ?? []);
-    };
-
-    const root = toArray(data);
-    const out: Record<string, unknown> = {};
-
-    const walk = (node: unknown, path: string): void => {
-        const arr = Array.isArray(node)
-            ? (node as unknown[])
-            : node instanceof Collection
-              ? (node.all() as unknown[])
-              : null;
-
-        if (!arr) {
-            const key = prepend
-                ? path
-                    ? `${prepend}.${path}`
-                    : prepend
-                : path;
-            if (key.length > 0) {
-                out[key] = node as unknown;
-            }
-            return;
-        }
-
-        for (let i = 0; i < arr.length; i++) {
-            const nextPath = path ? `${path}.${i}` : String(i);
-            walk(arr[i], nextPath);
-        }
-    };
-
-    // For top-level array, start with empty path so indices are used directly
-    walk(root, "");
-
-    return out;
+    return _dotFlatten(data, prepend);
 }
 
 /**
@@ -1509,50 +962,5 @@ export function dot(
  * undot({ 'item.0': 'a', 'item.1.0': 'b', 'item.1.1': 'c' }); // -> [['b', 'c']]
  */
 export function undot(map: Record<string, unknown>): unknown[] {
-    const root: unknown[] = [];
-
-    const isValidIndex = (seg: string): boolean => {
-        const n = seg.length ? Number(seg) : NaN;
-        return Number.isInteger(n) && n >= 0;
-    };
-
-    for (const [rawKey, value] of Object.entries(map ?? {})) {
-        if (typeof rawKey !== "string" || rawKey.length === 0) {
-            continue;
-        }
-        const segments = rawKey.split(".");
-        if (segments.some((s) => !isValidIndex(s))) {
-            continue; // ignore non-numeric paths
-        }
-
-        let cursor: unknown = root;
-        for (let i = 0; i < segments.length; i++) {
-            const idx = Number(segments[i]!);
-            const atEnd = i === segments.length - 1;
-            const arr = Array.isArray(cursor) ? (cursor as unknown[]) : null;
-            if (!arr) {
-                // conflicting structure (non-array encountered), skip this key
-                cursor = null;
-                break;
-            }
-            if (atEnd) {
-                arr[idx] = value as unknown;
-            } else {
-                const next = arr[idx];
-                if (next == null) {
-                    const child: unknown[] = [];
-                    arr[idx] = child;
-                    cursor = child;
-                } else if (Array.isArray(next)) {
-                    cursor = next as unknown[];
-                } else {
-                    // non-array existing value on an intermediate path -> conflict, skip
-                    cursor = null;
-                    break;
-                }
-            }
-        }
-    }
-
-    return root;
+    return _undotExpand(map);
 }
