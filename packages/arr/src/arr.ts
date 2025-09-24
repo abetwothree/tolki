@@ -1,5 +1,5 @@
 import { Collection } from "@laravel-js/collection";
-import { Random } from "@laravel-js/str";
+import { Random, Str } from "@laravel-js/str";
 import {
     isAccessible as _isAccessible,
     toArray as _toArray,
@@ -14,28 +14,9 @@ import {
     getMixedValue,
 } from "./path";
 import type { ArrayKey, ArrayKeys } from "./path";
+import { compareValues, getAccessibleValues } from "./utils"; 
 
-/**
- * Helper function to safely compare two unknown values.
- */
-function compareValues(a: unknown, b: unknown): number {
-    if (a == null && b == null) return 0;
-    if (a == null) return -1;
-    if (b == null) return 1;
-
-    // For objects, compare by JSON string representation for stable sorting
-    if (typeof a === "object" && typeof b === "object") {
-        const aStr = JSON.stringify(a);
-        const bStr = JSON.stringify(b);
-        if (aStr < bStr) return -1;
-        if (aStr > bStr) return 1;
-        return 0;
-    }
-
-    if (a < b) return -1;
-    if (a > b) return 1;
-    return 0;
-} // Extract the element type from either an array or a Collection
+// Extract the element type from either an array or a Collection
 export type InnerValue<X> =
     X extends ReadonlyArray<infer U>
         ? U
@@ -747,8 +728,7 @@ export function every<T>(
         return false;
     }
 
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const values = getAccessibleValues(data);
     for (let i = 0; i < values.length; i++) {
         if (!callback(values[i] as T, i)) {
             return false;
@@ -780,8 +760,7 @@ export function some<T>(
         return false;
     }
 
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const values = getAccessibleValues(data);
 
     for (let i = 0; i < values.length; i++) {
         if (callback(values[i] as T, i)) {
@@ -840,15 +819,8 @@ export function join<T>(
     glue: string,
     finalGlue: string = "",
 ): string {
-    if (!accessible(data)) {
-        return "";
-    }
-
-    const raw: unknown[] =
-        data instanceof Collection
-            ? (data.all() as unknown[])
-            : (data as unknown[]);
-    const items = raw.map((v) => String(v));
+    const values = getAccessibleValues(data);
+    const items = values.map((v) => String(v));
 
     if (finalGlue === "") {
         return items.join(glue);
@@ -1005,12 +977,7 @@ export function where<T>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
     callback: (value: T, index: number) => boolean,
 ): T[] {
-    if (!accessible(data)) {
-        return [];
-    }
-
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const values = getAccessibleValues(data);
     const result: T[] = [];
 
     for (let i = 0; i < values.length; i++) {
@@ -1081,12 +1048,7 @@ export function partition<T>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
     callback: (value: T, index: number) => boolean,
 ): [T[], T[]] {
-    if (!accessible(data)) {
-        return [[], []];
-    }
-
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const values = getAccessibleValues(data);
     const passed: T[] = [];
     const failed: T[] = [];
 
@@ -1119,20 +1081,16 @@ export function select<T extends Record<string, unknown>>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
     keys: string | string[],
 ): Record<string, unknown>[] {
-    if (!accessible(data)) {
-        return [];
-    }
-
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const values = getAccessibleValues(data);
     const keyList = Array.isArray(keys) ? keys : [keys];
 
-    return values.map((item: T) => {
+    return values.map((item) => {
+        const typedItem = item as T;
         const result: Record<string, unknown> = {};
 
         for (const key of keyList) {
-            if (item != null && typeof item === "object" && key in item) {
-                result[key] = (item as Record<string, unknown>)[key];
+            if (typedItem != null && typeof typedItem === "object" && key in typedItem) {
+                result[key] = (typedItem as Record<string, unknown>)[key];
             }
         }
 
@@ -1178,12 +1136,7 @@ export function only<T>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
     keys: number[],
 ): T[] {
-    if (!accessible(data)) {
-        return [];
-    }
-
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const values = getAccessibleValues(data);
     const result: T[] = [];
 
     for (const key of keys) {
@@ -1214,19 +1167,14 @@ export function prepend<T>(
     value: T,
     key?: number,
 ): T[] {
-    if (!accessible(data)) {
-        return key !== undefined ? [value] : [value];
-    }
-
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const values = getAccessibleValues(data) as T[];
 
     if (key !== undefined) {
         // When key is provided, we need to create a new array with the key-value pair at the beginning
         // This mimics PHP's behavior where ['key' => 'value'] + $array works
         const result: T[] = [];
         result[key] = value;
-        return result.concat(values as T[]);
+        return result.concat(values);
     }
 
     return [value, ...values];
@@ -1248,12 +1196,7 @@ export function prependKeysWith<T>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
     prependWith: string,
 ): Record<string, T> {
-    if (!accessible(data)) {
-        return {};
-    }
-
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const values = getAccessibleValues(data) as T[];
     const result: Record<string, T> = {};
 
     for (let i = 0; i < values.length; i++) {
@@ -1280,12 +1223,7 @@ export function map<T, U>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
     callback: (value: T, index: number) => U,
 ): U[] {
-    if (!accessible(data)) {
-        return [];
-    }
-
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const values = getAccessibleValues(data) as T[];
     const result: U[] = [];
 
     for (let i = 0; i < values.length; i++) {
@@ -1593,12 +1531,11 @@ export function sole<T>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
     callback?: (value: T, index: number) => boolean,
 ): T {
-    if (!accessible(data)) {
+    const values = getAccessibleValues(data) as T[];
+
+    if (values.length === 0) {
         throw new Error("No items found");
     }
-
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
 
     let filteredValues: T[];
 
@@ -1613,7 +1550,7 @@ export function sole<T>(
         }
     } else {
         // Use all values
-        filteredValues = values.slice() as T[];
+        filteredValues = values.slice();
     }
 
     const count = filteredValues.length;
@@ -1645,12 +1582,7 @@ export function mapSpread<T, U>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
     callback: (...args: unknown[]) => U,
 ): U[] {
-    if (!accessible(data)) {
-        return [];
-    }
-
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const values = getAccessibleValues(data) as T[];
     const result: U[] = [];
 
     for (let i = 0; i < values.length; i++) {
@@ -1757,13 +1689,8 @@ export function query(data: unknown): string {
 export function shuffle<T>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
 ): T[] {
-    if (!accessible(data)) {
-        return [];
-    }
-
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
-    const result = values.slice() as T[];
+    const values = getAccessibleValues(data) as T[];
+    const result = values.slice();
 
     // Fisher-Yates shuffle algorithm
     for (let i = result.length - 1; i > 0; i--) {
@@ -1797,12 +1724,7 @@ export function random<T>(
     number?: number | null,
     preserveKeys: boolean = false,
 ): T | T[] | Record<number, T> | null {
-    if (!accessible(data)) {
-        return number === null || number === undefined ? null : [];
-    }
-
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const values = getAccessibleValues(data) as T[];
     const count = values.length;
     const requested = number === null || number === undefined ? 1 : number;
 
@@ -1861,13 +1783,8 @@ export function sort<T>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
     callback?: ((item: T) => unknown) | string | null,
 ): T[] {
-    if (!accessible(data)) {
-        return [];
-    }
-
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
-    const result = values.slice() as T[];
+    const values = getAccessibleValues(data) as T[];
+    const result = values.slice();
 
     if (!callback) {
         // Natural sorting
@@ -1921,13 +1838,8 @@ export function sortDesc<T>(
     data: ReadonlyArray<T> | Collection<T[]> | unknown,
     callback?: ((item: T) => unknown) | string | null,
 ): T[] {
-    if (!accessible(data)) {
-        return [];
-    }
-
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
-    const result = values.slice() as T[];
+    const values = getAccessibleValues(data) as T[];
+    const result = values.slice();
 
     if (!callback) {
         // Natural sorting in descending order
@@ -2069,12 +1981,12 @@ export function toCssStyles(
         if (numericKey) {
             // Numeric key: use the value as style
             if (typeof value === "string") {
-                styles.push(finishString(value, ";"));
+                styles.push(Str.finish(value, ";"));
             }
         } else {
             // String key: use key as style if value is truthy
             if (value) {
-                styles.push(finishString(key, ";"));
+                styles.push(Str.finish(key, ";"));
             }
         }
     }
@@ -2082,16 +1994,7 @@ export function toCssStyles(
     return styles.join(" ");
 }
 
-/**
- * Helper function to ensure a string ends with a specific suffix.
- * Similar to Laravel's Str::finish() function.
- */
-function finishString(value: string, cap: string): string {
-    if (value.endsWith(cap)) {
-        return value;
-    }
-    return value + cap;
-}
+
 
 /**
  * Recursively sort an array by keys and values.
