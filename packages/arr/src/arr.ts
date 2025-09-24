@@ -1459,6 +1459,7 @@ export function random<T>(
     }
 }
 
+
 /**
  * Set an array item to a given value using "dot" notation.
  *
@@ -1472,19 +1473,6 @@ export function random<T>(
  * @example
  * set(['a', 'b', 'c'], 1, 'x'); // -> ['a', 'x', 'c']
  * set(['a', ['b', 'c']], '1.0', 'x'); // -> ['a', ['x', 'c']]
- */
-/**
- * Set an array item to a given value using "dot" notation.
- *
- * @param array - The array to set the value in
- * @param key - The key to set (supports dot notation)
- * @param value - The value to set
- * @returns A new array with the value set
- *
- * @example
- *
- * Arr.set(['a', 'b'], 1, 'x'); // -> ['a', 'x']
- * Arr.set([['a', 'b'], ['c', 'd']], '1.0', 'x'); // -> [['a', 'b'], ['x', 'd']]
  */
 export function set<T>(array: ReadonlyArray<T>, key: ArrayKey, value: T): T[] {
     return setMixedImmutable(array, key, value);
