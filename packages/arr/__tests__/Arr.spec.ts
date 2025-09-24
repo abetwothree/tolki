@@ -31,18 +31,28 @@ describe("Arr", () => {
     });
 
     it("add", () => {
-        expect(Arr.add(["Desk"], 100)).toEqual(["Desk", 100]);
+        // Test adding to array when key doesn't exist
+        expect(Arr.add(["Desk"], 1, 100)).toEqual(["Desk", 100]);
 
-        expect(Arr.add([], "Ferid", "Mövsümov")).toEqual(["Ferid", "Mövsümov"]);
+        // Test adding with dot notation
+        expect(Arr.add([], "0", "first")).toEqual(["first"]);
 
-        expect(Arr.add([], "developer.name")).toEqual(["developer.name"]);
-        expect(Arr.add([], 1, "hAz")).toEqual([1, "hAz"]);
-        expect(Arr.add([], 1.1, "hAz")).toEqual([1.1, "hAz"]);
-        expect(Arr.add([], 1.1, "hAz", new Date(), { k: "v" })).toEqual([
-            1.1,
-            "hAz",
-            new Date(),
-            { k: "v" },
+        // Test that it doesn't add if key already exists
+        expect(Arr.add(["existing"], 0, "new")).toEqual(["existing"]);
+
+        // Test nested dot notation
+        const nested = [{ name: "John" }];
+        expect(Arr.add(nested, "0.age", 30)).toEqual([
+            { name: "John", age: 30 },
+        ]);
+
+        // Test that it doesn't overwrite existing nested values
+        const nested2 = [{ name: "John" }];
+        expect(Arr.add(nested2, "0.name", "Jane")).toEqual([{ name: "John" }]);
+
+        // Test adding new nested path
+        expect(Arr.add([], "user.name", "John")).toEqual([
+            { user: { name: "John" } },
         ]);
     });
 
@@ -548,10 +558,10 @@ describe("Arr", () => {
         expect(Arr.get(data3, "1.0")).toEqual({ name: "desk" });
         expect(Arr.get(data3, "1.1")).toEqual({ name: "chair" });
 
-        // Test return default value for non-existing key or non-numeric key
+        // Test mixed array/object path support and return default value for non-existing keys
         const data4 = ["names", { developer: "taylor" }];
-        expect(Arr.get(data4, "1.5", "dayle")).toBe("dayle");
-        expect(Arr.get(data4, "1.developer", "dayle")).toBe("dayle");
+        expect(Arr.get(data4, "1.5", "dayle")).toBe("dayle"); // non-existing property
+        expect(Arr.get(data4, "1.developer", "dayle")).toBe("taylor"); // existing property
 
         // Lazy default should be evaluated only when needed
         let called = 0;
@@ -784,14 +794,17 @@ describe("Arr", () => {
         // No key is given
         expect(Arr.set(data, null, ["price", 300])).toEqual(["price", 300]);
 
-        // The key doesn't exist at the depth
+        // Mixed path creates nested structure when path goes through non-object/array
         expect(Arr.set(["products", "desk"], "0.1", "desk")).toEqual([
-            "products",
+            [undefined, "desk"],
             "desk",
         ]);
 
-        // No corresponding key exists
-        expect(Arr.set(["products"], "1.1", 200)).toEqual(["products", [200]]);
+        // No corresponding key exists - creates nested structure
+        expect(Arr.set(["products"], "1.1", 200)).toEqual([
+            "products",
+            [undefined, 200],
+        ]);
         expect(Arr.set(data, "2", 500)).toEqual([
             "products",
             ["desk", ["price", 100]],
@@ -2278,7 +2291,7 @@ describe("Arr", () => {
             expect(result1).toBe("default"); // Can't access prop on string
 
             const result2 = Arr.get(mixedData, "1.obj", "default");
-            expect(result2).toBe("default"); // Can't access obj property through numeric path
+            expect(result2).toBe(true);
         });
 
         it("should test range and boundary conditions", () => {
@@ -2405,25 +2418,27 @@ describe("Arr", () => {
             // The final return statements are only reached if callback is truthy but neither string nor function
             // Let's try with different edge case values that might bypass the early checks
             const sortData = [3, 1, 4, 1, 5];
-            
+
             // Test with a number (truthy, not string, not function)
             // @ts-expect-error Testing edge case with invalid callback type
             const sortedWithNumber = Arr.sort(sortData, 123);
             expect(sortedWithNumber).toEqual([3, 1, 4, 1, 5]);
-            
+
             // Test with an object (truthy, not string, not function)
             // @ts-expect-error Testing edge case with invalid callback type
-            const sortedWithObject = Arr.sort(sortData, { key: 'value' });
+            const sortedWithObject = Arr.sort(sortData, { key: "value" });
             expect(sortedWithObject).toEqual([3, 1, 4, 1, 5]);
-            
+
             // Test sortDesc with a number
             // @ts-expect-error Testing edge case with invalid callback type
             const sortedDescWithNumber = Arr.sortDesc(sortData, 123);
             expect(sortedDescWithNumber).toEqual([3, 1, 4, 1, 5]);
-            
+
             // Test sortDesc with an object
             // @ts-expect-error Testing edge case with invalid callback type
-            const sortedDescWithObject = Arr.sortDesc(sortData, { key: 'value' });
+            const sortedDescWithObject = Arr.sortDesc(sortData, {
+                key: "value",
+            });
             expect(sortedDescWithObject).toEqual([3, 1, 4, 1, 5]);
         });
 

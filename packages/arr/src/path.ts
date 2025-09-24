@@ -733,3 +733,297 @@ export const getMixedValue = <T, D = null>(
     const result = getNestedValue(data, keyStr);
     return result === undefined ? resolveDefault() : result;
 };
+
+/**
+ * Enhanced mixed array/object path functions for Laravel-style operations
+ */
+
+/**
+ * Set a value in an array using mixed array/object dot notation (mutable version).
+ * Supports both numeric array indices and object property names in paths.
+ *
+ * @param {unknown[]} arr - The root array to modify.
+ * @param {ArrayKey} key - The path where to set the value.
+ * @param {unknown} value - The value to set.
+ * @returns {unknown[]} The modified original array.
+ *
+ * @example
+ *
+ * setMixed([{ name: "John" }], "0.age", 30); // -> [{ name: "John", age: 30 }]
+ * setMixed([], "user.name", "John"); // -> [{ user: { name: "John" } }]
+ */
+export const setMixed = (
+    arr: unknown[],
+    key: ArrayKey,
+    value: unknown,
+): unknown[] => {
+    if (key == null) {
+        // If key is null, replace the entire array
+        arr.length = 0;
+        if (Array.isArray(value)) {
+            arr.push(...value);
+        } else {
+            arr.push(value);
+        }
+        return arr;
+    }
+
+    if (typeof key === "number") {
+        // Direct array index
+        if (Number.isInteger(key) && key >= 0) {
+            // Extend array if necessary
+            while (arr.length <= key) {
+                arr.push(undefined);
+            }
+            arr[key] = value;
+        }
+        return arr;
+    }
+
+    // Handle dot notation
+    const segments = key.toString().split(".");
+    let current: unknown = arr;
+
+    // Validate first segment for arrays
+    const firstSegment = segments[0];
+    if (!firstSegment) return arr;
+
+    const firstIndex = parseInt(firstSegment, 10);
+    if (Array.isArray(current)) {
+        if (!Number.isInteger(firstIndex) || firstIndex < 0) {
+            // If first segment is not a valid array index and array is not empty,
+            // treat this as an invalid path and return unchanged
+            if (current.length > 0) {
+                return arr;
+            }
+            // If array is empty, create object at index 0 for non-numeric first segment
+            current.push({});
+            current = current[0];
+        }
+    }
+
+    for (let i = 0; i < segments.length - 1; i++) {
+        const segment = segments[i];
+        if (!segment) continue;
+
+        const index = parseInt(segment, 10);
+
+        if (Number.isInteger(index) && index >= 0 && Array.isArray(current)) {
+            // Extend array if necessary
+            while (current.length <= index) {
+                current.push(undefined);
+            }
+
+            // If the next level doesn't exist or isn't an object/array, create it
+            if (current[index] == null || typeof current[index] !== "object") {
+                const nextSegment = segments[i + 1];
+                if (nextSegment) {
+                    const nextIndex = parseInt(nextSegment, 10);
+                    current[index] = Number.isInteger(nextIndex) ? [] : {};
+                } else {
+                    current[index] = {};
+                }
+            }
+
+            current = current[index];
+        } else if (current != null && typeof current === "object") {
+            // Handle non-numeric keys (object properties)
+            const obj = current as Record<string, unknown>;
+            if (obj[segment] == null || typeof obj[segment] !== "object") {
+                const nextSegment = segments[i + 1];
+                if (nextSegment) {
+                    const nextIndex = parseInt(nextSegment, 10);
+                    obj[segment] = Number.isInteger(nextIndex) ? [] : {};
+                } else {
+                    obj[segment] = {};
+                }
+            }
+            current = obj[segment];
+        }
+    }
+
+    // Set the final value
+    const lastSegment = segments[segments.length - 1];
+    if (!lastSegment) return arr;
+
+    const lastIndex = parseInt(lastSegment, 10);
+
+    if (
+        Number.isInteger(lastIndex) &&
+        lastIndex >= 0 &&
+        Array.isArray(current)
+    ) {
+        while (current.length <= lastIndex) {
+            current.push(undefined);
+        }
+        current[lastIndex] = value;
+    } else if (current != null && typeof current === "object") {
+        (current as Record<string, unknown>)[lastSegment] = value;
+    }
+
+    return arr;
+};
+
+/**
+ * Push values to an array at the specified mixed path.
+ * Supports both numeric array indices and object property names in paths.
+ *
+ * @param data - The data to push values into.
+ * @param key - The path where to push (supports mixed array/object paths).
+ * @param values - The values to push.
+ * @returns The modified array.
+ *
+ * @example
+ *
+ * pushMixed([], '0', 'value'); // -> [['value']]
+ * pushMixed([{items: []}], '0.items', 'new'); // -> [{items: ['new']}]
+ */
+export const pushMixed = <T>(
+    data: T[] | unknown,
+    key: ArrayKey,
+    ...values: T[]
+): T[] => {
+    if (key == null) {
+        if (Array.isArray(data)) {
+            (data as unknown[]).push(...(values as unknown[]));
+            return data as T[];
+        }
+        return [...(values as unknown[])] as T[];
+    }
+
+    if (!Array.isArray(data)) {
+        // Create a new array and set the values at the path
+        const arr: unknown[] = [];
+        setMixed(arr, key, values.length === 1 ? values[0] : values);
+        return arr as T[];
+    }
+
+    // Navigate to the target using mixed paths
+    const segments = key.toString().split(".");
+    if (segments.length === 1) {
+        // Simple case: push directly to root array at the specified index
+        const idx = parseInt(segments[0]!, 10);
+        if (Number.isInteger(idx) && idx >= 0) {
+            // Push directly to the array - don't create nested structure
+            (data as unknown[]).push(...(values as unknown[]));
+        }
+        return data as T[];
+    }
+
+    // Complex case: navigate through mixed path (all segments except the last)
+    let current: unknown = data;
+    for (let i = 0; i < segments.length - 1; i++) {
+        const segment = segments[i];
+        if (!segment) continue;
+
+        const index = parseInt(segment, 10);
+
+        if (Number.isInteger(index) && index >= 0 && Array.isArray(current)) {
+            // Extend array if necessary
+            while (current.length <= index) {
+                current.push(undefined);
+            }
+
+            // Create nested structure if needed
+            if (current[index] == null || typeof current[index] !== "object") {
+                current[index] = [];
+            }
+
+            current = current[index];
+        } else if (current != null && typeof current === "object") {
+            // Handle object properties
+            const obj = current as Record<string, unknown>;
+            if (obj[segment] == null || typeof obj[segment] !== "object") {
+                obj[segment] = [];
+            }
+            current = obj[segment];
+        } else {
+            // Can't navigate further
+            return data as T[];
+        }
+    }
+
+    // Push values directly to the current array (don't navigate to the last segment)
+    if (Array.isArray(current)) {
+        current.push(...(values as unknown[]));
+    }
+
+    return data as T[];
+};
+
+/**
+ * Set a value in an array using mixed array/object dot notation (immutable version).
+ * Supports both numeric array indices and object property names in paths.
+ *
+ * @param {ReadonlyArray<T> | unknown} data - The data to set the value in.
+ * @param {ArrayKey} key - The path where to set the value.
+ * @param {T} value - The value to set.
+ * @returns {T[]} A new array with the value set.
+ *
+ * @example
+ *
+ * setMixedImmutable([{ name: "John" }], "0.age", 30); // -> [{ name: "John", age: 30 }]
+ * setMixedImmutable([], "user.name", "John"); // -> [{ user: { name: "John" } }]
+ */
+export const setMixedImmutable = <T>(
+    data: ReadonlyArray<T> | unknown,
+    key: ArrayKey,
+    value: T,
+): T[] => {
+    // Handle null key - replace entire data structure
+    if (key === null || key === undefined) {
+        return value as unknown as T[];
+    }
+
+    // If data is not accessible (not an array), return empty array
+    if (!Array.isArray(data)) {
+        return [] as T[];
+    }
+
+    // Create a deep copy for immutable operation
+    const deepCopy = (obj: unknown): unknown => {
+        if (obj === null || typeof obj !== "object") return obj;
+        if (Array.isArray(obj)) return obj.map(deepCopy);
+        if (typeof obj === "object") {
+            const result: Record<string, unknown> = {};
+            for (const [k, v] of Object.entries(obj)) {
+                result[k] = deepCopy(v);
+            }
+            return result;
+        }
+        return obj;
+    };
+
+    const arr = deepCopy(data) as unknown[];
+
+    // Use the mutable version on the copy
+    return setMixed(arr, key, value) as T[];
+};
+
+/**
+ * Check if a key exists using mixed array/object dot notation.
+ * Supports both numeric array indices and object property names in paths.
+ *
+ * @param {unknown} data - The data to check.
+ * @param {ArrayKey} key - The path to check.
+ * @returns {boolean} True if the path exists, false otherwise.
+ *
+ * @example
+ *
+ * hasMixed([{ name: "John" }], "0.name"); // -> true
+ * hasMixed([{ name: "John" }], "0.age"); // -> false
+ * hasMixed([], "user.name"); // -> false
+ */
+export const hasMixed = (data: unknown, key: ArrayKey): boolean => {
+    if (key == null) {
+        return data != null;
+    }
+
+    if (typeof key === "number") {
+        return Array.isArray(data) && key >= 0 && key < data.length;
+    }
+
+    // Use getNestedValue to check existence
+    const result = getNestedValue(data, key.toString());
+    return result !== undefined;
+};

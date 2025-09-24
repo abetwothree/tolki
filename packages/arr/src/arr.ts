@@ -1,15 +1,17 @@
 import { Random, Str } from "@laravel-js/str";
 import {
     toArray as _toArray,
-    hasPath as _hasPath,
     getRaw as _getRaw,
     forgetKeys as _forgetKeys,
-    setImmutable as _setImmutable,
     pushWithPath as _pushWithPath,
     dotFlatten as _dotFlatten,
     undotExpand as _undotExpand,
     getNestedValue,
     getMixedValue,
+    setMixed,
+    setMixedImmutable,
+    hasMixed,
+    pushMixed,
 } from "./path";
 import type { ArrayKey, ArrayKeys } from "./path";
 import { compareValues, getAccessibleValues } from "./utils";
@@ -46,16 +48,30 @@ export function arrayable(value: unknown): value is ReadonlyArray<unknown> {
 /**
  * Add an element to an array using "dot" notation if it doesn't exist.
  *
+ * @param data - The array to add the element to.
+ * @param key - The key or dot-notated path where to add the value.
+ * @param value - The value to add.
+ * @returns A new array with the value added if the key didn't exist.
+ *
  * @example
  *
- * add(['Desk'], 'Table'); // -> ['Desk', 'Table']
- * add([], 'Ferid', 'Mövsümov'); // -> ['Ferid', 'Mövsümov']
+ * add(['products', ['desk', [100]]], '1.1', 200); // -> ['products', ['desk', [100, 200]]]
+ * add(['products', ['desk', [100]]], '2', ['chair', [150]]); // -> ['products', ['desk', [100]], ['chair', [150]]]
  */
-export function add<T extends readonly unknown[], V extends readonly unknown[]>(
+
+export function add<T extends readonly unknown[]>(
     data: T,
-    ...values: V
-): [...T, ...V] {
-    return [...data, ...values] as [...T, ...V];
+    key: ArrayKey,
+    value: unknown,
+): unknown[] {
+    // Convert to mutable array if it's readonly
+    const mutableData = Array.isArray(data) ? (data as unknown[]) : [...data];
+
+    if (getMixedValue(mutableData, key) === null) {
+        return setMixed(mutableData, key, value);
+    }
+
+    return mutableData;
 }
 
 /**
@@ -529,25 +545,48 @@ export function from(items: unknown): unknown {
  * get(['foo', 'bar', 'baz'], null); // -> ['foo', 'bar', 'baz']
  * get(['foo', 'bar', 'baz'], 9, 'default'); // -> 'default'
  */
-export function get<T, D = null>(
-    data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
-    defaultValue: D | (() => D) | null = null,
-): T | D | ReadonlyArray<T> | null {
-    const resolveDefault = (): D | null => {
+/**
+ * Get an item from an array using "dot" notation.
+ *
+ * @param array - The array to search in
+ * @param key - The key to search for (supports dot notation)
+ * @param defaultValue - The default value to return if key is not found
+ * @returns The value at the key or the default value
+ *
+ * @example
+ *
+ * Arr.get([1, 2, 3], 1); // -> 2
+ * Arr.get([['a', 'b'], ['c', 'd']], '1.0'); // -> 'c'
+ * Arr.get([1, 2, 3], 5, 'default'); // -> 'default'
+ */
+export function get<T = unknown>(
+    array: unknown,
+    key: ArrayKey | null | undefined,
+    defaultValue: T | (() => T) | null = null,
+): T | null {
+    if (key === null || key === undefined) {
+        return Array.isArray(array)
+            ? (array as T)
+            : typeof defaultValue === "function"
+              ? (defaultValue as () => T)()
+              : defaultValue;
+    }
+
+    if (!Array.isArray(array)) {
         return typeof defaultValue === "function"
-            ? (defaultValue as () => D)()
-            : (defaultValue as D);
-    };
-    if (!accessible(data)) {
-        return resolveDefault();
+            ? (defaultValue as () => T)()
+            : defaultValue;
     }
-    const root = _toArray(data)!;
-    const { found, value } = _getRaw(root, key);
-    if (!found) {
-        return resolveDefault();
+
+    const value = getMixedValue(array, key, null);
+
+    if (value != null) {
+        return value as T;
     }
-    return value == null ? resolveDefault() : (value as T);
+
+    return typeof defaultValue === "function"
+        ? (defaultValue as () => T)()
+        : defaultValue;
 }
 
 /**
@@ -564,18 +603,29 @@ export function get<T, D = null>(
  * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.1']); // -> true
  * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); // -> false
  */
-export function has<T>(
-    data: ReadonlyArray<T> | unknown,
-    keys: ArrayKeys,
-): boolean {
+/**
+ * Check if an item or items exist in an array using "dot" notation.
+ *
+ * @param  data - The array or Collection to check.
+ * @param  keys - The key or dot-notated path of the item to check.
+ * @returns True if the item or items exist, false otherwise.
+ *
+ * @example
+ *
+ * has(['foo', 'bar', ['baz', 'qux']], 1); // -> true
+ * has(['foo', 'bar'], 5); // -> false
+ * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.1']); // -> true
+ * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); // -> false
+ */
+export function has<T>(data: ReadonlyArray<T>, keys: ArrayKeys): boolean {
     const keyList = Array.isArray(keys) ? keys : [keys];
     if (!accessible(data) || keyList.length === 0) {
         return false;
     }
-    const root = _toArray(data)!;
+
     for (const k of keyList) {
         if (k == null) return false;
-        if (!_hasPath(root, k)) return false;
+        if (!hasMixed(data, k)) return false;
     }
     return true;
 }
@@ -603,7 +653,7 @@ export function hasAll<T>(
     }
 
     for (const key of keyList) {
-        if (!has(data, key)) {
+        if (!has(data as ReadonlyArray<unknown>, key)) {
             return false;
         }
     }
@@ -638,7 +688,7 @@ export function hasAny<T>(
         return false;
     }
     for (const key of keyList) {
-        if (has(data, key)) {
+        if (has(data as ReadonlyArray<unknown>, key)) {
             return true;
         }
     }
@@ -728,10 +778,12 @@ export function integer<T, D = null>(
     key: ArrayKey,
     defaultValue: D | (() => D) | null = null,
 ): number {
-    const value = get(data, key, defaultValue);
+    const value = getMixedValue(data, key, defaultValue);
 
     if (!Number.isInteger(value)) {
-        throw new Error("The value is not an integer.");
+        throw new Error(
+            `Array value for key [${key}] must be an integer, ${typeof value} found.`,
+        );
     }
 
     return value as number;
@@ -790,12 +842,21 @@ export function join<T>(
  * set(['a', 'b', 'c'], 1, 'x'); // -> ['a', 'x', 'c']
  * set(['a', ['b', 'c']], '1.0', 'x'); // -> ['a', ['x', 'c']]
  */
-export function set<T>(
-    data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
-    value: T,
-): T[] {
-    return _setImmutable<T>(data, key, value);
+/**
+ * Set an array item to a given value using "dot" notation.
+ *
+ * @param array - The array to set the value in
+ * @param key - The key to set (supports dot notation)
+ * @param value - The value to set
+ * @returns A new array with the value set
+ *
+ * @example
+ *
+ * Arr.set(['a', 'b'], 1, 'x'); // -> ['a', 'x']
+ * Arr.set([['a', 'b'], ['c', 'd']], '1.0', 'x'); // -> [['a', 'b'], ['x', 'd']]
+ */
+export function set<T>(array: ReadonlyArray<T>, key: ArrayKey, value: T): T[] {
+    return setMixedImmutable(array, key, value);
 }
 
 /**
