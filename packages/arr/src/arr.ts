@@ -9,6 +9,8 @@ import {
     pushWithPath as _pushWithPath,
     dotFlatten as _dotFlatten,
     undotExpand as _undotExpand,
+    getNestedValue,
+    getMixedValue,
 } from "./path";
 import type { ArrayKey, ArrayKeys } from "./path";
 
@@ -1271,4 +1273,279 @@ export function map<T, U>(
     }
 
     return result;
+}
+
+/**
+ * Pluck an array of values from an array.
+ *
+ * @param data - The array or Collection to pluck from.
+ * @param value - The key path to pluck, or a callback function.
+ * @param key - Optional key path to use as keys in result, or callback function.
+ * @returns A new array with plucked values.
+ *
+ * @example
+ *
+ * pluck([{name: 'John', age: 30}, {name: 'Jane', age: 25}], 'name'); // -> ['John', 'Jane']
+ * pluck([{user: {name: 'John'}}, {user: {name: 'Jane'}}], 'user.name'); // -> ['John', 'Jane']
+ * pluck([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'name', 'id'); // -> {1: 'John', 2: 'Jane'}
+ */
+export function pluck<T extends Record<string, unknown>>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    value: string | ((item: T) => unknown),
+    key?: string | ((item: T) => string | number) | null,
+): unknown[] | Record<string | number, unknown> {
+    if (!accessible(data)) {
+        return [];
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const results: unknown[] | Record<string | number, unknown> = key ? {} : [];
+
+    for (const item of values) {
+        let itemValue: unknown;
+        let itemKey: string | number | undefined;
+
+        // Get the value
+        if (typeof value === "function") {
+            itemValue = value(item);
+        } else {
+            // Use dot notation to get nested value
+            itemValue = getNestedValue(item, value);
+        }
+
+        // Get the key if specified
+        if (key !== null && key !== undefined) {
+            if (typeof key === "function") {
+                itemKey = key(item);
+            } else {
+                itemKey = getNestedValue(item, key) as string | number;
+            }
+
+            // Convert objects with toString to string
+            if (
+                itemKey != null &&
+                typeof itemKey === "object" &&
+                "toString" in itemKey &&
+                typeof (itemKey as { toString: unknown }).toString === "function"
+            ) {
+                itemKey = (itemKey as { toString: () => string }).toString();
+            }
+        }
+
+        // Add to results
+        if (key === null || key === undefined) {
+            (results as unknown[]).push(itemValue);
+        } else {
+            (results as Record<string | number, unknown>)[itemKey as string | number] = itemValue;
+        }
+    }
+
+    return results;
+}
+
+/**
+ * Key an associative array by a field or using a callback.
+ *
+ * @param data - The array or Collection to key.
+ * @param keyBy - The field name to key by, or a callback function.
+ * @returns A new object keyed by the specified field or callback result.
+ *
+ * @example
+ *
+ * keyBy([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'id'); // -> {1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}}
+ * keyBy([{name: 'John'}, {name: 'Jane'}], (item) => item.name); // -> {John: {name: 'John'}, Jane: {name: 'Jane'}}
+ */
+export function keyBy<T extends Record<string, unknown>>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    keyBy: string | ((item: T) => string | number),
+): Record<string | number, T> {
+    if (!accessible(data)) {
+        return {};
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const results: Record<string | number, T> = {};
+
+    for (const item of values) {
+        let key: string | number;
+
+        if (typeof keyBy === "function") {
+            key = keyBy(item);
+        } else {
+            // Use dot notation to get the key value
+            const keyValue = getNestedValue(item, keyBy);
+            key = String(keyValue);
+        }
+
+        results[key] = item;
+    }
+
+    return results;
+}
+
+/**
+ * Run an associative map over each of the items.
+ * The callback should return an object with key/value pairs.
+ *
+ * @param data - The array or Collection to map.
+ * @param callback - Function that returns an object with key/value pairs.
+ * @returns A new object with all mapped key/value pairs.
+ *
+ * @example
+ *
+ * mapWithKeys([{id: 1, name: 'John'}], (item) => ({[item.name]: item.id})); // -> {John: 1}
+ * mapWithKeys(['a', 'b'], (value, index) => ({[value]: index})); // -> {a: 0, b: 1}
+ */
+export function mapWithKeys<T, K extends string | number, V>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    callback: (value: T, index: number) => Record<K, V>,
+): Record<K, V> {
+    if (!accessible(data)) {
+        return {} as Record<K, V>;
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const result: Record<K, V> = {} as Record<K, V>;
+
+    for (let i = 0; i < values.length; i++) {
+        const mappedObject = callback(values[i] as T, i);
+
+        // Merge all key/value pairs from the returned object
+        for (const [mapKey, mapValue] of Object.entries(mappedObject)) {
+            result[mapKey as K] = mapValue as V;
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Get an array item from an array using "dot" notation.
+ * Throws an error if the value is not an array.
+ *
+ * @param data - The array or Collection to get the item from.
+ * @param key - The key or dot-notated path of the item to get.
+ * @param defaultValue - The default value if key is not found.
+ * @returns The array value.
+ * @throws Error if the value is not an array.
+ *
+ * @example
+ *
+ * array([['a', 'b'], ['c', 'd']], 0); // -> ['a', 'b']
+ * array([{items: ['x', 'y']}], '0.items'); // -> ['x', 'y']
+ * array([{items: 'not array'}], '0.items'); // -> throws Error
+ */
+export function array<T, D = null>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    key: ArrayKey,
+    defaultValue: D | (() => D) | null = null,
+): unknown[] {
+    const value = getMixedValue(data, key, defaultValue);
+
+    if (!Array.isArray(value)) {
+        throw new Error(
+            `Array value for key [${key}] must be an array, ${typeof value} found.`,
+        );
+    }
+
+    return value;
+}
+
+/**
+ * Get a boolean item from an array using "dot" notation.
+ * Throws an error if the value is not a boolean.
+ *
+ * @param data - The array or Collection to get the item from.
+ * @param key - The key or dot-notated path of the item to get.
+ * @param defaultValue - The default value if key is not found.
+ * @returns The boolean value.
+ * @throws Error if the value is not a boolean.
+ *
+ * @example
+ *
+ * boolean([true, false], 0); // -> true
+ * boolean([{active: true}], '0.active'); // -> true
+ * boolean([{active: 'yes'}], '0.active'); // -> throws Error
+ */
+export function boolean<T, D = null>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    key: ArrayKey,
+    defaultValue: D | (() => D) | null = null,
+): boolean {
+    const value = getMixedValue(data, key, defaultValue);
+
+    if (typeof value !== "boolean") {
+        throw new Error(
+            `Array value for key [${key}] must be a boolean, ${typeof value} found.`,
+        );
+    }
+
+    return value;
+}
+
+/**
+ * Get a float item from an array using "dot" notation.
+ * Throws an error if the value is not a number.
+ *
+ * @param data - The array or Collection to get the item from.
+ * @param key - The key or dot-notated path of the item to get.
+ * @param defaultValue - The default value if key is not found.
+ * @returns The float value.
+ * @throws Error if the value is not a number.
+ *
+ * @example
+ *
+ * float([1.5, 2.3], 1); // -> 2.3
+ * float([{price: 19.99}], '0.price'); // -> 19.99
+ * float([{price: 'free'}], '0.price'); // -> throws Error
+ */
+export function float<T, D = null>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    key: ArrayKey,
+    defaultValue: D | (() => D) | null = null,
+): number {
+    const value = getMixedValue(data, key, defaultValue);
+
+    if (typeof value !== "number") {
+        throw new Error(
+            `Array value for key [${key}] must be a float, ${typeof value} found.`,
+        );
+    }
+
+    return value;
+}
+
+/**
+ * Get a string item from an array using "dot" notation.
+ * Throws an error if the value is not a string.
+ *
+ * @param data - The array or Collection to get the item from.
+ * @param key - The key or dot-notated path of the item to get.
+ * @param defaultValue - The default value if key is not found.
+ * @returns The string value.
+ * @throws Error if the value is not a string.
+ *
+ * @example
+ *
+ * string(['hello', 'world'], 0); // -> 'hello'
+ * string([{name: 'John'}], '0.name'); // -> 'John'
+ * string([{name: 123}], '0.name'); // -> throws Error
+ */
+export function string<T, D = null>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    key: ArrayKey,
+    defaultValue: D | (() => D) | null = null,
+): string {
+    const value = getMixedValue(data, key, defaultValue);
+
+    if (typeof value !== "string") {
+        throw new Error(
+            `Array value for key [${key}] must be a string, ${typeof value} found.`,
+        );
+    }
+
+    return value;
 }

@@ -1339,4 +1339,226 @@ describe("Arr", () => {
         const objects = [{ a: 1 }, { a: 2 }, { a: 3 }];
         expect(Arr.map(objects, (obj: { a: number }) => obj.a)).toEqual([1, 2, 3]);
     });
+
+    it("pluck", () => {
+        // Basic plucking with string key
+        const users = [
+            { name: 'John', age: 30 },
+            { name: 'Jane', age: 25 },
+            { name: 'Bob', age: 35 }
+        ];
+        expect(Arr.pluck(users, 'name')).toEqual(['John', 'Jane', 'Bob']);
+        expect(Arr.pluck(users, 'age')).toEqual([30, 25, 35]);
+
+        // Plucking with nested dot notation
+        const nested = [
+            { user: { name: 'John', profile: { city: 'NYC' } } },
+            { user: { name: 'Jane', profile: { city: 'LA' } } }
+        ];
+        expect(Arr.pluck(nested, 'user.name')).toEqual(['John', 'Jane']);
+        expect(Arr.pluck(nested, 'user.profile.city')).toEqual(['NYC', 'LA']);
+
+        // Plucking with key parameter (creates object)
+        expect(Arr.pluck(users, 'name', 'age')).toEqual({
+            30: 'John',
+            25: 'Jane',
+            35: 'Bob'
+        });
+
+        // Plucking with callback functions
+        expect(Arr.pluck(users, (user: { name: string; age: number }) => user.name.toUpperCase())).toEqual(['JOHN', 'JANE', 'BOB']);
+        expect(Arr.pluck(users, 'name', (user: { name: string; age: number }) => `user_${user.age}`)).toEqual({
+            'user_30': 'John',
+            'user_25': 'Jane',
+            'user_35': 'Bob'
+        });
+
+        // Missing keys return undefined
+        expect(Arr.pluck(users, 'missing')).toEqual([undefined, undefined, undefined]);
+
+        // Empty array
+        expect(Arr.pluck([], 'name')).toEqual([]);
+
+        // Collection
+        const coll = new Collection(users) as unknown as Collection<typeof users>;
+        expect(Arr.pluck(coll, 'name')).toEqual(['John', 'Jane', 'Bob']);
+
+        // Non-accessible data
+        expect(Arr.pluck(null, 'name')).toEqual([]);
+        expect(Arr.pluck('abc', 'name')).toEqual([]);
+    });
+
+    it("keyBy", () => {
+        // Basic keying by field
+        const users = [
+            { id: 1, name: 'John' },
+            { id: 2, name: 'Jane' },
+            { id: 3, name: 'Bob' }
+        ];
+        expect(Arr.keyBy(users, 'id')).toEqual({
+            1: { id: 1, name: 'John' },
+            2: { id: 2, name: 'Jane' },
+            3: { id: 3, name: 'Bob' }
+        });
+
+        expect(Arr.keyBy(users, 'name')).toEqual({
+            'John': { id: 1, name: 'John' },
+            'Jane': { id: 2, name: 'Jane' },
+            'Bob': { id: 3, name: 'Bob' }
+        });
+
+        // Keying by nested field
+        const nested = [
+            { user: { id: 10 }, data: 'a' },
+            { user: { id: 20 }, data: 'b' }
+        ];
+        expect(Arr.keyBy(nested, 'user.id')).toEqual({
+            10: { user: { id: 10 }, data: 'a' },
+            20: { user: { id: 20 }, data: 'b' }
+        });
+
+        // Keying with callback
+        expect(Arr.keyBy(users, (user: { id: number; name: string }) => `user_${user.id}`)).toEqual({
+            'user_1': { id: 1, name: 'John' },
+            'user_2': { id: 2, name: 'Jane' },
+            'user_3': { id: 3, name: 'Bob' }
+        });
+
+        // Empty array
+        expect(Arr.keyBy([], 'id')).toEqual({});
+
+        // Collection
+        const coll = new Collection(users) as unknown as Collection<typeof users>;
+        expect(Arr.keyBy(coll, 'id')).toEqual({
+            1: { id: 1, name: 'John' },
+            2: { id: 2, name: 'Jane' },
+            3: { id: 3, name: 'Bob' }
+        });
+
+        // Non-accessible data
+        expect(Arr.keyBy(null, 'id')).toEqual({});
+        expect(Arr.keyBy('abc', 'id')).toEqual({});
+
+        // Missing key defaults to 'undefined' string
+        const incomplete = [{ name: 'John' }, { id: 2, name: 'Jane' }];
+        expect(Arr.keyBy(incomplete, 'id')).toEqual({
+            'undefined': { name: 'John' },
+            2: { id: 2, name: 'Jane' }
+        });
+    });
+
+    it("mapWithKeys", () => {
+        // Basic mapping with keys
+        expect(Arr.mapWithKeys([{ id: 1, name: 'John' }], (item: { id: number; name: string }) => ({ [item.name]: item.id }))).toEqual({
+            'John': 1
+        });
+
+        // Multiple key/value pairs
+        const users = [{ id: 1, name: 'John' }, { id: 2, name: 'Jane' }];
+        expect(Arr.mapWithKeys(users, (item: { id: number; name: string }) => ({ [item.name]: item.id }))).toEqual({
+            'John': 1,
+            'Jane': 2
+        });
+
+        // Using index parameter
+        expect(Arr.mapWithKeys(['a', 'b'], (value: string, index) => ({ [value]: index }))).toEqual({
+            'a': 0,
+            'b': 1
+        });
+
+        // Complex mapping
+        expect(Arr.mapWithKeys([1, 2, 3], (value: number) => ({ [`item_${value}`]: value * 2 }))).toEqual({
+            'item_1': 2,
+            'item_2': 4,
+            'item_3': 6
+        });
+
+        // Empty array
+        expect(Arr.mapWithKeys([], (value) => ({ [String(value)]: value }))).toEqual({});
+
+        // Collection
+        const coll = new Collection(['x', 'y']) as unknown as Collection<string[]>;
+        expect(Arr.mapWithKeys(coll, (value: string, index) => ({ [value]: index }))).toEqual({
+            'x': 0,
+            'y': 1
+        });
+
+        // Non-accessible data
+        expect(Arr.mapWithKeys(null, (value) => ({ [String(value)]: value }))).toEqual({});
+        expect(Arr.mapWithKeys('abc', (value) => ({ [String(value)]: value }))).toEqual({});
+    });
+
+    it("array", () => {
+        // Valid arrays
+        expect(Arr.array([['a', 'b'], ['c', 'd']], 0)).toEqual(['a', 'b']);
+        expect(Arr.array([{ items: ['x', 'y'] }], '0.items')).toEqual(['x', 'y']);
+
+        // Default value (should be array)
+        expect(Arr.array([1, 2, 3], 10, [])).toEqual([]);
+
+        // Collection
+        const coll = new Collection([['a'], ['b']]) as unknown as Collection<string[][]>;
+        expect(Arr.array(coll, 1)).toEqual(['b']);
+
+        // Should throw for non-arrays
+        expect(() => Arr.array([1, 2, 3], 0)).toThrow('Array value for key [0] must be an array, number found.');
+        expect(() => Arr.array([{ items: 'not array' }], '0.items')).toThrow('Array value for key [0.items] must be an array, string found.');
+        expect(() => Arr.array([null, ['valid']], 0)).toThrow('Array value for key [0] must be an array, object found.');
+    });
+
+    it("boolean", () => {
+        // Valid booleans
+        expect(Arr.boolean([true, false], 0)).toBe(true);
+        expect(Arr.boolean([true, false], 1)).toBe(false);
+        expect(Arr.boolean([{ active: true }], '0.active')).toBe(true);
+
+        // Default value (should be boolean)
+        expect(Arr.boolean([1, 2, 3], 10, false)).toBe(false);
+
+        // Collection
+        const coll = new Collection([true, false]) as unknown as Collection<boolean[]>;
+        expect(Arr.boolean(coll, 1)).toBe(false);
+
+        // Should throw for non-booleans
+        expect(() => Arr.boolean([1, 2, 3], 0)).toThrow('Array value for key [0] must be a boolean, number found.');
+        expect(() => Arr.boolean([{ active: 'yes' }], '0.active')).toThrow('Array value for key [0.active] must be a boolean, string found.');
+        expect(() => Arr.boolean([null, true], 0)).toThrow('Array value for key [0] must be a boolean, object found.');
+    });
+
+    it("float", () => {
+        // Valid numbers
+        expect(Arr.float([1.5, 2.3], 1)).toBe(2.3);
+        expect(Arr.float([{ price: 19.99 }], '0.price')).toBe(19.99);
+        expect(Arr.float([42], 0)).toBe(42); // integers are valid numbers
+
+        // Default value (should be number)
+        expect(Arr.float([1, 2, 3], 10, 0.0)).toBe(0.0);
+
+        // Collection
+        const coll = new Collection([1.1, 2.2]) as unknown as Collection<number[]>;
+        expect(Arr.float(coll, 0)).toBe(1.1);
+
+        // Should throw for non-numbers
+        expect(() => Arr.float(['1.5', 2.3], 0)).toThrow('Array value for key [0] must be a float, string found.');
+        expect(() => Arr.float([{ price: 'free' }], '0.price')).toThrow('Array value for key [0.price] must be a float, string found.');
+        expect(() => Arr.float([null, 1.5], 0)).toThrow('Array value for key [0] must be a float, object found.');
+    });
+
+    it("string", () => {
+        // Valid strings
+        expect(Arr.string(['hello', 'world'], 0)).toBe('hello');
+        expect(Arr.string([{ name: 'John' }], '0.name')).toBe('John');
+
+        // Default value (should be string)
+        expect(Arr.string([1, 2, 3], 10, 'default')).toBe('default');
+
+        // Collection
+        const coll = new Collection(['a', 'b']) as unknown as Collection<string[]>;
+        expect(Arr.string(coll, 1)).toBe('b');
+
+        // Should throw for non-strings
+        expect(() => Arr.string([123, 'hello'], 0)).toThrow('Array value for key [0] must be a string, number found.');
+        expect(() => Arr.string([{ name: 123 }], '0.name')).toThrow('Array value for key [0.name] must be a string, number found.');
+        expect(() => Arr.string([null, 'valid'], 0)).toThrow('Array value for key [0] must be a string, object found.');
+    });
 });

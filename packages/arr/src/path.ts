@@ -514,3 +514,131 @@ export const undotExpand = (map: Record<string, unknown>): unknown[] => {
     }
     return root;
 };
+
+/**
+ * Helper function to get nested values using mixed dot notation.
+ * Supports both numeric indices for arrays and property names for objects.
+ * This utility enables traversal of complex nested structures where arrays
+ * and objects can be intermixed at any level.
+ *
+ * @param {unknown} obj - The object or array to traverse.
+ * @param {string} path - The dot-notation path to traverse (e.g., "0.items.1.name").
+ * @returns {unknown} The value at the specified path, or undefined if not found.
+ * @example
+ * 
+ * Array with nested objects
+ * getNestedValue([{items: ['x', 'y']}], '0.items.1'); // -> 'y'
+ * 
+ * @example
+ * Object with nested arrays
+ * getNestedValue({users: [{name: 'John'}, {name: 'Jane'}]}, 'users.1.name'); // -> 'Jane'
+ * 
+ * @example
+ * Mixed nesting
+ * getNestedValue([{data: {values: [1, 2, 3]}}], '0.data.values.2'); // -> 3
+ * 
+ * @example
+ * Path not found
+ * getNestedValue([{items: ['x']}], '0.items.5'); // -> undefined
+ */
+export const getNestedValue = (obj: unknown, path: string): unknown => {
+    if (!obj || typeof obj !== "object") {
+        return undefined;
+    }
+
+    const segments = path.split(".");
+    let current: unknown = obj;
+
+    for (const segment of segments) {
+        if (current == null || typeof current !== "object") {
+            return undefined;
+        }
+
+        // Handle array access with numeric indices
+        if (Array.isArray(current)) {
+            const index = parseInt(segment, 10);
+            if (isNaN(index) || index < 0 || index >= current.length) {
+                return undefined;
+            }
+            current = current[index];
+        } else {
+            // Handle object property access
+            if (!(segment in current)) {
+                return undefined;
+            }
+            current = (current as Record<string, unknown>)[segment];
+        }
+    }
+
+    return current;
+};
+
+/**
+ * Get a value from a nested structure using mixed dot notation.
+ * Supports both numeric indices for arrays and property names for objects.
+ * This function bridges between the existing numeric-only getRaw function
+ * and the new mixed notation support.
+ * 
+ * @param data - The data to search in
+ * @param key - The dot-notation key
+ * @param defaultValue - Default value if not found
+ * @returns The found value or default
+ */
+export const getMixedValue = <T, D = null>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    key: ArrayKey,
+    defaultValue: D | (() => D) | null = null,
+): unknown => {
+    const resolveDefault = (): D | null => {
+        return typeof defaultValue === "function"
+            ? (defaultValue as () => D)()
+            : (defaultValue as D);
+    };
+
+    if (key == null) {
+        return data;
+    }
+
+    // For simple numeric keys, use existing getRaw function
+    if (typeof key === "number") {
+        if (!isAccessible(data)) {
+            return resolveDefault();
+        }
+        const root = toArray(data)!;
+        const { found, value } = getRaw(root, key);
+        return found ? value : resolveDefault();
+    }
+
+    const keyStr = String(key);
+    
+    // If it's a simple key without dots, try getRaw first
+    if (!keyStr.includes('.')) {
+        if (!isAccessible(data)) {
+            return resolveDefault();
+        }
+        const root = toArray(data)!;
+        const { found, value } = getRaw(root, key);
+        return found ? value : resolveDefault();
+    }
+
+    // For dot notation, check if we have mixed notation (not all numeric)
+    const segments = keyStr.split('.');
+    const allNumeric = segments.every(seg => {
+        const n = Number(seg);
+        return Number.isInteger(n) && n >= 0;
+    });
+
+    // If all segments are numeric, use existing getRaw function
+    if (allNumeric) {
+        if (!isAccessible(data)) {
+            return resolveDefault();
+        }
+        const root = toArray(data)!;
+        const { found, value } = getRaw(root, key);
+        return found ? value : resolveDefault();
+    }
+
+    // For mixed notation, use our helper
+    const result = getNestedValue(data, keyStr);
+    return result === undefined ? resolveDefault() : result;
+};
