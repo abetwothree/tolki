@@ -2164,4 +2164,285 @@ describe("Arr", () => {
         expect(original).toEqual([1, 3, 2]);
         expect(sorted).toEqual([3, 2, 1]);
     });
+
+    it("toCssClasses", () => {
+        // Basic array of classes
+        expect(Arr.toCssClasses(["font-bold", "mt-4"])).toBe("font-bold mt-4");
+
+        // Mixed array with conditional classes
+        expect(
+            Arr.toCssClasses({
+                "font-bold": true,
+                "mt-4": true,
+                "ml-2": true,
+                "mr-2": false,
+            }),
+        ).toBe("font-bold mt-4 ml-2");
+
+        // Object-only with conditional keys
+        expect(
+            Arr.toCssClasses({
+                "font-bold": true,
+                "mt-4": true,
+                "ml-2": true,
+                "mr-2": false,
+            }),
+        ).toBe("font-bold mt-4 ml-2");
+
+        // Test with Collection
+        const coll = new Collection([
+            "btn",
+            "btn-primary",
+        ]) as unknown as Collection<string[]>;
+        expect(Arr.toCssClasses(coll)).toBe("btn btn-primary");
+
+        // Empty cases
+        expect(Arr.toCssClasses([])).toBe("");
+        expect(Arr.toCssClasses({})).toBe("");
+        expect(Arr.toCssClasses(null)).toBe("");
+        expect(Arr.toCssClasses(undefined)).toBe("");
+
+        // Object with all false values
+        expect(
+            Arr.toCssClasses({
+                "font-bold": false,
+                "mt-4": false,
+            }),
+        ).toBe("");
+
+        // Complex nested object (should be flattened by wrap)
+        expect(
+            Arr.toCssClasses({
+                "font-bold": true,
+                "text-red": false,
+                "bg-blue": true,
+            }),
+        ).toBe("font-bold bg-blue");
+    });
+
+    it("toCssStyles", () => {
+        // Basic array of styles
+        expect(Arr.toCssStyles(["font-weight: bold", "margin-top: 4px"])).toBe(
+            "font-weight: bold; margin-top: 4px;",
+        );
+
+        // Styles with and without semicolons
+        expect(Arr.toCssStyles(["font-weight: bold;", "margin-top: 4px"])).toBe(
+            "font-weight: bold; margin-top: 4px;",
+        );
+
+        // Mixed array with conditional styles
+        expect(
+            Arr.toCssStyles({
+                "font-weight: bold": true,
+                "margin-top: 4px": true,
+                "margin-left: 2px": true,
+                "margin-right: 2px": false,
+            }),
+        ).toBe("font-weight: bold; margin-top: 4px; margin-left: 2px;");
+
+        // Test with Collection
+        const coll = new Collection([
+            "color: red",
+            "font-size: 16px",
+        ]) as unknown as Collection<string[]>;
+        expect(Arr.toCssStyles(coll)).toBe("color: red; font-size: 16px;");
+
+        // Empty cases
+        expect(Arr.toCssStyles([])).toBe("");
+        expect(Arr.toCssStyles({})).toBe("");
+        expect(Arr.toCssStyles(null)).toBe("");
+        expect(Arr.toCssStyles(undefined)).toBe("");
+
+        // Object with all false values
+        expect(
+            Arr.toCssStyles({
+                "font-weight: bold": false,
+                "margin-top: 4px": false,
+            }),
+        ).toBe("");
+
+        // Styles already ending with semicolon should not get double semicolons
+        expect(Arr.toCssStyles(["font-weight: bold;"])).toBe(
+            "font-weight: bold;",
+        );
+    });
+
+    it("sortRecursive", () => {
+        // Basic nested array sorting
+        const basic = {
+            b: [3, 1, 2],
+            a: { d: 2, c: 1 },
+        };
+        const basicExpected = {
+            a: { c: 1, d: 2 },
+            b: [1, 2, 3],
+        };
+        expect(Arr.sortRecursive(basic)).toEqual(basicExpected);
+
+        // Complex nested structure from PHP tests
+        const complex = {
+            users: [
+                {
+                    name: "joe",
+                    mail: "joe@example.com",
+                    numbers: [2, 1, 0],
+                },
+                {
+                    name: "jane",
+                    age: 25,
+                },
+            ],
+            repositories: [{ id: 1 }, { id: 0 }],
+            20: [2, 1, 0],
+            30: {
+                2: "a",
+                1: "b",
+                0: "c",
+            },
+        };
+
+        const complexExpected = {
+            20: [0, 1, 2],
+            30: {
+                0: "c",
+                1: "b",
+                2: "a",
+            },
+            repositories: [{ id: 0 }, { id: 1 }],
+            users: [
+                {
+                    age: 25,
+                    name: "jane",
+                },
+                {
+                    mail: "joe@example.com",
+                    name: "joe",
+                    numbers: [0, 1, 2],
+                },
+            ],
+        };
+
+        expect(Arr.sortRecursive(complex)).toEqual(complexExpected);
+
+        // Test with Collection
+        const coll = new Collection([
+            { c: 3, a: 1, b: 2 },
+        ]) as unknown as Collection<Array<Record<string, number>>>;
+        const collResult = Arr.sortRecursive(coll);
+        expect(collResult).toEqual([{ a: 1, b: 2, c: 3 }]);
+
+        // Empty cases
+        expect(Arr.sortRecursive([])).toEqual([]);
+        expect(Arr.sortRecursive({})).toEqual({});
+        expect(Arr.sortRecursive(null)).toEqual(null);
+        expect(Arr.sortRecursive(undefined)).toEqual(undefined);
+
+        // Simple array
+        expect(Arr.sortRecursive([3, 1, 2])).toEqual([1, 2, 3]);
+
+        // Simple object
+        expect(Arr.sortRecursive({ c: 3, a: 1, b: 2 })).toEqual({
+            a: 1,
+            b: 2,
+            c: 3,
+        });
+
+        // Test descending parameter
+        expect(Arr.sortRecursive([3, 1, 2], undefined, true)).toEqual([
+            3, 2, 1,
+        ]);
+        expect(
+            Arr.sortRecursive({ c: 3, a: 1, b: 2 }, undefined, true),
+        ).toEqual({ c: 3, b: 2, a: 1 });
+    });
+
+    it("sortRecursiveDesc", () => {
+        // Basic nested array sorting in descending order
+        const basic = {
+            a: [1, 2, 3],
+            b: { c: 1, d: 2 },
+        };
+        const basicExpected = {
+            b: { d: 2, c: 1 },
+            a: [3, 2, 1],
+        };
+        expect(Arr.sortRecursiveDesc(basic)).toEqual(basicExpected);
+
+        // Complex nested structure from PHP tests
+        const complex = {
+            empty: [],
+            nested: {
+                level1: {
+                    level2: {
+                        level3: [2, 3, 1],
+                    },
+                    values: [4, 5, 6],
+                },
+            },
+            mixed: {
+                a: 1,
+                2: "b",
+                c: 3,
+                1: "d",
+            },
+            numbered_index: {
+                1: "e",
+                3: "c",
+                4: "b",
+                5: "a",
+                2: "d",
+            },
+        };
+
+        const complexExpected = {
+            numbered_index: {
+                5: "a",
+                4: "b",
+                3: "c",
+                2: "d",
+                1: "e",
+            },
+            nested: {
+                level1: {
+                    values: [6, 5, 4],
+                    level2: {
+                        level3: [3, 2, 1],
+                    },
+                },
+            },
+            mixed: {
+                c: 3,
+                a: 1,
+                2: "b",
+                1: "d",
+            },
+            empty: [],
+        };
+
+        expect(Arr.sortRecursiveDesc(complex)).toEqual(complexExpected);
+
+        // Test with Collection
+        const coll = new Collection([
+            { a: 1, b: 2, c: 3 },
+        ]) as unknown as Collection<Array<Record<string, number>>>;
+        const collResult = Arr.sortRecursiveDesc(coll);
+        expect(collResult).toEqual([{ c: 3, b: 2, a: 1 }]);
+
+        // Empty cases
+        expect(Arr.sortRecursiveDesc([])).toEqual([]);
+        expect(Arr.sortRecursiveDesc({})).toEqual({});
+        expect(Arr.sortRecursiveDesc(null)).toEqual(null);
+        expect(Arr.sortRecursiveDesc(undefined)).toEqual(undefined);
+
+        // Simple array
+        expect(Arr.sortRecursiveDesc([1, 2, 3])).toEqual([3, 2, 1]);
+
+        // Simple object
+        expect(Arr.sortRecursiveDesc({ a: 1, b: 2, c: 3 })).toEqual({
+            c: 3,
+            b: 2,
+            a: 1,
+        });
+    });
 });

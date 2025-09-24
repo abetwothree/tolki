@@ -23,12 +23,19 @@ function compareValues(a: unknown, b: unknown): number {
     if (a == null) return -1;
     if (b == null) return 1;
 
+    // For objects, compare by JSON string representation for stable sorting
+    if (typeof a === "object" && typeof b === "object") {
+        const aStr = JSON.stringify(a);
+        const bStr = JSON.stringify(b);
+        if (aStr < bStr) return -1;
+        if (aStr > bStr) return 1;
+        return 0;
+    }
+
     if (a < b) return -1;
     if (a > b) return 1;
     return 0;
-}
-
-// Extract the element type from either an array or a Collection
+} // Extract the element type from either an array or a Collection
 export type InnerValue<X> =
     X extends ReadonlyArray<infer U>
         ? U
@@ -1954,4 +1961,243 @@ export function sortDesc<T>(
     }
 
     return result;
+}
+
+/**
+ * Conditionally compile CSS classes from an array into a CSS class list.
+ *
+ * @param data - The array or Collection to convert to CSS classes.
+ * @returns A string of CSS classes separated by spaces.
+ *
+ * @example
+ *
+ * toCssClasses(['font-bold', 'mt-4']); // -> 'font-bold mt-4'
+ * toCssClasses(['font-bold', 'mt-4', { 'ml-2': true, 'mr-2': false }]); // -> 'font-bold mt-4 ml-2'
+ * toCssClasses({ 'font-bold': true, 'text-red': false }); // -> 'font-bold'
+ */
+export function toCssClasses(
+    data:
+        | ReadonlyArray<unknown>
+        | Collection<unknown[]>
+        | Record<string, unknown>
+        | unknown,
+): string {
+    if (!accessible(data) && typeof data !== "object") {
+        return "";
+    }
+
+    // Handle Collection
+    if (data instanceof Collection) {
+        data = data.all();
+    }
+
+    // Handle arrays and objects directly
+    let classList: Record<string, unknown>;
+
+    if (Array.isArray(data)) {
+        classList = { ...data };
+    } else if (typeof data === "object" && data !== null) {
+        classList = data as Record<string, unknown>;
+    } else {
+        return "";
+    }
+
+    const classes: string[] = [];
+
+    for (const [key, value] of Object.entries(classList)) {
+        const numericKey = !isNaN(Number(key));
+
+        if (numericKey) {
+            // Numeric key: use the value as class name
+            if (typeof value === "string") {
+                classes.push(value);
+            }
+        } else {
+            // String key: use key as class name if value is truthy
+            if (value) {
+                classes.push(key);
+            }
+        }
+    }
+
+    return classes.join(" ");
+}
+
+/**
+ * Conditionally compile CSS styles from an array into a CSS style list.
+ *
+ * @param data - The array or Collection to convert to CSS styles.
+ * @returns A string of CSS styles separated by spaces, each ending with semicolon.
+ *
+ * @example
+ *
+ * toCssStyles(['font-weight: bold', 'margin-top: 4px']); // -> 'font-weight: bold; margin-top: 4px;'
+ * toCssStyles(['font-weight: bold', { 'margin-left: 2px': true, 'margin-right: 2px': false }]); // -> 'font-weight: bold; margin-left: 2px;'
+ */
+export function toCssStyles(
+    data:
+        | ReadonlyArray<unknown>
+        | Collection<unknown[]>
+        | Record<string, unknown>
+        | unknown,
+): string {
+    if (!accessible(data) && typeof data !== "object") {
+        return "";
+    }
+
+    // Handle Collection
+    if (data instanceof Collection) {
+        data = data.all();
+    }
+
+    // Handle arrays and objects directly
+    let styleList: Record<string, unknown>;
+
+    if (Array.isArray(data)) {
+        styleList = { ...data };
+    } else if (typeof data === "object" && data !== null) {
+        styleList = data as Record<string, unknown>;
+    } else {
+        return "";
+    }
+
+    const styles: string[] = [];
+
+    for (const [key, value] of Object.entries(styleList)) {
+        const numericKey = !isNaN(Number(key));
+
+        if (numericKey) {
+            // Numeric key: use the value as style
+            if (typeof value === "string") {
+                styles.push(finishString(value, ";"));
+            }
+        } else {
+            // String key: use key as style if value is truthy
+            if (value) {
+                styles.push(finishString(key, ";"));
+            }
+        }
+    }
+
+    return styles.join(" ");
+}
+
+/**
+ * Helper function to ensure a string ends with a specific suffix.
+ * Similar to Laravel's Str::finish() function.
+ */
+function finishString(value: string, cap: string): string {
+    if (value.endsWith(cap)) {
+        return value;
+    }
+    return value + cap;
+}
+
+/**
+ * Recursively sort an array by keys and values.
+ *
+ * @param data - The array or Collection to sort recursively.
+ * @param options - Sort options (currently unused, for PHP compatibility).
+ * @param descending - Whether to sort in descending order.
+ * @returns A new recursively sorted array.
+ *
+ * @example
+ *
+ * sortRecursive({ b: [3, 1, 2], a: { d: 2, c: 1 } }); // -> { a: { c: 1, d: 2 }, b: [1, 2, 3] }
+ * sortRecursive([{ name: 'john', age: 30 }, { name: 'jane', age: 25 }]); // -> sorted objects with sorted keys
+ */
+export function sortRecursive<T>(
+    data:
+        | ReadonlyArray<T>
+        | Collection<T[]>
+        | Record<string, unknown>
+        | unknown,
+    options?: number,
+    descending: boolean = false,
+): T[] | Record<string, unknown> {
+    if (!accessible(data) && typeof data !== "object") {
+        return data as T[];
+    }
+
+    let result: T[] | Record<string, unknown>;
+
+    if (Array.isArray(data)) {
+        result = data.slice() as T[];
+    } else if (data instanceof Collection) {
+        result = data.all().slice() as T[];
+    } else if (typeof data === "object" && data !== null) {
+        result = { ...data } as Record<string, unknown>;
+    } else {
+        result = data as T[];
+    }
+
+    // Recursively sort nested arrays/objects
+    if (Array.isArray(result)) {
+        // First recursively sort nested elements
+        for (let i = 0; i < result.length; i++) {
+            const item = result[i];
+            if (
+                Array.isArray(item) ||
+                (typeof item === "object" && item !== null)
+            ) {
+                result[i] = sortRecursive(item, options, descending) as T;
+            }
+        }
+
+        // Then sort the array values
+        result.sort((a, b) => {
+            const comparison = compareValues(a, b);
+            return descending ? -comparison : comparison;
+        });
+    } else if (typeof result === "object" && result !== null) {
+        // Sort object properties
+        const entries = Object.entries(result);
+
+        // Recursively sort nested values first
+        for (const [key, value] of entries) {
+            if (
+                Array.isArray(value) ||
+                (typeof value === "object" && value !== null)
+            ) {
+                result[key] = sortRecursive(value, options, descending);
+            }
+        }
+
+        // Sort object keys
+        const sortedEntries = entries.sort(([keyA], [keyB]) => {
+            const comparison = compareValues(keyA, keyB);
+            return descending ? -comparison : comparison;
+        });
+
+        // Rebuild object with sorted keys
+        const sortedResult: Record<string, unknown> = {};
+        for (const [key] of sortedEntries) {
+            sortedResult[key] = result[key];
+        }
+        result = sortedResult;
+    }
+
+    return result;
+}
+
+/**
+ * Recursively sort an array by keys and values in descending order.
+ *
+ * @param data - The array or Collection to sort recursively in descending order.
+ * @param options - Sort options (currently unused, for PHP compatibility).
+ * @returns A new recursively sorted array in descending order.
+ *
+ * @example
+ *
+ * sortRecursiveDesc({ a: [1, 2, 3], b: { c: 1, d: 2 } }); // -> { b: { d: 2, c: 1 }, a: [3, 2, 1] }
+ */
+export function sortRecursiveDesc<T>(
+    data:
+        | ReadonlyArray<T>
+        | Collection<T[]>
+        | Record<string, unknown>
+        | unknown,
+    options?: number,
+): T[] | Record<string, unknown> {
+    return sortRecursive(data, options, true);
 }
