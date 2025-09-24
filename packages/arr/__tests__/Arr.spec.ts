@@ -1090,4 +1090,253 @@ describe("Arr", () => {
             ["z"],
         ]);
     });
+
+    it("where", () => {
+        // Basic array filtering
+        expect(Arr.where([1, 2, 3, 4], (value: number) => value > 2)).toEqual([3, 4]);
+        expect(Arr.where([1, 2, 3, 4], (value: number) => value % 2 === 0)).toEqual([2, 4]);
+        expect(Arr.where([1, 2, 3, 4], (value: number) => value > 10)).toEqual([]);
+
+        // With index parameter
+        expect(Arr.where(['a', 'b', 'c'], (_value, index) => index > 0)).toEqual(['b', 'c']);
+        expect(Arr.where(['a', 'b', 'c'], (_value, index) => index === 1)).toEqual(['b']);
+
+        // Mixed types
+        expect(Arr.where(['a', null, 'b', undefined, 'c'], (value) => value !== null)).toEqual(['a', 'b', undefined, 'c']);
+
+        // Collection
+        const coll = new Collection([1, 2, 3, 4]) as unknown as Collection<number[]>;
+        expect(Arr.where(coll, (value: number) => value > 2)).toEqual([3, 4]);
+
+        // Non-accessible data
+        expect(Arr.where(null, () => true)).toEqual([]);
+        expect(Arr.where('abc', () => true)).toEqual([]);
+        expect(Arr.where(123, () => true)).toEqual([]);
+    });
+
+    it("whereNotNull", () => {
+        // Basic null filtering
+        expect(Arr.whereNotNull([1, null, 2, null, 3])).toEqual([1, 2, 3]);
+        expect(Arr.whereNotNull(['a', null, 'b'])).toEqual(['a', 'b']);
+        expect(Arr.whereNotNull([null, null])).toEqual([]);
+        expect(Arr.whereNotNull([])).toEqual([]);
+
+        // Undefined vs null (undefined should be kept)
+        expect(Arr.whereNotNull([1, null, undefined, 2])).toEqual([1, undefined, 2]);
+
+        // Collection
+        const coll = new Collection([1, null, 2]) as unknown as Collection<(number | null)[]>;
+        expect(Arr.whereNotNull(coll)).toEqual([1, 2]);
+
+        // Non-accessible data
+        expect(Arr.whereNotNull(null)).toEqual([]);
+        expect(Arr.whereNotNull('abc')).toEqual([]);
+    });
+
+    it("reject", () => {
+        // Basic rejection (opposite of where)
+        expect(Arr.reject([1, 2, 3, 4], (value: number) => value > 2)).toEqual([1, 2]);
+        expect(Arr.reject([1, 2, 3, 4], (value: number) => value % 2 === 0)).toEqual([1, 3]);
+        expect(Arr.reject([1, 2, 3, 4], (value: number) => value > 10)).toEqual([1, 2, 3, 4]);
+
+        // With index parameter
+        expect(Arr.reject(['a', 'b', 'c'], (_value, index) => index === 0)).toEqual(['b', 'c']);
+
+        // Null rejection
+        expect(Arr.reject(['a', null, 'b'], (value) => value === null)).toEqual(['a', 'b']);
+
+        // Collection
+        const coll = new Collection([1, 2, 3, 4]) as unknown as Collection<number[]>;
+        expect(Arr.reject(coll, (value: number) => value > 2)).toEqual([1, 2]);
+
+        // Non-accessible data
+        expect(Arr.reject(null, () => true)).toEqual([]);
+        expect(Arr.reject('abc', () => true)).toEqual([]);
+    });
+
+    it("partition", () => {
+        // Basic partitioning
+        expect(Arr.partition([1, 2, 3, 4], (value: number) => value > 2)).toEqual([[3, 4], [1, 2]]);
+        expect(Arr.partition([1, 2, 3, 4], (value: number) => value % 2 === 0)).toEqual([[2, 4], [1, 3]]);
+        expect(Arr.partition([1, 2, 3, 4], (value: number) => value > 10)).toEqual([[], [1, 2, 3, 4]]);
+        expect(Arr.partition([1, 2, 3, 4], (value: number) => value < 10)).toEqual([[1, 2, 3, 4], []]);
+
+        // With index parameter
+        expect(Arr.partition(['a', 'b', 'c'], (_value, index) => index > 0)).toEqual([['b', 'c'], ['a']]);
+
+        // Empty array
+        expect(Arr.partition([], () => true)).toEqual([[], []]);
+
+        // Collection
+        const coll = new Collection([1, 2, 3, 4]) as unknown as Collection<number[]>;
+        expect(Arr.partition(coll, (value: number) => value > 2)).toEqual([[3, 4], [1, 2]]);
+
+        // Non-accessible data
+        expect(Arr.partition(null, () => true)).toEqual([[], []]);
+        expect(Arr.partition('abc', () => true)).toEqual([[], []]);
+    });
+
+    it("select", () => {
+        // Basic object selection
+        const objects = [
+            { a: 1, b: 2, c: 3 },
+            { a: 4, b: 5, c: 6 }
+        ];
+        expect(Arr.select(objects, 'a')).toEqual([{ a: 1 }, { a: 4 }]);
+        expect(Arr.select(objects, ['a', 'b'])).toEqual([{ a: 1, b: 2 }, { a: 4, b: 5 }]);
+
+        // Single object in array
+        expect(Arr.select([{ x: 1, y: 2, z: 3 }], 'x')).toEqual([{ x: 1 }]);
+        expect(Arr.select([{ x: 1, y: 2, z: 3 }], ['x', 'z'])).toEqual([{ x: 1, z: 3 }]);
+
+        // Missing keys (should be omitted)
+        expect(Arr.select([{ a: 1, b: 2 }], 'c')).toEqual([{}]);
+        expect(Arr.select([{ a: 1 }], ['a', 'b'])).toEqual([{ a: 1 }]);
+
+        // Empty array
+        expect(Arr.select([], 'a')).toEqual([]);
+
+        // Collection
+        const coll = new Collection([{ x: 1, y: 2 }]) as unknown as Collection<Record<string, unknown>[]>;
+        expect(Arr.select(coll, 'x')).toEqual([{ x: 1 }]);
+
+        // Non-accessible data
+        expect(Arr.select(null, 'a')).toEqual([]);
+        expect(Arr.select('abc', 'a')).toEqual([]);
+
+        // Mixed object types
+        const mixed = [
+            { a: 1, b: 2 },
+            { a: 3, c: 4 },
+            { b: 5, c: 6 }
+        ];
+        expect(Arr.select(mixed, ['a', 'b'])).toEqual([
+            { a: 1, b: 2 },
+            { a: 3 },
+            { b: 5 }
+        ]);
+    });
+
+    it("wrap", () => {
+        // Basic wrapping
+        expect(Arr.wrap('hello')).toEqual(['hello']);
+        expect(Arr.wrap(123)).toEqual([123]);
+        expect(Arr.wrap(true)).toEqual([true]);
+
+        // Arrays should not be wrapped
+        expect(Arr.wrap(['hello'])).toEqual(['hello']);
+        expect(Arr.wrap([1, 2, 3])).toEqual([1, 2, 3]);
+        expect(Arr.wrap([])).toEqual([]);
+
+        // Null handling
+        expect(Arr.wrap(null)).toEqual([]);
+
+        // Undefined should be wrapped
+        expect(Arr.wrap(undefined)).toEqual([undefined]);
+    });
+
+    it("only", () => {
+        // Basic selection by indices
+        expect(Arr.only(['a', 'b', 'c', 'd'], [0, 2])).toEqual(['a', 'c']);
+        expect(Arr.only(['a', 'b', 'c'], [1])).toEqual(['b']);
+        expect(Arr.only(['a', 'b', 'c'], [0, 1, 2])).toEqual(['a', 'b', 'c']);
+
+        // Out of bounds indices should be ignored
+        expect(Arr.only(['a', 'b'], [0, 5])).toEqual(['a']);
+        expect(Arr.only(['a', 'b'], [10, 20])).toEqual([]);
+
+        // Negative indices should be ignored
+        expect(Arr.only(['a', 'b', 'c'], [-1, 0, 1])).toEqual(['a', 'b']);
+
+        // Empty array
+        expect(Arr.only([], [0, 1])).toEqual([]);
+
+        // Empty keys
+        expect(Arr.only(['a', 'b', 'c'], [])).toEqual([]);
+
+        // Collection
+        const coll = new Collection(['x', 'y', 'z']) as unknown as Collection<string[]>;
+        expect(Arr.only(coll, [0, 2])).toEqual(['x', 'z']);
+
+        // Non-accessible data
+        expect(Arr.only(null, [0, 1])).toEqual([]);
+        expect(Arr.only('abc', [0, 1])).toEqual([]);
+    });
+
+    it("prepend", () => {
+        // Basic prepending
+        expect(Arr.prepend(['b', 'c'], 'a')).toEqual(['a', 'b', 'c']);
+        expect(Arr.prepend([2, 3], 1)).toEqual([1, 2, 3]);
+
+        // Empty array
+        expect(Arr.prepend([], 'first')).toEqual(['first']);
+
+        // With key parameter
+        expect(Arr.prepend(['b', 'c'], 'a', 0)).toEqual(['a', 'b', 'c']);
+        expect(Arr.prepend(['b', 'c'], 'a', 1)).toEqual([undefined, 'a', 'b', 'c']);
+
+        // Collection
+        const coll = new Collection(['b', 'c']) as unknown as Collection<string[]>;
+        expect(Arr.prepend(coll, 'a')).toEqual(['a', 'b', 'c']);
+
+        // Non-accessible data
+        expect(Arr.prepend(null, 'first')).toEqual(['first']);
+        expect(Arr.prepend('abc', 'first')).toEqual(['first']);
+    });
+
+    it("prependKeysWith", () => {
+        // Basic key prepending
+        expect(Arr.prependKeysWith(['a', 'b', 'c'], 'item_')).toEqual({
+            'item_0': 'a',
+            'item_1': 'b',
+            'item_2': 'c'
+        });
+
+        // Empty array
+        expect(Arr.prependKeysWith([], 'prefix_')).toEqual({});
+
+        // Single item
+        expect(Arr.prependKeysWith(['value'], 'key_')).toEqual({
+            'key_0': 'value'
+        });
+
+        // Collection
+        const coll = new Collection(['x', 'y']) as unknown as Collection<string[]>;
+        expect(Arr.prependKeysWith(coll, 'pre_')).toEqual({
+            'pre_0': 'x',
+            'pre_1': 'y'
+        });
+
+        // Non-accessible data
+        expect(Arr.prependKeysWith(null, 'prefix_')).toEqual({});
+        expect(Arr.prependKeysWith('abc', 'prefix_')).toEqual({});
+    });
+
+    it("map", () => {
+        // Basic mapping
+        expect(Arr.map([1, 2, 3], (value: number) => value * 2)).toEqual([2, 4, 6]);
+        expect(Arr.map(['a', 'b', 'c'], (value: string) => value.toUpperCase())).toEqual(['A', 'B', 'C']);
+
+        // With index parameter
+        expect(Arr.map(['a', 'b'], (value: string, index) => `${index}:${value}`)).toEqual(['0:a', '1:b']);
+
+        // Type transformation
+        expect(Arr.map([1, 2, 3], (value: number) => String(value))).toEqual(['1', '2', '3']);
+        expect(Arr.map(['1', '2', '3'], (value: string) => parseInt(value))).toEqual([1, 2, 3]);
+
+        // Empty array
+        expect(Arr.map([], (value) => value)).toEqual([]);
+
+        // Collection
+        const coll = new Collection([1, 2, 3]) as unknown as Collection<number[]>;
+        expect(Arr.map(coll, (value: number) => value * 10)).toEqual([10, 20, 30]);
+
+        // Non-accessible data
+        expect(Arr.map(null, (value) => value)).toEqual([]);
+        expect(Arr.map('abc', (value) => value)).toEqual([]);
+
+        // Complex transformation
+        const objects = [{ a: 1 }, { a: 2 }, { a: 3 }];
+        expect(Arr.map(objects, (obj: { a: number }) => obj.a)).toEqual([1, 2, 3]);
+    });
 });

@@ -964,3 +964,311 @@ export function dot(
 export function undot(map: Record<string, unknown>): unknown[] {
     return _undotExpand(map);
 }
+
+/**
+ * Filter the array using the given callback.
+ *
+ * @param data - The array or Collection to filter.
+ * @param callback - The function to call for each item (value, index) => boolean.
+ * @returns A new filtered array.
+ *
+ * @example
+ *
+ * where([1, 2, 3, 4], (value) => value > 2); // -> [3, 4]
+ * where(['a', 'b', null, 'c'], (value) => value !== null); // -> ['a', 'b', 'c']
+ * where(new Collection([1, 2, 3]), (value, index) => index > 0); // -> [2, 3]
+ */
+export function where<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    callback: (value: T, index: number) => boolean,
+): T[] {
+    if (!accessible(data)) {
+        return [];
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const result: T[] = [];
+
+    for (let i = 0; i < values.length; i++) {
+        const value = values[i] as T;
+        if (callback(value, i)) {
+            result.push(value);
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Filter items where the value is not null.
+ *
+ * @param data - The array or Collection to filter.
+ * @returns A new array with null values removed.
+ *
+ * @example
+ *
+ * whereNotNull([1, null, 2, undefined, 3]); // -> [1, 2, undefined, 3]
+ * whereNotNull(['a', null, 'b', null]); // -> ['a', 'b']
+ * whereNotNull(new Collection([1, null, 2])); // -> [1, 2]
+ */
+export function whereNotNull<T>(
+    data: ReadonlyArray<T | null> | Collection<(T | null)[]> | unknown,
+): T[] {
+    return where(data as ReadonlyArray<T | null>, (value): value is T => value !== null);
+}
+
+/**
+ * Filter the array using the negation of the given callback.
+ *
+ * @param data - The array or Collection to filter.
+ * @param callback - The function to call for each item (value, index) => boolean.
+ * @returns A new filtered array with items that fail the test.
+ *
+ * @example
+ *
+ * reject([1, 2, 3, 4], (value) => value > 2); // -> [1, 2]
+ * reject(['a', 'b', null, 'c'], (value) => value === null); // -> ['a', 'b', 'c']
+ * reject(new Collection([1, 2, 3]), (value, index) => index === 0); // -> [2, 3]
+ */
+export function reject<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    callback: (value: T, index: number) => boolean,
+): T[] {
+    return where(data, (value, index) => !callback(value, index));
+}
+
+/**
+ * Partition the array into two arrays using the given callback.
+ *
+ * @param data - The array or Collection to partition.
+ * @param callback - The function to call for each item (value, index) => boolean.
+ * @returns A tuple containing [passed, failed] arrays.
+ *
+ * @example
+ *
+ * partition([1, 2, 3, 4], (value) => value > 2); // -> [[3, 4], [1, 2]]
+ * partition(['a', 'b', null, 'c'], (value) => value !== null); // -> [['a', 'b', 'c'], [null]]
+ * partition(new Collection([1, 2, 3]), (value, index) => index > 0); // -> [[2, 3], [1]]
+ */
+export function partition<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    callback: (value: T, index: number) => boolean,
+): [T[], T[]] {
+    if (!accessible(data)) {
+        return [[], []];
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const passed: T[] = [];
+    const failed: T[] = [];
+
+    for (let i = 0; i < values.length; i++) {
+        const value = values[i] as T;
+        if (callback(value, i)) {
+            passed.push(value);
+        } else {
+            failed.push(value);
+        }
+    }
+
+    return [passed, failed];
+}
+
+/**
+ * Select an array of values from each item in the array.
+ *
+ * @param data - The array or Collection to select from.
+ * @param keys - The key or keys to select from each item.
+ * @returns A new array with selected key/value pairs from each item.
+ *
+ * @example
+ *
+ * select([{a: 1, b: 2, c: 3}, {a: 4, b: 5, c: 6}], 'a'); // -> [{a: 1}, {a: 4}]
+ * select([{a: 1, b: 2}, {a: 3, b: 4}], ['a', 'b']); // -> [{a: 1, b: 2}, {a: 3, b: 4}]
+ * select(new Collection([{x: 1, y: 2}]), 'x'); // -> [{x: 1}]
+ */
+export function select<T extends Record<string, unknown>>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    keys: string | string[],
+): Record<string, unknown>[] {
+    if (!accessible(data)) {
+        return [];
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const keyList = Array.isArray(keys) ? keys : [keys];
+
+    return values.map((item: T) => {
+        const result: Record<string, unknown> = {};
+
+        for (const key of keyList) {
+            if (
+                item != null &&
+                typeof item === "object" &&
+                key in item
+            ) {
+                result[key] = (item as Record<string, unknown>)[key];
+            }
+        }
+
+        return result;
+    });
+}
+
+/**
+ * If the given value is not an array and not null, wrap it in one.
+ *
+ * @param value - The value to wrap.
+ * @returns An array containing the value, or an empty array if null.
+ *
+ * @example
+ *
+ * wrap('hello'); // -> ['hello']
+ * wrap(['hello']); // -> ['hello']
+ * wrap(null); // -> []
+ * wrap(undefined); // -> [undefined]
+ */
+export function wrap<T>(value: T | null): T[] {
+    if (value === null) {
+        return [];
+    }
+
+    return Array.isArray(value) ? value : [value];
+}
+
+/**
+ * Get a subset of the items from the given array.
+ *
+ * @param data - The array or Collection to get items from.
+ * @param keys - The indices to select.
+ * @returns A new array with only the specified indices.
+ *
+ * @example
+ *
+ * only(['a', 'b', 'c', 'd'], [0, 2]); // -> ['a', 'c']
+ * only(['a', 'b', 'c'], [1]); // -> ['b']
+ * only(new Collection(['x', 'y', 'z']), [0, 2]); // -> ['x', 'z']
+ */
+export function only<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    keys: number[],
+): T[] {
+    if (!accessible(data)) {
+        return [];
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const result: T[] = [];
+
+    for (const key of keys) {
+        if (key >= 0 && key < values.length) {
+            result.push(values[key] as T);
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Push an item onto the beginning of an array.
+ *
+ * @param data - The array to prepend to.
+ * @param value - The value to prepend.
+ * @param key - Optional key for the prepended value (creates object with numeric keys).
+ * @returns A new array with the value prepended.
+ *
+ * @example
+ *
+ * prepend(['b', 'c'], 'a'); // -> ['a', 'b', 'c']
+ * prepend([1, 2, 3], 0); // -> [0, 1, 2, 3]
+ * prepend(new Collection(['b', 'c']), 'a'); // -> ['a', 'b', 'c']
+ */
+export function prepend<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    value: T,
+    key?: number,
+): T[] {
+    if (!accessible(data)) {
+        return key !== undefined ? [value] : [value];
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+
+    if (key !== undefined) {
+        // When key is provided, we need to create a new array with the key-value pair at the beginning
+        // This mimics PHP's behavior where ['key' => 'value'] + $array works
+        const result: T[] = [];
+        result[key] = value;
+        return result.concat(values as T[]);
+    }
+
+    return [value, ...values];
+}
+
+/**
+ * Prepend the key names of an associative array.
+ * Note: This is designed for object-like operations, adapted for arrays with string indices.
+ *
+ * @param data - The array to process.
+ * @param prependWith - The string to prepend to each key.
+ * @returns A new array with transformed string-based indices.
+ *
+ * @example
+ *
+ * prependKeysWith(['a', 'b', 'c'], 'item_'); // -> Creates array with keys: item_0, item_1, item_2
+ */
+export function prependKeysWith<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    prependWith: string,
+): Record<string, T> {
+    if (!accessible(data)) {
+        return {};
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const result: Record<string, T> = {};
+
+    for (let i = 0; i < values.length; i++) {
+        result[prependWith + i] = values[i] as T;
+    }
+
+    return result;
+}
+
+/**
+ * Run a map over each of the items in the array.
+ *
+ * @param data - The array or Collection to map over.
+ * @param callback - The function to call for each item (value, index) => newValue.
+ * @returns A new array with transformed values.
+ *
+ * @example
+ *
+ * map([1, 2, 3], (value) => value * 2); // -> [2, 4, 6]
+ * map(['a', 'b'], (value, index) => `${index}:${value}`); // -> ['0:a', '1:b']
+ * map(new Collection([1, 2]), (value) => value + 10); // -> [11, 12]
+ */
+export function map<T, U>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    callback: (value: T, index: number) => U,
+): U[] {
+    if (!accessible(data)) {
+        return [];
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const result: U[] = [];
+
+    for (let i = 0; i < values.length; i++) {
+        result.push(callback(values[i] as T, i));
+    }
+
+    return result;
+}
