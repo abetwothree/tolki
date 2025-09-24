@@ -1,4 +1,5 @@
 import { Collection } from "@laravel-js/collection";
+import { Random } from "@laravel-js/str";
 import {
     isAccessible as _isAccessible,
     toArray as _toArray,
@@ -13,6 +14,19 @@ import {
     getMixedValue,
 } from "./path";
 import type { ArrayKey, ArrayKeys } from "./path";
+
+/**
+ * Helper function to safely compare two unknown values.
+ */
+function compareValues(a: unknown, b: unknown): number {
+    if (a == null && b == null) return 0;
+    if (a == null) return -1;
+    if (b == null) return 1;
+
+    if (a < b) return -1;
+    if (a > b) return 1;
+    return 0;
+}
 
 // Extract the element type from either an array or a Collection
 export type InnerValue<X> =
@@ -1668,7 +1682,7 @@ export function query(data: unknown): string {
         return encodeURIComponent(key)
             .replace(/%5B/g, "[")
             .replace(/%5D/g, "]");
-    }
+    };
 
     const buildQuery = (obj: unknown, prefix: string = ""): string[] => {
         const parts: string[] = [];
@@ -1719,4 +1733,225 @@ export function query(data: unknown): string {
     };
 
     return buildQuery(data).join("&");
+}
+
+/**
+ * Shuffle the given array and return the result.
+ *
+ * @param data - The array or Collection to shuffle.
+ * @returns A new shuffled array.
+ *
+ * @example
+ *
+ * shuffle([1, 2, 3, 4, 5]); // -> [3, 1, 5, 2, 4] (random order)
+ * shuffle(['a', 'b', 'c']); // -> ['c', 'a', 'b'] (random order)
+ * shuffle(new Collection([1, 2, 3])); // -> [2, 3, 1] (random order)
+ */
+export function shuffle<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+): T[] {
+    if (!accessible(data)) {
+        return [];
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const result = values.slice() as T[];
+
+    // Fisher-Yates shuffle algorithm
+    for (let i = result.length - 1; i > 0; i--) {
+        // Use the Random.int from @laravel-js/str for secure randomness
+        const j = Random.int(0, i);
+        [result[i], result[j]] = [result[j] as T, result[i] as T];
+    }
+
+    return result;
+}
+
+/**
+ * Get one or a specified number of random values from an array.
+ *
+ * @param data - The array or Collection to get random values from.
+ * @param number - The number of items to return. If null, returns a single item.
+ * @param preserveKeys - Whether to preserve the original keys when returning multiple items.
+ * @returns A single random item, an array of random items, or null if array is empty.
+ * @throws Error if more items are requested than available.
+ *
+ * @example
+ *
+ * random([1, 2, 3]); // -> 2 (single random item)
+ * random([1, 2, 3], 2); // -> [3, 1] (two random items)
+ * random(['a', 'b', 'c'], 2, true); // -> {1: 'b', 2: 'c'} (with original keys)
+ * random([], 1); // -> null
+ * random([1, 2], 5); // -> throws Error
+ */
+export function random<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    number?: number | null,
+    preserveKeys: boolean = false,
+): T | T[] | Record<number, T> | null {
+    if (!accessible(data)) {
+        return number === null || number === undefined ? null : [];
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const count = values.length;
+    const requested = number === null || number === undefined ? 1 : number;
+
+    if (count === 0 || requested <= 0) {
+        return number === null || number === undefined ? null : [];
+    }
+
+    if (requested > count) {
+        throw new Error(
+            `You requested ${requested} items, but there are only ${count} items available.`,
+        );
+    }
+
+    // Generate random indices
+    const selectedIndices: number[] = [];
+    const availableIndices = Array.from({ length: count }, (_, i) => i);
+
+    for (let i = 0; i < requested; i++) {
+        const randomIndex = Random.int(0, availableIndices.length - 1);
+        selectedIndices.push(availableIndices[randomIndex] as number);
+        availableIndices.splice(randomIndex, 1);
+    }
+
+    // If only one item requested, return it directly
+    if (number === null || number === undefined) {
+        return values[selectedIndices[0] as number] as T;
+    }
+
+    // Return multiple items
+    if (preserveKeys) {
+        const result: Record<number, T> = {};
+        for (const index of selectedIndices) {
+            result[index] = values[index] as T;
+        }
+        return result;
+    } else {
+        return selectedIndices.map((index) => values[index] as T);
+    }
+}
+
+/**
+ * Sort the array using the given callback or "dot" notation.
+ *
+ * @param data - The array or Collection to sort.
+ * @param callback - The sorting callback, field name, or null for natural sorting.
+ * @returns A new sorted array.
+ *
+ * @example
+ *
+ * sort([3, 1, 4, 1, 5]); // -> [1, 1, 3, 4, 5]
+ * sort(['banana', 'apple', 'cherry']); // -> ['apple', 'banana', 'cherry']
+ * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], 'age'); // -> sorted by age
+ * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); // -> sorted by name
+ */
+export function sort<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    callback?: ((item: T) => unknown) | string | null,
+): T[] {
+    if (!accessible(data)) {
+        return [];
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const result = values.slice() as T[];
+
+    if (!callback) {
+        // Natural sorting
+        return result.sort();
+    }
+
+    if (typeof callback === "string") {
+        // Sort by field name using dot notation
+        return result.sort((a, b) => {
+            const aValue = getNestedValue(
+                a as Record<string, unknown>,
+                callback,
+            );
+            const bValue = getNestedValue(
+                b as Record<string, unknown>,
+                callback,
+            );
+
+            return compareValues(aValue, bValue);
+        });
+    }
+
+    if (typeof callback === "function") {
+        // Sort by callback result
+        return result.sort((a, b) => {
+            const aValue = callback(a);
+            const bValue = callback(b);
+
+            return compareValues(aValue, bValue);
+        });
+    }
+
+    return result;
+}
+
+/**
+ * Sort the array in descending order using the given callback or "dot" notation.
+ *
+ * @param data - The array or Collection to sort.
+ * @param callback - The sorting callback, field name, or null for natural sorting.
+ * @returns A new sorted array in descending order.
+ *
+ * @example
+ *
+ * sortDesc([3, 1, 4, 1, 5]); // -> [5, 4, 3, 1, 1]
+ * sortDesc(['banana', 'apple', 'cherry']); // -> ['cherry', 'banana', 'apple']
+ * sortDesc([{name: 'John', age: 25}, {name: 'Jane', age: 30}], 'age'); // -> sorted by age desc
+ * sortDesc([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); // -> sorted by name desc
+ */
+export function sortDesc<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    callback?: ((item: T) => unknown) | string | null,
+): T[] {
+    if (!accessible(data)) {
+        return [];
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const result = values.slice() as T[];
+
+    if (!callback) {
+        // Natural sorting in descending order
+        return result.sort().reverse();
+    }
+
+    if (typeof callback === "string") {
+        // Sort by field name using dot notation in descending order
+        return result.sort((a, b) => {
+            const aValue = getNestedValue(
+                a as Record<string, unknown>,
+                callback,
+            );
+            const bValue = getNestedValue(
+                b as Record<string, unknown>,
+                callback,
+            );
+
+            return compareValues(bValue, aValue); // Reverse order
+        });
+    }
+
+    if (typeof callback === "function") {
+        // Sort by callback result in descending order
+        return result.sort((a, b) => {
+            const aValue = callback(a);
+            const bValue = callback(b);
+
+            return compareValues(bValue, aValue); // Reverse order
+        });
+    }
+
+    return result;
 }

@@ -1906,4 +1906,262 @@ describe("Arr", () => {
             "simple=value&nested[array][0]=1&nested[array][1]=2&nested[deep][value]=test",
         );
     });
+
+    it("shuffle", () => {
+        // Test with arrays
+        const arr = [1, 2, 3, 4, 5];
+        const shuffled = Arr.shuffle(arr);
+
+        // Should return a new array of same length
+        expect(shuffled).toHaveLength(arr.length);
+        expect(Array.isArray(shuffled)).toBe(true);
+
+        // Should contain all original elements
+        expect(shuffled.sort()).toEqual(arr.sort());
+
+        // Original array should not be modified
+        expect(arr).toEqual([1, 2, 3, 4, 5]);
+
+        // Test with Collection
+        const coll = new Collection([1, 2, 3]) as unknown as Collection<
+            number[]
+        >;
+        const shuffledColl = Arr.shuffle(coll);
+        expect(shuffledColl).toHaveLength(3);
+        expect(shuffledColl.sort()).toEqual([1, 2, 3]);
+
+        // Test with empty array
+        expect(Arr.shuffle([])).toEqual([]);
+
+        // Test with non-accessible data
+        expect(Arr.shuffle(null)).toEqual([]);
+        expect(Arr.shuffle(undefined)).toEqual([]);
+        expect(Arr.shuffle("string")).toEqual([]);
+
+        // Test with single element
+        expect(Arr.shuffle([42])).toEqual([42]);
+
+        // Test with strings
+        const strArr = ["a", "b", "c"];
+        const shuffledStr = Arr.shuffle(strArr);
+        expect(shuffledStr).toHaveLength(3);
+        expect(shuffledStr.sort()).toEqual(["a", "b", "c"]);
+    });
+
+    it("random", () => {
+        const arr = [1, 2, 3, 4, 5];
+
+        // Single random item (default behavior)
+        const single = Arr.random(arr);
+        expect(arr).toContain(single);
+
+        // Explicitly request single item
+        const singleExplicit = Arr.random(arr, 1) as number[];
+        expect(Array.isArray(singleExplicit)).toBe(true);
+        expect(singleExplicit).toHaveLength(1);
+        expect(arr).toContain(singleExplicit[0]);
+
+        // Multiple random items
+        const multiple = Arr.random(arr, 3) as number[];
+        expect(Array.isArray(multiple)).toBe(true);
+        expect(multiple).toHaveLength(3);
+        multiple.forEach((item: number) => expect(arr).toContain(item));
+
+        // Multiple items with preserved keys
+        const withKeys = Arr.random(arr, 2, true);
+        expect(typeof withKeys).toBe("object");
+        expect(Array.isArray(withKeys)).toBe(false);
+        Object.values(withKeys as Record<number, number>).forEach((item) =>
+            expect(arr).toContain(item),
+        );
+
+        // Test with Collection
+        const coll = new Collection([1, 2, 3]) as unknown as Collection<
+            number[]
+        >;
+        const collRandom = Arr.random(coll);
+        expect([1, 2, 3]).toContain(collRandom);
+
+        // Test edge cases
+        expect(Arr.random([])).toBe(null);
+        expect(Arr.random([], 1)).toEqual([]);
+        expect(Arr.random(null)).toBe(null);
+        expect(Arr.random(undefined)).toBe(null);
+
+        // Test requesting more items than available
+        expect(() => Arr.random([1, 2], 5)).toThrow(
+            "You requested 5 items, but there are only 2 items available.",
+        );
+
+        // Test with zero or negative requests
+        expect(Arr.random([1, 2, 3], 0)).toEqual([]);
+        expect(Arr.random([1, 2, 3], -1)).toEqual([]);
+
+        // Test with single element
+        expect(Arr.random([42])).toBe(42);
+        expect(Arr.random([42], 1)).toEqual([42]);
+        expect(Arr.random([42], 1, true)).toEqual({ 0: 42 });
+    });
+
+    it("sort", () => {
+        // Natural sorting
+        expect(Arr.sort([3, 1, 4, 1, 5])).toEqual([1, 1, 3, 4, 5]);
+        expect(Arr.sort(["banana", "apple", "cherry"])).toEqual([
+            "apple",
+            "banana",
+            "cherry",
+        ]);
+
+        // Sort with callback function
+        const people = [
+            { name: "John", age: 25 },
+            { name: "Jane", age: 30 },
+            { name: "Bob", age: 20 },
+        ];
+
+        type Person = { name: string; age: number };
+        expect(
+            Arr.sort(people, (person: unknown) => (person as Person).age),
+        ).toEqual([
+            { name: "Bob", age: 20 },
+            { name: "John", age: 25 },
+            { name: "Jane", age: 30 },
+        ]);
+
+        expect(
+            Arr.sort(people, (person: unknown) => (person as Person).name),
+        ).toEqual([
+            { name: "Bob", age: 20 },
+            { name: "Jane", age: 30 },
+            { name: "John", age: 25 },
+        ]);
+
+        // Sort with field name (dot notation)
+        expect(Arr.sort(people, "age")).toEqual([
+            { name: "Bob", age: 20 },
+            { name: "John", age: 25 },
+            { name: "Jane", age: 30 },
+        ]);
+
+        expect(Arr.sort(people, "name")).toEqual([
+            { name: "Bob", age: 20 },
+            { name: "Jane", age: 30 },
+            { name: "John", age: 25 },
+        ]);
+
+        // Sort with nested field
+        const nested = [
+            { user: { name: "John" } },
+            { user: { name: "Alice" } },
+            { user: { name: "Bob" } },
+        ];
+        expect(Arr.sort(nested, "user.name")).toEqual([
+            { user: { name: "Alice" } },
+            { user: { name: "Bob" } },
+            { user: { name: "John" } },
+        ]);
+
+        // Test with Collection
+        const coll = new Collection([3, 1, 2]) as unknown as Collection<
+            number[]
+        >;
+        expect(Arr.sort(coll)).toEqual([1, 2, 3]);
+
+        // Test with empty array
+        expect(Arr.sort([])).toEqual([]);
+
+        // Test with non-accessible data
+        expect(Arr.sort(null)).toEqual([]);
+        expect(Arr.sort(undefined)).toEqual([]);
+
+        // Test with null callback
+        expect(Arr.sort([3, 1, 2], null)).toEqual([1, 2, 3]);
+
+        // Original array should not be modified
+        const original = [3, 1, 2];
+        const sorted = Arr.sort(original);
+        expect(original).toEqual([3, 1, 2]);
+        expect(sorted).toEqual([1, 2, 3]);
+    });
+
+    it("sortDesc", () => {
+        // Natural sorting in descending order
+        expect(Arr.sortDesc([3, 1, 4, 1, 5])).toEqual([5, 4, 3, 1, 1]);
+        expect(Arr.sortDesc(["banana", "apple", "cherry"])).toEqual([
+            "cherry",
+            "banana",
+            "apple",
+        ]);
+
+        // Sort with callback function in descending order
+        const people = [
+            { name: "John", age: 25 },
+            { name: "Jane", age: 30 },
+            { name: "Bob", age: 20 },
+        ];
+
+        type Person = { name: string; age: number };
+        expect(
+            Arr.sortDesc(people, (person: unknown) => (person as Person).age),
+        ).toEqual([
+            { name: "Jane", age: 30 },
+            { name: "John", age: 25 },
+            { name: "Bob", age: 20 },
+        ]);
+
+        expect(
+            Arr.sortDesc(people, (person: unknown) => (person as Person).name),
+        ).toEqual([
+            { name: "John", age: 25 },
+            { name: "Jane", age: 30 },
+            { name: "Bob", age: 20 },
+        ]);
+
+        // Sort with field name (dot notation) in descending order
+        expect(Arr.sortDesc(people, "age")).toEqual([
+            { name: "Jane", age: 30 },
+            { name: "John", age: 25 },
+            { name: "Bob", age: 20 },
+        ]);
+
+        expect(Arr.sortDesc(people, "name")).toEqual([
+            { name: "John", age: 25 },
+            { name: "Jane", age: 30 },
+            { name: "Bob", age: 20 },
+        ]);
+
+        // Sort with nested field in descending order
+        const nested = [
+            { user: { name: "John" } },
+            { user: { name: "Alice" } },
+            { user: { name: "Bob" } },
+        ];
+        expect(Arr.sortDesc(nested, "user.name")).toEqual([
+            { user: { name: "John" } },
+            { user: { name: "Bob" } },
+            { user: { name: "Alice" } },
+        ]);
+
+        // Test with Collection
+        const coll = new Collection([1, 3, 2]) as unknown as Collection<
+            number[]
+        >;
+        expect(Arr.sortDesc(coll)).toEqual([3, 2, 1]);
+
+        // Test with empty array
+        expect(Arr.sortDesc([])).toEqual([]);
+
+        // Test with non-accessible data
+        expect(Arr.sortDesc(null)).toEqual([]);
+        expect(Arr.sortDesc(undefined)).toEqual([]);
+
+        // Test with null callback
+        expect(Arr.sortDesc([1, 3, 2], null)).toEqual([3, 2, 1]);
+
+        // Original array should not be modified
+        const original = [1, 3, 2];
+        const sorted = Arr.sortDesc(original);
+        expect(original).toEqual([1, 3, 2]);
+        expect(sorted).toEqual([3, 2, 1]);
+    });
 });
