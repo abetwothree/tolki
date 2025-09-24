@@ -525,18 +525,18 @@ export const undotExpand = (map: Record<string, unknown>): unknown[] => {
  * @param {string} path - The dot-notation path to traverse (e.g., "0.items.1.name").
  * @returns {unknown} The value at the specified path, or undefined if not found.
  * @example
- * 
+ *
  * Array with nested objects
  * getNestedValue([{items: ['x', 'y']}], '0.items.1'); // -> 'y'
- * 
+ *
  * @example
  * Object with nested arrays
  * getNestedValue({users: [{name: 'John'}, {name: 'Jane'}]}, 'users.1.name'); // -> 'Jane'
- * 
+ *
  * @example
  * Mixed nesting
  * getNestedValue([{data: {values: [1, 2, 3]}}], '0.data.values.2'); // -> 3
- * 
+ *
  * @example
  * Path not found
  * getNestedValue([{items: ['x']}], '0.items.5'); // -> undefined
@@ -578,7 +578,7 @@ export const getNestedValue = (obj: unknown, path: string): unknown => {
  * Supports both numeric indices for arrays and property names for objects.
  * This function bridges between the existing numeric-only getRaw function
  * and the new mixed notation support.
- * 
+ *
  * @param data - The data to search in
  * @param key - The dot-notation key
  * @param defaultValue - Default value if not found
@@ -610,9 +610,9 @@ export const getMixedValue = <T, D = null>(
     }
 
     const keyStr = String(key);
-    
+
     // If it's a simple key without dots, try getRaw first
-    if (!keyStr.includes('.')) {
+    if (!keyStr.includes(".")) {
         if (!isAccessible(data)) {
             return resolveDefault();
         }
@@ -622,8 +622,8 @@ export const getMixedValue = <T, D = null>(
     }
 
     // For dot notation, check if we have mixed notation (not all numeric)
-    const segments = keyStr.split('.');
-    const allNumeric = segments.every(seg => {
+    const segments = keyStr.split(".");
+    const allNumeric = segments.every((seg) => {
         const n = Number(seg);
         return Number.isInteger(n) && n >= 0;
     });

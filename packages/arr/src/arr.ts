@@ -1017,7 +1017,10 @@ export function where<T>(
 export function whereNotNull<T>(
     data: ReadonlyArray<T | null> | Collection<(T | null)[]> | unknown,
 ): T[] {
-    return where(data as ReadonlyArray<T | null>, (value): value is T => value !== null);
+    return where(
+        data as ReadonlyArray<T | null>,
+        (value): value is T => value !== null,
+    );
 }
 
 /**
@@ -1107,11 +1110,7 @@ export function select<T extends Record<string, unknown>>(
         const result: Record<string, unknown> = {};
 
         for (const key of keyList) {
-            if (
-                item != null &&
-                typeof item === "object" &&
-                key in item
-            ) {
+            if (item != null && typeof item === "object" && key in item) {
                 result[key] = (item as Record<string, unknown>)[key];
             }
         }
@@ -1327,7 +1326,8 @@ export function pluck<T extends Record<string, unknown>>(
                 itemKey != null &&
                 typeof itemKey === "object" &&
                 "toString" in itemKey &&
-                typeof (itemKey as { toString: unknown }).toString === "function"
+                typeof (itemKey as { toString: unknown }).toString ===
+                    "function"
             ) {
                 itemKey = (itemKey as { toString: () => string }).toString();
             }
@@ -1337,7 +1337,9 @@ export function pluck<T extends Record<string, unknown>>(
         if (key === null || key === undefined) {
             (results as unknown[]).push(itemValue);
         } else {
-            (results as Record<string | number, unknown>)[itemKey as string | number] = itemValue;
+            (results as Record<string | number, unknown>)[
+                itemKey as string | number
+            ] = itemValue;
         }
     }
 
@@ -1548,4 +1550,173 @@ export function string<T, D = null>(
     }
 
     return value;
+}
+
+/**
+ * Get the first item in the array, but only if exactly one item exists. Otherwise, throw an exception.
+ *
+ * @param data - The array or Collection to check.
+ * @param callback - Optional callback to filter items.
+ * @returns The single item in the array.
+ * @throws Error if no items or multiple items exist.
+ *
+ * @example
+ *
+ * sole([42]); // -> 42
+ * sole([1, 2, 3], (value) => value > 2); // -> 3
+ * sole([]); // -> throws Error: No items found
+ * sole([1, 2]); // -> throws Error: Multiple items found (2 items)
+ * sole([1, 2, 3], (value) => value > 1); // -> throws Error: Multiple items found (2 items)
+ */
+export function sole<T>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    callback?: (value: T, index: number) => boolean,
+): T {
+    if (!accessible(data)) {
+        throw new Error("No items found");
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+
+    let filteredValues: T[];
+
+    if (callback) {
+        // Filter using the callback
+        filteredValues = [];
+        for (let i = 0; i < values.length; i++) {
+            const value = values[i] as T;
+            if (callback(value, i)) {
+                filteredValues.push(value);
+            }
+        }
+    } else {
+        // Use all values
+        filteredValues = values.slice() as T[];
+    }
+
+    const count = filteredValues.length;
+
+    if (count === 0) {
+        throw new Error("No items found");
+    }
+
+    if (count > 1) {
+        throw new Error(`Multiple items found (${count} items)`);
+    }
+
+    return filteredValues[0] as T;
+}
+
+/**
+ * Run a map over each nested chunk of items, spreading array elements as individual arguments.
+ *
+ * @param data - The array or Collection to map over.
+ * @param callback - The function to call with spread arguments from each chunk.
+ * @returns A new array with mapped values.
+ *
+ * @example
+ *
+ * mapSpread([[1, 2], [3, 4]], (a, b) => a + b); // -> [3, 7]
+ * mapSpread([['John', 25], ['Jane', 30]], (name, age) => `${name} is ${age}`); // -> ['John is 25', 'Jane is 30']
+ */
+export function mapSpread<T, U>(
+    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    callback: (...args: unknown[]) => U,
+): U[] {
+    if (!accessible(data)) {
+        return [];
+    }
+
+    const values =
+        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const result: U[] = [];
+
+    for (let i = 0; i < values.length; i++) {
+        const chunk = values[i] as T;
+        if (Array.isArray(chunk)) {
+            // Spread the chunk elements and append the index
+            result.push(callback(...chunk, i));
+        } else {
+            // If chunk is not an array, pass it as single argument with index
+            result.push(callback(chunk, i));
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Convert the array into a query string.
+ *
+ * @param data - The array or object to convert to a query string.
+ * @returns A URL-encoded query string.
+ *
+ * @example
+ *
+ * query({name: 'John', age: 30}); // -> 'name=John&age=30'
+ * query(['a', 'b', 'c']); // -> '0=a&1=b&2=c'
+ * query({tags: ['php', 'js']}); // -> 'tags[0]=php&tags[1]=js'
+ * query({user: {name: 'John', age: 30}}); // -> 'user[name]=John&user[age]=30'
+ */
+export function query(data: unknown): string {
+    if (data === null || data === undefined) {
+        return "";
+    }
+
+    const encodeKeyComponent = (key: string): string => {
+        return encodeURIComponent(key)
+            .replace(/%5B/g, "[")
+            .replace(/%5D/g, "]");
+    }
+
+    const buildQuery = (obj: unknown, prefix: string = ""): string[] => {
+        const parts: string[] = [];
+
+        if (Array.isArray(obj)) {
+            for (let i = 0; i < obj.length; i++) {
+                const key = prefix ? `${prefix}[${i}]` : String(i);
+                const value = obj[i];
+
+                if (value !== null && value !== undefined) {
+                    if (typeof value === "object") {
+                        parts.push(...buildQuery(value, key));
+                    } else {
+                        // Use a custom encoder that doesn't encode [ and ] to match PHP behavior
+                        const encodedKey = encodeKeyComponent(key);
+                        parts.push(
+                            `${encodedKey}=${encodeURIComponent(String(value))}`,
+                        );
+                    }
+                }
+            }
+        } else if (data instanceof Collection) {
+            return buildQuery(data.all(), prefix);
+        } else if (typeof obj === "object" && obj !== null) {
+            for (const [objKey, value] of Object.entries(obj)) {
+                const key = prefix ? `${prefix}[${objKey}]` : objKey;
+
+                if (value !== null && value !== undefined) {
+                    if (typeof value === "object") {
+                        parts.push(...buildQuery(value, key));
+                    } else {
+                        // Use a custom encoder that doesn't encode [ and ] to match PHP behavior
+                        const encodedKey = encodeKeyComponent(key);
+                        parts.push(
+                            `${encodedKey}=${encodeURIComponent(String(value))}`,
+                        );
+                    }
+                }
+            }
+        } else {
+            // Scalar value
+            const key = prefix || "0";
+            const encodedKey = encodeKeyComponent(key);
+            parts.push(`${encodedKey}=${encodeURIComponent(String(obj))}`);
+        }
+
+        return parts;
+    };
+
+    return buildQuery(data).join("&");
 }
