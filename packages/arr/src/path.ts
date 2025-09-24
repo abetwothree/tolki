@@ -1,5 +1,3 @@
-import { Collection } from "@laravel-js/collection";
-
 export type ArrayKey = number | string | null | undefined;
 export type ArrayKeys =
     | number
@@ -11,12 +9,11 @@ export type ArrayKeys =
 // Internal helpers shared by Arr path-based functions
 
 export const isAccessible = (value: unknown): boolean => {
-    return Array.isArray(value) || value instanceof Collection;
+    return Array.isArray(value);
 };
 
 export const toArray = (value: unknown): unknown[] | null => {
     if (Array.isArray(value)) return value as unknown[];
-    if (value instanceof Collection) return value.all() as unknown[];
     return null;
 };
 
@@ -223,7 +220,7 @@ export const forgetKeys = <T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] => {
 };
 
 export const setImmutable = <T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     key: ArrayKey,
     value: T,
 ): T[] => {
@@ -236,7 +233,7 @@ export const setImmutable = <T>(
     const toArr = (value: unknown): unknown[] => {
         return Array.isArray(value)
             ? (value as unknown[]).slice()
-            : (value as Collection<unknown[]>).all().slice();
+            : [];
     };
     const root = toArr(data);
 
@@ -304,21 +301,14 @@ export const setImmutable = <T>(
             cursor = cloned;
             continue;
         }
-        if (next instanceof Collection) {
-            const cloned = (
-                (next as Collection<unknown[]>).all() as unknown[]
-            ).slice();
-            cursor[idx] = cloned;
-            cursor = cloned;
-            continue;
-        }
+
         return root as T[];
     }
     return out as T[];
 };
 
 export const pushWithPath = <T>(
-    data: T[] | Collection<T[]> | unknown,
+    data: T[] | unknown,
     key: ArrayKey,
     ...values: T[]
 ): T[] => {
@@ -327,11 +317,7 @@ export const pushWithPath = <T>(
             (data as unknown[]).push(...(values as unknown[]));
             return data as T[];
         }
-        if (data instanceof Collection) {
-            const arr = (data.all() as unknown[]).slice();
-            arr.push(...(values as unknown[]));
-            return arr as T[];
-        }
+
         return [...(values as unknown[])] as T[];
     }
 
@@ -356,12 +342,6 @@ export const pushWithPath = <T>(
                     cursor = child;
                 } else if (Array.isArray(next)) {
                     cursor = next as unknown[];
-                } else if (next instanceof Collection) {
-                    const child = (
-                        (next as Collection<unknown[]>).all() as unknown[]
-                    ).slice();
-                    cursor[idx] = child;
-                    cursor = child;
                 } else {
                     throw new Error(
                         `Array value for key [${String(key)}] must be an array, ${typeOf(next)} found.`,
@@ -384,7 +364,7 @@ export const pushWithPath = <T>(
     const isPlainArray = Array.isArray(data);
     const root: unknown[] = isPlainArray
         ? (data as unknown[])
-        : (data as Collection<unknown[]>).all().slice();
+        : [];
 
     const segs = parseSegments(key);
     if (!segs || segs.length === 0) {
@@ -414,14 +394,7 @@ export const pushWithPath = <T>(
             cursor = next as unknown[];
             continue;
         }
-        if (next instanceof Collection) {
-            const child = (
-                (next as Collection<unknown[]>).all() as unknown[]
-            ).slice();
-            cursor[idx] = child;
-            cursor = child;
-            continue;
-        }
+
         throw new Error(
             `Array value for key [${String(key)}] must be an array, ${typeOf(next)} found.`,
         );
@@ -440,22 +413,16 @@ export const pushWithPath = <T>(
 };
 
 export const dotFlatten = (
-    data: ReadonlyArray<unknown> | Collection<unknown[]> | unknown,
+    data: ReadonlyArray<unknown> | unknown,
     prepend: string = "",
 ): Record<string, unknown> => {
     if (!isAccessible(data)) return {};
-    const root = (
-        data instanceof Collection
-            ? (data.all() as unknown[])
-            : (data as unknown[])
-    ) as unknown[];
+    const root = (data as unknown[]);
     const out: Record<string, unknown> = {};
     const walk = (node: unknown, path: string): void => {
         const arr = Array.isArray(node)
             ? (node as unknown[])
-            : node instanceof Collection
-              ? (node.all() as unknown[])
-              : null;
+            : null;
         if (!arr) {
             const key = prepend
                 ? path
@@ -585,7 +552,7 @@ export const getNestedValue = (obj: unknown, path: string): unknown => {
  * @returns The found value or default
  */
 export const getMixedValue = <T, D = null>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     key: ArrayKey,
     defaultValue: D | (() => D) | null = null,
 ): unknown => {

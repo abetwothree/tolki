@@ -1,5 +1,3 @@
-import { Collection } from "@laravel-js/collection";
-
 /**
  * Helper function to safely compare two unknown values for sorting.
  * Provides stable comparison for objects using JSON serialization.
@@ -54,41 +52,36 @@ export function resolveDefault<D>(defaultValue?: D | (() => D)): D | null {
 
 /**
  * Helper function to normalize data to an array format.
- * Handles both arrays and Collections consistently.
+ * Handles arrays only now.
  *
- * @param data - The data to normalize (array, Collection, or other)
+ * @param data - The data to normalize (array or other)
  * @returns An array representation of the data, or null if not accessible
  * 
  * @example
  * normalizeToArray([1, 2, 3]); // -> [1, 2, 3]
- * normalizeToArray(new Collection([1, 2, 3])); // -> [1, 2, 3]
  * normalizeToArray('hello'); // -> null
  */
 export function normalizeToArray<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
 ): T[] | null {
     if (Array.isArray(data)) {
         return data.slice() as T[];
-    }
-    if (data instanceof Collection) {
-        return data.all() as T[];
     }
     return null;
 }
 
 /**
- * Helper function to check if data is accessible (array or Collection).
+ * Helper function to check if data is accessible (array only).
  *
  * @param data - The data to check
- * @returns True if data is an array or Collection
+ * @returns True if data is an array
  * 
  * @example
  * isAccessibleData([1, 2, 3]); // -> true
- * isAccessibleData(new Collection([1, 2, 3])); // -> true
  * isAccessibleData('hello'); // -> false
  */
 export function isAccessibleData(data: unknown): boolean {
-    return Array.isArray(data) || data instanceof Collection;
+    return Array.isArray(data);
 }
 
 /**
@@ -100,12 +93,11 @@ export function isAccessibleData(data: unknown): boolean {
  * 
  * @example
  * getAccessibleValues([1, 2, 3]); // -> [1, 2, 3]
- * getAccessibleValues(new Collection([1, 2, 3])); // -> [1, 2, 3]
  * getAccessibleValues('hello'); // -> []
  */
 export function getAccessibleValues<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
 ): T[] {
-    const normalized = normalizeToArray(data);
-    return (normalized as T[]) || [];
+    const normalized = normalizeToArray<T>(data);
+    return normalized || [];
 }

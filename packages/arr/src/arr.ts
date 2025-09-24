@@ -1,7 +1,5 @@
-import { Collection } from "@laravel-js/collection";
 import { Random, Str } from "@laravel-js/str";
 import {
-    isAccessible as _isAccessible,
     toArray as _toArray,
     hasPath as _hasPath,
     getRaw as _getRaw,
@@ -16,13 +14,8 @@ import {
 import type { ArrayKey, ArrayKeys } from "./path";
 import { compareValues, getAccessibleValues } from "./utils"; 
 
-// Extract the element type from either an array or a Collection
-export type InnerValue<X> =
-    X extends ReadonlyArray<infer U>
-        ? U
-        : X extends Collection<infer U>
-          ? U
-          : never;
+// Extract the element type from an array
+export type InnerValue<X> = X extends ReadonlyArray<infer U> ? U : never;
 
 /**
  * Determine whether the given value is array accessible.
@@ -32,10 +25,9 @@ export type InnerValue<X> =
  * accessible([]); // true
  * accessible([1, 2]); // true
  * accessible({ a: 1, b: 2 }); // false
- * accessible(new Collection()); // true
  */
 export function accessible<T>(value: T): boolean {
-    return _isAccessible(value as unknown);
+    return Array.isArray(value);
 }
 
 /**
@@ -46,23 +38,11 @@ export function accessible<T>(value: T): boolean {
  * arrayable([]); // true
  * arrayable([1, 2]); // true
  * arrayable({ a: 1, b: 2 }); // false
- * arrayable(new Collection()); // true
  */
 export function arrayable(
     value: unknown,
-): value is ReadonlyArray<unknown> | Collection<unknown[]> {
-    return _isAccessible(value);
-}
-
-/**
- * Determine whether the given value is a Collection.
- */
-export function isCollection<T>(value: T): boolean {
-    if (value instanceof Collection) {
-        return true;
-    }
-
-    return false;
+): value is ReadonlyArray<unknown> {
+    return Array.isArray(value);
 }
 
 /**
@@ -88,15 +68,13 @@ export function add<T extends readonly unknown[], V extends readonly unknown[]>(
  * collapse([[1], [2], [3], ['foo', 'bar']]); // -> [1, 2, 3, 'foo', 'bar']
  */
 export function collapse<
-    T extends ReadonlyArray<ReadonlyArray<unknown> | Collection<unknown[]>>,
+    T extends ReadonlyArray<ReadonlyArray<unknown>>,
 >(array: T): InnerValue<T[number]>[] {
     const out: InnerValue<T[number]>[] = [];
 
     for (const item of array) {
         if (Array.isArray(item)) {
             out.push(...(item as InnerValue<T[number]>[]));
-        } else if (item instanceof Collection) {
-            out.push(...(item.all() as unknown as InnerValue<T[number]>[]));
         }
     }
 
@@ -179,7 +157,7 @@ export function except<T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] {
 /**
  * Determine if the given key exists in the provided data structure.
  *
- * @param  data - array or Collection to check
+ * @param  data - array to check
  * @param  key  - key to check for
  * @returns True if the key exists, false otherwise.
  *
@@ -187,32 +165,15 @@ export function except<T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] {
  *
  * exists([1, 2, 3], 0); // -> true
  * exists([1, 2, 3], 3); // -> false
- * exists(new Collection([1, 2, 3]), 2); // -> true
- * exists(new Collection([1, 2, 3]), 4); // -> false
  */
-export function exists<T>(data: readonly T[], key: number | string): boolean;
-export function exists<T>(data: Collection<T[]>, key: T): boolean;
-export function exists(
-    data: ReadonlyArray<unknown> | Collection<unknown[]>,
-    key: ArrayKey,
-): boolean {
+export function exists<T>(data: readonly T[], key: number | string): boolean {
     // Array: only numeric keys are supported
-    if (Array.isArray(data)) {
-        const idx = typeof key === "number" ? key : Number(key);
-        if (Number.isNaN(idx)) {
-            return false;
-        }
-
-        return idx >= 0 && idx < data.length;
+    const idx = typeof key === "number" ? key : Number(key);
+    if (Number.isNaN(idx)) {
+        return false;
     }
 
-    // Collection: check if the value exists among items
-    if (data instanceof Collection) {
-        const items = data.all() as unknown[];
-        return items.includes(key as never);
-    }
-
-    return false;
+    return idx >= 0 && idx < data.length;
 }
 
 /**
@@ -451,7 +412,7 @@ export function take<T>(
 /**
  * Flatten a multi-dimensional array into a single level.
  *
- * @param data The array (or Collection) to flatten.
+ * @param data The array to flatten.
  * @param depth Maximum depth to flatten. Use Infinity for full flattening.
  * @returns A new flattened array.
  *
@@ -459,28 +420,15 @@ export function take<T>(
  *
  * flatten([1, [2, [3, 4]], 5]); // -> [1, 2, 3, 4, 5]
  * flatten([1, [2, [3, 4]], 5], 1); // -> [1, 2, [3, 4], 5]
- * flatten(new Collection([1, new Collection([2, 3]), 4])); // -> [1, 2, 3, 4]
- * flatten(new Collection([1, new Collection([2, new Collection([3])]), 4]), 2); // -> [1, 2, 3, 4]
  */
 export function flatten<T>(data: ReadonlyArray<T>, depth?: number): unknown[];
-export function flatten<T extends unknown[]>(
-    data: Collection<T>,
-    depth?: number,
-): unknown[];
 export function flatten(
-    data: ReadonlyArray<unknown> | Collection<unknown[]>,
+    data: ReadonlyArray<unknown>,
     depth: number = Infinity,
 ): unknown[] {
     const result: unknown[] = [];
 
-    const array =
-        data instanceof Collection
-            ? (data.all() as unknown[])
-            : (data as ReadonlyArray<unknown>);
-
-    for (const raw of array) {
-        const item = raw instanceof Collection ? (raw.all() as unknown) : raw;
-
+    for (const item of data) {
         if (!Array.isArray(item)) {
             result.push(item);
             continue;
@@ -521,20 +469,18 @@ export function forget<T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] {
 /**
  * Get the underlying array or object of items from the given argument.
  *
- * @param items The array, Collection, Map, or object to extract from.
+ * @param items The array, Map, or object to extract from.
  * @returns The underlying array or object.
  *
  * @example
  *
  * from([1, 2, 3]); // -> [1, 2, 3]
- * from(new Collection([1, 2, 3])); // -> [1, 2, 3]
  * from({ foo: 'bar' }); // -> { foo: 'bar' }
  * from(new Map([['foo', 'bar']])); // -> { foo: 'bar' }
  *
  * @throws Error if items is a WeakMap or a scalar value.
  */
 export function from<T>(items: ReadonlyArray<T>): T[];
-export function from<T extends unknown[]>(items: Collection<T>): T[];
 export function from<V>(items: Map<PropertyKey, V>): Record<string, V>;
 export function from(
     items: number | string | boolean | symbol | null | undefined,
@@ -544,11 +490,6 @@ export function from(items: unknown): unknown {
     // Arrays
     if (Array.isArray(items)) {
         return items.slice();
-    }
-
-    // Collections
-    if (items instanceof Collection) {
-        return items.all();
     }
 
     // Map -> plain object
@@ -591,7 +532,7 @@ export function from(items: unknown): unknown {
  * get(['foo', 'bar', 'baz'], 9, 'default'); // -> 'default'
  */
 export function get<T, D = null>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     key: ArrayKey,
     defaultValue: D | (() => D) | null = null,
 ): T | D | ReadonlyArray<T> | null {
@@ -626,7 +567,7 @@ export function get<T, D = null>(
  * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); // -> false
  */
 export function has<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     keys: ArrayKeys,
 ): boolean {
     const keyList = Array.isArray(keys) ? keys : [keys];
@@ -654,7 +595,7 @@ export function has<T>(
  * hasAll(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); // -> false
  */
 export function hasAll<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     keys: ArrayKeys,
 ): boolean {
     const keyList = Array.isArray(keys) ? keys : [keys];
@@ -685,7 +626,7 @@ export function hasAll<T>(
  * hasAny(['foo', 'bar', ['baz', 'qux']], ['3', '4']); // -> false
  */
 export function hasAny<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     keys: ArrayKeys,
 ): boolean {
     if (keys == null) {
@@ -717,11 +658,9 @@ export function hasAny<T>(
  *
  * every([2, 4, 6], n => n % 2 === 0); // -> true
  * every([1, 2, 3], n => n % 2 === 0); // -> false
- * every(new Collection([2, 4, 6]), n => n % 2 === 0); // -> true
- * every(new Collection([1, 2, 3]), n => n % 2 === 0); // -> false
  */
 export function every<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     callback: (value: T, key: number) => boolean,
 ): boolean {
     if (!accessible(data)) {
@@ -749,11 +688,9 @@ export function every<T>(
  *
  * some([1, 2, 3], n => n % 2 === 0); // -> true
  * some([1, 3, 5], n => n % 2 === 0); // -> false
- * some(new Collection([1, 2, 3]), n => n % 2 === 0); // -> true
- * some(new Collection([1, 3, 5]), n => n % 2 === 0); // -> false
  */
 export function some<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     callback: (value: T, key: number) => boolean,
 ): boolean {
     if (!accessible(data)) {
@@ -789,7 +726,7 @@ export function some<T>(
  * integer(["house"], 0); // -> Error: The value is not an integer.
  */
 export function integer<T, D = null>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     key: ArrayKey,
     defaultValue: D | (() => D) | null = null,
 ): number {
@@ -815,7 +752,7 @@ export function integer<T, D = null>(
  * join(['a', 'b', 'c'], ', ', ' and ') => 'a, b and c'
  */
 export function join<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     glue: string,
     finalGlue: string = "",
 ): string {
@@ -856,7 +793,7 @@ export function join<T>(
  * set(['a', ['b', 'c']], '1.0', 'x'); // -> ['a', ['x', 'c']]
  */
 export function set<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     key: ArrayKey,
     value: T,
 ): T[] {
@@ -878,7 +815,7 @@ export function set<T>(
  * push(['a', ['b']], '1.1', 'c'); // -> ['a', ['b', 'c']]
  */
 export function push<T>(
-    data: T[] | Collection<T[]> | unknown,
+    data: T[] | unknown,
     key: ArrayKey,
     ...values: T[]
 ): T[] {
@@ -900,7 +837,7 @@ export function push<T>(
  * pull(['a', ['b', 'c']], '1.2', 'x'); // -> { value: 'x', data: ['a', ['b', 'c']] }
  */
 export function pull<T, D = null>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     key: ArrayKey,
     defaultValue: D | (() => D) | null = null,
 ): { value: T | D | null; data: T[] } {
@@ -936,10 +873,9 @@ export function pull<T, D = null>(
  * @example
  *
  * dot(['a', ['b', 'c']]); // -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
- * dot(new Collection(['a', new Collection(['b', 'c'])]), 'item'); // -> { 'item.0': 'a', 'item.1.0': 'b', 'item.1.1': 'c' }
  */
 export function dot(
-    data: ReadonlyArray<unknown> | Collection<unknown[]> | unknown,
+    data: ReadonlyArray<unknown> | unknown,
     prepend: string = "",
 ): Record<string, unknown> {
     return _dotFlatten(data, prepend);
@@ -971,10 +907,9 @@ export function undot(map: Record<string, unknown>): unknown[] {
  *
  * where([1, 2, 3, 4], (value) => value > 2); // -> [3, 4]
  * where(['a', 'b', null, 'c'], (value) => value !== null); // -> ['a', 'b', 'c']
- * where(new Collection([1, 2, 3]), (value, index) => index > 0); // -> [2, 3]
  */
 export function where<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     callback: (value: T, index: number) => boolean,
 ): T[] {
     const values = getAccessibleValues(data);
@@ -1000,10 +935,9 @@ export function where<T>(
  *
  * whereNotNull([1, null, 2, undefined, 3]); // -> [1, 2, undefined, 3]
  * whereNotNull(['a', null, 'b', null]); // -> ['a', 'b']
- * whereNotNull(new Collection([1, null, 2])); // -> [1, 2]
  */
 export function whereNotNull<T>(
-    data: ReadonlyArray<T | null> | Collection<(T | null)[]> | unknown,
+    data: ReadonlyArray<T | null> | unknown,
 ): T[] {
     return where(
         data as ReadonlyArray<T | null>,
@@ -1022,10 +956,9 @@ export function whereNotNull<T>(
  *
  * reject([1, 2, 3, 4], (value) => value > 2); // -> [1, 2]
  * reject(['a', 'b', null, 'c'], (value) => value === null); // -> ['a', 'b', 'c']
- * reject(new Collection([1, 2, 3]), (value, index) => index === 0); // -> [2, 3]
  */
 export function reject<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     callback: (value: T, index: number) => boolean,
 ): T[] {
     return where(data, (value, index) => !callback(value, index));
@@ -1042,10 +975,9 @@ export function reject<T>(
  *
  * partition([1, 2, 3, 4], (value) => value > 2); // -> [[3, 4], [1, 2]]
  * partition(['a', 'b', null, 'c'], (value) => value !== null); // -> [['a', 'b', 'c'], [null]]
- * partition(new Collection([1, 2, 3]), (value, index) => index > 0); // -> [[2, 3], [1]]
  */
 export function partition<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     callback: (value: T, index: number) => boolean,
 ): [T[], T[]] {
     const values = getAccessibleValues(data);
@@ -1075,10 +1007,9 @@ export function partition<T>(
  *
  * select([{a: 1, b: 2, c: 3}, {a: 4, b: 5, c: 6}], 'a'); // -> [{a: 1}, {a: 4}]
  * select([{a: 1, b: 2}, {a: 3, b: 4}], ['a', 'b']); // -> [{a: 1, b: 2}, {a: 3, b: 4}]
- * select(new Collection([{x: 1, y: 2}]), 'x'); // -> [{x: 1}]
  */
 export function select<T extends Record<string, unknown>>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     keys: string | string[],
 ): Record<string, unknown>[] {
     const values = getAccessibleValues(data);
@@ -1130,10 +1061,9 @@ export function wrap<T>(value: T | null): T[] {
  *
  * only(['a', 'b', 'c', 'd'], [0, 2]); // -> ['a', 'c']
  * only(['a', 'b', 'c'], [1]); // -> ['b']
- * only(new Collection(['x', 'y', 'z']), [0, 2]); // -> ['x', 'z']
  */
 export function only<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     keys: number[],
 ): T[] {
     const values = getAccessibleValues(data);
@@ -1160,10 +1090,9 @@ export function only<T>(
  *
  * prepend(['b', 'c'], 'a'); // -> ['a', 'b', 'c']
  * prepend([1, 2, 3], 0); // -> [0, 1, 2, 3]
- * prepend(new Collection(['b', 'c']), 'a'); // -> ['a', 'b', 'c']
  */
 export function prepend<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     value: T,
     key?: number,
 ): T[] {
@@ -1193,7 +1122,7 @@ export function prepend<T>(
  * prependKeysWith(['a', 'b', 'c'], 'item_'); // -> Creates array with keys: item_0, item_1, item_2
  */
 export function prependKeysWith<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     prependWith: string,
 ): Record<string, T> {
     const values = getAccessibleValues(data) as T[];
@@ -1217,10 +1146,9 @@ export function prependKeysWith<T>(
  *
  * map([1, 2, 3], (value) => value * 2); // -> [2, 4, 6]
  * map(['a', 'b'], (value, index) => `${index}:${value}`); // -> ['0:a', '1:b']
- * map(new Collection([1, 2]), (value) => value + 10); // -> [11, 12]
  */
 export function map<T, U>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     callback: (value: T, index: number) => U,
 ): U[] {
     const values = getAccessibleValues(data) as T[];
@@ -1248,7 +1176,7 @@ export function map<T, U>(
  * pluck([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'name', 'id'); // -> {1: 'John', 2: 'Jane'}
  */
 export function pluck<T extends Record<string, unknown>>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     value: string | ((item: T) => unknown),
     key?: string | ((item: T) => string | number) | null,
 ): unknown[] | Record<string | number, unknown> {
@@ -1256,8 +1184,7 @@ export function pluck<T extends Record<string, unknown>>(
         return [];
     }
 
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const values = data as ReadonlyArray<T>;
     const results: unknown[] | Record<string | number, unknown> = key ? {} : [];
 
     for (const item of values) {
@@ -1318,15 +1245,14 @@ export function pluck<T extends Record<string, unknown>>(
  * keyBy([{name: 'John'}, {name: 'Jane'}], (item) => item.name); // -> {John: {name: 'John'}, Jane: {name: 'Jane'}}
  */
 export function keyBy<T extends Record<string, unknown>>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     keyBy: string | ((item: T) => string | number),
 ): Record<string | number, T> {
     if (!accessible(data)) {
         return {};
     }
 
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const values = data as ReadonlyArray<T>;
     const results: Record<string | number, T> = {};
 
     for (const item of values) {
@@ -1360,15 +1286,14 @@ export function keyBy<T extends Record<string, unknown>>(
  * mapWithKeys(['a', 'b'], (value, index) => ({[value]: index})); // -> {a: 0, b: 1}
  */
 export function mapWithKeys<T, K extends string | number, V>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     callback: (value: T, index: number) => Record<K, V>,
 ): Record<K, V> {
     if (!accessible(data)) {
         return {} as Record<K, V>;
     }
 
-    const values =
-        data instanceof Collection ? data.all() : (data as ReadonlyArray<T>);
+    const values = data as ReadonlyArray<T>;
     const result: Record<K, V> = {} as Record<K, V>;
 
     for (let i = 0; i < values.length; i++) {
@@ -1400,7 +1325,7 @@ export function mapWithKeys<T, K extends string | number, V>(
  * array([{items: 'not array'}], '0.items'); // -> throws Error
  */
 export function array<T, D = null>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     key: ArrayKey,
     defaultValue: D | (() => D) | null = null,
 ): unknown[] {
@@ -1432,7 +1357,7 @@ export function array<T, D = null>(
  * boolean([{active: 'yes'}], '0.active'); // -> throws Error
  */
 export function boolean<T, D = null>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     key: ArrayKey,
     defaultValue: D | (() => D) | null = null,
 ): boolean {
@@ -1464,7 +1389,7 @@ export function boolean<T, D = null>(
  * float([{price: 'free'}], '0.price'); // -> throws Error
  */
 export function float<T, D = null>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     key: ArrayKey,
     defaultValue: D | (() => D) | null = null,
 ): number {
@@ -1496,7 +1421,7 @@ export function float<T, D = null>(
  * string([{name: 123}], '0.name'); // -> throws Error
  */
 export function string<T, D = null>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     key: ArrayKey,
     defaultValue: D | (() => D) | null = null,
 ): string {
@@ -1528,7 +1453,7 @@ export function string<T, D = null>(
  * sole([1, 2, 3], (value) => value > 1); // -> throws Error: Multiple items found (2 items)
  */
 export function sole<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     callback?: (value: T, index: number) => boolean,
 ): T {
     const values = getAccessibleValues(data) as T[];
@@ -1579,7 +1504,7 @@ export function sole<T>(
  * mapSpread([['John', 25], ['Jane', 30]], (name, age) => `${name} is ${age}`); // -> ['John is 25', 'Jane is 30']
  */
 export function mapSpread<T, U>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     callback: (...args: unknown[]) => U,
 ): U[] {
     const values = getAccessibleValues(data) as T[];
@@ -1643,8 +1568,7 @@ export function query(data: unknown): string {
                     }
                 }
             }
-        } else if (data instanceof Collection) {
-            return buildQuery(data.all(), prefix);
+        // Collection support was removed
         } else if (typeof obj === "object" && obj !== null) {
             for (const [objKey, value] of Object.entries(obj)) {
                 const key = prefix ? `${prefix}[${objKey}]` : objKey;
@@ -1684,10 +1608,9 @@ export function query(data: unknown): string {
  *
  * shuffle([1, 2, 3, 4, 5]); // -> [3, 1, 5, 2, 4] (random order)
  * shuffle(['a', 'b', 'c']); // -> ['c', 'a', 'b'] (random order)
- * shuffle(new Collection([1, 2, 3])); // -> [2, 3, 1] (random order)
  */
 export function shuffle<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
 ): T[] {
     const values = getAccessibleValues(data) as T[];
     const result = values.slice();
@@ -1720,7 +1643,7 @@ export function shuffle<T>(
  * random([1, 2], 5); // -> throws Error
  */
 export function random<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     number?: number | null,
     preserveKeys: boolean = false,
 ): T | T[] | Record<number, T> | null {
@@ -1780,7 +1703,7 @@ export function random<T>(
  * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); // -> sorted by name
  */
 export function sort<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     callback?: ((item: T) => unknown) | string | null,
 ): T[] {
     const values = getAccessibleValues(data) as T[];
@@ -1835,7 +1758,7 @@ export function sort<T>(
  * sortDesc([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); // -> sorted by name desc
  */
 export function sortDesc<T>(
-    data: ReadonlyArray<T> | Collection<T[]> | unknown,
+    data: ReadonlyArray<T> | unknown,
     callback?: ((item: T) => unknown) | string | null,
 ): T[] {
     const values = getAccessibleValues(data) as T[];
@@ -1890,17 +1813,11 @@ export function sortDesc<T>(
 export function toCssClasses(
     data:
         | ReadonlyArray<unknown>
-        | Collection<unknown[]>
         | Record<string, unknown>
         | unknown,
 ): string {
     if (!accessible(data) && typeof data !== "object") {
         return "";
-    }
-
-    // Handle Collection
-    if (data instanceof Collection) {
-        data = data.all();
     }
 
     // Handle arrays and objects directly
@@ -1949,17 +1866,11 @@ export function toCssClasses(
 export function toCssStyles(
     data:
         | ReadonlyArray<unknown>
-        | Collection<unknown[]>
         | Record<string, unknown>
         | unknown,
 ): string {
     if (!accessible(data) && typeof data !== "object") {
         return "";
-    }
-
-    // Handle Collection
-    if (data instanceof Collection) {
-        data = data.all();
     }
 
     // Handle arrays and objects directly
@@ -2012,7 +1923,6 @@ export function toCssStyles(
 export function sortRecursive<T>(
     data:
         | ReadonlyArray<T>
-        | Collection<T[]>
         | Record<string, unknown>
         | unknown,
     options?: number,
@@ -2026,8 +1936,6 @@ export function sortRecursive<T>(
 
     if (Array.isArray(data)) {
         result = data.slice() as T[];
-    } else if (data instanceof Collection) {
-        result = data.all().slice() as T[];
     } else if (typeof data === "object" && data !== null) {
         result = { ...data } as Record<string, unknown>;
     } else {
@@ -2097,7 +2005,6 @@ export function sortRecursive<T>(
 export function sortRecursiveDesc<T>(
     data:
         | ReadonlyArray<T>
-        | Collection<T[]>
         | Record<string, unknown>
         | unknown,
     options?: number,
