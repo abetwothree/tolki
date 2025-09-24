@@ -745,7 +745,10 @@ export function get<T = unknown>(
  * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.1']); // -> true
  * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); // -> false
  */
-export function has<T>(data: ReadonlyArray<T>, keys: ArrayKeys): boolean {
+export function has<T>(
+    data: ReadonlyArray<T> | unknown,
+    keys: ArrayKeys,
+): boolean {
     const keyList = Array.isArray(keys) ? keys : [keys];
     if (!accessible(data) || keyList.length === 0) {
         return false;
@@ -1459,7 +1462,6 @@ export function random<T>(
     }
 }
 
-
 /**
  * Set an array item to a given value using "dot" notation.
  *
@@ -1474,7 +1476,11 @@ export function random<T>(
  * set(['a', 'b', 'c'], 1, 'x'); // -> ['a', 'x', 'c']
  * set(['a', ['b', 'c']], '1.0', 'x'); // -> ['a', ['x', 'c']]
  */
-export function set<T>(array: ReadonlyArray<T>, key: ArrayKey, value: T): T[] {
+export function set<T>(
+    array: ReadonlyArray<T> | unknown,
+    key: ArrayKey | null,
+    value: unknown,
+): unknown[] {
     return setMixedImmutable(array, key, value);
 }
 

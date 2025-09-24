@@ -2435,10 +2435,9 @@ describe("Arr", () => {
             expect(sortedDescWithNumber).toEqual([3, 1, 4, 1, 5]);
 
             // Test sortDesc with an object
-            // @ts-expect-error Testing edge case with invalid callback type
             const sortedDescWithObject = Arr.sortDesc(sortData, {
                 key: "value",
-            });
+            } as unknown as (item: unknown) => unknown);
             expect(sortedDescWithObject).toEqual([3, 1, 4, 1, 5]);
         });
 
