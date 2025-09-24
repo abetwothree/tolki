@@ -2405,27 +2405,25 @@ describe("Arr", () => {
             // The final return statements are only reached if callback is truthy but neither string nor function
             // Let's try with different edge case values that might bypass the early checks
             const sortData = [3, 1, 4, 1, 5];
-
+            
             // Test with a number (truthy, not string, not function)
             // @ts-expect-error Testing edge case with invalid callback type
             const sortedWithNumber = Arr.sort(sortData, 123);
             expect(sortedWithNumber).toEqual([3, 1, 4, 1, 5]);
-
+            
             // Test with an object (truthy, not string, not function)
             // @ts-expect-error Testing edge case with invalid callback type
-            const sortedWithObject = Arr.sort(sortData, { key: "value" });
+            const sortedWithObject = Arr.sort(sortData, { key: 'value' });
             expect(sortedWithObject).toEqual([3, 1, 4, 1, 5]);
-
+            
             // Test sortDesc with a number
             // @ts-expect-error Testing edge case with invalid callback type
             const sortedDescWithNumber = Arr.sortDesc(sortData, 123);
             expect(sortedDescWithNumber).toEqual([3, 1, 4, 1, 5]);
-
+            
             // Test sortDesc with an object
             // @ts-expect-error Testing edge case with invalid callback type
-            const sortedDescWithObject = Arr.sortDesc(sortData, {
-                key: "value",
-            });
+            const sortedDescWithObject = Arr.sortDesc(sortData, { key: 'value' });
             expect(sortedDescWithObject).toEqual([3, 1, 4, 1, 5]);
         });
 
