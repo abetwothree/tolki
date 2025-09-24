@@ -11,7 +11,6 @@ import {
     setMixed,
     setMixedImmutable,
     hasMixed,
-    pushMixed,
 } from "./path";
 import type { ArrayKey, ArrayKeys } from "./path";
 import { compareValues, getAccessibleValues } from "./utils";
@@ -75,7 +74,74 @@ export function add<T extends readonly unknown[]>(
 }
 
 /**
+ * Get an array item from an array using "dot" notation.
+ * Throws an error if the value is not an array.
+ *
+ * @param data - The array to get the item from.
+ * @param key - The key or dot-notated path of the item to get.
+ * @param defaultValue - The default value if key is not found.
+ * @returns The array value.
+ * @throws Error if the value is not an array.
+ *
+ * @example
+ *
+ * array([['a', 'b'], ['c', 'd']], 0); // -> ['a', 'b']
+ * array([{items: ['x', 'y']}], '0.items'); // -> ['x', 'y']
+ * array([{items: 'not array'}], '0.items'); // -> throws Error
+ */
+export function array<T, D = null>(
+    data: ReadonlyArray<T> | unknown,
+    key: ArrayKey,
+    defaultValue: D | (() => D) | null = null,
+): unknown[] {
+    const value = getMixedValue(data, key, defaultValue);
+
+    if (!Array.isArray(value)) {
+        throw new Error(
+            `Array value for key [${key}] must be an array, ${typeof value} found.`,
+        );
+    }
+
+    return value;
+}
+
+/**
+ * Get a boolean item from an array using "dot" notation.
+ * Throws an error if the value is not a boolean.
+ *
+ * @param data - The array to get the item from.
+ * @param key - The key or dot-notated path of the item to get.
+ * @param defaultValue - The default value if key is not found.
+ * @returns The boolean value.
+ * @throws Error if the value is not a boolean.
+ *
+ * @example
+ *
+ * boolean([true, false], 0); // -> true
+ * boolean([{active: true}], '0.active'); // -> true
+ * boolean([{active: 'yes'}], '0.active'); // -> throws Error
+ */
+export function boolean<T, D = null>(
+    data: ReadonlyArray<T> | unknown,
+    key: ArrayKey,
+    defaultValue: D | (() => D) | null = null,
+): boolean {
+    const value = getMixedValue(data, key, defaultValue);
+
+    if (typeof value !== "boolean") {
+        throw new Error(
+            `Array value for key [${key}] must be a boolean, ${typeof value} found.`,
+        );
+    }
+
+    return value;
+}
+
+/**
  * Collapse an array of arrays into a single array.
+ *
+ * @param array - The array of arrays to collapse.
+ * @return A new flattened array.
  *
  * @example
  *
@@ -97,6 +163,9 @@ export function collapse<T extends ReadonlyArray<ReadonlyArray<unknown>>>(
 
 /**
  * Cross join the given arrays, returning all possible permutations.
+ *
+ * @param arrays - The arrays to cross join.
+ * @return A new array with all combinations of the input arrays.
  *
  * @example
  *
@@ -132,6 +201,9 @@ export function crossJoin<T extends ReadonlyArray<ReadonlyArray<unknown>>>(
 /**
  * Divide an array into two arrays. One with keys and the other with values.
  *
+ * @param array - The array to divide.
+ * @return A tuple with an array of keys and an array of values.
+ *
  * @example
  *
  * divide(["Desk", 100, true]); // -> [[0, 1, 2], ['Desk', 100, true]]
@@ -150,6 +222,39 @@ export function divide<A extends readonly unknown[]>(
             ? V[]
             : unknown[],
     ];
+}
+
+/**
+ * Flatten a multi-dimensional array with "dot" notation.
+ *
+ * @param data - The array or to flatten.
+ * @param prepend - An optional string to prepend to each key.
+ * @returns A new object with dot-notated keys.
+ *
+ * @example
+ *
+ * dot(['a', ['b', 'c']]); // -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
+ */
+export function dot(
+    data: ReadonlyArray<unknown> | unknown,
+    prepend: string = "",
+): Record<string, unknown> {
+    return _dotFlatten(data, prepend);
+}
+
+/**
+ * Convert a flatten "dot" notation object into an expanded array.
+ *
+ * @param map - The flat object with dot-notated keys.
+ * @returns A new multi-dimensional array.
+ *
+ * @example
+ *
+ * undot({ '0': 'a', '1.0': 'b', '1.1': 'c' }); // -> ['a', ['b', 'c']]
+ * undot({ 'item.0': 'a', 'item.1.0': 'b', 'item.1.1': 'c' }); // -> [['b', 'c']]
+ */
+export function undot(map: Record<string, unknown>): unknown[] {
+    return _undotExpand(map);
 }
 
 /**
@@ -191,13 +296,22 @@ export function exists<T>(data: readonly T[], key: number | string): boolean {
 }
 
 /**
- * Return the first element in an array passing a given truth test.
+ * Get the first element of an array or iterable.
+ * Optionally pass a predicate to find the first matching element.
+ *
+ * @param data - The array or iterable to search through.
+ * @param predicate - Optional predicate function to test elements.
+ * @param defaultValue - Value to return if no element is found.
+ * @returns The first element or default value.
  *
  * @example
  *
- * first([100, 200, 300]); // -> 100
+ * first([1, 2, 3]); // -> 1
+ * first([]); // -> null
+ * first([], null, 'default'); // -> 'default'
+ * first([1, 2, 3], x => x > 1); // -> 2
+ * first([1, 2, 3], x => x > 5, 'none'); // -> 'none'
  */
-// Overload: no predicate, no explicit default -> T | null
 export function first<T>(
     data: readonly T[] | Iterable<T> | null | undefined,
     predicate?: null,
@@ -274,12 +388,22 @@ export function first<T, D>(
 }
 
 /**
- * Return the last element in an array passing a given truth test.
+ * Get the last element of an array or iterable.
+ * Optionally pass a predicate to find the last matching element.
+ *
+ * @param data - The array or iterable to search through.
+ * @param predicate - Optional predicate function to test elements.
+ * @param defaultValue - Value to return if no element is found.
+ * @returns The last element or default value.
  *
  * @example
- * last([100, 200, 300]); // -> 300
+ *
+ * last([1, 2, 3]); // -> 3
+ * last([]); // -> null
+ * last([], null, 'default'); // -> 'default'
+ * last([1, 2, 3], x => x < 3); // -> 2
+ * last([1, 2, 3], x => x > 5, 'none'); // -> 'none'
  */
-// Overload: no predicate, no default
 export function last<T>(
     data: readonly T[] | Iterable<T> | null | undefined,
     predicate?: null,
@@ -462,6 +586,38 @@ export function flatten(
 }
 
 /**
+ * Get a float item from an array using "dot" notation.
+ * Throws an error if the value is not a number.
+ *
+ * @param data - The array to get the item from.
+ * @param key - The key or dot-notated path of the item to get.
+ * @param defaultValue - The default value if key is not found.
+ * @returns The float value.
+ * @throws Error if the value is not a number.
+ *
+ * @example
+ *
+ * float([1.5, 2.3], 1); // -> 2.3
+ * float([{price: 19.99}], '0.price'); // -> 19.99
+ * float([{price: 'free'}], '0.price'); // -> throws Error
+ */
+export function float<T, D = null>(
+    data: ReadonlyArray<T> | unknown,
+    key: ArrayKey,
+    defaultValue: D | (() => D) | null = null,
+): number {
+    const value = getMixedValue(data, key, defaultValue);
+
+    if (typeof value !== "number") {
+        throw new Error(
+            `Array value for key [${key}] must be a float, ${typeof value} found.`,
+        );
+    }
+
+    return value;
+}
+
+/**
  * Remove one or many array items from a given array using dot notation.
  *
  * @param  data - The array to remove items from.
@@ -532,9 +688,9 @@ export function from(items: unknown): unknown {
 }
 
 /**
- * Get an item from an array (or Collection) using numeric-only dot notation.
+ * Get an item from an array using numeric-only dot notation.
  *
- * @param  data - The array or Collection to get the item from.
+ * @param  data - The array to get the item from.
  * @param  key - The key or dot-notated path of the item to get.
  * @param  default - The default value if key is not found
  * @returns The value or the default
@@ -544,20 +700,6 @@ export function from(items: unknown): unknown {
  * get(['foo', 'bar', 'baz'], 1); // -> 'bar'
  * get(['foo', 'bar', 'baz'], null); // -> ['foo', 'bar', 'baz']
  * get(['foo', 'bar', 'baz'], 9, 'default'); // -> 'default'
- */
-/**
- * Get an item from an array using "dot" notation.
- *
- * @param array - The array to search in
- * @param key - The key to search for (supports dot notation)
- * @param defaultValue - The default value to return if key is not found
- * @returns The value at the key or the default value
- *
- * @example
- *
- * Arr.get([1, 2, 3], 1); // -> 2
- * Arr.get([['a', 'b'], ['c', 'd']], '1.0'); // -> 'c'
- * Arr.get([1, 2, 3], 5, 'default'); // -> 'default'
  */
 export function get<T = unknown>(
     array: unknown,
@@ -592,21 +734,7 @@ export function get<T = unknown>(
 /**
  * Check if an item or items exist in an array using "dot" notation.
  *
- * @param  data - The array or Collection to check.
- * @param  keys - The key or dot-notated path of the item to check.
- * @returns True if the item or items exist, false otherwise.
- *
- * @example
- *
- * has(['foo', 'bar', ['baz', 'qux']], 1); // -> true
- * has(['foo', 'bar'], 5); // -> false
- * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.1']); // -> true
- * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); // -> false
- */
-/**
- * Check if an item or items exist in an array using "dot" notation.
- *
- * @param  data - The array or Collection to check.
+ * @param  data - The array to check.
  * @param  keys - The key or dot-notated path of the item to check.
  * @returns True if the item or items exist, false otherwise.
  *
@@ -633,7 +761,7 @@ export function has<T>(data: ReadonlyArray<T>, keys: ArrayKeys): boolean {
 /**
  * Determine if all keys exist in an array using "dot" notation.
  *
- * @param  data - The array or Collection to check.
+ * @param  data - The array to check.
  * @param  keys - The key or dot-notated path of the item to check.
  * @returns True if all keys exist, false otherwise.
  *
@@ -664,7 +792,7 @@ export function hasAll<T>(
 /**
  * Determine if any of the keys exist in an array using "dot" notation.
  *
- * @param  data - The array or Collection to check.
+ * @param  data - The array to check.
  * @param  keys - The key or dot-notated path of the item to check.
  * @returns True if any key exists, false otherwise.
  *
@@ -698,7 +826,7 @@ export function hasAny<T>(
 /**
  * Determine if all items pass the given truth test.
  *
- * @param  data - The array or Collection to iterate over.
+ * @param  data - The array to iterate over.
  * @param  callback - The function to call for each item.
  * @returns True if all items pass the test, false otherwise.
  *
@@ -728,7 +856,7 @@ export function every<T>(
 /**
  * Determine if some items pass the given truth test.
  *
- * @param  data - The array or Collection to iterate over.
+ * @param  data - The array to iterate over.
  * @param  callback - The function to call for each item.
  * @returns True if any item passes the test, false otherwise.
  *
@@ -759,7 +887,7 @@ export function some<T>(
 /**
  * Get an integer item from an array using "dot" notation.
  *
- * @param  data - The array or Collection to get the item from.
+ * @param  data - The array to get the item from.
  * @param  key - The key or dot-notated path of the item to get.
  * @param  default - The default value if key is not found
  *
@@ -792,7 +920,7 @@ export function integer<T, D = null>(
 /**
  * Join all items using a string. The final items can use a separate glue string.
  *
- * @param  data - The array or Collection to join.
+ * @param  data - The array to join.
  * @param  glue - The string to join all but the last item.
  * @param  finalGlue - The string to join the last item.
  *
@@ -829,155 +957,90 @@ export function join<T>(
 }
 
 /**
- * Set an array item to a given value using "dot" notation.
+ * Key an associative array by a field or using a callback.
  *
- * If no key is given to the method, the entire array will be replaced.
- *
- * @param  data - The array or Collection to set the item in.
- * @param  key - The key or dot-notated path of the item to set.
- * @param  value - The value to set.
- * @returns - A new array with the item set or the original array if the path is invalid.
- *
- * @example
- * set(['a', 'b', 'c'], 1, 'x'); // -> ['a', 'x', 'c']
- * set(['a', ['b', 'c']], '1.0', 'x'); // -> ['a', ['x', 'c']]
- */
-/**
- * Set an array item to a given value using "dot" notation.
- *
- * @param array - The array to set the value in
- * @param key - The key to set (supports dot notation)
- * @param value - The value to set
- * @returns A new array with the value set
+ * @param data - The array to key.
+ * @param keyBy - The field name to key by, or a callback function.
+ * @returns A new object keyed by the specified field or callback result.
  *
  * @example
  *
- * Arr.set(['a', 'b'], 1, 'x'); // -> ['a', 'x']
- * Arr.set([['a', 'b'], ['c', 'd']], '1.0', 'x'); // -> [['a', 'b'], ['x', 'd']]
+ * keyBy([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'id'); // -> {1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}}
+ * keyBy([{name: 'John'}, {name: 'Jane'}], (item) => item.name); // -> {John: {name: 'John'}, Jane: {name: 'Jane'}}
  */
-export function set<T>(array: ReadonlyArray<T>, key: ArrayKey, value: T): T[] {
-    return setMixedImmutable(array, key, value);
-}
-
-/**
- * Push one or more items into an array using numeric-only dot notation and return new array.
- *
- * @param data - The array or Collection to push items into.
- * @param key - The key or dot-notated path of the array to push into. If null, push into root.
- * @param values - The values to push.
- * @returns A new array with the values pushed in.
- *
- * @example
- *
- * push(['a', 'b'], null, 'c', 'd'); // -> ['a', 'b', 'c', 'd']
- * push(['a', ['b']], '1', 'c', 'd'); // -> ['a', ['b', 'c', 'd']]
- * push(['a', ['b']], '1.1', 'c'); // -> ['a', ['b', 'c']]
- */
-export function push<T>(
-    data: T[] | unknown,
-    key: ArrayKey,
-    ...values: T[]
-): T[] {
-    return _pushWithPath<T>(data, key, ...values);
-}
-/**
- * Get a value from the array, and remove it.
- *
- * @param data - The array or Collection to pull the item from.
- * @param key - The key or dot-notated path of the item to pull.
- * @param defaultValue - The default value if key is not found.
- * @returns An object containing the pulled value (or default) and the updated array.
- *
- * @example
- *
- * pull(['a', 'b', 'c'], 1); // -> { value: 'b', data: ['a', 'c'] }
- * pull(['a', ['b', 'c']], '1.0'); // -> { value: 'b', data: ['a', ['c']] }
- * pull(['a', 'b', 'c'], 5, 'x'); // -> { value: 'x', data: ['a', 'b', 'c'] }
- * pull(['a', ['b', 'c']], '1.2', 'x'); // -> { value: 'x', data: ['a', ['b', 'c']] }
- */
-export function pull<T, D = null>(
+export function keyBy<T extends Record<string, unknown>>(
     data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
-    defaultValue: D | (() => D) | null = null,
-): { value: T | D | null; data: T[] } {
-    const resolveDefault = (): D | null => {
-        return typeof defaultValue === "function"
-            ? (defaultValue as () => D)()
-            : (defaultValue as D);
-    };
+    keyBy: string | ((item: T) => string | number),
+): Record<string | number, T> {
     if (!accessible(data)) {
-        return { value: resolveDefault(), data: [] as T[] };
+        return {};
     }
-    if (key == null) {
-        const original = _toArray(data)!.slice();
-        return { value: resolveDefault(), data: original as T[] };
+
+    const values = data as ReadonlyArray<T>;
+    const results: Record<string | number, T> = {};
+
+    for (const item of values) {
+        let key: string | number;
+
+        if (typeof keyBy === "function") {
+            key = keyBy(item);
+        } else {
+            // Use dot notation to get the key value
+            const keyValue = getNestedValue(item, keyBy);
+            key = String(keyValue);
+        }
+
+        results[key] = item;
     }
-    const root = _toArray(data)!;
-    const { found, value } = _getRaw(root, key as number | string);
-    if (!found) {
-        const original = root.slice();
-        return { value: resolveDefault(), data: original as T[] };
-    }
-    const updated = forget(root as T[], key as number | string);
-    return { value: value as unknown as T | D | null, data: updated };
+
+    return results;
 }
 
 /**
- * Flatten a multi-dimensional array with "dot" notation.
+ * Prepend the key names of an associative array.
+ * Note: This is designed for object-like operations, adapted for arrays with string indices.
  *
- * @param data - The array or Collection to flatten.
- * @param prepend - An optional string to prepend to each key.
- * @returns A new object with dot-notated keys.
- *
- * @example
- *
- * dot(['a', ['b', 'c']]); // -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
- */
-export function dot(
-    data: ReadonlyArray<unknown> | unknown,
-    prepend: string = "",
-): Record<string, unknown> {
-    return _dotFlatten(data, prepend);
-}
-
-/**
- * Convert a flatten "dot" notation object into an expanded array.
- *
- * @param map - The flat object with dot-notated keys.
- * @returns A new multi-dimensional array.
+ * @param data - The array to process.
+ * @param prependWith - The string to prepend to each key.
+ * @returns A new array with transformed string-based indices.
  *
  * @example
  *
- * undot({ '0': 'a', '1.0': 'b', '1.1': 'c' }); // -> ['a', ['b', 'c']]
- * undot({ 'item.0': 'a', 'item.1.0': 'b', 'item.1.1': 'c' }); // -> [['b', 'c']]
+ * prependKeysWith(['a', 'b', 'c'], 'item_'); // -> Creates array with keys: item_0, item_1, item_2
  */
-export function undot(map: Record<string, unknown>): unknown[] {
-    return _undotExpand(map);
-}
-
-/**
- * Filter the array using the given callback.
- *
- * @param data - The array or Collection to filter.
- * @param callback - The function to call for each item (value, index) => boolean.
- * @returns A new filtered array.
- *
- * @example
- *
- * where([1, 2, 3, 4], (value) => value > 2); // -> [3, 4]
- * where(['a', 'b', null, 'c'], (value) => value !== null); // -> ['a', 'b', 'c']
- */
-export function where<T>(
+export function prependKeysWith<T>(
     data: ReadonlyArray<T> | unknown,
-    callback: (value: T, index: number) => boolean,
-): T[] {
+    prependWith: string,
+): Record<string, T> {
+    const values = getAccessibleValues(data) as T[];
+    const result: Record<string, T> = {};
+
+    for (let i = 0; i < values.length; i++) {
+        result[prependWith + i] = values[i] as T;
+    }
+
+    return result;
+}
+
+/**
+ * Get a subset of the items from the given array.
+ *
+ * @param data - The array to get items from.
+ * @param keys - The indices to select.
+ * @returns A new array with only the specified indices.
+ *
+ * @example
+ *
+ * only(['a', 'b', 'c', 'd'], [0, 2]); // -> ['a', 'c']
+ * only(['a', 'b', 'c'], [1]); // -> ['b']
+ */
+export function only<T>(data: ReadonlyArray<T> | unknown, keys: number[]): T[] {
     const values = getAccessibleValues(data);
     const result: T[] = [];
 
-    for (let i = 0; i < values.length; i++) {
-        const value = values[i] as T;
-        if (callback(value, i)) {
-            result.push(value);
+    for (const key of keys) {
+        if (key >= 0 && key < values.length) {
+            result.push(values[key] as T);
         }
     }
 
@@ -985,78 +1048,9 @@ export function where<T>(
 }
 
 /**
- * Filter items where the value is not null.
- *
- * @param data - The array or Collection to filter.
- * @returns A new array with null values removed.
- *
- * @example
- *
- * whereNotNull([1, null, 2, undefined, 3]); // -> [1, 2, undefined, 3]
- * whereNotNull(['a', null, 'b', null]); // -> ['a', 'b']
- */
-export function whereNotNull<T>(data: ReadonlyArray<T | null> | unknown): T[] {
-    return where(
-        data as ReadonlyArray<T | null>,
-        (value): value is T => value !== null,
-    );
-}
-
-/**
- * Filter the array using the negation of the given callback.
- *
- * @param data - The array or Collection to filter.
- * @param callback - The function to call for each item (value, index) => boolean.
- * @returns A new filtered array with items that fail the test.
- *
- * @example
- *
- * reject([1, 2, 3, 4], (value) => value > 2); // -> [1, 2]
- * reject(['a', 'b', null, 'c'], (value) => value === null); // -> ['a', 'b', 'c']
- */
-export function reject<T>(
-    data: ReadonlyArray<T> | unknown,
-    callback: (value: T, index: number) => boolean,
-): T[] {
-    return where(data, (value, index) => !callback(value, index));
-}
-
-/**
- * Partition the array into two arrays using the given callback.
- *
- * @param data - The array or Collection to partition.
- * @param callback - The function to call for each item (value, index) => boolean.
- * @returns A tuple containing [passed, failed] arrays.
- *
- * @example
- *
- * partition([1, 2, 3, 4], (value) => value > 2); // -> [[3, 4], [1, 2]]
- * partition(['a', 'b', null, 'c'], (value) => value !== null); // -> [['a', 'b', 'c'], [null]]
- */
-export function partition<T>(
-    data: ReadonlyArray<T> | unknown,
-    callback: (value: T, index: number) => boolean,
-): [T[], T[]] {
-    const values = getAccessibleValues(data);
-    const passed: T[] = [];
-    const failed: T[] = [];
-
-    for (let i = 0; i < values.length; i++) {
-        const value = values[i] as T;
-        if (callback(value, i)) {
-            passed.push(value);
-        } else {
-            failed.push(value);
-        }
-    }
-
-    return [passed, failed];
-}
-
-/**
  * Select an array of values from each item in the array.
  *
- * @param data - The array or Collection to select from.
+ * @param data - The array to select from.
  * @param keys - The key or keys to select from each item.
  * @returns A new array with selected key/value pairs from each item.
  *
@@ -1091,138 +1085,9 @@ export function select<T extends Record<string, unknown>>(
 }
 
 /**
- * If the given value is not an array and not null, wrap it in one.
- *
- * @param value - The value to wrap.
- * @returns An array containing the value, or an empty array if null.
- *
- * @example
- *
- * wrap('hello'); // -> ['hello']
- * wrap(['hello']); // -> ['hello']
- * wrap(null); // -> []
- * wrap(undefined); // -> [undefined]
- */
-export function wrap<T>(value: T | null): T[] {
-    if (value === null) {
-        return [];
-    }
-
-    return Array.isArray(value) ? value : [value];
-}
-
-/**
- * Get a subset of the items from the given array.
- *
- * @param data - The array or Collection to get items from.
- * @param keys - The indices to select.
- * @returns A new array with only the specified indices.
- *
- * @example
- *
- * only(['a', 'b', 'c', 'd'], [0, 2]); // -> ['a', 'c']
- * only(['a', 'b', 'c'], [1]); // -> ['b']
- */
-export function only<T>(data: ReadonlyArray<T> | unknown, keys: number[]): T[] {
-    const values = getAccessibleValues(data);
-    const result: T[] = [];
-
-    for (const key of keys) {
-        if (key >= 0 && key < values.length) {
-            result.push(values[key] as T);
-        }
-    }
-
-    return result;
-}
-
-/**
- * Push an item onto the beginning of an array.
- *
- * @param data - The array to prepend to.
- * @param value - The value to prepend.
- * @param key - Optional key for the prepended value (creates object with numeric keys).
- * @returns A new array with the value prepended.
- *
- * @example
- *
- * prepend(['b', 'c'], 'a'); // -> ['a', 'b', 'c']
- * prepend([1, 2, 3], 0); // -> [0, 1, 2, 3]
- */
-export function prepend<T>(
-    data: ReadonlyArray<T> | unknown,
-    value: T,
-    key?: number,
-): T[] {
-    const values = getAccessibleValues(data) as T[];
-
-    if (key !== undefined) {
-        // When key is provided, we need to create a new array with the key-value pair at the beginning
-        // This mimics PHP's behavior where ['key' => 'value'] + $array works
-        const result: T[] = [];
-        result[key] = value;
-        return result.concat(values);
-    }
-
-    return [value, ...values];
-}
-
-/**
- * Prepend the key names of an associative array.
- * Note: This is designed for object-like operations, adapted for arrays with string indices.
- *
- * @param data - The array to process.
- * @param prependWith - The string to prepend to each key.
- * @returns A new array with transformed string-based indices.
- *
- * @example
- *
- * prependKeysWith(['a', 'b', 'c'], 'item_'); // -> Creates array with keys: item_0, item_1, item_2
- */
-export function prependKeysWith<T>(
-    data: ReadonlyArray<T> | unknown,
-    prependWith: string,
-): Record<string, T> {
-    const values = getAccessibleValues(data) as T[];
-    const result: Record<string, T> = {};
-
-    for (let i = 0; i < values.length; i++) {
-        result[prependWith + i] = values[i] as T;
-    }
-
-    return result;
-}
-
-/**
- * Run a map over each of the items in the array.
- *
- * @param data - The array or Collection to map over.
- * @param callback - The function to call for each item (value, index) => newValue.
- * @returns A new array with transformed values.
- *
- * @example
- *
- * map([1, 2, 3], (value) => value * 2); // -> [2, 4, 6]
- * map(['a', 'b'], (value, index) => `${index}:${value}`); // -> ['0:a', '1:b']
- */
-export function map<T, U>(
-    data: ReadonlyArray<T> | unknown,
-    callback: (value: T, index: number) => U,
-): U[] {
-    const values = getAccessibleValues(data) as T[];
-    const result: U[] = [];
-
-    for (let i = 0; i < values.length; i++) {
-        result.push(callback(values[i] as T, i));
-    }
-
-    return result;
-}
-
-/**
  * Pluck an array of values from an array.
  *
- * @param data - The array or Collection to pluck from.
+ * @param data - The array to pluck from.
  * @param value - The key path to pluck, or a callback function.
  * @param key - Optional key path to use as keys in result, or callback function.
  * @returns A new array with plucked values.
@@ -1291,50 +1156,36 @@ export function pluck<T extends Record<string, unknown>>(
 }
 
 /**
- * Key an associative array by a field or using a callback.
+ * Run a map over each of the items in the array.
  *
- * @param data - The array or Collection to key.
- * @param keyBy - The field name to key by, or a callback function.
- * @returns A new object keyed by the specified field or callback result.
+ * @param data - The array to map over.
+ * @param callback - The function to call for each item (value, index) => newValue.
+ * @returns A new array with transformed values.
  *
  * @example
  *
- * keyBy([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'id'); // -> {1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}}
- * keyBy([{name: 'John'}, {name: 'Jane'}], (item) => item.name); // -> {John: {name: 'John'}, Jane: {name: 'Jane'}}
+ * map([1, 2, 3], (value) => value * 2); // -> [2, 4, 6]
+ * map(['a', 'b'], (value, index) => `${index}:${value}`); // -> ['0:a', '1:b']
  */
-export function keyBy<T extends Record<string, unknown>>(
+export function map<T, U>(
     data: ReadonlyArray<T> | unknown,
-    keyBy: string | ((item: T) => string | number),
-): Record<string | number, T> {
-    if (!accessible(data)) {
-        return {};
+    callback: (value: T, index: number) => U,
+): U[] {
+    const values = getAccessibleValues(data) as T[];
+    const result: U[] = [];
+
+    for (let i = 0; i < values.length; i++) {
+        result.push(callback(values[i] as T, i));
     }
 
-    const values = data as ReadonlyArray<T>;
-    const results: Record<string | number, T> = {};
-
-    for (const item of values) {
-        let key: string | number;
-
-        if (typeof keyBy === "function") {
-            key = keyBy(item);
-        } else {
-            // Use dot notation to get the key value
-            const keyValue = getNestedValue(item, keyBy);
-            key = String(keyValue);
-        }
-
-        results[key] = item;
-    }
-
-    return results;
+    return result;
 }
 
 /**
  * Run an associative map over each of the items.
  * The callback should return an object with key/value pairs.
  *
- * @param data - The array or Collection to map.
+ * @param data - The array to map.
  * @param callback - Function that returns an object with key/value pairs.
  * @returns A new object with all mapped key/value pairs.
  *
@@ -1367,192 +1218,9 @@ export function mapWithKeys<T, K extends string | number, V>(
 }
 
 /**
- * Get an array item from an array using "dot" notation.
- * Throws an error if the value is not an array.
- *
- * @param data - The array or Collection to get the item from.
- * @param key - The key or dot-notated path of the item to get.
- * @param defaultValue - The default value if key is not found.
- * @returns The array value.
- * @throws Error if the value is not an array.
- *
- * @example
- *
- * array([['a', 'b'], ['c', 'd']], 0); // -> ['a', 'b']
- * array([{items: ['x', 'y']}], '0.items'); // -> ['x', 'y']
- * array([{items: 'not array'}], '0.items'); // -> throws Error
- */
-export function array<T, D = null>(
-    data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
-    defaultValue: D | (() => D) | null = null,
-): unknown[] {
-    const value = getMixedValue(data, key, defaultValue);
-
-    if (!Array.isArray(value)) {
-        throw new Error(
-            `Array value for key [${key}] must be an array, ${typeof value} found.`,
-        );
-    }
-
-    return value;
-}
-
-/**
- * Get a boolean item from an array using "dot" notation.
- * Throws an error if the value is not a boolean.
- *
- * @param data - The array or Collection to get the item from.
- * @param key - The key or dot-notated path of the item to get.
- * @param defaultValue - The default value if key is not found.
- * @returns The boolean value.
- * @throws Error if the value is not a boolean.
- *
- * @example
- *
- * boolean([true, false], 0); // -> true
- * boolean([{active: true}], '0.active'); // -> true
- * boolean([{active: 'yes'}], '0.active'); // -> throws Error
- */
-export function boolean<T, D = null>(
-    data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
-    defaultValue: D | (() => D) | null = null,
-): boolean {
-    const value = getMixedValue(data, key, defaultValue);
-
-    if (typeof value !== "boolean") {
-        throw new Error(
-            `Array value for key [${key}] must be a boolean, ${typeof value} found.`,
-        );
-    }
-
-    return value;
-}
-
-/**
- * Get a float item from an array using "dot" notation.
- * Throws an error if the value is not a number.
- *
- * @param data - The array or Collection to get the item from.
- * @param key - The key or dot-notated path of the item to get.
- * @param defaultValue - The default value if key is not found.
- * @returns The float value.
- * @throws Error if the value is not a number.
- *
- * @example
- *
- * float([1.5, 2.3], 1); // -> 2.3
- * float([{price: 19.99}], '0.price'); // -> 19.99
- * float([{price: 'free'}], '0.price'); // -> throws Error
- */
-export function float<T, D = null>(
-    data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
-    defaultValue: D | (() => D) | null = null,
-): number {
-    const value = getMixedValue(data, key, defaultValue);
-
-    if (typeof value !== "number") {
-        throw new Error(
-            `Array value for key [${key}] must be a float, ${typeof value} found.`,
-        );
-    }
-
-    return value;
-}
-
-/**
- * Get a string item from an array using "dot" notation.
- * Throws an error if the value is not a string.
- *
- * @param data - The array or Collection to get the item from.
- * @param key - The key or dot-notated path of the item to get.
- * @param defaultValue - The default value if key is not found.
- * @returns The string value.
- * @throws Error if the value is not a string.
- *
- * @example
- *
- * string(['hello', 'world'], 0); // -> 'hello'
- * string([{name: 'John'}], '0.name'); // -> 'John'
- * string([{name: 123}], '0.name'); // -> throws Error
- */
-export function string<T, D = null>(
-    data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
-    defaultValue: D | (() => D) | null = null,
-): string {
-    const value = getMixedValue(data, key, defaultValue);
-
-    if (typeof value !== "string") {
-        throw new Error(
-            `Array value for key [${key}] must be a string, ${typeof value} found.`,
-        );
-    }
-
-    return value;
-}
-
-/**
- * Get the first item in the array, but only if exactly one item exists. Otherwise, throw an exception.
- *
- * @param data - The array or Collection to check.
- * @param callback - Optional callback to filter items.
- * @returns The single item in the array.
- * @throws Error if no items or multiple items exist.
- *
- * @example
- *
- * sole([42]); // -> 42
- * sole([1, 2, 3], (value) => value > 2); // -> 3
- * sole([]); // -> throws Error: No items found
- * sole([1, 2]); // -> throws Error: Multiple items found (2 items)
- * sole([1, 2, 3], (value) => value > 1); // -> throws Error: Multiple items found (2 items)
- */
-export function sole<T>(
-    data: ReadonlyArray<T> | unknown,
-    callback?: (value: T, index: number) => boolean,
-): T {
-    const values = getAccessibleValues(data) as T[];
-
-    if (values.length === 0) {
-        throw new Error("No items found");
-    }
-
-    let filteredValues: T[];
-
-    if (callback) {
-        // Filter using the callback
-        filteredValues = [];
-        for (let i = 0; i < values.length; i++) {
-            const value = values[i] as T;
-            if (callback(value, i)) {
-                filteredValues.push(value);
-            }
-        }
-    } else {
-        // Use all values
-        filteredValues = values.slice();
-    }
-
-    const count = filteredValues.length;
-
-    if (count === 0) {
-        throw new Error("No items found");
-    }
-
-    if (count > 1) {
-        throw new Error(`Multiple items found (${count} items)`);
-    }
-
-    return filteredValues[0] as T;
-}
-
-/**
  * Run a map over each nested chunk of items, spreading array elements as individual arguments.
  *
- * @param data - The array or Collection to map over.
+ * @param data - The array to map over.
  * @param callback - The function to call with spread arguments from each chunk.
  * @returns A new array with mapped values.
  *
@@ -1580,6 +1248,79 @@ export function mapSpread<T, U>(
     }
 
     return result;
+}
+
+/**
+ * Push an item onto the beginning of an array.
+ *
+ * @param data - The array to prepend to.
+ * @param value - The value to prepend.
+ * @param key - Optional key for the prepended value (creates object with numeric keys).
+ * @returns A new array with the value prepended.
+ *
+ * @example
+ *
+ * prepend(['b', 'c'], 'a'); // -> ['a', 'b', 'c']
+ * prepend([1, 2, 3], 0); // -> [0, 1, 2, 3]
+ */
+export function prepend<T>(
+    data: ReadonlyArray<T> | unknown,
+    value: T,
+    key?: number,
+): T[] {
+    const values = getAccessibleValues(data) as T[];
+
+    if (key !== undefined) {
+        // When key is provided, we need to create a new array with the key-value pair at the beginning
+        // This mimics PHP's behavior where ['key' => 'value'] + $array works
+        const result: T[] = [];
+        result[key] = value;
+        return result.concat(values);
+    }
+
+    return [value, ...values];
+}
+
+/**
+ * Get a value from the array, and remove it.
+ *
+ * @param data - The array to pull the item from.
+ * @param key - The key or dot-notated path of the item to pull.
+ * @param defaultValue - The default value if key is not found.
+ * @returns An object containing the pulled value (or default) and the updated array.
+ *
+ * @example
+ *
+ * pull(['a', 'b', 'c'], 1); // -> { value: 'b', data: ['a', 'c'] }
+ * pull(['a', ['b', 'c']], '1.0'); // -> { value: 'b', data: ['a', ['c']] }
+ * pull(['a', 'b', 'c'], 5, 'x'); // -> { value: 'x', data: ['a', 'b', 'c'] }
+ * pull(['a', ['b', 'c']], '1.2', 'x'); // -> { value: 'x', data: ['a', ['b', 'c']] }
+ */
+export function pull<T, D = null>(
+    data: ReadonlyArray<T> | unknown,
+    key: ArrayKey,
+    defaultValue: D | (() => D) | null = null,
+): { value: T | D | null; data: T[] } {
+    const resolveDefault = (): D | null => {
+        return typeof defaultValue === "function"
+            ? (defaultValue as () => D)()
+            : (defaultValue as D);
+    };
+    if (!accessible(data)) {
+        return { value: resolveDefault(), data: [] as T[] };
+    }
+    if (key == null) {
+        const original = _toArray(data)!.slice();
+        return { value: resolveDefault(), data: original as T[] };
+    }
+    const root = _toArray(data)!;
+    const { found, value } = _getRaw(root, key as number | string);
+    if (!found) {
+        const original = root.slice();
+        return { value: resolveDefault(), data: original as T[] };
+    }
+    const updated = forget(root as T[], key as number | string);
+    return { value: value as unknown as T | D | null, data: updated };
 }
 
 /**
@@ -1626,7 +1367,6 @@ export function query(data: unknown): string {
                     }
                 }
             }
-            // Collection support was removed
         } else if (typeof obj === "object" && obj !== null) {
             for (const [objKey, value] of Object.entries(obj)) {
                 const key = prefix ? `${prefix}[${objKey}]` : objKey;
@@ -1657,34 +1397,9 @@ export function query(data: unknown): string {
 }
 
 /**
- * Shuffle the given array and return the result.
- *
- * @param data - The array or Collection to shuffle.
- * @returns A new shuffled array.
- *
- * @example
- *
- * shuffle([1, 2, 3, 4, 5]); // -> [3, 1, 5, 2, 4] (random order)
- * shuffle(['a', 'b', 'c']); // -> ['c', 'a', 'b'] (random order)
- */
-export function shuffle<T>(data: ReadonlyArray<T> | unknown): T[] {
-    const values = getAccessibleValues(data) as T[];
-    const result = values.slice();
-
-    // Fisher-Yates shuffle algorithm
-    for (let i = result.length - 1; i > 0; i--) {
-        // Use the Random.int from @laravel-js/str for secure randomness
-        const j = Random.int(0, i);
-        [result[i], result[j]] = [result[j] as T, result[i] as T];
-    }
-
-    return result;
-}
-
-/**
  * Get one or a specified number of random values from an array.
  *
- * @param data - The array or Collection to get random values from.
+ * @param data - The array to get random values from.
  * @param number - The number of items to return. If null, returns a single item.
  * @param preserveKeys - Whether to preserve the original keys when returning multiple items.
  * @returns A single random item, an array of random items, or null if array is empty.
@@ -1745,9 +1460,142 @@ export function random<T>(
 }
 
 /**
+ * Set an array item to a given value using "dot" notation.
+ *
+ * If no key is given to the method, the entire array will be replaced.
+ *
+ * @param  data - The array to set the item in.
+ * @param  key - The key or dot-notated path of the item to set.
+ * @param  value - The value to set.
+ * @returns - A new array with the item set or the original array if the path is invalid.
+ *
+ * @example
+ * set(['a', 'b', 'c'], 1, 'x'); // -> ['a', 'x', 'c']
+ * set(['a', ['b', 'c']], '1.0', 'x'); // -> ['a', ['x', 'c']]
+ */
+/**
+ * Set an array item to a given value using "dot" notation.
+ *
+ * @param array - The array to set the value in
+ * @param key - The key to set (supports dot notation)
+ * @param value - The value to set
+ * @returns A new array with the value set
+ *
+ * @example
+ *
+ * Arr.set(['a', 'b'], 1, 'x'); // -> ['a', 'x']
+ * Arr.set([['a', 'b'], ['c', 'd']], '1.0', 'x'); // -> [['a', 'b'], ['x', 'd']]
+ */
+export function set<T>(array: ReadonlyArray<T>, key: ArrayKey, value: T): T[] {
+    return setMixedImmutable(array, key, value);
+}
+
+/**
+ * Push one or more items into an array using numeric-only dot notation and return new array.
+ *
+ * @param data - The array to push items into.
+ * @param key - The key or dot-notated path of the array to push into. If null, push into root.
+ * @param values - The values to push.
+ * @returns A new array with the values pushed in.
+ *
+ * @example
+ *
+ * push(['a', 'b'], null, 'c', 'd'); // -> ['a', 'b', 'c', 'd']
+ * push(['a', ['b']], '1', 'c', 'd'); // -> ['a', ['b', 'c', 'd']]
+ * push(['a', ['b']], '1.1', 'c'); // -> ['a', ['b', 'c']]
+ */
+export function push<T>(
+    data: T[] | unknown,
+    key: ArrayKey,
+    ...values: T[]
+): T[] {
+    return _pushWithPath<T>(data, key, ...values);
+}
+
+/**
+ * Shuffle the given array and return the result.
+ *
+ * @param data - The array to shuffle.
+ * @returns A new shuffled array.
+ *
+ * @example
+ *
+ * shuffle([1, 2, 3, 4, 5]); // -> [3, 1, 5, 2, 4] (random order)
+ * shuffle(['a', 'b', 'c']); // -> ['c', 'a', 'b'] (random order)
+ */
+export function shuffle<T>(data: ReadonlyArray<T> | unknown): T[] {
+    const values = getAccessibleValues(data) as T[];
+    const result = values.slice();
+
+    // Fisher-Yates shuffle algorithm
+    for (let i = result.length - 1; i > 0; i--) {
+        // Use the Random.int from @laravel-js/str for secure randomness
+        const j = Random.int(0, i);
+        [result[i], result[j]] = [result[j] as T, result[i] as T];
+    }
+
+    return result;
+}
+
+/**
+ * Get the first item in the array, but only if exactly one item exists. Otherwise, throw an exception.
+ *
+ * @param data - The array to check.
+ * @param callback - Optional callback to filter items.
+ * @returns The single item in the array.
+ * @throws Error if no items or multiple items exist.
+ *
+ * @example
+ *
+ * sole([42]); // -> 42
+ * sole([1, 2, 3], (value) => value > 2); // -> 3
+ * sole([]); // -> throws Error: No items found
+ * sole([1, 2]); // -> throws Error: Multiple items found (2 items)
+ * sole([1, 2, 3], (value) => value > 1); // -> throws Error: Multiple items found (2 items)
+ */
+export function sole<T>(
+    data: ReadonlyArray<T> | unknown,
+    callback?: (value: T, index: number) => boolean,
+): T {
+    const values = getAccessibleValues(data) as T[];
+
+    if (values.length === 0) {
+        throw new Error("No items found");
+    }
+
+    let filteredValues: T[];
+
+    if (callback) {
+        // Filter using the callback
+        filteredValues = [];
+        for (let i = 0; i < values.length; i++) {
+            const value = values[i] as T;
+            if (callback(value, i)) {
+                filteredValues.push(value);
+            }
+        }
+    } else {
+        // Use all values
+        filteredValues = values.slice();
+    }
+
+    const count = filteredValues.length;
+
+    if (count === 0) {
+        throw new Error("No items found");
+    }
+
+    if (count > 1) {
+        throw new Error(`Multiple items found (${count} items)`);
+    }
+
+    return filteredValues[0] as T;
+}
+
+/**
  * Sort the array using the given callback or "dot" notation.
  *
- * @param data - The array or Collection to sort.
+ * @param data - The array to sort.
  * @param callback - The sorting callback, field name, or null for natural sorting.
  * @returns A new sorted array.
  *
@@ -1802,7 +1650,7 @@ export function sort<T>(
 /**
  * Sort the array in descending order using the given callback or "dot" notation.
  *
- * @param data - The array or Collection to sort.
+ * @param data - The array to sort.
  * @param callback - The sorting callback, field name, or null for natural sorting.
  * @returns A new sorted array in descending order.
  *
@@ -1855,110 +1703,9 @@ export function sortDesc<T>(
 }
 
 /**
- * Conditionally compile CSS classes from an array into a CSS class list.
- *
- * @param data - The array or Collection to convert to CSS classes.
- * @returns A string of CSS classes separated by spaces.
- *
- * @example
- *
- * toCssClasses(['font-bold', 'mt-4']); // -> 'font-bold mt-4'
- * toCssClasses(['font-bold', 'mt-4', { 'ml-2': true, 'mr-2': false }]); // -> 'font-bold mt-4 ml-2'
- * toCssClasses({ 'font-bold': true, 'text-red': false }); // -> 'font-bold'
- */
-export function toCssClasses(
-    data: ReadonlyArray<unknown> | Record<string, unknown> | unknown,
-): string {
-    if (!accessible(data) && typeof data !== "object") {
-        return "";
-    }
-
-    // Handle arrays and objects directly
-    let classList: Record<string, unknown>;
-
-    if (Array.isArray(data)) {
-        classList = { ...data };
-    } else if (typeof data === "object" && data !== null) {
-        classList = data as Record<string, unknown>;
-    } else {
-        return "";
-    }
-
-    const classes: string[] = [];
-
-    for (const [key, value] of Object.entries(classList)) {
-        const numericKey = !isNaN(Number(key));
-
-        if (numericKey) {
-            // Numeric key: use the value as class name
-            if (typeof value === "string") {
-                classes.push(value);
-            }
-        } else {
-            // String key: use key as class name if value is truthy
-            if (value) {
-                classes.push(key);
-            }
-        }
-    }
-
-    return classes.join(" ");
-}
-
-/**
- * Conditionally compile CSS styles from an array into a CSS style list.
- *
- * @param data - The array or Collection to convert to CSS styles.
- * @returns A string of CSS styles separated by spaces, each ending with semicolon.
- *
- * @example
- *
- * toCssStyles(['font-weight: bold', 'margin-top: 4px']); // -> 'font-weight: bold; margin-top: 4px;'
- * toCssStyles(['font-weight: bold', { 'margin-left: 2px': true, 'margin-right: 2px': false }]); // -> 'font-weight: bold; margin-left: 2px;'
- */
-export function toCssStyles(
-    data: ReadonlyArray<unknown> | Record<string, unknown> | unknown,
-): string {
-    if (!accessible(data) && typeof data !== "object") {
-        return "";
-    }
-
-    // Handle arrays and objects directly
-    let styleList: Record<string, unknown>;
-
-    if (Array.isArray(data)) {
-        styleList = { ...data };
-    } else if (typeof data === "object" && data !== null) {
-        styleList = data as Record<string, unknown>;
-    } else {
-        return "";
-    }
-
-    const styles: string[] = [];
-
-    for (const [key, value] of Object.entries(styleList)) {
-        const numericKey = !isNaN(Number(key));
-
-        if (numericKey) {
-            // Numeric key: use the value as style
-            if (typeof value === "string") {
-                styles.push(Str.finish(value, ";"));
-            }
-        } else {
-            // String key: use key as style if value is truthy
-            if (value) {
-                styles.push(Str.finish(key, ";"));
-            }
-        }
-    }
-
-    return styles.join(" ");
-}
-
-/**
  * Recursively sort an array by keys and values.
  *
- * @param data - The array or Collection to sort recursively.
+ * @param data - The array to sort recursively.
  * @param options - Sort options (currently unused, for PHP compatibility).
  * @param descending - Whether to sort in descending order.
  * @returns A new recursively sorted array.
@@ -2039,7 +1786,7 @@ export function sortRecursive<T>(
 /**
  * Recursively sort an array by keys and values in descending order.
  *
- * @param data - The array or Collection to sort recursively in descending order.
+ * @param data - The array to sort recursively in descending order.
  * @param options - Sort options (currently unused, for PHP compatibility).
  * @returns A new recursively sorted array in descending order.
  *
@@ -2052,4 +1799,256 @@ export function sortRecursiveDesc<T>(
     options?: number,
 ): T[] | Record<string, unknown> {
     return sortRecursive(data, options, true);
+}
+
+/**
+ * Get a string item from an array using "dot" notation.
+ * Throws an error if the value is not a string.
+ *
+ * @param data - The array to get the item from.
+ * @param key - The key or dot-notated path of the item to get.
+ * @param defaultValue - The default value if key is not found.
+ * @returns The string value.
+ * @throws Error if the value is not a string.
+ *
+ * @example
+ *
+ * string(['hello', 'world'], 0); // -> 'hello'
+ * string([{name: 'John'}], '0.name'); // -> 'John'
+ * string([{name: 123}], '0.name'); // -> throws Error
+ */
+export function string<T, D = null>(
+    data: ReadonlyArray<T> | unknown,
+    key: ArrayKey,
+    defaultValue: D | (() => D) | null = null,
+): string {
+    const value = getMixedValue(data, key, defaultValue);
+
+    if (typeof value !== "string") {
+        throw new Error(
+            `Array value for key [${key}] must be a string, ${typeof value} found.`,
+        );
+    }
+
+    return value;
+}
+
+/**
+ * Conditionally compile CSS classes from an array into a CSS class list.
+ *
+ * @param data - The array to convert to CSS classes.
+ * @returns A string of CSS classes separated by spaces.
+ *
+ * @example
+ *
+ * toCssClasses(['font-bold', 'mt-4']); // -> 'font-bold mt-4'
+ * toCssClasses(['font-bold', 'mt-4', { 'ml-2': true, 'mr-2': false }]); // -> 'font-bold mt-4 ml-2'
+ * toCssClasses({ 'font-bold': true, 'text-red': false }); // -> 'font-bold'
+ */
+export function toCssClasses(
+    data: ReadonlyArray<unknown> | Record<string, unknown> | unknown,
+): string {
+    if (!accessible(data) && typeof data !== "object") {
+        return "";
+    }
+
+    // Handle arrays and objects directly
+    let classList: Record<string, unknown>;
+
+    if (Array.isArray(data)) {
+        classList = { ...data };
+    } else if (typeof data === "object" && data !== null) {
+        classList = data as Record<string, unknown>;
+    } else {
+        return "";
+    }
+
+    const classes: string[] = [];
+
+    for (const [key, value] of Object.entries(classList)) {
+        const numericKey = !isNaN(Number(key));
+
+        if (numericKey) {
+            // Numeric key: use the value as class name
+            if (typeof value === "string") {
+                classes.push(value);
+            }
+        } else {
+            // String key: use key as class name if value is truthy
+            if (value) {
+                classes.push(key);
+            }
+        }
+    }
+
+    return classes.join(" ");
+}
+
+/**
+ * Conditionally compile CSS styles from an array into a CSS style list.
+ *
+ * @param data - The array to convert to CSS styles.
+ * @returns A string of CSS styles separated by spaces, each ending with semicolon.
+ *
+ * @example
+ *
+ * toCssStyles(['font-weight: bold', 'margin-top: 4px']); // -> 'font-weight: bold; margin-top: 4px;'
+ * toCssStyles(['font-weight: bold', { 'margin-left: 2px': true, 'margin-right: 2px': false }]); // -> 'font-weight: bold; margin-left: 2px;'
+ */
+export function toCssStyles(
+    data: ReadonlyArray<unknown> | Record<string, unknown> | unknown,
+): string {
+    if (!accessible(data) && typeof data !== "object") {
+        return "";
+    }
+
+    // Handle arrays and objects directly
+    let styleList: Record<string, unknown>;
+
+    if (Array.isArray(data)) {
+        styleList = { ...data };
+    } else if (typeof data === "object" && data !== null) {
+        styleList = data as Record<string, unknown>;
+    } else {
+        return "";
+    }
+
+    const styles: string[] = [];
+
+    for (const [key, value] of Object.entries(styleList)) {
+        const numericKey = !isNaN(Number(key));
+
+        if (numericKey) {
+            // Numeric key: use the value as style
+            if (typeof value === "string") {
+                styles.push(Str.finish(value, ";"));
+            }
+        } else {
+            // String key: use key as style if value is truthy
+            if (value) {
+                styles.push(Str.finish(key, ";"));
+            }
+        }
+    }
+
+    return styles.join(" ");
+}
+
+/**
+ * Filter the array using the given callback.
+ *
+ * @param data - The array to filter.
+ * @param callback - The function to call for each item (value, index) => boolean.
+ * @returns A new filtered array.
+ *
+ * @example
+ *
+ * where([1, 2, 3, 4], (value) => value > 2); // -> [3, 4]
+ * where(['a', 'b', null, 'c'], (value) => value !== null); // -> ['a', 'b', 'c']
+ */
+export function where<T>(
+    data: ReadonlyArray<T> | unknown,
+    callback: (value: T, index: number) => boolean,
+): T[] {
+    const values = getAccessibleValues(data);
+    const result: T[] = [];
+
+    for (let i = 0; i < values.length; i++) {
+        const value = values[i] as T;
+        if (callback(value, i)) {
+            result.push(value);
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Filter the array using the negation of the given callback.
+ *
+ * @param data - The array to filter.
+ * @param callback - The function to call for each item (value, index) => boolean.
+ * @returns A new filtered array with items that fail the test.
+ *
+ * @example
+ *
+ * reject([1, 2, 3, 4], (value) => value > 2); // -> [1, 2]
+ * reject(['a', 'b', null, 'c'], (value) => value === null); // -> ['a', 'b', 'c']
+ */
+export function reject<T>(
+    data: ReadonlyArray<T> | unknown,
+    callback: (value: T, index: number) => boolean,
+): T[] {
+    return where(data, (value, index) => !callback(value, index));
+}
+
+/**
+ * Partition the array into two arrays using the given callback.
+ *
+ * @param data - The array to partition.
+ * @param callback - The function to call for each item (value, index) => boolean.
+ * @returns A tuple containing [passed, failed] arrays.
+ *
+ * @example
+ *
+ * partition([1, 2, 3, 4], (value) => value > 2); // -> [[3, 4], [1, 2]]
+ * partition(['a', 'b', null, 'c'], (value) => value !== null); // -> [['a', 'b', 'c'], [null]]
+ */
+export function partition<T>(
+    data: ReadonlyArray<T> | unknown,
+    callback: (value: T, index: number) => boolean,
+): [T[], T[]] {
+    const values = getAccessibleValues(data);
+    const passed: T[] = [];
+    const failed: T[] = [];
+
+    for (let i = 0; i < values.length; i++) {
+        const value = values[i] as T;
+        if (callback(value, i)) {
+            passed.push(value);
+        } else {
+            failed.push(value);
+        }
+    }
+
+    return [passed, failed];
+}
+
+/**
+ * Filter items where the value is not null.
+ *
+ * @param data - The array to filter.
+ * @returns A new array with null values removed.
+ *
+ * @example
+ *
+ * whereNotNull([1, null, 2, undefined, 3]); // -> [1, 2, undefined, 3]
+ * whereNotNull(['a', null, 'b', null]); // -> ['a', 'b']
+ */
+export function whereNotNull<T>(data: ReadonlyArray<T | null> | unknown): T[] {
+    return where(
+        data as ReadonlyArray<T | null>,
+        (value): value is T => value !== null,
+    );
+}
+
+/**
+ * If the given value is not an array and not null, wrap it in one.
+ *
+ * @param value - The value to wrap.
+ * @returns An array containing the value, or an empty array if null.
+ *
+ * @example
+ *
+ * wrap('hello'); // -> ['hello']
+ * wrap(['hello']); // -> ['hello']
+ * wrap(null); // -> []
+ * wrap(undefined); // -> [undefined]
+ */
+export function wrap<T>(value: T | null): T[] {
+    if (value === null) {
+        return [];
+    }
+
+    return Array.isArray(value) ? value : [value];
 }
