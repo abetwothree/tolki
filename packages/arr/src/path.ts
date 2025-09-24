@@ -1,3 +1,5 @@
+import { accessible } from './arr';
+
 export type ArrayKey = number | string | null | undefined;
 export type ArrayKeys =
     | number
@@ -8,21 +10,54 @@ export type ArrayKeys =
 
 // Internal helpers shared by Arr path-based functions
 
-export const isAccessible = (value: unknown): boolean => {
-    return Array.isArray(value);
-};
-
+/**
+ * Convert a value to an array if it's already an array, otherwise return null.
+ * Used internally for safe array conversion without coercion.
+ *
+ * @param {unknown} value - The value to convert.
+ * @returns {unknown[] | null} The array if value is an array, null otherwise.
+ * @example
+ * Convert to array
+ * toArray([1, 2, 3]); // -> [1, 2, 3]
+ * toArray("hello"); // -> null
+ * toArray({}); // -> null
+ */
 export const toArray = (value: unknown): unknown[] | null => {
     if (Array.isArray(value)) return value as unknown[];
     return null;
 };
 
+/**
+ * Get a more specific type description for debugging purposes.
+ * Differentiates between null, arrays, and other types.
+ *
+ * @param {unknown} v - The value to get the type of.
+ * @returns {string} A string describing the type.
+ * @example
+ * Get specific types
+ * typeOf(null); // -> "null"
+ * typeOf([]); // -> "array"
+ * typeOf({}); // -> "object"
+ */
 const typeOf = (v: unknown): string => {
     if (v === null) return "null";
     if (Array.isArray(v)) return "array";
     return typeof v;
 };
 
+/**
+ * Parse a key into numeric segments for array path traversal.
+ * Converts dot notation strings and numbers into array indices.
+ *
+ * @param {ArrayKey} key - The key to parse (number, string, null, or undefined).
+ * @returns {number[] | null} Array of numeric indices, or null if invalid.
+ * @example
+ * Parse different key types
+ * parseSegments(5); // -> [5]
+ * parseSegments("1.2.3"); // -> [1, 2, 3]
+ * parseSegments("invalid"); // -> null
+ * parseSegments(null); // -> []
+ */
 export const parseSegments = (key: ArrayKey): number[] | null => {
     if (key == null) return [];
     if (typeof key === "number") {
@@ -46,6 +81,19 @@ export const parseSegments = (key: ArrayKey): number[] | null => {
     return segs;
 };
 
+/**
+ * Check if a path exists in a nested array structure.
+ * Traverses the array using dot notation or numeric indices.
+ *
+ * @param {unknown[]} root - The root array to search in.
+ * @param {ArrayKey} key - The path to check (number, string, null, or undefined).
+ * @returns {boolean} True if the path exists, false otherwise.
+ * @example
+ * Check path existence
+ * hasPath([['a', 'b'], ['c', 'd']], "0.1"); // -> true
+ * hasPath([['a', 'b']], "1.0"); // -> false
+ * hasPath(['x', 'y'], 1); // -> true
+ */
 export const hasPath = (root: unknown[], key: ArrayKey): boolean => {
     if (key == null) return false;
 
@@ -65,6 +113,19 @@ export const hasPath = (root: unknown[], key: ArrayKey): boolean => {
     return true;
 };
 
+/**
+ * Get a value from a nested array structure using dot notation.
+ * Returns an object indicating whether the value was found and its value.
+ *
+ * @param {unknown[]} root - The root array to search in.
+ * @param {ArrayKey} key - The path to retrieve (number, string, null, or undefined).
+ * @returns {{ found: boolean; value?: unknown }} Object with found status and value.
+ * @example
+ * Get values with path status
+ * getRaw([['a', 'b'], ['c']], "0.1"); // -> { found: true, value: 'b' }
+ * getRaw([['a']], "1.0"); // -> { found: false }
+ * getRaw(['x', 'y'], null); // -> { found: true, value: ['x', 'y'] }
+ */
 export const getRaw = (
     root: unknown[],
     key: ArrayKey,
@@ -92,6 +153,19 @@ export const getRaw = (
     return { found: true, value: cursor };
 };
 
+/**
+ * Remove items from an array using dot notation keys (immutable).
+ * Creates a new array with specified items removed, supporting nested paths.
+ *
+ * @param {ReadonlyArray<T>} data - The array to remove items from.
+ * @param {ArrayKeys} keys - The key(s) to remove (number, string, or array of keys).
+ * @returns {T[]} A new array with the specified items removed.
+ * @example
+ * Remove items by keys
+ * forgetKeys(['a', 'b', 'c'], 1); // -> ['a', 'c']
+ * forgetKeys([['x', 'y'], ['z']], "0.1"); // -> [['x'], ['z']]
+ * forgetKeys(['a', 'b', 'c'], [0, 2]); // -> ['b']
+ */
 export const forgetKeys = <T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] => {
     // This mirrors Arr.forget implementation (immutable)
     const removeAt = <U>(arr: ReadonlyArray<U>, index: number): U[] => {
@@ -219,6 +293,20 @@ export const forgetKeys = <T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] => {
     return out as T[];
 };
 
+/**
+ * Set a value in an array using dot notation (immutable).
+ * Creates a new array with the value set at the specified path.
+ *
+ * @param {ReadonlyArray<T> | unknown} data - The array to set the value in.
+ * @param {ArrayKey} key - The path where to set the value (number, string, null, or undefined).
+ * @param {T} value - The value to set.
+ * @returns {T[]} A new array with the value set at the specified path.
+ * @example
+ * Set values using dot notation
+ * setImmutable(['a', 'b'], 1, 'x'); // -> ['a', 'x']
+ * setImmutable([['old']], "0.0", 'new'); // -> [['new']]
+ * setImmutable([], 0, 'first'); // -> ['first']
+ */
 export const setImmutable = <T>(
     data: ReadonlyArray<T> | unknown,
     key: ArrayKey,
@@ -227,7 +315,7 @@ export const setImmutable = <T>(
     if (key == null) {
         return value as unknown as T[];
     }
-    if (!isAccessible(data)) {
+    if (!accessible(data)) {
         return [] as T[];
     }
     const toArr = (value: unknown): unknown[] => {
@@ -307,6 +395,20 @@ export const setImmutable = <T>(
     return out as T[];
 };
 
+/**
+ * Push values to an array at a specific path using dot notation.
+ * Creates nested arrays as needed and pushes values to the target location.
+ *
+ * @param {T[] | unknown} data - The array to push values into.
+ * @param {ArrayKey} key - The path where to push values (number, string, null, or undefined).
+ * @param {...T[]} values - The values to push.
+ * @returns {T[]} The modified array with values pushed at the specified path.
+ * @example
+ * Push values using dot notation
+ * pushWithPath(['a'], null, 'b', 'c'); // -> ['a', 'b', 'c']
+ * pushWithPath([['x']], "0", 'y'); // -> [['x', 'y']]
+ * pushWithPath([], "0", 'first'); // -> [['first']]
+ */
 export const pushWithPath = <T>(
     data: T[] | unknown,
     key: ArrayKey,
@@ -321,7 +423,7 @@ export const pushWithPath = <T>(
         return [...(values as unknown[])] as T[];
     }
 
-    if (!isAccessible(data)) {
+    if (!accessible(data)) {
         const out: unknown[] = [];
         const segs = parseSegments(key);
         if (!segs || segs.length === 0) return out as T[];
@@ -412,11 +514,23 @@ export const pushWithPath = <T>(
     return isPlainArray ? (data as T[]) : (root as T[]);
 };
 
+/**
+ * Flatten a nested array structure into a flat object with dot notation keys.
+ * Converts nested arrays into a single-level object with path-based keys.
+ *
+ * @param {ReadonlyArray<unknown> | unknown} data - The array to flatten.
+ * @param {string} prepend - Optional string to prepend to all keys.
+ * @returns {Record<string, unknown>} A flat object with dot-notated keys.
+ * @example
+ * Flatten nested arrays
+ * dotFlatten(['a', ['b', 'c']]); // -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
+ * dotFlatten([['x']], "prefix"); // -> { 'prefix.0.0': 'x' }
+ */
 export const dotFlatten = (
     data: ReadonlyArray<unknown> | unknown,
     prepend: string = "",
 ): Record<string, unknown> => {
-    if (!isAccessible(data)) return {};
+    if (!accessible(data)) return {};
     const root = (data as unknown[]);
     const out: Record<string, unknown> = {};
     const walk = (node: unknown, path: string): void => {
@@ -443,6 +557,17 @@ export const dotFlatten = (
     return out;
 };
 
+/**
+ * Expand a flat object with dot notation keys into a nested array structure.
+ * Converts a flattened object back into its original nested array form.
+ *
+ * @param {Record<string, unknown>} map - The flat object with dot-notated keys.
+ * @returns {unknown[]} A nested array structure.
+ * @example
+ * Expand flat object to nested arrays
+ * undotExpand({ '0': 'a', '1.0': 'b', '1.1': 'c' }); // -> ['a', ['b', 'c']]
+ * undotExpand({ '0.0.0': 'deep' }); // -> [[['deep']]]
+ */
 export const undotExpand = (map: Record<string, unknown>): unknown[] => {
     const root: unknown[] = [];
     const isValidIndex = (seg: string): boolean => {
@@ -546,10 +671,15 @@ export const getNestedValue = (obj: unknown, path: string): unknown => {
  * This function bridges between the existing numeric-only getRaw function
  * and the new mixed notation support.
  *
- * @param data - The data to search in
- * @param key - The dot-notation key
- * @param defaultValue - Default value if not found
- * @returns The found value or default
+ * @param {ReadonlyArray<T> | unknown} data - The data to search in.
+ * @param {ArrayKey} key - The dot-notation key.
+ * @param {D | (() => D) | null} defaultValue - Default value if not found.
+ * @returns {unknown} The found value or default.
+ * @example
+ * Get values with mixed notation  
+ * getMixedValue([{name: 'John'}], '0.name'); // -> 'John'
+ * getMixedValue(['a', 'b'], 1); // -> 'b'
+ * getMixedValue([], '0', 'default'); // -> 'default'
  */
 export const getMixedValue = <T, D = null>(
     data: ReadonlyArray<T> | unknown,
@@ -568,7 +698,7 @@ export const getMixedValue = <T, D = null>(
 
     // For simple numeric keys, use existing getRaw function
     if (typeof key === "number") {
-        if (!isAccessible(data)) {
+        if (!accessible(data)) {
             return resolveDefault();
         }
         const root = toArray(data)!;
@@ -580,7 +710,7 @@ export const getMixedValue = <T, D = null>(
 
     // If it's a simple key without dots, try getRaw first
     if (!keyStr.includes(".")) {
-        if (!isAccessible(data)) {
+        if (!accessible(data)) {
             return resolveDefault();
         }
         const root = toArray(data)!;
@@ -597,7 +727,7 @@ export const getMixedValue = <T, D = null>(
 
     // If all segments are numeric, use existing getRaw function
     if (allNumeric) {
-        if (!isAccessible(data)) {
+        if (!accessible(data)) {
             return resolveDefault();
         }
         const root = toArray(data)!;
