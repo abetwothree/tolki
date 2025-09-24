@@ -1,4 +1,4 @@
-import { accessible } from './arr';
+import { accessible } from "./arr";
 
 export type ArrayKey = number | string | null | undefined;
 export type ArrayKeys =
@@ -319,9 +319,7 @@ export const setImmutable = <T>(
         return [] as T[];
     }
     const toArr = (value: unknown): unknown[] => {
-        return Array.isArray(value)
-            ? (value as unknown[]).slice()
-            : [];
+        return Array.isArray(value) ? (value as unknown[]).slice() : [];
     };
     const root = toArr(data);
 
@@ -464,9 +462,7 @@ export const pushWithPath = <T>(
     }
 
     const isPlainArray = Array.isArray(data);
-    const root: unknown[] = isPlainArray
-        ? (data as unknown[])
-        : [];
+    const root: unknown[] = isPlainArray ? (data as unknown[]) : [];
 
     const segs = parseSegments(key);
     if (!segs || segs.length === 0) {
@@ -531,12 +527,10 @@ export const dotFlatten = (
     prepend: string = "",
 ): Record<string, unknown> => {
     if (!accessible(data)) return {};
-    const root = (data as unknown[]);
+    const root = data as unknown[];
     const out: Record<string, unknown> = {};
     const walk = (node: unknown, path: string): void => {
-        const arr = Array.isArray(node)
-            ? (node as unknown[])
-            : null;
+        const arr = Array.isArray(node) ? (node as unknown[]) : null;
         if (!arr) {
             const key = prepend
                 ? path
@@ -676,7 +670,7 @@ export const getNestedValue = (obj: unknown, path: string): unknown => {
  * @param {D | (() => D) | null} defaultValue - Default value if not found.
  * @returns {unknown} The found value or default.
  * @example
- * Get values with mixed notation  
+ * Get values with mixed notation
  * getMixedValue([{name: 'John'}], '0.name'); // -> 'John'
  * getMixedValue(['a', 'b'], 1); // -> 'b'
  * getMixedValue([], '0', 'default'); // -> 'default'

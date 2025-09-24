@@ -5,7 +5,7 @@
  * @param a - First value to compare
  * @param b - Second value to compare
  * @returns -1 if a < b, 1 if a > b, 0 if equal
- * 
+ *
  * @example
  * compareValues(1, 2); // -> -1
  * compareValues('b', 'a'); // -> 1
@@ -35,7 +35,7 @@ export function compareValues(a: unknown, b: unknown): number {
  *
  * @param defaultValue - The default value or lazy function
  * @returns The resolved default value
- * 
+ *
  * @example
  * resolveDefault('hello'); // -> 'hello'
  * resolveDefault(() => 'world'); // -> 'world'
@@ -56,7 +56,7 @@ export function resolveDefault<D>(defaultValue?: D | (() => D)): D | null {
  *
  * @param data - The data to normalize (array or other)
  * @returns An array representation of the data, or null if not accessible
- * 
+ *
  * @example
  * normalizeToArray([1, 2, 3]); // -> [1, 2, 3]
  * normalizeToArray('hello'); // -> null
@@ -75,7 +75,7 @@ export function normalizeToArray<T>(
  *
  * @param data - The data to check
  * @returns True if data is an array
- * 
+ *
  * @example
  * isAccessibleData([1, 2, 3]); // -> true
  * isAccessibleData('hello'); // -> false
@@ -90,14 +90,12 @@ export function isAccessibleData(data: unknown): boolean {
  *
  * @param data - The data to get values from
  * @returns Array of values or empty array
- * 
+ *
  * @example
  * getAccessibleValues([1, 2, 3]); // -> [1, 2, 3]
  * getAccessibleValues('hello'); // -> []
  */
-export function getAccessibleValues<T>(
-    data: ReadonlyArray<T> | unknown,
-): T[] {
+export function getAccessibleValues<T>(data: ReadonlyArray<T> | unknown): T[] {
     const normalized = normalizeToArray<T>(data);
     return normalized || [];
 }

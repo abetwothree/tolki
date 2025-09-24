@@ -47,11 +47,7 @@ describe("Arr", () => {
     });
 
     it("collapse", () => {
-        type Mixed =
-            | string[]
-            | number[]
-            | []
-            | (string | number)[];
+        type Mixed = string[] | number[] | [] | (string | number)[];
         let data: Mixed[] = [["foo", "bar"], ["baz"]];
         expect(Arr.collapse(data)).toEqual(["foo", "bar", "baz"]);
 
@@ -68,20 +64,9 @@ describe("Arr", () => {
         expect(Arr.collapse(data)).toEqual([1, 2, "foo", "bar"]);
 
         // Case including arrays
-        data = [
-            [1],
-            [2],
-            [3],
-            ["foo", "bar"],
-        ];
+        data = [[1], [2], [3], ["foo", "bar"]];
 
-        expect(Arr.collapse(data)).toEqual([
-            1,
-            2,
-            3,
-            "foo",
-            "bar",
-        ]);
+        expect(Arr.collapse(data)).toEqual([1, 2, 3, "foo", "bar"]);
     });
 
     it("crossJoin", () => {
@@ -2150,7 +2135,7 @@ describe("Arr", () => {
     describe("Edge Cases", () => {
         it("pull with non-accessible data", () => {
             // Should handle non-arrays gracefully
-            const result = Arr.pull('not-array', 0);
+            const result = Arr.pull("not-array", 0);
             expect(result.value).toBe(null);
             expect(result.data).toEqual([]);
         });
@@ -2164,58 +2149,63 @@ describe("Arr", () => {
 
         it("pluck with complex key paths", () => {
             const data = [
-                { user: { name: 'John' } },
-                { user: { name: 'Jane' } },
+                { user: { name: "John" } },
+                { user: { name: "Jane" } },
             ];
-            
+
             // Test deep key path
-            expect(Arr.pluck(data, 'user.name')).toEqual(['John', 'Jane']);
-            
-            // Test with callback function 
-            expect(Arr.pluck(data, (item) => (item as { user: { name: string } }).user.name)).toEqual(['John', 'Jane']);
+            expect(Arr.pluck(data, "user.name")).toEqual(["John", "Jane"]);
+
+            // Test with callback function
+            expect(
+                Arr.pluck(
+                    data,
+                    (item) => (item as { user: { name: string } }).user.name,
+                ),
+            ).toEqual(["John", "Jane"]);
         });
 
         it("query with nested objects", () => {
             const data = {
                 user: {
-                    name: 'John',
+                    name: "John",
                     meta: {
-                        age: 30
-                    }
-                }
+                        age: 30,
+                    },
+                },
             };
-            
+
             const result = Arr.query(data);
-            expect(result).toContain('user[name]=John');
-            expect(result).toContain('user[meta][age]=30');
+            expect(result).toContain("user[name]=John");
+            expect(result).toContain("user[meta][age]=30");
         });
 
         it("sort with different types", () => {
             // Test sorting with mixed types
-            const mixed = [3, 'a', 1, 'b', 2];
+            const mixed = [3, "a", 1, "b", 2];
             const sorted = Arr.sort(mixed);
-            
+
             // Should handle mixed types gracefully
             expect(sorted).toHaveLength(5);
             expect(sorted).toContain(1);
             expect(sorted).toContain(2);
             expect(sorted).toContain(3);
-            expect(sorted).toContain('a');
-            expect(sorted).toContain('b');
+            expect(sorted).toContain("a");
+            expect(sorted).toContain("b");
         });
 
         it("sortDesc with different types", () => {
             // Test sorting desc with mixed types
-            const mixed = [1, 'a', 3, 'b', 2];
+            const mixed = [1, "a", 3, "b", 2];
             const sorted = Arr.sortDesc(mixed);
-            
+
             // Should handle mixed types gracefully
             expect(sorted).toHaveLength(5);
             expect(sorted).toContain(1);
             expect(sorted).toContain(2);
             expect(sorted).toContain(3);
-            expect(sorted).toContain('a');
-            expect(sorted).toContain('b');
+            expect(sorted).toContain("a");
+            expect(sorted).toContain("b");
         });
     });
 
@@ -2223,166 +2213,256 @@ describe("Arr", () => {
     describe("Path Functions", () => {
         it("should test edge cases in path operations", () => {
             // Test setImmutable with non-accessible data
-            expect(Arr.set('not-array', 0, 'value')).toEqual([]);
-            
+            expect(Arr.set("not-array", 0, "value")).toEqual([]);
+
             // Test setImmutable with null key (replacement)
-            expect(Arr.set([1, 2, 3], null, 'replaced')).toEqual('replaced');
-            
+            expect(Arr.set([1, 2, 3], null, "replaced")).toEqual("replaced");
+
             // Test push with complex nested paths that need creation
-            expect(Arr.push([], '0.0.0', 'deep')).toEqual([[['deep']]]);
-            
+            expect(Arr.push([], "0.0.0", "deep")).toEqual([[["deep"]]]);
+
             // Test push with paths
-            const result = Arr.push([], '2', 'value');
-            expect(result).toEqual(['value']); // pushWithPath appends to root when path doesn't exist
+            const result = Arr.push([], "2", "value");
+            expect(result).toEqual(["value"]); // pushWithPath appends to root when path doesn't exist
         });
 
         it("should handle array bounds and edge cases", () => {
             // Test array operations with edge indices
-            expect(Arr.get([1, 2, 3], 10, 'default')).toBe('default');
-            expect(Arr.set([1, 2, 3], 3, 'new')).toEqual([1, 2, 3, 'new']); // Set at next available index
-            
+            expect(Arr.get([1, 2, 3], 10, "default")).toBe("default");
+            expect(Arr.set([1, 2, 3], 3, "new")).toEqual([1, 2, 3, "new"]); // Set at next available index
+
             // Test with negative indices (should be handled safely)
-            expect(Arr.get([1, 2, 3], -1, 'default')).toBe('default');
-            
+            expect(Arr.get([1, 2, 3], -1, "default")).toBe("default");
+
             // Test dot notation with invalid segments
-            expect(Arr.get([1, 2, 3], 'invalid.path', 'default')).toBe('default');
-            expect(Arr.set([1, 2, 3], 'invalid.path', 'value')).toEqual([1, 2, 3]);
+            expect(Arr.get([1, 2, 3], "invalid.path", "default")).toBe(
+                "default",
+            );
+            expect(Arr.set([1, 2, 3], "invalid.path", "value")).toEqual([
+                1, 2, 3,
+            ]);
         });
 
         it("should test complex push scenarios", () => {
-            // Test push with existing nested structure  
-            const nested = [['a', 'b'], ['c', 'd']];
-            expect(Arr.push(nested, null, 'new')).toEqual([['a', 'b'], ['c', 'd'], 'new']); // Push to root
-            
+            // Test push with existing nested structure
+            const nested = [
+                ["a", "b"],
+                ["c", "d"],
+            ];
+            expect(Arr.push(nested, null, "new")).toEqual([
+                ["a", "b"],
+                ["c", "d"],
+                "new",
+            ]); // Push to root
+
             // Test push to create intermediate arrays
-            expect(Arr.push([], '1.0', 'item')).toEqual([['item']]); // Creates minimal structure
-            
+            expect(Arr.push([], "1.0", "item")).toEqual([["item"]]); // Creates minimal structure
+
             // Test push with boolean conflict - should throw error
             try {
-                const data = [true];  // This is a boolean, not an array at index 0
-                Arr.push(data, '0', 'value');
+                const data = [true]; // This is a boolean, not an array at index 0
+                Arr.push(data, "0", "value");
                 // If we get here, something went wrong - but actually this won't throw in our current implementation
                 // because we handle mixed types gracefully
             } catch (error) {
-                expect((error as Error).message).toContain('must be an array');
+                expect((error as Error).message).toContain("must be an array");
             }
         });
 
         it("should test error conditions", () => {
             // Create a structure that would cause type conflicts
-            const mixedData = ['string', { obj: true }];
-            
-            // These should handle mixed types gracefully 
-            const result1 = Arr.get(mixedData, '0.prop', 'default');
-            expect(result1).toBe('default'); // Can't access prop on string
-            
-            const result2 = Arr.get(mixedData, '1.obj', 'default');  
-            expect(result2).toBe('default'); // Can't access obj property through numeric path
+            const mixedData = ["string", { obj: true }];
+
+            // These should handle mixed types gracefully
+            const result1 = Arr.get(mixedData, "0.prop", "default");
+            expect(result1).toBe("default"); // Can't access prop on string
+
+            const result2 = Arr.get(mixedData, "1.obj", "default");
+            expect(result2).toBe("default"); // Can't access obj property through numeric path
         });
 
         it("should test range and boundary conditions", () => {
             // Test indices
-            expect(Arr.set([], 0, 'far')).toHaveLength(1);
-            expect(Arr.set([], 0, 'far')[0]).toBe('far');
-            
+            expect(Arr.set([], 0, "far")).toHaveLength(1);
+            expect(Arr.set([], 0, "far")[0]).toBe("far");
+
             // Test empty string keys
-            expect(Arr.get([1, 2, 3], '', 'default')).toBe('default');
-            
+            expect(Arr.get([1, 2, 3], "", "default")).toBe("default");
+
             // Test dotted keys with empty segments
-            expect(Arr.get([[[1]]], '0..0', 'default')).toBe('default');
+            expect(Arr.get([[[1]]], "0..0", "default")).toBe("default");
         });
 
         it("should test remaining arr.ts edge cases", () => {
-            // Test pluck with object that has toString method (line 1218)
-            const data = [{
-                key: {
-                    toString: () => 'custom-key'
+            // Test pluck with key function that returns object with toString method
+            const dataForPluck = [
+                {
+                    value: "item1",
+                    keyObj: {
+                        toString() {
+                            return "key1";
+                        },
+                    },
                 },
-                value: 'test'
-            }];
-            
-            // Test plucking with object key - this tests different logic than expected
-            expect(Arr.pluck(data, 'key')).toEqual([{toString: expect.any(Function)}]);
-            
-            // Test query with null/undefined values (line 1561)
-            const queryData = {
-                name: 'John',
-                empty: null,
-                undef: undefined,
-                nested: {
-                    value: 42
-                }
-            };
-            
-            const queryResult = Arr.query(queryData);
-            expect(queryResult).toContain('name=John');
-            expect(queryResult).toContain('nested[value]=42');
-            // null and undefined should be handled properly
-            
-            // Test sort/sortDesc with null values (lines 1743, 1798)
-            const withNulls = [3, null, 1, undefined, 2];
-            const sortedWithNulls = Arr.sort(withNulls);
-            expect(sortedWithNulls).toHaveLength(5);
-            expect(sortedWithNulls).toContain(1);
-            expect(sortedWithNulls).toContain(2);
-            expect(sortedWithNulls).toContain(3);
-            
-            const sortedDescWithNulls = Arr.sortDesc(withNulls);
-            expect(sortedDescWithNulls).toHaveLength(5);
-            expect(sortedDescWithNulls).toContain(1);
-            expect(sortedDescWithNulls).toContain(2);
-            expect(sortedDescWithNulls).toContain(3);
+                {
+                    value: "item2",
+                    keyObj: {
+                        toString() {
+                            return "key2";
+                        },
+                    },
+                },
+            ];
+            // This should trigger the toString conversion on line 1218 when keyObj is used as key
+            const pluckResult = Arr.pluck(dataForPluck, "value", "keyObj");
+            expect(pluckResult).toEqual({ key1: "item1", key2: "item2" });
+
+            // Test query with array containing objects (to trigger recursion)
+            const arrayWithObjects = [
+                { name: "John", age: 30 },
+                "simpleString",
+                { nested: { deep: "value" } },
+            ];
+            const queryResult = Arr.query(arrayWithObjects);
+            expect(queryResult).toContain("0[name]=John");
+            expect(queryResult).toContain("0[age]=30");
+            expect(queryResult).toContain("1=simpleString");
+            expect(queryResult).toContain("2[nested][deep]=value");
+
+            // Test sort/sortDesc with callback functions that return different values
+            const dataToSort = [
+                { val: 10, name: "b" },
+                { val: 5, name: "c" },
+                { val: 15, name: "a" },
+            ];
+
+            // sort with callback function - need values that are actually different to trigger comparison
+            const sortedResult = Arr.sort(dataToSort, (item: unknown) => {
+                const typedItem = item as { val: number; name: string };
+                return typedItem.val; // This should trigger compareValues call on line 1743
+            });
+            expect(sortedResult).toEqual([
+                { val: 5, name: "c" },
+                { val: 10, name: "b" },
+                { val: 15, name: "a" },
+            ]);
+
+            // sortDesc with callback function - need values that are different to trigger comparison
+            const sortedDescResult = Arr.sortDesc(
+                dataToSort,
+                (item: unknown) => {
+                    const typedItem = item as { val: number; name: string };
+                    return typedItem.val; // This should trigger compareValues call on line 1798
+                },
+            );
+            expect(sortedDescResult).toEqual([
+                { val: 15, name: "a" },
+                { val: 10, name: "b" },
+                { val: 5, name: "c" },
+            ]);
+
+            // Additional test: Force comparison with values that need actual sorting
+            // Create data that will definitely trigger the comparison logic
+            const dataForComparison = [
+                { priority: 100, id: "third" },
+                { priority: 1, id: "first" },
+                { priority: 50, id: "second" },
+                { priority: 200, id: "fourth" },
+            ];
+
+            // This MUST trigger compareValues on line 1743 because values are different
+            const forceComparisonSort = Arr.sort(
+                dataForComparison,
+                (item: unknown) => {
+                    const typed = item as { priority: number; id: string };
+                    return typed.priority; // Different values: 100, 1, 50, 200
+                },
+            );
+            expect(
+                (forceComparisonSort[0] as { priority: number }).priority,
+            ).toBe(1);
+            expect(
+                (forceComparisonSort[3] as { priority: number }).priority,
+            ).toBe(200);
+
+            // This MUST trigger compareValues on line 1798 because values are different
+            const forceComparisonSortDesc = Arr.sortDesc(
+                dataForComparison,
+                (item: unknown) => {
+                    const typed = item as { priority: number; id: string };
+                    return typed.priority; // Different values: 100, 1, 50, 200
+                },
+            );
+            expect(
+                (forceComparisonSortDesc[0] as { priority: number }).priority,
+            ).toBe(200);
+            expect(
+                (forceComparisonSortDesc[3] as { priority: number }).priority,
+            ).toBe(1);
         });
 
         it("should test path function edge cases and error conditions", () => {
             // Test parseSegments with invalid numeric keys (line 64)
             // This should be tested via functions that use parseSegments
-            expect(Arr.get([], -1, 'default')).toBe('default');
-            expect(Arr.set([], -1, 'value')).toEqual([]);
-            
-            // Test pushWithPath error conditions (lines 427-463)
+            expect(Arr.get([], -1, "default")).toBe("default");
+            expect(Arr.set([], -1, "value")).toEqual([]);
+
+            // Test pushWithPath error conditions
             // Try to create structure that would cause type conflicts
             try {
-                // This attempts to push to a path where intermediate value conflicts 
+                // This attempts to push to a path where intermediate value conflicts
                 const data: unknown = [];
-                Arr.push(data, '0.prop', 'value'); // Should work, creates nested structure
+                Arr.push(data, "0.prop", "value"); // Should work, creates nested structure
                 expect(Array.isArray(data)).toBe(true);
             } catch (error) {
                 // If it throws, that's also a valid test of error handling
                 expect(error).toBeDefined();
             }
-            
-            // Test getNestedValue with edge cases (lines 638, 646, 653)
+
+            // Test getNestedValue with edge cases
             // These are likely related to null/undefined object handling
-            expect(Arr.get([null], '0.prop', 'default')).toBe('default');
-            expect(Arr.get([undefined], '0.prop', 'default')).toBe('default');
-            expect(Arr.get([{}], '0.nonexistent', 'default')).toBe('default');
-            
-            // Test getMixedValue edge cases (lines 696, 702, 713-718, 730-735)
-            expect(Arr.get('not-array', '0', 'default')).toBe('default');
-            expect(Arr.get({}, '0', 'default')).toBe('default');
-            
+            expect(Arr.get([null], "0.prop", "default")).toBe("default");
+            expect(Arr.get([undefined], "0.prop", "default")).toBe("default");
+            expect(Arr.get([{}], "0.nonexistent", "default")).toBe("default");
+
+            // Test getMixedValue edge cases
+            expect(Arr.get("not-array", "0", "default")).toBe("default");
+            expect(Arr.get({}, "0", "default")).toBe("default");
+
             // Test array bounds with mixed notation
-            expect(Arr.get([{data: [1, 2, 3]}], '0.data.10', 'default')).toBe('default');
-            
+            expect(Arr.get([{ data: [1, 2, 3] }], "0.data.10", "default")).toBe(
+                "default",
+            );
+
             // Test invalid array access
-            expect(Arr.get([{data: 'not-array'}], '0.data.0', 'default')).toBe('default');
+            expect(
+                Arr.get([{ data: "not-array" }], "0.data.0", "default"),
+            ).toBe("default");
         });
 
         it("should test internal path utility functions directly", () => {
-            // Test undotExpand with edge cases (lines 587-588) 
-            const flattened = {'0.0': 'deep', '1': 'shallow', 'invalid.key': 'ignored'};
+            // Test undotExpand with edge cases
+            const flattened = {
+                "0.0": "deep",
+                "1": "shallow",
+                "invalid.key": "ignored",
+            };
             const expanded = Arr.undot(flattened);
-            expect(expanded).toEqual([['deep'], 'shallow']);
-            
+            expect(expanded).toEqual([["deep"], "shallow"]);
+
             // Test complex nested push operations
-            const nested = Arr.push([], '0.1.2', 'deep-value');
-            expect(nested).toEqual([[['deep-value']]]); // Creates minimal structure needed
-            
+            const nested = Arr.push([], "0.1.2", "deep-value");
+            expect(nested).toEqual([[["deep-value"]]]); // Creates minimal structure needed
+
             // Test mixed type access patterns - numeric only paths don't work with object properties
-            const mixed = [{name: 'John', data: [1, 2, {nested: true}]}];
-            expect(Arr.get(mixed, '0', 'default')).toEqual({name: 'John', data: [1, 2, {nested: true}]}); // Get whole object
-            expect(Arr.get(mixed, '0.data.2.nonexistent', 'default')).toBe('default');
+            const mixed = [{ name: "John", data: [1, 2, { nested: true }] }];
+            expect(Arr.get(mixed, "0", "default")).toEqual({
+                name: "John",
+                data: [1, 2, { nested: true }],
+            }); // Get whole object
+            expect(Arr.get(mixed, "0.data.2.nonexistent", "default")).toBe(
+                "default",
+            );
         });
     });
 });

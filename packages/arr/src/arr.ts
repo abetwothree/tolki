@@ -12,7 +12,7 @@ import {
     getMixedValue,
 } from "./path";
 import type { ArrayKey, ArrayKeys } from "./path";
-import { compareValues, getAccessibleValues } from "./utils"; 
+import { compareValues, getAccessibleValues } from "./utils";
 
 // Extract the element type from an array
 export type InnerValue<X> = X extends ReadonlyArray<infer U> ? U : never;
@@ -39,9 +39,7 @@ export function accessible<T>(value: T): boolean {
  * arrayable([1, 2]); // true
  * arrayable({ a: 1, b: 2 }); // false
  */
-export function arrayable(
-    value: unknown,
-): value is ReadonlyArray<unknown> {
+export function arrayable(value: unknown): value is ReadonlyArray<unknown> {
     return Array.isArray(value);
 }
 
@@ -67,9 +65,9 @@ export function add<T extends readonly unknown[], V extends readonly unknown[]>(
  *
  * collapse([[1], [2], [3], ['foo', 'bar']]); // -> [1, 2, 3, 'foo', 'bar']
  */
-export function collapse<
-    T extends ReadonlyArray<ReadonlyArray<unknown>>,
->(array: T): InnerValue<T[number]>[] {
+export function collapse<T extends ReadonlyArray<ReadonlyArray<unknown>>>(
+    array: T,
+): InnerValue<T[number]>[] {
     const out: InnerValue<T[number]>[] = [];
 
     for (const item of array) {
@@ -936,9 +934,7 @@ export function where<T>(
  * whereNotNull([1, null, 2, undefined, 3]); // -> [1, 2, undefined, 3]
  * whereNotNull(['a', null, 'b', null]); // -> ['a', 'b']
  */
-export function whereNotNull<T>(
-    data: ReadonlyArray<T | null> | unknown,
-): T[] {
+export function whereNotNull<T>(data: ReadonlyArray<T | null> | unknown): T[] {
     return where(
         data as ReadonlyArray<T | null>,
         (value): value is T => value !== null,
@@ -1020,7 +1016,11 @@ export function select<T extends Record<string, unknown>>(
         const result: Record<string, unknown> = {};
 
         for (const key of keyList) {
-            if (typedItem != null && typeof typedItem === "object" && key in typedItem) {
+            if (
+                typedItem != null &&
+                typeof typedItem === "object" &&
+                key in typedItem
+            ) {
                 result[key] = (typedItem as Record<string, unknown>)[key];
             }
         }
@@ -1062,10 +1062,7 @@ export function wrap<T>(value: T | null): T[] {
  * only(['a', 'b', 'c', 'd'], [0, 2]); // -> ['a', 'c']
  * only(['a', 'b', 'c'], [1]); // -> ['b']
  */
-export function only<T>(
-    data: ReadonlyArray<T> | unknown,
-    keys: number[],
-): T[] {
+export function only<T>(data: ReadonlyArray<T> | unknown, keys: number[]): T[] {
     const values = getAccessibleValues(data);
     const result: T[] = [];
 
@@ -1568,7 +1565,7 @@ export function query(data: unknown): string {
                     }
                 }
             }
-        // Collection support was removed
+            // Collection support was removed
         } else if (typeof obj === "object" && obj !== null) {
             for (const [objKey, value] of Object.entries(obj)) {
                 const key = prefix ? `${prefix}[${objKey}]` : objKey;
@@ -1609,9 +1606,7 @@ export function query(data: unknown): string {
  * shuffle([1, 2, 3, 4, 5]); // -> [3, 1, 5, 2, 4] (random order)
  * shuffle(['a', 'b', 'c']); // -> ['c', 'a', 'b'] (random order)
  */
-export function shuffle<T>(
-    data: ReadonlyArray<T> | unknown,
-): T[] {
+export function shuffle<T>(data: ReadonlyArray<T> | unknown): T[] {
     const values = getAccessibleValues(data) as T[];
     const result = values.slice();
 
@@ -1811,10 +1806,7 @@ export function sortDesc<T>(
  * toCssClasses({ 'font-bold': true, 'text-red': false }); // -> 'font-bold'
  */
 export function toCssClasses(
-    data:
-        | ReadonlyArray<unknown>
-        | Record<string, unknown>
-        | unknown,
+    data: ReadonlyArray<unknown> | Record<string, unknown> | unknown,
 ): string {
     if (!accessible(data) && typeof data !== "object") {
         return "";
@@ -1864,10 +1856,7 @@ export function toCssClasses(
  * toCssStyles(['font-weight: bold', { 'margin-left: 2px': true, 'margin-right: 2px': false }]); // -> 'font-weight: bold; margin-left: 2px;'
  */
 export function toCssStyles(
-    data:
-        | ReadonlyArray<unknown>
-        | Record<string, unknown>
-        | unknown,
+    data: ReadonlyArray<unknown> | Record<string, unknown> | unknown,
 ): string {
     if (!accessible(data) && typeof data !== "object") {
         return "";
@@ -1905,8 +1894,6 @@ export function toCssStyles(
     return styles.join(" ");
 }
 
-
-
 /**
  * Recursively sort an array by keys and values.
  *
@@ -1921,10 +1908,7 @@ export function toCssStyles(
  * sortRecursive([{ name: 'john', age: 30 }, { name: 'jane', age: 25 }]); // -> sorted objects with sorted keys
  */
 export function sortRecursive<T>(
-    data:
-        | ReadonlyArray<T>
-        | Record<string, unknown>
-        | unknown,
+    data: ReadonlyArray<T> | Record<string, unknown> | unknown,
     options?: number,
     descending: boolean = false,
 ): T[] | Record<string, unknown> {
@@ -2003,10 +1987,7 @@ export function sortRecursive<T>(
  * sortRecursiveDesc({ a: [1, 2, 3], b: { c: 1, d: 2 } }); // -> { b: { d: 2, c: 1 }, a: [3, 2, 1] }
  */
 export function sortRecursiveDesc<T>(
-    data:
-        | ReadonlyArray<T>
-        | Record<string, unknown>
-        | unknown,
+    data: ReadonlyArray<T> | Record<string, unknown> | unknown,
     options?: number,
 ): T[] | Record<string, unknown> {
     return sortRecursive(data, options, true);
