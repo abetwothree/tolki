@@ -11,8 +11,8 @@ import {
     setMixed,
     setMixedImmutable,
     hasMixed,
-} from "./path";
-import type { ArrayKey, ArrayKeys } from "./path";
+} from "@laravel-js/path";
+import type { ArrayKey, ArrayKeys } from "@laravel-js/path";
 import { compareValues, getAccessibleValues } from "./utils";
 
 // Extract the element type from an array
