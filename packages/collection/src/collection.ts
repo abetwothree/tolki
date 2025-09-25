@@ -2,6 +2,7 @@ import * as Arr from "@laravel-js/arr";
 import * as Path from "@laravel-js/path";
 import * as Num from "@laravel-js/num";
 import * as Utils from "@laravel-js/utils";
+import * as Str from "@laravel-js/str";
 
 /**
  * Type representing the items that can be stored in a Collection.
