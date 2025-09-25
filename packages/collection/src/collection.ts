@@ -10,7 +10,7 @@ export class Collection<Items> {
     private _items: Items;
 
     constructor(items?: Items) {
-        this._items = this.getArrayableItems(items ?? []) as Items;
+        this._items = this.getArrayableItems(items ?? []);
     }
 
     /**
