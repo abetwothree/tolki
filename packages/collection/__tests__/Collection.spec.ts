@@ -1,21 +1,21 @@
 import { describe, it, expect } from "vitest";
-import { Collection } from "@laravel-js/collection";
+import { Collection, collect } from "@laravel-js/collection";
 
 describe("Collection", () => {
     describe("constructor", () => {
         it("creates empty collection with no arguments", () => {
-            const collection = new Collection();
+            const collection = collect();
             expect(collection.all()).toEqual({});
         });
 
         it("creates collection from array", () => {
-            const collection = new Collection([1, 2, 3]);
+            const collection = collect([1, 2, 3]);
             expect(collection.all()).toEqual([1, 2, 3]);
         });
 
         it("creates collection from object", () => {
-            const collection = new Collection({a: 1, b: 2});
-            expect(collection.all()).toEqual({a: 1, b: 2});
+            const collection = collect({ a: 1, b: 2 });
+            expect(collection.all()).toEqual({ a: 1, b: 2 });
         });
     });
 
@@ -34,66 +34,91 @@ describe("Collection", () => {
     describe("all", () => {
         it("returns all items as array", () => {
             const items = [1, 2, 3];
-            const collection = new Collection(items);
+            const collection = collect(items);
             expect(collection.all()).toEqual(items);
         });
 
         it("returns all items as object", () => {
-            const items = {a: 1, b: 2, c: 3};
-            const collection = new Collection(items);
+            const items = { a: 1, b: 2, c: 3 };
+            const collection = collect(items);
             expect(collection.all()).toEqual(items);
         });
     });
 
     describe("collapse", () => {
         it("collapses nested arrays", () => {
-            const collection = new Collection([[1, 2], [3, 4]]);
+            const collection = collect([
+                [1, 2],
+                [3, 4],
+            ]);
             const collapsed = collection.collapse();
             expect(collapsed.all()).toEqual([1, 2, 3, 4]);
         });
 
         it("ignores non-array items", () => {
-            const collection = new Collection([1, [2, 3], 'string', [4, 5]]);
+            const collection = collect([1, [2, 3], "string", [4, 5]]);
             const collapsed = collection.collapse();
             expect(collapsed.all()).toEqual([2, 3, 4, 5]);
         });
 
         it("collapses nested objects", () => {
-            const collection = new Collection([{a: 1, b: 2}, {c: 3, d: 4}]);
+            const collection = collect([
+                { a: 1, b: 2 },
+                { c: 3, d: 4 },
+            ]);
             const collapsed = collection.collapse();
-            expect(collapsed.all()).toEqual({a: 1, b: 2, c: 3, d: 4});
+            expect(collapsed.all()).toEqual({ a: 1, b: 2, c: 3, d: 4 });
         });
 
         it("ignores non-object items", () => {
-            const collection = new Collection([1, {a: 2, b: 3}, 'string', {c: 4, d: 5}]);
+            const collection = collect([
+                1,
+                { a: 2, b: 3 },
+                "string",
+                { c: 4, d: 5 },
+            ]);
             const collapsed = collection.collapse();
-            expect(collapsed.all()).toEqual({a: 2, b: 3, c: 4, d: 5});
+            expect(collapsed.all()).toEqual({ a: 2, b: 3, c: 4, d: 5 });
         });
     });
 
     describe("contains", () => {
         it("checks if value exists in array", () => {
-            const collection = new Collection([1, 2, 3]);
+            const collection = collect([1, 2, 3]);
             expect(collection.contains(2)).toBe(true);
             expect(collection.contains(4)).toBe(false);
         });
 
         it("checks if value exists in object", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3});
+            const collection = collect({ a: 1, b: 2, c: 3 });
             expect(collection.contains(2)).toBe(true);
             expect(collection.contains(4)).toBe(false);
         });
 
         it("works with callback in array", () => {
-            const collection = new Collection<{id: number}>([{id: 1}, {id: 2}]);
-            expect(collection.contains((item: {id: number}) => item.id === 2)).toBe(true);
-            expect(collection.contains((item: {id: number}) => item.id === 3)).toBe(false);
+            const collection = new Collection<{ id: number }>([
+                { id: 1 },
+                { id: 2 },
+            ]);
+            expect(
+                collection.contains((item: { id: number }) => item.id === 2),
+            ).toBe(true);
+            expect(
+                collection.contains((item: { id: number }) => item.id === 3),
+            ).toBe(false);
         });
 
         it("works with callback in object", () => {
-            const collection = new Collection<{id: number}>({a: {id: 1}, b: {id: 2}});
-            expect(collection.contains((item: {id: number}) => item.id === 2)).toBe(true);
-            expect(collection.contains((item: {id: number}) => item.id === 3)).toBe(false);
+            const collection = new Collection<{ id: number }>({
+                a: { id: 1 },
+                b: { id: 2 },
+            });
+            expect(
+                collection.contains((item: { id: number }) => item.id === 2),
+            ).toBe(true);
+            expect(
+                collection.contains((item: { id: number }) => item.id === 3),
+            ).toBe(false);
         });
     });
 
@@ -101,275 +126,290 @@ describe("Collection", () => {
         it("uses strict comparison in array", () => {
             const collection = new Collection<number | string>([1, 2, 3]);
             expect(collection.containsStrict(2)).toBe(true);
-            expect(collection.containsStrict('2')).toBe(false);
+            expect(collection.containsStrict("2")).toBe(false);
         });
 
         it("uses strict comparison in object", () => {
-            const collection = new Collection<number | string>({a: 1, b: 2, c: 3});
+            const collection = new Collection<number | string>({
+                a: 1,
+                b: 2,
+                c: 3,
+            });
             expect(collection.containsStrict(2)).toBe(true);
-            expect(collection.containsStrict('2')).toBe(false);
+            expect(collection.containsStrict("2")).toBe(false);
         });
     });
 
     describe("diff", () => {
         it("returns items not in given array collection", () => {
-            const collection = new Collection([1, 2, 3, 4]);
+            const collection = collect([1, 2, 3, 4]);
             const diff = collection.diff([2, 4]);
-            expect(diff.all()).toEqual({0: 1, 2: 3});
+            expect(diff.all()).toEqual({ 0: 1, 2: 3 });
         });
 
         it("returns items not in given object collection", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3, d: 4});
-            const diff = collection.diff({b: 2, d: 4});
-            expect(diff.all()).toEqual({a: 1, c: 3});
+            const collection = collect({ a: 1, b: 2, c: 3, d: 4 });
+            const diff = collection.diff({ b: 2, d: 4 });
+            expect(diff.all()).toEqual({ a: 1, c: 3 });
         });
     });
 
     describe("filter", () => {
         it("filters array with callback", () => {
-            const collection = new Collection([1, 2, 3, 4]);
-            const filtered = collection.filter(x => x > 2);
+            const collection = collect<number>([1, 2, 3, 4]);
+            const filtered = collection.filter((x) => x > 2);
             expect(filtered.all()).toEqual([3, 4]);
         });
 
         it("filters object with callback", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3, d: 4});
-            const filtered = collection.filter((value, _key) => value > 2);
-            expect(filtered.all()).toEqual({c: 3, d: 4});
+            const collection = collect<number>({ a: 1, b: 2, c: 3, d: 4 });
+            const filtered = collection.filter((value) => value > 2);
+            expect(filtered.all()).toEqual({ c: 3, d: 4 });
         });
 
         it("filters truthy array values when no callback", () => {
-            const collection = new Collection([0, 1, false, 2, '', 3]);
+            const collection = collect([0, 1, false, 2, "", 3]);
             const filtered = collection.filter();
             expect(filtered.all()).toEqual([1, 2, 3]);
         });
 
         it("filters truthy object values when no callback", () => {
-            const collection = new Collection({a: 0, b: 1, c: false, d: 2, e: '', f: 3});
+            const collection = collect({
+                a: 0,
+                b: 1,
+                c: false,
+                d: 2,
+                e: "",
+                f: 3,
+            });
             const filtered = collection.filter();
-            expect(filtered.all()).toEqual({b: 1, d: 2, f: 3});
+            expect(filtered.all()).toEqual({ b: 1, d: 2, f: 3 });
         });
     });
 
     describe("first", () => {
         it("returns first array item", () => {
-            const collection = new Collection([1, 2, 3]);
+            const collection = collect([1, 2, 3]);
             expect(collection.first()).toBe(1);
         });
 
         it("returns first object item", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3});
+            const collection = collect({ a: 1, b: 2, c: 3 });
             expect(collection.first()).toBe(1);
         });
 
         it("returns first array item matching callback", () => {
-            const collection = new Collection([1, 2, 3, 4]);
-            expect(collection.first(x => x > 2)).toBe(3);
+            const collection = collect<number>([1, 2, 3, 4]);
+            expect(collection.first((x) => x > 2)).toBe(3);
         });
 
         it("returns first object item matching callback", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3, d: 4});
-            expect(collection.first((value, _key) => value > 2)).toBe(3);
+            const collection = collect<number>({ a: 1, b: 2, c: 3, d: 4 });
+            expect(collection.first((value) => value > 2)).toBe(3);
         });
 
         it("returns default when empty array", () => {
-            const collection = new Collection([]);
-            expect(collection.first(null, 'default')).toBe('default');
+            const collection = collect([]);
+            expect(collection.first(null, "default")).toBe("default");
         });
 
         it("returns default when empty object", () => {
-            const collection = new Collection({});
-            expect(collection.first(null, 'default')).toBe('default');
+            const collection = collect({});
+            expect(collection.first(null, "default")).toBe("default");
         });
 
         it("returns default when no match in array", () => {
-            const collection = new Collection([1, 2, 3]);
-            expect(collection.first(x => x > 5, 'default')).toBe('default');
+            const collection = collect<number>([1, 2, 3]);
+            expect(collection.first((x) => x > 5, "default")).toBe("default");
         });
 
         it("returns default when no match in object", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3});
-            expect(collection.first((value) => value > 5, 'default')).toBe('default');
+            const collection = collect<number>({ a: 1, b: 2, c: 3 });
+            expect(collection.first((value) => value > 5, "default")).toBe(
+                "default",
+            );
         });
     });
 
     describe("isEmpty", () => {
         it("returns true for empty array collection", () => {
-            const collection = new Collection([]);
+            const collection = collect([]);
             expect(collection.isEmpty()).toBe(true);
         });
-        
+
         it("returns true for empty object collection", () => {
-            const collection = new Collection({});
+            const collection = collect({});
             expect(collection.isEmpty()).toBe(true);
         });
 
         it("returns false for non-empty array collection", () => {
-            const collection = new Collection([1, 2, 3]);
+            const collection = collect([1, 2, 3]);
             expect(collection.isEmpty()).toBe(false);
         });
 
         it("returns false for non-empty object collection", () => {
-            const collection = new Collection({a: 1});
+            const collection = collect({ a: 1 });
             expect(collection.isEmpty()).toBe(false);
         });
     });
 
     describe("count", () => {
         it("returns number of array items", () => {
-            const collection = new Collection([1, 2, 3]);
+            const collection = collect([1, 2, 3]);
             expect(collection.count()).toBe(3);
         });
 
         it("returns number of object items", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3});
+            const collection = collect({ a: 1, b: 2, c: 3 });
             expect(collection.count()).toBe(3);
         });
 
         it("returns 0 for empty array collection", () => {
-            const collection = new Collection([]);
+            const collection = collect([]);
             expect(collection.count()).toBe(0);
         });
 
         it("returns 0 for empty object collection", () => {
-            const collection = new Collection({});
+            const collection = collect({});
             expect(collection.count()).toBe(0);
         });
     });
 
     describe("keys", () => {
         it("returns collection of object keys", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3});
-            expect(collection.keys().all()).toEqual(['a', 'b', 'c']);
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            expect(collection.keys().all()).toEqual(["a", "b", "c"]);
         });
 
         it("returns collection of numeric keys for array", () => {
-            const collection = new Collection([1, 2, 3]);
+            const collection = collect([1, 2, 3]);
             expect(collection.keys().all()).toEqual([0, 1, 2]);
         });
     });
 
     describe("values", () => {
         it("returns collection of values with object keys", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3});
+            const collection = collect({ a: 1, b: 2, c: 3 });
             expect(collection.values().all()).toEqual([1, 2, 3]);
         });
 
         it("returns collection of values with numeric keys", () => {
-            const collection = new Collection([1, 2, 3]);
+            const collection = collect([1, 2, 3]);
             expect(collection.values().all()).toEqual([1, 2, 3]);
         });
     });
 
     describe("map", () => {
         it("transforms each array item", () => {
-            const collection = new Collection([1, 2, 3]);
-            const mapped = collection.map(x => x * 2);
+            const collection = collect<number>([1, 2, 3]);
+            const mapped = collection.map((x) => x * 2);
             expect(mapped.all()).toEqual([2, 4, 6]);
         });
 
         it("transforms each object item", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3});
-            const mapped = collection.map((value, key) => `${key}:${value * 2}`);
-            expect(mapped.all()).toEqual({a: 'a:2', b: 'b:4', c: 'c:6'});
+            const collection = collect<number>({ a: 1, b: 2, c: 3 });
+            const mapped = collection.map(
+                (value, key) => `${key}:${value * 2}`,
+            );
+            expect(mapped.all()).toEqual({ a: "a:2", b: "b:4", c: "c:6" });
         });
     });
 
     describe("pluck", () => {
         it("plucks array values by key", () => {
-            const collection = new Collection([
-                {id: 1, name: 'John'}, 
-                {id: 2, name: 'Jane'}
+            const collection = collect([
+                { id: 1, name: "John" },
+                { id: 2, name: "Jane" },
             ]);
-            const names = collection.pluck('name');
-            expect(names.all()).toEqual(['John', 'Jane']);
+            const names = collection.pluck("name");
+            expect(names.all()).toEqual(["John", "Jane"]);
         });
 
         it("plucks object values by key", () => {
-            const collection = new Collection({
-                a: {id: 1, name: 'John'}, 
-                b: {id: 2, name: 'Jane'}
+            const collection = collect({
+                a: { id: 1, name: "John" },
+                b: { id: 2, name: "Jane" },
             });
-            const names = collection.pluck('name');
-            expect(names.all()).toEqual({a: 'John', b: 'Jane'});
+            const names = collection.pluck("name");
+            expect(names.all()).toEqual({ a: "John", b: "Jane" });
         });
     });
 
     describe("last", () => {
         it("returns last array item", () => {
-            const collection = new Collection([1, 2, 3]);
+            const collection = collect([1, 2, 3]);
             expect(collection.last()).toBe(3);
         });
 
         it("returns last object item", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3});
+            const collection = collect({ a: 1, b: 2, c: 3 });
             expect(collection.last()).toBe(3);
         });
 
         it("returns last array item matching callback", () => {
-            const collection = new Collection([1, 2, 3, 4]);
-            expect(collection.last(x => x < 4)).toBe(3);
+            const collection = collect<number>([1, 2, 3, 4]);
+            expect(collection.last((x) => x < 4)).toBe(3);
         });
 
         it("returns last object item matching callback", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3, d: 4});
-            expect(collection.last((value, _key) => value < 4)).toBe(3);
+            const collection = collect<number>({ a: 1, b: 2, c: 3, d: 4 });
+            expect(collection.last((value) => value < 4)).toBe(3);
         });
 
         it("returns default when empty array", () => {
-            const collection = new Collection([]);
-            expect(collection.last(null, 'default')).toBe('default');
+            const collection = collect([]);
+            expect(collection.last(null, "default")).toBe("default");
         });
 
         it("returns default when empty object", () => {
-            const collection = new Collection({});
-            expect(collection.last(null, 'default')).toBe('default');
+            const collection = collect({});
+            expect(collection.last(null, "default")).toBe("default");
         });
     });
 
     describe("get", () => {
         it("gets value by key in object", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3});
-            expect(collection.get('b')).toBe(2);
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            expect(collection.get("b")).toBe(2);
         });
 
         it("gets value by key in array", () => {
-            const collection = new Collection([1, 2, 3]);
+            const collection = collect([1, 2, 3]);
             expect(collection.get(1)).toBe(2);
         });
 
         it("returns default for missing object key", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3});
-            expect(collection.get('d', 'default')).toBe('default');
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            expect(collection.get("d", "default")).toBe("default");
         });
 
         it("returns default for missing array index", () => {
-            const collection = new Collection([1, 2, 3]);
-            expect(collection.get(5, 'default')).toBe('default');
+            const collection = collect([1, 2, 3]);
+            expect(collection.get(5, "default")).toBe("default");
         });
     });
 
     describe("has", () => {
         it("checks if key exists in object", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3});
-            expect(collection.has('a')).toBe(true);
-            expect(collection.has('d')).toBe(false);
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            expect(collection.has("a")).toBe(true);
+            expect(collection.has("d")).toBe(false);
         });
 
         it("checks if index exists in array", () => {
-            const collection = new Collection([1, 2, 3]);
+            const collection = collect([1, 2, 3]);
             expect(collection.has(0)).toBe(true);
             expect(collection.has(5)).toBe(false);
         });
 
         it("checks multiple keys in object", () => {
-            const collection = new Collection({a: 1, b: 2, c: 3});
-            expect(collection.has(['a', 'b'])).toBe(true);
-            expect(collection.has(['a', 'd'])).toBe(false);
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            expect(collection.has(["a", "b"])).toBe(true);
+            expect(collection.has(["a", "d"])).toBe(false);
         });
 
         it("checks multiple indices in array", () => {
-            const collection = new Collection([1, 2, 3]);
+            const collection = collect([1, 2, 3]);
             expect(collection.has([0, 1])).toBe(true);
             expect(collection.has([0, 5])).toBe(false);
         });

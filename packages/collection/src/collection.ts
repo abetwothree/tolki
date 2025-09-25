@@ -6,10 +6,9 @@ import * as Arr from "@laravel-js/arr";
  */
 export type TKey = string | number | symbol;
 
-export type Items<
-    TValue,
-    TKeyValue extends string | number | symbol = TKey
-> = TValue[] | Record<TKeyValue, TValue>;
+export type Items<TValue, TKeyValue extends TKey = TKey> =
+    | TValue[]
+    | Record<TKeyValue, TValue>;
 
 /**
  * Interface for objects that can be converted to arrays or records.
@@ -18,24 +17,32 @@ export interface Arrayable<TValue> {
     toArray(): Items<TValue>;
 }
 
+export function collect<TValue = unknown, TKeyValue extends TKey = TKey>(
+    items?: TValue[] | Items<TValue> | Arrayable<TValue> | null,
+) {
+    return new Collection<TValue, TKeyValue>(items);
+}
+
 /**
  * Laravel-style Collection class for JavaScript/TypeScript.
  * Provides a fluent interface for working with arrays and objects.
  *
  * @template TValue - The type of values stored in the collection
  */
-export class Collection<TValue = unknown> {
+export class Collection<TValue, TKeyValue extends TKey = TKey> {
     /**
      * The items contained in the collection.
      */
-    protected items: Items<TValue>;
+    protected items: Items<TValue, TKeyValue>;
 
     /**
      * Create a new collection.
      *
      * @param items - The items to initialize the collection with
      */
-    constructor(items?: TValue[] | Items<TValue> | Arrayable<TValue> | null) {
+    constructor(
+        items?: TValue[] | Items<TValue, TKeyValue> | Arrayable<TValue> | null,
+    ) {
         this.items = this.getArrayableItems(items ?? []);
     }
 
@@ -52,7 +59,11 @@ export class Collection<TValue = unknown> {
      * Collection.range(1, 5); // -> new Collection({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
      * Collection.range(1, 10, 2); // -> new Collection({0: 1, 1: 3, 2: 5, 3: 7, 4: 9})
      */
-    static range(from: number, to: number, step: number = 1): Collection<number> {
+    static range(
+        from: number,
+        to: number,
+        step: number = 1,
+    ): Collection<number> {
         const rangeArray: number[] = [];
         for (let i = from; i <= to; i += step) {
             rangeArray.push(i);
@@ -86,25 +97,36 @@ export class Collection<TValue = unknown> {
      */
     collapse(): Collection<unknown> {
         const values = this.getItemValues(this.items);
-        
+
         // Check if we're dealing with objects or arrays
-        const hasObjects = values.some(item => 
-            typeof item === 'object' && item !== null && !Array.isArray(item)
+        const hasObjects = values.some(
+            (item) =>
+                typeof item === "object" &&
+                item !== null &&
+                !Array.isArray(item),
         );
-        
+
         if (hasObjects) {
             // Merge objects together
             const result: Record<string | number, unknown> = {};
-            values.forEach(item => {
-                if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+            values.forEach((item) => {
+                if (
+                    typeof item === "object" &&
+                    item !== null &&
+                    !Array.isArray(item)
+                ) {
                     Object.assign(result, item);
                 }
             });
-            return new Collection(result);
+            return new Collection<unknown>(
+                result as Record<string | number, unknown>,
+            );
         } else {
             // Flatten arrays
-            const collapsed = Arr.collapse(values as readonly (readonly unknown[])[]);
-            return new Collection(collapsed);
+            const collapsed = Arr.collapse(
+                values as readonly (readonly unknown[])[],
+            );
+            return new Collection<unknown>(collapsed as unknown[]);
         }
     }
 
@@ -119,14 +141,21 @@ export class Collection<TValue = unknown> {
      * new Collection([1, 2, 3]).contains(2); // -> true
      * new Collection([{id: 1}, {id: 2}]).contains(item => item.id === 2); // -> true
      */
-    contains(key: TValue | ((value: TValue, index: string | number) => boolean)): boolean {
-        if (typeof key === 'function') {
-            const callback = key as (value: TValue, index: string | number) => boolean;
+    contains(
+        key: TValue | ((value: TValue, index: string | number) => boolean),
+    ): boolean {
+        if (typeof key === "function") {
+            const callback = key as (
+                value: TValue,
+                index: string | number,
+            ) => boolean;
             if (Array.isArray(this.items)) {
-                return this.items.some((value, index) => callback(value, index));
+                return this.items.some((value, index) =>
+                    callback(value as TValue, index),
+                );
             } else {
                 for (const [index, value] of Object.entries(this.items)) {
-                    if (callback(value, index)) {
+                    if (callback(value as TValue, index)) {
                         return true;
                     }
                 }
@@ -149,7 +178,7 @@ export class Collection<TValue = unknown> {
      * new Collection([1, 2, 3]).containsStrict('2'); // -> false
      */
     containsStrict(key: TValue): boolean {
-        return this.getItemValues(this.items).some(value => value === key);
+        return this.getItemValues(this.items).some((value) => value === key);
     }
 
     /**
@@ -162,9 +191,11 @@ export class Collection<TValue = unknown> {
      *
      * new Collection([1, 2, 3, 4]).diff([2, 4]); // -> new Collection({0: 1, 2: 3})
      */
-    diff(items: TValue[] | Record<string | number, TValue> | Collection<TValue>): Collection<TValue> {
+    diff(
+        items: TValue[] | Record<string | number, TValue> | Collection<TValue>,
+    ): Collection<TValue> {
         let otherValues: TValue[];
-        
+
         if (items instanceof Collection) {
             otherValues = this.getItemValues(items.all());
         } else if (Array.isArray(items)) {
@@ -172,24 +203,24 @@ export class Collection<TValue = unknown> {
         } else {
             otherValues = Object.values(items);
         }
-        
+
         if (Array.isArray(this.items)) {
             // For arrays, preserve original indices as keys
             const result: Record<number, TValue> = {};
             this.items.forEach((value, index) => {
-                if (!otherValues.includes(value)) {
+                if (!otherValues.includes(value as TValue)) {
                     result[index] = value;
                 }
             });
-            return new Collection(result);
+            return new Collection<TValue>(result as Items<TValue, TKeyValue>);
         } else {
             const result: Record<string | number, TValue> = {};
             for (const [key, value] of Object.entries(this.items)) {
-                if (!otherValues.includes(value)) {
-                    result[key] = value;
+                if (!otherValues.includes(value as TValue)) {
+                    result[key] = value as TValue;
                 }
             }
-            return new Collection(result);
+            return new Collection<TValue>(result as Items<TValue, TKeyValue>);
         }
     }
 
@@ -204,13 +235,15 @@ export class Collection<TValue = unknown> {
      * new Collection([1, 2, 3, 4]).filter(x => x > 2); // -> new Collection([3, 4])
      * new Collection([0, 1, false, 2, '', 3]).filter(); // -> new Collection([1, 2, 3])
      */
-    filter(callback?: ((value: TValue, key: string | number) => boolean) | null): Collection<TValue> {
+    filter(
+        callback?: ((value: TValue, key: string | number) => boolean) | null,
+    ): Collection<TValue> {
         if (Array.isArray(this.items)) {
             // For arrays, return a new sequential array with just the values
             const result: TValue[] = [];
             this.items.forEach((value, index) => {
                 if (callback) {
-                    if (callback(value, index)) {
+                    if (callback(value as TValue, index)) {
                         result.push(value);
                     }
                 } else {
@@ -219,21 +252,21 @@ export class Collection<TValue = unknown> {
                     }
                 }
             });
-            return new Collection(result);
+            return new Collection<TValue>(result as Items<TValue, TKeyValue>);
         } else {
             const result: Record<string | number, TValue> = {};
             for (const [key, value] of Object.entries(this.items)) {
                 if (callback) {
-                    if (callback(value, key)) {
-                        result[key] = value;
+                    if (callback(value as TValue, key)) {
+                        result[key] = value as TValue;
                     }
                 } else {
                     if (value) {
-                        result[key] = value;
+                        result[key] = value as TValue;
                     }
                 }
             }
-            return new Collection(result);
+            return new Collection<TValue>(result as Items<TValue, TKeyValue>);
         }
     }
 
@@ -252,15 +285,19 @@ export class Collection<TValue = unknown> {
      */
     first<D = null>(
         callback?: ((value: TValue, key: string | number) => boolean) | null,
-        defaultValue?: D | (() => D)
+        defaultValue?: D | (() => D),
     ): TValue | D | null {
         const values = this.getItemValues(this.items);
-        
+
         if (callback) {
-            const result = Arr.first(values, callback as (value: TValue, index: number) => boolean, defaultValue);
+            const result = Arr.first(
+                values,
+                callback as (value: TValue, index: number) => boolean,
+                defaultValue,
+            );
             return result === undefined ? null : result;
         }
-        
+
         const result = Arr.first(values, null, defaultValue);
         return result === undefined ? null : result;
     }
@@ -310,7 +347,9 @@ export class Collection<TValue = unknown> {
             return new Collection(keys) as Collection<string | number>;
         } else {
             // For objects, return string keys
-            return new Collection(Object.keys(this.items)) as Collection<string | number>;
+            return new Collection(Object.keys(this.items)) as Collection<
+                string | number
+            >;
         }
     }
 
@@ -324,7 +363,9 @@ export class Collection<TValue = unknown> {
      * new Collection({a: 1, b: 2, c: 3}).values(); // -> new Collection({0: 1, 1: 2, 2: 3})
      */
     values(): Collection<TValue> {
-        return new Collection(Object.values(this.items));
+        return new Collection<TValue>(
+            Object.values(this.items) as Items<TValue>,
+        );
     }
 
     /**
@@ -337,19 +378,21 @@ export class Collection<TValue = unknown> {
      *
      * new Collection([1, 2, 3]).map(x => x * 2); // -> new Collection([2, 4, 6])
      */
-    map<U>(callback: (value: TValue, key: string | number) => U): Collection<U> {
+    map<U>(
+        callback: (value: TValue, key: string | number) => U,
+    ): Collection<U> {
         if (Array.isArray(this.items)) {
             const result: U[] = [];
             this.items.forEach((value, index) => {
-                result.push(callback(value, index));
+                result.push(callback(value as TValue, index));
             });
-            return new Collection(result);
+            return new Collection<U>(result as Items<U>);
         } else {
             const result: Record<string | number, U> = {};
             for (const [key, value] of Object.entries(this.items)) {
-                result[key] = callback(value, key);
+                result[key] = callback(value as TValue, key);
             }
-            return new Collection(result);
+            return new Collection<U>(result as Items<U>);
         }
     }
 
@@ -365,25 +408,35 @@ export class Collection<TValue = unknown> {
      * new Collection([{name: 'John'}, {name: 'Jane'}]).pluck('name'); // -> new Collection(['John', 'Jane'])
      * new Collection({a: {name: 'John'}, b: {name: 'Jane'}}).pluck('name'); // -> new Collection({a: 'John', b: 'Jane'})
      */
-    pluck(value: string | ((item: TValue) => unknown), key?: string | ((item: TValue) => string | number) | null): Collection<unknown> {
+    pluck(
+        value: string | ((item: TValue) => unknown),
+        key?: string | ((item: TValue) => string | number) | null,
+    ): Collection<unknown> {
         if (Array.isArray(this.items)) {
             // For arrays, use Arr.pluck which returns an array
-            const result = Arr.pluck(this.items as Record<string, unknown>[], value as string | ((item: Record<string, unknown>) => unknown), key as string | ((item: Record<string, unknown>) => string | number) | null);
-            return new Collection(result);
+            const result = Arr.pluck(
+                this.items as Record<string, unknown>[],
+                value as string | ((item: Record<string, unknown>) => unknown),
+                key as
+                    | string
+                    | ((item: Record<string, unknown>) => string | number)
+                    | null,
+            );
+            return new Collection<unknown>(result as Items<unknown>);
         } else {
             // For objects, preserve the original keys
             const result: Record<string | number, unknown> = {};
             for (const [objKey, item] of Object.entries(this.items)) {
-                if (typeof item === 'object' && item !== null) {
+                if (typeof item === "object" && item !== null) {
                     const itemObj = item as Record<string, unknown>;
-                    if (typeof value === 'string') {
+                    if (typeof value === "string") {
                         result[objKey] = itemObj[value];
-                    } else if (typeof value === 'function') {
-                        result[objKey] = value(item);
+                    } else if (typeof value === "function") {
+                        result[objKey] = value(item as TValue);
                     }
                 }
             }
-            return new Collection(result);
+            return new Collection<unknown>(result as Items<unknown>);
         }
     }
 
@@ -402,15 +455,19 @@ export class Collection<TValue = unknown> {
      */
     last<D = null>(
         callback?: ((value: TValue, key: string | number) => boolean) | null,
-        defaultValue?: D | (() => D)
+        defaultValue?: D | (() => D),
     ): TValue | D | null {
         const values = this.getItemValues(this.items);
-        
+
         if (callback) {
-            const result = Arr.last(values, callback as (value: TValue, index: number) => boolean, defaultValue);
+            const result = Arr.last(
+                values,
+                callback as (value: TValue, index: number) => boolean,
+                defaultValue,
+            );
             return result === undefined ? null : result;
         }
-        
+
         const result = Arr.last(values, null, defaultValue);
         return result === undefined ? null : result;
     }
@@ -427,23 +484,26 @@ export class Collection<TValue = unknown> {
      * new Collection({a: 1, b: 2, c: 3}).get('b'); // -> 2
      * new Collection({a: 1, b: 2, c: 3}).get('d', 'default'); // -> 'default'
      */
-    get<D = null>(key: string | number, defaultValue?: D | (() => D)): TValue | D | null {
+    get<D = null>(
+        key: string | number,
+        defaultValue?: D | (() => D),
+    ): TValue | D | null {
         let value: TValue | undefined;
-        
+
         if (Array.isArray(this.items)) {
             value = this.items[key as number];
         } else {
-            value = this.items[key];
+            value = (this.items as Record<string | number, TValue>)[key];
         }
-        
+
         if (value !== undefined) {
             return value;
         }
-        
-        if (typeof defaultValue === 'function') {
+
+        if (typeof defaultValue === "function") {
             return (defaultValue as () => D)();
         }
-        
+
         return defaultValue ?? null;
     }
 
@@ -461,9 +521,9 @@ export class Collection<TValue = unknown> {
      */
     has(key: string | number | (string | number)[]): boolean {
         if (Array.isArray(key)) {
-            return key.every(k => this.hasKey(k));
+            return key.every((k) => this.hasKey(k));
         }
-        
+
         return this.hasKey(key);
     }
 
@@ -472,7 +532,7 @@ export class Collection<TValue = unknown> {
      */
     private hasKey(key: string | number): boolean {
         if (Array.isArray(this.items)) {
-            const numKey = typeof key === 'string' ? parseInt(key, 10) : key;
+            const numKey = typeof key === "string" ? parseInt(key, 10) : key;
             return numKey >= 0 && numKey < this.items.length && !isNaN(numKey);
         } else {
             return Object.prototype.hasOwnProperty.call(this.items, key);
@@ -503,7 +563,13 @@ export class Collection<TValue = unknown> {
         }
 
         // If it has a toArray method, use it
-        if (typeof items === 'object' && items !== null && 'toArray' in items && typeof (items as unknown as { toArray: unknown }).toArray === 'function') {
+        if (
+            typeof items === "object" &&
+            items !== null &&
+            "toArray" in items &&
+            typeof (items as unknown as { toArray: unknown }).toArray ===
+                "function"
+        ) {
             return (items as Arrayable<TValue>).toArray();
         }
 
@@ -518,7 +584,7 @@ export class Collection<TValue = unknown> {
         }
 
         // If it's an object, keep it as an object
-        if (typeof items === 'object' && items !== null) {
+        if (typeof items === "object" && items !== null) {
             return items as Record<TKey, TValue>;
         }
 
