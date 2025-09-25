@@ -6,7 +6,7 @@ import {
     normalizeToArray,
     isAccessibleData,
     getAccessibleValues,
-} from "@laravel-js/arr";
+} from "@laravel-js/utils";
 
 describe("Utils", () => {
     it("compareValues", () => {

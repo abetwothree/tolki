@@ -13,7 +13,7 @@ import {
     hasMixed,
 } from "@laravel-js/path";
 import type { ArrayKey, ArrayKeys } from "@laravel-js/path";
-import { compareValues, getAccessibleValues } from "./utils";
+import { compareValues, getAccessibleValues } from "@laravel-js/utils";
 
 // Extract the element type from an array
 export type InnerValue<X> = X extends ReadonlyArray<infer U> ? U : never;

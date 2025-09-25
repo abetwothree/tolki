@@ -43,6 +43,7 @@
         "@laravel-js/path": "workspace:^",
         "@laravel-js/str": "workspace:^",
         "@laravel-js/types": "workspace:^",
+        "@laravel-js/utils": "workspace:^",
         "@vitest/coverage-istanbul": "3.2.4",
         "@vitest/ui": "3.2.4",
         "eslint": "^9.36.0",
