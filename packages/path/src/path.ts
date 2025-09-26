@@ -1,4 +1,11 @@
-import { isArray, typeOf, castableToArray } from "@laravel-js/utils";
+import {
+    isArray,
+    typeOf,
+    castableToArray,
+    isNull,
+    isNumber,
+    isUndefined,
+} from "@laravel-js/utils";
 import type { PathKey, PathKeys } from "packages/types";
 
 /**
@@ -1047,15 +1054,20 @@ export const setMixedImmutable = <T>(
  * hasMixed([], "user.name"); // -> false
  */
 export const hasMixed = (data: unknown, key: PathKey): boolean => {
-    if (key == null) {
+    if (isNull(key)) {
         return data != null;
     }
 
-    if (typeof key === "number") {
+    if (isNumber(key)) {
         return isArray(data) && key >= 0 && key < data.length;
+    }
+
+    if(isUndefined(key)) {
+        return false;
     }
 
     // Use getNestedValue to check existence
     const result = getNestedValue(data, key.toString());
-    return result !== undefined;
+
+    return !isUndefined(result);
 };

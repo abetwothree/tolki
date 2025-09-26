@@ -948,7 +948,7 @@ describe("Path Functions", () => {
 
         it("returns true for non-null data when key is null", () => {
             expect(Path.hasMixed(testData, null)).toBe(true);
-            expect(Path.hasMixed([], undefined)).toBe(true);
+            expect(Path.hasMixed([], undefined)).toBe(false);
         });
 
         it("returns false for null data when key is null", () => {

@@ -58,7 +58,7 @@ export function isString(value: unknown): value is string {
  * isNumber("123"); // -> false
  */
 export function isNumber(value: unknown): value is number {
-    return typeof value === "number" && !isNaN(value);
+    return Number.isInteger(value) && typeof value === "number" && !isNaN(value);
 }
 
 /**
