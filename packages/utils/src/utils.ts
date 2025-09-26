@@ -149,6 +149,41 @@ export function isNull(value: unknown): value is null {
 }
 
 /**
+ * Get a more specific type description for debugging purposes.
+ * Differentiates between null, arrays, and other types.
+ *
+ * @param {unknown} v - The value to get the type of.
+ * @returns {string} A string describing the type.
+ * @example
+ * Get specific types
+ * typeOf(null); // -> "null"
+ * typeOf([]); // -> "array"
+ * typeOf({}); // -> "object"
+ */
+export function typeOf(v: unknown): string {
+    if (isNull(v)) return "null";
+    if (isArray(v)) return "array";
+    return typeof v;
+}
+
+/**
+ * Convert a value to an array if it's already an array, otherwise return null.
+ * Used internally for safe array conversion without coercion.
+ *
+ * @param {unknown} value - The value to convert.
+ * @returns {unknown[] | null} The array if value is an array, null otherwise.
+ * @example
+ * Convert to array
+ * toArray([1, 2, 3]); // -> [1, 2, 3]
+ * toArray("hello"); // -> null
+ * toArray({}); // -> null
+ */
+export function castableToArray<T>(value: unknown): T[] | null {
+    if (isArray(value)) return value as T[];
+    return null;
+}
+
+/**
  * Helper function to safely compare two unknown values for sorting.
  * Provides stable comparison for objects using JSON serialization.
  *

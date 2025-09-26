@@ -1,6 +1,5 @@
 import { Random, Str } from "@laravel-js/str";
 import {
-    toArray as _toArray,
     getRaw as _getRaw,
     forgetKeys as _forgetKeys,
     pushWithPath as _pushWithPath,
@@ -13,7 +12,12 @@ import {
     hasMixed,
 } from "@laravel-js/path";
 import type { PathKey, PathKeys } from "packages/types";
-import { compareValues, getAccessibleValues, isArray } from "@laravel-js/utils";
+import {
+    compareValues,
+    getAccessibleValues,
+    isArray,
+    castableToArray,
+} from "@laravel-js/utils";
 import type { ArrayInnerValue } from "@laravel-js/types";
 
 /**
@@ -1311,10 +1315,10 @@ export function pull<T, D = null>(
         return { value: resolveDefault(), data: [] as T[] };
     }
     if (key == null) {
-        const original = _toArray(data)!.slice();
+        const original = castableToArray(data)!.slice();
         return { value: resolveDefault(), data: original as T[] };
     }
-    const root = _toArray(data)!;
+    const root = castableToArray(data)!;
     const { found, value } = _getRaw(root, key as number | string);
     if (!found) {
         const original = root.slice();
@@ -2019,6 +2023,69 @@ export function whereNotNull<T>(data: ReadonlyArray<T | null> | unknown): T[] {
         data as ReadonlyArray<T | null>,
         (value): value is T => value !== null,
     );
+}
+
+/**
+ * Check if an array contains a given value.
+ *
+ * @param data - The array to search in.
+ * @param value - The value to search for.
+ * @param strict - Whether to use strict comparison.
+ * @returns True if the value is found, false otherwise.
+ *
+ * @example
+ *
+ * contains([1, 2, 3], 2); // -> true
+ * contains(['a', 'b', 'c'], 'd'); // -> false
+ * contains([1, '1'], '1', true); // -> true
+ */
+export function contains<T>(
+    data: ReadonlyArray<T> | unknown,
+    value: T,
+    strict = false,
+): boolean {
+    if (!isArray(data)) {
+        return false;
+    }
+
+    if (strict) {
+        return data.includes(value);
+    }
+
+    return data.some((item) => item == value);
+}
+
+/**
+ * Filter the array using a callback function.
+ *
+ * @param data - The array to filter.
+ * @param callback - Optional callback function to filter items.
+ * @returns A new filtered array.
+ *
+ * @example
+ *
+ * filter([1, 2, 3, 4], (x) => x > 2); // -> [3, 4]
+ * filter([1, null, 2, undefined, 3]); // -> [1, 2, 3]
+ */
+export function filter<T>(data: ReadonlyArray<T> | unknown): T[];
+export function filter<T>(
+    data: ReadonlyArray<T> | unknown,
+    callback: (value: T, index: number) => boolean,
+): T[];
+export function filter<T>(
+    data: ReadonlyArray<T> | unknown,
+    callback?: (value: T, index: number) => boolean,
+): T[] {
+    if (!isArray(data)) {
+        return [];
+    }
+
+    if (!callback) {
+        // Filter out falsy values by default
+        return data.filter((value): value is T => Boolean(value));
+    }
+
+    return (data as T[]).filter(callback);
 }
 
 /**

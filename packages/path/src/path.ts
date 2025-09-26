@@ -1,55 +1,22 @@
-import { isArray } from "@laravel-js/utils";
+import { isArray, typeOf, castableToArray } from "@laravel-js/utils";
 import type { PathKey, PathKeys } from "packages/types";
 
 /**
- * Convert a value to an array if it's already an array, otherwise return null.
- * Used internally for safe array conversion without coercion.
- *
- * @param {unknown} value - The value to convert.
- * @returns {unknown[] | null} The array if value is an array, null otherwise.
- * @example
- * Convert to array
- * toArray([1, 2, 3]); // -> [1, 2, 3]
- * toArray("hello"); // -> null
- * toArray({}); // -> null
- */
-export const toArray = (value: unknown): unknown[] | null => {
-    if (isArray(value)) return value as unknown[];
-    return null;
-};
-
-/**
- * Get a more specific type description for debugging purposes.
- * Differentiates between null, arrays, and other types.
- *
- * @param {unknown} v - The value to get the type of.
- * @returns {string} A string describing the type.
- * @example
- * Get specific types
- * typeOf(null); // -> "null"
- * typeOf([]); // -> "array"
- * typeOf({}); // -> "object"
- */
-const typeOf = (v: unknown): string => {
-    if (v === null) return "null";
-    if (isArray(v)) return "array";
-    return typeof v;
-};
-
-/**
- * Parse a key into numeric segments for array path traversal.
- * Converts dot notation strings and numbers into array indices.
+ * Parse a key into segments for mixed array/object path traversal.
+ * Converts dot notation strings and numbers into path segments that can be
+ * either numeric indices (for arrays) or string keys (for objects).
  *
  * @param {PathKey} key - The key to parse (number, string, null, or undefined).
- * @returns {number[] | null} Array of numeric indices, or null if invalid.
+ * @returns {(number | string)[] | null} Array of path segments, or null if invalid.
  * @example
  * Parse different key types
  * parseSegments(5); // -> [5]
- * parseSegments("1.2.3"); // -> [1, 2, 3]
- * parseSegments("invalid"); // -> null
+ * parseSegments("1.2.3"); // -> [1, 2, 3] (numeric segments)
+ * parseSegments("user.name"); // -> ["user", "name"] (string segments)
+ * parseSegments("0.user.1.name"); // -> [0, "user", 1, "name"] (mixed segments)
  * parseSegments(null); // -> []
  */
-export const parseSegments = (key: PathKey): number[] | null => {
+export const parseSegments = (key: PathKey): (number | string)[] | null => {
     if (key == null) return [];
     if (typeof key === "number") {
         return Number.isInteger(key) && key >= 0 ? [key] : null;
@@ -61,35 +28,56 @@ export const parseSegments = (key: PathKey): number[] | null => {
     }
 
     const parts = path.split(".");
-    const segs: number[] = [];
+    const segs: (number | string)[] = [];
     for (const p of parts) {
-        const n = p.length ? Number(p) : NaN;
-        if (!Number.isInteger(n) || n < 0) {
+        if (p.length === 0) {
+            // Empty segment is invalid
             return null;
         }
-        segs.push(n);
+
+        // Try to parse as number first
+        const n = Number(p);
+        if (Number.isInteger(n) && n >= 0) {
+            segs.push(n);
+        } else {
+            // Use as string key for object properties
+            segs.push(p);
+        }
     }
     return segs;
 };
 
 /**
- * Check if a path exists in a nested array structure.
- * Traverses the array using dot notation or numeric indices.
+ * Check if a path exists in a nested array/object structure.
+ * Traverses the structure using dot notation with mixed array indices and object keys.
  *
- * @param {unknown[]} root - The root array to search in.
+ * @param {unknown[] | Record<string, unknown>} root - The root structure to search in.
  * @param {PathKey} key - The path to check (number, string, null, or undefined).
  * @returns {boolean} True if the path exists, false otherwise.
  * @example
- * Check path existence
+ * Check path existence in arrays
  * hasPath([['a', 'b'], ['c', 'd']], "0.1"); // -> true
  * hasPath([['a', 'b']], "1.0"); // -> false
  * hasPath(['x', 'y'], 1); // -> true
+ *
+ * @example
+ * Check path existence in objects
+ * hasPath([{name: 'John', age: 30}], "0.name"); // -> true
+ * hasPath({user: {profile: {name: 'Jane'}}}, "user.profile.name"); // -> true
+ * hasPath({items: ['a', 'b']}, "items.1"); // -> true
  */
-export const hasPath = (root: unknown[], key: PathKey): boolean => {
+export const hasPath = (
+    root: unknown[] | Record<string, unknown>,
+    key: PathKey,
+): boolean => {
     if (key == null) return false;
 
     if (typeof key === "number") {
-        return Number.isInteger(key) && key >= 0 && key < root.length;
+        if (isArray(root)) {
+            return Number.isInteger(key) && key >= 0 && key < root.length;
+        }
+        // For objects, numeric keys are treated as string keys
+        return root != null && typeof root === "object" && String(key) in root;
     }
 
     const segs = parseSegments(key);
@@ -97,28 +85,44 @@ export const hasPath = (root: unknown[], key: PathKey): boolean => {
 
     let cursor: unknown = root;
     for (const s of segs) {
-        const arr = toArray(cursor);
-        if (!arr || s < 0 || s >= arr.length) return false;
-        cursor = arr[s];
+        if (cursor == null || typeof cursor !== "object") return false;
+
+        if (typeof s === "number") {
+            // Numeric segment - check if cursor is an array
+            const arr = castableToArray(cursor);
+            if (!arr || s < 0 || s >= arr.length) return false;
+            cursor = arr[s];
+        } else {
+            // String segment - check if cursor is an object
+            if (isArray(cursor)) return false; // Arrays don't have string keys
+            if (!(s in cursor)) return false;
+            cursor = (cursor as Record<string, unknown>)[s];
+        }
     }
     return true;
 };
 
 /**
- * Get a value from a nested array structure using dot notation.
+ * Get a value from a nested array/object structure using dot notation.
  * Returns an object indicating whether the value was found and its value.
  *
- * @param {unknown[]} root - The root array to search in.
+ * @param {unknown[] | Record<string, unknown>} root - The root structure to search in.
  * @param {PathKey} key - The path to retrieve (number, string, null, or undefined).
  * @returns {{ found: boolean; value?: unknown }} Object with found status and value.
  * @example
- * Get values with path status
+ * Get values from arrays
  * getRaw([['a', 'b'], ['c']], "0.1"); // -> { found: true, value: 'b' }
  * getRaw([['a']], "1.0"); // -> { found: false }
  * getRaw(['x', 'y'], null); // -> { found: true, value: ['x', 'y'] }
+ *
+ * @example
+ * Get values from objects
+ * getRaw([{name: 'John', age: 30}], "0.name"); // -> { found: true, value: 'John' }
+ * getRaw({user: {profile: {name: 'Jane'}}}, "user.profile.name"); // -> { found: true, value: 'Jane' }
+ * getRaw({items: ['a', 'b']}, "items.1"); // -> { found: true, value: 'b' }
  */
 export const getRaw = (
-    root: unknown[],
+    root: unknown[] | Record<string, unknown>,
     key: PathKey,
 ): { found: boolean; value?: unknown } => {
     if (key == null) {
@@ -126,10 +130,22 @@ export const getRaw = (
     }
 
     if (typeof key === "number") {
-        if (!Number.isInteger(key) || key < 0 || key >= root.length) {
-            return { found: false };
+        if (isArray(root)) {
+            if (!Number.isInteger(key) || key < 0 || key >= root.length) {
+                return { found: false };
+            }
+            return { found: true, value: root[key] };
+        } else if (root != null && typeof root === "object") {
+            // For objects, numeric keys are treated as string keys
+            const stringKey = String(key);
+            return stringKey in root
+                ? {
+                      found: true,
+                      value: (root as Record<string, unknown>)[stringKey],
+                  }
+                : { found: false };
         }
-        return { found: true, value: root[key] };
+        return { found: false };
     }
 
     const segs = parseSegments(key);
@@ -137,9 +153,20 @@ export const getRaw = (
 
     let cursor: unknown = root;
     for (const s of segs) {
-        const arr = toArray(cursor);
-        if (!arr || s < 0 || s >= arr.length) return { found: false };
-        cursor = arr[s];
+        if (cursor == null || typeof cursor !== "object")
+            return { found: false };
+
+        if (typeof s === "number") {
+            // Numeric segment - check if cursor is an array
+            const arr = castableToArray(cursor);
+            if (!arr || s < 0 || s >= arr.length) return { found: false };
+            cursor = arr[s];
+        } else {
+            // String segment - check if cursor is an object
+            if (isArray(cursor)) return { found: false }; // Arrays don't have string keys
+            if (!(s in cursor)) return { found: false };
+            cursor = (cursor as Record<string, unknown>)[s];
+        }
     }
     return { found: true, value: cursor };
 };
@@ -416,8 +443,18 @@ export const pushWithPath = <T>(
         const out: unknown[] = [];
         const segs = parseSegments(key);
         if (!segs || segs.length === 0) return out as T[];
-        const parentSegs = segs.slice(0, -1);
-        const leaf = segs[segs.length - 1]!;
+
+        // Filter to only numeric segments for array operations
+        const numericSegs = segs.filter(
+            (s): s is number => typeof s === "number",
+        );
+        if (numericSegs.length !== segs.length) {
+            // Mixed paths not supported in this array-only function
+            return out as T[];
+        }
+
+        const parentSegs = numericSegs.slice(0, -1);
+        const leaf = numericSegs[numericSegs.length - 1]!;
         let cursor: unknown[] = out;
         for (const desired of parentSegs) {
             const idx = desired > cursor.length ? cursor.length : desired;
@@ -459,12 +496,20 @@ export const pushWithPath = <T>(
     if (!segs || segs.length === 0) {
         return isPlainArray ? (data as T[]) : (root as T[]);
     }
+
+    // Filter to only numeric segments for array operations
+    const numericSegs = segs.filter((s): s is number => typeof s === "number");
+    if (numericSegs.length !== segs.length) {
+        // Mixed paths not supported in this array-only function
+        return isPlainArray ? (data as T[]) : (root as T[]);
+    }
+
     const clamp = (idx: number, length: number): number => {
         return idx > length ? length : idx;
     };
     let cursor: unknown[] = root;
-    for (let i = 0; i < segs.length - 1; i++) {
-        const desired = segs[i]!;
+    for (let i = 0; i < numericSegs.length - 1; i++) {
+        const desired = numericSegs[i]!;
         const idx = clamp(desired, cursor.length);
         if (idx === cursor.length) {
             const child: unknown[] = [];
@@ -488,7 +533,7 @@ export const pushWithPath = <T>(
             `Array value for key [${String(key)}] must be an array, ${typeOf(next)} found.`,
         );
     }
-    const leaf = segs[segs.length - 1]!;
+    const leaf = numericSegs[numericSegs.length - 1]!;
     if (leaf < cursor.length) {
         const existing = cursor[leaf];
         if (typeof existing === "boolean") {
@@ -686,7 +731,7 @@ export const getMixedValue = <T, D = null>(
         if (!isArray(data)) {
             return resolveDefault();
         }
-        const root = toArray(data)!;
+        const root = castableToArray(data)!;
         const { found, value } = getRaw(root, key);
         return found ? value : resolveDefault();
     }
@@ -698,7 +743,7 @@ export const getMixedValue = <T, D = null>(
         if (!isArray(data)) {
             return resolveDefault();
         }
-        const root = toArray(data)!;
+        const root = castableToArray(data)!;
         const { found, value } = getRaw(root, key);
         return found ? value : resolveDefault();
     }
@@ -715,7 +760,7 @@ export const getMixedValue = <T, D = null>(
         if (!isArray(data)) {
             return resolveDefault();
         }
-        const root = toArray(data)!;
+        const root = castableToArray(data)!;
         const { found, value } = getRaw(root, key);
         return found ? value : resolveDefault();
     }

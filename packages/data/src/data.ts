@@ -15,7 +15,7 @@ import { isArray } from "@laravel-js/utils";
  * Data.values({a: 1, b: 2, c: 3}); // -> [1, 2, 3]
  */
 export function dataValues<T>(data: DataItems<T>): T[] {
-    return isArray(data) ? data : Obj.values(data);
+    return isArray(data) ? data : (Obj.values(data) as T[]);
 }
 
 /**
@@ -99,13 +99,31 @@ export function dataFirst<T, D = null>(
     callback?: ((value: T, key: string | number) => boolean) | null,
     defaultValue?: D | (() => D),
 ): T | D | null {
-    return isArray(data)
-        ? Arr.first(
-              data,
-              callback as ((value: T, index: number) => boolean) | null,
-              defaultValue,
-          )
-        : Obj.first(data, callback, defaultValue);
+    if (isArray(data)) {
+        if (callback) {
+            const result = Arr.first(
+                data,
+                callback as (value: T, index: number) => boolean,
+                defaultValue,
+            );
+            return result === undefined ? null : result;
+        } else {
+            const result = Arr.first(data, undefined, defaultValue);
+            return result === undefined ? null : result;
+        }
+    } else {
+        if (callback) {
+            const result = Obj.first(
+                data,
+                callback as (value: T, key: string) => boolean,
+                defaultValue,
+            );
+            return result === undefined ? null : result;
+        } else {
+            const result = Obj.first(data, undefined, defaultValue);
+            return result === undefined ? null : result;
+        }
+    }
 }
 
 /**
@@ -126,13 +144,31 @@ export function dataLast<T, D = null>(
     callback?: ((value: T, key: string | number) => boolean) | null,
     defaultValue?: D | (() => D),
 ): T | D | null {
-    return isArray(data)
-        ? Arr.last(
-              data,
-              callback as ((value: T, index: number) => boolean) | null,
-              defaultValue,
-          )
-        : Obj.last(data, callback, defaultValue);
+    if (isArray(data)) {
+        if (callback) {
+            const result = Arr.last(
+                data,
+                callback as (value: T, index: number) => boolean,
+                defaultValue,
+            );
+            return result === undefined ? null : result;
+        } else {
+            const result = Arr.last(data, undefined, defaultValue);
+            return result === undefined ? null : result;
+        }
+    } else {
+        if (callback) {
+            const result = Obj.last(
+                data,
+                callback as (value: T, key: string) => boolean,
+                defaultValue,
+            );
+            return result === undefined ? null : result;
+        } else {
+            const result = Obj.last(data, undefined, defaultValue);
+            return result === undefined ? null : result;
+        }
+    }
 }
 
 /**
@@ -177,16 +213,16 @@ export function dataDiff<T>(
 ): DataItems<T> {
     if (isArray(data)) {
         // For arrays, return object preserving original indices
-        const otherValues = values(other);
+        const otherValues = dataValues(other);
         const result: Record<number, T> = {};
         data.forEach((value, index) => {
             if (!otherValues.includes(value)) {
                 result[index] = value;
             }
         });
-        return result;
+        return result as unknown as DataItems<T>;
     } else {
-        return Obj.diff(data, other);
+        return Obj.diff(data, other) as unknown as DataItems<T>;
     }
 }
 
@@ -218,6 +254,13 @@ export function dataPluck<T, U>(
                 | null,
         ) as DataItems<U>;
     } else {
-        return Obj.pluck(data, value, key) as DataItems<U>;
+        return Obj.pluck(
+            data as unknown as Record<string, Record<string, unknown>>,
+            value as string | ((item: Record<string, unknown>) => unknown),
+            key as
+                | string
+                | ((item: Record<string, unknown>) => string | number)
+                | null,
+        ) as DataItems<U>;
     }
 }

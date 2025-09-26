@@ -6,9 +6,24 @@ import {
     normalizeToArray,
     isAccessibleData,
     getAccessibleValues,
+    castableToArray,
 } from "@laravel-js/utils";
 
 describe("Utils", () => {
+    describe("castableToArray", () => {
+        it("returns the array if value is an array", () => {
+            const arr = [1, 2, 3];
+            expect(castableToArray(arr)).toBe(arr);
+        });
+
+        it("returns null for non-array values", () => {
+            expect(castableToArray("hello")).toBeNull();
+            expect(castableToArray(123)).toBeNull();
+            expect(castableToArray({})).toBeNull();
+            expect(castableToArray(null)).toBeNull();
+            expect(castableToArray(undefined)).toBeNull();
+        });
+    });
     it("compareValues", () => {
         // Basic comparisons
         expect(compareValues(1, 2)).toBe(-1);

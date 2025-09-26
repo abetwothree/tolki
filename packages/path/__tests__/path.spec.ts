@@ -2,21 +2,6 @@ import { describe, it, expect } from "vitest";
 import * as Path from "@laravel-js/path";
 
 describe("Path Functions", () => {
-    describe("toArray", () => {
-        it("returns the array if value is an array", () => {
-            const arr = [1, 2, 3];
-            expect(Path.toArray(arr)).toBe(arr);
-        });
-
-        it("returns null for non-array values", () => {
-            expect(Path.toArray("hello")).toBeNull();
-            expect(Path.toArray(123)).toBeNull();
-            expect(Path.toArray({})).toBeNull();
-            expect(Path.toArray(null)).toBeNull();
-            expect(Path.toArray(undefined)).toBeNull();
-        });
-    });
-
     describe("parseSegments", () => {
         it("returns empty array for null/undefined keys", () => {
             expect(Path.parseSegments(null)).toEqual([]);
@@ -45,9 +30,16 @@ describe("Path Functions", () => {
         });
 
         it("returns null for invalid dot notation strings", () => {
-            expect(Path.parseSegments("invalid")).toBeNull();
-            expect(Path.parseSegments("1.2.invalid")).toBeNull();
-            expect(Path.parseSegments("1.-1.3")).toBeNull();
+            // String segments are now valid for mixed paths
+            expect(Path.parseSegments("invalid")).toEqual(["invalid"]);
+            expect(Path.parseSegments("1.2.invalid")).toEqual([
+                1,
+                2,
+                "invalid",
+            ]);
+            // Negative numbers as strings are valid object property names
+            expect(Path.parseSegments("1.-1.3")).toEqual([1, "-1", 3]);
+            // Empty segments are invalid
             expect(Path.parseSegments("1.2.")).toBeNull();
             expect(Path.parseSegments(".1.2")).toBeNull();
         });
