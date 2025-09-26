@@ -8,3 +8,5 @@ export interface ArrayAccess<TValue> {
     offsetSet(offset: number | string, value: TValue): void;
     offsetUnset(offset: number | string): void;
 }
+
+export type ArrayInnerValue<X> = X extends ReadonlyArray<infer U> ? U : never;

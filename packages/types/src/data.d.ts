@@ -1,5 +1,8 @@
 import type { ObjectKey } from "./objects";
 
+export type PathKey = number | string | null | undefined;
+export type PathKeys = number | string | null | undefined | Array<PathKey>;
+
 export type DataItems<TValue, TKey extends ObjectKey = ObjectKey> =
     | TValue[]
     | Record<TKey, TValue>;

@@ -1,12 +1,5 @@
 import { isArray } from "@laravel-js/utils";
-
-export type ArrayKey = number | string | null | undefined;
-export type ArrayKeys =
-    | number
-    | string
-    | null
-    | undefined
-    | Array<number | string | null | undefined>;
+import type { PathKey, PathKeys } from "packages/types";
 
 /**
  * Convert a value to an array if it's already an array, otherwise return null.
@@ -47,7 +40,7 @@ const typeOf = (v: unknown): string => {
  * Parse a key into numeric segments for array path traversal.
  * Converts dot notation strings and numbers into array indices.
  *
- * @param {ArrayKey} key - The key to parse (number, string, null, or undefined).
+ * @param {PathKey} key - The key to parse (number, string, null, or undefined).
  * @returns {number[] | null} Array of numeric indices, or null if invalid.
  * @example
  * Parse different key types
@@ -56,7 +49,7 @@ const typeOf = (v: unknown): string => {
  * parseSegments("invalid"); // -> null
  * parseSegments(null); // -> []
  */
-export const parseSegments = (key: ArrayKey): number[] | null => {
+export const parseSegments = (key: PathKey): number[] | null => {
     if (key == null) return [];
     if (typeof key === "number") {
         return Number.isInteger(key) && key >= 0 ? [key] : null;
@@ -84,7 +77,7 @@ export const parseSegments = (key: ArrayKey): number[] | null => {
  * Traverses the array using dot notation or numeric indices.
  *
  * @param {unknown[]} root - The root array to search in.
- * @param {ArrayKey} key - The path to check (number, string, null, or undefined).
+ * @param {PathKey} key - The path to check (number, string, null, or undefined).
  * @returns {boolean} True if the path exists, false otherwise.
  * @example
  * Check path existence
@@ -92,7 +85,7 @@ export const parseSegments = (key: ArrayKey): number[] | null => {
  * hasPath([['a', 'b']], "1.0"); // -> false
  * hasPath(['x', 'y'], 1); // -> true
  */
-export const hasPath = (root: unknown[], key: ArrayKey): boolean => {
+export const hasPath = (root: unknown[], key: PathKey): boolean => {
     if (key == null) return false;
 
     if (typeof key === "number") {
@@ -116,7 +109,7 @@ export const hasPath = (root: unknown[], key: ArrayKey): boolean => {
  * Returns an object indicating whether the value was found and its value.
  *
  * @param {unknown[]} root - The root array to search in.
- * @param {ArrayKey} key - The path to retrieve (number, string, null, or undefined).
+ * @param {PathKey} key - The path to retrieve (number, string, null, or undefined).
  * @returns {{ found: boolean; value?: unknown }} Object with found status and value.
  * @example
  * Get values with path status
@@ -126,7 +119,7 @@ export const hasPath = (root: unknown[], key: ArrayKey): boolean => {
  */
 export const getRaw = (
     root: unknown[],
-    key: ArrayKey,
+    key: PathKey,
 ): { found: boolean; value?: unknown } => {
     if (key == null) {
         return { found: true, value: root };
@@ -156,7 +149,7 @@ export const getRaw = (
  * Creates a new array with specified items removed, supporting nested paths.
  *
  * @param {ReadonlyArray<T>} data - The array to remove items from.
- * @param {ArrayKeys} keys - The key(s) to remove (number, string, or array of keys).
+ * @param {PathKeys} keys - The key(s) to remove (number, string, or array of keys).
  * @returns {T[]} A new array with the specified items removed.
  * @example
  * Remove items by keys
@@ -164,7 +157,7 @@ export const getRaw = (
  * forgetKeys([['x', 'y'], ['z']], "0.1"); // -> [['x'], ['z']]
  * forgetKeys(['a', 'b', 'c'], [0, 2]); // -> ['b']
  */
-export const forgetKeys = <T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] => {
+export const forgetKeys = <T>(data: ReadonlyArray<T>, keys: PathKeys): T[] => {
     // This mirrors Arr.forget implementation (immutable)
     const removeAt = <U>(arr: ReadonlyArray<U>, index: number): U[] => {
         if (!Number.isInteger(index) || index < 0 || index >= arr.length) {
@@ -296,7 +289,7 @@ export const forgetKeys = <T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] => {
  * Creates a new array with the value set at the specified path.
  *
  * @param {ReadonlyArray<T> | unknown} data - The array to set the value in.
- * @param {ArrayKey} key - The path where to set the value (number, string, null, or undefined).
+ * @param {PathKey} key - The path where to set the value (number, string, null, or undefined).
  * @param {T} value - The value to set.
  * @returns {T[]} A new array with the value set at the specified path.
  * @example
@@ -307,7 +300,7 @@ export const forgetKeys = <T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] => {
  */
 export const setImmutable = <T>(
     data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
+    key: PathKey,
     value: T,
 ): T[] => {
     if (key == null) {
@@ -396,7 +389,7 @@ export const setImmutable = <T>(
  * Creates nested arrays as needed and pushes values to the target location.
  *
  * @param {T[] | unknown} data - The array to push values into.
- * @param {ArrayKey} key - The path where to push values (number, string, null, or undefined).
+ * @param {PathKey} key - The path where to push values (number, string, null, or undefined).
  * @param {...T[]} values - The values to push.
  * @returns {T[]} The modified array with values pushed at the specified path.
  * @example
@@ -407,7 +400,7 @@ export const setImmutable = <T>(
  */
 export const pushWithPath = <T>(
     data: T[] | unknown,
-    key: ArrayKey,
+    key: PathKey,
     ...values: T[]
 ): T[] => {
     if (key == null) {
@@ -664,7 +657,7 @@ export const getNestedValue = (obj: unknown, path: string): unknown => {
  * and the new mixed notation support.
  *
  * @param {ReadonlyArray<T> | unknown} data - The data to search in.
- * @param {ArrayKey} key - The dot-notation key.
+ * @param {PathKey} key - The dot-notation key.
  * @param {D | (() => D) | null} defaultValue - Default value if not found.
  * @returns {unknown} The found value or default.
  * @example
@@ -675,7 +668,7 @@ export const getNestedValue = (obj: unknown, path: string): unknown => {
  */
 export const getMixedValue = <T, D = null>(
     data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
+    key: PathKey,
     defaultValue: D | (() => D) | null = null,
 ): unknown => {
     const resolveDefault = (): D | null => {
@@ -741,7 +734,7 @@ export const getMixedValue = <T, D = null>(
  * Supports both numeric array indices and object property names in paths.
  *
  * @param {unknown[]} arr - The root array to modify.
- * @param {ArrayKey} key - The path where to set the value.
+ * @param {PathKey} key - The path where to set the value.
  * @param {unknown} value - The value to set.
  * @returns {unknown[]} The modified original array.
  *
@@ -752,7 +745,7 @@ export const getMixedValue = <T, D = null>(
  */
 export const setMixed = (
     arr: unknown[],
-    key: ArrayKey,
+    key: PathKey,
     value: unknown,
 ): unknown[] => {
     if (key == null) {
@@ -874,7 +867,7 @@ export const setMixed = (
  */
 export const pushMixed = <T>(
     data: T[] | unknown,
-    key: ArrayKey,
+    key: PathKey,
     ...values: T[]
 ): T[] => {
     if (key == null) {
@@ -950,7 +943,7 @@ export const pushMixed = <T>(
  * Supports both numeric array indices and object property names in paths.
  *
  * @param {ReadonlyArray<T> | unknown} data - The data to set the value in.
- * @param {ArrayKey} key - The path where to set the value.
+ * @param {PathKey} key - The path where to set the value.
  * @param {T} value - The value to set.
  * @returns {T[]} A new array with the value set.
  *
@@ -961,7 +954,7 @@ export const pushMixed = <T>(
  */
 export const setMixedImmutable = <T>(
     data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
+    key: PathKey,
     value: T,
 ): T[] => {
     // Handle null key - replace entire data structure
@@ -999,7 +992,7 @@ export const setMixedImmutable = <T>(
  * Supports both numeric array indices and object property names in paths.
  *
  * @param {unknown} data - The data to check.
- * @param {ArrayKey} key - The path to check.
+ * @param {PathKey} key - The path to check.
  * @returns {boolean} True if the path exists, false otherwise.
  *
  * @example
@@ -1008,7 +1001,7 @@ export const setMixedImmutable = <T>(
  * hasMixed([{ name: "John" }], "0.age"); // -> false
  * hasMixed([], "user.name"); // -> false
  */
-export const hasMixed = (data: unknown, key: ArrayKey): boolean => {
+export const hasMixed = (data: unknown, key: PathKey): boolean => {
     if (key == null) {
         return data != null;
     }

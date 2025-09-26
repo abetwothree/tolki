@@ -1,14 +1,10 @@
 import * as Arr from "@laravel-js/arr";
-import type { ObjectKey, DataItems } from "@laravel-js/types";
+import type { ObjectKey, DataItems, Arrayable } from "@laravel-js/types";
 import { isArray } from "@laravel-js/utils";
 // import * as Path from "@laravel-js/path";
 // import * as Num from "@laravel-js/num";
 // import * as Utils from "@laravel-js/utils";
 // import * as Str from "@laravel-js/str";
-
-export interface Arrayable<TValue> {
-    toArray(): DataItems<TValue>;
-}
 
 export function collect<TValue = unknown, TKey extends ObjectKey = ObjectKey>(
     items?: TValue[] | DataItems<TValue> | Arrayable<TValue> | null,

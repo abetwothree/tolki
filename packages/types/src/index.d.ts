@@ -6,3 +6,4 @@ export type * from "./objects";
 export type * from "./pagination";
 export type * from "./responses";
 export type * from "./strings";
+export type * from "./utils";

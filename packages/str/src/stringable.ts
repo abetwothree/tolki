@@ -5,15 +5,7 @@ import {
     type MarkDownExtensions,
 } from "@laravel-js/str";
 import { isArray, isFunction } from "@laravel-js/utils";
-
-export type ConditionableValue =
-    | string
-    | number
-    | boolean
-    | ((instance: Stringable) => string | number | boolean);
-export type ConditionableClosure =
-    | ((instance: Stringable, value: ConditionableValue) => unknown)
-    | null;
+import type { ConditionableValue, ConditionableClosure } from "packages/types";
 
 export class Stringable {
     /**

@@ -12,11 +12,9 @@ import {
     setMixedImmutable,
     hasMixed,
 } from "@laravel-js/path";
-import type { ArrayKey, ArrayKeys } from "@laravel-js/path";
+import type { PathKey, PathKeys } from "packages/types";
 import { compareValues, getAccessibleValues, isArray } from "@laravel-js/utils";
-
-// Extract the element type from an array
-export type InnerValue<X> = X extends ReadonlyArray<infer U> ? U : never;
+import type { ArrayInnerValue } from "@laravel-js/types";
 
 /**
  * Determine whether the given value is array accessible.
@@ -60,7 +58,7 @@ export function arrayable(value: unknown): value is ReadonlyArray<unknown> {
 
 export function add<T extends readonly unknown[]>(
     data: T,
-    key: ArrayKey,
+    key: PathKey,
     value: unknown,
 ): unknown[] {
     // Convert to mutable array if it's readonly
@@ -91,7 +89,7 @@ export function add<T extends readonly unknown[]>(
  */
 export function array<T, D = null>(
     data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
+    key: PathKey,
     defaultValue: D | (() => D) | null = null,
 ): unknown[] {
     const value = getMixedValue(data, key, defaultValue);
@@ -123,7 +121,7 @@ export function array<T, D = null>(
  */
 export function boolean<T, D = null>(
     data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
+    key: PathKey,
     defaultValue: D | (() => D) | null = null,
 ): boolean {
     const value = getMixedValue(data, key, defaultValue);
@@ -149,12 +147,12 @@ export function boolean<T, D = null>(
  */
 export function collapse<T extends ReadonlyArray<ReadonlyArray<unknown>>>(
     array: T,
-): InnerValue<T[number]>[] {
-    const out: InnerValue<T[number]>[] = [];
+): ArrayInnerValue<T[number]>[] {
+    const out: ArrayInnerValue<T[number]>[] = [];
 
     for (const item of array) {
         if (isArray(item)) {
-            out.push(...(item as InnerValue<T[number]>[]));
+            out.push(...(item as ArrayInnerValue<T[number]>[]));
         }
     }
 
@@ -173,22 +171,22 @@ export function collapse<T extends ReadonlyArray<ReadonlyArray<unknown>>>(
  */
 export function crossJoin<T extends ReadonlyArray<ReadonlyArray<unknown>>>(
     ...arrays: T
-): InnerValue<T[number]>[][] {
-    let results: InnerValue<T[number]>[][] = [[]];
+): ArrayInnerValue<T[number]>[][] {
+    let results: ArrayInnerValue<T[number]>[][] = [[]];
 
     for (const array of arrays) {
         if (!array.length) {
             return [];
         }
 
-        const next: InnerValue<T[number]>[][] = [];
+        const next: ArrayInnerValue<T[number]>[][] = [];
 
         for (const product of results) {
             for (const item of array) {
                 next.push([
                     ...product,
-                    item as InnerValue<T[number]>,
-                ] as InnerValue<T[number]>[]);
+                    item as ArrayInnerValue<T[number]>,
+                ] as ArrayInnerValue<T[number]>[]);
             }
         }
 
@@ -269,7 +267,7 @@ export function undot(map: Record<string, unknown>): unknown[] {
  * except(["a", "b", "c"], 1); // -> ['a', 'c']
  * except(["a", "b", "c"], [0, 2]); // -> ['b']
  */
-export function except<T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] {
+export function except<T>(data: ReadonlyArray<T>, keys: PathKeys): T[] {
     return forget(data, keys);
 }
 
@@ -603,7 +601,7 @@ export function flatten(
  */
 export function float<T, D = null>(
     data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
+    key: PathKey,
     defaultValue: D | (() => D) | null = null,
 ): number {
     const value = getMixedValue(data, key, defaultValue);
@@ -632,7 +630,7 @@ export function float<T, D = null>(
  * forget(['products', ['desk', [100]]], '1.1'); // -> ['products', ['desk']]
  * forget(['products', ['desk', [100]]], 2); // -> ['products', ['desk', [100]]]
  */
-export function forget<T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] {
+export function forget<T>(data: ReadonlyArray<T>, keys: PathKeys): T[] {
     return _forgetKeys<T>(data, keys);
 }
 
@@ -703,7 +701,7 @@ export function from(items: unknown): unknown {
  */
 export function get<T = unknown>(
     array: unknown,
-    key: ArrayKey | null | undefined,
+    key: PathKey | null | undefined,
     defaultValue: T | (() => T) | null = null,
 ): T | null {
     if (key === null || key === undefined) {
@@ -747,7 +745,7 @@ export function get<T = unknown>(
  */
 export function has<T>(
     data: ReadonlyArray<T> | unknown,
-    keys: ArrayKeys,
+    keys: PathKeys,
 ): boolean {
     const keyList = isArray(keys) ? keys : [keys];
     if (!accessible(data) || keyList.length === 0) {
@@ -775,7 +773,7 @@ export function has<T>(
  */
 export function hasAll<T>(
     data: ReadonlyArray<T> | unknown,
-    keys: ArrayKeys,
+    keys: PathKeys,
 ): boolean {
     const keyList = isArray(keys) ? keys : [keys];
 
@@ -806,7 +804,7 @@ export function hasAll<T>(
  */
 export function hasAny<T>(
     data: ReadonlyArray<T> | unknown,
-    keys: ArrayKeys,
+    keys: PathKeys,
 ): boolean {
     if (keys == null) {
         return false;
@@ -906,7 +904,7 @@ export function some<T>(
  */
 export function integer<T, D = null>(
     data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
+    key: PathKey,
     defaultValue: D | (() => D) | null = null,
 ): number {
     const value = getMixedValue(data, key, defaultValue);
@@ -1301,7 +1299,7 @@ export function prepend<T>(
  */
 export function pull<T, D = null>(
     data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
+    key: PathKey,
     defaultValue: D | (() => D) | null = null,
 ): { value: T | D | null; data: T[] } {
     const resolveDefault = (): D | null => {
@@ -1478,7 +1476,7 @@ export function random<T>(
  */
 export function set<T>(
     array: ReadonlyArray<T> | unknown,
-    key: ArrayKey | null,
+    key: PathKey | null,
     value: unknown,
 ): unknown[] {
     return setMixedImmutable(array, key, value);
@@ -1500,7 +1498,7 @@ export function set<T>(
  */
 export function push<T>(
     data: T[] | unknown,
-    key: ArrayKey,
+    key: PathKey,
     ...values: T[]
 ): T[] {
     return _pushWithPath<T>(data, key, ...values);
@@ -1810,7 +1808,7 @@ export function sortRecursiveDesc<T>(
  */
 export function string<T, D = null>(
     data: ReadonlyArray<T> | unknown,
-    key: ArrayKey,
+    key: PathKey,
     defaultValue: D | (() => D) | null = null,
 ): string {
     const value = getMixedValue(data, key, defaultValue);
