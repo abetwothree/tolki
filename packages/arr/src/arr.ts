@@ -13,7 +13,7 @@ import {
     hasMixed,
 } from "@laravel-js/path";
 import type { ArrayKey, ArrayKeys } from "@laravel-js/path";
-import { compareValues, getAccessibleValues } from "@laravel-js/utils";
+import { compareValues, getAccessibleValues, isArray } from "@laravel-js/utils";
 
 // Extract the element type from an array
 export type InnerValue<X> = X extends ReadonlyArray<infer U> ? U : never;
@@ -28,7 +28,7 @@ export type InnerValue<X> = X extends ReadonlyArray<infer U> ? U : never;
  * accessible({ a: 1, b: 2 }); // false
  */
 export function accessible<T>(value: T): boolean {
-    return Array.isArray(value);
+    return isArray(value);
 }
 
 /**
@@ -41,7 +41,7 @@ export function accessible<T>(value: T): boolean {
  * arrayable({ a: 1, b: 2 }); // false
  */
 export function arrayable(value: unknown): value is ReadonlyArray<unknown> {
-    return Array.isArray(value);
+    return isArray(value);
 }
 
 /**
@@ -64,7 +64,7 @@ export function add<T extends readonly unknown[]>(
     value: unknown,
 ): unknown[] {
     // Convert to mutable array if it's readonly
-    const mutableData = Array.isArray(data) ? (data as unknown[]) : [...data];
+    const mutableData = isArray(data) ? (data as unknown[]) : [...data];
 
     if (getMixedValue(mutableData, key) === null) {
         return setMixed(mutableData, key, value);
@@ -96,7 +96,7 @@ export function array<T, D = null>(
 ): unknown[] {
     const value = getMixedValue(data, key, defaultValue);
 
-    if (!Array.isArray(value)) {
+    if (!isArray(value)) {
         throw new Error(
             `Array value for key [${key}] must be an array, ${typeof value} found.`,
         );
@@ -153,7 +153,7 @@ export function collapse<T extends ReadonlyArray<ReadonlyArray<unknown>>>(
     const out: InnerValue<T[number]>[] = [];
 
     for (const item of array) {
-        if (Array.isArray(item)) {
+        if (isArray(item)) {
             out.push(...(item as InnerValue<T[number]>[]));
         }
     }
@@ -353,14 +353,14 @@ export function first<T, D>(
         return resolveDefault();
     }
 
-    const isArray = Array.isArray(data);
-    const iterable: Iterable<T> = isArray
+    const isArrayable = isArray(data);
+    const iterable: Iterable<T> = isArrayable
         ? (data as readonly T[])
         : (data as Iterable<T>);
 
     // No predicate: just return first element if it exists.
     if (!predicate) {
-        if (isArray) {
+        if (isArrayable) {
             const arr = data as readonly T[];
             if (arr.length === 0) {
                 return resolveDefault();
@@ -445,14 +445,14 @@ export function last<T, D>(
         return resolveDefault();
     }
 
-    const isArray = Array.isArray(data);
-    const iterable: Iterable<T> = isArray
+    const isArrayable = isArray(data);
+    const iterable: Iterable<T> = isArrayable
         ? (data as readonly T[])
         : (data as Iterable<T>);
 
     // No predicate case
     if (!predicate) {
-        if (isArray) {
+        if (isArrayable) {
             const arr = data as readonly T[];
             if (arr.length === 0) {
                 return resolveDefault();
@@ -472,7 +472,7 @@ export function last<T, D>(
         return seen ? (last as T) : resolveDefault();
     }
 
-    if (isArray) {
+    if (isArrayable) {
         const arr = data as readonly T[];
         for (let i = arr.length - 1; i >= 0; i--) {
             if (predicate(arr[i] as T, i)) {
@@ -567,7 +567,7 @@ export function flatten(
     const result: unknown[] = [];
 
     for (const item of data) {
-        if (!Array.isArray(item)) {
+        if (!isArray(item)) {
             result.push(item);
             continue;
         }
@@ -658,7 +658,7 @@ export function from(
 export function from(items: object): Record<string, unknown>;
 export function from(items: unknown): unknown {
     // Arrays
-    if (Array.isArray(items)) {
+    if (isArray(items)) {
         return items.slice();
     }
 
@@ -707,14 +707,14 @@ export function get<T = unknown>(
     defaultValue: T | (() => T) | null = null,
 ): T | null {
     if (key === null || key === undefined) {
-        return Array.isArray(array)
+        return isArray(array)
             ? (array as T)
             : typeof defaultValue === "function"
               ? (defaultValue as () => T)()
               : defaultValue;
     }
 
-    if (!Array.isArray(array)) {
+    if (!isArray(array)) {
         return typeof defaultValue === "function"
             ? (defaultValue as () => T)()
             : defaultValue;
@@ -749,7 +749,7 @@ export function has<T>(
     data: ReadonlyArray<T> | unknown,
     keys: ArrayKeys,
 ): boolean {
-    const keyList = Array.isArray(keys) ? keys : [keys];
+    const keyList = isArray(keys) ? keys : [keys];
     if (!accessible(data) || keyList.length === 0) {
         return false;
     }
@@ -777,7 +777,7 @@ export function hasAll<T>(
     data: ReadonlyArray<T> | unknown,
     keys: ArrayKeys,
 ): boolean {
-    const keyList = Array.isArray(keys) ? keys : [keys];
+    const keyList = isArray(keys) ? keys : [keys];
 
     if (!accessible(data) || keyList.length === 0) {
         return false;
@@ -811,7 +811,7 @@ export function hasAny<T>(
     if (keys == null) {
         return false;
     }
-    const keyList = Array.isArray(keys) ? keys : [keys];
+    const keyList = isArray(keys) ? keys : [keys];
     if (keyList.length === 0) {
         return false;
     }
@@ -1067,7 +1067,7 @@ export function select<T extends Record<string, unknown>>(
     keys: string | string[],
 ): Record<string, unknown>[] {
     const values = getAccessibleValues(data);
-    const keyList = Array.isArray(keys) ? keys : [keys];
+    const keyList = isArray(keys) ? keys : [keys];
 
     return values.map((item) => {
         const typedItem = item as T;
@@ -1241,7 +1241,7 @@ export function mapSpread<T, U>(
 
     for (let i = 0; i < values.length; i++) {
         const chunk = values[i] as T;
-        if (Array.isArray(chunk)) {
+        if (isArray(chunk)) {
             // Spread the chunk elements and append the index
             result.push(callback(...chunk, i));
         } else {
@@ -1353,7 +1353,7 @@ export function query(data: unknown): string {
     const buildQuery = (obj: unknown, prefix: string = ""): string[] => {
         const parts: string[] = [];
 
-        if (Array.isArray(obj)) {
+        if (isArray(obj)) {
             for (let i = 0; i < obj.length; i++) {
                 const key = prefix ? `${prefix}[${i}]` : String(i);
                 const value = obj[i];
@@ -1720,7 +1720,7 @@ export function sortRecursive<T>(
 
     let result: T[] | Record<string, unknown>;
 
-    if (Array.isArray(data)) {
+    if (isArray(data)) {
         result = data.slice() as T[];
     } else if (typeof data === "object" && data !== null) {
         result = { ...data } as Record<string, unknown>;
@@ -1729,14 +1729,11 @@ export function sortRecursive<T>(
     }
 
     // Recursively sort nested arrays/objects
-    if (Array.isArray(result)) {
+    if (isArray(result)) {
         // First recursively sort nested elements
         for (let i = 0; i < result.length; i++) {
             const item = result[i];
-            if (
-                Array.isArray(item) ||
-                (typeof item === "object" && item !== null)
-            ) {
+            if (isArray(item) || (typeof item === "object" && item !== null)) {
                 result[i] = sortRecursive(item, options, descending) as T;
             }
         }
@@ -1753,7 +1750,7 @@ export function sortRecursive<T>(
         // Recursively sort nested values first
         for (const [key, value] of entries) {
             if (
-                Array.isArray(value) ||
+                isArray(value) ||
                 (typeof value === "object" && value !== null)
             ) {
                 result[key] = sortRecursive(value, options, descending);
@@ -1849,7 +1846,7 @@ export function toCssClasses(
     // Handle arrays and objects directly
     let classList: Record<string, unknown>;
 
-    if (Array.isArray(data)) {
+    if (isArray(data)) {
         classList = { ...data };
     } else if (typeof data === "object" && data !== null) {
         classList = data as Record<string, unknown>;
@@ -1899,7 +1896,7 @@ export function toCssStyles(
     // Handle arrays and objects directly
     let styleList: Record<string, unknown>;
 
-    if (Array.isArray(data)) {
+    if (isArray(data)) {
         styleList = { ...data };
     } else if (typeof data === "object" && data !== null) {
         styleList = data as Record<string, unknown>;
@@ -2044,5 +2041,5 @@ export function wrap<T>(value: T | null): T[] {
         return [];
     }
 
-    return Array.isArray(value) ? value : [value];
+    return isArray<T>(value) ? value : [value];
 }

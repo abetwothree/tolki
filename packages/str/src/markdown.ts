@@ -5,6 +5,7 @@ import MarkdownIt, {
 } from "markdown-it";
 import markdownItAnchor from "markdown-it-anchor";
 import markdownItTaskLists from "markdown-it-task-lists";
+import { isArray } from "@laravel-js/utils";
 
 export interface MarkDownOptions extends MarkdownItOptions {
     gfm?: boolean;
@@ -50,7 +51,7 @@ export class MarkdownRenderer {
 
         // Support extension array entries either as plugin or [plugin, opts]
         for (const ext of this.extensions) {
-            if (Array.isArray(ext)) {
+            if (isArray(ext)) {
                 const [plugin, opts] = ext as [
                     PluginWithOptions<unknown>,
                     unknown,

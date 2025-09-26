@@ -1,3 +1,5 @@
+import { isArray } from "@laravel-js/utils";
+
 export class Replacer {
     // Compute [start, end) range on code points with PHP-like semantics for offset/length
     private static computeRange(
@@ -87,8 +89,8 @@ export class Replacer {
         offset: number | number[] = 0,
         length: number | number[] | null = null,
     ): string | string[] {
-        const off: number = Array.isArray(offset) ? (offset[0] ?? 0) : offset;
-        const lenArg: number | null = Array.isArray(length)
+        const off: number = isArray(offset) ? (offset[0] ?? 0) : offset;
+        const lenArg: number | null = isArray(length)
             ? ((length[0] as number) ?? null)
             : length;
 
@@ -102,7 +104,7 @@ export class Replacer {
             return head + rep + tail;
         };
 
-        if (Array.isArray(replace)) {
+        if (isArray(replace)) {
             return replace.map((r) => doReplace(String(r)));
         }
 

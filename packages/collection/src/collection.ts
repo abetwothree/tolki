@@ -1,43 +1,30 @@
 import * as Arr from "@laravel-js/arr";
-import * as Path from "@laravel-js/path";
-import * as Num from "@laravel-js/num";
-import * as Utils from "@laravel-js/utils";
-import * as Str from "@laravel-js/str";
+import type { ObjectKey, DataItems } from "@laravel-js/types";
+import { isArray } from "@laravel-js/utils";
+// import * as Path from "@laravel-js/path";
+// import * as Num from "@laravel-js/num";
+// import * as Utils from "@laravel-js/utils";
+// import * as Str from "@laravel-js/str";
 
-/**
- * Type representing the items that can be stored in a Collection.
- * Can be either an array of values or a record with string/number keys.
- */
-export type TKey = string | number | symbol;
-
-export type Items<TValue, TKeyValue extends TKey = TKey> =
-    | TValue[]
-    | Record<TKeyValue, TValue>;
-
-/**
- * Interface for objects that can be converted to arrays or records.
- */
 export interface Arrayable<TValue> {
-    toArray(): Items<TValue>;
+    toArray(): DataItems<TValue>;
 }
 
-export function collect<TValue = unknown, TKeyValue extends TKey = TKey>(
-    items?: TValue[] | Items<TValue> | Arrayable<TValue> | null,
+export function collect<TValue = unknown, TKey extends ObjectKey = ObjectKey>(
+    items?: TValue[] | DataItems<TValue> | Arrayable<TValue> | null,
 ) {
-    return new Collection<TValue, TKeyValue>(items);
+    return new Collection<TValue, TKey>(items);
 }
 
 /**
  * Laravel-style Collection class for JavaScript/TypeScript.
  * Provides a fluent interface for working with arrays and objects.
- *
- * @template TValue - The type of values stored in the collection
  */
-export class Collection<TValue, TKeyValue extends TKey = TKey> {
+export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     /**
      * The items contained in the collection.
      */
-    protected items: Items<TValue, TKeyValue>;
+    protected items: DataItems<TValue, TKey>;
 
     /**
      * Create a new collection.
@@ -45,7 +32,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
      * @param items - The items to initialize the collection with
      */
     constructor(
-        items?: TValue[] | Items<TValue, TKeyValue> | Arrayable<TValue> | null,
+        items?: TValue[] | DataItems<TValue, TKey> | Arrayable<TValue> | null,
     ) {
         this.items = this.getArrayableItems(items ?? []);
     }
@@ -85,7 +72,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
      * const collection = new Collection([1, 2, 3]);
      * collection.all(); // -> [1, 2, 3]
      */
-    all(): Items<TValue> {
+    all(): DataItems<TValue, TKey> {
         return this.items;
     }
 
@@ -105,9 +92,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
         // Check if we're dealing with objects or arrays
         const hasObjects = values.some(
             (item) =>
-                typeof item === "object" &&
-                item !== null &&
-                !Array.isArray(item),
+                typeof item === "object" && item !== null && !isArray(item),
         );
 
         if (hasObjects) {
@@ -117,7 +102,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
                 if (
                     typeof item === "object" &&
                     item !== null &&
-                    !Array.isArray(item)
+                    !isArray(item)
                 ) {
                     Object.assign(result, item);
                 }
@@ -153,7 +138,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
                 value: TValue,
                 index: string | number,
             ) => boolean;
-            if (Array.isArray(this.items)) {
+            if (isArray(this.items)) {
                 return this.items.some((value, index) =>
                     callback(value as TValue, index),
                 );
@@ -202,13 +187,13 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
 
         if (items instanceof Collection) {
             otherValues = this.getItemValues(items.all());
-        } else if (Array.isArray(items)) {
+        } else if (isArray(items)) {
             otherValues = items;
         } else {
             otherValues = Object.values(items);
         }
 
-        if (Array.isArray(this.items)) {
+        if (isArray(this.items)) {
             // For arrays, preserve original indices as keys
             const result: Record<number, TValue> = {};
             this.items.forEach((value, index) => {
@@ -216,7 +201,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
                     result[index] = value;
                 }
             });
-            return new Collection<TValue>(result as Items<TValue, TKeyValue>);
+            return new Collection<TValue>(result as DataItems<TValue, TKey>);
         } else {
             const result: Record<string | number, TValue> = {};
             for (const [key, value] of Object.entries(this.items)) {
@@ -224,7 +209,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
                     result[key] = value as TValue;
                 }
             }
-            return new Collection<TValue>(result as Items<TValue, TKeyValue>);
+            return new Collection<TValue>(result as DataItems<TValue, TKey>);
         }
     }
 
@@ -242,7 +227,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
     filter(
         callback?: ((value: TValue, key: string | number) => boolean) | null,
     ): Collection<TValue> {
-        if (Array.isArray(this.items)) {
+        if (isArray(this.items)) {
             // For arrays, return a new sequential array with just the values
             const result: TValue[] = [];
             this.items.forEach((value, index) => {
@@ -256,7 +241,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
                     }
                 }
             });
-            return new Collection<TValue>(result as Items<TValue, TKeyValue>);
+            return new Collection<TValue>(result as DataItems<TValue, TKey>);
         } else {
             const result: Record<string | number, TValue> = {};
             for (const [key, value] of Object.entries(this.items)) {
@@ -270,7 +255,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
                     }
                 }
             }
-            return new Collection<TValue>(result as Items<TValue, TKeyValue>);
+            return new Collection<TValue>(result as DataItems<TValue, TKey>);
         }
     }
 
@@ -345,7 +330,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
      * new Collection([1, 2, 3]).keys(); // -> new Collection([0, 1, 2])
      */
     keys(): Collection<string | number> {
-        if (Array.isArray(this.items)) {
+        if (isArray(this.items)) {
             // For arrays, return numeric indices
             const keys = this.items.map((_, index) => index);
             return new Collection(keys) as Collection<string | number>;
@@ -368,7 +353,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
      */
     values(): Collection<TValue> {
         return new Collection<TValue>(
-            Object.values(this.items) as Items<TValue>,
+            Object.values(this.items) as DataItems<TValue, TKey>,
         );
     }
 
@@ -385,18 +370,18 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
     map<U>(
         callback: (value: TValue, key: string | number) => U,
     ): Collection<U> {
-        if (Array.isArray(this.items)) {
+        if (isArray(this.items)) {
             const result: U[] = [];
             this.items.forEach((value, index) => {
                 result.push(callback(value as TValue, index));
             });
-            return new Collection<U>(result as Items<U>);
+            return new Collection<U>(result as DataItems<U, number>);
         } else {
             const result: Record<string | number, U> = {};
             for (const [key, value] of Object.entries(this.items)) {
                 result[key] = callback(value as TValue, key);
             }
-            return new Collection<U>(result as Items<U>);
+            return new Collection<U>(result as DataItems<U, string | number>);
         }
     }
 
@@ -416,7 +401,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
         value: string | ((item: TValue) => unknown),
         key?: string | ((item: TValue) => string | number) | null,
     ): Collection<unknown> {
-        if (Array.isArray(this.items)) {
+        if (isArray(this.items)) {
             // For arrays, use Arr.pluck which returns an array
             const result = Arr.pluck(
                 this.items as Record<string, unknown>[],
@@ -426,7 +411,9 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
                     | ((item: Record<string, unknown>) => string | number)
                     | null,
             );
-            return new Collection<unknown>(result as Items<unknown>);
+            return new Collection<unknown>(
+                result as DataItems<unknown, number>,
+            );
         } else {
             // For objects, preserve the original keys
             const result: Record<string | number, unknown> = {};
@@ -440,7 +427,9 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
                     }
                 }
             }
-            return new Collection<unknown>(result as Items<unknown>);
+            return new Collection<unknown>(
+                result as DataItems<unknown, string | number>,
+            );
         }
     }
 
@@ -494,7 +483,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
     ): TValue | D | null {
         let value: TValue | undefined;
 
-        if (Array.isArray(this.items)) {
+        if (isArray(this.items)) {
             value = this.items[key as number];
         } else {
             value = (this.items as Record<string | number, TValue>)[key];
@@ -524,7 +513,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
      * new Collection({a: 1, b: 2, c: 3}).has(['a', 'd']); // -> false
      */
     has(key: string | number | (string | number)[]): boolean {
-        if (Array.isArray(key)) {
+        if (isArray(key)) {
             return key.every((k) => this.hasKey(k));
         }
 
@@ -535,7 +524,7 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
      * Check if a single key exists
      */
     private hasKey(key: string | number): boolean {
-        if (Array.isArray(this.items)) {
+        if (isArray(this.items)) {
             const numKey = typeof key === "string" ? parseInt(key, 10) : key;
             return numKey >= 0 && numKey < this.items.length && !isNaN(numKey);
         } else {
@@ -546,8 +535,8 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
     /**
      * Get the values from items, whether it's an array or object
      */
-    protected getItemValues(items: Items<TValue>): TValue[] {
-        return Array.isArray(items) ? items : Object.values(items);
+    protected getItemValues(items: DataItems<TValue, TKey>): TValue[] {
+        return isArray(items) ? items : Object.values(items);
     }
 
     /**
@@ -556,9 +545,9 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
      * @param items - The items to convert to an array or record
      * @returns The items preserving their original structure
      */
-    protected getArrayableItems(items: unknown): Items<TValue> {
+    protected getArrayableItems(items: unknown): DataItems<TValue, TKey> {
         if (items === null || items === undefined) {
-            return {};
+            return {} as DataItems<TValue, TKey>;
         }
 
         // If it's already a Collection, get its items
@@ -578,12 +567,12 @@ export class Collection<TValue, TKeyValue extends TKey = TKey> {
         }
 
         // If it's an empty array, return empty object
-        if (Array.isArray(items) && items.length === 0) {
-            return {};
+        if (isArray(items) && items.length === 0) {
+            return {} as DataItems<TValue, TKey>;
         }
 
         // If it's an array, keep it as an array
-        if (Array.isArray(items)) {
+        if (isArray(items)) {
             return items as TValue[];
         }
 

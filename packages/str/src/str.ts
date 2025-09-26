@@ -31,6 +31,7 @@ import {
     Replacer,
     Base64,
 } from "@laravel-js/str";
+import { isArray } from "@laravel-js/utils";
 
 export class Str {
     /**
@@ -263,7 +264,7 @@ export class Str {
      * Str.chopStart('foobar', 'foo'); // -> 'bar'
      */
     static chopStart(subject: string, needle: string | string[]): string {
-        for (const n of Array.isArray(needle) ? needle : [needle]) {
+        for (const n of isArray(needle) ? needle : [needle]) {
             if (subject.startsWith(n)) {
                 return subject.slice(n.length);
             }
@@ -280,7 +281,7 @@ export class Str {
      * Str.chopEnd('foobar', 'bar'); // -> 'foo'
      */
     static chopEnd(subject: string, needle: string | string[]): string {
-        for (const n of Array.isArray(needle) ? needle : [needle]) {
+        for (const n of isArray(needle) ? needle : [needle]) {
             if (subject.endsWith(n)) {
                 return subject.slice(0, -n.length);
             }
@@ -444,7 +445,7 @@ export class Str {
      * Str.deduplicate('hello  world', ' '); // -> 'hello world'
      */
     static deduplicate(value: string, character: string | string[] = " ") {
-        if (Array.isArray(character)) {
+        if (isArray(character)) {
             character.forEach((char) => {
                 value = value.replace(new RegExp(`${char}+`, "g"), char);
             });
@@ -472,10 +473,10 @@ export class Str {
 
         haystack = String(haystack);
 
-        if (!Array.isArray(needles)) {
+        if (!isArray(needles)) {
             needles = [String(needles)];
         } else {
-            needles = Array.from(needles);
+            needles = Array.from(needles) as string[];
         }
 
         for (const needle of needles) {
@@ -1146,7 +1147,7 @@ export class Str {
      * Str.numbers(["foo123bar", "abc456"]); // -> ["123", "456"]
      */
     static numbers(value: string | string[]): string | string[] {
-        if (Array.isArray(value)) {
+        if (isArray(value)) {
             return value.map((item) => item.replace(/[^0-9]/g, ""));
         }
 
@@ -1483,11 +1484,11 @@ export class Str {
         subject: string,
     ): string {
         let replacements: string[];
-        if (typeof replace === "object" && !Array.isArray(replace)) {
+        if (typeof replace === "object" && !isArray(replace)) {
             replacements = Object.values(replace);
         } else {
-            replacements = Array.isArray(replace)
-                ? [...replace]
+            replacements = isArray(replace)
+                ? ([...replace] as string[])
                 : Array.from(replace);
         }
 
@@ -1707,7 +1708,7 @@ export class Str {
         // - If replacement is a function, it's invoked with the full match text (simple parity – capturing groups not individually passed like PHP's $matches array).
         // - On regex construction error, return null (preg_replace returns null on error).
 
-        const toArray = <T>(v: T | T[]): T[] => (Array.isArray(v) ? v : [v]);
+        const toArray = <T>(v: T | T[]): T[] => (isArray(v) ? v : [v]);
 
         const rawPatterns = toArray(pattern);
 
@@ -1852,7 +1853,7 @@ export class Str {
             return result;
         };
 
-        if (Array.isArray(subject)) {
+        if (isArray(subject)) {
             return subject.map(applyToString);
         }
 

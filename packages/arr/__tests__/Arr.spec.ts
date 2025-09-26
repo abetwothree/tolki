@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import * as Arr from "@laravel-js/arr";
+import { isArray } from "@laravel-js/utils";
 
 describe("Arr", () => {
     it("accessible", () => {
@@ -1667,7 +1668,7 @@ describe("Arr", () => {
 
         // Should return a new array of same length
         expect(shuffled).toHaveLength(arr.length);
-        expect(Array.isArray(shuffled)).toBe(true);
+        expect(isArray(shuffled)).toBe(true);
 
         // Should contain all original elements
         expect(shuffled.sort()).toEqual(arr.sort());
@@ -1702,20 +1703,20 @@ describe("Arr", () => {
 
         // Explicitly request single item
         const singleExplicit = Arr.random(arr, 1) as number[];
-        expect(Array.isArray(singleExplicit)).toBe(true);
+        expect(isArray(singleExplicit)).toBe(true);
         expect(singleExplicit).toHaveLength(1);
         expect(arr).toContain(singleExplicit[0]);
 
         // Multiple random items
         const multiple = Arr.random(arr, 3) as number[];
-        expect(Array.isArray(multiple)).toBe(true);
+        expect(isArray(multiple)).toBe(true);
         expect(multiple).toHaveLength(3);
         multiple.forEach((item: number) => expect(arr).toContain(item));
 
         // Multiple items with preserved keys
         const withKeys = Arr.random(arr, 2, true);
         expect(typeof withKeys).toBe("object");
-        expect(Array.isArray(withKeys)).toBe(false);
+        expect(isArray(withKeys)).toBe(false);
         Object.values(withKeys as Record<number, number>).forEach((item) =>
             expect(arr).toContain(item),
         );
@@ -2453,7 +2454,7 @@ describe("Arr", () => {
                 // This attempts to push to a path where intermediate value conflicts
                 const data: unknown = [];
                 Arr.push(data, "0.prop", "value"); // Should work, creates nested structure
-                expect(Array.isArray(data)).toBe(true);
+                expect(isArray(data)).toBe(true);
             } catch (error) {
                 // If it throws, that's also a valid test of error handling
                 expect(error).toBeDefined();

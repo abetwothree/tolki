@@ -1,4 +1,4 @@
-import { accessible } from "@laravel-js/arr";
+import { isArray } from "@laravel-js/utils";
 
 export type ArrayKey = number | string | null | undefined;
 export type ArrayKeys =
@@ -21,7 +21,7 @@ export type ArrayKeys =
  * toArray({}); // -> null
  */
 export const toArray = (value: unknown): unknown[] | null => {
-    if (Array.isArray(value)) return value as unknown[];
+    if (isArray(value)) return value as unknown[];
     return null;
 };
 
@@ -39,7 +39,7 @@ export const toArray = (value: unknown): unknown[] | null => {
  */
 const typeOf = (v: unknown): string => {
     if (v === null) return "null";
-    if (Array.isArray(v)) return "array";
+    if (isArray(v)) return "array";
     return typeof v;
 };
 
@@ -186,7 +186,7 @@ export const forgetKeys = <T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] => {
             return clone;
         }
         const child = clone[head!] as unknown;
-        if (Array.isArray(child)) {
+        if (isArray(child)) {
             clone[head!] = forgetPath(child as unknown[], rest) as unknown as U;
         }
         return clone;
@@ -207,7 +207,7 @@ export const forgetKeys = <T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] => {
         }
         const clone = arr.slice();
         const child = clone[head!] as unknown;
-        if (!Array.isArray(child)) {
+        if (!isArray(child)) {
             return clone;
         }
         clone[head!] = updateAtPath(
@@ -221,7 +221,7 @@ export const forgetKeys = <T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] => {
     if (keys == null) {
         return data.slice();
     }
-    const keyList = Array.isArray(keys) ? keys : [keys];
+    const keyList = isArray(keys) ? keys : [keys];
     if (keyList.length === 0) {
         return data.slice();
     }
@@ -244,7 +244,7 @@ export const forgetKeys = <T>(data: ReadonlyArray<T>, keys: ArrayKeys): T[] => {
 
     type Group = { path: number[]; indices: Set<number> };
     const groupsMap = new Map<string, Group>();
-    for (const k of Array.isArray(keys) ? keys : [keys]) {
+    for (const k of isArray(keys) ? keys : [keys]) {
         if (typeof k === "number") {
             const key = "";
             const entry = groupsMap.get(key) ?? {
@@ -313,11 +313,11 @@ export const setImmutable = <T>(
     if (key == null) {
         return value as unknown as T[];
     }
-    if (!accessible(data)) {
-        return [] as T[];
+    if (!isArray<T>(data)) {
+        return [];
     }
     const toArr = (value: unknown): unknown[] => {
-        return Array.isArray(value) ? (value as unknown[]).slice() : [];
+        return isArray(value) ? (value as unknown[]).slice() : [];
     };
     const root = toArr(data);
 
@@ -379,7 +379,7 @@ export const setImmutable = <T>(
             cursor = child;
             continue;
         }
-        if (Array.isArray(next)) {
+        if (isArray(next)) {
             const cloned = (next as unknown[]).slice();
             cursor[idx] = cloned;
             cursor = cloned;
@@ -411,7 +411,7 @@ export const pushWithPath = <T>(
     ...values: T[]
 ): T[] => {
     if (key == null) {
-        if (Array.isArray(data)) {
+        if (isArray(data)) {
             (data as unknown[]).push(...(values as unknown[]));
             return data as T[];
         }
@@ -419,7 +419,7 @@ export const pushWithPath = <T>(
         return [...(values as unknown[])] as T[];
     }
 
-    if (!accessible(data)) {
+    if (!isArray(data)) {
         const out: unknown[] = [];
         const segs = parseSegments(key);
         if (!segs || segs.length === 0) return out as T[];
@@ -438,7 +438,7 @@ export const pushWithPath = <T>(
                     const child: unknown[] = [];
                     cursor[idx] = child;
                     cursor = child;
-                } else if (Array.isArray(next)) {
+                } else if (isArray(next)) {
                     cursor = next as unknown[];
                 } else {
                     throw new Error(
@@ -459,7 +459,7 @@ export const pushWithPath = <T>(
         return out as T[];
     }
 
-    const isPlainArray = Array.isArray(data);
+    const isPlainArray = isArray(data);
     const root: unknown[] = isPlainArray ? (data as unknown[]) : [];
 
     const segs = parseSegments(key);
@@ -486,7 +486,7 @@ export const pushWithPath = <T>(
             cursor = child;
             continue;
         }
-        if (Array.isArray(next)) {
+        if (isArray(next)) {
             cursor = next as unknown[];
             continue;
         }
@@ -524,11 +524,11 @@ export const dotFlatten = (
     data: ReadonlyArray<unknown> | unknown,
     prepend: string = "",
 ): Record<string, unknown> => {
-    if (!accessible(data)) return {};
+    if (!isArray(data)) return {};
     const root = data as unknown[];
     const out: Record<string, unknown> = {};
     const walk = (node: unknown, path: string): void => {
-        const arr = Array.isArray(node) ? (node as unknown[]) : null;
+        const arr = isArray(node) ? (node as unknown[]) : null;
         if (!arr) {
             const key = prepend
                 ? path
@@ -574,7 +574,7 @@ export const undotExpand = (map: Record<string, unknown>): unknown[] => {
         for (let i = 0; i < segments.length; i++) {
             const idx = Number(segments[i]!);
             const atEnd = i === segments.length - 1;
-            const arr = Array.isArray(cursor) ? (cursor as unknown[]) : null;
+            const arr = isArray(cursor) ? (cursor as unknown[]) : null;
             if (!arr) {
                 cursor = null;
                 break;
@@ -587,7 +587,7 @@ export const undotExpand = (map: Record<string, unknown>): unknown[] => {
                     const child: unknown[] = [];
                     arr[idx] = child;
                     cursor = child;
-                } else if (Array.isArray(next)) {
+                } else if (isArray(next)) {
                     cursor = next as unknown[];
                 } else {
                     cursor = null;
@@ -639,7 +639,7 @@ export const getNestedValue = (obj: unknown, path: string): unknown => {
         }
 
         // Handle array access with numeric indices
-        if (Array.isArray(current)) {
+        if (isArray(current)) {
             const index = parseInt(segment, 10);
             if (isNaN(index) || index < 0 || index >= current.length) {
                 return undefined;
@@ -690,7 +690,7 @@ export const getMixedValue = <T, D = null>(
 
     // For simple numeric keys, use existing getRaw function
     if (typeof key === "number") {
-        if (!accessible(data)) {
+        if (!isArray(data)) {
             return resolveDefault();
         }
         const root = toArray(data)!;
@@ -702,7 +702,7 @@ export const getMixedValue = <T, D = null>(
 
     // If it's a simple key without dots, try getRaw first
     if (!keyStr.includes(".")) {
-        if (!accessible(data)) {
+        if (!isArray(data)) {
             return resolveDefault();
         }
         const root = toArray(data)!;
@@ -719,7 +719,7 @@ export const getMixedValue = <T, D = null>(
 
     // If all segments are numeric, use existing getRaw function
     if (allNumeric) {
-        if (!accessible(data)) {
+        if (!isArray(data)) {
             return resolveDefault();
         }
         const root = toArray(data)!;
@@ -758,7 +758,7 @@ export const setMixed = (
     if (key == null) {
         // If key is null, replace the entire array
         arr.length = 0;
-        if (Array.isArray(value)) {
+        if (isArray(value)) {
             arr.push(...value);
         } else {
             arr.push(value);
@@ -787,7 +787,7 @@ export const setMixed = (
     if (!firstSegment) return arr;
 
     const firstIndex = parseInt(firstSegment, 10);
-    if (Array.isArray(current)) {
+    if (isArray(current)) {
         if (!Number.isInteger(firstIndex) || firstIndex < 0) {
             // If first segment is not a valid array index and array is not empty,
             // treat this as an invalid path and return unchanged
@@ -806,7 +806,7 @@ export const setMixed = (
 
         const index = parseInt(segment, 10);
 
-        if (Number.isInteger(index) && index >= 0 && Array.isArray(current)) {
+        if (Number.isInteger(index) && index >= 0 && isArray(current)) {
             // Extend array if necessary
             while (current.length <= index) {
                 current.push(undefined);
@@ -846,11 +846,7 @@ export const setMixed = (
 
     const lastIndex = parseInt(lastSegment, 10);
 
-    if (
-        Number.isInteger(lastIndex) &&
-        lastIndex >= 0 &&
-        Array.isArray(current)
-    ) {
+    if (Number.isInteger(lastIndex) && lastIndex >= 0 && isArray(current)) {
         while (current.length <= lastIndex) {
             current.push(undefined);
         }
@@ -882,14 +878,14 @@ export const pushMixed = <T>(
     ...values: T[]
 ): T[] => {
     if (key == null) {
-        if (Array.isArray(data)) {
+        if (isArray(data)) {
             (data as unknown[]).push(...(values as unknown[]));
             return data as T[];
         }
         return [...(values as unknown[])] as T[];
     }
 
-    if (!Array.isArray(data)) {
+    if (!isArray(data)) {
         // Create a new array and set the values at the path
         const arr: unknown[] = [];
         setMixed(arr, key, values.length === 1 ? values[0] : values);
@@ -916,7 +912,7 @@ export const pushMixed = <T>(
 
         const index = parseInt(segment, 10);
 
-        if (Number.isInteger(index) && index >= 0 && Array.isArray(current)) {
+        if (Number.isInteger(index) && index >= 0 && isArray(current)) {
             // Extend array if necessary
             while (current.length <= index) {
                 current.push(undefined);
@@ -942,7 +938,7 @@ export const pushMixed = <T>(
     }
 
     // Push values directly to the current array (don't navigate to the last segment)
-    if (Array.isArray(current)) {
+    if (isArray(current)) {
         current.push(...(values as unknown[]));
     }
 
@@ -974,14 +970,14 @@ export const setMixedImmutable = <T>(
     }
 
     // If data is not accessible (not an array), return empty array
-    if (!Array.isArray(data)) {
+    if (!isArray(data)) {
         return [] as T[];
     }
 
     // Create a deep copy for immutable operation
     const deepCopy = (obj: unknown): unknown => {
         if (obj === null || typeof obj !== "object") return obj;
-        if (Array.isArray(obj)) return obj.map(deepCopy);
+        if (isArray(obj)) return obj.map(deepCopy);
         if (typeof obj === "object") {
             const result: Record<string, unknown> = {};
             for (const [k, v] of Object.entries(obj)) {
@@ -1018,7 +1014,7 @@ export const hasMixed = (data: unknown, key: ArrayKey): boolean => {
     }
 
     if (typeof key === "number") {
-        return Array.isArray(data) && key >= 0 && key < data.length;
+        return isArray(data) && key >= 0 && key < data.length;
     }
 
     // Use getNestedValue to check existence

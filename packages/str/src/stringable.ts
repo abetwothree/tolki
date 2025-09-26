@@ -4,8 +4,7 @@ import {
     type MarkDownOptions,
     type MarkDownExtensions,
 } from "@laravel-js/str";
-
-import { isFunction } from "lodash-es";
+import { isArray, isFunction } from "@laravel-js/utils";
 
 export type ConditionableValue =
     | string
@@ -408,7 +407,7 @@ export class Stringable {
      * Pluralize the last word of an English, studly caps case string.
      */
     pluralStudly(count: number = 2): Stringable {
-        const c = Array.isArray(count) ? count.length : Number(count);
+        const c = isArray(count) ? count.length : Number(count);
 
         return new Stringable(Str.pluralStudly(this._value, c));
     }
@@ -417,7 +416,7 @@ export class Stringable {
      * Pluralize the last word of an English, Pascal caps case string.
      */
     pluralPascal(count: number = 2): Stringable {
-        const c = Array.isArray(count) ? count.length : Number(count);
+        const c = isArray(count) ? count.length : Number(count);
 
         return new Stringable(Str.pluralPascal(this._value, c));
     }
