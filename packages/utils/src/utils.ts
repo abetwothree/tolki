@@ -91,9 +91,9 @@ export function isBoolean(value: unknown): value is boolean {
  * isFunction("function"); // -> false
  * isFunction({}); // -> false
  */
-export function isFunction(
+export function isFunction<T extends (...args: unknown[]) => unknown>(
     value: unknown,
-): value is (...args: unknown[]) => unknown {
+): value is T {
     return typeof value === "function";
 }
 

@@ -761,9 +761,13 @@ export class Stringable {
             : (value as string);
 
         if (resolvedValue) {
-            return (callback?.(this, resolvedValue) ?? this) as Stringable;
+            return (callback?.(this, resolvedValue as ConditionableValue) ??
+                this) as Stringable;
         } else if (defaultCallback) {
-            return (defaultCallback(this, resolvedValue) ?? this) as Stringable;
+            return (defaultCallback(
+                this,
+                resolvedValue as ConditionableValue,
+            ) ?? this) as Stringable;
         }
 
         return this;
@@ -782,9 +786,13 @@ export class Stringable {
             : (value as string);
 
         if (!resolvedValue) {
-            return (callback?.(this, resolvedValue) ?? this) as Stringable;
+            return (callback?.(this, resolvedValue as ConditionableValue) ??
+                this) as Stringable;
         } else if (defaultCallback) {
-            return (defaultCallback(this, resolvedValue) ?? this) as Stringable;
+            return (defaultCallback(
+                this,
+                resolvedValue as ConditionableValue,
+            ) ?? this) as Stringable;
         }
 
         return this;
