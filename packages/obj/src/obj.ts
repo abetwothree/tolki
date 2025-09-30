@@ -2329,7 +2329,7 @@ export function values<T extends Record<string, unknown>>(
  */
 export function diff<T extends Record<string, unknown>>(
     data: T | unknown,
-    other: Record<string, unknown> | unknown,
+    other: T | unknown,
 ): Record<string, unknown> {
     if (!accessible(data)) {
         return {};

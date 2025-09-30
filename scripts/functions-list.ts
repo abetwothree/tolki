@@ -266,7 +266,9 @@ function parsePHP(content: string): FunctionInfo[] {
  * Parse parameters for JavaScript/TypeScript functions
  */
 function parseParameters(paramString: string): string[] {
-    if (!paramString.trim()) return [];
+    if (!paramString.trim()) {
+        return [];
+    }
 
     return paramString
         .split(",")
@@ -286,7 +288,9 @@ function parseParameters(paramString: string): string[] {
  * Parse parameters for PHP functions
  */
 function parsePHPParameters(paramString: string): string[] {
-    if (!paramString.trim()) return [];
+    if (!paramString.trim()) {
+        return [];
+    }
 
     return paramString
         .split(",")
@@ -367,28 +371,29 @@ function main() {
 
         if (functions.length === 0) {
             console.log("No functions found in this file.");
-        } else {
-            console.log(`Found ${functions.length} function(s):\n`);
-
-            // Group by type
-            const grouped = functions.reduce(
-                (acc, func) => {
-                    const key = func.type;
-                    if (!acc[key]) acc[key] = [];
-                    acc[key].push(func);
-                    return acc;
-                },
-                {} as Record<string, FunctionInfo[]>,
-            );
-
-            Object.entries(grouped).forEach(([type, funcs]) => {
-                console.log(`${type.toUpperCase()} DECLARATIONS:`);
-                funcs.forEach((func) => {
-                    console.log(`  ${formatFunctionInfo(func)}`);
-                });
-                console.log("");
-            });
+            return;
         }
+
+        console.log(`Found ${functions.length} function(s):\n`);
+
+        // Group by type
+        const grouped = functions.reduce(
+            (acc, func) => {
+                const key = func.type;
+                if (!acc[key]) acc[key] = [];
+                acc[key].push(func);
+                return acc;
+            },
+            {} as Record<string, FunctionInfo[]>,
+        );
+
+        Object.entries(grouped).forEach(([type, funcs]) => {
+            console.log(`${type.toUpperCase()} DECLARATIONS:`);
+            funcs.forEach((func) => {
+                console.log(`  ${formatFunctionInfo(func)}`);
+            });
+            console.log("");
+        });
     } catch (error) {
         console.error("Error:", error instanceof Error ? error.message : error);
         process.exit(1);

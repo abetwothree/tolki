@@ -29,8 +29,8 @@ import type { ArrayInnerValue } from "@laravel-js/types";
  * accessible([1, 2]); // true
  * accessible({ a: 1, b: 2 }); // false
  */
-export function accessible<T>(value: T): boolean {
-    return isArray(value);
+export function accessible<T>(value: T): value is T & Array<T> {
+    return isArray<T>(value);
 }
 
 /**
@@ -42,8 +42,8 @@ export function accessible<T>(value: T): boolean {
  * arrayable([1, 2]); // true
  * arrayable({ a: 1, b: 2 }); // false
  */
-export function arrayable(value: unknown): value is ReadonlyArray<unknown> {
-    return isArray(value);
+export function arrayable<T>(value: unknown): value is ReadonlyArray<unknown> {
+    return isArray<T>(value);
 }
 
 /**
@@ -1716,7 +1716,7 @@ export function sortRecursive<T>(
     descending: boolean = false,
 ): T[] | Record<string, unknown> {
     if (!accessible(data) && typeof data !== "object") {
-        return data as T[];
+        return data as unknown as T[];
     }
 
     let result: T[] | Record<string, unknown>;
@@ -1726,7 +1726,7 @@ export function sortRecursive<T>(
     } else if (typeof data === "object" && data !== null) {
         result = { ...data } as Record<string, unknown>;
     } else {
-        result = data as T[];
+        result = data as unknown as T[];
     }
 
     // Recursively sort nested arrays/objects
@@ -2106,4 +2106,79 @@ export function wrap<T>(value: T | null): T[] {
     }
 
     return isArray<T>(value) ? value : [value];
+}
+
+/**
+ * Get all keys from an array.
+ *
+ * @param data - The array to get keys from.
+ * @returns An array of all keys.
+ *
+ * @example
+ *
+ * keys(['name', 'age', 'city']); // -> [0, 1, 2]
+ * keys([]); // -> []
+ */
+export function keys<T>(data: ReadonlyArray<T> | unknown): number[] {
+    if (!accessible(data)) {
+        return [];
+    }
+
+    return Array.from(data.keys());
+}
+
+/**
+ * Get all values from an array.
+ *
+ * @param data - The array to get values from.
+ * @returns An array of all values.
+ *
+ * @example
+ *
+ * values(['name', 'age', 'city']); // -> ['name', 'age', 'city']
+ * values([]); // -> []
+ */
+export function values<T>(data: ReadonlyArray<T> | unknown): T[] {
+    if (!accessible(data)) {
+        return [];
+    }
+
+    return Array.from((data as ReadonlyArray<T>).values());
+}
+
+/**
+ * Get the items that are not present in the given array.
+ *
+ * @param data - The original array.
+ * @param other - The array to compare against.
+ * @returns A new array containing items from data that are not in other.
+ *
+ * @example
+ *
+ * diff([1, 2, 3], [2, 3, 4]); // -> [1]
+ * diff(['a', 'b', 'c'], ['b', 'c', 'd']); // -> ['a']
+ */
+export function diff<T>(
+    data: ReadonlyArray<T> | unknown,
+    other: ReadonlyArray<T> | unknown,
+): T[] {
+    if (!accessible(data)) {
+        return [];
+    }
+
+    if (!accessible(other)) {
+        return data.slice() as T[];
+    }
+
+    const dataArray = data as ReadonlyArray<T>;
+    const otherArray = other as ReadonlyArray<T>;
+    const result: T[] = [];
+
+    for (const item of dataArray) {
+        if (!otherArray.includes(item)) {
+            result.push(item);
+        }
+    }
+
+    return result;
 }
