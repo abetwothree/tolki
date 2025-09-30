@@ -70,6 +70,19 @@ export class Random {
     }
 }
 
+/**
+ * Generate cryptographically secure random bytes.
+ * Uses Web Crypto API when available, throws error otherwise.
+ *
+ * @param size - The number of bytes to generate.
+ * @returns A Uint8Array containing cryptographically secure random bytes.
+ * @throws Error if secure randomness is not available.
+ *
+ * @example
+ *
+ * secureRandomBytes(16); // -> Uint8Array(16) [random bytes]
+ * secureRandomBytes(0); // -> Uint8Array(0) []
+ */
 function secureRandomBytes(size: number): Uint8Array {
     if (size <= 0) return new Uint8Array();
     // Browser / Deno / Edge runtime
@@ -79,6 +92,18 @@ function secureRandomBytes(size: number): Uint8Array {
     throw new Error("Secure randomness not available in this environment");
 }
 
+/**
+ * Convert a Uint8Array to a base64 string.
+ * Uses Node.js Buffer when available, falls back to btoa, or manual encoding.
+ *
+ * @param bytes - The bytes to convert to base64.
+ * @returns The base64 encoded string.
+ *
+ * @example
+ *
+ * bytesToBase64(new Uint8Array([72, 101, 108, 108, 111])); // -> "SGVsbG8="
+ * bytesToBase64(new Uint8Array([])); // -> ""
+ */
 function bytesToBase64(bytes: Uint8Array): string {
     const B = (
         globalThis as unknown as {
@@ -119,5 +144,20 @@ function bytesToBase64(bytes: Uint8Array): string {
     return result;
 }
 
-/** Convenience alias matching PHP name */
+/**
+ * Convenience alias matching PHP's random_int function name.
+ * Generates a cryptographically secure uniform random integer in [min, max] range (inclusive).
+ *
+ * @param min - The minimum value (inclusive).
+ * @param max - The maximum value (inclusive).
+ * @returns A cryptographically secure random integer between min and max (inclusive).
+ * @throws TypeError if bounds are not safe integers.
+ * @throws RangeError if min > max or bounds exceed MAX_SAFE_INTEGER.
+ *
+ * @example
+ *
+ * random_int(1, 10); // -> random integer between 1 and 10
+ * random_int(0, 0); // -> 0
+ * random_int(-5, 5); // -> random integer between -5 and 5
+ */
 export const random_int = (min: number, max: number) => Random.int(min, max);

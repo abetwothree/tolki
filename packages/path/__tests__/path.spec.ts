@@ -45,7 +45,7 @@ describe("Path Functions", () => {
         });
 
         it("handles edge cases in parseSegments", () => {
-            // Test parsing segments with empty parts (line 240)
+            // Test parsing segments with empty parts
             expect(Path.parseSegments("1..2")).toBeNull(); // Empty segment between dots
             expect(Path.parseSegments("1.2.")).toBeNull(); // Trailing dot creates empty segment
         });
@@ -85,7 +85,7 @@ describe("Path Functions", () => {
         });
 
         it("handles edge cases in hasPath", () => {
-            // Test line 262: when path segments contain invalid values
+            // Test when path segments contain invalid values
             const data = [["a", "b"]];
             expect(Path.hasPath(data, "0.")).toBe(false); // Empty trailing segment
         });
@@ -210,15 +210,15 @@ describe("Path Functions", () => {
         });
 
         it("handles edge cases in nested removal operations", () => {
-            // Test line 186: when head index is out of bounds in forgetPath
+            // Test when head index is out of bounds in forgetPath
             const data = [["a", "b"]];
             expect(Path.forgetKeys(data, "5.0")).toEqual(data); // Index 5 doesn't exist
 
-            // Test line 206: when head index is out of bounds in updateAtPath
+            // Test when head index is out of bounds in updateAtPath
             const data2 = [["x", "y"]];
             expect(Path.forgetKeys(data2, ["10.0", "0.1"])).toEqual([["x"]]); // Index 10 doesn't exist
 
-            // Test line 211: when child is not an array in updateAtPath
+            // Test when child is not an array in updateAtPath
             const data3 = ["not-array", ["b", "c"]];
             expect(Path.forgetKeys(data3, ["0.0", "1.0"])).toEqual([
                 "not-array",
@@ -382,18 +382,18 @@ describe("Path Functions", () => {
         });
 
         it("covers additional pushWithPath edge cases", () => {
-            // Test lines 436-444: Complex path traversal with non-accessible data - doesn't throw, returns empty array
+            // Test Complex path traversal with non-accessible data - doesn't throw, returns empty array
             const result1 = Path.pushWithPath(null, "0.1.non-array", "value");
             expect(result1).toEqual([]);
 
-            // Test lines 451-453: When leaf index exists but contains boolean (covered already)
-            // Test line 467: Invalid path segments in accessible data
+            // Test When leaf index exists but contains boolean (covered already)
+            // Test when invalid path segments in accessible data
             const data = [[]];
             expect(Path.pushWithPath(data, "invalid.path", "value")).toEqual(
                 data,
             );
 
-            // Test lines 484-487: Navigation through null elements and non-arrays
+            // Test Navigation through null elements and non-arrays
             const data2: unknown[] = [null];
             const result = Path.pushWithPath(data2, "0.child", "value");
             // When we can't navigate through null, the array remains unchanged
@@ -403,7 +403,7 @@ describe("Path Functions", () => {
 
     describe("dotFlatten", () => {
         it("returns empty object for non-accessible data", () => {
-            expect(Path.dotFlatten("not-array")).toEqual({});
+            expect(Path.dotFlatten("not-array")).toEqual({ 0: "not-array" });
             expect(Path.dotFlatten(null)).toEqual({});
             expect(Path.dotFlatten({})).toEqual({});
         });
@@ -457,7 +457,7 @@ describe("Path Functions", () => {
                     "1.0": "b",
                     "1.1": "c",
                 }),
-            ).toEqual(["a", ["b", "c"]]);
+            ).toEqual({ 0: "a", 1: { 0: "b", 1: "c" } });
         });
 
         it("handles deeply nested expansion", () => {
@@ -465,11 +465,11 @@ describe("Path Functions", () => {
                 Path.undotExpand({
                     "0.0.0": "deep",
                 }),
-            ).toEqual([[["deep"]]]);
+            ).toEqual({ 0: { 0: { 0: "deep" } } });
         });
 
         it("handles empty or null input", () => {
-            expect(Path.undotExpand({})).toEqual([]);
+            expect(Path.undotExpand({})).toEqual({});
             expect(
                 Path.undotExpand(null as unknown as Record<string, unknown>),
             ).toEqual([]);
@@ -483,16 +483,21 @@ describe("Path Functions", () => {
                     "": "empty-key",
                     "1.invalid": "partial-invalid",
                 }),
-            ).toEqual(["valid"]);
+            ).toEqual({
+                "": "empty-key",
+                0: "valid",
+                1: { invalid: "partial-invalid" },
+                invalid: "ignored",
+            });
         });
 
         it("handles non-string keys", () => {
             const input = { "0": "a" } as Record<string | number, unknown>;
-            input[1] = "b"; // Add numeric key
-            expect(Path.undotExpand(input as Record<string, unknown>)).toEqual([
-                "a",
-                "b",
-            ]);
+            input[1] = "b";
+            expect(Path.undotExpand(input as Record<string, unknown>)).toEqual({
+                0: "a",
+                1: "b",
+            });
         });
 
         it("handles existing nested structure conflicts", () => {
@@ -500,23 +505,21 @@ describe("Path Functions", () => {
                 "0.0": "first",
                 "0.1": "second",
             });
-            expect(result).toEqual([["first", "second"]]);
+            expect(result).toEqual({ 0: { 0: "first", 1: "second" } });
         });
 
         it("covers undotExpand edge cases", () => {
-            // Test lines 579-580: When cursor becomes null due to non-array traversal
             const result1 = Path.undotExpand({
                 "0": "string",
-                "0.child": "should-be-ignored", // Can't traverse into string
+                "0.child": "should-be-ignored",
             });
-            expect(result1).toEqual(["string"]);
+            expect(result1).toEqual({ 0: { child: "should-be-ignored" } });
 
-            // Test lines 593-594: When next element is not an array during traversal
             const result2 = Path.undotExpand({
                 "0.0": "first",
-                "0.0.child": "ignored", // Can't traverse into string 'first'
+                "0.0.child": "ignored",
             });
-            expect(result2).toEqual([["first"]]);
+            expect(result2).toEqual({ 0: { 0: { child: "ignored" } } });
         });
     });
 
@@ -615,12 +618,12 @@ describe("Path Functions", () => {
         });
 
         it("covers getMixedValue edge cases", () => {
-            // Test line 706: When data is not accessible for simple keys without dots
+            // Test when data is not accessible for simple keys without dots
             expect(Path.getMixedValue("not-array", "simple", "default")).toBe(
                 "default",
             );
 
-            // Test line 723: When data is not accessible for all-numeric paths
+            // Test when data is not accessible for all-numeric paths
             expect(Path.getMixedValue(null, "1.2.3", "default")).toBe(
                 "default",
             );
@@ -702,12 +705,12 @@ describe("Path Functions", () => {
         });
 
         it("covers setMixed edge cases", () => {
-            // Test line 822: When next segment doesn't exist, create appropriate structure
+            // Test when next segment doesn't exist, create appropriate structure
             const arr: unknown[] = [];
             Path.setMixed(arr, "0.items", "value"); // No next segment, create object by default
             expect(arr[0]).toEqual({ items: "value" });
 
-            // Test line 836: When next segment doesn't exist in object path
+            // Test when next segment doesn't exist in object path
             const arr2: unknown[] = [{}];
             Path.setMixed(arr2, "0.user", "John"); // No next segment in object path
             expect(arr2[0]).toEqual({ user: "John" });
@@ -768,10 +771,10 @@ describe("Path Functions", () => {
         });
 
         it("covers pushMixed edge cases", () => {
-            // Test lines 931-940: Various edge cases in mixed path navigation
+            // Test various edge cases in mixed path navigation
             const arr: unknown[] = [];
 
-            // Test when segment is empty (line 915 guard)
+            // Test when segment is empty
             const result1 = Path.pushMixed(arr, "0.", "value");
             expect(result1).toBe(arr);
 
@@ -823,7 +826,7 @@ describe("Path Functions", () => {
         });
 
         it("covers setMixedImmutable edge cases", () => {
-            // Test line 992: Deep copy of non-object primitive values
+            // Test deep copy of non-object primitive values
             const original = [null, "string", 123, true];
             const result = Path.setMixedImmutable(original, "0", "new-value");
             expect(result).toEqual(["new-value", "string", 123, true]);
@@ -831,30 +834,29 @@ describe("Path Functions", () => {
         });
 
         it("covers additional edge cases for maximum coverage", () => {
-            // Test line 240: parseSegments with explicit empty segment case
+            // Test parseSegments with explicit empty segment case
             expect(Path.parseSegments("1..2")).toBeNull();
 
-            // Test line 262: hasPath empty segment case
+            // Test hasPath empty segment case
             expect(Path.hasPath([["a"]], "0.")).toBe(false);
 
-            // Test lines 579-580, 593-594: undotExpand edge cases with cursor becoming null
             const result = Path.undotExpand({
                 "0": "first",
-                "0.invalid": "ignored", // Can't traverse into primitive 'first'
+                "0.invalid": "ignored",
             });
-            expect(result).toEqual(["first"]);
+            expect(result).toEqual({ 0: { invalid: "ignored" } });
 
-            // Test lines 822, 836: setMixed edge cases with undefined next segments
+            // Test setMixed edge cases with undefined next segments
             const arr1: unknown[] = [];
             Path.setMixed(arr1, "0.prop", "value"); // No next segment after prop
             expect(arr1[0]).toEqual({ prop: "value" });
 
-            // Test line 940: pushMixed navigation failure
+            // Test pushMixed navigation failure
             const arr2 = [123]; // Number is not an object
             const result2 = Path.pushMixed(arr2, "0.prop", "value");
             expect(result2).toBe(arr2); // Should return original when navigation fails
 
-            // Test line 992: deepCopy with different object types
+            // Test deepCopy with different object types
             const complexData = [{ nested: { deep: "value" } }];
             const result3 = Path.setMixedImmutable(
                 complexData,
@@ -867,25 +869,25 @@ describe("Path Functions", () => {
             expect(result3[0]).not.toBe(complexData[0]); // Deep copy should create new reference
         });
 
-        it("covers forgetKeys edge cases for line 240", () => {
-            // Test line 240: forgetKeys with empty segment causing NaN
+        it("covers forgetKeys edge cases", () => {
+            // Test forgetKeys with empty segment causing NaN
             const data = [1, 2, 3];
             const result = Path.forgetKeys(data, ["1..2"]); // Contains empty segment
             expect(result).toEqual([1, 2, 3]); // Should return copy unchanged due to NaN
         });
 
-        it("covers hasPath edge cases for line 262", () => {
-            // Test line 262: hasPath with empty segment in multi-part path
+        it("covers hasPath edge cases", () => {
+            // Test hasPath with empty segment in multi-part path
             expect(Path.hasPath([[1, 2]], "0..1")).toBe(false); // Empty segment causes NaN
         });
 
         it("covers pushWithPath specific error conditions", () => {
-            // Test lines 436-444: pushWithPath navigation creating child arrays
+            // Test pushWithPath navigation creating child arrays
             const data: unknown[] = [];
             Path.pushWithPath(data, "0.1.2", "deep-value");
             expect(data[0]).toEqual([["deep-value"]]);
 
-            // Test lines 451-453: pushWithPath with non-array existing value
+            // Test pushWithPath with non-array existing value
             const data2 = [{}]; // Object at index 0
             expect(() => {
                 Path.pushWithPath(data2, "0.1", "value");
@@ -893,7 +895,7 @@ describe("Path Functions", () => {
                 "Array value for key [0.1] must be an array, object found.",
             );
 
-            // Test lines 484-487: pushWithPath boolean error
+            // Test pushWithPath boolean error
             const data3 = [true]; // Boolean at index 0
             expect(() => {
                 Path.pushWithPath(data3, "0.1", "value");
@@ -902,38 +904,36 @@ describe("Path Functions", () => {
             );
         });
 
-        it("covers remaining uncovered lines for 100% coverage", () => {
-            // Test lines 579-580: undotExpand where cursor becomes null during navigation
+        it("covers remaining odd uncovered lines for 100% coverage", () => {
             const result1 = Path.undotExpand({
                 "0.1": "value",
-                "0.1.2": "deeper", // This should be ignored since '0.1' is not an array
+                "0.1.2": "deeper",
             });
-            expect(result1).toEqual([[undefined, "value"]]);
+            expect(result1).toEqual({ 0: { 1: { 2: "deeper" } } });
 
-            // Test lines 593-594: undotExpand navigation through non-array
             const result2 = Path.undotExpand({
                 "0": "string",
-                "0.1": "ignored", // Can't navigate into string
+                "0.1": "ignored",
             });
-            expect(result2).toEqual(["string"]);
+            expect(result2).toEqual({ 0: { 1: "ignored" } });
 
-            // Test line 822: setMixed with no next segment (end of path)
+            // Test setMixed with no next segment (end of path)
             const data1: unknown[] = [];
             Path.setMixed(data1, "0", "final-value");
             expect(data1[0]).toBe("final-value");
 
-            // Test line 836: setMixed creating object for non-numeric next segment
+            // Test setMixed creating object for non-numeric next segment
             const data2: unknown[] = [];
             Path.setMixed(data2, "0.prop", "value");
             expect(data2[0]).toEqual({ prop: "value" });
 
-            // Test line 940: pushMixed returning original when navigation fails
+            // Test pushMixed returning original when navigation fails
             const data3 = ["string"]; // Can't navigate into string
             const original = data3;
             const result3 = Path.pushMixed(data3, "0.prop", "value");
             expect(result3).toBe(original); // Should return exact same reference
 
-            // Test line 992: setMixedImmutable deep copy behavior
+            // Test setMixedImmutable deep copy behavior
             const data4 = [{ obj: { nested: "value" } }];
             const result4 = Path.setMixedImmutable(data4, "0.obj.new", "added");
             expect(result4[0]).toEqual({

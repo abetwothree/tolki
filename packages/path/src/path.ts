@@ -1,5 +1,6 @@
 import {
     isArray,
+    isObject,
     typeOf,
     castableToArray,
     isNull,
@@ -7,15 +8,18 @@ import {
     isUndefined,
 } from "@laravel-js/utils";
 import type { PathKey, PathKeys } from "packages/types";
+import { wrap as arrWrap } from "@laravel-js/arr";
 
 /**
  * Parse a key into segments for mixed array/object path traversal.
  * Converts dot notation strings and numbers into path segments that can be
  * either numeric indices (for arrays) or string keys (for objects).
  *
- * @param {PathKey} key - The key to parse (number, string, null, or undefined).
- * @returns {(number | string)[] | null} Array of path segments, or null if invalid.
+ * @param key - The key to parse (number, string, null, or undefined).
+ * @returns Array of path segments, or null if invalid.
+ *
  * @example
+ *
  * Parse different key types
  * parseSegments(5); // -> [5]
  * parseSegments("1.2.3"); // -> [1, 2, 3] (numeric segments)
@@ -23,7 +27,7 @@ import type { PathKey, PathKeys } from "packages/types";
  * parseSegments("0.user.1.name"); // -> [0, "user", 1, "name"] (mixed segments)
  * parseSegments(null); // -> []
  */
-export const parseSegments = (key: PathKey): (number | string)[] | null => {
+export function parseSegments(key: PathKey): (number | string)[] | null {
     if (key == null) return [];
     if (typeof key === "number") {
         return Number.isInteger(key) && key >= 0 ? [key] : null;
@@ -52,31 +56,34 @@ export const parseSegments = (key: PathKey): (number | string)[] | null => {
         }
     }
     return segs;
-};
+}
 
 /**
  * Check if a path exists in a nested array/object structure.
  * Traverses the structure using dot notation with mixed array indices and object keys.
  *
- * @param {unknown[] | Record<string, unknown>} root - The root structure to search in.
- * @param {PathKey} key - The path to check (number, string, null, or undefined).
- * @returns {boolean} True if the path exists, false otherwise.
+ * @param root - The root structure to search in.
+ * @param key - The path to check (number, string, null, or undefined).
+ * @returns True if the path exists, false otherwise.
+ *
  * @example
+ *
  * Check path existence in arrays
  * hasPath([['a', 'b'], ['c', 'd']], "0.1"); // -> true
  * hasPath([['a', 'b']], "1.0"); // -> false
  * hasPath(['x', 'y'], 1); // -> true
  *
  * @example
+ *
  * Check path existence in objects
  * hasPath([{name: 'John', age: 30}], "0.name"); // -> true
  * hasPath({user: {profile: {name: 'Jane'}}}, "user.profile.name"); // -> true
  * hasPath({items: ['a', 'b']}, "items.1"); // -> true
  */
-export const hasPath = (
+export function hasPath(
     root: unknown[] | Record<string, unknown>,
     key: PathKey,
-): boolean => {
+): boolean {
     if (key == null) return false;
 
     if (typeof key === "number") {
@@ -107,31 +114,34 @@ export const hasPath = (
         }
     }
     return true;
-};
+}
 
 /**
  * Get a value from a nested array/object structure using dot notation.
  * Returns an object indicating whether the value was found and its value.
  *
- * @param {unknown[] | Record<string, unknown>} root - The root structure to search in.
- * @param {PathKey} key - The path to retrieve (number, string, null, or undefined).
- * @returns {{ found: boolean; value?: unknown }} Object with found status and value.
+ * @param root - The root structure to search in.
+ * @param key - The path to retrieve (number, string, null, or undefined).
+ * @returns Object with found status and value.
+ *
  * @example
+ *
  * Get values from arrays
  * getRaw([['a', 'b'], ['c']], "0.1"); // -> { found: true, value: 'b' }
  * getRaw([['a']], "1.0"); // -> { found: false }
  * getRaw(['x', 'y'], null); // -> { found: true, value: ['x', 'y'] }
  *
  * @example
+ *
  * Get values from objects
  * getRaw([{name: 'John', age: 30}], "0.name"); // -> { found: true, value: 'John' }
  * getRaw({user: {profile: {name: 'Jane'}}}, "user.profile.name"); // -> { found: true, value: 'Jane' }
  * getRaw({items: ['a', 'b']}, "items.1"); // -> { found: true, value: 'b' }
  */
-export const getRaw = (
+export function getRaw(
     root: unknown[] | Record<string, unknown>,
     key: PathKey,
-): { found: boolean; value?: unknown } => {
+): { found: boolean; value?: unknown } {
     if (key == null) {
         return { found: true, value: root };
     }
@@ -176,22 +186,117 @@ export const getRaw = (
         }
     }
     return { found: true, value: cursor };
-};
+}
+
+/**
+ * Remove items from an array or object using dot notation keys (immutable).
+ * Creates a new structure with specified items removed, supporting nested paths.
+ *
+ * @param data - The data to remove items from.
+ * @param keys - The key(s) to remove (number, string, or array of keys).
+ * @returns A new structure with the specified items removed.
+ *
+ * @example
+ *
+ * Remove keys from objects and arrays
+ * forgetKeys({a: 1, b: 2}, 'a'); // -> {b: 2}
+ * forgetKeys(['x', 'y', 'z'], 1); // -> ['x', 'z']
+ * forgetKeys([{name: 'John', age: 30}], '0.age'); // -> [{name: 'John'}]
+ */
+export function forgetKeys<T>(
+    data: Record<string, unknown> | ReadonlyArray<T>,
+    keys: PathKeys,
+): Record<string, unknown> | T[] {
+    if (isObject(data)) {
+        return forgetKeysObject(data, keys) as Record<string, unknown>;
+    }
+
+    return forgetKeysArray(data as ReadonlyArray<T>, keys) as T[];
+}
+
+/**
+ * Remove properties from an object using dot notation keys (immutable).
+ * Creates a new object with specified properties removed, supporting nested paths.
+ *
+ * @param data - The object to remove properties from.
+ * @param keys - The key(s) to remove (string or array of strings).
+ * @returns A new object with the specified properties removed.
+ *
+ * @example
+ *
+ * Remove object properties
+ * forgetKeysObject({a: 1, b: {c: 2, d: 3}}, 'a'); // -> {b: {c: 2, d: 3}}
+ * forgetKeysObject({user: {name: 'John', age: 30}}, 'user.age'); // -> {user: {name: 'John'}}
+ * forgetKeysObject({a: 1, b: 2, c: 3}, ['a', 'c']); // -> {b: 2}
+ */
+export function forgetKeysObject<T extends Record<string, unknown>>(
+    data: T,
+    keys: PathKeys,
+): Record<string, unknown> {
+    const keyList = isArray(keys) ? keys : [keys];
+    const result = { ...data };
+
+    for (const key of keyList) {
+        if (key == null) continue;
+
+        const keyStr = String(key);
+
+        // Handle simple property removal (no dots)
+        if (!keyStr.includes(".")) {
+            delete result[keyStr];
+            continue;
+        }
+
+        // Handle nested property removal with dot notation
+        const segments = keyStr.split(".");
+        let current: Record<string, unknown> = result;
+
+        // Navigate to the parent of the property to be removed
+        for (let i = 0; i < segments.length - 1; i++) {
+            const segment = segments[i];
+            if (
+                !segment ||
+                !current[segment] ||
+                typeof current[segment] !== "object"
+            ) {
+                break; // Path doesn't exist, nothing to remove
+            }
+            // Clone the nested object to maintain immutability
+            current[segment] = {
+                ...(current[segment] as Record<string, unknown>),
+            };
+            current = current[segment] as Record<string, unknown>;
+        }
+
+        // Remove the final property
+        const lastSegment = segments[segments.length - 1];
+        if (lastSegment && current[lastSegment] !== undefined) {
+            delete current[lastSegment];
+        }
+    }
+
+    return result;
+}
 
 /**
  * Remove items from an array using dot notation keys (immutable).
  * Creates a new array with specified items removed, supporting nested paths.
  *
- * @param {ReadonlyArray<T>} data - The array to remove items from.
- * @param {PathKeys} keys - The key(s) to remove (number, string, or array of keys).
- * @returns {T[]} A new array with the specified items removed.
+ * @param data - The array to remove items from.
+ * @param keys - The key(s) to remove (number, string, or array of keys).
+ * @returns A new array with the specified items removed.
+ *
  * @example
+ *
  * Remove items by keys
  * forgetKeys(['a', 'b', 'c'], 1); // -> ['a', 'c']
  * forgetKeys([['x', 'y'], ['z']], "0.1"); // -> [['x'], ['z']]
  * forgetKeys(['a', 'b', 'c'], [0, 2]); // -> ['b']
  */
-export const forgetKeys = <T>(data: ReadonlyArray<T>, keys: PathKeys): T[] => {
+export function forgetKeysArray<T>(
+    data: ReadonlyArray<T>,
+    keys: PathKeys,
+): T[] {
     // This mirrors Arr.forget implementation (immutable)
     const removeAt = <U>(arr: ReadonlyArray<U>, index: number): U[] => {
         if (!Number.isInteger(index) || index < 0 || index >= arr.length) {
@@ -316,27 +421,29 @@ export const forgetKeys = <T>(data: ReadonlyArray<T>, keys: PathKeys): T[] => {
         }) as unknown[];
     }
     return out as T[];
-};
+}
 
 /**
  * Set a value in an array using dot notation (immutable).
  * Creates a new array with the value set at the specified path.
  *
- * @param {ReadonlyArray<T> | unknown} data - The array to set the value in.
- * @param {PathKey} key - The path where to set the value (number, string, null, or undefined).
- * @param {T} value - The value to set.
- * @returns {T[]} A new array with the value set at the specified path.
+ * @param data - The array to set the value in.
+ * @param key - The path where to set the value (number, string, null, or undefined).
+ * @param value - The value to set.
+ * @returns A new array with the value set at the specified path.
+ *
  * @example
+ *
  * Set values using dot notation
  * setImmutable(['a', 'b'], 1, 'x'); // -> ['a', 'x']
  * setImmutable([['old']], "0.0", 'new'); // -> [['new']]
  * setImmutable([], 0, 'first'); // -> ['first']
  */
-export const setImmutable = <T>(
+export function setImmutable<T>(
     data: ReadonlyArray<T> | unknown,
     key: PathKey,
     value: T,
-): T[] => {
+): T[] {
     if (key == null) {
         return value as unknown as T[];
     }
@@ -416,27 +523,29 @@ export const setImmutable = <T>(
         return root as T[];
     }
     return out as T[];
-};
+}
 
 /**
  * Push values to an array at a specific path using dot notation.
  * Creates nested arrays as needed and pushes values to the target location.
  *
- * @param {T[] | unknown} data - The array to push values into.
- * @param {PathKey} key - The path where to push values (number, string, null, or undefined).
- * @param {...T[]} values - The values to push.
- * @returns {T[]} The modified array with values pushed at the specified path.
+ * @param data - The array to push values into.
+ * @param key - The path where to push values (number, string, null, or undefined).
+ * @param values - The values to push.
+ * @returns The modified array with values pushed at the specified path.
+ *
  * @example
+ *
  * Push values using dot notation
  * pushWithPath(['a'], null, 'b', 'c'); // -> ['a', 'b', 'c']
  * pushWithPath([['x']], "0", 'y'); // -> [['x', 'y']]
  * pushWithPath([], "0", 'first'); // -> [['first']]
  */
-export const pushWithPath = <T>(
+export function pushWithPath<T>(
     data: T[] | unknown,
     key: PathKey,
     ...values: T[]
-): T[] => {
+): T[] {
     if (key == null) {
         if (isArray(data)) {
             (data as unknown[]).push(...(values as unknown[]));
@@ -551,25 +660,100 @@ export const pushWithPath = <T>(
     }
     cursor.push(...(values as unknown[]));
     return isPlainArray ? (data as T[]) : (root as T[]);
-};
+}
+
+/**
+ * Flatten a nested structure into a flat object with dot notation keys.
+ * Converts nested arrays and objects into a single-level object with path-based keys.
+ *
+ * @param data - The data to flatten.
+ * @param prepend - Optional string to prepend to all keys.
+ * @returns A flat object with dot-notated keys.
+ *
+ * @example
+ *
+ * Flatten mixed structures
+ * dotFlatten({a: {b: 1}, c: [2, 3]}); // -> {'a.b': 1, 'c.0': 2, 'c.1': 3}
+ * dotFlatten(['x', {y: 'z'}], 'prefix'); // -> {'prefix.0': 'x', 'prefix.1.y': 'z'}
+ */
+export function dotFlatten(
+    data: Record<string, unknown> | ReadonlyArray<unknown> | unknown,
+    prepend: string = "",
+): Record<string, unknown> {
+    if (isObject(data)) {
+        return dotFlattenObject(data, prepend);
+    }
+
+    if (isArray(data)) {
+        return dotFlattenArray(data, prepend);
+    }
+
+    return dotFlattenArray(arrWrap(data), prepend);
+}
+
+/**
+ * Flatten a nested object structure into a flat object with dot notation keys.
+ * Converts nested objects into a single-level object with path-based keys.
+ *
+ * @param data - The object to flatten.
+ * @param prepend - Optional string to prepend to all keys.
+ * @returns A flat object with dot-notated keys.
+ *
+ * @example
+ *
+ * Flatten nested objects
+ * dotFlattenObject({a: {b: {c: 1}}}); // -> {'a.b.c': 1}
+ * dotFlattenObject({user: {name: 'John'}}, 'data'); // -> {'data.user.name': 'John'}
+ */
+export function dotFlattenObject(
+    data: Record<string, unknown> | unknown,
+    prepend: string = "",
+): Record<string, unknown> {
+    if (!isObject(data)) {
+        return {};
+    }
+
+    const results: Record<string, unknown> = {};
+
+    const walk = (obj: Record<string, unknown>, prefix: string): void => {
+        for (const [key, value] of Object.entries(obj)) {
+            const newKey = prefix ? prefix + "." + key : key;
+
+            if (isObject(value) && Object.keys(value).length > 0) {
+                walk(value as Record<string, unknown>, newKey);
+            } else {
+                results[newKey] = value;
+            }
+        }
+    };
+
+    walk(data as Record<string, unknown>, prepend);
+
+    return results;
+}
 
 /**
  * Flatten a nested array structure into a flat object with dot notation keys.
  * Converts nested arrays into a single-level object with path-based keys.
  *
- * @param {ReadonlyArray<unknown> | unknown} data - The array to flatten.
- * @param {string} prepend - Optional string to prepend to all keys.
- * @returns {Record<string, unknown>} A flat object with dot-notated keys.
+ * @param data - The array to flatten.
+ * @param prepend - Optional string to prepend to all keys.
+ * @returns A flat object with dot-notated keys.
+ *
  * @example
+ *
  * Flatten nested arrays
- * dotFlatten(['a', ['b', 'c']]); // -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
- * dotFlatten([['x']], "prefix"); // -> { 'prefix.0.0': 'x' }
+ * dotFlattenArray(['a', ['b', 'c']]); // -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
+ * dotFlattenArray([['x']], "prefix"); // -> { 'prefix.0.0': 'x' }
  */
-export const dotFlatten = (
+export function dotFlattenArray(
     data: ReadonlyArray<unknown> | unknown,
     prepend: string = "",
-): Record<string, unknown> => {
-    if (!isArray(data)) return {};
+): Record<string, unknown> {
+    if (!isArray(data)) {
+        return {};
+    }
+
     const root = data as unknown[];
     const out: Record<string, unknown> = {};
     const walk = (node: unknown, path: string): void => {
@@ -592,20 +776,71 @@ export const dotFlatten = (
     };
     walk(root, "");
     return out;
-};
+}
+
+/**
+ * Expand a flat object with dot notation keys into a nested structure.
+ * Converts a flattened object back into its original nested form, supporting both arrays and objects.
+ *
+ * @param map - The flat object with dot-notated keys.
+ * @returns A nested structure (array or object).
+ *
+ * @example
+ *
+ * Expand flat objects to nested structures
+ * undotExpand({'a.b.c': 1, 'a.d': 2}); // -> {a: {b: {c: 1}, d: 2}}
+ * undotExpand({'0': 'x', '1.name': 'John'}); // -> ['x', {name: 'John'}]
+ */
+export function undotExpand(
+    map: Record<string, unknown>,
+): unknown[] | Record<string, unknown> {
+    if (isObject(map)) {
+        return undotExpandObject(map);
+    }
+
+    return undotExpandArray(map);
+}
+
+/**
+ * Expand a flat object with dot notation keys into a nested object structure.
+ * Converts a flattened object back into its original nested object form.
+ *
+ * @param map - The flat object with dot-notated keys.
+ * @returns A nested object structure.
+ *
+ * @example
+ *
+ * Expand flat object to nested object
+ * undotExpandObject({'user.name': 'John', 'user.age': 30}); // -> {user: {name: 'John', age: 30}}
+ * undotExpandObject({'a.b.c': 1, 'a.d': 2}); // -> {a: {b: {c: 1}, d: 2}}
+ */
+export function undotExpandObject(
+    map: Record<string, unknown>,
+): Record<string, unknown> {
+    const results: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(map)) {
+        const result = setObjectValue(results, key, value);
+        Object.assign(results, result);
+    }
+
+    return results;
+}
 
 /**
  * Expand a flat object with dot notation keys into a nested array structure.
  * Converts a flattened object back into its original nested array form.
  *
- * @param {Record<string, unknown>} map - The flat object with dot-notated keys.
- * @returns {unknown[]} A nested array structure.
+ * @param map - The flat object with dot-notated keys.
+ * @returns A nested array structure.
+ *
  * @example
+ *
  * Expand flat object to nested arrays
- * undotExpand({ '0': 'a', '1.0': 'b', '1.1': 'c' }); // -> ['a', ['b', 'c']]
- * undotExpand({ '0.0.0': 'deep' }); // -> [[['deep']]]
+ * undotExpandArray({ '0': 'a', '1.0': 'b', '1.1': 'c' }); // -> ['a', ['b', 'c']]
+ * undotExpandArray({ '0.0.0': 'deep' }); // -> [[['deep']]]
  */
-export const undotExpand = (map: Record<string, unknown>): unknown[] => {
+export function undotExpandArray(map: Record<string, unknown>): unknown[] {
     const root: unknown[] = [];
     const isValidIndex = (seg: string): boolean => {
         const n = seg.length ? Number(seg) : NaN;
@@ -642,7 +877,7 @@ export const undotExpand = (map: Record<string, unknown>): unknown[] => {
         }
     }
     return root;
-};
+}
 
 /**
  * Helper function to get nested values using mixed dot notation.
@@ -650,27 +885,31 @@ export const undotExpand = (map: Record<string, unknown>): unknown[] => {
  * This utility enables traversal of complex nested structures where arrays
  * and objects can be intermixed at any level.
  *
- * @param {unknown} obj - The object or array to traverse.
- * @param {string} path - The dot-notation path to traverse (e.g., "0.items.1.name").
- * @returns {unknown} The value at the specified path, or undefined if not found.
+ * @param The object or array to traverse.
+ * @param path - The dot-notation path to traverse (e.g., "0.items.1.name").
+ * @returns The value at the specified path, or undefined if not found.
+ *
  * @example
  *
  * Array with nested objects
  * getNestedValue([{items: ['x', 'y']}], '0.items.1'); // -> 'y'
  *
  * @example
+ *
  * Object with nested arrays
  * getNestedValue({users: [{name: 'John'}, {name: 'Jane'}]}, 'users.1.name'); // -> 'Jane'
  *
  * @example
+ *
  * Mixed nesting
  * getNestedValue([{data: {values: [1, 2, 3]}}], '0.data.values.2'); // -> 3
  *
  * @example
+ *
  * Path not found
  * getNestedValue([{items: ['x']}], '0.items.5'); // -> undefined
  */
-export const getNestedValue = (obj: unknown, path: string): unknown => {
+export function getNestedValue<T>(obj: unknown, path: string): T | undefined {
     if (!obj || typeof obj !== "object") {
         return undefined;
     }
@@ -699,8 +938,8 @@ export const getNestedValue = (obj: unknown, path: string): unknown => {
         }
     }
 
-    return current;
-};
+    return current as T | undefined;
+}
 
 /**
  * Get a value from a nested structure using mixed dot notation.
@@ -708,21 +947,23 @@ export const getNestedValue = (obj: unknown, path: string): unknown => {
  * This function bridges between the existing numeric-only getRaw function
  * and the new mixed notation support.
  *
- * @param {ReadonlyArray<T> | unknown} data - The data to search in.
- * @param {PathKey} key - The dot-notation key.
- * @param {D | (() => D) | null} defaultValue - Default value if not found.
- * @returns {unknown} The found value or default.
+ * @param data - The data to search in.
+ * @param key - The dot-notation key.
+ * @param defaultValue - Default value if not found.
+ * @returns The found value or default.
+ *
  * @example
+ *
  * Get values with mixed notation
  * getMixedValue([{name: 'John'}], '0.name'); // -> 'John'
  * getMixedValue(['a', 'b'], 1); // -> 'b'
  * getMixedValue([], '0', 'default'); // -> 'default'
  */
-export const getMixedValue = <T, D = null>(
+export function getMixedValue<T, D = null>(
     data: ReadonlyArray<T> | unknown,
     key: PathKey,
     defaultValue: D | (() => D) | null = null,
-): unknown => {
+): unknown {
     const resolveDefault = (): D | null => {
         return typeof defaultValue === "function"
             ? (defaultValue as () => D)()
@@ -775,7 +1016,7 @@ export const getMixedValue = <T, D = null>(
     // For mixed notation, use our helper
     const result = getNestedValue(data, keyStr);
     return result === undefined ? resolveDefault() : result;
-};
+}
 
 /**
  * Enhanced mixed array/object path functions for Laravel-style operations
@@ -785,21 +1026,21 @@ export const getMixedValue = <T, D = null>(
  * Set a value in an array using mixed array/object dot notation (mutable version).
  * Supports both numeric array indices and object property names in paths.
  *
- * @param {unknown[]} arr - The root array to modify.
- * @param {PathKey} key - The path where to set the value.
- * @param {unknown} value - The value to set.
- * @returns {unknown[]} The modified original array.
+ * @param The root array to modify.
+ * @param key - The path where to set the value.
+ * @param value - The value to set.
+ * @returns The modified original array.
  *
  * @example
  *
  * setMixed([{ name: "John" }], "0.age", 30); // -> [{ name: "John", age: 30 }]
  * setMixed([], "user.name", "John"); // -> [{ user: { name: "John" } }]
  */
-export const setMixed = (
+export function setMixed(
     arr: unknown[],
     key: PathKey,
     value: unknown,
-): unknown[] => {
+): unknown[] {
     if (key == null) {
         // If key is null, replace the entire array
         arr.length = 0;
@@ -901,7 +1142,7 @@ export const setMixed = (
     }
 
     return arr;
-};
+}
 
 /**
  * Push values to an array at the specified mixed path.
@@ -917,11 +1158,11 @@ export const setMixed = (
  * pushMixed([], '0', 'value'); // -> [['value']]
  * pushMixed([{items: []}], '0.items', 'new'); // -> [{items: ['new']}]
  */
-export const pushMixed = <T>(
+export function pushMixed<T>(
     data: T[] | unknown,
     key: PathKey,
     ...values: T[]
-): T[] => {
+): T[] {
     if (key == null) {
         if (isArray(data)) {
             (data as unknown[]).push(...(values as unknown[]));
@@ -988,27 +1229,27 @@ export const pushMixed = <T>(
     }
 
     return data as T[];
-};
+}
 
 /**
  * Set a value in an array using mixed array/object dot notation (immutable version).
  * Supports both numeric array indices and object property names in paths.
  *
- * @param {ReadonlyArray<T> | unknown} data - The data to set the value in.
- * @param {PathKey} key - The path where to set the value.
- * @param {T} value - The value to set.
- * @returns {T[]} A new array with the value set.
+ * @param data - The data to set the value in.
+ * @param key - The path where to set the value.
+ * @param value - The value to set.
+ * @returns A new array with the value set.
  *
  * @example
  *
  * setMixedImmutable([{ name: "John" }], "0.age", 30); // -> [{ name: "John", age: 30 }]
  * setMixedImmutable([], "user.name", "John"); // -> [{ user: { name: "John" } }]
  */
-export const setMixedImmutable = <T>(
+export function setMixedImmutable<T>(
     data: ReadonlyArray<T> | unknown,
     key: PathKey,
     value: T,
-): T[] => {
+): T[] {
     // Handle null key - replace entire data structure
     if (key === null || key === undefined) {
         return value as unknown as T[];
@@ -1037,15 +1278,15 @@ export const setMixedImmutable = <T>(
 
     // Use the mutable version on the copy
     return setMixed(arr, key, value) as T[];
-};
+}
 
 /**
  * Check if a key exists using mixed array/object dot notation.
  * Supports both numeric array indices and object property names in paths.
  *
- * @param {unknown} data - The data to check.
- * @param {PathKey} key - The path to check.
- * @returns {boolean} True if the path exists, false otherwise.
+ * @param data - The data to check.
+ * @param key - The path to check.
+ * @returns True if the path exists, false otherwise.
  *
  * @example
  *
@@ -1053,7 +1294,7 @@ export const setMixedImmutable = <T>(
  * hasMixed([{ name: "John" }], "0.age"); // -> false
  * hasMixed([], "user.name"); // -> false
  */
-export const hasMixed = (data: unknown, key: PathKey): boolean => {
+export function hasMixed(data: unknown, key: PathKey): boolean {
     if (isNull(key)) {
         return data != null;
     }
@@ -1062,7 +1303,7 @@ export const hasMixed = (data: unknown, key: PathKey): boolean => {
         return isArray(data) && key >= 0 && key < data.length;
     }
 
-    if(isUndefined(key)) {
+    if (isUndefined(key)) {
         return false;
     }
 
@@ -1070,4 +1311,127 @@ export const hasMixed = (data: unknown, key: PathKey): boolean => {
     const result = getNestedValue(data, key.toString());
 
     return !isUndefined(result);
-};
+}
+
+/**
+ * Get a value from an object using dot notation.
+ * This is an object-specific version that handles object property access.
+ *
+ * @param obj - The object to get the value from.
+ * @param key - The key or dot-notated path.
+ * @param defaultValue - The default value if the key is not found.
+ * @returns The value or the default value.
+ */
+export function getObjectValue<T = unknown, D = null>(
+    obj: unknown,
+    key: PathKey,
+    defaultValue: D | (() => D) | null = null,
+): T | D | null {
+    const resolveDefault = (): D | null => {
+        return typeof defaultValue === "function"
+            ? (defaultValue as () => D)()
+            : (defaultValue as D);
+    };
+
+    if (key == null) {
+        return obj as T;
+    }
+
+    if (!isObject(obj)) {
+        return resolveDefault();
+    }
+
+    const keyStr = String(key);
+
+    // Handle simple property access (no dots)
+    if (!keyStr.includes(".")) {
+        const value = (obj as Record<string, unknown>)[keyStr];
+        return value !== undefined ? (value as T) : resolveDefault();
+    }
+
+    // Handle nested property access with dot notation
+    const value = getNestedValue(obj, keyStr);
+    return value !== undefined ? (value as T) : resolveDefault();
+}
+
+/**
+ * Set a value in an object using dot notation.
+ * This is an object-specific version that creates a new object.
+ *
+ * @param obj - The object to set the value in.
+ * @param key - The key or dot-notated path.
+ * @param value - The value to set.
+ * @returns A new object with the value set.
+ */
+export function setObjectValue(
+    obj: unknown,
+    key: PathKey | null,
+    value: unknown,
+): Record<string, unknown> {
+    if (key == null) {
+        return value as Record<string, unknown>;
+    }
+
+    if (!isObject(obj)) {
+        obj = {};
+    }
+
+    const result = { ...(obj as Record<string, unknown>) };
+    const keyStr = String(key);
+
+    // Handle simple property access (no dots)
+    if (!keyStr.includes(".")) {
+        result[keyStr] = value;
+        return result;
+    }
+
+    // Handle nested property access with dot notation
+    const segments = keyStr.split(".");
+    let current: Record<string, unknown> = result;
+
+    for (let i = 0; i < segments.length - 1; i++) {
+        const segment = segments[i];
+        if (!segment) continue;
+
+        if (!current[segment] || typeof current[segment] !== "object") {
+            current[segment] = {};
+        } else {
+            // Clone nested objects to maintain immutability
+            current[segment] = {
+                ...(current[segment] as Record<string, unknown>),
+            };
+        }
+
+        current = current[segment] as Record<string, unknown>;
+    }
+
+    const lastSegment = segments[segments.length - 1];
+    if (lastSegment) {
+        current[lastSegment] = value;
+    }
+    return result;
+}
+
+/**
+ * Check if a key exists in an object using dot notation.
+ *
+ * @param obj - The object to check.
+ * @param key - The key or dot-notated path.
+ * @returns True if the key exists, false otherwise.
+ */
+export function hasObjectKey(obj: unknown, key: PathKey): boolean {
+    if (!isObject(obj) || key == null) {
+        return false;
+    }
+
+    const keyStr = String(key);
+
+    // Handle simple property access (no dots)
+    if (!keyStr.includes(".")) {
+        return keyStr in (obj as Record<string, unknown>);
+    }
+
+    // Handle nested property access with dot notation
+    const value = getNestedValue(obj, keyStr);
+    return value !== undefined;
+}

@@ -1437,7 +1437,7 @@ describe("Arr", () => {
     it("array", () => {
         // Valid arrays
         expect(
-            Arr.array(
+            Arr.arrayItem(
                 [
                     ["a", "b"],
                     ["c", "d"],
@@ -1445,22 +1445,24 @@ describe("Arr", () => {
                 0,
             ),
         ).toEqual(["a", "b"]);
-        expect(Arr.array([{ items: ["x", "y"] }], "0.items")).toEqual([
+        expect(Arr.arrayItem([{ items: ["x", "y"] }], "0.items")).toEqual([
             "x",
             "y",
         ]);
 
         // Default value (should be array)
-        expect(Arr.array([1, 2, 3], 10, [])).toEqual([]);
+        expect(Arr.arrayItem([1, 2, 3], 10, [])).toEqual([]);
 
         // Should throw for non-arrays
-        expect(() => Arr.array([1, 2, 3], 0)).toThrow(
+        expect(() => Arr.arrayItem([1, 2, 3], 0)).toThrow(
             "Array value for key [0] must be an array, number found.",
         );
-        expect(() => Arr.array([{ items: "not array" }], "0.items")).toThrow(
+        expect(() =>
+            Arr.arrayItem([{ items: "not array" }], "0.items"),
+        ).toThrow(
             "Array value for key [0.items] must be an array, string found.",
         );
-        expect(() => Arr.array([null, ["valid"]], 0)).toThrow(
+        expect(() => Arr.arrayItem([null, ["valid"]], 0)).toThrow(
             "Array value for key [0] must be an array, object found.",
         );
     });
@@ -2327,7 +2329,7 @@ describe("Arr", () => {
                     },
                 },
             ];
-            // This should trigger the toString conversion on line 1218 when keyObj is used as key
+            // This should trigger the toString conversion when keyObj is used as key
             const pluckResult = Arr.pluck(dataForPluck, "value", "keyObj");
             expect(pluckResult).toEqual({ key1: "item1", key2: "item2" });
 
@@ -2353,7 +2355,7 @@ describe("Arr", () => {
             // sort with callback function - need values that are actually different to trigger comparison
             const sortedResult = Arr.sort(dataToSort, (item: unknown) => {
                 const typedItem = item as { val: number; name: string };
-                return typedItem.val; // This should trigger compareValues call on line 1743
+                return typedItem.val; // This should trigger compareValues call
             });
             expect(sortedResult).toEqual([
                 { val: 5, name: "c" },
@@ -2366,7 +2368,7 @@ describe("Arr", () => {
                 dataToSort,
                 (item: unknown) => {
                     const typedItem = item as { val: number; name: string };
-                    return typedItem.val; // This should trigger compareValues call on line 1798
+                    return typedItem.val; // This should trigger compareValues call
                 },
             );
             expect(sortedDescResult).toEqual([
@@ -2384,7 +2386,7 @@ describe("Arr", () => {
                 { priority: 200, id: "fourth" },
             ];
 
-            // This MUST trigger compareValues on line 1743 because values are different
+            // This MUST trigger compareValues on because values are different
             const forceComparisonSort = Arr.sort(
                 dataForComparison,
                 (item: unknown) => {
@@ -2399,7 +2401,7 @@ describe("Arr", () => {
                 (forceComparisonSort[3] as { priority: number }).priority,
             ).toBe(200);
 
-            // This MUST trigger compareValues on line 1798 because values are different
+            // This MUST trigger compareValues on because values are different
             const forceComparisonSortDesc = Arr.sortDesc(
                 dataForComparison,
                 (item: unknown) => {
@@ -2443,7 +2445,7 @@ describe("Arr", () => {
         });
 
         it("should test path function edge cases and error conditions", () => {
-            // Test parseSegments with invalid numeric keys (line 64)
+            // Test parseSegments with invalid numeric keys
             // This should be tested via functions that use parseSegments
             expect(Arr.get([], -1, "default")).toBe("default");
             expect(Arr.set([], -1, "value")).toEqual([]);

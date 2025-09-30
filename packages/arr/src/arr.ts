@@ -1,10 +1,10 @@
 import { Random, Str } from "@laravel-js/str";
 import {
-    getRaw as _getRaw,
-    forgetKeys as _forgetKeys,
-    pushWithPath as _pushWithPath,
-    dotFlatten as _dotFlatten,
-    undotExpand as _undotExpand,
+    getRaw,
+    forgetKeys,
+    pushWithPath,
+    dotFlatten,
+    undotExpandArray,
     getNestedValue,
     getMixedValue,
     setMixed,
@@ -77,7 +77,6 @@ export function add<T extends readonly unknown[]>(
 
 /**
  * Get an array item from an array using "dot" notation.
- * Throws an error if the value is not an array.
  *
  * @param data - The array to get the item from.
  * @param key - The key or dot-notated path of the item to get.
@@ -87,11 +86,11 @@ export function add<T extends readonly unknown[]>(
  *
  * @example
  *
- * array([['a', 'b'], ['c', 'd']], 0); // -> ['a', 'b']
- * array([{items: ['x', 'y']}], '0.items'); // -> ['x', 'y']
- * array([{items: 'not array'}], '0.items'); // -> throws Error
+ * arrayItem([['a', 'b'], ['c', 'd']], 0); // -> ['a', 'b']
+ * arrayItem([{items: ['x', 'y']}], '0.items'); // -> ['x', 'y']
+ * arrayItem([{items: 'not array'}], '0.items'); // -> throws Error
  */
-export function array<T, D = null>(
+export function arrayItem<T, D = null>(
     data: ReadonlyArray<T> | unknown,
     key: PathKey,
     defaultValue: D | (() => D) | null = null,
@@ -241,7 +240,7 @@ export function dot(
     data: ReadonlyArray<unknown> | unknown,
     prepend: string = "",
 ): Record<string, unknown> {
-    return _dotFlatten(data, prepend);
+    return dotFlatten(data, prepend);
 }
 
 /**
@@ -256,7 +255,7 @@ export function dot(
  * undot({ 'item.0': 'a', 'item.1.0': 'b', 'item.1.1': 'c' }); // -> [['b', 'c']]
  */
 export function undot(map: Record<string, unknown>): unknown[] {
-    return _undotExpand(map);
+    return undotExpandArray(map) as unknown[];
 }
 
 /**
@@ -635,7 +634,7 @@ export function float<T, D = null>(
  * forget(['products', ['desk', [100]]], 2); // -> ['products', ['desk', [100]]]
  */
 export function forget<T>(data: ReadonlyArray<T>, keys: PathKeys): T[] {
-    return _forgetKeys<T>(data, keys);
+    return forgetKeys<T>(data, keys) as T[];
 }
 
 /**
@@ -1319,7 +1318,7 @@ export function pull<T, D = null>(
         return { value: resolveDefault(), data: original as T[] };
     }
     const root = castableToArray(data)!;
-    const { found, value } = _getRaw(root, key as number | string);
+    const { found, value } = getRaw(root, key as number | string);
     if (!found) {
         const original = root.slice();
         return { value: resolveDefault(), data: original as T[] };
@@ -1505,7 +1504,7 @@ export function push<T>(
     key: PathKey,
     ...values: T[]
 ): T[] {
-    return _pushWithPath<T>(data, key, ...values);
+    return pushWithPath<T>(data, key, ...values);
 }
 
 /**
