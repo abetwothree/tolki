@@ -9,7 +9,12 @@ import oxlint from "eslint-plugin-oxlint";
 
 export default defineConfig([
     {
-        ignores: ["**/dist/**", "coverage/**"],
+        ignores: [
+            "**/dist/**",
+            "coverage/**",
+            "docs/.vitepress/dist/**",
+            "docs/.vitepress/cache/**",
+        ],
     },
     {
         files: ["**/*.{js,mjs,cjs,ts,mts,cts}"],
