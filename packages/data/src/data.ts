@@ -116,7 +116,12 @@ import {
     partition as arrPartition,
     whereNotNull as arrWhereNotNull,
 } from "@laravel-js/arr";
-import type { DataItems, ObjectKey } from "@laravel-js/types";
+import type {
+    DataItems,
+    ObjectKey,
+    PathKey,
+    PathKeys,
+} from "@laravel-js/types";
 import { isObject } from "@laravel-js/utils";
 
 /**
@@ -134,7 +139,7 @@ import { isObject } from "@laravel-js/utils";
  */
 export function dataAdd<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
-    key: string | number,
+    key: PathKey,
     value: T,
 ): DataItems<T, K> {
     if (isObject(data)) {
@@ -162,7 +167,7 @@ export function dataAdd<T, K extends ObjectKey = ObjectKey>(
  */
 export function dataItem<D = null>(
     data: unknown,
-    key: string | number,
+    key: PathKey,
     defaultValue?: D,
 ): unknown[] | Record<string, unknown> {
     if (isObject(data)) {
@@ -191,7 +196,7 @@ export function dataItem<D = null>(
  */
 export function dataBoolean<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
-    key: string | number,
+    key: PathKey,
     defaultValue = false,
 ): boolean {
     if (isObject(data)) {
@@ -324,7 +329,7 @@ export function dataUndot<T, K extends ObjectKey = ObjectKey>(
  */
 export function dataExcept<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
-    keys: (string | number)[],
+    keys: PathKeys,
 ): DataItems<T, K> {
     if (isObject(data)) {
         return objExcept(data as Record<K, T>, keys as string[]) as DataItems<
@@ -420,7 +425,7 @@ export function dataFlatten<T, K extends ObjectKey = ObjectKey>(
  */
 export function dataFloat<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
-    key: string | number,
+    key: PathKey,
     defaultValue = 0.0,
 ): number {
     if (isObject(data)) {
@@ -444,7 +449,7 @@ export function dataFloat<T, K extends ObjectKey = ObjectKey>(
  */
 export function dataForget<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
-    keys: (string | number)[],
+    keys: PathKeys,
 ): DataItems<T, K> {
     if (isObject(data)) {
         return objForget(data as Record<K, T>, keys as string[]) as DataItems<
@@ -469,7 +474,7 @@ export function dataForget<T, K extends ObjectKey = ObjectKey>(
  */
 export function dataFrom(items: unknown): unknown[] | Record<string, unknown> {
     if (isObject(items)) {
-        return objFrom(items as Record<K, T>);
+        return objFrom(items as Record<string, unknown>);
     }
 
     // arrFrom expects the items to be convertible to an array
@@ -491,7 +496,7 @@ export function dataFrom(items: unknown): unknown[] | Record<string, unknown> {
  */
 export function dataGet<T, K extends ObjectKey = ObjectKey, D = null>(
     data: DataItems<T, K>,
-    key: string | number,
+    key: PathKey,
     defaultValue?: D,
 ): T | D | null {
     if (isObject(data)) {
@@ -515,7 +520,7 @@ export function dataGet<T, K extends ObjectKey = ObjectKey, D = null>(
  */
 export function dataHas<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
-    keys: (string | number)[],
+    keys: PathKeys,
 ): boolean {
     if (isObject(data)) {
         return objHas(data as Record<K, T>, keys as string[]);
@@ -538,7 +543,7 @@ export function dataHas<T, K extends ObjectKey = ObjectKey>(
  */
 export function dataHasAll<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
-    keys: (string | number)[],
+    keys: PathKeys,
 ): boolean {
     if (isObject(data)) {
         return objHasAll(data as Record<K, T>, keys as string[]);
@@ -561,7 +566,7 @@ export function dataHasAll<T, K extends ObjectKey = ObjectKey>(
  */
 export function dataHasAny<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
-    keys: (string | number)[],
+    keys: PathKeys,
 ): boolean {
     if (isObject(data)) {
         return objHasAny(data as Record<K, T>, keys as string[]);
@@ -643,7 +648,7 @@ export function dataSome<T, K extends ObjectKey = ObjectKey>(
  */
 export function dataInteger<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
-    key: string | number,
+    key: PathKey,
     defaultValue = 0,
 ): number {
     if (isObject(data)) {
@@ -792,7 +797,7 @@ export function dataSelect(data: unknown, keys: string[]): unknown {
  * dataMapWithKeys([1, 2], (value, index) => [`key_${index}`, value * 2]);
  * // -> {key_0: 2, key_1: 4}
  */
-export function dataMapWithKeys<T, K extends ObjectKey = ObjectKey, V>(
+export function dataMapWithKeys<T, V, K extends ObjectKey = ObjectKey>(
     data: unknown,
     callback: (value: T, key: string | number) => [K, V],
 ): Record<K, V> {
@@ -858,6 +863,484 @@ export function dataPrepend<T, K extends ObjectKey = ObjectKey>(
     }
 
     return arrPrepend(arrWrap(data), value) as DataItems<T>;
+}
+
+/**
+ * Pull and remove a value from data.
+ *
+ * @param data - The data to pull from
+ * @param key - The key to pull
+ * @param defaultValue - Default value if key doesn't exist
+ * @returns Object with the pulled value and modified data
+ *
+ * @example
+ *
+ * dataPull([1, 2, 3], 1, 'default'); // -> {value: 2, data: [1, 3]}
+ * dataPull({a: 1, b: 2}, 'b', 'default'); // -> {value: 2, data: {a: 1}}
+ */
+export function dataPull<T, K extends ObjectKey = ObjectKey, D = null>(
+    data: DataItems<T, K>,
+    key: PathKey,
+    defaultValue?: D,
+): { value: T | D | null; data: DataItems<T, K> } {
+    if (isObject(data)) {
+        const result = objPull(
+            data as Record<string, T>,
+            key as string,
+            defaultValue,
+        );
+        return {
+            value: result.value as T | D | null,
+            data: result.data as DataItems<T, K>,
+        };
+    }
+
+    const result = arrPull(arrWrap(data), key as number, defaultValue);
+    return {
+        value: result.value as T | D | null,
+        data: result.data as DataItems<T>,
+    };
+}
+
+/**
+ * Convert data to a query string.
+ *
+ * @param data - The data to convert
+ * @returns Query string representation
+ *
+ * @example
+ *
+ * dataQuery({name: 'John', age: 30}); // -> 'name=John&age=30'
+ * dataQuery([1, 2, 3]); // -> '0=1&1=2&2=3'
+ */
+export function dataQuery<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+): string {
+    if (isObject(data)) {
+        return objQuery(data as Record<string, unknown>);
+    }
+
+    return arrQuery(arrWrap(data));
+}
+
+/**
+ * Get random elements from data.
+ *
+ * @param data - The data to get random elements from
+ * @param number - Number of elements to get
+ * @param preserveKeys - Whether to preserve keys
+ * @returns Random elements
+ *
+ * @example
+ *
+ * dataRandom([1, 2, 3, 4], 2); // -> [2, 4] (random selection)
+ * dataRandom({a: 1, b: 2, c: 3}, 1); // -> {b: 2} (random selection)
+ */
+export function dataRandom<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+    number = 1,
+    preserveKeys = false,
+): unknown {
+    if (isObject(data)) {
+        return objRandom(data as Record<string, T>, number, preserveKeys);
+    }
+
+    return arrRandom(arrWrap(data), number, preserveKeys);
+}
+
+/**
+ * Set a value in data by key.
+ *
+ * @param data - The data to set value in
+ * @param key - The key to set
+ * @param value - The value to set
+ * @returns Data with the value set
+ *
+ * @example
+ *
+ * dataSet([1, 2, 3], 1, 'new'); // -> [1, 'new', 3]
+ * dataSet({a: 1, b: 2}, 'c', 3); // -> {a: 1, b: 2, c: 3}
+ */
+export function dataSet<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+    key: PathKey,
+    value: T,
+): DataItems<T, K> {
+    if (isObject(data)) {
+        return objSet(
+            data as Record<string, T>,
+            key as string,
+            value,
+        ) as DataItems<T, K>;
+    }
+
+    return arrSet(arrWrap(data), key as number, value) as DataItems<T>;
+}
+
+/**
+ * Push values to data.
+ *
+ * @param data - The data to push to
+ * @param key - The key to push to (for objects)
+ * @param values - The values to push
+ * @returns Data with pushed values
+ *
+ * @example
+ *
+ * dataPush([1, 2], null, [3, 4]); // -> [1, 2, 3, 4]
+ * dataPush({a: [1, 2]}, 'a', [3, 4]); // -> {a: [1, 2, 3, 4]}
+ */
+export function dataPush<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+    key: PathKey,
+    values: T[],
+): DataItems<T, K> {
+    if (isObject(data)) {
+        return objPush(
+            data as Record<string, unknown>,
+            key as string,
+            values,
+        ) as DataItems<T, K>;
+    }
+
+    return arrPush(arrWrap(data), key as number, values) as DataItems<T>;
+}
+
+/**
+ * Shuffle data randomly.
+ *
+ * @param data - The data to shuffle
+ * @returns Shuffled data
+ *
+ * @example
+ *
+ * dataShuffle([1, 2, 3, 4]); // -> [3, 1, 4, 2] (random order)
+ * dataShuffle({a: 1, b: 2, c: 3}); // -> {c: 3, a: 1, b: 2} (random order)
+ */
+export function dataShuffle<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+): DataItems<T, K> {
+    if (isObject(data)) {
+        return objShuffle(data as Record<string, T>) as DataItems<T, K>;
+    }
+
+    return arrShuffle(arrWrap(data)) as DataItems<T>;
+}
+
+/**
+ * Get the sole item that passes a test.
+ *
+ * @param data - The data to search
+ * @param callback - The test function
+ * @returns The sole matching item
+ * @throws Error if more than one or no items match
+ *
+ * @example
+ *
+ * dataSole([1, 2, 3], (value) => value > 2); // -> 3
+ * dataSole({a: 1, b: 2, c: 3}, (value) => value === 2); // -> 2
+ */
+export function dataSole<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+    callback?: (value: T, key: string | number) => boolean,
+): T {
+    if (isObject(data)) {
+        return objSole(
+            data as Record<string, T>,
+            callback as (value: T, key: string) => boolean,
+        );
+    }
+
+    return arrSole(
+        arrWrap(data),
+        callback as (value: T, index: number) => boolean,
+    );
+}
+
+/**
+ * Sort data using a callback.
+ *
+ * @param data - The data to sort
+ * @param callback - The comparison callback or key to sort by
+ * @returns Sorted data
+ *
+ * @example
+ *
+ * dataSort([3, 1, 4, 2]); // -> [1, 2, 3, 4]
+ * dataSort({c: 3, a: 1, b: 2}); // -> {a: 1, b: 2, c: 3}
+ */
+export function dataSort<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+    callback?: string | ((item: T) => unknown) | null,
+): DataItems<T, K> {
+    if (isObject(data)) {
+        return objSort(data as Record<string, T>, callback) as DataItems<T, K>;
+    }
+
+    return arrSort(arrWrap(data), callback) as DataItems<T>;
+}
+
+/**
+ * Sort data in descending order using a callback.
+ *
+ * @param data - The data to sort
+ * @param callback - The comparison callback or key to sort by
+ * @returns Sorted data in descending order
+ *
+ * @example
+ *
+ * dataSortDesc([1, 3, 2, 4]); // -> [4, 3, 2, 1]
+ * dataSortDesc({a: 1, c: 3, b: 2}); // -> {c: 3, b: 2, a: 1}
+ */
+export function dataSortDesc<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+    callback?: string | ((item: T) => unknown) | null,
+): DataItems<T, K> {
+    if (isObject(data)) {
+        return objSortDesc(data as Record<string, T>, callback) as DataItems<
+            T,
+            K
+        >;
+    }
+
+    return arrSortDesc(arrWrap(data), callback) as DataItems<T>;
+}
+
+/**
+ * Sort data recursively.
+ *
+ * @param data - The data to sort recursively
+ * @param options - Sort options
+ * @param descending - Whether to sort in descending order
+ * @returns Recursively sorted data
+ *
+ * @example
+ *
+ * dataSortRecursive({b: {y: 2, x: 1}, a: {z: 3, w: 4}}); // -> {a: {w: 4, z: 3}, b: {x: 1, y: 2}}
+ */
+export function dataSortRecursive<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+    options?: number,
+    descending = false,
+): DataItems<T, K> {
+    if (isObject(data)) {
+        return objSortRecursive(
+            data as Record<string, T>,
+            options,
+            descending,
+        ) as DataItems<T, K>;
+    }
+
+    return arrSortRecursive(arrWrap(data), options, descending) as DataItems<T>;
+}
+
+/**
+ * Sort data recursively in descending order.
+ *
+ * @param data - The data to sort recursively
+ * @param options - Sort options
+ * @returns Recursively sorted data in descending order
+ *
+ * @example
+ *
+ * dataSortRecursiveDesc({a: {w: 4, z: 3}, b: {x: 1, y: 2}}); // -> {b: {y: 2, x: 1}, a: {z: 3, w: 4}}
+ */
+export function dataSortRecursiveDesc<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+    options?: number,
+): DataItems<T, K> {
+    if (isObject(data)) {
+        return objSortRecursiveDesc(
+            data as Record<string, T>,
+            options,
+        ) as DataItems<T, K>;
+    }
+
+    return arrSortRecursiveDesc(arrWrap(data), options) as DataItems<T>;
+}
+
+/**
+ * Get a string value from data.
+ *
+ * @param data - The data to get from
+ * @param key - The key to get
+ * @param defaultValue - Default string value
+ * @returns String value or default
+ *
+ * @example
+ *
+ * dataString(['hello', 'world'], 0, ''); // -> 'hello'
+ * dataString({name: 'John'}, 'name', ''); // -> 'John'
+ */
+export function dataString<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+    key: PathKey,
+    defaultValue = "",
+): string {
+    if (isObject(data)) {
+        return objString(
+            data as Record<string, unknown>,
+            key as string,
+            defaultValue,
+        );
+    }
+
+    return arrString(arrWrap(data), key as number, defaultValue);
+}
+
+/**
+ * Convert data to CSS classes string.
+ *
+ * @param data - The data to convert
+ * @returns CSS classes string
+ *
+ * @example
+ *
+ * dataToCssClasses(['btn', 'btn-primary']); // -> 'btn btn-primary'
+ * dataToCssClasses({btn: true, 'btn-primary': true, disabled: false}); // -> 'btn btn-primary'
+ */
+export function dataToCssClasses<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+): string {
+    if (isObject(data)) {
+        return objToCssClasses(data as Record<string, unknown>);
+    }
+
+    return arrToCssClasses(arrWrap(data));
+}
+
+/**
+ * Convert data to CSS styles string.
+ *
+ * @param data - The data to convert
+ * @returns CSS styles string
+ *
+ * @example
+ *
+ * dataToCssStyles({color: 'red', 'font-size': '14px'}); // -> 'color:red;font-size:14px'
+ * dataToCssStyles(['color:red', 'font-size:14px']); // -> 'color:red;font-size:14px'
+ */
+export function dataToCssStyles<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+): string {
+    if (isObject(data)) {
+        return objToCssStyles(data as Record<string, unknown>);
+    }
+
+    return arrToCssStyles(arrWrap(data));
+}
+
+/**
+ * Filter data where callback returns true.
+ *
+ * @param data - The data to filter
+ * @param callback - The test function
+ * @returns Filtered data
+ *
+ * @example
+ *
+ * dataWhere([1, 2, 3, 4], (value) => value > 2); // -> [3, 4]
+ * dataWhere({a: 1, b: 2, c: 3}, (value) => value > 1); // -> {b: 2, c: 3}
+ */
+export function dataWhere<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+    callback: (value: T, key: string | number) => boolean,
+): DataItems<T, K> {
+    if (isObject(data)) {
+        return objWhere(
+            data as Record<string, T>,
+            callback as (value: T, key: string) => boolean,
+        ) as DataItems<T, K>;
+    }
+
+    return arrWhere(
+        arrWrap(data),
+        callback as (value: T, index: number) => boolean,
+    ) as DataItems<T>;
+}
+
+/**
+ * Filter data where callback returns false.
+ *
+ * @param data - The data to filter
+ * @param callback - The test function
+ * @returns Filtered data (rejected items)
+ *
+ * @example
+ *
+ * dataReject([1, 2, 3, 4], (value) => value > 2); // -> [1, 2]
+ * dataReject({a: 1, b: 2, c: 3}, (value) => value > 1); // -> {a: 1}
+ */
+export function dataReject<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+    callback: (value: T, key: string | number) => boolean,
+): DataItems<T, K> {
+    if (isObject(data)) {
+        return objReject(
+            data as Record<string, T>,
+            callback as (value: T, key: string) => boolean,
+        ) as DataItems<T, K>;
+    }
+
+    return arrReject(
+        arrWrap(data),
+        callback as (value: T, index: number) => boolean,
+    ) as DataItems<T>;
+}
+
+/**
+ * Partition data into two groups based on callback.
+ *
+ * @param data - The data to partition
+ * @param callback - The test function
+ * @returns Array with two groups: [passing, failing]
+ *
+ * @example
+ *
+ * dataPartition([1, 2, 3, 4], (value) => value > 2); // -> [[3, 4], [1, 2]]
+ * dataPartition({a: 1, b: 2, c: 3}, (value) => value > 1); // -> [{b: 2, c: 3}, {a: 1}]
+ */
+export function dataPartition<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+    callback: (value: T, key: string | number) => boolean,
+): [DataItems<T, K>, DataItems<T, K>] {
+    if (isObject(data)) {
+        const [passing, failing] = objPartition(
+            data as Record<string, T>,
+            callback as (value: T, key: string) => boolean,
+        );
+        return [passing as DataItems<T, K>, failing as DataItems<T, K>];
+    }
+
+    const [passing, failing] = arrPartition(
+        arrWrap(data),
+        callback as (value: T, index: number) => boolean,
+    );
+    return [passing as DataItems<T>, failing as DataItems<T>];
+}
+
+/**
+ * Filter out null values from data.
+ *
+ * @param data - The data to filter
+ * @returns Data with null values removed
+ *
+ * @example
+ *
+ * dataWhereNotNull([1, null, 2, null, 3]); // -> [1, 2, 3]
+ * dataWhereNotNull({a: 1, b: null, c: 2}); // -> {a: 1, c: 2}
+ */
+export function dataWhereNotNull<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T | null, K>,
+): DataItems<T, K> {
+    if (isObject(data)) {
+        return objWhereNotNull(data as Record<string, T | null>) as DataItems<
+            T,
+            K
+        >;
+    }
+
+    return arrWhereNotNull(arrWrap(data)) as DataItems<T>;
 }
 
 /**

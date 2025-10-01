@@ -256,4 +256,97 @@ describe("Data", () => {
             c: 3,
         });
     });
+
+    it("pull", () => {
+        const result1 = Data.dataPull([1, 2, 3], 1, "default");
+        expect(result1.value).toBe(2);
+        expect(result1.data).toEqual([1, 3]);
+
+        const result2 = Data.dataPull({ a: 1, b: 2 }, "b", "default");
+        expect(result2.value).toBe(2);
+        expect(result2.data).toEqual({ a: 1 });
+    });
+
+    it("query", () => {
+        expect(Data.dataQuery({ name: "John", age: 30 })).toBe(
+            "name=John&age=30",
+        );
+        expect(Data.dataQuery([1, 2, 3])).toBe("0=1&1=2&2=3");
+    });
+
+    it("set", () => {
+        expect(Data.dataSet([1, 2, 3], 1, 99)).toEqual([1, 99, 3]);
+        expect(Data.dataSet({ a: 1, b: 2 }, "c", 3)).toEqual({
+            a: 1,
+            b: 2,
+            c: 3,
+        });
+    });
+
+    it("shuffle", () => {
+        const result = Data.dataShuffle([1, 2, 3, 4]);
+        expect(result).toHaveLength(4);
+        expect(result).toEqual(expect.arrayContaining([1, 2, 3, 4]));
+    });
+
+    it("string", () => {
+        expect(Data.dataString(["hello", "world"], 0, "")).toBe("hello");
+        expect(Data.dataString({ name: "John" }, "name", "")).toBe("John");
+        expect(Data.dataString({}, "missing", "default")).toBe("default");
+    });
+
+    it("toCssClasses", () => {
+        expect(Data.dataToCssClasses(["btn", "btn-primary"])).toBe(
+            "btn btn-primary",
+        );
+        expect(
+            Data.dataToCssClasses({
+                btn: true,
+                "btn-primary": true,
+                disabled: false,
+            }),
+        ).toBe("btn btn-primary");
+    });
+
+    it("where", () => {
+        expect(Data.dataWhere([1, 2, 3, 4], (value) => value > 2)).toEqual([
+            3, 4,
+        ]);
+        expect(
+            Data.dataWhere({ a: 1, b: 2, c: 3 }, (value) => value > 1),
+        ).toEqual({ b: 2, c: 3 });
+    });
+
+    it("reject", () => {
+        expect(Data.dataReject([1, 2, 3, 4], (value) => value > 2)).toEqual([
+            1, 2,
+        ]);
+        expect(
+            Data.dataReject({ a: 1, b: 2, c: 3 }, (value) => value > 1),
+        ).toEqual({ a: 1 });
+    });
+
+    it("partition", () => {
+        const [passing, failing] = Data.dataPartition(
+            [1, 2, 3, 4],
+            (value) => value > 2,
+        );
+        expect(passing).toEqual([3, 4]);
+        expect(failing).toEqual([1, 2]);
+
+        const [passing2, failing2] = Data.dataPartition(
+            { a: 1, b: 2, c: 3 },
+            (value) => value > 1,
+        );
+        expect(passing2).toEqual({ b: 2, c: 3 });
+        expect(failing2).toEqual({ a: 1 });
+    });
+
+    it("whereNotNull", () => {
+        expect(Data.dataWhereNotNull([1, null, 2, null, 3])).toEqual([1, 2, 3]);
+        expect(Data.dataWhereNotNull({ a: 1, b: null, c: 2 })).toEqual({
+            a: 1,
+            c: 2,
+        });
+    });
 });
