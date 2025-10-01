@@ -22,7 +22,7 @@ jobs:
       - run: pnpm install
 
       - name: Run unit tests
-        run: pnpm run test:run
+        run: pnpm run test
 
   unit-test-windows:
     runs-on: windows-latest
@@ -43,5 +43,5 @@ jobs:
       - run: pnpm install
 
       - name: Run unit tests
-        run: pnpm run test:run
+        run: pnpm run test
         
