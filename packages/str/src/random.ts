@@ -80,8 +80,8 @@ export class Random {
  *
  * @example
  *
- * secureRandomBytes(16); // -> Uint8Array(16) [random bytes]
- * secureRandomBytes(0); // -> Uint8Array(0) []
+ * secureRandomBytes(16); -> Uint8Array(16) [random bytes]
+ * secureRandomBytes(0); -> Uint8Array(0) []
  */
 function secureRandomBytes(size: number): Uint8Array {
     if (size <= 0) return new Uint8Array();
@@ -101,8 +101,8 @@ function secureRandomBytes(size: number): Uint8Array {
  *
  * @example
  *
- * bytesToBase64(new Uint8Array([72, 101, 108, 108, 111])); // -> "SGVsbG8="
- * bytesToBase64(new Uint8Array([])); // -> ""
+ * bytesToBase64(new Uint8Array([72, 101, 108, 108, 111])); -> "SGVsbG8="
+ * bytesToBase64(new Uint8Array([])); -> ""
  */
 function bytesToBase64(bytes: Uint8Array): string {
     const B = (
@@ -156,8 +156,8 @@ function bytesToBase64(bytes: Uint8Array): string {
  *
  * @example
  *
- * random_int(1, 10); // -> random integer between 1 and 10
- * random_int(0, 0); // -> 0
- * random_int(-5, 5); // -> random integer between -5 and 5
+ * random_int(1, 10); -> random integer between 1 and 10
+ * random_int(0, 0); -> 0
+ * random_int(-5, 5); -> random integer between -5 and 5
  */
 export const random_int = (min: number, max: number) => Random.int(min, max);

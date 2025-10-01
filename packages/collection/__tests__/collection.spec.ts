@@ -144,7 +144,7 @@ describe("Collection", () => {
         it("returns items not in given array collection", () => {
             const collection = collect([1, 2, 3, 4]);
             const diff = collection.diff([2, 4]);
-            expect(diff.all()).toEqual({ 0: 1, 2: 3 });
+            expect(diff.all()).toEqual([1, 3]);
         });
 
         it("returns items not in given object collection", () => {
@@ -331,7 +331,9 @@ describe("Collection", () => {
                 b: { id: 2, name: "Jane" },
             });
             const names = collection.pluck("name");
-            expect(names.all()).toEqual({ a: "John", b: "Jane" });
+            expect(names.all()).toEqual(["John", "Jane"]);
+            const idedNames = collection.pluck("name", "id");
+            expect(idedNames.all()).toEqual({ 1: "John", 2: "Jane" });
         });
     });
 

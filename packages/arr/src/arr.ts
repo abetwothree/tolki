@@ -16,6 +16,7 @@ import {
     compareValues,
     getAccessibleValues,
     isArray,
+    isObject,
     castableToArray,
     isFunction,
 } from "@laravel-js/utils";
@@ -57,8 +58,8 @@ export function arrayable<T>(value: unknown): value is ReadonlyArray<unknown> {
  *
  * @example
  *
- * add(['products', ['desk', [100]]], '1.1', 200); // -> ['products', ['desk', [100, 200]]]
- * add(['products', ['desk', [100]]], '2', ['chair', [150]]); // -> ['products', ['desk', [100]], ['chair', [150]]]
+ * add(['products', ['desk', [100]]], '1.1', 200); -> ['products', ['desk', [100, 200]]]
+ * add(['products', ['desk', [100]]], '2', ['chair', [150]]); -> ['products', ['desk', [100]], ['chair', [150]]]
  */
 
 export function add<T extends readonly unknown[]>(
@@ -87,9 +88,9 @@ export function add<T extends readonly unknown[]>(
  *
  * @example
  *
- * arrayItem([['a', 'b'], ['c', 'd']], 0); // -> ['a', 'b']
- * arrayItem([{items: ['x', 'y']}], '0.items'); // -> ['x', 'y']
- * arrayItem([{items: 'not array'}], '0.items'); // -> throws Error
+ * arrayItem([['a', 'b'], ['c', 'd']], 0); -> ['a', 'b']
+ * arrayItem([{items: ['x', 'y']}], '0.items'); -> ['x', 'y']
+ * arrayItem([{items: 'not array'}], '0.items'); -> throws Error
  */
 export function arrayItem<T, D = null>(
     data: ReadonlyArray<T> | unknown,
@@ -119,9 +120,9 @@ export function arrayItem<T, D = null>(
  *
  * @example
  *
- * boolean([true, false], 0); // -> true
- * boolean([{active: true}], '0.active'); // -> true
- * boolean([{active: 'yes'}], '0.active'); // -> throws Error
+ * boolean([true, false], 0); -> true
+ * boolean([{active: true}], '0.active'); -> true
+ * boolean([{active: 'yes'}], '0.active'); -> throws Error
  */
 export function boolean<T, D = null>(
     data: ReadonlyArray<T> | unknown,
@@ -140,23 +141,47 @@ export function boolean<T, D = null>(
 }
 
 /**
- * Collapse an array of arrays into a single array.
+ * Collapse an array of arrays into a single array, or an array of objects into a single object.
  *
- * @param array - The array of arrays to collapse.
- * @return A new flattened array.
+ * @param data - The array to collapse.
+ * @return A new flattened array or merged object.
  *
  * @example
  *
- * collapse([[1], [2], [3], ['foo', 'bar']]); // -> [1, 2, 3, 'foo', 'bar']
+ * collapse([[1], [2], [3], ['foo', 'bar']]); -> [1, 2, 3, 'foo', 'bar']
+ * collapse([{ a: 1, b: 2 }, { c: 3, d: 4 }]) -> { a: 1, b: 2, c: 3, d: 4 }
  */
+export function collapse<T extends Record<string, unknown>[]>(
+    data: T,
+): Record<string, unknown>;
 export function collapse<T extends ReadonlyArray<ReadonlyArray<unknown>>>(
-    array: T,
-): ArrayInnerValue<T[number]>[] {
-    const out: ArrayInnerValue<T[number]>[] = [];
+    data: T,
+): ArrayInnerValue<T[number]>[];
+export function collapse<T extends ReadonlyArray<unknown>>(
+    data: T,
+): Record<string, unknown> | ArrayInnerValue<T[number]>[] | unknown[];
+export function collapse<T extends ReadonlyArray<unknown>>(
+    data: T,
+): Record<string, unknown> | ArrayInnerValue<T[number]>[] | unknown[] {
+    // Check if all items are objects (but not arrays)
+    const hasObjects = data.some((item) => isObject(item) && !isArray(item));
 
-    for (const item of array) {
+    if (hasObjects) {
+        // Merge objects together
+        const result: Record<string, unknown> = {};
+        for (const item of data) {
+            if (isObject(item) && !isArray(item)) {
+                Object.assign(result, item);
+            }
+        }
+        return result;
+    }
+
+    // Flatten arrays
+    const out: unknown[] = [];
+    for (const item of data) {
         if (isArray(item)) {
-            out.push(...(item as ArrayInnerValue<T[number]>[]));
+            out.push(...item);
         }
     }
 
@@ -171,7 +196,7 @@ export function collapse<T extends ReadonlyArray<ReadonlyArray<unknown>>>(
  *
  * @example
  *
- * crossJoin([1], ["a"]); // -> [[1, 'a']]
+ * crossJoin([1], ["a"]); -> [[1, 'a']]
  */
 export function crossJoin<T extends ReadonlyArray<ReadonlyArray<unknown>>>(
     ...arrays: T
@@ -208,7 +233,7 @@ export function crossJoin<T extends ReadonlyArray<ReadonlyArray<unknown>>>(
  *
  * @example
  *
- * divide(["Desk", 100, true]); // -> [[0, 1, 2], ['Desk', 100, true]]
+ * divide(["Desk", 100, true]); -> [[0, 1, 2], ['Desk', 100, true]]
  */
 export function divide(array: readonly []): [number[], unknown[]];
 export function divide<A extends readonly unknown[]>(
@@ -235,7 +260,7 @@ export function divide<A extends readonly unknown[]>(
  *
  * @example
  *
- * dot(['a', ['b', 'c']]); // -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
+ * dot(['a', ['b', 'c']]); -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
  */
 export function dot(
     data: ReadonlyArray<unknown> | unknown,
@@ -252,8 +277,8 @@ export function dot(
  *
  * @example
  *
- * undot({ '0': 'a', '1.0': 'b', '1.1': 'c' }); // -> ['a', ['b', 'c']]
- * undot({ 'item.0': 'a', 'item.1.0': 'b', 'item.1.1': 'c' }); // -> [['b', 'c']]
+ * undot({ '0': 'a', '1.0': 'b', '1.1': 'c' }); -> ['a', ['b', 'c']]
+ * undot({ 'item.0': 'a', 'item.1.0': 'b', 'item.1.1': 'c' }); -> [['b', 'c']]
  */
 export function undot(map: Record<string, unknown>): unknown[] {
     return undotExpandArray(map) as unknown[];
@@ -268,8 +293,8 @@ export function undot(map: Record<string, unknown>): unknown[] {
  *
  * @example
  *
- * except(["a", "b", "c"], 1); // -> ['a', 'c']
- * except(["a", "b", "c"], [0, 2]); // -> ['b']
+ * except(["a", "b", "c"], 1); -> ['a', 'c']
+ * except(["a", "b", "c"], [0, 2]); -> ['b']
  */
 export function except<T>(data: ReadonlyArray<T>, keys: PathKeys): T[] {
     return forget(data, keys);
@@ -284,8 +309,8 @@ export function except<T>(data: ReadonlyArray<T>, keys: PathKeys): T[] {
  *
  * @example
  *
- * exists([1, 2, 3], 0); // -> true
- * exists([1, 2, 3], 3); // -> false
+ * exists([1, 2, 3], 0); -> true
+ * exists([1, 2, 3], 3); -> false
  */
 export function exists<T>(data: readonly T[], key: number | string): boolean {
     // Array: only numeric keys are supported
@@ -308,11 +333,11 @@ export function exists<T>(data: readonly T[], key: number | string): boolean {
  *
  * @example
  *
- * first([1, 2, 3]); // -> 1
- * first([]); // -> null
- * first([], null, 'default'); // -> 'default'
- * first([1, 2, 3], x => x > 1); // -> 2
- * first([1, 2, 3], x => x > 5, 'none'); // -> 'none'
+ * first([1, 2, 3]); -> 1
+ * first([]); -> null
+ * first([], null, 'default'); -> 'default'
+ * first([1, 2, 3], x => x > 1); -> 2
+ * first([1, 2, 3], x => x > 5, 'none'); -> 'none'
  */
 export function first<T>(
     data: readonly T[] | Iterable<T> | null | undefined,
@@ -400,11 +425,11 @@ export function first<T, D>(
  *
  * @example
  *
- * last([1, 2, 3]); // -> 3
- * last([]); // -> null
- * last([], null, 'default'); // -> 'default'
- * last([1, 2, 3], x => x < 3); // -> 2
- * last([1, 2, 3], x => x > 5, 'none'); // -> 'none'
+ * last([1, 2, 3]); -> 3
+ * last([]); -> null
+ * last([], null, 'default'); -> 'default'
+ * last([1, 2, 3], x => x < 3); -> 2
+ * last([1, 2, 3], x => x > 5, 'none'); -> 'none'
  */
 export function last<T>(
     data: readonly T[] | Iterable<T> | null | undefined,
@@ -514,9 +539,9 @@ export function last<T, D>(
  *
  * @example
  *
- * take([1, 2, 3, 4, 5], 2); // -> [1, 2]
- * take([1, 2, 3, 4, 5], -2); // -> [4, 5]
- * take([1, 2, 3], 5); // -> [1, 2, 3]
+ * take([1, 2, 3, 4, 5], 2); -> [1, 2]
+ * take([1, 2, 3, 4, 5], -2); -> [4, 5]
+ * take([1, 2, 3], 5); -> [1, 2, 3]
  */
 export function take<T>(
     data: readonly T[] | null | undefined,
@@ -558,8 +583,8 @@ export function take<T>(
  *
  * @example
  *
- * flatten([1, [2, [3, 4]], 5]); // -> [1, 2, 3, 4, 5]
- * flatten([1, [2, [3, 4]], 5], 1); // -> [1, 2, [3, 4], 5]
+ * flatten([1, [2, [3, 4]], 5]); -> [1, 2, 3, 4, 5]
+ * flatten([1, [2, [3, 4]], 5], 1); -> [1, 2, [3, 4], 5]
  */
 export function flatten<T>(data: ReadonlyArray<T>, depth?: number): unknown[];
 export function flatten(
@@ -599,9 +624,9 @@ export function flatten(
  *
  * @example
  *
- * float([1.5, 2.3], 1); // -> 2.3
- * float([{price: 19.99}], '0.price'); // -> 19.99
- * float([{price: 'free'}], '0.price'); // -> throws Error
+ * float([1.5, 2.3], 1); -> 2.3
+ * float([{price: 19.99}], '0.price'); -> 19.99
+ * float([{price: 'free'}], '0.price'); -> throws Error
  */
 export function float<T, D = null>(
     data: ReadonlyArray<T> | unknown,
@@ -628,11 +653,11 @@ export function float<T, D = null>(
  *
  * @example
  *
- * forget(['products', ['desk', [100]]], null); // -> ['products', ['desk', [100]]]
- * forget(['products', ['desk', [100]]], '1'); // -> ['products']
- * forget(['products', ['desk', [100]]], 1); // -> ['products']
- * forget(['products', ['desk', [100]]], '1.1'); // -> ['products', ['desk']]
- * forget(['products', ['desk', [100]]], 2); // -> ['products', ['desk', [100]]]
+ * forget(['products', ['desk', [100]]], null); -> ['products', ['desk', [100]]]
+ * forget(['products', ['desk', [100]]], '1'); -> ['products']
+ * forget(['products', ['desk', [100]]], 1); -> ['products']
+ * forget(['products', ['desk', [100]]], '1.1'); -> ['products', ['desk']]
+ * forget(['products', ['desk', [100]]], 2); -> ['products', ['desk', [100]]]
  */
 export function forget<T>(data: ReadonlyArray<T>, keys: PathKeys): T[] {
     return forgetKeys<T>(data, keys) as T[];
@@ -646,9 +671,9 @@ export function forget<T>(data: ReadonlyArray<T>, keys: PathKeys): T[] {
  *
  * @example
  *
- * from([1, 2, 3]); // -> [1, 2, 3]
- * from({ foo: 'bar' }); // -> { foo: 'bar' }
- * from(new Map([['foo', 'bar']])); // -> { foo: 'bar' }
+ * from([1, 2, 3]); -> [1, 2, 3]
+ * from({ foo: 'bar' }); -> { foo: 'bar' }
+ * from(new Map([['foo', 'bar']])); -> { foo: 'bar' }
  *
  * @throws Error if items is a WeakMap or a scalar value.
  */
@@ -699,9 +724,9 @@ export function from(items: unknown): unknown {
  *
  * @example
  *
- * get(['foo', 'bar', 'baz'], 1); // -> 'bar'
- * get(['foo', 'bar', 'baz'], null); // -> ['foo', 'bar', 'baz']
- * get(['foo', 'bar', 'baz'], 9, 'default'); // -> 'default'
+ * get(['foo', 'bar', 'baz'], 1); -> 'bar'
+ * get(['foo', 'bar', 'baz'], null); -> ['foo', 'bar', 'baz']
+ * get(['foo', 'bar', 'baz'], 9, 'default'); -> 'default'
  */
 export function get<T = unknown>(
     array: unknown,
@@ -742,10 +767,10 @@ export function get<T = unknown>(
  *
  * @example
  *
- * has(['foo', 'bar', ['baz', 'qux']], 1); // -> true
- * has(['foo', 'bar'], 5); // -> false
- * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.1']); // -> true
- * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); // -> false
+ * has(['foo', 'bar', ['baz', 'qux']], 1); -> true
+ * has(['foo', 'bar'], 5); -> false
+ * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.1']); -> true
+ * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); -> false
  */
 export function has<T>(
     data: ReadonlyArray<T> | unknown,
@@ -772,8 +797,8 @@ export function has<T>(
  *
  * @example
  *
- * hasAll(['foo', 'bar', ['baz', 'qux']], ['0', '2.1']); // -> true
- * hasAll(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); // -> false
+ * hasAll(['foo', 'bar', ['baz', 'qux']], ['0', '2.1']); -> true
+ * hasAll(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); -> false
  */
 export function hasAll<T>(
     data: ReadonlyArray<T> | unknown,
@@ -803,8 +828,8 @@ export function hasAll<T>(
  *
  * @example
  *
- * hasAny(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); // -> true
- * hasAny(['foo', 'bar', ['baz', 'qux']], ['3', '4']); // -> false
+ * hasAny(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); -> true
+ * hasAny(['foo', 'bar', ['baz', 'qux']], ['3', '4']); -> false
  */
 export function hasAny<T>(
     data: ReadonlyArray<T> | unknown,
@@ -837,8 +862,8 @@ export function hasAny<T>(
  *
  * @example
  *
- * every([2, 4, 6], n => n % 2 === 0); // -> true
- * every([1, 2, 3], n => n % 2 === 0); // -> false
+ * every([2, 4, 6], n => n % 2 === 0); -> true
+ * every([1, 2, 3], n => n % 2 === 0); -> false
  */
 export function every<T>(
     data: ReadonlyArray<T> | unknown,
@@ -867,8 +892,8 @@ export function every<T>(
  *
  * @example
  *
- * some([1, 2, 3], n => n % 2 === 0); // -> true
- * some([1, 3, 5], n => n % 2 === 0); // -> false
+ * some([1, 2, 3], n => n % 2 === 0); -> true
+ * some([1, 3, 5], n => n % 2 === 0); -> false
  */
 export function some<T>(
     data: ReadonlyArray<T> | unknown,
@@ -902,9 +927,9 @@ export function some<T>(
  *
  * @example
  *
- * integer([10, 20, 30], 1); // -> 20
- * integer([10, 20, 30], 5, 100); // -> 100
- * integer(["house"], 0); // -> Error: The value is not an integer.
+ * integer([10, 20, 30], 1); -> 20
+ * integer([10, 20, 30], 5, 100); -> 100
+ * integer(["house"], 0); -> Error: The value is not an integer.
  */
 export function integer<T, D = null>(
     data: ReadonlyArray<T> | unknown,
@@ -970,8 +995,8 @@ export function join<T>(
  *
  * @example
  *
- * keyBy([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'id'); // -> {1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}}
- * keyBy([{name: 'John'}, {name: 'Jane'}], (item) => item.name); // -> {John: {name: 'John'}, Jane: {name: 'Jane'}}
+ * keyBy([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'id'); -> {1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}}
+ * keyBy([{name: 'John'}, {name: 'Jane'}], (item) => item.name); -> {John: {name: 'John'}, Jane: {name: 'Jane'}}
  */
 export function keyBy<T extends Record<string, unknown>>(
     data: ReadonlyArray<T> | unknown,
@@ -1011,7 +1036,7 @@ export function keyBy<T extends Record<string, unknown>>(
  *
  * @example
  *
- * prependKeysWith(['a', 'b', 'c'], 'item_'); // -> Creates array with keys: item_0, item_1, item_2
+ * prependKeysWith(['a', 'b', 'c'], 'item_'); -> Creates array with keys: item_0, item_1, item_2
  */
 export function prependKeysWith<T>(
     data: ReadonlyArray<T> | unknown,
@@ -1036,8 +1061,8 @@ export function prependKeysWith<T>(
  *
  * @example
  *
- * only(['a', 'b', 'c', 'd'], [0, 2]); // -> ['a', 'c']
- * only(['a', 'b', 'c'], [1]); // -> ['b']
+ * only(['a', 'b', 'c', 'd'], [0, 2]); -> ['a', 'c']
+ * only(['a', 'b', 'c'], [1]); -> ['b']
  */
 export function only<T>(data: ReadonlyArray<T> | unknown, keys: number[]): T[] {
     const values = getAccessibleValues(data);
@@ -1061,8 +1086,8 @@ export function only<T>(data: ReadonlyArray<T> | unknown, keys: number[]): T[] {
  *
  * @example
  *
- * select([{a: 1, b: 2, c: 3}, {a: 4, b: 5, c: 6}], 'a'); // -> [{a: 1}, {a: 4}]
- * select([{a: 1, b: 2}, {a: 3, b: 4}], ['a', 'b']); // -> [{a: 1, b: 2}, {a: 3, b: 4}]
+ * select([{a: 1, b: 2, c: 3}, {a: 4, b: 5, c: 6}], 'a'); -> [{a: 1}, {a: 4}]
+ * select([{a: 1, b: 2}, {a: 3, b: 4}], ['a', 'b']); -> [{a: 1, b: 2}, {a: 3, b: 4}]
  */
 export function select<T extends Record<string, unknown>>(
     data: ReadonlyArray<T> | unknown,
@@ -1099,14 +1124,14 @@ export function select<T extends Record<string, unknown>>(
  *
  * @example
  *
- * pluck([{name: 'John', age: 30}, {name: 'Jane', age: 25}], 'name'); // -> ['John', 'Jane']
- * pluck([{user: {name: 'John'}}, {user: {name: 'Jane'}}], 'user.name'); // -> ['John', 'Jane']
- * pluck([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'name', 'id'); // -> {1: 'John', 2: 'Jane'}
+ * pluck([{name: 'John', age: 30}, {name: 'Jane', age: 25}], 'name'); -> ['John', 'Jane']
+ * pluck([{user: {name: 'John'}}, {user: {name: 'Jane'}}], 'user.name'); -> ['John', 'Jane']
+ * pluck([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'name', 'id'); -> {1: 'John', 2: 'Jane'}
  */
 export function pluck<T extends Record<string, unknown>>(
     data: ReadonlyArray<T> | unknown,
     value: string | ((item: T) => unknown),
-    key?: string | ((item: T) => string | number) | null,
+    key: string | ((item: T) => string | number) | null = null,
 ): unknown[] | Record<string | number, unknown> {
     if (!accessible(data)) {
         return [];
@@ -1169,8 +1194,8 @@ export function pluck<T extends Record<string, unknown>>(
  *
  * @example
  *
- * map([1, 2, 3], (value) => value * 2); // -> [2, 4, 6]
- * map(['a', 'b'], (value, index) => `${index}:${value}`); // -> ['0:a', '1:b']
+ * map([1, 2, 3], (value) => value * 2); -> [2, 4, 6]
+ * map(['a', 'b'], (value, index) => `${index}:${value}`); -> ['0:a', '1:b']
  */
 export function map<T, U>(
     data: ReadonlyArray<T> | unknown,
@@ -1196,8 +1221,8 @@ export function map<T, U>(
  *
  * @example
  *
- * mapWithKeys([{id: 1, name: 'John'}], (item) => ({[item.name]: item.id})); // -> {John: 1}
- * mapWithKeys(['a', 'b'], (value, index) => ({[value]: index})); // -> {a: 0, b: 1}
+ * mapWithKeys([{id: 1, name: 'John'}], (item) => ({[item.name]: item.id})); -> {John: 1}
+ * mapWithKeys(['a', 'b'], (value, index) => ({[value]: index})); -> {a: 0, b: 1}
  */
 export function mapWithKeys<T, K extends string | number, V>(
     data: ReadonlyArray<T> | unknown,
@@ -1231,8 +1256,8 @@ export function mapWithKeys<T, K extends string | number, V>(
  *
  * @example
  *
- * mapSpread([[1, 2], [3, 4]], (a, b) => a + b); // -> [3, 7]
- * mapSpread([['John', 25], ['Jane', 30]], (name, age) => `${name} is ${age}`); // -> ['John is 25', 'Jane is 30']
+ * mapSpread([[1, 2], [3, 4]], (a, b) => a + b); -> [3, 7]
+ * mapSpread([['John', 25], ['Jane', 30]], (name, age) => `${name} is ${age}`); -> ['John is 25', 'Jane is 30']
  */
 export function mapSpread<T, U>(
     data: ReadonlyArray<T> | unknown,
@@ -1265,8 +1290,8 @@ export function mapSpread<T, U>(
  *
  * @example
  *
- * prepend(['b', 'c'], 'a'); // -> ['a', 'b', 'c']
- * prepend([1, 2, 3], 0); // -> [0, 1, 2, 3]
+ * prepend(['b', 'c'], 'a'); -> ['a', 'b', 'c']
+ * prepend([1, 2, 3], 0); -> [0, 1, 2, 3]
  */
 export function prepend<T>(
     data: ReadonlyArray<T> | unknown,
@@ -1296,10 +1321,10 @@ export function prepend<T>(
  *
  * @example
  *
- * pull(['a', 'b', 'c'], 1); // -> { value: 'b', data: ['a', 'c'] }
- * pull(['a', ['b', 'c']], '1.0'); // -> { value: 'b', data: ['a', ['c']] }
- * pull(['a', 'b', 'c'], 5, 'x'); // -> { value: 'x', data: ['a', 'b', 'c'] }
- * pull(['a', ['b', 'c']], '1.2', 'x'); // -> { value: 'x', data: ['a', ['b', 'c']] }
+ * pull(['a', 'b', 'c'], 1); -> { value: 'b', data: ['a', 'c'] }
+ * pull(['a', ['b', 'c']], '1.0'); -> { value: 'b', data: ['a', ['c']] }
+ * pull(['a', 'b', 'c'], 5, 'x'); -> { value: 'x', data: ['a', 'b', 'c'] }
+ * pull(['a', ['b', 'c']], '1.2', 'x'); -> { value: 'x', data: ['a', ['b', 'c']] }
  */
 export function pull<T, D = null>(
     data: ReadonlyArray<T> | unknown,
@@ -1336,10 +1361,10 @@ export function pull<T, D = null>(
  *
  * @example
  *
- * query({name: 'John', age: 30}); // -> 'name=John&age=30'
- * query(['a', 'b', 'c']); // -> '0=a&1=b&2=c'
- * query({tags: ['php', 'js']}); // -> 'tags[0]=php&tags[1]=js'
- * query({user: {name: 'John', age: 30}}); // -> 'user[name]=John&user[age]=30'
+ * query({name: 'John', age: 30}); -> 'name=John&age=30'
+ * query(['a', 'b', 'c']); -> '0=a&1=b&2=c'
+ * query({tags: ['php', 'js']}); -> 'tags[0]=php&tags[1]=js'
+ * query({user: {name: 'John', age: 30}}); -> 'user[name]=John&user[age]=30'
  */
 export function query(data: unknown): string {
     if (data === null || data === undefined) {
@@ -1412,11 +1437,11 @@ export function query(data: unknown): string {
  *
  * @example
  *
- * random([1, 2, 3]); // -> 2 (single random item)
- * random([1, 2, 3], 2); // -> [3, 1] (two random items)
- * random(['a', 'b', 'c'], 2, true); // -> {1: 'b', 2: 'c'} (with original keys)
- * random([], 1); // -> null
- * random([1, 2], 5); // -> throws Error
+ * random([1, 2, 3]); -> 2 (single random item)
+ * random([1, 2, 3], 2); -> [3, 1] (two random items)
+ * random(['a', 'b', 'c'], 2, true); -> {1: 'b', 2: 'c'} (with original keys)
+ * random([], 1); -> null
+ * random([1, 2], 5); -> throws Error
  */
 export function random<T>(
     data: ReadonlyArray<T> | unknown,
@@ -1475,8 +1500,8 @@ export function random<T>(
  * @returns - A new array with the item set or the original array if the path is invalid.
  *
  * @example
- * set(['a', 'b', 'c'], 1, 'x'); // -> ['a', 'x', 'c']
- * set(['a', ['b', 'c']], '1.0', 'x'); // -> ['a', ['x', 'c']]
+ * set(['a', 'b', 'c'], 1, 'x'); -> ['a', 'x', 'c']
+ * set(['a', ['b', 'c']], '1.0', 'x'); -> ['a', ['x', 'c']]
  */
 export function set<T>(
     array: ReadonlyArray<T> | unknown,
@@ -1496,9 +1521,9 @@ export function set<T>(
  *
  * @example
  *
- * push(['a', 'b'], null, 'c', 'd'); // -> ['a', 'b', 'c', 'd']
- * push(['a', ['b']], '1', 'c', 'd'); // -> ['a', ['b', 'c', 'd']]
- * push(['a', ['b']], '1.1', 'c'); // -> ['a', ['b', 'c']]
+ * push(['a', 'b'], null, 'c', 'd'); -> ['a', 'b', 'c', 'd']
+ * push(['a', ['b']], '1', 'c', 'd'); -> ['a', ['b', 'c', 'd']]
+ * push(['a', ['b']], '1.1', 'c'); -> ['a', ['b', 'c']]
  */
 export function push<T>(
     data: T[] | unknown,
@@ -1516,8 +1541,8 @@ export function push<T>(
  *
  * @example
  *
- * shuffle([1, 2, 3, 4, 5]); // -> [3, 1, 5, 2, 4] (random order)
- * shuffle(['a', 'b', 'c']); // -> ['c', 'a', 'b'] (random order)
+ * shuffle([1, 2, 3, 4, 5]); -> [3, 1, 5, 2, 4] (random order)
+ * shuffle(['a', 'b', 'c']); -> ['c', 'a', 'b'] (random order)
  */
 export function shuffle<T>(data: ReadonlyArray<T> | unknown): T[] {
     const values = getAccessibleValues(data) as T[];
@@ -1543,11 +1568,11 @@ export function shuffle<T>(data: ReadonlyArray<T> | unknown): T[] {
  *
  * @example
  *
- * sole([42]); // -> 42
- * sole([1, 2, 3], (value) => value > 2); // -> 3
- * sole([]); // -> throws Error: No items found
- * sole([1, 2]); // -> throws Error: Multiple items found (2 items)
- * sole([1, 2, 3], (value) => value > 1); // -> throws Error: Multiple items found (2 items)
+ * sole([42]); -> 42
+ * sole([1, 2, 3], (value) => value > 2); -> 3
+ * sole([]); -> throws Error: No items found
+ * sole([1, 2]); -> throws Error: Multiple items found (2 items)
+ * sole([1, 2, 3], (value) => value > 1); -> throws Error: Multiple items found (2 items)
  */
 export function sole<T>(
     data: ReadonlyArray<T> | unknown,
@@ -1597,10 +1622,10 @@ export function sole<T>(
  *
  * @example
  *
- * sort([3, 1, 4, 1, 5]); // -> [1, 1, 3, 4, 5]
- * sort(['banana', 'apple', 'cherry']); // -> ['apple', 'banana', 'cherry']
- * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], 'age'); // -> sorted by age
- * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); // -> sorted by name
+ * sort([3, 1, 4, 1, 5]); -> [1, 1, 3, 4, 5]
+ * sort(['banana', 'apple', 'cherry']); -> ['apple', 'banana', 'cherry']
+ * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], 'age'); -> sorted by age
+ * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); -> sorted by name
  */
 export function sort<T>(
     data: ReadonlyArray<T> | unknown,
@@ -1652,10 +1677,10 @@ export function sort<T>(
  *
  * @example
  *
- * sortDesc([3, 1, 4, 1, 5]); // -> [5, 4, 3, 1, 1]
- * sortDesc(['banana', 'apple', 'cherry']); // -> ['cherry', 'banana', 'apple']
- * sortDesc([{name: 'John', age: 25}, {name: 'Jane', age: 30}], 'age'); // -> sorted by age desc
- * sortDesc([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); // -> sorted by name desc
+ * sortDesc([3, 1, 4, 1, 5]); -> [5, 4, 3, 1, 1]
+ * sortDesc(['banana', 'apple', 'cherry']); -> ['cherry', 'banana', 'apple']
+ * sortDesc([{name: 'John', age: 25}, {name: 'Jane', age: 30}], 'age'); -> sorted by age desc
+ * sortDesc([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); -> sorted by name desc
  */
 export function sortDesc<T>(
     data: ReadonlyArray<T> | unknown,
@@ -1708,8 +1733,8 @@ export function sortDesc<T>(
  *
  * @example
  *
- * sortRecursive({ b: [3, 1, 2], a: { d: 2, c: 1 } }); // -> { a: { c: 1, d: 2 }, b: [1, 2, 3] }
- * sortRecursive([{ name: 'john', age: 30 }, { name: 'jane', age: 25 }]); // -> sorted objects with sorted keys
+ * sortRecursive({ b: [3, 1, 2], a: { d: 2, c: 1 } }); -> { a: { c: 1, d: 2 }, b: [1, 2, 3] }
+ * sortRecursive([{ name: 'john', age: 30 }, { name: 'jane', age: 25 }]); -> sorted objects with sorted keys
  */
 export function sortRecursive<T>(
     data: ReadonlyArray<T> | Record<string, unknown> | unknown,
@@ -1785,7 +1810,7 @@ export function sortRecursive<T>(
  *
  * @example
  *
- * sortRecursiveDesc({ a: [1, 2, 3], b: { c: 1, d: 2 } }); // -> { b: { d: 2, c: 1 }, a: [3, 2, 1] }
+ * sortRecursiveDesc({ a: [1, 2, 3], b: { c: 1, d: 2 } }); -> { b: { d: 2, c: 1 }, a: [3, 2, 1] }
  */
 export function sortRecursiveDesc<T>(
     data: ReadonlyArray<T> | Record<string, unknown> | unknown,
@@ -1806,9 +1831,9 @@ export function sortRecursiveDesc<T>(
  *
  * @example
  *
- * string(['hello', 'world'], 0); // -> 'hello'
- * string([{name: 'John'}], '0.name'); // -> 'John'
- * string([{name: 123}], '0.name'); // -> throws Error
+ * string(['hello', 'world'], 0); -> 'hello'
+ * string([{name: 'John'}], '0.name'); -> 'John'
+ * string([{name: 123}], '0.name'); -> throws Error
  */
 export function string<T, D = null>(
     data: ReadonlyArray<T> | unknown,
@@ -1834,9 +1859,9 @@ export function string<T, D = null>(
  *
  * @example
  *
- * toCssClasses(['font-bold', 'mt-4']); // -> 'font-bold mt-4'
- * toCssClasses(['font-bold', 'mt-4', { 'ml-2': true, 'mr-2': false }]); // -> 'font-bold mt-4 ml-2'
- * toCssClasses({ 'font-bold': true, 'text-red': false }); // -> 'font-bold'
+ * toCssClasses(['font-bold', 'mt-4']); -> 'font-bold mt-4'
+ * toCssClasses(['font-bold', 'mt-4', { 'ml-2': true, 'mr-2': false }]); -> 'font-bold mt-4 ml-2'
+ * toCssClasses({ 'font-bold': true, 'text-red': false }); -> 'font-bold'
  */
 export function toCssClasses(
     data: ReadonlyArray<unknown> | Record<string, unknown> | unknown,
@@ -1885,8 +1910,8 @@ export function toCssClasses(
  *
  * @example
  *
- * toCssStyles(['font-weight: bold', 'margin-top: 4px']); // -> 'font-weight: bold; margin-top: 4px;'
- * toCssStyles(['font-weight: bold', { 'margin-left: 2px': true, 'margin-right: 2px': false }]); // -> 'font-weight: bold; margin-left: 2px;'
+ * toCssStyles(['font-weight: bold', 'margin-top: 4px']); -> 'font-weight: bold; margin-top: 4px;'
+ * toCssStyles(['font-weight: bold', { 'margin-left: 2px': true, 'margin-right: 2px': false }]); -> 'font-weight: bold; margin-left: 2px;'
  */
 export function toCssStyles(
     data: ReadonlyArray<unknown> | Record<string, unknown> | unknown,
@@ -1936,8 +1961,8 @@ export function toCssStyles(
  *
  * @example
  *
- * where([1, 2, 3, 4], (value) => value > 2); // -> [3, 4]
- * where(['a', 'b', null, 'c'], (value) => value !== null); // -> ['a', 'b', 'c']
+ * where([1, 2, 3, 4], (value) => value > 2); -> [3, 4]
+ * where(['a', 'b', null, 'c'], (value) => value !== null); -> ['a', 'b', 'c']
  */
 export function where<T>(
     data: ReadonlyArray<T> | unknown,
@@ -1965,8 +1990,8 @@ export function where<T>(
  *
  * @example
  *
- * reject([1, 2, 3, 4], (value) => value > 2); // -> [1, 2]
- * reject(['a', 'b', null, 'c'], (value) => value === null); // -> ['a', 'b', 'c']
+ * reject([1, 2, 3, 4], (value) => value > 2); -> [1, 2]
+ * reject(['a', 'b', null, 'c'], (value) => value === null); -> ['a', 'b', 'c']
  */
 export function reject<T>(
     data: ReadonlyArray<T> | unknown,
@@ -1984,8 +2009,8 @@ export function reject<T>(
  *
  * @example
  *
- * partition([1, 2, 3, 4], (value) => value > 2); // -> [[3, 4], [1, 2]]
- * partition(['a', 'b', null, 'c'], (value) => value !== null); // -> [['a', 'b', 'c'], [null]]
+ * partition([1, 2, 3, 4], (value) => value > 2); -> [[3, 4], [1, 2]]
+ * partition(['a', 'b', null, 'c'], (value) => value !== null); -> [['a', 'b', 'c'], [null]]
  */
 export function partition<T>(
     data: ReadonlyArray<T> | unknown,
@@ -2015,8 +2040,8 @@ export function partition<T>(
  *
  * @example
  *
- * whereNotNull([1, null, 2, undefined, 3]); // -> [1, 2, undefined, 3]
- * whereNotNull(['a', null, 'b', null]); // -> ['a', 'b']
+ * whereNotNull([1, null, 2, undefined, 3]); -> [1, 2, undefined, 3]
+ * whereNotNull(['a', null, 'b', null]); -> ['a', 'b']
  */
 export function whereNotNull<T>(data: ReadonlyArray<T | null> | unknown): T[] {
     return where(
@@ -2035,9 +2060,9 @@ export function whereNotNull<T>(data: ReadonlyArray<T | null> | unknown): T[] {
  *
  * @example
  *
- * contains([1, 2, 3], 2); // -> true
- * contains(['a', 'b', 'c'], 'd'); // -> false
- * contains([1, '1'], '1', true); // -> true
+ * contains([1, 2, 3], 2); -> true
+ * contains(['a', 'b', 'c'], 'd'); -> false
+ * contains([1, '1'], '1', true); -> true
  */
 export function contains<T>(
     data: ReadonlyArray<T> | unknown,
@@ -2073,8 +2098,8 @@ export function contains<T>(
  *
  * @example
  *
- * filter([1, 2, 3, 4], (x) => x > 2); // -> [3, 4]
- * filter([1, null, 2, undefined, 3]); // -> [1, 2, 3]
+ * filter([1, 2, 3, 4], (x) => x > 2); -> [3, 4]
+ * filter([1, null, 2, undefined, 3]); -> [1, 2, 3]
  */
 export function filter<T>(data: ReadonlyArray<T> | unknown): T[];
 export function filter<T>(
@@ -2105,10 +2130,10 @@ export function filter<T>(
  *
  * @example
  *
- * wrap('hello'); // -> ['hello']
- * wrap(['hello']); // -> ['hello']
- * wrap(null); // -> []
- * wrap(undefined); // -> [undefined]
+ * wrap('hello'); -> ['hello']
+ * wrap(['hello']); -> ['hello']
+ * wrap(null); -> []
+ * wrap(undefined); -> [undefined]
  */
 export function wrap<T>(value: T | null): T[] {
     if (value === null) {
@@ -2126,8 +2151,8 @@ export function wrap<T>(value: T | null): T[] {
  *
  * @example
  *
- * keys(['name', 'age', 'city']); // -> [0, 1, 2]
- * keys([]); // -> []
+ * keys(['name', 'age', 'city']); -> [0, 1, 2]
+ * keys([]); -> []
  */
 export function keys<T>(data: ReadonlyArray<T> | unknown): number[] {
     if (!accessible(data)) {
@@ -2145,8 +2170,8 @@ export function keys<T>(data: ReadonlyArray<T> | unknown): number[] {
  *
  * @example
  *
- * values(['name', 'age', 'city']); // -> ['name', 'age', 'city']
- * values([]); // -> []
+ * values(['name', 'age', 'city']); -> ['name', 'age', 'city']
+ * values([]); -> []
  */
 export function values<T>(data: ReadonlyArray<T> | unknown): T[] {
     if (!accessible(data)) {
@@ -2165,8 +2190,8 @@ export function values<T>(data: ReadonlyArray<T> | unknown): T[] {
  *
  * @example
  *
- * diff([1, 2, 3], [2, 3, 4]); // -> [1]
- * diff(['a', 'b', 'c'], ['b', 'c', 'd']); // -> ['a']
+ * diff([1, 2, 3], [2, 3, 4]); -> [1]
+ * diff(['a', 'b', 'c'], ['b', 'c', 'd']); -> ['a']
  */
 export function diff<T>(
     data: ReadonlyArray<T> | unknown,

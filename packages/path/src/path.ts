@@ -21,11 +21,11 @@ import { wrap as arrWrap } from "@laravel-js/arr";
  * @example
  *
  * Parse different key types
- * parseSegments(5); // -> [5]
- * parseSegments("1.2.3"); // -> [1, 2, 3] (numeric segments)
- * parseSegments("user.name"); // -> ["user", "name"] (string segments)
- * parseSegments("0.user.1.name"); // -> [0, "user", 1, "name"] (mixed segments)
- * parseSegments(null); // -> []
+ * parseSegments(5); -> [5]
+ * parseSegments("1.2.3"); -> [1, 2, 3] (numeric segments)
+ * parseSegments("user.name"); -> ["user", "name"] (string segments)
+ * parseSegments("0.user.1.name"); -> [0, "user", 1, "name"] (mixed segments)
+ * parseSegments(null); -> []
  */
 export function parseSegments(key: PathKey): (number | string)[] | null {
     if (key == null) return [];
@@ -69,16 +69,16 @@ export function parseSegments(key: PathKey): (number | string)[] | null {
  * @example
  *
  * Check path existence in arrays
- * hasPath([['a', 'b'], ['c', 'd']], "0.1"); // -> true
- * hasPath([['a', 'b']], "1.0"); // -> false
- * hasPath(['x', 'y'], 1); // -> true
+ * hasPath([['a', 'b'], ['c', 'd']], "0.1"); -> true
+ * hasPath([['a', 'b']], "1.0"); -> false
+ * hasPath(['x', 'y'], 1); -> true
  *
  * @example
  *
  * Check path existence in objects
- * hasPath([{name: 'John', age: 30}], "0.name"); // -> true
- * hasPath({user: {profile: {name: 'Jane'}}}, "user.profile.name"); // -> true
- * hasPath({items: ['a', 'b']}, "items.1"); // -> true
+ * hasPath([{name: 'John', age: 30}], "0.name"); -> true
+ * hasPath({user: {profile: {name: 'Jane'}}}, "user.profile.name"); -> true
+ * hasPath({items: ['a', 'b']}, "items.1"); -> true
  */
 export function hasPath(
     root: unknown[] | Record<string, unknown>,
@@ -127,16 +127,16 @@ export function hasPath(
  * @example
  *
  * Get values from arrays
- * getRaw([['a', 'b'], ['c']], "0.1"); // -> { found: true, value: 'b' }
- * getRaw([['a']], "1.0"); // -> { found: false }
- * getRaw(['x', 'y'], null); // -> { found: true, value: ['x', 'y'] }
+ * getRaw([['a', 'b'], ['c']], "0.1"); -> { found: true, value: 'b' }
+ * getRaw([['a']], "1.0"); -> { found: false }
+ * getRaw(['x', 'y'], null); -> { found: true, value: ['x', 'y'] }
  *
  * @example
  *
  * Get values from objects
- * getRaw([{name: 'John', age: 30}], "0.name"); // -> { found: true, value: 'John' }
- * getRaw({user: {profile: {name: 'Jane'}}}, "user.profile.name"); // -> { found: true, value: 'Jane' }
- * getRaw({items: ['a', 'b']}, "items.1"); // -> { found: true, value: 'b' }
+ * getRaw([{name: 'John', age: 30}], "0.name"); -> { found: true, value: 'John' }
+ * getRaw({user: {profile: {name: 'Jane'}}}, "user.profile.name"); -> { found: true, value: 'Jane' }
+ * getRaw({items: ['a', 'b']}, "items.1"); -> { found: true, value: 'b' }
  */
 export function getRaw(
     root: unknown[] | Record<string, unknown>,
@@ -199,9 +199,9 @@ export function getRaw(
  * @example
  *
  * Remove keys from objects and arrays
- * forgetKeys({a: 1, b: 2}, 'a'); // -> {b: 2}
- * forgetKeys(['x', 'y', 'z'], 1); // -> ['x', 'z']
- * forgetKeys([{name: 'John', age: 30}], '0.age'); // -> [{name: 'John'}]
+ * forgetKeys({a: 1, b: 2}, 'a'); -> {b: 2}
+ * forgetKeys(['x', 'y', 'z'], 1); -> ['x', 'z']
+ * forgetKeys([{name: 'John', age: 30}], '0.age'); -> [{name: 'John'}]
  */
 export function forgetKeys<T>(
     data: Record<string, unknown> | ReadonlyArray<T>,
@@ -225,9 +225,9 @@ export function forgetKeys<T>(
  * @example
  *
  * Remove object properties
- * forgetKeysObject({a: 1, b: {c: 2, d: 3}}, 'a'); // -> {b: {c: 2, d: 3}}
- * forgetKeysObject({user: {name: 'John', age: 30}}, 'user.age'); // -> {user: {name: 'John'}}
- * forgetKeysObject({a: 1, b: 2, c: 3}, ['a', 'c']); // -> {b: 2}
+ * forgetKeysObject({a: 1, b: {c: 2, d: 3}}, 'a'); -> {b: {c: 2, d: 3}}
+ * forgetKeysObject({user: {name: 'John', age: 30}}, 'user.age'); -> {user: {name: 'John'}}
+ * forgetKeysObject({a: 1, b: 2, c: 3}, ['a', 'c']); -> {b: 2}
  */
 export function forgetKeysObject<T extends Record<string, unknown>>(
     data: T,
@@ -289,9 +289,9 @@ export function forgetKeysObject<T extends Record<string, unknown>>(
  * @example
  *
  * Remove items by keys
- * forgetKeys(['a', 'b', 'c'], 1); // -> ['a', 'c']
- * forgetKeys([['x', 'y'], ['z']], "0.1"); // -> [['x'], ['z']]
- * forgetKeys(['a', 'b', 'c'], [0, 2]); // -> ['b']
+ * forgetKeys(['a', 'b', 'c'], 1); -> ['a', 'c']
+ * forgetKeys([['x', 'y'], ['z']], "0.1"); -> [['x'], ['z']]
+ * forgetKeys(['a', 'b', 'c'], [0, 2]); -> ['b']
  */
 export function forgetKeysArray<T>(
     data: ReadonlyArray<T>,
@@ -435,9 +435,9 @@ export function forgetKeysArray<T>(
  * @example
  *
  * Set values using dot notation
- * setImmutable(['a', 'b'], 1, 'x'); // -> ['a', 'x']
- * setImmutable([['old']], "0.0", 'new'); // -> [['new']]
- * setImmutable([], 0, 'first'); // -> ['first']
+ * setImmutable(['a', 'b'], 1, 'x'); -> ['a', 'x']
+ * setImmutable([['old']], "0.0", 'new'); -> [['new']]
+ * setImmutable([], 0, 'first'); -> ['first']
  */
 export function setImmutable<T>(
     data: ReadonlyArray<T> | unknown,
@@ -537,9 +537,9 @@ export function setImmutable<T>(
  * @example
  *
  * Push values using dot notation
- * pushWithPath(['a'], null, 'b', 'c'); // -> ['a', 'b', 'c']
- * pushWithPath([['x']], "0", 'y'); // -> [['x', 'y']]
- * pushWithPath([], "0", 'first'); // -> [['first']]
+ * pushWithPath(['a'], null, 'b', 'c'); -> ['a', 'b', 'c']
+ * pushWithPath([['x']], "0", 'y'); -> [['x', 'y']]
+ * pushWithPath([], "0", 'first'); -> [['first']]
  */
 export function pushWithPath<T>(
     data: T[] | unknown,
@@ -673,8 +673,8 @@ export function pushWithPath<T>(
  * @example
  *
  * Flatten mixed structures
- * dotFlatten({a: {b: 1}, c: [2, 3]}); // -> {'a.b': 1, 'c.0': 2, 'c.1': 3}
- * dotFlatten(['x', {y: 'z'}], 'prefix'); // -> {'prefix.0': 'x', 'prefix.1.y': 'z'}
+ * dotFlatten({a: {b: 1}, c: [2, 3]}); -> {'a.b': 1, 'c.0': 2, 'c.1': 3}
+ * dotFlatten(['x', {y: 'z'}], 'prefix'); -> {'prefix.0': 'x', 'prefix.1.y': 'z'}
  */
 export function dotFlatten(
     data: Record<string, unknown> | ReadonlyArray<unknown> | unknown,
@@ -702,8 +702,8 @@ export function dotFlatten(
  * @example
  *
  * Flatten nested objects
- * dotFlattenObject({a: {b: {c: 1}}}); // -> {'a.b.c': 1}
- * dotFlattenObject({user: {name: 'John'}}, 'data'); // -> {'data.user.name': 'John'}
+ * dotFlattenObject({a: {b: {c: 1}}}); -> {'a.b.c': 1}
+ * dotFlattenObject({user: {name: 'John'}}, 'data'); -> {'data.user.name': 'John'}
  */
 export function dotFlattenObject(
     data: Record<string, unknown> | unknown,
@@ -743,8 +743,8 @@ export function dotFlattenObject(
  * @example
  *
  * Flatten nested arrays
- * dotFlattenArray(['a', ['b', 'c']]); // -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
- * dotFlattenArray([['x']], "prefix"); // -> { 'prefix.0.0': 'x' }
+ * dotFlattenArray(['a', ['b', 'c']]); -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
+ * dotFlattenArray([['x']], "prefix"); -> { 'prefix.0.0': 'x' }
  */
 export function dotFlattenArray(
     data: ReadonlyArray<unknown> | unknown,
@@ -788,8 +788,8 @@ export function dotFlattenArray(
  * @example
  *
  * Expand flat objects to nested structures
- * undotExpand({'a.b.c': 1, 'a.d': 2}); // -> {a: {b: {c: 1}, d: 2}}
- * undotExpand({'0': 'x', '1.name': 'John'}); // -> ['x', {name: 'John'}]
+ * undotExpand({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
+ * undotExpand({'0': 'x', '1.name': 'John'}); -> ['x', {name: 'John'}]
  */
 export function undotExpand(
     map: Record<string, unknown>,
@@ -811,8 +811,8 @@ export function undotExpand(
  * @example
  *
  * Expand flat object to nested object
- * undotExpandObject({'user.name': 'John', 'user.age': 30}); // -> {user: {name: 'John', age: 30}}
- * undotExpandObject({'a.b.c': 1, 'a.d': 2}); // -> {a: {b: {c: 1}, d: 2}}
+ * undotExpandObject({'user.name': 'John', 'user.age': 30}); -> {user: {name: 'John', age: 30}}
+ * undotExpandObject({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
  */
 export function undotExpandObject(
     map: Record<string, unknown>,
@@ -837,8 +837,8 @@ export function undotExpandObject(
  * @example
  *
  * Expand flat object to nested arrays
- * undotExpandArray({ '0': 'a', '1.0': 'b', '1.1': 'c' }); // -> ['a', ['b', 'c']]
- * undotExpandArray({ '0.0.0': 'deep' }); // -> [[['deep']]]
+ * undotExpandArray({ '0': 'a', '1.0': 'b', '1.1': 'c' }); -> ['a', ['b', 'c']]
+ * undotExpandArray({ '0.0.0': 'deep' }); -> [[['deep']]]
  */
 export function undotExpandArray(map: Record<string, unknown>): unknown[] {
     const root: unknown[] = [];
@@ -892,22 +892,22 @@ export function undotExpandArray(map: Record<string, unknown>): unknown[] {
  * @example
  *
  * Array with nested objects
- * getNestedValue([{items: ['x', 'y']}], '0.items.1'); // -> 'y'
+ * getNestedValue([{items: ['x', 'y']}], '0.items.1'); -> 'y'
  *
  * @example
  *
  * Object with nested arrays
- * getNestedValue({users: [{name: 'John'}, {name: 'Jane'}]}, 'users.1.name'); // -> 'Jane'
+ * getNestedValue({users: [{name: 'John'}, {name: 'Jane'}]}, 'users.1.name'); -> 'Jane'
  *
  * @example
  *
  * Mixed nesting
- * getNestedValue([{data: {values: [1, 2, 3]}}], '0.data.values.2'); // -> 3
+ * getNestedValue([{data: {values: [1, 2, 3]}}], '0.data.values.2'); -> 3
  *
  * @example
  *
  * Path not found
- * getNestedValue([{items: ['x']}], '0.items.5'); // -> undefined
+ * getNestedValue([{items: ['x']}], '0.items.5'); -> undefined
  */
 export function getNestedValue<T>(obj: unknown, path: string): T | undefined {
     if (!obj || typeof obj !== "object") {
@@ -955,9 +955,9 @@ export function getNestedValue<T>(obj: unknown, path: string): T | undefined {
  * @example
  *
  * Get values with mixed notation
- * getMixedValue([{name: 'John'}], '0.name'); // -> 'John'
- * getMixedValue(['a', 'b'], 1); // -> 'b'
- * getMixedValue([], '0', 'default'); // -> 'default'
+ * getMixedValue([{name: 'John'}], '0.name'); -> 'John'
+ * getMixedValue(['a', 'b'], 1); -> 'b'
+ * getMixedValue([], '0', 'default'); -> 'default'
  */
 export function getMixedValue<T, D = null>(
     data: ReadonlyArray<T> | unknown,
@@ -1033,8 +1033,8 @@ export function getMixedValue<T, D = null>(
  *
  * @example
  *
- * setMixed([{ name: "John" }], "0.age", 30); // -> [{ name: "John", age: 30 }]
- * setMixed([], "user.name", "John"); // -> [{ user: { name: "John" } }]
+ * setMixed([{ name: "John" }], "0.age", 30); -> [{ name: "John", age: 30 }]
+ * setMixed([], "user.name", "John"); -> [{ user: { name: "John" } }]
  */
 export function setMixed(
     arr: unknown[],
@@ -1155,8 +1155,8 @@ export function setMixed(
  *
  * @example
  *
- * pushMixed([], '0', 'value'); // -> [['value']]
- * pushMixed([{items: []}], '0.items', 'new'); // -> [{items: ['new']}]
+ * pushMixed([], '0', 'value'); -> [['value']]
+ * pushMixed([{items: []}], '0.items', 'new'); -> [{items: ['new']}]
  */
 export function pushMixed<T>(
     data: T[] | unknown,
@@ -1242,8 +1242,8 @@ export function pushMixed<T>(
  *
  * @example
  *
- * setMixedImmutable([{ name: "John" }], "0.age", 30); // -> [{ name: "John", age: 30 }]
- * setMixedImmutable([], "user.name", "John"); // -> [{ user: { name: "John" } }]
+ * setMixedImmutable([{ name: "John" }], "0.age", 30); -> [{ name: "John", age: 30 }]
+ * setMixedImmutable([], "user.name", "John"); -> [{ user: { name: "John" } }]
  */
 export function setMixedImmutable<T>(
     data: ReadonlyArray<T> | unknown,
@@ -1290,9 +1290,9 @@ export function setMixedImmutable<T>(
  *
  * @example
  *
- * hasMixed([{ name: "John" }], "0.name"); // -> true
- * hasMixed([{ name: "John" }], "0.age"); // -> false
- * hasMixed([], "user.name"); // -> false
+ * hasMixed([{ name: "John" }], "0.name"); -> true
+ * hasMixed([{ name: "John" }], "0.age"); -> false
+ * hasMixed([], "user.name"); -> false
  */
 export function hasMixed(data: unknown, key: PathKey): boolean {
     if (isNull(key)) {

@@ -69,7 +69,7 @@ export class Str {
      *
      * @example
      *
-     * Str.of('foo').append('bar'); // -> 'foobar'
+     * Str.of('foo').append('bar'); -> 'foobar'
      */
     static of(value: string): Stringable {
         return new Stringable(value);
@@ -80,7 +80,7 @@ export class Str {
      *
      * @example
      *
-     * Str.after('A house on a lake', 'house '); // -> 'on a lake'
+     * Str.after('A house on a lake', 'house '); -> 'on a lake'
      */
     static after(subject: string, search: string | number): string {
         if (search === "") {
@@ -102,7 +102,7 @@ export class Str {
      *
      * @example
      *
-     * Str.afterLast('A house on a lake', 'a'); // -> ' lake'
+     * Str.afterLast('A house on a lake', 'a'); -> ' lake'
      */
     static afterLast(subject: string, search: string | number): string {
         if (search === "") {
@@ -123,7 +123,7 @@ export class Str {
      *
      * @example
      *
-     * Str.ascii('Héllo Wörld'); // -> 'Hello World'
+     * Str.ascii('Héllo Wörld'); -> 'Hello World'
      */
     static ascii(value: string): string {
         return transliterate(value);
@@ -134,7 +134,7 @@ export class Str {
      *
      * @example
      *
-     * Str.transliterate('ⓣⓔⓢⓣ@ⓛⓐⓡⓐⓥⓔⓛ.ⓒⓞⓜ'); // -> 'test@laravel.com'
+     * Str.transliterate('ⓣⓔⓢⓣ@ⓛⓐⓡⓐⓥⓔⓛ.ⓒⓞⓜ'); -> 'test@laravel.com'
      */
     static transliterate(value: string): string {
         return anyAscii(value);
@@ -145,7 +145,7 @@ export class Str {
      *
      * @example
      *
-     * Str.before('hannah', 'nah'); // -> 'han'
+     * Str.before('hannah', 'nah'); -> 'han'
      */
     static before(subject: string, search: string | number): string {
         if (search === "") {
@@ -162,7 +162,7 @@ export class Str {
      *
      * @example
      *
-     * Str.beforeLast('yvette', 'tte'); // -> 'yve'
+     * Str.beforeLast('yvette', 'tte'); -> 'yve'
      */
     static beforeLast(subject: string, search: string | number): string {
         if (search === "") {
@@ -183,7 +183,7 @@ export class Str {
      *
      * @example
      *
-     * Str.between('foofoobar', 'foo', 'bar'); // -> 'foo'
+     * Str.between('foofoobar', 'foo', 'bar'); -> 'foo'
      */
     static between(
         subject: string,
@@ -202,7 +202,7 @@ export class Str {
      *
      * @example
      *
-     * Str.betweenFirst('foofoobar', 'foo', 'bar'); // -> 'foo'
+     * Str.betweenFirst('foofoobar', 'foo', 'bar'); -> 'foo'
      */
     static betweenFirst(
         subject: string,
@@ -221,7 +221,7 @@ export class Str {
      *
      * @example
      *
-     * Str.camel('foo_bar'); // -> 'fooBar'
+     * Str.camel('foo_bar'); -> 'fooBar'
      */
     static camel(value: string): string {
         if (this.camelCache.has(value)) {
@@ -239,7 +239,7 @@ export class Str {
      *
      * @example
      *
-     * Str.charAt('hello', 1); // -> 'e'
+     * Str.charAt('hello', 1); -> 'e'
      */
     static charAt(subject: string, index: number): string | false {
         const length = subject.length;
@@ -261,7 +261,7 @@ export class Str {
      *
      * @example
      *
-     * Str.chopStart('foobar', 'foo'); // -> 'bar'
+     * Str.chopStart('foobar', 'foo'); -> 'bar'
      */
     static chopStart(subject: string, needle: string | string[]): string {
         for (const n of isArray(needle) ? needle : [needle]) {
@@ -278,7 +278,7 @@ export class Str {
      *
      * @example
      *
-     * Str.chopEnd('foobar', 'bar'); // -> 'foo'
+     * Str.chopEnd('foobar', 'bar'); -> 'foo'
      */
     static chopEnd(subject: string, needle: string | string[]): string {
         for (const n of isArray(needle) ? needle : [needle]) {
@@ -295,9 +295,9 @@ export class Str {
      *
      * @example
      *
-     * Str.contains('Minion', 'ni'); // -> true
-     * Str.contains('Minion', 'Ni', true); // -> true
-     * Str.contains('Minion', 'Ni', false); // -> false
+     * Str.contains('Minion', 'ni'); -> true
+     * Str.contains('Minion', 'Ni', true); -> true
+     * Str.contains('Minion', 'Ni', false); -> false
      */
     static contains(
         haystack: string,
@@ -389,8 +389,8 @@ export class Str {
      *
      * @example
      *
-     * Str.containsAll('Taylor Otwell', ['taylor', 'otwell'], false); // -> true
-     * Str.containsAll('Taylor Otwell', ['taylor', 'xxx'], true); // -> false
+     * Str.containsAll('Taylor Otwell', ['taylor', 'otwell'], false); -> true
+     * Str.containsAll('Taylor Otwell', ['taylor', 'xxx'], true); -> false
      */
     static containsAll(
         haystack: string,
@@ -411,9 +411,9 @@ export class Str {
      *
      * @example
      *
-     * Str.doesntContain('Minion', 'ni'); // -> false
-     * Str.doesntContain('Minion', 'Ni', true); // -> false
-     * Str.doesntContain('Minion', 'Ni', false); // -> true
+     * Str.doesntContain('Minion', 'ni'); -> false
+     * Str.doesntContain('Minion', 'Ni', true); -> false
+     * Str.doesntContain('Minion', 'Ni', false); -> true
      */
     static doesntContain(
         haystack: string,
@@ -428,7 +428,7 @@ export class Str {
      *
      * @example
      *
-     * Str.convertCase('hello', CaseTypes.upper); // -> 'HELLO'
+     * Str.convertCase('hello', CaseTypes.upper); -> 'HELLO'
      */
     static convertCase(value: string, mode: ConvertCaseMode = CaseTypes.fold) {
         return new ConvertCase(value, mode).convert();
@@ -439,10 +439,10 @@ export class Str {
      *
      * @example
      *
-     * Str.deduplicate('hello  world'); // -> 'hello world'
-     * Str.deduplicate('hello---world', '-'); // -> 'hello-world'
-     * Str.deduplicate('hello___world', '_'); // -> 'hello-world'
-     * Str.deduplicate('hello  world', ' '); // -> 'hello world'
+     * Str.deduplicate('hello  world'); -> 'hello world'
+     * Str.deduplicate('hello---world', '-'); -> 'hello-world'
+     * Str.deduplicate('hello___world', '_'); -> 'hello-world'
+     * Str.deduplicate('hello  world', ' '); -> 'hello world'
      */
     static deduplicate(value: string, character: string | string[] = " ") {
         if (isArray(character)) {
@@ -460,8 +460,8 @@ export class Str {
      *
      * @example
      *
-     * Str.endsWith("Jason", "on"); // -> true
-     * Str.endsWith("Jason", "ON"); // -> false
+     * Str.endsWith("Jason", "on"); -> true
+     * Str.endsWith("Jason", "ON"); -> false
      */
     static endsWith(
         haystack: string | number | null,
@@ -493,8 +493,8 @@ export class Str {
      *
      * @example
      *
-     * Str.doesntEndWith("Jason", "on"); // -> false
-     * Str.doesntEndWith("Jason", "ON"); // -> true
+     * Str.doesntEndWith("Jason", "on"); -> false
+     * Str.doesntEndWith("Jason", "ON"); -> true
      */
     static doesntEndWith(
         haystack: string | number | null,
@@ -510,7 +510,7 @@ export class Str {
      *
      * @example
      *
-     * Str.finish('hello', '!'); // -> 'hello!'
+     * Str.finish('hello', '!'); -> 'hello!'
      */
     static finish(value: string, cap: string): string {
         const quoted = cap.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -523,7 +523,7 @@ export class Str {
      *
      * @example
      *
-     * Str.wrap('hello', '[', ']'); // -> '[hello]'
+     * Str.wrap('hello', '[', ']'); -> '[hello]'
      */
     static wrap(
         value: string,
@@ -538,7 +538,7 @@ export class Str {
      *
      * @example
      *
-     * Str.unwrap('[hello]', '[', ']'); // -> 'hello'
+     * Str.unwrap('[hello]', '[', ']'); -> 'hello'
      */
     static unwrap(
         value: string,
@@ -561,9 +561,9 @@ export class Str {
      *
      * @example
      *
-     * Str.is('hello', 'hello'); // -> true
-     * Str.is('hello', 'Hello', true); // -> true
-     * Str.is('hello', 'world'); // -> false
+     * Str.is('hello', 'hello'); -> true
+     * Str.is('hello', 'Hello', true); -> true
+     * Str.is('hello', 'world'); -> false
      */
     static is(
         pattern: string | Iterable<string>,
@@ -617,11 +617,11 @@ export class Str {
      *
      * @example
      *
-     * Str.isAscii("Hello World"); // -> true
-     * Str.isAscii("こんにちは"); // -> false
-     * Str.isAscii("12345"); // -> true
-     * Str.isAscii("!@#$%"); // -> true
-     * Str.isAscii("Hello こんにちは"); // -> false
+     * Str.isAscii("Hello World"); -> true
+     * Str.isAscii("こんにちは"); -> false
+     * Str.isAscii("12345"); -> true
+     * Str.isAscii("!@#$%"); -> true
+     * Str.isAscii("Hello こんにちは"); -> false
      */
     static isAscii(value: string): boolean {
         for (let i = 0; i < value.length; i++) {
@@ -635,9 +635,9 @@ export class Str {
      *
      * @example
      *
-     * Str.isJson('{"name": "John", "age": 30}'); // -> true
-     * Str.isJson('{"name": "John", "age": 30'); // -> false
-     * Str.isJson('Hello World'); // -> false
+     * Str.isJson('{"name": "John", "age": 30}'); -> true
+     * Str.isJson('{"name": "John", "age": 30'); -> false
+     * Str.isJson('Hello World'); -> false
      */
     static isJson(value: unknown): boolean {
         if (!isString(value)) {
@@ -658,9 +658,9 @@ export class Str {
      *
      * @example
      *
-     * Str.isUrl('https://laravel.com'); // -> true
-     * Str.isUrl('http://localhost'); // -> true
-     * Str.isUrl('invalid url'); // -> false
+     * Str.isUrl('https://laravel.com'); -> true
+     * Str.isUrl('http://localhost'); -> true
+     * Str.isUrl('invalid url'); -> false
      */
     static isUrl(value: string | unknown, protocols: string[] = []): boolean {
         if (!isString(value)) {
@@ -724,8 +724,8 @@ export class Str {
      *
      * @example
      *
-     * Str.isUuid("550e8400-e29b-41d4-a716-446655440000", 4); // -> true
-     * Str.isUuid("550e8400-e29b-41d4-a716-446655440000", 5); // -> false
+     * Str.isUuid("550e8400-e29b-41d4-a716-446655440000", 4); -> true
+     * Str.isUuid("550e8400-e29b-41d4-a716-446655440000", 5); -> false
      */
     static isUuid(
         value: string | unknown,
@@ -771,7 +771,7 @@ export class Str {
      *
      * @example
      *
-     * Str.isUlid("01F8MECHZX2D7J8F8C8D4B8F8C"); // -> true
+     * Str.isUlid("01F8MECHZX2D7J8F8C8D4B8F8C"); -> true
      */
     static isUlid(value: unknown): boolean {
         if (!isString(value)) {
@@ -786,7 +786,7 @@ export class Str {
      *
      * @example
      *
-     * Str.kebab("Laravel PHP Framework"); // -> "laravel-php-framework"
+     * Str.kebab("Laravel PHP Framework"); -> "laravel-php-framework"
      */
     static kebab(value: string): string {
         return Str.snake(value, "-");
@@ -797,7 +797,7 @@ export class Str {
      *
      * @example
      *
-     * Str.length("Hello World"); // -> 11
+     * Str.length("Hello World"); -> 11
      */
     static length(value: string): number {
         return value.length;
@@ -844,7 +844,7 @@ export class Str {
      *
      * @example
      *
-     * Str.lower("Hello World"); // -> "hello world"
+     * Str.lower("Hello World"); -> "hello world"
      */
     static lower(value: string): string {
         return toLower(value);
@@ -855,8 +855,8 @@ export class Str {
      *
      * @example
      *
-     * Str.words("Laravel PHP Framework", 2); // -> "Laravel PHP Framework"
-     * Str.words("Laravel PHP Framework", 1); // -> "Laravel..."
+     * Str.words("Laravel PHP Framework", 2); -> "Laravel PHP Framework"
+     * Str.words("Laravel PHP Framework", 1); -> "Laravel..."
      */
     static words(
         value: string,
@@ -885,7 +885,7 @@ export class Str {
      *
      * @example
      *
-     * Str.markdown('# Hello World'); // -> '<h1>Hello World</h1>\n'
+     * Str.markdown('# Hello World'); -> '<h1>Hello World</h1>\n'
      */
     static markdown(
         value: string,
@@ -901,7 +901,7 @@ export class Str {
      *
      * @example
      *
-     * Str.inlineMarkdown("Hello *World*"); // -> "<p>Hello <em>World</em></p>"
+     * Str.inlineMarkdown("Hello *World*"); -> "<p>Hello <em>World</em></p>"
      */
     static inlineMarkdown(
         value: string,
@@ -917,10 +917,10 @@ export class Str {
      *
      * @example
      *
-     * Str.mask("taylor@email.com", "*", 3); // -> "tay*************"
-     * Str.mask("taylor@email.com", "*", 0, 6); // -> "******@email.com"
-     * Str.mask("taylor@email.com", "*", -13); // -> "tay*************"
-     * Str.mask("taylor@email.com", "*", -13, 3); // -> "tay***@email.com"
+     * Str.mask("taylor@email.com", "*", 3); -> "tay*************"
+     * Str.mask("taylor@email.com", "*", 0, 6); -> "******@email.com"
+     * Str.mask("taylor@email.com", "*", -13); -> "tay*************"
+     * Str.mask("taylor@email.com", "*", -13, 3); -> "tay***@email.com"
      */
     static mask(
         value: string,
@@ -1081,7 +1081,7 @@ export class Str {
      * TODO - should return a collection
      * @example
      *
-     * Str.matchAll("/foo (.*)/", "foo bar baz"); // -> ["foo bar baz"]
+     * Str.matchAll("/foo (.*)/", "foo bar baz"); -> ["foo bar baz"]
      */
     static matchAll(pattern: string, subject: string): string[] {
         let flags = "u"; // always unicode
@@ -1143,8 +1143,8 @@ export class Str {
      *
      * @example
      *
-     * Str.numbers("foo123bar"); // -> "123"
-     * Str.numbers(["foo123bar", "abc456"]); // -> ["123", "456"]
+     * Str.numbers("foo123bar"); -> "123"
+     * Str.numbers(["foo123bar", "abc456"]); -> ["123", "456"]
      */
     static numbers(value: string | string[]): string | string[] {
         if (isArray(value)) {
@@ -1180,10 +1180,10 @@ export class Str {
      *
      * @example
      *
-     * Str.padLeft("Alien", 10, "-="); // -> "-=-=-Alien"
-     * Str.padLeft("Alien", 10); // -> "     Alien"
-     * Str.padLeft("❤MultiByte☆", 16); // -> "     ❤MultiByte☆"
-     * Str.padLeft("❤MultiByte☆", 16, "❤☆"); // -> "❤☆❤☆❤❤MultiByte☆"
+     * Str.padLeft("Alien", 10, "-="); -> "-=-=-Alien"
+     * Str.padLeft("Alien", 10); -> "     Alien"
+     * Str.padLeft("❤MultiByte☆", 16); -> "     ❤MultiByte☆"
+     * Str.padLeft("❤MultiByte☆", 16, "❤☆"); -> "❤☆❤☆❤❤MultiByte☆"
      */
     static padLeft(value: string, length: number, pad: string = " "): string {
         const valueLength = value.length;
@@ -1202,10 +1202,10 @@ export class Str {
      *
      * @example
      *
-     * Str.padRight("Alien", 10, "-="); // -> "Alien-=-="
-     * Str.padRight("Alien", 10); // -> "Alien     "
-     * Str.padRight("❤MultiByte☆", 16); // -> "❤MultiByte☆     "
-     * Str.padRight("❤MultiByte☆", 16, "❤☆"); // -> "❤MultiByte☆❤☆❤☆"
+     * Str.padRight("Alien", 10, "-="); -> "Alien-=-="
+     * Str.padRight("Alien", 10); -> "Alien     "
+     * Str.padRight("❤MultiByte☆", 16); -> "❤MultiByte☆     "
+     * Str.padRight("❤MultiByte☆", 16, "❤☆"); -> "❤MultiByte☆❤☆❤☆"
      */
     static padRight(value: string, length: number, pad: string = " "): string {
         const valueLength = value.length;
@@ -1224,9 +1224,9 @@ export class Str {
      *
      * @example
      *
-     * Str.makePad(" ", 5); // -> "     "
-     * Str.makePad("-", 5); // -> "-----"
-     * Str.makePad("❤", 5); // -> "❤❤❤❤❤"
+     * Str.makePad(" ", 5); -> "     "
+     * Str.makePad("-", 5); -> "-----"
+     * Str.makePad("❤", 5); -> "❤❤❤❤❤"
      */
     static makePad(padStr: string, needed: number): string {
         if (needed <= 0) return "";
@@ -1241,9 +1241,9 @@ export class Str {
      *
      * @example
      *
-     * Str.plural("child"); // -> "children"
-     * Str.plural("apple", 1); // -> "apple"
-     * Str.plural("apple", 2, true); // -> "2 apples"
+     * Str.plural("child"); -> "children"
+     * Str.plural("apple", 1); -> "apple"
+     * Str.plural("apple", 2, true); -> "2 apples"
      */
     static plural(
         value: string,
@@ -1261,7 +1261,7 @@ export class Str {
      *
      * @example
      *
-     * Str.pluralStudly("These are the school", 4); // -> "These are the schools"
+     * Str.pluralStudly("These are the school", 4); -> "These are the schools"
      */
     static pluralStudly(value: string, count: number = 2): string {
         const parts = value.split(/(?=[A-Z])/);
@@ -1275,7 +1275,7 @@ export class Str {
      *
      * @example
      *
-     * Str.pluralPascal("These are the school", 4); // -> "These are the schools"
+     * Str.pluralPascal("These are the school", 4); -> "These are the schools"
      */
     static pluralPascal(value: string, count: number = 2): string {
         return Str.pluralStudly(value, count);
@@ -1336,8 +1336,8 @@ export class Str {
      *
      * @example
      *
-     * Str.position('Hello, World!', 'World!'); // -> 7
-     * Str.position('Hello, World!', 'world!', 0); // -> false
+     * Str.position('Hello, World!', 'World!'); -> 7
+     * Str.position('Hello, World!', 'world!', 0); -> false
      */
     static position(
         haystack: string,
@@ -1383,7 +1383,7 @@ export class Str {
      *
      * @example
      *
-     * Str.random(); // -> "a1b2c3d4e5f6g7h8"
+     * Str.random(); -> "a1b2c3d4e5f6g7h8"
      */
     static random(length: number = 16): string {
         const factory =
@@ -1459,7 +1459,7 @@ export class Str {
      *
      * @example
      *
-     * Str.repeat("foo", 3); // -> "foofoofoo"
+     * Str.repeat("foo", 3); -> "foofoofoo"
      */
     static repeat(string: string, times: number): string {
         if (times <= 0) {
@@ -1474,9 +1474,9 @@ export class Str {
      *
      * @example
      *
-     * Str.replaceArray('?', ['foo', 'bar', 'baz'], '?/?/?'); // -> 'foo/bar/baz'
-     * Str.replaceArray('?', ['foo', 'bar', 'baz'], '?/?/?/?'); // -> 'foo/bar/baz/?'
-     * Str.replaceArray('?', {'x' => 'foo', 'y' => 'bar'}, '?/?'); // -> 'foo/bar'
+     * Str.replaceArray('?', ['foo', 'bar', 'baz'], '?/?/?'); -> 'foo/bar/baz'
+     * Str.replaceArray('?', ['foo', 'bar', 'baz'], '?/?/?/?'); -> 'foo/bar/baz/?'
+     * Str.replaceArray('?', {'x' => 'foo', 'y' => 'bar'}, '?/?'); -> 'foo/bar'
      */
     static replaceArray(
         search: string,
@@ -1533,7 +1533,7 @@ export class Str {
      *
      * @example
      *
-     * Str.replace("foo", "bar", "foo baz"); // -> "bar baz"
+     * Str.replace("foo", "bar", "foo baz"); -> "bar baz"
      */
     static replace(
         search: string | Iterable<string>,
@@ -1577,7 +1577,7 @@ export class Str {
      *
      * @example
      *
-     * Str.replaceFirst('bar', 'qux', 'foobar foobar'); // -> 'fooqux foobar'
+     * Str.replaceFirst('bar', 'qux', 'foobar foobar'); -> 'fooqux foobar'
      */
     static replaceFirst(
         search: string | number,
@@ -1634,7 +1634,7 @@ export class Str {
      *
      * @example
      *
-     * Str.replaceLast('bar', 'qux', 'foobar foobar'); // -> 'foobar foobarqux'
+     * Str.replaceLast('bar', 'qux', 'foobar foobar'); -> 'foobar foobarqux'
      */
     static replaceLast(
         search: string | number,
@@ -1665,7 +1665,7 @@ export class Str {
      *
      * @example
      *
-     * Str.replaceEnd('bar', 'qux', 'foobar foobar'); // -> 'foobar fooqux'
+     * Str.replaceEnd('bar', 'qux', 'foobar foobar'); -> 'foobar fooqux'
      */
     static replaceEnd(
         search: string | number,
@@ -1690,9 +1690,9 @@ export class Str {
      *
      * @example
      *
-     * Str.replaceMatches(/foo/, 'bar', 'foobar'); // -> 'barbar'
-     * Str.replaceMatches(/foo/, ['bar', 'baz'], 'foobar'); // -> ['barbar', 'foobaz']
-     * Str.replaceMatches(/foo/, (match) => match[1]!.toUpperCase(), 'foobar'); // -> 'Bar'
+     * Str.replaceMatches(/foo/, 'bar', 'foobar'); -> 'barbar'
+     * Str.replaceMatches(/foo/, ['bar', 'baz'], 'foobar'); -> ['barbar', 'foobaz']
+     * Str.replaceMatches(/foo/, (match) => match[1]!.toUpperCase(), 'foobar'); -> 'Bar'
      */
     static replaceMatches(
         pattern: string | string[] | RegExp | RegExp[],
@@ -1865,7 +1865,7 @@ export class Str {
      *
      * @example
      *
-     * Str.stripTags("<p>Hello World</p>"); // -> "Hello World"
+     * Str.stripTags("<p>Hello World</p>"); -> "Hello World"
      */
     static stripTags(value: string): string {
         return value.replace(/<\/?[^>]+(>|$)/g, "");
@@ -1876,8 +1876,8 @@ export class Str {
      *
      * @example
      *
-     * Str.remove("foo", "foobar"); // -> "bar"
-     * Str.remove(["foo", "bar"], "foobar"); // -> ""
+     * Str.remove("foo", "foobar"); -> "bar"
+     * Str.remove(["foo", "bar"], "foobar"); -> ""
      */
     static remove(
         search: string | Iterable<string>,
@@ -1917,9 +1917,9 @@ export class Str {
      *
      * @example
      *
-     * Str.reverse("hello"); // -> "olleh"
-     * Str.reverse("world"); // -> "dlrow"
-     * Str.reverse(""); // -> ""
+     * Str.reverse("hello"); -> "olleh"
+     * Str.reverse("world"); -> "dlrow"
+     * Str.reverse(""); -> ""
      */
     static reverse(value: string): string {
         return Array.from(value).reverse().join("");
@@ -1930,9 +1930,9 @@ export class Str {
      *
      * @example
      *
-     * Str.start("test/string", "/"); // -> "/test/string"
-     * Str.start("/test/string", "/"); // -> "/test/string"
-     * Str.start("//test/string", "/"); // -> "/test/string"
+     * Str.start("test/string", "/"); -> "/test/string"
+     * Str.start("/test/string", "/"); -> "/test/string"
+     * Str.start("//test/string", "/"); -> "/test/string"
      */
     static start(value: string, prefix: string): string {
         const quoted = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -1945,8 +1945,8 @@ export class Str {
      *
      * @example
      *
-     * Str.upper("foo bar baz"); // -> "FOO BAR BAZ"
-     * Str.upper("foO bAr BaZ"); // -> "FOO BAR BAZ"
+     * Str.upper("foo bar baz"); -> "FOO BAR BAZ"
+     * Str.upper("foO bAr BaZ"); -> "FOO BAR BAZ"
      */
     static upper(value: string): string {
         return new ConvertCase(value, CaseTypes.upper).convert();
@@ -1957,8 +1957,8 @@ export class Str {
      *
      * @example
      *
-     * Str.title("foo bar baz"); // -> "Foo Bar Baz"
-     * Str.title("foO bAr BaZ"); // -> "Foo Bar Baz"
+     * Str.title("foo bar baz"); -> "Foo Bar Baz"
+     * Str.title("foO bAr BaZ"); -> "Foo Bar Baz"
      */
     static title(value: string): string {
         return new ConvertCase(value, CaseTypes.title).convert();
@@ -1969,8 +1969,8 @@ export class Str {
      *
      * @example
      *
-     * Str.headline("foo bar baz"); // -> "Foo Bar Baz"
-     * Str.headline("foO bAr BaZ"); // -> "Foo Bar Baz"
+     * Str.headline("foo bar baz"); -> "Foo Bar Baz"
+     * Str.headline("foO bAr BaZ"); -> "Foo Bar Baz"
      */
     static headline(value: string): string {
         const trimmed = String(value).trim();
@@ -2001,8 +2001,8 @@ export class Str {
      *
      * @example
      *
-     * Str.apa("foo bar baz"); // -> "Foo Bar Baz"
-     * Str.apa("foO bAr BaZ"); // -> "Foo Bar Baz"
+     * Str.apa("foo bar baz"); -> "Foo Bar Baz"
+     * Str.apa("foO bAr BaZ"); -> "Foo Bar Baz"
      */
     static apa(value: string): string {
         if (value.trim() === "") {
@@ -2100,9 +2100,9 @@ export class Str {
      *
      * @example
      *
-     * Str.singular("apples"); // -> "apple"
-     * Str.singular("children"); // -> "child"
-     * Str.singular("mice"); // -> "mouse"
+     * Str.singular("apples"); -> "apple"
+     * Str.singular("children"); -> "child"
+     * Str.singular("mice"); -> "mouse"
      */
     static singular(value: string) {
         return Pluralizer.singular(value);
@@ -2232,7 +2232,7 @@ export class Str {
      *
      * @example
      *
-     * Str.trim("   foo bar   "); // -> "foo bar"
+     * Str.trim("   foo bar   "); -> "foo bar"
      */
     static trim(value: string, charlist: string | null = null): string {
         return Trimmer.trim(value, charlist);
@@ -2243,7 +2243,7 @@ export class Str {
      *
      * @example
      *
-     * Str.ltrim("   foo bar   "); // -> "foo bar   "
+     * Str.ltrim("   foo bar   "); -> "foo bar   "
      */
     static ltrim(value: string, charlist: string | null = null): string {
         return Trimmer.ltrim(value, charlist);
@@ -2254,7 +2254,7 @@ export class Str {
      *
      * @example
      *
-     * Str.rtrim("   foo bar   "); // -> "   foo bar"
+     * Str.rtrim("   foo bar   "); -> "   foo bar"
      */
     static rtrim(value: string, charlist: string | null = null): string {
         return Trimmer.rtrim(value, charlist);
@@ -2268,7 +2268,7 @@ export class Str {
      * Str.squish(`   
         foo 
         bar
-       `); // -> "foo bar"
+       `); -> "foo bar"
      */
     static squish(value: string): string {
         const trimmed = Str.trim(value);
@@ -2282,8 +2282,8 @@ export class Str {
      *
      * @example
      *
-     * Str.startsWith("hello world", "hello"); // -> true
-     * Str.startsWith("hello world", "world"); // -> false
+     * Str.startsWith("hello world", "hello"); -> true
+     * Str.startsWith("hello world", "world"); -> false
      */
     static startsWith(
         haystack: string | number | null,
@@ -2344,9 +2344,9 @@ export class Str {
      *
      * @example
      *
-     * Str.studly("fooBar"); // -> "FooBar"
-     * Str.studly("foo_bar"); // -> "FooBar"
-     * Str.studly("foo-barBaz"); // -> "FooBarBaz"
+     * Str.studly("fooBar"); -> "FooBar"
+     * Str.studly("foo_bar"); -> "FooBar"
+     * Str.studly("foo-barBaz"); -> "FooBarBaz"
      */
     static studly(value: string): string {
         const key = value;
@@ -2388,9 +2388,9 @@ export class Str {
      *
      * @example
      *
-     * Str.substr('hello world', 6, 5); // -> 'world'
-     * Str.substr('hello world', 0, 5); // -> 'hello'
-     * Str.substr('hello world', 6);    // -> 'world'
+     * Str.substr('hello world', 6, 5); -> 'world'
+     * Str.substr('hello world', 0, 5); -> 'hello'
+     * Str.substr('hello world', 6);    -> 'world'
      */
     static substr(
         string: string,
@@ -2405,9 +2405,9 @@ export class Str {
      *
      * @example
      *
-     * Str.substrCount('laravelPHPFramework', 'a'); // -> 3
-     * Str.substrCount('laravelPHPFramework', 'a', 1); // -> 2
-     * Str.substrCount('laravelPHPFramework', 'a', 1, 2); // -> 1
+     * Str.substrCount('laravelPHPFramework', 'a'); -> 3
+     * Str.substrCount('laravelPHPFramework', 'a', 1); -> 2
+     * Str.substrCount('laravelPHPFramework', 'a', 1, 2); -> 1
      */
     static substrCount(
         haystack: string,
@@ -2423,8 +2423,8 @@ export class Str {
      *
      * @example
      *
-     * Str.substrReplace('hello world', 'hi', 6); // -> 'hello hi'
-     * Str.substrReplace('hello world', ['hi', 'there'], 6); // -> ['hello hi', 'hello there']
+     * Str.substrReplace('hello world', 'hi', 6); -> 'hello hi'
+     * Str.substrReplace('hello world', ['hi', 'there'], 6); -> ['hello hi', 'hello there']
      */
     static substrReplace(
         value: string,
@@ -2446,7 +2446,7 @@ export class Str {
      *         'baz': 'qux',
      *     },
      *     'foo baz'
-     * ); // -> 'bar qux'
+     * ); -> 'bar qux'
      */
     static swap(map: Record<string, string>, subject: string): string {
         if (!map || Object.keys(map).length === 0) {
@@ -2472,8 +2472,8 @@ export class Str {
      *
      * @example
      *
-     * Str.take("hello world", 5); // -> "hello"
-     * Str.take("hello world", -5); // -> "world"
+     * Str.take("hello world", 5); -> "hello"
+     * Str.take("hello world", -5); -> "world"
      */
     static take(value: string, limit: number): string {
         if (limit < 0) {
@@ -2488,7 +2488,7 @@ export class Str {
      *
      * @example
      *
-     * Str.toBase64("hello world"); // -> "aGVsbG8gd29ybGQ="
+     * Str.toBase64("hello world"); -> "aGVsbG8gd29ybGQ="
      */
     static toBase64(value: string): string {
         return Base64.toBase64(value);
@@ -2499,7 +2499,7 @@ export class Str {
      *
      * @example
      *
-     * Str.fromBase64("aGVsbG8gd29ybGQ=", true); // -> "hello world"
+     * Str.fromBase64("aGVsbG8gd29ybGQ=", true); -> "hello world"
      */
     static fromBase64(value: string, strict: boolean = false): string | false {
         return Base64.fromBase64(value, strict);
@@ -2510,7 +2510,7 @@ export class Str {
      *
      * @example
      *
-     * Str.lcfirst('Hello World'); // -> 'hello World'
+     * Str.lcfirst('Hello World'); -> 'hello World'
      */
     static lcfirst(value: string): string {
         return Str.lower(Str.substr(value, 0, 1)) + Str.substr(value, 1);
@@ -2521,7 +2521,7 @@ export class Str {
      *
      * @example
      *
-     * Str.ucfirst('hello world'); // -> 'Hello world'
+     * Str.ucfirst('hello world'); -> 'Hello world'
      */
     static ucfirst(value: string): string {
         return Str.upper(Str.substr(value, 0, 1)) + Str.substr(value, 1);
@@ -2533,9 +2533,9 @@ export class Str {
      *
      * @example
      *
-     * Str.ucsplit('laravelPHPFramework'); // -> ['laravel', 'P', 'H', 'P', 'Framework']
-     * Str.ucsplit('Laravel-phP-framework'); // -> ['Laravel-ph', 'P-framework']
-     * Str.ucsplit('ÖffentlicheÜberraschungen'); // -> ['Öffentliche', 'Überraschungen']
+     * Str.ucsplit('laravelPHPFramework'); -> ['laravel', 'P', 'H', 'P', 'Framework']
+     * Str.ucsplit('Laravel-phP-framework'); -> ['Laravel-ph', 'P-framework']
+     * Str.ucsplit('ÖffentlicheÜberraschungen'); -> ['Öffentliche', 'Überraschungen']
      */
     static ucsplit(value: string): string[] {
         return value.split(/(?=\p{Lu})/u).filter(Boolean);
@@ -2546,9 +2546,9 @@ export class Str {
      *
      * @example
      *
-     * Str.ucwords('hello world'); // -> 'Hello World'
-     * Str.ucwords('laravel php framework'); // -> 'Laravel Php Framework'
-     * Str.ucwords('Öffentliche Überraschungen'); // -> 'Öffentliche Überraschungen'
+     * Str.ucwords('hello world'); -> 'Hello World'
+     * Str.ucwords('laravel php framework'); -> 'Laravel Php Framework'
+     * Str.ucwords('Öffentliche Überraschungen'); -> 'Öffentliche Überraschungen'
      */
     static ucwords(value: string): string {
         return value.replace(
@@ -2562,8 +2562,8 @@ export class Str {
      *
      * @example
      *
-     * Str.wordCount('Hello, world!'); // -> 2
-     * Str.wordCount('мама мыла раму'); // -> 3
+     * Str.wordCount('Hello, world!'); -> 2
+     * Str.wordCount('мама мыла раму'); -> 3
      */
     static wordCount(value: string, characters: string | null = null): number {
         // Emulate PHP's str_word_count($string, 0, $characters) using Unicode-aware regex.
@@ -2586,9 +2586,9 @@ export class Str {
      *
      * @example
      *
-     * Str.wordWrap("Hello World", 3, "<br />"); // -> "Hello<br />World"
-     * Str.wordWrap("Hello World", 3, "<br />", true); // -> "Hel<br />lo<br />Wor<br />ld"
-     * Str.wordWrap("❤Multi Byte☆❤☆❤☆❤", 3, "<br />"); // -> "❤Multi<br />Byte☆❤☆❤☆❤"
+     * Str.wordWrap("Hello World", 3, "<br />"); -> "Hello<br />World"
+     * Str.wordWrap("Hello World", 3, "<br />", true); -> "Hel<br />lo<br />Wor<br />ld"
+     * Str.wordWrap("❤Multi Byte☆❤☆❤☆❤", 3, "<br />"); -> "❤Multi<br />Byte☆❤☆❤☆❤"
      */
     static wordWrap(
         value: string,
@@ -2688,7 +2688,7 @@ export class Str {
      *
      * @example
      *
-     * Str.uuid(); // -> "550e8400-e29b-41d4-a716-446655440000"
+     * Str.uuid(); -> "550e8400-e29b-41d4-a716-446655440000"
      */
     static uuid(): string {
         return this.uuidFactory ? this.uuidFactory() : uuidv4();
@@ -2699,7 +2699,7 @@ export class Str {
      *
      * @example
      *
-     * Str.uuid7(); // -> "550e8400-e29b-41d4-a716-446655440000"
+     * Str.uuid7(); -> "550e8400-e29b-41d4-a716-446655440000"
      */
     static uuid7() {
         return this.uuidFactory ? this.uuidFactory() : uuidv7();
@@ -2793,7 +2793,7 @@ export class Str {
      *
      * @example
      *
-     * Str.ulid(); // -> "01F8MECHZX2D7J8F8C8D4B8F8C"
+     * Str.ulid(); -> "01F8MECHZX2D7J8F8C8D4B8F8C"
      */
     static ulid(time: Date | number | null = null): string {
         if (this.ulidFactory) {

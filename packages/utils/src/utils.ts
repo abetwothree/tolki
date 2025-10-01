@@ -18,9 +18,9 @@ export function isArray<T>(value: DataItems<T> | T[] | unknown): value is T[] {
  *
  * @example
  *
- * isObject({a: 1, b: 2}); // -> true
- * isObject([1, 2, 3]); // -> false
- * isObject(null); // -> false
+ * isObject({a: 1, b: 2}); -> true
+ * isObject([1, 2, 3]); -> false
+ * isObject(null); -> false
  */
 export function isObject<T, K extends ObjectKey = ObjectKey>(
     value: DataItems<T, K> | unknown,
@@ -36,9 +36,9 @@ export function isObject<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * isString("hello"); // -> true
- * isString(123); // -> false
- * isString(null); // -> false
+ * isString("hello"); -> true
+ * isString(123); -> false
+ * isString(null); -> false
  */
 export function isString(value: unknown): value is string {
     return typeof value === "string";
@@ -52,10 +52,10 @@ export function isString(value: unknown): value is string {
  *
  * @example
  *
- * isNumber(123); // -> true
- * isNumber(3.14); // -> true
- * isNumber(NaN); // -> false
- * isNumber("123"); // -> false
+ * isNumber(123); -> true
+ * isNumber(3.14); -> true
+ * isNumber(NaN); -> false
+ * isNumber("123"); -> false
  */
 export function isNumber(value: unknown): value is number {
     return (
@@ -71,10 +71,10 @@ export function isNumber(value: unknown): value is number {
  *
  * @example
  *
- * isBoolean(true); // -> true
- * isBoolean(false); // -> true
- * isBoolean(0); // -> false
- * isBoolean("true"); // -> false
+ * isBoolean(true); -> true
+ * isBoolean(false); -> true
+ * isBoolean(0); -> false
+ * isBoolean("true"); -> false
  */
 export function isBoolean(value: unknown): value is boolean {
     return typeof value === "boolean";
@@ -88,10 +88,10 @@ export function isBoolean(value: unknown): value is boolean {
  *
  * @example
  *
- * isFunction(() => {}); // -> true
- * isFunction(Math.max); // -> true
- * isFunction("function"); // -> false
- * isFunction({}); // -> false
+ * isFunction(() => {}); -> true
+ * isFunction(Math.max); -> true
+ * isFunction("function"); -> false
+ * isFunction({}); -> false
  */
 export function isFunction<T extends (...args: unknown[]) => unknown>(
     value: unknown,
@@ -107,10 +107,10 @@ export function isFunction<T extends (...args: unknown[]) => unknown>(
  *
  * @example
  *
- * isUndefined(undefined); // -> true
- * isUndefined(null); // -> false
- * isUndefined(""); // -> false
- * isUndefined(0); // -> false
+ * isUndefined(undefined); -> true
+ * isUndefined(null); -> false
+ * isUndefined(""); -> false
+ * isUndefined(0); -> false
  */
 export function isUndefined(value: unknown): value is undefined {
     return typeof value === "undefined";
@@ -124,10 +124,10 @@ export function isUndefined(value: unknown): value is undefined {
  *
  * @example
  *
- * isSymbol(Symbol('test')); // -> true
- * isSymbol(Symbol.iterator); // -> true
- * isSymbol("symbol"); // -> false
- * isSymbol({}); // -> false
+ * isSymbol(Symbol('test')); -> true
+ * isSymbol(Symbol.iterator); -> true
+ * isSymbol("symbol"); -> false
+ * isSymbol({}); -> false
  */
 export function isSymbol(value: unknown): value is symbol {
     return typeof value === "symbol";
@@ -141,10 +141,10 @@ export function isSymbol(value: unknown): value is symbol {
  *
  * @example
  *
- * isNull(null); // -> true
- * isNull(undefined); // -> false
- * isNull(""); // -> false
- * isNull(0); // -> false
+ * isNull(null); -> true
+ * isNull(undefined); -> false
+ * isNull(""); -> false
+ * isNull(0); -> false
  */
 export function isNull(value: unknown): value is null {
     return value === null;
@@ -158,9 +158,9 @@ export function isNull(value: unknown): value is null {
  * @returns {string} A string describing the type.
  * @example
  * Get specific types
- * typeOf(null); // -> "null"
- * typeOf([]); // -> "array"
- * typeOf({}); // -> "object"
+ * typeOf(null); -> "null"
+ * typeOf([]); -> "array"
+ * typeOf({}); -> "object"
  */
 export function typeOf(v: unknown): string {
     if (isNull(v)) return "null";
@@ -176,9 +176,9 @@ export function typeOf(v: unknown): string {
  * @returns {unknown[] | null} The array if value is an array, null otherwise.
  * @example
  * Convert to array
- * toArray([1, 2, 3]); // -> [1, 2, 3]
- * toArray("hello"); // -> null
- * toArray({}); // -> null
+ * toArray([1, 2, 3]); -> [1, 2, 3]
+ * toArray("hello"); -> null
+ * toArray({}); -> null
  */
 export function castableToArray<T>(value: unknown): T[] | null {
     if (isArray(value)) return value as T[];
@@ -194,9 +194,9 @@ export function castableToArray<T>(value: unknown): T[] | null {
  * @returns -1 if a < b, 1 if a > b, 0 if equal
  *
  * @example
- * compareValues(1, 2); // -> -1
- * compareValues('b', 'a'); // -> 1
- * compareValues({x: 1}, {x: 1}); // -> 0
+ * compareValues(1, 2); -> -1
+ * compareValues('b', 'a'); -> 1
+ * compareValues({x: 1}, {x: 1}); -> 0
  */
 export function compareValues(a: unknown, b: unknown): number {
     if (a == null && b == null) return 0;
@@ -224,9 +224,9 @@ export function compareValues(a: unknown, b: unknown): number {
  * @returns The resolved default value
  *
  * @example
- * resolveDefault('hello'); // -> 'hello'
- * resolveDefault(() => 'world'); // -> 'world'
- * resolveDefault(undefined); // -> null
+ * resolveDefault('hello'); -> 'hello'
+ * resolveDefault(() => 'world'); -> 'world'
+ * resolveDefault(undefined); -> null
  */
 export function resolveDefault<D>(defaultValue?: D | (() => D)): D | null {
     if (defaultValue === undefined) {
@@ -245,8 +245,8 @@ export function resolveDefault<D>(defaultValue?: D | (() => D)): D | null {
  * @returns An array representation of the data, or null if not accessible
  *
  * @example
- * normalizeToArray([1, 2, 3]); // -> [1, 2, 3]
- * normalizeToArray('hello'); // -> null
+ * normalizeToArray([1, 2, 3]); -> [1, 2, 3]
+ * normalizeToArray('hello'); -> null
  */
 export function normalizeToArray<T>(
     data: ReadonlyArray<T> | unknown,
@@ -264,8 +264,8 @@ export function normalizeToArray<T>(
  * @returns True if data is an array
  *
  * @example
- * isAccessibleData([1, 2, 3]); // -> true
- * isAccessibleData('hello'); // -> false
+ * isAccessibleData([1, 2, 3]); -> true
+ * isAccessibleData('hello'); -> false
  */
 export function isAccessibleData(data: unknown): boolean {
     return Array.isArray(data);
@@ -279,8 +279,8 @@ export function isAccessibleData(data: unknown): boolean {
  * @returns Array of values or empty array
  *
  * @example
- * getAccessibleValues([1, 2, 3]); // -> [1, 2, 3]
- * getAccessibleValues('hello'); // -> []
+ * getAccessibleValues([1, 2, 3]); -> [1, 2, 3]
+ * getAccessibleValues('hello'); -> []
  */
 export function getAccessibleValues<T>(data: ReadonlyArray<T> | unknown): T[] {
     const normalized = normalizeToArray<T>(data);

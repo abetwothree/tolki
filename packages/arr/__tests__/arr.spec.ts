@@ -78,6 +78,13 @@ describe("Arr", () => {
         data = [[1], [2], [3], ["foo", "bar"]];
 
         expect(Arr.collapse(data)).toEqual([1, 2, 3, "foo", "bar"]);
+
+        // Test object collapsing (merging objects together)
+        const objectData = [
+            { a: 1, b: 2 },
+            { c: 3, d: 4 },
+        ];
+        expect(Arr.collapse(objectData)).toEqual({ a: 1, b: 2, c: 3, d: 4 });
     });
 
     it("crossJoin", () => {

@@ -134,8 +134,8 @@ import { isObject } from "@laravel-js/utils";
  *
  * @example
  *
- * dataAdd([1, 2], 2, 3); // -> [1, 2, 3]
- * dataAdd({a: 1}, 'b', 2); // -> {a: 1, b: 2}
+ * dataAdd([1, 2], 2, 3); -> [1, 2, 3]
+ * dataAdd({a: 1}, 'b', 2); -> {a: 1, b: 2}
  */
 export function dataAdd<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -162,8 +162,8 @@ export function dataAdd<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataItem([['a', 'b'], ['c', 'd']], 0); // -> ['a', 'b']
- * dataItem({items: ['x', 'y']}, 'items'); // -> ['x', 'y']
+ * dataItem([['a', 'b'], ['c', 'd']], 0); -> ['a', 'b']
+ * dataItem({items: ['x', 'y']}, 'items'); -> ['x', 'y']
  */
 export function dataItem<D = null>(
     data: unknown,
@@ -191,8 +191,8 @@ export function dataItem<D = null>(
  *
  * @example
  *
- * dataBoolean([true, false], 0, false); // -> true
- * dataBoolean({active: true}, 'active', false); // -> true
+ * dataBoolean([true, false], 0, false); -> true
+ * dataBoolean({active: true}, 'active', false); -> true
  */
 export function dataBoolean<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -214,12 +214,12 @@ export function dataBoolean<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataCollapse([[1, 2], [3, 4]]); // -> [1, 2, 3, 4]
- * dataCollapse({a: {x: 1, y: 2}, b: {z: 3}}); // -> {x: 1, y: 2, z: 3}
+ * dataCollapse([[1, 2], [3, 4]]); -> [1, 2, 3, 4]
+ * dataCollapse({a: {x: 1, y: 2}, b: {z: 3}}); -> {x: 1, y: 2, z: 3}
  */
 export function dataCollapse<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
-): unknown {
+): Record<string, T | Record<string, unknown>> | T[] {
     if (isObject(data)) {
         return objCollapse(data as Record<K, Record<K, T>>);
     }
@@ -236,7 +236,7 @@ export function dataCollapse<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataCrossJoin([1, 2], [3, 4]); // -> [[1, 3], [1, 4], [2, 3], [2, 4]]
+ * dataCrossJoin([1, 2], [3, 4]); -> [[1, 3], [1, 4], [2, 3], [2, 4]]
  */
 export function dataCrossJoin(data: unknown, ...others: unknown[]): unknown[] {
     if (isObject(data)) {
@@ -263,8 +263,8 @@ export function dataCrossJoin(data: unknown, ...others: unknown[]): unknown[] {
  *
  * @example
  *
- * dataDivide([1, 2, 3]); // -> [[0, 1, 2], [1, 2, 3]]
- * dataDivide({a: 1, b: 2}); // -> [['a', 'b'], [1, 2]]
+ * dataDivide([1, 2, 3]); -> [[0, 1, 2], [1, 2, 3]]
+ * dataDivide({a: 1, b: 2}); -> [['a', 'b'], [1, 2]]
  */
 export function dataDivide<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -285,7 +285,7 @@ export function dataDivide<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataDot({a: {b: 1, c: 2}}); // -> {'a.b': 1, 'a.c': 2}
+ * dataDot({a: {b: 1, c: 2}}); -> {'a.b': 1, 'a.c': 2}
  */
 export function dataDot<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -306,7 +306,7 @@ export function dataDot<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataUndot({'a.b': 1, 'a.c': 2}); // -> {a: {b: 1, c: 2}}
+ * dataUndot({'a.b': 1, 'a.c': 2}); -> {a: {b: 1, c: 2}}
  */
 export function dataUndot<T, K extends ObjectKey = ObjectKey>(
     data: Record<string, unknown>,
@@ -324,8 +324,8 @@ export function dataUndot<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataExcept([1, 2, 3, 4], [1, 3]); // -> [1, 3] (indices 0 and 2)
- * dataExcept({a: 1, b: 2, c: 3}, ['b']); // -> {a: 1, c: 3}
+ * dataExcept([1, 2, 3, 4], [1, 3]); -> [1, 3] (indices 0 and 2)
+ * dataExcept({a: 1, b: 2, c: 3}, ['b']); -> {a: 1, c: 3}
  */
 export function dataExcept<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -350,8 +350,8 @@ export function dataExcept<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataExists([1, 2, 3], 1); // -> true
- * dataExists({a: 1, b: 2}, 'c'); // -> false
+ * dataExists([1, 2, 3], 1); -> true
+ * dataExists({a: 1, b: 2}, 'c'); -> false
  */
 export function dataExists<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -373,8 +373,8 @@ export function dataExists<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataTake([1, 2, 3, 4, 5], 3); // -> [1, 2, 3]
- * dataTake({a: 1, b: 2, c: 3, d: 4}, 2); // -> {a: 1, b: 2}
+ * dataTake([1, 2, 3, 4, 5], 3); -> [1, 2, 3]
+ * dataTake({a: 1, b: 2, c: 3, d: 4}, 2); -> {a: 1, b: 2}
  */
 export function dataTake<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -396,8 +396,8 @@ export function dataTake<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataFlatten([[1, 2], [3, [4, 5]]], 1); // -> [1, 2, 3, [4, 5]]
- * dataFlatten({a: {b: {c: 1}}}, 1); // -> {'a.b': {c: 1}}
+ * dataFlatten([[1, 2], [3, [4, 5]]], 1); -> [1, 2, 3, [4, 5]]
+ * dataFlatten({a: {b: {c: 1}}}, 1); -> {'a.b': {c: 1}}
  */
 export function dataFlatten<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -420,8 +420,8 @@ export function dataFlatten<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataFloat([1.5, 2.7], 0, 0.0); // -> 1.5
- * dataFloat({price: 9.99}, 'price', 0.0); // -> 9.99
+ * dataFloat([1.5, 2.7], 0, 0.0); -> 1.5
+ * dataFloat({price: 9.99}, 'price', 0.0); -> 9.99
  */
 export function dataFloat<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -444,8 +444,8 @@ export function dataFloat<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataForget([1, 2, 3, 4], [1, 3]); // -> [1, 3] (removes indices 1 and 3)
- * dataForget({a: 1, b: 2, c: 3}, ['b']); // -> {a: 1, c: 3}
+ * dataForget([1, 2, 3, 4], [1, 3]); -> [1, 3] (removes indices 1 and 3)
+ * dataForget({a: 1, b: 2, c: 3}, ['b']); -> {a: 1, c: 3}
  */
 export function dataForget<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -469,8 +469,8 @@ export function dataForget<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataFrom([1, 2, 3]); // -> [1, 2, 3]
- * dataFrom({a: 1, b: 2}); // -> {a: 1, b: 2}
+ * dataFrom([1, 2, 3]); -> [1, 2, 3]
+ * dataFrom({a: 1, b: 2}); -> {a: 1, b: 2}
  */
 export function dataFrom(items: unknown): unknown[] | Record<string, unknown> {
     if (isObject(items)) {
@@ -491,8 +491,8 @@ export function dataFrom(items: unknown): unknown[] | Record<string, unknown> {
  *
  * @example
  *
- * dataGet([1, 2, 3], 1, 'default'); // -> 2
- * dataGet({a: 1, b: 2}, 'c', 'default'); // -> 'default'
+ * dataGet([1, 2, 3], 1, 'default'); -> 2
+ * dataGet({a: 1, b: 2}, 'c', 'default'); -> 'default'
  */
 export function dataGet<T, K extends ObjectKey = ObjectKey, D = null>(
     data: DataItems<T, K>,
@@ -515,8 +515,8 @@ export function dataGet<T, K extends ObjectKey = ObjectKey, D = null>(
  *
  * @example
  *
- * dataHas([1, 2, 3], [0, 1]); // -> true
- * dataHas({a: 1, b: 2}, ['a', 'c']); // -> false
+ * dataHas([1, 2, 3], [0, 1]); -> true
+ * dataHas({a: 1, b: 2}, ['a', 'c']); -> false
  */
 export function dataHas<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -538,8 +538,8 @@ export function dataHas<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataHasAll([1, 2, 3], [0, 1]); // -> true
- * dataHasAll({a: 1, b: 2}, ['a', 'c']); // -> false
+ * dataHasAll([1, 2, 3], [0, 1]); -> true
+ * dataHasAll({a: 1, b: 2}, ['a', 'c']); -> false
  */
 export function dataHasAll<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -561,8 +561,8 @@ export function dataHasAll<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataHasAny([1, 2, 3], [0, 5]); // -> true
- * dataHasAny({a: 1, b: 2}, ['c', 'd']); // -> false
+ * dataHasAny([1, 2, 3], [0, 5]); -> true
+ * dataHasAny({a: 1, b: 2}, ['c', 'd']); -> false
  */
 export function dataHasAny<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -584,8 +584,8 @@ export function dataHasAny<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataEvery([2, 4, 6], (value) => value % 2 === 0); // -> true
- * dataEvery({a: 2, b: 4}, (value) => value % 2 === 0); // -> true
+ * dataEvery([2, 4, 6], (value) => value % 2 === 0); -> true
+ * dataEvery({a: 2, b: 4}, (value) => value % 2 === 0); -> true
  */
 export function dataEvery<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -613,8 +613,8 @@ export function dataEvery<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataSome([1, 2, 3], (value) => value > 2); // -> true
- * dataSome({a: 1, b: 2}, (value) => value > 2); // -> false
+ * dataSome([1, 2, 3], (value) => value > 2); -> true
+ * dataSome({a: 1, b: 2}, (value) => value > 2); -> false
  */
 export function dataSome<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -643,8 +643,8 @@ export function dataSome<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataInteger([1, 2, 3], 0, 0); // -> 1
- * dataInteger({count: 42}, 'count', 0); // -> 42
+ * dataInteger([1, 2, 3], 0, 0); -> 1
+ * dataInteger({count: 42}, 'count', 0); -> 42
  */
 export function dataInteger<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -668,8 +668,8 @@ export function dataInteger<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataJoin([1, 2, 3], ', '); // -> '1, 2, 3'
- * dataJoin(['a', 'b', 'c'], ', ', ' and '); // -> 'a, b and c'
+ * dataJoin([1, 2, 3], ', '); -> '1, 2, 3'
+ * dataJoin(['a', 'b', 'c'], ', ', ' and '); -> 'a, b and c'
  */
 export function dataJoin<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -693,7 +693,7 @@ export function dataJoin<T, K extends ObjectKey = ObjectKey>(
  * @example
  *
  * dataKeyBy([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'id');
- * // -> {1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}}
+ * -> {1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}}
  */
 export function dataKeyBy(
     data: unknown,
@@ -724,7 +724,7 @@ export function dataKeyBy(
  * @example
  *
  * dataPrependKeysWith({name: 'John', age: 30}, 'user_');
- * // -> {user_name: 'John', user_age: 30}
+ * -> {user_name: 'John', user_age: 30}
  */
 export function dataPrependKeysWith<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -746,8 +746,8 @@ export function dataPrependKeysWith<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataOnly([1, 2, 3, 4], [0, 2]); // -> [1, 3]
- * dataOnly({a: 1, b: 2, c: 3}, ['a', 'c']); // -> {a: 1, c: 3}
+ * dataOnly([1, 2, 3, 4], [0, 2]); -> [1, 3]
+ * dataOnly({a: 1, b: 2, c: 3}, ['a', 'c']); -> {a: 1, c: 3}
  */
 export function dataOnly<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -772,7 +772,7 @@ export function dataOnly<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataSelect([{a: 1, b: 2, c: 3}], ['a', 'c']); // -> [{a: 1, c: 3}]
+ * dataSelect([{a: 1, b: 2, c: 3}], ['a', 'c']); -> [{a: 1, c: 3}]
  */
 export function dataSelect(data: unknown, keys: string[]): unknown {
     if (isObject(data)) {
@@ -795,7 +795,7 @@ export function dataSelect(data: unknown, keys: string[]): unknown {
  * @example
  *
  * dataMapWithKeys([1, 2], (value, index) => [`key_${index}`, value * 2]);
- * // -> {key_0: 2, key_1: 4}
+ * -> {key_0: 2, key_1: 4}
  */
 export function dataMapWithKeys<T, V, K extends ObjectKey = ObjectKey>(
     data: unknown,
@@ -823,7 +823,7 @@ export function dataMapWithKeys<T, V, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataMapSpread([[1, 2], [3, 4]], (a, b) => a + b); // -> [3, 7]
+ * dataMapSpread([[1, 2], [3, 4]], (a, b) => a + b); -> [3, 7]
  */
 export function dataMapSpread<U>(
     data: unknown,
@@ -846,8 +846,8 @@ export function dataMapSpread<U>(
  *
  * @example
  *
- * dataPrepend([2, 3], 1); // -> [1, 2, 3]
- * dataPrepend({b: 2, c: 3}, 1, 'a'); // -> {a: 1, b: 2, c: 3}
+ * dataPrepend([2, 3], 1); -> [1, 2, 3]
+ * dataPrepend({b: 2, c: 3}, 1, 'a'); -> {a: 1, b: 2, c: 3}
  */
 export function dataPrepend<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -875,8 +875,8 @@ export function dataPrepend<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataPull([1, 2, 3], 1, 'default'); // -> {value: 2, data: [1, 3]}
- * dataPull({a: 1, b: 2}, 'b', 'default'); // -> {value: 2, data: {a: 1}}
+ * dataPull([1, 2, 3], 1, 'default'); -> {value: 2, data: [1, 3]}
+ * dataPull({a: 1, b: 2}, 'b', 'default'); -> {value: 2, data: {a: 1}}
  */
 export function dataPull<T, K extends ObjectKey = ObjectKey, D = null>(
     data: DataItems<T, K>,
@@ -910,8 +910,8 @@ export function dataPull<T, K extends ObjectKey = ObjectKey, D = null>(
  *
  * @example
  *
- * dataQuery({name: 'John', age: 30}); // -> 'name=John&age=30'
- * dataQuery([1, 2, 3]); // -> '0=1&1=2&2=3'
+ * dataQuery({name: 'John', age: 30}); -> 'name=John&age=30'
+ * dataQuery([1, 2, 3]); -> '0=1&1=2&2=3'
  */
 export function dataQuery<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -933,8 +933,8 @@ export function dataQuery<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataRandom([1, 2, 3, 4], 2); // -> [2, 4] (random selection)
- * dataRandom({a: 1, b: 2, c: 3}, 1); // -> {b: 2} (random selection)
+ * dataRandom([1, 2, 3, 4], 2); -> [2, 4] (random selection)
+ * dataRandom({a: 1, b: 2, c: 3}, 1); -> {b: 2} (random selection)
  */
 export function dataRandom<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -958,8 +958,8 @@ export function dataRandom<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataSet([1, 2, 3], 1, 'new'); // -> [1, 'new', 3]
- * dataSet({a: 1, b: 2}, 'c', 3); // -> {a: 1, b: 2, c: 3}
+ * dataSet([1, 2, 3], 1, 'new'); -> [1, 'new', 3]
+ * dataSet({a: 1, b: 2}, 'c', 3); -> {a: 1, b: 2, c: 3}
  */
 export function dataSet<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -987,8 +987,8 @@ export function dataSet<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataPush([1, 2], null, [3, 4]); // -> [1, 2, 3, 4]
- * dataPush({a: [1, 2]}, 'a', [3, 4]); // -> {a: [1, 2, 3, 4]}
+ * dataPush([1, 2], null, [3, 4]); -> [1, 2, 3, 4]
+ * dataPush({a: [1, 2]}, 'a', [3, 4]); -> {a: [1, 2, 3, 4]}
  */
 export function dataPush<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1014,8 +1014,8 @@ export function dataPush<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataShuffle([1, 2, 3, 4]); // -> [3, 1, 4, 2] (random order)
- * dataShuffle({a: 1, b: 2, c: 3}); // -> {c: 3, a: 1, b: 2} (random order)
+ * dataShuffle([1, 2, 3, 4]); -> [3, 1, 4, 2] (random order)
+ * dataShuffle({a: 1, b: 2, c: 3}); -> {c: 3, a: 1, b: 2} (random order)
  */
 export function dataShuffle<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1037,8 +1037,8 @@ export function dataShuffle<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataSole([1, 2, 3], (value) => value > 2); // -> 3
- * dataSole({a: 1, b: 2, c: 3}, (value) => value === 2); // -> 2
+ * dataSole([1, 2, 3], (value) => value > 2); -> 3
+ * dataSole({a: 1, b: 2, c: 3}, (value) => value === 2); -> 2
  */
 export function dataSole<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1066,8 +1066,8 @@ export function dataSole<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataSort([3, 1, 4, 2]); // -> [1, 2, 3, 4]
- * dataSort({c: 3, a: 1, b: 2}); // -> {a: 1, b: 2, c: 3}
+ * dataSort([3, 1, 4, 2]); -> [1, 2, 3, 4]
+ * dataSort({c: 3, a: 1, b: 2}); -> {a: 1, b: 2, c: 3}
  */
 export function dataSort<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1089,8 +1089,8 @@ export function dataSort<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataSortDesc([1, 3, 2, 4]); // -> [4, 3, 2, 1]
- * dataSortDesc({a: 1, c: 3, b: 2}); // -> {c: 3, b: 2, a: 1}
+ * dataSortDesc([1, 3, 2, 4]); -> [4, 3, 2, 1]
+ * dataSortDesc({a: 1, c: 3, b: 2}); -> {c: 3, b: 2, a: 1}
  */
 export function dataSortDesc<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1116,7 +1116,7 @@ export function dataSortDesc<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataSortRecursive({b: {y: 2, x: 1}, a: {z: 3, w: 4}}); // -> {a: {w: 4, z: 3}, b: {x: 1, y: 2}}
+ * dataSortRecursive({b: {y: 2, x: 1}, a: {z: 3, w: 4}}); -> {a: {w: 4, z: 3}, b: {x: 1, y: 2}}
  */
 export function dataSortRecursive<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1143,7 +1143,7 @@ export function dataSortRecursive<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataSortRecursiveDesc({a: {w: 4, z: 3}, b: {x: 1, y: 2}}); // -> {b: {y: 2, x: 1}, a: {z: 3, w: 4}}
+ * dataSortRecursiveDesc({a: {w: 4, z: 3}, b: {x: 1, y: 2}}); -> {b: {y: 2, x: 1}, a: {z: 3, w: 4}}
  */
 export function dataSortRecursiveDesc<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1169,8 +1169,8 @@ export function dataSortRecursiveDesc<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataString(['hello', 'world'], 0, ''); // -> 'hello'
- * dataString({name: 'John'}, 'name', ''); // -> 'John'
+ * dataString(['hello', 'world'], 0, ''); -> 'hello'
+ * dataString({name: 'John'}, 'name', ''); -> 'John'
  */
 export function dataString<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1196,8 +1196,8 @@ export function dataString<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataToCssClasses(['btn', 'btn-primary']); // -> 'btn btn-primary'
- * dataToCssClasses({btn: true, 'btn-primary': true, disabled: false}); // -> 'btn btn-primary'
+ * dataToCssClasses(['btn', 'btn-primary']); -> 'btn btn-primary'
+ * dataToCssClasses({btn: true, 'btn-primary': true, disabled: false}); -> 'btn btn-primary'
  */
 export function dataToCssClasses<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1217,8 +1217,8 @@ export function dataToCssClasses<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataToCssStyles({color: 'red', 'font-size': '14px'}); // -> 'color:red;font-size:14px'
- * dataToCssStyles(['color:red', 'font-size:14px']); // -> 'color:red;font-size:14px'
+ * dataToCssStyles({color: 'red', 'font-size': '14px'}); -> 'color:red;font-size:14px'
+ * dataToCssStyles(['color:red', 'font-size:14px']); -> 'color:red;font-size:14px'
  */
 export function dataToCssStyles<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1239,8 +1239,8 @@ export function dataToCssStyles<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataWhere([1, 2, 3, 4], (value) => value > 2); // -> [3, 4]
- * dataWhere({a: 1, b: 2, c: 3}, (value) => value > 1); // -> {b: 2, c: 3}
+ * dataWhere([1, 2, 3, 4], (value) => value > 2); -> [3, 4]
+ * dataWhere({a: 1, b: 2, c: 3}, (value) => value > 1); -> {b: 2, c: 3}
  */
 export function dataWhere<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1268,8 +1268,8 @@ export function dataWhere<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataReject([1, 2, 3, 4], (value) => value > 2); // -> [1, 2]
- * dataReject({a: 1, b: 2, c: 3}, (value) => value > 1); // -> {a: 1}
+ * dataReject([1, 2, 3, 4], (value) => value > 2); -> [1, 2]
+ * dataReject({a: 1, b: 2, c: 3}, (value) => value > 1); -> {a: 1}
  */
 export function dataReject<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1297,8 +1297,8 @@ export function dataReject<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataPartition([1, 2, 3, 4], (value) => value > 2); // -> [[3, 4], [1, 2]]
- * dataPartition({a: 1, b: 2, c: 3}, (value) => value > 1); // -> [{b: 2, c: 3}, {a: 1}]
+ * dataPartition([1, 2, 3, 4], (value) => value > 2); -> [[3, 4], [1, 2]]
+ * dataPartition({a: 1, b: 2, c: 3}, (value) => value > 1); -> [{b: 2, c: 3}, {a: 1}]
  */
 export function dataPartition<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1327,8 +1327,8 @@ export function dataPartition<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * dataWhereNotNull([1, null, 2, null, 3]); // -> [1, 2, 3]
- * dataWhereNotNull({a: 1, b: null, c: 2}); // -> {a: 1, c: 2}
+ * dataWhereNotNull([1, null, 2, null, 3]); -> [1, 2, 3]
+ * dataWhereNotNull({a: 1, b: null, c: 2}); -> {a: 1, c: 2}
  */
 export function dataWhereNotNull<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T | null, K>,
@@ -1351,8 +1351,8 @@ export function dataWhereNotNull<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * Data.values([1, 2, 3]); // -> [1, 2, 3]
- * Data.values({a: 1, b: 2, c: 3}); // -> [1, 2, 3]
+ * Data.values([1, 2, 3]); -> [1, 2, 3]
+ * Data.values({a: 1, b: 2, c: 3}); -> [1, 2, 3]
  */
 export function dataValues<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1372,8 +1372,8 @@ export function dataValues<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * Data.keys([1, 2, 3]); // -> [0, 1, 2]
- * Data.keys({a: 1, b: 2, c: 3}); // -> ['a', 'b', 'c']
+ * Data.keys([1, 2, 3]); -> [0, 1, 2]
+ * Data.keys({a: 1, b: 2, c: 3}); -> ['a', 'b', 'c']
  */
 export function dataKeys<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1394,8 +1394,8 @@ export function dataKeys<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * Data.filter([1, 2, 3, 4], (value) => value > 2); // -> [3, 4]
- * Data.filter({a: 1, b: 2, c: 3, d: 4}, (value) => value > 2); // -> {c: 3, d: 4}
+ * Data.filter([1, 2, 3, 4], (value) => value > 2); -> [3, 4]
+ * Data.filter({a: 1, b: 2, c: 3, d: 4}, (value) => value > 2); -> {c: 3, d: 4}
  */
 export function dataFilter<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1423,8 +1423,8 @@ export function dataFilter<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * Data.map([1, 2, 3], (value) => value * 2); // -> [2, 4, 6]
- * Data.map({a: 1, b: 2}, (value) => value * 2); // -> {a: 2, b: 4}
+ * Data.map([1, 2, 3], (value) => value * 2); -> [2, 4, 6]
+ * Data.map({a: 1, b: 2}, (value) => value * 2); -> {a: 2, b: 4}
  */
 export function dataMap<T, U, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1453,8 +1453,8 @@ export function dataMap<T, U, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * Data.first([1, 2, 3, 4], (value) => value > 2); // -> 3
- * Data.first({a: 1, b: 2, c: 3}, (value) => value > 1); // -> 2
+ * Data.first([1, 2, 3, 4], (value) => value > 2); -> 3
+ * Data.first({a: 1, b: 2, c: 3}, (value) => value > 1); -> 2
  */
 export function dataFirst<T, K extends ObjectKey = ObjectKey, D = null>(
     data: DataItems<T, K>,
@@ -1498,8 +1498,8 @@ export function dataFirst<T, K extends ObjectKey = ObjectKey, D = null>(
  *
  * @example
  *
- * Data.last([1, 2, 3, 4], (value) => value < 4); // -> 3
- * Data.last({a: 1, b: 2, c: 3}, (value) => value > 1); // -> 3
+ * Data.last([1, 2, 3, 4], (value) => value < 4); -> 3
+ * Data.last({a: 1, b: 2, c: 3}, (value) => value > 1); -> 3
  */
 export function dataLast<T, K extends ObjectKey = ObjectKey, D = null>(
     data: DataItems<T, K>,
@@ -1542,8 +1542,8 @@ export function dataLast<T, K extends ObjectKey = ObjectKey, D = null>(
  *
  * @example
  *
- * Data.contains([1, 2, 3], 2); // -> true
- * Data.contains({a: 1, b: 2}, (value) => value > 1); // -> true
+ * Data.contains([1, 2, 3], 2); -> true
+ * Data.contains({a: 1, b: 2}, (value) => value > 1); -> true
  */
 export function dataContains<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
@@ -1602,13 +1602,13 @@ export function dataDiff<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * Data.pluck([{name: 'John'}, {name: 'Jane'}], 'name'); // -> ['John', 'Jane']
- * Data.pluck({a: {name: 'John'}, b: {name: 'Jane'}}, 'name'); // -> ['John', 'Jane']
+ * Data.pluck([{name: 'John'}, {name: 'Jane'}], 'name'); -> ['John', 'Jane']
+ * Data.pluck({a: {name: 'John'}, b: {name: 'Jane'}}, 'name'); -> ['John', 'Jane']
  */
 export function dataPluck<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
     value: string | ((item: T) => T),
-    key?: string | ((item: T) => string | number) | null,
+    key: string | ((item: T) => string | number) | null = null,
 ): DataItems<T, K> {
     if (isObject(data)) {
         return objPluck(

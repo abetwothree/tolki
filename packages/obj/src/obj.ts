@@ -19,10 +19,10 @@ import { Random, Str } from "@laravel-js/str";
  *
  * @example
  *
- * accessible({}); // -> true
- * accessible({ a: 1, b: 2 }); // -> true
- * accessible([]); // -> false
- * accessible(null); // -> false
+ * accessible({}); -> true
+ * accessible({ a: 1, b: 2 }); -> true
+ * accessible([]); -> false
+ * accessible(null); -> false
  */
 export function accessible<T>(value: T): boolean {
     return isObject(value);
@@ -36,9 +36,9 @@ export function accessible<T>(value: T): boolean {
  *
  * @example
  *
- * objectifiable({}); // -> true
- * objectifiable({ a: 1, b: 2 }); // -> true
- * objectifiable([]); // -> false
+ * objectifiable({}); -> true
+ * objectifiable({ a: 1, b: 2 }); -> true
+ * objectifiable([]); -> false
  */
 export function objectifiable(
     value: unknown,
@@ -56,9 +56,9 @@ export function objectifiable(
  *
  * @example
  *
- * add({ name: 'John' }, 'age', 30); // -> { name: 'John', age: 30 }
- * add({ user: { name: 'John' } }, 'user.age', 30); // -> { user: { name: 'John', age: 30 } }
- * add({ name: 'John' }, 'name', 'Jane'); // -> { name: 'John' } (no change, key exists)
+ * add({ name: 'John' }, 'age', 30); -> { name: 'John', age: 30 }
+ * add({ user: { name: 'John' } }, 'user.age', 30); -> { user: { name: 'John', age: 30 } }
+ * add({ name: 'John' }, 'name', 'Jane'); -> { name: 'John' } (no change, key exists)
  */
 export function add<T extends Record<string, unknown>>(
     data: T,
@@ -85,9 +85,9 @@ export function add<T extends Record<string, unknown>>(
  *
  * @example
  *
- * objectItem({ items: ['a', 'b'] }, 'items'); // -> ['a', 'b']
- * objectItem({ user: { tags: ['js', 'ts'] } }, 'user.tags'); // -> ['js', 'ts']
- * objectItem({ user: { name: 'John' } }, 'user.name'); // -> throws Error
+ * objectItem({ items: ['a', 'b'] }, 'items'); -> ['a', 'b']
+ * objectItem({ user: { tags: ['js', 'ts'] } }, 'user.tags'); -> ['js', 'ts']
+ * objectItem({ user: { name: 'John' } }, 'user.name'); -> throws Error
  */
 export function objectItem<D = null>(
     data: Record<string, unknown> | unknown,
@@ -117,9 +117,9 @@ export function objectItem<D = null>(
  *
  * @example
  *
- * boolean({ active: true }, 'active'); // -> true
- * boolean({ user: { verified: false } }, 'user.verified'); // -> false
- * boolean({ user: { name: 'John' } }, 'user.name'); // -> throws Error
+ * boolean({ active: true }, 'active'); -> true
+ * boolean({ user: { verified: false } }, 'user.verified'); -> false
+ * boolean({ user: { name: 'John' } }, 'user.name'); -> throws Error
  */
 export function boolean<D = null>(
     data: Record<string, unknown> | unknown,
@@ -145,13 +145,13 @@ export function boolean<D = null>(
  *
  * @example
  *
- * collapse({ a: { x: 1 }, b: { y: 2 }, c: { z: 3 } }); // -> { x: 1, y: 2, z: 3 }
- * collapse({ users: { john: { age: 30 } }, admins: { jane: { role: 'admin' } } }); // -> { john: { age: 30 }, jane: { role: 'admin' } }
+ * collapse({ a: { x: 1 }, b: { y: 2 }, c: { z: 3 } }); -> { x: 1, y: 2, z: 3 }
+ * collapse({ users: { john: { age: 30 } }, admins: { jane: { role: 'admin' } } }); -> { john: { age: 30 }, jane: { role: 'admin' } }
  */
 export function collapse<T extends Record<string, Record<string, unknown>>>(
     object: T,
-): Record<string, unknown> {
-    const out: Record<string, unknown> = {};
+): Record<string, T[keyof T]> {
+    const out: Record<string, T[keyof T]> = {};
 
     for (const item of Object.values(object)) {
         if (isObject(item)) {
@@ -170,8 +170,8 @@ export function collapse<T extends Record<string, Record<string, unknown>>>(
  *
  * @example
  *
- * crossJoin({ a: [1] }, { b: ["x"] }); // -> [{ a: 1, b: "x" }]
- * crossJoin({ size: ['S', 'M'] }, { color: ['red', 'blue'] }); // -> [{ size: 'S', color: 'red' }, { size: 'S', color: 'blue' }, { size: 'M', color: 'red' }, { size: 'M', color: 'blue' }]
+ * crossJoin({ a: [1] }, { b: ["x"] }); -> [{ a: 1, b: "x" }]
+ * crossJoin({ size: ['S', 'M'] }, { color: ['red', 'blue'] }); -> [{ size: 'S', color: 'red' }, { size: 'S', color: 'blue' }, { size: 'M', color: 'red' }, { size: 'M', color: 'blue' }]
  */
 export function crossJoin<T extends Record<string, readonly unknown[]>>(
     ...objects: T[]
@@ -210,7 +210,7 @@ export function crossJoin<T extends Record<string, readonly unknown[]>>(
  *
  * @example
  *
- * divide({ name: "John", age: 30, city: "NYC" }); // -> [['name', 'age', 'city'], ['John', 30, 'NYC']]
+ * divide({ name: "John", age: 30, city: "NYC" }); -> [['name', 'age', 'city'], ['John', 30, 'NYC']]
  */
 export function divide<T extends Record<string, unknown>>(
     object: T,
@@ -227,7 +227,7 @@ export function divide<T extends Record<string, unknown>>(
  *
  * @example
  *
- * dot({ name: 'John', address: { city: 'NYC', zip: '10001' } }); // -> { name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }
+ * dot({ name: 'John', address: { city: 'NYC', zip: '10001' } }); -> { name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }
  */
 export function dot(
     data: Record<string, unknown> | unknown,
@@ -244,7 +244,7 @@ export function dot(
  *
  * @example
  *
- * undot({ name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }); // -> { name: 'John', address: { city: 'NYC', zip: '10001' } }
+ * undot({ name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }); -> { name: 'John', address: { city: 'NYC', zip: '10001' } }
  */
 export function undot(map: Record<string, unknown>): Record<string, unknown> {
     return undotExpandObject(map);
@@ -259,8 +259,8 @@ export function undot(map: Record<string, unknown>): Record<string, unknown> {
  *
  * @example
  *
- * except({ name: 'John', age: 30, city: 'NYC' }, 'age'); // -> { name: 'John', city: 'NYC' }
- * except({ name: 'John', age: 30, city: 'NYC' }, ['age', 'city']); // -> { name: 'John' }
+ * except({ name: 'John', age: 30, city: 'NYC' }, 'age'); -> { name: 'John', city: 'NYC' }
+ * except({ name: 'John', age: 30, city: 'NYC' }, ['age', 'city']); -> { name: 'John' }
  */
 export function except<T extends Record<string, unknown>>(
     data: T,
@@ -278,9 +278,9 @@ export function except<T extends Record<string, unknown>>(
  *
  * @example
  *
- * exists({ name: 'John', age: 30 }, 'name'); // -> true
- * exists({ name: 'John', age: 30 }, 'email'); // -> false
- * exists({ user: { name: 'John' } }, 'user.name'); // -> true
+ * exists({ name: 'John', age: 30 }, 'name'); -> true
+ * exists({ name: 'John', age: 30 }, 'email'); -> false
+ * exists({ user: { name: 'John' } }, 'user.name'); -> true
  */
 export function exists<T extends Record<string, unknown>>(
     data: T | unknown,
@@ -304,11 +304,11 @@ export function exists<T extends Record<string, unknown>>(
  *
  * @example
  *
- * first({ a: 1, b: 2, c: 3 }); // -> 1
- * first({}); // -> null
- * first({}, null, 'default'); // -> 'default'
- * first({ a: 1, b: 2, c: 3 }, x => x > 1); // -> 2
- * first({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); // -> 'none'
+ * first({ a: 1, b: 2, c: 3 }); -> 1
+ * first({}); -> null
+ * first({}, null, 'default'); -> 'default'
+ * first({ a: 1, b: 2, c: 3 }, x => x > 1); -> 2
+ * first({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  */
 export function first<T>(
     data: Record<string, T> | null | undefined,
@@ -379,11 +379,11 @@ export function first<T, D>(
  *
  * @example
  *
- * last({ a: 1, b: 2, c: 3 }); // -> 3
- * last({}); // -> null
- * last({}, null, 'default'); // -> 'default'
- * last({ a: 1, b: 2, c: 3 }, x => x < 3); // -> 2
- * last({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); // -> 'none'
+ * last({ a: 1, b: 2, c: 3 }); -> 3
+ * last({}); -> null
+ * last({}, null, 'default'); -> 'default'
+ * last({ a: 1, b: 2, c: 3 }, x => x < 3); -> 2
+ * last({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  */
 export function last<T>(
     data: Record<string, T> | null | undefined,
@@ -462,9 +462,9 @@ export function last<T, D>(
  *
  * @example
  *
- * take({ a: 1, b: 2, c: 3, d: 4, e: 5 }, 2); // -> { a: 1, b: 2 }
- * take({ a: 1, b: 2, c: 3, d: 4, e: 5 }, -2); // -> { d: 4, e: 5 }
- * take({ a: 1, b: 2, c: 3 }, 5); // -> { a: 1, b: 2, c: 3 }
+ * take({ a: 1, b: 2, c: 3, d: 4, e: 5 }, 2); -> { a: 1, b: 2 }
+ * take({ a: 1, b: 2, c: 3, d: 4, e: 5 }, -2); -> { d: 4, e: 5 }
+ * take({ a: 1, b: 2, c: 3 }, 5); -> { a: 1, b: 2, c: 3 }
  */
 export function take<T extends Record<string, unknown>>(
     data: T | unknown,
@@ -518,8 +518,8 @@ export function take<T extends Record<string, unknown>>(
  *
  * @example
  *
- * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }); // -> { a: 1, 'b.c': 2, 'b.d.e': 3 }
- * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }, 1); // -> { a: 1, 'b.c': 2, 'b.d': { e: 3 } }
+ * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }); -> { a: 1, 'b.c': 2, 'b.d.e': 3 }
+ * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }, 1); -> { a: 1, 'b.c': 2, 'b.d': { e: 3 } }
  */
 export function flatten(
     data: Record<string, unknown> | unknown,
@@ -567,9 +567,9 @@ export function flatten(
  *
  * @example
  *
- * float({ price: 19.99, discount: 0.1 }, 'price'); // -> 19.99
- * float({ product: { price: 19.99 } }, 'product.price'); // -> 19.99
- * float({ product: { name: 'Widget' } }, 'product.name'); // -> throws Error
+ * float({ price: 19.99, discount: 0.1 }, 'price'); -> 19.99
+ * float({ product: { price: 19.99 } }, 'product.price'); -> 19.99
+ * float({ product: { name: 'Widget' } }, 'product.name'); -> throws Error
  */
 export function float<D = null>(
     data: Record<string, unknown> | unknown,
@@ -596,9 +596,9 @@ export function float<D = null>(
  *
  * @example
  *
- * forget({ name: 'John', age: 30, city: 'NYC' }, 'age'); // -> { name: 'John', city: 'NYC' }
- * forget({ name: 'John', age: 30, city: 'NYC' }, ['age', 'city']); // -> { name: 'John' }
- * forget({ user: { name: 'John', age: 30 } }, 'user.age'); // -> { user: { name: 'John' } }
+ * forget({ name: 'John', age: 30, city: 'NYC' }, 'age'); -> { name: 'John', city: 'NYC' }
+ * forget({ name: 'John', age: 30, city: 'NYC' }, ['age', 'city']); -> { name: 'John' }
+ * forget({ user: { name: 'John', age: 30 } }, 'user.age'); -> { user: { name: 'John' } }
  */
 export function forget<T extends Record<string, unknown>>(
     data: T,
@@ -615,8 +615,8 @@ export function forget<T extends Record<string, unknown>>(
  *
  * @example
  *
- * from({ foo: 'bar' }); // -> { foo: 'bar' }
- * from(new Map([['foo', 'bar']])); // -> { foo: 'bar' }
+ * from({ foo: 'bar' }); -> { foo: 'bar' }
+ * from(new Map([['foo', 'bar']])); -> { foo: 'bar' }
  *
  * @throws Error if items cannot be converted to an object.
  */
@@ -671,9 +671,9 @@ export function from(items: unknown): Record<string, unknown> {
  *
  * @example
  *
- * get({ name: 'John', age: 30 }, 'name'); // -> 'John'
- * get({ user: { name: 'John' } }, 'user.name'); // -> 'John'
- * get({ name: 'John' }, 'email', 'default'); // -> 'default'
+ * get({ name: 'John', age: 30 }, 'name'); -> 'John'
+ * get({ user: { name: 'John' } }, 'user.name'); -> 'John'
+ * get({ name: 'John' }, 'email', 'default'); -> 'default'
  */
 export function get<T = unknown>(
     object: unknown,
@@ -750,10 +750,10 @@ export function get<T = unknown>(
  *
  * @example
  *
- * has({ name: 'John', address: { city: 'NYC' } }, 'name'); // -> true
- * has({ name: 'John' }, 'email'); // -> false
- * has({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.city']); // -> true
- * has({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.country']); // -> false
+ * has({ name: 'John', address: { city: 'NYC' } }, 'name'); -> true
+ * has({ name: 'John' }, 'email'); -> false
+ * has({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.city']); -> true
+ * has({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.country']); -> false
  */
 export function has<T extends Record<string, unknown>>(
     data: T | unknown,
@@ -780,8 +780,8 @@ export function has<T extends Record<string, unknown>>(
  *
  * @example
  *
- * hasAll({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.city']); // -> true
- * hasAll({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.country']); // -> false
+ * hasAll({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.city']); -> true
+ * hasAll({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.country']); -> false
  */
 export function hasAll<T extends Record<string, unknown>>(
     data: T | unknown,
@@ -811,8 +811,8 @@ export function hasAll<T extends Record<string, unknown>>(
  *
  * @example
  *
- * hasAny({ name: 'John', address: { city: 'NYC' } }, ['name', 'email']); // -> true
- * hasAny({ name: 'John', address: { city: 'NYC' } }, ['email', 'phone']); // -> false
+ * hasAny({ name: 'John', address: { city: 'NYC' } }, ['name', 'email']); -> true
+ * hasAny({ name: 'John', address: { city: 'NYC' } }, ['email', 'phone']); -> false
  */
 export function hasAny<T extends Record<string, unknown>>(
     data: T | unknown,
@@ -845,8 +845,8 @@ export function hasAny<T extends Record<string, unknown>>(
  *
  * @example
  *
- * every({ a: 2, b: 4, c: 6 }, (n) => n % 2 === 0); // -> true
- * every({ a: 1, b: 2, c: 3 }, (n) => n % 2 === 0); // -> false
+ * every({ a: 2, b: 4, c: 6 }, (n) => n % 2 === 0); -> true
+ * every({ a: 1, b: 2, c: 3 }, (n) => n % 2 === 0); -> false
  */
 export function every<T>(
     data: Record<string, T> | unknown,
@@ -875,8 +875,8 @@ export function every<T>(
  *
  * @example
  *
- * some({ a: 1, b: 2, c: 3 }, (n) => n % 2 === 0); // -> true
- * some({ a: 1, b: 3, c: 5 }, (n) => n % 2 === 0); // -> false
+ * some({ a: 1, b: 2, c: 3 }, (n) => n % 2 === 0); -> true
+ * some({ a: 1, b: 3, c: 5 }, (n) => n % 2 === 0); -> false
  */
 export function some<T>(
     data: Record<string, T> | unknown,
@@ -909,9 +909,9 @@ export function some<T>(
  *
  * @example
  *
- * integer({ age: 30, score: 100 }, 'age'); // -> 30
- * integer({ user: { age: 30 } }, 'user.age'); // -> 30
- * integer({ user: { name: 'John' } }, 'user.name'); // -> Error: The value is not an integer.
+ * integer({ age: 30, score: 100 }, 'age'); -> 30
+ * integer({ user: { age: 30 } }, 'user.age'); -> 30
+ * integer({ user: { name: 'John' } }, 'user.name'); -> Error: The value is not an integer.
  */
 export function integer<D = null>(
     data: Record<string, unknown> | unknown,
@@ -981,8 +981,8 @@ export function join<T>(
  *
  * @example
  *
- * keyBy({ user1: { id: 1, name: 'John' }, user2: { id: 2, name: 'Jane' } }, 'name'); // -> { John: { id: 1, name: 'John' }, Jane: { id: 2, name: 'Jane' } }
- * keyBy({ a: { name: 'John' }, b: { name: 'Jane' } }, (item) => item.name); // -> { John: { name: 'John' }, Jane: { name: 'Jane' } }
+ * keyBy({ user1: { id: 1, name: 'John' }, user2: { id: 2, name: 'Jane' } }, 'name'); -> { John: { id: 1, name: 'John' }, Jane: { id: 2, name: 'Jane' } }
+ * keyBy({ a: { name: 'John' }, b: { name: 'Jane' } }, (item) => item.name); -> { John: { name: 'John' }, Jane: { name: 'Jane' } }
  */
 export function keyBy<T extends Record<string, unknown>>(
     data: Record<string, T> | unknown,
@@ -1021,7 +1021,7 @@ export function keyBy<T extends Record<string, unknown>>(
  *
  * @example
  *
- * prependKeysWith({ a: 1, b: 2, c: 3 }, 'item_'); // -> { item_a: 1, item_b: 2, item_c: 3 }
+ * prependKeysWith({ a: 1, b: 2, c: 3 }, 'item_'); -> { item_a: 1, item_b: 2, item_c: 3 }
  */
 export function prependKeysWith<T>(
     data: Record<string, T> | unknown,
@@ -1050,8 +1050,8 @@ export function prependKeysWith<T>(
  *
  * @example
  *
- * only({ a: 1, b: 2, c: 3, d: 4 }, ['a', 'c']); // -> { a: 1, c: 3 }
- * only({ name: 'John', age: 30, city: 'NYC' }, ['name']); // -> { name: 'John' }
+ * only({ a: 1, b: 2, c: 3, d: 4 }, ['a', 'c']); -> { a: 1, c: 3 }
+ * only({ name: 'John', age: 30, city: 'NYC' }, ['name']); -> { name: 'John' }
  */
 export function only<T extends Record<string, unknown>>(
     data: T | unknown,
@@ -1082,8 +1082,8 @@ export function only<T extends Record<string, unknown>>(
  *
  * @example
  *
- * select({ user1: { a: 1, b: 2, c: 3 }, user2: { a: 4, b: 5, c: 6 } }, 'a'); // -> { user1: { a: 1 }, user2: { a: 4 } }
- * select({ user1: { a: 1, b: 2 }, user2: { a: 3, b: 4 } }, ['a', 'b']); // -> { user1: { a: 1, b: 2 }, user2: { a: 3, b: 4 } }
+ * select({ user1: { a: 1, b: 2, c: 3 }, user2: { a: 4, b: 5, c: 6 } }, 'a'); -> { user1: { a: 1 }, user2: { a: 4 } }
+ * select({ user1: { a: 1, b: 2 }, user2: { a: 3, b: 4 } }, ['a', 'b']); -> { user1: { a: 1, b: 2 }, user2: { a: 3, b: 4 } }
  */
 export function select<T extends Record<string, unknown>>(
     data: Record<string, T> | unknown,
@@ -1122,13 +1122,13 @@ export function select<T extends Record<string, unknown>>(
  *
  * @example
  *
- * pluck({ user1: { name: 'John' }, user2: { name: 'Jane' } }, 'name'); // -> ['John', 'Jane']
- * pluck({ user1: { id: 1, name: 'John' }, user2: { id: 2, name: 'Jane' } }, 'name', 'id'); // -> { 1: 'John', 2: 'Jane' }
+ * pluck({ user1: { name: 'John' }, user2: { name: 'Jane' } }, 'name'); -> ['John', 'Jane']
+ * pluck({ user1: { id: 1, name: 'John' }, user2: { id: 2, name: 'Jane' } }, 'name', 'id'); -> { 1: 'John', 2: 'Jane' }
  */
 export function pluck<T, K extends ObjectKey = ObjectKey>(
     data: Record<K, T> | unknown,
     value: string | ((item: T) => unknown),
-    key?: string | ((item: T) => string | number) | null,
+    key: string | ((item: T) => string | number) | null = null,
 ): unknown[] | Record<string | number, unknown> {
     if (!accessible(data)) {
         return [];
@@ -1191,8 +1191,8 @@ export function pluck<T, K extends ObjectKey = ObjectKey>(
  *
  * @example
  *
- * map({ a: 1, b: 2, c: 3 }, (value) => value * 2); // -> { a: 2, b: 4, c: 6 }
- * map({ name: 'john', email: 'JOHN@EXAMPLE.COM' }, (value, key) => key === 'name' ? value.toUpperCase() : value.toLowerCase()); // -> { name: 'JOHN', email: 'john@example.com' }
+ * map({ a: 1, b: 2, c: 3 }, (value) => value * 2); -> { a: 2, b: 4, c: 6 }
+ * map({ name: 'john', email: 'JOHN@EXAMPLE.COM' }, (value, key) => key === 'name' ? value.toUpperCase() : value.toLowerCase()); -> { name: 'JOHN', email: 'john@example.com' }
  */
 export function map<T, U>(
     data: Record<string, T> | unknown,
@@ -1222,8 +1222,8 @@ export function map<T, U>(
  *
  * @example
  *
- * mapWithKeys({ user1: { id: 1, name: 'John' } }, (item) => ({ [item.name]: item.id })); // -> { John: 1 }
- * mapWithKeys({ a: 'x', b: 'y' }, (value, key) => ({ [value]: key })); // -> { x: 'a', y: 'b' }
+ * mapWithKeys({ user1: { id: 1, name: 'John' } }, (item) => ({ [item.name]: item.id })); -> { John: 1 }
+ * mapWithKeys({ a: 'x', b: 'y' }, (value, key) => ({ [value]: key })); -> { x: 'a', y: 'b' }
  */
 export function mapWithKeys<T, K extends string | number, V>(
     data: Record<string, T> | unknown,
@@ -1257,8 +1257,8 @@ export function mapWithKeys<T, K extends string | number, V>(
  *
  * @example
  *
- * mapSpread({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (name, age) => `${name} is ${age}`); // -> { user1: 'John is 25', user2: 'Jane is 30' }
- * mapSpread({ item1: { x: 1, y: 2 }, item2: { x: 3, y: 4 } }, (x, y) => x + y); // -> { item1: 3, item2: 7 }
+ * mapSpread({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (name, age) => `${name} is ${age}`); -> { user1: 'John is 25', user2: 'Jane is 30' }
+ * mapSpread({ item1: { x: 1, y: 2 }, item2: { x: 3, y: 4 } }, (x, y) => x + y); -> { item1: 3, item2: 7 }
  */
 export function mapSpread<T extends Record<string, unknown>, U>(
     data: Record<string, T> | unknown,
@@ -1295,8 +1295,8 @@ export function mapSpread<T extends Record<string, unknown>, U>(
  *
  * @example
  *
- * prepend({ b: 2, c: 3 }, 1, 'a'); // -> { a: 1, b: 2, c: 3 }
- * prepend({ x: 1, y: 2 }, 0, 'z'); // -> { z: 0, x: 1, y: 2 }
+ * prepend({ b: 2, c: 3 }, 1, 'a'); -> { a: 1, b: 2, c: 3 }
+ * prepend({ x: 1, y: 2 }, 0, 'z'); -> { z: 0, x: 1, y: 2 }
  */
 export function prepend<T>(
     data: Record<string, T> | unknown,
@@ -1328,9 +1328,9 @@ export function prepend<T>(
  *
  * @example
  *
- * pull({ a: 1, b: 2, c: 3 }, 'b'); // -> { value: 2, data: { a: 1, c: 3 } }
- * pull({ user: { name: 'John', age: 30 } }, 'user.name'); // -> { value: 'John', data: { user: { age: 30 } } }
- * pull({ a: 1, b: 2 }, 'x', 'default'); // -> { value: 'default', data: { a: 1, b: 2 } }
+ * pull({ a: 1, b: 2, c: 3 }, 'b'); -> { value: 2, data: { a: 1, c: 3 } }
+ * pull({ user: { name: 'John', age: 30 } }, 'user.name'); -> { value: 'John', data: { user: { age: 30 } } }
+ * pull({ a: 1, b: 2 }, 'x', 'default'); -> { value: 'default', data: { a: 1, b: 2 } }
  */
 export function pull<T, D = null>(
     data: Record<string, T> | unknown,
@@ -1371,9 +1371,9 @@ export function pull<T, D = null>(
  *
  * @example
  *
- * query({ name: 'John', age: 30 }); // -> 'name=John&age=30'
- * query({ user: { name: 'John', age: 30 } }); // -> 'user[name]=John&user[age]=30'
- * query({ tags: ['php', 'js'] }); // -> 'tags[0]=php&tags[1]=js'
+ * query({ name: 'John', age: 30 }); -> 'name=John&age=30'
+ * query({ user: { name: 'John', age: 30 } }); -> 'user[name]=John&user[age]=30'
+ * query({ tags: ['php', 'js'] }); -> 'tags[0]=php&tags[1]=js'
  */
 export function query(data: unknown): string {
     if (data === null || data === undefined) {
@@ -1444,11 +1444,11 @@ export function query(data: unknown): string {
  *
  * @example
  *
- * random({ a: 1, b: 2, c: 3 }); // -> 2 (single random value)
- * random({ a: 1, b: 2, c: 3 }, 2); // -> { b: 2, c: 3 } (two random items)
- * random({ a: 1, b: 2, c: 3 }, 2, false); // -> { 0: 2, 1: 3 } (without original keys)
- * random({}, 1); // -> null
- * random({ a: 1, b: 2 }, 5); // -> throws Error
+ * random({ a: 1, b: 2, c: 3 }); -> 2 (single random value)
+ * random({ a: 1, b: 2, c: 3 }, 2); -> { b: 2, c: 3 } (two random items)
+ * random({ a: 1, b: 2, c: 3 }, 2, false); -> { 0: 2, 1: 3 } (without original keys)
+ * random({}, 1); -> null
+ * random({ a: 1, b: 2 }, 5); -> throws Error
  */
 export function random<T>(
     data: Record<string, T> | unknown,
@@ -1517,8 +1517,8 @@ export function random<T>(
  * @returns - A new object with the item set or the original object if the path is invalid.
  *
  * @example
- * set({ name: 'John', age: 30 }, 'age', 31); // -> { name: 'John', age: 31 }
- * set({ user: { name: 'John' } }, 'user.age', 30); // -> { user: { name: 'John', age: 30 } }
+ * set({ name: 'John', age: 30 }, 'age', 31); -> { name: 'John', age: 31 }
+ * set({ user: { name: 'John' } }, 'user.age', 30); -> { user: { name: 'John', age: 30 } }
  */
 export function set<T extends Record<string, unknown>>(
     object: T | unknown,
@@ -1538,8 +1538,8 @@ export function set<T extends Record<string, unknown>>(
  *
  * @example
  *
- * push({ items: ['a', 'b'] }, 'items', 'c', 'd'); // -> { items: ['a', 'b', 'c', 'd'] }
- * push({ user: { tags: ['js'] } }, 'user.tags', 'ts', 'php'); // -> { user: { tags: ['js', 'ts', 'php'] } }
+ * push({ items: ['a', 'b'] }, 'items', 'c', 'd'); -> { items: ['a', 'b', 'c', 'd'] }
+ * push({ user: { tags: ['js'] } }, 'user.tags', 'ts', 'php'); -> { user: { tags: ['js', 'ts', 'php'] } }
  */
 export function push<T>(
     data: Record<string, unknown> | unknown,
@@ -1581,8 +1581,8 @@ export function push<T>(
  *
  * @example
  *
- * shuffle({ a: 1, b: 2, c: 3, d: 4, e: 5 }); // -> { c: 3, a: 1, e: 5, b: 2, d: 4 } (random order)
- * shuffle({ x: 'hello', y: 'world', z: 'test' }); // -> { z: 'test', x: 'hello', y: 'world' } (random order)
+ * shuffle({ a: 1, b: 2, c: 3, d: 4, e: 5 }); -> { c: 3, a: 1, e: 5, b: 2, d: 4 } (random order)
+ * shuffle({ x: 'hello', y: 'world', z: 'test' }); -> { z: 'test', x: 'hello', y: 'world' } (random order)
  */
 export function shuffle<T>(
     data: Record<string, T> | unknown,
@@ -1621,11 +1621,11 @@ export function shuffle<T>(
  *
  * @example
  *
- * sole({ only: 42 }); // -> 42
- * sole({ a: 1, b: 2, c: 3 }, (value) => value > 2); // -> 3
- * sole({}); // -> throws Error: No items found
- * sole({ a: 1, b: 2 }); // -> throws Error: Multiple items found (2 items)
- * sole({ a: 1, b: 2, c: 3 }, (value) => value > 1); // -> throws Error: Multiple items found (2 items)
+ * sole({ only: 42 }); -> 42
+ * sole({ a: 1, b: 2, c: 3 }, (value) => value > 2); -> 3
+ * sole({}); -> throws Error: No items found
+ * sole({ a: 1, b: 2 }); -> throws Error: Multiple items found (2 items)
+ * sole({ a: 1, b: 2, c: 3 }, (value) => value > 1); -> throws Error: Multiple items found (2 items)
  */
 export function sole<T>(
     data: Record<string, T> | unknown,
@@ -1679,9 +1679,9 @@ export function sole<T>(
  *
  * @example
  *
- * sort({ c: 3, a: 1, b: 4, d: 1, e: 5 }); // -> { a: 1, d: 1, c: 3, b: 4, e: 5 } (sorted by values)
- * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, 'age'); // -> sorted by age
- * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); // -> sorted by name
+ * sort({ c: 3, a: 1, b: 4, d: 1, e: 5 }); -> { a: 1, d: 1, c: 3, b: 4, e: 5 } (sorted by values)
+ * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, 'age'); -> sorted by age
+ * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name
  */
 export function sort<T>(
     data: Record<string, T> | unknown,
@@ -1794,9 +1794,9 @@ export function sort<T>(
  *
  * @example
  *
- * sortDesc({ c: 3, a: 1, b: 4, d: 1, e: 5 }); // -> { e: 5, b: 4, c: 3, a: 1, d: 1 } (sorted by values desc)
- * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, 'age'); // -> sorted by age desc
- * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); // -> sorted by name desc
+ * sortDesc({ c: 3, a: 1, b: 4, d: 1, e: 5 }); -> { e: 5, b: 4, c: 3, a: 1, d: 1 } (sorted by values desc)
+ * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, 'age'); -> sorted by age desc
+ * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name desc
  */
 export function sortDesc<T>(
     data: Record<string, T> | unknown,
@@ -1914,8 +1914,8 @@ export function sortDesc<T>(
  *
  * @example
  *
- * sortRecursive({ b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }); // -> { a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }
- * sortRecursive({ user1: { name: 'john', age: 30 }, user2: { name: 'jane', age: 25 } }); // -> sorted objects with sorted keys
+ * sortRecursive({ b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }); -> { a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }
+ * sortRecursive({ user1: { name: 'john', age: 30 }, user2: { name: 'jane', age: 25 } }); -> sorted objects with sorted keys
  */
 export function sortRecursive<T>(
     data: Record<string, T> | unknown,
@@ -1987,7 +1987,7 @@ export function sortRecursive<T>(
  *
  * @example
  *
- * sortRecursiveDesc({ a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }); // -> { b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }
+ * sortRecursiveDesc({ a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }); -> { b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }
  */
 export function sortRecursiveDesc<T>(
     data: Record<string, T> | unknown,
@@ -2008,9 +2008,9 @@ export function sortRecursiveDesc<T>(
  *
  * @example
  *
- * string({ name: 'John', age: 30 }, 'name'); // -> 'John'
- * string({ user: { name: 'John' } }, 'user.name'); // -> 'John'
- * string({ user: { age: 30 } }, 'user.age'); // -> throws Error
+ * string({ name: 'John', age: 30 }, 'name'); -> 'John'
+ * string({ user: { name: 'John' } }, 'user.name'); -> 'John'
+ * string({ user: { age: 30 } }, 'user.age'); -> throws Error
  */
 export function string<D = null>(
     data: Record<string, unknown> | unknown,
@@ -2036,9 +2036,9 @@ export function string<D = null>(
  *
  * @example
  *
- * toCssClasses({ 'font-bold': true, 'mt-4': true }); // -> 'font-bold mt-4'
- * toCssClasses({ 'font-bold': true, 'text-red': false, 'ml-2': true }); // -> 'font-bold ml-2'
- * toCssClasses({ primary: true, secondary: false }); // -> 'primary'
+ * toCssClasses({ 'font-bold': true, 'mt-4': true }); -> 'font-bold mt-4'
+ * toCssClasses({ 'font-bold': true, 'text-red': false, 'ml-2': true }); -> 'font-bold ml-2'
+ * toCssClasses({ primary: true, secondary: false }); -> 'primary'
  */
 export function toCssClasses(data: Record<string, unknown> | unknown): string {
     if (!accessible(data)) {
@@ -2066,8 +2066,8 @@ export function toCssClasses(data: Record<string, unknown> | unknown): string {
  *
  * @example
  *
- * toCssStyles({ 'font-weight: bold': true, 'margin-top: 4px': true }); // -> 'font-weight: bold; margin-top: 4px;'
- * toCssStyles({ 'font-weight: bold': true, 'color: red': false, 'margin-left: 2px': true }); // -> 'font-weight: bold; margin-left: 2px;'
+ * toCssStyles({ 'font-weight: bold': true, 'margin-top: 4px': true }); -> 'font-weight: bold; margin-top: 4px;'
+ * toCssStyles({ 'font-weight: bold': true, 'color: red': false, 'margin-left: 2px': true }); -> 'font-weight: bold; margin-left: 2px;'
  */
 export function toCssStyles(data: Record<string, unknown> | unknown): string {
     if (!accessible(data)) {
@@ -2097,8 +2097,8 @@ export function toCssStyles(data: Record<string, unknown> | unknown): string {
  *
  * @example
  *
- * where({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); // -> { c: 3, d: 4 }
- * where({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); // -> { name: 'John', city: 'NYC' }
+ * where({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { c: 3, d: 4 }
+ * where({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> { name: 'John', city: 'NYC' }
  */
 export function where<T>(
     data: Record<string, T> | unknown,
@@ -2129,8 +2129,8 @@ export function where<T>(
  *
  * @example
  *
- * reject({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); // -> { a: 1, b: 2 }
- * reject({ name: 'John', age: null, city: 'NYC' }, (value) => value === null); // -> { name: 'John', city: 'NYC' }
+ * reject({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { a: 1, b: 2 }
+ * reject({ name: 'John', age: null, city: 'NYC' }, (value) => value === null); -> { name: 'John', city: 'NYC' }
  */
 export function reject<T>(
     data: Record<string, T> | unknown,
@@ -2148,8 +2148,8 @@ export function reject<T>(
  *
  * @example
  *
- * partition({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); // -> [{ c: 3, d: 4 }, { a: 1, b: 2 }]
- * partition({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); // -> [{ name: 'John', city: 'NYC' }, { age: null }]
+ * partition({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> [{ c: 3, d: 4 }, { a: 1, b: 2 }]
+ * partition({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> [{ name: 'John', city: 'NYC' }, { age: null }]
  */
 export function partition<T>(
     data: Record<string, T> | unknown,
@@ -2182,8 +2182,8 @@ export function partition<T>(
  *
  * @example
  *
- * whereNotNull({ a: 1, b: null, c: 2, d: undefined, e: 3 }); // -> { a: 1, c: 2, d: undefined, e: 3 }
- * whereNotNull({ name: 'John', age: null, city: 'NYC' }); // -> { name: 'John', city: 'NYC' }
+ * whereNotNull({ a: 1, b: null, c: 2, d: undefined, e: 3 }); -> { a: 1, c: 2, d: undefined, e: 3 }
+ * whereNotNull({ name: 'John', age: null, city: 'NYC' }); -> { name: 'John', city: 'NYC' }
  */
 export function whereNotNull<T>(
     data: Record<string, T | null> | unknown,
@@ -2203,9 +2203,9 @@ export function whereNotNull<T>(
  *
  * @example
  *
- * contains({ name: 'John', age: 30, city: 'NYC' }, 'John'); // -> true
- * contains({ name: 'John', age: 30, city: 'NYC' }, 'Jane'); // -> false
- * contains({ users: { 1: 'John', 2: 'Jane' } }, 'John'); // -> false (nested values)
+ * contains({ name: 'John', age: 30, city: 'NYC' }, 'John'); -> true
+ * contains({ name: 'John', age: 30, city: 'NYC' }, 'Jane'); -> false
+ * contains({ users: { 1: 'John', 2: 'Jane' } }, 'John'); -> false (nested values)
  */
 export function contains<T extends Record<string, unknown>>(
     data: T | unknown,
@@ -2249,8 +2249,8 @@ export function contains<T extends Record<string, unknown>>(
  *
  * @example
  *
- * filter({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); // -> { c: 3, d: 4 }
- * filter({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); // -> { name: 'John', city: 'NYC' }
+ * filter({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { c: 3, d: 4 }
+ * filter({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> { name: 'John', city: 'NYC' }
  */
 export function filter<T>(
     data: Record<string, T> | unknown,
@@ -2283,10 +2283,10 @@ export function filter<T>(
  *
  * @example
  *
- * wrap('hello'); // -> { 0: 'hello' }
- * wrap({ hello: 'world' }); // -> { hello: 'world' }
- * wrap(null); // -> {}
- * wrap(undefined); // -> { 0: undefined }
+ * wrap('hello'); -> { 0: 'hello' }
+ * wrap({ hello: 'world' }); -> { hello: 'world' }
+ * wrap(null); -> {}
+ * wrap(undefined); -> { 0: undefined }
  */
 export function wrap<T>(value: T | null): Record<string | number, T> {
     if (value === null) {
@@ -2304,8 +2304,8 @@ export function wrap<T>(value: T | null): Record<string | number, T> {
  *
  * @example
  *
- * keys({ name: 'John', age: 30, city: 'NYC' }); // -> ['name', 'age', 'city']
- * keys({}); // -> []
+ * keys({ name: 'John', age: 30, city: 'NYC' }); -> ['name', 'age', 'city']
+ * keys({}); -> []
  */
 export function keys<T extends Record<string, unknown>>(
     data: T | unknown,
@@ -2324,8 +2324,8 @@ export function keys<T extends Record<string, unknown>>(
  *
  * @example
  *
- * values({ name: 'John', age: 30, city: 'NYC' }); // -> ['John', 30, 'NYC']
- * values({}); // -> []
+ * values({ name: 'John', age: 30, city: 'NYC' }); -> ['John', 30, 'NYC']
+ * values({}); -> []
  */
 export function values<T extends Record<string, unknown>>(
     data: T | unknown,
@@ -2345,8 +2345,8 @@ export function values<T extends Record<string, unknown>>(
  *
  * @example
  *
- * diff({ a: 1, b: 2, c: 3 }, { b: 2, d: 4 }); // -> { a: 1, c: 3 }
- * diff({ name: 'John', age: 30 }, { age: 30, city: 'NYC' }); // -> { name: 'John' }
+ * diff({ a: 1, b: 2, c: 3 }, { b: 2, d: 4 }); -> { a: 1, c: 3 }
+ * diff({ name: 'John', age: 30 }, { age: 30, city: 'NYC' }); -> { name: 'John' }
  */
 export function diff<T extends Record<string, unknown>>(
     data: T | unknown,
