@@ -233,7 +233,9 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([1, 2, 3]).keys(); -> new Collection([0, 1, 2])
      */
     keys(): Collection<string | number> {
-        return new Collection(dataKeys(this.items)) as Collection<string | number>;
+        return new Collection(dataKeys(this.items)) as Collection<
+            string | number
+        >;
     }
 
     /**
@@ -246,7 +248,9 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection({a: 1, b: 2, c: 3}).values(); -> new Collection({0: 1, 1: 2, 2: 3})
      */
     values(): Collection<TValue> {
-        return new Collection<TValue>(dataValues(this.items) as DataItems<TValue>);
+        return new Collection<TValue>(
+            dataValues(this.items) as DataItems<TValue>,
+        );
     }
 
     /**
