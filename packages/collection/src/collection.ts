@@ -1,10 +1,15 @@
-import * as Arr from "@laravel-js/arr";
-import type { ObjectKey, DataItems, Arrayable } from "@laravel-js/types";
-import { isArray } from "@laravel-js/utils";
-// import * as Path from "@laravel-js/path";
-// import * as Num from "@laravel-js/num";
-// import * as Utils from "@laravel-js/utils";
-// import * as Str from "@laravel-js/str";
+import { parseSegments, hasPath, getRaw, forgetKeys, forgetKeysObject, forgetKeysArray, setImmutable, pushWithPath, dotFlatten, dotFlattenObject, dotFlattenArray, undotExpand, undotExpandObject, undotExpandArray, getNestedValue, getMixedValue, setMixed, pushMixed, setMixedImmutable, hasMixed, getObjectValue, setObjectValue, hasObjectKey } from '@laravel-js/path';
+import { format, parse, parseInt, parseFloat, spell, ordinal, spellOrdinal, percentage, currency, fileSize, forHumans, summarize, clamp, pairs, trim, minutesToHuman, secondsToHuman, withLocale, withCurrency, useLocale, useCurrency, defaultLocale, defaultCurrency } from '@laravel-js/num';
+import { isArray, isObject, isString, isNumber, isBoolean, isFunction, isUndefined, isSymbol, isNull, typeOf, castableToArray, compareValues, resolveDefault, normalizeToArray, isAccessibleData, getAccessibleValues } from '@laravel-js/utils';
+import { dataAdd, dataArray, dataItem, dataBoolean, dataCollapse, dataCrossJoin, dataDivide, dataDot, dataUndot, dataExcept, dataExists, dataTake, dataFlatten, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataEvery, dataSome, dataInteger, dataJoin, dataKeyBy, dataPrependKeysWith, dataOnly, dataSelect, dataMapWithKeys, dataMapSpread, dataPrepend, dataPull, dataQuery, dataRandom, dataSet, dataPush, dataShuffle, dataSole, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataToCssClasses, dataToCssStyles, dataWhere, dataReject, dataPartition, dataWhereNotNull, dataValues, dataKeys, dataFilter, dataMap, dataFirst, dataLast, dataContains, dataDiff, dataPluck } from '@laravel-js/data';
+import type {
+    DataItems,
+    ObjectKey,
+    PathKey,
+    PathKeys,
+    Arrayable,
+} from "@laravel-js/types";
+import { Str } from "@laravel-js/str";
 
 export function collect<TValue = unknown, TKey extends ObjectKey = ObjectKey>(
     items?: TValue[] | DataItems<TValue> | Arrayable<TValue> | null,
@@ -108,7 +113,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             );
         } else {
             // Flatten arrays
-            const collapsed = Arr.collapse(
+            const collapsed = arrCollapse(
                 values as readonly (readonly unknown[])[],
             );
             return new Collection<unknown>(collapsed as unknown[]);
@@ -275,7 +280,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         const values = this.getItemValues(this.items);
 
         if (callback) {
-            const result = Arr.first(
+            const result = arrFirst(
                 values,
                 callback as (value: TValue, index: number) => boolean,
                 defaultValue,
@@ -283,7 +288,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             return result === undefined ? null : result;
         }
 
-        const result = Arr.first(values, null, defaultValue);
+        const result = arrFirst(values, null, defaultValue);
         return result === undefined ? null : result;
     }
 
@@ -399,7 +404,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     ): Collection<unknown> {
         if (isArray(this.items)) {
             // For arrays, use Arr.pluck which returns an array
-            const result = Arr.pluck(
+            const result = arrPluck(
                 this.items as Record<string, unknown>[],
                 value as string | ((item: Record<string, unknown>) => unknown),
                 key as
@@ -449,7 +454,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         const values = this.getItemValues(this.items);
 
         if (callback) {
-            const result = Arr.last(
+            const result = arrLast(
                 values,
                 callback as (value: TValue, index: number) => boolean,
                 defaultValue,
@@ -457,7 +462,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             return result === undefined ? null : result;
         }
 
-        const result = Arr.last(values, null, defaultValue);
+        const result = arrLast(values, null, defaultValue);
         return result === undefined ? null : result;
     }
 

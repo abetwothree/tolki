@@ -394,6 +394,25 @@ function main() {
             });
             console.log("");
         });
+        
+        const ext = getFileExtension(filePath);
+        if ([".js", ".jsx", ".ts", ".tsx"].includes(ext)) {
+            const packageName = path.basename(
+                path.dirname(path.dirname(filePath)),
+            );
+            const importableFunctions = functions
+                .filter((f) => f.isExported)
+                .map((f) => f.name)
+                .filter((name) => name !== "default");
+            if (importableFunctions.length > 0) {
+                console.log("You can import these functions like this:\n");
+                console.log(
+                    `import { ${importableFunctions.join(
+                        ", ",
+                    )} } from '@laravel-js/${packageName}';\n`,
+                );
+            }
+        }
     } catch (error) {
         console.error("Error:", error instanceof Error ? error.message : error);
         process.exit(1);
