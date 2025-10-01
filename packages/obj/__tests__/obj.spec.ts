@@ -774,7 +774,10 @@ describe("Obj", () => {
                 user2: { name: "Jane", age: 25 },
             };
             expect(
-                Obj.pluck(obj, (item) => (item["age"] as number) * 2),
+                Obj.pluck<Record<string, number | string>, string>(
+                    obj,
+                    (item) => (item["age"] as number) * 2,
+                ),
             ).toEqual([60, 50]);
         });
 
@@ -784,7 +787,11 @@ describe("Obj", () => {
                 user2: { name: "Jane", age: 25 },
             };
             expect(
-                Obj.pluck(obj, "name", (item) => `user_${item["age"]}`),
+                Obj.pluck<Record<string, number | string>, string>(
+                    obj,
+                    "name",
+                    (item) => `user_${item["age"]}`,
+                ),
             ).toEqual({
                 user_30: "John",
                 user_25: "Jane",

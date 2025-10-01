@@ -17,6 +17,7 @@ import {
     getAccessibleValues,
     isArray,
     castableToArray,
+    isFunction,
 } from "@laravel-js/utils";
 import type { ArrayInnerValue } from "@laravel-js/types";
 
@@ -2040,11 +2041,20 @@ export function whereNotNull<T>(data: ReadonlyArray<T | null> | unknown): T[] {
  */
 export function contains<T>(
     data: ReadonlyArray<T> | unknown,
-    value: T,
+    value: T | ((value: T, key: string | number) => boolean),
     strict = false,
 ): boolean {
     if (!isArray(data)) {
         return false;
+    }
+
+    if (isFunction(value)) {
+        return data.some((item, index) =>
+            (value as (value: T, key: string | number) => boolean)(
+                item as T,
+                index,
+            ),
+        );
     }
 
     if (strict) {

@@ -1,7 +1,15 @@
 import * as Arr from "@laravel-js/arr";
 import * as Obj from "@laravel-js/obj";
-import type { DataItems } from "@laravel-js/types";
-import { isArray } from "@laravel-js/utils";
+import type { DataItems, ObjectKey } from "@laravel-js/types";
+import {
+    isArray,
+    isObject,
+    isFunction,
+    typeOf,
+    isNull,
+    isNumber,
+    isUndefined,
+} from "@laravel-js/utils";
 
 /**
  * Get all values from data (array or object).
@@ -14,8 +22,14 @@ import { isArray } from "@laravel-js/utils";
  * Data.values([1, 2, 3]); // -> [1, 2, 3]
  * Data.values({a: 1, b: 2, c: 3}); // -> [1, 2, 3]
  */
-export function dataValues<T>(data: DataItems<T>): T[] {
-    return isArray(data) ? data : (Obj.values(data) as T[]);
+export function dataValues<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+): T[] {
+    if (isObject(data)) {
+        return Obj.values(data as Record<K, T>) as T[];
+    }
+
+    return Arr.values(Arr.wrap(data));
 }
 
 /**
@@ -29,8 +43,14 @@ export function dataValues<T>(data: DataItems<T>): T[] {
  * Data.keys([1, 2, 3]); // -> [0, 1, 2]
  * Data.keys({a: 1, b: 2, c: 3}); // -> ['a', 'b', 'c']
  */
-export function dataKeys<T>(data: DataItems<T>): (string | number)[] {
-    return isArray(data) ? data.map((_, index) => index) : Obj.keys(data);
+export function dataKeys<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+): (string | number)[] {
+    if (isObject(data)) {
+        return Obj.keys(data as Record<K, T>);
+    }
+
+    return Arr.keys(Arr.wrap(data));
 }
 
 /**
@@ -45,19 +65,21 @@ export function dataKeys<T>(data: DataItems<T>): (string | number)[] {
  * Data.filter([1, 2, 3, 4], (value) => value > 2); // -> [3, 4]
  * Data.filter({a: 1, b: 2, c: 3, d: 4}, (value) => value > 2); // -> {c: 3, d: 4}
  */
-export function dataFilter<T>(
-    data: DataItems<T>,
+export function dataFilter<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
     callback?: ((value: T, key: string | number) => boolean) | null,
-): DataItems<T> {
-    if (isArray(data)) {
-        return callback
-            ? Arr.filter(data, callback as (value: T, index: number) => boolean)
-            : Arr.filter(data);
-    } else {
-        return callback
-            ? Obj.filter(data, callback)
-            : Obj.filter(data, (value) => Boolean(value));
+): DataItems<T, K> {
+    if (isObject(data)) {
+        return Obj.filter(
+            data as Record<string, T>,
+            callback as (value: T, key: string) => boolean,
+        ) as DataItems<T, K>;
     }
+
+    return Arr.filter(
+        Arr.wrap(data),
+        callback as (value: T, index: number) => boolean,
+    ) as DataItems<T>;
 }
 
 /**
@@ -72,13 +94,21 @@ export function dataFilter<T>(
  * Data.map([1, 2, 3], (value) => value * 2); // -> [2, 4, 6]
  * Data.map({a: 1, b: 2}, (value) => value * 2); // -> {a: 2, b: 4}
  */
-export function dataMap<T, U>(
-    data: DataItems<T>,
+export function dataMap<T, K extends ObjectKey = ObjectKey, U>(
+    data: DataItems<T, K>,
     callback: (value: T, key: string | number) => U,
-): DataItems<U> {
-    return isArray(data)
-        ? Arr.map(data, callback as (value: T, index: number) => U)
-        : Obj.map(data, callback);
+): DataItems<U, K> {
+    if (isObject(data)) {
+        return Obj.map(
+            data as Record<string, T>,
+            callback as (value: T, key: string) => U,
+        ) as DataItems<U, K>;
+    }
+
+    return Arr.map(
+        Arr.wrap(data),
+        callback as (value: T, index: number) => U,
+    ) as DataItems<U>;
 }
 
 /**
@@ -94,24 +124,12 @@ export function dataMap<T, U>(
  * Data.first([1, 2, 3, 4], (value) => value > 2); // -> 3
  * Data.first({a: 1, b: 2, c: 3}, (value) => value > 1); // -> 2
  */
-export function dataFirst<T, D = null>(
-    data: DataItems<T>,
+export function dataFirst<T, K extends ObjectKey = ObjectKey, D = null>(
+    data: DataItems<T, K>,
     callback?: ((value: T, key: string | number) => boolean) | null,
     defaultValue?: D | (() => D),
 ): T | D | null {
-    if (isArray(data)) {
-        if (callback) {
-            const result = Arr.first(
-                data,
-                callback as (value: T, index: number) => boolean,
-                defaultValue,
-            );
-            return result === undefined ? null : result;
-        } else {
-            const result = Arr.first(data, undefined, defaultValue);
-            return result === undefined ? null : result;
-        }
-    } else {
+    if (isObject(data)) {
         if (callback) {
             const result = Obj.first(
                 data,
@@ -123,6 +141,18 @@ export function dataFirst<T, D = null>(
             const result = Obj.first(data, undefined, defaultValue);
             return result === undefined ? null : result;
         }
+    }
+
+    if (callback) {
+        const result = Arr.first(
+            data,
+            callback as (value: T, index: number) => boolean,
+            defaultValue,
+        );
+        return result === undefined ? null : result;
+    } else {
+        const result = Arr.first(data, undefined, defaultValue);
+        return result === undefined ? null : result;
     }
 }
 
@@ -139,24 +169,12 @@ export function dataFirst<T, D = null>(
  * Data.last([1, 2, 3, 4], (value) => value < 4); // -> 3
  * Data.last({a: 1, b: 2, c: 3}, (value) => value > 1); // -> 3
  */
-export function dataLast<T, D = null>(
-    data: DataItems<T>,
+export function dataLast<T, K extends ObjectKey = ObjectKey, D = null>(
+    data: DataItems<T, K>,
     callback?: ((value: T, key: string | number) => boolean) | null,
     defaultValue?: D | (() => D),
 ): T | D | null {
-    if (isArray(data)) {
-        if (callback) {
-            const result = Arr.last(
-                data,
-                callback as (value: T, index: number) => boolean,
-                defaultValue,
-            );
-            return result === undefined ? null : result;
-        } else {
-            const result = Arr.last(data, undefined, defaultValue);
-            return result === undefined ? null : result;
-        }
-    } else {
+    if (isObject(data)) {
         if (callback) {
             const result = Obj.last(
                 data,
@@ -168,6 +186,18 @@ export function dataLast<T, D = null>(
             const result = Obj.last(data, undefined, defaultValue);
             return result === undefined ? null : result;
         }
+    }
+
+    if (callback) {
+        const result = Arr.last(
+            data,
+            callback as (value: T, index: number) => boolean,
+            defaultValue,
+        );
+        return result === undefined ? null : result;
+    } else {
+        const result = Arr.last(data, undefined, defaultValue);
+        return result === undefined ? null : result;
     }
 }
 
@@ -183,16 +213,25 @@ export function dataLast<T, D = null>(
  * Data.contains([1, 2, 3], 2); // -> true
  * Data.contains({a: 1, b: 2}, (value) => value > 1); // -> true
  */
-export function dataContains<T>(
-    data: DataItems<T>,
+export function dataContains<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
     value: T | ((value: T, key: string | number) => boolean),
+    strict = false,
 ): boolean {
-    return isArray(data)
-        ? Arr.contains(
-              data,
-              value as T | ((value: T, index: number) => boolean),
-          )
-        : Obj.contains(data, value);
+    if (isObject(data)) {
+        return Obj.contains(
+            data as Record<string, T>,
+            value as
+                | Record<string, unknown>
+                | ((
+                      value: Record<string, unknown>,
+                      key: string | number,
+                  ) => boolean),
+            strict,
+        );
+    }
+
+    return Arr.contains(Arr.wrap(data), value, strict);
 }
 
 /**
@@ -204,26 +243,21 @@ export function dataContains<T>(
  *
  * @example
  *
- * Data.diff([1, 2, 3, 4], [2, 4]); // -> {0: 1, 2: 3} (preserves indices)
- * Data.diff({a: 1, b: 2, c: 3}, {b: 2, d: 4}); // -> {a: 1, c: 3}
+ * Data.diff([1, 2, 3, 4], [2, 4]); -> [1, 3]
+ * Data.diff({a: 1, b: 2, c: 3}, {b: 2, d: 4}); -> {a: 1, c: 3}
  */
-export function dataDiff<T>(
-    data: DataItems<T>,
-    other: DataItems<T>,
-): DataItems<T> {
-    if (isArray(data)) {
-        // For arrays, return object preserving original indices
-        const otherValues = dataValues(other);
-        const result: Record<number, T> = {};
-        data.forEach((value, index) => {
-            if (!otherValues.includes(value)) {
-                result[index] = value;
-            }
-        });
-        return result as unknown as DataItems<T>;
-    } else {
-        return Obj.diff(data, other) as unknown as DataItems<T>;
+export function dataDiff<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+    other: DataItems<T, K>,
+): DataItems<T, K> {
+    if (isObject(data) && isObject(other)) {
+        return Obj.diff(
+            data as Record<string, T>,
+            other as Record<string, T>,
+        ) as DataItems<T, K>;
     }
+
+    return Arr.diff(Arr.wrap(data), Arr.wrap(other)) as DataItems<T>;
 }
 
 /**
@@ -237,23 +271,14 @@ export function dataDiff<T>(
  * @example
  *
  * Data.pluck([{name: 'John'}, {name: 'Jane'}], 'name'); // -> ['John', 'Jane']
- * Data.pluck({a: {name: 'John'}, b: {name: 'Jane'}}, 'name'); // -> {a: 'John', b: 'Jane'}
+ * Data.pluck({a: {name: 'John'}, b: {name: 'Jane'}}, 'name'); // -> ['John', 'Jane']
  */
-export function dataPluck<T, U>(
-    data: DataItems<T>,
-    value: string | ((item: T) => U),
+export function dataPluck<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+    value: string | ((item: T) => T),
     key?: string | ((item: T) => string | number) | null,
-): DataItems<U> {
-    if (isArray(data)) {
-        return Arr.pluck(
-            data as Record<string, unknown>[],
-            value as string | ((item: Record<string, unknown>) => U),
-            key as
-                | string
-                | ((item: Record<string, unknown>) => string | number)
-                | null,
-        ) as DataItems<U>;
-    } else {
+): DataItems<T, K> {
+    if (isObject(data)) {
         return Obj.pluck(
             data as unknown as Record<string, Record<string, unknown>>,
             value as string | ((item: Record<string, unknown>) => unknown),
@@ -261,6 +286,15 @@ export function dataPluck<T, U>(
                 | string
                 | ((item: Record<string, unknown>) => string | number)
                 | null,
-        ) as DataItems<U>;
+        ) as DataItems<T, K>;
     }
+
+    return Arr.pluck(
+        Arr.wrap(data) as unknown as Record<string, unknown>[],
+        value as string | ((item: Record<string, unknown>) => T),
+        key as
+            | string
+            | ((item: Record<string, unknown>) => string | number)
+            | null,
+    ) as DataItems<T>;
 }

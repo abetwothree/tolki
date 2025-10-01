@@ -7,8 +7,8 @@ import {
     undotExpandObject,
     forgetKeys,
 } from "@laravel-js/path";
-import type { PathKey, PathKeys } from "packages/types";
-import { isArray, isObject, typeOf } from "@laravel-js/utils";
+import type { PathKey, PathKeys, ObjectKey } from "packages/types";
+import { isArray, isObject, typeOf, isFunction } from "@laravel-js/utils";
 import { Random, Str } from "@laravel-js/str";
 
 /**
@@ -1125,8 +1125,8 @@ export function select<T extends Record<string, unknown>>(
  * pluck({ user1: { name: 'John' }, user2: { name: 'Jane' } }, 'name'); // -> ['John', 'Jane']
  * pluck({ user1: { id: 1, name: 'John' }, user2: { id: 2, name: 'Jane' } }, 'name', 'id'); // -> { 1: 'John', 2: 'Jane' }
  */
-export function pluck<T extends Record<string, unknown>>(
-    data: Record<string, T> | unknown,
+export function pluck<T, K extends ObjectKey = ObjectKey>(
+    data: Record<K, T> | unknown,
     value: string | ((item: T) => unknown),
     key?: string | ((item: T) => string | number) | null,
 ): unknown[] | Record<string | number, unknown> {
@@ -2209,14 +2209,35 @@ export function whereNotNull<T>(
  */
 export function contains<T extends Record<string, unknown>>(
     data: T | unknown,
-    value: unknown,
+    value: T | ((value: T, key: string | number) => boolean),
+    strict = false,
 ): boolean {
     if (!accessible(data)) {
         return false;
     }
 
+    if (isFunction(value)) {
+        const obj = data as Record<string, unknown>;
+        for (const [key, val] of Object.entries(obj)) {
+            if (value(val as T, key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    if (strict) {
+        return Object.values(data as Record<string, unknown>).includes(value);
+    }
+
     const obj = data as Record<string, unknown>;
-    return Object.values(obj).includes(value);
+    for (const val of Object.values(obj)) {
+        if (val == value) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /**
