@@ -1,5 +1,26 @@
-import * as Arr from "@laravel-js/arr";
-import * as Obj from "@laravel-js/obj";
+import {
+    values as objValues,
+    keys as objKeys,
+    filter as objFilter,
+    map as objMap,
+    first as objFirst,
+    last as objLast,
+    contains as objContains,
+    diff as objDiff,
+    pluck as objPluck,
+} from "@laravel-js/obj";
+import {
+    values as arrValues,
+    keys as arrKeys,
+    filter as arrFilter,
+    map as arrMap,
+    first as arrFirst,
+    last as arrLast,
+    contains as arrContains,
+    diff as arrDiff,
+    pluck as arrPluck,
+    wrap as arrWrap,
+} from "@laravel-js/arr";
 import type { DataItems, ObjectKey } from "@laravel-js/types";
 import {
     isArray,
@@ -26,10 +47,10 @@ export function dataValues<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
 ): T[] {
     if (isObject(data)) {
-        return Obj.values(data as Record<K, T>) as T[];
+        return objValues(data as Record<K, T>) as T[];
     }
 
-    return Arr.values(Arr.wrap(data));
+    return arrValues(arrWrap(data));
 }
 
 /**
@@ -47,10 +68,10 @@ export function dataKeys<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
 ): (string | number)[] {
     if (isObject(data)) {
-        return Obj.keys(data as Record<K, T>);
+        return objKeys(data as Record<K, T>);
     }
 
-    return Arr.keys(Arr.wrap(data));
+    return arrKeys(arrWrap(data));
 }
 
 /**
@@ -70,14 +91,14 @@ export function dataFilter<T, K extends ObjectKey = ObjectKey>(
     callback?: ((value: T, key: string | number) => boolean) | null,
 ): DataItems<T, K> {
     if (isObject(data)) {
-        return Obj.filter(
+        return objFilter(
             data as Record<string, T>,
             callback as (value: T, key: string) => boolean,
         ) as DataItems<T, K>;
     }
 
-    return Arr.filter(
-        Arr.wrap(data),
+    return arrFilter(
+        arrWrap(data),
         callback as (value: T, index: number) => boolean,
     ) as DataItems<T>;
 }
@@ -99,14 +120,14 @@ export function dataMap<T, K extends ObjectKey = ObjectKey, U>(
     callback: (value: T, key: string | number) => U,
 ): DataItems<U, K> {
     if (isObject(data)) {
-        return Obj.map(
+        return objMap(
             data as Record<string, T>,
             callback as (value: T, key: string) => U,
         ) as DataItems<U, K>;
     }
 
-    return Arr.map(
-        Arr.wrap(data),
+    return arrMap(
+        arrWrap(data),
         callback as (value: T, index: number) => U,
     ) as DataItems<U>;
 }
@@ -131,27 +152,27 @@ export function dataFirst<T, K extends ObjectKey = ObjectKey, D = null>(
 ): T | D | null {
     if (isObject(data)) {
         if (callback) {
-            const result = Obj.first(
+            const result = objFirst(
                 data,
                 callback as (value: T, key: string) => boolean,
                 defaultValue,
             );
             return result === undefined ? null : result;
         } else {
-            const result = Obj.first(data, undefined, defaultValue);
+            const result = objFirst(data, undefined, defaultValue);
             return result === undefined ? null : result;
         }
     }
 
     if (callback) {
-        const result = Arr.first(
+        const result = arrFirst(
             data,
             callback as (value: T, index: number) => boolean,
             defaultValue,
         );
         return result === undefined ? null : result;
     } else {
-        const result = Arr.first(data, undefined, defaultValue);
+        const result = arrFirst(data, undefined, defaultValue);
         return result === undefined ? null : result;
     }
 }
@@ -176,27 +197,27 @@ export function dataLast<T, K extends ObjectKey = ObjectKey, D = null>(
 ): T | D | null {
     if (isObject(data)) {
         if (callback) {
-            const result = Obj.last(
+            const result = objLast(
                 data,
                 callback as (value: T, key: string) => boolean,
                 defaultValue,
             );
             return result === undefined ? null : result;
         } else {
-            const result = Obj.last(data, undefined, defaultValue);
+            const result = objLast(data, undefined, defaultValue);
             return result === undefined ? null : result;
         }
     }
 
     if (callback) {
-        const result = Arr.last(
+        const result = arrLast(
             data,
             callback as (value: T, index: number) => boolean,
             defaultValue,
         );
         return result === undefined ? null : result;
     } else {
-        const result = Arr.last(data, undefined, defaultValue);
+        const result = arrLast(data, undefined, defaultValue);
         return result === undefined ? null : result;
     }
 }
@@ -219,7 +240,7 @@ export function dataContains<T, K extends ObjectKey = ObjectKey>(
     strict = false,
 ): boolean {
     if (isObject(data)) {
-        return Obj.contains(
+        return objContains(
             data as Record<string, T>,
             value as
                 | Record<string, unknown>
@@ -231,7 +252,7 @@ export function dataContains<T, K extends ObjectKey = ObjectKey>(
         );
     }
 
-    return Arr.contains(Arr.wrap(data), value, strict);
+    return arrContains(arrWrap(data), value, strict);
 }
 
 /**
@@ -251,13 +272,13 @@ export function dataDiff<T, K extends ObjectKey = ObjectKey>(
     other: DataItems<T, K>,
 ): DataItems<T, K> {
     if (isObject(data) && isObject(other)) {
-        return Obj.diff(
+        return objDiff(
             data as Record<string, T>,
             other as Record<string, T>,
         ) as DataItems<T, K>;
     }
 
-    return Arr.diff(Arr.wrap(data), Arr.wrap(other)) as DataItems<T>;
+    return arrDiff(arrWrap(data), arrWrap(other)) as DataItems<T>;
 }
 
 /**
@@ -279,7 +300,7 @@ export function dataPluck<T, K extends ObjectKey = ObjectKey>(
     key?: string | ((item: T) => string | number) | null,
 ): DataItems<T, K> {
     if (isObject(data)) {
-        return Obj.pluck(
+        return objPluck(
             data as unknown as Record<string, Record<string, unknown>>,
             value as string | ((item: Record<string, unknown>) => unknown),
             key as
@@ -289,8 +310,8 @@ export function dataPluck<T, K extends ObjectKey = ObjectKey>(
         ) as DataItems<T, K>;
     }
 
-    return Arr.pluck(
-        Arr.wrap(data) as unknown as Record<string, unknown>[],
+    return arrPluck(
+        arrWrap(data) as unknown as Record<string, unknown>[],
         value as string | ((item: Record<string, unknown>) => T),
         key as
             | string

@@ -74,7 +74,10 @@ describe("Data", () => {
     it("diff", () => {
         expect(Data.dataDiff([1, 2, 3], [2, 3, 4])).toEqual([1]);
         expect(
-            Data.dataDiff({ a: 1, b: 2, c: 3 }, { b: 2, c: 3, d: 4 }),
+            Data.dataDiff<number, string>(
+                { a: 1, b: 2, c: 3 },
+                { b: 2, c: 3, d: 4 },
+            ),
         ).toEqual({ a: 1 });
     });
 
