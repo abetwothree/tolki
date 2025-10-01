@@ -394,7 +394,7 @@ function main() {
             });
             console.log("");
         });
-        
+
         const ext = getFileExtension(filePath);
         if ([".js", ".jsx", ".ts", ".tsx"].includes(ext)) {
             const packageName = path.basename(
