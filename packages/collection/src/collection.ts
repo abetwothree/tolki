@@ -1,4 +1,4 @@
-import { isArray, isFunction } from "@laravel-js/utils";
+import { isArray, isObject, isFunction, isNull } from "@laravel-js/utils";
 import {
     dataGet,
     dataHas,
@@ -14,7 +14,9 @@ import {
     dataDiff,
     dataCollapse,
 } from "@laravel-js/data";
-import type { DataItems, ObjectKey, Arrayable } from "@laravel-js/types";
+import type { DataItems, ObjectKey, Arrayable, ProxyTarget, PropertyName } from "@laravel-js/types";
+import { LazyCollection } from "./lazy-collection";
+import { initProxyHandler } from "./proxy";
 
 export function collect<TValue = unknown, TKey extends ObjectKey = ObjectKey>(
     items?: TValue[] | DataItems<TValue> | null,
@@ -41,6 +43,35 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         items?: TValue[] | DataItems<TValue, TKey> | Arrayable<TValue> | null,
     ) {
         this.items = this.getArrayableItems(items ?? []);
+
+        // Return a proxy that intercepts property access
+        // return this.createProxy();
+    }
+
+    /**
+     * Create a proxy that intercepts property access for both array and object usage
+     */
+    private createProxy(): this {
+        return new Proxy(this, initProxyHandler<TValue>());
+    }
+
+    /**
+     * Make the collection iterable with for...of loops.
+     *
+     * @returns An iterator for the collection values
+     */
+    [Symbol.iterator](): Iterator<TValue> {
+        const values = Object.values(this.items as Record<PropertyName, TValue>);
+        let index = 0;
+        
+        return {
+            next: (): IteratorResult<TValue> => {
+                if (index < values.length) {
+                    return { value: values[index++] as TValue, done: false };
+                }
+                return { value: undefined as never, done: true };
+            }
+        };
     }
 
     /**
@@ -60,7 +91,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         from: number,
         to: number,
         step: number = 1,
-    ): Collection<number> {
+    ): Collection<number, number> {
         const rangeArray: number[] = [];
         for (let i = from; i <= to; i += step) {
             rangeArray.push(i);
@@ -78,12 +109,86 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * const collection = new Collection([1, 2, 3]);
      * collection.all(); -> [1, 2, 3]
      */
-    all(): DataItems<TValue, TKey> {
+    all() {
         return this.items;
     }
 
     /**
-     * Collapse a collection of arrays into a single, flat collection.
+     * Get a lazy collection for the items in this collection.
+     */
+    lazy(): LazyCollection<TValue, TKey> {
+        return new LazyCollection(this.items);
+    }
+
+    /**
+     * Get the median of a given key.
+     *
+     * @param  key - The key to calculate the median for, or null for the values themselves
+     * @returns The median value or null if the collection is empty
+     * 
+     * @example
+     * 
+     * new Collection([1, 3, 3, 6, 7, 8, 9]).median(); -> 6
+     * new Collection([1, 2, 3, 4, 5, 6]).median(); -> 3.5
+     * new Collection([{value: 1}, {value: 3}, {value: 3}, {value: 6}, {value: 7}, {value: 8}, {value: 9}]).median('value'); -> 6
+     */
+    median(key: null = null): number | null {
+        const values = (!isNull(key) ? this.pluck(key) : this)
+            .reject((item) => isNull(item))
+            .sort()
+            .values();
+        
+        const count = values.count();
+        
+        if (count === 0) {
+            return null;
+        }
+
+        const middle = Math.floor(count / 2);
+
+        if (count % 2) {
+            return values.get(middle);
+        }
+
+        return new Collection([
+            values.get(middle - 1) as number,
+            values.get(middle) as number,
+        ]).average();
+    }
+
+    /**
+     * Get the mode of a given key.
+     *
+     * @param key - The key to calculate the mode for, or null for the values themselves
+     * @returns An array of the most frequently occurring values, or null if the collection is empty
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 2, 3, 3, 3]).mode(); -> [3]
+     * new Collection([1, 1, 2, 2, 3, 3]).mode(); -> [1, 2, 3]
+     * new Collection([{value: 1}, {value: 2}, {value: 2}, {value: 3}, {value: 3}, {value: 3}]).mode('value'); -> [3]
+     * new Collection([{value: 1}, {value: 1}, {value: 2}, {value: 2}, {value: 3}, {value: 3}]).mode('value'); -> [1, 2, 3]
+     */
+    mode(key: null = null): number[] | null {
+        if(this.count() === 0) {
+            return null;
+        }
+
+        const collection = !isNull(key) ? this.pluck(key) : this;
+
+        const counts = new Collection();
+
+        collection.each((value) => counts[value] = (counts[value] ?? false) ? counts[value] + 1 : 1);
+
+        const sorted = counts.sort();
+
+        const highestCount = sorted.last();
+
+        return sorted.filter((value) => value === highestCount).sort().keys().values();
+    }
+
+    /**
+     * Collapse a collection of arrays or objects into a single, flat collection.
      *
      * @returns A new collection with collapsed arrays or merged objects
      *
@@ -94,6 +199,53 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     collapse() {
         return new Collection(dataCollapse<TValue, TKey>(this.items));
+    }
+
+    /**
+     * Collapse the collection of items into a single array while preserving its keys.
+     *
+     * @return A new collection with collapsed items
+     * 
+     * @example
+     *
+     * new Collection([[1, 2], [3, 4]]).collapseWithKeys(); -> new Collection([1, 2, 3, 4])
+     * new Collection([{a: 1}, {b: 2}]).collapseWithKeys(); -> new Collection({a: 1, b: 2})
+     */
+    collapseWithKeys() {
+        if(this.isEmpty()) {
+            return new Collection();
+        }
+
+        if (isObject(this.items)) {
+            const resultsObj = {} as Record<TKey, TValue>;
+
+            for (const [key, value] of Object.entries(this.items as Record<PropertyName, TValue>)) {
+                if(resultsObj[key as TKey]) {
+                    continue;
+                }
+
+                resultsObj[key as TKey] = value;
+            }
+
+            if(Object.keys(resultsObj).length > 0) {
+                return new Collection(resultsObj);
+            }
+        }
+
+        const resultsArr = [];
+        for (const value of Object.values(this.items as Record<PropertyName, TValue>)) {
+            if (isArray(value)) {
+                resultsArr.push(...value);
+            } else {
+                resultsArr.push(value);
+            }
+        }
+
+        if (resultsArr.length > 0) {
+            return new Collection(resultsArr);
+        }
+
+        return new Collection();
     }
 
     /**
@@ -108,17 +260,23 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([{id: 1}, {id: 2}]).contains(item => item.id === 2); -> true
      */
     contains(
-        key: TValue | ((value: TValue, index: string | number) => boolean),
+        key: ((value: TValue, index: TKey) => boolean) | TValue | string,
+        operator: unknown = null,
+        value: unknown = null,
     ): boolean {
-        if (isFunction(key)) {
-            const callback = key as (
-                value: TValue,
-                index: string | number,
-            ) => boolean;
-            return dataContains(this.items, callback);
+        if (value === null && operator === null) {
+            if (isFunction(key)) {
+                const callback = key as (
+                    value: TValue,
+                    index: string | number,
+                ) => boolean;
+                return dataContains(this.items, callback);
+            }
+
+            return dataContains(this.items, key);
         }
 
-        return dataContains(this.items, key);
+        return this.contains(this.operatorForWhere(key, operator, value));
     }
 
     /**
@@ -132,7 +290,18 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([1, 2, 3]).containsStrict(2); -> true
      * new Collection([1, 2, 3]).containsStrict('2'); -> false
      */
-    containsStrict(key: TValue): boolean {
+    containsStrict(
+        key: ((value: TValue, index: TKey) => boolean) | TValue | string,
+        value: TValue | null = null
+    ): boolean {
+        if (value !== null) {
+            return this.contains((item) => dataGet(item, key as unknown as string) === value);
+        }
+
+        if(isFunction(key)) {
+            return !isNull(this.first(key));
+        }
+
         return dataContains(this.items, (value: unknown) => value === key);
     }
 
@@ -246,6 +415,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @example
      *
      * new Collection({a: 1, b: 2, c: 3}).values(); -> new Collection({0: 1, 1: 2, 2: 3})
+     * new Collection([1, 2, 3]).values(); -> new Collection([1, 2, 3])
      */
     values(): Collection<TValue> {
         return new Collection<TValue>(
