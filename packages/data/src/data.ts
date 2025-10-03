@@ -1399,7 +1399,7 @@ export function dataKeys<T, K extends ObjectKey = ObjectKey>(
  */
 export function dataFilter<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
-    callback?: ((value: T, key: string | number) => boolean) | null,
+    callback?: ((value: T, key: K) => boolean) | null,
 ): DataItems<T, K> {
     if (isObject(data)) {
         return objFilter(
@@ -1456,36 +1456,28 @@ export function dataMap<T, U, K extends ObjectKey = ObjectKey>(
  * Data.first([1, 2, 3, 4], (value) => value > 2); -> 3
  * Data.first({a: 1, b: 2, c: 3}, (value) => value > 1); -> 2
  */
-export function dataFirst<T, K extends ObjectKey = ObjectKey, D = null>(
-    data: DataItems<T, K>,
-    callback?: ((value: T, key: string | number) => boolean) | null,
-    defaultValue?: D | (() => D),
-): T | D | null {
+export function dataFirst<TValue, TKey extends ObjectKey = ObjectKey, TFirstDefault = null>(
+    data: DataItems<TValue, TKey>,
+    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null {
     if (isObject(data)) {
-        if (callback) {
-            const result = objFirst(
-                data,
-                callback as (value: T, key: string) => boolean,
-                defaultValue,
-            );
-            return result === undefined ? null : result;
-        } else {
-            const result = objFirst(data, undefined, defaultValue);
-            return result === undefined ? null : result;
-        }
-    }
-
-    if (callback) {
-        const result = arrFirst(
+        const result = objFirst(
             data,
-            callback as (value: T, index: number) => boolean,
+            callback,
             defaultValue,
         );
-        return result === undefined ? null : result;
-    } else {
-        const result = arrFirst(data, undefined, defaultValue);
+
         return result === undefined ? null : result;
     }
+
+    const result = arrFirst(
+        data,
+        callback as (value: TValue, index: number) => boolean,
+        defaultValue,
+    ); 
+
+    return result === undefined ? null : result;
 }
 
 /**

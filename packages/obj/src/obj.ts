@@ -295,53 +295,34 @@ export function exists<T extends Record<string, unknown>>(
 
 /**
  * Get the first value from an object.
- * Optionally pass a predicate to find the first matching value.
+ * Optionally pass a callback to find the first matching value.
  *
  * @param data - The object to search through.
- * @param predicate - Optional predicate function to test values.
+ * @param callback - Optional callback function to test values.
  * @param defaultValue - Value to return if no value is found.
  * @returns The first value or default value.
  *
  * @example
  *
- * first({ a: 1, b: 2, c: 3 }); -> 1
+ * first({ a: 1, b: 2, c: 3 }); -> 1    
  * first({}); -> null
  * first({}, null, 'default'); -> 'default'
  * first({ a: 1, b: 2, c: 3 }, x => x > 1); -> 2
  * first({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  */
-export function first<T>(
-    data: Record<string, T> | null | undefined,
-    predicate?: null,
-    defaultValue?: undefined,
-): T | null;
-export function first<T, D>(
-    data: Record<string, T> | null | undefined,
-    predicate: null | undefined,
-    defaultValue: D | (() => D),
-): T | D;
-export function first<T>(
-    data: Record<string, T> | null | undefined,
-    predicate: (value: T, key: string) => boolean,
-): T | null;
-export function first<T, D>(
-    data: Record<string, T> | null | undefined,
-    predicate: (value: T, key: string) => boolean,
-    defaultValue: D | (() => D),
-): T | D;
-export function first<T, D>(
-    data: Record<string, T> | null | undefined,
-    predicate?: ((value: T, key: string) => boolean) | null,
-    defaultValue?: D | (() => D),
-): T | D | null {
-    const resolveDefault = (): D | null => {
+export function first<TValue, TKey extends ObjectKey = ObjectKey, TFirstDefault = null>(
+    data: Record<TKey, TValue>,
+    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null {
+    const resolveDefault = (): TFirstDefault | null => {
         if (defaultValue === undefined) {
             return null;
         }
 
         return typeof defaultValue === "function"
-            ? (defaultValue as () => D)()
-            : (defaultValue as D);
+            ? (defaultValue as () => TFirstDefault)()
+            : (defaultValue as TFirstDefault);
     };
 
     if (data == null || !accessible(data)) {
@@ -350,18 +331,18 @@ export function first<T, D>(
 
     const entries = Object.entries(data);
 
-    // No predicate: just return first value if it exists.
-    if (!predicate) {
+    // No callback: just return first value if it exists.
+    if (!callback) {
         if (entries.length === 0) {
             return resolveDefault();
         }
 
-        return entries[0]?.[1] as T;
+        return entries[0]?.[1] as TValue;
     }
 
     for (const [key, value] of entries) {
-        if (predicate(value, key)) {
-            return value;
+        if (callback(value as TValue, key as TKey)) {
+            return value as TValue;
         }
     }
 
@@ -370,10 +351,10 @@ export function first<T, D>(
 
 /**
  * Get the last value from an object.
- * Optionally pass a predicate to find the last matching value.
+ * Optionally pass a callback to find the last matching value.
  *
  * @param data - The object to search through.
- * @param predicate - Optional predicate function to test values.
+ * @param callback - Optional callback function to test values.
  * @param defaultValue - Value to return if no value is found.
  * @returns The last value or default value.
  *
@@ -387,26 +368,26 @@ export function first<T, D>(
  */
 export function last<T>(
     data: Record<string, T> | null | undefined,
-    predicate?: null,
+    callback?: null,
     defaultValue?: undefined,
 ): T | null;
 export function last<T, D>(
     data: Record<string, T> | null | undefined,
-    predicate: null | undefined,
+    callback: null | undefined,
     defaultValue: D | (() => D),
 ): T | D;
 export function last<T>(
     data: Record<string, T> | null | undefined,
-    predicate: (value: T, key: string) => boolean,
+    callback: (value: T, key: string) => boolean,
 ): T | null;
 export function last<T, D>(
     data: Record<string, T> | null | undefined,
-    predicate: (value: T, key: string) => boolean,
+    callback: (value: T, key: string) => boolean,
     defaultValue: D | (() => D),
 ): T | D;
 export function last<T, D>(
     data: Record<string, T> | null | undefined,
-    predicate?: ((value: T, key: string) => boolean) | null,
+    callback?: ((value: T, key: string) => boolean) | null,
     defaultValue?: D | (() => D),
 ): T | D | null {
     const resolveDefault = (): D | null => {
@@ -426,7 +407,7 @@ export function last<T, D>(
     const entries = Object.entries(data);
 
     // No predicate case
-    if (!predicate) {
+    if (!callback) {
         if (entries.length === 0) {
             return resolveDefault();
         }
@@ -434,13 +415,13 @@ export function last<T, D>(
         return entries[entries.length - 1]?.[1] as T;
     }
 
-    // With predicate: iterate backwards to find last match
+    // With callback: iterate backwards to find last match
     let found = false;
     let candidate: T | undefined;
 
     for (let i = entries.length - 1; i >= 0; i--) {
         const [key, value] = entries[i] as [string, T];
-        if (predicate(value, key)) {
+        if (callback(value, key)) {
             candidate = value;
             found = true;
             break;

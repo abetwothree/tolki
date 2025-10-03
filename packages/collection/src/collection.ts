@@ -1,27 +1,15 @@
-import { isArray, isObject, isFunction, isNull } from "@laravel-js/utils";
-import {
-    dataGet,
-    dataHas,
-    dataHasAll,
-    dataValues,
-    dataKeys,
-    dataFilter,
-    dataMap,
-    dataFirst,
-    dataLast,
-    dataContains,
-    dataPluck,
-    dataDiff,
-    dataCollapse,
-    dataCrossJoin,
-} from "@laravel-js/data";
-import { wrap as arrWrap } from "@laravel-js/arr";
+import { parseSegments, hasPath, getRaw, forgetKeys, forgetKeysObject, forgetKeysArray, setImmutable, pushWithPath, dotFlatten, dotFlattenObject, dotFlattenArray, undotExpand, undotExpandObject, undotExpandArray, getNestedValue, getMixedValue, setMixed, pushMixed, setMixedImmutable, hasMixed, getObjectValue, setObjectValue, hasObjectKey } from '@laravel-js/path';
+import { format, parse, parseInt, parseFloat, spell, ordinal, spellOrdinal, percentage, currency, fileSize, forHumans, summarize, clamp, pairs, trim, minutesToHuman, secondsToHuman, withLocale, withCurrency, useLocale, useCurrency, defaultLocale, defaultCurrency } from '@laravel-js/num';
+import { isArray, isObject, isString, isNumber, isBoolean, isFunction, isUndefined, isSymbol, isNull, typeOf, castableToArray, compareValues, resolveDefault, normalizeToArray, isAccessibleData, getAccessibleValues } from '@laravel-js/utils';
+import { dataAdd, dataArray, dataItem, dataBoolean, dataCollapse, dataCrossJoin, dataDivide, dataDot, dataUndot, dataExcept, dataExists, dataTake, dataFlatten, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataEvery, dataSome, dataInteger, dataJoin, dataKeyBy, dataPrependKeysWith, dataOnly, dataSelect, dataMapWithKeys, dataMapSpread, dataPrepend, dataPull, dataQuery, dataRandom, dataSet, dataPush, dataShuffle, dataSole, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataToCssClasses, dataToCssStyles, dataWhere, dataReject, dataPartition, dataWhereNotNull, dataValues, dataKeys, dataFilter, dataMap, dataFirst, dataLast, dataContains, dataDiff, dataPluck } from '@laravel-js/data';
 import type {
     DataItems,
     ObjectKey,
     Arrayable,
     ProxyTarget,
     PropertyName,
+    PathKeys,
+    PathKey,
 } from "@laravel-js/types";
 import { LazyCollection } from "./lazy-collection";
 import { initProxyHandler } from "./proxy";
@@ -561,7 +549,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         for (const [key, value] of Object.entries(
             items.items as Record<TKey, TValue>,
         )) {
-            if(uniqueItems.isNotEmpty() && compare(value, uniqueItems.first()) < 0){
+            if(uniqueItems.isNotEmpty() && compare(value as TValue, uniqueItems.first() as TValue)){
                 uniqueItems.shift();
             }else{
                 (duplicatesItems as Record<TKey, TValue>)[key as TKey] = value as TValue;
@@ -576,6 +564,55 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     }
 
     /**
+     * Retrieve duplicate items from the collection using strict comparison.
+     *
+     * @param callback - The callback function to determine the value to check for duplicates, or a string key, or null to use the values themselves
+     * @returns A new collection with the duplicate items
+     */
+    duplicatesStrict<TMapValue>(
+        callback: ((value: TValue) => TMapValue) | string | null = null,
+    ){
+        return this.duplicates(callback, true);
+    }
+
+    /**
+     * Get the comparison function to detect duplicates.
+     *
+     * @param strict - Whether to use strict comparison (===) or not (==)
+     * @returns A comparison function for detecting duplicates
+     */
+    duplicateComparator(strict: boolean){
+        if(strict){
+            return (a: TValue, b: TValue) => a === b;
+        }
+
+        return (a: TValue, b: TValue) => a == b;
+    }
+
+    /**
+     * Get all items except for those with the specified keys.
+     * 
+     * @param keys - The keys to exclude, or a collection of keys
+     * @returns A new collection without the specified keys
+     * 
+     * @example
+     * 
+     * new Collection({a: 1, b: 2, c: 3}).except(['a', 'c']); -> new Collection({b: 2})
+     * new Collection({a: 1, b: 2, c: 3}).except(new Collection(['a', 'c'])); -> new Collection({b: 2})
+     * new Collection([1, 2, 3, 4]).except([0, 2]); -> new Collection([1, 3])
+     * new Collection([1, 2, 3, 4]).except(new Collection([0, 2])); -> new Collection([1, 3])
+     */
+    except(keys: PathKeys | Collection<TKey>){
+        if(isNull(keys)){
+            return new Collection(this.items);
+        }
+        
+        keys = this.getArrayableItems(keys) as PathKey[];
+
+        return new Collection(dataExcept(this.items, keys));
+    }
+
+    /**
      * Run a filter over each of the items.
      *
      * @param callback - The callback function to filter with, or null to filter truthy values
@@ -587,30 +624,16 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([0, 1, false, 2, '', 3]).filter(); -> new Collection([1, 2, 3])
      */
     filter(
-        callback?: ((value: TValue, key: string | number) => boolean) | null,
+        callback?: ((value: TValue, key: TKey) => boolean) | null,
     ) {
         return new Collection(dataFilter(this.items, callback));
     }
-
-    /**
-     * Get the first item from the collection passing the given truth test.
-     *
-     * @param callback - The callback function to test with, or null
-     * @param defaultValue - The default value to return if no item is found
-     * @returns The first matching item or default value
-     *
-     * @example
-     *
-     * new Collection([1, 2, 3]).first(); -> 1
-     * new Collection([1, 2, 3, 4]).first(x => x > 2); -> 3
-     * new Collection([]).first(null, 'default'); -> 'default'
-     */
-    first<D = null>(
-        callback?: ((value: TValue, key: string | number) => boolean) | null,
-        defaultValue?: D | (() => D),
-    ): TValue | D | null {
-        const result = dataFirst(this.items, callback, defaultValue);
-        return result === undefined ? null : result;
+    
+    first<TFirstDefault>(
+        callback: ((value: TValue, key: TKey) => boolean) | null = null,
+        defaultValue?: TFirstDefault | (() => TFirstDefault),
+    ){
+        return dataFirst<TValue, TKey, TFirstDefault>(this.items, callback, defaultValue)
     }
 
     /**

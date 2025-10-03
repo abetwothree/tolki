@@ -20,7 +20,7 @@ import {
     castableToArray,
     isFunction,
 } from "@laravel-js/utils";
-import type { ArrayInnerValue } from "@laravel-js/types";
+import type { ArrayInnerValue, ArrayItems } from "@laravel-js/types";
 
 /**
  * Determine whether the given value is array accessible.
@@ -324,10 +324,10 @@ export function exists<T>(data: readonly T[], key: number | string): boolean {
 
 /**
  * Get the first element of an array or iterable.
- * Optionally pass a predicate to find the first matching element.
+ * Optionally pass a callback to find the first matching element.
  *
  * @param data - The array or iterable to search through.
- * @param predicate - Optional predicate function to test elements.
+ * @param callback - Optional callback function to test elements.
  * @param defaultValue - Value to return if no element is found.
  * @returns The first element or default value.
  *
@@ -339,41 +339,19 @@ export function exists<T>(data: readonly T[], key: number | string): boolean {
  * first([1, 2, 3], x => x > 1); -> 2
  * first([1, 2, 3], x => x > 5, 'none'); -> 'none'
  */
-export function first<T>(
-    data: readonly T[] | Iterable<T> | null | undefined,
-    predicate?: null,
-    defaultValue?: undefined,
-): T | null;
-// Overload: no predicate, explicit default value (eager or lazy)
-export function first<T, D>(
-    data: readonly T[] | Iterable<T> | null | undefined,
-    predicate: null | undefined,
-    defaultValue: D | (() => D),
-): T | D;
-// Overload: predicate, no explicit default
-export function first<T>(
-    data: readonly T[] | Iterable<T> | null | undefined,
-    predicate: (value: T, index: number) => boolean,
-): T | null;
-// Overload: predicate with default
-export function first<T, D>(
-    data: readonly T[] | Iterable<T> | null | undefined,
-    predicate: (value: T, index: number) => boolean,
-    defaultValue: D | (() => D),
-): T | D;
-export function first<T, D>(
-    data: readonly T[] | Iterable<T> | null | undefined,
-    predicate?: ((value: T, index: number) => boolean) | null,
-    defaultValue?: D | (() => D),
-): T | D | null {
-    const resolveDefault = (): D | null => {
+export function first<TValue, TFirstDefault = null>(
+    data: ArrayItems<TValue>,
+    callback?: ((value: TValue, key: number) => boolean) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null {
+    const resolveDefault = (): TFirstDefault | null => {
         if (defaultValue === undefined) {
             return null;
         }
 
         return typeof defaultValue === "function"
-            ? (defaultValue as () => D)()
-            : (defaultValue as D);
+            ? (defaultValue as () => TFirstDefault)()
+            : (defaultValue as TFirstDefault);
     };
 
     if (data == null) {
@@ -381,20 +359,20 @@ export function first<T, D>(
     }
 
     const isArrayable = isArray(data);
-    const iterable: Iterable<T> = isArrayable
-        ? (data as readonly T[])
-        : (data as Iterable<T>);
+    const iterable: Iterable<TValue> = isArrayable
+        ? (data as readonly TValue[])
+        : (data as Iterable<TValue>);
 
-    // No predicate: just return first element if it exists.
-    if (!predicate) {
+    // No callback: just return first element if it exists.
+    if (!callback) {
         if (isArrayable) {
-            const arr = data as readonly T[];
+            const arr = data as readonly TValue[];
             if (arr.length === 0) {
                 return resolveDefault();
             }
 
             // After length check arr[0] is defined
-            return arr[0] as T;
+            return arr[0] as TValue;
         }
 
         for (const item of iterable) {
@@ -406,7 +384,7 @@ export function first<T, D>(
 
     let index = 0;
     for (const item of iterable) {
-        if (predicate(item, index++)) {
+        if (callback(item, index++)) {
             return item;
         }
     }
@@ -416,10 +394,10 @@ export function first<T, D>(
 
 /**
  * Get the last element of an array or iterable.
- * Optionally pass a predicate to find the last matching element.
+ * Optionally pass a callback to find the last matching element.
  *
  * @param data - The array or iterable to search through.
- * @param predicate - Optional predicate function to test elements.
+ * @param callback - Optional callback function to test elements.
  * @param defaultValue - Value to return if no element is found.
  * @returns The last element or default value.
  *
@@ -431,41 +409,19 @@ export function first<T, D>(
  * last([1, 2, 3], x => x < 3); -> 2
  * last([1, 2, 3], x => x > 5, 'none'); -> 'none'
  */
-export function last<T>(
-    data: readonly T[] | Iterable<T> | null | undefined,
-    predicate?: null,
-    defaultValue?: undefined,
-): T | null;
-// Overload: no predicate with default (value or lazy)
-export function last<T, D>(
-    data: readonly T[] | Iterable<T> | null | undefined,
-    predicate: null | undefined,
-    defaultValue: D | (() => D),
-): T | D;
-// Overload: predicate, no default
-export function last<T>(
-    data: readonly T[] | Iterable<T> | null | undefined,
-    predicate: (value: T, index: number) => boolean,
-): T | null;
-// Overload: predicate with default
-export function last<T, D>(
-    data: readonly T[] | Iterable<T> | null | undefined,
-    predicate: (value: T, index: number) => boolean,
-    defaultValue: D | (() => D),
-): T | D;
-export function last<T, D>(
-    data: readonly T[] | Iterable<T> | null | undefined,
-    predicate?: ((value: T, index: number) => boolean) | null,
-    defaultValue?: D | (() => D),
-): T | D | null {
-    const resolveDefault = (): D | null => {
+export function last<TValue, TFirstDefault = null>(
+    data: ArrayItems<TValue>,
+    callback?: ((value: TValue, key: number) => boolean) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null {
+    const resolveDefault = (): TFirstDefault | null => {
         if (defaultValue === undefined) {
             return null;
         }
 
         return typeof defaultValue === "function"
-            ? (defaultValue as () => D)()
-            : (defaultValue as D);
+            ? (defaultValue as () => TFirstDefault)()
+            : (defaultValue as TFirstDefault);
     };
 
     if (data == null) {
@@ -473,37 +429,37 @@ export function last<T, D>(
     }
 
     const isArrayable = isArray(data);
-    const iterable: Iterable<T> = isArrayable
-        ? (data as readonly T[])
-        : (data as Iterable<T>);
+    const iterable: Iterable<TValue> = isArrayable
+        ? (data as readonly TValue[])
+        : (data as Iterable<TValue>);
 
-    // No predicate case
-    if (!predicate) {
+    // No callback case
+    if (!callback) {
         if (isArrayable) {
-            const arr = data as readonly T[];
+            const arr = data as readonly TValue[];
             if (arr.length === 0) {
                 return resolveDefault();
             }
 
-            return arr[arr.length - 1] as T;
+            return arr[arr.length - 1] as TValue;
         }
 
         // Generic iterable: iterate to the end
-        let last: T | undefined; // track last seen
+        let last: TValue | undefined; // track last seen
         let seen = false;
         for (const item of iterable) {
             last = item;
             seen = true;
         }
 
-        return seen ? (last as T) : resolveDefault();
+        return seen ? (last as TValue) : resolveDefault();
     }
 
     if (isArrayable) {
-        const arr = data as readonly T[];
+        const arr = data as readonly TValue[];
         for (let i = arr.length - 1; i >= 0; i--) {
-            if (predicate(arr[i] as T, i)) {
-                return arr[i] as T;
+            if (callback(arr[i] as TValue, i)) {
+                return arr[i] as TValue;
             }
         }
 
@@ -513,9 +469,9 @@ export function last<T, D>(
     // Non-array iterable: iterate forward keeping last match
     let index = 0;
     let found = false;
-    let candidate: T | undefined;
+    let candidate: TValue | undefined;
     for (const item of iterable) {
-        if (predicate(item, index)) {
+        if (callback(item, index)) {
             candidate = item;
             found = true;
         }
@@ -523,7 +479,7 @@ export function last<T, D>(
         index++;
     }
 
-    return found ? (candidate as T) : resolveDefault();
+    return found ? (candidate as TValue) : resolveDefault();
 }
 
 /**

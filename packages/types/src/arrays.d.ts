@@ -10,3 +10,5 @@ export interface ArrayAccess<TValue> {
 }
 
 export type ArrayInnerValue<X> = X extends ReadonlyArray<infer U> ? U : never;
+
+export type ArrayItems<T> = T[] | ReadonlyArray<T> | Iterable<T> | ArrayLike<T> | Array<T>;
