@@ -451,6 +451,131 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     }
 
     /**
+     * Get the items in the collection whose keys and values are not present in the given items.
+     * 
+     * TODO: validate parity with Laravel's implementation
+     * 
+     * @param items - The items to diff against
+     * @returns A new collection with the difference
+     * 
+     * @example
+     * 
+     * new Collection({a: 1, b: 2, c: 3}).diffAssoc({b: 2}); -> new Collection({a: 1, c: 3})
+     * new Collection({a: 1, b: 2, c: 3}).diffAssoc({b: 3}); -> new Collection({a: 1, b: 2, c: 3})
+     * new Collection({a: 1, b: 2, c: 3}).diffAssoc({d: 4}); -> new Collection({a: 1, b: 2, c: 3})
+     */
+    diffAssoc(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+    ){
+        return new Collection(
+            dataDiff<TValue, TKey>(this.items, this.getArrayableItems(items)),
+        );
+    }
+
+    /**
+     * Get the items in the collection whose keys and values are not present in the given items, using the callback.
+     * 
+     * TODO: validate parity with Laravel's implementation
+     * 
+     * @param items - The items to diff against
+     * @param callback - The callback function to determine equality
+     * @returns A new collection with the difference
+     * 
+     * @example
+     * 
+     * new Collection({a: {id: 1}, b: {id: 2}, c: {id: 3}}).diffAssocUsing({b: {id: 2}}, (a, b) => a.id === b.id); -> new Collection({a: {id: 1}, c: {id: 3}})
+     * new Collection({a: {id: 1}, b: {id: 2}, c: {id: 3}}).diffAssocUsing({b: {id: 3}}, (a, b) => a.id === b.id); -> new Collection({a: {id: 1}, b: {id: 2}, c: {id: 3}})
+     * new Collection({a: {id: 1}, b: {id: 2}, c: {id: 3}}).diffAssocUsing({d: {id: 4}}, (a, b) => a.id === b.id); -> new Collection({a: {id: 1}, b: {id: 2}, c: {id: 3}})
+     */
+    diffAssocUsing(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+        callback: (a: TValue, b: TValue) => boolean,
+    ) {
+        return this.diffUsing(items, callback);
+    }
+
+    /**
+     * Get the items in the collection whose keys are not present in the given items.
+     * 
+     * TODO: validate parity with Laravel's implementation
+     * 
+     * @param items - The items to diff against
+     * @returns A new collection with the difference
+     * 
+     * @example
+     * 
+     * new Collection({a: 1, b: 2, c: 3}).diffKeys({b: 2}); -> new Collection({a: 1, c: 3})
+     * new Collection([1, 3, 5]).diffKeys([1, 3, 5, 7, 8]); -> new Collection([1, 3, 5])
+     */
+    diffKeys(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+    ) {
+        const otherItems = this.getArrayableItems(items);
+        const results = {} as DataItems<TValue, TKey>;
+
+        for (const [key, value] of Object.entries(
+            this.items as Record<TKey, TValue>,
+        )) {
+            if (!(key in otherItems)) {
+                (results as Record<TKey, TValue>)[key as TKey] =
+                    value as TValue;
+            }
+        }
+
+        if(isArray(this.items)){
+            return new Collection(Object.values(results) as TValue[]);
+        }
+
+        return new Collection(results);
+    }
+
+    /**
+     * Retrieve duplicate items from the collection.
+     * 
+     * TODO: validate parity with Laravel's implementation
+     * 
+     * @param callback - The callback function to determine the value to check for duplicates, or a string key, or null to use the values themselves
+     * @param strict - Whether to use strict comparison (===) or not (==)
+     * @returns A new collection with the duplicate items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 2, 3, 3, 3]).duplicates(); -> new Collection([2, 2, 3, 3, 3])
+     * new Collection([{id: 1}, {id: 2}, {id: 2}, {id: 3}, {id: 3}, {id: 3}]).duplicates('id'); -> new Collection([{id: 2}, {id: 2}, {id: 3}, {id: 3}, {id: 3}])
+     * new Collection([1, '1', 2, '2', 2]).duplicates(null, true); -> new Collection([2, 2])
+     * new Collection([{id: 1}, {id: '1'}, {id: 2}, {id: '2'}, {id: 2}]).duplicates('id', true); -> new Collection([{id: 2}, {id: 2}])
+     * new Collection([{id: 1}, {id: 1}, {id: 2}, {id: 2}]).duplicates((item) => item.id > 1); -> new Collection([{id: 2}, {id: 2}])
+     */
+    duplicates<TMapValue>(
+        callback: ((value: TValue) => TMapValue) | string | null = null,
+        strict: boolean = false,
+    ) {
+        const items = this.map(this.valueRetriever(callback));
+
+        const uniqueItems = items.unique(null, strict);
+
+        const compare = this.duplicateComparator(strict);
+
+        const duplicatesItems = {} as DataItems<TValue, TKey>;
+
+        for (const [key, value] of Object.entries(
+            items.items as Record<TKey, TValue>,
+        )) {
+            if(uniqueItems.isNotEmpty() && compare(value, uniqueItems.first()) < 0){
+                uniqueItems.shift();
+            }else{
+                (duplicatesItems as Record<TKey, TValue>)[key as TKey] = value as TValue;
+            }
+        }
+
+        if(isArray(this.items)){
+            return new Collection(Object.values(duplicatesItems) as TValue[]);
+        }
+
+        return new Collection(duplicatesItems);
+    }
+
+    /**
      * Run a filter over each of the items.
      *
      * @param callback - The callback function to filter with, or null to filter truthy values
