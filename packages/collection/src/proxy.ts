@@ -1,7 +1,4 @@
-import type {
-    ProxyTarget,
-    PropertyName,
-} from "@laravel-js/types";
+import type { ProxyTarget, PropertyName } from "@laravel-js/types";
 
 export function initProxyHandler<TValue>() {
     const handler: ProxyHandler<ProxyTarget> = {

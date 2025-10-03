@@ -13,8 +13,16 @@ import {
     dataPluck,
     dataDiff,
     dataCollapse,
+    dataCrossJoin,
 } from "@laravel-js/data";
-import type { DataItems, ObjectKey, Arrayable, ProxyTarget, PropertyName } from "@laravel-js/types";
+import { wrap as arrWrap } from "@laravel-js/arr";
+import type {
+    DataItems,
+    ObjectKey,
+    Arrayable,
+    ProxyTarget,
+    PropertyName,
+} from "@laravel-js/types";
 import { LazyCollection } from "./lazy-collection";
 import { initProxyHandler } from "./proxy";
 
@@ -61,16 +69,18 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @returns An iterator for the collection values
      */
     [Symbol.iterator](): Iterator<TValue> {
-        const values = Object.values(this.items as Record<PropertyName, TValue>);
+        const values = Object.values(
+            this.items as Record<PropertyName, TValue>,
+        );
         let index = 0;
-        
+
         return {
             next: (): IteratorResult<TValue> => {
                 if (index < values.length) {
                     return { value: values[index++] as TValue, done: false };
                 }
                 return { value: undefined as never, done: true };
-            }
+            },
         };
     }
 
@@ -125,9 +135,9 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      *
      * @param  key - The key to calculate the median for, or null for the values themselves
      * @returns The median value or null if the collection is empty
-     * 
+     *
      * @example
-     * 
+     *
      * new Collection([1, 3, 3, 6, 7, 8, 9]).median(); -> 6
      * new Collection([1, 2, 3, 4, 5, 6]).median(); -> 3.5
      * new Collection([{value: 1}, {value: 3}, {value: 3}, {value: 6}, {value: 7}, {value: 8}, {value: 9}]).median('value'); -> 6
@@ -137,9 +147,9 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             .reject((item) => isNull(item))
             .sort()
             .values();
-        
+
         const count = values.count();
-        
+
         if (count === 0) {
             return null;
         }
@@ -161,16 +171,16 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      *
      * @param key - The key to calculate the mode for, or null for the values themselves
      * @returns An array of the most frequently occurring values, or null if the collection is empty
-     * 
+     *
      * @example
-     * 
+     *
      * new Collection([1, 2, 2, 3, 3, 3]).mode(); -> [3]
      * new Collection([1, 1, 2, 2, 3, 3]).mode(); -> [1, 2, 3]
      * new Collection([{value: 1}, {value: 2}, {value: 2}, {value: 3}, {value: 3}, {value: 3}]).mode('value'); -> [3]
      * new Collection([{value: 1}, {value: 1}, {value: 2}, {value: 2}, {value: 3}, {value: 3}]).mode('value'); -> [1, 2, 3]
      */
     mode(key: null = null): number[] | null {
-        if(this.count() === 0) {
+        if (this.count() === 0) {
             return null;
         }
 
@@ -178,13 +188,21 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
         const counts = new Collection();
 
-        collection.each((value) => counts[value] = (counts[value] ?? false) ? counts[value] + 1 : 1);
+        collection.each(
+            (value) =>
+                (counts[value] =
+                    (counts[value] ?? false) ? counts[value] + 1 : 1),
+        );
 
         const sorted = counts.sort();
 
         const highestCount = sorted.last();
 
-        return sorted.filter((value) => value === highestCount).sort().keys().values();
+        return sorted
+            .filter((value) => value === highestCount)
+            .sort()
+            .keys()
+            .values();
     }
 
     /**
@@ -205,35 +223,39 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * Collapse the collection of items into a single array while preserving its keys.
      *
      * @return A new collection with collapsed items
-     * 
+     *
      * @example
      *
      * new Collection([[1, 2], [3, 4]]).collapseWithKeys(); -> new Collection([1, 2, 3, 4])
      * new Collection([{a: 1}, {b: 2}]).collapseWithKeys(); -> new Collection({a: 1, b: 2})
      */
     collapseWithKeys() {
-        if(this.isEmpty()) {
+        if (this.isEmpty()) {
             return new Collection();
         }
 
         if (isObject(this.items)) {
             const resultsObj = {} as Record<TKey, TValue>;
 
-            for (const [key, value] of Object.entries(this.items as Record<PropertyName, TValue>)) {
-                if(resultsObj[key as TKey]) {
+            for (const [key, value] of Object.entries(
+                this.items as Record<PropertyName, TValue>,
+            )) {
+                if (resultsObj[key as TKey]) {
                     continue;
                 }
 
                 resultsObj[key as TKey] = value;
             }
 
-            if(Object.keys(resultsObj).length > 0) {
+            if (Object.keys(resultsObj).length > 0) {
                 return new Collection(resultsObj);
             }
         }
 
         const resultsArr = [];
-        for (const value of Object.values(this.items as Record<PropertyName, TValue>)) {
+        for (const value of Object.values(
+            this.items as Record<PropertyName, TValue>,
+        )) {
             if (isArray(value)) {
                 resultsArr.push(...value);
             } else {
@@ -252,6 +274,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * Determine if an item exists in the collection.
      *
      * @param key - The value to search for or a callback function
+     * @param operator - The operator to use for comparison (if value is provided)
+     * @param value - The value to compare against (if operator is provided)
      * @returns True if the item exists, false otherwise
      *
      * @example
@@ -291,18 +315,83 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([1, 2, 3]).containsStrict('2'); -> false
      */
     containsStrict(
-        key: ((value: TValue, index: TKey) => boolean) | TValue | string,
-        value: TValue | null = null
+        key: ((value: TValue, index: TKey) => boolean) | TValue | TKey,
+        value: TValue | null = null,
     ): boolean {
         if (value !== null) {
-            return this.contains((item) => dataGet(item, key as unknown as string) === value);
+            return this.contains((item) => dataGet(item, key) === value);
         }
 
-        if(isFunction(key)) {
+        if (isFunction(key)) {
             return !isNull(this.first(key));
         }
 
         return dataContains(this.items, (value: unknown) => value === key);
+    }
+
+    /**
+     * Determine if an item is not contained in the collection.
+     *
+     * @param key - The value to search for or a callback function
+     * @param operator - The operator to use for comparison (if value is provided)
+     * @param value - The value to compare against (if operator is provided)
+     * @returns True if the item does not exist, false otherwise
+     *
+     * @example
+     *
+     * new Collection([1, 2, 3]).doesntContain(4); -> true
+     * new Collection([1, 2, 3]).doesntContain(2); -> false
+     * new Collection([{id: 1}, {id: 2}]).doesntContain(item => item.id === 3); -> true
+     */
+    doesntContain(
+        key: ((value: TValue, index: TKey) => boolean) | TValue | string,
+        operator: unknown = null,
+        value: unknown = null,
+    ) {
+        return !this.contains(key, operator, value);
+    }
+
+    /**
+     * Determine if an item is not contained in the enumerable, using strict comparison.
+     *
+     * @param key - The value to search for or a callback function
+     * @param value - The value to compare against (if operator is provided)
+     * @returns True if the item does not exist using strict comparison, false otherwise
+     *
+     * @example
+     *
+     * new Collection([1, 2, 3]).doesntContainStrict(4); -> true
+     * new Collection([1, 2, 3]).doesntContainStrict(2); -> false
+     * new Collection([1, 2, 3]).doesntContainStrict('2'); -> true
+     * new Collection([{id: 1}, {id: 2}]).doesntContainStrict(item => item.id === 3); -> true
+     */
+    doesntContainStrict(
+        key: ((value: TValue, index: TKey) => boolean) | TValue | TKey,
+        value: TValue | null = null,
+    ): boolean {
+        return !this.containsStrict(key, value);
+    }
+
+    /**
+     * Cross join with the given lists, returning all possible permutations.
+     *
+     * @param items - The lists to cross join with
+     * @returns A new collection with the cross joined items
+     *
+     * @example
+     *
+     * new Collection([1, 2]).crossJoin([3, 4]); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
+     * new Collection({a: 1, b: 2}).crossJoin({c: 3, d: 4}); -> new Collection([{a: 1, c: 3}, {a: 1, d: 4}, {b: 2, c: 3}, {b: 2, d: 4}])
+     */
+    crossJoin(
+        ...items: Array<DataItems<TValue, TKey> | Collection<TValue, TKey>>
+    ) {
+        const results = dataCrossJoin(
+            this.items,
+            ...items.map((item) => this.getArrayableItems(item)),
+        ) as DataItems<TValue, TKey>[];
+
+        return new Collection(results);
     }
 
     /**
@@ -315,12 +404,50 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      *
      * new Collection([1, 2, 3, 4]).diff([2, 4]); -> new Collection({0: 1, 2: 3})
      */
-    diff(
-        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
-    ): Collection<TValue, TKey> {
+    diff(items: DataItems<TValue, TKey> | Collection<TValue, TKey>) {
         return new Collection(
             dataDiff<TValue, TKey>(this.items, this.getArrayableItems(items)),
         );
+    }
+
+    /**
+     * Get the items in the collection that are not present in the given items, using the callback.
+     *
+     * @param items - The items to diff against
+     * @param callback - The callback function to determine equality
+     * @returns A new collection with the difference
+     *
+     * @example
+     *
+     * new Collection([{id: 1}, {id: 2}, {id: 3}]).diffUsing([{id: 2}], (a, b) => a.id === b.id); -> new Collection({0: {id: 1}, 2: {id: 3}})
+     * new Collection(['apple', 'banana', 'cherry']).diffUsing(['banana'], (a, b) => a === b); -> new Collection({0: 'apple', 2: 'cherry'})
+     */
+    diffUsing(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+        callback: (a: TValue, b: TValue) => boolean,
+    ) {
+        const otherItems = this.getArrayableItems(items);
+        const results = {} as DataItems<TValue, TKey>;
+
+        for (const [key, value] of Object.entries(
+            this.items as Record<TKey, TValue>,
+        )) {
+            let found = false;
+            for (const otherValue of Object.values(
+                otherItems as Record<TKey, TValue>,
+            )) {
+                if (callback(value as TValue, otherValue as TValue)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                (results as Record<TKey, TValue>)[key as TKey] =
+                    value as TValue;
+            }
+        }
+
+        return new Collection(results);
     }
 
     /**
@@ -336,10 +463,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     filter(
         callback?: ((value: TValue, key: string | number) => boolean) | null,
-    ): Collection<TValue> {
-        return new Collection<TValue>(
-            dataFilter(this.items, callback) as DataItems<TValue, TKey>,
-        );
+    ) {
+        return new Collection(dataFilter(this.items, callback));
     }
 
     /**
