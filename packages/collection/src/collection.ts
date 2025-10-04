@@ -722,13 +722,10 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection({a: 1, b: 2, c: 3}).get('d', 'default'); -> 'default'
      */
     get<TGetDefault = null>(
-        key: string | number,
+        key: PathKey,
         defaultValue?: TGetDefault | (() => TGetDefault),
     ): TValue | TGetDefault | null {
-        return dataGet(this.items, key, defaultValue) as
-            | TValue
-            | TGetDefault
-            | null;
+        return dataGet(this.items, key, defaultValue);
     }
 
     /**

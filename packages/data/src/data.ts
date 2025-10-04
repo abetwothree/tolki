@@ -506,13 +506,13 @@ export function dataFrom(items: unknown): unknown[] | Record<string, unknown> {
  * dataGet([1, 2, 3], 1, 'default'); -> 2
  * dataGet({a: 1, b: 2}, 'c', 'default'); -> 'default'
  */
-export function dataGet<T, K extends ObjectKey = ObjectKey, D = null>(
-    data: DataItems<T, K>,
+export function dataGet<TValue, TKey extends ObjectKey = ObjectKey, TGetDefault = null>(
+    data: DataItems<TValue, TKey>,
     key: PathKey,
-    defaultValue?: D,
-): T | D | null {
+    defaultValue?: TGetDefault | (() => TGetDefault),
+): TValue | TGetDefault | null {
     if (isObject(data)) {
-        return objGet(data as Record<K, T>, key as string, defaultValue);
+        return objGet(data as Record<TKey, TValue>, key as string, defaultValue);
     }
 
     return arrGet(arrWrap(data), key as number, defaultValue);
