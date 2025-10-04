@@ -20,6 +20,7 @@ import {
     exists as objExists,
     take as objTake,
     flatten as objFlatten,
+    flip as objFlip,
     float as objFloat,
     forget as objForget,
     from as objFrom,
@@ -79,6 +80,7 @@ import {
     exists as arrExists,
     take as arrTake,
     flatten as arrFlatten,
+    flip as arrFlip,
     float as arrFloat,
     forget as arrForget,
     from as arrFrom,
@@ -401,13 +403,23 @@ export function dataTake<T, K extends ObjectKey = ObjectKey>(
  */
 export function dataFlatten<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
-    depth = Infinity,
-): unknown {
+    depth: number = Infinity,
+) {
     if (isObject(data)) {
-        return objFlatten(data as Record<K, T>, depth);
+        return objFlatten<T, K>(data, depth);
     }
 
     return arrFlatten(arrWrap(data), depth);
+}
+
+export function dataFlip<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+) {
+    if (isObject(data)) {
+        return objFlip(data as Record<K, T>);
+    }
+
+    return arrFlip(arrWrap(data));
 }
 
 /**

@@ -21,6 +21,7 @@ import {
     isFunction,
 } from "@laravel-js/utils";
 import type { ArrayInnerValue, ArrayItems } from "@laravel-js/types";
+import {flip as objFlip} from "@laravel-js/obj";
 
 /**
  * Determine whether the given value is array accessible.
@@ -542,15 +543,14 @@ export function take<T>(
  * flatten([1, [2, [3, 4]], 5]); -> [1, 2, 3, 4, 5]
  * flatten([1, [2, [3, 4]], 5], 1); -> [1, 2, [3, 4], 5]
  */
-export function flatten<T>(data: ReadonlyArray<T>, depth?: number): unknown[];
-export function flatten(
-    data: ReadonlyArray<unknown>,
+export function flatten<TValue>(
+    data: ArrayItems<TValue>,
     depth: number = Infinity,
-): unknown[] {
-    const result: unknown[] = [];
+): TValue[] {
+    const result: TValue[] = [];
 
     for (const item of data) {
-        if (!isArray(item)) {
+        if (!isArray(item)) { 
             result.push(item);
             continue;
         }
@@ -561,7 +561,42 @@ export function flatten(
                 : flatten(item as ReadonlyArray<unknown>, depth - 1);
 
         for (const value of values) {
-            result.push(value);
+            result.push(value as TValue);
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Flip the keys and values of an array or array of objects.
+ * 
+ * @param data - The array of items to flip
+ * @return - the data items flipped
+ *
+ * @example
+ * flip(['a', 'b', 'c']); -> [{a: 0}, {b: 1}, {c: 2}]
+ * flip([{one: 'b', two: {hi: 'hello', skip: 'bye'}}]); -> [{b: 'one', {hello: 'hi', bye: 'skip'}}]
+ */
+export function flip<TValue>(
+    data: ArrayItems<TValue>,
+){
+    if (!accessible(data)) {
+        return [];
+    }
+    
+    // flip the object keys as values and values as keys
+    // for values that are nested, the keys should be flipped recursively
+    // e.g [{one: 'b', two: {hi: 'hello', skip: 'bye'}}] -> [{b: 'one', {hello: 'hi', bye: 'skip'}}]
+    const result = [];
+
+    for (const item of data) {
+        if (isObject(item) && !isArray(item)) {
+            result.push(objFlip(item as Record<string, unknown>));
+        } else {
+            // for non-objects, just flip the value and key
+            // e.g ['a', 'b', 'c'] -> [{a: 0}, {b: 1}, {c: 2}]
+            result.push({ [String(item)]: data.indexOf(item) });
         }
     }
 

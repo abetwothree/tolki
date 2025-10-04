@@ -14,9 +14,16 @@ export default defineConfig({
         outDir: "dist",
         rollupOptions: {
             external: [
+                "@laravel-js/all",
+                "@laravel-js/arr",
                 "@laravel-js/collection",
-                "@laravel-js/str",
+                "@laravel-js/data",
                 "@laravel-js/num",
+                "@laravel-js/obj",
+                "@laravel-js/path",
+                "@laravel-js/str",
+                "@laravel-js/types",
+                "@laravel-js/utils",
                 "@types/lodash-es",
                 "@types/pluralize",
                 "any-ascii",

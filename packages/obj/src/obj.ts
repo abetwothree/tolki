@@ -10,6 +10,7 @@ import {
 import type { PathKey, PathKeys, ObjectKey } from "packages/types";
 import { isArray, isObject, typeOf, isFunction } from "@laravel-js/utils";
 import { Random, Str } from "@laravel-js/str";
+import { flip as arrFlip } from "@laravel-js/arr";
 
 /**
  * Determine whether the given value is object accessible.
@@ -502,12 +503,13 @@ export function take<T extends Record<string, unknown>>(
  * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }); -> { a: 1, 'b.c': 2, 'b.d.e': 3 }
  * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }, 1); -> { a: 1, 'b.c': 2, 'b.d': { e: 3 } }
  */
-export function flatten(
-    data: Record<string, unknown> | unknown,
+export function flatten<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | TValue,
     depth: number = Infinity,
-): Record<string, unknown> {
+): Record<TKey, TValue>
+{
     if (!accessible(data)) {
-        return {};
+        return {} as Record<TKey, TValue>;
     }
 
     const result: Record<string, unknown> = {};
@@ -533,6 +535,51 @@ export function flatten(
     };
 
     flattenRecursive(data as Record<string, unknown>, depth);
+
+    return result as Record<TKey, TValue>;
+}
+
+/**
+ * Flip the keys and values of an object recursively
+ * 
+ * @param data - The object of items to flip
+ * @return - the data items flipped
+ *
+ * @example
+ * flip({one: 'b', two: {hi: 'hello', skip: 'bye'}}); -> {b: 'one', {hello: 'hi', bye: 'skip'}}
+ */
+export function flip<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>,
+){
+    if (!accessible(data)) {
+        return {};
+    }
+
+    // flip the object keys as values and values as keys
+    // for values that are nested, the keys should be flipped recursively
+    // e.g {one: 'b', two: {hi: 'hello', skip: 'bye'}} -> {b: 'one', {hello: 'hi', bye: 'skip'}}
+    // if the value is an array, call arrFlip
+    const result: Record<string, unknown> = {};
+
+    const flipRecursive = (
+        obj: Record<string, unknown>,
+        prefix: string = "",
+    ) => {
+        for (const [key, value] of Object.entries(obj)) {
+            const newKey = prefix ? `${prefix}.${key}` : key;
+
+            if (isObject(value)) {
+                flipRecursive(value as Record<string, unknown>, newKey);
+            } else if(isArray(value)){
+                result[key as string] = arrFlip(value);
+            } else {
+                result[value as string] = newKey;
+            }
+        }
+    };
+
+    flipRecursive(data as Record<string, unknown>);
+
     return result;
 }
 

@@ -1,7 +1,7 @@
 import { parseSegments, hasPath, getRaw, forgetKeys, forgetKeysObject, forgetKeysArray, setImmutable, pushWithPath, dotFlatten, dotFlattenObject, dotFlattenArray, undotExpand, undotExpandObject, undotExpandArray, getNestedValue, getMixedValue, setMixed, pushMixed, setMixedImmutable, hasMixed, getObjectValue, setObjectValue, hasObjectKey } from '@laravel-js/path';
 import { format, parse, parseInt, parseFloat, spell, ordinal, spellOrdinal, percentage, currency, fileSize, forHumans, summarize, clamp, pairs, trim, minutesToHuman, secondsToHuman, withLocale, withCurrency, useLocale, useCurrency, defaultLocale, defaultCurrency } from '@laravel-js/num';
 import { isArray, isObject, isString, isNumber, isBoolean, isFunction, isUndefined, isSymbol, isNull, typeOf, castableToArray, compareValues, resolveDefault, normalizeToArray, isAccessibleData, getAccessibleValues } from '@laravel-js/utils';
-import { dataAdd, dataArray, dataItem, dataBoolean, dataCollapse, dataCrossJoin, dataDivide, dataDot, dataUndot, dataExcept, dataExists, dataTake, dataFlatten, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataEvery, dataSome, dataInteger, dataJoin, dataKeyBy, dataPrependKeysWith, dataOnly, dataSelect, dataMapWithKeys, dataMapSpread, dataPrepend, dataPull, dataQuery, dataRandom, dataSet, dataPush, dataShuffle, dataSole, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataToCssClasses, dataToCssStyles, dataWhere, dataReject, dataPartition, dataWhereNotNull, dataValues, dataKeys, dataFilter, dataMap, dataFirst, dataLast, dataContains, dataDiff, dataPluck } from '@laravel-js/data';
+import { dataAdd, dataArray, dataItem, dataBoolean, dataCollapse, dataCrossJoin, dataDivide, dataDot, dataUndot, dataExcept, dataExists, dataTake, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataEvery, dataSome, dataInteger, dataJoin, dataKeyBy, dataPrependKeysWith, dataOnly, dataSelect, dataMapWithKeys, dataMapSpread, dataPrepend, dataPull, dataQuery, dataRandom, dataSet, dataPush, dataShuffle, dataSole, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataToCssClasses, dataToCssStyles, dataWhere, dataReject, dataPartition, dataWhereNotNull, dataValues, dataKeys, dataFilter, dataMap, dataFirst, dataLast, dataContains, dataDiff, dataPluck } from '@laravel-js/data';
 import type {
     DataItems,
     ObjectKey,
@@ -603,7 +603,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([1, 2, 3, 4]).except(new Collection([0, 2])); -> new Collection([1, 3])
      */
     except(keys: PathKeys | Collection<TKey>){
-        if(isNull(keys)){
+        if(isNull(keys) || isUndefined(keys)){
             return new Collection(this.items);
         }
         
@@ -629,11 +629,106 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         return new Collection(dataFilter(this.items, callback));
     }
     
+    /**
+     * Get the first item from the collection passing the given truth test.
+     * 
+     * @param callback - The callback function to test with, or null
+     * @param defaultValue - The default value to return if no item is found
+     * @returns The first matching item or default value
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).first(); -> 1
+     * new Collection([1, 2, 3, 4]).first(x => x > 2); -> 3
+     * new Collection([]).first(null, 'default'); -> 'default'
+     * new Collection({a: 1, b: 2, c: 3}).first(); -> 1
+     * new Collection({a: 1, b: 2, c: 3, d: 4}).first(x => x > 2); -> 3
+     */
     first<TFirstDefault>(
         callback: ((value: TValue, key: TKey) => boolean) | null = null,
         defaultValue?: TFirstDefault | (() => TFirstDefault),
     ){
-        return dataFirst<TValue, TKey, TFirstDefault>(this.items, callback, defaultValue)
+        return dataFirst<TValue, TKey, TFirstDefault>(this.items, callback, defaultValue);
+    }
+
+    /**
+     * Get a flattened array of the items in the collection.
+     * 
+     * @param depth - The depth to flatten to, defaults to Infinity
+     * @returns A new collection with flattened items
+     * 
+     * @example
+     * 
+     * new Collection([1, [2, [3, 4]], 5]).flatten(); -> new Collection([1, 2, 3, 4, 5])
+     * new Collection([1, [2, [3, 4]], 5]).flatten(1); -> new Collection([1, 2, [3, 4], 5])
+     * new Collection({a: 1, b: {c: 2, d: {e: 3}}}).flatten(); -> new Collection({a: 1, c: 2, e: 3})
+     * new Collection({a: 1, b: {c: 2, d: {e: 3}}}).flatten(1); -> new Collection({a: 1, c: 2, d: {e: 3}})
+     */
+    flatten(depth: number = Infinity) {
+        return new Collection(dataFlatten(this.items, depth) as DataItems<TValue, TKey>);
+    }
+
+    /**
+     * Flip the items in the collection.
+     * 
+     * @returns A new collection with flipped items
+     *
+     * @example
+     *
+     * new Collection([1, 2, 3]).flip(); -> new Collection([{1: 0}, {2: 1}, {3: 2}])
+     * new Collection([{one: 'b', two: {hi: 'hello', skip: 'bye'}}]).flip(); -> new Collection([{b: 'one', {hello: 'hi', bye: 'skip'}}])
+     */
+    flip() {
+        return new Collection(dataFlip(this.items));
+    }
+
+    /**
+     * Remove one or more items from the collection by key or keys.
+     * 
+     * @param keys - The key or keys to remove, or a collection of keys
+     * @returns The collection instance after removing the specified keys
+     * 
+     * @example
+     * 
+     * new Collection({a: 1, b: 2, c: 3}).forget('b'); -> new Collection({a: 1, c: 3})
+     * new Collection({a: 1, b: 2, c: 3}).forget(['a', 'c']); -> new Collection({b: 2})
+     * new Collection({a: 1, b: 2, c: 3}).forget(new Collection(['a', 'c'])); -> new Collection({b: 2})
+     * new Collection([1, 2, 3, 4]).forget(1); -> new Collection([1, 3, 4])
+     * new Collection([1, 2, 3, 4]).forget([0, 2]); -> new Collection([2, 4])
+     * new Collection([1, 2, 3, 4]).forget(new Collection([0, 2])); -> new Collection([2, 4])
+     */
+    forget(keys: PathKeys | Collection<TKey>){
+        if(isNull(keys) || isUndefined(keys)){
+            return new Collection(this.items);
+        }
+        
+        keys = this.getArrayableItems(keys) as PathKey[];
+
+        this.items = dataForget(this.items, keys);
+
+        return this;
+    }
+
+    /**
+     * Get an item from the collection by key.
+     *
+     * @param key - The key to get
+     * @param defaultValue - The default value to return if key doesn't exist
+     * @returns The value at the key or default value
+     *
+     * @example
+     *
+     * new Collection({a: 1, b: 2, c: 3}).get('b'); -> 2
+     * new Collection({a: 1, b: 2, c: 3}).get('d', 'default'); -> 'default'
+     */
+    get<TGetDefault = null>(
+        key: string | number,
+        defaultValue?: TGetDefault | (() => TGetDefault),
+    ): TValue | TGetDefault | null {
+        return dataGet(this.items, key, defaultValue) as
+            | TValue
+            | TGetDefault
+            | null;
     }
 
     /**
@@ -647,7 +742,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([1, 2, 3]).isEmpty(); -> false
      */
     isEmpty(): boolean {
-        return Object.keys(this.items).length === 0;
+        return isArray(this.items) ? this.items.length === 0 : Object.keys(this.items).length === 0;
     }
 
     /**
@@ -751,29 +846,6 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     ): TValue | D | null {
         const result = dataLast(this.items, callback, defaultValue);
         return result === undefined ? null : result;
-    }
-
-    /**
-     * Get an item from the collection by key.
-     *
-     * @param key - The key to get
-     * @param defaultValue - The default value to return if key doesn't exist
-     * @returns The value at the key or default value
-     *
-     * @example
-     *
-     * new Collection({a: 1, b: 2, c: 3}).get('b'); -> 2
-     * new Collection({a: 1, b: 2, c: 3}).get('d', 'default'); -> 'default'
-     */
-    get<D = null>(
-        key: string | number,
-        defaultValue?: D | (() => D),
-    ): TValue | D | null {
-        const result = dataGet(this.items, key, defaultValue) as
-            | TValue
-            | D
-            | null;
-        return result;
     }
 
     /**
