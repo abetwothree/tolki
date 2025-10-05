@@ -973,20 +973,20 @@ export function dataRandom<T, K extends ObjectKey = ObjectKey>(
  * dataSet([1, 2, 3], 1, 'new'); -> [1, 'new', 3]
  * dataSet({a: 1, b: 2}, 'c', 3); -> {a: 1, b: 2, c: 3}
  */
-export function dataSet<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataSet<TValue, TKey extends ObjectKey = ObjectKey, TSet = T>(
+    data: DataItems<TValue, TKey>,
     key: PathKey,
-    value: T,
-): DataItems<T, K> {
+    value: TSet,
+): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objSet(
-            data as Record<string, T>,
+            data as Record<string, TValue>,
             key as string,
             value,
-        ) as DataItems<T, K>;
+        ) as DataItems<TValue, TKey>;
     }
 
-    return arrSet(arrWrap(data), key as number, value) as DataItems<T>;
+    return arrSet(arrWrap(data), key as number, value) as DataItems<TValue, TKey>;
 }
 
 /**

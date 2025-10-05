@@ -10,6 +10,7 @@ import type {
     PropertyName,
     PathKeys,
     PathKey,
+    ArrayItems,
 } from "@laravel-js/types";
 import { LazyCollection } from "./lazy-collection";
 import { initProxyHandler } from "./proxy";
@@ -729,6 +730,41 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     }
 
     /**
+     * Get an item from the collection by key or add it to collection if it does not exist.
+     * 
+     * @param key - The key to get or add
+     * @param value - The value to add if the key does not exist, or a callback function that returns the value
+     * @returns The value at the key or the newly added value
+     * 
+     * @example
+     * 
+     * new Collection({a: 1, b: 2}).getOrPut('b', 3); -> 2
+     * new Collection({a: 1, b: 2}).getOrPut('c', 3); -> 3, collection is now {a: 1, b: 2, c: 3}
+     * new Collection([1, 2, 3]).getOrPut(3, () => 4); -> 4, collection is now [1, 2, 3, 4]
+     */
+    getOrPut<TGetOrPutValue>(
+        key: PathKey, 
+        value: TGetOrPutValue | (() => TGetOrPutValue),
+    ): TValue | TGetOrPutValue{
+        if(this.has(key)){
+            return this.get(key) as TValue;
+        }
+
+        if(isFunction(value)){
+            value = value();
+        }
+
+        this.items = dataSet(this.items, key, value);
+
+        return value;
+    }
+
+    groupBy<TGroupKey>(
+        groupBy: ((value: TValue, index: TKey) => TGroupKey) | ArrayItems<TValue> | string,
+        preserveKeys: boolean = false,
+    ){}
+
+    /**
      * Determine if the collection is empty or not.
      *
      * @returns True if the collection is empty, false otherwise
@@ -857,7 +893,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection({a: 1, b: 2, c: 3}).has(['a', 'b']); -> true
      * new Collection({a: 1, b: 2, c: 3}).has(['a', 'd']); -> false
      */
-    has(key: string | number | (string | number)[]): boolean {
+    has(key: PathKey): boolean {
         if (isArray(key)) {
             return dataHasAll(this.items, key);
         }
