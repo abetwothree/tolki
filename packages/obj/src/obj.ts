@@ -1253,23 +1253,27 @@ export function map<T, U>(
  * mapWithKeys({ user1: { id: 1, name: 'John' } }, (item) => ({ [item.name]: item.id })); -> { John: 1 }
  * mapWithKeys({ a: 'x', b: 'y' }, (value, key) => ({ [value]: key })); -> { x: 'a', y: 'b' }
  */
-export function mapWithKeys<T, K extends string | number, V>(
-    data: Record<string, T> | unknown,
-    callback: (value: T, key: string) => Record<K, V>,
-): Record<K, V> {
+export function mapWithKeys<
+    TValue, 
+    TMapWithKeysValue,
+    TKey extends ObjectKey = ObjectKey,
+    TMapWithKeysKey extends ObjectKey = ObjectKey,
+>(
+    data: Record<TKey, TValue> | unknown,
+    callback: (value: TValue, key: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
+): Record<TMapWithKeysKey, TMapWithKeysValue> {
     if (!accessible(data)) {
-        return {} as Record<K, V>;
+        return {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
 
-    const obj = data as Record<string, T>;
-    const result: Record<K, V> = {} as Record<K, V>;
+    const obj = data as Record<string, TValue>;
+    const result: Record<TMapWithKeysKey, TMapWithKeysValue> = {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
 
     for (const [key, value] of Object.entries(obj)) {
-        const mappedObject = callback(value, key);
-
-        // Merge all key/value pairs from the returned object
+        const mappedObject = callback(value, key as TKey);
+        
         for (const [mapKey, mapValue] of Object.entries(mappedObject)) {
-            result[mapKey as K] = mapValue as V;
+            result[mapKey as TMapWithKeysKey] = mapValue as TMapWithKeysValue;
         }
     }
 

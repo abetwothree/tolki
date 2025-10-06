@@ -809,21 +809,26 @@ export function dataSelect(data: unknown, keys: string[]): unknown {
  * dataMapWithKeys([1, 2], (value, index) => [`key_${index}`, value * 2]);
  * -> {key_0: 2, key_1: 4}
  */
-export function dataMapWithKeys<T, V, K extends ObjectKey = ObjectKey>(
+export function dataMapWithKeys<
+    TValue, 
+    TMapWithKeysValue,
+    TKey extends ObjectKey = ObjectKey,
+    TMapWithKeysKey extends ObjectKey = ObjectKey,
+>(
     data: unknown,
-    callback: (value: T, key: string | number) => [K, V],
-): Record<K, V> {
+    callback: (value: TValue, key: TKey) => [TMapWithKeysKey, TMapWithKeysValue] | Record<TMapWithKeysKey, TMapWithKeysValue>,
+): Record<TMapWithKeysKey, TMapWithKeysValue> {
     if (isObject(data)) {
         return objMapWithKeys(
-            data as Record<string, T>,
-            callback as (value: T, key: string) => Record<K, V>,
-        ) as Record<K, V>;
+            data as Record<string, TValue>,
+            callback as (value: TValue, key: string) => Record<TMapWithKeysKey, TMapWithKeysValue>,
+        ) as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
 
     return arrMapWithKeys(
-        arrWrap(data) as T[],
-        callback as (value: T, index: number) => Record<K, V>,
-    ) as Record<K, V>;
+        arrWrap(data) as TValue[],
+        callback as (value: TValue, index: number) => [TMapWithKeysKey, TMapWithKeysValue],
+    ) as Record<TMapWithKeysKey, TMapWithKeysValue>;
 }
 
 /**

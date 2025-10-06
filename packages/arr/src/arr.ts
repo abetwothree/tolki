@@ -20,7 +20,7 @@ import {
     castableToArray,
     isFunction,
 } from "@laravel-js/utils";
-import type { ArrayInnerValue, ArrayItems } from "@laravel-js/types";
+import type { ArrayInnerValue, ArrayItems, ObjectKey } from "@laravel-js/types";
 import {flip as objFlip} from "@laravel-js/obj";
 
 /**
@@ -1215,23 +1215,28 @@ export function map<T, U>(
  * mapWithKeys([{id: 1, name: 'John'}], (item) => ({[item.name]: item.id})); -> {John: 1}
  * mapWithKeys(['a', 'b'], (value, index) => ({[value]: index})); -> {a: 0, b: 1}
  */
-export function mapWithKeys<T, K extends string | number, V>(
-    data: ReadonlyArray<T> | unknown,
-    callback: (value: T, index: number) => Record<K, V>,
-): Record<K, V> {
+export function mapWithKeys<
+    TValue,
+    TMapWithKeysValue,
+    TKey extends number = number,
+    TMapWithKeysKey extends ObjectKey = ObjectKey,
+>(
+    data: ReadonlyArray<TValue> | unknown,
+    callback: (value: TValue, index: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
+): Record<TMapWithKeysKey, TMapWithKeysValue> {
     if (!accessible(data)) {
-        return {} as Record<K, V>;
+        return {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
 
-    const values = data as ReadonlyArray<T>;
-    const result: Record<K, V> = {} as Record<K, V>;
+    const values = data as ReadonlyArray<TValue>;
+    const result = {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
 
     for (let i = 0; i < values.length; i++) {
-        const mappedObject = callback(values[i] as T, i);
+        const mappedObject = callback(values[i] as TValue, i as TKey);
 
         // Merge all key/value pairs from the returned object
         for (const [mapKey, mapValue] of Object.entries(mappedObject)) {
-            result[mapKey as K] = mapValue as V;
+            result[mapKey as TMapWithKeysKey] = mapValue as TMapWithKeysValue;
         }
     }
 

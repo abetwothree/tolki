@@ -1,7 +1,7 @@
 import { parseSegments, hasPath, getRaw, forgetKeys, forgetKeysObject, forgetKeysArray, setImmutable, pushWithPath, dotFlatten, dotFlattenObject, dotFlattenArray, undotExpand, undotExpandObject, undotExpandArray, getNestedValue, getMixedValue, setMixed, pushMixed, setMixedImmutable, hasMixed, getObjectValue, setObjectValue, hasObjectKey } from '@laravel-js/path';
 import { format, parse, parseInt, parseFloat, spell, ordinal, spellOrdinal, percentage, currency, fileSize, forHumans, summarize, clamp, pairs, trim, minutesToHuman, secondsToHuman, withLocale, withCurrency, useLocale, useCurrency, defaultLocale, defaultCurrency } from '@laravel-js/num';
 import { isArray, isObject, isString, isNumber, isBoolean, isFunction, isUndefined, isSymbol, isNull, typeOf, castableToArray, compareValues, resolveDefault, normalizeToArray, isAccessibleData, getAccessibleValues, isStringable } from '@laravel-js/utils';
-import { dataAdd, dataArray, dataItem, dataBoolean, dataCollapse, dataCrossJoin, dataDivide, dataDot, dataUndot, dataExcept, dataExists, dataTake, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataEvery, dataSome, dataInteger, dataJoin, dataKeyBy, dataPrependKeysWith, dataOnly, dataSelect, dataMapWithKeys, dataMapSpread, dataPrepend, dataPull, dataQuery, dataRandom, dataSet, dataPush, dataShuffle, dataSole, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataToCssClasses, dataToCssStyles, dataWhere, dataReject, dataPartition, dataWhereNotNull, dataValues, dataKeys, dataFilter, dataMap, dataFirst, dataLast, dataContains, dataDiff, dataPluck, dataIntersect, dataIntersectByKeys } from '@laravel-js/data';
+import { dataAdd, dataArray, dataItem, dataBoolean, dataCollapse, dataCrossJoin, dataDivide, dataDot, dataUndot, dataExcept, dataExists, dataTake, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataEvery, dataSome, dataInteger, dataJoin, dataKeyBy, dataPrependKeysWith, dataOnly, dataSelect, dataMapWithKeys, dataMapSpread, dataPrepend, dataPull, dataQuery, dataRandom, dataSet, dataPush, dataShuffle, dataSole, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataToCssClasses, dataToCssStyles, dataWhere, dataReject, dataPartition, dataWhereNotNull, dataValues, dataKeys, dataFilter, dataMap, dataFirst, dataLast, dataContains, dataDiff, dataPluck, dataIntersect, dataIntersectByKeys, dataMapToDictionary } from '@laravel-js/data';
 import type {
     DataItems,
     ObjectKey,
@@ -1196,6 +1196,67 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         callback: (value: TValue, key: TKey) => TMapValue,
     ): Collection<TMapValue> {
         return new Collection<TMapValue>(dataMap(this.items, callback));
+    }
+
+    /**
+     * Run a dictionary map over the items.
+     *
+     * The callback should return an array with two elements: [key, value] or an object with a single key/value pair.
+     * 
+     * @param callback - The callback function to map with
+     * @returns A new collection with mapped items as a dictionary
+     * 
+     * @example
+     * 
+     * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).mapToDictionary(item => ({[item.id]: item.name})); -> new Collection({1: 'John', 2: 'Jane'})
+     * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).mapToDictionary(item => [item.id, item.name]); -> new Collection({1: 'John', 2: 'Jane'})
+     */
+    mapToDictionary<TMapToDictionaryValue, TMapToDictionaryKey extends ObjectKey = ObjectKey>(
+        callback: (value: TValue, key: TKey) => Record<TMapToDictionaryKey, TMapToDictionaryValue>,
+    ){
+        const dictionary = {} as Record<TMapToDictionaryKey, TMapToDictionaryValue>;
+
+        for (const [key, value] of Object.entries(
+            this.items as Record<TKey, TValue>,
+        )) {
+            const mapped = callback(value as TValue, key as TKey);
+
+            if(isArray(mapped)){
+                if(mapped.length !== 2){
+                    throw new Error('When returning an array from the mapToDictionary callback, it must have exactly two elements: [key, value]');
+                }
+
+                const [mappedKey, mappedValue] = mapped;
+
+                dictionary[mappedKey as TMapToDictionaryKey] = mappedValue as TMapToDictionaryValue;
+                continue;
+            }
+
+            for(const [mappedKey, mappedValue] of Object.entries(mapped)){
+                dictionary[mappedKey as TMapToDictionaryKey] = mappedValue as TMapToDictionaryValue;
+            }
+        }
+
+        return new Collection(dictionary);
+    }
+
+    /**
+     * Run an associative map over each of the items.
+     *
+     * The callback should return an object with a single key/value pair.
+     * 
+     * @param callback - The callback function to map with
+     * @returns A new collection with mapped items as an associative array
+     * 
+     * @example
+     * 
+     * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).mapWithKeys(item => ({[item.id]: item.name})); -> new Collection({1: 'John', 2: 'Jane'})
+     * new Collection(['apple', 'banana']).mapWithKeys((item, index) => ({[index]: item.toUpperCase()})); -> new Collection({0: 'APPLE', 1: 'BANANA'})
+     */
+    mapWithKeys<TMapWithKeysValue, TMapWithKeysKey extends ObjectKey = ObjectKey>(
+        callback: (value: TValue, key: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
+    ){
+        return new Collection(dataMapWithKeys(this.items, callback));
     }
 
     /**
