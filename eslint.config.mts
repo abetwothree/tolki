@@ -6,6 +6,7 @@ import markdown from "@eslint/markdown";
 import css from "@eslint/css";
 import { defineConfig } from "eslint/config";
 import oxlint from "eslint-plugin-oxlint";
+import simpleImportSort from "eslint-plugin-simple-import-sort";
 
 export default defineConfig([
     {
@@ -53,5 +54,16 @@ export default defineConfig([
         language: "css/css",
         extends: ["css/recommended"],
     },
+
+    {
+        plugins: {
+            "simple-import-sort": simpleImportSort,
+        },
+        rules: {
+            "simple-import-sort/imports": "error",
+            "simple-import-sort/exports": "error",
+        },
+    },
+
     ...oxlint.buildFromOxlintConfigFile("./.oxlintrc.json"),
 ]);

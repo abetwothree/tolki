@@ -973,7 +973,7 @@ export function dataRandom<T, K extends ObjectKey = ObjectKey>(
  * dataSet([1, 2, 3], 1, 'new'); -> [1, 'new', 3]
  * dataSet({a: 1, b: 2}, 'c', 3); -> {a: 1, b: 2, c: 3}
  */
-export function dataSet<TValue, TKey extends ObjectKey = ObjectKey, TSet = T>(
+export function dataSet<TValue, TKey extends ObjectKey = ObjectKey, TSet = TValue>(
     data: DataItems<TValue, TKey>,
     key: PathKey,
     value: TSet,
@@ -1438,21 +1438,21 @@ export function dataFilter<T, K extends ObjectKey = ObjectKey>(
  * Data.map([1, 2, 3], (value) => value * 2); -> [2, 4, 6]
  * Data.map({a: 1, b: 2}, (value) => value * 2); -> {a: 2, b: 4}
  */
-export function dataMap<T, U, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
-    callback: (value: T, key: string | number) => U,
-): DataItems<U, K> {
+export function dataMap<TMapValue, TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    callback: (value: TValue, key: TKey) => TMapValue,
+): DataItems<TMapValue, TKey> {
     if (isObject(data)) {
         return objMap(
-            data as Record<string, T>,
-            callback as (value: T, key: string) => U,
-        ) as DataItems<U, K>;
+            data as Record<string, TValue>,
+            callback as (value: TValue, key: string) => TMapValue,
+        ) as DataItems<TMapValue, TKey>;
     }
 
     return arrMap(
         arrWrap(data),
-        callback as (value: T, index: number) => U,
-    ) as DataItems<U>;
+        callback as (value: TValue, index: number) => TMapValue,
+    ) as DataItems<TMapValue, TKey>;
 }
 
 /**
@@ -1627,4 +1627,37 @@ export function dataPluck<T, K extends ObjectKey = ObjectKey>(
         value as string | ((item: Record<K, T>) => T),
         key as string | ((item: Record<K, T>) => string | number) | null,
     ) as DataItems<T>;
+}
+
+export function dataIntersect<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    other: DataItems<TValue, TKey>,
+    callable: ((a: TValue, b: TValue) => boolean) | null = null,
+): DataItems<TValue, TKey> {
+    if (isObject(data) && isObject(other)) {
+        return objIntersect(
+            data as Record<string, TValue>,
+            other as Record<string, TValue>,
+            callable,
+        ) as DataItems<TValue, TKey>;
+    }
+
+    return arrIntersect(arrWrap(data), arrWrap(other), callable) as DataItems<TValue>;
+}
+
+
+export function dataIntersectByKeys<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    other: DataItems<TValue, TKey>,
+    callable: ((a: TValue, b: TValue) => boolean) | null = null,
+){
+    if (isObject(data) && isObject(other)) {
+        return objIntersectByKeys(
+            data as Record<string, TValue>,
+            other as Record<string, TValue>,
+            callable,
+        ) as DataItems<TValue, TKey>;
+    }
+
+    return arrIntersectByKeys(arrWrap(data), arrWrap(other), callable) as DataItems<TValue>;
 }

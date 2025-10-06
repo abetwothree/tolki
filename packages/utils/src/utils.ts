@@ -45,6 +45,29 @@ export function isString(value: unknown): value is string {
 }
 
 /**
+ * Check if a value is stringable (can be converted to a string).
+ *
+ * @param value - The value to check
+ * @returns True if the value is stringable
+ * 
+ * @example
+ * 
+ * isStringable("hello"); -> true
+ * isStringable(new Stringable('test')); -> true
+ * isStringable({ toString: () => "world" }); -> true
+ * isStringable(123); -> false
+ * isStringable(null); -> false
+ */
+export function isStringable(value: unknown): value is string | { toString(): string } {
+    return (
+        typeof value === "string" ||
+        (value !== null &&
+            typeof value === "object" &&
+            typeof (value as { toString?: unknown }).toString === "function")
+    );
+}
+
+/**
  * Check if a value is a number (and not NaN).
  *
  * @param value - The value to check

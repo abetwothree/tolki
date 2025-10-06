@@ -1,7 +1,7 @@
 import { parseSegments, hasPath, getRaw, forgetKeys, forgetKeysObject, forgetKeysArray, setImmutable, pushWithPath, dotFlatten, dotFlattenObject, dotFlattenArray, undotExpand, undotExpandObject, undotExpandArray, getNestedValue, getMixedValue, setMixed, pushMixed, setMixedImmutable, hasMixed, getObjectValue, setObjectValue, hasObjectKey } from '@laravel-js/path';
 import { format, parse, parseInt, parseFloat, spell, ordinal, spellOrdinal, percentage, currency, fileSize, forHumans, summarize, clamp, pairs, trim, minutesToHuman, secondsToHuman, withLocale, withCurrency, useLocale, useCurrency, defaultLocale, defaultCurrency } from '@laravel-js/num';
-import { isArray, isObject, isString, isNumber, isBoolean, isFunction, isUndefined, isSymbol, isNull, typeOf, castableToArray, compareValues, resolveDefault, normalizeToArray, isAccessibleData, getAccessibleValues } from '@laravel-js/utils';
-import { dataAdd, dataArray, dataItem, dataBoolean, dataCollapse, dataCrossJoin, dataDivide, dataDot, dataUndot, dataExcept, dataExists, dataTake, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataEvery, dataSome, dataInteger, dataJoin, dataKeyBy, dataPrependKeysWith, dataOnly, dataSelect, dataMapWithKeys, dataMapSpread, dataPrepend, dataPull, dataQuery, dataRandom, dataSet, dataPush, dataShuffle, dataSole, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataToCssClasses, dataToCssStyles, dataWhere, dataReject, dataPartition, dataWhereNotNull, dataValues, dataKeys, dataFilter, dataMap, dataFirst, dataLast, dataContains, dataDiff, dataPluck } from '@laravel-js/data';
+import { isArray, isObject, isString, isNumber, isBoolean, isFunction, isUndefined, isSymbol, isNull, typeOf, castableToArray, compareValues, resolveDefault, normalizeToArray, isAccessibleData, getAccessibleValues, isStringable } from '@laravel-js/utils';
+import { dataAdd, dataArray, dataItem, dataBoolean, dataCollapse, dataCrossJoin, dataDivide, dataDot, dataUndot, dataExcept, dataExists, dataTake, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataEvery, dataSome, dataInteger, dataJoin, dataKeyBy, dataPrependKeysWith, dataOnly, dataSelect, dataMapWithKeys, dataMapSpread, dataPrepend, dataPull, dataQuery, dataRandom, dataSet, dataPush, dataShuffle, dataSole, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataToCssClasses, dataToCssStyles, dataWhere, dataReject, dataPartition, dataWhereNotNull, dataValues, dataKeys, dataFilter, dataMap, dataFirst, dataLast, dataContains, dataDiff, dataPluck, dataIntersect, dataIntersectByKeys } from '@laravel-js/data';
 import type {
     DataItems,
     ObjectKey,
@@ -12,6 +12,7 @@ import type {
     PathKey,
     ArrayItems,
 } from "@laravel-js/types";
+import { wrap as arrWrap} from "@laravel-js/arr";
 import { LazyCollection } from "./lazy-collection";
 import { initProxyHandler } from "./proxy";
 
@@ -105,8 +106,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      *
      * @example
      *
-     * const collection = new Collection([1, 2, 3]);
-     * collection.all(); -> [1, 2, 3]
+     * new Collection([1, 2, 3]).all(); -> [1, 2, 3]
+     * new Collection({a: 1, b: 2}).all(); -> {a: 1, b: 2}
      */
     all() {
         return this.items;
@@ -759,10 +760,296 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         return value;
     }
 
-    groupBy<TGroupKey>(
-        groupBy: ((value: TValue, index: TKey) => TGroupKey) | ArrayItems<TValue> | string,
+    /**
+     * Group an array or object by a field or using a callback, array of keys, or key/index
+     * 
+     * @param groupByValue - The key to group by, a callback function, or an array of keys/callbacks for nested grouping
+     * @param preserveKeys - Whether to preserve the original keys in the grouped collections
+     * @returns A new collection with grouped items
+     * 
+     * @example
+     * 
+     * new Collection([{age: 20}, {age: 30}]).groupBy('age'); -> new Collection({20: Collection([{age: 20}]), 30: Collection([{age: 30}])})
+     * new Collection([{age: 20}, {age: 30}, {age: 20}]).groupBy('age', true); -> new Collection({20: Collection({0: {age: 20}, 2: {age: 20}}), 30: Collection({1: {age: 30}})})
+     * new Collection([{name: 'Alice', age: 20}, {name: 'Bob', age: 30}, {name: 'Charlie', age: 20}]).groupBy(['age', 'name']); -> new Collection({20: Collection({'Alice': Collection([{name: 'Alice', age: 20}]), 'Charlie': Collection([{name: 'Charlie', age: 20}])}), 30: Collection({'Bob': Collection([{name: 'Bob', age: 30}])})})
+     * new Collection([{name: 'Alice', age: 20}, {name: 'Bob', age: 30}, {name: 'Charlie', age: 20}]).groupBy([item => item.age, 'name'], true); -> new Collection({20: Collection({'0': Collection({0: {name: 'Alice', age: 20}}), '2': Collection({2: {name: 'Charlie', age: 20}})}), 30: Collection({'1': Collection({1: {name: 'Bob', age: 30}})})})
+     */
+    groupBy<TGroupKey extends TKey = TKey>(
+        groupByValue: ((value: TValue, index: TKey) => TGroupKey) | ArrayItems<TGroupKey> | string | number,
         preserveKeys: boolean = false,
-    ){}
+    ): Collection<Collection<TValue, TKey>, TGroupKey>
+    {
+
+        let nextGroups: ArrayItems<TGroupKey> | null = null;
+        if (!isFunction(groupByValue) && isArray(groupByValue)) {
+            nextGroups = groupByValue;
+            
+            groupByValue = nextGroups.shift();
+        }
+
+        groupByValue = this.valueRetriever(groupByValue);
+
+        const results = {} as Record<TGroupKey, Collection<TValue, TKey>>;
+
+        const normalizeGroupKey = (groupKey: unknown) => {
+            if (isBoolean(groupKey)) {
+                return groupKey ? 1 : 0;
+            }
+
+            if (isNull(groupKey) || isUndefined(groupKey)) {
+                return String(groupKey);
+            }
+
+            if (isObject(groupKey) || isArray(groupKey)) {
+                return JSON.stringify(groupKey);
+            }
+
+            return groupKey as TGroupKey | string | number;
+        }
+
+        for (const [key, value] of Object.entries(
+            this.items as Record<TKey, TValue>,
+        )) {
+            const groupKeys = arrWrap(groupByValue(value as TValue, key as TKey));
+
+            for (let groupKey of groupKeys) {
+                groupKey = normalizeGroupKey(groupKey);
+
+                if (!results[groupKey]) {
+                    results[groupKey] = new Collection();
+                }
+
+                results[groupKey]!.offsetSet(preserveKeys ? key : null, value);
+            }
+        }
+
+        const result = new Collection(results);
+
+        if (isArray(nextGroups) && nextGroups.length > 0) {
+            return result.map((group: Collection<TValue, TKey>) => {
+                return group.groupBy(nextGroups, preserveKeys);
+            });
+        }
+
+        return result;
+    }
+
+    /**
+     * Key an array or object by a field or using a callback, array, or key/index
+     * 
+     * @param keyByValue - The key to key by, or a callback function
+     * @returns A new collection with keyed items
+     * 
+     * @example
+     * 
+     * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).keyBy('id'); -> new Collection({1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}})
+     * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).keyBy(item => item.name); -> new Collection({'John': {id: 1, name: 'John'}, 'Jane': {id: 2, name: 'Jane'}})
+     * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).keyBy(['id', 'name']); -> new Collection({'1.John': {id: 1, name: 'John'}, '2.Jane': {id: 2, name: 'Jane'}})
+     */
+    keyBy<TNewKey extends TKey = TKey>(
+        keyByValue: ((value: TValue, index: TKey) => TNewKey) | ArrayItems<TNewKey> | string | number,
+    ){
+        keyByValue = this.valueRetriever(keyByValue);
+
+        const results = {} as Record<TNewKey, TValue>;
+
+        for (const [key, value] of Object.entries(
+            this.items as Record<TKey, TValue>,
+        )) {
+            let resolvedKey = keyByValue(value as TValue, key as TKey);
+
+            if(isObject(resolvedKey)){
+                resolvedKey = JSON.stringify(resolvedKey) as TNewKey;
+            }
+
+            if(isArray(resolvedKey)){
+                resolvedKey = resolvedKey.join('.') as TNewKey;
+            }
+            
+            (results as Record<TNewKey, TValue>)[resolvedKey as TNewKey] = value as TValue;
+        }
+
+        return new Collection(results);
+    }
+
+    /**
+     * Determine if an item exists in the collection by key.
+     *
+     * @param key - The key or keys to check for
+     * @returns True if all keys exist, false otherwise
+     *
+     * @example
+     *
+     * new Collection({a: 1, b: 2, c: 3}).has('a'); -> true
+     * new Collection({a: 1, b: 2, c: 3}).has(['a', 'b']); -> true
+     * new Collection({a: 1, b: 2, c: 3}).has(['a', 'd']); -> false
+     */
+    has(key: PathKey): boolean {
+        if (isArray(key)) {
+            return dataHasAll(this.items, key);
+        }
+
+        return dataHas(this.items, key);
+    }
+
+    /**
+     * Determine if any of the keys exist in the collection.
+     * 
+     * @param key - The key or keys to check for
+     * @returns True if any key exists, false otherwise
+     * 
+     * @example
+     * 
+     * new Collection({a: 1, b: 2, c: 3}).hasAny('a'); -> true
+     * new Collection({a: 1, b: 2, c: 3}).hasAny(['a', 'd']); -> true
+     * new Collection({a: 1, b: 2, c: 3}).hasAny(['d', 'e']); -> false
+     */
+    hasAny(key: PathKeys) {
+        if(this.isEmpty()){
+            return false;
+        }
+
+        return dataHasAny(this.items, key);
+    }
+
+    /**
+     * Concatenate values of a given key as a string.
+     * 
+     * @param value - The key to pluck values from, or a callback function to generate values
+     * @param glue - The string to join values with, defaults to an empty string
+     * @returns A string of concatenated values
+     * 
+     * @example
+     * 
+     * new Collection(['apple', 'banana', 'cherry']).implode(); -> 'applebananacherry'
+     * new Collection(['apple', 'banana', 'cherry']).implode(', '); -> 'apple, banana, cherry'
+     * new Collection([{name: 'John'}, {name: 'Jane'}]).implode('name', ', '); -> 'John, Jane'
+     * new Collection({a: {name: 'John'}, b: {name: 'Jane'}}).implode(item => item.name.toUpperCase(), ' - '); -> 'JOHN - JANE'
+     */
+    implode(
+        value: ((item: TValue, key: TKey) => unknown) | string | null = null,
+        glue: string | null = null,
+    ){
+        const joinItems = (items: Array<unknown> | Record<string, unknown>) => {
+            if(isArray(items)){
+                return items.join(glue ?? '');
+            }
+
+            return Object.values(items).join(glue ?? '');
+        }
+
+        if(isFunction(value)){
+            const items = this.map(value).all();
+
+            return joinItems(items);
+        }
+
+        const first = this.first();
+
+        if(!isNull(value)){
+            if(isArray(first) || (isObject(first) && !isStringable(first))){
+                const items = this.pluck(value).all();
+
+                return joinItems(items);
+            }
+        }
+
+        return joinItems(this.all());
+    }
+
+    /**
+     * Intersect the collection with the given items.
+     * 
+     * @param items - The items to intersect with
+     * @returns A new collection with the intersected items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3, 4]).intersect([2, 4, 6]); -> new Collection({1: 2, 3: 4})
+     * new Collection({a: 1, b: 2, c: 3}).intersect({b: 2, d: 4}); -> new Collection({b: 2})
+     */
+    intersect(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+    ){
+        return new Collection(
+            dataIntersect<TValue, TKey>(
+                this.items, 
+                this.getArrayableItems(items),
+            ),
+        );
+    }
+
+    /**
+     * Intersect the collection with the given items, using the callback.
+     * 
+     * @param items - The items to intersect with
+     * @param callback - The callback function to determine equality
+     * @returns A new collection with the intersected items
+     * 
+     * @example
+     * 
+     * new Collection([{id: 1}, {id: 2}, {id: 3}]).intersectUsing([{id: 2}], (a, b) => a.id === b.id); -> new Collection([{id: 2}])
+     * new Collection(['apple', 'banana', 'cherry']).intersectUsing(['banana'], (a, b) => a === b); -> new Collection(['banana'])
+     */
+    intersectUsing(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+        callback: (a: TValue, b: TValue) => boolean,
+    ){
+        return new Collection(
+            dataIntersect<TValue, TKey>(
+                this.items, 
+                this.getArrayableItems(items),
+                callback,
+            ),
+        );
+    }
+
+    /**
+     * Intersect the collection with the given items by key.
+     * 
+     * @param items - The items to intersect with
+     * @returns A new collection with the intersected items
+     * 
+     * @example
+     * 
+     * new Collection({a: 1, b: 2, c: 3}).intersectByKeys({b: 2, d: 4}); -> new Collection({b: 2})
+     * new Collection([1, 2, 3, 4]).intersectByKeys([1, 3]); -> new Collection([1, 2, 3])
+     */
+    intersectByKeys(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+    ){
+        return new Collection(
+            dataIntersectByKeys<TValue, TKey>(
+                this.items, 
+                this.getArrayableItems(items),
+            ),
+        );
+    }
+
+    /**
+     * Intersect the collection with the given items by key, using the callback.
+     * 
+     * @param items - The items to intersect with
+     * @param callback - The callback function to determine equality
+     * @returns A new collection with the intersected items
+     * 
+     * @example 
+     * 
+     * new Collection({a: {id: 1}, b: {id: 2}, c: {id: 3}}).intersectByKeysUsing({b: {id: 2}}, (a, b) => a.id === b.id); -> new Collection({b: {id: 2}})
+     * new Collection([{key: 'a'}, {key: 'b'}, {key: 'c'}]).intersectByKeysUsing([{key: 'b'}], (a, b) => a.key === b.key); -> new Collection([{key: 'b'}])
+     */
+    intersectByKeysUsing(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+        callback: (a: TValue, b: TValue) => boolean,
+    ){
+        return new Collection(
+            dataIntersectByKeys<TValue, TKey>(
+                this.items, 
+                this.getArrayableItems(items),
+                callback,
+            ),
+        );
+    }
 
     /**
      * Determine if the collection is empty or not.
@@ -779,17 +1066,65 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     }
 
     /**
-     * Count the number of items in the collection.
-     *
-     * @returns The number of items in the collection
-     *
+     * Determine if the collection contains exactly one item. If a callback is provided, determine if exactly one item matches the condition.
+     * 
+     * @param callback - The callback function to test with, or null
+     * @returns True if exactly one item exists or matches the condition, false otherwise
+     * 
      * @example
-     *
-     * new Collection([1, 2, 3]).count(); -> 3
-     * new Collection([]).count(); -> 0
+     * 
+     * new Collection([1]).containsOneItem(); -> true
+     * new Collection([]).containsOneItem(); -> false
+     * new Collection([1, 2, 3]).containsOneItem(x => x >= 2); -> false
+     * new Collection([1, 2, 3]).containsOneItem(x => x < 2); -> true
      */
-    count(): number {
-        return Object.keys(this.items).length;
+    containsOneItem(
+        callback: ((value: TValue, key: TKey) => boolean) | null = null
+    ){
+        if(isFunction(callback)){
+            return this.filter(callback).count() === 1;
+        }
+
+        return this.count() === 1;
+    }
+
+    /**
+     * Join all items from the collection using a string. The final items can use a separate glue string.
+     * 
+     * @param glue - The string to join all but the last item with
+     * @param finalGlue - The string to join the last item with, defaults to an empty string
+     * @returns A string of joined items
+     * 
+     * @example
+     * 
+     * new Collection(['apple', 'banana', 'cherry']).join(', '); -> 'apple, banana, cherry'
+     * new Collection(['apple', 'banana', 'cherry']).join(', ', ' and '); -> 'apple, banana and cherry'
+     * new Collection([1, 2, 3]).join(' + ', ' = '); -> '1 + 2 = 3'
+     * new Collection(['apple']).join(', ', ' and '); -> 'apple'
+     */
+    join(
+        glue: string,
+        finalGlue: string = '',
+    ) {
+        if(finalGlue === ''){
+            return this.implode(glue);
+        }
+
+        const count = this.count();
+
+        if(count === 0){
+            return '';
+        }
+
+        if(count === 1){
+            return this.last();
+        }
+
+        const collection = new Collection(this.items);
+
+        const finalItem = collection.pop();
+
+        return collection.implode(glue) + finalGlue + finalItem;
     }
 
     /**
@@ -803,61 +1138,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([1, 2, 3]).keys(); -> new Collection([0, 1, 2])
      */
     keys(): Collection<string | number> {
-        return new Collection(dataKeys(this.items)) as Collection<
-            string | number
-        >;
-    }
-
-    /**
-     * Reset the keys on the underlying array.
-     *
-     * @returns A new collection with values and numeric keys
-     *
-     * @example
-     *
-     * new Collection({a: 1, b: 2, c: 3}).values(); -> new Collection({0: 1, 1: 2, 2: 3})
-     * new Collection([1, 2, 3]).values(); -> new Collection([1, 2, 3])
-     */
-    values(): Collection<TValue> {
-        return new Collection<TValue>(
-            dataValues(this.items) as DataItems<TValue>,
-        );
-    }
-
-    /**
-     * Run a map over each of the items.
-     *
-     * @param callback - The callback function to map with
-     * @returns A new collection with mapped items
-     *
-     * @example
-     *
-     * new Collection([1, 2, 3]).map(x => x * 2); -> new Collection([2, 4, 6])
-     */
-    map<U>(
-        callback: (value: TValue, key: string | number) => U,
-    ): Collection<U> {
-        const result = dataMap(this.items, callback);
-        return new Collection<U>(result as DataItems<U, TKey>);
-    }
-
-    /**
-     * Get the values of a given key.
-     *
-     * @param value - The key path to pluck
-     * @returns A new collection with plucked values
-     *
-     * @example
-     *
-     * new Collection([{name: 'John'}, {name: 'Jane'}]).pluck('name'); -> Collection(['John', 'Jane'])
-     * new Collection({a: {name: 'John'}, b: {name: 'Jane'}}).pluck('name'); ->  Collection(['John', 'Jane'])
-     * new Collection({a: { id: 1, name: "John" }, b: { id: 2, name: "Jane" }}).pluck('name', 'id'); -> Collection({1: "John", 2: "Jane"})
-     */
-    pluck(
-        value: string | ((item: TValue) => TValue),
-        key: string | ((item: TValue) => string | number) | null = null,
-    ): Collection<TValue, TKey> {
-        return new Collection<TValue, TKey>(dataPluck(this.items, value, key));
+        return new Collection(dataKeys(this.items)) as Collection<string | number>;
     }
 
     /**
@@ -882,23 +1163,69 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     }
 
     /**
-     * Determine if an item exists in the collection by key.
+     * Get the values of a given key.
      *
-     * @param key - The key or keys to check for
-     * @returns True if all keys exist, false otherwise
+     * @param value - The key path to pluck
+     * @returns A new collection with plucked values
      *
      * @example
      *
-     * new Collection({a: 1, b: 2, c: 3}).has('a'); -> true
-     * new Collection({a: 1, b: 2, c: 3}).has(['a', 'b']); -> true
-     * new Collection({a: 1, b: 2, c: 3}).has(['a', 'd']); -> false
+     * new Collection([{name: 'John'}, {name: 'Jane'}]).pluck('name'); -> Collection(['John', 'Jane'])
+     * new Collection({a: {name: 'John'}, b: {name: 'Jane'}}).pluck('name'); ->  Collection(['John', 'Jane'])
+     * new Collection({a: { id: 1, name: "John" }, b: { id: 2, name: "Jane" }}).pluck('name', 'id'); -> Collection({1: "John", 2: "Jane"})
      */
-    has(key: PathKey): boolean {
-        if (isArray(key)) {
-            return dataHasAll(this.items, key);
-        }
+    pluck(
+        value: string | ((item: TValue) => TValue),
+        key: string | ((item: TValue) => string | number) | null = null,
+    ): Collection<TValue, TKey> {
+        return new Collection<TValue, TKey>(dataPluck(this.items, value, key));
+    }
 
-        return dataHas(this.items, key);
+    /**
+     * Run a map over each of the items.
+     *
+     * @param callback - The callback function to map with
+     * @returns A new collection with mapped items
+     *
+     * @example
+     *
+     * new Collection([1, 2, 3]).map(x => x * 2); -> new Collection([2, 4, 6])
+     * new Collection({a: 1, b: 2, c: 3}).map((value, key) => value * 2); -> new Collection({a: 2, b: 4, c: 6})
+     */
+    map<TMapValue>(
+        callback: (value: TValue, key: TKey) => TMapValue,
+    ): Collection<TMapValue> {
+        return new Collection<TMapValue>(dataMap(this.items, callback));
+    }
+
+    /**
+     * Count the number of items in the collection.
+     *
+     * @returns The number of items in the collection
+     *
+     * @example
+     *
+     * new Collection([1, 2, 3]).count(); -> 3
+     * new Collection([]).count(); -> 0
+     */
+    count(): number {
+        return Object.keys(this.items).length;
+    }
+
+    /**
+     * Reset the keys on the underlying array.
+     *
+     * @returns A new collection with values and numeric keys
+     *
+     * @example
+     *
+     * new Collection({a: 1, b: 2, c: 3}).values(); -> new Collection({0: 1, 1: 2, 2: 3})
+     * new Collection([1, 2, 3]).values(); -> new Collection([1, 2, 3])
+     */
+    values(): Collection<TValue> {
+        return new Collection<TValue>(
+            dataValues(this.items) as DataItems<TValue>,
+        );
     }
 
     /**
@@ -952,5 +1279,18 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
         // For primitives and other types, wrap in an array
         return [items as TValue];
+    }
+
+    protected valueRetriever<TValue, TKey extends ObjectKey, TReturn>(
+        value: ((value: TValue, index: TKey) => TReturn) | string | null,
+    ): (item: TValue) => TReturn
+    {
+        if (isFunction(value)) {
+            return value;
+        }
+
+        return (item: TValue) => {
+            return dataGet(item, value) as TReturn;
+        };
     }
 }

@@ -50,6 +50,7 @@
         "@vitest/ui": "3.2.4",
         "eslint": "^9.36.0",
         "eslint-plugin-oxlint": "^1.17.0",
+        "eslint-plugin-simple-import-sort": "^12.1.1",
         "glob": "^11.0.3",
         "globals": "^16.4.0",
         "jiti": "^2.6.0",
