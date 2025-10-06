@@ -1297,6 +1297,107 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     }
 
     /**
+     * Recursively merge the collection with the given items.
+     * @param items - The items to merge with
+     * @returns A new collection with merged items
+     * 
+     * @example
+     * 
+     * new Collection({a: {b: 1}}).mergeRecursive({a: {c: 2}}); -> new Collection({a: {b: 1, c: 2}})
+     * new Collection({a: {b: 1}}).mergeRecursive({a: {b: 2}}); -> new Collection({a: {b: 2}})
+     * new Collection([1, [2, 3]]).mergeRecursive([4, [5]]); -> new Collection([1, [2, 3, 5], 4])
+     * new Collection([1, {a: 2}]).mergeRecursive([{b: 3}, {a: 4}]); -> new Collection([1, {a: 4, b: 3}])
+     * new Collection([1, 2]).mergeRecursive({a: 3}); -> new Collection([1, 2, {a: 3}])
+     */
+    mergeRecursive<TMergeRecursiveValue>(
+        items: DataItems<TMergeRecursiveValue, TKey> | Collection<TMergeRecursiveValue, TKey>,
+    ){
+        const otherItems = this.getRawItems(items);
+    
+        // Helper function to recursively merge two values
+        const mergeRecursively = (
+            target: unknown, 
+            source: unknown
+        ): unknown => {
+            if (isArray(target) && isArray(source)) {
+                return [...target, ...source];
+            }
+            
+            if (isObject(target) && !isArray(target) && isObject(source) && !isArray(source)) {
+                const result = { ...target };
+                
+                for (const [key, value] of Object.entries(source)) {
+                    if (key in result) {
+                        result[key] = mergeRecursively(result[key], value);
+                    } else {
+                        // Add new key from source
+                        result[key] = value;
+                    }
+                }
+                
+                return result;
+            }
+            
+            return source;
+        };
+        
+        if (isArray(this.items) && isArray(otherItems)) {
+            const result: unknown[] = [];
+            const maxLength = Math.max(this.items.length, otherItems.length);
+            
+            for (let i = 0; i < maxLength; i++) {
+                if (i < this.items.length && i < otherItems.length) {
+                    result[i] = mergeRecursively(this.items[i], otherItems[i]);
+                } else if (i < this.items.length) {
+                    result[i] = this.items[i];
+                } else {
+                    result[i] = otherItems[i];
+                }
+            }
+            
+            return new Collection(result as TValue[]);
+        }
+        
+        if (isObject(this.items) && isObject(otherItems)) {
+            const result = mergeRecursively(
+                this.items, 
+                otherItems
+            ) as Record<TKey, TValue | TMergeRecursiveValue>;
+            
+            return new Collection(result);
+        }
+        
+        return this.merge(items as DataItems<TValue, TKey>) as Collection<TValue | TMergeRecursiveValue, TKey>;
+    }
+
+    /**
+     * Multiply the items in the collection by the multiplier.
+     * 
+     * @param multiplier - The number of times to repeat the items
+     * @returns A new collection with the items repeated
+     * 
+     * @example
+     * 
+     * new Collection([1, 2]).multiply(3); -> new Collection([1, 2, 1, 2, 1, 2])
+     * new Collection({a: 1, b: 2}).multiply(2); -> new Collection({a: 1, b: 2})
+     * new Collection([]).multiply(5); -> new Collection([])
+     * new Collection([1, 2]).multiply(0); -> new Collection([1, 2])
+     */
+    multiply(multiplier: number){
+        const newCollection = new Collection();
+
+        for(let i = 0; i < multiplier; i++){
+            newCollection.push(...this.getItemValues(this.items));
+        }
+
+        return newCollection;
+    }
+
+    combine(
+        values: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+    ){}
+
+    /**
      * Count the number of items in the collection.
      *
      * @returns The number of items in the collection
