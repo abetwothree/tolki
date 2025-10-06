@@ -40,7 +40,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     constructor(
         items?: TValue[] | DataItems<TValue, TKey> | Arrayable<TValue> | null,
     ) {
-        this.items = this.getArrayableItems(items ?? []);
+        this.items = this.getRawItems(items ?? []);
 
         // Return a proxy that intercepts property access
         // return this.createProxy();
@@ -378,7 +378,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     ) {
         const results = dataCrossJoin(
             this.items,
-            ...items.map((item) => this.getArrayableItems(item)),
+            ...items.map((item) => this.getRawItems(item)),
         ) as DataItems<TValue, TKey>[];
 
         return new Collection(results);
@@ -396,7 +396,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     diff(items: DataItems<TValue, TKey> | Collection<TValue, TKey>) {
         return new Collection(
-            dataDiff<TValue, TKey>(this.items, this.getArrayableItems(items)),
+            dataDiff<TValue, TKey>(this.items, this.getRawItems(items)),
         );
     }
 
@@ -416,7 +416,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
         callback: (a: TValue, b: TValue) => boolean,
     ) {
-        const otherItems = this.getArrayableItems(items);
+        const otherItems = this.getRawItems(items);
         const results = {} as DataItems<TValue, TKey>;
 
         for (const [key, value] of Object.entries(
@@ -458,7 +458,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
     ){
         return new Collection(
-            dataDiff<TValue, TKey>(this.items, this.getArrayableItems(items)),
+            dataDiff<TValue, TKey>(this.items, this.getRawItems(items)),
         );
     }
 
@@ -500,7 +500,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     diffKeys(
         items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
     ) {
-        const otherItems = this.getArrayableItems(items);
+        const otherItems = this.getRawItems(items);
         const results = {} as DataItems<TValue, TKey>;
 
         for (const [key, value] of Object.entries(
@@ -609,7 +609,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             return new Collection(this.items);
         }
         
-        keys = this.getArrayableItems(keys) as PathKey[];
+        keys = this.getRawItems(keys) as PathKey[];
 
         return new Collection(dataExcept(this.items, keys));
     }
@@ -704,7 +704,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             return new Collection(this.items);
         }
         
-        keys = this.getArrayableItems(keys) as PathKey[];
+        keys = this.getRawItems(keys) as PathKey[];
 
         this.items = dataForget(this.items, keys);
 
@@ -974,7 +974,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         return new Collection(
             dataIntersect<TValue, TKey>(
                 this.items, 
-                this.getArrayableItems(items),
+                this.getRawItems(items),
             ),
         );
     }
@@ -998,7 +998,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         return new Collection(
             dataIntersect<TValue, TKey>(
                 this.items, 
-                this.getArrayableItems(items),
+                this.getRawItems(items),
                 callback,
             ),
         );
@@ -1021,7 +1021,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         return new Collection(
             dataIntersectByKeys<TValue, TKey>(
                 this.items, 
-                this.getArrayableItems(items),
+                this.getRawItems(items),
             ),
         );
     }
@@ -1045,7 +1045,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         return new Collection(
             dataIntersectByKeys<TValue, TKey>(
                 this.items, 
-                this.getArrayableItems(items),
+                this.getRawItems(items),
                 callback,
             ),
         );
@@ -1260,6 +1260,43 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     }
 
     /**
+     * Merge the collection with the given items.
+     * 
+     * @param items - The items to merge with
+     * @returns A new collection with merged items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2]).merge([3, 4]); -> new Collection([1, 2, 3, 4])
+     * new Collection({a: 1, b: 2}).merge({c: 3, d: 4}); -> new Collection({a: 1, b: 2, c: 3, d: 4})
+     * new Collection([1, 2]).merge({a: 3}); -> new Collection([1, 2, {a: 3}])
+     * new Collection({a: 1}).merge([2]); -> new Collection({a: 1, 0: 2})
+     */
+    merge(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+    ){
+        items = this.getRawItems(items);
+        
+        if(isArray(this.items) && isArray(items)){
+            return new Collection([...this.items, ...items]);
+        }
+
+        if(isObject(this.items) && isObject(items)){
+            return new Collection({...this.items, ...items});
+        }
+
+        if(isArray(this.items)){
+            return new Collection([...this.items, items]);
+        }
+
+        if(isObject(items)){
+            return new Collection([this.items, items]);
+        }
+        
+        return new Collection([this.items, items]);
+    }
+
+    /**
      * Count the number of items in the collection.
      *
      * @returns The number of items in the collection
@@ -1302,7 +1339,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @param items - The items to convert to an array or record
      * @returns The items preserving their original structure
      */
-    protected getArrayableItems(items: unknown): DataItems<TValue, TKey> {
+    protected getRawItems(items: unknown): DataItems<TValue, TKey> {
         if (items === null || items === undefined) {
             return {} as DataItems<TValue, TKey>;
         }
