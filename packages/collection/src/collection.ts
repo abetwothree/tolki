@@ -1,18 +1,19 @@
-import { parseSegments, hasPath, getRaw, forgetKeys, forgetKeysObject, forgetKeysArray, setImmutable, pushWithPath, dotFlatten, dotFlattenObject, dotFlattenArray, undotExpand, undotExpandObject, undotExpandArray, getNestedValue, getMixedValue, setMixed, pushMixed, setMixedImmutable, hasMixed, getObjectValue, setObjectValue, hasObjectKey } from '@laravel-js/path';
-import { format, parse, parseInt, parseFloat, spell, ordinal, spellOrdinal, percentage, currency, fileSize, forHumans, summarize, clamp, pairs, trim, minutesToHuman, secondsToHuman, withLocale, withCurrency, useLocale, useCurrency, defaultLocale, defaultCurrency } from '@laravel-js/num';
-import { isArray, isObject, isString, isNumber, isBoolean, isFunction, isUndefined, isSymbol, isNull, typeOf, castableToArray, compareValues, resolveDefault, normalizeToArray, isAccessibleData, getAccessibleValues, isStringable } from '@laravel-js/utils';
-import { dataAdd, dataArray, dataItem, dataBoolean, dataCollapse, dataCrossJoin, dataDivide, dataDot, dataUndot, dataExcept, dataExists, dataTake, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataEvery, dataSome, dataInteger, dataJoin, dataKeyBy, dataPrependKeysWith, dataOnly, dataSelect, dataMapWithKeys, dataMapSpread, dataPrepend, dataPull, dataQuery, dataRandom, dataSet, dataPush, dataShuffle, dataSole, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataToCssClasses, dataToCssStyles, dataWhere, dataReject, dataPartition, dataWhereNotNull, dataValues, dataKeys, dataFilter, dataMap, dataFirst, dataLast, dataContains, dataDiff, dataPluck, dataIntersect, dataIntersectByKeys, dataMapToDictionary } from '@laravel-js/data';
+import { wrap as arrWrap } from "@laravel-js/arr";
+import { dataAdd, dataArray, dataBoolean, dataCollapse, dataContains, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataSelect, dataSet, dataShuffle, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
+import { clamp, currency, defaultCurrency, defaultLocale, fileSize, forHumans, format, minutesToHuman, ordinal, pairs, parse, parseFloat, parseInt, percentage, secondsToHuman, spell, spellOrdinal, summarize, trim, useCurrency, useLocale, withCurrency, withLocale } from '@laravel-js/num';
+import { dotFlatten, dotFlattenArray, dotFlattenObject, forgetKeys, forgetKeysArray, forgetKeysObject, getMixedValue, getNestedValue, getObjectValue, getRaw, hasMixed, hasObjectKey, hasPath, parseSegments, pushMixed, pushWithPath, setImmutable, setMixed, setMixedImmutable, setObjectValue, undotExpand, undotExpandArray, undotExpandObject } from '@laravel-js/path';
 import type {
+    Arrayable,
+    ArrayItems,
     DataItems,
     ObjectKey,
-    Arrayable,
-    ProxyTarget,
-    PropertyName,
-    PathKeys,
     PathKey,
-    ArrayItems,
+    PathKeys,
+    PropertyName,
+    ProxyTarget,
 } from "@laravel-js/types";
-import { wrap as arrWrap} from "@laravel-js/arr";
+import { castableToArray, compareValues, getAccessibleValues, isAccessibleData, isArray, isBoolean, isFunction, isNull, isNumber, isObject, isString, isStringable, isSymbol, isUndefined, normalizeToArray, resolveDefault, typeOf } from '@laravel-js/utils';
+
 import { LazyCollection } from "./lazy-collection";
 import { initProxyHandler } from "./proxy";
 
@@ -180,8 +181,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
         collection.each(
             (value) =>
-                (counts[value] =
-                    (counts[value] ?? false) ? counts[value] + 1 : 1),
+            (counts[value] =
+                (counts[value] ?? false) ? counts[value] + 1 : 1),
         );
 
         const sorted = counts.sort();
@@ -456,7 +457,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     diffAssoc(
         items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
-    ){
+    ) {
         return new Collection(
             dataDiff<TValue, TKey>(this.items, this.getRawItems(items)),
         );
@@ -512,7 +513,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             }
         }
 
-        if(isArray(this.items)){
+        if (isArray(this.items)) {
             return new Collection(Object.values(results) as TValue[]);
         }
 
@@ -551,14 +552,14 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         for (const [key, value] of Object.entries(
             items.items as Record<TKey, TValue>,
         )) {
-            if(uniqueItems.isNotEmpty() && compare(value as TValue, uniqueItems.first() as TValue)){
+            if (uniqueItems.isNotEmpty() && compare(value as TValue, uniqueItems.first() as TValue)) {
                 uniqueItems.shift();
-            }else{
+            } else {
                 (duplicatesItems as Record<TKey, TValue>)[key as TKey] = value as TValue;
             }
         }
 
-        if(isArray(this.items)){
+        if (isArray(this.items)) {
             return new Collection(Object.values(duplicatesItems) as TValue[]);
         }
 
@@ -573,7 +574,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     duplicatesStrict<TMapValue>(
         callback: ((value: TValue) => TMapValue) | string | null = null,
-    ){
+    ) {
         return this.duplicates(callback, true);
     }
 
@@ -583,8 +584,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @param strict - Whether to use strict comparison (===) or not (==)
      * @returns A comparison function for detecting duplicates
      */
-    duplicateComparator(strict: boolean){
-        if(strict){
+    duplicateComparator(strict: boolean) {
+        if (strict) {
             return (a: TValue, b: TValue) => a === b;
         }
 
@@ -604,11 +605,11 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([1, 2, 3, 4]).except([0, 2]); -> new Collection([1, 3])
      * new Collection([1, 2, 3, 4]).except(new Collection([0, 2])); -> new Collection([1, 3])
      */
-    except(keys: PathKeys | Collection<TKey>){
-        if(isNull(keys) || isUndefined(keys)){
+    except(keys: PathKeys | Collection<TKey>) {
+        if (isNull(keys) || isUndefined(keys)) {
             return new Collection(this.items);
         }
-        
+
         keys = this.getRawItems(keys) as PathKey[];
 
         return new Collection(dataExcept(this.items, keys));
@@ -630,7 +631,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     ) {
         return new Collection(dataFilter(this.items, callback));
     }
-    
+
     /**
      * Get the first item from the collection passing the given truth test.
      * 
@@ -649,7 +650,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     first<TFirstDefault>(
         callback: ((value: TValue, key: TKey) => boolean) | null = null,
         defaultValue?: TFirstDefault | (() => TFirstDefault),
-    ){
+    ) {
         return dataFirst<TValue, TKey, TFirstDefault>(this.items, callback, defaultValue);
     }
 
@@ -699,11 +700,11 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([1, 2, 3, 4]).forget([0, 2]); -> new Collection([2, 4])
      * new Collection([1, 2, 3, 4]).forget(new Collection([0, 2])); -> new Collection([2, 4])
      */
-    forget(keys: PathKeys | Collection<TKey>){
-        if(isNull(keys) || isUndefined(keys)){
+    forget(keys: PathKeys | Collection<TKey>) {
+        if (isNull(keys) || isUndefined(keys)) {
             return new Collection(this.items);
         }
-        
+
         keys = this.getRawItems(keys) as PathKey[];
 
         this.items = dataForget(this.items, keys);
@@ -744,14 +745,14 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([1, 2, 3]).getOrPut(3, () => 4); -> 4, collection is now [1, 2, 3, 4]
      */
     getOrPut<TGetOrPutValue>(
-        key: PathKey, 
+        key: PathKey,
         value: TGetOrPutValue | (() => TGetOrPutValue),
-    ): TValue | TGetOrPutValue{
-        if(this.has(key)){
+    ): TValue | TGetOrPutValue {
+        if (this.has(key)) {
             return this.get(key) as TValue;
         }
 
-        if(isFunction(value)){
+        if (isFunction(value)) {
             value = value();
         }
 
@@ -777,13 +778,12 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     groupBy<TGroupKey extends TKey = TKey>(
         groupByValue: ((value: TValue, index: TKey) => TGroupKey) | ArrayItems<TGroupKey> | string | number,
         preserveKeys: boolean = false,
-    ): Collection<Collection<TValue, TKey>, TGroupKey>
-    {
+    ): Collection<Collection<TValue, TKey>, TGroupKey> {
 
         let nextGroups: ArrayItems<TGroupKey> | null = null;
         if (!isFunction(groupByValue) && isArray(groupByValue)) {
             nextGroups = groupByValue;
-            
+
             groupByValue = nextGroups.shift();
         }
 
@@ -848,7 +848,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     keyBy<TNewKey extends TKey = TKey>(
         keyByValue: ((value: TValue, index: TKey) => TNewKey) | ArrayItems<TNewKey> | string | number,
-    ){
+    ) {
         keyByValue = this.valueRetriever(keyByValue);
 
         const results = {} as Record<TNewKey, TValue>;
@@ -858,14 +858,14 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         )) {
             let resolvedKey = keyByValue(value as TValue, key as TKey);
 
-            if(isObject(resolvedKey)){
+            if (isObject(resolvedKey)) {
                 resolvedKey = JSON.stringify(resolvedKey) as TNewKey;
             }
 
-            if(isArray(resolvedKey)){
+            if (isArray(resolvedKey)) {
                 resolvedKey = resolvedKey.join('.') as TNewKey;
             }
-            
+
             (results as Record<TNewKey, TValue>)[resolvedKey as TNewKey] = value as TValue;
         }
 
@@ -905,7 +905,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection({a: 1, b: 2, c: 3}).hasAny(['d', 'e']); -> false
      */
     hasAny(key: PathKeys) {
-        if(this.isEmpty()){
+        if (this.isEmpty()) {
             return false;
         }
 
@@ -929,16 +929,16 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     implode(
         value: ((item: TValue, key: TKey) => unknown) | string | null = null,
         glue: string | null = null,
-    ){
+    ) {
         const joinItems = (items: Array<unknown> | Record<string, unknown>) => {
-            if(isArray(items)){
+            if (isArray(items)) {
                 return items.join(glue ?? '');
             }
 
             return Object.values(items).join(glue ?? '');
         }
 
-        if(isFunction(value)){
+        if (isFunction(value)) {
             const items = this.map(value).all();
 
             return joinItems(items);
@@ -946,8 +946,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
         const first = this.first();
 
-        if(!isNull(value)){
-            if(isArray(first) || (isObject(first) && !isStringable(first))){
+        if (!isNull(value)) {
+            if (isArray(first) || (isObject(first) && !isStringable(first))) {
                 const items = this.pluck(value).all();
 
                 return joinItems(items);
@@ -970,10 +970,10 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     intersect(
         items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
-    ){
+    ) {
         return new Collection(
             dataIntersect<TValue, TKey>(
-                this.items, 
+                this.items,
                 this.getRawItems(items),
             ),
         );
@@ -994,10 +994,10 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     intersectUsing(
         items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
         callback: (a: TValue, b: TValue) => boolean,
-    ){
+    ) {
         return new Collection(
             dataIntersect<TValue, TKey>(
-                this.items, 
+                this.items,
                 this.getRawItems(items),
                 callback,
             ),
@@ -1017,10 +1017,10 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     intersectByKeys(
         items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
-    ){
+    ) {
         return new Collection(
             dataIntersectByKeys<TValue, TKey>(
-                this.items, 
+                this.items,
                 this.getRawItems(items),
             ),
         );
@@ -1041,10 +1041,10 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     intersectByKeysUsing(
         items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
         callback: (a: TValue, b: TValue) => boolean,
-    ){
+    ) {
         return new Collection(
             dataIntersectByKeys<TValue, TKey>(
-                this.items, 
+                this.items,
                 this.getRawItems(items),
                 callback,
             ),
@@ -1080,8 +1080,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     containsOneItem(
         callback: ((value: TValue, key: TKey) => boolean) | null = null
-    ){
-        if(isFunction(callback)){
+    ) {
+        if (isFunction(callback)) {
             return this.filter(callback).count() === 1;
         }
 
@@ -1106,17 +1106,17 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         glue: string,
         finalGlue: string = '',
     ) {
-        if(finalGlue === ''){
+        if (finalGlue === '') {
             return this.implode(glue);
         }
 
         const count = this.count();
 
-        if(count === 0){
+        if (count === 0) {
             return '';
         }
 
-        if(count === 1){
+        if (count === 1) {
             return this.last();
         }
 
@@ -1213,7 +1213,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     mapToDictionary<TMapToDictionaryValue, TMapToDictionaryKey extends ObjectKey = ObjectKey>(
         callback: (value: TValue, key: TKey) => Record<TMapToDictionaryKey, TMapToDictionaryValue>,
-    ){
+    ) {
         const dictionary = {} as Record<TMapToDictionaryKey, TMapToDictionaryValue>;
 
         for (const [key, value] of Object.entries(
@@ -1221,8 +1221,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         )) {
             const mapped = callback(value as TValue, key as TKey);
 
-            if(isArray(mapped)){
-                if(mapped.length !== 2){
+            if (isArray(mapped)) {
+                if (mapped.length !== 2) {
                     throw new Error('When returning an array from the mapToDictionary callback, it must have exactly two elements: [key, value]');
                 }
 
@@ -1232,7 +1232,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
                 continue;
             }
 
-            for(const [mappedKey, mappedValue] of Object.entries(mapped)){
+            for (const [mappedKey, mappedValue] of Object.entries(mapped)) {
                 dictionary[mappedKey as TMapToDictionaryKey] = mappedValue as TMapToDictionaryValue;
             }
         }
@@ -1255,7 +1255,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     mapWithKeys<TMapWithKeysValue, TMapWithKeysKey extends ObjectKey = ObjectKey>(
         callback: (value: TValue, key: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
-    ){
+    ) {
         return new Collection(dataMapWithKeys(this.items, callback));
     }
 
@@ -1274,25 +1274,25 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     merge(
         items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
-    ){
+    ) {
         items = this.getRawItems(items);
-        
-        if(isArray(this.items) && isArray(items)){
+
+        if (isArray(this.items) && isArray(items)) {
             return new Collection([...this.items, ...items]);
         }
 
-        if(isObject(this.items) && isObject(items)){
-            return new Collection({...this.items, ...items});
+        if (isObject(this.items) && isObject(items)) {
+            return new Collection({ ...this.items, ...items });
         }
 
-        if(isArray(this.items)){
+        if (isArray(this.items)) {
             return new Collection([...this.items, items]);
         }
 
-        if(isObject(items)){
+        if (isObject(items)) {
             return new Collection([this.items, items]);
         }
-        
+
         return new Collection([this.items, items]);
     }
 
@@ -1311,21 +1311,21 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     mergeRecursive<TMergeRecursiveValue>(
         items: DataItems<TMergeRecursiveValue, TKey> | Collection<TMergeRecursiveValue, TKey>,
-    ){
+    ) {
         const otherItems = this.getRawItems(items);
-    
+
         // Helper function to recursively merge two values
         const mergeRecursively = (
-            target: unknown, 
+            target: unknown,
             source: unknown
         ): unknown => {
             if (isArray(target) && isArray(source)) {
                 return [...target, ...source];
             }
-            
+
             if (isObject(target) && !isArray(target) && isObject(source) && !isArray(source)) {
                 const result = { ...target };
-                
+
                 for (const [key, value] of Object.entries(source)) {
                     if (key in result) {
                         result[key] = mergeRecursively(result[key], value);
@@ -1334,17 +1334,17 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
                         result[key] = value;
                     }
                 }
-                
+
                 return result;
             }
-            
+
             return source;
         };
-        
+
         if (isArray(this.items) && isArray(otherItems)) {
             const result: unknown[] = [];
             const maxLength = Math.max(this.items.length, otherItems.length);
-            
+
             for (let i = 0; i < maxLength; i++) {
                 if (i < this.items.length && i < otherItems.length) {
                     result[i] = mergeRecursively(this.items[i], otherItems[i]);
@@ -1354,19 +1354,19 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
                     result[i] = otherItems[i];
                 }
             }
-            
+
             return new Collection(result as TValue[]);
         }
-        
+
         if (isObject(this.items) && isObject(otherItems)) {
             const result = mergeRecursively(
-                this.items, 
+                this.items,
                 otherItems
             ) as Record<TKey, TValue | TMergeRecursiveValue>;
-            
+
             return new Collection(result);
         }
-        
+
         return this.merge(items as DataItems<TValue, TKey>) as Collection<TValue | TMergeRecursiveValue, TKey>;
     }
 
@@ -1383,19 +1383,229 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([]).multiply(5); -> new Collection([])
      * new Collection([1, 2]).multiply(0); -> new Collection([1, 2])
      */
-    multiply(multiplier: number){
+    multiply(multiplier: number) {
         const newCollection = new Collection();
 
-        for(let i = 0; i < multiplier; i++){
+        for (let i = 0; i < multiplier; i++) {
             newCollection.push(...this.getItemValues(this.items));
         }
 
         return newCollection;
     }
 
-    combine(
-        values: DataItems<TValue, TKey> | Collection<TValue, TKey>,
-    ){}
+    /**
+     * Create a collection by using this collection for keys and another for its values.
+     * 
+     * @param values - The values to combine with the keys from this collection
+     * @returns A new collection with the combined keys and values
+     * 
+     * @example
+     * 
+     * new Collection([1, 2]).combine([3, 4]); -> new Collection({1: 3, 2: 4})
+     * new Collection({a: 1, b: 2}).combine({c: 3, d: 4}); -> new Collection({a: 3, b: 4})
+     * new Collection([1, 2]).combine({a: 3, b: 4}); -> new Collection({0: 3, 1: 4})
+     */
+    combine<TCombineValue>(
+        values: DataItems<TCombineValue, TKey> | Collection<TCombineValue, TKey>,
+    ) {
+        return new Collection<TCombineValue, TKey>(dataCombine(this.items, this.getRawItems(values)));
+    }
+
+    /**
+     * Union the collection with the given items.
+     * 
+     * @param items - The items to union with
+     * @returns A new collection with the union of items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).union([3, 4, 5]); -> new Collection([1, 2, 3, 4, 5])
+     * new Collection({a: 1, b: 2}).union({b: 2, c: 3}); -> new Collection({a: 1, b: 2, c: 3})
+     * new Collection([1, 2]).union({a: 3}); -> new Collection([1, 2, {a: 3}])
+     */
+    union(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+    ) {
+        return new Collection(
+            dataUnion<TValue, TKey>(
+                this.items,
+                this.getRawItems(items),
+            ),
+        );
+    }
+
+
+    /**
+     * Create a new collection consisting of every n-th element.
+     * 
+     * @param step - The step interval to take elements
+     * @param offset - The offset to start from, defaults to 0
+     * @returns A new collection with every n-th element
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3, 4, 5]).nth(2); -> new Collection([1, 3, 5])
+     * new Collection([1, 2, 3, 4, 5]).nth(2, 1); -> new Collection([2, 4])
+     * new Collection({a: 1, b: 2, c: 3, d: 4}).nth(2); -> new Collection({a: 1, c: 3})
+     * new Collection({a: 1, b: 2, c: 3, d: 4}).nth(2, 1); -> new Collection({b: 2, d: 4})
+     */
+    nth(step: number, offset: number = 0) {
+        const newItems = [];
+
+        let position = 0;
+
+        for (const [_key, value] of Object.entries(
+            this.slice(offset) as Record<TKey, TValue>,
+        )) {
+            if (position % step === 0) {
+                newItems.push(value as TValue);
+            }
+            position++;
+        }
+
+        return new Collection(newItems);
+    }
+
+    /**
+     * Get the items with the specified keys.
+     * 
+     * @param keys - The key or keys to retrieve
+     * @returns A new collection with only the specified keys
+     * 
+     * @example
+     * 
+     * new Collection({a: 1, b: 2, c: 3}).only('a'); -> new Collection({a: 1})
+     * new Collection({a: 1, b: 2, c: 3}).only('a', 'c'); -> new Collection({a: 1, c: 3})
+     * new Collection([1, 2, 3]).only(0, 2); -> new Collection([1, 3])
+     * new Collection([1, 2, 3]).only(1); -> new Collection([2])
+     * new Collection([1, 2, 3]).only(null); -> new Collection([1, 2, 3])
+     */
+    only(
+        ...keys: PathKey[]
+    ) {
+        if (isNull(keys)) {
+            return new Collection(this.items);
+        }
+
+        keys = keys.flatMap((key) => arrWrap(key)) as PathKey[];
+
+        return new Collection(dataOnly<TValue, TKey>(this.items, keys));
+    }
+
+    /**
+     * Select specific values from the items within the collection.
+     * 
+     * @param keys - The key or keys to select
+     * @returns A new collection with only the selected values
+     * 
+     * @example
+     * 
+     * new Collection([{id: 1, name: 'John', age: 30}, {id: 2, name: 'Jane', age: 25}]).select('id', 'name'); -> new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}])
+     * new Collection({a: {id: 1, name: 'John'}, b: {id: 2, name: 'Jane'}}).select('id'); -> new Collection({a: {id: 1}, b: {id: 2}})
+     * new Collection([{id: 1, details: {age: 30, city: 'NY'}}, {id: 2, details: {age: 25, city: 'LA'}}]).select(['id', 'details.age']); -> new Collection([{id: 1, details: {age: 30}}, {id: 2, details: {age: 25}}])
+     */
+    select(...keys: PathKey[]) {
+        if (isNull(keys)) {
+            return new Collection(this.items);
+        }
+
+        keys = keys.flatMap((key) => arrWrap(key)) as PathKey[];
+
+        return new Collection(dataSelect<TValue, TKey>(this.items, keys));
+    }
+
+    /**
+     * Get and remove the last N items from the collection.
+     * 
+     * @param count - The number of items to pop, defaults to 1
+     * @returns A new collection with the popped items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).pop(); -> new Collection([3])
+     * new Collection([1, 2, 3]).pop(2); -> new Collection([2, 3])
+     * new Collection({a: 1, b: 2, c: 3}).pop(); -> new Collection({c: 3})
+     * new Collection({a: 1, b: 2, c: 3}).pop(2); -> new Collection({b: 2, c: 3})
+     */
+    pop(count: number = 1) {
+        if (count < 1) {
+            return new Collection();
+        }
+
+        if (this.isEmpty()) {
+            return new Collection();
+        }
+
+        return new Collection(
+            dataPop(this.items, count),
+        );
+    }
+
+    /**
+     * Push an item onto the beginning of the collection.
+     * 
+     * @param value - The value to prepend
+     * @param key - The key to prepend the value at, or null to append
+     * @returns The collection instance for chaining
+     * 
+     * @example
+     * 
+     * new Collection([2, 3]).prepend(1); -> new Collection([1, 2, 3])
+     * new Collection({b: 2, c: 3}).prepend(1, 'a'); -> new Collection({a: 1, b: 2, c: 3})
+     * new Collection([]).prepend(1); -> new Collection([1])
+     * new Collection({}).prepend(1, 'a'); -> new Collection({a: 1})
+     */
+    prepend(value: TValue, key: TKey | null = null) {
+        this.items = dataPrepend(this.items, value, key);
+
+        return this;
+    }
+
+    /**
+     * Push one or more items onto the end of the collection.
+     * 
+     * @param values - The values to push
+     * @returns The collection instance for chaining
+     * 
+     * @example
+     * 
+     * new Collection([1, 2]).push(3); -> new Collection([1, 2, 3])
+     * new Collection([1, 2]).push(3, 4, 5); -> new Collection([1, 2, 3, 4, 5])
+     * new Collection({a: 1}).push(2); -> new Collection({a: 1, 0: 2})
+     * new Collection({a: 1}).push({b: 2}); -> new Collection({a: 1, b: 2})
+     */
+    push(...values: TValue[]) {
+        const newItems = values.flatMap((value) => arrWrap(value));
+
+        for (const [key, value] of Object.entries(newItems)) {
+            this.items = dataPush(this.items, key, value);
+        }
+
+        return this;
+    }
+
+    /**
+     * Prepend one or more items to the beginning of the collection.
+     * 
+     * @param values - The values to unshift
+     * @returns The collection instance for chaining
+     * 
+     * @example
+     * 
+     * new Collection([2, 3]).unshift(1); -> new Collection([1, 2, 3])
+     * new Collection([3, 4]).unshift(1, 2); -> new Collection([1, 2, 3, 4])
+     * new Collection({b: 2}).unshift(1); -> new Collection({0: 1, b: 2})
+     * new Collection({b: 2}).unshift({a: 1}, {c: 3}); -> new Collection({a: 1, c: 3, b: 2})
+     */
+    unshift(...values: TValue[]) {
+        const newItems = values.flatMap((value) => arrWrap(value));
+
+        for (const [key, value] of Object.entries(newItems)) {
+            this.items = dataUnshift(this.items, key, value);
+        }
+
+        return this;
+    }
 
     /**
      * Count the number of items in the collection.
@@ -1456,7 +1666,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             items !== null &&
             "toArray" in items &&
             typeof (items as unknown as { toArray: unknown }).toArray ===
-                "function"
+            "function"
         ) {
             return (items as Arrayable<TValue>).toArray();
         }
@@ -1482,8 +1692,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
     protected valueRetriever<TValue, TKey extends ObjectKey, TReturn>(
         value: ((value: TValue, index: TKey) => TReturn) | string | null,
-    ): (item: TValue) => TReturn
-    {
+    ): (item: TValue) => TReturn {
         if (isFunction(value)) {
             return value;
         }

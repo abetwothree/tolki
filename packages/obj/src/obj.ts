@@ -1,16 +1,16 @@
+import { flip as arrFlip } from "@laravel-js/arr";
 import {
+    dotFlatten,
+    forgetKeys,
+    getObjectValue,
     hasMixed,
     hasObjectKey,
     setObjectValue,
-    getObjectValue,
-    dotFlatten,
     undotExpandObject,
-    forgetKeys,
 } from "@laravel-js/path";
-import type { PathKey, PathKeys, ObjectKey } from "packages/types";
-import { isArray, isObject, typeOf, isFunction } from "@laravel-js/utils";
 import { Random, Str } from "@laravel-js/str";
-import { flip as arrFlip } from "@laravel-js/arr";
+import { isArray, isFunction, isObject, typeOf } from "@laravel-js/utils";
+import type { ObjectKey, PathKey, PathKeys } from "packages/types";
 
 /**
  * Determine whether the given value is object accessible.
@@ -506,8 +506,7 @@ export function take<T extends Record<string, unknown>>(
 export function flatten<TValue, TKey extends ObjectKey = ObjectKey>(
     data: Record<TKey, TValue> | TValue,
     depth: number = Infinity,
-): Record<TKey, TValue>
-{
+): Record<TKey, TValue> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
     }
@@ -550,7 +549,7 @@ export function flatten<TValue, TKey extends ObjectKey = ObjectKey>(
  */
 export function flip<TValue, TKey extends ObjectKey = ObjectKey>(
     data: Record<TKey, TValue>,
-){
+) {
     if (!accessible(data)) {
         return {};
     }
@@ -570,7 +569,7 @@ export function flip<TValue, TKey extends ObjectKey = ObjectKey>(
 
             if (isObject(value)) {
                 flipRecursive(value as Record<string, unknown>, newKey);
-            } else if(isArray(value)){
+            } else if (isArray(value)) {
                 result[key as string] = arrFlip(value);
             } else {
                 result[value as string] = newKey;
@@ -712,8 +711,8 @@ export function get<T = unknown>(
         return isObject(object)
             ? (object as T)
             : typeof defaultValue === "function"
-              ? (defaultValue as () => T)()
-              : defaultValue;
+                ? (defaultValue as () => T)()
+                : defaultValue;
     }
 
     if (!isObject(object)) {
@@ -728,8 +727,8 @@ export function get<T = unknown>(
         return value !== undefined
             ? (value as T)
             : typeof defaultValue === "function"
-              ? (defaultValue as () => T)()
-              : defaultValue;
+                ? (defaultValue as () => T)()
+                : defaultValue;
     }
 
     if (typeof key === "number") {
@@ -738,8 +737,8 @@ export function get<T = unknown>(
         return value !== undefined
             ? (value as T)
             : typeof defaultValue === "function"
-              ? (defaultValue as () => T)()
-              : defaultValue;
+                ? (defaultValue as () => T)()
+                : defaultValue;
     }
 
     // Handle dot notation for nested object access
@@ -765,8 +764,8 @@ export function get<T = unknown>(
     return current !== undefined
         ? (current as T)
         : typeof defaultValue === "function"
-          ? (defaultValue as () => T)()
-          : defaultValue;
+            ? (defaultValue as () => T)()
+            : defaultValue;
 }
 
 /**
@@ -1115,7 +1114,7 @@ export function only<T extends Record<string, unknown>>(
  */
 export function select<T extends Record<string, unknown>>(
     data: Record<string, T> | unknown,
-    keys: string | string[],
+    keys: PathKeys,
 ): Record<string, Record<string, unknown>> {
     if (!accessible(data)) {
         return {};
@@ -1191,7 +1190,7 @@ export function pluck<T, K extends ObjectKey = ObjectKey>(
                 typeof itemKey === "object" &&
                 "toString" in itemKey &&
                 typeof (itemKey as { toString: unknown }).toString ===
-                    "function"
+                "function"
             ) {
                 itemKey = (itemKey as { toString: () => string }).toString();
             }
@@ -1254,7 +1253,7 @@ export function map<T, U>(
  * mapWithKeys({ a: 'x', b: 'y' }, (value, key) => ({ [value]: key })); -> { x: 'a', y: 'b' }
  */
 export function mapWithKeys<
-    TValue, 
+    TValue,
     TMapWithKeysValue,
     TKey extends ObjectKey = ObjectKey,
     TMapWithKeysKey extends ObjectKey = ObjectKey,
@@ -1271,7 +1270,7 @@ export function mapWithKeys<
 
     for (const [key, value] of Object.entries(obj)) {
         const mappedObject = callback(value, key as TKey);
-        
+
         for (const [mapKey, mapValue] of Object.entries(mappedObject)) {
             result[mapKey as TMapWithKeysKey] = mapValue as TMapWithKeysValue;
         }

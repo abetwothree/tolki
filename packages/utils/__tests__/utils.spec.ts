@@ -1,13 +1,12 @@
-import { describe, it, expect } from "vitest";
-
 import {
-    compareValues,
-    resolveDefault,
-    normalizeToArray,
-    isAccessibleData,
-    getAccessibleValues,
     castableToArray,
+    compareValues,
+    getAccessibleValues,
+    isAccessibleData,
+    normalizeToArray,
+    resolveDefault,
 } from "@laravel-js/utils";
+import { describe, expect,it } from "vitest";
 
 describe("Utils", () => {
     describe("castableToArray", () => {

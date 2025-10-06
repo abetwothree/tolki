@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
 import * as Path from "@laravel-js/path";
+import { describe, expect,it } from "vitest";
 
 describe("Path Functions", () => {
     describe("parseSegments", () => {

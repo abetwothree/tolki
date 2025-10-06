@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
 import * as Obj from "@laravel-js/obj";
+import { describe, expect,it } from "vitest";
 
 describe("Obj", () => {
     describe("accessible", () => {

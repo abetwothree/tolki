@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { CaseTypes, Random,Str, Stringable } from "@laravel-js/str";
 import type MarkdownIt from "markdown-it";
 import type { PluginSimple, PluginWithOptions } from "markdown-it";
-import { Str, Stringable, CaseTypes, Random } from "@laravel-js/str";
+import { describe, expect, it } from "vitest";
 
 describe("Str tests", () => {
     it("of", () => {

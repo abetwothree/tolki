@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
 import * as Data from "@laravel-js/data";
+import { describe, expect,it } from "vitest";
 
 describe("Data", () => {
     it("values", () => {

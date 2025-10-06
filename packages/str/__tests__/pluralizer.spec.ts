@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
 import { Pluralizer } from "@laravel-js/str";
+import { describe, expect,it } from "vitest";
 
 describe("Str/Pluralizer", () => {
     it("pluralizes/singularizes and respects uncountable", () => {

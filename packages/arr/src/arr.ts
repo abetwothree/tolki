@@ -1,27 +1,27 @@
-import { Random, Str } from "@laravel-js/str";
+import { flip as objFlip } from "@laravel-js/obj";
 import {
-    getRaw,
-    forgetKeys,
-    pushWithPath,
     dotFlatten,
-    undotExpandArray,
-    getNestedValue,
+    forgetKeys,
     getMixedValue,
+    getNestedValue,
+    getRaw,
+    hasMixed,
+    pushWithPath,
     setMixed,
     setMixedImmutable,
-    hasMixed,
+    undotExpandArray,
 } from "@laravel-js/path";
-import type { PathKey, PathKeys } from "packages/types";
+import { Random, Str } from "@laravel-js/str";
+import type { ArrayInnerValue, ArrayItems, ObjectKey } from "@laravel-js/types";
 import {
+    castableToArray,
     compareValues,
     getAccessibleValues,
     isArray,
-    isObject,
-    castableToArray,
     isFunction,
+    isObject,
 } from "@laravel-js/utils";
-import type { ArrayInnerValue, ArrayItems, ObjectKey } from "@laravel-js/types";
-import {flip as objFlip} from "@laravel-js/obj";
+import type { PathKey, PathKeys } from "packages/types";
 
 /**
  * Determine whether the given value is array accessible.
@@ -247,8 +247,8 @@ export function divide<A extends readonly unknown[]>(
     return [
         keys,
         array.slice() as unknown as A extends ReadonlyArray<infer V>
-            ? V[]
-            : unknown[],
+        ? V[]
+        : unknown[],
     ];
 }
 
@@ -550,7 +550,7 @@ export function flatten<TValue>(
     const result: TValue[] = [];
 
     for (const item of data) {
-        if (!isArray(item)) { 
+        if (!isArray(item)) {
             result.push(item);
             continue;
         }
@@ -580,11 +580,11 @@ export function flatten<TValue>(
  */
 export function flip<TValue>(
     data: ArrayItems<TValue>,
-){
+) {
     if (!accessible(data)) {
         return [];
     }
-    
+
     // flip the object keys as values and values as keys
     // for values that are nested, the keys should be flipped recursively
     // e.g [{one: 'b', two: {hi: 'hello', skip: 'bye'}}] -> [{b: 'one', {hello: 'hi', bye: 'skip'}}]
@@ -728,8 +728,8 @@ export function get<T = unknown>(
         return isArray(array)
             ? (array as T)
             : typeof defaultValue === "function"
-              ? (defaultValue as () => T)()
-              : defaultValue;
+                ? (defaultValue as () => T)()
+                : defaultValue;
     }
 
     if (!isArray(array)) {
@@ -1082,7 +1082,7 @@ export function only<T>(data: ReadonlyArray<T> | unknown, keys: number[]): T[] {
  */
 export function select<T extends Record<string, unknown>>(
     data: ReadonlyArray<T> | unknown,
-    keys: string | string[],
+    keys: PathKeys,
 ): Record<string, unknown>[] {
     const values = getAccessibleValues(data);
     const keyList = isArray(keys) ? keys : [keys];
@@ -1157,7 +1157,7 @@ export function pluck<T extends Record<string, unknown>>(
                 typeof itemKey === "object" &&
                 "toString" in itemKey &&
                 typeof (itemKey as { toString: unknown }).toString ===
-                    "function"
+                "function"
             ) {
                 itemKey = (itemKey as { toString: () => string }).toString();
             }

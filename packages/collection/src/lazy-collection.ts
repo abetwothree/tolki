@@ -1,4 +1,4 @@
-import type { DataItems, ObjectKey, Arrayable } from "@laravel-js/types";
+import type { Arrayable,DataItems, ObjectKey } from "@laravel-js/types";
 
 export function lazyCollect<
     TValue = unknown,

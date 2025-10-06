@@ -1,4 +1,4 @@
-import { toUpper, toLower, lowerFirst, upperFirst } from "lodash-es";
+import { lowerFirst, toLower, toUpper, upperFirst } from "lodash-es";
 
 export const CaseTypes = {
     upper: "upper",

@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Base64 } from "@laravel-js/str";
+import { afterEach,beforeEach, describe, expect, it } from "vitest";
 
 // We will temporarily modify globals to simulate different environments
 const g = globalThis as unknown as Record<string, unknown>;

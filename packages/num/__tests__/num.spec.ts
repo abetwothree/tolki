@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
 import * as Num from "@laravel-js/num";
+import { describe, expect,it } from "vitest";
 
 describe("Number", () => {
     describe("format", () => {

@@ -15,9 +15,9 @@
  *   packages/str/stubs/Str.php -> packages/str/stubs/Str-Function-List.txt
  */
 
+import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
 
 interface StubFile {
     fullPath: string;
@@ -162,7 +162,7 @@ function main(): void {
 }
 
 // Export the main function for use in other modules
-export { main, findStubFiles, generateFunctionList };
+export { findStubFiles, generateFunctionList,main };
 
 // Call main if running directly
 if (import.meta.url === `file://${process.argv[1]}`) {

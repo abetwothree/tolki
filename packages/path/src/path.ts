@@ -1,14 +1,14 @@
+import { wrap as arrWrap } from "@laravel-js/arr";
 import {
-    isArray,
-    isObject,
-    typeOf,
     castableToArray,
+    isArray,
     isNull,
     isNumber,
+    isObject,
     isUndefined,
+    typeOf,
 } from "@laravel-js/utils";
 import type { PathKey, PathKeys } from "packages/types";
-import { wrap as arrWrap } from "@laravel-js/arr";
 
 /**
  * Parse a key into segments for mixed array/object path traversal.

@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect,it } from "vitest";
+
 import { Str, Stringable } from "../src/index.js";
 
 // Helper to compare Stringable result to plain string

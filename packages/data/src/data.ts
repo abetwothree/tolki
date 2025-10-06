@@ -1,84 +1,18 @@
 import {
-    values as objValues,
-    keys as objKeys,
-    filter as objFilter,
-    map as objMap,
-    first as objFirst,
-    last as objLast,
-    contains as objContains,
-    diff as objDiff,
-    pluck as objPluck,
-    add as objAdd,
-    objectItem,
-    boolean as objBoolean,
-    collapse as objCollapse,
-    crossJoin as objCrossJoin,
-    divide as objDivide,
-    dot as objDot,
-    undot as objUndot,
-    except as objExcept,
-    exists as objExists,
-    take as objTake,
-    flatten as objFlatten,
-    flip as objFlip,
-    float as objFloat,
-    forget as objForget,
-    from as objFrom,
-    get as objGet,
-    has as objHas,
-    hasAll as objHasAll,
-    hasAny as objHasAny,
-    every as objEvery,
-    some as objSome,
-    integer as objInteger,
-    join as objJoin,
-    keyBy as objKeyBy,
-    prependKeysWith as objPrependKeysWith,
-    only as objOnly,
-    select as objSelect,
-    mapWithKeys as objMapWithKeys,
-    mapSpread as objMapSpread,
-    prepend as objPrepend,
-    pull as objPull,
-    query as objQuery,
-    random as objRandom,
-    set as objSet,
-    push as objPush,
-    shuffle as objShuffle,
-    sole as objSole,
-    sort as objSort,
-    sortDesc as objSortDesc,
-    sortRecursive as objSortRecursive,
-    sortRecursiveDesc as objSortRecursiveDesc,
-    string as objString,
-    toCssClasses as objToCssClasses,
-    toCssStyles as objToCssStyles,
-    where as objWhere,
-    reject as objReject,
-    partition as objPartition,
-    whereNotNull as objWhereNotNull,
-} from "@laravel-js/obj";
-import {
-    values as arrValues,
-    keys as arrKeys,
-    filter as arrFilter,
-    map as arrMap,
-    first as arrFirst,
-    last as arrLast,
-    contains as arrContains,
-    diff as arrDiff,
-    pluck as arrPluck,
-    wrap as arrWrap,
     add as arrAdd,
     arrayItem,
     boolean as arrBoolean,
     collapse as arrCollapse,
+    contains as arrContains,
     crossJoin as arrCrossJoin,
+    diff as arrDiff,
     divide as arrDivide,
     dot as arrDot,
+    every as arrEvery,
     except as arrExcept,
     exists as arrExists,
-    take as arrTake,
+    filter as arrFilter,
+    first as arrFirst,
     flatten as arrFlatten,
     flip as arrFlip,
     float as arrFloat,
@@ -88,36 +22,102 @@ import {
     has as arrHas,
     hasAll as arrHasAll,
     hasAny as arrHasAny,
-    every as arrEvery,
-    some as arrSome,
     integer as arrInteger,
     join as arrJoin,
     keyBy as arrKeyBy,
-    prependKeysWith as arrPrependKeysWith,
-    only as arrOnly,
-    select as arrSelect,
-    mapWithKeys as arrMapWithKeys,
+    keys as arrKeys,
+    last as arrLast,
+    map as arrMap,
     mapSpread as arrMapSpread,
+    mapWithKeys as arrMapWithKeys,
+    only as arrOnly,
+    partition as arrPartition,
+    pluck as arrPluck,
     prepend as arrPrepend,
+    prependKeysWith as arrPrependKeysWith,
     pull as arrPull,
+    push as arrPush,
     query as arrQuery,
     random as arrRandom,
+    reject as arrReject,
+    select as arrSelect,
     set as arrSet,
-    push as arrPush,
     shuffle as arrShuffle,
     sole as arrSole,
+    some as arrSome,
     sort as arrSort,
     sortDesc as arrSortDesc,
     sortRecursive as arrSortRecursive,
     sortRecursiveDesc as arrSortRecursiveDesc,
     string as arrString,
+    take as arrTake,
     toCssClasses as arrToCssClasses,
     toCssStyles as arrToCssStyles,
+    values as arrValues,
     where as arrWhere,
-    reject as arrReject,
-    partition as arrPartition,
     whereNotNull as arrWhereNotNull,
+    wrap as arrWrap,
 } from "@laravel-js/arr";
+import {
+    add as objAdd,
+    boolean as objBoolean,
+    collapse as objCollapse,
+    contains as objContains,
+    crossJoin as objCrossJoin,
+    diff as objDiff,
+    divide as objDivide,
+    dot as objDot,
+    every as objEvery,
+    except as objExcept,
+    exists as objExists,
+    filter as objFilter,
+    first as objFirst,
+    flatten as objFlatten,
+    flip as objFlip,
+    float as objFloat,
+    forget as objForget,
+    from as objFrom,
+    get as objGet,
+    has as objHas,
+    hasAll as objHasAll,
+    hasAny as objHasAny,
+    integer as objInteger,
+    join as objJoin,
+    keyBy as objKeyBy,
+    keys as objKeys,
+    last as objLast,
+    map as objMap,
+    mapSpread as objMapSpread,
+    mapWithKeys as objMapWithKeys,
+    objectItem,
+    only as objOnly,
+    partition as objPartition,
+    pluck as objPluck,
+    prepend as objPrepend,
+    prependKeysWith as objPrependKeysWith,
+    pull as objPull,
+    push as objPush,
+    query as objQuery,
+    random as objRandom,
+    reject as objReject,
+    select as objSelect,
+    set as objSet,
+    shuffle as objShuffle,
+    sole as objSole,
+    some as objSome,
+    sort as objSort,
+    sortDesc as objSortDesc,
+    sortRecursive as objSortRecursive,
+    sortRecursiveDesc as objSortRecursiveDesc,
+    string as objString,
+    take as objTake,
+    toCssClasses as objToCssClasses,
+    toCssStyles as objToCssStyles,
+    undot as objUndot,
+    values as objValues,
+    where as objWhere,
+    whereNotNull as objWhereNotNull,
+} from "@laravel-js/obj";
 import type {
     DataItems,
     ObjectKey,
@@ -715,8 +715,8 @@ export function dataKeyBy(
         return objKeyBy(
             data as Record<string, unknown>,
             keyBy as
-                | string
-                | ((item: Record<string, unknown>) => string | number),
+            | string
+            | ((item: Record<string, unknown>) => string | number),
         );
     }
 
@@ -761,18 +761,21 @@ export function dataPrependKeysWith<T, K extends ObjectKey = ObjectKey>(
  * dataOnly([1, 2, 3, 4], [0, 2]); -> [1, 3]
  * dataOnly({a: 1, b: 2, c: 3}, ['a', 'c']); -> {a: 1, c: 3}
  */
-export function dataOnly<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
-    keys: (string | number)[],
-): DataItems<T, K> {
+export function dataOnly<
+    TValue,
+    TKey extends ObjectKey = ObjectKey
+>(
+    data: DataItems<TValue, TKey>,
+    keys: PathKey[],
+): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objOnly(data as Record<K, T>, keys as string[]) as DataItems<
-            T,
-            K
+        return objOnly(data as Record<TKey, TValue>, keys as string[]) as DataItems<
+            TValue,
+            TKey
         >;
     }
 
-    return arrOnly(arrWrap(data), keys as number[]) as DataItems<T>;
+    return arrOnly(arrWrap(data), keys as number[]) as DataItems<TValue>;
 }
 
 /**
@@ -786,13 +789,16 @@ export function dataOnly<T, K extends ObjectKey = ObjectKey>(
  *
  * dataSelect([{a: 1, b: 2, c: 3}], ['a', 'c']); -> [{a: 1, c: 3}]
  */
-export function dataSelect(data: unknown, keys: string[]): unknown {
+export function dataSelect<
+    TValue,
+    TKey extends ObjectKey = ObjectKey
+>(data: DataItems<TValue, TKey>, keys: PathKey[] | PathKeys) {
     if (isObject(data)) {
-        return objSelect(data as Record<string, Record<string, unknown>>, keys);
+        return objSelect(data as Record<string, Record<string, TValue>>, keys);
     }
 
     return arrSelect(
-        arrWrap(data) as unknown as Record<string, unknown>[],
+        arrWrap(data) as unknown as Record<string, TValue>[],
         keys,
     );
 }
@@ -810,7 +816,7 @@ export function dataSelect(data: unknown, keys: string[]): unknown {
  * -> {key_0: 2, key_1: 4}
  */
 export function dataMapWithKeys<
-    TValue, 
+    TValue,
     TMapWithKeysValue,
     TKey extends ObjectKey = ObjectKey,
     TMapWithKeysKey extends ObjectKey = ObjectKey,
@@ -869,7 +875,7 @@ export function dataMapSpread<U>(
 export function dataPrepend<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
     value: T,
-    key?: string,
+    key: ObjectKey | null = null,
 ): DataItems<T, K> {
     if (isObject(data)) {
         return objPrepend(
@@ -1007,20 +1013,36 @@ export function dataSet<TValue, TKey extends ObjectKey = ObjectKey, TSet = TValu
  * dataPush([1, 2], null, [3, 4]); -> [1, 2, 3, 4]
  * dataPush({a: [1, 2]}, 'a', [3, 4]); -> {a: [1, 2, 3, 4]}
  */
-export function dataPush<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataPush<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     key: PathKey,
-    values: T[],
-): DataItems<T, K> {
+    values: TValue | TValue[],
+): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objPush(
-            data as Record<string, unknown>,
+            data,
             key as string,
             values,
-        ) as DataItems<T, K>;
+        ) as DataItems<TValue, TKey>;
     }
 
-    return arrPush(arrWrap(data), key as number, values) as DataItems<T>;
+    return arrPush(arrWrap(data), key as number, values) as DataItems<TValue, TKey>;
+}
+
+export function dataUnshift<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    key: PathKey,
+    values: TValue | TValue[],
+): DataItems<TValue, TKey> {
+    if (isObject(data)) {
+        return objUnshift(
+            data,
+            key,
+            values,
+        ) as DataItems<TValue, TKey>;
+    }
+
+    return arrUnshift(arrWrap(data), key as number, values) as DataItems<TValue, TKey>;
 }
 
 /**
@@ -1492,7 +1514,7 @@ export function dataFirst<TValue, TKey extends ObjectKey = ObjectKey, TFirstDefa
         data,
         callback as (value: TValue, index: number) => boolean,
         defaultValue,
-    ); 
+    );
 
     return result === undefined ? null : result;
 }
@@ -1563,11 +1585,11 @@ export function dataContains<T, K extends ObjectKey = ObjectKey>(
         return objContains(
             data as Record<string, T>,
             value as
-                | Record<string, unknown>
-                | ((
-                      value: Record<string, unknown>,
-                      key: string | number,
-                  ) => boolean),
+            | Record<string, unknown>
+            | ((
+                value: Record<string, unknown>,
+                key: string | number,
+            ) => boolean),
             strict,
         );
     }
@@ -1655,7 +1677,7 @@ export function dataIntersectByKeys<TValue, TKey extends ObjectKey = ObjectKey>(
     data: DataItems<TValue, TKey>,
     other: DataItems<TValue, TKey>,
     callable: ((a: TValue, b: TValue) => boolean) | null = null,
-){
+) {
     if (isObject(data) && isObject(other)) {
         return objIntersectByKeys(
             data as Record<string, TValue>,

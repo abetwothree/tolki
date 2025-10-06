@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { Str, Stringable, CaseTypes } from "@laravel-js/str";
+import { CaseTypes,Str, Stringable } from "@laravel-js/str";
+import { describe, expect,it } from "vitest";
 
 // Helper to compare Stringable method against Str function
 function expectEqual(strResult: string, s: Stringable) {

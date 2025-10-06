@@ -1,37 +1,37 @@
-import { transliterate } from "transliteration";
-import anyAscii from "any-ascii";
-import {
-    toLower,
-    isString,
-    isEmpty,
-    isFunction,
-    replace as lodashReplace,
-} from "lodash-es";
-import {
-    validate as uuidValidate,
-    version as uuidVersion,
-    NIL as UUID_NIL,
-    MAX as UUID_MAX,
-    v4 as uuidv4,
-    v7 as uuidv7,
-} from "uuid";
-import { ulid as createUlid } from "ulid";
 import { format as numberFormat } from "@laravel-js/num";
 import {
-    MarkdownRenderer,
-    type MarkDownOptions,
-    type MarkDownExtensions,
-    Stringable,
+    Base64,
+    CaseTypes,
     ConvertCase,
     type ConvertCaseMode,
-    CaseTypes,
+    type MarkDownExtensions,
+    type MarkDownOptions,
+    MarkdownRenderer,
     Pluralizer,
     Random,
-    Trimmer,
     Replacer,
-    Base64,
+    Stringable,
+    Trimmer,
 } from "@laravel-js/str";
 import { isArray } from "@laravel-js/utils";
+import anyAscii from "any-ascii";
+import {
+    isEmpty,
+    isFunction,
+    isString,
+    replace as lodashReplace,
+    toLower,
+} from "lodash-es";
+import { transliterate } from "transliteration";
+import { ulid as createUlid } from "ulid";
+import {
+    MAX as UUID_MAX,
+    NIL as UUID_NIL,
+    v4 as uuidv4,
+    v7 as uuidv7,
+    validate as uuidValidate,
+    version as uuidVersion,
+} from "uuid";
 
 export class Str {
     /**

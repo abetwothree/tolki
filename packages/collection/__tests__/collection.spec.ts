@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { Collection, collect } from "@laravel-js/collection";
+import { collect,Collection } from "@laravel-js/collection";
+import { describe, expect,it } from "vitest";
 
 describe("Collection", () => {
     describe("constructor", () => {

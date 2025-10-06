@@ -1,3 +1,4 @@
+import { isArray } from "@laravel-js/utils";
 import MarkdownIt, {
     type Options as MarkdownItOptions,
     type PluginSimple,
@@ -5,7 +6,6 @@ import MarkdownIt, {
 } from "markdown-it";
 import markdownItAnchor from "markdown-it-anchor";
 import markdownItTaskLists from "markdown-it-task-lists";
-import { isArray } from "@laravel-js/utils";
 
 export interface MarkDownOptions extends MarkdownItOptions {
     gfm?: boolean;

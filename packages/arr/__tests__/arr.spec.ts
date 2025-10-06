@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
 import * as Arr from "@laravel-js/arr";
 import { isArray } from "@laravel-js/utils";
+import { describe, expect,it } from "vitest";
 
 describe("Arr", () => {
     it("accessible", () => {
