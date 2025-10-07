@@ -124,7 +124,7 @@ import type {
     PathKey,
     PathKeys,
 } from "@laravel-js/types";
-import { isFunction,isObject } from "@laravel-js/utils";
+import { isFunction, isObject } from "@laravel-js/utils";
 
 /**
  * Add an element to data.
@@ -1163,14 +1163,14 @@ export function dataUnshift<TValue, TKey extends ObjectKey = ObjectKey>(
  * dataShuffle([1, 2, 3, 4]); -> [3, 1, 4, 2] (random order)
  * dataShuffle({a: 1, b: 2, c: 3}); -> {c: 3, a: 1, b: 2} (random order)
  */
-export function dataShuffle<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
-): DataItems<T, K> {
+export function dataShuffle<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objShuffle(data as Record<string, T>) as DataItems<T, K>;
+        return objShuffle(data as Record<string, TValue>) as DataItems<TValue, TKey>;
     }
 
-    return arrShuffle(arrWrap(data)) as DataItems<T>;
+    return arrShuffle(arrWrap(data)) as DataItems<TValue, TKey>;
 }
 
 /**
