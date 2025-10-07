@@ -5,13 +5,13 @@ import {
     Str,
 } from "@laravel-js/str";
 import { isArray, isFunction } from "@laravel-js/utils";
-import type { ConditionableClosure,ConditionableValue } from "packages/types";
+import type { ConditionableClosure, ConditionableValue } from "packages/types";
 
 export class Stringable {
     /**
      * Create a new instance of the class.
      */
-    constructor(private readonly _value: string = "") {}
+    constructor(private readonly _value: string = "") { }
 
     /**
      * Return the remainder of a string after the first occurrence of a given value.
@@ -116,6 +116,16 @@ export class Stringable {
      */
     containsAll(needles: Iterable<string>, ignoreCase = false): boolean {
         return Str.containsAll(this._value, needles, ignoreCase);
+    }
+
+    /**
+     * Determine if a given string doesn't contain a given substring.
+     *
+     * @param needles - The substring(s) to search for
+     * @returns boolean - True if the substring(s) are not found, false otherwise
+     */
+    doesntContain(needles: string | Iterable<string>): boolean {
+        return Str.doesntContain(this._value, needles);
     }
 
     /**

@@ -124,7 +124,7 @@ import type {
     PathKey,
     PathKeys,
 } from "@laravel-js/types";
-import { isObject } from "@laravel-js/utils";
+import { isFunction,isObject } from "@laravel-js/utils";
 
 /**
  * Add an element to data.
@@ -963,12 +963,119 @@ export function dataRandom<T, K extends ObjectKey = ObjectKey>(
     data: DataItems<T, K>,
     number = 1,
     preserveKeys = false,
-): unknown {
+) {
     if (isObject(data)) {
         return objRandom(data as Record<string, T>, number, preserveKeys);
     }
 
     return arrRandom(arrWrap(data), number, preserveKeys);
+}
+
+export function dataSearch<TValue, TKey extends ObjectKey = ObjectKey>(
+    items: DataItems<TValue, TKey>,
+    value: TValue | ((item: TValue, key: TKey) => boolean),
+    strict: boolean = false,
+): TKey | false {
+    for (const [key, item] of Object.entries(items)) {
+        if (isFunction(value)) {
+            if (value(item as TValue, key as TKey)) {
+                return key as TKey;
+            }
+        }
+
+        if (strict) {
+            if (item === value) {
+                return key as TKey;
+            }
+
+            continue;
+        }
+
+        if (item == value) {
+            return key as TKey;
+        }
+    }
+
+    return false;
+}
+
+export function dataBefore<TValue, TKey extends ObjectKey = ObjectKey>(
+    items: DataItems<TValue, TKey>,
+    value: TValue | ((item: TValue, key: TKey) => boolean),
+    strict: boolean = false,
+): TValue | false {
+    let prev: TValue | false = false;
+    for (const [key, item] of Object.entries(items)) {
+        if (isFunction(value)) {
+            if (value(item as TValue, key as TKey)) {
+                return prev;
+            }
+        }
+
+        if (strict) {
+            if (item === value) {
+                return prev;
+            }
+
+            continue;
+        }
+
+        if (item == value) {
+            return prev;
+        }
+
+        prev = item as TValue;
+    }
+
+    return false;
+}
+
+export function dataAfter<TValue, TKey extends ObjectKey = ObjectKey>(
+    items: DataItems<TValue, TKey>,
+    value: TValue | ((item: TValue, key: TKey) => boolean),
+    strict: boolean = false,
+): TValue | false {
+    let returnNext: boolean = false;
+
+    for (const [key, item] of Object.entries(items)) {
+        if (returnNext !== false) {
+            return item as TValue;
+        }
+
+        if (isFunction(value)) {
+            if (value(item as TValue, key as TKey)) {
+                returnNext = false;
+                continue;
+            }
+        }
+
+        if (strict) {
+            if (item === value) {
+                returnNext = true;
+                continue;
+            }
+
+            continue;
+        }
+
+        if (item == value) {
+            returnNext = true;
+            continue;
+        }
+    }
+
+    return false;
+}
+
+export function dataShift<TValue, TKey extends ObjectKey = ObjectKey>(
+    items: DataItems<TValue, TKey>,
+    count: number = 1,
+) {
+    if (isObject(items)) {
+        return objShift(items as Record<string, TValue>, count);
+    }
+
+    return arrShift(arrWrap(items), count);
 }
 
 /**

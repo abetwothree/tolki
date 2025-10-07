@@ -1,5 +1,5 @@
 import { wrap as arrWrap } from "@laravel-js/arr";
-import { dataAdd, dataArray, dataBoolean, dataCollapse, dataContains, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataSelect, dataSet, dataShuffle, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
+import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataCollapse, dataContains, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataSearch, dataSelect, dataSet, dataShift,dataShuffle, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
 import { clamp, currency, defaultCurrency, defaultLocale, fileSize, forHumans, format, minutesToHuman, ordinal, pairs, parse, parseFloat, parseInt, percentage, secondsToHuman, spell, spellOrdinal, summarize, trim, useCurrency, useLocale, withCurrency, withLocale } from '@laravel-js/num';
 import { dotFlatten, dotFlattenArray, dotFlattenObject, forgetKeys, forgetKeysArray, forgetKeysObject, getMixedValue, getNestedValue, getObjectValue, getRaw, hasMixed, hasObjectKey, hasPath, parseSegments, pushMixed, pushWithPath, setImmutable, setMixed, setMixedImmutable, setObjectValue, undotExpand, undotExpandArray, undotExpandObject } from '@laravel-js/path';
 import type {
@@ -1605,6 +1605,261 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         }
 
         return this;
+    }
+
+    /**
+     * Push all of the given items onto the collection.
+     * 
+     * @param source - The items to concatenate
+     * @returns A new collection with the concatenated items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2]).concat([3, 4]); -> new Collection([1, 2, 3, 4])
+     * new Collection({a: 1, b: 2}).concat({c: 3, d: 4}); -> new Collection({a: 1, b: 2, c: 3, d: 4})
+     * new Collection([1, 2]).concat({a: 3}); -> new Collection([1, 2, {a: 3}])
+     */
+    concat<TConcatValue, TConcatKey extends ObjectKey = ObjectKey>(
+        source: DataItems<TConcatValue, TConcatKey> | Collection<TConcatValue, TConcatKey>,
+    ) {
+        const result = new Collection(this.items);
+        const items = this.getRawItems(source);
+
+        for (const [_key, value] of Object.entries(items)) {
+            result.push(value);
+        }
+
+        return result;
+    }
+
+    /**
+     * Get a value from the array, and remove it.
+     * 
+     * @param key - The key path to pull
+     * @param defaultValue - The default value to return if the key does not exist
+     * @returns The value at the specified key, or the default value
+     * 
+     * @example
+     * 
+     * const collection = new Collection({a: 1, b: 2, c: 3});
+     * collection.pull('b', 0); -> 2
+     * collection.pull('d', 0); -> 0
+     */
+    pull<TPullDefault>(
+        key: PathKey,
+        defaultValue?: TPullDefault | (() => TPullDefault),
+    ) {
+        const result = dataPull(this.items, key, defaultValue);
+        this.items = result.data;
+
+        return result.value;
+    }
+
+    /**
+     * Put an item in the collection by key.
+     * 
+     * @param key - The key to set the value at
+     * @param value - The value to set
+     * @returns The collection instance for chaining
+     * 
+     * @example
+     * 
+     * new Collection().put('a', 1); -> new Collection({a: 1})
+     * new Collection({a: 1}).put('b', 2); -> new Collection({a: 1, b: 2})
+     * new Collection([1, 2]).put(2, 3); -> new Collection([1, 2, 3])
+     */
+    put(key: TKey, value: TValue) {
+        this.offset(key, value);
+
+        return this;
+    }
+
+    /**
+     * Get one or a specified number of items randomly from the collection.
+     * 
+     * @param count - The number of items to retrieve, a callback to determine the count, or null for a single item
+     * @param preserveKeys - Whether to preserve the original keys, defaults to false
+     * @returns A single random item or a new collection with the random items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).random(); -> 2
+     * new Collection([1, 2, 3]).random(2); -> new Collection([1, 3])
+     * new Collection({a: 1, b: 2, c: 3}).random(2, true); -> new Collection({a: 1, c: 3})
+     * new Collection([1, 2, 3]).random(collection => Math.floor(collection.count() / 2)); -> new Collection([2])
+     * new Collection([]).random(); -> undefined
+     */
+    random(
+        count?: ((collection: this) => number) | number | null,
+        preserveKeys: boolean = false,
+    ) {
+        if (isNull(count)) {
+            return dataRandom(this.items);
+        }
+
+        if (isFunction(count)) {
+            const countValue = count(this) as number;
+            return new Collection(dataRandom(this.items, countValue, preserveKeys) as DataItems<TValue, TKey>);
+        }
+
+        return new Collection(dataRandom(this.items, count as number, preserveKeys) as DataItems<TValue, TKey>);
+    }
+
+    /**
+     * Replace the collection items with the given items.
+     * @param items - The items to replace with
+     * @returns A new collection with the replaced items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).replace([4, 5]); -> new Collection([4, 5])
+     * new Collection({a: 1, b: 2}).replace({c: 3}); -> new Collection({c: 3})
+     * new Collection([1, 2]).replace({a: 3}); -> new Collection({a: 3})
+     */
+    replace(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+    ) {
+        return new Collection(
+            dataReplace<TValue, TKey>(
+                this.items,
+                this.getRawItems(items),
+            ),
+        );
+    }
+
+    /**
+     * Recursively replace the collection items with the given items.
+     * 
+     * @param items - The items to replace with
+     * @returns A new collection with the recursively replaced items
+     * 
+     * @example
+     * 
+     * new Collection({a: {b: 1}}).replaceRecursive({a: {c: 2}}); -> new Collection({a: {c: 2}})
+     * new Collection([1, [2, 3]]).replaceRecursive([4, [5]]); -> new Collection([4, [5]])
+     * new Collection([1, {a: 2}]).replaceRecursive([{b: 3}, {a: 4}]); -> new Collection([{b: 3}, {a: 4}])
+     */
+    replaceRecursive(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+    ) {
+        return new Collection(
+            dataReplaceRecursive<TValue, TKey>(
+                this.items,
+                this.getRawItems(items),
+            ),
+        );
+    }
+
+    /**
+     * Reverse the order of the collection items.
+     * 
+     * @returns A new collection with the items in reverse order
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).reverse(); -> new Collection([3, 2, 1])
+     * new Collection({a: 1, b: 2, c: 3}).reverse(); -> new Collection({c: 3, b: 2, a: 1})
+     */
+    reverse() {
+        return new Collection(
+            dataReverse(this.items),
+        );
+    }
+
+    /**
+     * Search the collection for a given value and return the corresponding key if successful.
+     * 
+     * @param value - The value to search for, or a callback to determine a match
+     * @param strict - Whether to use strict comparison, defaults to false
+     * @returns The key of the found item, or false if not found
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).search(2); -> 1
+     * new Collection({a: 1, b: 2, c: 3}).search(3); -> 'c'
+     * new Collection([1, 2, 3]).search(x => x > 2); -> 2
+     * new Collection([1, 2, 3]).search(4); -> false
+     */
+    search(
+        value: TValue | ((item: TValue, key: TKey) => boolean),
+        strict: boolean = false,
+    ): TKey | false {
+        return dataSearch(this.items, value, strict);
+    }
+
+    /**
+     * Get the item before the given item.
+     * 
+     * @param value - The value to search for, or a callback to determine a match
+     * @param strict - Whether to use strict comparison, defaults to false
+     * @returns The item before the found item, or false if not found or no previous item
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).before(2); -> 1
+     * new Collection({a: 1, b: 2, c: 3}).before(3); -> 2
+     * new Collection([1, 2, 3]).before(x => x > 2); -> 2
+     * new Collection([1, 2, 3]).before(1); -> false
+     * new Collection([1, 2, 3]).before(4); -> false
+     */
+    before(
+        value: TValue | ((item: TValue, key: TKey) => boolean),
+        strict: boolean = false,
+    ): TValue | false {
+        return dataBefore(this.items, value, strict);
+    }
+
+    /**
+     * Get the item after the given item.
+     * 
+     * @param value - The value to search for, or a callback to determine a match
+     * @param strict - Whether to use strict comparison, defaults to false
+     * @returns The item after the found item, or false if not found or no next item
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).after(2); -> 3
+     * new Collection({a: 1, b: 2, c: 3}).after(2); -> 3
+     * new Collection([1, 2, 3]).after(x => x < 2); -> 2
+     * new Collection([1, 2, 3]).after(3); -> false
+     * new Collection([1, 2, 3]).after(4); -> false
+     */
+    after(
+        value: TValue | ((item: TValue, key: TKey) => boolean),
+        strict: boolean = false,
+    ): TValue | false {
+        return dataAfter(this.items, value, strict);
+    }
+
+    /**
+     * Get and remove the first N items from the collection.
+     * 
+     * @param count - The number of items to shift, defaults to 1
+     * @returns A new collection with the shifted items, or null if the collection is empty
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).shift(); -> new Collection([1])
+     * new Collection([1, 2, 3]).shift(2); -> new Collection([1, 2])
+     * new Collection({a: 1, b: 2, c: 3}).shift(); -> new Collection({a: 1})
+     * new Collection({a: 1, b: 2, c: 3}).shift(2); -> new Collection({a: 1, b: 2})
+     * new Collection([]).shift(); -> null
+     */
+    shift(
+        count: number = 1,
+    ) {
+        if (count < 0) {
+            throw new Error('Number of shifted items may not be less than zero.');
+        }
+
+        if (this.isEmpty()) {
+            return null;
+        }
+
+        const result = dataShift(this.items, count);
+        this.items = result.data;
+
+        return new Collection(result.value as DataItems<TValue, TKey>);
     }
 
     /**
