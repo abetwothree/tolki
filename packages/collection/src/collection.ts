@@ -92,12 +92,14 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         from: number,
         to: number,
         step: number = 1,
-    ): Collection<number, number> {
+    ) {
         const rangeArray: number[] = [];
+
         for (let i = from; i <= to; i += step) {
             rangeArray.push(i);
         }
-        return new Collection(rangeArray);
+
+        return new Collection<number, number>(rangeArray);
     }
 
     /**
@@ -1876,6 +1878,296 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         return new Collection(
             dataShuffle(this.items),
         );
+    }
+
+    /**
+     * Create chunks representing a "sliding window" view of the items in the collection.
+     * 
+     * @param size - The size of each chunk, defaults to 2
+     * @param step - The number of items to skip between chunks, defaults to 1
+     * @returns A new collection with the sliding window chunks
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3, 4]).sliding(); -> new Collection([ [1, 2], [2, 3], [3, 4] ])
+     * new Collection([1, 2, 3, 4]).sliding(3); -> new Collection([ [1, 2, 3], [2, 3, 4] ])
+     * new Collection([1, 2, 3, 4]).sliding(2, 2); -> new Collection([ [1, 2], [3, 4] ])
+     * new Collection({a: 1, b: 2, c: 3}).sliding(); -> new Collection([ {a: 1, b: 2}, {b: 2, c: 3} ])
+     */
+    sliding(
+        size: number = 2,
+        step: number = 1,
+    ) {
+        const chunks = Math.floor((this.count() / size) / step) + 1;
+
+        return Collection.times(
+            chunks,
+            (count: number) => this.slice((count - 1) * step, size)
+        );
+    }
+
+    /**
+     * Skip the first {$count} items.
+     * 
+     * @param count - The number of items to skip
+     * @returns A new collection with the items after the skipped ones
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3, 4]).skip(2); -> new Collection([3, 4])
+     * new Collection({a: 1, b: 2, c: 3}).skip(1); -> new Collection({b: 2, c: 3})
+     */
+    skip(
+        count: number,
+    ) {
+        return this.slice(count);
+    }
+
+    /**
+     * Skip items in the collection until the given condition is met.
+     * 
+     * @param value - The value to skip until, or a callback to determine when to stop skipping
+     * @returns A new collection with the items after the skipped ones
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3, 4]).skipUntil(3); -> new Collection([3, 4])
+     * new Collection({a: 1, b: 2, c: 3}).skipUntil(2); -> new Collection({b: 2, c: 3})
+     * new Collection([1, 2, 3, 4]).skipUntil(x => x > 2); -> new Collection([3, 4])
+     * new Collection([1, 2, 3]).skipUntil(4); -> new Collection([])
+     */
+    skipUntil(
+        value: TValue | ((item: TValue, key: TKey) => boolean)
+    ) {
+        // TODO: Implement skipUntil if Lazy Collection is implemented 
+    }
+
+    /**
+     * Skip items in the collection while the given condition is met.
+     * 
+     * @param value - The value to skip while, or a callback to determine when to stop skipping
+     * @returns A new collection with the items after the skipped ones
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3, 4]).skipWhile(2); -> new Collection([2, 3, 4])
+     * new Collection({a: 1, b: 2, c: 3}).skipWhile(1); -> new Collection({b: 2, c: 3})
+     * new Collection([1, 2, 3, 4]).skipWhile(x => x < 3); -> new Collection([3, 4])
+     * new Collection([1, 2, 3]).skipWhile(x => x < 4); -> new Collection([])
+     */
+    skipWhile(
+        value: TValue | ((item: TValue, key: TKey) => boolean)
+    ) {
+        // TODO: Implement skipWhile if Lazy Collection is implemented
+    }
+
+    /**
+     * Slice the underlying collection array.
+     * 
+     * @param offset - The offset to start the slice
+     * @param length - The length of the slice, or null to slice to the end
+     * @returns A new collection with the sliced items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3, 4]).slice(1); -> new Collection([2, 3, 4])
+     * new Collection([1, 2, 3, 4]).slice(1, 2); -> new Collection([2, 3])
+     * new Collection({a: 1, b: 2, c: 3}).slice(1); -> new Collection({b: 2, c: 3})
+     * new Collection({a: 1, b: 2, c: 3}).slice(1, 1); -> new Collection({b: 2})
+     */
+    slice(
+        offset: number,
+        length: number | null = null,
+    ) {
+        return new Collection(
+            dataSlice(this.items, offset, length),
+        );
+    }
+
+    /**
+     * Split a collection into a certain number of groups.
+     * 
+     * @param numberOfGroups - The number of groups to split into
+     * @returns A new collection with the split groups
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3, 4]).split(2); -> new Collection([ new Collection([1, 2]), new Collection([3, 4]) ])
+     * new Collection({a: 1, b: 2, c: 3, d: 4}).split(2); -> new Collection([ new Collection({a: 1, b: 2}), new Collection({c: 3, d: 4}) ])
+     * new Collection([1, 2, 3]).split(5); -> new Collection([ new Collection([1]), new Collection([2]), new Collection([3]) ])
+     */
+    split(
+        numberOfGroups: number,
+    ) {
+        const groups = new Collection();
+
+        if (this.isEmpty()) {
+            return groups;
+        }
+
+        const groupSize = Math.floor(this.count() / numberOfGroups);
+
+        const remain = this.count() % numberOfGroups;
+
+        let start = 0;
+
+        for (let i = 0; i < numberOfGroups; i++) {
+            let size = groupSize;
+
+            if (i < remain) {
+                size += 1;
+            }
+
+            if (size > 0) {
+                groups.push(
+                    new Collection(
+                        this.slice(start, size).items
+                    )
+                )
+
+                start += size;
+            }
+        }
+
+        return groups;
+    }
+
+    /**
+     * Split a collection into a certain number of groups, and fill the first groups completely.
+     * 
+     * @param numberOfGroups - The number of groups to split into
+     * @returns A new collection with the split groups
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3, 4]).splitIn(2); -> new Collection([ new Collection([1, 2]), new Collection([3, 4]) ])
+     * new Collection({a: 1, b: 2, c: 3, d: 4}).splitIn(2); -> new Collection([ new Collection({a: 1, b: 2}), new Collection({c: 3, d: 4}) ])
+     * new Collection([1, 2, 3]).splitIn(5); -> new Collection([ new Collection([1]), new Collection([2]), new Collection([3]) ])
+     */
+    splitIn(
+        numberOfGroups: number
+    ) {
+        return this.chunk(Math.ceil(this.count() / numberOfGroups));
+    }
+
+    /**
+     * Get the first item in the collection, but only if exactly one item exists. Otherwise, throw an exception.
+     * 
+     * @param key - The key or callback to determine the item to retrieve, or null for the first item
+     * @param operator - The operator to use for comparison, or null if key is a callback or null
+     * @param value - The value to compare against, or null if key is a callback or null
+     * @returns The single item in the collection
+     * 
+     * @example
+     * 
+     * new Collection([1]).sole(); -> 1
+     * new Collection([{id: 1}, {id: 2}]).sole('id', '==', 1); -> {id: 1}
+     * new Collection([{id: 1}, {id: 2}]).sole(item => item.id === 2); -> {id: 2}
+     */
+    sole(
+        key: PathKey | ((value: TValue, index: TKey) => boolean) | null = null,
+        operator: string | null = null,
+        value: unknown = null,
+    ) {
+        const filter = arguments.length > 1
+            ? this.operatorForWhere(key, operator, value)
+            : key;
+
+        const items = this.unless(isNull(filter)).filter(filter);
+
+        const count = items.count();
+
+        if (count === 0) {
+            throw new Error('No items found in the collection.');
+        }
+
+        if (count > 1) {
+            throw new Error('Multiple items found in the collection.');
+        }
+
+        return items.first();
+    }
+
+    /**
+     * Get the first item in the collection but throw an exception if no matching items exist.
+     * 
+     * @param key - The key or callback to determine the item to retrieve
+     * @param operator - The operator to use for comparison, or null if key is a callback
+     * @param value - The value to compare against, or null if key is a callback
+     * @returns The first matching item in the collection
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).firstOrFail(); -> 1
+     * new Collection([{id: 1}, {id: 2}]).firstOrFail('id', '==', 2); -> {id: 2}
+     * new Collection([{id: 1}, {id: 2}]).firstOrFail(item => item.id === 1); -> {id: 1}
+     * new Collection([]).firstOrFail(); -> Error: No items found in the collection.
+     */
+    firstOrFail(
+        key: PathKey | ((value: TValue, index: TKey) => boolean),
+        operator: string | null = null,
+        value: unknown = null,
+    ) {
+        const filter = arguments.length > 1
+            ? this.operatorForWhere(key, operator, value)
+            : key;
+
+        const placeholder = null;
+
+        const item = this.first(filter, placeholder);
+
+        if (item === placeholder) {
+            throw new Error('No items found in the collection.');
+        }
+
+        return item;
+    }
+
+    /**
+     * Chunk the collection into chunks of the given size.
+     * 
+     * @param size - The size of each chunk
+     * @param preserveKeys - Whether to preserve the original keys, defaults to false
+     * @returns A new collection with the chunked items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3, 4]).chunk(2); -> new Collection([ new Collection([1, 2]), new Collection([3, 4]) ])
+     * new Collection({a: 1, b: 2, c: 3, d: 4}).chunk(2, true); -> new Collection([ new Collection({a: 1, b: 2}), new Collection({c: 3, d: 4}) ])
+     * new Collection([1, 2, 3]).chunk(5); -> new Collection([ new Collection([1, 2, 3]) ])
+     */
+    chunk(
+        size: number,
+        preserveKeys: boolean = false,
+    ) {
+        if (size < 0) {
+            return new Collection();
+        }
+
+        const chunks = [];
+
+        for (const chunk of dataChunk(this.items, size, preserveKeys)) {
+            chunks.push(new Collection(chunk));
+        }
+
+        return new Collection(chunks);
+    }
+
+    /**
+     * Chunk the collection into chunks with a callback.
+     * 
+     * @param callback - The callback to determine chunk boundaries
+     * @returns A new collection with the chunked items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3, 4]).chunkWhile((value) => value < 3); -> new Collection([ new Collection([1, 2]), new Collection([3, 4]) ])
+     * new Collection([{id: 1}, {id: 2}, {id: 3}]).chunkWhile((item) => item.id % 2 !== 0); -> new Collection([ new Collection([{id: 1}]), new Collection([{id: 2}, {id: 3}]) ])
+     */
+    chunkWhile(
+        callback: (value: TValue, index: TKey, items: DataItems<TValue, TKey>) => boolean
+    ) {
+        // TODO: Implement chunkWhile if Lazy Collection is implemented
     }
 
     /**
