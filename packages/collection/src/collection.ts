@@ -1,5 +1,5 @@
 import { wrap as arrWrap } from "@laravel-js/arr";
-import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataCollapse, dataContains, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataSearch, dataSelect, dataSet, dataShift, dataShuffle, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
+import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataCollapse, dataContains, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataSearch, dataSelect, dataSet, dataShift, dataShuffle, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnshift, dataValues, dataWhere, dataWhereNotNull, dataReverse } from '@laravel-js/data';
 import { clamp, currency, defaultCurrency, defaultLocale, fileSize, forHumans, format, minutesToHuman, ordinal, pairs, parse, parseFloat, parseInt, percentage, secondsToHuman, spell, spellOrdinal, summarize, trim, useCurrency, useLocale, withCurrency, withLocale } from '@laravel-js/num';
 import { dotFlatten, dotFlattenArray, dotFlattenObject, forgetKeys, forgetKeysArray, forgetKeysObject, getMixedValue, getNestedValue, getObjectValue, getRaw, hasMixed, hasObjectKey, hasPath, parseSegments, pushMixed, pushWithPath, setImmutable, setMixed, setMixedImmutable, setObjectValue, undotExpand, undotExpandArray, undotExpandObject } from '@laravel-js/path';
 import type {
@@ -2171,6 +2171,100 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     }
 
     /**
+     * Sort through each item with a callback.
+     * 
+     * @param callback - The callback to determine the sort order, a path key to get values from and compare, or null for default sort
+     * @returns A new collection with the sorted items
+     * 
+     * @example
+     * 
+     * new Collection([3, 1, 2]).sort(); -> new Collection([1, 2, 3])
+     * new Collection([{id: 2}, {id: 1}, {id: 3}]).sort('id'); -> new Collection([{id: 1}, {id: 2}, {id: 3}])
+     * new Collection([{id: 2}, {id: 1}, {id: 3}]).sort((a, b) => a.id - b.id); -> new Collection([{id: 1}, {id: 2}, {id: 3}])
+     */
+    sort(
+        callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
+    ) {
+        return new Collection(
+            dataSort(this.items, callback),
+        );
+    }
+
+    /**
+     * Sort items in descending order.
+     * 
+     * @param callback - The callback to determine the sort order, a path key to get values from and compare, or null for default sort
+     * @returns A new collection with the sorted items in descending order
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).sortDesc(); -> new Collection([3, 2, 1])
+     * new Collection([{id: 1}, {id: 2}, {id: 3}]).sortDesc('id'); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
+     * new Collection([{id: 1}, {id: 2}, {id: 3}]).sortDesc((a, b) => b.id - a.id); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
+     */
+    sortDesc(
+        callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
+    ) {
+        return new Collection(
+            this.sort(callback).reverse().all(),
+        );
+    }
+
+    /**
+     * Sort the collection using the given callback.
+     * 
+     * @param callback - The callback to determine the sort value, a path key to get values from and compare, or an array of such callbacks/keys for multi-level sorting
+     * @param descending - Whether to sort in descending order, defaults to false
+     * @returns A new collection with the sorted items
+     * 
+     * @example
+     *
+     * new Collection([{id: 1}, {id: 2}, {id: 3}]).sortBy('id'); -> new Collection([{id: 1}, {id: 2}, {id: 3}])
+     * new Collection([{id: 3}, {id: 1}, {id: 2}]).sortBy('id', true); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
+     * new Collection([{id: 2}, {id: 1}, {id: 3}]).sortBy(item => item.id); -> new Collection([{id: 1}, {id: 2}, {id: 3}])
+     * new Collection([{id: 2}, {id: 1}, {id: 3}]).sortBy(item => item.id, true); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
+     */
+    sortBy<TSortValue>(
+        callback:
+            Array<((a: TValue, b: TValue) => TSortValue) | ((item: TValue, key: TKey) => TSortValue) | PathKey | [PathKey, PathKey]>
+            | ((item: TValue, key: TKey) => TSortValue)
+            | PathKey,
+        descending: boolean = false,
+    ) {
+        if (isArray(callback) && !isFunction(callback)) {
+            return this.sortByMany(callback, descending);
+        }
+
+        const results = {} as Record<TKey, TSortValue>;
+
+        const callbackFn = this.valueRetriever(callback);
+
+        for (const [key, value] of Object.entries(this.items)) {
+            results[key as TKey] = callbackFn(value as TValue, key as TKey) as TSortValue;
+        }
+
+        const resultsCollection = new Collection(results);
+        const items = descending ? resultsCollection.sortDesc().all() : resultsCollection.sort().all();
+
+        const sortedItems = {} as DataItems<TValue, TKey>;
+        for (const key of Object.keys(items)) {
+            (sortedItems as Record<TKey, TValue>)[key as TKey] = (this.items as Record<TKey, TValue>)[key as TKey];
+        }
+
+        return new Collection(sortedItems);
+    }
+
+    /**
+     * Sort the collection using multiple comparisons.
+     */
+    sortByMany<TSortValue>(
+        comparisons: Array<((a: TValue, b: TValue) => TSortValue) | ((item: TValue, key: TKey) => TSortValue) | PathKey | [PathKey, PathKey]>,
+        descending: boolean = false,
+    ) {
+        //
+    }
+
+    /**
      * Count the number of items in the collection.
      *
      * @returns The number of items in the collection
@@ -2253,15 +2347,31 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         return [items as TValue];
     }
 
-    protected valueRetriever<TValue, TKey extends ObjectKey, TReturn>(
-        value: ((value: TValue, index: TKey) => TReturn) | string | null,
-    ): (item: TValue) => TReturn {
+    /**
+     * Get a value retrieving callback.
+     * 
+     * @param value - The value or callback to retrieve values
+     * @returns A callback that retrieves the value from an item
+     * 
+     * @example
+     * 
+     * valueRetriever('id'); -> (item) => dataGet(item, 'id', null)
+     * valueRetriever((item) => item.id); -> (item) => item.id
+     * valueRetriever('user.name'); -> (item) => dataGet(item, 'user.name', null)
+     */
+    protected valueRetriever<TArgs, TReturn>(
+        value: PathKey | ((...args: TArgs[]) => TReturn)
+    ) {
         if (isFunction(value)) {
             return value;
         }
 
-        return (item: TValue) => {
-            return dataGet(item, value) as TReturn;
+        return function (...args: TArgs[]) {
+            if (arguments.length >= 2) {
+                return dataGet(args[0] as DataItems<unknown, ObjectKey>, args[1] as PathKey, (args[2] ?? null) as unknown);
+            }
+
+            return dataGet(args[0] as DataItems<unknown, ObjectKey>, value as PathKey, null);
         };
     }
 }

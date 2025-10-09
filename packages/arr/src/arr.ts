@@ -18,8 +18,13 @@ import {
     compareValues,
     getAccessibleValues,
     isArray,
+    isFalsy,
     isFunction,
+    isNull,
+    isNumber,
     isObject,
+    isString,
+    typeOf,
 } from "@laravel-js/utils";
 import type { PathKey, PathKeys } from "packages/types";
 
@@ -1623,19 +1628,19 @@ export function sole<T>(
  * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], 'age'); -> sorted by age
  * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); -> sorted by name
  */
-export function sort<T>(
-    data: ReadonlyArray<T> | unknown,
-    callback?: ((item: T) => unknown) | string | null,
-): T[] {
-    const values = getAccessibleValues(data) as T[];
+export function sort<TValue>(
+    data: ReadonlyArray<TValue> | unknown,
+    callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
+): TValue[] {
+    const values = getAccessibleValues(data) as TValue[];
     const result = values.slice();
 
-    if (!callback) {
+    if (isFalsy(callback)) {
         // Natural sorting
         return result.sort();
     }
 
-    if (typeof callback === "string") {
+    if (isString(callback)) {
         // Sort by field name using dot notation
         return result.sort((a, b) => {
             const aValue = getNestedValue(
@@ -1651,7 +1656,7 @@ export function sort<T>(
         });
     }
 
-    if (typeof callback === "function") {
+    if (isFunction(callback)) {
         // Sort by callback result
         return result.sort((a, b) => {
             const aValue = callback(a);
@@ -1994,6 +1999,24 @@ export function reject<T>(
     callback: (value: T, index: number) => boolean,
 ): T[] {
     return where(data, (value, index) => !callback(value, index));
+}
+
+/**
+ * Reverse the order of the array and return the result.
+ * 
+ * @param data - The array to reverse.
+ * @returns A new array with the items in reverse order.
+ * 
+ * @example
+ * 
+ * reverse([1, 2, 3]); -> [3, 2, 1]
+ * reverse(['a', 'b', 'c']); -> ['c', 'b', 'a']
+ */
+export function reverse<TValue>(
+    data: ReadonlyArray<TValue> | unknown,
+): TValue[] {
+    const values = getAccessibleValues(data) as TValue[];
+    return values.slice().reverse();
 }
 
 /**

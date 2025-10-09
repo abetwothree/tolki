@@ -9,7 +9,7 @@ import {
     undotExpandObject,
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
-import { isArray, isFunction, isObject, typeOf } from "@laravel-js/utils";
+import { isArray, isFalsy, isFunction, isNull, isObject, isString, typeOf } from "@laravel-js/utils";
 import type { ObjectKey, PathKey, PathKeys } from "packages/types";
 
 /**
@@ -1714,27 +1714,49 @@ export function sole<T>(
  * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, 'age'); -> sorted by age
  * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name
  */
-export function sort<T>(
-    data: Record<string, T> | unknown,
-    callback?: ((item: T) => unknown) | string | null,
-): Record<string, T> {
+export function sort<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
+    callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
+): Record<TKey, TValue> {
     if (!accessible(data)) {
-        return {};
+        return {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<string, T>;
+    const obj = data as Record<TKey, TValue>;
     const entries = Object.entries(obj);
 
-    if (!callback) {
+    if (isFalsy(callback)) {
         // Natural sorting by values
         entries.sort(([, a], [, b]) => {
-            if (a < b) return -1;
-            if (a > b) return 1;
+            const aValue = a as TValue;
+            const bValue = b as TValue;
+
+            if (isFalsy(aValue) && isFalsy(bValue)) {
+                return 0;
+            }
+
+            if (isFalsy(aValue)) {
+                return -1;
+            }
+
+            if (isFalsy(bValue)) {
+                return 1;
+            }
+
+            // Safe comparison for comparable types
+            if (aValue < bValue) {
+                return -1;
+            }
+
+            if (aValue > bValue) {
+                return 1;
+            }
+
             return 0;
         });
     }
 
-    if (typeof callback === "string") {
+    if (isString(callback)) {
         // Sort by field name using dot notation
         entries.sort(([, a], [, b]) => {
             const aValue = getObjectValue(
@@ -1746,15 +1768,15 @@ export function sort<T>(
                 callback,
             );
 
-            if (aValue == null && bValue == null) {
+            if (isFalsy(aValue) && isFalsy(bValue)) {
                 return 0;
             }
 
-            if (aValue == null) {
+            if (isFalsy(aValue)) {
                 return -1;
             }
 
-            if (bValue == null) {
+            if (isFalsy(bValue)) {
                 return 1;
             }
 
@@ -1774,21 +1796,21 @@ export function sort<T>(
         });
     }
 
-    if (typeof callback === "function") {
+    if (isFunction(callback)) {
         // Sort by callback result
         entries.sort(([, a], [, b]) => {
-            const aValue = callback(a);
-            const bValue = callback(b);
+            const aValue = callback(a as TValue);
+            const bValue = callback(b as TValue);
 
-            if (aValue == null && bValue == null) {
+            if (isNull(aValue) && isNull(bValue)) {
                 return 0;
             }
 
-            if (aValue == null) {
+            if (isNull(aValue)) {
                 return -1;
             }
 
-            if (bValue == null) {
+            if (isNull(bValue)) {
                 return 1;
             }
 
@@ -1808,12 +1830,12 @@ export function sort<T>(
         });
     }
 
-    const result: Record<string, T> = {};
+    const result: Record<string, TValue> = {};
     for (const [key, value] of entries) {
-        result[key] = value;
+        result[key] = value as TValue;
     }
 
-    return result;
+    return result as Record<TKey, TValue>;
 }
 
 /**
@@ -2168,6 +2190,38 @@ export function reject<T>(
     callback: (value: T, key: string) => boolean,
 ): Record<string, T> {
     return where(data, (value, key) => !callback(value, key));
+}
+
+/**
+ * Reverse the order of the object's entries.
+ * 
+ * @param data - The object to reverse.
+ * @returns A new object with reversed entries.
+ * 
+ * @example
+ * 
+ * reverse({ a: 1, b: 2, c: 3 }); -> { c: 3, b: 2, a: 1 }
+ * reverse({ name: 'John', age: 30, city: 'NYC' }); -> { city: 'NYC', age: 30, name: 'John' }
+ */
+export function reverse<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>
+): Record<TKey, TValue> {
+    if (!accessible(data)) {
+        return {} as Record<TKey, TValue>;
+    }
+
+    const obj = data as Record<TKey, TValue>;
+    const entries = Object.entries(obj);
+
+    // Reverse the entries array
+    entries.reverse();
+
+    const result: Record<string, TValue> = {};
+    for (const [key, value] of entries) {
+        result[key] = value as TValue;
+    }
+
+    return result as Record<TKey, TValue>;
 }
 
 /**

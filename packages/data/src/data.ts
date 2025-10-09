@@ -40,6 +40,7 @@ import {
     query as arrQuery,
     random as arrRandom,
     reject as arrReject,
+    reverse as objReverse,
     select as arrSelect,
     set as arrSet,
     shuffle as arrShuffle,
@@ -100,6 +101,7 @@ import {
     query as objQuery,
     random as objRandom,
     reject as objReject,
+    reverse as arrReverse,
     select as objSelect,
     set as objSet,
     shuffle as objShuffle,
@@ -1215,15 +1217,15 @@ export function dataSole<T, K extends ObjectKey = ObjectKey>(
  * dataSort([3, 1, 4, 2]); -> [1, 2, 3, 4]
  * dataSort({c: 3, a: 1, b: 2}); -> {a: 1, b: 2, c: 3}
  */
-export function dataSort<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
-    callback?: string | ((item: T) => unknown) | null,
-): DataItems<T, K> {
+export function dataSort<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
+): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objSort(data as Record<string, T>, callback) as DataItems<T, K>;
+        return objSort(data as Record<string, TValue>, callback) as DataItems<TValue, TKey>;
     }
 
-    return arrSort(arrWrap(data), callback) as DataItems<T>;
+    return arrSort(arrWrap(data), callback) as DataItems<TValue, TKey>;
 }
 
 /**
@@ -1432,6 +1434,16 @@ export function dataReject<T, K extends ObjectKey = ObjectKey>(
         arrWrap(data),
         callback as (value: T, index: number) => boolean,
     ) as DataItems<T>;
+}
+
+export function dataReverse<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+): DataItems<TValue, TKey> {
+    if (isObject(data)) {
+        return objReverse(data as Record<string, TValue>) as DataItems<TValue, TKey>;
+    }
+
+    return arrReverse(arrWrap(data)) as DataItems<TValue>;
 }
 
 /**

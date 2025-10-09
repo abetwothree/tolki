@@ -174,6 +174,74 @@ export function isNull(value: unknown): value is null {
 }
 
 /**
+ * Check if a value is falsy (undefined, null, false, 0, "", empty array/object).
+ *
+ * @param value - The value to check
+ * @returns True if the value is falsy
+ * 
+ * @example
+ * 
+ * isFalsy(undefined); -> true
+ * isFalsy(null); -> true
+ * isFalsy(false); -> true
+ * isFalsy(0); -> true
+ * isFalsy(""); -> true
+ * isFalsy([]); -> true
+ * isFalsy({}); -> true
+ * isFalsy("hello"); -> false
+ * isFalsy([1, 2, 3]); -> false
+ * isFalsy({ a: 1 }); -> false
+ */
+export function isFalsy(value: unknown): boolean {
+    if (isUndefined(value) || isNull(value)) {
+        return true;
+    }
+
+    if (isBoolean(value)) {
+        return value === false;
+    }
+
+    if (isNumber(value)) {
+        return value === 0;
+    }
+
+    if (isString(value)) {
+        return value.trim() === "";
+    }
+
+    if (isArray(value)) {
+        return value.length === 0;
+    }
+
+    if (isObject(value)) {
+        return Object.keys(value).length === 0;
+    }
+
+    return false;
+}
+
+/**
+ * Check if a value is truthy (not falsy).
+ *
+ * @param value - The value to check
+ * @returns True if the value is truthy
+ * 
+ * @example
+ * 
+ * isTruthy(1); -> true
+ * isTruthy("hello"); -> true
+ * isTruthy([1, 2, 3]); -> true
+ * isTruthy({ a: 1 }); -> true
+ * isTruthy(0); -> false
+ * isTruthy(""); -> false
+ * isTruthy([]); -> false
+ * isTruthy({}); -> false
+ */
+export function isTruthy(value: unknown): boolean {
+    return !isFalsy(value);
+}
+
+/**
  * Get a more specific type description for debugging purposes.
  * Differentiates between null, arrays, and other types.
  *
