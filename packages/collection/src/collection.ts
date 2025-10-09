@@ -2237,7 +2237,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
         const results = {} as Record<TKey, TSortValue>;
 
-        const callbackFn = this.valueRetriever(callback);
+        const callbackFn = this.valueRetriever(callback as PathKey | ((...args: (TValue | TKey)[]) => TSortValue));
 
         for (const [key, value] of Object.entries(this.items)) {
             results[key as TKey] = callbackFn(value as TValue, key as TKey) as TSortValue;
@@ -2368,7 +2368,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
         return function (...args: TArgs[]) {
             if (arguments.length >= 2) {
-                return dataGet(args[0] as DataItems<unknown, ObjectKey>, args[1] as PathKey, (args[2] ?? null) as unknown);
+                return dataGet(args[0] as DataItems<unknown, ObjectKey>, args[1] as PathKey, (args[2] ?? null) as unknown | null);
             }
 
             return dataGet(args[0] as DataItems<unknown, ObjectKey>, value as PathKey, null);
