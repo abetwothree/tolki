@@ -1,5 +1,5 @@
 import { wrap as arrWrap } from "@laravel-js/arr";
-import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataCollapse, dataContains, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataSearch, dataSelect, dataSet, dataShift, dataShuffle, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnshift, dataValues, dataWhere, dataWhereNotNull, dataReverse } from '@laravel-js/data';
+import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataCollapse, dataContains, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataReverse, dataSearch, dataSelect, dataSet, dataShift, dataShuffle, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
 import { clamp, currency, defaultCurrency, defaultLocale, fileSize, forHumans, format, minutesToHuman, ordinal, pairs, parse, parseFloat, parseInt, percentage, secondsToHuman, spell, spellOrdinal, summarize, trim, useCurrency, useLocale, withCurrency, withLocale } from '@laravel-js/num';
 import { dotFlatten, dotFlattenArray, dotFlattenObject, forgetKeys, forgetKeysArray, forgetKeysObject, getMixedValue, getNestedValue, getObjectValue, getRaw, hasMixed, hasObjectKey, hasPath, parseSegments, pushMixed, pushWithPath, setImmutable, setMixed, setMixedImmutable, setObjectValue, undotExpand, undotExpandArray, undotExpandObject } from '@laravel-js/path';
 import type {
@@ -2256,12 +2256,397 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
     /**
      * Sort the collection using multiple comparisons.
+     * 
+     * @param comparisons - An array of callbacks to determine the sort value, path keys to get values from and compare, or tuples of such keys for multi-level sorting
+     * @param descending - Whether to sort in descending order, defaults to false
+     * @returns A new collection with the sorted items
+     * 
+     * @example
+     *
+     * new Collection([{id: 1, name: 'Alice'}, {id: 2, name: 'Bob'}, {id: 1, name: 'Charlie'}]).sortByMany(['id', 'name']); -> new Collection([{id: 1, name: 'Alice'}, {id: 1, name: 'Charlie'}, {id: 2, name: 'Bob'}])
+     * new Collection([{id: 1, name: 'Alice'}, {id: 2, name: 'Bob'}, {id: 1, name: 'Charlie'}]).sortByMany([item => item.id, item => item.name]); -> new Collection([{id: 1, name: 'Alice'}, {id: 1, name: 'Charlie'}, {id: 2, name: 'Bob'}])
+     * new Collection([{id: 1, name: 'Alice'}, {id: 2, name: 'Bob'}, {id: 1, name: 'Charlie'}]).sortByMany(['id', item => item.name], true); -> new Collection([{id: 2, name: 'Bob'}, {id: 1, name: 'Charlie'}, {id: 1, name: 'Alice'}])
      */
     sortByMany<TSortValue>(
         comparisons: Array<((a: TValue, b: TValue) => TSortValue) | ((item: TValue, key: TKey) => TSortValue) | PathKey | [PathKey, PathKey]>,
         descending: boolean = false,
     ) {
-        //
+        if (!isArray(comparisons) || comparisons.length === 0) {
+            throw new Error("You must provide at least one comparison.");
+        }
+
+        const entries = Object.entries(this.items);
+        entries.sort(([, a], [, b]) => {
+            for (const comparison of comparisons) {
+                const comparisonArray = arrWrap(comparison);
+                const prop = comparisonArray[0];
+
+                let result: number;
+
+                if (!isString(prop) && isFunction(prop)) {
+                    result = (prop as ((a: TValue, b: TValue) => number))(a as TValue, b as TValue);
+                } else {
+                    let aValue = dataGet(a as DataItems<unknown, ObjectKey>, prop as PathKey);
+                    let bValue = dataGet(b as DataItems<unknown, ObjectKey>, prop as PathKey);
+
+                    if (descending) {
+                        [aValue, bValue] = [bValue, aValue];
+                    }
+
+                    if (aValue === bValue) {
+                        result = 0;
+                    } else if (isNull(aValue)) {
+                        result = -1;
+                    } else if (isNull(bValue)) {
+                        result = 1;
+                    } else if (isNumber(aValue) && isNumber(bValue)) {
+                        result = aValue < bValue ? -1 : 1;
+                    } else {
+                        result = String(aValue) < String(bValue) ? -1 : 1;
+                    }
+                }
+
+                if (result === 0) {
+                    continue;
+                }
+
+                return result;
+            }
+
+            return 0;
+        });
+
+        const sortedItems = {} as DataItems<TValue, TKey>;
+        for (const [key, value] of entries) {
+            (sortedItems as Record<TKey, TValue>)[key as TKey] = value as TValue;
+        }
+
+        return new Collection(sortedItems);
+    }
+
+    /**
+     * Sort the collection in descending order using the given callback.
+     * 
+     * @param callback - The callback to determine the sort value, a path key to get values from and compare, or an array of such callbacks/keys for multi-level sorting
+     * @returns A new collection with the sorted items in descending order
+     * 
+     * @example
+     * 
+     * new Collection([{id: 1}, {id: 2}, {id: 3}]).sortByDesc('id'); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
+     * new Collection([{id: 3}, {id: 1}, {id: 2}]).sortByDesc(item => item.id); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
+     * new Collection([{id: 2}, {id: 1}, {id: 3}]).sortByDesc(['id']); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
+     */
+    sortByDesc<TSortValue>(
+        callback:
+            Array<((a: TValue, b: TValue) => TSortValue) | ((item: TValue, key: TKey) => TSortValue) | PathKey | [PathKey, PathKey]>
+            | ((item: TValue, key: TKey) => TSortValue)
+            | PathKey,
+    ) {
+        return this.sortBy(callback, true);
+    }
+
+    /**
+     * Sort the collection keys.
+     * 
+     * @param descending - Whether to sort in descending order, defaults to false
+     * @returns A new collection with the items sorted by keys
+     * 
+     * @example
+     * 
+     * new Collection({b: 2, a: 1, c: 3}).sortKeys(); -> new Collection({a: 1, b: 2, c: 3})
+     * new Collection({b: 2, a: 1, c: 3}).sortKeys(true); -> new Collection({c: 3, b: 2, a: 1})
+     */
+    sortKeys(
+        descending: boolean = false,
+    ) {
+        const keys = Object.keys(this.items);
+
+        keys.sort((a, b) => {
+            if (a === b) {
+                return 0;
+            }
+
+            if (descending) {
+                return a < b ? 1 : -1;
+            }
+
+            return a < b ? -1 : 1;
+        });
+
+        const sortedItems = {} as DataItems<TValue, TKey>;
+        for (const key of keys) {
+            (sortedItems as Record<TKey, TValue>)[key as TKey] = (this.items as Record<TKey, TValue>)[key as TKey];
+        }
+
+        return new Collection(sortedItems);
+    }
+
+    /**
+     * Sort the collection keys in descending order.
+     * 
+     * @returns A new collection with the items sorted by keys in descending order
+     * 
+     * @example
+     * 
+     * new Collection({a: 1, b: 2, c: 3}).sortKeysDesc(); -> new Collection({c: 3, b: 2, a: 1})
+     */
+    sortKeysDesc() {
+        return this.sortKeys(true);
+    }
+
+    /**
+     * Sort the collection keys using a callback.
+     * 
+     * @param callback - The callback to determine the sort order of keys
+     * @returns A new collection with the items sorted by keys using the callback
+     * 
+     * @example
+     * 
+     * new Collection({b: 2, a: 1, c: 3}).sortKeysUsing((a, b) => a.localeCompare(b)); -> new Collection({a: 1, b: 2, c: 3})
+     * new Collection({b: 2, a: 1, c: 3}).sortKeysUsing((a, b) => b.localeCompare(a)); -> new Collection({c: 3, b: 2, a: 1})
+     */
+    sortKeysUsing(
+        callback: (a: TKey, b: TKey) => number
+    ) {
+        const keys = Object.keys(this.items);
+
+        keys.sort((a, b) => callback(a as TKey, b as TKey));
+
+        const sortedItems = {} as DataItems<TValue, TKey>;
+        for (const key of keys) {
+            (sortedItems as Record<TKey, TValue>)[key as TKey] = (this.items as Record<TKey, TValue>)[key as TKey];
+        }
+
+        return new Collection(sortedItems);
+    }
+
+    /**
+     * Splice a portion of the underlying collection array.
+     * 
+     * @param offset - The offset to start the splice
+     * @param length - The number of items to remove, defaults to 0
+     * @param replacement - The items to insert in place of the removed items, defaults to an empty array/object
+     * @returns A new collection with the spliced items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).splice(1); -> new Collection([2, 3]), original collection is now [1]
+     * new Collection([1, 2, 3]).splice(1, 1); -> new Collection([2]), original collection is now [1, 3]
+     * new Collection([1, 2, 3]).splice(1, 1, [4, 5]); -> new Collection([2]), original collection is now [1, 4, 5, 3]
+     * new Collection({a: 1, b: 2, c: 3}).splice(1); -> new Collection({b: 2, c: 3}), original collection is now {a: 1}
+     */
+    splice(
+        offset: number,
+        length: number = 0,
+        replacement: DataItems<TValue, TKey> = {} as DataItems<TValue, TKey>,
+    ) {
+        const result = dataSplice(this.items, offset, length, replacement);
+        this.items = result.data;
+
+        return new Collection(result.value as DataItems<TValue, TKey>);
+    }
+
+    /**
+     * Take the first or last {$limit} items.
+     * 
+     * @param limit - The number of items to take, positive for first items, negative for last items
+     * @returns A new collection with the taken items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).take(2); -> new Collection([1, 2])
+     * new Collection([1, 2, 3]).take(-2); -> new Collection([2, 3])
+     * new Collection({a: 1, b: 2, c: 3}).take(2); -> new Collection({a: 1, b: 2})
+     * new Collection({a: 1, b: 2, c: 3}).take(-2); -> new Collection({b: 2, c: 3})
+     */
+    take(limit: number) {
+        if (limit < 0) {
+            return this.slice(Math.max(0, this.count() + limit));
+        }
+
+        return this.slice(0, limit);
+    }
+
+    /**
+     * Transform each item in the collection using a callback.
+     * 
+     * @param callback - The callback to transform each item
+     * @returns The current collection with the transformed items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).transform(x => x * 2); -> new Collection([2, 4, 6])
+     * new Collection({a: 1, b: 2, c: 3}).transform((value, key) => value + key); -> new Collection({a: '1a', b: '2b', c: '3c'})
+     */
+    transform<TMapValue>(
+        callback: (value: TValue, key: TKey) => TMapValue
+    ) {
+        this.items = this.map(callback).all() as DataItems<TValue, TKey>;
+
+        return this;
+    }
+
+    /**
+     * Flatten a multi-dimensional associative array with dots.
+     * 
+     * @returns A new collection with the flattened items
+     * 
+     * @example
+     * 
+     * new Collection({a: {b: 1}, c: 2}).dot(); -> new Collection({'a.b': 1, c: 2})
+     * new Collection([{a: 1}, {b: {c: 2}}]).dot(); -> new Collection({'0.a': 1, '1.b.c': 2})
+     */
+    dot() {
+        return new Collection(
+            dataDot(this.items),
+        );
+    }
+
+    /**
+     * Convert a flatten "dot" notation array into an expanded array.
+     * 
+     * @returns A new collection with the expanded items
+     * 
+     * @example
+     * 
+     * new Collection({'a.b': 1, c: 2}).undot(); -> new Collection({a: {b: 1}, c: 2})
+     * new Collection({'0.a': 1, '1.b.c': 2}).undot(); -> new Collection([{a: 1}, {b: {c: 2}}])
+     */
+    undot() {
+        return new Collection(
+            dataUndot(this.items),
+        );
+    }
+
+    /**
+     * Return only unique items from the collection array.
+     * 
+     * @param key - The key or callback to determine uniqueness, or null for direct value comparison
+     * @param strict - Whether to use strict comparison (===) when no key is provided, defaults to false
+     * @returns A new collection with only unique items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 2, 3]).unique(); -> new Collection([1, 2, 3])
+     * new Collection([1, 2, '2', 3]).unique(null, true); -> new Collection([1, 2, '2', 3])
+     * new Collection([{id: 1}, {id: 2}, {id: 1}]).unique('id'); -> new Collection([{id: 1}, {id: 2}])
+     * new Collection([{id: 1}, {id: 2}, {id: 1}]).unique(item => item.id); -> new Collection([{id: 1}, {id: 2}])
+     */
+    unique(
+        key: ((item: TValue, key: TKey) => unknown) | PathKey | null = null,
+        strict: boolean = false,
+    ) {
+        const seen = new Set<unknown>();
+
+        if (isNull(key) && strict === false) {
+            return new Collection(
+                dataFilter(this.items, (value) => {
+                    if (seen.has(value)) {
+                        return false;
+                    }
+
+                    seen.add(value);
+                    return true;
+                })
+            );
+        }
+
+        const callback = this.valueRetriever(key as PathKey | ((...args: (TValue | TKey)[]) => unknown));
+
+        return new Collection(
+            dataReject(this.items, (value, key) => {
+                const result = callback(value, key as TKey);
+                if (seen.has(result)) {
+                    return false;
+                }
+
+                seen.add(result);
+
+                return true;
+            })
+        );
+    }
+
+    /**
+     * Reset the keys on the underlying array.
+     *
+     * @returns A new collection with values and numeric keys
+     *
+     * @example
+     *
+     * new Collection({a: 1, b: 2, c: 3}).values(); -> new Collection({0: 1, 1: 2, 2: 3})
+     * new Collection([1, 2, 3]).values(); -> new Collection([1, 2, 3])
+     */
+    values(): Collection<TValue> {
+        return new Collection<TValue>(
+            dataValues(this.items) as DataItems<TValue>,
+        );
+    }
+
+    /**
+     * Zip the collection together with one or more arrays.
+     * 
+     * @param items - The items to zip with, can be an array or another collection
+     * @returns A new collection with the zipped items
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).zip(['a', 'b', 'c']); -> new Collection([[1, 'a'], [2, 'b'], [3, 'c']])
+     * new Collection([1, 2]).zip(new Collection(['a', 'b', 'c'])); -> new Collection([[1, 'a'], [2, 'b']])
+     * new Collection({a: 1, b: 2}).zip({x: 'a', y: 'b', z: 'c'}); -> new Collection([[1, 'a'], [2, 'b']])
+     */
+    zip<TZipValue>(
+        items: DataItems<TZipValue> | Collection<TZipValue>
+    ) {
+        const zipItems = this.getRawItems(items);
+        const zipped = dataZip(this.items, zipItems);
+
+        return new Collection(zipped);
+    }
+
+    /**
+     * Pad collection to the specified length with a value.
+     * 
+     * @param size - The size to pad to, positive to pad at the end, negative to pad at the beginning
+     * @param value - The value to pad with
+     * @returns A new collection padded to the specified length
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).pad(5, 0); -> new Collection([1, 2, 3, 0, 0])
+     * new Collection([1, 2, 3]).pad(-5, 0); -> new Collection([0, 0, 1, 2, 3])
+     * new Collection({a: 1, b: 2}).pad(4, 0); -> new Collection({a: 1, b: 2, '2': 0, '3': 0})
+     * new Collection({a: 1, b: 2}).pad(-4, 0); -> new Collection({'-2': 0, '-1': 0, a: 1, b: 2})
+     */
+    pad<TPadValue>(
+        size: number,
+        value: TPadValue
+    ) {
+        return new Collection(
+            dataPad(this.items, size, value) as DataItems<TValue, TKey>,
+        );
+    }
+
+    /**
+     * Get an iterator for the items.
+     * 
+     * @returns An iterator for the items
+     * 
+     * @example
+     * 
+     * const iterator = new Collection([1, 2, 3]).getIterator();
+     * iterator.next(); -> {value: 1, done: false}
+     * iterator.next(); -> {value: 2, done: false}
+     * iterator.next(); -> {value: 3, done: false}
+     * iterator.next(); -> {value: undefined, done: true}
+     * 
+     * const iteratorObj = new Collection({a: 1, b: 2}).getIterator();
+     * iteratorObj.next(); -> {value: 1, done: false}
+     * iteratorObj.next(); -> {value: 2, done: false}
+     * iteratorObj.next(); -> {value: undefined, done: true}
+     */
+    getIterator() {
+        return this.getItemValues(this.items)[Symbol.iterator]();
     }
 
     /**
@@ -2279,19 +2664,35 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     }
 
     /**
-     * Reset the keys on the underlying array.
-     *
-     * @returns A new collection with values and numeric keys
-     *
+     * Count the number of items in the collection by a field or using a callback.
+     * 
+     * @param countByValue - The key or callback to determine the count grouping, or null to count all items as one group
+     * @returns A new collection with the counts grouped by the specified key or callback
+     * 
      * @example
-     *
-     * new Collection({a: 1, b: 2, c: 3}).values(); -> new Collection({0: 1, 1: 2, 2: 3})
-     * new Collection([1, 2, 3]).values(); -> new Collection([1, 2, 3])
+     * 
+     * new Collection([1, 2, 2, 3]).countBy(); -> new Collection({ '1': 1, '2': 2, '3': 1 })
+     * new Collection([{id: 1}, {id: 2}, {id: 1}]).countBy('id'); -> new Collection({ '1': 2, '2': 1 })
+     * new Collection([{id: 1}, {id: 2}, {id: 1}]).countBy(item => item.id); -> new Collection({ '1': 2, '2': 1 })
      */
-    values(): Collection<TValue> {
-        return new Collection<TValue>(
-            dataValues(this.items) as DataItems<TValue>,
-        );
+    countBy(
+        countByValue: ((value: TValue, key: TKey) => unknown) | PathKey | null,
+    ) {
+        const results = {} as Record<string | number, number>;
+
+        const callback = this.valueRetriever(countByValue as PathKey | ((...args: (TValue | TKey)[]) => unknown));
+
+        for (const [key, value] of Object.entries(this.items)) {
+            const result = callback(value as TValue, key as TKey);
+            const resultKey = isObject(result) || isArray(result) ? JSON.stringify(result) : String(result);
+            if (resultKey in results) {
+                results[resultKey] = (results[resultKey] ?? 0) + 1;
+            } else {
+                results[resultKey] = 1;
+            }
+        }
+
+        return new Collection(results);
     }
 
     /**
