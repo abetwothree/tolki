@@ -12,7 +12,7 @@ import type {
     PropertyName,
     ProxyTarget,
 } from "@laravel-js/types";
-import { castableToArray, compareValues, getAccessibleValues, isAccessibleData, isArray, isBoolean, isFunction, isNull, isNumber, isObject, isString, isStringable, isSymbol, isUndefined, normalizeToArray, resolveDefault, typeOf } from '@laravel-js/utils';
+import { castableToArray, compareValues, getAccessibleValues, isAccessibleData, isArray, isBoolean, isFalsy, isFunction, isNull, isNumber, isObject, isString, isStringable, isSymbol, isTruthy, isUndefined, normalizeToArray, resolveDefault, typeOf } from '@laravel-js/utils';
 
 import { LazyCollection } from "./lazy-collection";
 import { initProxyHandler } from "./proxy";
@@ -2693,6 +2693,131 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         }
 
         return new Collection(results);
+    }
+
+    /**
+     * Add an item to the collection.
+     * 
+     * @param item - The item to add to the collection
+     * @returns The current collection with the item added
+     * 
+     * @example
+     * 
+     * new Collection([1, 2]).add(3); -> collection is now [1, 2, 3]
+     * new Collection({a: 1, b: 2}).add(3); -> collection is now {a: 1, b: 2, '2': 3}
+     * new Collection({a: 1, b: 2}).add(3, 'c'); -> collection is now {a: 1, b: 2, 'c': 3}
+     */
+    add(item: TValue, key: TKey | null = null) {
+        if (isArray(this.items)) {
+            if (!isNull(key)) {
+                (this.items as TValue[])[key as number] = item;
+            } else {
+                (this.items as TValue[]).push(item);
+            }
+
+            return this;
+        }
+
+        if (!isNull(key)) {
+            (this.items as Record<TKey, TValue>)[key] = item;
+            return this;
+        }
+
+        const lengthKey = Object.keys(this.items).length as TKey;
+        (this.items as Record<TKey, TValue>)[lengthKey] = item;
+
+        return this;
+    }
+
+    /**
+     * Determine if an item exists at an offset.
+     * 
+     * @param offset - The offset to check for existence
+     * @returns True if an item exists at the offset, false otherwise
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).offsetExists(1); -> true
+     * new Collection([1, 2, 3]).offsetExists(3); -> false
+     * new Collection({a: 1, b: 2}).offsetExists('a'); -> true
+     * new Collection({a: 1, b: 2}).offsetExists('c'); -> false
+     */
+    offsetExists(key: TKey): boolean {
+        if (isArray(this.items)) {
+            return isTruthy(this.items[key as number]);
+        }
+
+        return isTruthy((this.items as Record<TKey, TValue>)[key]);
+    }
+
+    /**
+     * Get an item at a given offset.
+     * 
+     * @param offset - The offset to get the item from
+     * @returns The item at the given offset, or undefined if not found
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).offsetGet(1); -> 2
+     * new Collection([1, 2, 3]).offsetGet(3); -> undefined
+     * new Collection({a: 1, b: 2}).offsetGet('a'); -> 1
+     * new Collection({a: 1, b: 2}).offsetGet('c'); -> undefined
+     */
+    offsetGet(key: TKey) {
+        if (isArray(this.items)) {
+            return this.items[key as number];
+        }
+
+        return (this.items as Record<TKey, TValue>)[key];
+    }
+
+    /**
+     * Set the item at a given offset.
+     * 
+     * @param offset - The offset to set the item at, or null to append
+     * @param value - The item to set at the given offset
+     * @returns Void
+     * 
+     * @example
+     * 
+     * const collection = new Collection([1, 2]);
+     * collection.offsetSet(null, 3); -> collection is now [1, 2, 3]
+     * collection.offsetSet(1, 4); -> collection is now [1, 4, 3]
+     * 
+     * const objCollection = new Collection({a: 1, b: 2});
+     * objCollection.offsetSet(null, 3); -> collection is now {a: 1, b: 2, '2': 3}
+     * objCollection.offsetSet('c', 4); -> collection is now {a: 1, b: 2, '2': 3, c: 4}
+     */
+    offsetSet(
+        key: TKey | null,
+        value: TValue,
+    ) {
+        this.add(value, key);
+    }
+
+    /**
+     * Unset the item at a given offset.
+     * 
+     * @param offset - The offset to unset the item at
+     * @returns Void
+     * 
+     * @example
+     * 
+     * const collection = new Collection([1, 2, 3]);
+     * collection.offsetUnset(1); -> collection is now [1, 3]
+     * 
+     * const objCollection = new Collection({a: 1, b: 2, c: 3});
+     * objCollection.offsetUnset('b'); -> collection is now {a: 1, c: 3}
+     */
+    offsetUnset(
+        key: TKey
+    ) {
+        if (isArray(this.items)) {
+            this.items.splice(key as number, 1);
+            return;
+        }
+
+        delete (this.items as Record<TKey, TValue>)[key];
     }
 
     /**
