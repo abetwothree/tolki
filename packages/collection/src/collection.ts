@@ -540,10 +540,10 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([{id: 1}, {id: 1}, {id: 2}, {id: 2}]).duplicates((item) => item.id > 1); -> new Collection([{id: 2}, {id: 2}])
      */
     duplicates<TMapValue>(
-        callback: ((value: TValue) => TMapValue) | string | null = null,
+        callback: ((value: TValue, key: TKey) => TMapValue) | PathKey = null,
         strict: boolean = false,
     ) {
-        const items = this.map(this.valueRetriever(callback));
+        const items = this.map(this.valueRetriever(callback as PathKey | ((...args: (TValue | TKey)[]) => TMapValue)));
 
         const uniqueItems = items.unique(null, strict);
 
@@ -778,7 +778,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([{name: 'Alice', age: 20}, {name: 'Bob', age: 30}, {name: 'Charlie', age: 20}]).groupBy([item => item.age, 'name'], true); -> new Collection({20: Collection({'0': Collection({0: {name: 'Alice', age: 20}}), '2': Collection({2: {name: 'Charlie', age: 20}})}), 30: Collection({'1': Collection({1: {name: 'Bob', age: 30}})})})
      */
     groupBy<TGroupKey extends TKey = TKey>(
-        groupByValue: ((value: TValue, index: TKey) => TGroupKey) | ArrayItems<TGroupKey> | string | number,
+        groupByValue: ((value: TValue, index: TKey) => TGroupKey) | ArrayItems<TGroupKey> | PathKey,
         preserveKeys: boolean = false,
     ): Collection<Collection<TValue, TKey>, TGroupKey> {
 
@@ -789,7 +789,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             groupByValue = nextGroups.shift();
         }
 
-        groupByValue = this.valueRetriever(groupByValue);
+        groupByValue = this.valueRetriever(groupByValue as PathKey | ((...args: (TValue | TKey)[]) => TGroupKey));
 
         const results = {} as Record<TGroupKey, Collection<TValue, TKey>>;
 
@@ -849,16 +849,16 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).keyBy(['id', 'name']); -> new Collection({'1.John': {id: 1, name: 'John'}, '2.Jane': {id: 2, name: 'Jane'}})
      */
     keyBy<TNewKey extends TKey = TKey>(
-        keyByValue: ((value: TValue, index: TKey) => TNewKey) | ArrayItems<TNewKey> | string | number,
+        keyByValue: ((value: TValue, index: TKey) => TNewKey) | ArrayItems<TNewKey> | PathKey,
     ) {
-        keyByValue = this.valueRetriever(keyByValue);
+        const keyByValueCallback = this.valueRetriever(keyByValue);
 
         const results = {} as Record<TNewKey, TValue>;
 
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
         )) {
-            let resolvedKey = keyByValue(value as TValue, key as TKey);
+            let resolvedKey = keyByValueCallback(value as TValue, key as TKey);
 
             if (isObject(resolvedKey)) {
                 resolvedKey = JSON.stringify(resolvedKey) as TNewKey;
@@ -2533,7 +2533,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([{id: 1}, {id: 2}, {id: 1}]).unique(item => item.id); -> new Collection([{id: 1}, {id: 2}])
      */
     unique(
-        key: ((item: TValue, key: TKey) => unknown) | PathKey | null = null,
+        key: ((item: TValue, key: TKey) => unknown) | PathKey = null,
         strict: boolean = false,
     ) {
         const seen = new Set<unknown>();
@@ -2676,7 +2676,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([{id: 1}, {id: 2}, {id: 1}]).countBy(item => item.id); -> new Collection({ '1': 2, '2': 1 })
      */
     countBy(
-        countByValue: ((value: TValue, key: TKey) => unknown) | PathKey | null,
+        countByValue: ((value: TValue, key: TKey) => unknown) | PathKey,
     ) {
         const results = {} as Record<string | number, number>;
 
