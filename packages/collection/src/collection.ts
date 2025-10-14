@@ -14,7 +14,6 @@ import type {
 } from "@laravel-js/types";
 import { castableToArray, compareValues, getAccessibleValues, isAccessibleData, isArray, isBoolean, isFalsy, isFunction, isNull, isNumber, isObject, isString, isStringable, isSymbol, isTruthy, isUndefined, normalizeToArray, resolveDefault, typeOf } from '@laravel-js/utils';
 
-import { LazyCollection } from "./lazy-collection";
 import { initProxyHandler } from "./proxy";
 
 export function collect<TValue = unknown, TKey extends ObjectKey = ObjectKey>(
@@ -117,13 +116,6 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     }
 
     /**
-     * Get a lazy collection for the items in this collection.
-     */
-    lazy(): LazyCollection<TValue, TKey> {
-        return new LazyCollection(this.items);
-    }
-
-    /**
      * Get the median of a given key.
      *
      * @param  key - The key to calculate the median for, or null for the values themselves
@@ -181,11 +173,9 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
         const counts = new Collection();
 
-        collection.each(
-            (value) =>
-            (counts[value] =
-                (counts[value] ?? false) ? counts[value] + 1 : 1),
-        );
+        collection.each((keyValue) => {
+            counts.set(keyValue, (counts.get(keyValue) ?? 0) as number + 1);
+        });
 
         const sorted = counts.sort();
 
@@ -710,6 +700,27 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         keys = this.getRawItems(keys) as PathKey[];
 
         this.items = dataForget(this.items, keys);
+
+        return this;
+    }
+
+    /**
+     * Set an item in the collection by key.
+     *
+     * @param key - The key to set
+     * @param value - The value to set
+     * @returns The collection instance after setting the item
+     *
+     * @example
+     *
+     * new Collection({a: 1, b: 2}).set('c', 3); -> new Collection({a: 1, b: 2, c: 3})
+     * new Collection([1, 2, 3]).set(1, 4); -> new Collection([1, 4, 3])
+     */
+    set(
+        key: PathKey,
+        value: TValue,
+    ) {
+        this.items = dataSet(this.items, key, value);
 
         return this;
     }
@@ -1924,44 +1935,6 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     }
 
     /**
-     * Skip items in the collection until the given condition is met.
-     * 
-     * @param value - The value to skip until, or a callback to determine when to stop skipping
-     * @returns A new collection with the items after the skipped ones
-     * 
-     * @example
-     * 
-     * new Collection([1, 2, 3, 4]).skipUntil(3); -> new Collection([3, 4])
-     * new Collection({a: 1, b: 2, c: 3}).skipUntil(2); -> new Collection({b: 2, c: 3})
-     * new Collection([1, 2, 3, 4]).skipUntil(x => x > 2); -> new Collection([3, 4])
-     * new Collection([1, 2, 3]).skipUntil(4); -> new Collection([])
-     */
-    skipUntil(
-        value: TValue | ((item: TValue, key: TKey) => boolean)
-    ) {
-        // TODO: Implement skipUntil if Lazy Collection is implemented 
-    }
-
-    /**
-     * Skip items in the collection while the given condition is met.
-     * 
-     * @param value - The value to skip while, or a callback to determine when to stop skipping
-     * @returns A new collection with the items after the skipped ones
-     * 
-     * @example
-     * 
-     * new Collection([1, 2, 3, 4]).skipWhile(2); -> new Collection([2, 3, 4])
-     * new Collection({a: 1, b: 2, c: 3}).skipWhile(1); -> new Collection({b: 2, c: 3})
-     * new Collection([1, 2, 3, 4]).skipWhile(x => x < 3); -> new Collection([3, 4])
-     * new Collection([1, 2, 3]).skipWhile(x => x < 4); -> new Collection([])
-     */
-    skipWhile(
-        value: TValue | ((item: TValue, key: TKey) => boolean)
-    ) {
-        // TODO: Implement skipWhile if Lazy Collection is implemented
-    }
-
-    /**
      * Slice the underlying collection array.
      * 
      * @param offset - The offset to start the slice
@@ -2151,23 +2124,6 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         }
 
         return new Collection(chunks);
-    }
-
-    /**
-     * Chunk the collection into chunks with a callback.
-     * 
-     * @param callback - The callback to determine chunk boundaries
-     * @returns A new collection with the chunked items
-     * 
-     * @example
-     * 
-     * new Collection([1, 2, 3, 4]).chunkWhile((value) => value < 3); -> new Collection([ new Collection([1, 2]), new Collection([3, 4]) ])
-     * new Collection([{id: 1}, {id: 2}, {id: 3}]).chunkWhile((item) => item.id % 2 !== 0); -> new Collection([ new Collection([{id: 1}]), new Collection([{id: 2}, {id: 3}]) ])
-     */
-    chunkWhile(
-        callback: (value: TValue, index: TKey, items: DataItems<TValue, TKey>) => boolean
-    ) {
-        // TODO: Implement chunkWhile if Lazy Collection is implemented
     }
 
     /**
@@ -2819,6 +2775,10 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
         delete (this.items as Record<TKey, TValue>)[key];
     }
+
+    /** Enumerates Values Methods */
+
+
 
     /**
      * Get the values from items, whether it's an array or object
