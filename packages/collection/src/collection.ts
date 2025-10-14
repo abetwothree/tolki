@@ -2778,7 +2778,92 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
     /** Enumerates Values Methods */
 
+    /**
+     * Create a new collection instance if the value isn't one already.
+     * 
+     * @param items - The items to create the collection from
+     * @returns A new collection instance
+     * 
+     * @example
+     * 
+     * Collection.make([1, 2, 3]); -> new Collection([1, 2, 3])
+     * Collection.make({a: 1, b: 2}); -> new Collection({a: 1, b: 2})
+     * Collection.make(new Collection([1, 2, 3])); -> new Collection([1, 2, 3])
+     * Collection.make(null); -> new Collection([])
+     */
+    static make<TMakeValue, TMakeKey extends ObjectKey = ObjectKey>(
+        items: DataItems<TMakeValue, TMakeKey> = []
+    ) {
+        return new Collection<TMakeValue, TMakeKey>(items);
+    }
 
+    /**
+     * Wrap the given value in a collection if applicable.
+     * 
+     * @param value - The value to wrap in a collection
+     * @returns The value as a collection, or the original collection if already one
+     * 
+     * @example
+     * 
+     * Collection.wrap([1, 2, 3]); -> new Collection([1, 2, 3])
+     * Collection.wrap({a: 1, b: 2}); -> new Collection({a: 1, b: 2})
+     * Collection.wrap(new Collection([1, 2, 3])); -> new Collection([1, 2, 3])
+     * Collection.wrap(123); -> new Collection([123])
+     * Collection.wrap(null); -> new Collection([])
+     */
+    static wrap<TWrapValue, TWrapKey extends ObjectKey = ObjectKey>(
+        value: TWrapValue | DataItems<TWrapValue, TWrapKey> | Collection<TWrapValue, TWrapKey>
+    ) {
+        if (value instanceof Collection) {
+            return value;
+        }
+
+        if (isArray(value) || isObject(value)) {
+            return new Collection<TWrapValue, TWrapKey>(value as DataItems<TWrapValue, TWrapKey>);
+        }
+
+        return new Collection<TWrapValue, TWrapKey>(arrWrap(value) as DataItems<TWrapValue, TWrapKey>);
+    }
+
+    /**
+     * Get the underlying items from the given collection if applicable.
+     * 
+     * @param value - The collection or arrayable to unwrap
+     * @returns The underlying items from the collection, or the original arrayable if not a collection
+     * 
+     * @example
+     * 
+     * Collection.unwrap(new Collection([1, 2, 3])); -> [1, 2, 3]
+     * Collection.unwrap(new Collection({a: 1, b: 2})); -> {a: 1, b: 2}
+     * Collection.unwrap([1, 2, 3]); -> [1, 2, 3]
+     * Collection.unwrap({a: 1, b: 2}); -> {a: 1, b: 2}
+     */
+    static unwrap<TUnwrapValue, TUnwrapKey extends ObjectKey = ObjectKey>(
+        value: Collection<TUnwrapValue, TUnwrapKey> | DataItems<TUnwrapValue, TUnwrapKey>
+    ) {
+        if (value instanceof Collection) {
+            return value.all();
+        }
+
+        return value;
+    }
+
+    /**
+     * Create a new instance with no items.
+     * 
+     * @param asArray - Whether to create the empty collection as an array or object, defaults to true (array)
+     * @returns A new empty collection instance
+     * 
+     * @example
+     * 
+     * Collection.empty(); -> new Collection([])
+     * Collection.empty(true); -> new Collection({})
+     */
+    static empty(
+        asArray: boolean = true
+    ) {
+        return new Collection(asArray ? [] : {});
+    }
 
     /**
      * Get the values from items, whether it's an array or object
