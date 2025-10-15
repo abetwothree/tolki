@@ -267,7 +267,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([{id: 1}, {id: 2}]).contains(item => item.id === 2); -> true
      */
     contains(
-        key: ((value: TValue, index: TKey) => boolean) | TValue | string,
+        key: ((value: TValue, index: TKey) => boolean) | TValue | PathKey,
         operator: unknown = null,
         value: unknown = null,
     ): boolean {
@@ -2863,6 +2863,415 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         asArray: boolean = true
     ) {
         return new Collection(asArray ? [] : {});
+    }
+
+    /**
+     * Create a new collection by invoking the callback a given amount of times.
+     * 
+     * @param count - The number of times to invoke the callback
+     * @param callback - The callback to invoke, receives the current count (1-based) as an argument, or null to just create a range of numbers
+     * @returns A new collection with the results of the callback or a range of numbers
+     * 
+     * @example
+     * 
+     * Collection.times(3, count => count * 2); -> new Collection([2, 4, 6])
+     * Collection.times(3); -> new Collection([1, 2, 3])
+     * Collection.times(0); -> new Collection()
+     */
+    static times<TTimesValue>(
+        count: number,
+        callback: ((count: number) => TTimesValue) | null = null
+    ) {
+        if (count < 1) {
+            return new Collection<TTimesValue>();
+        }
+
+        if (isNull(callback)) {
+            return Collection.range(1, count);
+        }
+
+        return Collection.range(1, count).map(callback);
+    }
+
+    /**
+     * Create a new collection by decoding a JSON string.
+     * 
+     * @param json - The JSON string to decode
+     * @returns A new collection with the decoded items
+     * 
+     * @example
+     * 
+     * Collection.fromJson('{"a":1,"b":2}'); -> new Collection({a: 1, b: 2})
+     * Collection.fromJson('[1,2,3]'); -> new Collection([1, 2, 3])
+     */
+    static fromJson(json: string) {
+        return new Collection(JSON.parse(json));
+    }
+
+    /**
+     * Get the average value of a given key.
+     * 
+     * @param callback - The key or callback to determine the value to average, or null to average the items directly
+     * @returns The average value, or null if no numeric values found
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).avg(); -> 2
+     * new Collection([{id: 1}, {id: 2}, {id: 3}]).avg('id'); -> 2
+     * new Collection([{id: 1}, {id: 2}, {id: 3}]).avg(item => item.id); -> 2
+     * new Collection([1, 'a', 3]).avg(); -> 2
+     * new Collection([]).avg(); -> null
+     */
+    avg(
+        callback: ((value: TValue, key: TKey) => number) | PathKey = null
+    ) {
+        const callbackValue = this.valueRetriever(callback as PathKey | ((...args: (TValue | TKey)[]) => number));
+
+        const reduced = this.reduce((carry, item, key) => {
+            const value = callbackValue(item, key);
+            if (isNumber(value)) {
+                carry[0] += value;
+                carry[1] += 1;
+            }
+
+            return carry;
+        }, [0, 0]);
+
+        return isTruthy(reduced[1]) ? reduced[0] / reduced[1] : null;
+    }
+
+    /**
+     * Alias for the "avg" method.
+     * 
+     * @param callback - The key or callback to determine the value to average, or null to average the items directly
+     * @returns The average value, or null if no numeric values found
+     * 
+     * @see {@link Collection.avg}
+     */
+    average(
+        callback: ((value: TValue, key: TKey) => number) | PathKey = null
+    ) {
+        return this.avg(callback);
+    }
+
+    /**
+     * Alias for the "contains" method.
+     * 
+     * @param key - The key or callback to determine the item to check for, or null to check the items directly
+     * @param operator - The operator to use for comparison, if key is not a callback or null
+     * @param value - The value to compare against, if key is not a callback or null
+     * @returns True if the item exists in the collection, false otherwise
+     * 
+     * @see {@link Collection.contains}
+     */
+    some(
+        key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
+        operator: unknown,
+        value: unknown = null,
+    ) {
+        return this.contains(key, operator, value);
+    }
+
+    /**
+     * Execute a callback over each item.
+     * 
+     * @param callback - The callback to execute, receives the value and key as arguments, return false for early exit
+     * @returns The current collection instance
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).each((value, key) => console.log(key, value)); -> logs "0 1", "1 2", "2 3"
+     * new Collection({a: 1, b: 2}).each((value, key) => console.log(key, value)); -> logs "a 1", "b 2"
+     * 
+     * // Stop iterating when the callback returns false
+     * new Collection([1, 2, 3]).each((value, key) => { console.log(key, value); if (value === 2) return false; });
+     */
+    each(
+        callback: (value: TValue, key: TKey) => unknown
+    ) {
+        for (const [key, value] of Object.entries(this.items)) {
+            if (callback(value as TValue, key as TKey) === false) {
+                break;
+            }
+        }
+
+        return this;
+    }
+
+    /**
+     * Determine if all items pass the given truth test.
+     * 
+     * @param callback - The callback to execute, receives the value(s) as arguments
+     * @return True if all items pass the truth test, false otherwise
+     */
+    eachSpread(
+        callback: (...values: TValue[]) => unknown
+    ) {
+        return this.each((chunk) => {
+            return callback(...(arrWrap(chunk) as TValue[]));
+        });
+    }
+
+    /**
+     * Determine if all items pass the given truth test.
+     * 
+     * @param key - The key or callback to determine the item to check for, or null to check the items directly
+     * @param operator - The operator to use for comparison, if key is not a callback or null
+     * @param value - The value to compare against, if key is not a callback or null
+     * @returns True if all items pass the truth test, false otherwise
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).every(x => x > 0); -> true
+     * new Collection([1, 2, 3]).every(x => x > 1); -> false
+     * new Collection([{id: 1}, {id: 2}]).every('id', '>=', 1); -> true
+     * new Collection([{id: 1}, {id: 2}]).every('id', '>', 1); -> false
+     * new Collection([1, 2, 3]).every(2); -> false
+     */
+    every(
+        key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
+        operator: unknown = null,
+        value: unknown = null,
+    ) {
+        if (isNull(operator) && isNull(value)) {
+            const callback = this.valueRetriever(key as PathKey | ((...args: (TValue | TKey)[]) => boolean));
+            for (const [key, value] of Object.entries(this.items)) {
+                if (!callback(value as TValue, key as TKey)) {
+                    return false;
+                }
+            }
+        }
+
+        return this.every(this.operatorForWhere(key, operator, value));
+    }
+
+    /**
+     * Get the first item by the given key value pair.
+     * 
+     * @param key - The key or callback to determine the item to find, or null to check the items directly
+     * @param operator - The operator to use for comparison, if key is not a callback or null
+     * @param value - The value to compare against, if key is not a callback or null
+     * @returns The first item that matches the given key value pair, or undefined if not found
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).firstWhere(x => x > 1); -> 2
+     * new Collection([1, 2, 3]).firstWhere(2); -> 2
+     * new Collection([{id: 1}, {id: 2}]).firstWhere('id', '>=', 2); -> {id: 2}
+     * new Collection([{id: 1}, {id: 2}]).firstWhere('id', '>', 2); -> undefined
+     */
+    firstWhere(
+        key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
+        operator: unknown = null,
+        value: unknown = null,
+    ) {
+        return this.first(this.operatorForWhere(key, operator, value));
+    }
+
+    /**
+     * Get a single key's value from the first matching item in the collection.
+     * 
+     * @param key - The key to retrieve the value from
+     * @param defaultValue - The default value to return if the key is not found, or a closure that returns the default value
+     * @returns The value of the key from the first matching item, or the default value if not found
+     * 
+     * @example
+     * 
+     * new Collection([{id: 1}, {id: 2}]).value('id'); -> 1
+     * new Collection([{name: 'Alice'}, {name: 'Bob'}]).value('age', 30); -> 30
+     * new Collection([{name: 'Alice'}, {name: 'Bob'}]).value('age', () => 25); -> 25
+     * new Collection([]).value('id', 10); -> 10
+     * new Collection([]).value('id'); -> null
+     */
+    value<TValueDefault>(
+        key: PathKey,
+        defaultValue: TValueDefault | (() => TValueDefault) | null = null,
+    ) {
+        const value = this.firstWhere(key);
+        if (isArray(value) || isObject(value)) {
+            return dataGet(value, key, defaultValue);
+        }
+
+        return isFunction(defaultValue) ? defaultValue() : defaultValue;
+    }
+
+    /**
+     * Ensure that every item in the collection is of the expected type.
+     * 
+     * @param type - The expected type(s) for the items, can be a string type name, constructor, array of types, or object with types as values
+     * @returns The current collection instance if all items are of the expected type
+     * @throws Error if any item is not of the expected type
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).ensure('number'); -> collection is valid
+     * new Collection([1, '2', 3]).ensure('number'); -> throws Error
+     * new Collection([new Date(), new Date()]).ensure(Date); -> collection is valid
+     * new Collection([new Date(), {}]).ensure(Date); -> throws Error
+     * new Collection([1, '2', true]).ensure(['number', 'string', 'boolean']); -> collection is valid
+     * new Collection([1, '2', null]).ensure(['number', 'string', 'boolean']); -> throws Error
+     * new Collection([1, '2', null]).ensure({a: 'number', b: 'string', c: 'boolean'}); -> throws Error
+     * new Collection([1, '2', true]).ensure({a: 'number', b: 'string', c: 'boolean'}); -> collection is valid
+     * new Collection([1, 2, 3]).ensure('string'); -> throws Error
+     * new Collection([null, undefined]).ensure('null'); -> collection is valid
+     * new Collection([null, undefined]).ensure('undefined'); -> collection is valid
+     * new Collection([null, undefined]).ensure(['null', 'undefined']); -> collection is valid
+     */
+    ensure<TEnsureOfType>(
+        type: TEnsureOfType | Array<TEnsureOfType> | Record<ObjectKey, TEnsureOfType> | "string" | "number" | "symbol" | "boolean" | "undefined" | "null"
+    ) {
+        const types = isArray(type)
+            ? type
+            : isObject(type)
+                ? Object.values(type)
+                : [type];
+
+        return this.each((item, index) => {
+            const itemType = typeOf(item);
+            for (const allowedType of types) {
+                if (itemType === allowedType || (isFunction(allowedType) && item instanceof allowedType)) {
+                    return true;
+                }
+            }
+
+            throw new Error(
+                `Collection should only include [${types.join(", ")}] items, but '${itemType}' found at position ${String(index)}.`
+            );
+        });
+    }
+
+    /**
+     * Determine if the collection is not empty.
+     * 
+     * @returns True if the collection is not empty, false otherwise
+     */
+    isNotEmpty() {
+        return !this.isEmpty();
+    }
+
+    /**
+     * Run a map over each nested chunk of items.
+     * 
+     * @param callback - The callback to execute, receives the value(s) as arguments
+     * @returns A new collection with the results of the callback
+     */
+    mapSpread<TMapSpreadValue>(
+        callback: (...values: TValue[]) => TMapSpreadValue
+    ) {
+        return this.map((chunk) => {
+            return callback(...(arrWrap(chunk) as TValue[]));
+        });
+    }
+
+    /**
+     * Run a grouping map over the items.
+     *
+     * The callback should return an associative array with a single key/value pair.
+     * 
+     * @param callback - The callback to execute, receives the value and key as arguments, should return a [groupKey, groupValue] tuple
+     * @returns A new collection with the grouped items as collections
+     */
+    mapToGroups<TMapToGroupsValue, TMapToGroupsKey extends ObjectKey = ObjectKey>(
+        callback: (value: TValue, key: TKey) => [TMapToGroupsKey, TMapToGroupsValue]
+    ) {
+        const groups = this.mapToDictionary(callback);
+
+        return groups.map((group: unknown) => new Collection(group as DataItems<TMapToGroupsValue>));
+    }
+
+    /**
+     * Map a collection and flatten the result by a single level.
+     * 
+     * @param callback - The callback to execute, receives the value and key as arguments, should return a collection or arrayable
+     * @returns A new collection with the flattened results of the callback
+     */
+    flatMap<TFlatMapValue, TFlatMapKey extends ObjectKey = ObjectKey>(
+        callback: ((value: TValue, key: TKey) => Collection<TFlatMapValue, TFlatMapKey> | DataItems<TFlatMapValue, TFlatMapKey>)
+    ) {
+        return this.map(callback).collapse();
+    }
+
+    /**
+     * Map the values into a new class.
+     *
+     * @param className - The class to map the values into, should have a constructor that accepts the value
+     * @returns A new collection with the values mapped into the new class
+     */
+    mapInto<TMapIntoValue>(
+        className: new (...args: unknown[]) => TMapIntoValue
+    ) {
+        return this.map((item) => new className(item));
+    }
+
+    /** Conditionable Trait Methods */
+
+    /**
+     * Apply the callback if the given "value" is (or resolves to) truthy.
+     * 
+     * @param value - The value to evaluate or a closure that returns the value
+     * @param callback - The callback to execute if the value is truthy
+     * @param defaultCallback - The callback to execute if the value is falsy
+     * @returns The result of the callback if executed, otherwise the current instance
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).when(true, coll => coll.map(x => x * 2)); -> new Collection([2, 4, 6])
+     * new Collection([1, 2, 3]).when(false, coll => coll.map(x => x * 2)); -> new Collection([1, 2, 3])
+     */
+    when<TWhenParameter, TWhenReturnType>(
+        value: ((instance: this) => TWhenParameter) | TWhenParameter | null,
+        callback: ((instance: this, value: TWhenParameter) => TWhenReturnType) | null = null,
+        defaultCallback: ((instance: this, value: TWhenParameter) => TWhenReturnType) | null = null,
+    ) {
+        const resolvedValue = isFunction(value)
+            ? (value as (instance: this) => TWhenParameter)(this)
+            : (value as TWhenParameter);
+
+        if (resolvedValue) {
+            return (callback?.(this, resolvedValue) ?? this) as Collection<TValue, TKey>;
+        } else if (defaultCallback) {
+            return (defaultCallback(
+                this,
+                resolvedValue,
+            ) ?? this) as Collection<TValue, TKey>;
+        }
+
+        return this;
+    }
+
+    /**
+     * Apply the callback if the given "value" is (or resolves to) falsy.
+     * 
+     * @param value - The value to evaluate or a closure that returns the value
+     * @param callback - The callback to execute if the value is falsy
+     * @param defaultCallback - The callback to execute if the value is truthy
+     * @returns The result of the callback if executed, otherwise the current instance
+     * 
+     * @example
+     * 
+     * new Collection([1, 2, 3]).unless(false, coll => coll.map(x => x * 2)); -> new Collection([2, 4, 6])
+     * new Collection([1, 2, 3]).unless(true, coll => coll.map(x => x * 2)); -> new Collection([1, 2, 3])
+     */
+    unless<TUnlessParameter, TUnlessReturnType>(
+        value: ((instance: this) => TUnlessParameter) | TUnlessParameter | null,
+        callback: ((instance: this, value: TUnlessParameter) => TUnlessReturnType) | null = null,
+        defaultCallback: ((instance: this, value: TUnlessParameter) => TUnlessReturnType) | null = null,
+    ) {
+        const resolvedValue = (isFunction(value)
+            ? value(this)
+            : value) as TUnlessParameter;
+
+        if (!resolvedValue) {
+            return (callback?.(this, resolvedValue) ??
+                this) as Collection<TValue, TKey>;
+        } else if (defaultCallback) {
+            return (defaultCallback(
+                this,
+                resolvedValue,
+            ) ?? this) as Collection<TValue, TKey>;
+        }
+
+        return this;
     }
 
     /**
