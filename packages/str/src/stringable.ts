@@ -4,8 +4,8 @@ import {
     type MarkDownOptions,
     Str,
 } from "@laravel-js/str";
+import type { ConditionableClosure, ConditionableValue } from "@laravel-js/types";
 import { isArray, isFunction } from "@laravel-js/utils";
-import type { ConditionableClosure, ConditionableValue } from "packages/types";
 
 export class Stringable {
     /**
@@ -752,23 +752,41 @@ export class Stringable {
 
     /**
      * Apply the callback if the given "value" is (or resolves to) truthy.
+     * 
+     * @param value - The value to evaluate or a closure that returns the value
+     * @param callback - The callback to execute if the value is truthy
+     * @param defaultCallback - The callback to execute if the value is falsy
+     * @returns Stringable - The current instance or the result of the callback
+     * 
+     * @example
+     * 
+     * ```typescript
+     * const str = new Stringable('hello world');
+     * 
+     * // Using a direct value
+     * str.when(true, s => s.upper()); // Returns 'HELLO WORLD'
+     * str.when(false, s => s.upper(), s => s.lower()); // Returns 'hello world'
+     * 
+     * // Using a closure to determine the value
+     * str.when(s => s.contains('world'), s => s.upper()); // Returns 'HELLO WORLD'
+     * str.when(s => s.contains('foo'), s => s.upper(), s => s.lower()); // Returns 'hello world'
+     * ```
      */
-    when<T extends ConditionableValue>(
-        value: T,
-        callback: ConditionableClosure = null,
-        defaultCallback: ConditionableClosure = null,
+    when<TWhenParameter, TWhenReturnType>(
+        value: ((instance: this) => TWhenParameter) | TWhenParameter | null,
+        callback: ((instance: this, value: TWhenParameter) => TWhenReturnType) | null = null,
+        defaultCallback: ((instance: this, value: TWhenParameter) => TWhenReturnType) | null = null,
     ): Stringable {
         const resolvedValue = isFunction(value)
-            ? (value as (instance: this) => string)(this)
-            : (value as string);
+            ? (value as (instance: this) => TWhenParameter)(this)
+            : (value as TWhenParameter);
 
         if (resolvedValue) {
-            return (callback?.(this, resolvedValue as ConditionableValue) ??
-                this) as Stringable;
+            return (callback?.(this, resolvedValue) ?? this) as Stringable;
         } else if (defaultCallback) {
             return (defaultCallback(
                 this,
-                resolvedValue as ConditionableValue,
+                resolvedValue,
             ) ?? this) as Stringable;
         }
 
@@ -777,23 +795,34 @@ export class Stringable {
 
     /**
      * Apply the callback if the given "value" is (or resolves to) falsy.
+     * 
+     * @param value - The value to evaluate or a closure that returns the value
+     * @param callback - The callback to execute if the value is falsy
+     * @param defaultCallback - The callback to execute if the value is truthy
+     * @returns Stringable - The current instance or the result of the callback
+     * 
+     * @example
+     * 
+     * const str = new Stringable('hello world');
+     * str.unless(true, s => s.upper()); // Returns 'hello world'
+     * str.unless(false, s => s.upper(), s => s.lower()); // Returns 'HELLO WORLD'
      */
-    unless<T extends ConditionableValue>(
-        value: T,
-        callback: ConditionableClosure = null,
-        defaultCallback: ConditionableClosure = null,
+    unless<TUnlessParameter, TUnlessReturnType>(
+        value: ((instance: this) => TUnlessParameter) | TUnlessParameter | null,
+        callback: ((instance: this, value: TUnlessParameter) => TUnlessReturnType) | null = null,
+        defaultCallback: ((instance: this, value: TUnlessParameter) => TUnlessReturnType) | null = null,
     ): Stringable {
-        const resolvedValue = isFunction(value)
+        const resolvedValue = (isFunction(value)
             ? value(this)
-            : (value as string);
+            : value) as TUnlessParameter;
 
         if (!resolvedValue) {
-            return (callback?.(this, resolvedValue as ConditionableValue) ??
+            return (callback?.(this, resolvedValue) ??
                 this) as Stringable;
         } else if (defaultCallback) {
             return (defaultCallback(
                 this,
-                resolvedValue as ConditionableValue,
+                resolvedValue,
             ) ?? this) as Stringable;
         }
 
