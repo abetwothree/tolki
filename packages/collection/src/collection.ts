@@ -2927,17 +2927,17 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     ) {
         const callbackValue = this.valueRetriever(callback as PathKey | ((...args: (TValue | TKey)[]) => number));
 
-        const reduced = this.reduce((carry, item, key) => {
+        const reduced = this.reduce((carry: number[], item, key) => {
             const value = callbackValue(item, key);
             if (isNumber(value)) {
-                carry[0] += value;
-                carry[1] += 1;
+                carry[0] = (carry[0] ?? 0) + value;
+                carry[1] = (carry[1] ?? 0) + 1;
             }
 
             return carry;
-        }, [0, 0]);
+        }, [0, 0] as number[]);
 
-        return isTruthy(reduced[1]) ? reduced[0] / reduced[1] : null;
+        return (isArray(reduced) && isTruthy(reduced[1])) ? reduced[0]! / reduced[1]! : null;
     }
 
     /**
@@ -3521,6 +3521,125 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             return compareValues(itemValue, valuesArray[0]) < 0
                 || compareValues(itemValue, valuesArray[valuesArray.length - 1]) > 0;
         });
+    }
+
+    /**
+     * Filter items by the given key value pair.
+     * 
+     * @param key - The key to pluck the values from each item
+     * @param values - The values to filter by, can be an array, collection, or object
+     * @param strict - Whether to use strict comparison (===) or loose comparison (==), defaults to false (loose)
+     * @returns A new collection with the items that do not match any of the given values for the specified key
+     */
+    whereNotIn<TValueSet extends DataItems<unknown, ObjectKey>>(
+        key: PathKey,
+        values: TValueSet,
+        strict: boolean = false,
+    ) {
+        const valueSet = this.getRawItems(values);
+
+        return this.reject((item: TValue) => {
+            if (!isAccessibleData(item)) {
+                return false;
+            }
+
+            const itemValue = dataGet(item as DataItems<unknown, ObjectKey>, key);
+            if (strict) {
+                return Object.values(valueSet).includes(itemValue as TValue);
+            }
+
+            return Object.values(valueSet).some(v => v == itemValue);
+        });
+    }
+
+    /**
+     * Filter items by the given key value pair using strict comparison.
+     * 
+     * @param key - The key to pluck the values from each item
+     * @param values - The values to filter by, can be an array, collection, or object
+     * @returns A new collection with the items that do not match any of the given values for the specified key using strict comparison
+     */
+    whereNotInStrict<TValueSet extends DataItems<unknown, ObjectKey>>(
+        key: PathKey,
+        values: TValueSet,
+    ) {
+        return this.whereNotIn(key, values, true);
+    }
+
+    /**
+     * Filter the items, removing any items that don't match the given type(s).
+     * 
+     * @param type - The expected type(s) for the items, can be a constructor, array of constructors, or object with constructors as values
+     * @returns A new collection with the items that match the given type(s)
+     */
+    whereInstanceOf<TWhereInstanceOf>(
+        type: new (...args: unknown[]) => TWhereInstanceOf | DataItems<TWhereInstanceOf, ObjectKey>,
+    ) {
+        return this.filter((item: TValue) => {
+            if (isArray(type) || isObject(type)) {
+                const types = isArray(type) ? type : Object.values(type);
+                return types.some(t => item instanceof t);
+            }
+
+            return item instanceof type;
+        });
+    }
+
+    /**
+     * Pass the collection to the given callback and return the result.
+     * 
+     * @param callback - The callback to execute, receives the current instance as an argument
+     * @returns The result of the callback
+     */
+    pipe<TPipeReturnType>(
+        callback: (instance: this) => TPipeReturnType
+    ) {
+        return callback(this);
+    }
+
+    /**
+     * Pass the collection into a new class.
+     * 
+     * @param className - The class to instantiate with the collection
+     * @returns A new instance of the given class, instantiated with the current collection
+     */
+    pipeInto<TPipeIntoValue>(
+        className: new (instance: this) => TPipeIntoValue
+    ) {
+        return new className(this);
+    }
+
+    /**
+     * Pass the collection through a series of callable pipes and return the result.
+     * 
+     * @param callbacks - An array of callbacks to execute, each receives the current instance as an argument
+     * @returns The result of the final callback in the series
+     */
+    pipeThrough(
+        callbacks: Array<(instance: this) => unknown>
+    ) {
+        return new Collection(callbacks)
+            .reduce((carry, callback) => callback(carry as this), this as Collection<TValue, TKey>);
+    }
+
+    /**
+     * Reduce the collection to a single value.
+     * 
+     * @param callback - The callback to execute, receives the carry, value, and key as arguments
+     * @param initial - The initial value to start the reduction with
+     * @returns The reduced value
+     */
+    reduce<TReduceInitial, TReduceReturnType>(
+        callback: (carry: TReduceInitial | TReduceReturnType, value: TValue, key: TKey) => TReduceReturnType,
+        initial: TReduceInitial
+    ) {
+        let result: TReduceInitial | TReduceReturnType = initial;
+
+        for (const [key, value] of Object.entries(this.items)) {
+            result = callback(result, value as TValue, key as TKey);
+        }
+
+        return result;
     }
 
     /** Conditionable Trait Methods */
