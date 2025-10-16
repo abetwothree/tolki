@@ -3203,6 +3203,326 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         return this.map((item) => new className(item));
     }
 
+    /**
+     * Get the min value of a given key.
+     * 
+     * @param callback - The key or callback to determine the value to min, or null to min the items directly
+     * @returns The min value, or null if no numeric values found
+     */
+    min(
+        callback: ((value: TValue, key: TKey) => number) | PathKey = null
+    ) {
+        const callbackValue = this.valueRetriever(callback as PathKey | ((...args: (TValue | TKey)[]) => number));
+
+        return this.map((value: TValue) => callbackValue(value))
+            .reject((value: TValue) => !isNumber(value))
+            .reduce((carry: number | null, value: number) => {
+                if (isNull(carry) || value < carry) {
+                    return value;
+                }
+
+                return carry;
+            }, null);
+    }
+
+    /**
+     * Get the max value of a given key.
+     * 
+     * @param callback - The key or callback to determine the value to max, or null to max the items directly
+     * @returns The max value, or null if no numeric values found
+     */
+    max(
+        callback: ((value: TValue, key: TKey) => number) | PathKey = null
+    ) {
+        const callbackValue = this.valueRetriever(callback as PathKey | ((...args: (TValue | TKey)[]) => number));
+
+        return this.reject((value: TValue) => !isNumber(value))
+            .reduce((carry: number | null, value: TValue, key: TKey) => {
+                const numValue = callbackValue(value, key) as number;
+                if (isNull(carry) || numValue > carry) {
+                    return numValue;
+                }
+
+                return carry;
+            }, null);
+    }
+
+    /**
+     * "Paginate" the collection by slicing it into a smaller collection.
+     * 
+     * @param page - The page number to retrieve, starting from 1
+     * @param perPage - The number of items per page
+     * @returns A new collection with the items for the specified page
+     */
+    forPage(
+        page: number,
+        perPage: number,
+    ) {
+        const offset = Math.max(0, (page - 1) * perPage);
+
+        return this.slice(offset, perPage);
+    }
+
+    /**
+     * Partition the collection into two arrays using the given callback or key.
+     * 
+     * @param key - The key or callback to determine the partitioning, or null to partition the items directly
+     * @param operator - The operator to use for comparison, if key is not a callback or null
+     * @param value - The value to compare against, if key is not a callback or null
+     * @returns An array with two collections: the first with items that pass the truth test, the second with items that fail
+     */
+    partition(
+        key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
+        operator: unknown = null,
+        value: unknown = null,
+    ) {
+        let callback;
+        if (isNull(operator) && isNull(value)) {
+            callback = this.valueRetriever(key as PathKey | ((...args: (TValue | TKey)[]) => boolean));
+        } else {
+            callback = this.operatorForWhere(key, operator, value);
+        }
+
+        const [passed, failed] = dataPartition(this.items, (item, key) => callback(item as TValue, key as TKey));
+
+        return [
+            new Collection(passed),
+            new Collection(failed),
+        ];
+    }
+
+    /**
+     * Calculate the percentage of items that pass a given truth test.
+     * 
+     * @param callback - The callback to execute, receives the value and key as arguments
+     * @returns The percentage of items that pass the truth test, rounded to the nearest integer, or null if the collection is empty
+     */
+    percentage(
+        callback: (value: TValue, key: TKey) => boolean,
+    ) {
+        if (this.isEmpty()) {
+            return null;
+        }
+
+        return Math.round(
+            this.filter(callback).count() / this.count() * 100,
+        );
+    }
+
+    /**
+     * Get the sum of the given values.\
+     * 
+     * @param callback - The key or callback to determine the value to sum, or null to sum the items directly
+     * @returns The sum of the values
+     */
+    sum<TReturnType>(
+        callback: ((value: TValue, key: TKey) => TReturnType) | PathKey = null,
+    ) {
+        const callbackValue = isNull(callback)
+            ? this.identity()
+            : this.valueRetriever(callback as PathKey | ((...args: (TValue | TKey)[]) => TReturnType));
+
+        return this.reduce((carry, value, key) => {
+            return carry + callbackValue(value, key);
+        }, 0);
+    }
+
+    /**
+     * Apply the callback if the collection is empty.
+     * 
+     * @param callback - The callback to execute if the collection is empty
+     * @param defaultValue - The callback to execute if the collection is not empty
+     * @returns The result of the callback if executed, otherwise the current instance
+     */
+    whenEmpty<TWhenEmptyReturnType>(
+        callback: ((instance: this) => TWhenEmptyReturnType),
+        defaultValue: ((instance: this) => TWhenEmptyReturnType) | null = null,
+    ) {
+        return this.when(this.isEmpty(), callback, defaultValue);
+    }
+
+    /**
+     * Apply the callback if the collection is not empty.
+     * 
+     * @param callback - The callback to execute if the collection is not empty
+     * @param defaultValue - The callback to execute if the collection is empty
+     * @returns The result of the callback if executed, otherwise the current instance
+     */
+    whenNotEmpty<TWhenNotEmptyReturnType>(
+        callback: ((instance: this) => TWhenNotEmptyReturnType),
+        defaultValue: ((instance: this) => TWhenNotEmptyReturnType) | null = null,
+    ) {
+        return this.when(this.isNotEmpty(), callback, defaultValue);
+    }
+
+    /**
+     * Apply the callback unless the collection is empty.
+     * 
+     * @param callback - The callback to execute unless the collection is empty
+     * @param defaultValue - The callback to execute if the collection is empty
+     * @returns The result of the callback if executed, otherwise the current instance
+     */
+    unlessEmpty<TUnlessEmptyReturnType>(
+        callback: ((instance: this) => TUnlessEmptyReturnType),
+        defaultValue: ((instance: this) => TUnlessEmptyReturnType) | null = null,
+    ) {
+        return this.whenNotEmpty(callback, defaultValue);
+    }
+
+    /**
+     * Apply the callback unless the collection is not empty.
+     * 
+     * @param callback - The callback to execute unless the collection is not empty
+     * @param defaultValue - The callback to execute if the collection is not empty
+     * @returns The result of the callback if executed, otherwise the current instance
+     */
+    unlessNotEmpty<TUnlessNotEmptyReturnType>(
+        callback: ((instance: this) => TUnlessNotEmptyReturnType),
+        defaultValue: ((instance: this) => TUnlessNotEmptyReturnType) | null = null,
+    ) {
+        return this.whenEmpty(callback, defaultValue);
+    }
+
+    /**
+     * Filter items by the given key value pair.
+     * 
+     * @param key - The key or callback to determine the item to filter by to filter the items directly
+     * @param operator - The operator to use for comparison, if key is not a callback or null
+     * @param value - The value to compare against, if key is not a callback or null
+     * @returns A new collection with the items that match the given key value pair
+     */
+    where(
+        key: ((value: TValue, index: TKey) => unknown) | PathKey,
+        operator: unknown = null,
+        value: unknown = null,
+    ) {
+        return this.filter(this.operatorForWhere(key, operator, value));
+    }
+
+    /**
+     * Filter items where the value for the given key is null.
+     * 
+     * @param key - The key to check for null values, or null to check the items directly
+     * @returns A new collection with the items where the value for the given key is null
+     */
+    whereNull(
+        key: PathKey = null,
+    ) {
+        return this.whereStrict(key, null);
+    }
+
+    /**
+     * Filter items where the value for the given key is not null.
+     * 
+     * @param key - The key to check for non-null values, or null to check the items directly
+     * @returns A new collection with the items where the value for the given key is not null
+     */
+    whereNotNull(
+        key: PathKey = null,
+    ) {
+        return this.where(key, '!==', null);
+    }
+
+    /**
+     * Filter items by the given key value pair using strict comparison.
+     * 
+     * @param key - The key or callback to determine the item to filter by to filter the items directly
+     * @param value - The value to compare against
+     * @returns A new collection with the items that match the given key value pair using strict comparison
+     */
+    whereStrict(
+        key: PathKey,
+        value: unknown,
+    ) {
+        return this.where(key, '===', value);
+    }
+
+    /**
+     * Filter items by the given key value pair.
+     * 
+     * @param key - The key to pluck the values from each item
+     * @param values - The values to filter by, can be an array, collection, or object
+     * @param strict - Whether to use strict comparison (===) or loose comparison (==), defaults to false (loose)
+     * @returns A new collection with the items that match any of the given values for the specified key
+     */
+    whereIn<TValueSet extends DataItems<unknown, ObjectKey>>(
+        key: PathKey,
+        values: TValueSet,
+        strict: boolean = false,
+    ) {
+        const valueSet = this.getRawItems(values);
+
+        return this.filter((item: TValue) => {
+            if (!isAccessibleData(item)) {
+                return false;
+            }
+
+            const itemValue = dataGet(item as DataItems<unknown, ObjectKey>, key);
+            if (strict) {
+                return Object.values(valueSet).includes(itemValue as TValue);
+            }
+
+            return Object.values(valueSet).some(v => v == itemValue);
+        });
+    }
+
+    /**
+     * Filter items by the given key value pair using strict comparison.
+     * 
+     * @param key - The key to pluck the values from each item
+     * @param values - The values to filter by, can be an array, collection, or object
+     * @returns A new collection with the items that match any of the given values for the specified key using strict comparison
+     */
+    whereInStrict<TValueSet extends DataItems<unknown, ObjectKey>>(
+        key: PathKey,
+        values: TValueSet
+    ) {
+        return this.whereIn(key, values, true);
+    }
+
+    /**
+     * Filter items such that the value of the given key is between the given values.
+     * 
+     * @param key - The key to pluck the values from each item
+     * @param values - The values to filter by, can be an array, collection, or object, should contain exactly two values
+     * @returns A new collection with the items that have the value for the specified key between the given values
+     */
+    whereBetween<TValueSet extends DataItems<unknown, ObjectKey>>(
+        key: PathKey,
+        values: TValueSet,
+    ) {
+        const valueSet = this.getRawItems(values);
+        const valuesArray = Object.values(valueSet);
+
+        return this.where(key, '>=', valuesArray[0])
+            .where(key, '<=', valuesArray[valuesArray.length - 1]);
+    }
+
+    /**
+     * Filter items such that the value of the given key is not between the given values.
+     * 
+     * @param key - The key to pluck the values from each item
+     * @param values - The values to filter by, can be an array, collection, or object, should contain exactly two values
+     * @returns A new collection with the items that have the value for the specified key not between the given values
+     */
+    whereNotBetween<TValueSet extends DataItems<unknown, ObjectKey>>(
+        key: PathKey,
+        values: TValueSet,
+    ) {
+        return this.filter((item: TValue) => {
+            if (!isAccessibleData(item)) {
+                return false;
+            }
+
+            const itemValue = dataGet(item as DataItems<unknown, ObjectKey>, key);
+            const valueSet = this.getRawItems(values);
+            const valuesArray = Object.values(valueSet);
+
+            return compareValues(itemValue, valuesArray[0]) < 0
+                || compareValues(itemValue, valuesArray[valuesArray.length - 1]) > 0;
+        });
+    }
+
     /** Conditionable Trait Methods */
 
     /**
