@@ -5,7 +5,7 @@ describe("Collection", () => {
     describe("constructor", () => {
         it("creates empty collection with no arguments", () => {
             const collection = collect();
-            expect(collection.all()).toEqual({});
+            expect(collection.all()).toEqual([]);
         });
 
         it("creates collection from array", () => {
