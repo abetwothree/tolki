@@ -1775,7 +1775,7 @@ export function dataDiff<T, K extends ObjectKey = ObjectKey>(
 export function dataPluck<TValue, TKey extends ObjectKey = ObjectKey>(
     data: DataItems<TValue, TKey>,
     value: string | ((item: TValue, key: TKey) => TValue),
-    key: string | ((item: TValue) => string | number) | null = null,
+    key: string | ((item: TValue, key: TKey) => string | number) | null = null,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objPluck(

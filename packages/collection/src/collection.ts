@@ -1205,7 +1205,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         value: string | ((item: TValue, key: TKey) => TPluckValue),
         key: string | ((item: TValue, key: TKey) => string | number) | null = null,
     ): Collection<TPluckValue, TKey> {
-        
+
         return new Collection<TPluckValue, TKey>(dataPluck(
             this.items, 
             value as string | ((item: TValue, key: TKey) => TValue), 
