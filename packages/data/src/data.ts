@@ -232,6 +232,23 @@ export function dataCollapse<T, K extends ObjectKey = ObjectKey>(
 }
 
 /**
+ * Count the number of items in data.
+ * 
+ * @param data - the data to count
+ * @returns The count of items in the object or array
+ * 
+ * @example
+ *
+ * dataCount([1, 2, 3]); -> 3
+ * dataCount({a: 1, b: 2}); -> 2
+ */
+export function dataCount<T, K extends ObjectKey = ObjectKey>(
+    data: DataItems<T, K>,
+): number {
+    return Object.values(data).length;
+}
+
+/**
  * Cross join data with other data.
  *
  * @param data - The data to cross join

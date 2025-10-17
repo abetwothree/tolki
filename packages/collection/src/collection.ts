@@ -1,5 +1,5 @@
 import { wrap as arrWrap } from "@laravel-js/arr";
-import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataCollapse, dataContains, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataReverse, dataSearch, dataSelect, dataSet, dataShift, dataShuffle, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
+import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataCollapse, dataContains, dataCount, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataReverse, dataSearch, dataSelect, dataSet, dataShift, dataShuffle, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
 import { clamp, currency, defaultCurrency, defaultLocale, fileSize, forHumans, format, minutesToHuman, ordinal, pairs, parse, parseFloat, parseInt, percentage, secondsToHuman, spell, spellOrdinal, summarize, trim, useCurrency, useLocale, withCurrency, withLocale } from '@laravel-js/num';
 import { dotFlatten, dotFlattenArray, dotFlattenObject, forgetKeys, forgetKeysArray, forgetKeysObject, getMixedValue, getNestedValue, getObjectValue, getRaw, hasMixed, hasObjectKey, hasPath, parseSegments, pushMixed, pushWithPath, setImmutable, setMixed, setMixedImmutable, setObjectValue, undotExpand, undotExpandArray, undotExpandObject } from '@laravel-js/path';
 import type {
@@ -2927,7 +2927,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     ) {
         const callbackValue = this.valueRetriever(callback as PathKey | ((...args: (TValue | TKey)[]) => number));
 
-        const reduced = this.reduce((carry: number[], item, key) => {
+        const reduced = this.reduce((carry, item, key) => {
             const value = callbackValue(item, key);
             if (isNumber(value)) {
                 carry[0] = (carry[0] ?? 0) + value;
@@ -3619,7 +3619,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         callbacks: Array<(instance: this) => unknown>
     ) {
         return new Collection(callbacks)
-            .reduce((carry, callback) => callback(carry as this), this as Collection<TValue, TKey>);
+            .reduce((carry, callback) => callback(carry), this as this);
     }
 
     /**
@@ -3629,17 +3629,325 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @param initial - The initial value to start the reduction with
      * @returns The reduced value
      */
-    reduce<TReduceInitial, TReduceReturnType>(
-        callback: (carry: TReduceInitial | TReduceReturnType, value: TValue, key: TKey) => TReduceReturnType,
-        initial: TReduceInitial
+    reduce<TReduce>(
+        callback: (carry: TReduce, value: TValue, key: TKey) => TReduce,
+        initial: TReduce
     ) {
-        let result: TReduceInitial | TReduceReturnType = initial;
+        let result: TReduce = initial;
 
         for (const [key, value] of Object.entries(this.items)) {
             result = callback(result, value as TValue, key as TKey);
         }
 
         return result;
+    }
+
+    /**
+     * Reduce the collection to multiple aggregate values.
+     * 
+     * @param callback - The callback to execute, receives the spread carry values, value, and key as arguments
+     * @param initial - The initial values to start the reduction with
+     * @returns The reduced values as an array
+     */
+    reduceSpread(
+        callback: ((...values: unknown[]) => unknown),
+        ...initial: unknown[]
+    ) {
+        let result = initial;
+
+        for (const [key, value] of Object.entries(this.items)) {
+            const callbackResult = callback(...result, value, key);
+
+            if (!isArray(callbackResult)) {
+                const resultType = typeOf(callbackResult);
+
+                throw new Error(`The reduceSpread function expect the reducer callback to return an array, but got ${resultType}`);
+            }
+
+            result = callbackResult;
+        }
+
+        return result;
+    }
+
+    /**
+     * Reduce an associative collection to a single value.
+     * 
+     * @param initial - The initial value to start the reduction with
+     * @param callback - The callback to execute, receives the carry, value, and key as arguments
+     * @returns The reduced value
+     */
+    reduceWithKeys<TReduceWithKeysInitial,TReduceWithKeysReturnType>(
+        callback: (carry: TReduceWithKeysInitial | TReduceWithKeysReturnType, value: TValue, key: TKey) => TReduceWithKeysReturnType,
+        initial: TReduceWithKeysInitial | null = null,
+    ) {
+        return this.reduce<TReduceWithKeysInitial | TReduceWithKeysReturnType>(callback, initial);
+    }
+
+    /**
+     * Create a collection of all elements that do not pass a given truth test.
+     * 
+     * @param callback - The callback to execute, receives the value and key as arguments, or a value to compare against, defaults to true
+     * @returns A new collection with the items that do not pass the truth test
+     */
+    reject(
+        callback: ((value: TValue, key: TKey) => boolean) | boolean | TValue = true,
+    ){
+        const useAsCallable = this.useAsCallable(callback);
+
+        return this.filter((value: TValue, key: TKey) => {
+            return useAsCallable 
+                ? ! callback(value, key)
+                : value != callback;
+        })
+    }
+
+    /**
+     * Pass the collection to the given callback and then return it.
+     * 
+     * @param callback - The callback to execute, receives the current instance as an argument
+     * @returns The current instance
+     */
+    tap(
+        callback: (instance: this) => unknown
+    ){
+        callback(this);
+
+        return this;
+    }
+
+    /**
+     * Return only unique items from the collection array using strict comparison.
+     * 
+     * @param key - The key or callback to determine the item to check for uniqueness, or null to check the items directly
+     * @returns A new collection with only unique items, determined using strict comparison
+     */
+    uniqueStrict(
+        key: ((value: TValue, key: TKey) => unknown) | PathKey = null,
+    ){
+        return this.unique(key, true);
+    }
+
+    /**
+     * Collect the values into a collection.
+     * 
+     * @returns A new collection with the current items
+     */
+    collect(){
+        return new Collection(this.all());
+    }
+
+    /**
+     * Get the collection of items as a plain array.
+     * 
+     * @returns An array of the collection's items
+     */
+    toArray() {
+        return this.map((value) => Object.values(this.getRawItems(value))).all();
+    }
+
+    /**
+     * Convert the object into something JSON serializable.
+     * 
+     * @returns An array of the collection's items, with each item converted to a JSON-serializable form
+     */
+    jsonSerialize() {
+        return this.map((value) => {
+            if (
+                typeof value === "object" &&
+                value !== null
+            ) {
+                if( "toJSON" in value && isFunction((value as { toJSON: unknown }).toJSON) ) {
+                    return (value as { toJSON: () => unknown }).toJSON();
+                }
+
+                if( "jsonSerialize" in value && isFunction((value as { jsonSerialize: unknown }).jsonSerialize) ) {
+                    return (value as { jsonSerialize: () => unknown }).jsonSerialize();
+                }
+            }
+
+            return this.getRawItems(value);
+        })
+        .all();
+    }
+
+    /**
+     * Get the collection of items as JSON.
+     * 
+     * @param replacer - The replacer function or array for JSON.stringify
+     * @param space - The number of spaces or string to use for indentation in the JSON string
+     * @returns A JSON string representing the collection's items
+     */
+    toJson(
+        replacer?: ((this: unknown, key: string, value: unknown) => unknown) | (number | string)[] | null, 
+        space?: string | number,
+    ): string {
+        if (isArray(replacer)) {
+            return JSON.stringify(this.jsonSerialize(), replacer, space);
+        }
+
+        return JSON.stringify(this.jsonSerialize(), replacer ?? undefined, space);
+    }
+
+    /**
+     * Get the collection of items as pretty print formatted JSON.
+     * 
+     * @param replacer - The replacer function or array for JSON.stringify
+     * @param space - The number of spaces or string to use for indentation in the JSON string
+     * @returns A pretty-printed JSON string representing the collection's items
+     */
+    toPrettyJson(
+        replacer?: ((this: unknown, key: string, value: unknown) => unknown) | (number | string)[] | null, 
+        space: string | number = 4,
+    ){
+        return this.toJson(replacer, space);
+    }
+
+    /**
+     * Convert the collection to its string representation.
+     *
+     * @returns A JSON string representing the collection's items
+     */
+    toString() {
+        return this.toJson();
+    }
+
+    /**
+     * Get an operator checker callback.
+     * 
+     * @param key - The key or callback to determine the item to check, or null to check the items directly
+     * @param operator - The operator to use for comparison, if key is not a callback or null
+     * @param value - The value to compare against, if key is not a callback or null
+     * @returns A callback that checks if an item matches the given key, operator, and value
+     */
+    protected operatorForWhere(
+        key: ((value: TValue, index: TKey) => unknown) | PathKey,
+        operator: string|null = null,
+        value: unknown = null,
+    ) {
+        if(this.useAsCallable(key)) {
+            return key as (value: TValue, index: TKey) => unknown;
+        }
+
+        if (isNull(operator) || isNull(value)) {
+            value = true;
+
+            operator = '=';
+        }
+
+        if(!isNull(operator) && isNull(value)) {
+            value = operator;
+
+            operator = '=';
+        }
+
+        return function (item: unknown) {
+            const retrieved = dataGet(item!, key as PathKey);
+
+            const strings = dataFilter([retrieved, value], function (value) {
+                if(isString(value)) {
+                    return true;
+                }
+
+                if(isObject(value) && isFunction((value as { toString: unknown }).toString)) {
+                    return true;
+                }
+
+                return false;
+            });
+
+            if (dataCount(strings) < 2 && dataCount(dataFilter([retrieved, value], isObject)) === 1) {
+                return ['!=', '<>', '!=='].includes(operator);
+            }
+
+            switch (operator) {
+                default:
+                case '=':
+                case '==':  return retrieved == value;
+                case '!=':
+                case '<>':  return retrieved != value;
+                case '<':   return !isNull(retrieved) && !isNull(value) && (retrieved as number | string) < (value as number | string);
+                case '>':   return !isNull(retrieved) && !isNull(value) && (retrieved as number | string) > (value as number | string);
+                case '<=':  return !isNull(retrieved) && !isNull(value) && (retrieved as number | string) <= (value as number | string);
+                case '>=':  return !isNull(retrieved) && !isNull(value) && (retrieved as number | string) >= (value as number | string);
+                case '===': return retrieved === value;
+                case '!==': return retrieved !== value;
+                case '<=>': return !isNull(retrieved) && !isNull(value) ? ((retrieved as number | string) < (value as number | string) ? -1 : (retrieved as number | string) > (value as number | string) ? 1 : 0) : 0;
+            }
+        }
+    }
+
+    /**
+     * Determine if the given value is callable, but not a string.
+     * 
+     * @param value - The value to check
+     * @returns True if the value is callable, false otherwise
+     */
+    protected useAsCallable(
+        value: unknown
+    ){
+        return isFunction(value) || (isObject(value) && 'call' in value && isFunction((value as { call: unknown }).call));
+    }
+
+    /**
+     *  Make a function to check an item's equality.
+     * 
+     * @param value - The value to use a comparison
+     * @returns A function that receives an item to compare with the initial value
+     */
+    protected equality(
+        value : unknown,
+    ) {
+        return (item: unknown) => item === value;
+    }
+
+    /**
+     * Make a function using another function, by negating its result.
+     * 
+     * @param callback - The callback to negate
+     * @returns A function that receives the same arguments as the initial callback and returns its result
+     */
+    protected negate(
+        callback: (...values: unknown[]) => unknown
+    ){
+        return (...values: unknown[]) => callback(...values);
+    }
+
+    /**
+     * Make a function that returns what's passed to it.
+     * 
+     * @returns A function that returns its first argument
+     */
+    protected identity(){
+        return (value: unknown) => value;
+    }
+
+    /**
+     * Get a value retrieving callback.
+     * 
+     * @param value - The value or callback to retrieve values
+     * @returns A callback that retrieves the value from an item
+     * 
+     * @example
+     * 
+     * valueRetriever('id'); -> (item) => dataGet(item, 'id', null)
+     * valueRetriever((item) => item.id); -> (item) => item.id
+     * valueRetriever('user.name'); -> (item) => dataGet(item, 'user.name', null)
+     */
+    protected valueRetriever<TArgs, TReturn>(
+        value: PathKey | ((...args: TArgs[]) => TReturn)
+    ) {
+        if (isFunction(value)) {
+            return value;
+        }
+
+        return function (...args: TArgs[]) {
+            if (arguments.length >= 2) {
+                return dataGet(args[0] as DataItems<unknown, ObjectKey>, args[1] as PathKey, (args[2] ?? null) as unknown | null);
+            }
+
+            return dataGet(args[0] as DataItems<unknown, ObjectKey>, value as PathKey, null);
+        };
     }
 
     /** Conditionable Trait Methods */
@@ -3727,8 +4035,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @returns The items preserving their original structure
      */
     protected getRawItems(items: unknown): DataItems<TValue, TKey> {
-        if (items === null || items === undefined) {
-            return {} as DataItems<TValue, TKey>;
+        if (isNull(items) || isUndefined(items)) {
+            return [] as DataItems<TValue, TKey>;
         }
 
         // If it's already a Collection, get its items
@@ -3747,9 +4055,9 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             return (items as Arrayable<TValue>).toArray();
         }
 
-        // If it's an empty array, return empty object
+        // If it's an empty array, return empty array
         if (isArray(items) && items.length === 0) {
-            return {} as DataItems<TValue, TKey>;
+            return [] as DataItems<TValue, TKey>;
         }
 
         // If it's an array, keep it as an array
@@ -3764,33 +4072,5 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
         // For primitives and other types, wrap in an array
         return [items as TValue];
-    }
-
-    /**
-     * Get a value retrieving callback.
-     * 
-     * @param value - The value or callback to retrieve values
-     * @returns A callback that retrieves the value from an item
-     * 
-     * @example
-     * 
-     * valueRetriever('id'); -> (item) => dataGet(item, 'id', null)
-     * valueRetriever((item) => item.id); -> (item) => item.id
-     * valueRetriever('user.name'); -> (item) => dataGet(item, 'user.name', null)
-     */
-    protected valueRetriever<TArgs, TReturn>(
-        value: PathKey | ((...args: TArgs[]) => TReturn)
-    ) {
-        if (isFunction(value)) {
-            return value;
-        }
-
-        return function (...args: TArgs[]) {
-            if (arguments.length >= 2) {
-                return dataGet(args[0] as DataItems<unknown, ObjectKey>, args[1] as PathKey, (args[2] ?? null) as unknown | null);
-            }
-
-            return dataGet(args[0] as DataItems<unknown, ObjectKey>, value as PathKey, null);
-        };
     }
 }
