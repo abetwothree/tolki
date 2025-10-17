@@ -1772,24 +1772,24 @@ export function dataDiff<T, K extends ObjectKey = ObjectKey>(
  * Data.pluck([{name: 'John'}, {name: 'Jane'}], 'name'); -> ['John', 'Jane']
  * Data.pluck({a: {name: 'John'}, b: {name: 'Jane'}}, 'name'); -> ['John', 'Jane']
  */
-export function dataPluck<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
-    value: string | ((item: T) => T),
-    key: string | ((item: T) => string | number) | null = null,
-): DataItems<T, K> {
+export function dataPluck<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    value: string | ((item: TValue, key: TKey) => TValue),
+    key: string | ((item: TValue) => string | number) | null = null,
+): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objPluck(
-            data as Record<K, T>,
-            value as string | ((item: Record<K, T>) => unknown),
-            key as string | ((item: Record<K, T>) => string | number) | null,
-        ) as DataItems<T, K>;
+            data as Record<TKey, TValue>,
+            value as string | ((item: Record<TKey, TValue>) => unknown),
+            key as string | ((item: Record<TKey, TValue>) => string | number) | null,
+        ) as DataItems<TValue, TKey>;
     }
 
     return arrPluck(
-        arrWrap(data) as unknown as Record<K, T>[],
-        value as string | ((item: Record<K, T>) => T),
-        key as string | ((item: Record<K, T>) => string | number) | null,
-    ) as DataItems<T>;
+        arrWrap(data) as unknown as Record<TKey, TValue>[],
+        value as string | ((item: Record<TKey, TValue>) => TValue),
+        key as string | ((item: Record<TKey, TValue>) => string | number) | null,
+    ) as DataItems<TValue, TKey>;
 }
 
 export function dataIntersect<TValue, TKey extends ObjectKey = ObjectKey>(

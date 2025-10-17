@@ -855,7 +855,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         if (isArray(nextGroups) && nextGroups.length > 0) {
             return result.map((group: Collection<TValue, TKey>) => {
                 return group.groupBy(nextGroups, preserveKeys);
-            });
+            }) as unknown as Collection<Collection<TValue, TKey>, TGroupKey>;
         }
 
         return result;
@@ -876,7 +876,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     keyBy<TNewKey extends TKey = TKey>(
         keyByValue: ((value: TValue, index: TKey) => TNewKey) | ArrayItems<TNewKey> | PathKey,
     ) {
-        const keyByValueCallback = this.valueRetriever(keyByValue);
+        const keyByValueCallback = this.valueRetriever(keyByValue as PathKey | ((...args: (TValue | TKey)[]) => TNewKey));
 
         const results = {} as Record<TNewKey, TValue>;
 
@@ -1201,11 +1201,16 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection({a: {name: 'John'}, b: {name: 'Jane'}}).pluck('name'); ->  Collection(['John', 'Jane'])
      * new Collection({a: { id: 1, name: "John" }, b: { id: 2, name: "Jane" }}).pluck('name', 'id'); -> Collection({1: "John", 2: "Jane"})
      */
-    pluck(
-        value: string | ((item: TValue) => TValue),
-        key: string | ((item: TValue) => string | number) | null = null,
-    ): Collection<TValue, TKey> {
-        return new Collection<TValue, TKey>(dataPluck(this.items, value, key));
+    pluck<TPluckValue = TValue>(
+        value: string | ((item: TValue, key: TKey) => TPluckValue),
+        key: string | ((item: TValue, key: TKey) => string | number) | null = null,
+    ): Collection<TPluckValue, TKey> {
+        
+        return new Collection<TPluckValue, TKey>(dataPluck(
+            this.items, 
+            value as string | ((item: TValue, key: TKey) => TValue), 
+            key
+        ) as DataItems<TPluckValue, TKey>);
     }
 
     /**
