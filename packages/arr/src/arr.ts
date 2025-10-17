@@ -12,7 +12,7 @@ import {
     undotExpandArray,
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
-import type { ArrayInnerValue, ArrayItems, ObjectKey } from "@laravel-js/types";
+import type { ArrayInnerValue, ArrayItems, ObjectKey, PathKey, PathKeys, } from "@laravel-js/types";
 import {
     castableToArray,
     compareValues,
@@ -24,9 +24,9 @@ import {
     isNumber,
     isObject,
     isString,
+    isUndefined,
     typeOf,
 } from "@laravel-js/utils";
-import type { PathKey, PathKeys } from "packages/types";
 
 /**
  * Determine whether the given value is array accessible.
@@ -195,6 +195,25 @@ export function collapse<T extends ReadonlyArray<unknown>>(
 }
 
 /**
+ * Combine multiple arrays into a single array.
+ * 
+ * @param arrays - The arrays to combine.
+ * @returns A new array containing all elements from the input arrays.
+ */
+export function combine<T>(
+    ...arrays: ArrayItems<T>[]
+) {
+    const length = arrays[0]?.length || 0;
+    const result = [];
+
+    for (let i = 0; i < length; i++) {
+        result.push(arrays.map(array => array[i]));
+    }
+
+    return result;
+}
+
+/**
  * Cross join the given arrays, returning all possible permutations.
  *
  * @param arrays - The arrays to cross join.
@@ -288,6 +307,25 @@ export function dot(
  */
 export function undot(map: Record<string, unknown>): unknown[] {
     return undotExpandArray(map) as unknown[];
+}
+
+/**
+ * Union multiple arrays into a single array
+ * @param arrays - The arrays to union.
+ * @returns A new array containing all elements from the input arrays.
+ */
+export function union<TValue>(
+    ...arrays: ArrayItems<TValue>[]
+): TValue[] {
+    const result: TValue[] = [];
+
+    for (const array of arrays) {
+        for (const item of array) {
+            result.push(item);
+        }
+    }
+
+    return result;
 }
 
 /**
@@ -1179,6 +1217,39 @@ export function pluck<T extends Record<string, unknown>>(
     }
 
     return results;
+}
+
+/**
+ * Get and remove the last N items from the collection.
+ *
+ * @param data - The array to pop items from.
+ * @param count - The number of items to pop. Defaults to 1.
+ * @returns The popped item, items, or null if none found
+ */
+export function pop<TValue>(
+    data: ArrayItems<TValue>,
+    count: number = 1,
+): TValue | TValue[] | null {
+    if (!accessible(data)) {
+        return null;
+    }
+
+    const values = (data as ReadonlyArray<TValue>).slice();
+    const poppedValues: TValue[] = [];
+
+    for (let i = 0; i < count; i++) {
+        const value = values.pop();
+
+        if (!isUndefined(value)) {
+            poppedValues.unshift(value);
+        }
+    }
+
+    return poppedValues.length === 0 
+        ? null 
+        : poppedValues.length === 1 
+            ? poppedValues[0] as TValue 
+            : poppedValues;
 }
 
 /**

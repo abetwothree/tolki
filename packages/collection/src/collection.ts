@@ -1,5 +1,5 @@
 import { wrap as arrWrap } from "@laravel-js/arr";
-import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataCollapse, dataContains, dataCount, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataReverse, dataSearch, dataSelect, dataSet, dataShift, dataShuffle, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
+import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataCollapse, dataCombine, dataContains, dataCount, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPop, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataReverse, dataSearch, dataSelect, dataSet, dataShift, dataShuffle, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnion, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
 import { clamp, currency, defaultCurrency, defaultLocale, fileSize, forHumans, format, minutesToHuman, ordinal, pairs, parse, parseFloat, parseInt, percentage, secondsToHuman, spell, spellOrdinal, summarize, trim, useCurrency, useLocale, withCurrency, withLocale } from '@laravel-js/num';
 import { dotFlatten, dotFlattenArray, dotFlattenObject, forgetKeys, forgetKeysArray, forgetKeysObject, getMixedValue, getNestedValue, getObjectValue, getRaw, hasMixed, hasObjectKey, hasPath, parseSegments, pushMixed, pushWithPath, setImmutable, setMixed, setMixedImmutable, setObjectValue, undotExpand, undotExpandArray, undotExpandObject } from '@laravel-js/path';
 import type {
@@ -1437,10 +1437,10 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection({a: 1, b: 2}).combine({c: 3, d: 4}); -> new Collection({a: 3, b: 4})
      * new Collection([1, 2]).combine({a: 3, b: 4}); -> new Collection({0: 3, 1: 4})
      */
-    combine<TCombineValue>(
+    combine<TCombineValue extends TValue = TValue>(
         values: DataItems<TCombineValue, TKey> | Collection<TCombineValue, TKey>,
     ) {
-        return new Collection<TCombineValue, TKey>(dataCombine(this.items, this.getRawItems(values)));
+        return new Collection<TCombineValue, TKey>(dataCombine(this.items, this.getRawItems(values)) as DataItems<TCombineValue, TKey>);
     }
 
     /**
@@ -1459,7 +1459,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
     ) {
         return new Collection(
-            dataUnion<TValue, TKey>(
+            dataUnion(
                 this.items,
                 this.getRawItems(items),
             ),
@@ -1486,12 +1486,13 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
         let position = 0;
 
-        for (const [_key, value] of Object.entries(
+        for (const [, value] of Object.entries(
             this.slice(offset) as Record<TKey, TValue>,
         )) {
             if (position % step === 0) {
                 newItems.push(value as TValue);
             }
+
             position++;
         }
 
@@ -1568,9 +1569,13 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             return new Collection();
         }
 
-        return new Collection(
-            dataPop(this.items, count),
-        );
+        const poppedValues = dataPop(this.items, count);
+
+        if (isNull(poppedValues) || !isArray(poppedValues)) {
+            return poppedValues;
+        }
+
+        return new Collection(poppedValues);
     }
 
     /**

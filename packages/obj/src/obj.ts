@@ -164,6 +164,18 @@ export function collapse<T extends Record<string, Record<string, unknown>>>(
 }
 
 /**
+ * Combine multiple objects into one.
+ * 
+ * @param objects - The objects to combine.
+ * @return A new object containing all key-value pairs from the input objects.
+ */
+export function combine<T extends Record<string, unknown>>(
+    ...objects: T[]
+): Record<string, unknown> {
+    return Object.assign({}, ...objects);
+}
+
+/**
  * Cross join the given objects, returning all possible permutations.
  *
  * @param objects - The objects to cross join.
@@ -249,6 +261,18 @@ export function dot(
  */
 export function undot(map: Record<string, unknown>): Record<string, unknown> {
     return undotExpandObject(map);
+}
+
+/**
+ * Union multiple objects into one.
+ * 
+ * @param objects - The objects to union.
+ * @return A new object containing all key-value pairs from the input objects.
+ */
+export function union<TValue, TKey extends ObjectKey = ObjectKey>(
+    ...objects: Record<TKey, TValue>[]
+): Record<string, unknown> {
+    return objects.reduce((acc, obj) => ({ ...acc, ...obj }), {});
 }
 
 /**
@@ -1207,6 +1231,55 @@ export function pluck<T, K extends ObjectKey = ObjectKey>(
     }
 
     return results;
+}
+
+/**
+ * Get and remove the last N items from the collection.
+ * 
+ * @param data - The object to pop items from.
+ * @param count - The number of items to pop. Defaults to 1.
+ * @returns The popped item(s) or null/empty array if none.
+ */
+export function pop<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | null | undefined,
+    count: number = 1,
+): TValue | TValue[] | null {
+    if (data == null || !accessible(data)) {
+        return count === 1 ? null : [];
+    }
+
+    const obj = data as Record<string, TValue>;
+    const entries = Object.entries(obj);
+
+    if (entries.length === 0) {
+        return count === 1 ? null : [];
+    }
+
+    if (count === 1) {
+        const lastEntry = entries[entries.length - 1];
+        if (!lastEntry) {
+            return null;
+        }
+
+        const [key, value] = lastEntry;
+        delete obj[key];
+        return value;
+    }
+    
+    const poppedValues: TValue[] = [];
+    const actualCount = Math.min(count, entries.length);
+
+    for (let i = 0; i < actualCount; i++) {
+        const entry = entries[entries.length - 1 - i];
+        if (!entry) {
+            continue;
+        }
+        const [key, value] = entry;
+        delete obj[key];
+        poppedValues.unshift(value);
+    }
+
+    return poppedValues;
 }
 
 /**

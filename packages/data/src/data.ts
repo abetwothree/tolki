@@ -3,6 +3,7 @@ import {
     arrayItem,
     boolean as arrBoolean,
     collapse as arrCollapse,
+    combine as arrCombine,
     contains as arrContains,
     crossJoin as arrCrossJoin,
     diff as arrDiff,
@@ -33,6 +34,7 @@ import {
     only as arrOnly,
     partition as arrPartition,
     pluck as arrPluck,
+    pop as arrPop,
     prepend as arrPrepend,
     prependKeysWith as arrPrependKeysWith,
     pull as arrPull,
@@ -54,6 +56,7 @@ import {
     take as arrTake,
     toCssClasses as arrToCssClasses,
     toCssStyles as arrToCssStyles,
+    union as arrUnion,
     values as arrValues,
     where as arrWhere,
     whereNotNull as arrWhereNotNull,
@@ -63,6 +66,7 @@ import {
     add as objAdd,
     boolean as objBoolean,
     collapse as objCollapse,
+    combine as objCombine,
     contains as objContains,
     crossJoin as objCrossJoin,
     diff as objDiff,
@@ -94,6 +98,7 @@ import {
     only as objOnly,
     partition as objPartition,
     pluck as objPluck,
+    pop as objPop,
     prepend as objPrepend,
     prependKeysWith as objPrependKeysWith,
     pull as objPull,
@@ -116,6 +121,7 @@ import {
     toCssClasses as objToCssClasses,
     toCssStyles as objToCssStyles,
     undot as objUndot,
+    union as objUnion,
     values as objValues,
     where as objWhere,
     whereNotNull as objWhereNotNull,
@@ -126,7 +132,7 @@ import type {
     PathKey,
     PathKeys,
 } from "@laravel-js/types";
-import { isFunction, isObject } from "@laravel-js/utils";
+import { isArray, isFunction, isObject } from "@laravel-js/utils";
 
 /**
  * Add an element to data.
@@ -232,6 +238,28 @@ export function dataCollapse<T, K extends ObjectKey = ObjectKey>(
 }
 
 /**
+ * Combine two data sets.
+ * 
+ * @param itemsA - The first data set
+ * @param itemsB - The second data set
+ * @returns Combined data set
+ */
+export function dataCombine<TCombine>(
+    itemsA: DataItems<TCombine>,
+    itemsB: DataItems<TCombine>,
+){
+    if (isObject(itemsA) && isObject(itemsB)) {
+        return objCombine(itemsA as Record<ObjectKey, TCombine>, itemsB as Record<ObjectKey, TCombine>);
+    }
+
+    if (isArray(itemsA) && isArray(itemsB)) {
+        return arrCombine(itemsA as TCombine[], itemsB as TCombine[]);
+    }
+
+    throw new Error("dataCombine requires both itemsA and itemsB to be of the same type (both objects or both arrays).");
+}
+
+/**
  * Count the number of items in data.
  * 
  * @param data - the data to count
@@ -334,6 +362,21 @@ export function dataUndot<T, K extends ObjectKey = ObjectKey>(
 ): DataItems<T, K> {
     // Always return as object since dot notation creates nested objects
     return objUndot(data) as DataItems<T, K>;
+}
+
+export function dataUnion(
+    itemsA: unknown,
+    itemsB: unknown,
+){
+    if (isObject(itemsA) && isObject(itemsB)) {
+        return objUnion(itemsA as Record<string, unknown>, itemsB as Record<string, unknown>);
+    }
+
+    if (isArray(itemsA) && isArray(itemsB)) {
+        return arrUnion(itemsA as unknown[], itemsB as unknown[]);
+    }
+
+    throw new Error("dataUnion requires both itemsA and itemsB to be of the same type (both objects or both arrays).");
 }
 
 /**
@@ -1790,6 +1833,24 @@ export function dataPluck<TValue, TKey extends ObjectKey = ObjectKey>(
         value as string | ((item: Record<TKey, TValue>) => TValue),
         key as string | ((item: Record<TKey, TValue>) => string | number) | null,
     ) as DataItems<TValue, TKey>;
+}
+
+/**
+ * Get and remove the last N items from the data
+ * 
+ * @param data - The data to pop from
+ * @param count - The number of items to pop
+ * @returns Data with the last N items removed
+ */
+export function dataPop<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    count: number = 1,
+) {
+    if (isObject(data)) {
+        return objPop(data as Record<TKey, TValue>, count);
+    }
+
+    return arrPop(data, count);
 }
 
 export function dataIntersect<TValue, TKey extends ObjectKey = ObjectKey>(
