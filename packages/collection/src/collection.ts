@@ -1662,7 +1662,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         const result = new Collection(this.items);
         const items = this.getRawItems(source);
 
-        for (const [_key, value] of Object.entries(items)) {
+        for (const [, value] of Object.entries(items)) {
             result.push(value);
         }
 
@@ -1706,7 +1706,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([1, 2]).put(2, 3); -> new Collection([1, 2, 3])
      */
     put(key: TKey, value: TValue) {
-        this.offset(key, value);
+        this.offsetSet(key, value);
 
         return this;
     }
