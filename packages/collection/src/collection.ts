@@ -59,9 +59,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @returns An iterator for the collection values
      */
     [Symbol.iterator](): Iterator<TValue> {
-        const values = Object.values(
-            this.items as Record<PropertyName, TValue>,
-        );
+        const values = Object.values(this.items);
+
         let index = 0;
 
         return {
@@ -69,6 +68,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
                 if (index < values.length) {
                     return { value: values[index++] as TValue, done: false };
                 }
+
                 return { value: undefined as never, done: true };
             },
         };
@@ -169,12 +169,12 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             return null;
         }
 
-        const collection = !isNull(key) ? this.pluck(key) : this;
+        const keyList = !isNull(key) ? this.pluck(key) : this;
 
         const counts = new Collection();
 
-        collection.each((keyValue) => {
-            counts.set(keyValue, (counts.get(keyValue) ?? 0) as number + 1);
+        keyList.each((keyValue) => {
+            counts.set(keyValue as PathKey, (counts.get(keyValue as PathKey) ?? 0) as number + 1);
         });
 
         const sorted = counts.sort();
@@ -185,7 +185,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             .filter((value) => value === highestCount)
             .sort()
             .keys()
-            .values();
+            .values()
+            .all() as number[];
     }
 
     /**
@@ -280,10 +281,14 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
                 return dataContains(this.items, callback);
             }
 
-            return dataContains(this.items, key);
+            return dataContains(this.items, key as TValue);
         }
 
-        return this.contains(this.operatorForWhere(key, operator, value));
+        return this.contains(this.operatorForWhere(
+            key as PathKey | ((value: TValue, index: TKey) => unknown), 
+            isString(operator) ? operator : null, 
+            value,
+        ));
     }
 
     /**
@@ -302,11 +307,16 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         value: TValue | null = null,
     ): boolean {
         if (value !== null) {
-            return this.contains((item) => dataGet(item, key) === value);
+            return this.contains((item) => {
+                if (!isAccessibleData(item)) {
+                    return false;
+                }
+                return dataGet(item as DataItems<unknown, ObjectKey>, key as PathKey) === value;
+            });
         }
 
         if (isFunction(key)) {
-            return !isNull(this.first(key));
+            return !isNull(this.first(key as (value: TValue, index: TKey) => boolean));
         }
 
         return dataContains(this.items, (value: unknown) => value === key);
@@ -797,10 +807,14 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         if (!isFunction(groupByValue) && isArray(groupByValue)) {
             nextGroups = groupByValue;
 
-            groupByValue = nextGroups.shift();
+            const shiftedValue = nextGroups.shift();
+            if (isUndefined(shiftedValue)) {
+                throw new Error('groupBy requires at least one callback or key');
+            }
+            groupByValue = shiftedValue as ((value: TValue, index: TKey) => TGroupKey) | PathKey;
         }
 
-        groupByValue = this.valueRetriever(groupByValue as PathKey | ((...args: (TValue | TKey)[]) => TGroupKey));
+        groupByValue = this.valueRetriever(groupByValue as PathKey | ((...args: (TValue | TKey)[]) => TGroupKey)) as (value: TValue, key: TKey) => TGroupKey;
 
         const results = {} as Record<TGroupKey, Collection<TValue, TKey>>;
 
@@ -826,13 +840,13 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             const groupKeys = arrWrap(groupByValue(value as TValue, key as TKey));
 
             for (let groupKey of groupKeys) {
-                groupKey = normalizeGroupKey(groupKey);
+                groupKey = normalizeGroupKey(groupKey) as TGroupKey;
 
                 if (!results[groupKey]) {
                     results[groupKey] = new Collection();
                 }
 
-                results[groupKey]!.offsetSet(preserveKeys ? key : null, value);
+                results[groupKey]!.offsetSet(preserveKeys ? key as TKey : null, value as TValue);
             }
         }
 
@@ -3824,9 +3838,10 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         key: ((value: TValue, index: TKey) => unknown) | PathKey,
         operator: string|null = null,
         value: unknown = null,
-    ) {
+    ): (value: TValue, index: TKey) => boolean {
+
         if(this.useAsCallable(key)) {
-            return key as (value: TValue, index: TKey) => unknown;
+            return key as (value: TValue, index: TKey) => boolean;
         }
 
         if (isNull(operator) || isNull(value)) {
@@ -3841,7 +3856,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             operator = '=';
         }
 
-        return function (item: unknown) {
+        return function (item: unknown): boolean {
             const retrieved = dataGet(item!, key as PathKey);
 
             const strings = dataFilter([retrieved, value], function (value) {
@@ -3872,7 +3887,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
                 case '>=':  return !isNull(retrieved) && !isNull(value) && (retrieved as number | string) >= (value as number | string);
                 case '===': return retrieved === value;
                 case '!==': return retrieved !== value;
-                case '<=>': return !isNull(retrieved) && !isNull(value) ? ((retrieved as number | string) < (value as number | string) ? -1 : (retrieved as number | string) > (value as number | string) ? 1 : 0) : 0;
+                case '<=>': return ((!isNull(retrieved) && !isNull(value) ? ((retrieved as number | string) < (value as number | string) ? -1 : (retrieved as number | string) > (value as number | string) ? 1 : 0) : 0) !== 0);
             }
         }
     }
