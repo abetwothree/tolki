@@ -2266,6 +2266,24 @@ export function reject<T>(
 }
 
 /**
+ * Replace the data items with the given replacer items.
+ * 
+ * @param data - The original object to replace items in.
+ * @param replacerData - The object containing items to replace.
+ * @returns The modified original object with replaced items.
+ */
+export function replace<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>,
+    replacerData: Record<TKey, TValue>,
+){
+    for (const [key, value] of Object.entries(replacerData)) {
+        data[key as TKey] = value as TValue;
+    }
+
+    return data;
+}
+
+/**
  * Reverse the order of the object's entries.
  * 
  * @param data - The object to reverse.

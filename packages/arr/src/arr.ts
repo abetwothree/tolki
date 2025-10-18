@@ -2073,6 +2073,31 @@ export function reject<T>(
 }
 
 /**
+ * Replace the data items with the given replacer items.
+ * 
+ * @param data - The array to replace items in.
+ * @param replacerData - The array containing items to replace.
+ * @returns The modified original array with replaced items.
+ */
+export function replace<TValue>(
+    data: ArrayItems<TValue>,
+    replacerData: ArrayItems<TValue>,
+){
+    const values = getAccessibleValues(data) as TValue[];
+    const replacerValues = getAccessibleValues(replacerData) as TValue[];
+
+    for (let i = 0; i < replacerValues.length; i++) {
+        if (i < values.length) {
+            values[i] = replacerValues[i] as TValue;
+        } else {
+            values.push(replacerValues[i] as TValue);
+        }
+    }
+
+    return values;
+}
+
+/**
  * Reverse the order of the array and return the result.
  * 
  * @param data - The array to reverse.
