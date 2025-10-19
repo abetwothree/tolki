@@ -3282,9 +3282,9 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
         return this.map((value: TValue) => callbackValue(value))
             .reject((value: TValue) => !isNumber(value))
-            .reduce((carry: number | null, value: number) => {
-                if (isNull(carry) || value < carry) {
-                    return value;
+            .reduce((carry: number | null, value: unknown) => {
+                if (isNull(carry) || (value as number) < carry) {
+                    return value as number;
                 }
 
                 return carry;
