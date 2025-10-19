@@ -33,6 +33,7 @@ import {
     mapSpread as arrMapSpread,
     mapWithKeys as arrMapWithKeys,
     only as arrOnly,
+    pad as arrPad,
     partition as arrPartition,
     pluck as arrPluck,
     pop as arrPop,
@@ -103,6 +104,7 @@ import {
     mapWithKeys as objMapWithKeys,
     objectItem,
     only as objOnly,
+    pad as objPad,
     partition as objPartition,
     pluck as objPluck,
     pop as objPop,
@@ -1658,6 +1660,26 @@ export function dataReverse<TValue, TKey extends ObjectKey = ObjectKey>(
     }
 
     return arrReverse(arrWrap(data)) as DataItems<TValue>;
+}
+
+/**
+ * Pad data to the specified length with a value.
+ * 
+ * @param data - The data to pad
+ * @param size - The desired size
+ * @param value - The value to pad with
+ * @returns Padded data
+ */
+export function dataPad<TPadValue, TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    size: number,
+    value: TPadValue,
+){
+    if (isObject(data)) {
+        return objPad(data as Record<TKey, TValue>, size, value) as DataItems<TValue, TKey>;
+    }
+
+    return arrPad(arrWrap(data), size, value) as DataItems<TValue>;
 }
 
 /**

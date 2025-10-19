@@ -2458,6 +2458,53 @@ export function reverse<TValue, TKey extends ObjectKey = ObjectKey>(
 }
 
 /**
+ * Pad object to the specified length with a value.
+ * 
+ * @param data - The object to pad.
+ * @param size - The desired size of the object after padding. Positive to pad at the end, negative to pad at the beginning.
+ * @param value - The value to use for padding.
+ * @returns A new padded object.
+ */
+export function pad<TPadValue, TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>,
+    size: number,
+    value: TPadValue,
+): Record<TKey, TValue | TPadValue> {
+    if (!accessible(data)) {
+        return {} as Record<TKey, TValue | TPadValue>;
+    }
+
+    const obj = data as Record<string, TValue>;
+    const entries = Object.entries(obj);
+    const currentLength = entries.length;
+
+    if (Math.abs(size) <= currentLength) {
+        return data as Record<TKey, TValue | TPadValue>;
+    }
+
+    const padCount = Math.abs(size) - currentLength;
+    const padEntries: [string, TPadValue][] = [];
+
+    for (let i = 0; i < padCount; i++) {
+        padEntries.push([i.toString(), value]);
+    }
+
+    let resultEntries: [string, TValue | TPadValue][];
+    if (size > 0) {
+        resultEntries = [...entries, ...padEntries];
+    } else {
+        resultEntries = [...padEntries, ...entries];
+    }
+
+    const result: Record<string, TValue | TPadValue> = {};
+    for (const [key, val] of resultEntries) {
+        result[key] = val;
+    }
+
+    return result as Record<TKey, TValue | TPadValue>;
+}
+
+/**
  * Partition the object into two objects using the given callback.
  *
  * @param data - The object to partition.

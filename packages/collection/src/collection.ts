@@ -1,5 +1,5 @@
 import { wrap as arrWrap } from "@laravel-js/arr";
-import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataChunk, dataCollapse, dataCombine, dataContains, dataCount, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPop, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataReplace, dataReplaceRecursive, dataReverse, dataSearch, dataSelect, dataSet, dataShift, dataShuffle, dataSlice, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataSplice, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnion, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
+import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataChunk, dataCollapse, dataCombine, dataContains, dataCount, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPad, dataPartition, dataPluck, dataPop, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataReplace, dataReplaceRecursive, dataReverse, dataSearch, dataSelect, dataSet, dataShift, dataShuffle, dataSlice, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataSplice, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnion, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
 import { clamp, currency, defaultCurrency, defaultLocale, fileSize, forHumans, format, minutesToHuman, ordinal, pairs, parse, parseFloat, parseInt, percentage, secondsToHuman, spell, spellOrdinal, summarize, trim, useCurrency, useLocale, withCurrency, withLocale } from '@laravel-js/num';
 import { dotFlatten, dotFlattenArray, dotFlattenObject, forgetKeys, forgetKeysArray, forgetKeysObject, getMixedValue, getNestedValue, getObjectValue, getRaw, hasMixed, hasObjectKey, hasPath, parseSegments, pushMixed, pushWithPath, setImmutable, setMixed, setMixedImmutable, setObjectValue, undotExpand, undotExpandArray, undotExpandObject } from '@laravel-js/path';
 import type {
@@ -2588,10 +2588,36 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection({a: 1, b: 2}).zip({x: 'a', y: 'b', z: 'c'}); -> new Collection([[1, 'a'], [2, 'b']])
      */
     zip<TZipValue>(
-        items: DataItems<TZipValue> | Collection<TZipValue>
+        ...list: DataItems<TZipValue>[] | Collection<TZipValue>[]
     ) {
-        const zipItems = this.getRawItems(items);
-        const zipped = dataZip(this.items, zipItems);
+        const arraysToZip = list.map(items => {
+            const rawItems = this.getRawItems(items) as DataItems<TZipValue>;
+            return isArray(rawItems) ? rawItems : Object.values(rawItems);
+        });
+
+        const maxLength = Math.max(
+            this.count(),
+            ...arraysToZip.map(arr => arr.length)
+        );
+
+        const zipped: Array<Array<TValue | TZipValue>> = [];
+
+        for (let i = 0; i < maxLength; i++) {
+            const row: Array<TValue | TZipValue> = [];
+            
+            const thisValues = this.getItemValues(this.items);
+            if (i < thisValues.length) {
+                row.push(thisValues[i]!);
+            }
+            
+            for (const arr of arraysToZip) {
+                if (i < arr.length) {
+                    row.push(arr[i]!);
+                }
+            }
+            
+            zipped.push(row);
+        }
 
         return new Collection(zipped);
     }
@@ -2612,7 +2638,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     pad<TPadValue>(
         size: number,
-        value: TPadValue
+        value: TPadValue,
     ) {
         return new Collection(
             dataPad(this.items, size, value) as DataItems<TValue, TKey>,

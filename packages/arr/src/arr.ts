@@ -2241,6 +2241,32 @@ export function reverse<TValue>(
 }
 
 /**
+ * Pad array to the specified length with a value.
+ * 
+ * @param data - The array to pad.
+ * @param size - The desired length of the array.
+ * @param value - The value to pad with.
+ * @returns A new padded array.
+ */
+export function pad<TPadValue, TValue>(
+    data: ArrayItems<TValue>,
+    size: number,
+    value: TPadValue,
+): ArrayItems<TValue | TPadValue> {
+    const values = getAccessibleValues(data) as TValue[];
+    const currentLength = values.length;
+
+    if (size <= currentLength) {
+        return values;
+    }
+
+    const padLength = size - currentLength;
+    const padArray = Array(padLength).fill(value) as unknown as TValue[];
+
+    return values.concat(padArray);
+}
+
+/**
  * Partition the array into two arrays using the given callback.
  *
  * @param data - The array to partition.
