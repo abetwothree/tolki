@@ -61,6 +61,7 @@ import {
     take as arrTake,
     toCssClasses as arrToCssClasses,
     toCssStyles as arrToCssStyles,
+    undot as arrUndot,
     union as arrUnion,
     values as arrValues,
     where as arrWhere,
@@ -389,10 +390,20 @@ export function dataDot<T, K extends ObjectKey = ObjectKey>(
  * dataUndot({'a.b': 1, 'a.c': 2}); -> {a: {b: 1, c: 2}}
  */
 export function dataUndot<T, K extends ObjectKey = ObjectKey>(
-    data: Record<string, unknown>,
+    data: DataItems<T, K>,
 ): DataItems<T, K> {
-    // Always return as object since dot notation creates nested objects
-    return objUndot(data) as DataItems<T, K>;
+    if(isObject(data)){
+        return objUndot(data) as DataItems<T, K>;
+    }
+
+    const values = isArray(data) ? data : arrWrap(data);
+    const result: Record<string, T> = {};
+    // convert values to an object
+    values.forEach((value, index) => {
+        result[index.toString()] = value;
+    });
+
+    return arrUndot(result) as DataItems<T>;
 }
 
 export function dataUnion(
