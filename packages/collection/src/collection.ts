@@ -3346,10 +3346,14 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         if (isNull(operator) && isNull(value)) {
             callback = this.valueRetriever(key as PathKey | ((...args: (TValue | TKey)[]) => boolean));
         } else {
-            callback = this.operatorForWhere(key, operator, value);
+            callback = this.operatorForWhere(
+                key as PathKey | ((value: TValue, index: TKey) => unknown), 
+                isString(operator) ? operator : null, 
+                value
+            );
         }
 
-        const [passed, failed] = dataPartition(this.items, (item, key) => callback(item as TValue, key as TKey));
+        const [passed, failed] = dataPartition(this.items, (item, key) => Boolean(callback(item as TValue, key as TKey)));
 
         return [
             new Collection(passed),
