@@ -10,7 +10,7 @@ import {
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
 import { isArray, isFalsy, isFunction, isNull, isObject, isString, typeOf } from "@laravel-js/utils";
-import type { ObjectKey, PathKey, PathKeys } from "packages/types";
+import type { DataItems, ObjectKey, PathKey, PathKeys } from "packages/types";
 
 /**
  * Determine whether the given value is object accessible.
@@ -1713,6 +1713,39 @@ export function shuffle<T>(
     }
 
     return result;
+}
+
+/**
+ * Slice the underlying object items
+ * 
+ * @param data - The object to slice
+ * @param offset - The starting index
+ * @param length - The number of items to include
+ * @returns Sliced object
+ */
+export function slice<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>,
+    offset: number,
+    length: number | null = null,
+){
+    if (!accessible(data)) {
+        return {} as Record<TKey, TValue>;
+    }
+
+    const obj = data as Record<string, TValue>;
+    const entries = Object.entries(obj);
+
+    const slicedEntries = length === null
+        ? entries.slice(offset)
+        : entries.slice(offset, offset + length);
+
+    const result: Record<string, TValue> = {};
+
+    for (const [key, value] of slicedEntries) {
+        result[key] = value;
+    }
+
+    return result as Record<TKey, TValue>;
 }
 
 /**

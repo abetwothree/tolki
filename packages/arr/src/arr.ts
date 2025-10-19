@@ -1631,6 +1631,32 @@ export function shuffle<T>(data: ReadonlyArray<T> | unknown): T[] {
 }
 
 /**
+ * Slice the underlying array items
+ * 
+ * @param data - The array to slice
+ * @param offset - The starting index
+ * @param length - The number of items to include
+ * @returns Sliced array
+ */
+export function slice<TValue>(
+    data: ArrayItems<TValue>,
+    offset: number,
+    length: number | null = null,
+){
+    if (!accessible(data)) {
+        return [] as ArrayItems<TValue>;
+    }
+
+    const values = (data as ReadonlyArray<TValue>).slice();
+
+    if (length === null) {
+        return values.slice(offset);
+    }
+
+    return values.slice(offset, offset + length);
+}
+
+/**
  * Get the first item in the array, but only if exactly one item exists. Otherwise, throw an exception.
  *
  * @param data - The array to check.
@@ -2126,8 +2152,8 @@ export function replaceRecursive<TValue>(
                 isObject(replacerValues[i])
             ) {
                 values[i] = objReplaceRecursive(
-                    values[i] as unknown as Record<string, unknown>,
-                    replacerValues[i] as unknown as Record<string, unknown>,
+                    values[i] as unknown as Record<ObjectKey, TValue>,
+                    replacerValues[i] as unknown as Record<ObjectKey, TValue>,
                 ) as unknown as TValue;
             } else{
                 values[i] = replacerValues[i] as TValue;

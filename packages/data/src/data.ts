@@ -48,6 +48,7 @@ import {
     select as arrSelect,
     set as arrSet,
     shuffle as arrShuffle,
+    slice as arrSlice,
     sole as arrSole,
     some as arrSome,
     sort as arrSort,
@@ -114,6 +115,7 @@ import {
     select as objSelect,
     set as objSet,
     shuffle as objShuffle,
+    slice as objSlice,
     sole as objSole,
     some as objSome,
     sort as objSort,
@@ -1237,6 +1239,26 @@ export function dataShuffle<TValue, TKey extends ObjectKey = ObjectKey>(
     }
 
     return arrShuffle(arrWrap(data)) as DataItems<TValue, TKey>;
+}
+
+/**
+ * Slice the underlying data items
+ * 
+ * @param data - The data to slice
+ * @param offset - The starting index
+ * @param length - The number of items to include
+ * @returns Sliced data
+ */
+export function dataSlice<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    offset: number,
+    length: number | null = null,
+){
+    if (isObject(data)) {
+        return objSlice(data as Record<TKey, TValue>, offset, length) as DataItems<TValue, TKey>;
+    }
+
+    return arrSlice(arrWrap(data), offset, length) as DataItems<TValue>;
 }
 
 /**
