@@ -1266,7 +1266,7 @@ export function dataUnshift<TValue, TKey extends ObjectKey = ObjectKey>(
     if (isObject(data)) {
         return objUnshift(
             data,
-            ...items,
+            ...items as Array<[TKey, TValue]>,
         ) as DataItems<TValue, TKey>;
     }
 
