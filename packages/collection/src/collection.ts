@@ -3467,7 +3467,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         operator: unknown = null,
         value: unknown = null,
     ) {
-        return this.filter(this.operatorForWhere(key, operator, value));
+        return this.filter(this.operatorForWhere(key, isString(operator) ? operator : null, value));
     }
 
     /**
