@@ -1054,31 +1054,6 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     }
 
     /**
-     * Intersect the collection with the given items by key, using the callback.
-     * 
-     * @param items - The items to intersect with
-     * @param callback - The callback function to determine equality
-     * @returns A new collection with the intersected items
-     * 
-     * @example 
-     * 
-     * new Collection({a: {id: 1}, b: {id: 2}, c: {id: 3}}).intersectByKeysUsing({b: {id: 2}}, (a, b) => a.id === b.id); -> new Collection({b: {id: 2}})
-     * new Collection([{key: 'a'}, {key: 'b'}, {key: 'c'}]).intersectByKeysUsing([{key: 'b'}], (a, b) => a.key === b.key); -> new Collection([{key: 'b'}])
-     */
-    intersectByKeysUsing(
-        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
-        callback: (a: TValue, b: TValue) => boolean,
-    ) {
-        return new Collection(
-            dataIntersectByKeys<TValue, TKey>(
-                this.items,
-                this.getRawItems(items),
-                callback,
-            ),
-        );
-    }
-
-    /**
      * Determine if the collection is empty or not.
      *
      * @returns True if the collection is empty, false otherwise
