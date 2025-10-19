@@ -3385,15 +3385,16 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @param callback - The key or callback to determine the value to sum, or null to sum the items directly
      * @returns The sum of the values
      */
-    sum<TReturnType>(
+    sum<TReturnType = number>(
         callback: ((value: TValue, key: TKey) => TReturnType) | PathKey = null,
-    ) {
+    ): number {
         const callbackValue = isNull(callback)
             ? this.identity()
             : this.valueRetriever(callback as PathKey | ((...args: (TValue | TKey)[]) => TReturnType));
 
         return this.reduce((carry, value, key) => {
-            return carry + callbackValue(value, key);
+            const result = callbackValue(value, key) as number;
+            return carry + result;
         }, 0);
     }
 
