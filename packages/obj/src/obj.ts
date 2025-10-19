@@ -1,4 +1,4 @@
-import { flip as arrFlip } from "@laravel-js/arr";
+import { flip as arrFlip, replaceRecursive as arrReplaceRecursive } from "@laravel-js/arr";
 import {
     dotFlatten,
     forgetKeys,
@@ -2278,6 +2278,36 @@ export function replace<TValue, TKey extends ObjectKey = ObjectKey>(
 ){
     for (const [key, value] of Object.entries(replacerData)) {
         data[key as TKey] = value as TValue;
+    }
+
+    return data;
+}
+
+/**
+ * Recursively replace the data items with the given items.
+ *
+ * @param data - The original object to replace items in.
+ * @param replacerData - The object containing items to replace.
+ * @returns The modified original object with replaced items.
+ */
+export function replaceRecursive<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>,
+    replacerData: Record<TKey, TValue>,
+){
+    for (const [key, value] of Object.entries(replacerData)) {
+        if (isObject(value) && isObject(data[key as TKey])) {
+            data[key as TKey] = replaceRecursive(
+                data[key as TKey] as Record<TKey, TValue>,
+                value as Record<TKey, TValue>,
+            ) as TValue;
+        } else if (isArray(value) && isArray(data[key as TKey])) {
+            data[key as TKey] = arrReplaceRecursive(
+                data[key as TKey] as TValue[],
+                value as TValue[],
+            ) as TValue;
+        } else {
+            data[key as TKey] = value as TValue;
+        }
     }
 
     return data;

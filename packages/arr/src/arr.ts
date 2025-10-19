@@ -1,4 +1,4 @@
-import { flip as objFlip } from "@laravel-js/obj";
+import { flip as objFlip, replaceRecursive as objReplaceRecursive } from "@laravel-js/obj";
 import {
     dotFlatten,
     forgetKeys,
@@ -2091,6 +2091,47 @@ export function replace<TValue>(
             values[i] = replacerValues[i] as TValue;
         } else {
             values.push(replacerValues[i] as TValue);
+        }
+    }
+
+    return values;
+}
+
+/**
+ * Recursively replace the data items with the given items.
+ *
+ * @param data - The original object to replace items in.
+ * @param replacerData - The object containing items to replace.
+ * @returns The modified original object with replaced items.
+ */
+export function replaceRecursive<TValue>(
+    data: ArrayItems<TValue>,
+    replacerData: ArrayItems<TValue>,
+){
+    const values = getAccessibleValues(data) as TValue[];
+    const replacerValues = getAccessibleValues(replacerData) as TValue[];
+
+    for (let i = 0; i < replacerValues.length; i++) {
+        if (i < values.length) {
+            if (
+                isArray(values[i]) &&
+                isArray(replacerValues[i])
+            ) {
+                values[i] = replaceRecursive(
+                    values[i] as unknown as ArrayItems<TValue>,
+                    replacerValues[i] as unknown as ArrayItems<TValue>,
+                ) as unknown as TValue;
+            } else if (
+                isObject(values[i]) &&
+                isObject(replacerValues[i])
+            ) {
+                values[i] = objReplaceRecursive(
+                    values[i] as unknown as Record<string, unknown>,
+                    replacerValues[i] as unknown as Record<string, unknown>,
+                ) as unknown as TValue;
+            } else{
+                values[i] = replacerValues[i] as TValue;
+            }
         }
     }
 

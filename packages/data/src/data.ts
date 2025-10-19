@@ -43,6 +43,7 @@ import {
     random as arrRandom,
     reject as arrReject,
     replace as arrReplace,
+    replaceRecursive as arrReplaceRecursive,
     reverse as objReverse,
     select as arrSelect,
     set as arrSet,
@@ -108,6 +109,7 @@ import {
     random as objRandom,
     reject as objReject,
     replace as objReplace,
+    replaceRecursive as objReplaceRecursive,
     reverse as arrReverse,
     select as objSelect,
     set as objSet,
@@ -1489,6 +1491,34 @@ export function dataReplace<TValue, TKey extends ObjectKey = ObjectKey>(
 
     if (isArray(data) && isArray(replacerData)) {
         return arrReplace(
+            data,
+            replacerData,
+        ) as DataItems<TValue>;
+    }
+
+    throw new Error('Data to replace and items must be of the same type (both array or both object).');
+}
+
+/**
+ * Recursively replace the data items with the given items recursively.
+ * 
+ * @param data - The original data
+ * @param items - The items to replace with
+ * @returns The replaced data
+ */
+export function dataReplaceRecursive<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    replacerData: DataItems<TValue, TKey>,
+){
+    if (isObject(data) && isObject(replacerData)) {
+        return objReplaceRecursive(
+            data as Record<TKey, TValue>,
+            replacerData as Record<TKey, TValue>,
+        ) as DataItems<TValue, TKey>;
+    }
+
+    if (isArray(data) && isArray(replacerData)) {
+        return arrReplaceRecursive(
             data,
             replacerData,
         ) as DataItems<TValue>;

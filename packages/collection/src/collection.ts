@@ -1,5 +1,5 @@
 import { wrap as arrWrap } from "@laravel-js/arr";
-import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataCollapse, dataCombine, dataContains, dataCount, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPop, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataReplace, dataReverse, dataSearch, dataSelect, dataSet, dataShift, dataShuffle, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnion, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
+import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataCollapse, dataCombine, dataContains, dataCount, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPop, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataReplace, dataReplaceRecursive, dataReverse, dataSearch, dataSelect, dataSet, dataShift, dataShuffle, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnion, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
 import { clamp, currency, defaultCurrency, defaultLocale, fileSize, forHumans, format, minutesToHuman, ordinal, pairs, parse, parseFloat, parseInt, percentage, secondsToHuman, spell, spellOrdinal, summarize, trim, useCurrency, useLocale, withCurrency, withLocale } from '@laravel-js/num';
 import { dotFlatten, dotFlattenArray, dotFlattenObject, forgetKeys, forgetKeysArray, forgetKeysObject, getMixedValue, getNestedValue, getObjectValue, getRaw, hasMixed, hasObjectKey, hasPath, parseSegments, pushMixed, pushWithPath, setImmutable, setMixed, setMixedImmutable, setObjectValue, undotExpand, undotExpandArray, undotExpandObject } from '@laravel-js/path';
 import type {
@@ -1780,7 +1780,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
     ) {
         return new Collection(
-            dataReplaceRecursive<TValue, TKey>(
+            dataReplaceRecursive(
                 this.items,
                 this.getRawItems(items),
             ),
