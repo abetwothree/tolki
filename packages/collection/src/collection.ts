@@ -3094,7 +3094,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
         operator: unknown = null,
         value: unknown = null,
-    ) {
+    ): boolean {
         if (isNull(operator) && isNull(value)) {
             const callback = this.valueRetriever(key as PathKey | ((...args: (TValue | TKey)[]) => boolean));
             for (const [key, value] of Object.entries(this.items)) {
@@ -3104,7 +3104,11 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             }
         }
 
-        return this.every(this.operatorForWhere(key, operator, value));
+        return this.every(this.operatorForWhere(
+            key as PathKey | ((value: TValue, index: TKey) => unknown),
+            isString(operator) ? operator : null,
+            value,
+        ));
     }
 
     /**
