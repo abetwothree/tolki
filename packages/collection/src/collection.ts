@@ -3649,7 +3649,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         return this.filter((item: TValue) => {
             if (isArray(type) || isObject(type)) {
                 const types = isArray(type) ? type : Object.values(type);
-                return types.some(t => item instanceof t);
+                return types.some(t => isFunction(t) && item instanceof t);
             }
 
             return item instanceof type;
