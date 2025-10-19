@@ -1893,10 +1893,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
             return null;
         }
 
-        const result = dataShift(this.items, count);
-        this.items = result.data;
-
-        return new Collection(result.value as DataItems<TValue, TKey>);
+        return new Collection(dataShift(this.items, count) as DataItems<TValue, TKey>);
     }
 
     /**

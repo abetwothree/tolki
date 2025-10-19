@@ -1646,6 +1646,55 @@ export function random<T>(
 }
 
 /**
+ * Get and remove the first N items from the object
+ * 
+ * @param data - The object to shift items from.
+ * @param count - The number of items to shift. Defaults to 1.
+ * @returns The shifted item(s) or null/empty array if none.
+ */
+export function shift<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>,
+    count: number = 1,
+): TValue | TValue[] | null {
+    if (!accessible(data)) {
+        return count === 1 ? null : [];
+    }
+
+    const obj = data as Record<string, TValue>;
+    const entries = Object.entries(obj);
+
+    if (entries.length === 0) {
+        return count === 1 ? null : [];
+    }
+
+    if (count === 1) {
+        const firstEntry = entries[0];
+        if (!firstEntry) {
+            return null;
+        }
+
+        const [key, value] = firstEntry;
+        delete obj[key];
+        return value;
+    }
+    
+    const shiftedValues: TValue[] = [];
+    const actualCount = Math.min(count, entries.length);
+
+    for (let i = 0; i < actualCount; i++) {
+        const entry = entries[i];
+        if (!entry) {
+            continue;
+        }
+        const [key, value] = entry;
+        delete obj[key];
+        shiftedValues.push(value);
+    }
+
+    return shiftedValues;
+}
+
+/**
  * Set an object item to a given value using "dot" notation.
  *
  * If no key is given to the method, the entire object will be replaced.

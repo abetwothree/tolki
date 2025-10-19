@@ -49,6 +49,7 @@ import {
     reverse as objReverse,
     select as arrSelect,
     set as arrSet,
+    shift as arrShift,
     shuffle as arrShuffle,
     slice as arrSlice,
     sole as arrSole,
@@ -120,6 +121,7 @@ import {
     reverse as arrReverse,
     select as objSelect,
     set as objSet,
+    shift as objShift,
     shuffle as objShuffle,
     slice as objSlice,
     sole as objSole,
@@ -1172,15 +1174,22 @@ export function dataAfter<TValue, TKey extends ObjectKey = ObjectKey>(
     return false;
 }
 
+/**
+ * Get and remove the first N items from the data.
+ * 
+ * @param items - The data to shift from
+ * @param count - Number of items to shift
+ * @returns The shifted items
+ */
 export function dataShift<TValue, TKey extends ObjectKey = ObjectKey>(
     items: DataItems<TValue, TKey>,
     count: number = 1,
 ) {
     if (isObject(items)) {
-        return objShift(items as Record<string, TValue>, count);
+        return objShift(items as Record<TKey, TValue>, count) as DataItems<TValue, TKey>;
     }
 
-    return arrShift(arrWrap(items), count);
+    return arrShift(arrWrap(items), count) as DataItems<TValue>;
 }
 
 /**

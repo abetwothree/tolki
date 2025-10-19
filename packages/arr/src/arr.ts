@@ -1593,6 +1593,39 @@ export function random<T>(
 }
 
 /**
+ * Get and remove the first N items from the array
+ * 
+ * @param data - The array to shift items from.
+ * @param count - The number of items to shift. Defaults to 1.
+ * @returns The shifted item(s) or null/empty array if none.
+ */
+export function shift<TValue>(
+    data: ArrayItems<TKey>,
+    count: number = 1,
+): TValue | TValue[] | null {
+    if (!accessible(data)) {
+        return count === 1 ? null : [] as TValue[];
+    }
+
+    const values = (data as ReadonlyArray<TValue>).slice();
+    const shiftedValues: TValue[] = [];
+
+    for (let i = 0; i < count; i++) {
+        const value = values.shift();
+
+        if (!isUndefined(value)) {
+            shiftedValues.push(value);
+        }
+    }
+
+    return shiftedValues.length === 0 
+        ? (count === 1 ? null : [] as TValue[]) 
+        : (shiftedValues.length === 1 && count === 1 
+            ? shiftedValues[0] as TValue 
+            : shiftedValues);
+}
+
+/**
  * Set an array item to a given value using "dot" notation.
  *
  * If no key is given to the method, the entire array will be replaced.
