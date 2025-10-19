@@ -1,5 +1,5 @@
 import { wrap as arrWrap } from "@laravel-js/arr";
-import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataCollapse, dataCombine, dataContains, dataCount, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPop, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataReplace, dataReplaceRecursive, dataReverse, dataSearch, dataSelect, dataSet, dataShift, dataShuffle, dataSlice, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnion, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
+import { dataAdd, dataAfter, dataArray, dataBefore, dataBoolean, dataChunk, dataCollapse, dataCombine, dataContains, dataCount, dataCrossJoin, dataDiff, dataDivide, dataDot, dataEvery, dataExcept, dataExists, dataFilter, dataFirst, dataFlatten, dataFlip, dataFloat, dataForget, dataFrom, dataGet, dataHas, dataHasAll, dataHasAny, dataInteger, dataIntersect, dataIntersectByKeys, dataItem, dataJoin, dataKeyBy, dataKeys, dataLast, dataMap, dataMapSpread, dataMapToDictionary, dataMapWithKeys, dataOnly, dataPartition, dataPluck, dataPop, dataPrepend, dataPrependKeysWith, dataPull, dataPush, dataQuery, dataRandom, dataReject, dataReplace, dataReplaceRecursive, dataReverse, dataSearch, dataSelect, dataSet, dataShift, dataShuffle, dataSlice, dataSole, dataSome, dataSort, dataSortDesc, dataSortRecursive, dataSortRecursiveDesc, dataString, dataTake, dataToCssClasses, dataToCssStyles, dataUndot, dataUnion, dataUnshift, dataValues, dataWhere, dataWhereNotNull } from '@laravel-js/data';
 import { clamp, currency, defaultCurrency, defaultLocale, fileSize, forHumans, format, minutesToHuman, ordinal, pairs, parse, parseFloat, parseInt, percentage, secondsToHuman, spell, spellOrdinal, summarize, trim, useCurrency, useLocale, withCurrency, withLocale } from '@laravel-js/num';
 import { dotFlatten, dotFlattenArray, dotFlattenObject, forgetKeys, forgetKeysArray, forgetKeysObject, getMixedValue, getNestedValue, getObjectValue, getRaw, hasMixed, hasObjectKey, hasPath, parseSegments, pushMixed, pushWithPath, setImmutable, setMixed, setMixedImmutable, setObjectValue, undotExpand, undotExpandArray, undotExpandObject } from '@laravel-js/path';
 import type {
@@ -2062,14 +2062,14 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([{id: 1}, {id: 2}]).sole(item => item.id === 2); -> {id: 2}
      */
     sole(
-        key: ((value: TValue, index: TKey) => boolean) | PathKey | null = null,
+        key: ((value: TValue, index: TKey) => boolean) | PathKey = null,
         operator: string | null = null,
         value: unknown = null,
     ) {
         let filter: ((value: TValue, key: TKey) => boolean) | null;
         if(isNull(operator) && isNull(value)) {
             filter = isNull(key) 
-                ? key as null
+                ? key
                 : this.valueRetriever(key as PathKey | ((...args: (TValue | TKey)[]) => boolean)) as ((value: TValue, key: TKey) => boolean);
         }else{
             filter = this.operatorForWhere(key, operator, value);
@@ -2106,13 +2106,18 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([]).firstOrFail(); -> Error: No items found in the collection.
      */
     firstOrFail(
-        key: PathKey | ((value: TValue, index: TKey) => boolean),
+        key: ((value: TValue, index: TKey) => boolean) | PathKey = null,
         operator: string | null = null,
         value: unknown = null,
     ) {
-        const filter = arguments.length > 1
-            ? this.operatorForWhere(key, operator, value)
-            : key;
+        let filter: ((value: TValue, key: TKey) => boolean) | null;
+        if(isNull(operator) && isNull(value)) {
+            filter = isNull(key) 
+                ? key
+                : this.valueRetriever(key as PathKey | ((...args: (TValue | TKey)[]) => boolean)) as ((value: TValue, key: TKey) => boolean);
+        }else{
+            filter = this.operatorForWhere(key, operator, value);
+        }
 
         const placeholder = null;
 
@@ -2148,8 +2153,11 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
         const chunks = [];
 
-        for (const chunk of dataChunk(this.items, size, preserveKeys)) {
-            chunks.push(new Collection(chunk));
+        const chunkedData = dataChunk<TValue, TKey>(this.items, size, preserveKeys);
+        const chunkedValues = isArray(chunkedData) ? chunkedData : Object.values(chunkedData);
+
+        for (const chunk of chunkedValues) {
+            chunks.push(new Collection(chunk as DataItems<TValue, TKey>));
         }
 
         return new Collection(chunks);

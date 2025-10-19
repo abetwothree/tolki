@@ -139,6 +139,41 @@ export function boolean<D = null>(
 }
 
 /**
+ * Chunk the object into chunks of the given size.
+ * 
+ * @param data - The record to chunk
+ * @param size - The size of each chunk
+ * @param preserveKeys - Whether to preserve the original keys, defaults to false
+ * @returns Chunked record
+ */
+export function chunk<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>,
+    size: number,
+    preserveKeys: boolean = false,
+){
+    if(size <= 0){
+        return {};
+    }
+
+    const entries = Object.entries(data);
+    const chunks: Record<string, TValue> | Record<string, Record<string, TValue>> = {};
+    let chunkIndex = 0;
+
+    for(let i = 0; i < entries.length; i += size){
+        const chunkEntries = entries.slice(i, i + size);
+        if (preserveKeys) {
+            chunks[chunkIndex] = Object.fromEntries(chunkEntries) as Record<string, TValue>;
+        } else {
+            chunks[chunkIndex] = Object.fromEntries(chunkEntries.map(([key, value]) => [key.split('.').pop()!, value])) as Record<string, TValue>;
+        }
+        
+        chunkIndex++;
+    }
+
+    return chunks;
+}
+
+/**
  * Collapse an object of objects into a single object.
  *
  * @param object - The object of objects to collapse.

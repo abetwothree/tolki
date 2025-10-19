@@ -2,6 +2,7 @@ import {
     add as arrAdd,
     arrayItem,
     boolean as arrBoolean,
+    chunk as arrChunk,
     collapse as arrCollapse,
     combine as arrCombine,
     contains as arrContains,
@@ -68,6 +69,7 @@ import {
 import {
     add as objAdd,
     boolean as objBoolean,
+    chunk as objChunk,
     collapse as objCollapse,
     combine as objCombine,
     contains as objContains,
@@ -220,6 +222,26 @@ export function dataBoolean<T, K extends ObjectKey = ObjectKey>(
     }
 
     return arrBoolean(arrWrap(data), key as number, defaultValue);
+}
+
+/**
+ * Chunk the data into chunks of the given size.
+ * 
+ * @param data - The data to chunk
+ * @param size - The size of each chunk
+ * @param preserveKeys - Whether to preserve the original keys, defaults to false
+ * @returns Chunked data
+ */
+export function dataChunk<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    size: number,
+    preserveKeys: boolean = false,
+){
+    if (isObject(data)) {
+        return objChunk(data as Record<TKey, TValue>, size, preserveKeys);
+    }
+
+    return arrChunk(arrWrap(data), size, preserveKeys);
 }
 
 /**

@@ -147,6 +147,37 @@ export function boolean<T, D = null>(
 }
 
 /**
+ * Chunk the array into chunks of the given size.
+ *
+ * @param data - The array to chunk
+ * @param size - The size of each chunk
+ * @param preserveKeys - Whether to preserve the original keys, defaults to false
+ * @returns Chunked array
+ */
+export function chunk<TValue>(
+    data: ArrayItems<TValue>,
+    size: number,
+    preserveKeys: boolean = false
+): TValue[][] | [number, TValue][][] {
+    if (size <= 0) {
+        return [];
+    }
+
+    const chunks: TValue[][] | [number, TValue][][] = [];
+
+    for (let i = 0; i < data.length; i += size) {
+        const chunk = data.slice(i, i + size);
+        if (preserveKeys) {
+            (chunks as TValue[][]).push(chunk);
+        } else {
+            (chunks as [number, TValue][][]).push(chunk.map((item, index) => [i + index, item]));
+        }
+    }
+
+    return chunks;
+}
+
+/**
  * Collapse an array of arrays into a single array, or an array of objects into a single object.
  *
  * @param data - The array to collapse.
