@@ -3768,7 +3768,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
         return this.filter((value: TValue, key: TKey) => {
             return useAsCallable 
-                ? ! callback(value, key)
+                ? !(callback as (value: TValue, key: TKey) => boolean)(value, key)
                 : value != callback;
         })
     }
