@@ -140,7 +140,6 @@ import {
     whereNotNull as objWhereNotNull,
 } from "@laravel-js/obj";
 import type {
-    ArrayItems,
     DataItems,
     ObjectKey,
     PathKey,
