@@ -629,7 +629,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([0, 1, false, 2, '', 3]).filter(); -> new Collection([1, 2, 3])
      */
     filter(
-        callback?: ((value: TValue, key: TKey) => boolean) | null,
+        callback: ((value: TValue, key: TKey) => boolean) | null = null,
     ) {
         return new Collection(dataFilter(this.items, callback));
     }
@@ -2062,13 +2062,18 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([{id: 1}, {id: 2}]).sole(item => item.id === 2); -> {id: 2}
      */
     sole(
-        key: PathKey | ((value: TValue, index: TKey) => boolean) | null = null,
+        key: ((value: TValue, index: TKey) => boolean) | PathKey | null = null,
         operator: string | null = null,
         value: unknown = null,
     ) {
-        const filter = arguments.length > 1
-            ? this.operatorForWhere(key, operator, value)
-            : key;
+        let filter: ((value: TValue, key: TKey) => boolean) | null;
+        if(isNull(operator) && isNull(value)) {
+            filter = isNull(key) 
+                ? key as null
+                : this.valueRetriever(key as PathKey | ((...args: (TValue | TKey)[]) => boolean)) as ((value: TValue, key: TKey) => boolean);
+        }else{
+            filter = this.operatorForWhere(key, operator, value);
+        }
 
         const items = this.unless(isNull(filter)).filter(filter);
 
