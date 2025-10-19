@@ -1949,6 +1949,33 @@ export function sortRecursiveDesc<T>(
 }
 
 /**
+ * Splice a portion of the underlying array
+ * 
+ * @param data - The array to splice
+ * @param offset - The starting index
+ * @param length - The number of items to remove
+ * @param replacement - The replacement array
+ * @returns Spliced array
+ */
+export function splice<TValue>(
+    data: ArrayItems<TValue>,
+    offset: number,
+    length: number = 0,
+    replacement: ArrayItems<TValue> = [] as ArrayItems<TValue>,
+){
+    if (!accessible(data)) {
+        return [] as ArrayItems<TValue>;
+    }
+
+    const values = (data as ReadonlyArray<TValue>).slice();
+    const replacementValues = getAccessibleValues(replacement) as TValue[];
+
+    values.splice(offset, length, ...replacementValues);
+
+    return values;
+}
+
+/**
  * Get a string item from an array using "dot" notation.
  * Throws an error if the value is not a string.
  *

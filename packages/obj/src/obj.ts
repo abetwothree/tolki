@@ -2111,25 +2111,25 @@ export function sortDesc<T>(
  * sortRecursive({ b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }); -> { a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }
  * sortRecursive({ user1: { name: 'john', age: 30 }, user2: { name: 'jane', age: 25 } }); -> sorted objects with sorted keys
  */
-export function sortRecursive<T>(
-    data: Record<string, T> | unknown,
+export function sortRecursive<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
     options?: number,
     descending: boolean = false,
-): Record<string, T> {
+): Record<TKey, TValue> {
     if (!accessible(data)) {
         return {};
     }
 
-    const obj = data as Record<string, T>;
+    const obj = data as Record<TKey, TValue>;
     const entries = Object.entries(obj);
 
     // Recursively sort nested objects first
-    const processedEntries: [string, T][] = [];
+    const processedEntries: [TKey, TValue][] = [];
     for (const [key, value] of entries) {
         if (isObject(value)) {
             processedEntries.push([
                 key,
-                sortRecursive(value, options, descending) as T,
+                sortRecursive(value, options, descending) as TValue,
             ]);
         } else if (isArray(value)) {
             // For arrays, sort them if they contain sortable items
@@ -2164,7 +2164,7 @@ export function sortRecursive<T>(
     });
 
     // Rebuild object with sorted keys
-    const result: Record<string, T> = {};
+    const result: Record<string, TValue> = {};
     for (const [key, value] of processedEntries) {
         result[key] = value;
     }
@@ -2183,11 +2183,55 @@ export function sortRecursive<T>(
  *
  * sortRecursiveDesc({ a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }); -> { b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }
  */
-export function sortRecursiveDesc<T>(
-    data: Record<string, T> | unknown,
+export function sortRecursiveDesc<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
     options?: number,
-): Record<string, T> {
+): Record<TKey, TValue> {
     return sortRecursive(data, options, true);
+}
+
+/**
+ * Splice a portion of the underlying object
+ * 
+ * @param data - The object to splice
+ * @param offset - The starting index
+ * @param length - The number of items to remove
+ * @param replacement - The replacement object
+ * @returns Spliced object
+ */
+export function splice<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>,
+    offset: number,
+    length: number = 0,
+    replacement: Record<TKey, TValue> = {} as Record<TKey, TValue>,
+){
+    if (!accessible(data)) {
+        return {} as Record<TKey, TValue>;
+    }
+
+    const obj = data as Record<string, TValue>;
+    const entries = Object.entries(obj);
+
+    const beforeEntries = entries.slice(0, offset);
+    const afterEntries = length > 0
+        ? entries.slice(offset + length)
+        : entries.slice(offset);
+
+    const replacementEntries = Object.entries(replacement);
+
+    const splicedEntries = [
+        ...beforeEntries,
+        ...replacementEntries,
+        ...afterEntries,
+    ];
+
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+
+    for (const [key, value] of splicedEntries) {
+        result[key as TKey] = value as TValue;
+    }
+
+    return result as Record<TKey, TValue>;
 }
 
 /**

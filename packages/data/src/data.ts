@@ -56,6 +56,7 @@ import {
     sortDesc as arrSortDesc,
     sortRecursive as arrSortRecursive,
     sortRecursiveDesc as arrSortRecursiveDesc,
+    splice as arrSplice,
     string as arrString,
     take as arrTake,
     toCssClasses as arrToCssClasses,
@@ -124,6 +125,7 @@ import {
     sortDesc as objSortDesc,
     sortRecursive as objSortRecursive,
     sortRecursiveDesc as objSortRecursiveDesc,
+    splice as objSplice,
     string as objString,
     take as objTake,
     toCssClasses as objToCssClasses,
@@ -135,6 +137,7 @@ import {
     whereNotNull as objWhereNotNull,
 } from "@laravel-js/obj";
 import type {
+    ArrayItems,
     DataItems,
     ObjectKey,
     PathKey,
@@ -1413,6 +1416,42 @@ export function dataSortRecursiveDesc<T, K extends ObjectKey = ObjectKey>(
     }
 
     return arrSortRecursiveDesc(arrWrap(data), options) as DataItems<T>;
+}
+
+/**
+ * Splice a portion of the underlying data items.
+ * 
+ * @param data - The data to splice
+ * @param offset - The starting index
+ * @param length - The number of items to remove
+ * @param replacement - The items to insert
+ * @returns Spliced data
+ */
+export function dataSplice<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    offset: number,
+    length: number = 0,
+    replacement: DataItems<TValue, TKey> = {} as DataItems<TValue, TKey>,
+){
+    if (isObject(data)) {
+        return objSplice(
+            data as Record<TKey, TValue>,
+            offset,
+            length,
+            replacement as Record<TKey, TValue>,
+        ) as DataItems<TValue, TKey>;
+    }
+
+    if(isObject(replacement)){
+        replacement = Object.values(replacement) as TValue[];
+    }
+
+    return arrSplice(
+        arrWrap(data),
+        offset,
+        length,
+        replacement as TValue[],
+    ) as DataItems<TValue>;
 }
 
 /**
