@@ -3690,7 +3690,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         callbacks: Array<(instance: this) => unknown>
     ) {
         return new Collection(callbacks)
-            .reduce((carry, callback) => callback(carry), this as this);
+            .reduce<this>((carry, callback) => callback(carry) as this, this);
     }
 
     /**
