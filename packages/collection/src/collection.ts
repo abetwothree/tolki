@@ -3749,10 +3749,10 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @returns The reduced value
      */
     reduceWithKeys<TReduceWithKeysInitial,TReduceWithKeysReturnType>(
-        callback: (carry: TReduceWithKeysInitial | TReduceWithKeysReturnType, value: TValue, key: TKey) => TReduceWithKeysReturnType,
+        callback: (carry: TReduceWithKeysInitial | TReduceWithKeysReturnType | null, value: TValue, key: TKey) => TReduceWithKeysReturnType,
         initial: TReduceWithKeysInitial | null = null,
     ) {
-        return this.reduce<TReduceWithKeysInitial | TReduceWithKeysReturnType>(callback, initial);
+        return this.reduce<TReduceWithKeysInitial | TReduceWithKeysReturnType | null>(callback, initial);
     }
 
     /**
