@@ -25,6 +25,8 @@ import {
     hasAll as arrHasAll,
     hasAny as arrHasAny,
     integer as arrInteger,
+    intersect as arrIntersect,
+    intersectByKeys as arrIntersectByKeys,
     join as arrJoin,
     keyBy as arrKeyBy,
     keys as arrKeys,
@@ -97,6 +99,8 @@ import {
     hasAll as objHasAll,
     hasAny as objHasAny,
     integer as objInteger,
+    intersect as objIntersect,
+    intersectByKeys as objIntersectByKeys,
     join as objJoin,
     keyBy as objKeyBy,
     keys as objKeys,
@@ -1471,14 +1475,14 @@ export function dataSplice<TValue, TKey extends ObjectKey = ObjectKey>(
     }
 
     if(isObject(replacement)){
-        replacement = Object.values(replacement) as TValue[];
+        replacement = Object.values(replacement) as DataItems<TValue>;
     }
 
     return arrSplice(
         arrWrap(data),
         offset,
         length,
-        replacement as TValue[],
+        replacement as TValue[][],
     ) as DataItems<TValue>;
 }
 
@@ -2044,6 +2048,14 @@ export function dataPop<TValue, TKey extends ObjectKey = ObjectKey>(
     return arrPop(data, count);
 }
 
+/**
+ * Intersect the data with the given items.
+ * 
+ * @param data - The original data
+ * @param items - The items to intersect with
+ * @param callable - Optional comparison function
+ * @returns The intersected data
+ */
 export function dataIntersect<TValue, TKey extends ObjectKey = ObjectKey>(
     data: DataItems<TValue, TKey>,
     other: DataItems<TValue, TKey>,
@@ -2057,22 +2069,34 @@ export function dataIntersect<TValue, TKey extends ObjectKey = ObjectKey>(
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrIntersect(arrWrap(data), arrWrap(other), callable) as DataItems<TValue>;
+    if (isArray(data) && isArray(other)) {
+        return arrIntersect(data, other, callable) as DataItems<TValue>;
+    }
+
+    throw new Error('Data to intersect must be of the same type (both array or both object).');
 }
 
-
+/**
+ * Intersect the data with the given items by key.
+ * 
+ * @param data - The original data
+ * @param items - The items to intersect with
+ * @returns The intersected data
+ */
 export function dataIntersectByKeys<TValue, TKey extends ObjectKey = ObjectKey>(
     data: DataItems<TValue, TKey>,
     other: DataItems<TValue, TKey>,
-    callable: ((a: TValue, b: TValue) => boolean) | null = null,
 ) {
     if (isObject(data) && isObject(other)) {
         return objIntersectByKeys(
             data as Record<string, TValue>,
             other as Record<string, TValue>,
-            callable,
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrIntersectByKeys(arrWrap(data), arrWrap(other), callable) as DataItems<TValue>;
+    if (isArray(data) && isArray(other)) {
+        return arrIntersectByKeys(data, other) as DataItems<TValue>;
+    }
+
+    throw new Error('Data to intersect must be of the same type (both array or both object).');
 }

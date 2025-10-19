@@ -2537,3 +2537,69 @@ export function diff<T>(
 
     return result;
 }
+
+/**
+ * Intersect the data array with the given other array
+ * 
+ * @param data - The original array
+ * @param other - The array to intersect with
+ * @param callable - Optional function to compare values
+ * @returns A new array containing items present in both arrays
+ */
+export function intersect<TValue>(
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TValue>,
+    callable: ((a: TValue, b: TValue) => boolean) | null = null,
+) {
+    if (!accessible(data) || !accessible(other)) {
+        return [] as ArrayItems<TValue>;
+    }
+
+    const dataValues = getAccessibleValues(data) as TValue[];
+    const otherValues = getAccessibleValues(other) as TValue[];
+    const result: TValue[] = [];
+
+    for (const item of dataValues) {
+        const found = isFunction(callable)
+            ? otherValues.some((otherItem) => callable(item, otherItem))
+            : otherValues.includes(item);
+
+        if (found) {
+            result.push(item);
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Intersect the array with the given items by key.
+ * 
+ * @param data - The original array
+ * @param other - The array to intersect with
+ * @returns A new array containing items with keys present in both arrays
+ */
+export function intersectByKeys<TValue>(
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TValue>,
+) {
+    if (!accessible(data) || !accessible(other)) {
+        return [] as ArrayItems<TValue>;
+    }
+
+    const dataValues = getAccessibleValues(data) as TValue[];
+    const otherValues = getAccessibleValues(other) as TValue[];
+    const result: TValue[] = [];
+
+    const otherKeys = new Set<number>(
+        otherValues.map((_, index) => index),
+    );
+
+    for (let index = 0; index < dataValues.length; index++) {
+        if (otherKeys.has(index)) {
+            result.push(dataValues[index] as TValue);
+        }
+    }
+
+    return result;
+}

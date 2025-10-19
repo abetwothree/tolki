@@ -2806,3 +2806,57 @@ export function diff<T extends Record<string, unknown>>(
 
     return result;
 }
+
+/**
+ * Intersect the data object with the given other object
+ * 
+ * @param data - The original object
+ * @param other - The object to intersect with
+ * @param callable - Optional function to compare values
+ * @returns A new object containing items present in both objects
+ */
+export function intersect<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>,
+    other: Record<TKey, TValue>,
+    callable: ((a: TValue, b: TValue) => boolean) | null = null,
+) {
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+
+    for (const [key, value] of Object.entries(data)) {
+        if (key in other) {
+            const otherValue = other[key as TKey];
+
+            const isEqual = isFunction(callable)
+                ? callable(value as TValue, otherValue)
+                : value === otherValue;
+
+            if (isEqual) {
+                result[key as TKey] = value as TValue;
+            }
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Intersect the object with the given items by key.
+ * 
+ * @param data - The original object
+ * @param other - The object to intersect with
+ * @returns A new object containing items with keys present in both objects
+ */
+export function intersectByKeys<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>,
+    other: Record<TKey, TValue>,
+) {
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+
+    for (const [key, value] of Object.entries(data)) {
+        if (key in other) {
+            result[key as TKey] = value as TValue;
+        }
+    }
+
+    return result;
+}
