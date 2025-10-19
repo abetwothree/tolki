@@ -10,7 +10,7 @@ import {
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
 import { isArray, isFalsy, isFunction, isNull, isObject, isString, typeOf } from "@laravel-js/utils";
-import type { DataItems, ObjectKey, PathKey, PathKeys } from "packages/types";
+import type { ObjectKey, PathKey, PathKeys } from "packages/types";
 
 /**
  * Determine whether the given value is object accessible.
