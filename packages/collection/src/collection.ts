@@ -1634,12 +1634,10 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection({b: 2}).unshift(1); -> new Collection({0: 1, b: 2})
      * new Collection({b: 2}).unshift({a: 1}, {c: 3}); -> new Collection({a: 1, c: 3, b: 2})
      */
-    unshift(...values: TValue[]) {
+    unshift(...values: Array<[TKey, TValue]>) {
         const newItems = values.flatMap((value) => arrWrap(value));
 
-        for (const [key, value] of Object.entries(newItems)) {
-            this.items = dataUnshift(this.items, key, value);
-        }
+        this.items = dataUnshift(this.items, ...newItems);
 
         return this;
     }

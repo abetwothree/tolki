@@ -65,6 +65,7 @@ import {
     toCssStyles as arrToCssStyles,
     undot as arrUndot,
     union as arrUnion,
+    unshift as arrUnshift,
     values as arrValues,
     where as arrWhere,
     whereNotNull as arrWhereNotNull,
@@ -137,6 +138,7 @@ import {
     toCssStyles as objToCssStyles,
     undot as objUndot,
     union as objUnion,
+    unshift as objUnshift,
     values as objValues,
     where as objWhere,
     whereNotNull as objWhereNotNull,
@@ -1250,20 +1252,25 @@ export function dataPush<TValue, TKey extends ObjectKey = ObjectKey>(
     return arrPush(arrWrap(data), key as number, values) as DataItems<TValue, TKey>;
 }
 
+/**
+ * Prepend one or more items to the beginning of the data items
+ * 
+ * @param data - The data to unshift to
+ * @param items - The items to prepend
+ * @returns Data with prepended items
+ */
 export function dataUnshift<TValue, TKey extends ObjectKey = ObjectKey>(
     data: DataItems<TValue, TKey>,
-    key: PathKey,
-    values: TValue | TValue[],
+    ...items: Array<[TKey, TValue]> | Array<[TValue]>
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objUnshift(
             data,
-            key,
-            values,
+            ...items,
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrUnshift(arrWrap(data), key as number, values) as DataItems<TValue, TKey>;
+    return arrUnshift(arrWrap(data), ...items as Array<[TValue]>) as DataItems<TValue, TKey>;
 }
 
 /**

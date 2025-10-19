@@ -360,6 +360,27 @@ export function union<TValue>(
 }
 
 /**
+ * Prepend one or more items to the beginning of the array
+ * 
+ * @param data - The array to prepend items to
+ * @param items - The items to prepend as [key, value] tuples
+ * @returns A new array with the items prepended
+ */
+export function unshift<TValue>(
+    data: ArrayItems<TValue>,
+    ...items: TValue[]
+): ArrayItems<TValue> {
+    for (let i = items.length - 1; i >= 0; i--) {
+        const item = items[i];
+        if (!isUndefined(item)) {
+            data.unshift(item);
+        }
+    }
+
+    return data;
+}
+
+/**
  * Get all of the given array except for a specified array of keys.
  *
  * @param  data - The array to remove items from.

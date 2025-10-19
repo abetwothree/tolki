@@ -311,6 +311,26 @@ export function union<TValue, TKey extends ObjectKey = ObjectKey>(
 }
 
 /**
+ * Prepend one or more items to the beginning of the object
+ * 
+ * @param data - The object to prepend items to
+ * @param items - The items to prepend as [key, value] tuples
+ * @returns A new object with the items prepended
+ */
+export function unshift<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>,
+    ...items: Array<[TKey, TValue]>
+): Record<TKey, TValue> {
+    const itemsObject: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+
+    for (const [key, value] of items) {
+        itemsObject[key] = value;
+    }
+
+    return { ...itemsObject, ...data };
+}
+
+/**
  * Get all of the given object except for a specified array of keys.
  *
  * @param  data - The object to remove items from.
