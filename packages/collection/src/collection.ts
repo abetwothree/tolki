@@ -3127,11 +3127,11 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([{id: 1}, {id: 2}]).firstWhere('id', '>', 2); -> undefined
      */
     firstWhere(
-        key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
+        key: ((value: TValue, key: TKey) => boolean) | PathKey = null,
         operator: unknown = null,
         value: unknown = null,
     ) {
-        return this.first(this.operatorForWhere(key, operator, value));
+        return this.first(this.operatorForWhere(key, isString(operator) ? operator : null, value));
     }
 
     /**
