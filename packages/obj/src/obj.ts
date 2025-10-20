@@ -9,7 +9,7 @@ import {
     undotExpandObject,
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
-import { isArray, isBoolean, isFalsy, isFunction, isMap, isNull, isNumber,isObject, isSet, isString, isUndefined, isWeakMap, isWeakSet, typeOf } from "@laravel-js/utils";
+import { isArray, isBoolean, isFalsy, isFunction, isMap, isNull, isNumber,isObject, isSet, isString, isTruthy, isUndefined, isWeakMap, isWeakSet, typeOf } from "@laravel-js/utils";
 import type { ObjectKey, PathKey, PathKeys } from "packages/types";
 
 /**
@@ -1121,19 +1121,18 @@ export function keyBy<TValue extends Record<ObjectKey, unknown>>(
  *
  * prependKeysWith({ a: 1, b: 2, c: 3 }, 'item_'); -> { item_a: 1, item_b: 2, item_c: 3 }
  */
-export function prependKeysWith<T>(
-    data: Record<string, T> | unknown,
+export function prependKeysWith<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
     prependWith: string,
-): Record<string, T> {
+): Record<TKey, TValue> {
     if (!accessible(data)) {
-        return {};
+        return {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<string, T>;
-    const result: Record<string, T> = {};
-
+    const obj = data as Record<TKey, TValue>;
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
     for (const [key, value] of Object.entries(obj)) {
-        result[prependWith + key] = value;
+        result[(prependWith + key) as TKey] = value as TValue;
     }
 
     return result;
@@ -1151,20 +1150,20 @@ export function prependKeysWith<T>(
  * only({ a: 1, b: 2, c: 3, d: 4 }, ['a', 'c']); -> { a: 1, c: 3 }
  * only({ name: 'John', age: 30, city: 'NYC' }, ['name']); -> { name: 'John' }
  */
-export function only<T extends Record<string, unknown>>(
-    data: T | unknown,
+export function only<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
     keys: string[],
-): Record<string, unknown> {
+): Record<ObjectKey, TValue> {
     if (!accessible(data)) {
         return {};
     }
 
-    const obj = data as Record<string, unknown>;
-    const result: Record<string, unknown> = {};
+    const obj = data as Record<ObjectKey, TValue>;
+    const result: Record<ObjectKey, TValue> = {};
 
     for (const key of keys) {
         if (key in obj) {
-            result[key] = obj[key];
+            result[key] = obj[key] as TValue;
         }
     }
 
@@ -1183,24 +1182,25 @@ export function only<T extends Record<string, unknown>>(
  * select({ user1: { a: 1, b: 2, c: 3 }, user2: { a: 4, b: 5, c: 6 } }, 'a'); -> { user1: { a: 1 }, user2: { a: 4 } }
  * select({ user1: { a: 1, b: 2 }, user2: { a: 3, b: 4 } }, ['a', 'b']); -> { user1: { a: 1, b: 2 }, user2: { a: 3, b: 4 } }
  */
-export function select<T extends Record<string, unknown>>(
-    data: Record<string, T> | unknown,
+export function select<TValue extends Record<ObjectKey, unknown>>(
+    data: Record<ObjectKey, TValue> | unknown,
     keys: PathKeys,
-): Record<string, Record<string, unknown>> {
+): Record<ObjectKey, Record<ObjectKey, unknown>> {
     if (!accessible(data)) {
         return {};
     }
 
-    const obj = data as Record<string, T>;
-    const keyList = isArray(keys) ? keys : [keys];
-    const result: Record<string, Record<string, unknown>> = {};
+    const obj = data as Record<ObjectKey, TValue>;
+    const keyList = (isArray(keys) ? keys : [keys])
+        .filter((key: unknown) => !isNull(key) && !isUndefined(key)) as ObjectKey[];
+    const result: Record<ObjectKey, Record<ObjectKey, unknown>> = {};
 
     for (const [objKey, item] of Object.entries(obj)) {
-        const selected: Record<string, unknown> = {};
+        const selected: Record<ObjectKey, unknown> = {};
 
         for (const key of keyList) {
-            if (item != null && typeof item === "object" && key in item) {
-                selected[key] = (item as Record<string, unknown>)[key];
+            if (isObject(item) && key in item) {
+                selected[key] = item[key];
             }
         }
 
