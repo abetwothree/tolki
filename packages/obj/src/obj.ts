@@ -25,7 +25,7 @@ import type { ObjectKey, PathKey, PathKeys } from "packages/types";
  * accessible([]); -> false
  * accessible(null); -> false
  */
-export function accessible<T>(value: T): boolean {
+export function accessible<TValue>(value: TValue): boolean {
     return isObject(value);
 }
 
