@@ -1040,8 +1040,8 @@ export function integer<TValue, TKey extends ObjectKey = ObjectKey, TDefault = n
  * join({ a: 'a', b: 'b', c: 'c' }, ', ') => 'a, b, c'
  * join({ a: 'a', b: 'b', c: 'c' }, ', ', ' and ') => 'a, b and c'
  */
-export function join<T>(
-    data: Record<string, T> | unknown,
+export function join<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
     glue: string,
     finalGlue: string = "",
 ): string {
@@ -1049,7 +1049,7 @@ export function join<T>(
         return "";
     }
 
-    const obj = data as Record<string, T>;
+    const obj = data as Record<TKey, TValue>;
     const items = Object.values(obj).map((v) => String(v));
 
     if (finalGlue === "") {
@@ -1083,26 +1083,25 @@ export function join<T>(
  * keyBy({ user1: { id: 1, name: 'John' }, user2: { id: 2, name: 'Jane' } }, 'name'); -> { John: { id: 1, name: 'John' }, Jane: { id: 2, name: 'Jane' } }
  * keyBy({ a: { name: 'John' }, b: { name: 'Jane' } }, (item) => item.name); -> { John: { name: 'John' }, Jane: { name: 'Jane' } }
  */
-export function keyBy<T extends Record<string, unknown>>(
-    data: Record<string, T> | unknown,
-    keyBy: string | ((item: T) => string | number),
-): Record<string | number, T> {
+export function keyBy<TValue extends Record<ObjectKey, unknown>>(
+    data: Record<ObjectKey, TValue> | unknown,
+    keyBy: PathKey | ((item: TValue) => ObjectKey),
+): Record<ObjectKey, TValue> {
     if (!accessible(data)) {
         return {};
     }
 
-    const obj = data as Record<string, T>;
-    const results: Record<string | number, T> = {};
+    const obj = data as Record<ObjectKey, TValue>;
+    const results: Record<ObjectKey, TValue> = {};
 
     for (const item of Object.values(obj)) {
-        let key: string | number;
+        let key: ObjectKey;
 
-        if (typeof keyBy === "function") {
-            key = keyBy(item);
+        if (isFunction(keyBy)) {
+            key = keyBy(item) as ObjectKey;
         } else {
             // Use dot notation to get the key value
-            const keyValue = getObjectValue(item, keyBy);
-            key = String(keyValue);
+            key = getObjectValue(item, keyBy as PathKey) as ObjectKey;
         }
 
         results[key] = item;
