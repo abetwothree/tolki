@@ -485,15 +485,15 @@ export function dataExists<TValue, TKey extends ObjectKey = ObjectKey>(
  * dataTake([1, 2, 3, 4, 5], 3); -> [1, 2, 3]
  * dataTake({a: 1, b: 2, c: 3, d: 4}, 2); -> {a: 1, b: 2}
  */
-export function dataTake<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataTake<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     limit: number,
-): DataItems<T, K> {
+): DataItems<TValue, TKey> | DataItems<TValue> {
     if (isObject(data)) {
-        return objTake(data as Record<K, T>, limit) as DataItems<T, K>;
+        return objTake(data as Record<TKey, TValue>, limit) as DataItems<TValue, TKey>;
     }
 
-    return arrTake(arrWrap(data), limit) as DataItems<T>;
+    return arrTake(arrWrap(data), limit) as DataItems<TValue>;
 }
 
 /**
@@ -508,22 +508,22 @@ export function dataTake<T, K extends ObjectKey = ObjectKey>(
  * dataFlatten([[1, 2], [3, [4, 5]]], 1); -> [1, 2, 3, [4, 5]]
  * dataFlatten({a: {b: {c: 1}}}, 1); -> {'a.b': {c: 1}}
  */
-export function dataFlatten<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataFlatten<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     depth: number = Infinity,
 ) {
     if (isObject(data)) {
-        return objFlatten<T, K>(data, depth);
+        return objFlatten<TValue, TKey>(data, depth);
     }
 
     return arrFlatten(arrWrap(data), depth);
 }
 
-export function dataFlip<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataFlip<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
 ) {
     if (isObject(data)) {
-        return objFlip(data as Record<K, T>);
+        return objFlip(data as Record<TKey, TValue>);
     }
 
     return arrFlip(arrWrap(data));
@@ -542,13 +542,13 @@ export function dataFlip<T, K extends ObjectKey = ObjectKey>(
  * dataFloat([1.5, 2.7], 0, 0.0); -> 1.5
  * dataFloat({price: 9.99}, 'price', 0.0); -> 9.99
  */
-export function dataFloat<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataFloat<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     key: PathKey,
     defaultValue = 0.0,
 ): number {
     if (isObject(data)) {
-        return objFloat(data as Record<K, T>, key as string, defaultValue);
+        return objFloat(data as Record<TKey, TValue>, key, defaultValue);
     }
 
     return arrFloat(arrWrap(data), key as number, defaultValue);
@@ -566,18 +566,18 @@ export function dataFloat<T, K extends ObjectKey = ObjectKey>(
  * dataForget([1, 2, 3, 4], [1, 3]); -> [1, 3] (removes indices 1 and 3)
  * dataForget({a: 1, b: 2, c: 3}, ['b']); -> {a: 1, c: 3}
  */
-export function dataForget<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataForget<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     keys: PathKeys,
-): DataItems<T, K> {
+): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objForget(data as Record<K, T>, keys as string[]) as DataItems<
-            T,
-            K
+        return objForget(data as Record<TKey, TValue>, keys as string[]) as DataItems<
+            TValue,
+            TKey
         >;
     }
 
-    return arrForget(arrWrap(data), keys as number[]) as DataItems<T>;
+    return arrForget(arrWrap(data), keys as number[]) as DataItems<TValue>;
 }
 
 /**
@@ -637,12 +637,12 @@ export function dataGet<TValue, TKey extends ObjectKey = ObjectKey, TGetDefault 
  * dataHas([1, 2, 3], [0, 1]); -> true
  * dataHas({a: 1, b: 2}, ['a', 'c']); -> false
  */
-export function dataHas<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataHas<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     keys: PathKeys,
 ): boolean {
     if (isObject(data)) {
-        return objHas(data as Record<K, T>, keys as string[]);
+        return objHas(data as Record<TKey, TValue>, keys as string[]);
     }
 
     return arrHas(arrWrap(data), keys as number[]);
@@ -660,12 +660,12 @@ export function dataHas<T, K extends ObjectKey = ObjectKey>(
  * dataHasAll([1, 2, 3], [0, 1]); -> true
  * dataHasAll({a: 1, b: 2}, ['a', 'c']); -> false
  */
-export function dataHasAll<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataHasAll<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     keys: PathKeys,
 ): boolean {
     if (isObject(data)) {
-        return objHasAll(data as Record<K, T>, keys as string[]);
+        return objHasAll(data as Record<TKey, TValue>, keys);
     }
 
     return arrHasAll(arrWrap(data), keys as number[]);
@@ -683,12 +683,12 @@ export function dataHasAll<T, K extends ObjectKey = ObjectKey>(
  * dataHasAny([1, 2, 3], [0, 5]); -> true
  * dataHasAny({a: 1, b: 2}, ['c', 'd']); -> false
  */
-export function dataHasAny<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataHasAny<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     keys: PathKeys,
 ): boolean {
     if (isObject(data)) {
-        return objHasAny(data as Record<K, T>, keys as string[]);
+        return objHasAny(data as Record<TKey, TValue>, keys);
     }
 
     return arrHasAny(arrWrap(data), keys as number[]);
@@ -706,20 +706,20 @@ export function dataHasAny<T, K extends ObjectKey = ObjectKey>(
  * dataEvery([2, 4, 6], (value) => value % 2 === 0); -> true
  * dataEvery({a: 2, b: 4}, (value) => value % 2 === 0); -> true
  */
-export function dataEvery<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
-    callback: (value: T, key: string | number) => boolean,
+export function dataEvery<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    callback: (value: TValue, key: PathKey) => boolean,
 ): boolean {
     if (isObject(data)) {
         return objEvery(
-            data as Record<K, T>,
-            callback as (value: T, key: string) => boolean,
+            data as Record<TKey, TValue>,
+            callback as (value: TValue, key: PathKey) => boolean,
         );
     }
 
     return arrEvery(
         arrWrap(data),
-        callback as (value: T, index: number) => boolean,
+        callback as (value: TValue, index: number) => boolean,
     );
 }
 
@@ -735,20 +735,20 @@ export function dataEvery<T, K extends ObjectKey = ObjectKey>(
  * dataSome([1, 2, 3], (value) => value > 2); -> true
  * dataSome({a: 1, b: 2}, (value) => value > 2); -> false
  */
-export function dataSome<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
-    callback: (value: T, key: string | number) => boolean,
+export function dataSome<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    callback: (value: TValue, key: PathKey) => boolean,
 ): boolean {
     if (isObject(data)) {
         return objSome(
-            data as Record<K, T>,
-            callback as (value: T, key: string) => boolean,
+            data as Record<TKey, TValue>,
+            callback as (value: TValue, key: PathKey) => boolean,
         );
     }
 
     return arrSome(
         arrWrap(data),
-        callback as (value: T, index: number) => boolean,
+        callback as (value: TValue, index: number) => boolean,
     );
 }
 
@@ -765,13 +765,13 @@ export function dataSome<T, K extends ObjectKey = ObjectKey>(
  * dataInteger([1, 2, 3], 0, 0); -> 1
  * dataInteger({count: 42}, 'count', 0); -> 42
  */
-export function dataInteger<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataInteger<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     key: PathKey,
     defaultValue = 0,
 ): number {
     if (isObject(data)) {
-        return objInteger(data as Record<K, T>, key as string, defaultValue);
+        return objInteger(data as Record<TKey, TValue>, key, defaultValue);
     }
 
     return arrInteger(arrWrap(data), key as number, defaultValue);
@@ -790,13 +790,13 @@ export function dataInteger<T, K extends ObjectKey = ObjectKey>(
  * dataJoin([1, 2, 3], ', '); -> '1, 2, 3'
  * dataJoin(['a', 'b', 'c'], ', ', ' and '); -> 'a, b and c'
  */
-export function dataJoin<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataJoin<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     glue: string,
     finalGlue = "",
 ): string {
     if (isObject(data)) {
-        return objJoin(data as Record<K, T>, glue, finalGlue);
+        return objJoin(data as Record<TKey, TValue>, glue, finalGlue);
     }
 
     return arrJoin(arrWrap(data), glue, finalGlue);
@@ -845,12 +845,12 @@ export function dataKeyBy(
  * dataPrependKeysWith({name: 'John', age: 30}, 'user_');
  * -> {user_name: 'John', user_age: 30}
  */
-export function dataPrependKeysWith<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataPrependKeysWith<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     prependWith: string,
-): Record<string, T> {
+): Record<string, TValue> {
     if (isObject(data)) {
-        return objPrependKeysWith(data as Record<K, T>, prependWith);
+        return objPrependKeysWith(data as Record<TKey, TValue>, prependWith);
     }
 
     return arrPrependKeysWith(arrWrap(data), prependWith);
@@ -979,20 +979,20 @@ export function dataMapSpread<U>(
  * dataPrepend([2, 3], 1); -> [1, 2, 3]
  * dataPrepend({b: 2, c: 3}, 1, 'a'); -> {a: 1, b: 2, c: 3}
  */
-export function dataPrepend<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
-    value: T,
+export function dataPrepend<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    value: TValue,
     key: ObjectKey | null = null,
-): DataItems<T, K> {
+): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objPrepend(
-            data as Record<K, T>,
+            data as Record<TKey, TValue>,
             value,
             key as string,
-        ) as DataItems<T, K>;
+        ) as DataItems<TValue, TKey>;
     }
 
-    return arrPrepend(arrWrap(data), value) as DataItems<T>;
+    return arrPrepend(arrWrap(data), value) as DataItems<TValue>;
 }
 
 /**
@@ -1008,27 +1008,28 @@ export function dataPrepend<T, K extends ObjectKey = ObjectKey>(
  * dataPull([1, 2, 3], 1, 'default'); -> {value: 2, data: [1, 3]}
  * dataPull({a: 1, b: 2}, 'b', 'default'); -> {value: 2, data: {a: 1}}
  */
-export function dataPull<T, K extends ObjectKey = ObjectKey, D = null>(
-    data: DataItems<T, K>,
+export function dataPull<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+    data: DataItems<TValue, TKey>,
     key: PathKey,
-    defaultValue?: D,
-): { value: T | D | null; data: DataItems<T, K> } {
+    defaultValue?: TDefault,
+): { value: TValue | TDefault | null; data: DataItems<TValue, TKey> } {
     if (isObject(data)) {
         const result = objPull(
-            data as Record<string, T>,
+            data as Record<TKey, TValue>,
             key as string,
             defaultValue,
         );
+        
         return {
-            value: result.value as T | D | null,
-            data: result.data as DataItems<T, K>,
+            value: result.value as TValue | TDefault | null,
+            data: result.data as DataItems<TValue, TKey>,
         };
     }
 
     const result = arrPull(arrWrap(data), key as number, defaultValue);
     return {
-        value: result.value as T | D | null,
-        data: result.data as DataItems<T>,
+        value: result.value as TValue | TDefault | null,
+        data: result.data as DataItems<TValue>,
     };
 }
 
