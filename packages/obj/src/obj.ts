@@ -1868,22 +1868,22 @@ export function slice<TValue, TKey extends ObjectKey = ObjectKey>(
  * sole({ a: 1, b: 2 }); -> throws Error: Multiple items found (2 items)
  * sole({ a: 1, b: 2, c: 3 }, (value) => value > 1); -> throws Error: Multiple items found (2 items)
  */
-export function sole<T>(
-    data: Record<string, T> | unknown,
-    callback?: (value: T, key: string) => boolean,
-): T {
+export function sole<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
+    callback?: (value: TValue, key: TKey) => boolean,
+): TValue {
     if (!accessible(data)) {
         throw new Error("No items found");
     }
 
-    const obj = data as Record<string, T>;
+    const obj = data as Record<TKey, TValue>;
     const entries = Object.entries(obj);
 
     if (entries.length === 0) {
         throw new Error("No items found");
     }
 
-    let filteredEntries: [string, T][];
+    let filteredEntries: [TKey, TValue][];
 
     if (callback) {
         // Filter using the callback
@@ -2407,20 +2407,20 @@ export function toCssStyles(data: Record<string, unknown> | unknown): string {
  * where({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { c: 3, d: 4 }
  * where({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> { name: 'John', city: 'NYC' }
  */
-export function where<T>(
-    data: Record<string, T> | unknown,
-    callback: (value: T, key: string) => boolean,
-): Record<string, T> {
+export function where<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
+    callback: (value: TValue, key: TKey) => boolean,
+): Record<TKey, TValue> {
     if (!accessible(data)) {
-        return {};
+        return {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<string, T>;
-    const result: Record<string, T> = {};
+    const obj = data as Record<TKey, TValue>;
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj)) {
-        if (callback(value, key)) {
-            result[key] = value;
+        if (callback(value as TValue, key as TKey)) {
+            result[key as TKey] = value as TValue;
         }
     }
 
@@ -2585,23 +2585,23 @@ export function pad<TPadValue, TValue, TKey extends ObjectKey = ObjectKey>(
  * partition({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> [{ c: 3, d: 4 }, { a: 1, b: 2 }]
  * partition({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> [{ name: 'John', city: 'NYC' }, { age: null }]
  */
-export function partition<T>(
-    data: Record<string, T> | unknown,
-    callback: (value: T, key: string) => boolean,
-): [Record<string, T>, Record<string, T>] {
+export function partition<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<string, TValue> | unknown,
+    callback: (value: TValue, key: TKey) => boolean,
+): [Record<string, TValue>, Record<string, TValue>] {
     if (!accessible(data)) {
         return [{}, {}];
     }
 
-    const obj = data as Record<string, T>;
-    const passed: Record<string, T> = {};
-    const failed: Record<string, T> = {};
+    const obj = data as Record<TKey, TValue>;
+    const passed: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+    const failed: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj)) {
-        if (callback(value, key)) {
-            passed[key] = value;
+        if (callback(value as TValue, key as TKey)) {
+            passed[key as TKey] = value as TValue;
         } else {
-            failed[key] = value;
+            failed[key as TKey] = value as TValue;
         }
     }
 
