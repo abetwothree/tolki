@@ -174,6 +174,58 @@ export function isNull(value: unknown): value is null {
 }
 
 /**
+ * Check if a value is a Map.
+ *
+ * @param value - The value to check
+ * @returns True if the value is a Map
+ *
+ * @example
+ *
+ * isMap(new Map()); -> true
+ * isMap({}); -> false
+ * isMap([]); -> false
+ */
+export function isMap<K, V>(value: unknown): value is Map<K, V> {
+    return value instanceof Map;
+}
+
+/**
+ * Check if a value is a Set.
+ *
+ * @param value - The value to check
+ * @returns True if the value is a Set
+ *
+ * @example
+ *
+ * isSet(new Set()); -> true
+ * isSet({}); -> false
+ * isSet([]); -> false
+ */
+export function isSet<T>(value: unknown): value is Set<T> {
+    return value instanceof Set;
+}
+
+/**
+ * Check if a value is a WeakMap.
+ *
+ * @param value - The value to check
+ * @returns True if the value is a WeakMap
+ */
+export function isWeakMap<K extends object, V>(value: unknown): value is WeakMap<K, V> {
+    return value instanceof WeakMap;
+}
+
+/**
+ * Check if a value is a WeakSet.
+ *
+ * @param value - The value to check
+ * @returns True if the value is a WeakSet
+ */
+export function isWeakSet<T extends object>(value: unknown): value is WeakSet<T> {
+    return value instanceof WeakSet;
+}
+
+/**
  * Check if a value is falsy (undefined, null, false, 0, "", empty array/object).
  *
  * @param value - The value to check
@@ -215,6 +267,14 @@ export function isFalsy(value: unknown): boolean {
 
     if (isObject(value)) {
         return Object.keys(value).length === 0;
+    }
+
+    if (isMap(value)) {
+        return value.size === 0;
+    }
+
+    if (isSet(value)) {
+        return value.size === 0;
     }
 
     return false;

@@ -708,12 +708,12 @@ export function dataHasAny<TValue, TKey extends ObjectKey = ObjectKey>(
  */
 export function dataEvery<TValue, TKey extends ObjectKey = ObjectKey>(
     data: DataItems<TValue, TKey>,
-    callback: (value: TValue, key: PathKey) => boolean,
+    callback: (value: TValue, key: TKey) => boolean,
 ): boolean {
     if (isObject(data)) {
         return objEvery(
             data as Record<TKey, TValue>,
-            callback as (value: TValue, key: PathKey) => boolean,
+            callback as (value: TValue, key: TKey) => boolean,
         );
     }
 
@@ -737,12 +737,12 @@ export function dataEvery<TValue, TKey extends ObjectKey = ObjectKey>(
  */
 export function dataSome<TValue, TKey extends ObjectKey = ObjectKey>(
     data: DataItems<TValue, TKey>,
-    callback: (value: TValue, key: PathKey) => boolean,
+    callback: (value: TValue, key: TKey) => boolean,
 ): boolean {
     if (isObject(data)) {
         return objSome(
             data as Record<TKey, TValue>,
-            callback as (value: TValue, key: PathKey) => boolean,
+            callback as (value: TValue, key: TKey) => boolean,
         );
     }
 

@@ -9,7 +9,7 @@ import {
     undotExpandObject,
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
-import { isArray, isFalsy, isFunction, isNull, isObject, isString, typeOf } from "@laravel-js/utils";
+import { isArray, isBoolean, isFalsy, isFunction, isMap, isNull, isNumber,isObject, isSet, isString, isUndefined, isWeakMap, isWeakSet, typeOf } from "@laravel-js/utils";
 import type { ObjectKey, PathKey, PathKeys } from "packages/types";
 
 /**
@@ -61,11 +61,11 @@ export function objectifiable(
  * add({ user: { name: 'John' } }, 'user.age', 30); -> { user: { name: 'John', age: 30 } }
  * add({ name: 'John' }, 'name', 'Jane'); -> { name: 'John' } (no change, key exists)
  */
-export function add<T extends Record<string, unknown>>(
-    data: T,
+export function add<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>,
     key: PathKey,
     value: unknown,
-): Record<string, unknown> {
+): Record<TKey, TValue> {
     const mutableData = { ...data };
 
     if (getObjectValue(mutableData, key) === null) {
@@ -90,14 +90,14 @@ export function add<T extends Record<string, unknown>>(
  * objectItem({ user: { tags: ['js', 'ts'] } }, 'user.tags'); -> ['js', 'ts']
  * objectItem({ user: { name: 'John' } }, 'user.name'); -> throws Error
  */
-export function objectItem<D = null>(
-    data: Record<string, unknown> | unknown,
+export function objectItem<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+    data: Record<TKey, TValue> | unknown,
     key: PathKey,
-    defaultValue: D | (() => D) | null = null,
-): Record<string, unknown> {
+    defaultValue: TDefault | (() => TDefault) | null = null,
+): Record<TKey, TValue> {
     const value = getObjectValue(data, key, defaultValue);
 
-    if (!isObject(value)) {
+    if (! isObject(value)) {
         throw new Error(
             `Object value for key [${key}] must be an object, ${typeOf(value)} found.`,
         );
@@ -122,14 +122,14 @@ export function objectItem<D = null>(
  * boolean({ user: { verified: false } }, 'user.verified'); -> false
  * boolean({ user: { name: 'John' } }, 'user.name'); -> throws Error
  */
-export function boolean<D = null>(
-    data: Record<string, unknown> | unknown,
+export function boolean<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+    data: Record<TKey, TValue> | unknown,
     key: PathKey,
-    defaultValue: D | (() => D) | null = null,
+    defaultValue: TDefault | (() => TDefault) | null = null,
 ): boolean {
     const value = getObjectValue(data, key, defaultValue);
 
-    if (typeof value !== "boolean") {
+    if (! isBoolean(value)) {
         throw new Error(
             `Object value for key [${key}] must be a boolean, ${typeof value} found.`,
         );
@@ -184,10 +184,10 @@ export function chunk<TValue, TKey extends ObjectKey = ObjectKey>(
  * collapse({ a: { x: 1 }, b: { y: 2 }, c: { z: 3 } }); -> { x: 1, y: 2, z: 3 }
  * collapse({ users: { john: { age: 30 } }, admins: { jane: { role: 'admin' } } }); -> { john: { age: 30 }, jane: { role: 'admin' } }
  */
-export function collapse<T extends Record<string, Record<string, unknown>>>(
-    object: T,
-): Record<string, T[keyof T]> {
-    const out: Record<string, T[keyof T]> = {};
+export function collapse<TValue extends Record<ObjectKey, Record<ObjectKey, unknown>>>(
+    object: TValue,
+): Record<string, TValue[keyof TValue]> {
+    const out: Record<string, TValue[keyof TValue]> = {};
 
     for (const item of Object.values(object)) {
         if (isObject(item)) {
@@ -204,7 +204,7 @@ export function collapse<T extends Record<string, Record<string, unknown>>>(
  * @param objects - The objects to combine.
  * @return A new object containing all key-value pairs from the input objects.
  */
-export function combine<T extends Record<string, unknown>>(
+export function combine<T extends Record<ObjectKey, unknown>>(
     ...objects: T[]
 ): Record<string, unknown> {
     return Object.assign({}, ...objects);
@@ -221,13 +221,13 @@ export function combine<T extends Record<string, unknown>>(
  * crossJoin({ a: [1] }, { b: ["x"] }); -> [{ a: 1, b: "x" }]
  * crossJoin({ size: ['S', 'M'] }, { color: ['red', 'blue'] }); -> [{ size: 'S', color: 'red' }, { size: 'S', color: 'blue' }, { size: 'M', color: 'red' }, { size: 'M', color: 'blue' }]
  */
-export function crossJoin<T extends Record<string, readonly unknown[]>>(
-    ...objects: T[]
-): Record<string, unknown>[] {
-    let results: Record<string, unknown>[] = [{}];
+export function crossJoin<TValue extends Record<ObjectKey, readonly unknown[]>>(
+    ...objects: TValue[]
+): Record<ObjectKey, unknown>[] {
+    let results: Record<ObjectKey, unknown>[] = [{}];
 
     for (const obj of objects) {
-        const next: Record<string, unknown>[] = [];
+        const next: Record<ObjectKey, unknown>[] = [];
 
         for (const [key, values] of Object.entries(obj)) {
             if (!isArray(values) || values.length === 0) {
@@ -260,9 +260,9 @@ export function crossJoin<T extends Record<string, readonly unknown[]>>(
  *
  * divide({ name: "John", age: 30, city: "NYC" }); -> [['name', 'age', 'city'], ['John', 30, 'NYC']]
  */
-export function divide<T extends Record<string, unknown>>(
-    object: T,
-): [string[], unknown[]] {
+export function divide<TValue extends Record<ObjectKey, unknown>>(
+    object: TValue,
+): [ObjectKey[], unknown[]] {
     return [Object.keys(object), Object.values(object)];
 }
 
@@ -277,10 +277,10 @@ export function divide<T extends Record<string, unknown>>(
  *
  * dot({ name: 'John', address: { city: 'NYC', zip: '10001' } }); -> { name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }
  */
-export function dot(
-    data: Record<string, unknown> | unknown,
+export function dot<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
     prepend: string = "",
-): Record<string, unknown> {
+): Record<TKey, TValue> {
     return dotFlatten(data, prepend);
 }
 
@@ -294,7 +294,9 @@ export function dot(
  *
  * undot({ name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }); -> { name: 'John', address: { city: 'NYC', zip: '10001' } }
  */
-export function undot(map: Record<string, unknown>): Record<string, unknown> {
+export function undot<TValue, TKey extends ObjectKey = ObjectKey>(
+    map: Record<TKey, TValue>,
+): Record<TKey, TValue> {
     return undotExpandObject(map);
 }
 
@@ -342,10 +344,10 @@ export function unshift<TValue, TKey extends ObjectKey = ObjectKey>(
  * except({ name: 'John', age: 30, city: 'NYC' }, 'age'); -> { name: 'John', city: 'NYC' }
  * except({ name: 'John', age: 30, city: 'NYC' }, ['age', 'city']); -> { name: 'John' }
  */
-export function except<T extends Record<string, unknown>>(
-    data: T,
+export function except<TValue extends Record<ObjectKey, unknown>>(
+    data: TValue,
     keys: PathKeys,
-): Record<string, unknown> {
+): Record<ObjectKey, unknown> {
     return forget(data, keys);
 }
 
@@ -362,8 +364,8 @@ export function except<T extends Record<string, unknown>>(
  * exists({ name: 'John', age: 30 }, 'email'); -> false
  * exists({ user: { name: 'John' } }, 'user.name'); -> true
  */
-export function exists<T extends Record<string, unknown>>(
-    data: T | unknown,
+export function exists<TValue extends Record<ObjectKey, unknown>>(
+    data: TValue | unknown,
     key: PathKey,
 ): boolean {
     if (!accessible(data)) {
@@ -508,10 +510,10 @@ export function last<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null
  * take({ a: 1, b: 2, c: 3, d: 4, e: 5 }, -2); -> { d: 4, e: 5 }
  * take({ a: 1, b: 2, c: 3 }, 5); -> { a: 1, b: 2, c: 3 }
  */
-export function take<T extends Record<string, unknown>>(
-    data: T | unknown,
+export function take<TValue extends Record<ObjectKey, unknown>>(
+    data: TValue | unknown,
     limit: number,
-): Record<string, unknown> {
+): Record<ObjectKey, unknown> {
     if (!accessible(data) || limit === 0) {
         return {};
     }
@@ -658,14 +660,14 @@ export function flip<TValue, TKey extends ObjectKey = ObjectKey>(
  * float({ product: { price: 19.99 } }, 'product.price'); -> 19.99
  * float({ product: { name: 'Widget' } }, 'product.name'); -> throws Error
  */
-export function float<D = null>(
-    data: Record<string, unknown> | unknown,
+export function float<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+    data: Record<TKey, TValue> | unknown,
     key: PathKey,
-    defaultValue: D | (() => D) | null = null,
+    defaultValue: TDefault | (() => TDefault) | null = null,
 ): number {
     const value = getObjectValue(data, key, defaultValue);
 
-    if (typeof value !== "number") {
+    if (! isNumber(value)) {
         throw new Error(
             `Object value for key [${key}] must be a float, ${typeof value} found.`,
         );
@@ -687,11 +689,11 @@ export function float<D = null>(
  * forget({ name: 'John', age: 30, city: 'NYC' }, ['age', 'city']); -> { name: 'John' }
  * forget({ user: { name: 'John', age: 30 } }, 'user.age'); -> { user: { name: 'John' } }
  */
-export function forget<T extends Record<string, unknown>>(
-    data: T,
+export function forget<TValue extends Record<ObjectKey, unknown>>(
+    data: TValue,
     keys: PathKeys,
-): Record<string, unknown> {
-    return forgetKeys<T>(data, keys) as Record<string, unknown>;
+): Record<ObjectKey, unknown> {
+    return forgetKeys<TValue>(data, keys) as Record<ObjectKey, unknown>;
 }
 
 /**
@@ -720,7 +722,7 @@ export function from(items: unknown): Record<string, unknown> {
     }
 
     // Map -> plain object
-    if (items instanceof Map) {
+    if (isMap(items)) {
         const out: Record<string, unknown> = {};
         for (const [k, v] of items as Map<PropertyKey, unknown>) {
             out[String(k)] = v;
@@ -729,7 +731,7 @@ export function from(items: unknown): Record<string, unknown> {
     }
 
     // WeakMap cannot be iterated in JS environments
-    if (items instanceof WeakMap) {
+    if (isWeakMap(items)) {
         throw new Error(
             "WeakMap values cannot be enumerated in JavaScript; cannot convert to object.",
         );
@@ -757,47 +759,47 @@ export function from(items: unknown): Record<string, unknown> {
  * @returns The value or the default
  *
  * @example
- *
+ * 
  * get({ name: 'John', age: 30 }, 'name'); -> 'John'
  * get({ user: { name: 'John' } }, 'user.name'); -> 'John'
  * get({ name: 'John' }, 'email', 'default'); -> 'default'
  */
-export function get<T = unknown>(
-    object: unknown,
+export function get<TValue, TKey extends ObjectKey = ObjectKey, TDefault = unknown>(
+    object: Record<TKey, TValue> | unknown,
     key: PathKey | null | undefined,
-    defaultValue: T | (() => T) | null = null,
-): T | null {
-    if (key === null || key === undefined) {
+    defaultValue: TDefault | (() => TDefault) | null = null,
+): TDefault | null {
+    if (isNull(key) || isUndefined(key)) {
         return isObject(object)
-            ? (object as T)
-            : typeof defaultValue === "function"
-                ? (defaultValue as () => T)()
+            ? (object as TDefault)
+            : isFunction(defaultValue)
+                ? (defaultValue as () => TDefault)()
                 : defaultValue;
     }
 
     if (!isObject(object)) {
-        return typeof defaultValue === "function"
-            ? (defaultValue as () => T)()
+        return isFunction(defaultValue)
+            ? (defaultValue as () => TDefault)()
             : defaultValue;
     }
 
     // Handle simple key access
-    if (typeof key === "string" && !key.includes(".")) {
+    if (isString(key) && !key.includes(".")) {
         const value = (object as Record<string, unknown>)[key];
-        return value !== undefined
-            ? (value as T)
-            : typeof defaultValue === "function"
-                ? (defaultValue as () => T)()
+        return ! isUndefined(value)
+            ? (value as TDefault)
+            : isFunction(defaultValue)
+                ? (defaultValue as () => TDefault)()
                 : defaultValue;
     }
 
-    if (typeof key === "number") {
+    if (isNumber(key)) {
         const stringKey = String(key);
         const value = (object as Record<string, unknown>)[stringKey];
-        return value !== undefined
-            ? (value as T)
-            : typeof defaultValue === "function"
-                ? (defaultValue as () => T)()
+        return ! isUndefined(value)
+            ? (value as TDefault)
+            : isFunction(defaultValue)
+                ? (defaultValue as () => TDefault)()
                 : defaultValue;
     }
 
@@ -806,25 +808,25 @@ export function get<T = unknown>(
     let current: unknown = object;
 
     for (const segment of segments) {
-        if (current == null || typeof current !== "object") {
-            return typeof defaultValue === "function"
-                ? (defaultValue as () => T)()
+        if (isNull(current) || !isObject(current)) {
+            return isFunction(defaultValue)
+                ? (defaultValue as () => TDefault)()
                 : defaultValue;
         }
 
         if (!(segment in current)) {
-            return typeof defaultValue === "function"
-                ? (defaultValue as () => T)()
+            return isFunction(defaultValue)
+                ? (defaultValue as () => TDefault)()
                 : defaultValue;
         }
 
         current = (current as Record<string, unknown>)[segment];
     }
 
-    return current !== undefined
-        ? (current as T)
-        : typeof defaultValue === "function"
-            ? (defaultValue as () => T)()
+    return !isUndefined(current)
+        ? (current as TDefault)
+        : isFunction(defaultValue)
+            ? (defaultValue as () => TDefault)()
             : defaultValue;
 }
 
@@ -842,8 +844,8 @@ export function get<T = unknown>(
  * has({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.city']); -> true
  * has({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.country']); -> false
  */
-export function has<T extends Record<string, unknown>>(
-    data: T | unknown,
+export function has<TValue extends Record<ObjectKey, unknown>>(
+    data: TValue | unknown,
     keys: PathKeys,
 ): boolean {
     const keyList = isArray(keys) ? keys : [keys];
@@ -852,9 +854,15 @@ export function has<T extends Record<string, unknown>>(
     }
 
     for (const k of keyList) {
-        if (k == null) return false;
-        if (!hasMixed(data, k)) return false;
+        if (isNull(k)) {
+            return false;
+        }
+
+        if (!hasMixed(data, k)) {
+            return false;
+        }
     }
+
     return true;
 }
 
@@ -870,8 +878,8 @@ export function has<T extends Record<string, unknown>>(
  * hasAll({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.city']); -> true
  * hasAll({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.country']); -> false
  */
-export function hasAll<T extends Record<string, unknown>>(
-    data: T | unknown,
+export function hasAll<TValue extends Record<ObjectKey, unknown>>(
+    data: TValue | unknown,
     keys: PathKeys,
 ): boolean {
     const keyList = isArray(keys) ? keys : [keys];
@@ -881,7 +889,7 @@ export function hasAll<T extends Record<string, unknown>>(
     }
 
     for (const key of keyList) {
-        if (!has(data as Record<string, unknown>, key)) {
+        if (!has(data as Record<ObjectKey, unknown>, key)) {
             return false;
         }
     }
@@ -901,25 +909,29 @@ export function hasAll<T extends Record<string, unknown>>(
  * hasAny({ name: 'John', address: { city: 'NYC' } }, ['name', 'email']); -> true
  * hasAny({ name: 'John', address: { city: 'NYC' } }, ['email', 'phone']); -> false
  */
-export function hasAny<T extends Record<string, unknown>>(
-    data: T | unknown,
+export function hasAny<TValue extends Record<ObjectKey, unknown>>(
+    data: TValue | unknown,
     keys: PathKeys,
 ): boolean {
-    if (keys == null) {
+    if (isNull(keys)) {
         return false;
     }
+
     const keyList = isArray(keys) ? keys : [keys];
     if (keyList.length === 0) {
         return false;
     }
+
     if (!accessible(data)) {
         return false;
     }
+
     for (const key of keyList) {
-        if (has(data as Record<string, unknown>, key)) {
+        if (has(data as Record<ObjectKey, unknown>, key)) {
             return true;
         }
     }
+
     return false;
 }
 
@@ -935,17 +947,17 @@ export function hasAny<T extends Record<string, unknown>>(
  * every({ a: 2, b: 4, c: 6 }, (n) => n % 2 === 0); -> true
  * every({ a: 1, b: 2, c: 3 }, (n) => n % 2 === 0); -> false
  */
-export function every<T>(
-    data: Record<string, T> | unknown,
-    callback: (value: T, key: string) => boolean,
+export function every<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
+    callback: (value: TValue, key: TKey) => boolean,
 ): boolean {
     if (!accessible(data)) {
         return false;
     }
 
-    const obj = data as Record<string, T>;
+    const obj = data as Record<TKey, TValue>;
     for (const [key, value] of Object.entries(obj)) {
-        if (!callback(value, key)) {
+        if (!callback(value as TValue, key as TKey)) {
             return false;
         }
     }
@@ -965,17 +977,17 @@ export function every<T>(
  * some({ a: 1, b: 2, c: 3 }, (n) => n % 2 === 0); -> true
  * some({ a: 1, b: 3, c: 5 }, (n) => n % 2 === 0); -> false
  */
-export function some<T>(
-    data: Record<string, T> | unknown,
-    callback: (value: T, key: string) => boolean,
+export function some<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
+    callback: (value: TValue, key: TKey) => boolean,
 ): boolean {
     if (!accessible(data)) {
         return false;
     }
 
-    const obj = data as Record<string, T>;
+    const obj = data as Record<TKey, TValue>;
     for (const [key, value] of Object.entries(obj)) {
-        if (callback(value, key)) {
+        if (callback(value as TValue, key as TKey)) {
             return true;
         }
     }
@@ -1000,20 +1012,20 @@ export function some<T>(
  * integer({ user: { age: 30 } }, 'user.age'); -> 30
  * integer({ user: { name: 'John' } }, 'user.name'); -> Error: The value is not an integer.
  */
-export function integer<D = null>(
-    data: Record<string, unknown> | unknown,
+export function integer<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+    data: Record<TKey, TValue> | unknown,
     key: PathKey,
-    defaultValue: D | (() => D) | null = null,
+    defaultValue: TDefault | (() => TDefault) | null = null,
 ): number {
     const value = getObjectValue(data, key, defaultValue);
 
-    if (!Number.isInteger(value)) {
+    if (!isNumber(value)) {
         throw new Error(
             `Object value for key [${key}] must be an integer, ${typeof value} found.`,
         );
     }
 
-    return value as number;
+    return value;
 }
 
 /**
