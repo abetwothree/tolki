@@ -142,7 +142,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         const middle = Math.floor(count / 2);
 
         if (count % 2) {
-            return values.get(middle);
+            return values.get(middle) as number;
         }
 
         return new Collection([

@@ -364,7 +364,7 @@ export function except<T extends Record<string, unknown>>(
  */
 export function exists<T extends Record<string, unknown>>(
     data: T | unknown,
-    key: string,
+    key: PathKey,
 ): boolean {
     if (!accessible(data)) {
         return false;

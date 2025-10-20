@@ -168,19 +168,16 @@ import { isArray, isFunction, isObject } from "@laravel-js/utils";
  * dataAdd([1, 2], 2, 3); -> [1, 2, 3]
  * dataAdd({a: 1}, 'b', 2); -> {a: 1, b: 2}
  */
-export function dataAdd<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataAdd<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     key: PathKey,
-    value: T,
-): DataItems<T, K> {
+    value: TValue,
+): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objAdd(data as Record<K, T>, key as string, value) as DataItems<
-            T,
-            K
-        >;
+        return objAdd(data as Record<TKey, TValue>, key, value) as DataItems<TValue, TKey>;
     }
 
-    return arrAdd(arrWrap(data), key as number, value) as DataItems<T>;
+    return arrAdd(arrWrap(data), key as number, value) as DataItems<TValue>;
 }
 
 /**
@@ -225,13 +222,13 @@ export function dataItem<D = null>(
  * dataBoolean([true, false], 0, false); -> true
  * dataBoolean({active: true}, 'active', false); -> true
  */
-export function dataBoolean<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataBoolean<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     key: PathKey,
     defaultValue = false,
 ): boolean {
     if (isObject(data)) {
-        return objBoolean(data as Record<K, T>, key as string, defaultValue);
+        return objBoolean(data as Record<TKey, TValue>, key, defaultValue);
     }
 
     return arrBoolean(arrWrap(data), key as number, defaultValue);
@@ -268,11 +265,11 @@ export function dataChunk<TValue, TKey extends ObjectKey = ObjectKey>(
  * dataCollapse([[1, 2], [3, 4]]); -> [1, 2, 3, 4]
  * dataCollapse({a: {x: 1, y: 2}, b: {z: 3}}); -> {x: 1, y: 2, z: 3}
  */
-export function dataCollapse<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
-): Record<string, T | Record<string, unknown>> | T[] {
+export function dataCollapse<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+): Record<string, TValue | Record<string, unknown>> | TValue[] {
     if (isObject(data)) {
-        return objCollapse(data as Record<K, Record<K, T>>);
+        return objCollapse(data as Record<TKey, Record<TKey, TValue>>);
     }
 
     return arrCollapse(arrWrap(data));
@@ -311,8 +308,8 @@ export function dataCombine<TCombine>(
  * dataCount([1, 2, 3]); -> 3
  * dataCount({a: 1, b: 2}); -> 2
  */
-export function dataCount<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataCount<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
 ): number {
     return Object.values(data).length;
 }
@@ -356,11 +353,11 @@ export function dataCrossJoin(data: unknown, ...others: unknown[]): unknown[] {
  * dataDivide([1, 2, 3]); -> [[0, 1, 2], [1, 2, 3]]
  * dataDivide({a: 1, b: 2}); -> [['a', 'b'], [1, 2]]
  */
-export function dataDivide<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataDivide<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
 ): [unknown[], unknown[]] {
     if (isObject(data)) {
-        return objDivide(data as Record<K, T>);
+        return objDivide(data as Record<TKey, TValue>);
     }
 
     return arrDivide(arrWrap(data));
@@ -377,12 +374,12 @@ export function dataDivide<T, K extends ObjectKey = ObjectKey>(
  *
  * dataDot({a: {b: 1, c: 2}}); -> {'a.b': 1, 'a.c': 2}
  */
-export function dataDot<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataDot<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     prepend = "",
 ): Record<string, unknown> {
     if (isObject(data)) {
-        return objDot(data as Record<K, T>, prepend);
+        return objDot(data as Record<TKey, TValue>, prepend);
     }
 
     return arrDot(arrWrap(data), prepend);
@@ -398,21 +395,21 @@ export function dataDot<T, K extends ObjectKey = ObjectKey>(
  *
  * dataUndot({'a.b': 1, 'a.c': 2}); -> {a: {b: 1, c: 2}}
  */
-export function dataUndot<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
-): DataItems<T, K> {
+export function dataUndot<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+): DataItems<TValue, TKey> {
     if(isObject(data)){
-        return objUndot(data) as DataItems<T, K>;
+        return objUndot(data) as DataItems<TValue, TKey>;
     }
 
     const values = isArray(data) ? data : arrWrap(data);
-    const result: Record<string, T> = {};
+    const result: Record<string, TValue> = {};
     // convert values to an object
     values.forEach((value, index) => {
         result[index.toString()] = value;
     });
 
-    return arrUndot(result) as DataItems<T>;
+    return arrUndot(result) as DataItems<TValue>;
 }
 
 export function dataUnion(
@@ -442,18 +439,15 @@ export function dataUnion(
  * dataExcept([1, 2, 3, 4], [1, 3]); -> [1, 3] (indices 0 and 2)
  * dataExcept({a: 1, b: 2, c: 3}, ['b']); -> {a: 1, c: 3}
  */
-export function dataExcept<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
+export function dataExcept<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
     keys: PathKeys,
-): DataItems<T, K> {
+): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objExcept(data as Record<K, T>, keys as string[]) as DataItems<
-            T,
-            K
-        >;
+        return objExcept(data as Record<TKey, TValue>, keys as string[]) as DataItems<TValue,TKey>;
     }
 
-    return arrExcept(arrWrap(data), keys as number[]) as DataItems<T>;
+    return arrExcept(arrWrap(data), keys as number[]) as DataItems<TValue>;
 }
 
 /**
@@ -468,12 +462,12 @@ export function dataExcept<T, K extends ObjectKey = ObjectKey>(
  * dataExists([1, 2, 3], 1); -> true
  * dataExists({a: 1, b: 2}, 'c'); -> false
  */
-export function dataExists<T, K extends ObjectKey = ObjectKey>(
-    data: DataItems<T, K>,
-    key: string | number,
+export function dataExists<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: DataItems<TValue, TKey>,
+    key: PathKey,
 ): boolean {
     if (isObject(data)) {
-        return objExists(data as Record<K, T>, key as string);
+        return objExists(data as Record<TKey, TValue>, key);
     }
 
     return arrExists(arrWrap(data), key as number);
