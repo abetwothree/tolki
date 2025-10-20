@@ -1157,7 +1157,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([]).last(null, 'default'); -> 'default'
      */
     last<D = null>(
-        callback?: ((value: TValue, key: string | number) => boolean) | null,
+        callback?: ((value: TValue, key: TKey) => boolean) | null,
         defaultValue?: D | (() => D),
     ): TValue | D | null {
         const result = dataLast(this.items, callback, defaultValue);

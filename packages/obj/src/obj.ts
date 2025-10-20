@@ -446,38 +446,19 @@ export function first<TValue, TKey extends ObjectKey = ObjectKey, TFirstDefault 
  * last({ a: 1, b: 2, c: 3 }, x => x < 3); -> 2
  * last({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  */
-export function last<T>(
-    data: Record<string, T> | null | undefined,
-    callback?: null,
-    defaultValue?: undefined,
-): T | null;
-export function last<T, D>(
-    data: Record<string, T> | null | undefined,
-    callback: null | undefined,
-    defaultValue: D | (() => D),
-): T | D;
-export function last<T>(
-    data: Record<string, T> | null | undefined,
-    callback: (value: T, key: string) => boolean,
-): T | null;
-export function last<T, D>(
-    data: Record<string, T> | null | undefined,
-    callback: (value: T, key: string) => boolean,
-    defaultValue: D | (() => D),
-): T | D;
-export function last<T, D>(
-    data: Record<string, T> | null | undefined,
-    callback?: ((value: T, key: string) => boolean) | null,
-    defaultValue?: D | (() => D),
-): T | D | null {
-    const resolveDefault = (): D | null => {
+export function last<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+    data: Record<TKey, TValue>,
+    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    defaultValue?: TDefault | (() => TDefault),
+): TValue | TDefault | null {
+    const resolveDefault = (): TDefault | null => {
         if (defaultValue === undefined) {
             return null;
         }
 
-        return typeof defaultValue === "function"
-            ? (defaultValue as () => D)()
-            : (defaultValue as D);
+        return isFunction(defaultValue)
+            ? (defaultValue as () => TDefault)()
+            : (defaultValue as TDefault);
     };
 
     if (data == null || !accessible(data)) {
@@ -487,20 +468,20 @@ export function last<T, D>(
     const entries = Object.entries(data);
 
     // No predicate case
-    if (!callback) {
+    if (!isFunction(callback)) {
         if (entries.length === 0) {
             return resolveDefault();
         }
 
-        return entries[entries.length - 1]?.[1] as T;
+        return entries[entries.length - 1]?.[1] as TValue;
     }
 
     // With callback: iterate backwards to find last match
     let found = false;
-    let candidate: T | undefined;
+    let candidate: TValue | undefined;
 
     for (let i = entries.length - 1; i >= 0; i--) {
-        const [key, value] = entries[i] as [string, T];
+        const [key, value] = entries[i] as [string, TValue];
         if (callback(value, key)) {
             candidate = value;
             found = true;
@@ -508,7 +489,7 @@ export function last<T, D>(
         }
     }
 
-    return found ? (candidate as T) : resolveDefault();
+    return found ? (candidate as TValue) : resolveDefault();
 }
 
 /**
@@ -2518,12 +2499,12 @@ export function reverse<TValue, TKey extends ObjectKey = ObjectKey>(
     // Reverse the entries array
     entries.reverse();
 
-    const result: Record<string, TValue> = {};
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
     for (const [key, value] of entries) {
-        result[key] = value as TValue;
+        result[key as TKey] = value as TValue;
     }
 
-    return result as Record<TKey, TValue>;
+    return result;
 }
 
 /**
@@ -2686,20 +2667,20 @@ export function contains<T extends Record<string, unknown>>(
  * filter({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { c: 3, d: 4 }
  * filter({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> { name: 'John', city: 'NYC' }
  */
-export function filter<T>(
-    data: Record<string, T> | unknown,
-    callback?: (value: T, key: string) => boolean,
-): Record<string, T> {
+export function filter<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
+    callback?: (value: TValue, key: TKey) => boolean | null,
+): Record<TKey, TValue> {
     if (!accessible(data)) {
         return {};
     }
 
-    const obj = data as Record<string, T>;
-    const result: Record<string, T> = {};
+    const obj = data as Record<TKey, TValue>;
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj)) {
         // If no callback, filter out falsy values
-        const shouldInclude = callback ? callback(value, key) : Boolean(value);
+        const shouldInclude = isFunction(callback) ? callback(value, key) : Boolean(value);
 
         if (shouldInclude) {
             result[key] = value;
