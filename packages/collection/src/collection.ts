@@ -272,12 +272,13 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         operator: unknown = null,
         value: unknown = null,
     ): boolean {
-        if (value === null && operator === null) {
+        if (isNull(operator) && isNull(value)) {
             if (isFunction(key)) {
                 const callback = key as (
                     value: TValue,
-                    index: string | number,
+                    index: TKey,
                 ) => boolean;
+
                 return dataContains(this.items, callback);
             }
 
