@@ -12,7 +12,7 @@ import type {
     PropertyName,
     ProxyTarget,
 } from "@laravel-js/types";
-import { castableToArray, compareValues, getAccessibleValues, isAccessibleData, isArray, isBoolean, isFalsy, isFunction, isNull, isNumber, isObject, isString, isStringable, isSymbol, isTruthy, isUndefined, normalizeToArray, resolveDefault, typeOf } from '@laravel-js/utils';
+import { castableToArray, compareValues, getAccessibleValues, isAccessibleData, isArray, isArrayable,isBoolean, isFalsy, isFunction, isNull, isNumber, isObject, isString, isStringable, isSymbol, isTruthy, isUndefined, normalizeToArray, resolveDefault, typeOf } from '@laravel-js/utils';
 
 import { initProxyHandler } from "./proxy";
 
@@ -3796,8 +3796,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
     jsonSerialize() {
         return this.map((value) => {
             if (
-                typeof value === "object" &&
-                value !== null
+                isObject(value) &&
+                !isNull(value)
             ) {
                 if( "toJSON" in value && isFunction((value as { toJSON: unknown }).toJSON) ) {
                     return (value as { toJSON: () => unknown }).toJSON();
@@ -4088,14 +4088,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         }
 
         // If it has a toArray method, use it
-        if (
-            typeof items === "object" &&
-            items !== null &&
-            "toArray" in items &&
-            typeof (items as unknown as { toArray: unknown }).toArray ===
-            "function"
-        ) {
-            return (items as Arrayable<TValue>).toArray();
+        if (isArrayable(items)) {
+            return (isArray(items) ? items : items.toArray()) as DataItems<TValue, TKey>;
         }
 
         // If it's an empty array, return empty array

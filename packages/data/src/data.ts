@@ -1877,7 +1877,7 @@ export function dataFirst<TValue, TKey extends ObjectKey = ObjectKey, TFirstDefa
             defaultValue,
         );
 
-        return result === undefined ? null : result;
+        return isUndefined(result) ? null : result;
     }
 
     const result = arrFirst(
@@ -1886,7 +1886,7 @@ export function dataFirst<TValue, TKey extends ObjectKey = ObjectKey, TFirstDefa
         defaultValue,
     );
 
-    return result === undefined ? null : result;
+    return isUndefined(result) ? null : result;
 }
 
 /**

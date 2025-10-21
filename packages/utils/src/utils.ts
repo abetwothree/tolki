@@ -75,6 +75,22 @@ export function isStringable(value: unknown): value is string | { toString(): st
 }
 
 /**
+ * Check if a value is arrayable (an array or has a toArray method).
+ *
+ * @param value - The value to check
+ * @returns True if the value is arrayable
+ *
+ * @example
+ *
+ * isArrayable([1, 2, 3]); -> true
+ * isArrayable({ toArray: () => [1, 2, 3] }); -> true
+ * isArrayable("hello"); -> false
+ */
+export function isArrayable<T>(value: unknown): value is T[] | { toArray(): T[] } {
+    return isArray(value) || (isObject(value) && !isNull(value) && isFunction((value as { toArray?: unknown }).toArray));
+}
+
+/**
  * Check if a value is a number (and not NaN).
  *
  * @param value - The value to check
