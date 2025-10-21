@@ -2695,7 +2695,7 @@ export function filter<TValue, TKey extends ObjectKey = ObjectKey>(
     const obj = data as Record<TKey, TValue>;
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
-    for (const [key, value] of Object.entries(obj)) {
+    for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
         // If no callback, filter out falsy values
         const shouldInclude = isFunction(callback) ? callback(value, key) : Boolean(value);
 
@@ -2720,12 +2720,12 @@ export function filter<TValue, TKey extends ObjectKey = ObjectKey>(
  * wrap(null); -> {}
  * wrap(undefined); -> { 0: undefined }
  */
-export function wrap<T>(value: T | null): Record<string | number, T> {
-    if (value === null) {
+export function wrap<TValue>(value: TValue | null): Record<ObjectKey, TValue> {
+    if (isNull(value)) {
         return {};
     }
 
-    return isObject<T>(value) ? (value as Record<string, T>) : { 0: value };
+    return isObject<TValue>(value) ? (value as Record<ObjectKey, TValue>) : { 0: value };
 }
 
 /**
