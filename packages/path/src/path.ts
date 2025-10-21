@@ -8,7 +8,7 @@ import {
     isUndefined,
     typeOf,
 } from "@laravel-js/utils";
-import type { PathKey, PathKeys } from "packages/types";
+import type { ArrayItems, ObjectKey, PathKey, PathKeys } from "packages/types";
 
 /**
  * Parse a key into segments for mixed array/object path traversal.
@@ -676,10 +676,10 @@ export function pushWithPath<T>(
  * dotFlatten({a: {b: 1}, c: [2, 3]}); -> {'a.b': 1, 'c.0': 2, 'c.1': 3}
  * dotFlatten(['x', {y: 'z'}], 'prefix'); -> {'prefix.0': 'x', 'prefix.1.y': 'z'}
  */
-export function dotFlatten(
-    data: Record<string, unknown> | ReadonlyArray<unknown> | unknown,
+export function dotFlatten<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | ArrayItems<TValue> | unknown,
     prepend: string = "",
-): Record<string, unknown> {
+): Record<ObjectKey, TValue> {
     if (isObject(data)) {
         return dotFlattenObject(data, prepend);
     }
@@ -705,29 +705,30 @@ export function dotFlatten(
  * dotFlattenObject({a: {b: {c: 1}}}); -> {'a.b.c': 1}
  * dotFlattenObject({user: {name: 'John'}}, 'data'); -> {'data.user.name': 'John'}
  */
-export function dotFlattenObject(
-    data: Record<string, unknown> | unknown,
+export function dotFlattenObject<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
     prepend: string = "",
-): Record<string, unknown> {
+): Record<ObjectKey, TValue> {
     if (!isObject(data)) {
         return {};
     }
 
-    const results: Record<string, unknown> = {};
+    const results: Record<ObjectKey, TValue> = {} as Record<ObjectKey, TValue>;
 
-    const walk = (obj: Record<string, unknown>, prefix: string): void => {
-        for (const [key, value] of Object.entries(obj)) {
-            const newKey = prefix ? prefix + "." + key : key;
+    const walk = (obj: Record<TKey, TValue>, prefix: string): void => {
+        for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
+            const keyStr = String(key);
+            const newKey = prefix ? prefix + "." + keyStr : keyStr;
 
             if (isObject(value) && Object.keys(value).length > 0) {
-                walk(value as Record<string, unknown>, newKey);
+                walk(value as Record<TKey, TValue>, newKey);
             } else {
                 results[newKey] = value;
             }
         }
     };
 
-    walk(data as Record<string, unknown>, prepend);
+    walk(data as Record<TKey, TValue>, prepend);
 
     return results;
 }
@@ -746,16 +747,16 @@ export function dotFlattenObject(
  * dotFlattenArray(['a', ['b', 'c']]); -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
  * dotFlattenArray([['x']], "prefix"); -> { 'prefix.0.0': 'x' }
  */
-export function dotFlattenArray(
-    data: ReadonlyArray<unknown> | unknown,
+export function dotFlattenArray<TValue>(
+    data: ArrayItems<TValue> | unknown,
     prepend: string = "",
-): Record<string, unknown> {
+): Record<ObjectKey, TValue> {
     if (!isArray(data)) {
         return {};
     }
 
-    const root = data as unknown[];
-    const out: Record<string, unknown> = {};
+    const root = data as TValue[];
+    const out: Record<ObjectKey, TValue> = {};
     const walk = (node: unknown, path: string): void => {
         const arr = isArray(node) ? (node as unknown[]) : null;
         if (!arr) {
@@ -765,16 +766,19 @@ export function dotFlattenArray(
                     : prepend
                 : path;
             if (key.length > 0) {
-                out[key] = node as unknown;
+                out[key] = node as TValue;
             }
             return;
         }
+        
         for (let i = 0; i < arr.length; i++) {
             const nextPath = path ? `${path}.${i}` : String(i);
             walk(arr[i], nextPath);
         }
     };
+    
     walk(root, "");
+
     return out;
 }
 

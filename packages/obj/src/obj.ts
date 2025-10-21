@@ -281,6 +281,10 @@ export function dot<TValue, TKey extends ObjectKey = ObjectKey>(
     data: Record<TKey, TValue> | unknown,
     prepend: string = "",
 ): Record<TKey, TValue> {
+    if(!accessible(data)){
+        return {} as Record<TKey, TValue>;
+    }
+
     return dotFlatten(data, prepend);
 }
 
