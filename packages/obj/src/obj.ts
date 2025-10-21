@@ -131,7 +131,7 @@ export function boolean<TValue, TKey extends ObjectKey = ObjectKey, TDefault = n
 
     if (! isBoolean(value)) {
         throw new Error(
-            `Object value for key [${key}] must be a boolean, ${typeof value} found.`,
+            `Object value for key [${key}] must be a boolean, ${typeOf(value)} found.`,
         );
     }
 
@@ -402,7 +402,7 @@ export function first<TValue, TKey extends ObjectKey = ObjectKey, TFirstDefault 
             return null;
         }
 
-        return typeof defaultValue === "function"
+        return isFunction(defaultValue)
             ? (defaultValue as () => TFirstDefault)()
             : (defaultValue as TFirstDefault);
     };
@@ -669,7 +669,7 @@ export function float<TValue, TKey extends ObjectKey = ObjectKey, TDefault = nul
 
     if (! isNumber(value)) {
         throw new Error(
-            `Object value for key [${key}] must be a float, ${typeof value} found.`,
+            `Object value for key [${key}] must be a float, ${typeOf(value)} found.`,
         );
     }
 
@@ -1021,7 +1021,7 @@ export function integer<TValue, TKey extends ObjectKey = ObjectKey, TDefault = n
 
     if (!isNumber(value)) {
         throw new Error(
-            `Object value for key [${key}] must be an integer, ${typeof value} found.`,
+            `Object value for key [${key}] must be an integer, ${typeOf(value)} found.`,
         );
     }
 
@@ -1420,10 +1420,10 @@ export function mapSpread<TValue extends Record<ObjectKey, unknown>, TMapSpreadV
         if (isObject(item)) {
             // Spread the object values as arguments to the callback
             const values = Object.values(item);
-            result[key] = callback(...values, key);
+            result[key as ObjectKey] = callback(...values, key as TKey);
         } else {
             // If item is not an object, pass it as single argument with key
-            result[key] = callback(item, key);
+            result[key as ObjectKey] = callback(item, key as TKey);
         }
     }
 
@@ -2180,11 +2180,11 @@ export function sortRecursive<TValue, TKey extends ObjectKey = ObjectKey>(
     descending: boolean = false,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
-        return {};
+        return {} as Record<TKey, TValue>;
     }
 
     const obj = data as Record<TKey, TValue>;
-    const entries = Object.entries(obj);
+    const entries = Object.entries(obj) as [TKey, TValue][];
 
     // Recursively sort nested objects first
     const processedEntries: [TKey, TValue][] = [];
@@ -2207,7 +2207,7 @@ export function sortRecursive<TValue, TKey extends ObjectKey = ObjectKey>(
                     return 0;
                 }
             });
-            processedEntries.push([key, sortedArray as T]);
+            processedEntries.push([key, sortedArray as TValue]);
         } else {
             processedEntries.push([key, value]);
         }
@@ -2215,19 +2215,22 @@ export function sortRecursive<TValue, TKey extends ObjectKey = ObjectKey>(
 
     // Sort object keys
     processedEntries.sort(([keyA], [keyB]) => {
+        const strKeyA = String(keyA);
+        const strKeyB = String(keyB);
+        
         if (descending) {
-            if (keyA > keyB) return -1;
-            if (keyA < keyB) return 1;
+            if (strKeyA > strKeyB) return -1;
+            if (strKeyA < strKeyB) return 1;
             return 0;
         } else {
-            if (keyA < keyB) return -1;
-            if (keyA > keyB) return 1;
+            if (strKeyA < strKeyB) return -1;
+            if (strKeyA > strKeyB) return 1;
             return 0;
         }
     });
 
     // Rebuild object with sorted keys
-    const result: Record<string, TValue> = {};
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
     for (const [key, value] of processedEntries) {
         result[key] = value;
     }
@@ -2320,9 +2323,9 @@ export function string<D = null>(
 ): string {
     const value = getObjectValue(data, key, defaultValue);
 
-    if (typeof value !== "string") {
+    if (!isString(value)) {
         throw new Error(
-            `Object value for key [${key}] must be a string, ${typeof value} found.`,
+            `Object value for key [${key}] must be a string, ${typeOf(value)} found.`,
         );
     }
 
