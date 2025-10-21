@@ -1595,22 +1595,22 @@ export function query(data: unknown): string {
  * random({}, 1); -> null
  * random({ a: 1, b: 2 }, 5); -> throws Error
  */
-export function random<T>(
-    data: Record<string, T> | unknown,
+export function random<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
     number?: number | null,
     preserveKeys: boolean = true,
-): T | Record<string | number, T> | null {
+): TValue | Record<TKey, TValue> | null {
     if (!accessible(data)) {
-        return number === null || number === undefined ? null : {};
+        return isNull(number) || isUndefined(number) ? null : {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<string, T>;
+    const obj = data as Record<TKey, TValue>;
     const entries = Object.entries(obj);
     const count = entries.length;
-    const requested = number === null || number === undefined ? 1 : number;
+    const requested = isNull(number) || isUndefined(number) ? 1 : number;
 
     if (count === 0 || requested <= 0) {
-        return number === null || number === undefined ? null : {};
+        return isNull(number) || isUndefined(number) ? null : {} as Record<TKey, TValue>;
     }
 
     if (requested > count) {
@@ -1630,21 +1630,21 @@ export function random<T>(
     }
 
     // If only one item requested, return it directly
-    if (number === null || number === undefined) {
-        const [, value] = entries[selectedIndices[0] as number] as [string, T];
+    if (isNull(number) || isUndefined(number)) {
+        const [, value] = entries[selectedIndices[0] as number] as [TKey, TValue];
         return value;
     }
 
     // Return multiple items
-    const result: Record<string | number, T> = {};
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
     for (let i = 0; i < selectedIndices.length; i++) {
         const entryIndex = selectedIndices[i] as number;
-        const [key, value] = entries[entryIndex] as [string, T];
+        const [key, value] = entries[entryIndex] as [TKey, TValue];
 
         if (preserveKeys) {
             result[key] = value;
         } else {
-            result[i] = value;
+            result[i as TKey] = value;
         }
     }
 
