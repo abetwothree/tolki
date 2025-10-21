@@ -2316,10 +2316,10 @@ export function splice<TValue, TKey extends ObjectKey = ObjectKey>(
  * string({ user: { name: 'John' } }, 'user.name'); -> 'John'
  * string({ user: { age: 30 } }, 'user.age'); -> throws Error
  */
-export function string<D = null>(
-    data: Record<string, unknown> | unknown,
+export function string<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+    data: Record<TKey, TValue> | unknown,
     key: PathKey,
-    defaultValue: D | (() => D) | null = null,
+    defaultValue:TDefault | (() => TDefault) | null = null,
 ): string {
     const value = getObjectValue(data, key, defaultValue);
 
