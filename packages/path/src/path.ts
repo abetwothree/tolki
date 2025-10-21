@@ -1,13 +1,5 @@
 import { wrap as arrWrap } from "@laravel-js/arr";
-import {
-    castableToArray,
-    isArray,
-    isNull,
-    isNumber,
-    isObject,
-    isUndefined,
-    typeOf,
-} from "@laravel-js/utils";
+import { castableToArray, compareValues, getAccessibleValues,isAccessibleData, isArray, isBoolean, isFalsy, isFiniteNumber, isFunction, isMap, isNonPrimitive, isNull, isNumber, isObject, isPrimitive, isSet, isString, isStringable, isSymbol, isTruthy, isUndefined, isWeakMap, isWeakSet, normalizeToArray, resolveDefault, typeOf } from '@laravel-js/utils';
 import type { ArrayItems, ObjectKey, PathKey, PathKeys } from "packages/types";
 
 /**
@@ -770,7 +762,7 @@ export function dotFlattenArray<TValue>(
             }
             return;
         }
-        
+
         for (let i = 0; i < arr.length; i++) {
             const nextPath = path ? `${path}.${i}` : String(i);
             walk(arr[i], nextPath);
@@ -818,13 +810,14 @@ export function undotExpand(
  * undotExpandObject({'user.name': 'John', 'user.age': 30}); -> {user: {name: 'John', age: 30}}
  * undotExpandObject({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
  */
-export function undotExpandObject(
-    map: Record<string, unknown>,
-): Record<string, unknown> {
-    const results: Record<string, unknown> = {};
+export function undotExpandObject<TValue, TKey extends ObjectKey = ObjectKey>(
+    map: Record<TKey, TValue>,
+): Record<string, TValue> {
+    const results: Record<string, TValue> = {} as Record<string, TValue>;
 
-    for (const [key, value] of Object.entries(map)) {
-        const result = setObjectValue(results, key, value);
+    for (const [key, value] of Object.entries(map) as [TKey, TValue][]) {
+        const keyStr = isSymbol(key) ? key.toString() : String(key);
+        const result = setObjectValue(results, keyStr, value);
         Object.assign(results, result);
     }
 
@@ -1367,17 +1360,17 @@ export function getObjectValue<T = unknown, D = null>(
  * @param value - The value to set.
  * @returns A new object with the value set.
  */
-export function setObjectValue(
-    obj: unknown,
+export function setObjectValue<TValue, TKey extends ObjectKey = ObjectKey>(
+    obj: Record<TKey, TValue>,
     key: PathKey | null,
     value: unknown,
-): Record<string, unknown> {
-    if (key == null) {
-        return value as Record<string, unknown>;
+): Record<string, TValue> {
+    if (isNull(key)) {
+        return value as Record<string, TValue>;
     }
 
     if (!isObject(obj)) {
-        obj = {};
+        obj = {} as Record<TKey, TValue>;
     }
 
     const result = { ...(obj as Record<string, unknown>) };
@@ -1386,7 +1379,7 @@ export function setObjectValue(
     // Handle simple property access (no dots)
     if (!keyStr.includes(".")) {
         result[keyStr] = value;
-        return result;
+        return result as Record<string, TValue>;
     }
 
     // Handle nested property access with dot notation
@@ -1397,7 +1390,7 @@ export function setObjectValue(
         const segment = segments[i];
         if (!segment) continue;
 
-        if (!current[segment] || typeof current[segment] !== "object") {
+        if (!current[segment] || !isObject(current[segment])) {
             current[segment] = {};
         } else {
             // Clone nested objects to maintain immutability
@@ -1413,7 +1406,8 @@ export function setObjectValue(
     if (lastSegment) {
         current[lastSegment] = value;
     }
-    return result;
+
+    return result as Record<string, TValue>;
 }
 
 /**

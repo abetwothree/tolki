@@ -301,7 +301,7 @@ export function dot<TValue, TKey extends ObjectKey = ObjectKey>(
 export function undot<TValue, TKey extends ObjectKey = ObjectKey>(
     map: Record<TKey, TValue>,
 ): Record<TKey, TValue> {
-    return undotExpandObject(map);
+    return undotExpandObject(map) as Record<TKey, TValue>;
 }
 
 /**
@@ -1727,7 +1727,7 @@ export function set<TValue, TKey extends ObjectKey = ObjectKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    return setObjectValue(object, key, value);
+    return setObjectValue(object as Record<TKey, TValue>, key, value) as Record<TKey, TValue>;
 }
 
 /**
