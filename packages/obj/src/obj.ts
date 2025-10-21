@@ -1880,13 +1880,13 @@ export function sole<TValue, TKey extends ObjectKey = ObjectKey>(
         // Filter using the callback
         filteredEntries = [];
         for (const [key, value] of entries) {
-            if (callback(value, key)) {
-                filteredEntries.push([key, value]);
+            if (callback(value as TValue, key as TKey)) {
+                filteredEntries.push([key as TKey, value as TValue]);
             }
         }
     } else {
         // Use all entries
-        filteredEntries = entries;
+        filteredEntries = entries as [TKey, TValue][];
     }
 
     const count = filteredEntries.length;
@@ -2052,25 +2052,28 @@ export function sort<TValue, TKey extends ObjectKey = ObjectKey>(
  * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, 'age'); -> sorted by age desc
  * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name desc
  */
-export function sortDesc<T>(
-    data: Record<string, T> | unknown,
-    callback?: ((item: T) => unknown) | string | null,
-): Record<string, T> {
+export function sortDesc<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
+    callback?: ((item: TValue) => unknown) | string | null,
+): Record<TKey, TValue> {
     if (!accessible(data)) {
-        return {};
+        return {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<string, T>;
+    const obj = data as Record<TKey, TValue>;
     const entries = Object.entries(obj);
 
-    if (!callback) {
+    if (isNull(callback)) {
         // Natural sorting by values in descending order
         entries.sort(([, a], [, b]) => {
-            if (a > b) {
+            const aValue = a as TValue;
+            const bValue = b as TValue;
+
+            if (aValue > bValue) {
                 return -1;
             }
 
-            if (a < b) {
+            if (aValue < bValue) {
                 return 1;
             }
 
@@ -2078,7 +2081,7 @@ export function sortDesc<T>(
         });
     }
 
-    if (typeof callback === "string") {
+    if (isString(callback)) {
         // Sort by field name using dot notation in descending order
         entries.sort(([, a], [, b]) => {
             const aValue = getObjectValue(
@@ -2090,15 +2093,15 @@ export function sortDesc<T>(
                 callback,
             );
 
-            if (aValue == null && bValue == null) {
+            if (isNull(aValue) && isNull(bValue)) {
                 return 0;
             }
 
-            if (aValue == null) {
+            if (isNull(aValue)) {
                 return 1;
             }
 
-            if (bValue == null) {
+            if (isNull(bValue)) {
                 return -1;
             }
 
@@ -2116,21 +2119,21 @@ export function sortDesc<T>(
 
             return 0;
         });
-    } else if (typeof callback === "function") {
+    } else if (isFunction(callback)) {
         // Sort by callback result in descending order
         entries.sort(([, a], [, b]) => {
             const aValue = callback(a);
             const bValue = callback(b);
 
-            if (aValue == null && bValue == null) {
+            if (isNull(aValue) && isNull(bValue)) {
                 return 0;
             }
 
-            if (aValue == null) {
+            if (isNull(aValue)) {
                 return 1;
             }
 
-            if (bValue == null) {
+            if (isNull(bValue)) {
                 return -1;
             }
 
@@ -2150,9 +2153,9 @@ export function sortDesc<T>(
         });
     }
 
-    const result: Record<string, T> = {};
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
     for (const [key, value] of entries) {
-        result[key] = value;
+        result[key as TKey] = value as TValue;
     }
 
     return result;
