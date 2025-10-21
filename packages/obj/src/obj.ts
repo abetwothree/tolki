@@ -1714,11 +1714,15 @@ export function shift<TValue, TKey extends ObjectKey = ObjectKey>(
  * set({ name: 'John', age: 30 }, 'age', 31); -> { name: 'John', age: 31 }
  * set({ user: { name: 'John' } }, 'user.age', 30); -> { user: { name: 'John', age: 30 } }
  */
-export function set<T extends Record<string, unknown>>(
-    object: T | unknown,
+export function set<TValue, TKey extends ObjectKey = ObjectKey>(
+    object: Record<TKey, TValue> | unknown,
     key: PathKey | null,
     value: unknown,
-): Record<string, unknown> {
+): Record<TKey, TValue> {
+    if (!accessible(object)) {
+        return {} as Record<TKey, TValue>;
+    }
+
     return setObjectValue(object, key, value);
 }
 
@@ -1735,25 +1739,27 @@ export function set<T extends Record<string, unknown>>(
  * push({ items: ['a', 'b'] }, 'items', 'c', 'd'); -> { items: ['a', 'b', 'c', 'd'] }
  * push({ user: { tags: ['js'] } }, 'user.tags', 'ts', 'php'); -> { user: { tags: ['js', 'ts', 'php'] } }
  */
-export function push<T>(
-    data: Record<string, unknown> | unknown,
+export function push<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
     key: PathKey,
-    ...values: T[]
-): Record<string, unknown> {
+    ...values: TValue[]
+): Record<TKey, TValue>
+{
     if (!accessible(data)) {
-        if (key == null) {
+        if (isNull(key)) {
             throw new Error("Cannot push to root of non-object data");
         }
+
         return setObjectValue({}, key, values);
     }
 
-    if (key == null) {
+    if (isNull(key)) {
         throw new Error(
             "Cannot push to root of object without specifying a key",
         );
     }
 
-    const obj = data as Record<string, unknown>;
+    const obj = data as Record<TKey, TValue>;
     const existingValue = getObjectValue(obj, key);
 
     if (isArray(existingValue)) {
@@ -1778,28 +1784,27 @@ export function push<T>(
  * shuffle({ a: 1, b: 2, c: 3, d: 4, e: 5 }); -> { c: 3, a: 1, e: 5, b: 2, d: 4 } (random order)
  * shuffle({ x: 'hello', y: 'world', z: 'test' }); -> { z: 'test', x: 'hello', y: 'world' } (random order)
  */
-export function shuffle<T>(
-    data: Record<string, T> | unknown,
-): Record<string, T> {
+export function shuffle<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
+): Record<TKey, TValue> {
     if (!accessible(data)) {
-        return {};
+        return {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<string, T>;
+    const obj = data as Record<TKey, TValue>;
     const entries = Object.entries(obj);
 
     // Fisher-Yates shuffle algorithm
     for (let i = entries.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [entries[i], entries[j]] = [
-            entries[j] as [string, T],
-            entries[i] as [string, T],
-        ];
+        const temp = entries[i];
+        entries[i] = entries[j] as [string, unknown];
+        entries[j] = temp as [string, unknown];
     }
 
-    const result: Record<string, T> = {};
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
     for (const [key, value] of entries) {
-        result[key] = value;
+        result[key as TKey] = value as TValue;
     }
 
     return result;
