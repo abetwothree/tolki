@@ -2436,10 +2436,10 @@ export function where<TValue, TKey extends ObjectKey = ObjectKey>(
  * reject({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { a: 1, b: 2 }
  * reject({ name: 'John', age: null, city: 'NYC' }, (value) => value === null); -> { name: 'John', city: 'NYC' }
  */
-export function reject<T>(
-    data: Record<string, T> | unknown,
-    callback: (value: T, key: string) => boolean,
-): Record<string, T> {
+export function reject<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
+    callback: (value: TValue, key: TKey) => boolean,
+): Record<TKey, TValue> {
     return where(data, (value, key) => !callback(value, key));
 }
 
