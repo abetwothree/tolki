@@ -1232,7 +1232,7 @@ export function pluck<TValue, TKey extends ObjectKey = ObjectKey>(
         return {};
     }
 
-    const obj = data as Record<string, T>;
+    const obj = data as Record<string, TValue>;
     const results: unknown[] | Record<ObjectKey, unknown> = key ? {} : [];
 
     for (const [, item] of Object.entries(obj)) {
@@ -1335,19 +1335,19 @@ export function pop<TValue, TKey extends ObjectKey = ObjectKey>(
  * map({ a: 1, b: 2, c: 3 }, (value) => value * 2); -> { a: 2, b: 4, c: 6 }
  * map({ name: 'john', email: 'JOHN@EXAMPLE.COM' }, (value, key) => key === 'name' ? value.toUpperCase() : value.toLowerCase()); -> { name: 'JOHN', email: 'john@example.com' }
  */
-export function map<T, U>(
-    data: Record<string, T> | unknown,
-    callback: (value: T, key: string) => U,
-): Record<string, U> {
+export function map<TValue, TKey extends ObjectKey = ObjectKey, TMapValue = unknown>(
+    data: Record<TKey, TValue> | unknown,
+    callback: (value: TValue, key: TKey) => TMapValue,
+): Record<TKey, TMapValue> {
     if (!accessible(data)) {
-        return {};
+        return {} as Record<TKey, TMapValue>;
     }
 
-    const obj = data as Record<string, T>;
-    const result: Record<string, U> = {};
+    const obj = data as Record<TKey, TValue>;
+    const result: Record<ObjectKey, TMapValue> = {};
 
     for (const [key, value] of Object.entries(obj)) {
-        result[key] = callback(value, key);
+        result[key] = callback(value as TValue, key as TKey);
     }
 
     return result;
@@ -1405,16 +1405,16 @@ export function mapWithKeys<
  * mapSpread({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (name, age) => `${name} is ${age}`); -> { user1: 'John is 25', user2: 'Jane is 30' }
  * mapSpread({ item1: { x: 1, y: 2 }, item2: { x: 3, y: 4 } }, (x, y) => x + y); -> { item1: 3, item2: 7 }
  */
-export function mapSpread<T extends Record<string, unknown>, U>(
-    data: Record<string, T> | unknown,
-    callback: (...args: unknown[]) => U,
-): Record<string, U> {
+export function mapSpread<TValue extends Record<ObjectKey, unknown>, TMapSpreadValue>(
+    data: Record<ObjectKey, TValue> | unknown,
+    callback: (...args: unknown[]) => TMapSpreadValue,
+): Record<ObjectKey, TMapSpreadValue> {
     if (!accessible(data)) {
-        return {};
+        return {} as Record<ObjectKey, TMapSpreadValue>;
     }
 
-    const obj = data as Record<string, T>;
-    const result: Record<string, U> = {};
+    const obj = data as Record<ObjectKey, TValue>;
+    const result: Record<ObjectKey, TMapSpreadValue> = {};
 
     for (const [key, item] of Object.entries(obj)) {
         if (isObject(item)) {
@@ -1443,21 +1443,21 @@ export function mapSpread<T extends Record<string, unknown>, U>(
  * prepend({ b: 2, c: 3 }, 1, 'a'); -> { a: 1, b: 2, c: 3 }
  * prepend({ x: 1, y: 2 }, 0, 'z'); -> { z: 0, x: 1, y: 2 }
  */
-export function prepend<T>(
-    data: Record<string, T> | unknown,
-    value: T,
-    key: string,
-): Record<string, T> {
+export function prepend<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
+    value: TValue,
+    key: TKey,
+): Record<TKey, TValue> {
     if (!accessible(data)) {
-        return { [key]: value };
+        return { [key]: value } as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<string, T>;
-    const result: Record<string, T> = { [key]: value };
+    const obj = data as Record<TKey, TValue>;
+    const result: Record<TKey, TValue> = { [key]: value } as Record<TKey, TValue>;
 
     // Add existing entries after the prepended one
     for (const [existingKey, existingValue] of Object.entries(obj)) {
-        result[existingKey] = existingValue;
+        result[existingKey as TKey] = existingValue as TValue;
     }
 
     return result;
@@ -1477,22 +1477,22 @@ export function prepend<T>(
  * pull({ user: { name: 'John', age: 30 } }, 'user.name'); -> { value: 'John', data: { user: { age: 30 } } }
  * pull({ a: 1, b: 2 }, 'x', 'default'); -> { value: 'default', data: { a: 1, b: 2 } }
  */
-export function pull<T, D = null>(
-    data: Record<string, T> | unknown,
+export function pull<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+    data: Record<TKey, TValue> | unknown,
     key: PathKey,
-    defaultValue: D | (() => D) | null = null,
-): { value: T | D | null; data: Record<string, unknown> } {
-    const resolveDefault = (): D | null => {
-        return typeof defaultValue === "function"
-            ? (defaultValue as () => D)()
-            : (defaultValue as D);
+    defaultValue: TDefault | (() => TDefault) | null = null,
+): { value: TValue | TDefault | null; data: Record<string, unknown> } {
+    const resolveDefault = (): TDefault | null => {
+        return isFunction(defaultValue)
+            ? (defaultValue as () => TDefault)()
+            : (defaultValue as TDefault);
     };
 
     if (!accessible(data)) {
         return { value: resolveDefault(), data: {} };
     }
 
-    if (key == null) {
+    if (isNull(key)) {
         const original = { ...(data as Record<string, unknown>) };
         return { value: resolveDefault(), data: original };
     }
@@ -1500,12 +1500,12 @@ export function pull<T, D = null>(
     const obj = data as Record<string, unknown>;
     const value = getObjectValue(obj, key);
 
-    if (value === null) {
+    if (isNull(value)) {
         return { value: resolveDefault(), data: { ...obj } };
     }
 
     const updated = forget(obj, key);
-    return { value: value as T | D | null, data: updated };
+    return { value: value as TValue | TDefault | null, data: updated };
 }
 
 /**
@@ -1539,8 +1539,8 @@ export function query(data: unknown): string {
                 const key = prefix ? `${prefix}[${i}]` : String(i);
                 const value = obj[i];
 
-                if (value !== null && value !== undefined) {
-                    if (typeof value === "object") {
+                if (!isNull(value) && !isUndefined(value)) {
+                    if (isObject(value)) {
                         parts.push(...buildQuery(value, key));
                     } else {
                         const encodedKey = encodeKeyComponent(key);
@@ -1550,12 +1550,12 @@ export function query(data: unknown): string {
                     }
                 }
             }
-        } else if (typeof obj === "object" && obj !== null) {
+        } else if (isObject(obj) && !isNull(obj)) {
             for (const [objKey, value] of Object.entries(obj)) {
                 const key = prefix ? `${prefix}[${objKey}]` : objKey;
 
-                if (value !== null && value !== undefined) {
-                    if (typeof value === "object") {
+                if (!isNull(value) && !isUndefined(value)) {
+                    if (isObject(value)) {
                         parts.push(...buildQuery(value, key));
                     } else {
                         const encodedKey = encodeKeyComponent(key);
