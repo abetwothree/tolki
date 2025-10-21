@@ -1420,10 +1420,10 @@ export function mapSpread<TValue extends Record<ObjectKey, unknown>, TMapSpreadV
         if (isObject(item)) {
             // Spread the object values as arguments to the callback
             const values = Object.values(item);
-            result[key as ObjectKey] = callback(...values, key as TKey);
+            result[key as ObjectKey] = callback(...values, key);
         } else {
             // If item is not an object, pass it as single argument with key
-            result[key as ObjectKey] = callback(item, key as TKey);
+            result[key as ObjectKey] = callback(item, key);
         }
     }
 
@@ -2689,7 +2689,7 @@ export function filter<TValue, TKey extends ObjectKey = ObjectKey>(
     callback?: (value: TValue, key: TKey) => boolean | null,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
-        return {};
+        return {} as Record<TKey, TValue>;
     }
 
     const obj = data as Record<TKey, TValue>;
