@@ -2638,9 +2638,9 @@ export function whereNotNull<TValue, TKey extends ObjectKey = ObjectKey>(
  * contains({ name: 'John', age: 30, city: 'NYC' }, 'Jane'); -> false
  * contains({ users: { 1: 'John', 2: 'Jane' } }, 'John'); -> false (nested values)
  */
-export function contains<T extends Record<string, unknown>>(
-    data: T | unknown,
-    value: T | ((value: T, key: string | number) => boolean),
+export function contains<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
+    value: TValue | ((value: TValue, key: TKey) => boolean),
     strict = false,
 ): boolean {
     if (!accessible(data)) {
@@ -2648,20 +2648,21 @@ export function contains<T extends Record<string, unknown>>(
     }
 
     if (isFunction(value)) {
-        const obj = data as Record<string, unknown>;
+        const obj = data as Record<TKey, TValue>;
         for (const [key, val] of Object.entries(obj)) {
-            if (value(val as T, key)) {
+            if (value(val as TValue, key as TKey)) {
                 return true;
             }
         }
+        
         return false;
     }
 
     if (strict) {
-        return Object.values(data as Record<string, unknown>).includes(value);
+        return Object.values(data as Record<TKey, TValue>).includes(value);
     }
 
-    const obj = data as Record<string, unknown>;
+    const obj = data as Record<TKey, TValue>;
     for (const val of Object.values(obj)) {
         if (val == value) {
             return true;
