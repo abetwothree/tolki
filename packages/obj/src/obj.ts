@@ -2616,12 +2616,12 @@ export function partition<TValue, TKey extends ObjectKey = ObjectKey>(
  * whereNotNull({ a: 1, b: null, c: 2, d: undefined, e: 3 }); -> { a: 1, c: 2, d: undefined, e: 3 }
  * whereNotNull({ name: 'John', age: null, city: 'NYC' }); -> { name: 'John', city: 'NYC' }
  */
-export function whereNotNull<T>(
-    data: Record<string, T | null> | unknown,
-): Record<string, T> {
+export function whereNotNull<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue | null> | unknown,
+): Record<TKey, TValue> {
     return where(
-        data as Record<string, T | null>,
-        (value): value is T => value !== null,
+        data as Record<TKey, TValue | null>,
+        (value): value is TValue => !isNull(value),
     );
 }
 
