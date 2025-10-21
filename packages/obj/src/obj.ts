@@ -2344,12 +2344,12 @@ export function string<TValue, TKey extends ObjectKey = ObjectKey, TDefault = nu
  * toCssClasses({ 'font-bold': true, 'text-red': false, 'ml-2': true }); -> 'font-bold ml-2'
  * toCssClasses({ primary: true, secondary: false }); -> 'primary'
  */
-export function toCssClasses(data: Record<string, unknown> | unknown): string {
+export function toCssClasses<TValue, TKey extends ObjectKey = ObjectKey>(data: Record<TKey, TValue> | unknown): string {
     if (!accessible(data)) {
         return "";
     }
 
-    const obj = data as Record<string, unknown>;
+    const obj = data as Record<TKey, TValue>;
     const classes: string[] = [];
 
     for (const [key, value] of Object.entries(obj)) {
@@ -2373,12 +2373,12 @@ export function toCssClasses(data: Record<string, unknown> | unknown): string {
  * toCssStyles({ 'font-weight: bold': true, 'margin-top: 4px': true }); -> 'font-weight: bold; margin-top: 4px;'
  * toCssStyles({ 'font-weight: bold': true, 'color: red': false, 'margin-left: 2px': true }); -> 'font-weight: bold; margin-left: 2px;'
  */
-export function toCssStyles(data: Record<string, unknown> | unknown): string {
+export function toCssStyles<TValue, TKey extends ObjectKey = ObjectKey>(data: Record<TKey, TValue> | unknown): string {
     if (!accessible(data)) {
         return "";
     }
 
-    const obj = data as Record<string, unknown>;
+    const obj = data as Record<TKey, TValue>;
     const styles: string[] = [];
 
     for (const [key, value] of Object.entries(obj)) {
