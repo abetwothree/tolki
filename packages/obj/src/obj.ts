@@ -9,7 +9,7 @@ import {
     undotExpandObject,
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
-import { isArray, isBoolean, isFalsy, isFunction, isMap, isNull, isNumber,isObject, isSet, isString, isTruthy, isUndefined, isWeakMap, isWeakSet, typeOf } from "@laravel-js/utils";
+import { castableToArray, compareValues, getAccessibleValues,isAccessibleData, isArray, isBoolean, isFalsy, isFiniteNumber, isFunction, isMap, isNonPrimitive, isNull, isNumber, isObject, isPrimitive, isSet, isString, isStringable, isSymbol, isTruthy, isUndefined, isWeakMap, isWeakSet, normalizeToArray, resolveDefault, typeOf } from '@laravel-js/utils';
 import type { ObjectKey, PathKey, PathKeys } from "packages/types";
 
 /**
@@ -1223,52 +1223,46 @@ export function select<TValue extends Record<ObjectKey, unknown>>(
  * pluck({ user1: { name: 'John' }, user2: { name: 'Jane' } }, 'name'); -> ['John', 'Jane']
  * pluck({ user1: { id: 1, name: 'John' }, user2: { id: 2, name: 'Jane' } }, 'name', 'id'); -> { 1: 'John', 2: 'Jane' }
  */
-export function pluck<T, K extends ObjectKey = ObjectKey>(
-    data: Record<K, T> | unknown,
-    value: string | ((item: T) => unknown),
-    key: string | ((item: T) => string | number) | null = null,
-): unknown[] | Record<string | number, unknown> {
+export function pluck<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
+    value: string | ((item: TValue) => unknown),
+    key: string | ((item: TValue) => string | number) | null = null,
+): unknown[] | Record<ObjectKey, unknown> {
     if (!accessible(data)) {
-        return [];
+        return {};
     }
 
     const obj = data as Record<string, T>;
-    const results: unknown[] | Record<string | number, unknown> = key ? {} : [];
+    const results: unknown[] | Record<ObjectKey, unknown> = key ? {} : [];
 
     for (const [, item] of Object.entries(obj)) {
         let itemValue: unknown;
         let itemKey: string | number | undefined;
 
         // Get the value
-        if (typeof value === "function") {
+        if (isFunction(value)) {
             itemValue = value(item);
         } else {
             // Use dot notation to get nested value
-            itemValue = getObjectValue(item, value);
+            itemValue = getObjectValue(item, value as PathKey);
         }
 
         // Get the key if specified
-        if (key !== null && key !== undefined) {
-            if (typeof key === "function") {
-                itemKey = key(item);
+        if (!isNull(key) && !isUndefined(key)) {
+            if (isFunction(key)) {
+                itemKey = key(item) as string | number;
             } else {
-                itemKey = getObjectValue(item, key) as string | number;
+                itemKey = getObjectValue(item, key as PathKey) as string | number;
             }
 
             // Convert objects with toString to string
-            if (
-                itemKey != null &&
-                typeof itemKey === "object" &&
-                "toString" in itemKey &&
-                typeof (itemKey as { toString: unknown }).toString ===
-                "function"
-            ) {
-                itemKey = (itemKey as { toString: () => string }).toString();
+            if (isStringable(itemKey)) {
+                itemKey = itemKey.toString();
             }
         }
 
         // Add to results
-        if (key === null || key === undefined) {
+        if (isNull(key) || isUndefined(key)) {
             (results as unknown[]).push(itemValue);
         } else {
             (results as Record<string | number, unknown>)[

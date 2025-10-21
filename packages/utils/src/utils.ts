@@ -59,12 +59,19 @@ export function isString(value: unknown): value is string {
  * isStringable(null); -> false
  */
 export function isStringable(value: unknown): value is string | { toString(): string } {
-    return (
-        typeof value === "string" ||
-        (value !== null &&
-            typeof value === "object" &&
-            typeof (value as { toString?: unknown }).toString === "function")
-    );
+    if(!isString(value) || !isObject(value)) {
+        return false;
+    }
+
+    if(isString(value)) {
+        return true;
+    }
+
+    if(isFunction((value as { toString?: unknown })?.toString)) {
+        return true;
+    }
+
+    return false;
 }
 
 /**
@@ -317,6 +324,69 @@ export function typeOf(v: unknown): string {
     if (isNull(v)) return "null";
     if (isArray(v)) return "array";
     return typeof v;
+}
+
+/**
+ * Check if a value is a primitive type (null, boolean, number, string, symbol, undefined).
+ *
+ * @param value - The value to check
+ * @returns True if the value is a primitive
+ *
+ * @example
+ *
+ * isPrimitive(123); -> true
+ * isPrimitive("hello"); -> true
+ * isPrimitive(null); -> true
+ * isPrimitive({}); -> false
+ * isPrimitive([]); -> false
+ */
+export function isPrimitive(value: unknown): boolean {
+    return (
+        isNull(value) ||
+        isBoolean(value) ||
+        isNumber(value) ||
+        isString(value) ||
+        isSymbol(value) ||
+        isUndefined(value)
+    );
+}
+
+/**
+ * Check if a value is a non-primitive type (object, array, function, etc.).
+ *
+ * @param value - The value to check
+ * @returns True if the value is a non-primitive
+ *
+ * @example
+ *
+ * isNonPrimitive({}); -> true
+ * isNonPrimitive([]); -> true
+ * isNonPrimitive(() => {}); -> true
+ * isNonPrimitive(123); -> false
+ * isNonPrimitive("hello"); -> false
+ */
+export function isNonPrimitive(value: unknown): boolean {
+    return !isPrimitive(value);
+}
+
+/**
+ * Check if a value is a finite number.
+ * 
+ * TODO: move to number utils
+ *
+ * @param value - The value to check
+ * @returns True if the value is a finite number
+ *
+ * @example
+ *
+ * isFiniteNumber(123); -> true
+ * isFiniteNumber(3.14); -> true
+ * isFiniteNumber(Infinity); -> false
+ * isFiniteNumber(NaN); -> false
+ * isFiniteNumber("123"); -> false
+ */
+export function isFiniteNumber(value: unknown): value is number {
+    return isNumber(value) && Number.isFinite(value);
 }
 
 /**
