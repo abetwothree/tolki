@@ -2739,13 +2739,14 @@ export function wrap<TValue>(value: TValue | null): Record<ObjectKey, TValue> {
  * keys({ name: 'John', age: 30, city: 'NYC' }); -> ['name', 'age', 'city']
  * keys({}); -> []
  */
-export function keys<T extends Record<string, unknown>>(
-    data: T | unknown,
+export function keys<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
 ): string[] {
     if (!accessible(data)) {
         return [];
     }
-    return Object.keys(data as T);
+
+    return Object.keys(data as Record<TKey, TValue>);
 }
 
 /**
@@ -2759,13 +2760,14 @@ export function keys<T extends Record<string, unknown>>(
  * values({ name: 'John', age: 30, city: 'NYC' }); -> ['John', 30, 'NYC']
  * values({}); -> []
  */
-export function values<T extends Record<string, unknown>>(
-    data: T | unknown,
-): unknown[] {
+export function values<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
+): TValue[] {
     if (!accessible(data)) {
         return [];
     }
-    return Object.values(data as T);
+
+    return Object.values(data as Record<TKey, TValue>);
 }
 
 /**
@@ -2780,23 +2782,23 @@ export function values<T extends Record<string, unknown>>(
  * diff({ a: 1, b: 2, c: 3 }, { b: 2, d: 4 }); -> { a: 1, c: 3 }
  * diff({ name: 'John', age: 30 }, { age: 30, city: 'NYC' }); -> { name: 'John' }
  */
-export function diff<T extends Record<string, unknown>>(
-    data: T | unknown,
-    other: T | unknown,
-): Record<string, unknown> {
+export function diff<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | unknown,
+    other: Record<TKey, TValue> | unknown,
+): Record<TKey, TValue> {
     if (!accessible(data)) {
-        return {};
+        return {} as Record<TKey, TValue>;
     }
 
     if (!accessible(other)) {
-        return { ...(data as Record<string, unknown>) };
+        return { ...(data as Record<TKey, TValue>) };
     }
 
-    const obj = data as Record<string, unknown>;
-    const otherObj = other as Record<string, unknown>;
-    const result: Record<string, unknown> = {};
+    const obj = data as Record<TKey, TValue>;
+    const otherObj = other as Record<TKey, TValue>;
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
-    for (const [key, value] of Object.entries(obj)) {
+    for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
         if (!(key in otherObj) || otherObj[key] !== value) {
             result[key] = value;
         }
