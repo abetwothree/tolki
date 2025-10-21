@@ -89,8 +89,48 @@ export function isStringable(value: unknown): value is string | { toString(): st
  */
 export function isNumber(value: unknown): value is number {
     return (
-        Number.isInteger(value) && typeof value === "number" && !isNaN(value)
+        typeof value === "number" && !isNaN(value) && isFinite(value)
     );
+}
+
+/**
+ * Check if a value is an integer.
+ *
+ * @param value - The value to check
+ * @returns True if the value is an integer
+ */
+export function isInteger(value: unknown): value is number {
+    return isNumber(value) && Number.isInteger(value);
+}
+
+/**
+ * Check if a value is a float.
+ *
+ * @param value - The value to check
+ * @returns True if the value is a float
+ */
+export function isFloat(value: unknown): value is number {
+    return isNumber(value) && !Number.isInteger(value);
+}
+
+/**
+ * Check if a value is a positive number.
+ *
+ * @param value - The value to check
+ * @returns True if the value is a positive number
+ */
+export function isPositiveNumber(value: unknown): value is number {
+    return isNumber(value) && value > 0;
+}
+
+/**
+ * Check if a value is a negative number.
+ *
+ * @param value - The value to check
+ * @returns True if the value is a negative number
+ */
+export function isNegativeNumber(value: unknown): value is number {
+    return isNumber(value) && value < 0;
 }
 
 /**

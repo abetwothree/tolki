@@ -12,7 +12,7 @@ import type {
     PropertyName,
     ProxyTarget,
 } from "@laravel-js/types";
-import { isArray, isObject, isString, isStringable, isNumber, isBoolean, isFunction, isUndefined, isSymbol, isNull, isMap, isSet, isWeakMap, isWeakSet, toArrayable, toJsonable, toJsonSerializable, isFalsy, isTruthy, typeOf, isPrimitive, isNonPrimitive, isFiniteNumber, castableToArray, compareValues, resolveDefault, normalizeToArray, isAccessibleData, getAccessibleValues } from '@laravel-js/utils';
+import { castableToArray, compareValues, getAccessibleValues,isAccessibleData, isArray, isBoolean, isFalsy, isFiniteNumber, isFunction, isMap, isNonPrimitive, isNull, isNumber, isObject, isPrimitive, isSet, isString, isStringable, isSymbol, isTruthy, isUndefined, isWeakMap, isWeakSet, normalizeToArray, resolveDefault, toArrayable, toJsonable, toJsonSerializable, typeOf } from '@laravel-js/utils';
 
 import { initProxyHandler } from "./proxy";
 

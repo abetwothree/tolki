@@ -1,5 +1,5 @@
 import { wrap as arrWrap } from "@laravel-js/arr";
-import { castableToArray, compareValues, getAccessibleValues,isAccessibleData, isArray, isBoolean, isFalsy, isFiniteNumber, isFunction, isMap, isNonPrimitive, isNull, isNumber, isObject, isPrimitive, isSet, isString, isStringable, isSymbol, isTruthy, isUndefined, isWeakMap, isWeakSet, normalizeToArray, resolveDefault, typeOf } from '@laravel-js/utils';
+import { castableToArray, compareValues, getAccessibleValues,isAccessibleData, isArray, isBoolean, isFalsy, isFiniteNumber, isFloat, isFunction, isInteger, isMap, isNegativeNumber, isNonPrimitive, isNull, isNumber, isObject, isPositiveNumber, isPrimitive, isSet, isString, isStringable, isSymbol, isTruthy, isUndefined, isWeakMap, isWeakSet, normalizeToArray, resolveDefault, toArrayable, toJsonable, toJsonSerializable, typeOf } from '@laravel-js/utils';
 import type { ArrayItems, ObjectKey, PathKey, PathKeys } from "packages/types";
 
 /**
@@ -20,9 +20,12 @@ import type { ArrayItems, ObjectKey, PathKey, PathKeys } from "packages/types";
  * parseSegments(null); -> []
  */
 export function parseSegments(key: PathKey): (number | string)[] | null {
-    if (key == null) return [];
-    if (typeof key === "number") {
-        return Number.isInteger(key) && key >= 0 ? [key] : null;
+    if (isNull(key)) {
+        return [];
+    }
+
+    if (isNumber(key)) {
+        return isInteger(key) && key >= 0 ? [key] : null;
     }
 
     const path = String(key);
@@ -40,7 +43,7 @@ export function parseSegments(key: PathKey): (number | string)[] | null {
 
         // Try to parse as number first
         const n = Number(p);
-        if (Number.isInteger(n) && n >= 0) {
+        if (isInteger(n) && n >= 0) {
             segs.push(n);
         } else {
             // Use as string key for object properties
@@ -80,7 +83,7 @@ export function hasPath(
 
     if (typeof key === "number") {
         if (isArray(root)) {
-            return Number.isInteger(key) && key >= 0 && key < root.length;
+            return isInteger(key) && key >= 0 && key < root.length;
         }
         // For objects, numeric keys are treated as string keys
         return root != null && typeof root === "object" && String(key) in root;
@@ -140,7 +143,7 @@ export function getRaw(
 
     if (typeof key === "number") {
         if (isArray(root)) {
-            if (!Number.isInteger(key) || key < 0 || key >= root.length) {
+            if (!isInteger(key) || key < 0 || key >= root.length) {
                 return { found: false };
             }
             return { found: true, value: root[key] };
@@ -291,7 +294,7 @@ export function forgetKeysArray<T>(
 ): T[] {
     // This mirrors Arr.forget implementation (immutable)
     const removeAt = <U>(arr: ReadonlyArray<U>, index: number): U[] => {
-        if (!Number.isInteger(index) || index < 0 || index >= arr.length) {
+        if (!isInteger(index) || index < 0 || index >= arr.length) {
             return arr.slice();
         }
         const clone = arr.slice();
@@ -306,7 +309,7 @@ export function forgetKeysArray<T>(
         if (rest.length === 0) {
             return removeAt(clone, head!);
         }
-        if (!Number.isInteger(head) || head! < 0 || head! >= clone.length) {
+        if (!isInteger(head) || head! < 0 || head! >= clone.length) {
             return clone;
         }
         const child = clone[head!] as unknown;
@@ -326,7 +329,7 @@ export function forgetKeysArray<T>(
             return updater(arr.slice() as unknown as U[]) as unknown as U[];
         }
         const [head, ...rest] = parentPath;
-        if (!Number.isInteger(head) || head! < 0 || head! >= arr.length) {
+        if (!isInteger(head) || head! < 0 || head! >= arr.length) {
             return arr.slice();
         }
         const clone = arr.slice();
@@ -401,7 +404,7 @@ export function forgetKeysArray<T>(
     let out = data.slice() as unknown[];
     for (const { path, indices } of groups) {
         const sorted = Array.from(indices)
-            .filter((i) => Number.isInteger(i) && i >= 0)
+            .filter((i) => isInteger(i) && i >= 0)
             .sort((a, b) => b - a);
         if (sorted.length === 0) continue;
         out = updateAtPath(out, path, (child) => {
@@ -448,7 +451,7 @@ export function setImmutable<T>(
     const root = toArr(data);
 
     const clampIndex = (idx: number, length: number): number => {
-        if (!Number.isInteger(idx) || idx < 0) return -1;
+        if (!isInteger(idx) || idx < 0) return -1;
         return idx > length ? length : idx;
     };
 
@@ -457,7 +460,7 @@ export function setImmutable<T>(
         (typeof key === "string" && key.indexOf(".") === -1)
     ) {
         const raw = typeof key === "number" ? key : Number(key);
-        if (!Number.isInteger(raw) || raw < 0) return root as T[];
+        if (!isInteger(raw) || raw < 0) return root as T[];
         const idx = clampIndex(raw, root.length);
         if (idx === -1) return root as T[];
         const out = root.slice();
@@ -473,7 +476,7 @@ export function setImmutable<T>(
     const segments: number[] = [];
     for (const p of parts) {
         const n = p.length ? Number(p) : NaN;
-        if (!Number.isInteger(n) || n < 0) return root as T[];
+        if (!isInteger(n) || n < 0) return root as T[];
         segments.push(n);
     }
 
@@ -841,7 +844,7 @@ export function undotExpandArray(map: Record<string, unknown>): unknown[] {
     const root: unknown[] = [];
     const isValidIndex = (seg: string): boolean => {
         const n = seg.length ? Number(seg) : NaN;
-        return Number.isInteger(n) && n >= 0;
+        return isInteger(n) && n >= 0;
     };
     for (const [rawKey, value] of Object.entries(map ?? {})) {
         if (typeof rawKey !== "string" || rawKey.length === 0) continue;
@@ -997,7 +1000,7 @@ export function getMixedValue<T, D = null>(
     const segments = keyStr.split(".");
     const allNumeric = segments.every((seg) => {
         const n = Number(seg);
-        return Number.isInteger(n) && n >= 0;
+        return isInteger(n) && n >= 0;
     });
 
     // If all segments are numeric, use existing getRaw function
@@ -1051,7 +1054,7 @@ export function setMixed(
 
     if (typeof key === "number") {
         // Direct array index
-        if (Number.isInteger(key) && key >= 0) {
+        if (isInteger(key) && key >= 0) {
             // Extend array if necessary
             while (arr.length <= key) {
                 arr.push(undefined);
@@ -1071,7 +1074,7 @@ export function setMixed(
 
     const firstIndex = parseInt(firstSegment, 10);
     if (isArray(current)) {
-        if (!Number.isInteger(firstIndex) || firstIndex < 0) {
+        if (!isInteger(firstIndex) || firstIndex < 0) {
             // If first segment is not a valid array index and array is not empty,
             // treat this as an invalid path and return unchanged
             if (current.length > 0) {
@@ -1089,7 +1092,7 @@ export function setMixed(
 
         const index = parseInt(segment, 10);
 
-        if (Number.isInteger(index) && index >= 0 && isArray(current)) {
+        if (isInteger(index) && index >= 0 && isArray(current)) {
             // Extend array if necessary
             while (current.length <= index) {
                 current.push(undefined);
@@ -1100,7 +1103,7 @@ export function setMixed(
                 const nextSegment = segments[i + 1];
                 if (nextSegment) {
                     const nextIndex = parseInt(nextSegment, 10);
-                    current[index] = Number.isInteger(nextIndex) ? [] : {};
+                    current[index] = isInteger(nextIndex) ? [] : {};
                 } else {
                     current[index] = {};
                 }
@@ -1114,7 +1117,7 @@ export function setMixed(
                 const nextSegment = segments[i + 1];
                 if (nextSegment) {
                     const nextIndex = parseInt(nextSegment, 10);
-                    obj[segment] = Number.isInteger(nextIndex) ? [] : {};
+                    obj[segment] = isInteger(nextIndex) ? [] : {};
                 } else {
                     obj[segment] = {};
                 }
@@ -1129,7 +1132,7 @@ export function setMixed(
 
     const lastIndex = parseInt(lastSegment, 10);
 
-    if (Number.isInteger(lastIndex) && lastIndex >= 0 && isArray(current)) {
+    if (isInteger(lastIndex) && lastIndex >= 0 && isArray(current)) {
         while (current.length <= lastIndex) {
             current.push(undefined);
         }
@@ -1180,7 +1183,7 @@ export function pushMixed<T>(
     if (segments.length === 1) {
         // Simple case: push directly to root array at the specified index
         const idx = parseInt(segments[0]!, 10);
-        if (Number.isInteger(idx) && idx >= 0) {
+        if (isInteger(idx) && idx >= 0) {
             // Push directly to the array - don't create nested structure
             (data as unknown[]).push(...(values as unknown[]));
         }
@@ -1195,7 +1198,7 @@ export function pushMixed<T>(
 
         const index = parseInt(segment, 10);
 
-        if (Number.isInteger(index) && index >= 0 && isArray(current)) {
+        if (isInteger(index) && index >= 0 && isArray(current)) {
             // Extend array if necessary
             while (current.length <= index) {
                 current.push(undefined);
