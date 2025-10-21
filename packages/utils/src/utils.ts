@@ -75,22 +75,6 @@ export function isStringable(value: unknown): value is string | { toString(): st
 }
 
 /**
- * Check if a value is arrayable (an array or has a toArray method).
- *
- * @param value - The value to check
- * @returns True if the value is arrayable
- *
- * @example
- *
- * isArrayable([1, 2, 3]); -> true
- * isArrayable({ toArray: () => [1, 2, 3] }); -> true
- * isArrayable("hello"); -> false
- */
-export function isArrayable<T>(value: unknown): value is T[] | { toArray(): T[] } {
-    return isArray(value) || (isObject(value) && !isNull(value) && isFunction((value as { toArray?: unknown }).toArray));
-}
-
-/**
  * Check if a value is a number (and not NaN).
  *
  * @param value - The value to check
@@ -246,6 +230,52 @@ export function isWeakMap<K extends object, V>(value: unknown): value is WeakMap
  */
 export function isWeakSet<T extends object>(value: unknown): value is WeakSet<T> {
     return value instanceof WeakSet;
+}
+
+/**
+ * Check if a value is arrayable (has a toArray method).
+ *
+ * @param value - The value to check
+ * @returns True if the value is arrayable
+ *
+ * @example
+ *
+ * isArrayable({ toArray: () => [1, 2, 3] }); -> true
+ * isArrayable([1, 2, 3]); -> false
+ * isArrayable("hello"); -> false
+ */
+export function toArrayable<T>(value: unknown): value is { toArray(): T[] } {
+    return isObject(value) && !isNull(value) && isFunction((value as { toArray?: unknown }).toArray);
+}
+
+/**
+ * Check if a value is jsonable (has a toJSON method).
+ *
+ * @param value - The value to check
+ * @returns True if the value is jsonable
+ *
+ * @example
+ *
+ * isJsonable({ toJSON: () => ({ a: 1 }) }); -> true
+ * isJsonable("hello"); -> false
+ */
+export function toJsonable<T>(value: unknown): value is { toJSON(): T } {
+    return isObject(value) && !isNull(value) && isFunction((value as { toJSON?: unknown }).toJSON);
+}
+
+/**
+ * Check if a value is json serializable (has a jsonSerialize method).
+ *
+ * @param value - The value to check
+ * @returns True if the value is json serializable
+ *
+ * @example
+ *
+ * isJsonSerializable({ jsonSerialize: () => ({ a: 1 }) }); -> true
+ * isJsonSerializable("hello"); -> false
+ */
+export function toJsonSerializable<T>(value: unknown): value is { jsonSerialize(): T } {
+    return isObject(value) && !isNull(value) && isFunction((value as { jsonSerialize?: unknown }).jsonSerialize);
 }
 
 /**

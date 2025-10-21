@@ -12,7 +12,7 @@ import type {
     PropertyName,
     ProxyTarget,
 } from "@laravel-js/types";
-import { castableToArray, compareValues, getAccessibleValues, isAccessibleData, isArray, isArrayable,isBoolean, isFalsy, isFunction, isNull, isNumber, isObject, isString, isStringable, isSymbol, isTruthy, isUndefined, normalizeToArray, resolveDefault, typeOf } from '@laravel-js/utils';
+import { isArray, isObject, isString, isStringable, isNumber, isBoolean, isFunction, isUndefined, isSymbol, isNull, isMap, isSet, isWeakMap, isWeakSet, toArrayable, toJsonable, toJsonSerializable, isFalsy, isTruthy, typeOf, isPrimitive, isNonPrimitive, isFiniteNumber, castableToArray, compareValues, resolveDefault, normalizeToArray, isAccessibleData, getAccessibleValues } from '@laravel-js/utils';
 
 import { initProxyHandler } from "./proxy";
 
@@ -3795,17 +3795,12 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     jsonSerialize() {
         return this.map((value) => {
-            if (
-                isObject(value) &&
-                !isNull(value)
-            ) {
-                if( "toJSON" in value && isFunction((value as { toJSON: unknown }).toJSON) ) {
-                    return (value as { toJSON: () => unknown }).toJSON();
-                }
+            if(toJsonable(value)){
+                return value.toJSON();
+            }
 
-                if( "jsonSerialize" in value && isFunction((value as { jsonSerialize: unknown }).jsonSerialize) ) {
-                    return (value as { jsonSerialize: () => unknown }).jsonSerialize();
-                }
+            if(toJsonSerializable(value)){
+                return value.jsonSerialize();
             }
 
             return this.getRawItems(value);
@@ -4088,8 +4083,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
         }
 
         // If it has a toArray method, use it
-        if (isArrayable(items)) {
-            return (isArray(items) ? items : items.toArray()) as DataItems<TValue, TKey>;
+        if (toArrayable(items)) {
+            return items.toArray() as DataItems<TValue, TKey>;
         }
 
         // If it's an empty array, return empty array
