@@ -68,7 +68,7 @@ export function add<TValue, TKey extends ObjectKey = ObjectKey>(
 ): Record<TKey, TValue> {
     const mutableData = { ...data };
 
-    if (getObjectValue(mutableData, key) === null) {
+    if (isNull(getObjectValue(mutableData, key))) {
         return setObjectValue(mutableData, key, value);
     }
 
@@ -402,7 +402,7 @@ export function first<TValue, TKey extends ObjectKey = ObjectKey, TFirstDefault 
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
     const resolveDefault = (): TFirstDefault | null => {
-        if (defaultValue === undefined) {
+        if (isUndefined(defaultValue)) {
             return null;
         }
 
@@ -411,7 +411,7 @@ export function first<TValue, TKey extends ObjectKey = ObjectKey, TFirstDefault 
             : (defaultValue as TFirstDefault);
     };
 
-    if (data == null || !accessible(data)) {
+    if (isNull(data) || !accessible(data)) {
         return resolveDefault();
     }
 
@@ -458,7 +458,7 @@ export function last<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null
     defaultValue?: TDefault | (() => TDefault),
 ): TValue | TDefault | null {
     const resolveDefault = (): TDefault | null => {
-        if (defaultValue === undefined) {
+        if (isUndefined(defaultValue)) {
             return null;
         }
 
@@ -467,7 +467,7 @@ export function last<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null
             : (defaultValue as TDefault);
     };
 
-    if (data == null || !accessible(data)) {
+    if (isNull(data) || !accessible(data)) {
         return resolveDefault();
     }
 
@@ -1289,7 +1289,7 @@ export function pop<TValue, TKey extends ObjectKey = ObjectKey>(
     data: Record<TKey, TValue> | null | undefined,
     count: number = 1,
 ): TValue | TValue[] | null {
-    if (data == null || !accessible(data)) {
+    if (isNull(data) || !accessible(data)) {
         return count === 1 ? null : [];
     }
 
@@ -1525,7 +1525,7 @@ export function pull<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null
  * query({ tags: ['php', 'js'] }); -> 'tags[0]=php&tags[1]=js'
  */
 export function query(data: unknown): string {
-    if (data === null || data === undefined) {
+    if (isNull(data) || isUndefined(data)) {
         return "";
     }
 
@@ -1754,7 +1754,7 @@ export function push<TValue, TKey extends ObjectKey = ObjectKey>(
             throw new Error("Cannot push to root of non-object data");
         }
 
-        return setObjectValue({}, key, values);
+        return setObjectValue({} as Record<TKey, TValue>, key, values);
     }
 
     if (isNull(key)) {
@@ -1768,10 +1768,10 @@ export function push<TValue, TKey extends ObjectKey = ObjectKey>(
 
     if (isArray(existingValue)) {
         const newArray = [...existingValue, ...values];
-        return setObjectValue(obj, key, newArray);
-    } else if (existingValue === null) {
+        return setObjectValue(obj, key, newArray) as Record<TKey, TValue>;
+    } else if (isNull(existingValue)) {
         // Create new array if path doesn't exist
-        return setObjectValue(obj, key, [...values]);
+        return setObjectValue(obj, key, [...values]) as Record<TKey, TValue>;
     } else {
         throw new Error(`Cannot push to non-array value at key [${key}]`);
     }
@@ -1834,7 +1834,7 @@ export function slice<TValue, TKey extends ObjectKey = ObjectKey>(
     const obj = data as Record<string, TValue>;
     const entries = Object.entries(obj);
 
-    const slicedEntries = length === null
+    const slicedEntries = isNull(length)
         ? entries.slice(offset)
         : entries.slice(offset, offset + length);
 
