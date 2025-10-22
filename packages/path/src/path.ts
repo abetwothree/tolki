@@ -496,16 +496,16 @@ export function forgetKeysArray<TValue>(
  * setImmutable([['old']], "0.0", 'new'); -> [['new']]
  * setImmutable([], 0, 'first'); -> ['first']
  */
-export function setImmutable<T>(
-    data: ArrayItems<T> | unknown,
+export function setImmutable<TValue>(
+    data: ArrayItems<TValue> | unknown,
     key: PathKey,
-    value: T,
-): T[] {
+    value: TValue,
+): TValue[] {
     if (isNull(key)) {
-        return value as unknown as T[];
+        return value as unknown as TValue[];
     }
 
-    if (!isArray<T>(data)) {
+    if (!isArray(data)) {
         return [];
     }
 
@@ -529,12 +529,12 @@ export function setImmutable<T>(
     ) {
         const raw = isNumber(key) ? key : Number(key);
         if (!isInteger(raw) || raw < 0) {
-            return root as T[];
+            return root as TValue[];
         }
 
         const idx = clampIndex(raw, root.length);
         if (idx === -1) {
-            return root as T[];
+            return root as TValue[];
         }
 
         const out = root.slice();
@@ -544,7 +544,7 @@ export function setImmutable<T>(
             out[idx] = value as unknown;
         }
 
-        return out as T[];
+        return out as TValue[];
     }
 
     const parts = String(key).split(".");
@@ -552,7 +552,7 @@ export function setImmutable<T>(
     for (const p of parts) {
         const n = p.length ? Number(p) : NaN;
         if (!isInteger(n) || n < 0) {
-            return root as T[];
+            return root as TValue[];
         }
 
         segments.push(n);
@@ -565,7 +565,7 @@ export function setImmutable<T>(
         const atLast = i === segments.length - 1;
         const idx = clampIndex(desired, cursor.length);
         if (idx === -1) {
-            return root as T[];
+            return root as TValue[];
         }
 
         if (atLast) {
@@ -574,31 +574,38 @@ export function setImmutable<T>(
             } else {
                 cursor[idx] = value as unknown;
             }
+
             break;
         }
+
         if (idx === cursor.length) {
             const child: unknown[] = [];
             cursor.push(child);
             cursor = child;
+
             continue;
         }
+
         const next = cursor[idx];
         if (isNull(next)) {
             const child: unknown[] = [];
             cursor[idx] = child;
             cursor = child;
+
             continue;
         }
+
         if (isArray(next)) {
             const cloned = (next as unknown[]).slice();
             cursor[idx] = cloned;
             cursor = cloned;
+
             continue;
         }
 
-        return root as T[];
+        return root as TValue[];
     }
-    return out as T[];
+    return out as TValue[];
 }
 
 /**
@@ -617,25 +624,25 @@ export function setImmutable<T>(
  * pushWithPath([['x']], "0", 'y'); -> [['x', 'y']]
  * pushWithPath([], "0", 'first'); -> [['first']]
  */
-export function pushWithPath<T>(
-    data: T[] | unknown,
+export function pushWithPath<TValue>(
+    data: TValue[] | unknown,
     key: PathKey,
-    ...values: T[]
-): T[] {
+    ...values: TValue[]
+): TValue[] {
     if (isNull(key)) {
         if (isArray(data)) {
             (data as unknown[]).push(...(values as unknown[]));
-            return data as T[];
+            return data as TValue[];
         }
 
-        return [...(values as unknown[])] as T[];
+        return [...(values as unknown[])] as TValue[];
     }
 
     if (!isArray(data)) {
         const out: unknown[] = [];
         const segs = parseSegments(key);
         if (!segs || segs.length === 0) {
-            return out as T[];
+            return out as TValue[];
         }
 
         // Filter to only numeric segments for array operations
@@ -644,7 +651,7 @@ export function pushWithPath<T>(
         );
         if (numericSegs.length !== segs.length) {
             // Mixed paths not supported in this array-only function
-            return out as T[];
+            return out as TValue[];
         }
 
         const parentSegs = numericSegs.slice(0, -1);
@@ -652,6 +659,7 @@ export function pushWithPath<T>(
         let cursor: unknown[] = out;
         for (const desired of parentSegs) {
             const idx = desired > cursor.length ? cursor.length : desired;
+
             if (idx === cursor.length) {
                 const child: unknown[] = [];
                 cursor.push(child);
@@ -671,6 +679,7 @@ export function pushWithPath<T>(
                 }
             }
         }
+
         if (leaf < cursor.length) {
             const existing = cursor[leaf];
             if (isBoolean(existing)) {
@@ -679,8 +688,10 @@ export function pushWithPath<T>(
                 );
             }
         }
+
         cursor.push(...(values as unknown[]));
-        return out as T[];
+
+        return out as TValue[];
     }
 
     const isPlainArray = isArray(data);
@@ -688,29 +699,32 @@ export function pushWithPath<T>(
 
     const segs = parseSegments(key);
     if (!segs || segs.length === 0) {
-        return isPlainArray ? (data as T[]) : (root as T[]);
+        return isPlainArray ? (data as TValue[]) : (root as TValue[]);
     }
 
     // Filter to only numeric segments for array operations
     const numericSegs = segs.filter((s): s is number => isNumber(s));
     if (numericSegs.length !== segs.length) {
         // Mixed paths not supported in this array-only function
-        return isPlainArray ? (data as T[]) : (root as T[]);
+        return isPlainArray ? (data as TValue[]) : (root as TValue[]);
     }
 
     const clamp = (idx: number, length: number): number => {
         return idx > length ? length : idx;
     };
+
     let cursor: unknown[] = root;
     for (let i = 0; i < numericSegs.length - 1; i++) {
         const desired = numericSegs[i]!;
         const idx = clamp(desired, cursor.length);
+
         if (idx === cursor.length) {
             const child: unknown[] = [];
             cursor.push(child);
             cursor = child;
             continue;
         }
+
         const next = cursor[idx];
         if (isNull(next)) {
             const child: unknown[] = [];
@@ -718,6 +732,7 @@ export function pushWithPath<T>(
             cursor = child;
             continue;
         }
+
         if (isArray(next)) {
             cursor = next as unknown[];
             continue;
@@ -727,6 +742,7 @@ export function pushWithPath<T>(
             `Array value for key [${String(key)}] must be an array, ${typeOf(next)} found.`,
         );
     }
+
     const leaf = numericSegs[numericSegs.length - 1]!;
     if (leaf < cursor.length) {
         const existing = cursor[leaf];
@@ -736,8 +752,10 @@ export function pushWithPath<T>(
             );
         }
     }
+
     cursor.push(...(values as unknown[]));
-    return isPlainArray ? (data as T[]) : (root as T[]);
+
+    return isPlainArray ? (data as TValue[]) : (root as TValue[]);
 }
 
 /**
@@ -873,9 +891,9 @@ export function dotFlattenArray<TValue>(
  * undotExpand({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
  * undotExpand({'0': 'x', '1.name': 'John'}); -> ['x', {name: 'John'}]
  */
-export function undotExpand(
-    map: Record<string, unknown>,
-): unknown[] | Record<string, unknown> {
+export function undotExpand<TValue, TKey extends ObjectKey = ObjectKey>(
+    map: Record<TKey, TValue>,
+): TValue[] | Record<TKey, TValue> {
     if (isObject(map)) {
         return undotExpandObject(map);
     }
@@ -898,8 +916,8 @@ export function undotExpand(
  */
 export function undotExpandObject<TValue, TKey extends ObjectKey = ObjectKey>(
     map: Record<TKey, TValue>,
-): Record<string, TValue> {
-    const results: Record<string, TValue> = {} as Record<string, TValue>;
+): Record<TKey, TValue> {
+    const results: Record<string, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(map) as [TKey, TValue][]) {
         const keyStr = isSymbol(key) ? key.toString() : String(key);
@@ -907,7 +925,7 @@ export function undotExpandObject<TValue, TKey extends ObjectKey = ObjectKey>(
         Object.assign(results, result);
     }
 
-    return results;
+    return results as Record<TKey, TValue>;
 }
 
 /**
@@ -923,7 +941,9 @@ export function undotExpandObject<TValue, TKey extends ObjectKey = ObjectKey>(
  * undotExpandArray({ '0': 'a', '1.0': 'b', '1.1': 'c' }); -> ['a', ['b', 'c']]
  * undotExpandArray({ '0.0.0': 'deep' }); -> [[['deep']]]
  */
-export function undotExpandArray(map: Record<string, unknown>): unknown[] {
+export function undotExpandArray<TValue, TKey extends ObjectKey = ObjectKey>(
+    map: Record<TKey, TValue>,
+): TValue[] {
     const root: unknown[] = [];
     const isValidIndex = (seg: string): boolean => {
         const n = seg.length ? Number(seg) : NaN;
@@ -948,6 +968,7 @@ export function undotExpandArray(map: Record<string, unknown>): unknown[] {
                 cursor = null;
                 break;
             }
+
             if (atEnd) {
                 arr[idx] = value as unknown;
             } else {
@@ -965,7 +986,8 @@ export function undotExpandArray(map: Record<string, unknown>): unknown[] {
             }
         }
     }
-    return root;
+    
+    return root as TValue[];
 }
 
 /**
@@ -998,8 +1020,11 @@ export function undotExpandArray(map: Record<string, unknown>): unknown[] {
  * Path not found
  * getNestedValue([{items: ['x']}], '0.items.5'); -> undefined
  */
-export function getNestedValue<T>(obj: unknown, path: string): T | undefined {
-    if (!obj || !isObject(obj)) {
+export function getNestedValue<TReturn>(
+    obj: unknown, 
+    path: string,
+): TReturn | undefined {
+    if (isFalsy(obj) || !isObject(obj)) {
         return undefined;
     }
 
@@ -1027,7 +1052,7 @@ export function getNestedValue<T>(obj: unknown, path: string): T | undefined {
         }
     }
 
-    return current as T | undefined;
+    return current as TReturn | undefined;
 }
 
 /**
@@ -1048,19 +1073,19 @@ export function getNestedValue<T>(obj: unknown, path: string): T | undefined {
  * getMixedValue(['a', 'b'], 1); -> 'b'
  * getMixedValue([], '0', 'default'); -> 'default'
  */
-export function getMixedValue<T, D = null>(
-    data: ArrayItems<T> | unknown,
+export function getMixedValue<TValue, TDefault = null>(
+    data: ArrayItems<TValue> | unknown,
     key: PathKey,
-    defaultValue: D | (() => D) | null = null,
-): unknown {
-    const resolveDefault = (): D | null => {
+    defaultValue: TDefault | (() => TDefault) | null = null,
+): TValue | TDefault | null {
+    const resolveDefault = (): TDefault | null => {
         return isFunction(defaultValue)
-            ? (defaultValue as () => D)()
-            : (defaultValue as D);
+            ? (defaultValue as () => TDefault)()
+            : (defaultValue as TDefault);
     };
 
     if (isNull(key)) {
-        return data;
+        return data as TValue;
     }
 
     // For simple numeric keys, use existing getRaw function
@@ -1070,7 +1095,7 @@ export function getMixedValue<T, D = null>(
         }
         const root = castableToArray(data)!;
         const { found, value } = getRaw(root, key);
-        return found ? value : resolveDefault();
+        return found ? (value as TValue) : resolveDefault();
     }
 
     const keyStr = String(key);
@@ -1082,7 +1107,7 @@ export function getMixedValue<T, D = null>(
         }
         const root = castableToArray(data)!;
         const { found, value } = getRaw(root, key);
-        return found ? value : resolveDefault();
+        return found ? (value as TValue) : resolveDefault();
     }
 
     // For dot notation, check if we have mixed notation (not all numeric)
@@ -1099,13 +1124,13 @@ export function getMixedValue<T, D = null>(
         }
         const root = castableToArray(data)!;
         const { found, value } = getRaw(root, key);
-        return found ? value : resolveDefault();
+        return found ? (value as TValue) : resolveDefault();
     }
 
     // For mixed notation, use our helper
-    const result = getNestedValue(data, keyStr);
+    const result = getNestedValue<TValue>(data, keyStr);
 
-    return isUndefined(result) ? resolveDefault() : result;
+    return isUndefined(result) ? resolveDefault() : (result as TValue);
 }
 
 /**
@@ -1126,18 +1151,18 @@ export function getMixedValue<T, D = null>(
  * setMixed([{ name: "John" }], "0.age", 30); -> [{ name: "John", age: 30 }]
  * setMixed([], "user.name", "John"); -> [{ user: { name: "John" } }]
  */
-export function setMixed(
-    arr: unknown[],
+export function setMixed<TValue>(
+    arr: TValue[],
     key: PathKey,
     value: unknown,
-): unknown[] {
-    if (isNull(key)) {
+): TValue[] {
+    if (isNull(key) || isUndefined(key)) {
         // If key is null, replace the entire array
         arr.length = 0;
         if (isArray(value)) {
-            arr.push(...value);
+            arr.push(...(value as TValue[]));
         } else {
-            arr.push(value);
+            arr.push(value as TValue);
         }
         return arr;
     }
@@ -1147,10 +1172,12 @@ export function setMixed(
         if (isInteger(key) && key >= 0) {
             // Extend array if necessary
             while (arr.length <= key) {
-                arr.push(undefined);
+                arr.push(undefined as unknown as TValue);
             }
-            arr[key] = value;
+
+            arr[key] = value as TValue;
         }
+
         return arr;
     }
 
@@ -1195,9 +1222,9 @@ export function setMixed(
                 const nextSegment = segments[i + 1];
                 if (nextSegment) {
                     const nextIndex = parseInt(nextSegment, 10);
-                    current[index] = isInteger(nextIndex) ? [] : {};
+                    current[index] = (isInteger(nextIndex) ? [] : {}) as TValue;
                 } else {
-                    current[index] = {};
+                    current[index] = {} as TValue;
                 }
             }
 
@@ -1228,9 +1255,9 @@ export function setMixed(
 
     if (isInteger(lastIndex) && lastIndex >= 0 && isArray(current)) {
         while (current.length <= lastIndex) {
-            current.push(undefined);
+            current.push(undefined as TValue);
         }
-        current[lastIndex] = value;
+        current[lastIndex] = value as TValue;
     } else if (current != null && isObject(current)) {
         (current as Record<string, unknown>)[lastSegment] = value;
     }
@@ -1252,24 +1279,25 @@ export function setMixed(
  * pushMixed([], '0', 'value'); -> [['value']]
  * pushMixed([{items: []}], '0.items', 'new'); -> [{items: ['new']}]
  */
-export function pushMixed<T>(
-    data: T[] | unknown,
+export function pushMixed<TValue>(
+    data: TValue[] | unknown,
     key: PathKey,
-    ...values: T[]
-): T[] {
-    if (isNull(key)) {
+    ...values: TValue[]
+): TValue[] {
+    if (isNull(key) || isUndefined(key)) {
         if (isArray(data)) {
             (data as unknown[]).push(...(values as unknown[]));
-            return data as T[];
+            return data as TValue[];
         }
-        return [...(values as unknown[])] as T[];
+
+        return [...(values as unknown[])] as TValue[];
     }
 
     if (!isArray(data)) {
         // Create a new array and set the values at the path
         const arr: unknown[] = [];
         setMixed(arr, key, values.length === 1 ? values[0] : values);
-        return arr as T[];
+        return arr as TValue[];
     }
 
     // Navigate to the target using mixed paths
@@ -1281,7 +1309,7 @@ export function pushMixed<T>(
             // Push directly to the array - don't create nested structure
             (data as unknown[]).push(...(values as unknown[]));
         }
-        return data as T[];
+        return data as TValue[];
     }
 
     // Complex case: navigate through mixed path (all segments except the last)
@@ -1322,7 +1350,7 @@ export function pushMixed<T>(
         current.push(...(values as unknown[]));
     }
 
-    return data as T[];
+    return data as TValue[];
 }
 
 /**
@@ -1339,19 +1367,19 @@ export function pushMixed<T>(
  * setMixedImmutable([{ name: "John" }], "0.age", 30); -> [{ name: "John", age: 30 }]
  * setMixedImmutable([], "user.name", "John"); -> [{ user: { name: "John" } }]
  */
-export function setMixedImmutable<T>(
-    data: ArrayItems<T> | unknown,
+export function setMixedImmutable<TValue>(
+    data: ArrayItems<TValue> | unknown,
     key: PathKey,
-    value: T,
-): T[] {
+    value: TValue,
+): TValue[] {
     // Handle null key - replace entire data structure
     if (isNull(key) || isUndefined(key)) {
-        return value as unknown as T[];
+        return value as unknown as TValue[];
     }
 
     // If data is not accessible (not an array), return empty array
     if (!isArray(data)) {
-        return [] as T[];
+        return [] as TValue[];
     }
 
     // Create a deep copy for immutable operation
@@ -1378,7 +1406,7 @@ export function setMixedImmutable<T>(
     const arr = deepCopy(data) as unknown[];
 
     // Use the mutable version on the copy
-    return setMixed(arr, key, value) as T[];
+    return setMixed(arr, key, value) as TValue[];
 }
 
 /**
@@ -1423,19 +1451,19 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
  * @param defaultValue - The default value if the key is not found.
  * @returns The value or the default value.
  */
-export function getObjectValue<T = unknown, D = null>(
+export function getObjectValue<TReturn = unknown, TDefault = null>(
     obj: unknown,
     key: PathKey,
-    defaultValue: D | (() => D) | null = null,
-): T | D | null {
-    const resolveDefault = (): D | null => {
+    defaultValue: TDefault | (() => TDefault) | null = null,
+): TReturn | TDefault | null {
+    const resolveDefault = (): TDefault | null => {
         return isFunction(defaultValue)
-            ? (defaultValue as () => D)()
-            : (defaultValue as D);
+            ? (defaultValue as () => TDefault)()
+            : (defaultValue as TDefault);
     };
 
     if (isNull(key)) {
-        return obj as T;
+        return obj as TReturn;
     }
 
     if (!isObject(obj)) {
@@ -1448,13 +1476,13 @@ export function getObjectValue<T = unknown, D = null>(
     if (!keyStr.includes(".")) {
         const value = (obj as Record<string, unknown>)[keyStr];
 
-        return !isUndefined(value) ? (value as T) : resolveDefault();
+        return !isUndefined(value) ? (value as TReturn) : resolveDefault();
     }
 
     // Handle nested property access with dot notation
     const value = getNestedValue(obj, keyStr);
 
-    return !isUndefined(value) ? (value as T) : resolveDefault();
+    return !isUndefined(value) ? (value as TReturn) : resolveDefault();
 }
 
 /**
@@ -1470,22 +1498,23 @@ export function setObjectValue<TValue, TKey extends ObjectKey = ObjectKey>(
     obj: Record<TKey, TValue>,
     key: PathKey | null,
     value: unknown,
-): Record<string, TValue> {
+): Record<TKey, TValue> {
     if (isNull(key)) {
-        return value as Record<string, TValue>;
+        return value as Record<TKey, TValue>;
     }
 
     if (!isObject(obj)) {
         obj = {} as Record<TKey, TValue>;
     }
 
-    const result = { ...(obj as Record<string, unknown>) };
+    const result = { ...(obj as Record<TKey, unknown>) };
     const keyStr = String(key);
 
     // Handle simple property access (no dots)
     if (!keyStr.includes(".")) {
-        result[keyStr] = value;
-        return result as Record<string, TValue>;
+        result[keyStr as TKey] = value;
+        
+        return result as Record<TKey, TValue>;
     }
 
     // Handle nested property access with dot notation
@@ -1494,7 +1523,9 @@ export function setObjectValue<TValue, TKey extends ObjectKey = ObjectKey>(
 
     for (let i = 0; i < segments.length - 1; i++) {
         const segment = segments[i];
-        if (!segment) continue;
+        if (!segment) {
+            continue;
+        }
 
         if (!current[segment] || !isObject(current[segment])) {
             current[segment] = {};
@@ -1513,7 +1544,7 @@ export function setObjectValue<TValue, TKey extends ObjectKey = ObjectKey>(
         current[lastSegment] = value;
     }
 
-    return result as Record<string, TValue>;
+    return result as Record<TKey, TValue>;
 }
 
 /**
@@ -1523,7 +1554,10 @@ export function setObjectValue<TValue, TKey extends ObjectKey = ObjectKey>(
  * @param key - The key or dot-notated path.
  * @returns True if the key exists, false otherwise.
  */
-export function hasObjectKey(obj: unknown, key: PathKey): boolean {
+export function hasObjectKey<TValue, TKey extends ObjectKey = ObjectKey>(
+    obj: Record<TKey, TValue> | unknown, 
+    key: PathKey
+): boolean {
     if (!isObject(obj) || isNull(key)) {
         return false;
     }
