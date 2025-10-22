@@ -267,7 +267,7 @@ export function dataChunk<TValue, TKey extends ObjectKey = ObjectKey>(
  */
 export function dataCollapse<TValue, TKey extends ObjectKey = ObjectKey>(
     data: DataItems<TValue, TKey>,
-): Record<string, TValue | Record<string, unknown>> | TValue[] {
+) {
     if (isObject(data)) {
         return objCollapse(data as Record<TKey, Record<TKey, TValue>>);
     }
@@ -337,8 +337,8 @@ export function dataCrossJoin(data: unknown, ...others: unknown[]): unknown[] {
 
     // For arrays
     return arrCrossJoin(
-        arrWrap(data) as readonly unknown[],
-        ...(others as readonly unknown[][]),
+        arrWrap(data) as unknown[],
+        ...(others as unknown[][]),
     );
 }
 

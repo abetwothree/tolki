@@ -200,7 +200,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([{a: 1}, {b: 2}]).collapse(); -> new Collection({a: 1, b: 2})
      */
     collapse() {
-        return new Collection(dataCollapse<TValue, TKey>(this.items));
+        return new Collection(dataCollapse(this.items) as DataItems<TValue, TKey>);
     }
 
     /**
