@@ -123,7 +123,7 @@ export function boolean<T, D = null>(
 ): boolean {
     const value = getMixedValue(data, key, defaultValue);
 
-    if (typeof value !== "boolean") {
+    if (!isBoolean(value)) {
         throw new Error(
             `Array value for key [${key}] must be a boolean, ${typeOf(value)} found.`,
         );
@@ -396,7 +396,7 @@ export function except<T>(data: ArrayItems<T>, keys: PathKeys): T[] {
  */
 export function exists<T>(data: readonly T[], key: number | string): boolean {
     // Array: only numeric keys are supported
-    const idx = typeof key === "number" ? key : Number(key);
+    const idx = isNumber(key) ? key : Number(key);
     if (Number.isNaN(idx)) {
         return false;
     }
@@ -707,7 +707,7 @@ export function float<T, D = null>(
 ): number {
     const value = getMixedValue(data, key, defaultValue);
 
-    if (typeof value !== "number") {
+    if (!isNumber(value)) {
         throw new Error(
             `Array value for key [${key}] must be a float, ${typeOf(value)} found.`,
         );
@@ -778,7 +778,7 @@ export function from(items: unknown): unknown {
     }
 
     // Plain objects (including new Object(...))
-    if (items !== null && typeof items === "object") {
+    if (!isNull(items) && isObject(items)) {
         return items as Record<string, unknown>;
     }
 
@@ -1489,8 +1489,8 @@ export function query(data: unknown): string {
                 const key = prefix ? `${prefix}[${i}]` : String(i);
                 const value = obj[i];
 
-                if (value !== null && value !== undefined) {
-                    if (typeof value === "object") {
+                if (!isNull(value) && !isUndefined(value)) {
+                    if (isObject(value)) {
                         parts.push(...buildQuery(value, key));
                     } else {
                         // Use a custom encoder that doesn't encode [ and ] to match PHP behavior
@@ -1501,12 +1501,12 @@ export function query(data: unknown): string {
                     }
                 }
             }
-        } else if (typeof obj === "object" && obj !== null) {
+        } else if (isObject(obj) && !isNull(obj)) {
             for (const [objKey, value] of Object.entries(obj)) {
                 const key = prefix ? `${prefix}[${objKey}]` : objKey;
 
-                if (value !== null && value !== undefined) {
-                    if (typeof value === "object") {
+                if (!isNull(value) && !isUndefined(value)) {
+                    if (isObject(value)) {
                         parts.push(...buildQuery(value, key));
                     } else {
                         // Use a custom encoder that doesn't encode [ and ] to match PHP behavior
@@ -1857,7 +1857,7 @@ export function sortDesc<T>(
         return result.sort().reverse();
     }
 
-    if (typeof callback === "string") {
+    if (isString(callback)) {
         // Sort by field name using dot notation in descending order
         return result.sort((a, b) => {
             const aValue = getNestedValue(
@@ -1904,7 +1904,7 @@ export function sortRecursive<T>(
     options?: number,
     descending: boolean = false,
 ): T[] | Record<string, unknown> {
-    if (!accessible(data) && typeof data !== "object") {
+    if (!accessible(data) && !isObject(data)) {
         return data as unknown as T[];
     }
 
@@ -1912,7 +1912,7 @@ export function sortRecursive<T>(
 
     if (isArray(data)) {
         result = data.slice() as T[];
-    } else if (typeof data === "object" && data !== null) {
+    } else if (isObject(data) && !isNull(data)) {
         result = { ...data } as Record<string, unknown>;
     } else {
         result = data as unknown as T[];
@@ -1923,7 +1923,7 @@ export function sortRecursive<T>(
         // First recursively sort nested elements
         for (let i = 0; i < result.length; i++) {
             const item = result[i];
-            if (isArray(item) || (typeof item === "object" && item !== null)) {
+            if (isArray(item) || isObject(item)) {
                 result[i] = sortRecursive(item, options, descending) as T;
             }
         }
@@ -1933,7 +1933,7 @@ export function sortRecursive<T>(
             const comparison = compareValues(a, b);
             return descending ? -comparison : comparison;
         });
-    } else if (typeof result === "object" && result !== null) {
+    } else if (isObject(result) && !isNull(result)) {
         // Sort object properties
         const entries = Object.entries(result);
 
@@ -1941,7 +1941,7 @@ export function sortRecursive<T>(
         for (const [key, value] of entries) {
             if (
                 isArray(value) ||
-                (typeof value === "object" && value !== null)
+                (isObject(value) && !isNull(value))
             ) {
                 result[key] = sortRecursive(value, options, descending);
             }
@@ -2032,7 +2032,7 @@ export function string<T, D = null>(
 ): string {
     const value = getMixedValue(data, key, defaultValue);
 
-    if (typeof value !== "string") {
+    if (!isString(value)) {
         throw new Error(
             `Array value for key [${key}] must be a string, ${typeOf(value)} found.`,
         );
@@ -2056,7 +2056,7 @@ export function string<T, D = null>(
 export function toCssClasses(
     data: ArrayItems<unknown> | Record<string, unknown> | unknown,
 ): string {
-    if (!accessible(data) && typeof data !== "object") {
+    if (!accessible(data) && !isObject(data)) {
         return "";
     }
 
@@ -2065,7 +2065,7 @@ export function toCssClasses(
 
     if (isArray(data)) {
         classList = { ...data };
-    } else if (typeof data === "object" && data !== null) {
+    } else if (isObject(data) && !isNull(data)) {
         classList = data as Record<string, unknown>;
     } else {
         return "";
@@ -2078,7 +2078,7 @@ export function toCssClasses(
 
         if (numericKey) {
             // Numeric key: use the value as class name
-            if (typeof value === "string") {
+            if (isString(value)) {
                 classes.push(value);
             }
         } else {
@@ -2106,7 +2106,7 @@ export function toCssClasses(
 export function toCssStyles(
     data: ArrayItems<unknown> | Record<string, unknown> | unknown,
 ): string {
-    if (!accessible(data) && typeof data !== "object") {
+    if (!accessible(data) && !isObject(data)) {
         return "";
     }
 
@@ -2115,7 +2115,7 @@ export function toCssStyles(
 
     if (isArray(data)) {
         styleList = { ...data };
-    } else if (typeof data === "object" && data !== null) {
+    } else if (isObject(data) && !isNull(data)) {
         styleList = data as Record<string, unknown>;
     } else {
         return "";
@@ -2128,7 +2128,7 @@ export function toCssStyles(
 
         if (numericKey) {
             // Numeric key: use the value as style
-            if (typeof value === "string") {
+            if (isString(value)) {
                 styles.push(Str.finish(value, ";"));
             }
         } else {
