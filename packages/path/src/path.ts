@@ -80,7 +80,9 @@ export function hasPath(
     root: unknown[] | Record<string, unknown>,
     key: PathKey,
 ): boolean {
-    if (key == null) return false;
+    if (isNull(key)) {
+        return false;
+    }
 
     if (isNumber(key)) {
         if (isArray(root)) {
@@ -96,17 +98,28 @@ export function hasPath(
 
     let cursor: unknown = root;
     for (const s of segs) {
-        if (cursor == null || isObject(cursor)) return false;
+        if (isNull(cursor) || isObject(cursor)) {
+            return false;
+        }
 
         if (isNumber(s)) {
             // Numeric segment - check if cursor is an array
             const arr = castableToArray(cursor);
-            if (!arr || s < 0 || s >= arr.length) return false;
+            if (!arr || s < 0 || s >= arr.length) {
+                return false;
+            }
+
             cursor = arr[s];
         } else {
             // String segment - check if cursor is an object
-            if (isArray(cursor)) return false; // Arrays don't have string keys
-            if (!(s in cursor)) return false;
+            if (isArray(cursor)) {
+                return false; // Arrays don't have string keys
+            }
+
+            if (!(s in cursor)) {
+                return false;
+            }
+
             cursor = (cursor as Record<string, unknown>)[s];
         }
     }
@@ -139,7 +152,7 @@ export function getRaw(
     root: unknown[] | Record<string, unknown>,
     key: PathKey,
 ): { found: boolean; value?: unknown } {
-    if (key == null) {
+    if (isNull(key)) {
         return { found: true, value: root };
     }
 
@@ -167,7 +180,7 @@ export function getRaw(
 
     let cursor: unknown = root;
     for (const s of segs) {
-        if (cursor == null || isObject(cursor)){
+        if (isNull(cursor) || isObject(cursor)) {
             return { found: false };
         }
 
@@ -235,7 +248,9 @@ export function forgetKeysObject<T extends Record<string, unknown>>(
     const result = { ...data };
 
     for (const key of keyList) {
-        if (key == null) continue;
+        if (isNull(key)) {
+            continue;
+        }
 
         const keyStr = String(key);
 
@@ -259,16 +274,19 @@ export function forgetKeysObject<T extends Record<string, unknown>>(
             ) {
                 break; // Path doesn't exist, nothing to remove
             }
+
             // Clone the nested object to maintain immutability
             current[segment] = {
                 ...(current[segment] as Record<string, unknown>),
             };
+
             current = current[segment] as Record<string, unknown>;
         }
 
         // Remove the final property
         const lastSegment = segments[segments.length - 1];
-        if (lastSegment && current[lastSegment] !== undefined) {
+        
+        if (lastSegment && !isUndefined(current[lastSegment])) {
             delete current[lastSegment];
         }
     }
@@ -348,9 +366,10 @@ export function forgetKeysArray<T>(
         return clone;
     };
 
-    if (keys == null) {
+    if (isNull(keys)) {
         return data.slice();
     }
+
     const keyList = isArray(keys) ? keys : [keys];
     if (keyList.length === 0) {
         return data.slice();
@@ -442,15 +461,18 @@ export function setImmutable<T>(
     key: PathKey,
     value: T,
 ): T[] {
-    if (key == null) {
+    if (isNull(key)) {
         return value as unknown as T[];
     }
+
     if (!isArray<T>(data)) {
         return [];
     }
+
     const toArr = (value: unknown): unknown[] => {
         return isArray(value) ? (value as unknown[]).slice() : [];
     };
+
     const root = toArr(data);
 
     const clampIndex = (idx: number, length: number): number => {
@@ -505,7 +527,7 @@ export function setImmutable<T>(
             continue;
         }
         const next = cursor[idx];
-        if (next == null) {
+        if (isNull(next)) {
             const child: unknown[] = [];
             cursor[idx] = child;
             cursor = child;
@@ -544,7 +566,7 @@ export function pushWithPath<T>(
     key: PathKey,
     ...values: T[]
 ): T[] {
-    if (key == null) {
+    if (isNull(key)) {
         if (isArray(data)) {
             (data as unknown[]).push(...(values as unknown[]));
             return data as T[];
@@ -578,7 +600,7 @@ export function pushWithPath<T>(
                 cursor = child;
             } else {
                 const next = cursor[idx];
-                if (next == null) {
+                if (isNull(next)) {
                     const child: unknown[] = [];
                     cursor[idx] = child;
                     cursor = child;
@@ -632,7 +654,7 @@ export function pushWithPath<T>(
             continue;
         }
         const next = cursor[idx];
-        if (next == null) {
+        if (isNull(next)) {
             const child: unknown[] = [];
             cursor[idx] = child;
             cursor = child;
@@ -872,7 +894,7 @@ export function undotExpandArray(map: Record<string, unknown>): unknown[] {
                 arr[idx] = value as unknown;
             } else {
                 const next = arr[idx];
-                if (next == null) {
+                if (isNull(next)) {
                     const child: unknown[] = [];
                     arr[idx] = child;
                     cursor = child;
@@ -927,7 +949,7 @@ export function getNestedValue<T>(obj: unknown, path: string): T | undefined {
     let current: unknown = obj;
 
     for (const segment of segments) {
-        if (current == null || !isObject(current)) {
+        if (isNull(current) || !isObject(current)) {
             return undefined;
         }
 
@@ -979,7 +1001,7 @@ export function getMixedValue<T, D = null>(
             : (defaultValue as D);
     };
 
-    if (key == null) {
+    if (isNull(key)) {
         return data;
     }
 
@@ -1024,7 +1046,8 @@ export function getMixedValue<T, D = null>(
 
     // For mixed notation, use our helper
     const result = getNestedValue(data, keyStr);
-    return result === undefined ? resolveDefault() : result;
+
+    return isUndefined(result) ? resolveDefault() : result;
 }
 
 /**
@@ -1050,7 +1073,7 @@ export function setMixed(
     key: PathKey,
     value: unknown,
 ): unknown[] {
-    if (key == null) {
+    if (isNull(key)) {
         // If key is null, replace the entire array
         arr.length = 0;
         if (isArray(value)) {
@@ -1108,7 +1131,7 @@ export function setMixed(
             }
 
             // If the next level doesn't exist or isn't an object/array, create it
-            if (current[index] == null || !isObject(current[index])) {
+            if (isNull(current[index]) || !isObject(current[index])) {
                 const nextSegment = segments[i + 1];
                 if (nextSegment) {
                     const nextIndex = parseInt(nextSegment, 10);
@@ -1122,7 +1145,7 @@ export function setMixed(
         } else if (current != null && isObject(current)) {
             // Handle non-numeric keys (object properties)
             const obj = current as Record<string, unknown>;
-            if (obj[segment] == null || !isObject(obj[segment])) {
+            if (isNull(obj[segment]) || !isObject(obj[segment])) {
                 const nextSegment = segments[i + 1];
                 if (nextSegment) {
                     const nextIndex = parseInt(nextSegment, 10);
@@ -1172,7 +1195,7 @@ export function pushMixed<T>(
     key: PathKey,
     ...values: T[]
 ): T[] {
-    if (key == null) {
+    if (isNull(key)) {
         if (isArray(data)) {
             (data as unknown[]).push(...(values as unknown[]));
             return data as T[];
@@ -1214,7 +1237,7 @@ export function pushMixed<T>(
             }
 
             // Create nested structure if needed
-            if (current[index] == null || !isObject(current[index])) {
+            if (isNull(current[index]) || !isObject(current[index])) {
                 current[index] = [];
             }
 
@@ -1222,7 +1245,7 @@ export function pushMixed<T>(
         } else if (current != null && isObject(current)) {
             // Handle object properties
             const obj = current as Record<string, unknown>;
-            if (obj[segment] == null || !isObject(obj[segment])) {
+            if (isNull(obj[segment]) || !isObject(obj[segment])) {
                 obj[segment] = [];
             }
             current = obj[segment];
@@ -1260,7 +1283,7 @@ export function setMixedImmutable<T>(
     value: T,
 ): T[] {
     // Handle null key - replace entire data structure
-    if (key === null || key === undefined) {
+    if (isNull(key) || isUndefined(key)) {
         return value as unknown as T[];
     }
 
@@ -1271,7 +1294,7 @@ export function setMixedImmutable<T>(
 
     // Create a deep copy for immutable operation
     const deepCopy = (obj: unknown): unknown => {
-        if (obj === null || !isObject(obj)) return obj;
+        if (isNull(obj) || !isObject(obj)) return obj;
         if (isArray(obj)) return obj.map(deepCopy);
         if (isObject(obj)) {
             const result: Record<string, unknown> = {};
@@ -1342,7 +1365,7 @@ export function getObjectValue<T = unknown, D = null>(
             : (defaultValue as D);
     };
 
-    if (key == null) {
+    if (isNull(key)) {
         return obj as T;
     }
 
@@ -1355,12 +1378,14 @@ export function getObjectValue<T = unknown, D = null>(
     // Handle simple property access (no dots)
     if (!keyStr.includes(".")) {
         const value = (obj as Record<string, unknown>)[keyStr];
-        return value !== undefined ? (value as T) : resolveDefault();
+
+        return !isUndefined(value) ? (value as T) : resolveDefault();
     }
 
     // Handle nested property access with dot notation
     const value = getNestedValue(obj, keyStr);
-    return value !== undefined ? (value as T) : resolveDefault();
+
+    return !isUndefined(value) ? (value as T) : resolveDefault();
 }
 
 /**
@@ -1430,7 +1455,7 @@ export function setObjectValue<TValue, TKey extends ObjectKey = ObjectKey>(
  * @returns True if the key exists, false otherwise.
  */
 export function hasObjectKey(obj: unknown, key: PathKey): boolean {
-    if (!isObject(obj) || key == null) {
+    if (!isObject(obj) || isNull(key)) {
         return false;
     }
 
@@ -1443,5 +1468,6 @@ export function hasObjectKey(obj: unknown, key: PathKey): boolean {
 
     // Handle nested property access with dot notation
     const value = getNestedValue(obj, keyStr);
-    return value !== undefined;
+
+    return !isUndefined(value);
 }
