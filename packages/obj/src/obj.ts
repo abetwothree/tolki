@@ -103,7 +103,7 @@ export function objectItem<TValue, TKey extends ObjectKey = ObjectKey, TDefault 
         );
     }
 
-    return value;
+    return value as Record<TKey, TValue>;
 }
 
 /**
@@ -697,7 +697,7 @@ export function forget<TValue extends Record<ObjectKey, unknown>>(
     data: TValue,
     keys: PathKeys,
 ): Record<ObjectKey, unknown> {
-    return forgetKeys<TValue>(data, keys) as Record<ObjectKey, unknown>;
+    return forgetKeys(data, keys) as Record<ObjectKey, unknown>;
 }
 
 /**

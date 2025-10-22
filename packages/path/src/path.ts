@@ -1451,8 +1451,8 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
  * @param defaultValue - The default value if the key is not found.
  * @returns The value or the default value.
  */
-export function getObjectValue<TReturn = unknown, TDefault = null>(
-    obj: unknown,
+export function getObjectValue<TValue, TKey extends ObjectKey = ObjectKey, TReturn = unknown, TDefault = null>(
+    obj: Record<TKey, TValue> | unknown,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault) | null = null,
 ): TReturn | TDefault | null {
