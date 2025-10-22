@@ -94,7 +94,9 @@ export function hasPath(
     }
 
     const segs = parseSegments(key);
-    if (!segs || segs.length === 0) return false;
+    if (!segs || segs.length === 0) {
+        return false;
+    }
 
     let cursor: unknown = root;
     for (const s of segs) {
@@ -176,7 +178,9 @@ export function getRaw(
     }
 
     const segs = parseSegments(key);
-    if (!segs || segs.length === 0) return { found: false };
+    if (!segs || segs.length === 0) {
+        return { found: false };
+    }
 
     let cursor: unknown = root;
     for (const s of segs) {
@@ -187,12 +191,21 @@ export function getRaw(
         if (isNumber(s)) {
             // Numeric segment - check if cursor is an array
             const arr = castableToArray(cursor);
-            if (!arr || s < 0 || s >= arr.length) return { found: false };
+            if (!arr || s < 0 || s >= arr.length) {
+                return { found: false };
+            }
+
             cursor = arr[s];
         } else {
             // String segment - check if cursor is an object
-            if (isArray(cursor)) return { found: false }; // Arrays don't have string keys
-            if (!(s in cursor)) return { found: false };
+            if (isArray(cursor)) {
+                return { found: false }; // Arrays don't have string keys
+            }
+
+            if (!(s in cursor)) {
+                return { found: false };
+            }
+
             cursor = (cursor as Record<string, unknown>)[s];
         }
     }
@@ -285,7 +298,7 @@ export function forgetKeysObject<T extends Record<string, unknown>>(
 
         // Remove the final property
         const lastSegment = segments[segments.length - 1];
-        
+
         if (lastSegment && !isUndefined(current[lastSegment])) {
             delete current[lastSegment];
         }
@@ -476,7 +489,10 @@ export function setImmutable<T>(
     const root = toArr(data);
 
     const clampIndex = (idx: number, length: number): number => {
-        if (!isInteger(idx) || idx < 0) return -1;
+        if (!isInteger(idx) || idx < 0) {
+            return -1;
+        }
+        
         return idx > length ? length : idx;
     };
 
@@ -485,15 +501,22 @@ export function setImmutable<T>(
         (isString(key) && key.indexOf(".") === -1)
     ) {
         const raw = isNumber(key) ? key : Number(key);
-        if (!isInteger(raw) || raw < 0) return root as T[];
+        if (!isInteger(raw) || raw < 0) {
+            return root as T[];
+        }
+
         const idx = clampIndex(raw, root.length);
-        if (idx === -1) return root as T[];
+        if (idx === -1) {
+            return root as T[];
+        }
+
         const out = root.slice();
         if (idx === out.length) {
             out.push(value as unknown);
         } else {
             out[idx] = value as unknown;
         }
+
         return out as T[];
     }
 
@@ -501,7 +524,10 @@ export function setImmutable<T>(
     const segments: number[] = [];
     for (const p of parts) {
         const n = p.length ? Number(p) : NaN;
-        if (!isInteger(n) || n < 0) return root as T[];
+        if (!isInteger(n) || n < 0) {
+            return root as T[];
+        }
+
         segments.push(n);
     }
 
@@ -511,7 +537,10 @@ export function setImmutable<T>(
         const desired = segments[i]!;
         const atLast = i === segments.length - 1;
         const idx = clampIndex(desired, cursor.length);
-        if (idx === -1) return root as T[];
+        if (idx === -1) {
+            return root as T[];
+        }
+
         if (atLast) {
             if (idx === cursor.length) {
                 cursor.push(value as unknown);
@@ -578,7 +607,9 @@ export function pushWithPath<T>(
     if (!isArray(data)) {
         const out: unknown[] = [];
         const segs = parseSegments(key);
-        if (!segs || segs.length === 0) return out as T[];
+        if (!segs || segs.length === 0) {
+            return out as T[];
+        }
 
         // Filter to only numeric segments for array operations
         const numericSegs = segs.filter(
@@ -1102,7 +1133,9 @@ export function setMixed(
 
     // Validate first segment for arrays
     const firstSegment = segments[0];
-    if (!firstSegment) return arr;
+    if (!firstSegment) {
+        return arr;
+    }
 
     const firstIndex = parseInt(firstSegment, 10);
     if (isArray(current)) {
@@ -1160,7 +1193,9 @@ export function setMixed(
 
     // Set the final value
     const lastSegment = segments[segments.length - 1];
-    if (!lastSegment) return arr;
+    if (!lastSegment) {
+        return arr;
+    }
 
     const lastIndex = parseInt(lastSegment, 10);
 
@@ -1294,8 +1329,14 @@ export function setMixedImmutable<T>(
 
     // Create a deep copy for immutable operation
     const deepCopy = (obj: unknown): unknown => {
-        if (isNull(obj) || !isObject(obj)) return obj;
-        if (isArray(obj)) return obj.map(deepCopy);
+        if (isNull(obj) || !isObject(obj)) {
+            return obj;
+        }
+
+        if (isArray(obj)) {
+            return obj.map(deepCopy);
+        }
+
         if (isObject(obj)) {
             const result: Record<string, unknown> = {};
             for (const [k, v] of Object.entries(obj)) {
@@ -1303,6 +1344,7 @@ export function setMixedImmutable<T>(
             }
             return result;
         }
+
         return obj;
     };
 
