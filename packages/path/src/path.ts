@@ -76,8 +76,8 @@ export function parseSegments(key: PathKey): (number | string)[] | null {
  * hasPath({user: {profile: {name: 'Jane'}}}, "user.profile.name"); -> true
  * hasPath({items: ['a', 'b']}, "items.1"); -> true
  */
-export function hasPath(
-    root: unknown[] | Record<string, unknown>,
+export function hasPath<TValue, TKey extends ObjectKey = ObjectKey>(
+    root: TValue[] | Record<TKey, TValue>,
     key: PathKey,
 ): boolean {
     if (isNull(key)) {
@@ -118,7 +118,7 @@ export function hasPath(
                 return false; // Arrays don't have string keys
             }
 
-            if (!(s in cursor)) {
+            if (!isObject(cursor) || !(s in cursor)) {
                 return false;
             }
 
@@ -150,8 +150,8 @@ export function hasPath(
  * getRaw({user: {profile: {name: 'Jane'}}}, "user.profile.name"); -> { found: true, value: 'Jane' }
  * getRaw({items: ['a', 'b']}, "items.1"); -> { found: true, value: 'b' }
  */
-export function getRaw(
-    root: unknown[] | Record<string, unknown>,
+export function getRaw<TValue, TKey extends ObjectKey = ObjectKey>(
+    root: TValue[] | Record<TKey, TValue>,
     key: PathKey,
 ): { found: boolean; value?: unknown } {
     if (isNull(key)) {
@@ -184,7 +184,7 @@ export function getRaw(
 
     let cursor: unknown = root;
     for (const s of segs) {
-        if (isNull(cursor) || isObject(cursor)) {
+        if (isNull(cursor) || !isObject(cursor)) {
             return { found: false };
         }
 
@@ -202,7 +202,7 @@ export function getRaw(
                 return { found: false }; // Arrays don't have string keys
             }
 
-            if (!(s in cursor)) {
+            if (!isObject(cursor) || !(s in cursor)) {
                 return { found: false };
             }
 
@@ -227,15 +227,15 @@ export function getRaw(
  * forgetKeys(['x', 'y', 'z'], 1); -> ['x', 'z']
  * forgetKeys([{name: 'John', age: 30}], '0.age'); -> [{name: 'John'}]
  */
-export function forgetKeys<T>(
-    data: Record<string, unknown> | ReadonlyArray<T>,
+export function forgetKeys<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue> | ArrayItems<TValue>,
     keys: PathKeys,
-): Record<string, unknown> | T[] {
+): Record<TKey, TValue> | TValue[] {
     if (isObject(data)) {
-        return forgetKeysObject(data, keys) as Record<string, unknown>;
+        return forgetKeysObject(data, keys) as Record<TKey, TValue>;
     }
 
-    return forgetKeysArray(data as ReadonlyArray<T>, keys) as T[];
+    return forgetKeysArray(data as ArrayItems<TValue>, keys) as TValue[];
 }
 
 /**
@@ -253,10 +253,10 @@ export function forgetKeys<T>(
  * forgetKeysObject({user: {name: 'John', age: 30}}, 'user.age'); -> {user: {name: 'John'}}
  * forgetKeysObject({a: 1, b: 2, c: 3}, ['a', 'c']); -> {b: 2}
  */
-export function forgetKeysObject<T extends Record<string, unknown>>(
-    data: T,
+export function forgetKeysObject<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>,
     keys: PathKeys,
-): Record<string, unknown> {
+): Record<TKey, TValue> {
     const keyList = isArray(keys) ? keys : [keys];
     const result = { ...data };
 
@@ -269,7 +269,7 @@ export function forgetKeysObject<T extends Record<string, unknown>>(
 
         // Handle simple property removal (no dots)
         if (!keyStr.includes(".")) {
-            delete result[keyStr];
+            delete (result as Record<string, TValue>)[keyStr];
             continue;
         }
 
@@ -322,60 +322,73 @@ export function forgetKeysObject<T extends Record<string, unknown>>(
  * forgetKeys([['x', 'y'], ['z']], "0.1"); -> [['x'], ['z']]
  * forgetKeys(['a', 'b', 'c'], [0, 2]); -> ['b']
  */
-export function forgetKeysArray<T>(
-    data: ReadonlyArray<T>,
+export function forgetKeysArray<TValue>(
+    data: ArrayItems<TValue>,
     keys: PathKeys,
-): T[] {
+): TValue[] {
     // This mirrors Arr.forget implementation (immutable)
-    const removeAt = <U>(arr: ReadonlyArray<U>, index: number): U[] => {
+    const removeAt = <U>(arr: ArrayItems<U>, index: number): U[] => {
         if (!isInteger(index) || index < 0 || index >= arr.length) {
             return arr.slice();
         }
+        
         const clone = arr.slice();
         clone.splice(index, 1);
+
         return clone;
     };
 
-    const forgetPath = <U>(arr: ReadonlyArray<U>, path: number[]): U[] => {
+    const forgetPath = <U>(arr: ArrayItems<U>, path: number[]): U[] => {
         const head = path[0];
         const rest = path.slice(1);
         const clone = arr.slice();
+        
         if (rest.length === 0) {
             return removeAt(clone, head!);
         }
+        
         if (!isInteger(head) || head! < 0 || head! >= clone.length) {
             return clone;
         }
+        
         const child = clone[head!] as unknown;
+        
         if (isArray(child)) {
             clone[head!] = forgetPath(child as unknown[], rest) as unknown as U;
         }
+
         return clone;
     };
 
     // Helper to immutably update a nested array at a given parent path
     const updateAtPath = <U>(
-        arr: ReadonlyArray<U>,
+        arr: ArrayItems<U>,
         parentPath: number[],
         updater: (child: U[]) => U[],
     ): U[] => {
         if (parentPath.length === 0) {
             return updater(arr.slice() as unknown as U[]) as unknown as U[];
         }
+        
         const [head, ...rest] = parentPath;
+        
         if (!isInteger(head) || head! < 0 || head! >= arr.length) {
             return arr.slice();
         }
+        
         const clone = arr.slice();
         const child = clone[head!] as unknown;
+        
         if (!isArray(child)) {
             return clone;
         }
+        
         clone[head!] = updateAtPath(
             child as unknown[],
             rest,
             updater as unknown as (child: unknown[]) => unknown[],
         ) as unknown as U;
+
         return clone;
     };
 
@@ -387,25 +400,31 @@ export function forgetKeysArray<T>(
     if (keyList.length === 0) {
         return data.slice();
     }
+
     if (keyList.length === 1) {
         const k = keyList[0]!;
         if (isNumber(k)) {
             return removeAt(data, k);
         }
+        
         const parts = String(k)
             .split(".")
             .map((p) => (p.length ? Number(p) : NaN));
-        if (parts.length === 1) {
+        
+            if (parts.length === 1) {
             return removeAt(data, parts[0]!);
         }
+        
         if (parts.some((n) => Number.isNaN(n))) {
             return data.slice();
         }
+
         return forgetPath(data, parts as number[]);
     }
 
     type Group = { path: number[]; indices: Set<number> };
     const groupsMap = new Map<string, Group>();
+
     for (const k of isArray(keys) ? keys : [keys]) {
         if (isNumber(k)) {
             const key = "";
@@ -433,24 +452,32 @@ export function forgetKeysArray<T>(
         entry.indices.add(leaf);
         groupsMap.set(key, entry);
     }
+    
     const groups = Array.from(groupsMap.values()).sort(
         (a, b) => b.path.length - a.path.length,
     );
+
     let out = data.slice() as unknown[];
     for (const { path, indices } of groups) {
         const sorted = Array.from(indices)
             .filter((i) => isInteger(i) && i >= 0)
             .sort((a, b) => b - a);
-        if (sorted.length === 0) continue;
+        
+            if (sorted.length === 0) {
+            continue;
+        }
+
         out = updateAtPath(out, path, (child) => {
             const clone = child.slice();
             for (const idx of sorted) {
                 if (idx >= 0 && idx < clone.length) clone.splice(idx, 1);
             }
-            return clone as unknown as T[];
+
+            return clone as unknown as TValue[];
         }) as unknown[];
     }
-    return out as T[];
+
+    return out as TValue[];
 }
 
 /**
@@ -470,7 +497,7 @@ export function forgetKeysArray<T>(
  * setImmutable([], 0, 'first'); -> ['first']
  */
 export function setImmutable<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     key: PathKey,
     value: T,
 ): T[] {
@@ -492,7 +519,7 @@ export function setImmutable<T>(
         if (!isInteger(idx) || idx < 0) {
             return -1;
         }
-        
+
         return idx > length ? length : idx;
     };
 
@@ -1022,7 +1049,7 @@ export function getNestedValue<T>(obj: unknown, path: string): T | undefined {
  * getMixedValue([], '0', 'default'); -> 'default'
  */
 export function getMixedValue<T, D = null>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     key: PathKey,
     defaultValue: D | (() => D) | null = null,
 ): unknown {
@@ -1313,7 +1340,7 @@ export function pushMixed<T>(
  * setMixedImmutable([], "user.name", "John"); -> [{ user: { name: "John" } }]
  */
 export function setMixedImmutable<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     key: PathKey,
     value: T,
 ): T[] {
