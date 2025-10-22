@@ -25,7 +25,40 @@ export function isArray<T>(value: DataItems<T> | T[] | unknown): value is T[] {
 export function isObject<T, K extends ObjectKey = ObjectKey>(
     value: DataItems<T, K> | unknown,
 ): value is Record<K, T> {
-    return value !== null && typeof value === "object" && !Array.isArray(value);
+    return !isNull(value) && typeof value === "object" && !isArray(value);
+}
+
+/**
+ * Check if a value is any object (including arrays, null).
+ *
+ * @param value - The value to check
+ * @returns True if the value is any object
+ *
+ * @example
+ *
+ * isObjectAny({a: 1, b: 2}); -> true
+ * isObjectAny([1, 2, 3]); -> true
+ * isObjectAny(null); -> true
+ */
+export function isObjectAny(value: unknown): value is object {
+    return typeof value === "object";
+}
+
+/**
+ * Check if a value is a truthy object (not null, not undefined, and an object).
+ *
+ * @param value - The value to check
+ * @returns True if the value is a truthy object
+ *
+ * @example
+ *
+ * isTruthyObject({a: 1, b: 2}); -> true
+ * isTruthyObject([1, 2, 3]); -> true
+ * isTruthyObject(null); -> false
+ * isTruthyObject(undefined); -> false
+ */
+export function isTruthyObject(value: unknown): value is object {
+    return !isNull(value) && !isUndefined(value) && isObjectAny(value);
 }
 
 /**
@@ -405,7 +438,8 @@ export function isTruthy(value: unknown): boolean {
  * typeOf({}); -> "object"
  */
 export function typeOf(v: unknown): string {
-    if (isNull(v)) return "null";
+    // Match JavaScript's typeof behavior where typeof null === 'object'
+    if (isNull(v)) return "object";
     if (isArray(v)) return "array";
     return typeof v;
 }

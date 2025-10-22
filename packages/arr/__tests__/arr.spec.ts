@@ -217,20 +217,20 @@ describe("Arr", () => {
 
         // Callback is not null and array is not empty
         expect(
-            Arr.first(data, (value) => {
+            Arr.first(data, (value: number) => {
                 return value >= 150;
             }),
         ).toBe(200);
 
         // Callback is not null, array is not empty but no satisfied item
-        expect(Arr.first(data, (value) => value > 300)).toBeNull();
+        expect(Arr.first(data, (value: number) => value > 300)).toBeNull();
 
-        expect(Arr.first(data, (value) => value > 300, "bar")).toBe("bar");
+        expect(Arr.first(data, (value: number) => value > 300, "bar")).toBe("bar");
 
         expect(
             Arr.first(
                 data,
-                (value) => value > 300,
+                (value: number) => value > 300,
                 () => "baz",
             ),
         ).toBe("baz");
@@ -266,14 +266,14 @@ describe("Arr", () => {
 
         // Callback is not null and array is not empty
         expect(
-            Arr.last(data, (value) => {
+            Arr.last(data, (value: number) => {
                 return value < 250;
             }),
         ).toBe(200);
 
         // Callback is not null, array is not empty but no satisfied item
         expect(
-            Arr.last(data, (value) => {
+            Arr.last(data, (value: number) => {
                 return value > 300;
             }),
         ).toBeNull();
@@ -281,7 +281,7 @@ describe("Arr", () => {
         expect(
             Arr.last(
                 data,
-                (value) => {
+                (value: number) => {
                     return value > 300;
                 },
                 "bar",
@@ -291,7 +291,7 @@ describe("Arr", () => {
         expect(
             Arr.last(
                 data,
-                (value) => {
+                (value: number) => {
                     return value > 300;
                 },
                 () => "baz",
@@ -321,19 +321,19 @@ describe("Arr", () => {
             })();
 
         // Last value < 3 is 2
-        expect(Arr.last(gen(), (v) => v < 3)).toBe(2);
+        expect(Arr.last(gen(), (v: number) => v < 3)).toBe(2);
 
         // No match returns null
-        expect(Arr.last(gen(), (v) => v > 5)).toBeNull();
+        expect(Arr.last(gen(), (v: number) => v > 5)).toBeNull();
 
         // No match with default value
-        expect(Arr.last(gen(), (v) => v > 5, "fallback")).toBe("fallback");
+        expect(Arr.last(gen(), (v: number) => v > 5, "fallback")).toBe("fallback");
 
         // No match with lazy default
         expect(
             Arr.last(
                 gen(),
-                (v) => v > 5,
+                (v: number) => v > 5,
                 () => "lazy",
             ),
         ).toBe("lazy");

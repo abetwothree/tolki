@@ -13,7 +13,7 @@ import {
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
 import type { ArrayInnerValue, ArrayItems, ObjectKey, PathKey, PathKeys, } from "@laravel-js/types";
-import { castableToArray, compareValues, getAccessibleValues, isArray, isBoolean, isFalsy, isFloat, isFunction, isInteger, isMap, isNull, isNumber, isObject, isString, isStringable, isSymbol, isUndefined, isWeakMap, typeOf } from '@laravel-js/utils';
+import { castableToArray, compareValues, getAccessibleValues, isArray, isBoolean, isFalsy, isFunction, isInteger, isMap, isNull, isNumber, isObject, isString, isStringable, isSymbol, isUndefined, isWeakMap, typeOf } from '@laravel-js/utils';
 
 /**
  * Determine whether the given value is array accessible.
@@ -59,13 +59,12 @@ export function add<TValue>(
     key: PathKey,
     value: unknown,
 ): TValue[] {
-    // Convert to mutable array if it's readonly
-    const mutableData = isArray(data) ? (data as TValue[]) : [...data];
+    const mutableData = [...data];
 
-    if (isNull(getMixedValue(mutableData, key))) {
+    if (!hasMixed(mutableData, key)) {
         return setMixed(mutableData, key, value);
     }
-
+    
     return mutableData;
 }
 
@@ -428,7 +427,7 @@ export function exists<TValue>(data: readonly TValue[], key: PathKey): boolean {
  * first([1, 2, 3], x => x > 5, 'none'); -> 'none'
  */
 export function first<TValue, TFirstDefault = null>(
-    data: ArrayItems<TValue>,
+    data: ArrayItems<TValue> | unknown,
     callback?: ((value: TValue, key: number) => boolean) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
@@ -498,7 +497,7 @@ export function first<TValue, TFirstDefault = null>(
  * last([1, 2, 3], x => x > 5, 'none'); -> 'none'
  */
 export function last<TValue, TFirstDefault = null>(
-    data: ArrayItems<TValue>,
+    data: ArrayItems<TValue> | unknown,
     callback?: ((value: TValue, key: number) => boolean) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
@@ -713,7 +712,8 @@ export function float<TValue, TDefault = null>(
 ): number {
     const value = getMixedValue(data, key, defaultValue);
 
-    if (!isFloat(value)) {
+    // Accept both integers and floats as valid numbers
+    if (!isNumber(value)) {
         throw new Error(
             `Array value for key [${key}] must be a float, ${typeOf(value)} found.`,
         );
@@ -1520,7 +1520,7 @@ export function query(data: unknown): string {
                 const value = obj[i];
 
                 if (!isNull(value) && !isUndefined(value)) {
-                    if (isObject(value)) {
+                    if (isArray(value) || isObject(value)) {
                         parts.push(...buildQuery(value, key));
                     } else {
                         // Use a custom encoder that doesn't encode [ and ] to match PHP behavior
@@ -1536,7 +1536,7 @@ export function query(data: unknown): string {
                 const key = prefix ? `${prefix}[${objKey}]` : objKey;
 
                 if (!isNull(value) && !isUndefined(value)) {
-                    if (isObject(value)) {
+                    if (isArray(value) || isObject(value)) {
                         parts.push(...buildQuery(value, key));
                     } else {
                         // Use a custom encoder that doesn't encode [ and ] to match PHP behavior

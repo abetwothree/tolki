@@ -1,5 +1,5 @@
 import { wrap as arrWrap } from "@laravel-js/arr";
-import { castableToArray, compareValues, getAccessibleValues,isAccessibleData, isArray, isBoolean, isFalsy, isFiniteNumber, isFloat, isFunction, isInteger, isMap, isNegativeNumber, isNonPrimitive, isNull, isNumber, isObject, isPositiveNumber, isPrimitive, isSet, isString, isStringable, isSymbol, isTruthy, isUndefined, isWeakMap, isWeakSet, normalizeToArray, resolveDefault, toArrayable, toJsonable, toJsonSerializable, typeOf } from '@laravel-js/utils';
+import { castableToArray, compareValues, getAccessibleValues,isAccessibleData, isArray, isBoolean, isFiniteNumber, isFloat, isFunction, isInteger, isMap, isNegativeNumber, isNonPrimitive, isNull, isNumber, isObject, isPositiveNumber, isPrimitive, isSet, isString, isStringable, isSymbol, isTruthy, isUndefined, isWeakMap, isWeakSet, normalizeToArray, resolveDefault, toArrayable, toJsonable, toJsonSerializable, typeOf, isObjectAny, isTruthyObject } from '@laravel-js/utils';
 import type { ArrayItems, ObjectKey, PathKey, PathKeys } from "packages/types";
 
 /**
@@ -184,7 +184,8 @@ export function getRaw<TValue, TKey extends ObjectKey = ObjectKey>(
 
     let cursor: unknown = root;
     for (const s of segs) {
-        if (isNull(cursor) || !isObject(cursor)) {
+        // Accept both arrays and objects
+        if (isNull(cursor) || isUndefined(cursor) || !isObjectAny(cursor)) {
             return { found: false };
         }
 
@@ -973,7 +974,7 @@ export function undotExpandArray<TValue, TKey extends ObjectKey = ObjectKey>(
                 arr[idx] = value as unknown;
             } else {
                 const next = arr[idx];
-                if (isNull(next)) {
+                if (isNull(next) || isUndefined(next)) {
                     const child: unknown[] = [];
                     arr[idx] = child;
                     cursor = child;
@@ -1024,7 +1025,13 @@ export function getNestedValue<TReturn>(
     obj: unknown, 
     path: string,
 ): TReturn | undefined {
-    if (isFalsy(obj) || !isObject(obj)) {
+    // Accept both arrays and objects - just check for null/undefined
+    if (isNull(obj) || isUndefined(obj)) {
+        return undefined;
+    }
+
+    // Must be an object or array to traverse
+    if (!isObjectAny(obj)) {
         return undefined;
     }
 
@@ -1032,7 +1039,7 @@ export function getNestedValue<TReturn>(
     let current: unknown = obj;
 
     for (const segment of segments) {
-        if (isNull(current) || !isObject(current)) {
+        if (isNull(current) || isUndefined(current) || !isObjectAny(current)) {
             return undefined;
         }
 
@@ -1218,7 +1225,8 @@ export function setMixed<TValue>(
             }
 
             // If the next level doesn't exist or isn't an object/array, create it
-            if (isNull(current[index]) || !isObject(current[index])) {
+            const nextValue = current[index];
+            if (isNull(nextValue) || isUndefined(nextValue) || !isObjectAny(nextValue)) {
                 const nextSegment = segments[i + 1];
                 if (nextSegment) {
                     const nextIndex = parseInt(nextSegment, 10);
@@ -1229,10 +1237,11 @@ export function setMixed<TValue>(
             }
 
             current = current[index];
-        } else if (!isNull(current) && isObject(current)) {
+        } else if (!isNull(current) && isUndefined(current) === false && isObjectAny(current)) {
             // Handle non-numeric keys (object properties)
             const obj = current as Record<string, unknown>;
-            if (isNull(obj[segment]) || !isObject(obj[segment])) {
+            const nextValue = obj[segment];
+            if (isNull(nextValue) || isUndefined(nextValue) || !isObjectAny(nextValue)) {
                 const nextSegment = segments[i + 1];
                 if (nextSegment) {
                     const nextIndex = parseInt(nextSegment, 10);
@@ -1384,7 +1393,8 @@ export function setMixedImmutable<TValue>(
 
     // Create a deep copy for immutable operation
     const deepCopy = (obj: unknown): unknown => {
-        if (isNull(obj) || !isObject(obj)) {
+        // Return primitives and null/undefined as-is
+        if (isNull(obj) || isUndefined(obj) || !isObjectAny(obj)) {
             return obj;
         }
 
