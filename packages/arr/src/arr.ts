@@ -431,7 +431,7 @@ export function first<TValue, TFirstDefault = null>(
             return null;
         }
 
-        return typeof defaultValue === "function"
+        return isFunction(defaultValue)
             ? (defaultValue as () => TFirstDefault)()
             : (defaultValue as TFirstDefault);
     };
@@ -501,7 +501,7 @@ export function last<TValue, TFirstDefault = null>(
             return null;
         }
 
-        return typeof defaultValue === "function"
+        return isFunction(defaultValue)
             ? (defaultValue as () => TFirstDefault)()
             : (defaultValue as TFirstDefault);
     };
@@ -808,13 +808,13 @@ export function get<T = unknown>(
     if (key === null || key === undefined) {
         return isArray(array)
             ? (array as T)
-            : typeof defaultValue === "function"
+            : isFunction(defaultValue)
                 ? (defaultValue as () => T)()
                 : defaultValue;
     }
 
     if (!isArray(array)) {
-        return typeof defaultValue === "function"
+        return isFunction(defaultValue)
             ? (defaultValue as () => T)()
             : defaultValue;
     }
@@ -825,7 +825,7 @@ export function get<T = unknown>(
         return value as T;
     }
 
-    return typeof defaultValue === "function"
+    return isFunction(defaultValue)
         ? (defaultValue as () => T)()
         : defaultValue;
 }
@@ -1012,7 +1012,7 @@ export function integer<T, D = null>(
 
     if (!Number.isInteger(value)) {
         throw new Error(
-            `Array value for key [${key}] must be an integer, ${typeof value} found.`,
+            `Array value for key [${key}] must be an integer, ${typeOf(value)} found.`,
         );
     }
 
@@ -1084,7 +1084,7 @@ export function keyBy<T extends Record<string, unknown>>(
     for (const item of values) {
         let key: string | number;
 
-        if (typeof keyBy === "function") {
+        if (isFunction(keyBy)) {
             key = keyBy(item);
         } else {
             // Use dot notation to get the key value
@@ -1217,7 +1217,7 @@ export function pluck<T extends Record<string, unknown>>(
         let itemKey: string | number | undefined;
 
         // Get the value
-        if (typeof value === "function") {
+        if (isFunction(value)) {
             itemValue = value(item);
         } else {
             // Use dot notation to get nested value
@@ -1226,21 +1226,15 @@ export function pluck<T extends Record<string, unknown>>(
 
         // Get the key if specified
         if (key !== null && key !== undefined) {
-            if (typeof key === "function") {
+            if (isFunction(key)) {
                 itemKey = key(item);
             } else {
                 itemKey = getNestedValue(item, key) as string | number;
             }
 
             // Convert objects with toString to string
-            if (
-                itemKey != null &&
-                typeof itemKey === "object" &&
-                "toString" in itemKey &&
-                typeof (itemKey as { toString: unknown }).toString ===
-                "function"
-            ) {
-                itemKey = (itemKey as { toString: () => string }).toString();
+            if (isStringable(itemKey)) {
+                itemKey = itemKey.toString();
             }
         }
 
@@ -1442,7 +1436,7 @@ export function pull<T, D = null>(
     defaultValue: D | (() => D) | null = null,
 ): { value: T | D | null; data: T[] } {
     const resolveDefault = (): D | null => {
-        return typeof defaultValue === "function"
+        return isFunction(defaultValue)
             ? (defaultValue as () => D)()
             : (defaultValue as D);
     };
@@ -1879,7 +1873,7 @@ export function sortDesc<T>(
         });
     }
 
-    if (typeof callback === "function") {
+    if (isFunction(callback)) {
         // Sort by callback result in descending order
         return result.sort((a, b) => {
             const aValue = callback(a);
