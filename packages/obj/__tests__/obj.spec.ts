@@ -340,12 +340,12 @@ describe("Obj", () => {
 
         it("should use predicate to find first matching value", () => {
             const obj = { a: 1, b: 2, c: 3 };
-            expect(Obj.first(obj, (x) => x > 1)).toBe(2);
+            expect(Obj.first(obj, (x: number) => x > 1)).toBe(2);
         });
 
         it("should return default when predicate finds no match", () => {
             const obj = { a: 1, b: 2, c: 3 };
-            expect(Obj.first(obj, (x) => x > 5, "none")).toBe("none");
+            expect(Obj.first(obj, (x: number) => x > 5, "none")).toBe("none");
         });
 
         it("should handle null/undefined data", () => {
@@ -376,12 +376,12 @@ describe("Obj", () => {
 
         it("should use predicate to find last matching value", () => {
             const obj = { a: 1, b: 2, c: 3 };
-            expect(Obj.last(obj, (x) => x < 3)).toBe(2);
+            expect(Obj.last(obj, (x: number) => x < 3)).toBe(2);
         });
 
         it("should return default when predicate finds no match", () => {
             const obj = { a: 1, b: 2, c: 3 };
-            expect(Obj.last(obj, (x) => x > 5, "none")).toBe("none");
+            expect(Obj.last(obj, (x: number) => x > 5, "none")).toBe("none");
         });
 
         it("should handle null/undefined data", () => {
@@ -588,7 +588,7 @@ describe("Obj", () => {
 
         it("should pass key to callback", () => {
             const obj = { a: 1, b: 2, aa: 3 };
-            const result = Obj.filter(obj, (_value, key) => key.length === 1);
+            const result = Obj.filter(obj, (_value, key) => typeof key === "string" && key.length === 1);
             expect(result).toEqual({ a: 1, b: 2 });
         });
 
@@ -1012,7 +1012,7 @@ describe("Obj", () => {
         it("should map with new keys", () => {
             const obj = { user1: "John", user2: "Jane" };
             const result = Obj.mapWithKeys(obj, (value, key) => ({
-                [`name_${key}`]: (value as string).toUpperCase(),
+                [`name_${String(key)}`]: (value as string).toUpperCase(),
             }));
             expect(result).toEqual({ name_user1: "JOHN", name_user2: "JANE" });
         });

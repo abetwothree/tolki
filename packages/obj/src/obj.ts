@@ -156,6 +156,10 @@ export function chunk<TValue, TKey extends ObjectKey = ObjectKey>(
         return {};
     }
 
+    if (!accessible(data)) {
+        return {};
+    }
+
     const entries = Object.entries(data);
     const chunks: Record<string, TValue> | Record<string, Record<string, TValue>> = {};
     let chunkIndex = 0;
@@ -398,7 +402,7 @@ export function exists<TValue extends Record<ObjectKey, unknown>>(
  * first({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  */
 export function first<TValue, TKey extends ObjectKey = ObjectKey, TFirstDefault = null>(
-    data: Record<TKey, TValue>,
+    data: Record<TKey, TValue> | unknown,
     callback?: ((value: TValue, key: TKey) => boolean) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
@@ -412,7 +416,7 @@ export function first<TValue, TKey extends ObjectKey = ObjectKey, TFirstDefault 
             : (defaultValue as TFirstDefault);
     };
 
-    if (isNull(data) || !accessible(data)) {
+    if (isNull(data) || isUndefined(data) || !accessible(data)) {
         return resolveDefault();
     }
 
@@ -454,7 +458,7 @@ export function first<TValue, TKey extends ObjectKey = ObjectKey, TFirstDefault 
  * last({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  */
 export function last<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
-    data: Record<TKey, TValue>,
+    data: Record<TKey, TValue> | unknown,
     callback?: ((value: TValue, key: TKey) => boolean) | null,
     defaultValue?: TDefault | (() => TDefault),
 ): TValue | TDefault | null {
@@ -468,7 +472,7 @@ export function last<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null
             : (defaultValue as TDefault);
     };
 
-    if (isNull(data) || !accessible(data)) {
+    if (isNull(data) || isUndefined(data) || !accessible(data)) {
         return resolveDefault();
     }
 
