@@ -309,7 +309,7 @@ describe("Collection", () => {
         it("transforms each object item", () => {
             const collection = collect<number>({ a: 1, b: 2, c: 3 });
             const mapped = collection.map(
-                (value, key) => `${key}:${value * 2}`,
+                (value, key) => `${String(key)}:${value * 2}`,
             );
             expect(mapped.all()).toEqual({ a: "a:2", b: "b:4", c: "c:6" });
         });

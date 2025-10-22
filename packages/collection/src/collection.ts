@@ -912,7 +912,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection({a: 1, b: 2, c: 3}).has(['a', 'b']); -> true
      * new Collection({a: 1, b: 2, c: 3}).has(['a', 'd']); -> false
      */
-    has(key: PathKey): boolean {
+    has(key: PathKeys): boolean {
         if (isArray(key)) {
             return dataHasAll(this.items, key);
         }
