@@ -84,10 +84,10 @@ export function add<TValue>(
  * arrayItem([{items: ['x', 'y']}], '0.items'); -> ['x', 'y']
  * arrayItem([{items: 'not array'}], '0.items'); -> throws Error
  */
-export function arrayItem<T, D = null>(
-    data: ArrayItems<T> | unknown,
+export function arrayItem<TValue, TDefault = null>(
+    data: ArrayItems<TValue> | unknown,
     key: PathKey,
-    defaultValue: D | (() => D) | null = null,
+    defaultValue: TDefault | (() => TDefault) | null = null,
 ): unknown[] {
     const value = getMixedValue(data, key, defaultValue);
 
@@ -116,10 +116,10 @@ export function arrayItem<T, D = null>(
  * boolean([{active: true}], '0.active'); -> true
  * boolean([{active: 'yes'}], '0.active'); -> throws Error
  */
-export function boolean<T, D = null>(
-    data: ArrayItems<T> | unknown,
+export function boolean<TValue, TDefault = null>(
+    data: ArrayItems<TValue> | unknown,
     key: PathKey,
-    defaultValue: D | (() => D) | null = null,
+    defaultValue: TDefault | (() => TDefault) | null = null,
 ): boolean {
     const value = getMixedValue(data, key, defaultValue);
 
@@ -174,18 +174,18 @@ export function chunk<TValue>(
  * collapse([[1], [2], [3], ['foo', 'bar']]); -> [1, 2, 3, 'foo', 'bar']
  * collapse([{ a: 1, b: 2 }, { c: 3, d: 4 }]) -> { a: 1, b: 2, c: 3, d: 4 }
  */
-export function collapse<T extends Record<string, unknown>[]>(
-    data: T,
-): Record<string, unknown>;
-export function collapse<T extends ArrayItems<ArrayItems<unknown>>>(
-    data: T,
-): ArrayInnerValue<T[number]>[];
-export function collapse<T extends ArrayItems<unknown>>(
-    data: T,
-): Record<string, unknown> | ArrayInnerValue<T[number]>[] | unknown[];
-export function collapse<T extends ArrayItems<unknown>>(
-    data: T,
-): Record<string, unknown> | ArrayInnerValue<T[number]>[] | unknown[] {
+export function collapse<TValue, TKey extends ObjectKey = ObjectKey>(
+    data: Record<TKey, TValue>[],
+): Record<TKey, TValue>;
+export function collapse<TValue extends ArrayItems<ArrayItems<unknown>>>(
+    data: TValue,
+): ArrayInnerValue<TValue[number]>[];
+export function collapse<TValue extends ArrayItems<unknown>>(
+    data: TValue,
+): Record<string, unknown> | ArrayInnerValue<TValue[number]>[] | unknown[];
+export function collapse<TValue extends ArrayItems<unknown>>(
+    data: TValue,
+): Record<string, unknown> | ArrayInnerValue<TValue[number]>[] | unknown[] {
     // Check if all items are objects (but not arrays)
     const hasObjects = data.some((item) => isObject(item) && !isArray(item));
 
@@ -217,8 +217,8 @@ export function collapse<T extends ArrayItems<unknown>>(
  * @param arrays - The arrays to combine.
  * @returns A new array containing all elements from the input arrays.
  */
-export function combine<T>(
-    ...arrays: ArrayItems<T>[]
+export function combine<TValue>(
+    ...arrays: ArrayItems<TValue>[]
 ) {
     const length = arrays[0]?.length || 0;
     const result = [];
@@ -240,24 +240,24 @@ export function combine<T>(
  *
  * crossJoin([1], ["a"]); -> [[1, 'a']]
  */
-export function crossJoin<T extends ArrayItems<ArrayItems<unknown>>>(
-    ...arrays: T
-): ArrayInnerValue<T[number]>[][] {
-    let results: ArrayInnerValue<T[number]>[][] = [[]];
+export function crossJoin<TValue extends ArrayItems<ArrayItems<unknown>>>(
+    ...arrays: TValue
+): ArrayInnerValue<TValue[number]>[][] {
+    let results: ArrayInnerValue<TValue[number]>[][] = [[]];
 
     for (const array of arrays) {
         if (!array.length) {
             return [];
         }
 
-        const next: ArrayInnerValue<T[number]>[][] = [];
+        const next: ArrayInnerValue<TValue[number]>[][] = [];
 
         for (const product of results) {
             for (const item of array) {
                 next.push([
                     ...product,
-                    item as ArrayInnerValue<T[number]>,
-                ] as ArrayInnerValue<T[number]>[]);
+                    item as ArrayInnerValue<TValue[number]>,
+                ] as ArrayInnerValue<TValue[number]>[]);
             }
         }
 
@@ -304,10 +304,10 @@ export function divide<A extends readonly unknown[]>(
  *
  * dot(['a', ['b', 'c']]); -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
  */
-export function dot(
-    data: ArrayItems<unknown> | unknown,
+export function dot<TValue>(
+    data: ArrayItems<TValue> | unknown,
     prepend: string = "",
-): Record<string, unknown> {
+): Record<string, TValue> {
     return dotFlatten(data, prepend);
 }
 
@@ -322,8 +322,10 @@ export function dot(
  * undot({ '0': 'a', '1.0': 'b', '1.1': 'c' }); -> ['a', ['b', 'c']]
  * undot({ 'item.0': 'a', 'item.1.0': 'b', 'item.1.1': 'c' }); -> [['b', 'c']]
  */
-export function undot(map: Record<string, unknown>): unknown[] {
-    return undotExpandArray(map) as unknown[];
+export function undot<TValue, TKey extends ObjectKey = ObjectKey>(
+    map: Record<TKey, TValue>,
+): TValue[] {
+    return undotExpandArray(map);
 }
 
 /**
@@ -378,7 +380,10 @@ export function unshift<TValue>(
  * except(["a", "b", "c"], 1); -> ['a', 'c']
  * except(["a", "b", "c"], [0, 2]); -> ['b']
  */
-export function except<T>(data: ArrayItems<T>, keys: PathKeys): T[] {
+export function except<TValue>(
+    data: ArrayItems<TValue>,
+    keys: PathKeys
+): TValue[] {
     return forget(data, keys);
 }
 
@@ -394,9 +399,10 @@ export function except<T>(data: ArrayItems<T>, keys: PathKeys): T[] {
  * exists([1, 2, 3], 0); -> true
  * exists([1, 2, 3], 3); -> false
  */
-export function exists<T>(data: readonly T[], key: number | string): boolean {
+export function exists<TValue>(data: readonly TValue[], key: PathKey): boolean {
     // Array: only numeric keys are supported
     const idx = isNumber(key) ? key : Number(key);
+
     if (Number.isNaN(idx)) {
         return false;
     }
@@ -581,10 +587,10 @@ export function last<TValue, TFirstDefault = null>(
  * take([1, 2, 3, 4, 5], -2); -> [4, 5]
  * take([1, 2, 3], 5); -> [1, 2, 3]
  */
-export function take<T>(
-    data: readonly T[] | null | undefined,
+export function take<TValue>(
+    data: ArrayItems<TValue> | null | undefined,
     limit: number,
-): T[] {
+): TValue[] {
     if (!data || limit === 0) {
         return [];
     }
