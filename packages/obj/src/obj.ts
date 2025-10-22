@@ -9,7 +9,7 @@ import {
     undotExpandObject,
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
-import { castableToArray, compareValues, getAccessibleValues,isAccessibleData, isArray, isBoolean, isFalsy, isFiniteNumber, isFunction, isMap, isNonPrimitive, isNull, isNumber, isObject, isPrimitive, isSet, isString, isStringable, isSymbol, isTruthy, isUndefined, isWeakMap, isWeakSet, normalizeToArray, resolveDefault, typeOf } from '@laravel-js/utils';
+import { castableToArray, compareValues, getAccessibleValues,isAccessibleData, isArray, isBoolean, isFalsy, isFiniteNumber, isFunction, isInteger, isMap, isNonPrimitive, isNull, isNumber, isObject, isPrimitive, isSet, isString, isStringable, isSymbol, isTruthy, isUndefined, isWeakMap, isWeakSet, normalizeToArray, resolveDefault, typeOf } from '@laravel-js/utils';
 import type { ObjectKey, PathKey, PathKeys } from "packages/types";
 
 /**
@@ -98,8 +98,9 @@ export function objectItem<TValue, TKey extends ObjectKey = ObjectKey, TDefault 
     const value = getObjectValue(data, key, defaultValue);
 
     if (! isObject(value)) {
+        const typeName = isNull(value) ? "null" : typeOf(value);
         throw new Error(
-            `Object value for key [${key}] must be an object, ${typeOf(value)} found.`,
+            `Object value for key [${key}] must be an object, ${typeName} found.`,
         );
     }
 
@@ -1023,7 +1024,7 @@ export function integer<TValue, TKey extends ObjectKey = ObjectKey, TDefault = n
 ): number {
     const value = getObjectValue(data, key, defaultValue);
 
-    if (!isNumber(value)) {
+    if (!isInteger(value)) {
         throw new Error(
             `Object value for key [${key}] must be an integer, ${typeOf(value)} found.`,
         );
@@ -1233,7 +1234,7 @@ export function pluck<TValue, TKey extends ObjectKey = ObjectKey>(
     key: string | ((item: TValue) => string | number) | null = null,
 ): unknown[] | Record<ObjectKey, unknown> {
     if (!accessible(data)) {
-        return {};
+        return key ? {} : [];
     }
 
     const obj = data as Record<string, TValue>;
@@ -1544,7 +1545,7 @@ export function query(data: unknown): string {
                 const value = obj[i];
 
                 if (!isNull(value) && !isUndefined(value)) {
-                    if (isObject(value)) {
+                    if (isArray(value) || isObject(value)) {
                         parts.push(...buildQuery(value, key));
                     } else {
                         const encodedKey = encodeKeyComponent(key);
@@ -1559,7 +1560,7 @@ export function query(data: unknown): string {
                 const key = prefix ? `${prefix}[${objKey}]` : objKey;
 
                 if (!isNull(value) && !isUndefined(value)) {
-                    if (isObject(value)) {
+                    if (isArray(value) || isObject(value)) {
                         parts.push(...buildQuery(value, key));
                     } else {
                         const encodedKey = encodeKeyComponent(key);
@@ -2067,7 +2068,7 @@ export function sortDesc<TValue, TKey extends ObjectKey = ObjectKey>(
     const obj = data as Record<TKey, TValue>;
     const entries = Object.entries(obj);
 
-    if (isNull(callback)) {
+    if (isUndefined(callback) || isNull(callback)) {
         // Natural sorting by values in descending order
         entries.sort(([, a], [, b]) => {
             const aValue = a as TValue;
@@ -2083,9 +2084,7 @@ export function sortDesc<TValue, TKey extends ObjectKey = ObjectKey>(
 
             return 0;
         });
-    }
-
-    if (isString(callback)) {
+    } else if (isString(callback)) {
         // Sort by field name using dot notation in descending order
         entries.sort(([, a], [, b]) => {
             const aValue = getObjectValue(

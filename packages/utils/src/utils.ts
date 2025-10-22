@@ -438,7 +438,6 @@ export function isTruthy(value: unknown): boolean {
  * typeOf({}); -> "object"
  */
 export function typeOf(v: unknown): string {
-    // Match JavaScript's typeof behavior where typeof null === 'object'
     if (isNull(v)) return "object";
     if (isArray(v)) return "array";
     return typeof v;
