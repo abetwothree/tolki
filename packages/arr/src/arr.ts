@@ -13,7 +13,7 @@ import {
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
 import type { ArrayInnerValue, ArrayItems, ObjectKey, PathKey, PathKeys, } from "@laravel-js/types";
-import { castableToArray, compareValues, getAccessibleValues,isAccessibleData, isArray, isBoolean, isFalsy, isFiniteNumber, isFloat, isFunction, isInteger, isMap, isNegativeNumber, isNonPrimitive, isNull, isNumber, isObject, isPositiveNumber, isPrimitive, isSet, isString, isStringable, isSymbol, isTruthy, isUndefined, isWeakMap, isWeakSet, normalizeToArray, resolveDefault, toArrayable, toJsonable, toJsonSerializable, typeOf } from '@laravel-js/utils';
+import { castableToArray, compareValues, getAccessibleValues, isArray, isBoolean, isFalsy, isFloat, isFunction, isInteger, isMap, isNull, isNumber, isObject, isString, isStringable, isSymbol, isUndefined, isWeakMap, typeOf } from '@laravel-js/utils';
 
 /**
  * Determine whether the given value is array accessible.
@@ -62,7 +62,7 @@ export function add<TValue>(
     // Convert to mutable array if it's readonly
     const mutableData = isArray(data) ? (data as TValue[]) : [...data];
 
-    if (getMixedValue(mutableData, key) === null) {
+    if (isNull(getMixedValue(mutableData, key))) {
         return setMixed(mutableData, key, value);
     }
 
@@ -433,7 +433,7 @@ export function first<TValue, TFirstDefault = null>(
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
     const resolveDefault = (): TFirstDefault | null => {
-        if (defaultValue === undefined) {
+        if (isUndefined(defaultValue)) {
             return null;
         }
 
@@ -442,7 +442,7 @@ export function first<TValue, TFirstDefault = null>(
             : (defaultValue as TFirstDefault);
     };
 
-    if (data == null) {
+    if (isNull(data)) {
         return resolveDefault();
     }
 
@@ -503,7 +503,7 @@ export function last<TValue, TFirstDefault = null>(
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
     const resolveDefault = (): TFirstDefault | null => {
-        if (defaultValue === undefined) {
+        if (isUndefined(defaultValue)) {
             return null;
         }
 
@@ -512,7 +512,7 @@ export function last<TValue, TFirstDefault = null>(
             : (defaultValue as TFirstDefault);
     };
 
-    if (data == null) {
+    if (isNull(data)) {
         return resolveDefault();
     }
 
@@ -827,7 +827,7 @@ export function get<TValue, TDefault = unknown>(
 
     const value = getMixedValue(array, key, null);
 
-    if (value != null) {
+    if (!isNull(value)) {
         return value as TDefault;
     }
 
@@ -860,7 +860,7 @@ export function has<TValue>(
     }
 
     for (const k of keyList) {
-        if (k == null) {
+        if (isNull(k)) {
             return false;
         }
 
@@ -919,9 +919,10 @@ export function hasAny<TValue>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
 ): boolean {
-    if (keys == null) {
+    if (isNull(keys)) {
         return false;
     }
+
     const keyList = isArray(keys) ? keys : [keys];
     if (keyList.length === 0) {
         return false;
@@ -1104,7 +1105,7 @@ export function keyBy<TValue extends Record<string, unknown>>(
             key = isSymbol(result) ? result : String(result);
         } else {
             // Use dot notation to get the key value
-            const keyValue = getNestedValue(item, keyBy);
+            const keyValue = getNestedValue(item, keyBy as string);
             key = String(keyValue);
         }
 
@@ -1226,7 +1227,7 @@ export function pluck<TValue extends Record<string, unknown>>(
         return [];
     }
 
-    const values = data as ArrayItems<T>;
+    const values = data as ArrayItems<TValue>;
     const results: unknown[] | Record<string | number, unknown> = key ? {} : [];
 
     for (const item of values) {
@@ -1238,20 +1239,25 @@ export function pluck<TValue extends Record<string, unknown>>(
             itemValue = value(item);
         } else {
             // Use dot notation to get nested value
-            itemValue = getNestedValue(item, value);
+            itemValue = getNestedValue(item, value as string);
         }
 
         // Get the key if specified
         if (!isNull(key) && !isUndefined(key)) {
             if (isFunction(key)) {
-                itemKey = key(item);
+                itemKey = (key as (item: TValue) => string | number)(item);
             } else {
-                itemKey = getNestedValue(item, key) as string | number;
+                const nestedKey = getNestedValue(item, key as string);
+                if (typeof nestedKey === 'string' || typeof nestedKey === 'number') {
+                    itemKey = nestedKey;
+                } else if (!isNull(nestedKey)) {
+                    itemKey = String(nestedKey) as string;
+                }
             }
 
             // Convert objects with toString to string
-            if (isStringable(itemKey)) {
-                itemKey = itemKey.toString();
+            if (!isUndefined(itemKey) && isStringable(itemKey)) {
+                itemKey = String(itemKey);
             }
         }
 
@@ -1495,7 +1501,7 @@ export function pull<TValue, TDefault = null>(
  * query({user: {name: 'John', age: 30}}); -> 'user[name]=John&user[age]=30'
  */
 export function query(data: unknown): string {
-    if (data === null || data === undefined) {
+    if (isNull(data) || isUndefined(data)) {
         return "";
     }
 
@@ -1609,7 +1615,7 @@ export function random<TValue>(
     if (preserveKeys) {
         const result: Record<number, TValue> = {};
         for (const index of selectedIndices) {
-            result[index] = values[index] as T;
+            result[index] = values[index] as TValue;
         }
 
         return result;
@@ -1626,7 +1632,7 @@ export function random<TValue>(
  * @returns The shifted item(s) or null/empty array if none.
  */
 export function shift<TValue>(
-    data: ArrayItems<TKey>,
+    data: ArrayItems<TValue>,
     count: number = 1,
 ): TValue | TValue[] | null {
     if (!accessible(data)) {
@@ -1707,7 +1713,7 @@ export function push<TValue>(
  * shuffle(['a', 'b', 'c']); -> ['c', 'a', 'b'] (random order)
  */
 export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
-    const values = getAccessibleValues(data) as T[];
+    const values = getAccessibleValues(data) as TValue[];
     const result = values.slice();
 
     // Fisher-Yates shuffle algorithm
@@ -1739,7 +1745,7 @@ export function slice<TValue>(
 
     const values = (data as ArrayItems<TValue>).slice();
 
-    if (length === null) {
+    if (isNull(length)) {
         return values.slice(offset);
     }
 
@@ -1772,7 +1778,7 @@ export function sole<TValue>(
         throw new Error("No items found");
     }
 
-    let filteredValues: T[];
+    let filteredValues: TValue[];
 
     if (callback) {
         // Filter using the callback
@@ -1949,7 +1955,7 @@ export function sortRecursive<TValue>(
         for (let i = 0; i < result.length; i++) {
             const item = result[i];
             if (isArray(item) || isObject(item)) {
-                result[i] = sortRecursive(item, options, descending) as T;
+                result[i] = sortRecursive(item, options, descending) as TValue;
             }
         }
 
