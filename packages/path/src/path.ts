@@ -164,7 +164,7 @@ export function getRaw<TValue, TKey extends ObjectKey = ObjectKey>(
                 return { found: false };
             }
             return { found: true, value: root[key] };
-        } else if (root != null && isObject(root)) {
+        } else if (!isNull(root) && isObject(root)) {
             // For objects, numeric keys are treated as string keys
             const stringKey = String(key);
             return stringKey in root
@@ -1229,7 +1229,7 @@ export function setMixed<TValue>(
             }
 
             current = current[index];
-        } else if (current != null && isObject(current)) {
+        } else if (!isNull(current) && isObject(current)) {
             // Handle non-numeric keys (object properties)
             const obj = current as Record<string, unknown>;
             if (isNull(obj[segment]) || !isObject(obj[segment])) {
@@ -1258,7 +1258,7 @@ export function setMixed<TValue>(
             current.push(undefined as TValue);
         }
         current[lastIndex] = value as TValue;
-    } else if (current != null && isObject(current)) {
+    } else if (!isNull(current) && isObject(current)) {
         (current as Record<string, unknown>)[lastSegment] = value;
     }
 
@@ -1332,7 +1332,7 @@ export function pushMixed<TValue>(
             }
 
             current = current[index];
-        } else if (current != null && isObject(current)) {
+        } else if (!isNull(current) && isObject(current)) {
             // Handle object properties
             const obj = current as Record<string, unknown>;
             if (isNull(obj[segment]) || !isObject(obj[segment])) {
@@ -1425,7 +1425,7 @@ export function setMixedImmutable<TValue>(
  */
 export function hasMixed(data: unknown, key: PathKey): boolean {
     if (isNull(key)) {
-        return data != null;
+        return !isNull(data);
     }
 
     if (isNumber(key)) {
