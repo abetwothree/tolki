@@ -13,20 +13,7 @@ import {
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
 import type { ArrayInnerValue, ArrayItems, ObjectKey, PathKey, PathKeys, } from "@laravel-js/types";
-import {
-    castableToArray,
-    compareValues,
-    getAccessibleValues,
-    isArray,
-    isFalsy,
-    isFunction,
-    isNull,
-    isNumber,
-    isObject,
-    isString,
-    isUndefined,
-    typeOf,
-} from "@laravel-js/utils";
+import { castableToArray, compareValues, getAccessibleValues,isAccessibleData, isArray, isBoolean, isFalsy, isFiniteNumber, isFloat, isFunction, isInteger, isMap, isNegativeNumber, isNonPrimitive, isNull, isNumber, isObject, isPositiveNumber, isPrimitive, isSet, isString, isStringable, isSymbol, isTruthy, isUndefined, isWeakMap, isWeakSet, normalizeToArray, resolveDefault, toArrayable, toJsonable, toJsonSerializable, typeOf } from '@laravel-js/utils';
 
 /**
  * Determine whether the given value is array accessible.
@@ -98,7 +85,7 @@ export function add<TValue>(
  * arrayItem([{items: 'not array'}], '0.items'); -> throws Error
  */
 export function arrayItem<T, D = null>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     key: PathKey,
     defaultValue: D | (() => D) | null = null,
 ): unknown[] {
@@ -130,7 +117,7 @@ export function arrayItem<T, D = null>(
  * boolean([{active: 'yes'}], '0.active'); -> throws Error
  */
 export function boolean<T, D = null>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     key: PathKey,
     defaultValue: D | (() => D) | null = null,
 ): boolean {
@@ -190,13 +177,13 @@ export function chunk<TValue>(
 export function collapse<T extends Record<string, unknown>[]>(
     data: T,
 ): Record<string, unknown>;
-export function collapse<T extends ReadonlyArray<ReadonlyArray<unknown>>>(
+export function collapse<T extends ArrayItems<ArrayItems<unknown>>>(
     data: T,
 ): ArrayInnerValue<T[number]>[];
-export function collapse<T extends ReadonlyArray<unknown>>(
+export function collapse<T extends ArrayItems<unknown>>(
     data: T,
 ): Record<string, unknown> | ArrayInnerValue<T[number]>[] | unknown[];
-export function collapse<T extends ReadonlyArray<unknown>>(
+export function collapse<T extends ArrayItems<unknown>>(
     data: T,
 ): Record<string, unknown> | ArrayInnerValue<T[number]>[] | unknown[] {
     // Check if all items are objects (but not arrays)
@@ -253,7 +240,7 @@ export function combine<T>(
  *
  * crossJoin([1], ["a"]); -> [[1, 'a']]
  */
-export function crossJoin<T extends ReadonlyArray<ReadonlyArray<unknown>>>(
+export function crossJoin<T extends ArrayItems<ArrayItems<unknown>>>(
     ...arrays: T
 ): ArrayInnerValue<T[number]>[][] {
     let results: ArrayInnerValue<T[number]>[][] = [[]];
@@ -293,14 +280,14 @@ export function crossJoin<T extends ReadonlyArray<ReadonlyArray<unknown>>>(
 export function divide(array: readonly []): [number[], unknown[]];
 export function divide<A extends readonly unknown[]>(
     array: A,
-): [number[], A extends ReadonlyArray<infer V> ? V[] : unknown[]];
+): [number[], A extends ArrayItems<infer V> ? V[] : unknown[]];
 export function divide<A extends readonly unknown[]>(
     array: A,
-): [number[], A extends ReadonlyArray<infer V> ? V[] : unknown[]] {
+): [number[], A extends ArrayItems<infer V> ? V[] : unknown[]] {
     const keys = array.map((_, i) => i);
     return [
         keys,
-        array.slice() as unknown as A extends ReadonlyArray<infer V>
+        array.slice() as unknown as A extends ArrayItems<infer V>
         ? V[]
         : unknown[],
     ];
@@ -318,7 +305,7 @@ export function divide<A extends readonly unknown[]>(
  * dot(['a', ['b', 'c']]); -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
  */
 export function dot(
-    data: ReadonlyArray<unknown> | unknown,
+    data: ArrayItems<unknown> | unknown,
     prepend: string = "",
 ): Record<string, unknown> {
     return dotFlatten(data, prepend);
@@ -391,7 +378,7 @@ export function unshift<TValue>(
  * except(["a", "b", "c"], 1); -> ['a', 'c']
  * except(["a", "b", "c"], [0, 2]); -> ['b']
  */
-export function except<T>(data: ReadonlyArray<T>, keys: PathKeys): T[] {
+export function except<T>(data: ArrayItems<T>, keys: PathKeys): T[] {
     return forget(data, keys);
 }
 
@@ -652,7 +639,7 @@ export function flatten<TValue>(
         const values =
             depth === 1
                 ? (item.slice() as unknown[])
-                : flatten(item as ReadonlyArray<unknown>, depth - 1);
+                : flatten(item as ArrayItems<unknown>, depth - 1);
 
         for (const value of values) {
             result.push(value as TValue);
@@ -714,7 +701,7 @@ export function flip<TValue>(
  * float([{price: 'free'}], '0.price'); -> throws Error
  */
 export function float<T, D = null>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     key: PathKey,
     defaultValue: D | (() => D) | null = null,
 ): number {
@@ -744,7 +731,7 @@ export function float<T, D = null>(
  * forget(['products', ['desk', [100]]], '1.1'); -> ['products', ['desk']]
  * forget(['products', ['desk', [100]]], 2); -> ['products', ['desk', [100]]]
  */
-export function forget<T>(data: ReadonlyArray<T>, keys: PathKeys): T[] {
+export function forget<T>(data: ArrayItems<T>, keys: PathKeys): T[] {
     return forgetKeys<T>(data, keys) as T[];
 }
 
@@ -762,7 +749,7 @@ export function forget<T>(data: ReadonlyArray<T>, keys: PathKeys): T[] {
  *
  * @throws Error if items is a WeakMap or a scalar value.
  */
-export function from<T>(items: ReadonlyArray<T>): T[];
+export function from<T>(items: ArrayItems<T>): T[];
 export function from<V>(items: Map<PropertyKey, V>): Record<string, V>;
 export function from(
     items: number | string | boolean | symbol | null | undefined,
@@ -858,7 +845,7 @@ export function get<T = unknown>(
  * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); -> false
  */
 export function has<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     keys: PathKeys,
 ): boolean {
     const keyList = isArray(keys) ? keys : [keys];
@@ -886,7 +873,7 @@ export function has<T>(
  * hasAll(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); -> false
  */
 export function hasAll<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     keys: PathKeys,
 ): boolean {
     const keyList = isArray(keys) ? keys : [keys];
@@ -896,7 +883,7 @@ export function hasAll<T>(
     }
 
     for (const key of keyList) {
-        if (!has(data as ReadonlyArray<unknown>, key)) {
+        if (!has(data as ArrayItems<unknown>, key)) {
             return false;
         }
     }
@@ -917,7 +904,7 @@ export function hasAll<T>(
  * hasAny(['foo', 'bar', ['baz', 'qux']], ['3', '4']); -> false
  */
 export function hasAny<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     keys: PathKeys,
 ): boolean {
     if (keys == null) {
@@ -931,7 +918,7 @@ export function hasAny<T>(
         return false;
     }
     for (const key of keyList) {
-        if (has(data as ReadonlyArray<unknown>, key)) {
+        if (has(data as ArrayItems<unknown>, key)) {
             return true;
         }
     }
@@ -951,7 +938,7 @@ export function hasAny<T>(
  * every([1, 2, 3], n => n % 2 === 0); -> false
  */
 export function every<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     callback: (value: T, key: number) => boolean,
 ): boolean {
     if (!accessible(data)) {
@@ -981,7 +968,7 @@ export function every<T>(
  * some([1, 3, 5], n => n % 2 === 0); -> false
  */
 export function some<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     callback: (value: T, key: number) => boolean,
 ): boolean {
     if (!accessible(data)) {
@@ -1017,7 +1004,7 @@ export function some<T>(
  * integer(["house"], 0); -> Error: The value is not an integer.
  */
 export function integer<T, D = null>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     key: PathKey,
     defaultValue: D | (() => D) | null = null,
 ): number {
@@ -1045,7 +1032,7 @@ export function integer<T, D = null>(
  * join(['a', 'b', 'c'], ', ', ' and ') => 'a, b and c'
  */
 export function join<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     glue: string,
     finalGlue: string = "",
 ): string {
@@ -1084,14 +1071,14 @@ export function join<T>(
  * keyBy([{name: 'John'}, {name: 'Jane'}], (item) => item.name); -> {John: {name: 'John'}, Jane: {name: 'Jane'}}
  */
 export function keyBy<T extends Record<string, unknown>>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     keyBy: string | ((item: T) => string | number),
 ): Record<string | number, T> {
     if (!accessible(data)) {
         return {};
     }
 
-    const values = data as ReadonlyArray<T>;
+    const values = data as ArrayItems<T>;
     const results: Record<string | number, T> = {};
 
     for (const item of values) {
@@ -1124,7 +1111,7 @@ export function keyBy<T extends Record<string, unknown>>(
  * prependKeysWith(['a', 'b', 'c'], 'item_'); -> Creates array with keys: item_0, item_1, item_2
  */
 export function prependKeysWith<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     prependWith: string,
 ): Record<string, T> {
     const values = getAccessibleValues(data) as T[];
@@ -1149,7 +1136,7 @@ export function prependKeysWith<T>(
  * only(['a', 'b', 'c', 'd'], [0, 2]); -> ['a', 'c']
  * only(['a', 'b', 'c'], [1]); -> ['b']
  */
-export function only<T>(data: ReadonlyArray<T> | unknown, keys: number[]): T[] {
+export function only<T>(data: ArrayItems<T> | unknown, keys: number[]): T[] {
     const values = getAccessibleValues(data);
     const result: T[] = [];
 
@@ -1175,7 +1162,7 @@ export function only<T>(data: ReadonlyArray<T> | unknown, keys: number[]): T[] {
  * select([{a: 1, b: 2}, {a: 3, b: 4}], ['a', 'b']); -> [{a: 1, b: 2}, {a: 3, b: 4}]
  */
 export function select<T extends Record<string, unknown>>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     keys: PathKeys,
 ): Record<string, unknown>[] {
     const values = getAccessibleValues(data);
@@ -1214,7 +1201,7 @@ export function select<T extends Record<string, unknown>>(
  * pluck([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'name', 'id'); -> {1: 'John', 2: 'Jane'}
  */
 export function pluck<T extends Record<string, unknown>>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     value: string | ((item: T) => unknown),
     key: string | ((item: T) => string | number) | null = null,
 ): unknown[] | Record<string | number, unknown> {
@@ -1222,7 +1209,7 @@ export function pluck<T extends Record<string, unknown>>(
         return [];
     }
 
-    const values = data as ReadonlyArray<T>;
+    const values = data as ArrayItems<T>;
     const results: unknown[] | Record<string | number, unknown> = key ? {} : [];
 
     for (const item of values) {
@@ -1285,7 +1272,7 @@ export function pop<TValue>(
         return null;
     }
 
-    const values = (data as ReadonlyArray<TValue>).slice();
+    const values = (data as ArrayItems<TValue>).slice();
     const poppedValues: TValue[] = [];
 
     for (let i = 0; i < count; i++) {
@@ -1316,7 +1303,7 @@ export function pop<TValue>(
  * map(['a', 'b'], (value, index) => `${index}:${value}`); -> ['0:a', '1:b']
  */
 export function map<T, U>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     callback: (value: T, index: number) => U,
 ): U[] {
     const values = getAccessibleValues(data) as T[];
@@ -1348,14 +1335,14 @@ export function mapWithKeys<
     TKey extends number = number,
     TMapWithKeysKey extends ObjectKey = ObjectKey,
 >(
-    data: ReadonlyArray<TValue> | unknown,
+    data: ArrayItems<TValue> | unknown,
     callback: (value: TValue, index: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue> {
     if (!accessible(data)) {
         return {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
 
-    const values = data as ReadonlyArray<TValue>;
+    const values = data as ArrayItems<TValue>;
     const result = {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
 
     for (let i = 0; i < values.length; i++) {
@@ -1383,7 +1370,7 @@ export function mapWithKeys<
  * mapSpread([['John', 25], ['Jane', 30]], (name, age) => `${name} is ${age}`); -> ['John is 25', 'Jane is 30']
  */
 export function mapSpread<T, U>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     callback: (...args: unknown[]) => U,
 ): U[] {
     const values = getAccessibleValues(data) as T[];
@@ -1417,7 +1404,7 @@ export function mapSpread<T, U>(
  * prepend([1, 2, 3], 0); -> [0, 1, 2, 3]
  */
 export function prepend<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     value: T,
     key?: number,
 ): T[] {
@@ -1450,7 +1437,7 @@ export function prepend<T>(
  * pull(['a', ['b', 'c']], '1.2', 'x'); -> { value: 'x', data: ['a', ['b', 'c']] }
  */
 export function pull<T, D = null>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     key: PathKey,
     defaultValue: D | (() => D) | null = null,
 ): { value: T | D | null; data: T[] } {
@@ -1567,7 +1554,7 @@ export function query(data: unknown): string {
  * random([1, 2], 5); -> throws Error
  */
 export function random<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     number?: number | null,
     preserveKeys: boolean = false,
 ): T | T[] | Record<number, T> | null {
@@ -1627,7 +1614,7 @@ export function shift<TValue>(
         return count === 1 ? null : [] as TValue[];
     }
 
-    const values = (data as ReadonlyArray<TValue>).slice();
+    const values = (data as ArrayItems<TValue>).slice();
     const shiftedValues: TValue[] = [];
 
     for (let i = 0; i < count; i++) {
@@ -1660,7 +1647,7 @@ export function shift<TValue>(
  * set(['a', ['b', 'c']], '1.0', 'x'); -> ['a', ['x', 'c']]
  */
 export function set<T>(
-    array: ReadonlyArray<T> | unknown,
+    array: ArrayItems<T> | unknown,
     key: PathKey | null,
     value: unknown,
 ): unknown[] {
@@ -1700,7 +1687,7 @@ export function push<T>(
  * shuffle([1, 2, 3, 4, 5]); -> [3, 1, 5, 2, 4] (random order)
  * shuffle(['a', 'b', 'c']); -> ['c', 'a', 'b'] (random order)
  */
-export function shuffle<T>(data: ReadonlyArray<T> | unknown): T[] {
+export function shuffle<T>(data: ArrayItems<T> | unknown): T[] {
     const values = getAccessibleValues(data) as T[];
     const result = values.slice();
 
@@ -1731,7 +1718,7 @@ export function slice<TValue>(
         return [] as ArrayItems<TValue>;
     }
 
-    const values = (data as ReadonlyArray<TValue>).slice();
+    const values = (data as ArrayItems<TValue>).slice();
 
     if (length === null) {
         return values.slice(offset);
@@ -1757,7 +1744,7 @@ export function slice<TValue>(
  * sole([1, 2, 3], (value) => value > 1); -> throws Error: Multiple items found (2 items)
  */
 export function sole<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     callback?: (value: T, index: number) => boolean,
 ): T {
     const values = getAccessibleValues(data) as T[];
@@ -1810,7 +1797,7 @@ export function sole<T>(
  * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); -> sorted by name
  */
 export function sort<TValue>(
-    data: ReadonlyArray<TValue> | unknown,
+    data: ArrayItems<TValue> | unknown,
     callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
 ): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
@@ -1865,7 +1852,7 @@ export function sort<TValue>(
  * sortDesc([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); -> sorted by name desc
  */
 export function sortDesc<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     callback?: ((item: T) => unknown) | string | null,
 ): T[] {
     const values = getAccessibleValues(data) as T[];
@@ -1919,7 +1906,7 @@ export function sortDesc<T>(
  * sortRecursive([{ name: 'john', age: 30 }, { name: 'jane', age: 25 }]); -> sorted objects with sorted keys
  */
 export function sortRecursive<T>(
-    data: ReadonlyArray<T> | Record<string, unknown> | unknown,
+    data: ArrayItems<T> | Record<string, unknown> | unknown,
     options?: number,
     descending: boolean = false,
 ): T[] | Record<string, unknown> {
@@ -1995,7 +1982,7 @@ export function sortRecursive<T>(
  * sortRecursiveDesc({ a: [1, 2, 3], b: { c: 1, d: 2 } }); -> { b: { d: 2, c: 1 }, a: [3, 2, 1] }
  */
 export function sortRecursiveDesc<T>(
-    data: ReadonlyArray<T> | Record<string, unknown> | unknown,
+    data: ArrayItems<T> | Record<string, unknown> | unknown,
     options?: number,
 ): T[] | Record<string, unknown> {
     return sortRecursive(data, options, true);
@@ -2020,7 +2007,7 @@ export function splice<TValue>(
         return [] as ArrayItems<TValue>;
     }
 
-    const values = (data as ReadonlyArray<TValue>).slice();
+    const values = (data as ArrayItems<TValue>).slice();
     const replacementValues = getAccessibleValues(replacement) as TValue[];
 
     values.splice(offset, length, ...replacementValues);
@@ -2045,7 +2032,7 @@ export function splice<TValue>(
  * string([{name: 123}], '0.name'); -> throws Error
  */
 export function string<T, D = null>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     key: PathKey,
     defaultValue: D | (() => D) | null = null,
 ): string {
@@ -2073,7 +2060,7 @@ export function string<T, D = null>(
  * toCssClasses({ 'font-bold': true, 'text-red': false }); -> 'font-bold'
  */
 export function toCssClasses(
-    data: ReadonlyArray<unknown> | Record<string, unknown> | unknown,
+    data: ArrayItems<unknown> | Record<string, unknown> | unknown,
 ): string {
     if (!accessible(data) && typeof data !== "object") {
         return "";
@@ -2123,7 +2110,7 @@ export function toCssClasses(
  * toCssStyles(['font-weight: bold', { 'margin-left: 2px': true, 'margin-right: 2px': false }]); -> 'font-weight: bold; margin-left: 2px;'
  */
 export function toCssStyles(
-    data: ReadonlyArray<unknown> | Record<string, unknown> | unknown,
+    data: ArrayItems<unknown> | Record<string, unknown> | unknown,
 ): string {
     if (!accessible(data) && typeof data !== "object") {
         return "";
@@ -2174,7 +2161,7 @@ export function toCssStyles(
  * where(['a', 'b', null, 'c'], (value) => value !== null); -> ['a', 'b', 'c']
  */
 export function where<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     callback: (value: T, index: number) => boolean,
 ): T[] {
     const values = getAccessibleValues(data);
@@ -2203,7 +2190,7 @@ export function where<T>(
  * reject(['a', 'b', null, 'c'], (value) => value === null); -> ['a', 'b', 'c']
  */
 export function reject<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     callback: (value: T, index: number) => boolean,
 ): T[] {
     return where(data, (value, index) => !callback(value, index));
@@ -2287,7 +2274,7 @@ export function replaceRecursive<TValue>(
  * reverse(['a', 'b', 'c']); -> ['c', 'b', 'a']
  */
 export function reverse<TValue>(
-    data: ReadonlyArray<TValue> | unknown,
+    data: ArrayItems<TValue> | unknown,
 ): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
     return values.slice().reverse();
@@ -2332,7 +2319,7 @@ export function pad<TPadValue, TValue>(
  * partition(['a', 'b', null, 'c'], (value) => value !== null); -> [['a', 'b', 'c'], [null]]
  */
 export function partition<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     callback: (value: T, index: number) => boolean,
 ): [T[], T[]] {
     const values = getAccessibleValues(data);
@@ -2362,9 +2349,9 @@ export function partition<T>(
  * whereNotNull([1, null, 2, undefined, 3]); -> [1, 2, undefined, 3]
  * whereNotNull(['a', null, 'b', null]); -> ['a', 'b']
  */
-export function whereNotNull<T>(data: ReadonlyArray<T | null> | unknown): T[] {
+export function whereNotNull<T>(data: ArrayItems<T | null> | unknown): T[] {
     return where(
-        data as ReadonlyArray<T | null>,
+        data as ArrayItems<T | null>,
         (value): value is T => value !== null,
     );
 }
@@ -2384,7 +2371,7 @@ export function whereNotNull<T>(data: ReadonlyArray<T | null> | unknown): T[] {
  * contains([1, '1'], '1', true); -> true
  */
 export function contains<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     value: T | ((value: T, key: string | number) => boolean),
     strict = false,
 ): boolean {
@@ -2420,13 +2407,13 @@ export function contains<T>(
  * filter([1, 2, 3, 4], (x) => x > 2); -> [3, 4]
  * filter([1, null, 2, undefined, 3]); -> [1, 2, 3]
  */
-export function filter<T>(data: ReadonlyArray<T> | unknown): T[];
+export function filter<T>(data: ArrayItems<T> | unknown): T[];
 export function filter<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     callback: (value: T, index: number) => boolean,
 ): T[];
 export function filter<T>(
-    data: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
     callback?: (value: T, index: number) => boolean,
 ): T[] {
     if (!isArray(data)) {
@@ -2473,7 +2460,7 @@ export function wrap<T>(value: T | null): T[] {
  * keys(['name', 'age', 'city']); -> [0, 1, 2]
  * keys([]); -> []
  */
-export function keys<T>(data: ReadonlyArray<T> | unknown): number[] {
+export function keys<T>(data: ArrayItems<T> | unknown): number[] {
     if (!accessible(data)) {
         return [];
     }
@@ -2492,12 +2479,12 @@ export function keys<T>(data: ReadonlyArray<T> | unknown): number[] {
  * values(['name', 'age', 'city']); -> ['name', 'age', 'city']
  * values([]); -> []
  */
-export function values<T>(data: ReadonlyArray<T> | unknown): T[] {
+export function values<T>(data: ArrayItems<T> | unknown): T[] {
     if (!accessible(data)) {
         return [];
     }
 
-    return Array.from((data as ReadonlyArray<T>).values());
+    return Array.from((data as ArrayItems<T>).values());
 }
 
 /**
@@ -2513,8 +2500,8 @@ export function values<T>(data: ReadonlyArray<T> | unknown): T[] {
  * diff(['a', 'b', 'c'], ['b', 'c', 'd']); -> ['a']
  */
 export function diff<T>(
-    data: ReadonlyArray<T> | unknown,
-    other: ReadonlyArray<T> | unknown,
+    data: ArrayItems<T> | unknown,
+    other: ArrayItems<T> | unknown,
 ): T[] {
     if (!accessible(data)) {
         return [];
@@ -2524,8 +2511,8 @@ export function diff<T>(
         return data.slice() as T[];
     }
 
-    const dataArray = data as ReadonlyArray<T>;
-    const otherArray = other as ReadonlyArray<T>;
+    const dataArray = data as ArrayItems<T>;
+    const otherArray = other as ArrayItems<T>;
     const result: T[] = [];
 
     for (const item of dataArray) {
