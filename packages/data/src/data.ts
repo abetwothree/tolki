@@ -1915,11 +1915,11 @@ export function dataLast<TValue, TKey extends ObjectKey = ObjectKey, TDefault = 
                 defaultValue,
             );
 
-            return isUndefined(result) ? null : result;
+            return (isUndefined(result) || (isObject(result) && Object.keys(result).length === 0)) ? null : result as TValue | TDefault | null;
         } else {
             const result = objLast(data, undefined, defaultValue);
 
-            return isUndefined(result) ? null : result;
+            return (isUndefined(result) || (isObject(result) && Object.keys(result).length === 0)) ? null : result as TValue | TDefault | null;
         }
     }
 
@@ -1930,11 +1930,11 @@ export function dataLast<TValue, TKey extends ObjectKey = ObjectKey, TDefault = 
             defaultValue,
         );
 
-        return isUndefined(result) ? null : result;
+        return (isUndefined(result) || (isObject(result) && Object.keys(result).length === 0)) ? null : result as TValue | TDefault | null;
     } else {
         const result = arrLast(data, undefined, defaultValue);
 
-        return isUndefined(result) ? null : result;
+        return (isUndefined(result) || (isObject(result) && Object.keys(result).length === 0)) ? null : result as TValue | TDefault | null;
     }
 }
 
