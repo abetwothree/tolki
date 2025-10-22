@@ -860,7 +860,7 @@ export function has<TValue>(
     }
 
     for (const k of keyList) {
-        if (isNull(k)) {
+        if (isNull(k) || isUndefined(k)) {
             return false;
         }
 

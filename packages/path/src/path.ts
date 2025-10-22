@@ -1,5 +1,5 @@
 import { wrap as arrWrap } from "@laravel-js/arr";
-import { castableToArray, compareValues, getAccessibleValues,isAccessibleData, isArray, isBoolean, isFiniteNumber, isFloat, isFunction, isInteger, isMap, isNegativeNumber, isNonPrimitive, isNull, isNumber, isObject, isPositiveNumber, isPrimitive, isSet, isString, isStringable, isSymbol, isTruthy, isUndefined, isWeakMap, isWeakSet, normalizeToArray, resolveDefault, toArrayable, toJsonable, toJsonSerializable, typeOf, isObjectAny, isTruthyObject } from '@laravel-js/utils';
+import { castableToArray, isArray, isBoolean, isFunction, isInteger, isNull, isNumber, isObject, isObjectAny, isString, isSymbol, isUndefined, typeOf } from '@laravel-js/utils';
 import type { ArrayItems, ObjectKey, PathKey, PathKeys } from "packages/types";
 
 /**
@@ -20,8 +20,12 @@ import type { ArrayItems, ObjectKey, PathKey, PathKeys } from "packages/types";
  * parseSegments(null); -> []
  */
 export function parseSegments(key: PathKey): (number | string)[] | null {
-    if (isNull(key)) {
+    if (isNull(key) || isUndefined(key)) {
         return [];
+    }
+    
+    if (!isNumber(key) && Number.isNaN(key)) {
+        return null;
     }
 
     if (isNumber(key)) {
@@ -154,7 +158,7 @@ export function getRaw<TValue, TKey extends ObjectKey = ObjectKey>(
     root: TValue[] | Record<TKey, TValue>,
     key: PathKey,
 ): { found: boolean; value?: unknown } {
-    if (isNull(key)) {
+    if (isNull(key) || isUndefined(key)) {
         return { found: true, value: root };
     }
 
@@ -1434,16 +1438,28 @@ export function setMixedImmutable<TValue>(
  * hasMixed([], "user.name"); -> false
  */
 export function hasMixed(data: unknown, key: PathKey): boolean {
-    if (isNull(key)) {
-        return !isNull(data);
+    if (isNull(key) || isUndefined(key)) {
+        // Check if data exists and has accessible values
+        if (isNull(data) || isUndefined(data)) {
+            return false;
+        }
+        
+        // For arrays, check if they have elements
+        if (isArray(data)) {
+            return data.length > 0;
+        }
+        
+        // For objects, check if they have keys
+        if (isObject(data)) {
+            return Object.keys(data).length > 0;
+        }
+        
+        // For other types (primitives), return true as they exist
+        return true;
     }
 
     if (isNumber(key)) {
         return isArray(data) && key >= 0 && key < data.length;
-    }
-
-    if (isUndefined(key)) {
-        return false;
     }
 
     // Use getNestedValue to check existence
