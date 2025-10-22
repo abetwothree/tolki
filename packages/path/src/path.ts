@@ -1341,7 +1341,7 @@ export function pushMixed<TValue>(
             current = obj[segment];
         } else {
             // Can't navigate further
-            return data as T[];
+            return data as TValue[];
         }
     }
 
