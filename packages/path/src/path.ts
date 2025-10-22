@@ -50,6 +50,7 @@ export function parseSegments(key: PathKey): (number | string)[] | null {
             segs.push(p);
         }
     }
+
     return segs;
 }
 
@@ -81,12 +82,13 @@ export function hasPath(
 ): boolean {
     if (key == null) return false;
 
-    if (typeof key === "number") {
+    if (isNumber(key)) {
         if (isArray(root)) {
             return isInteger(key) && key >= 0 && key < root.length;
         }
+
         // For objects, numeric keys are treated as string keys
-        return root != null && typeof root === "object" && String(key) in root;
+        return !isNull(root) && isObject(root) && String(key) in root;
     }
 
     const segs = parseSegments(key);
@@ -94,9 +96,9 @@ export function hasPath(
 
     let cursor: unknown = root;
     for (const s of segs) {
-        if (cursor == null || typeof cursor !== "object") return false;
+        if (cursor == null || isObject(cursor)) return false;
 
-        if (typeof s === "number") {
+        if (isNumber(s)) {
             // Numeric segment - check if cursor is an array
             const arr = castableToArray(cursor);
             if (!arr || s < 0 || s >= arr.length) return false;
@@ -141,13 +143,13 @@ export function getRaw(
         return { found: true, value: root };
     }
 
-    if (typeof key === "number") {
+    if (isNumber(key)) {
         if (isArray(root)) {
             if (!isInteger(key) || key < 0 || key >= root.length) {
                 return { found: false };
             }
             return { found: true, value: root[key] };
-        } else if (root != null && typeof root === "object") {
+        } else if (root != null && isObject(root)) {
             // For objects, numeric keys are treated as string keys
             const stringKey = String(key);
             return stringKey in root
@@ -165,10 +167,11 @@ export function getRaw(
 
     let cursor: unknown = root;
     for (const s of segs) {
-        if (cursor == null || typeof cursor !== "object")
+        if (cursor == null || isObject(cursor)){
             return { found: false };
+        }
 
-        if (typeof s === "number") {
+        if (isNumber(s)) {
             // Numeric segment - check if cursor is an array
             const arr = castableToArray(cursor);
             if (!arr || s < 0 || s >= arr.length) return { found: false };
@@ -252,7 +255,7 @@ export function forgetKeysObject<T extends Record<string, unknown>>(
             if (
                 !segment ||
                 !current[segment] ||
-                typeof current[segment] !== "object"
+                !isObject(current[segment])
             ) {
                 break; // Path doesn't exist, nothing to remove
             }
@@ -354,7 +357,7 @@ export function forgetKeysArray<T>(
     }
     if (keyList.length === 1) {
         const k = keyList[0]!;
-        if (typeof k === "number") {
+        if (isNumber(k)) {
             return removeAt(data, k);
         }
         const parts = String(k)
@@ -372,7 +375,7 @@ export function forgetKeysArray<T>(
     type Group = { path: number[]; indices: Set<number> };
     const groupsMap = new Map<string, Group>();
     for (const k of isArray(keys) ? keys : [keys]) {
-        if (typeof k === "number") {
+        if (isNumber(k)) {
             const key = "";
             const entry = groupsMap.get(key) ?? {
                 path: [],
@@ -456,10 +459,10 @@ export function setImmutable<T>(
     };
 
     if (
-        typeof key === "number" ||
-        (typeof key === "string" && key.indexOf(".") === -1)
+        isNumber(key) ||
+        (isString(key) && key.indexOf(".") === -1)
     ) {
-        const raw = typeof key === "number" ? key : Number(key);
+        const raw = isNumber(key) ? key : Number(key);
         if (!isInteger(raw) || raw < 0) return root as T[];
         const idx = clampIndex(raw, root.length);
         if (idx === -1) return root as T[];
@@ -557,7 +560,7 @@ export function pushWithPath<T>(
 
         // Filter to only numeric segments for array operations
         const numericSegs = segs.filter(
-            (s): s is number => typeof s === "number",
+            (s): s is number => isNumber(s),
         );
         if (numericSegs.length !== segs.length) {
             // Mixed paths not supported in this array-only function
@@ -590,7 +593,7 @@ export function pushWithPath<T>(
         }
         if (leaf < cursor.length) {
             const existing = cursor[leaf];
-            if (typeof existing === "boolean") {
+            if (isBoolean(existing)) {
                 throw new Error(
                     `Array value for key [${String(key)}] must be an array, boolean found.`,
                 );
@@ -609,7 +612,7 @@ export function pushWithPath<T>(
     }
 
     // Filter to only numeric segments for array operations
-    const numericSegs = segs.filter((s): s is number => typeof s === "number");
+    const numericSegs = segs.filter((s): s is number => isNumber(s));
     if (numericSegs.length !== segs.length) {
         // Mixed paths not supported in this array-only function
         return isPlainArray ? (data as T[]) : (root as T[]);
@@ -647,7 +650,7 @@ export function pushWithPath<T>(
     const leaf = numericSegs[numericSegs.length - 1]!;
     if (leaf < cursor.length) {
         const existing = cursor[leaf];
-        if (typeof existing === "boolean") {
+        if (isBoolean(existing)) {
             throw new Error(
                 `Array value for key [${String(key)}] must be an array, boolean found.`,
             );
@@ -847,9 +850,15 @@ export function undotExpandArray(map: Record<string, unknown>): unknown[] {
         return isInteger(n) && n >= 0;
     };
     for (const [rawKey, value] of Object.entries(map ?? {})) {
-        if (typeof rawKey !== "string" || rawKey.length === 0) continue;
+        if (!isString(rawKey) || rawKey.length === 0) {
+            continue;
+        }
+        
         const segments = rawKey.split(".");
-        if (segments.some((s) => !isValidIndex(s))) continue;
+        if (segments.some((s) => !isValidIndex(s))) {
+            continue;
+        }
+
         let cursor: unknown = root;
         for (let i = 0; i < segments.length; i++) {
             const idx = Number(segments[i]!);
@@ -910,7 +919,7 @@ export function undotExpandArray(map: Record<string, unknown>): unknown[] {
  * getNestedValue([{items: ['x']}], '0.items.5'); -> undefined
  */
 export function getNestedValue<T>(obj: unknown, path: string): T | undefined {
-    if (!obj || typeof obj !== "object") {
+    if (!obj || !isObject(obj)) {
         return undefined;
     }
 
@@ -918,7 +927,7 @@ export function getNestedValue<T>(obj: unknown, path: string): T | undefined {
     let current: unknown = obj;
 
     for (const segment of segments) {
-        if (current == null || typeof current !== "object") {
+        if (current == null || !isObject(current)) {
             return undefined;
         }
 
@@ -965,7 +974,7 @@ export function getMixedValue<T, D = null>(
     defaultValue: D | (() => D) | null = null,
 ): unknown {
     const resolveDefault = (): D | null => {
-        return typeof defaultValue === "function"
+        return isFunction(defaultValue)
             ? (defaultValue as () => D)()
             : (defaultValue as D);
     };
@@ -975,7 +984,7 @@ export function getMixedValue<T, D = null>(
     }
 
     // For simple numeric keys, use existing getRaw function
-    if (typeof key === "number") {
+    if (isNumber(key)) {
         if (!isArray(data)) {
             return resolveDefault();
         }
@@ -1052,7 +1061,7 @@ export function setMixed(
         return arr;
     }
 
-    if (typeof key === "number") {
+    if (isNumber(key)) {
         // Direct array index
         if (isInteger(key) && key >= 0) {
             // Extend array if necessary
@@ -1099,7 +1108,7 @@ export function setMixed(
             }
 
             // If the next level doesn't exist or isn't an object/array, create it
-            if (current[index] == null || typeof current[index] !== "object") {
+            if (current[index] == null || !isObject(current[index])) {
                 const nextSegment = segments[i + 1];
                 if (nextSegment) {
                     const nextIndex = parseInt(nextSegment, 10);
@@ -1110,10 +1119,10 @@ export function setMixed(
             }
 
             current = current[index];
-        } else if (current != null && typeof current === "object") {
+        } else if (current != null && isObject(current)) {
             // Handle non-numeric keys (object properties)
             const obj = current as Record<string, unknown>;
-            if (obj[segment] == null || typeof obj[segment] !== "object") {
+            if (obj[segment] == null || !isObject(obj[segment])) {
                 const nextSegment = segments[i + 1];
                 if (nextSegment) {
                     const nextIndex = parseInt(nextSegment, 10);
@@ -1137,7 +1146,7 @@ export function setMixed(
             current.push(undefined);
         }
         current[lastIndex] = value;
-    } else if (current != null && typeof current === "object") {
+    } else if (current != null && isObject(current)) {
         (current as Record<string, unknown>)[lastSegment] = value;
     }
 
@@ -1205,15 +1214,15 @@ export function pushMixed<T>(
             }
 
             // Create nested structure if needed
-            if (current[index] == null || typeof current[index] !== "object") {
+            if (current[index] == null || !isObject(current[index])) {
                 current[index] = [];
             }
 
             current = current[index];
-        } else if (current != null && typeof current === "object") {
+        } else if (current != null && isObject(current)) {
             // Handle object properties
             const obj = current as Record<string, unknown>;
-            if (obj[segment] == null || typeof obj[segment] !== "object") {
+            if (obj[segment] == null || !isObject(obj[segment])) {
                 obj[segment] = [];
             }
             current = obj[segment];
@@ -1262,9 +1271,9 @@ export function setMixedImmutable<T>(
 
     // Create a deep copy for immutable operation
     const deepCopy = (obj: unknown): unknown => {
-        if (obj === null || typeof obj !== "object") return obj;
+        if (obj === null || !isObject(obj)) return obj;
         if (isArray(obj)) return obj.map(deepCopy);
-        if (typeof obj === "object") {
+        if (isObject(obj)) {
             const result: Record<string, unknown> = {};
             for (const [k, v] of Object.entries(obj)) {
                 result[k] = deepCopy(v);
@@ -1328,7 +1337,7 @@ export function getObjectValue<T = unknown, D = null>(
     defaultValue: D | (() => D) | null = null,
 ): T | D | null {
     const resolveDefault = (): D | null => {
-        return typeof defaultValue === "function"
+        return isFunction(defaultValue)
             ? (defaultValue as () => D)()
             : (defaultValue as D);
     };

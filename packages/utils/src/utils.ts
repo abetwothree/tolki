@@ -88,9 +88,7 @@ export function isStringable(value: unknown): value is string | { toString(): st
  * isNumber("123"); -> false
  */
 export function isNumber(value: unknown): value is number {
-    return (
-        typeof value === "number" && !isNaN(value) && isFinite(value)
-    );
+    return typeof value === "number" && !isNaN(value);
 }
 
 /**
