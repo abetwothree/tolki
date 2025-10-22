@@ -2116,7 +2116,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      */
     chunk(
         size: number,
-        preserveKeys: boolean = false,
+        preserveKeys: boolean = true,
     ) {
         if (size < 0) {
             return new Collection();

@@ -142,7 +142,7 @@ export function boolean<TValue, TDefault = null>(
 export function chunk<TValue>(
     data: ArrayItems<TValue>,
     size: number,
-    preserveKeys: boolean = false
+    preserveKeys: boolean = true
 ): TValue[][] | [number, TValue][][] {
     if (size <= 0) {
         return [];

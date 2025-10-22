@@ -150,7 +150,7 @@ export function boolean<TValue, TKey extends ObjectKey = ObjectKey, TDefault = n
 export function chunk<TValue, TKey extends ObjectKey = ObjectKey>(
     data: Record<TKey, TValue>,
     size: number,
-    preserveKeys: boolean = false,
+    preserveKeys: boolean = true,
 ){
     if(size <= 0){
         return {};

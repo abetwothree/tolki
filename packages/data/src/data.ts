@@ -245,7 +245,7 @@ export function dataBoolean<TValue, TKey extends ObjectKey = ObjectKey>(
 export function dataChunk<TValue, TKey extends ObjectKey = ObjectKey>(
     data: DataItems<TValue, TKey>,
     size: number,
-    preserveKeys: boolean = false,
+    preserveKeys: boolean = true,
 ){
     if (isObject(data)) {
         return objChunk(data as Record<TKey, TValue>, size, preserveKeys);
