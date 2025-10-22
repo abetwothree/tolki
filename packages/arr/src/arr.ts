@@ -37,8 +37,8 @@ import {
  * accessible([1, 2]); // true
  * accessible({ a: 1, b: 2 }); // false
  */
-export function accessible<T>(value: T): value is T & Array<T> {
-    return isArray<T>(value);
+export function accessible<TValue>(value: TValue): value is TValue & Array<TValue> {
+    return isArray(value);
 }
 
 /**
@@ -50,8 +50,8 @@ export function accessible<T>(value: T): value is T & Array<T> {
  * arrayable([1, 2]); // true
  * arrayable({ a: 1, b: 2 }); // false
  */
-export function arrayable<T>(value: unknown): value is ReadonlyArray<unknown> {
-    return isArray<T>(value);
+export function arrayable(value: unknown): value is unknown[] {
+    return isArray(value);
 }
 
 /**
@@ -67,14 +67,13 @@ export function arrayable<T>(value: unknown): value is ReadonlyArray<unknown> {
  * add(['products', ['desk', [100]]], '1.1', 200); -> ['products', ['desk', [100, 200]]]
  * add(['products', ['desk', [100]]], '2', ['chair', [150]]); -> ['products', ['desk', [100]], ['chair', [150]]]
  */
-
-export function add<T extends readonly unknown[]>(
-    data: T,
+export function add<TValue>(
+    data: ArrayItems<TValue>,
     key: PathKey,
     value: unknown,
-): unknown[] {
+): TValue[] {
     // Convert to mutable array if it's readonly
-    const mutableData = isArray(data) ? (data as unknown[]) : [...data];
+    const mutableData = isArray(data) ? (data as TValue[]) : [...data];
 
     if (getMixedValue(mutableData, key) === null) {
         return setMixed(mutableData, key, value);
