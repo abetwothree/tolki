@@ -24,6 +24,8 @@
         "docs:build": "vitepress build docs",
         "docs:preview": "vitepress preview docs",
         "list:functions": "ts-node ./scripts/functions-list.ts",
+        "stubs": "run-s stubs:*",
+        "stubs:copy-framework": "ts-node ./scripts/copy-framework-files.ts",
         "stubs:create-lists": "ts-node ./scripts/stubs-function-list-create.ts"
     },
     "keywords": [],
@@ -48,6 +50,7 @@
         "@types/node": "^24.8.1",
         "@vitest/coverage-istanbul": "3.2.4",
         "@vitest/ui": "3.2.4",
+        "dotenv": "^17.2.3",
         "eslint": "^9.38.0",
         "eslint-plugin-oxlint": "^1.23.0",
         "eslint-plugin-simple-import-sort": "^12.1.1",
