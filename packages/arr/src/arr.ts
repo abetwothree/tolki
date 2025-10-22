@@ -93,7 +93,7 @@ export function arrayItem<T, D = null>(
 
     if (!isArray(value)) {
         throw new Error(
-            `Array value for key [${key}] must be an array, ${typeof value} found.`,
+            `Array value for key [${key}] must be an array, ${typeOf(value)} found.`,
         );
     }
 
@@ -125,7 +125,7 @@ export function boolean<T, D = null>(
 
     if (typeof value !== "boolean") {
         throw new Error(
-            `Array value for key [${key}] must be a boolean, ${typeof value} found.`,
+            `Array value for key [${key}] must be a boolean, ${typeOf(value)} found.`,
         );
     }
 
@@ -709,7 +709,7 @@ export function float<T, D = null>(
 
     if (typeof value !== "number") {
         throw new Error(
-            `Array value for key [${key}] must be a float, ${typeof value} found.`,
+            `Array value for key [${key}] must be a float, ${typeOf(value)} found.`,
         );
     }
 
@@ -1175,7 +1175,7 @@ export function select<T extends Record<string, unknown>>(
         for (const key of keyList) {
             if (
                 typedItem != null &&
-                typeof typedItem === "object" &&
+                isObject(typedItem) &&
                 key in typedItem
             ) {
                 result[key] = (typedItem as Record<string, unknown>)[key];
@@ -2034,7 +2034,7 @@ export function string<T, D = null>(
 
     if (typeof value !== "string") {
         throw new Error(
-            `Array value for key [${key}] must be a string, ${typeof value} found.`,
+            `Array value for key [${key}] must be a string, ${typeOf(value)} found.`,
         );
     }
 
