@@ -432,6 +432,25 @@ export function exists<TValue>(data: readonly TValue[], key: PathKey): boolean {
  * first([1, 2, 3], x => x > 1); -> 2
  * first([1, 2, 3], x => x > 5, 'none'); -> 'none'
  */
+// Overload: array type with callback for proper type inference
+export function first<TValue, TFirstDefault = null>(
+    data: TValue[],
+    callback: (value: TValue, key: number) => boolean,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: array type without callback
+export function first<TValue, TFirstDefault = null>(
+    data: TValue[],
+    callback?: null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: non-array fallback
+export function first<TValue, TFirstDefault = null>(
+    data: unknown,
+    callback?: ((value: TValue, key: number) => boolean) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Implementation
 export function first<TValue, TFirstDefault = null>(
     data: ArrayItems<TValue> | unknown,
     callback?: ((value: TValue, key: number) => boolean) | null,
@@ -502,6 +521,25 @@ export function first<TValue, TFirstDefault = null>(
  * last([1, 2, 3], x => x < 3); -> 2
  * last([1, 2, 3], x => x > 5, 'none'); -> 'none'
  */
+// Overload: array type with callback for proper type inference
+export function last<TValue, TFirstDefault = null>(
+    data: TValue[],
+    callback: (value: TValue, key: number) => boolean,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: array type without callback
+export function last<TValue, TFirstDefault = null>(
+    data: TValue[],
+    callback?: null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: non-array fallback
+export function last<TValue, TFirstDefault = null>(
+    data: unknown,
+    callback?: ((value: TValue, key: number) => boolean) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Implementation
 export function last<TValue, TFirstDefault = null>(
     data: ArrayItems<TValue> | unknown,
     callback?: ((value: TValue, key: number) => boolean) | null,
@@ -952,6 +990,17 @@ export function hasAny<TValue>(
  * every([2, 4, 6], n => n % 2 === 0); -> true
  * every([1, 2, 3], n => n % 2 === 0); -> false
  */
+// Overload: array type with callback for proper type inference
+export function every<TValue>(
+    data: TValue[],
+    callback: (value: TValue, key: number) => boolean,
+): boolean;
+// Overload: non-array fallback
+export function every<TValue>(
+    data: unknown,
+    callback: (value: TValue, key: number) => boolean,
+): boolean;
+// Implementation
 export function every<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback: (value: TValue, key: number) => boolean,
@@ -982,9 +1031,20 @@ export function every<TValue>(
  * some([1, 2, 3], n => n % 2 === 0); -> true
  * some([1, 3, 5], n => n % 2 === 0); -> false
  */
-export function some<T>(
-    data: ArrayItems<T> | unknown,
-    callback: (value: T, key: number) => boolean,
+// Overload: array type with callback for proper type inference
+export function some<TValue>(
+    data: TValue[],
+    callback: (value: TValue, key: number) => boolean,
+): boolean;
+// Overload: non-array fallback
+export function some<TValue>(
+    data: unknown,
+    callback: (value: TValue, key: number) => boolean,
+): boolean;
+// Implementation
+export function some<TValue>(
+    data: ArrayItems<TValue> | unknown,
+    callback: (value: TValue, key: number) => boolean,
 ): boolean {
     if (!accessible(data)) {
         return false;
@@ -993,7 +1053,7 @@ export function some<T>(
     const values = getAccessibleValues(data);
 
     for (let i = 0; i < values.length; i++) {
-        if (callback(values[i] as T, i)) {
+        if (callback(values[i] as TValue, i)) {
             return true;
         }
     }
@@ -1085,6 +1145,17 @@ export function join<TValue>(
  * keyBy([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'id'); -> {1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}}
  * keyBy([{name: 'John'}, {name: 'Jane'}], (item) => item.name); -> {John: {name: 'John'}, Jane: {name: 'Jane'}}
  */
+// Overload: array type with callback for proper type inference
+export function keyBy<TValue extends Record<string, unknown>>(
+    data: TValue[],
+    keyBy: ((item: TValue) => string | number) | string,
+): Record<ObjectKey, TValue>;
+// Overload: non-array fallback
+export function keyBy<TValue extends Record<string, unknown>>(
+    data: unknown,
+    keyBy: string | ((item: TValue) => string | number),
+): Record<ObjectKey, TValue>;
+// Implementation
 export function keyBy<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue> | unknown,
     keyBy: string | ((item: TValue) => string | number),
@@ -1217,6 +1288,19 @@ export function select<TValue extends Record<string, unknown>>(
  * pluck([{user: {name: 'John'}}, {user: {name: 'Jane'}}], 'user.name'); -> ['John', 'Jane']
  * pluck([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'name', 'id'); -> {1: 'John', 2: 'Jane'}
  */
+// Overload: array type with callback for proper type inference
+export function pluck<TValue extends Record<string, unknown>>(
+    data: TValue[],
+    value: string | ((item: TValue) => unknown),
+    key?: string | ((item: TValue) => string | number) | null,
+): unknown[] | Record<string | number, unknown>;
+// Overload: non-array fallback
+export function pluck<TValue extends Record<string, unknown>>(
+    data: unknown,
+    value: string | ((item: TValue) => unknown),
+    key?: string | ((item: TValue) => string | number) | null,
+): unknown[] | Record<string | number, unknown>;
+// Implementation
 export function pluck<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue> | unknown,
     value: string | ((item: TValue) => unknown),
@@ -1318,6 +1402,17 @@ export function pop<TValue>(
  * map([1, 2, 3], (value) => value * 2); -> [2, 4, 6]
  * map(['a', 'b'], (value, index) => `${index}:${value}`); -> ['0:a', '1:b']
  */
+// Overload: array type with callback for proper type inference
+export function map<TValue, TMapReturn>(
+    data: TValue[],
+    callback: (value: TValue, index: number) => TMapReturn,
+): TMapReturn[];
+// Overload: non-array fallback
+export function map<TValue, TMapReturn>(
+    data: unknown,
+    callback: (value: TValue, index: number) => TMapReturn,
+): TMapReturn[];
+// Implementation
 export function map<TValue, TMapReturn>(
     data: ArrayItems<TValue> | unknown,
     callback: (value: TValue, index: number) => TMapReturn,
@@ -1345,6 +1440,27 @@ export function map<TValue, TMapReturn>(
  * mapWithKeys([{id: 1, name: 'John'}], (item) => ({[item.name]: item.id})); -> {John: 1}
  * mapWithKeys(['a', 'b'], (value, index) => ({[value]: index})); -> {a: 0, b: 1}
  */
+// Overload: array type with callback for proper type inference
+export function mapWithKeys<
+    TValue,
+    TMapWithKeysValue,
+    TKey extends number = number,
+    TMapWithKeysKey extends ObjectKey = ObjectKey,
+>(
+    data: TValue[],
+    callback: (value: TValue, index: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
+): Record<TMapWithKeysKey, TMapWithKeysValue>;
+// Overload: non-array fallback
+export function mapWithKeys<
+    TValue,
+    TMapWithKeysValue,
+    TKey extends number = number,
+    TMapWithKeysKey extends ObjectKey = ObjectKey,
+>(
+    data: unknown,
+    callback: (value: TValue, index: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
+): Record<TMapWithKeysKey, TMapWithKeysValue>;
+// Implementation
 export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
@@ -1385,15 +1501,43 @@ export function mapWithKeys<
  * mapSpread([[1, 2], [3, 4]], (a, b) => a + b); -> [3, 7]
  * mapSpread([['John', 25], ['Jane', 30]], (name, age) => `${name} is ${age}`); -> ['John is 25', 'Jane is 30']
  */
-export function mapSpread<TValue, TMapReturn>(
-    data: ArrayItems<TValue> | unknown,
-    callback: (...args: unknown[]) => TMapReturn,
+// Overload: 2-element tuples with proper type inference
+export function mapSpread<T1, T2, TMapReturn>(
+    data: [T1, T2][],
+    callback: (arg1: T1, arg2: T2, index: number) => TMapReturn,
+): TMapReturn[];
+// Overload: 3-element tuples with proper type inference
+export function mapSpread<T1, T2, T3, TMapReturn>(
+    data: [T1, T2, T3][],
+    callback: (arg1: T1, arg2: T2, arg3: T3, index: number) => TMapReturn,
+): TMapReturn[];
+// Overload: 4-element tuples with proper type inference
+export function mapSpread<T1, T2, T3, T4, TMapReturn>(
+    data: [T1, T2, T3, T4][],
+    callback: (arg1: T1, arg2: T2, arg3: T3, arg4: T4, index: number) => TMapReturn,
+): TMapReturn[];
+// Overload: 5-element tuples with proper type inference
+export function mapSpread<T1, T2, T3, T4, T5, TMapReturn>(
+    data: [T1, T2, T3, T4, T5][],
+    callback: (arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5, index: number) => TMapReturn,
+): TMapReturn[];
+// Overload: generic fallback for any data
+export function mapSpread<TMapReturn>(
+    data: unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    callback: (...args: any[]) => TMapReturn,
+): TMapReturn[];
+// Implementation (using any[] for compatibility with all overloads)
+export function mapSpread<TMapReturn>(
+    data: unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    callback: (...args: any[]) => TMapReturn,
 ): TMapReturn[] {
-    const values = getAccessibleValues(data) as TValue[];
+    const values = getAccessibleValues(data);
     const result: TMapReturn[] = [];
 
     for (let i = 0; i < values.length; i++) {
-        const chunk = values[i] as TValue;
+        const chunk = values[i];
         if (isArray(chunk)) {
             // Spread the chunk elements and append the index
             result.push(callback(...chunk, i));
@@ -1785,6 +1929,22 @@ export function slice<TValue>(
  * sole([1, 2]); -> throws Error: Multiple items found (2 items)
  * sole([1, 2, 3], (value) => value > 1); -> throws Error: Multiple items found (2 items)
  */
+// Overload: array type with callback for proper type inference
+export function sole<TValue>(
+    data: TValue[],
+    callback: (value: TValue, index: number) => boolean,
+): TValue;
+// Overload: array type without callback
+export function sole<TValue>(
+    data: TValue[],
+    callback?: undefined,
+): TValue;
+// Overload: non-array fallback
+export function sole<TValue>(
+    data: unknown,
+    callback?: (value: TValue, index: number) => boolean,
+): TValue;
+// Implementation
 export function sole<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback?: (value: TValue, index: number) => boolean,
@@ -1838,6 +1998,21 @@ export function sole<TValue>(
  * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], 'age'); -> sorted by age
  * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); -> sorted by name
  */
+// Overload: array type with callback for proper type inference
+export function sort<TValue>(
+    data: TValue[],
+    callback: ((a: TValue, b: TValue) => unknown) | string | null,
+): TValue[];
+// Overload: array type without callback (natural sorting)
+export function sort<TValue>(
+    data: TValue[],
+): TValue[];
+// Overload: non-array fallback
+export function sort<TValue>(
+    data: unknown,
+    callback?: ((a: TValue, b: TValue) => unknown) | string | null,
+): TValue[];
+// Implementation
 export function sort<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
@@ -1893,6 +2068,21 @@ export function sort<TValue>(
  * sortDesc([{name: 'John', age: 25}, {name: 'Jane', age: 30}], 'age'); -> sorted by age desc
  * sortDesc([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); -> sorted by name desc
  */
+// Overload: array type with callback for proper type inference
+export function sortDesc<TValue>(
+    data: TValue[],
+    callback: ((item: TValue) => unknown) | string | null,
+): TValue[];
+// Overload: array type without callback (natural sorting)
+export function sortDesc<TValue>(
+    data: TValue[],
+): TValue[];
+// Overload: non-array fallback
+export function sortDesc<TValue>(
+    data: unknown,
+    callback?: ((item: TValue) => unknown) | string | null,
+): TValue[];
+// Implementation
 export function sortDesc<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback?: ((item: TValue) => unknown) | string | null,
@@ -2233,6 +2423,17 @@ export function toCssStyles(
  * where([1, 2, 3, 4], (value) => value > 2); -> [3, 4]
  * where(['a', 'b', null, 'c'], (value) => value !== null); -> ['a', 'b', 'c']
  */
+// Overload: array type with callback for proper type inference
+export function where<TValue>(
+    data: TValue[],
+    callback: (value: TValue, index: number) => boolean,
+): TValue[];
+// Overload: non-array fallback
+export function where<TValue>(
+    data: unknown,
+    callback: (value: TValue, index: number) => boolean,
+): TValue[];
+// Implementation
 export function where<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback: (value: TValue, index: number) => boolean,
@@ -2262,6 +2463,17 @@ export function where<TValue>(
  * reject([1, 2, 3, 4], (value) => value > 2); -> [1, 2]
  * reject(['a', 'b', null, 'c'], (value) => value === null); -> ['a', 'b', 'c']
  */
+// Overload: array type with callback for proper type inference
+export function reject<TValue>(
+    data: TValue[],
+    callback: (value: TValue, index: number) => boolean,
+): TValue[];
+// Overload: non-array fallback
+export function reject<TValue>(
+    data: unknown,
+    callback: (value: TValue, index: number) => boolean,
+): TValue[];
+// Implementation
 export function reject<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback: (value: TValue, index: number) => boolean,
@@ -2532,6 +2744,17 @@ export function pad<TPadValue, TValue>(
  * partition([1, 2, 3, 4], (value) => value > 2); -> [[3, 4], [1, 2]]
  * partition(['a', 'b', null, 'c'], (value) => value !== null); -> [['a', 'b', 'c'], [null]]
  */
+// Overload: array type with callback for proper type inference
+export function partition<TValue>(
+    data: TValue[],
+    callback: (value: TValue, index: number) => boolean,
+): [TValue[], TValue[]];
+// Overload: non-array fallback
+export function partition<TValue>(
+    data: unknown,
+    callback: (value: TValue, index: number) => boolean,
+): [TValue[], TValue[]];
+// Implementation
 export function partition<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback: (value: TValue, index: number) => boolean,
@@ -2563,10 +2786,10 @@ export function partition<TValue>(
  * whereNotNull([1, null, 2, undefined, 3]); -> [1, 2, undefined, 3]
  * whereNotNull(['a', null, 'b', null]); -> ['a', 'b']
  */
-export function whereNotNull<TValue>(data: ArrayItems<TValue | null> | unknown): TValue[] {
+export function whereNotNull<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
     return where(
-        data as ArrayItems<TValue | null>,
-        (value): value is TValue => !isNull(value),
+        data,
+        (value) => !isNull(value),
     );
 }
 

@@ -234,20 +234,20 @@ describe("Arr", () => {
 
         // Callback is not null and array is not empty
         expect(
-            Arr.first(data, (value: number) => {
+            Arr.first(data, (value) => {
                 return value >= 150;
             }),
         ).toBe(200);
 
         // Callback is not null, array is not empty but no satisfied item
-        expect(Arr.first(data, (value: number) => value > 300)).toBeNull();
+        expect(Arr.first(data, (value) => value > 300)).toBeNull();
 
-        expect(Arr.first(data, (value: number) => value > 300, "bar")).toBe("bar");
+        expect(Arr.first(data, (value) => value > 300, "bar")).toBe("bar");
 
         expect(
             Arr.first(
                 data,
-                (value: number) => value > 300,
+                (value) => value > 300,
                 () => "baz",
             ),
         ).toBe("baz");
@@ -283,14 +283,14 @@ describe("Arr", () => {
 
         // Callback is not null and array is not empty
         expect(
-            Arr.last(data, (value: number) => {
+            Arr.last(data, (value) => {
                 return value < 250;
             }),
         ).toBe(200);
 
         // Callback is not null, array is not empty but no satisfied item
         expect(
-            Arr.last(data, (value: number) => {
+            Arr.last(data, (value) => {
                 return value > 300;
             }),
         ).toBeNull();
@@ -298,7 +298,7 @@ describe("Arr", () => {
         expect(
             Arr.last(
                 data,
-                (value: number) => {
+                (value) => {
                     return value > 300;
                 },
                 "bar",
@@ -308,7 +308,7 @@ describe("Arr", () => {
         expect(
             Arr.last(
                 data,
-                (value: number) => {
+                (value) => {
                     return value > 300;
                 },
                 () => "baz",
@@ -338,19 +338,19 @@ describe("Arr", () => {
             })();
 
         // Last value < 3 is 2
-        expect(Arr.last(gen(), (v: number) => v < 3)).toBe(2);
+        expect(Arr.last(gen(), (v) => v < 3)).toBe(2);
 
         // No match returns null
-        expect(Arr.last(gen(), (v: number) => v > 5)).toBeNull();
+        expect(Arr.last(gen(), (v) => v > 5)).toBeNull();
 
         // No match with default value
-        expect(Arr.last(gen(), (v: number) => v > 5, "fallback")).toBe("fallback");
+        expect(Arr.last(gen(), (v) => v > 5, "fallback")).toBe("fallback");
 
         // No match with lazy default
         expect(
             Arr.last(
                 gen(),
-                (v: number) => v > 5,
+                (v) => v > 5,
                 () => "lazy",
             ),
         ).toBe("lazy");
@@ -1046,13 +1046,13 @@ describe("Arr", () => {
 
     it("where", () => {
         // Basic array filtering
-        expect(Arr.where([1, 2, 3, 4], (value: number) => value > 2)).toEqual([
+        expect(Arr.where([1, 2, 3, 4], (value) => value > 2)).toEqual([
             3, 4,
         ]);
         expect(
-            Arr.where([1, 2, 3, 4], (value: number) => value % 2 === 0),
+            Arr.where([1, 2, 3, 4], (value) => value % 2 === 0),
         ).toEqual([2, 4]);
-        expect(Arr.where([1, 2, 3, 4], (value: number) => value > 10)).toEqual(
+        expect(Arr.where([1, 2, 3, 4], (value) => value > 10)).toEqual(
             [],
         );
 
@@ -1225,13 +1225,13 @@ describe("Arr", () => {
 
     it("reject", () => {
         // Basic rejection (opposite of where)
-        expect(Arr.reject([1, 2, 3, 4], (value: number) => value > 2)).toEqual([
+        expect(Arr.reject([1, 2, 3, 4], (value) => value > 2)).toEqual([
             1, 2,
         ]);
         expect(
-            Arr.reject([1, 2, 3, 4], (value: number) => value % 2 === 0),
+            Arr.reject([1, 2, 3, 4], (value) => value % 2 === 0),
         ).toEqual([1, 3]);
-        expect(Arr.reject([1, 2, 3, 4], (value: number) => value > 10)).toEqual(
+        expect(Arr.reject([1, 2, 3, 4], (value) => value > 10)).toEqual(
             [1, 2, 3, 4],
         );
 
@@ -1293,22 +1293,22 @@ describe("Arr", () => {
     it("partition", () => {
         // Basic partitioning
         expect(
-            Arr.partition([1, 2, 3, 4], (value: number) => value > 2),
+            Arr.partition([1, 2, 3, 4], (value) => value > 2),
         ).toEqual([
             [3, 4],
             [1, 2],
         ]);
         expect(
-            Arr.partition([1, 2, 3, 4], (value: number) => value % 2 === 0),
+            Arr.partition([1, 2, 3, 4], (value) => value % 2 === 0),
         ).toEqual([
             [2, 4],
             [1, 3],
         ]);
         expect(
-            Arr.partition([1, 2, 3, 4], (value: number) => value > 10),
+            Arr.partition([1, 2, 3, 4], (value) => value > 10),
         ).toEqual([[], [1, 2, 3, 4]]);
         expect(
-            Arr.partition([1, 2, 3, 4], (value: number) => value < 10),
+            Arr.partition([1, 2, 3, 4], (value) => value < 10),
         ).toEqual([[1, 2, 3, 4], []]);
 
         // With index parameter
@@ -1527,26 +1527,26 @@ describe("Arr", () => {
 
     it("map", () => {
         // Basic mapping
-        expect(Arr.map([1, 2, 3], (value: number) => value * 2)).toEqual([
+        expect(Arr.map([1, 2, 3], (value) => value * 2)).toEqual([
             2, 4, 6,
         ]);
         expect(
-            Arr.map(["a", "b", "c"], (value: string) => value.toUpperCase()),
+            Arr.map(["a", "b", "c"], (value) => value.toUpperCase()),
         ).toEqual(["A", "B", "C"]);
 
         // With index parameter
         expect(
-            Arr.map(["a", "b"], (value: string, index) => `${index}:${value}`),
+            Arr.map(["a", "b"], (value, index) => `${index}:${value}`),
         ).toEqual(["0:a", "1:b"]);
 
         // Type transformation
-        expect(Arr.map([1, 2, 3], (value: number) => String(value))).toEqual([
+        expect(Arr.map([1, 2, 3], (value) => String(value))).toEqual([
             "1",
             "2",
             "3",
         ]);
         expect(
-            Arr.map(["1", "2", "3"], (value: string) => parseInt(value)),
+            Arr.map(["1", "2", "3"], (value) => parseInt(value)),
         ).toEqual([1, 2, 3]);
 
         // Empty array
@@ -1558,7 +1558,7 @@ describe("Arr", () => {
 
         // Complex transformation
         const objects = [{ a: 1 }, { a: 2 }, { a: 3 }];
-        expect(Arr.map(objects, (obj: { a: number }) => obj.a)).toEqual([
+        expect(Arr.map(objects, (obj) => obj.a)).toEqual([
             1, 2, 3,
         ]);
     });
@@ -1590,7 +1590,7 @@ describe("Arr", () => {
 
         // Plucking with callback functions
         expect(
-            Arr.pluck(users, (user: { name: string; age: number }) =>
+            Arr.pluck(users, (user) =>
                 user.name.toUpperCase(),
             ),
         ).toEqual(["JOHN", "JANE", "BOB"]);
@@ -1598,7 +1598,7 @@ describe("Arr", () => {
             Arr.pluck(
                 users,
                 "name",
-                (user: { name: string; age: number }) => `user_${user.age}`,
+                (user) => `user_${user.age}`,
             ),
         ).toEqual({
             user_30: "John",
@@ -1663,7 +1663,7 @@ describe("Arr", () => {
         expect(
             Arr.keyBy(
                 users,
-                (user: { id: number; name: string }) => `user_${user.id}`,
+                (user) => `user_${user.id}`,
             ),
         ).toEqual({
             user_1: { id: 1, name: "John" },
@@ -1691,7 +1691,7 @@ describe("Arr", () => {
         expect(
             Arr.mapWithKeys(
                 [{ id: 1, name: "John" }],
-                (item: { id: number; name: string }) => ({
+                (item) => ({
                     [item.name]: item.id,
                 }),
             ),
@@ -1705,7 +1705,7 @@ describe("Arr", () => {
             { id: 2, name: "Jane" },
         ];
         expect(
-            Arr.mapWithKeys(users, (item: { id: number; name: string }) => ({
+            Arr.mapWithKeys(users, (item) => ({
                 [item.name]: item.id,
             })),
         ).toEqual({
@@ -1715,7 +1715,7 @@ describe("Arr", () => {
 
         // Using index parameter
         expect(
-            Arr.mapWithKeys(["a", "b"], (value: string, index) => ({
+            Arr.mapWithKeys(["a", "b"], (value, index) => ({
                 [value]: index,
             })),
         ).toEqual({
@@ -1725,7 +1725,7 @@ describe("Arr", () => {
 
         // Complex mapping
         expect(
-            Arr.mapWithKeys([1, 2, 3], (value: number) => ({
+            Arr.mapWithKeys([1, 2, 3], (value) => ({
                 [`item_${value}`]: value * 2,
             })),
         ).toEqual({
@@ -1874,7 +1874,7 @@ describe("Arr", () => {
         expect(Arr.sole(["single"])).toBe("single");
 
         // Single item with callback that matches one
-        expect(Arr.sole([1, 2, 3], (value) => (value as number) > 2)).toBe(3);
+        expect(Arr.sole([1, 2, 3], (value) => value > 2)).toBe(3);
         expect(
             Arr.sole(["apple", "banana"], (value) =>
                 (value as string).includes("apple"),
@@ -1884,7 +1884,7 @@ describe("Arr", () => {
         // Should throw for empty arrays
         expect(() => Arr.sole([])).toThrow("No items found");
         expect(() =>
-            Arr.sole([1, 2, 3], (value) => (value as number) > 5),
+            Arr.sole([1, 2, 3], (value) => value > 5),
         ).toThrow("No items found");
 
         // Should throw for multiple items
@@ -1892,7 +1892,7 @@ describe("Arr", () => {
             "Multiple items found (2 items)",
         );
         expect(() =>
-            Arr.sole([1, 2, 3], (value) => (value as number) > 1),
+            Arr.sole([1, 2, 3], (value) => value > 1),
         ).toThrow("Multiple items found (2 items)");
 
         // Should throw for non-accessible data
@@ -1908,16 +1908,17 @@ describe("Arr", () => {
                     [1, 2],
                     [3, 4],
                 ],
-                (a, b) => (a as number) + (b as number),
+                (a, b) => a + b,
             ),
         ).toEqual([3, 7]);
+
         expect(
             Arr.mapSpread(
                 [
                     ["John", 25],
                     ["Jane", 30],
                 ],
-                (name, age) => `${name as string} is ${age as number}`,
+                (name, age) => `${name} is ${age}`,
             ),
         ).toEqual(["John is 25", "Jane is 30"]);
 
@@ -2129,9 +2130,8 @@ describe("Arr", () => {
             { name: "Bob", age: 20 },
         ];
 
-        type Person = { name: string; age: number };
         expect(
-            Arr.sort(people, (person: unknown) => (person as Person).age),
+            Arr.sort(people, (person) => person.age),
         ).toEqual([
             { name: "Bob", age: 20 },
             { name: "John", age: 25 },
@@ -2139,7 +2139,7 @@ describe("Arr", () => {
         ]);
 
         expect(
-            Arr.sort(people, (person: unknown) => (person as Person).name),
+            Arr.sort(people, person => person.name),
         ).toEqual([
             { name: "Bob", age: 20 },
             { name: "Jane", age: 30 },
@@ -2204,9 +2204,8 @@ describe("Arr", () => {
             { name: "Bob", age: 20 },
         ];
 
-        type Person = { name: string; age: number };
         expect(
-            Arr.sortDesc(people, (person: unknown) => (person as Person).age),
+            Arr.sortDesc(people, (person) => person.age),
         ).toEqual([
             { name: "Jane", age: 30 },
             { name: "John", age: 25 },
@@ -2214,7 +2213,7 @@ describe("Arr", () => {
         ]);
 
         expect(
-            Arr.sortDesc(people, (person: unknown) => (person as Person).name),
+            Arr.sortDesc(people, (person) => person.name),
         ).toEqual([
             { name: "John", age: 25 },
             { name: "Jane", age: 30 },
@@ -2592,7 +2591,7 @@ describe("Arr", () => {
             expect(
                 Arr.pluck(
                     data,
-                    (item) => (item as { user: { name: string } }).user.name,
+                    (item) => item.user.name,
                 ),
             ).toEqual(["John", "Jane"]);
         });
