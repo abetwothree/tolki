@@ -1136,6 +1136,16 @@ describe("Arr", () => {
         expect(Arr.replace(data2, { 0: 'taylor', 2: 26 })).toEqual(['taylor', 'otwell', 26]);
     });
 
+    it("replaceRecursive", () => {
+        const data = ['a', 'b', ['c', 'd']];
+        
+        expect(Arr.replaceRecursive(data, null)).toEqual(['a', 'b', ['c', 'd']]);
+        expect(Arr.replaceRecursive(data, ['z', {2: {1: 'e'}}])).toEqual(['z', 'b', ['c', 'e']]);
+        expect(Arr.replaceRecursive(data, ['z', {2: {1: 'e'}}, 'f'])).toEqual(['z', 'b', ['c', 'e'], 'f']);
+        expect(Arr.replaceRecursive(data, ['z', {2: {1: 'e'}}])).toEqual(['z', 'b', ['c', 'e']]);
+        expect(Arr.replaceRecursive(data, {2: {1: 'e'}})).toEqual(['a', 'b', ['c', 'e']]);
+    });
+
     it("partition", () => {
         // Basic partitioning
         expect(

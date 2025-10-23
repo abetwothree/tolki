@@ -2334,39 +2334,126 @@ export function replace<TValue, TReplace = TValue>(
 /**
  * Recursively replace the data items with the given items.
  *
- * @param data - The original object to replace items in.
- * @param replacerData - The object containing items to replace.
- * @returns The modified original object with replaced items.
+ * Supports both arrays and numeric keyed objects as replacement values.
+ * When an array contains a numeric keyed object, that object represents sparse index replacements.
+ * Nested objects with numeric keys are treated as nested array replacements.
+ *
+ * @param data - The original array to replace items in.
+ * @param replacerData - The array or numeric keyed object containing items to replace.
+ * @returns The modified original array with replaced items.
+ * 
+ * @example
+ * 
+ * replaceRecursive(['a', 'b', ['c', 'd']], null); -> ['a', 'b', ['c', 'd']]
+ * replaceRecursive(['a', 'b', ['c', 'd']], ['z', {2: {1: 'e'}}]); -> ['z', 'b', ['c', 'e']]
  */
-export function replaceRecursive<TValue>(
-    data: ArrayItems<TValue>,
-    replacerData: ArrayItems<TValue>,
+export function replaceRecursive<TValue, TReplace = TValue>(
+    data: ArrayItems<TValue> | unknown,
+    replacerData: ArrayItems<TValue> | Record<number, TReplace> | unknown,
 ){
     const values = getAccessibleValues(data) as TValue[];
-    const replacerValues = getAccessibleValues(replacerData) as TValue[];
 
-    for (let i = 0; i < replacerValues.length; i++) {
-        if (i < values.length) {
-            if (
-                isArray(values[i]) &&
-                isArray(replacerValues[i])
-            ) {
-                values[i] = replaceRecursive(
-                    values[i] as unknown as ArrayItems<TValue>,
-                    replacerValues[i] as unknown as ArrayItems<TValue>,
-                ) as unknown as TValue;
-            } else if (
-                isObject(values[i]) &&
-                isObject(replacerValues[i])
-            ) {
-                values[i] = objReplaceRecursive(
-                    values[i] as unknown as Record<ObjectKey, TValue>,
-                    replacerValues[i] as unknown as Record<ObjectKey, TValue>,
-                ) as unknown as TValue;
-            } else{
-                values[i] = replacerValues[i] as TValue;
+    // Handle null/undefined replacer
+    if (isNull(replacerData) || isUndefined(replacerData)) {
+        return values;
+    }
+
+    // Helper function to check if an object is a numeric keyed object
+    const isNumericKeyedObject = (obj: unknown): obj is Record<number, unknown> => {
+        if (!isObject(obj) || isArray(obj)) {
+            return false;
+        }
+        const keys = Object.keys(obj);
+        return keys.length > 0 && keys.every(key => !isNaN(parseInt(key, 10)));
+    };
+
+    // Helper function to process a single replacement value
+    const processReplacement = (originalValue: TValue, replacementValue: unknown): TValue => {
+        // Both are arrays or the replacement is a numeric keyed object that should be treated as array
+        if (isArray(originalValue) && (isArray(replacementValue) || isNumericKeyedObject(replacementValue))) {
+            return replaceRecursive(
+                originalValue as unknown as ArrayItems<TValue>,
+                replacementValue as ArrayItems<TValue> | Record<number, TReplace>,
+            ) as unknown as TValue;
+        }
+        
+        // Both are objects (non-array, non-numeric-keyed)
+        if (isObject(originalValue) && isObject(replacementValue) && !isNumericKeyedObject(replacementValue)) {
+            return objReplaceRecursive(
+                originalValue as unknown as Record<ObjectKey, TValue>,
+                replacementValue as unknown as Record<ObjectKey, TValue>,
+            ) as unknown as TValue;
+        }
+        
+        // Otherwise, just replace
+        return replacementValue as TValue;
+    };
+
+    // If replacerData is an array
+    if (isArray(replacerData)) {
+        const replacerArray = replacerData as unknown[];
+        
+        // Collect all replacements with their intended indices
+        const allReplacements: Map<number, unknown> = new Map();
+        let currentIndex = 0;
+        
+        for (let i = 0; i < replacerArray.length; i++) {
+            const item = replacerArray[i];
+            
+            // If this item is a numeric keyed object, it represents sparse replacements
+            if (isNumericKeyedObject(item)) {
+                const numericObj = item as Record<number, unknown>;
+                for (const key of Object.keys(numericObj)) {
+                    const index = parseInt(key, 10);
+                    if (!isNaN(index)) {
+                        allReplacements.set(index, numericObj[index]);
+                        // Update currentIndex to be after the highest sparse index
+                        if (index >= currentIndex) {
+                            currentIndex = index + 1;
+                        }
+                    }
+                }
+            } else {
+                // Normal sequential replacement - use currentIndex
+                allReplacements.set(currentIndex, item);
+                currentIndex++;
             }
         }
+        
+        // Apply all replacements
+        for (const [index, replacementValue] of allReplacements) {
+            if (index < values.length) {
+                values[index] = processReplacement(values[index]!, replacementValue);
+            } else {
+                // Fill gaps with undefined if necessary
+                while (values.length < index) {
+                    values.push(undefined as TValue);
+                }
+                values.push(replacementValue as TValue);
+            }
+        }
+        
+        return values;
+    }
+
+    // If replacerData is an object with numeric keys, replace by index
+    if (isNumericKeyedObject(replacerData)) {
+        const replacerObj = replacerData as Record<number, TReplace>;
+        for (const key of Object.keys(replacerObj)) {
+            const index = parseInt(key, 10);
+            if (!isNaN(index)) {
+                if (index < values.length) {
+                    values[index] = processReplacement(values[index]!, replacerObj[index]);
+                } else {
+                    // Fill gaps with undefined if necessary
+                    while (values.length < index) {
+                        values.push(undefined as TValue);
+                    }
+                    values.push(replacerObj[index] as unknown as TValue);
+                }
+            }
+        }
+        return values;
     }
 
     return values;
