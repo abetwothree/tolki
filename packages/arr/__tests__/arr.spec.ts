@@ -2276,6 +2276,53 @@ describe("Arr", () => {
         });
     });
 
+    it("splice", () => {
+        let data = ['foo', 'baz'];
+        expect(Arr.splice(data, 1).removed).toEqual(['baz']);
+        expect(Arr.splice(data, 0).removed).toEqual(['foo', 'baz']);
+        expect(Arr.splice(data, 2).removed).toEqual([]);
+
+        // Remove 1 element at index 1
+        data = ['foo', 'baz'];
+        let result = Arr.splice(data, 1, 1);
+        expect(result.array).toEqual(['foo']);
+        expect(result.removed).toEqual(['baz']);
+
+        // Remove 1 element at index 1 and insert 'bar'
+        data = ['foo', 'baz'];
+        result = Arr.splice(data, 1, 1, 'bar');
+        expect(result.array).toEqual(['foo', 'bar']);
+        expect(result.removed).toEqual(['baz']);
+
+        // Insert 'bar' at index 1 without removing anything
+        data = ['foo', 'baz'];
+        result = Arr.splice(data, 1, 0, 'bar');
+        expect(result.array).toEqual(['foo', 'bar', 'baz']);
+        expect(result.removed).toEqual([]);
+
+        // Insert array ['bar'] at index 1 - should flatten it
+        data = ['foo', 'baz'];
+        const result4 = Arr.splice(data, 1, 0, ['bar'] as unknown as string);
+        expect(result4.array).toEqual(['foo', 'bar', 'baz']);
+        expect(result4.removed).toEqual([]);
+
+        // Edge cases
+        data = ['foo', 'baz'];
+        result = Arr.splice(data, 0, 0, 'start');
+        expect(result.array).toEqual(['start', 'foo', 'baz']);
+        expect(result.removed).toEqual([]);
+
+        // Remove multiple elements
+        data = ['foo', 'bar', 'baz'];
+        result = Arr.splice(data, 0, 2);
+        expect(result.array).toEqual(['baz']);
+        expect(result.removed).toEqual(['foo', 'bar']);
+
+        // Non-accessible data
+        expect(Arr.splice(null as unknown as string[], 0, 1)).toEqual({ array: [], removed: [] });
+        expect(Arr.splice(undefined as unknown as string[], 0, 1)).toEqual({ array: [], removed: [] });
+    });
+
     // Edge cases and error conditions
     describe("Edge Cases", () => {
         it("pull with non-accessible data", () => {

@@ -1453,33 +1453,29 @@ export function dataSortRecursiveDesc<TValue, TKey extends ObjectKey = ObjectKey
  * @param offset - The starting index
  * @param length - The number of items to remove
  * @param replacement - The items to insert
- * @returns Spliced data
+ * @returns Object with modified data and removed elements
  */
 export function dataSplice<TValue, TKey extends ObjectKey = ObjectKey>(
     data: DataItems<TValue, TKey>,
     offset: number,
-    length: number = 0,
-    replacement: DataItems<TValue, TKey> = {} as DataItems<TValue, TKey>,
-){
+    length?: number,
+    ...replacement: TValue[]
+): { array: DataItems<TValue, TKey>; removed: TValue[] } {
     if (isObject(data)) {
         return objSplice(
             data as Record<TKey, TValue>,
             offset,
             length,
-            replacement as Record<TKey, TValue>,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    if(isObject(replacement)){
-        replacement = Object.values(replacement) as DataItems<TValue>;
+            ...replacement,
+        ) as { array: DataItems<TValue, TKey>; removed: TValue[] };
     }
 
     return arrSplice(
         arrWrap(data),
         offset,
         length,
-        replacement as TValue[][],
-    ) as DataItems<TValue>;
+        ...replacement,
+    ) as { array: DataItems<TValue, TKey>; removed: TValue[] };
 }
 
 /**

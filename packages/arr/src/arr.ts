@@ -1,4 +1,4 @@
-import { flip as objFlip, replaceRecursive as objReplaceRecursive } from "@laravel-js/obj";
+import { replaceRecursive as objReplaceRecursive } from "@laravel-js/obj";
 import {
     dotFlatten,
     forgetKeys,
@@ -1728,12 +1728,23 @@ export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
 }
 
 /**
- * Slice the underlying array items
+ * Slice the underlying array items.
+ * 
+ * This is a READ operation that extracts a portion of the array without modifying the original.
+ * Similar to JavaScript's Array.slice() and PHP's array_slice(), it returns only the subset.
+ * 
+ * For a WRITE operation that tracks removed elements, use `splice()` instead.
  * 
  * @param data - The array to slice
  * @param offset - The starting index
  * @param length - The number of items to include (negative means stop that many from the end)
- * @returns Sliced array
+ * @returns Sliced array (subset of the original)
+ * 
+ * @example
+ * 
+ * slice([1, 2, 3, 4], 1, 2); -> [2, 3]
+ * slice([1, 2, 3, 4], 1, -1); -> [2, 3]
+ * slice([1, 2, 3, 4], 2); -> [3, 4]
  */
 export function slice<TValue>(
     data: ArrayItems<TValue> | unknown,
@@ -2020,30 +2031,61 @@ export function sortRecursiveDesc<TValue>(
 }
 
 /**
- * Splice a portion of the underlying array
+ * Splice a portion of the underlying array.
+ * 
+ * This is a WRITE operation that removes and/or replaces elements, tracking what was removed.
+ * Similar to PHP's array_splice(), it returns both the modified array and removed elements.
+ * Unlike JavaScript's Array.splice() (which mutates and returns only removed elements),
+ * this function is immutable and returns both values for tracking changes.
+ * 
+ * For a READ operation that just extracts a subset, use `slice()` instead.
+ * 
+ * Replacement values that are arrays will be flattened into the result.
  * 
  * @param data - The array to splice
  * @param offset - The starting index
- * @param length - The number of items to remove
- * @param replacement - The replacement array
- * @returns Spliced array
+ * @param length - The number of items to remove (undefined removes all from offset to end)
+ * @param replacement - The replacement items (arrays will be flattened)
+ * @returns Object with `array` (modified array) and `removed` (removed elements)
+ * 
+ * @example
+ * 
+ * splice(['foo', 'baz'], 1, 1); -> { array: ['foo'], removed: ['baz'] }
+ * splice(['foo', 'baz'], 1, 1, 'bar'); -> { array: ['foo', 'bar'], removed: ['baz'] }
+ * splice(['foo', 'baz'], 1, 0, 'bar'); -> { array: ['foo', 'bar', 'baz'], removed: [] }
+ * splice(['foo', 'baz'], 1, 0, ['bar']); -> { array: ['foo', 'bar', 'baz'], removed: [] } // flattened
  */
 export function splice<TValue>(
     data: ArrayItems<TValue>,
     offset: number,
-    length: number = 0,
-    replacement: ArrayItems<TValue> = [] as ArrayItems<TValue>,
-){
+    length?: number,
+    ...replacement: TValue[]
+): { array: TValue[]; removed: TValue[] } {
     if (!accessible(data)) {
-        return [] as ArrayItems<TValue>;
+        return { array: [] as TValue[], removed: [] as TValue[] };
     }
 
     const values = (data as ArrayItems<TValue>).slice();
-    const replacementValues = getAccessibleValues(replacement) as TValue[];
+    
+    // Flatten replacement if it's an array within an array
+    const flatReplacement: TValue[] = [];
+    for (const item of replacement) {
+        if (accessible(item)) {
+            flatReplacement.push(...(item as unknown as TValue[]));
+        } else {
+            flatReplacement.push(item as TValue);
+        }
+    }
 
-    values.splice(offset, length, ...replacementValues);
+    let removed: TValue[];
+    if (isUndefined(length)) {
+        // If length is not provided, remove all elements from offset to end
+        removed = values.splice(offset, values.length - offset, ...flatReplacement);
+    } else {
+        removed = values.splice(offset, length, ...flatReplacement);
+    }
 
-    return values;
+    return { array: values, removed };
 }
 
 /**
