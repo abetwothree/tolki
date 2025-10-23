@@ -87,6 +87,23 @@ describe("Arr", () => {
         expect(Arr.collapse(objectData)).toEqual({ a: 1, b: 2, c: 3, d: 4 });
     });
 
+    it("combine", () => {
+        const baseData = [1,2,3];
+        expect(Arr.combine(baseData,[4,5,6])).toEqual([
+            [1,4],
+            [2,5],
+            [3,6],
+        ]);
+
+        expect(Arr.combine(baseData)).toEqual([
+            [1],
+            [2],
+            [3],
+        ]);
+
+        expect(Arr.combine()).toEqual([]);
+    });
+
     it("crossJoin", () => {
         // Square matrix
         expect(Arr.crossJoin([1, 2], ["a", "b"])).toEqual([
@@ -382,6 +399,17 @@ describe("Arr", () => {
         // Deeply nested arrays are flattened
         data = [["#foo", ["#bar"]], ["#baz"]];
         expect(Arr.flatten(data)).toEqual(["#foo", "#bar", "#baz"]);
+    });
+
+    it("flip", () => {
+        const data = ["apple", "banana", "cherry"];
+        expect(Arr.flip(data)).toEqual({
+            apple: 0,
+            banana: 1,
+            cherry: 2,
+        });
+
+        expect(Arr.flip({ apple: 0, banana: 1, cherry: 2 })).toEqual({});
     });
 
     it("forget", () => {
@@ -986,6 +1014,36 @@ describe("Arr", () => {
         ]);
     });
 
+    it("union", () => {
+        expect(Arr.union([1, 2], [2, 3])).toEqual([1, 2, 3]);
+        expect(Arr.union(["a", "b"], ["b", "c", "a"])).toEqual([
+            "a",
+            "b",
+            "c",
+        ]);
+        expect(Arr.union([], [1, 2])).toEqual([1, 2]);
+        expect(Arr.union([1, 2], [])).toEqual([1, 2]);
+        expect(Arr.union([], [])).toEqual([]);
+    });
+    
+    it("unshift", () => {
+        const expected = [
+            'Jonny from Laroe',
+            ['Jonny', 'from', 'Laroe'],
+            ['a', 'b', 'c'],
+            4,
+            5,
+            6,
+        ];
+
+        const data = [4,5,6];
+        
+        let result: unknown[] = Arr.unshift(data, ['a', 'b', 'c']);
+        result = Arr.unshift(result, ['Jonny', 'from', 'Laroe']);
+        result = Arr.unshift(result, 'Jonny from Laroe');
+        expect(result).toEqual(expected);
+    });
+
     it("where", () => {
         // Basic array filtering
         expect(Arr.where([1, 2, 3, 4], (value: number) => value > 2)).toEqual([
@@ -1323,6 +1381,15 @@ describe("Arr", () => {
         expect(Arr.pluck("abc", "name")).toEqual([]);
     });
 
+    it("pop", () => {
+        const data = [undefined, 'foo', 'bar'];
+
+        expect(Arr.pop(data)).toBe('bar');
+
+        expect(Arr.pop(null)).toBeNull();
+        expect(Arr.pop(undefined)).toBeNull();
+    });
+
     it("keyBy", () => {
         // Basic keying by field
         const users = [
@@ -1510,7 +1577,7 @@ describe("Arr", () => {
         expect(Arr.chunk(baseData, -1)).toEqual([]);
 
         const chunksNoKeys = Arr.chunk(baseData, 3, false);
-        
+
         expect(chunksNoKeys.length).toBe(4);
         expect(chunksNoKeys[0]).toEqual([ [ 0, 1 ], [ 1, 2 ], [ 2, 3 ] ]);
         expect(chunksNoKeys[1]).toEqual([ [ 3, 4 ], [ 4, 5 ], [ 5, 6 ] ]);
@@ -1728,6 +1795,21 @@ describe("Arr", () => {
         expect(shuffledStr.sort()).toEqual(["a", "b", "c"]);
     });
 
+    it("slice", () => {
+        const data = [1, 2, 3, 4, 5, 6, 7, 8];
+
+        expect(Arr.slice(data, 3)).toEqual([4, 5, 6, 7, 8]);
+        expect(Arr.slice(data, -3)).toEqual([6, 7, 8]);
+        expect(Arr.slice(data, 3, 3)).toEqual([4, 5, 6]);
+        expect(Arr.slice(data, 3, -1)).toEqual([4, 5, 6, 7]);
+        expect(Arr.slice(data, -5, 3)).toEqual([4, 5, 6]);
+        expect(Arr.slice(data, -6, -2)).toEqual([3, 4, 5, 6]);
+
+        expect(Arr.slice({}, -6, -2)).toEqual([]);
+        expect(Arr.slice(null, -6, -2)).toEqual([]);
+        expect(Arr.slice(undefined, -6, -2)).toEqual([]);
+    });
+
     it("random", () => {
         const arr = [1, 2, 3, 4, 5];
 
@@ -1774,6 +1856,21 @@ describe("Arr", () => {
         expect(Arr.random([42])).toBe(42);
         expect(Arr.random([42], 1)).toEqual([42]);
         expect(Arr.random([42], 1, true)).toEqual({ 0: 42 });
+    });
+
+    it("shift", () => {
+        const data = ['Taylor', 'Otwell'];
+
+        expect(Arr.shift(data)).toBe('Taylor');
+
+        data.unshift(undefined!);
+        expect(Arr.shift(data)).toBeNull();
+        expect(Arr.shift(data, 2)).toEqual(['Taylor']);
+
+        expect(Arr.shift({}, 2)).toEqual([]);
+
+        expect(Arr.shift(null)).toBeNull();
+        expect(Arr.shift(undefined)).toBeNull();
     });
 
     it("sort", () => {

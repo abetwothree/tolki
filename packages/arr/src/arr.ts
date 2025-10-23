@@ -339,6 +339,10 @@ export function union<TValue>(
 
     for (const array of arrays) {
         for (const item of array) {
+            if (result.includes(item)) {
+                continue;
+            }
+
             result.push(item);
         }
     }
@@ -353,18 +357,20 @@ export function union<TValue>(
  * @param items - The items to prepend as [key, value] tuples
  * @returns A new array with the items prepended
  */
-export function unshift<TValue>(
+export function unshift<TValue, TNewValue>(
     data: ArrayItems<TValue>,
-    ...items: TValue[]
-): ArrayItems<TValue> {
+    ...items: TNewValue[]
+): ArrayItems<TValue | TNewValue> {
+    const result: (TValue | TNewValue)[] = [...data];
+    
     for (let i = items.length - 1; i >= 0; i--) {
         const item = items[i];
         if (!isUndefined(item)) {
-            data.unshift(item);
+            result.unshift(item);
         }
     }
 
-    return data;
+    return result;
 }
 
 /**
@@ -661,29 +667,22 @@ export function flatten<TValue>(
  * @return - the data items flipped
  *
  * @example
- * flip(['a', 'b', 'c']); -> [{a: 0}, {b: 1}, {c: 2}]
- * flip([{one: 'b', two: {hi: 'hello', skip: 'bye'}}]); -> [{b: 'one', {hello: 'hi', bye: 'skip'}}]
+ * flip(['a', 'b', 'c']); -> {a: 0, b: 1, c: 2}
  */
 export function flip<TValue>(
-    data: ArrayItems<TValue>,
+    data: ArrayItems<TValue> | unknown,
 ) {
     if (!accessible(data)) {
-        return [];
+        return {};
     }
 
-    // flip the object keys as values and values as keys
-    // for values that are nested, the keys should be flipped recursively
-    // e.g [{one: 'b', two: {hi: 'hello', skip: 'bye'}}] -> [{b: 'one', {hello: 'hi', bye: 'skip'}}]
-    const result = [];
+    // flip the array indices as values and values as keys
+    // e.g ['apple', 'banana', 'cherry'] -> {apple: 0, banana: 1, cherry: 2}
+    const result: Record<string, number> = {};
 
-    for (const item of data) {
-        if (isObject(item) && !isArray(item)) {
-            result.push(objFlip(item as Record<string, unknown>));
-        } else {
-            // for non-objects, just flip the value and key
-            // e.g ['a', 'b', 'c'] -> [{a: 0}, {b: 1}, {c: 2}]
-            result.push({ [String(item)]: data.indexOf(item) });
-        }
+    for (let i = 0; i < data.length; i++) {
+        const item = data[i];
+        result[String(item)] = i;
     }
 
     return result;
@@ -1282,7 +1281,7 @@ export function pluck<TValue extends Record<string, unknown>>(
  * @returns The popped item, items, or null if none found
  */
 export function pop<TValue>(
-    data: ArrayItems<TValue>,
+    data: ArrayItems<TValue> | unknown,
     count: number = 1,
 ): TValue | TValue[] | null {
     if (!accessible(data)) {
@@ -1632,7 +1631,7 @@ export function random<TValue>(
  * @returns The shifted item(s) or null/empty array if none.
  */
 export function shift<TValue>(
-    data: ArrayItems<TValue>,
+    data: ArrayItems<TValue> | unknown,
     count: number = 1,
 ): TValue | TValue[] | null {
     if (!accessible(data)) {
@@ -1649,6 +1648,8 @@ export function shift<TValue>(
             shiftedValues.push(value);
         }
     }
+
+    console.log(shiftedValues);
 
     return shiftedValues.length === 0 
         ? (count === 1 ? null : [] as TValue[]) 
@@ -1731,11 +1732,11 @@ export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
  * 
  * @param data - The array to slice
  * @param offset - The starting index
- * @param length - The number of items to include
+ * @param length - The number of items to include (negative means stop that many from the end)
  * @returns Sliced array
  */
 export function slice<TValue>(
-    data: ArrayItems<TValue>,
+    data: ArrayItems<TValue> | unknown,
     offset: number,
     length: number | null = null,
 ){
@@ -1747,6 +1748,11 @@ export function slice<TValue>(
 
     if (isNull(length)) {
         return values.slice(offset);
+    }
+
+    // If length is negative, calculate the end index from the end of the array
+    if (length < 0) {
+        return values.slice(offset, length);
     }
 
     return values.slice(offset, offset + length);
