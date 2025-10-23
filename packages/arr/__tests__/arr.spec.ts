@@ -1448,6 +1448,16 @@ describe("Arr", () => {
         expect(Arr.intersect(data2, data3, (a, b) => a.first_word === b.first_word)).toEqual([{id: 1, first_word: 'Hello' }]);
     });
 
+    it("intersectByKeys", () => {
+        expect(Arr.intersectByKeys([1,3,5], [2,4])).toEqual([1,3]);
+
+        const data = [{ name: 'Mateus', age: 18 }, { name: 'Nuno', age: 25 }, { name: 'Chris', age: 30 }];
+        expect(Arr.intersectByKeys(data, [1])).toEqual([{name: 'Mateus', age: 18}]);
+        expect(Arr.intersectByKeys(data, null)).toEqual([]);
+        expect(Arr.intersectByKeys(null, data)).toEqual([]);
+        expect(Arr.intersectByKeys(null, null)).toEqual([]);
+    });
+
     it("only", () => {
         // Basic selection by indices
         expect(Arr.only(["a", "b", "c", "d"], [0, 2])).toEqual(["a", "c"]);

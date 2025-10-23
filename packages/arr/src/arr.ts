@@ -2830,8 +2830,8 @@ export function intersect<TValue, TOther = TValue>(
  * @returns A new array containing items with keys present in both arrays
  */
 export function intersectByKeys<TValue>(
-    data: ArrayItems<TValue>,
-    other: ArrayItems<TValue>,
+    data: ArrayItems<TValue> | unknown,
+    other: ArrayItems<TValue> | unknown,
 ) {
     if (!accessible(data) || !accessible(other)) {
         return [] as ArrayItems<TValue>;
