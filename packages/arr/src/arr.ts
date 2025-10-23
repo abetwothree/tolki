@@ -444,6 +444,18 @@ export function first<TValue, TFirstDefault = null>(
     callback?: null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
+// Overload: Generator/IterableIterator with callback for proper type inference
+export function first<TValue, TFirstDefault = null>(
+    data: Generator<TValue> | IterableIterator<TValue>,
+    callback: (value: TValue, key: number) => boolean,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: Generator/IterableIterator without callback
+export function first<TValue, TFirstDefault = null>(
+    data: Generator<TValue> | IterableIterator<TValue>,
+    callback?: null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
 // Overload: non-array fallback
 export function first<TValue, TFirstDefault = null>(
     data: unknown,
@@ -530,6 +542,18 @@ export function last<TValue, TFirstDefault = null>(
 // Overload: array type without callback
 export function last<TValue, TFirstDefault = null>(
     data: TValue[],
+    callback?: null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: Generator/IterableIterator with callback for proper type inference
+export function last<TValue, TFirstDefault = null>(
+    data: Generator<TValue> | IterableIterator<TValue>,
+    callback: (value: TValue, key: number) => boolean,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: Generator/IterableIterator without callback
+export function last<TValue, TFirstDefault = null>(
+    data: Generator<TValue> | IterableIterator<TValue>,
     callback?: null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
