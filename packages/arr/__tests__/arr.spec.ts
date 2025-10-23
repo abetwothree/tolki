@@ -1171,10 +1171,10 @@ describe("Arr", () => {
         expect(Arr.contains(data5, false)).toBe(true);
         expect(Arr.contains(data5, null)).toBe(false);
         
-        expect(Arr.contains(data5, (value: number) => value < 5)).toBe(true);
-        expect(Arr.contains(data5, (value: number) => value > 5)).toBe(false);
+        expect(Arr.contains(data5, (value) => value < 5)).toBe(true);
+        expect(Arr.contains(data5, (value) => value > 5)).toBe(false);
 
-        const data6: { v: number }[] = [{ v: 1 }, { v: 3 }, { v: 5 }];
+        const data6 = [{ v: 1 }, { v: 3 }, { v: 5 }];
 
         expect(Arr.contains(data6, (item) => item.v === 1)).toBe(true);
         expect(Arr.contains(data6, (item) => item.v === 2)).toBe(false);
@@ -1185,7 +1185,7 @@ describe("Arr", () => {
         expect(Arr.contains(data7, 'class')).toBe(true);
         expect(Arr.contains(data7, 'foo')).toBe(false);
 
-        const data8: { a: boolean; b: boolean }[] = [{ a: false, b: false }, { a: true, b: false }];
+        const data8 = [{ a: false, b: false }, { a: true, b: false }];
 
         expect(Arr.contains(data8, (item) => item.a)).toBe(true);
         expect(Arr.contains(data8, (item) => item.b)).toBe(false);
