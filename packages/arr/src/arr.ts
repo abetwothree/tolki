@@ -2777,23 +2777,42 @@ export function diff<TValue>(
  * @param callable - Optional function to compare values
  * @returns A new array containing items present in both arrays
  */
+// Overload: with callback - infers TValue and TOther from array types
+export function intersect<TValue, TOther>(
+    data: TValue[],
+    other: TOther[],
+    callable: (a: TValue, b: TOther) => boolean,
+): TValue[];
+// Overload: without callback - same type comparison
 export function intersect<TValue>(
-    data: ArrayItems<TValue>,
-    other: ArrayItems<TValue>,
-    callable: ((a: TValue, b: TValue) => boolean) | null = null,
-) {
+    data: TValue[],
+    other: TValue[],
+    callable?: null,
+): TValue[];
+// Overload: non-array fallback
+export function intersect<TValue, TOther>(
+    data: unknown,
+    other: unknown,
+    callable?: ((a: TValue, b: TOther) => boolean) | null,
+): TValue[];
+// Implementation
+export function intersect<TValue, TOther = TValue>(
+    data: ArrayItems<TValue> | unknown,
+    other: ArrayItems<TOther> | unknown,
+    callable: ((a: TValue, b: TOther) => boolean) | null = null,
+): TValue[] {
     if (!accessible(data) || !accessible(other)) {
-        return [] as ArrayItems<TValue>;
+        return [] as TValue[];
     }
 
     const dataValues = getAccessibleValues(data) as TValue[];
-    const otherValues = getAccessibleValues(other) as TValue[];
+    const otherValues = getAccessibleValues(other) as TOther[];
     const result: TValue[] = [];
 
     for (const item of dataValues) {
         const found = isFunction(callable)
             ? otherValues.some((otherItem) => callable(item, otherItem))
-            : otherValues.includes(item);
+            : otherValues.some((otherItem) => otherItem === (item as unknown as TOther));
 
         if (found) {
             result.push(item);
