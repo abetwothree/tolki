@@ -1384,6 +1384,56 @@ describe("Arr", () => {
         expect(Arr.wrap(undefined)).toEqual([undefined]);
     });
 
+    it("keys", () => {
+        // Basic key extraction
+        expect(Arr.keys(["a", "b", "c"])).toEqual([0, 1, 2]);
+        expect(Arr.keys({ x: 10, y: 20 })).toEqual([]);
+
+        // Empty array
+        expect(Arr.keys([])).toEqual([]);
+
+        // Non-accessible data
+        expect(Arr.keys(null)).toEqual([]);
+        expect(Arr.keys("abc")).toEqual([]);
+    });
+
+    it("values", () => {
+        // Basic value extraction
+        expect(Arr.values({ a: 1, b: 2, c: 3 })).toEqual([]);
+        expect(Arr.values(["x", "y", "z"])).toEqual(["x", "y", "z"]);
+
+        // Empty array
+        expect(Arr.values([])).toEqual([]);
+
+        // Non-accessible data
+        expect(Arr.values(null)).toEqual([]);
+        expect(Arr.values("abc")).toEqual([]);
+    });
+
+    it("diff", () => {
+        // Basic difference
+        expect(Arr.diff([1, 2, 3], [2, 3, 4])).toEqual([1]);
+        expect(Arr.diff(["a", "b", "c"], ["b", "c", "d"])).toEqual(["a"]);
+
+        // No differences
+        expect(Arr.diff([1, 2], [1, 2])).toEqual([]);
+        expect(Arr.diff([], [])).toEqual([]);
+
+        // All elements different
+        expect(Arr.diff([1, 2], [3, 4])).toEqual([1, 2]);
+        expect(Arr.diff(["a", "b"], ["c", "d"])).toEqual(["a", "b"]);
+
+        // Empty first array
+        expect(Arr.diff([], [1, 2])).toEqual([]);
+
+        // Empty second array
+        expect(Arr.diff([1, 2], [])).toEqual([1, 2]);
+
+        expect(Arr.diff([1, 2], null)).toEqual([1, 2]);
+        expect(Arr.diff(null, [1, 2])).toEqual([1, 2]);
+        expect(Arr.diff(null, null)).toEqual([]);
+    });
+
     it("only", () => {
         // Basic selection by indices
         expect(Arr.only(["a", "b", "c", "d"], [0, 2])).toEqual(["a", "c"]);

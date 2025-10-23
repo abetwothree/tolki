@@ -2744,8 +2744,12 @@ export function diff<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
 ): TValue[] {
-    if (!accessible(data)) {
+    if (!accessible(data) && !accessible(other)) {
         return [];
+    }
+
+    if (!accessible(data)) {
+        return (other as TValue[]).slice() as TValue[];
     }
 
     if (!accessible(other)) {
