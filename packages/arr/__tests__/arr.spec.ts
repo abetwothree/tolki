@@ -1097,6 +1097,112 @@ describe("Arr", () => {
         expect(Arr.whereNotNull("abc")).toEqual([]);
     });
 
+    it("contains", () => {
+        const data = ['michael', 'tom'];
+        let result = data;
+        if (Arr.contains(data, 'michael')) {
+            result = result.concat(['chris']);
+        }
+        expect(result).toEqual(['michael', 'tom', 'chris']);
+
+        result = data;
+        if (Arr.contains(data, 'tom')) {
+            result = result.concat(['chris']);
+        }
+        expect(result).toEqual(['michael', 'tom', 'chris']);
+
+        result = data;
+        if (Arr.contains(data, 'missing')) {
+            result = result.concat(['adam']);
+        }
+        expect(result).toEqual(['michael', 'tom']);
+
+        result = data;
+        if (Arr.contains(data, 'adam')) {
+            result = result.concat(['bogdan']);
+        }
+        expect(result).toEqual(['michael', 'tom']);
+
+        result = data;
+        if (!Arr.contains(data, 'michael')) {
+            result = result.concat(['chris']);
+        }
+        expect(result).toEqual(['michael', 'tom']);
+
+        result = data;
+        if (!Arr.contains(data, 'tom')) {
+            result = result.concat(['chris']);
+        }
+        expect(result).toEqual(['michael', 'tom']);
+
+        result = data;
+        if (!Arr.contains(data, 'missing')) {
+            result = result.concat(['adam']);
+        }
+        expect(result).toEqual(['michael', 'tom', 'adam']);
+
+        result = data;
+        if (!Arr.contains(data, 'adam')) {
+            result = result.concat(['bogdan']);
+        }
+        expect(result).toEqual(['michael', 'tom', 'bogdan']);
+
+        const data2 = [1, 3, 5];
+        expect(Arr.contains(data2, 1)).toBe(true);
+        expect(Arr.contains(data2, '1')).toBe(true);
+        expect(Arr.contains(data2, 2)).toBe(false);
+        expect(Arr.contains(data2, '2')).toBe(false);
+
+        const data3 = ['1'];
+        expect(Arr.contains(data3, '1')).toBe(true);
+        expect(Arr.contains(data3, 1)).toBe(true);
+
+        const data4 = [null];
+        expect(Arr.contains(data4, false)).toBe(false);
+        expect(Arr.contains(data4, null)).toBe(true);
+        expect(Arr.contains(data4, 0)).toBe(false);
+        expect(Arr.contains(data4, '')).toBe(false);
+        expect(Arr.contains(data4, [])).toBe(false);
+
+        const data5 = [0];
+
+        expect(Arr.contains(data5, 0)).toBe(true);
+        expect(Arr.contains(data5, '0')).toBe(true);
+        expect(Arr.contains(data5, false)).toBe(true);
+        expect(Arr.contains(data5, null)).toBe(false);
+        
+        expect(Arr.contains(data5, (value: number) => value < 5)).toBe(true);
+        expect(Arr.contains(data5, (value: number) => value > 5)).toBe(false);
+
+        const data6: { v: number }[] = [{ v: 1 }, { v: 3 }, { v: 5 }];
+
+        expect(Arr.contains(data6, (item) => item.v === 1)).toBe(true);
+        expect(Arr.contains(data6, (item) => item.v === 2)).toBe(false);
+
+        const data7 = ['date', 'class', { foo: 50 }];
+
+        expect(Arr.contains(data7, 'date')).toBe(true);
+        expect(Arr.contains(data7, 'class')).toBe(true);
+        expect(Arr.contains(data7, 'foo')).toBe(false);
+
+        const data8: { a: boolean; b: boolean }[] = [{ a: false, b: false }, { a: true, b: false }];
+
+        expect(Arr.contains(data8, (item) => item.a)).toBe(true);
+        expect(Arr.contains(data8, (item) => item.b)).toBe(false);
+
+        const data9 = [null, NaN, 1, 2];
+        expect(Arr.contains(data9, (item) => item === null)).toBe(true);
+        expect(Arr.contains(data9, (item) => Number.isNaN(item))).toBe(true);
+
+        expect(Arr.contains(null, 'house')).toBe(false);
+        expect(Arr.contains(undefined, 'house')).toBe(false);
+        expect(Arr.contains({'house': true}, 'house')).toBe(false);
+
+        const data10 = ['1'];
+        expect(Arr.contains(data10, 1)).toBe(true);
+        expect(Arr.contains(data10, 1, true)).toBe(false);
+    });
+
     it("reject", () => {
         // Basic rejection (opposite of where)
         expect(Arr.reject([1, 2, 3, 4], (value: number) => value > 2)).toEqual([
@@ -1156,7 +1262,7 @@ describe("Arr", () => {
 
     it("pad", () => {
         const data = [1, 2, 3];
-        
+
         expect(Arr.pad(data, 4, 0)).toEqual([1, 2, 3, 0]);
         expect(Arr.pad([1, 2, 3, 4, 5], 3, 0)).toEqual([1, 2, 3, 4, 5]);
         expect(Arr.pad([1, 2, 3, 4, 5], 4, 0)).toEqual([1, 2, 3, 4, 5]);

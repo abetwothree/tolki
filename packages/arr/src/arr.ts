@@ -2584,9 +2584,28 @@ export function whereNotNull<TValue>(data: ArrayItems<TValue | null> | unknown):
  * contains(['a', 'b', 'c'], 'd'); -> false
  * contains([1, '1'], '1', true); -> true
  */
+// Overload: callback function - infers TValue from array type
+export function contains<TValue>(
+    data: TValue[],
+    value: (value: TValue, key: number) => boolean,
+    strict?: boolean,
+): boolean;
+// Overload: value comparison - infers TValue from array type
+export function contains<TValue>(
+    data: TValue[],
+    value: TValue,
+    strict?: boolean,
+): boolean;
+// Overload: non-array fallback
+export function contains<TValue>(
+    data: unknown,
+    value: TValue | ((value: TValue, key: number) => boolean),
+    strict?: boolean,
+): boolean;
+// Implementation
 export function contains<TValue>(
     data: ArrayItems<TValue> | unknown,
-    value: TValue | ((value: TValue, key: string | number) => boolean),
+    value: TValue | ((value: TValue, key: number) => boolean),
     strict = false,
 ): boolean {
     if (!isArray(data)) {
@@ -2595,7 +2614,7 @@ export function contains<TValue>(
 
     if (isFunction(value)) {
         return data.some((item, index) =>
-            (value as (value: TValue, key: string | number) => boolean)(
+            (value as (value: TValue, key: number) => boolean)(
                 item as TValue,
                 index,
             ),
@@ -2603,7 +2622,7 @@ export function contains<TValue>(
     }
 
     if (strict) {
-        return data.includes(value);
+        return data.some((item) => item === value);
     }
 
     return data.some((item) => item == value);
