@@ -1124,6 +1124,18 @@ describe("Arr", () => {
         expect(Arr.reject("abc", () => true)).toEqual([]);
     });
 
+    it("replace", () => {
+        const data = ["a", "b", "c"];
+        expect(Arr.replace(data, null)).toEqual(["a", "b", "c"]);
+
+        expect(Arr.replace(data, ['d', 'e'])).toEqual(['d', 'e', 'c']);
+
+        expect(Arr.replace(data, { 1: 'd', 2: 'e', 3: 'f', 4: 'g' })).toEqual(['a', 'd', 'e', 'f', 'g']);
+        
+        const data2 = ['amir', 'otwell'];
+        expect(Arr.replace(data2, { 0: 'taylor', 2: 26 })).toEqual(['taylor', 'otwell', 26]);
+    });
+
     it("partition", () => {
         // Basic partitioning
         expect(

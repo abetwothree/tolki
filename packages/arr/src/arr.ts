@@ -2272,23 +2272,60 @@ export function reject<TValue>(
 /**
  * Replace the data items with the given replacer items.
  * 
+ * Supports both arrays and numeric keyed objects as replacement values.
+ * When using a numeric keyed object, keys determine positions to replace/add.
+ * 
  * @param data - The array to replace items in.
- * @param replacerData - The array containing items to replace.
+ * @param replacerData - The array or numeric keyed object containing items to replace.
  * @returns The modified original array with replaced items.
+ * 
+ * @example
+ * 
+ * replace(['a', 'b', 'c'], ['d', 'e']); -> ['d', 'e', 'c']
+ * replace(['a', 'b', 'c'], { 1: 'd', 2: 'e', 3: 'f' }); -> ['a', 'd', 'e', 'f']
  */
-export function replace<TValue>(
-    data: ArrayItems<TValue>,
-    replacerData: ArrayItems<TValue>,
+export function replace<TValue, TReplace = TValue>(
+    data: ArrayItems<TValue> | unknown,
+    replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
 ){
     const values = getAccessibleValues(data) as TValue[];
-    const replacerValues = getAccessibleValues(replacerData) as TValue[];
 
-    for (let i = 0; i < replacerValues.length; i++) {
-        if (i < values.length) {
-            values[i] = replacerValues[i] as TValue;
-        } else {
-            values.push(replacerValues[i] as TValue);
+    // Handle null/undefined replacer
+    if (isNull(replacerData) || isUndefined(replacerData)) {
+        return values;
+    }
+
+    // If replacerData is an array, use sequential replacement
+    if (isArray(replacerData)) {
+        const replacerValues = replacerData as TValue[];
+        for (let i = 0; i < replacerValues.length; i++) {
+            if (i < values.length) {
+                values[i] = replacerValues[i] as TValue;
+            } else {
+                values.push(replacerValues[i] as TValue);
+            }
         }
+        return values;
+    }
+
+    // If replacerData is an object with numeric keys, replace by index
+    if (isObject(replacerData)) {
+        const replacerObj = replacerData as Record<number, TValue>;
+        for (const key of Object.keys(replacerObj)) {
+            const index = parseInt(key, 10);
+            if (!isNaN(index)) {
+                if (index < values.length) {
+                    values[index] = replacerObj[index] as TValue;
+                } else {
+                    // Fill gaps with undefined if necessary
+                    while (values.length < index) {
+                        values.push(undefined as unknown as TValue);
+                    }
+                    values.push(replacerObj[index] as TValue);
+                }
+            }
+        }
+        return values;
     }
 
     return values;
