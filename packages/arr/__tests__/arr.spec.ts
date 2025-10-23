@@ -1203,6 +1203,26 @@ describe("Arr", () => {
         expect(Arr.contains(data10, 1, true)).toBe(false);
     });
 
+    it("filter", () => {
+        const data = [
+            { id: 1, name: 'Hello' },
+            { id: 2, name: 'World' },
+        ];
+        expect(Arr.filter(data, (item) => item.id === 2)).toEqual([{ id: 2, name: 'World' }]);
+        expect(Arr.filter(data, (item) => item.name === 'Hello')).toEqual([{ id: 1, name: 'Hello' }]);
+
+        const data2 = [null, '', 'Hello', '', 'World'];
+        expect(Arr.filter(data2, (item) => Boolean(item))).toEqual(['Hello', 'World']);
+        expect(Arr.filter(data2)).toEqual(['Hello', 'World']);
+
+        const data3 = [0, 1, 2, 3, 4, 5];
+        expect(Arr.filter(data3, (_item, key) => key % 2 === 0)).toEqual([0, 2, 4]);
+
+        expect(Arr.filter(null, () => true)).toEqual([]);
+        expect(Arr.filter(undefined, () => true)).toEqual([]);
+        expect(Arr.filter({}, () => true)).toEqual([]);
+    });
+
     it("reject", () => {
         // Basic rejection (opposite of where)
         expect(Arr.reject([1, 2, 3, 4], (value: number) => value > 2)).toEqual([

@@ -2640,11 +2640,19 @@ export function contains<TValue>(
  * filter([1, 2, 3, 4], (x) => x > 2); -> [3, 4]
  * filter([1, null, 2, undefined, 3]); -> [1, 2, 3]
  */
-export function filter<TValue>(data: ArrayItems<TValue> | unknown): TValue[];
+// Overload: with callback - infers TValue from array type
 export function filter<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: TValue[],
     callback: (value: TValue, index: number) => boolean,
 ): TValue[];
+// Overload: without callback (filters falsy values) - infers TValue from array type
+export function filter<TValue>(data: TValue[]): TValue[];
+// Overload: non-array fallback
+export function filter<TValue>(
+    data: unknown,
+    callback?: (value: TValue, index: number) => boolean,
+): TValue[];
+// Implementation
 export function filter<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback?: (value: TValue, index: number) => boolean,
@@ -2653,7 +2661,7 @@ export function filter<TValue>(
         return [];
     }
 
-    if (!callback) {
+    if (!isFunction(callback)) {
         // Filter out falsy values by default
         return data.filter((value): value is TValue => Boolean(value));
     }
