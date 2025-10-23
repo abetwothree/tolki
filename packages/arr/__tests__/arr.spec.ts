@@ -1138,12 +1138,30 @@ describe("Arr", () => {
 
     it("replaceRecursive", () => {
         const data = ['a', 'b', ['c', 'd']];
-        
+
         expect(Arr.replaceRecursive(data, null)).toEqual(['a', 'b', ['c', 'd']]);
         expect(Arr.replaceRecursive(data, ['z', {2: {1: 'e'}}])).toEqual(['z', 'b', ['c', 'e']]);
         expect(Arr.replaceRecursive(data, ['z', {2: {1: 'e'}}, 'f'])).toEqual(['z', 'b', ['c', 'e'], 'f']);
         expect(Arr.replaceRecursive(data, ['z', {2: {1: 'e'}}])).toEqual(['z', 'b', ['c', 'e']]);
         expect(Arr.replaceRecursive(data, {2: {1: 'e'}})).toEqual(['a', 'b', ['c', 'e']]);
+    });
+
+    it("reverse", () => {
+        const data = ["zaeed", "alan"];
+        expect(Arr.reverse(data)).toEqual(["alan", "zaeed"]);
+
+        const data2 = ['house', 'roof', ['doors', 'table'], 'floor'];
+        expect(Arr.reverse(data2)).toEqual(['floor', ['doors', 'table'], 'roof', 'house']);
+    });
+
+    it("pad", () => {
+        const data = [1, 2, 3];
+        
+        expect(Arr.pad(data, 4, 0)).toEqual([1, 2, 3, 0]);
+        expect(Arr.pad([1, 2, 3, 4, 5], 3, 0)).toEqual([1, 2, 3, 4, 5]);
+        expect(Arr.pad([1, 2, 3, 4, 5], 4, 0)).toEqual([1, 2, 3, 4, 5]);
+        expect(Arr.pad([1, 2, 3], -4, 0)).toEqual([0, 1, 2, 3]);
+        expect(Arr.pad([1, 2, 3, 4, 5], -4, 0)).toEqual([1, 2, 3, 4, 5]);
     });
 
     it("partition", () => {

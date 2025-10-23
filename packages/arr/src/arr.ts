@@ -2474,16 +2474,25 @@ export function reverse<TValue>(
     data: ArrayItems<TValue> | unknown,
 ): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
+
     return values.slice().reverse();
 }
 
 /**
  * Pad array to the specified length with a value.
  * 
+ * If size is positive, pads on the right (append).
+ * If size is negative, pads on the left (prepend).
+ * 
  * @param data - The array to pad.
- * @param size - The desired length of the array.
+ * @param size - The desired length of the array (negative means pad left).
  * @param value - The value to pad with.
  * @returns A new padded array.
+ * 
+ * @example
+ * 
+ * pad([1, 2, 3], 5, 0); -> [1, 2, 3, 0, 0]
+ * pad([1, 2, 3], -5, 0); -> [0, 0, 1, 2, 3]
  */
 export function pad<TPadValue, TValue>(
     data: ArrayItems<TValue>,
@@ -2492,15 +2501,23 @@ export function pad<TPadValue, TValue>(
 ): ArrayItems<TValue | TPadValue> {
     const values = getAccessibleValues(data) as TValue[];
     const currentLength = values.length;
+    const absSize = Math.abs(size);
 
-    if (size <= currentLength) {
+    // If current length is already >= desired size, no padding needed
+    if (absSize <= currentLength) {
         return values;
     }
 
-    const padLength = size - currentLength;
-    const padArray = Array(padLength).fill(value) as unknown as TValue[];
+    const padLength = absSize - currentLength;
+    const padArray = Array(padLength).fill(value) as TPadValue[];
 
-    return values.concat(padArray);
+    // Negative size means pad at the beginning (prepend)
+    if (size < 0) {
+        return [...padArray, ...values];
+    }
+
+    // Positive size means pad at the end (append)
+    return [...values, ...padArray];
 }
 
 /**
