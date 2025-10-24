@@ -1,4 +1,4 @@
-import type { DataItems, ObjectKey } from "@laravel-js/types";
+import type { DataItems} from "@laravel-js/types";
 
 /**
  * Check if a value is an array.
@@ -22,7 +22,7 @@ export function isArray<T>(value: DataItems<T> | T[] | unknown): value is T[] {
  * isObject([1, 2, 3]); -> false
  * isObject(null); -> false
  */
-export function isObject<T, K extends ObjectKey = ObjectKey>(
+export function isObject<T, K extends PropertyKey = PropertyKey>(
     value: DataItems<T, K> | unknown,
 ): value is Record<K, T> {
     return !isNull(value) && typeof value === "object" && !isArray(value);

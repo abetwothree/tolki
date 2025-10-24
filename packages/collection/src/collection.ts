@@ -6,7 +6,6 @@ import type {
     Arrayable,
     ArrayItems,
     DataItems,
-    ObjectKey,
     PathKey,
     PathKeys,
     PropertyName,
@@ -16,7 +15,7 @@ import { castableToArray, compareValues, getAccessibleValues,isAccessibleData, i
 
 import { initProxyHandler } from "./proxy";
 
-export function collect<TValue = unknown, TKey extends ObjectKey = ObjectKey>(
+export function collect<TValue = unknown, TKey extends PropertyKey = PropertyKey>(
     items?: TValue[] | DataItems<TValue> | null,
 ) {
     return new Collection<TValue, TKey>(items);
@@ -26,7 +25,7 @@ export function collect<TValue = unknown, TKey extends ObjectKey = ObjectKey>(
  * Laravel-style Collection class for JavaScript/TypeScript.
  * Provides a fluent interface for working with arrays and objects.
  */
-export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
+export class Collection<TValue, TKey extends PropertyKey = PropertyKey> {
     /**
      * The items contained in the collection.
      */
@@ -312,7 +311,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
                 if (!isAccessibleData(item)) {
                     return false;
                 }
-                return dataGet(item as DataItems<unknown, ObjectKey>, key as PathKey) === value;
+                return dataGet(item as DataItems<unknown, PropertyKey>, key as PathKey) === value;
             });
         }
 
@@ -1219,7 +1218,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).mapToDictionary(item => ({[item.id]: item.name})); -> new Collection({1: 'John', 2: 'Jane'})
      * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).mapToDictionary(item => [item.id, item.name]); -> new Collection({1: 'John', 2: 'Jane'})
      */
-    mapToDictionary<TMapToDictionaryValue, TMapToDictionaryKey extends ObjectKey = ObjectKey>(
+    mapToDictionary<TMapToDictionaryValue, TMapToDictionaryKey extends PropertyKey = PropertyKey>(
         callback: (value: TValue, key: TKey) => Record<TMapToDictionaryKey, TMapToDictionaryValue>,
     ) {
         const dictionary = {} as Record<TMapToDictionaryKey, TMapToDictionaryValue>;
@@ -1261,7 +1260,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).mapWithKeys(item => ({[item.id]: item.name})); -> new Collection({1: 'John', 2: 'Jane'})
      * new Collection(['apple', 'banana']).mapWithKeys((item, index) => ({[index]: item.toUpperCase()})); -> new Collection({0: 'APPLE', 1: 'BANANA'})
      */
-    mapWithKeys<TMapWithKeysValue, TMapWithKeysKey extends ObjectKey = ObjectKey>(
+    mapWithKeys<TMapWithKeysValue, TMapWithKeysKey extends PropertyKey = PropertyKey>(
         callback: (value: TValue, key: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
     ) {
         return new Collection(dataMapWithKeys(this.items, callback));
@@ -1630,7 +1629,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection({a: 1, b: 2}).concat({c: 3, d: 4}); -> new Collection({a: 1, b: 2, c: 3, d: 4})
      * new Collection([1, 2]).concat({a: 3}); -> new Collection([1, 2, {a: 3}])
      */
-    concat<TConcatValue, TConcatKey extends ObjectKey = ObjectKey>(
+    concat<TConcatValue, TConcatKey extends PropertyKey = PropertyKey>(
         source: DataItems<TConcatValue, TConcatKey> | Collection<TConcatValue, TConcatKey>,
     ) {
         const result = new Collection(this.items);
@@ -2250,8 +2249,8 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
                 if (!isString(prop) && isFunction(prop)) {
                     result = (prop as ((a: TValue, b: TValue) => number))(a as TValue, b as TValue);
                 } else {
-                    let aValue = dataGet(a as DataItems<unknown, ObjectKey>, prop as PathKey);
-                    let bValue = dataGet(b as DataItems<unknown, ObjectKey>, prop as PathKey);
+                    let aValue = dataGet(a as DataItems<unknown, PropertyKey>, prop as PathKey);
+                    let bValue = dataGet(b as DataItems<unknown, PropertyKey>, prop as PathKey);
 
                     if (descending) {
                         [aValue, bValue] = [bValue, aValue];
@@ -2824,7 +2823,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * Collection.make(new Collection([1, 2, 3])); -> new Collection([1, 2, 3])
      * Collection.make(null); -> new Collection([])
      */
-    static make<TMakeValue, TMakeKey extends ObjectKey = ObjectKey>(
+    static make<TMakeValue, TMakeKey extends PropertyKey = PropertyKey>(
         items: DataItems<TMakeValue, TMakeKey> = []
     ) {
         return new Collection<TMakeValue, TMakeKey>(items);
@@ -2844,7 +2843,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * Collection.wrap(123); -> new Collection([123])
      * Collection.wrap(null); -> new Collection([])
      */
-    static wrap<TWrapValue, TWrapKey extends ObjectKey = ObjectKey>(
+    static wrap<TWrapValue, TWrapKey extends PropertyKey = PropertyKey>(
         value: TWrapValue | DataItems<TWrapValue, TWrapKey> | Collection<TWrapValue, TWrapKey>
     ) {
         if (value instanceof Collection) {
@@ -2871,7 +2870,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * Collection.unwrap([1, 2, 3]); -> [1, 2, 3]
      * Collection.unwrap({a: 1, b: 2}); -> {a: 1, b: 2}
      */
-    static unwrap<TUnwrapValue, TUnwrapKey extends ObjectKey = ObjectKey>(
+    static unwrap<TUnwrapValue, TUnwrapKey extends PropertyKey = PropertyKey>(
         value: Collection<TUnwrapValue, TUnwrapKey> | DataItems<TUnwrapValue, TUnwrapKey>
     ) {
         if (value instanceof Collection) {
@@ -3155,7 +3154,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * new Collection([null, undefined]).ensure(['null', 'undefined']); -> collection is valid
      */
     ensure<TEnsureOfType>(
-        type: TEnsureOfType | Array<TEnsureOfType> | Record<ObjectKey, TEnsureOfType> | "string" | "number" | "symbol" | "boolean" | "undefined" | "null"
+        type: TEnsureOfType | Array<TEnsureOfType> | Record<PropertyKey, TEnsureOfType> | "string" | "number" | "symbol" | "boolean" | "undefined" | "null"
     ) {
         const types = isArray(type)
             ? type
@@ -3208,7 +3207,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @param callback - The callback to execute, receives the value and key as arguments, should return a [groupKey, groupValue] tuple
      * @returns A new collection with the grouped items as collections
      */
-    mapToGroups<TMapToGroupsValue, TMapToGroupsKey extends ObjectKey = ObjectKey>(
+    mapToGroups<TMapToGroupsValue, TMapToGroupsKey extends PropertyKey = PropertyKey>(
         callback: (value: TValue, key: TKey) => [TMapToGroupsKey, TMapToGroupsValue]
     ) {
         const groups = this.mapToDictionary(callback);
@@ -3222,7 +3221,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @param callback - The callback to execute, receives the value and key as arguments, should return a collection or arrayable
      * @returns A new collection with the flattened results of the callback
      */
-    flatMap<TFlatMapValue, TFlatMapKey extends ObjectKey = ObjectKey>(
+    flatMap<TFlatMapValue, TFlatMapKey extends PropertyKey = PropertyKey>(
         callback: ((value: TValue, key: TKey) => Collection<TFlatMapValue, TFlatMapKey> | DataItems<TFlatMapValue, TFlatMapKey>)
     ) {
         return this.map(callback).collapse();
@@ -3487,7 +3486,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @param strict - Whether to use strict comparison (===) or loose comparison (==), defaults to false (loose)
      * @returns A new collection with the items that match any of the given values for the specified key
      */
-    whereIn<TValueSet extends DataItems<unknown, ObjectKey>>(
+    whereIn<TValueSet extends DataItems<unknown, PropertyKey>>(
         key: PathKey,
         values: TValueSet,
         strict: boolean = false,
@@ -3499,7 +3498,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
                 return false;
             }
 
-            const itemValue = dataGet(item as DataItems<unknown, ObjectKey>, key);
+            const itemValue = dataGet(item as DataItems<unknown, PropertyKey>, key);
             if (strict) {
                 return Object.values(valueSet).includes(itemValue as TValue);
             }
@@ -3515,7 +3514,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @param values - The values to filter by, can be an array, collection, or object
      * @returns A new collection with the items that match any of the given values for the specified key using strict comparison
      */
-    whereInStrict<TValueSet extends DataItems<unknown, ObjectKey>>(
+    whereInStrict<TValueSet extends DataItems<unknown, PropertyKey>>(
         key: PathKey,
         values: TValueSet
     ) {
@@ -3529,7 +3528,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @param values - The values to filter by, can be an array, collection, or object, should contain exactly two values
      * @returns A new collection with the items that have the value for the specified key between the given values
      */
-    whereBetween<TValueSet extends DataItems<unknown, ObjectKey>>(
+    whereBetween<TValueSet extends DataItems<unknown, PropertyKey>>(
         key: PathKey,
         values: TValueSet,
     ) {
@@ -3547,7 +3546,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @param values - The values to filter by, can be an array, collection, or object, should contain exactly two values
      * @returns A new collection with the items that have the value for the specified key not between the given values
      */
-    whereNotBetween<TValueSet extends DataItems<unknown, ObjectKey>>(
+    whereNotBetween<TValueSet extends DataItems<unknown, PropertyKey>>(
         key: PathKey,
         values: TValueSet,
     ) {
@@ -3556,7 +3555,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
                 return false;
             }
 
-            const itemValue = dataGet(item as DataItems<unknown, ObjectKey>, key);
+            const itemValue = dataGet(item as DataItems<unknown, PropertyKey>, key);
             const valueSet = this.getRawItems(values);
             const valuesArray = Object.values(valueSet);
 
@@ -3573,7 +3572,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @param strict - Whether to use strict comparison (===) or loose comparison (==), defaults to false (loose)
      * @returns A new collection with the items that do not match any of the given values for the specified key
      */
-    whereNotIn<TValueSet extends DataItems<unknown, ObjectKey>>(
+    whereNotIn<TValueSet extends DataItems<unknown, PropertyKey>>(
         key: PathKey,
         values: TValueSet,
         strict: boolean = false,
@@ -3585,7 +3584,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
                 return false;
             }
 
-            const itemValue = dataGet(item as DataItems<unknown, ObjectKey>, key);
+            const itemValue = dataGet(item as DataItems<unknown, PropertyKey>, key);
             if (strict) {
                 return Object.values(valueSet).includes(itemValue as TValue);
             }
@@ -3601,7 +3600,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @param values - The values to filter by, can be an array, collection, or object
      * @returns A new collection with the items that do not match any of the given values for the specified key using strict comparison
      */
-    whereNotInStrict<TValueSet extends DataItems<unknown, ObjectKey>>(
+    whereNotInStrict<TValueSet extends DataItems<unknown, PropertyKey>>(
         key: PathKey,
         values: TValueSet,
     ) {
@@ -3615,7 +3614,7 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
      * @returns A new collection with the items that match the given type(s)
      */
     whereInstanceOf<TWhereInstanceOf>(
-        type: new (...args: unknown[]) => TWhereInstanceOf | DataItems<TWhereInstanceOf, ObjectKey>,
+        type: new (...args: unknown[]) => TWhereInstanceOf | DataItems<TWhereInstanceOf, PropertyKey>,
     ) {
         return this.filter((item: TValue) => {
             if (isArray(type) || isObject(type)) {
@@ -3981,10 +3980,10 @@ export class Collection<TValue, TKey extends ObjectKey = ObjectKey> {
 
         return function (...args: TArgs[]) {
             if (arguments.length >= 2) {
-                return dataGet(args[0] as DataItems<unknown, ObjectKey>, args[1] as PathKey, (args[2] ?? null) as unknown | null);
+                return dataGet(args[0] as DataItems<unknown, PropertyKey>, args[1] as PathKey, (args[2] ?? null) as unknown | null);
             }
 
-            return dataGet(args[0] as DataItems<unknown, ObjectKey>, value as PathKey, null);
+            return dataGet(args[0] as DataItems<unknown, PropertyKey>, value as PathKey, null);
         };
     }
 

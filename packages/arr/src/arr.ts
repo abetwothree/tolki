@@ -12,7 +12,7 @@ import {
     undotExpandArray,
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
-import type { ArrayInnerValue, ArrayItems, ObjectKey, PathKey, PathKeys, } from "@laravel-js/types";
+import type { ArrayInnerValue, ArrayItems, PathKey, PathKeys, } from "@laravel-js/types";
 import { castableToArray, compareValues, getAccessibleValues, isArray, isBoolean, isFalsy, isFunction, isInteger, isMap, isNull, isNumber, isObject, isString, isStringable, isSymbol, isUndefined, isWeakMap, typeOf } from '@laravel-js/utils';
 
 /**
@@ -173,7 +173,7 @@ export function chunk<TValue>(
  * collapse([[1], [2], [3], ['foo', 'bar']]); -> [1, 2, 3, 'foo', 'bar']
  * collapse([{ a: 1, b: 2 }, { c: 3, d: 4 }]) -> { a: 1, b: 2, c: 3, d: 4 }
  */
-export function collapse<TValue, TKey extends ObjectKey = ObjectKey>(
+export function collapse<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>[],
 ): Record<TKey, TValue>;
 export function collapse<TValue extends ArrayItems<ArrayItems<unknown>>>(
@@ -321,7 +321,7 @@ export function dot<TValue>(
  * undot({ '0': 'a', '1.0': 'b', '1.1': 'c' }); -> ['a', ['b', 'c']]
  * undot({ 'item.0': 'a', 'item.1.0': 'b', 'item.1.1': 'c' }); -> [['b', 'c']]
  */
-export function undot<TValue, TKey extends ObjectKey = ObjectKey>(
+export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
 ): TValue[] {
     return undotExpandArray(map);
@@ -817,7 +817,7 @@ export function forget<TValue>(data: ArrayItems<TValue>, keys: PathKeys): TValue
  * @throws Error if items is a WeakMap or a scalar value.
  */
 export function from<TValue>(items: ArrayItems<TValue>): TValue[];
-export function from<TValue, TKey extends ObjectKey = ObjectKey>(items: Map<PropertyKey, TValue>): Record<TKey, TValue>;
+export function from<TValue, TKey extends PropertyKey = PropertyKey>(items: Map<PropertyKey, TValue>): Record<TKey, TValue>;
 export function from(
     items: number | string | boolean | symbol | null | undefined,
 ): never;
@@ -1173,26 +1173,26 @@ export function join<TValue>(
 export function keyBy<TValue extends Record<string, unknown>>(
     data: TValue[],
     keyBy: ((item: TValue) => string | number) | string,
-): Record<ObjectKey, TValue>;
+): Record<PropertyKey, TValue>;
 // Overload: non-array fallback
 export function keyBy<TValue extends Record<string, unknown>>(
     data: unknown,
     keyBy: string | ((item: TValue) => string | number),
-): Record<ObjectKey, TValue>;
+): Record<PropertyKey, TValue>;
 // Implementation
 export function keyBy<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue> | unknown,
     keyBy: string | ((item: TValue) => string | number),
-): Record<ObjectKey, TValue> {
+): Record<PropertyKey, TValue> {
     if (!accessible(data)) {
         return {};
     }
 
     const values = data as ArrayItems<TValue>;
-    const results: Record<ObjectKey, TValue> = {};
+    const results: Record<PropertyKey, TValue> = {};
 
     for (const item of values) {
-        let key: ObjectKey;
+        let key: PropertyKey;
 
         if (isFunction(keyBy)) {
             const result = keyBy(item);
@@ -1469,7 +1469,7 @@ export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
     TKey extends number = number,
-    TMapWithKeysKey extends ObjectKey = ObjectKey,
+    TMapWithKeysKey extends PropertyKey = PropertyKey,
 >(
     data: TValue[],
     callback: (value: TValue, index: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
@@ -1479,7 +1479,7 @@ export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
     TKey extends number = number,
-    TMapWithKeysKey extends ObjectKey = ObjectKey,
+    TMapWithKeysKey extends PropertyKey = PropertyKey,
 >(
     data: unknown,
     callback: (value: TValue, index: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
@@ -1489,7 +1489,7 @@ export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
     TKey extends number = number,
-    TMapWithKeysKey extends ObjectKey = ObjectKey,
+    TMapWithKeysKey extends PropertyKey = PropertyKey,
 >(
     data: ArrayItems<TValue> | unknown,
     callback: (value: TValue, index: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
@@ -2614,8 +2614,8 @@ export function replaceRecursive<TValue, TReplace = TValue>(
         // Both are objects (non-array, non-numeric-keyed)
         if (isObject(originalValue) && isObject(replacementValue) && !isNumericKeyedObject(replacementValue)) {
             return objReplaceRecursive(
-                originalValue as unknown as Record<ObjectKey, TValue>,
-                replacementValue as unknown as Record<ObjectKey, TValue>,
+                originalValue as unknown as Record<PropertyKey, TValue>,
+                replacementValue as unknown as Record<PropertyKey, TValue>,
             ) as unknown as TValue;
         }
         

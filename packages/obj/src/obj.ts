@@ -10,7 +10,7 @@ import {
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
 import { isArray, isBoolean, isFalsy, isFunction, isInteger, isMap, isNull, isNumber, isObject, isString, isStringable, isUndefined, isWeakMap, typeOf } from '@laravel-js/utils';
-import type { ObjectKey, PathKey, PathKeys } from "packages/types";
+import type { PathKey, PathKeys } from "packages/types";
 
 /**
  * Determine whether the given value is object accessible.
@@ -25,7 +25,7 @@ import type { ObjectKey, PathKey, PathKeys } from "packages/types";
  * accessible([]); -> false
  * accessible(null); -> false
  */
-export function accessible<TValue>(value: TValue): TValue is object {
+export function accessible(value: unknown): value is object {
     return isObject(value);
 }
 
@@ -61,7 +61,7 @@ export function objectifiable(
  * add({ user: { name: 'John' } }, 'user.age', 30); -> { user: { name: 'John', age: 30 } }
  * add({ name: 'John' }, 'name', 'Jane'); -> { name: 'John' } (no change, key exists)
  */
-export function add<TValue, TKey extends ObjectKey = ObjectKey>(
+export function add<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
     key: PathKey,
     value: unknown,
@@ -90,7 +90,7 @@ export function add<TValue, TKey extends ObjectKey = ObjectKey>(
  * objectItem({ user: { tags: ['js', 'ts'] } }, 'user.tags'); -> ['js', 'ts']
  * objectItem({ user: { name: 'John' } }, 'user.name'); -> throws Error
  */
-export function objectItem<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+export function objectItem<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault) | null = null,
@@ -123,7 +123,7 @@ export function objectItem<TValue, TKey extends ObjectKey = ObjectKey, TDefault 
  * boolean({ user: { verified: false } }, 'user.verified'); -> false
  * boolean({ user: { name: 'John' } }, 'user.name'); -> throws Error
  */
-export function boolean<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+export function boolean<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault) | null = null,
@@ -216,7 +216,7 @@ export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
  * collapse({ a: { x: 1 }, b: { y: 2 }, c: { z: 3 } }); -> { x: 1, y: 2, z: 3 }
  * collapse({ users: { john: { age: 30 } }, admins: { jane: { role: 'admin' } } }); -> { john: { age: 30 }, jane: { role: 'admin' } }
  */
-export function collapse<TValue extends Record<ObjectKey, Record<ObjectKey, unknown>>>(
+export function collapse<TValue extends Record<PropertyKey, Record<PropertyKey, unknown>>>(
     object: TValue,
 ): Record<string, TValue[keyof TValue]> {
     const out: Record<string, TValue[keyof TValue]> = {};
@@ -236,7 +236,7 @@ export function collapse<TValue extends Record<ObjectKey, Record<ObjectKey, unkn
  * @param objects - The objects to combine.
  * @return A new object containing all key-value pairs from the input objects.
  */
-export function combine<T extends Record<ObjectKey, unknown>>(
+export function combine<T extends Record<PropertyKey, unknown>>(
     ...objects: T[]
 ): Record<string, unknown> {
     return Object.assign({}, ...objects);
@@ -253,13 +253,13 @@ export function combine<T extends Record<ObjectKey, unknown>>(
  * crossJoin({ a: [1] }, { b: ["x"] }); -> [{ a: 1, b: "x" }]
  * crossJoin({ size: ['S', 'M'] }, { color: ['red', 'blue'] }); -> [{ size: 'S', color: 'red' }, { size: 'S', color: 'blue' }, { size: 'M', color: 'red' }, { size: 'M', color: 'blue' }]
  */
-export function crossJoin<TValue extends Record<ObjectKey, readonly unknown[]>>(
+export function crossJoin<TValue extends Record<PropertyKey, readonly unknown[]>>(
     ...objects: TValue[]
-): Record<ObjectKey, unknown>[] {
-    let results: Record<ObjectKey, unknown>[] = [{}];
+): Record<PropertyKey, unknown>[] {
+    let results: Record<PropertyKey, unknown>[] = [{}];
 
     for (const obj of objects) {
-        const next: Record<ObjectKey, unknown>[] = [];
+        const next: Record<PropertyKey, unknown>[] = [];
 
         for (const [key, values] of Object.entries(obj)) {
             if (!isArray(values) || values.length === 0) {
@@ -292,9 +292,9 @@ export function crossJoin<TValue extends Record<ObjectKey, readonly unknown[]>>(
  *
  * divide({ name: "John", age: 30, city: "NYC" }); -> [['name', 'age', 'city'], ['John', 30, 'NYC']]
  */
-export function divide<TValue extends Record<ObjectKey, unknown>>(
+export function divide<TValue extends Record<PropertyKey, unknown>>(
     object: TValue,
-): [ObjectKey[], unknown[]] {
+): [PropertyKey[], unknown[]] {
     return [Object.keys(object), Object.values(object)];
 }
 
@@ -309,7 +309,7 @@ export function divide<TValue extends Record<ObjectKey, unknown>>(
  *
  * dot({ name: 'John', address: { city: 'NYC', zip: '10001' } }); -> { name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }
  */
-export function dot<TValue, TKey extends ObjectKey = ObjectKey>(
+export function dot<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     prepend: string = "",
 ): Record<TKey, TValue> {
@@ -330,7 +330,7 @@ export function dot<TValue, TKey extends ObjectKey = ObjectKey>(
  *
  * undot({ name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }); -> { name: 'John', address: { city: 'NYC', zip: '10001' } }
  */
-export function undot<TValue, TKey extends ObjectKey = ObjectKey>(
+export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
 ): Record<TKey, TValue> {
     return undotExpandObject(map) as Record<TKey, TValue>;
@@ -342,7 +342,7 @@ export function undot<TValue, TKey extends ObjectKey = ObjectKey>(
  * @param objects - The objects to union.
  * @return A new object containing all key-value pairs from the input objects.
  */
-export function union<TValue, TKey extends ObjectKey = ObjectKey>(
+export function union<TValue, TKey extends PropertyKey = PropertyKey>(
     ...objects: Record<TKey, TValue>[]
 ): Record<string, unknown> {
     return objects.reduce((acc, obj) => ({ ...acc, ...obj }), {});
@@ -355,7 +355,7 @@ export function union<TValue, TKey extends ObjectKey = ObjectKey>(
  * @param items - The items to prepend as [key, value] tuples
  * @returns A new object with the items prepended
  */
-export function unshift<TValue, TKey extends ObjectKey = ObjectKey>(
+export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
     ...items: Array<[TKey, TValue]>
 ): Record<TKey, TValue> {
@@ -380,10 +380,10 @@ export function unshift<TValue, TKey extends ObjectKey = ObjectKey>(
  * except({ name: 'John', age: 30, city: 'NYC' }, 'age'); -> { name: 'John', city: 'NYC' }
  * except({ name: 'John', age: 30, city: 'NYC' }, ['age', 'city']); -> { name: 'John' }
  */
-export function except<TValue extends Record<ObjectKey, unknown>>(
+export function except<TValue extends Record<PropertyKey, unknown>>(
     data: TValue,
     keys: PathKeys,
-): Record<ObjectKey, unknown> {
+): Record<PropertyKey, unknown> {
     return forget(data, keys);
 }
 
@@ -400,7 +400,7 @@ export function except<TValue extends Record<ObjectKey, unknown>>(
  * exists({ name: 'John', age: 30 }, 'email'); -> false
  * exists({ user: { name: 'John' } }, 'user.name'); -> true
  */
-export function exists<TValue extends Record<ObjectKey, unknown>>(
+export function exists<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     key: PathKey,
 ): boolean {
@@ -428,7 +428,7 @@ export function exists<TValue extends Record<ObjectKey, unknown>>(
  * first({ a: 1, b: 2, c: 3 }, x => x > 1); -> 2
  * first({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  */
-export function first<TValue, TKey extends ObjectKey = ObjectKey, TFirstDefault = null>(
+export function first<TValue, TKey extends PropertyKey = PropertyKey, TFirstDefault = null>(
     data: Record<TKey, TValue> | unknown,
     callback?: ((value: TValue, key: TKey) => boolean) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
@@ -484,7 +484,7 @@ export function first<TValue, TKey extends ObjectKey = ObjectKey, TFirstDefault 
  * last({ a: 1, b: 2, c: 3 }, x => x < 3); -> 2
  * last({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  */
-export function last<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+export function last<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
     data: Record<TKey, TValue> | unknown,
     callback?: ((value: TValue, key: TKey) => boolean) | null,
     defaultValue?: TDefault | (() => TDefault),
@@ -546,10 +546,10 @@ export function last<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null
  * take({ a: 1, b: 2, c: 3, d: 4, e: 5 }, -2); -> { d: 4, e: 5 }
  * take({ a: 1, b: 2, c: 3 }, 5); -> { a: 1, b: 2, c: 3 }
  */
-export function take<TValue extends Record<ObjectKey, unknown>>(
+export function take<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     limit: number,
-): Record<ObjectKey, unknown> {
+): Record<PropertyKey, unknown> {
     if (!accessible(data) || limit === 0) {
         return {};
     }
@@ -601,7 +601,7 @@ export function take<TValue extends Record<ObjectKey, unknown>>(
  * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }); -> { a: 1, 'b.c': 2, 'b.d.e': 3 }
  * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }, 1); -> { a: 1, 'b.c': 2, 'b.d': { e: 3 } }
  */
-export function flatten<TValue, TKey extends ObjectKey = ObjectKey>(
+export function flatten<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | TValue,
     depth: number = Infinity,
 ): Record<TKey, TValue> {
@@ -645,7 +645,7 @@ export function flatten<TValue, TKey extends ObjectKey = ObjectKey>(
  * @example
  * flip({one: 'b', two: {hi: 'hello', skip: 'bye'}}); -> {b: 'one', {hello: 'hi', bye: 'skip'}}
  */
-export function flip<TValue, TKey extends ObjectKey = ObjectKey>(
+export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
 ) {
     if (!accessible(data)) {
@@ -696,7 +696,7 @@ export function flip<TValue, TKey extends ObjectKey = ObjectKey>(
  * float({ product: { price: 19.99 } }, 'product.price'); -> 19.99
  * float({ product: { name: 'Widget' } }, 'product.name'); -> throws Error
  */
-export function float<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+export function float<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault) | null = null,
@@ -725,11 +725,11 @@ export function float<TValue, TKey extends ObjectKey = ObjectKey, TDefault = nul
  * forget({ name: 'John', age: 30, city: 'NYC' }, ['age', 'city']); -> { name: 'John' }
  * forget({ user: { name: 'John', age: 30 } }, 'user.age'); -> { user: { name: 'John' } }
  */
-export function forget<TValue extends Record<ObjectKey, unknown>>(
+export function forget<TValue extends Record<PropertyKey, unknown>>(
     data: TValue,
     keys: PathKeys,
-): Record<ObjectKey, unknown> {
-    return forgetKeys(data, keys) as Record<ObjectKey, unknown>;
+): Record<PropertyKey, unknown> {
+    return forgetKeys(data, keys) as Record<PropertyKey, unknown>;
 }
 
 /**
@@ -800,7 +800,7 @@ export function from(items: unknown): Record<string, unknown> {
  * get({ user: { name: 'John' } }, 'user.name'); -> 'John'
  * get({ name: 'John' }, 'email', 'default'); -> 'default'
  */
-export function get<TValue, TKey extends ObjectKey = ObjectKey, TDefault = unknown>(
+export function get<TValue, TKey extends PropertyKey = PropertyKey, TDefault = unknown>(
     object: Record<TKey, TValue> | unknown,
     key: PathKey | null | undefined,
     defaultValue: TDefault | (() => TDefault) | null = null,
@@ -880,7 +880,7 @@ export function get<TValue, TKey extends ObjectKey = ObjectKey, TDefault = unkno
  * has({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.city']); -> true
  * has({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.country']); -> false
  */
-export function has<TValue extends Record<ObjectKey, unknown>>(
+export function has<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     keys: PathKeys,
 ): boolean {
@@ -914,7 +914,7 @@ export function has<TValue extends Record<ObjectKey, unknown>>(
  * hasAll({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.city']); -> true
  * hasAll({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.country']); -> false
  */
-export function hasAll<TValue extends Record<ObjectKey, unknown>>(
+export function hasAll<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     keys: PathKeys,
 ): boolean {
@@ -925,7 +925,7 @@ export function hasAll<TValue extends Record<ObjectKey, unknown>>(
     }
 
     for (const key of keyList) {
-        if (!has(data as Record<ObjectKey, unknown>, key)) {
+        if (!has(data as Record<PropertyKey, unknown>, key)) {
             return false;
         }
     }
@@ -945,7 +945,7 @@ export function hasAll<TValue extends Record<ObjectKey, unknown>>(
  * hasAny({ name: 'John', address: { city: 'NYC' } }, ['name', 'email']); -> true
  * hasAny({ name: 'John', address: { city: 'NYC' } }, ['email', 'phone']); -> false
  */
-export function hasAny<TValue extends Record<ObjectKey, unknown>>(
+export function hasAny<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     keys: PathKeys,
 ): boolean {
@@ -963,7 +963,7 @@ export function hasAny<TValue extends Record<ObjectKey, unknown>>(
     }
 
     for (const key of keyList) {
-        if (has(data as Record<ObjectKey, unknown>, key)) {
+        if (has(data as Record<PropertyKey, unknown>, key)) {
             return true;
         }
     }
@@ -983,7 +983,7 @@ export function hasAny<TValue extends Record<ObjectKey, unknown>>(
  * every({ a: 2, b: 4, c: 6 }, (n) => n % 2 === 0); -> true
  * every({ a: 1, b: 2, c: 3 }, (n) => n % 2 === 0); -> false
  */
-export function every<TValue, TKey extends ObjectKey = ObjectKey>(
+export function every<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => boolean,
 ): boolean {
@@ -1013,7 +1013,7 @@ export function every<TValue, TKey extends ObjectKey = ObjectKey>(
  * some({ a: 1, b: 2, c: 3 }, (n) => n % 2 === 0); -> true
  * some({ a: 1, b: 3, c: 5 }, (n) => n % 2 === 0); -> false
  */
-export function some<TValue, TKey extends ObjectKey = ObjectKey>(
+export function some<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => boolean,
 ): boolean {
@@ -1048,7 +1048,7 @@ export function some<TValue, TKey extends ObjectKey = ObjectKey>(
  * integer({ user: { age: 30 } }, 'user.age'); -> 30
  * integer({ user: { name: 'John' } }, 'user.name'); -> Error: The value is not an integer.
  */
-export function integer<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+export function integer<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault) | null = null,
@@ -1076,7 +1076,7 @@ export function integer<TValue, TKey extends ObjectKey = ObjectKey, TDefault = n
  * join({ a: 'a', b: 'b', c: 'c' }, ', ') => 'a, b, c'
  * join({ a: 'a', b: 'b', c: 'c' }, ', ', ' and ') => 'a, b and c'
  */
-export function join<TValue, TKey extends ObjectKey = ObjectKey>(
+export function join<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     glue: string,
     finalGlue: string = "",
@@ -1119,25 +1119,25 @@ export function join<TValue, TKey extends ObjectKey = ObjectKey>(
  * keyBy({ user1: { id: 1, name: 'John' }, user2: { id: 2, name: 'Jane' } }, 'name'); -> { John: { id: 1, name: 'John' }, Jane: { id: 2, name: 'Jane' } }
  * keyBy({ a: { name: 'John' }, b: { name: 'Jane' } }, (item) => item.name); -> { John: { name: 'John' }, Jane: { name: 'Jane' } }
  */
-export function keyBy<TValue extends Record<ObjectKey, unknown>>(
-    data: Record<ObjectKey, TValue> | unknown,
-    keyBy: PathKey | ((item: TValue) => ObjectKey),
-): Record<ObjectKey, TValue> {
+export function keyBy<TValue extends Record<PropertyKey, unknown>>(
+    data: Record<PropertyKey, TValue> | unknown,
+    keyBy: PathKey | ((item: TValue) => PropertyKey),
+): Record<PropertyKey, TValue> {
     if (!accessible(data)) {
         return {};
     }
 
-    const obj = data as Record<ObjectKey, TValue>;
-    const results: Record<ObjectKey, TValue> = {};
+    const obj = data as Record<PropertyKey, TValue>;
+    const results: Record<PropertyKey, TValue> = {};
 
     for (const item of Object.values(obj)) {
-        let key: ObjectKey;
+        let key: PropertyKey;
 
         if (isFunction(keyBy)) {
-            key = keyBy(item) as ObjectKey;
+            key = keyBy(item) as PropertyKey;
         } else {
             // Use dot notation to get the key value
-            key = getObjectValue(item, keyBy as PathKey) as ObjectKey;
+            key = getObjectValue(item, keyBy as PathKey) as PropertyKey;
         }
 
         results[key] = item;
@@ -1157,7 +1157,7 @@ export function keyBy<TValue extends Record<ObjectKey, unknown>>(
  *
  * prependKeysWith({ a: 1, b: 2, c: 3 }, 'item_'); -> { item_a: 1, item_b: 2, item_c: 3 }
  */
-export function prependKeysWith<TValue, TKey extends ObjectKey = ObjectKey>(
+export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     prependWith: string,
 ): Record<TKey, TValue> {
@@ -1186,16 +1186,16 @@ export function prependKeysWith<TValue, TKey extends ObjectKey = ObjectKey>(
  * only({ a: 1, b: 2, c: 3, d: 4 }, ['a', 'c']); -> { a: 1, c: 3 }
  * only({ name: 'John', age: 30, city: 'NYC' }, ['name']); -> { name: 'John' }
  */
-export function only<TValue, TKey extends ObjectKey = ObjectKey>(
+export function only<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     keys: string[],
-): Record<ObjectKey, TValue> {
+): Record<PropertyKey, TValue> {
     if (!accessible(data)) {
         return {};
     }
 
-    const obj = data as Record<ObjectKey, TValue>;
-    const result: Record<ObjectKey, TValue> = {};
+    const obj = data as Record<PropertyKey, TValue>;
+    const result: Record<PropertyKey, TValue> = {};
 
     for (const key of keys) {
         if (key in obj) {
@@ -1218,21 +1218,21 @@ export function only<TValue, TKey extends ObjectKey = ObjectKey>(
  * select({ user1: { a: 1, b: 2, c: 3 }, user2: { a: 4, b: 5, c: 6 } }, 'a'); -> { user1: { a: 1 }, user2: { a: 4 } }
  * select({ user1: { a: 1, b: 2 }, user2: { a: 3, b: 4 } }, ['a', 'b']); -> { user1: { a: 1, b: 2 }, user2: { a: 3, b: 4 } }
  */
-export function select<TValue extends Record<ObjectKey, unknown>>(
-    data: Record<ObjectKey, TValue> | unknown,
+export function select<TValue extends Record<PropertyKey, unknown>>(
+    data: Record<PropertyKey, TValue> | unknown,
     keys: PathKeys,
-): Record<ObjectKey, Record<ObjectKey, unknown>> {
+): Record<PropertyKey, Record<PropertyKey, unknown>> {
     if (!accessible(data)) {
         return {};
     }
 
-    const obj = data as Record<ObjectKey, TValue>;
+    const obj = data as Record<PropertyKey, TValue>;
     const keyList = (isArray(keys) ? keys : [keys])
-        .filter((key: unknown) => !isNull(key) && !isUndefined(key)) as ObjectKey[];
-    const result: Record<ObjectKey, Record<ObjectKey, unknown>> = {};
+        .filter((key: unknown) => !isNull(key) && !isUndefined(key)) as PropertyKey[];
+    const result: Record<PropertyKey, Record<PropertyKey, unknown>> = {};
 
     for (const [objKey, item] of Object.entries(obj)) {
-        const selected: Record<ObjectKey, unknown> = {};
+        const selected: Record<PropertyKey, unknown> = {};
 
         for (const key of keyList) {
             if (isObject(item) && key in item) {
@@ -1259,17 +1259,17 @@ export function select<TValue extends Record<ObjectKey, unknown>>(
  * pluck({ user1: { name: 'John' }, user2: { name: 'Jane' } }, 'name'); -> ['John', 'Jane']
  * pluck({ user1: { id: 1, name: 'John' }, user2: { id: 2, name: 'Jane' } }, 'name', 'id'); -> { 1: 'John', 2: 'Jane' }
  */
-export function pluck<TValue, TKey extends ObjectKey = ObjectKey>(
+export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     value: string | ((item: TValue) => unknown),
     key: string | ((item: TValue) => string | number) | null = null,
-): unknown[] | Record<ObjectKey, unknown> {
+): unknown[] | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
         return key ? {} : [];
     }
 
     const obj = data as Record<string, TValue>;
-    const results: unknown[] | Record<ObjectKey, unknown> = key ? {} : [];
+    const results: unknown[] | Record<PropertyKey, unknown> = key ? {} : [];
 
     for (const [, item] of Object.entries(obj)) {
         let itemValue: unknown;
@@ -1317,7 +1317,7 @@ export function pluck<TValue, TKey extends ObjectKey = ObjectKey>(
  * @param count - The number of items to pop. Defaults to 1.
  * @returns The popped item(s) or null/empty array if none.
  */
-export function pop<TValue, TKey extends ObjectKey = ObjectKey>(
+export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | null | undefined,
     count: number = 1,
 ): TValue | TValue[] | null {
@@ -1371,7 +1371,7 @@ export function pop<TValue, TKey extends ObjectKey = ObjectKey>(
  * map({ a: 1, b: 2, c: 3 }, (value) => value * 2); -> { a: 2, b: 4, c: 6 }
  * map({ name: 'john', email: 'JOHN@EXAMPLE.COM' }, (value, key) => key === 'name' ? value.toUpperCase() : value.toLowerCase()); -> { name: 'JOHN', email: 'john@example.com' }
  */
-export function map<TValue, TKey extends ObjectKey = ObjectKey, TMapValue = unknown>(
+export function map<TValue, TKey extends PropertyKey = PropertyKey, TMapValue = unknown>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => TMapValue,
 ): Record<TKey, TMapValue> {
@@ -1380,7 +1380,7 @@ export function map<TValue, TKey extends ObjectKey = ObjectKey, TMapValue = unkn
     }
 
     const obj = data as Record<TKey, TValue>;
-    const result: Record<ObjectKey, TMapValue> = {};
+    const result: Record<PropertyKey, TMapValue> = {};
 
     for (const [key, value] of Object.entries(obj)) {
         result[key] = callback(value as TValue, key as TKey);
@@ -1405,8 +1405,8 @@ export function map<TValue, TKey extends ObjectKey = ObjectKey, TMapValue = unkn
 export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
-    TKey extends ObjectKey = ObjectKey,
-    TMapWithKeysKey extends ObjectKey = ObjectKey,
+    TKey extends PropertyKey = PropertyKey,
+    TMapWithKeysKey extends PropertyKey = PropertyKey,
 >(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
@@ -1441,25 +1441,25 @@ export function mapWithKeys<
  * mapSpread({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (name, age) => `${name} is ${age}`); -> { user1: 'John is 25', user2: 'Jane is 30' }
  * mapSpread({ item1: { x: 1, y: 2 }, item2: { x: 3, y: 4 } }, (x, y) => x + y); -> { item1: 3, item2: 7 }
  */
-export function mapSpread<TValue extends Record<ObjectKey, unknown>, TMapSpreadValue>(
-    data: Record<ObjectKey, TValue> | unknown,
+export function mapSpread<TValue extends Record<PropertyKey, unknown>, TMapSpreadValue>(
+    data: Record<PropertyKey, TValue> | unknown,
     callback: (...args: unknown[]) => TMapSpreadValue,
-): Record<ObjectKey, TMapSpreadValue> {
+): Record<PropertyKey, TMapSpreadValue> {
     if (!accessible(data)) {
-        return {} as Record<ObjectKey, TMapSpreadValue>;
+        return {} as Record<PropertyKey, TMapSpreadValue>;
     }
 
-    const obj = data as Record<ObjectKey, TValue>;
-    const result: Record<ObjectKey, TMapSpreadValue> = {};
+    const obj = data as Record<PropertyKey, TValue>;
+    const result: Record<PropertyKey, TMapSpreadValue> = {};
 
     for (const [key, item] of Object.entries(obj)) {
         if (isObject(item)) {
             // Spread the object values as arguments to the callback
             const values = Object.values(item);
-            result[key as ObjectKey] = callback(...values, key);
+            result[key as PropertyKey] = callback(...values, key);
         } else {
             // If item is not an object, pass it as single argument with key
-            result[key as ObjectKey] = callback(item, key);
+            result[key as PropertyKey] = callback(item, key);
         }
     }
 
@@ -1479,7 +1479,7 @@ export function mapSpread<TValue extends Record<ObjectKey, unknown>, TMapSpreadV
  * prepend({ b: 2, c: 3 }, 1, 'a'); -> { a: 1, b: 2, c: 3 }
  * prepend({ x: 1, y: 2 }, 0, 'z'); -> { z: 0, x: 1, y: 2 }
  */
-export function prepend<TValue, TKey extends ObjectKey = ObjectKey>(
+export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     value: TValue,
     key: TKey,
@@ -1513,7 +1513,7 @@ export function prepend<TValue, TKey extends ObjectKey = ObjectKey>(
  * pull({ user: { name: 'John', age: 30 } }, 'user.name'); -> { value: 'John', data: { user: { age: 30 } } }
  * pull({ a: 1, b: 2 }, 'x', 'default'); -> { value: 'default', data: { a: 1, b: 2 } }
  */
-export function pull<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+export function pull<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault) | null = null,
@@ -1631,7 +1631,7 @@ export function query(data: unknown): string {
  * random({}, 1); -> null
  * random({ a: 1, b: 2 }, 5); -> throws Error
  */
-export function random<TValue, TKey extends ObjectKey = ObjectKey>(
+export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     number?: number | null,
     preserveKeys: boolean = true,
@@ -1694,7 +1694,7 @@ export function random<TValue, TKey extends ObjectKey = ObjectKey>(
  * @param count - The number of items to shift. Defaults to 1.
  * @returns The shifted item(s) or null/empty array if none.
  */
-export function shift<TValue, TKey extends ObjectKey = ObjectKey>(
+export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
     count: number = 1,
 ): TValue | TValue[] | null {
@@ -1750,7 +1750,7 @@ export function shift<TValue, TKey extends ObjectKey = ObjectKey>(
  * set({ name: 'John', age: 30 }, 'age', 31); -> { name: 'John', age: 31 }
  * set({ user: { name: 'John' } }, 'user.age', 30); -> { user: { name: 'John', age: 30 } }
  */
-export function set<TValue, TKey extends ObjectKey = ObjectKey>(
+export function set<TValue, TKey extends PropertyKey = PropertyKey>(
     object: Record<TKey, TValue> | unknown,
     key: PathKey | null,
     value: unknown,
@@ -1775,7 +1775,7 @@ export function set<TValue, TKey extends ObjectKey = ObjectKey>(
  * push({ items: ['a', 'b'] }, 'items', 'c', 'd'); -> { items: ['a', 'b', 'c', 'd'] }
  * push({ user: { tags: ['js'] } }, 'user.tags', 'ts', 'php'); -> { user: { tags: ['js', 'ts', 'php'] } }
  */
-export function push<TValue, TKey extends ObjectKey = ObjectKey>(
+export function push<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
     ...values: TValue[]
@@ -1820,7 +1820,7 @@ export function push<TValue, TKey extends ObjectKey = ObjectKey>(
  * shuffle({ a: 1, b: 2, c: 3, d: 4, e: 5 }); -> { c: 3, a: 1, e: 5, b: 2, d: 4 } (random order)
  * shuffle({ x: 'hello', y: 'world', z: 'test' }); -> { z: 'test', x: 'hello', y: 'world' } (random order)
  */
-export function shuffle<TValue, TKey extends ObjectKey = ObjectKey>(
+export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
@@ -1854,7 +1854,7 @@ export function shuffle<TValue, TKey extends ObjectKey = ObjectKey>(
  * @param length - The number of items to include
  * @returns Sliced object
  */
-export function slice<TValue, TKey extends ObjectKey = ObjectKey>(
+export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
     offset: number,
     length: number | null = null,
@@ -1895,7 +1895,7 @@ export function slice<TValue, TKey extends ObjectKey = ObjectKey>(
  * sole({ a: 1, b: 2 }); -> throws Error: Multiple items found (2 items)
  * sole({ a: 1, b: 2, c: 3 }, (value) => value > 1); -> throws Error: Multiple items found (2 items)
  */
-export function sole<TValue, TKey extends ObjectKey = ObjectKey>(
+export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback?: (value: TValue, key: TKey) => boolean,
 ): TValue {
@@ -1951,7 +1951,7 @@ export function sole<TValue, TKey extends ObjectKey = ObjectKey>(
  * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, 'age'); -> sorted by age
  * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name
  */
-export function sort<TValue, TKey extends ObjectKey = ObjectKey>(
+export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
 ): Record<TKey, TValue> {
@@ -2088,7 +2088,7 @@ export function sort<TValue, TKey extends ObjectKey = ObjectKey>(
  * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, 'age'); -> sorted by age desc
  * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name desc
  */
-export function sortDesc<TValue, TKey extends ObjectKey = ObjectKey>(
+export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback?: ((item: TValue) => unknown) | string | null,
 ): Record<TKey, TValue> {
@@ -2208,7 +2208,7 @@ export function sortDesc<TValue, TKey extends ObjectKey = ObjectKey>(
  * sortRecursive({ b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }); -> { a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }
  * sortRecursive({ user1: { name: 'john', age: 30 }, user2: { name: 'jane', age: 25 } }); -> sorted objects with sorted keys
  */
-export function sortRecursive<TValue, TKey extends ObjectKey = ObjectKey>(
+export function sortRecursive<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     options?: number,
     descending: boolean = false,
@@ -2283,7 +2283,7 @@ export function sortRecursive<TValue, TKey extends ObjectKey = ObjectKey>(
  *
  * sortRecursiveDesc({ a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }); -> { b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }
  */
-export function sortRecursiveDesc<TValue, TKey extends ObjectKey = ObjectKey>(
+export function sortRecursiveDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     options?: number,
 ): Record<TKey, TValue> {
@@ -2299,7 +2299,7 @@ export function sortRecursiveDesc<TValue, TKey extends ObjectKey = ObjectKey>(
  * @param replacement - The replacement object
  * @returns Spliced object
  */
-export function splice<TValue, TKey extends ObjectKey = ObjectKey>(
+export function splice<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
     offset: number,
     length: number = 0,
@@ -2350,7 +2350,7 @@ export function splice<TValue, TKey extends ObjectKey = ObjectKey>(
  * string({ user: { name: 'John' } }, 'user.name'); -> 'John'
  * string({ user: { age: 30 } }, 'user.age'); -> throws Error
  */
-export function string<TValue, TKey extends ObjectKey = ObjectKey, TDefault = null>(
+export function string<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
     defaultValue:TDefault | (() => TDefault) | null = null,
@@ -2378,7 +2378,7 @@ export function string<TValue, TKey extends ObjectKey = ObjectKey, TDefault = nu
  * toCssClasses({ 'font-bold': true, 'text-red': false, 'ml-2': true }); -> 'font-bold ml-2'
  * toCssClasses({ primary: true, secondary: false }); -> 'primary'
  */
-export function toCssClasses<TValue, TKey extends ObjectKey = ObjectKey>(data: Record<TKey, TValue> | unknown): string {
+export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(data: Record<TKey, TValue> | unknown): string {
     if (!accessible(data)) {
         return "";
     }
@@ -2407,7 +2407,7 @@ export function toCssClasses<TValue, TKey extends ObjectKey = ObjectKey>(data: R
  * toCssStyles({ 'font-weight: bold': true, 'margin-top: 4px': true }); -> 'font-weight: bold; margin-top: 4px;'
  * toCssStyles({ 'font-weight: bold': true, 'color: red': false, 'margin-left: 2px': true }); -> 'font-weight: bold; margin-left: 2px;'
  */
-export function toCssStyles<TValue, TKey extends ObjectKey = ObjectKey>(data: Record<TKey, TValue> | unknown): string {
+export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(data: Record<TKey, TValue> | unknown): string {
     if (!accessible(data)) {
         return "";
     }
@@ -2438,7 +2438,7 @@ export function toCssStyles<TValue, TKey extends ObjectKey = ObjectKey>(data: Re
  * where({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { c: 3, d: 4 }
  * where({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> { name: 'John', city: 'NYC' }
  */
-export function where<TValue, TKey extends ObjectKey = ObjectKey>(
+export function where<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => boolean,
 ): Record<TKey, TValue> {
@@ -2470,7 +2470,7 @@ export function where<TValue, TKey extends ObjectKey = ObjectKey>(
  * reject({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { a: 1, b: 2 }
  * reject({ name: 'John', age: null, city: 'NYC' }, (value) => value === null); -> { name: 'John', city: 'NYC' }
  */
-export function reject<TValue, TKey extends ObjectKey = ObjectKey>(
+export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => boolean,
 ): Record<TKey, TValue> {
@@ -2484,7 +2484,7 @@ export function reject<TValue, TKey extends ObjectKey = ObjectKey>(
  * @param replacerData - The object containing items to replace.
  * @returns The modified original object with replaced items.
  */
-export function replace<TValue, TKey extends ObjectKey = ObjectKey>(
+export function replace<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
     replacerData: Record<TKey, TValue>,
 ){
@@ -2502,7 +2502,7 @@ export function replace<TValue, TKey extends ObjectKey = ObjectKey>(
  * @param replacerData - The object containing items to replace.
  * @returns The modified original object with replaced items.
  */
-export function replaceRecursive<TValue, TKey extends ObjectKey = ObjectKey>(
+export function replaceRecursive<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
     replacerData: Record<TKey, TValue>,
 ){
@@ -2536,7 +2536,7 @@ export function replaceRecursive<TValue, TKey extends ObjectKey = ObjectKey>(
  * reverse({ a: 1, b: 2, c: 3 }); -> { c: 3, b: 2, a: 1 }
  * reverse({ name: 'John', age: 30, city: 'NYC' }); -> { city: 'NYC', age: 30, name: 'John' }
  */
-export function reverse<TValue, TKey extends ObjectKey = ObjectKey>(
+export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
@@ -2565,7 +2565,7 @@ export function reverse<TValue, TKey extends ObjectKey = ObjectKey>(
  * @param value - The value to use for padding.
  * @returns A new padded object.
  */
-export function pad<TPadValue, TValue, TKey extends ObjectKey = ObjectKey>(
+export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
     size: number,
     value: TPadValue,
@@ -2616,7 +2616,7 @@ export function pad<TPadValue, TValue, TKey extends ObjectKey = ObjectKey>(
  * partition({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> [{ c: 3, d: 4 }, { a: 1, b: 2 }]
  * partition({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> [{ name: 'John', city: 'NYC' }, { age: null }]
  */
-export function partition<TValue, TKey extends ObjectKey = ObjectKey>(
+export function partition<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<string, TValue> | unknown,
     callback: (value: TValue, key: TKey) => boolean,
 ): [Record<string, TValue>, Record<string, TValue>] {
@@ -2650,7 +2650,7 @@ export function partition<TValue, TKey extends ObjectKey = ObjectKey>(
  * whereNotNull({ a: 1, b: null, c: 2, d: undefined, e: 3 }); -> { a: 1, c: 2, d: undefined, e: 3 }
  * whereNotNull({ name: 'John', age: null, city: 'NYC' }); -> { name: 'John', city: 'NYC' }
  */
-export function whereNotNull<TValue, TKey extends ObjectKey = ObjectKey>(
+export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue | null> | unknown,
 ): Record<TKey, TValue> {
     return where(
@@ -2672,7 +2672,7 @@ export function whereNotNull<TValue, TKey extends ObjectKey = ObjectKey>(
  * contains({ name: 'John', age: 30, city: 'NYC' }, 'Jane'); -> false
  * contains({ users: { 1: 'John', 2: 'Jane' } }, 'John'); -> false (nested values)
  */
-export function contains<TValue, TKey extends ObjectKey = ObjectKey>(
+export function contains<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     value: TValue | ((value: TValue, key: TKey) => boolean),
     strict = false,
@@ -2718,7 +2718,7 @@ export function contains<TValue, TKey extends ObjectKey = ObjectKey>(
  * filter({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { c: 3, d: 4 }
  * filter({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> { name: 'John', city: 'NYC' }
  */
-export function filter<TValue, TKey extends ObjectKey = ObjectKey>(
+export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback?: (value: TValue, key: TKey) => boolean | null,
 ): Record<TKey, TValue> {
@@ -2754,12 +2754,12 @@ export function filter<TValue, TKey extends ObjectKey = ObjectKey>(
  * wrap(null); -> {}
  * wrap(undefined); -> { 0: undefined }
  */
-export function wrap<TValue>(value: TValue | null): Record<ObjectKey, TValue> {
+export function wrap<TValue>(value: TValue | null): Record<PropertyKey, TValue> {
     if (isNull(value)) {
         return {};
     }
 
-    return isObject<TValue>(value) ? (value as Record<ObjectKey, TValue>) : { 0: value };
+    return isObject<TValue>(value) ? (value as Record<PropertyKey, TValue>) : { 0: value };
 }
 
 /**
@@ -2773,7 +2773,7 @@ export function wrap<TValue>(value: TValue | null): Record<ObjectKey, TValue> {
  * keys({ name: 'John', age: 30, city: 'NYC' }); -> ['name', 'age', 'city']
  * keys({}); -> []
  */
-export function keys<TValue, TKey extends ObjectKey = ObjectKey>(
+export function keys<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
 ): string[] {
     if (!accessible(data)) {
@@ -2794,7 +2794,7 @@ export function keys<TValue, TKey extends ObjectKey = ObjectKey>(
  * values({ name: 'John', age: 30, city: 'NYC' }); -> ['John', 30, 'NYC']
  * values({}); -> []
  */
-export function values<TValue, TKey extends ObjectKey = ObjectKey>(
+export function values<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
 ): TValue[] {
     if (!accessible(data)) {
@@ -2816,7 +2816,7 @@ export function values<TValue, TKey extends ObjectKey = ObjectKey>(
  * diff({ a: 1, b: 2, c: 3 }, { b: 2, d: 4 }); -> { a: 1, c: 3 }
  * diff({ name: 'John', age: 30 }, { age: 30, city: 'NYC' }); -> { name: 'John' }
  */
-export function diff<TValue, TKey extends ObjectKey = ObjectKey>(
+export function diff<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     other: Record<TKey, TValue> | unknown,
 ): Record<TKey, TValue> {
@@ -2849,7 +2849,7 @@ export function diff<TValue, TKey extends ObjectKey = ObjectKey>(
  * @param callable - Optional function to compare values
  * @returns A new object containing items present in both objects
  */
-export function intersect<TValue, TKey extends ObjectKey = ObjectKey>(
+export function intersect<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
     other: Record<TKey, TValue>,
     callable: ((a: TValue, b: TValue) => boolean) | null = null,
@@ -2880,7 +2880,7 @@ export function intersect<TValue, TKey extends ObjectKey = ObjectKey>(
  * @param other - The object to intersect with
  * @returns A new object containing items with keys present in both objects
  */
-export function intersectByKeys<TValue, TKey extends ObjectKey = ObjectKey>(
+export function intersectByKeys<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
     other: Record<TKey, TValue>,
 ) {

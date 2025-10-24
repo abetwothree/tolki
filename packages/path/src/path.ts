@@ -1,6 +1,6 @@
 import { wrap as arrWrap } from "@laravel-js/arr";
 import { castableToArray, isArray, isBoolean, isFunction, isInteger, isNull, isNumber, isObject, isObjectAny, isString, isSymbol, isUndefined, typeOf } from '@laravel-js/utils';
-import type { ArrayItems, ObjectKey, PathKey, PathKeys } from "packages/types";
+import type { ArrayItems, PathKey, PathKeys } from "packages/types";
 
 /**
  * Parse a key into segments for mixed array/object path traversal.
@@ -80,7 +80,7 @@ export function parseSegments(key: PathKey): (number | string)[] | null {
  * hasPath({user: {profile: {name: 'Jane'}}}, "user.profile.name"); -> true
  * hasPath({items: ['a', 'b']}, "items.1"); -> true
  */
-export function hasPath<TValue, TKey extends ObjectKey = ObjectKey>(
+export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
     root: TValue[] | Record<TKey, TValue>,
     key: PathKey,
 ): boolean {
@@ -154,7 +154,7 @@ export function hasPath<TValue, TKey extends ObjectKey = ObjectKey>(
  * getRaw({user: {profile: {name: 'Jane'}}}, "user.profile.name"); -> { found: true, value: 'Jane' }
  * getRaw({items: ['a', 'b']}, "items.1"); -> { found: true, value: 'b' }
  */
-export function getRaw<TValue, TKey extends ObjectKey = ObjectKey>(
+export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
     root: TValue[] | Record<TKey, TValue>,
     key: PathKey,
 ): { found: boolean; value?: unknown } {
@@ -232,7 +232,7 @@ export function getRaw<TValue, TKey extends ObjectKey = ObjectKey>(
  * forgetKeys(['x', 'y', 'z'], 1); -> ['x', 'z']
  * forgetKeys([{name: 'John', age: 30}], '0.age'); -> [{name: 'John'}]
  */
-export function forgetKeys<TValue, TKey extends ObjectKey = ObjectKey>(
+export function forgetKeys<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | ArrayItems<TValue>,
     keys: PathKeys,
 ): Record<TKey, TValue> | TValue[] {
@@ -258,7 +258,7 @@ export function forgetKeys<TValue, TKey extends ObjectKey = ObjectKey>(
  * forgetKeysObject({user: {name: 'John', age: 30}}, 'user.age'); -> {user: {name: 'John'}}
  * forgetKeysObject({a: 1, b: 2, c: 3}, ['a', 'c']); -> {b: 2}
  */
-export function forgetKeysObject<TValue, TKey extends ObjectKey = ObjectKey>(
+export function forgetKeysObject<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
     keys: PathKeys,
 ): Record<TKey, TValue> {
@@ -777,10 +777,10 @@ export function pushWithPath<TValue>(
  * dotFlatten({a: {b: 1}, c: [2, 3]}); -> {'a.b': 1, 'c.0': 2, 'c.1': 3}
  * dotFlatten(['x', {y: 'z'}], 'prefix'); -> {'prefix.0': 'x', 'prefix.1.y': 'z'}
  */
-export function dotFlatten<TValue, TKey extends ObjectKey = ObjectKey>(
+export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | ArrayItems<TValue> | unknown,
     prepend: string = "",
-): Record<ObjectKey, TValue> {
+): Record<PropertyKey, TValue> {
     if (isObject(data)) {
         return dotFlattenObject(data, prepend);
     }
@@ -806,15 +806,15 @@ export function dotFlatten<TValue, TKey extends ObjectKey = ObjectKey>(
  * dotFlattenObject({a: {b: {c: 1}}}); -> {'a.b.c': 1}
  * dotFlattenObject({user: {name: 'John'}}, 'data'); -> {'data.user.name': 'John'}
  */
-export function dotFlattenObject<TValue, TKey extends ObjectKey = ObjectKey>(
+export function dotFlattenObject<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     prepend: string = "",
-): Record<ObjectKey, TValue> {
+): Record<PropertyKey, TValue> {
     if (!isObject(data)) {
         return {};
     }
 
-    const results: Record<ObjectKey, TValue> = {} as Record<ObjectKey, TValue>;
+    const results: Record<PropertyKey, TValue> = {} as Record<PropertyKey, TValue>;
 
     const walk = (obj: Record<TKey, TValue>, prefix: string): void => {
         for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
@@ -851,13 +851,13 @@ export function dotFlattenObject<TValue, TKey extends ObjectKey = ObjectKey>(
 export function dotFlattenArray<TValue>(
     data: ArrayItems<TValue> | unknown,
     prepend: string = "",
-): Record<ObjectKey, TValue> {
+): Record<PropertyKey, TValue> {
     if (!isArray(data)) {
         return {};
     }
 
     const root = data as TValue[];
-    const out: Record<ObjectKey, TValue> = {};
+    const out: Record<PropertyKey, TValue> = {};
     const walk = (node: unknown, path: string): void => {
         const arr = isArray(node) ? (node as unknown[]) : null;
         if (!arr) {
@@ -896,7 +896,7 @@ export function dotFlattenArray<TValue>(
  * undotExpand({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
  * undotExpand({'0': 'x', '1.name': 'John'}); -> ['x', {name: 'John'}]
  */
-export function undotExpand<TValue, TKey extends ObjectKey = ObjectKey>(
+export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
 ): TValue[] | Record<TKey, TValue> {
     if (isObject(map)) {
@@ -919,7 +919,7 @@ export function undotExpand<TValue, TKey extends ObjectKey = ObjectKey>(
  * undotExpandObject({'user.name': 'John', 'user.age': 30}); -> {user: {name: 'John', age: 30}}
  * undotExpandObject({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
  */
-export function undotExpandObject<TValue, TKey extends ObjectKey = ObjectKey>(
+export function undotExpandObject<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
 ): Record<TKey, TValue> {
     const results: Record<string, TValue> = {} as Record<TKey, TValue>;
@@ -946,7 +946,7 @@ export function undotExpandObject<TValue, TKey extends ObjectKey = ObjectKey>(
  * undotExpandArray({ '0': 'a', '1.0': 'b', '1.1': 'c' }); -> ['a', ['b', 'c']]
  * undotExpandArray({ '0.0.0': 'deep' }); -> [[['deep']]]
  */
-export function undotExpandArray<TValue, TKey extends ObjectKey = ObjectKey>(
+export function undotExpandArray<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
 ): TValue[] {
     const root: unknown[] = [];
@@ -1477,7 +1477,7 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
  * @param defaultValue - The default value if the key is not found.
  * @returns The value or the default value.
  */
-export function getObjectValue<TValue, TKey extends ObjectKey = ObjectKey, TReturn = unknown, TDefault = null>(
+export function getObjectValue<TValue, TKey extends PropertyKey = PropertyKey, TReturn = unknown, TDefault = null>(
     obj: Record<TKey, TValue> | unknown,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault) | null = null,
@@ -1520,7 +1520,7 @@ export function getObjectValue<TValue, TKey extends ObjectKey = ObjectKey, TRetu
  * @param value - The value to set.
  * @returns A new object with the value set.
  */
-export function setObjectValue<TValue, TKey extends ObjectKey = ObjectKey>(
+export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
     obj: Record<TKey, TValue>,
     key: PathKey | null,
     value: unknown,
@@ -1580,7 +1580,7 @@ export function setObjectValue<TValue, TKey extends ObjectKey = ObjectKey>(
  * @param key - The key or dot-notated path.
  * @returns True if the key exists, false otherwise.
  */
-export function hasObjectKey<TValue, TKey extends ObjectKey = ObjectKey>(
+export function hasObjectKey<TValue, TKey extends PropertyKey = PropertyKey>(
     obj: Record<TKey, TValue> | unknown, 
     key: PathKey
 ): boolean {
