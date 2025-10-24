@@ -121,6 +121,33 @@ describe("Obj", () => {
         });
     });
 
+    it("chunk", () => {
+        const baseData = {'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5};
+        expect(Obj.chunk(baseData, 2)).toEqual({
+            0: { a: 1, b: 2 },
+            1: { c: 3, d: 4 },
+            2: { e: 5 },
+        });
+
+        expect(Obj.chunk(baseData, 2, true)).toEqual({
+            0: { a: 1, b: 2 },
+            1: { c: 3, d: 4 },
+            2: { e: 5 },
+        });
+
+        expect(Obj.chunk(baseData, 2, false)).toEqual({
+            0: { 0: 1, 1: 2 },
+            1: { 0: 3, 1: 4 },
+            2: { 0: 5 },
+        });
+
+        expect(Obj.chunk(baseData, 0)).toEqual({});
+        expect(Obj.chunk(baseData, -2)).toEqual({});
+        expect(Obj.chunk(null, 4)).toEqual({});
+        expect(Obj.chunk('', 5)).toEqual({});
+        expect(Obj.chunk(false, 2)).toEqual({});
+    });
+
     describe("collapse", () => {
         it("should collapse object of objects into single object", () => {
             const obj = { a: { x: 1 }, b: { y: 2 }, c: { z: 3 } };

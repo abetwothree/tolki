@@ -25,7 +25,7 @@ import type { ObjectKey, PathKey, PathKeys } from "packages/types";
  * accessible([]); -> false
  * accessible(null); -> false
  */
-export function accessible<TValue>(value: TValue): boolean {
+export function accessible<TValue>(value: TValue): TValue is object {
     return isObject(value);
 }
 
@@ -147,35 +147,62 @@ export function boolean<TValue, TKey extends ObjectKey = ObjectKey, TDefault = n
  * @param preserveKeys - Whether to preserve the original keys, defaults to false
  * @returns Chunked record
  */
-export function chunk<TValue, TKey extends ObjectKey = ObjectKey>(
+export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
     size: number,
-    preserveKeys: boolean = true,
-){
+    preserveKeys?: true | undefined,
+): Record<number, Record<TKey, TValue>>;
+export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    size: number,
+    preserveKeys?: false,
+): Record<number, Record<number, TValue>>;
+export function chunk(
+    data: unknown,
+    size: number,
+    preserveKeys?: false,
+): Record<PropertyKey, never>;
+export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    size: number,
+    preserveKeys?: boolean,
+): Record<number, Record<TKey, TValue>> | Record<number, Record<number, TValue>> {
+    preserveKeys = isUndefined(preserveKeys) ? true : preserveKeys;
+
     if(size <= 0){
-        return {};
+        return {} as Record<PropertyKey, never>;
     }
 
     if (!accessible(data)) {
-        return {};
+        return {} as Record<PropertyKey, never>;
     }
 
-    const entries = Object.entries(data);
-    const chunks: Record<string, TValue> | Record<string, Record<string, TValue>> = {};
+    const entries = Object.entries(data as Record<TKey, TValue>);
+    const chunks: Record<number, Record<TKey, TValue>> | Record<number, Record<number, TValue>> = {};
     let chunkIndex = 0;
 
     for(let i = 0; i < entries.length; i += size){
         const chunkEntries = entries.slice(i, i + size);
         if (preserveKeys) {
-            chunks[chunkIndex] = Object.fromEntries(chunkEntries) as Record<string, TValue>;
+            chunks[chunkIndex] = Object.fromEntries(chunkEntries) as Record<TKey, TValue>;
         } else {
-            chunks[chunkIndex] = Object.fromEntries(chunkEntries.map(([key, value]) => [key.split('.').pop()!, value])) as Record<string, TValue>;
+            let index = 0;
+            chunks[chunkIndex] = Object.fromEntries(chunkEntries.map(([_key, value]) => {
+                const data =  [index, value];
+                index += 1;
+
+                return data;
+            })) as Record<number, TValue>;
         }
         
         chunkIndex++;
     }
 
-    return chunks;
+    if (preserveKeys) {
+        return chunks as Record<number, Record<TKey, TValue>>;
+    } else {
+        return chunks as Record<number, Record<number, TValue>>;
+    }
 }
 
 /**
