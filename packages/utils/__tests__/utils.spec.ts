@@ -363,6 +363,25 @@ describe("Utils", () => {
         });
     });
 
+    describe("toJsonSerializable", () => {
+        it("returns the object if value is json serializable", () => {
+            const obj = { jsonSerialize: () => '{"a":1,"b":2}' };
+            expect(Utils.toJsonSerializable(obj)).toBe(true);
+            expect(JSON.parse(obj.jsonSerialize())).toEqual({ a: 1, b: 2 });
+            expect(Utils.isObject(JSON.parse(JSON.stringify(obj)))).toBe(true);
+            expect(Utils.isString(obj.jsonSerialize())).toBe(true);
+        });
+
+        it("returns false for non-json-serializable values", () => {
+            expect(Utils.toJsonSerializable("hello")).toBe(false);
+            expect(Utils.toJsonSerializable(123)).toBe(false);
+            expect(Utils.toJsonSerializable(null)).toBe(false);
+            expect(Utils.toJsonSerializable(undefined)).toBe(false);
+            expect(Utils.toJsonSerializable(() => {})).toBe(false);
+            expect(Utils.toJsonSerializable(Symbol("test"))).toBe(false);
+        });
+    });
+
     describe("isFalsy", () => {
         it("returns true for falsy values", () => {
             expect(Utils.isFalsy(false)).toBe(true);
@@ -389,6 +408,108 @@ describe("Utils", () => {
             expect(Utils.isFalsy(new Set([1]))).toBe(false);
             expect(Utils.isFalsy(() => {})).toBe(false);
             expect(Utils.isFalsy(Symbol("test"))).toBe(false);
+        });
+    });
+
+    describe("isTruthy", () => {
+        it("returns true for truthy values", () => {
+            expect(Utils.isTruthy(true)).toBe(true);
+            expect(Utils.isTruthy(123)).toBe(true);
+            expect(Utils.isTruthy(-123)).toBe(true);
+            expect(Utils.isTruthy(12.5)).toBe(true);
+            expect(Utils.isTruthy("hello")).toBe(true);
+            expect(Utils.isTruthy({ a: 1 })).toBe(true);
+            expect(Utils.isTruthy([1, 2, 3])).toBe(true);
+            expect(Utils.isTruthy(new Map([["a", 1]]))).toBe(true);
+            expect(Utils.isTruthy(new Set([1]))).toBe(true);
+        });
+
+        it("returns false for falsy values", () => {
+            expect(Utils.isTruthy(false)).toBe(false);
+            expect(Utils.isTruthy(0)).toBe(false);
+            expect(Utils.isTruthy("")).toBe(false);
+            expect(Utils.isTruthy(null)).toBe(false);
+            expect(Utils.isTruthy(undefined)).toBe(false);
+            expect(Utils.isTruthy(NaN)).toBe(false);
+            expect(Utils.isTruthy({})).toBe(false);
+            expect(Utils.isTruthy([])).toBe(false);
+            expect(Utils.isTruthy(new Map())).toBe(false);
+            expect(Utils.isTruthy(new Set())).toBe(false);
+        });
+    });
+
+    describe("typeOf", () => {
+        it("returns correct type strings", () => {
+            expect(Utils.typeOf([])).toBe("array");
+            expect(Utils.typeOf({})).toBe("object");
+            expect(Utils.typeOf("hello")).toBe("string");
+            expect(Utils.typeOf(123)).toBe("number");
+            expect(Utils.typeOf(true)).toBe("boolean");
+            expect(Utils.typeOf(() => {})).toBe("function");
+            expect(Utils.typeOf(undefined)).toBe("undefined");
+            expect(Utils.typeOf(null)).toBe("object");
+            expect(Utils.typeOf(new Map())).toBe("object");
+            expect(Utils.typeOf(new Set())).toBe("object");
+            expect(Utils.typeOf(new WeakMap())).toBe("object");
+            expect(Utils.typeOf(new WeakSet())).toBe("object");
+            expect(Utils.typeOf(Symbol("test"))).toBe("symbol");
+        });
+    });
+
+    describe("isPrimitive", () => {
+        it("returns true for primitive values", () => {
+            expect(Utils.isPrimitive("hello")).toBe(true);
+            expect(Utils.isPrimitive(123)).toBe(true);
+            expect(Utils.isPrimitive(true)).toBe(true);
+            expect(Utils.isPrimitive(null)).toBe(true);
+            expect(Utils.isPrimitive(undefined)).toBe(true);
+            expect(Utils.isPrimitive(Symbol("test"))).toBe(true);
+        });
+
+        it("returns false for non-primitive values", () => {
+            expect(Utils.isPrimitive({})).toBe(false);
+            expect(Utils.isPrimitive([])).toBe(false);
+            expect(Utils.isPrimitive(() => {})).toBe(false);
+            expect(Utils.isPrimitive(new Map())).toBe(false);
+            expect(Utils.isPrimitive(new Set())).toBe(false);
+        });
+    });
+
+    describe("isNonPrimitive", () => {
+        it("returns true for non-primitive values", () => {
+            expect(Utils.isNonPrimitive({})).toBe(true);
+            expect(Utils.isNonPrimitive([])).toBe(true);
+            expect(Utils.isNonPrimitive(() => {})).toBe(true);
+            expect(Utils.isNonPrimitive(new Map())).toBe(true);
+            expect(Utils.isNonPrimitive(new Set())).toBe(true);
+        });
+
+        it("returns false for primitive values", () => {
+            expect(Utils.isNonPrimitive("hello")).toBe(false);
+            expect(Utils.isNonPrimitive(123)).toBe(false);
+            expect(Utils.isNonPrimitive(true)).toBe(false);
+            expect(Utils.isNonPrimitive(null)).toBe(false);
+            expect(Utils.isNonPrimitive(undefined)).toBe(false);
+            expect(Utils.isNonPrimitive(Symbol("test"))).toBe(false);
+        });
+    });
+
+    describe("isFiniteNumber", () => {
+        it("returns true for finite numbers", () => {
+            expect(Utils.isFiniteNumber(123)).toBe(true);
+            expect(Utils.isFiniteNumber(-45.67)).toBe(true);
+            expect(Utils.isFiniteNumber(0)).toBe(true);
+        });
+
+        it("returns false for non-finite numbers and non-number values", () => {
+            expect(Utils.isFiniteNumber(Infinity)).toBe(false);
+            expect(Utils.isFiniteNumber(-Infinity)).toBe(false);
+            expect(Utils.isFiniteNumber(NaN)).toBe(false);
+            expect(Utils.isFiniteNumber("hello")).toBe(false);
+            expect(Utils.isFiniteNumber({})).toBe(false);
+            expect(Utils.isFiniteNumber([])).toBe(false);
+            expect(Utils.isFiniteNumber(null)).toBe(false);
+            expect(Utils.isFiniteNumber(undefined)).toBe(false);
         });
     });
 

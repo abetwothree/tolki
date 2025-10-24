@@ -493,8 +493,6 @@ export function isNonPrimitive(value: unknown): boolean {
 
 /**
  * Check if a value is a finite number.
- * 
- * TODO: move to number utils
  *
  * @param value - The value to check
  * @returns True if the value is a finite number
