@@ -92,16 +92,17 @@ export function isString(value: unknown): value is string {
  * isStringable(null); -> false
  */
 export function isStringable(value: unknown): value is string | { toString(): string } {
-    if(!isString(value) || !isObject(value)) {
-        return false;
-    }
-
-    if(isString(value)) {
+    if (isString(value)) {
         return true;
     }
 
-    if(isFunction((value as { toString?: unknown })?.toString)) {
+    if (isNumber(value)) {
         return true;
+    }
+
+    if (isObject(value)) {
+        return Object.prototype.hasOwnProperty.call(value, 'toString') && 
+               isFunction((value as { toString?: unknown }).toString);
     }
 
     return false;
@@ -316,7 +317,7 @@ export function isWeakSet<T extends object>(value: unknown): value is WeakSet<T>
  * isArrayable("hello"); -> false
  */
 export function toArrayable<T>(value: unknown): value is { toArray(): T[] } {
-    return isObject(value) && !isNull(value) && isFunction((value as { toArray?: unknown }).toArray);
+    return isObject(value) && !isNull(value) && isFunction((value as { toArray: () => T[] }).toArray);
 }
 
 /**
@@ -331,7 +332,7 @@ export function toArrayable<T>(value: unknown): value is { toArray(): T[] } {
  * isJsonable("hello"); -> false
  */
 export function toJsonable<T>(value: unknown): value is { toJSON(): T } {
-    return isObject(value) && !isNull(value) && isFunction((value as { toJSON?: unknown }).toJSON);
+    return isObject(value) && !isNull(value) && isFunction((value as { toJSON: () => T }).toJSON);
 }
 
 /**
@@ -346,7 +347,7 @@ export function toJsonable<T>(value: unknown): value is { toJSON(): T } {
  * isJsonSerializable("hello"); -> false
  */
 export function toJsonSerializable<T>(value: unknown): value is { jsonSerialize(): T } {
-    return isObject(value) && !isNull(value) && isFunction((value as { jsonSerialize?: unknown }).jsonSerialize);
+    return isObject(value) && !isNull(value) && isFunction((value as { jsonSerialize: () => T }).jsonSerialize);
 }
 
 /**
@@ -368,7 +369,15 @@ export function toJsonSerializable<T>(value: unknown): value is { jsonSerialize(
  * isFalsy([1, 2, 3]); -> false
  * isFalsy({ a: 1 }); -> false
  */
-export function isFalsy(value: unknown): boolean {
+export function isFalsy<TValue = unknown>(value: TValue): boolean {
+    if (Number.isNaN(value as number)) {
+        return true;
+    }
+
+    if (isNumber(value)) {        
+        return value === 0;
+    }
+
     if (isUndefined(value) || isNull(value)) {
         return true;
     }
@@ -377,20 +386,8 @@ export function isFalsy(value: unknown): boolean {
         return value === false;
     }
 
-    if (isNumber(value)) {
-        return value === 0;
-    }
-
     if (isString(value)) {
         return value.trim() === "";
-    }
-
-    if (isArray(value)) {
-        return value.length === 0;
-    }
-
-    if (isObject(value)) {
-        return Object.keys(value).length === 0;
     }
 
     if (isMap(value)) {
@@ -399,6 +396,14 @@ export function isFalsy(value: unknown): boolean {
 
     if (isSet(value)) {
         return value.size === 0;
+    }
+
+    if (isArray(value)) {
+        return value.length === 0;
+    }
+
+    if (isObject(value)) {
+        return Object.keys(value).length === 0;
     }
 
     return false;
