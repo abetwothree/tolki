@@ -1817,8 +1817,6 @@ export function shift<TValue>(
         }
     }
 
-    console.log(shiftedValues);
-
     return shiftedValues.length === 0 
         ? (count === 1 ? null : [] as TValue[]) 
         : (shiftedValues.length === 1 && count === 1 
