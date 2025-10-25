@@ -265,6 +265,10 @@ describe("Obj", () => {
             const obj = { a: { b: { c: { d: "value" } } } };
             expect(Obj.dot(obj)).toEqual({ "a.b.c.d": "value" });
         });
+
+        it("passes non-object values", () => {
+            expect(Obj.dot('')).toEqual({});
+        });
     });
 
     describe("undot", () => {

@@ -267,13 +267,13 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
  * crossJoin({ a: [1] }, { b: ["x"] }); -> [{ a: 1, b: "x" }]
  * crossJoin({ size: ['S', 'M'] }, { color: ['red', 'blue'] }); -> [{ size: 'S', color: 'red' }, { size: 'S', color: 'blue' }, { size: 'M', color: 'red' }, { size: 'M', color: 'blue' }]
  */
-export function crossJoin<TValue extends Record<PropertyKey, readonly unknown[]>>(
-    ...objects: TValue[]
-): Record<PropertyKey, unknown>[] {
-    let results: Record<PropertyKey, unknown>[] = [{}];
+export function crossJoin<TValues, TCombineValue = TValues>(
+    ...objects: Record<PropertyKey, TValues>[]
+): Record<PropertyKey, TCombineValue>[] {
+    let results: Record<PropertyKey, TCombineValue>[] = [{}];
 
     for (const obj of objects) {
-        const next: Record<PropertyKey, unknown>[] = [];
+        const next: Record<PropertyKey, TCombineValue>[] = [];
 
         for (const [key, values] of Object.entries(obj)) {
             if (!isArray(values) || values.length === 0) {
@@ -284,7 +284,7 @@ export function crossJoin<TValue extends Record<PropertyKey, readonly unknown[]>
                 for (const value of values) {
                     next.push({
                         ...product,
-                        [key]: value,
+                        [key]: value as TCombineValue,
                     });
                 }
             }
@@ -306,10 +306,10 @@ export function crossJoin<TValue extends Record<PropertyKey, readonly unknown[]>
  *
  * divide({ name: "John", age: 30, city: "NYC" }); -> [['name', 'age', 'city'], ['John', 30, 'NYC']]
  */
-export function divide<TValue extends Record<PropertyKey, unknown>>(
-    object: TValue,
-): [PropertyKey[], unknown[]] {
-    return [Object.keys(object), Object.values(object)];
+export function divide<TValue, TKey extends PropertyKey = PropertyKey>(
+    object: Record<TKey, TValue>,
+): [TKey[], TValue[]] {
+    return [Object.keys(object) as TKey[], Object.values(object)];
 }
 
 /**
