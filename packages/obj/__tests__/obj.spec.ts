@@ -148,6 +148,18 @@ describe("Obj", () => {
         expect(Obj.chunk(false, 2)).toEqual({});
     });
 
+    describe("combine", () => {
+        it("should combine two objects into an object", () => {
+            const keys = { 1: 'name', 2: 'family', 3: () => 'callback', 4: undefined };
+            const values = { 0: "John", 1: "Doe", 2: 58 };
+            expect(Obj.combine(keys, values)).toEqual({
+                name: "John",
+                family: "Doe",
+                callback: 58,
+            });
+        });
+    });
+
     describe("collapse", () => {
         it("should collapse object of objects into single object", () => {
             const obj = { a: { x: 1 }, b: { y: 2 }, c: { z: 3 } };

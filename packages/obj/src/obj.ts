@@ -187,7 +187,7 @@ export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
             chunks[chunkIndex] = Object.fromEntries(chunkEntries) as Record<TKey, TValue>;
         } else {
             let index = 0;
-            chunks[chunkIndex] = Object.fromEntries(chunkEntries.map(([_key, value]) => {
+            chunks[chunkIndex] = Object.fromEntries(chunkEntries.map(([, value]) => {
                 const data =  [index, value];
                 index += 1;
 
@@ -231,15 +231,29 @@ export function collapse<TValue extends Record<PropertyKey, Record<PropertyKey, 
 }
 
 /**
- * Combine multiple objects into one.
+ * Combine two objects into one, using the values from the first object as keys
  * 
- * @param objects - The objects to combine.
- * @return A new object containing all key-value pairs from the input objects.
+ * @param keysObject - The object containing keys.
+ * @param valuesObject - The object containing values.
+ * @return A new object containing combined key-value pairs.
  */
-export function combine<T extends Record<PropertyKey, unknown>>(
-    ...objects: T[]
-): Record<string, unknown> {
-    return Object.assign({}, ...objects);
+export function combine<TKeys, TValues, TCombineValue = TValues>(
+    keysObject: Record<PropertyKey, TKeys>,
+    valuesObject: Record<PropertyKey, TValues>,
+): Record<PropertyKey, TCombineValue> {
+    const result: Record<PropertyKey, TCombineValue> = {};
+    const maxLength = Object.keys(keysObject).length;
+    const keys = Object.values(keysObject).map((k) => isFunction(k) ? String(k()) : String(k));
+    const values = Object.values(valuesObject);
+
+    for (let i = 0; i < maxLength; i++) {
+        const key = keys[i];
+        if (!isUndefined(key)) {
+            result[key] = values[i] as TCombineValue;
+        }
+    }
+
+    return result;
 }
 
 /**
