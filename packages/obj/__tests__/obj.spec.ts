@@ -294,6 +294,18 @@ describe("Obj", () => {
         });
     });
 
+    describe("union", () => {
+        it("test union null", () => {
+            expect(Obj.union(null, { a: 1 })).toEqual({ a: 1 });
+            expect(Obj.union({ a: 1 }, null)).toEqual({ a: 1 });
+        });
+
+        it("union objects", () => {
+            expect(Obj.union({ a: 1 }, { b: 2 })).toEqual({ a: 1, b: 2 });
+            expect(Obj.union({ a: 1 }, { a: 2 })).toEqual({ a: 1 });
+        });
+    });
+
     describe("except", () => {
         it("should remove specified keys", () => {
             const obj = { name: "John", age: 30, city: "NYC" };

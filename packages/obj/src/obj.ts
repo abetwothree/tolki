@@ -357,9 +357,19 @@ export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
  * @return A new object containing all key-value pairs from the input objects.
  */
 export function union<TValue, TKey extends PropertyKey = PropertyKey>(
-    ...objects: Record<TKey, TValue>[]
-): Record<string, unknown> {
-    return objects.reduce((acc, obj) => ({ ...acc, ...obj }), {});
+    ...objects: Record<TKey, TValue>[] | unknown[]
+): Record<TKey, TValue> {
+    return objects.reduce((acc: Record<PropertyKey, TValue>, obj: Record<TKey, TValue> | unknown) => {
+        if (accessible(obj)) {
+            for (const [key, value] of Object.entries(obj)) {
+                if (isUndefined(acc[key])) {
+                    acc[key as TKey] = value as TValue;
+                }
+            }
+        }
+
+        return acc;
+    }, {} as Record<TKey, TValue>);
 }
 
 /**
