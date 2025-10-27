@@ -9,7 +9,7 @@ import {
     undotExpandObject,
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
-import { isArray, isBoolean, isFalsy, isFunction, isInteger, isMap, isNull, isNumber, isObject, isString, isStringable, isUndefined, isWeakMap, typeOf } from '@laravel-js/utils';
+import { isArray, isBoolean, isFalsy, isFunction, isInteger, isMap, isNull, isNumber, isObject, isString, isStringable, isUndefined, isWeakMap, typeOf, isPositiveNumber } from '@laravel-js/utils';
 import type { PathKey, PathKeys } from "packages/types";
 
 /**
@@ -1891,7 +1891,7 @@ export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
  * @returns Sliced object
  */
 export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
+    data: Record<TKey, TValue> | unknown,
     offset: number,
     length: number | null = null,
 ){
@@ -1902,9 +1902,14 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
     const obj = data as Record<string, TValue>;
     const entries = Object.entries(obj);
 
-    const slicedEntries = isNull(length)
-        ? entries.slice(offset)
-        : entries.slice(offset, offset + length);
+    let slicedEntries;
+    if(isNull(length)){
+        slicedEntries = entries.slice(offset)
+    }else if(isPositiveNumber(length)){
+        slicedEntries = entries.slice(offset, offset + length)
+    } else {
+        slicedEntries = entries.slice(offset, length)
+    }
 
     const result: Record<string, TValue> = {};
 

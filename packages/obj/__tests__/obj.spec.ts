@@ -1510,6 +1510,30 @@ describe("Obj", () => {
         });
     });
 
+    describe("slice", () => {
+        it("should handle non-object data", () => {
+            expect(Obj.slice(null, 0, 2)).toEqual({});
+            expect(Obj.slice([], 0, 2)).toEqual({});
+        });
+
+        it("should slice object from offset with length", () => {
+            const obj = { a: 1, b: 2, c: 3, d: 4, e: 5 };
+            expect(Obj.slice(obj, 1, 3)).toEqual({ b: 2, c: 3, d: 4 });
+        });
+
+        it("should slice object with negative offset", () => {
+            const obj = { a: 1, b: 2, c: 3, d: 4, e: 5 };
+            expect(Obj.slice(obj, -2)).toEqual({ d: 4, e: 5 });
+        });
+
+        it("should slice object with negative length", () => {
+            const obj = { a: 1, b: 2, c: 3, d: 4, e: 5 };
+            expect(Obj.slice(obj, 3, -2)).toEqual({});
+            expect(Obj.slice(obj, 0, -2)).toEqual({ a: 1, b: 2, c: 3 });
+            expect(Obj.slice(obj, 1, -1)).toEqual({ b: 2, c: 3, d: 4 });
+        });
+    });
+
     describe("sole", () => {
         it("should return single item", () => {
             const obj = { only: 42 };
