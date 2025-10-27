@@ -1091,6 +1091,13 @@ describe("Obj", () => {
     });
 
     describe("join", () => {
+        it("should return empty string for non-object values", () => {
+            expect(Obj.join(null, ',')).toBe("");
+            expect(Obj.join(undefined, ',')).toBe("");
+            expect(Obj.join(42, ',')).toBe("");
+            expect(Obj.join("string", ',')).toBe("");
+        });
+
         it("should join values with glue", () => {
             const obj = { a: "hello", b: "world", c: "test" };
             expect(Obj.join(obj, ", ")).toBe("hello, world, test");
@@ -1106,6 +1113,11 @@ describe("Obj", () => {
         it("should handle single item", () => {
             const obj = { a: "only" };
             expect(Obj.join(obj, ", ", " and ")).toBe("only");
+        });
+
+        it("should handle empty object", () => {
+            const obj = {};
+            expect(Obj.join(obj, ", ", " and ")).toBe("");
         });
     });
 
