@@ -1263,6 +1263,12 @@ describe("Obj", () => {
             }));
             expect(result).toEqual({ John: 30, Jane: 25 });
         });
+
+        it("should handle non-objects", () => {
+            expect(Obj.mapWithKeys(null, () => ({}))).toEqual({});
+            expect(Obj.mapWithKeys([], () => ({}))).toEqual({});
+            expect(Obj.mapWithKeys("string", () => ({}))).toEqual({});
+        });
     });
 
     describe("prepend", () => {
@@ -1274,6 +1280,12 @@ describe("Obj", () => {
         it("should prepend with numeric key", () => {
             const obj = { a: 1, b: 2 };
             expect(Obj.prepend(obj, 0, "0")).toEqual({ "0": 0, a: 1, b: 2 });
+        });
+
+        it("should handle non-objects", () => {
+            expect(Obj.prepend(null, 1, "a")).toEqual({ a: 1 });
+            expect(Obj.prepend([], 1, "a")).toEqual({ a: 1 });
+            expect(Obj.prepend("string", 1, "a")).toEqual({ a: 1 });
         });
     });
 
@@ -1594,6 +1606,11 @@ describe("Obj", () => {
 
         it("should handle empty objects", () => {
             expect(Obj.mapSpread({}, () => "test")).toEqual({});
+        });
+
+        it("should handle non-accessible data", () => {
+            expect(Obj.mapSpread(null, () => "test")).toEqual({});
+            expect(Obj.mapSpread([], () => "test")).toEqual({});
         });
     });
 });
