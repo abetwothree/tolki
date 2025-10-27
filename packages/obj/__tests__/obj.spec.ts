@@ -1694,10 +1694,117 @@ describe("Obj", () => {
     });
 
     describe("sortDesc", () => {
-        it("should sort in descending order", () => {
-            const obj = { a: 1, c: 3, b: 2 };
-            const result = Obj.sortDesc(obj);
-            expect(Object.values(result)).toEqual([3, 2, 1]);
+        it("should handle non-object data", () => {
+            expect(Obj.sortDesc(null)).toEqual({});
+            expect(Obj.sortDesc([])).toEqual({});
+        });
+
+        describe("sort.objects", () => {
+            it("should sort in descending order", () => {
+                const obj = { y: 100, a: 1, c: 3, b: 2, x: 100 };
+                const result = Obj.sortDesc(obj);
+                expect(Object.values(result)).toEqual([100, 100, 3, 2, 1]);
+            });
+        });
+
+        describe("sort callback is string", () => {
+            it("should handle when the callback is a string key", () => {
+                const obj = {
+                    user1: { name: "John", age: 30 },
+                    user2: { name: "Jane", age: 25 },
+                };
+                const result = Obj.sortDesc(obj, "age");
+                expect(Object.keys(result)).toEqual(["user1", "user2"]);
+            });
+
+            it("should handle missing keys", () => {
+                const obj = {
+                    user1: { name: "John" },
+                    user2: { name: "Jane", age: 25 },
+                };
+                const result = Obj.sortDesc(obj, "age");
+                expect(Object.keys(result)).toEqual(["user2", "user1"]);
+            });
+
+            it("should handle when values are falsy", () => {
+                const obj = {
+                    user1: { name: "John", age: 0 },
+                    user2: { name: "Jane", age: null },
+                    user3: { name: "Doe", age: 25 },
+                };
+                const result = Obj.sortDesc(obj, "age");
+                expect(Object.keys(result)).toEqual(["user3", "user1", "user2"]);
+            });
+
+            it("should handle when some values are falsy", () => {
+                const obj = {
+                    user0: { name: "John", age: 100 },
+                    user1: { name: "John", age: 30 },
+                    user2: { name: "Jane", age: null },
+                    user3: { name: "Doe", age: 25 },
+                    user4: { name: "Doe", age: [] },
+                    user5: { name: "Jane", age: undefined },
+                    user6: { name: "Jane", age: 100 },
+                };
+                const result = Obj.sortDesc(obj, "age");
+                expect(Object.keys(result)).toEqual(["user0", "user6", "user1", "user3", "user4", "user2", "user5"]);
+            });
+        });
+
+        describe("sort callback is function", () => {
+            it("should handle when the callback is provided", () => {
+                const obj = { a: 1, c: 3, b: 2 };
+                const result = Obj.sortDesc(obj, (value) => -(value as number));
+                expect(Object.values(result)).toEqual([1, 2, 3]);
+
+                const result2 = Obj.sortDesc(obj, (value) => (value as number));
+                expect(Object.values(result2)).toEqual([3, 2, 1]);
+
+                const result3 = Obj.sortDesc({x: 100, a: 3, c: 3, b: 3, y: 100 }, (value) => (value as number));
+                expect(Object.values(result3)).toEqual([100, 100, 3, 3, 3]);
+            });
+
+            it("should handle missing keys in callback", () => {
+                const obj = {
+                    user1: { name: "John" },
+                    user2: { name: "Jane", age: 25 },
+                };
+                const result = Obj.sortDesc(
+                    obj,
+                    (item) => (item as Record<string, unknown>)["age"],
+                );
+                expect(Object.keys(result)).toEqual(["user1", "user2"]);
+            });
+
+            it("should handle when values are falsy in callback", () => {
+                const obj = {
+                    user1: { name: "John", age: 0 },
+                    user2: { name: "Jane", age: null },
+                    user3: { name: "Doe", age: 25 },
+                };
+                const result = Obj.sortDesc(
+                    obj,
+                    (item) => (item as Record<string, unknown>)["age"],
+                );
+                expect(Object.keys(result)).toEqual(["user3", "user1", "user2"]);
+            });
+
+            it("should handle when some values are falsy in callback", () => {
+                const obj = {
+                    user0: { name: "John", age: 100 },
+                    user1: { name: "John", age: 30 },
+                    user2: { name: "Jane", age: null },
+                    user3: { name: "Doe", age: 25 },
+                    user4: { name: "Doe", age: null },
+                    user5: { name: "Jane", age: undefined },
+                    user6: { name: "Jane", age: 100 },
+                };
+                const result = Obj.sortDesc(
+                    obj,
+                    (item) => (item as Record<string, unknown>)["age"],
+                );
+                expect(Object.keys(result)).toEqual(["user0", "user1", "user3", "user5", "user6", "user2", "user4"]);
+            });
         });
     });
 
