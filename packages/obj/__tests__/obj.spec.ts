@@ -1310,6 +1310,26 @@ describe("Obj", () => {
             expect(result.value).toBe("John");
             expect(result.data).toEqual({ user: { age: 30 } });
         });
+
+        it("should handle non-object values", () => {
+            const result = Obj.pull(null, "key", "default");
+            expect(result.value).toBe("default");
+            expect(result.data).toEqual({});
+        });
+
+        it("should handle when the key is null", () => {
+            const obj = { name: "John", age: 30 };
+            const result = Obj.pull(obj, null);
+            expect(result.value).toBeNull();
+            expect(result.data).toEqual({ name: "John", age: 30 });
+        });
+
+        it("should handle the key is null and the defaultValue is a closure", () => {
+            const obj = { name: "John", age: 30 };
+            const result = Obj.pull(obj, null, () => "default");
+            expect(result.value).toBe("default");
+            expect(result.data).toEqual({ name: "John", age: 30 });
+        });
     });
 
     describe("query", () => {
