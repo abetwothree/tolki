@@ -1054,6 +1054,13 @@ describe("Obj", () => {
         it("should return true for empty objects", () => {
             expect(Obj.every({}, () => false)).toBe(true);
         });
+
+        it("should return empty object when non-object value passed in", () => {
+            expect(Obj.every(false, () => false)).toBe(false);
+            expect(Obj.every(null, () => false)).toBe(false);
+            expect(Obj.every(undefined, () => false)).toBe(false);
+            expect(Obj.every(42, () => false)).toBe(false);
+        });
     });
 
     describe("some", () => {
