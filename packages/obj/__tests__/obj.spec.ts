@@ -1503,6 +1503,11 @@ describe("Obj", () => {
         it("should handle empty objects", () => {
             expect(Obj.shuffle({})).toEqual({});
         });
+
+        it("should handle non-object values", () => {
+            expect(Obj.shuffle(null)).toEqual({});
+            expect(Obj.shuffle([])).toEqual({});
+        });
     });
 
     describe("sole", () => {
