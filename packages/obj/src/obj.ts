@@ -1366,6 +1366,7 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
 
     if (count === 1) {
         const lastEntry = entries[entries.length - 1];
+        
         if (!lastEntry) {
             return null;
         }
@@ -1380,11 +1381,14 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
 
     for (let i = 0; i < actualCount; i++) {
         const entry = entries[entries.length - 1 - i];
+        
         if (!entry) {
             continue;
         }
+
         const [key, value] = entry;
         delete obj[key];
+
         poppedValues.unshift(value);
     }
 
@@ -2324,6 +2328,8 @@ export function sortRecursiveDesc<TValue, TKey extends PropertyKey = PropertyKey
 
 /**
  * Splice a portion of the underlying object
+ * 
+ * TODO: update return to be this: { array: TValue[]; removed: TValue[] }
  * 
  * @param data - The object to splice
  * @param offset - The starting index

@@ -970,6 +970,46 @@ describe("Obj", () => {
         });
     });
 
+    describe("pop", () => {
+        it("should remove and return last item", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Obj.pop(obj);
+            expect(result).toBe(3);
+            expect(obj).toEqual({ a: 1, b: 2 });
+        });
+
+        it("should remove and return last items", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Obj.pop(obj, 2);
+            expect(result).toEqual([2, 3]);
+            expect(obj).toEqual({ a: 1 });
+        });
+
+        it("should remove and return last items", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Obj.pop(obj, 5);
+            expect(result).toEqual([1, 2, 3]);
+            expect(obj).toEqual({});
+        });
+
+        it("should return null for empty objects", () => {
+            const obj = {};
+            const result = Obj.pop(obj);
+            expect(result).toBe(null);
+            expect(obj).toEqual({});
+
+            expect(Obj.pop(obj, 3)).toEqual([]);
+        });
+
+        it("should return null for non-object values", () => {
+            expect(Obj.pop(null)).toBe(null);
+            expect(Obj.pop([])).toBe(null);
+
+            expect(Obj.pop(null, 3)).toEqual([]);
+            expect(Obj.pop([], 3)).toEqual([]);
+        });
+    });
+
     describe("take", () => {
         it("should take first n items", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
