@@ -1462,6 +1462,25 @@ describe("Obj", () => {
                 "Cannot push to non-array value at key [name]",
             );
         });
+
+        it("should handle non-object values", () => {
+            const result = Obj.push(null, "items", "a");
+            expect(result).toEqual({ items: ["a"] });
+
+            const result2 = Obj.push("string", "items", "a");
+            expect(result2).toEqual({ items: ["a"] });
+
+            expect(() => Obj.push(null, null, "value")).toThrow(
+                "Cannot push to root of non-object data when key is null",
+            );
+        });
+
+        it("should throw error for key being null", () => {
+            const obj = { name: "John" };
+            expect(() => Obj.push(obj, null, "value")).toThrow(
+                "Cannot push to root of object without specifying a key (key is null)",
+            );
+        });
     });
 
     describe("shuffle", () => {

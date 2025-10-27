@@ -1819,7 +1819,7 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
 {
     if (!accessible(data)) {
         if (isNull(key)) {
-            throw new Error("Cannot push to root of non-object data");
+            throw new Error("Cannot push to root of non-object data when key is null");
         }
 
         return setObjectValue({} as Record<TKey, TValue>, key, values);
@@ -1827,7 +1827,7 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
 
     if (isNull(key)) {
         throw new Error(
-            "Cannot push to root of object without specifying a key",
+            "Cannot push to root of object without specifying a key (key is null)",
         );
     }
 
