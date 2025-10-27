@@ -1565,24 +1565,131 @@ describe("Obj", () => {
     });
 
     describe("sort", () => {
-        it("should sort by values", () => {
-            const obj = { c: 3, a: 1, b: 2 };
-            const result = Obj.sort(obj);
-            expect(Object.values(result)).toEqual([1, 2, 3]);
-            // Keys should be in order of their values
-            expect(Object.keys(result)).toEqual(["a", "b", "c"]);
+        describe("sort.objects", () => {
+            it("should sort by values", () => {
+                const obj = { c: 3, a: 1, b: 2 };
+                const result = Obj.sort(obj);
+                expect(Object.values(result)).toEqual([1, 2, 3]);
+                // Keys should be in order of their values
+                expect(Object.keys(result)).toEqual(["a", "b", "c"]);
+            });
+
+            it("should handle when values are falsy", () => {
+                const obj = { a: 0, b: null, c: undefined, d: false, e: [] };
+                const result = Obj.sort(obj);
+                expect(Object.values(result)).toEqual([0, null, undefined, false, []]);
+            });
+
+            it("should handle a few values are falsy", () => {
+                const obj = { x: 1000, a: {}, b: 1, c: 2, d: [], y: 1000 };
+                const result = Obj.sort(obj);
+                expect(Object.values(result)).toEqual([{}, [], 1, 2, 1000, 1000]);
+            });
         });
 
-        it("should sort by callback", () => {
-            const obj = {
-                user1: { name: "John", age: 30 },
-                user2: { name: "Jane", age: 25 },
-            };
-            const result = Obj.sort(
-                obj,
-                (item) => (item as Record<string, unknown>)["age"],
-            );
-            expect(Object.keys(result)).toEqual(["user2", "user1"]);
+        describe("sort callback is string", () => {
+            it("should sort by string key", () => {
+                const obj = {
+                    user1: { name: "John", age: 30 },
+                    user2: { name: "Jane", age: 25 },
+                };
+                const result = Obj.sort(obj, "age");
+                expect(Object.keys(result)).toEqual(["user2", "user1"]);
+            });
+
+            it("should handle missing keys", () => {
+                const obj = {
+                    user1: { name: "John" },
+                    user2: { name: "Jane", age: 25 },
+                };
+                const result = Obj.sort(obj, "age");
+                expect(Object.keys(result)).toEqual(["user1", "user2"]);
+            });
+
+            it("should handle when values are falsy", () => {
+                const obj = {
+                    user1: { name: "John", age: 0 },
+                    user2: { name: "Jane", age: null },
+                    user3: { name: "Doe", age: 25 },
+                };
+                const result = Obj.sort(obj, "age");
+                expect(Object.keys(result)).toEqual(["user1", "user2", "user3"]);
+            });
+
+            it("should handle when some values are falsy", () => {
+                const obj = {
+                    user0: { name: "John", age: 100 },
+                    user1: { name: "John", age: 30 },
+                    user2: { name: "Jane", age: null },
+                    user3: { name: "Doe", age: 25 },
+                    user4: { name: "Doe", age: [] },
+                    user5: { name: "Jane", age: undefined },
+                    user6: { name: "Jane", age: 100 },
+                };
+                const result = Obj.sort(obj, "age");
+                expect(Object.keys(result)).toEqual(["user2", "user4", "user5", "user3", "user1", "user0", "user6"]);
+            });
+        });
+
+        describe("sort callback is function", () => {
+            it("should sort by callback", () => {
+                const obj = {
+                    user1: { name: "John", age: 30 },
+                    user2: { name: "Jane", age: 25 },
+                };
+                const result = Obj.sort(
+                    obj,
+                    (item) => (item as Record<string, unknown>)["age"],
+                );
+                expect(Object.keys(result)).toEqual(["user2", "user1"]);
+            });
+
+            it("should handle missing keys in callback", () => {
+                const obj = {
+                    user1: { name: "John" },
+                    user2: { name: "Jane", age: 25 },
+                };
+                const result = Obj.sort(
+                    obj,
+                    (item) => (item as Record<string, unknown>)["age"],
+                );
+                expect(Object.keys(result)).toEqual(["user1", "user2"]);
+            });
+
+            it("should handle when values are falsy in callback", () => {
+                const obj = {
+                    user1: { name: "John", age: 0 },
+                    user2: { name: "Jane", age: null },
+                    user3: { name: "Doe", age: 25 },
+                };
+                const result = Obj.sort(
+                    obj,
+                    (item) => (item as Record<string, unknown>)["age"],
+                );
+                expect(Object.keys(result)).toEqual(["user2", "user1", "user3"]);
+            });
+
+            it("should handle when some values are falsy in callback", () => {
+                const obj = {
+                    user0: { name: "John", age: 100 },
+                    user1: { name: "John", age: 30 },
+                    user2: { name: "Jane", age: null },
+                    user3: { name: "Doe", age: 25 },
+                    user4: { name: "Doe", age: null },
+                    user5: { name: "Jane", age: undefined },
+                    user6: { name: "Jane", age: 100 },
+                };
+                const result = Obj.sort(
+                    obj,
+                    (item) => (item as Record<string, unknown>)["age"],
+                );
+                expect(Object.keys(result)).toEqual(["user2", "user4", "user3", "user1", "user0", "user5", "user6"]);
+            });
+        });
+
+        it("should handle non-objects", () => {
+            expect(Obj.sort(null)).toEqual({});
+            expect(Obj.sort([])).toEqual({});
         });
     });
 
