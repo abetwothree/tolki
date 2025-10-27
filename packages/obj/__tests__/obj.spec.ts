@@ -1343,9 +1343,19 @@ describe("Obj", () => {
             expect(Obj.query(obj)).toBe("user[name]=John&user[age]=30");
         });
 
-        it("should handle arrays", () => {
-            const obj = { tags: ["js", "ts"] };
-            expect(Obj.query(obj)).toBe("tags[0]=js&tags[1]=ts");
+        it("should handle arrays with various types", () => {
+            const obj = { tags: ["js", "ts", null, undefined, { home: "page" }] };
+            expect(Obj.query(obj)).toBe("tags[0]=js&tags[1]=ts&tags[4][home]=page");
+        });
+
+        it("should handle when query is null or undefined", () => {
+            expect(Obj.query(null)).toBe("");
+            expect(Obj.query(undefined)).toBe("");
+        });
+
+        it("should handle passing in scalar values", () => {
+            expect(Obj.query(42)).toBe("0=42");
+            expect(Obj.query("house")).toBe("0=house");
         });
     });
 
