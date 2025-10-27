@@ -785,37 +785,36 @@ export function from(
 ): never;
 export function from(items: object): Record<string, unknown>;
 export function from(items: unknown): Record<string, unknown> {
-    // Objects
-    if (isObject(items)) {
-        return { ...items };
-    }
-
-    // Map -> plain object
     if (isMap(items)) {
         const out: Record<string, unknown> = {};
+        
         for (const [k, v] of items as Map<PropertyKey, unknown>) {
             out[String(k)] = v;
         }
+
         return out;
     }
 
-    // WeakMap cannot be iterated in JS environments
     if (isWeakMap(items)) {
         throw new Error(
             "WeakMap values cannot be enumerated in JavaScript; cannot convert to object.",
         );
     }
 
-    // Arrays - convert to object with numeric keys
     if (isArray(items)) {
         const result: Record<string, unknown> = {};
+
         for (let i = 0; i < items.length; i++) {
             result[i] = items[i];
         }
+
         return result;
     }
 
-    // Scalars not supported
+    if (isObject(items)) {
+        return { ...items };
+    }
+
     throw new Error("Items cannot be represented by a scalar value.");
 }
 

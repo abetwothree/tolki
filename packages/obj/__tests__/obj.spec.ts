@@ -377,6 +377,84 @@ describe("Obj", () => {
         });
     });
 
+    describe("from", () => {
+        it("should create object from callback results", () => {
+            const items = [1, 2, 3];
+            const result = Obj.from(items);
+            expect(result).toEqual({ 0: 1, 1: 2, 2: 3 });
+        });
+
+        it("should return an object", () => {
+            const items = {a: 1, b: 2, c: 3};
+            const result = Obj.from(items);
+            expect(result).toEqual({a: 1, b: 2, c: 3 });
+        });
+
+        it("should return the values of a Map", () => {
+            const keys = new Map([
+                ['name', 'John'],
+                ['age', 30],
+                ['city', 'NYC'],
+            ]);
+
+            expect(Obj.from(keys)).toEqual({
+                name: "John",
+                age: 30,
+                city: "NYC",
+            });
+        });
+
+        it("throws error on WeakMap input", () => {
+            const weakMap = new WeakMap();
+            weakMap.set({}, "value");
+
+            expect(() => Obj.from(weakMap)).toThrow(
+                "WeakMap values cannot be enumerated in JavaScript; cannot convert to object.",
+            );
+        });
+
+        it("should create object from entries", () => {
+            const entries = [
+                ["name", "John"],
+                ["age", 30],
+                ["city", "NYC"],
+            ];
+
+            expect(Obj.from(entries)).toEqual({
+                "0": [
+                    "name",
+                    "John",
+                ],
+                "1": [
+                    "age",
+                    30,
+                ],
+                "2": [
+                    "city",
+                    "NYC",
+                ],
+            });
+        });
+
+        it("should handle empty input", () => {
+            expect(Obj.from([])).toEqual({});
+        });
+
+        it("throw error on scalar values", () => {
+            expect(() => Obj.from("string")).toThrow(
+                "Items cannot be represented by a scalar value.",
+            );
+
+            expect(() => Obj.from(42)).toThrow(
+                "Items cannot be represented by a scalar value.",
+            );
+
+            expect(() => Obj.from(false)).toThrow(
+                "Items cannot be represented by a scalar value.",
+            );
+        });
+    });
+
     describe("exists", () => {
         it("should return true for existing keys", () => {
             const obj = { name: "John", age: 30 };
@@ -955,18 +1033,6 @@ describe("Obj", () => {
         it("should handle recursively flip values with child objects and child arrays", () => {
             const obj = { a: 1, b: { x: 10, y: 20 }, c: [ 'p', 'q' ] };
             expect(Obj.flip(obj)).toEqual({ 1: "a", 10: "b.x", 20: "b.y", "c": { "p": 0, "q": 1}});
-        });
-    });
-
-    describe("from", () => {
-        it("should create object from callback results", () => {
-            const items = [1, 2, 3];
-            const result = Obj.from(items);
-            expect(result).toEqual({ 0: 1, 1: 2, 2: 3 });
-        });
-
-        it("should handle empty input", () => {
-            expect(Obj.from([])).toEqual({});
         });
     });
 
