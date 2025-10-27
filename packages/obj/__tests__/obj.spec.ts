@@ -1809,16 +1809,60 @@ describe("Obj", () => {
     });
 
     describe("sortRecursive", () => {
+        it("should handle non-object data", () => {
+            expect(Obj.sortRecursive(null)).toEqual({});
+            expect(Obj.sortRecursive([])).toEqual({});
+        });
+
+        it("should handle empty objects", () => {
+            const obj = {};
+            const result = Obj.sortRecursive(obj);
+            expect(result).toEqual({});
+        });
+
         it("should recursively sort object", () => {
-            const obj = { b: { d: 2, c: 1 }, a: { f: 4, e: 3 } };
+            const obj = { b: { d: 2, c: 1, z: 50, y: 55, x: 50 }, a: { f: 4, e: 3, x: 100, y: 100 } };
             const result = Obj.sortRecursive(obj);
             expect(Object.keys(result)).toEqual(["a", "b"]);
             expect(Object.keys(result["a"] as Record<string, unknown>)).toEqual(
-                ["e", "f"],
+                ["e", "f", "x", "y"],
             );
             expect(Object.keys(result["b"] as Record<string, unknown>)).toEqual(
+                ["c", "d", "x", "y", "z"],
+            );
+
+            const resultDesc = Obj.sortRecursive(obj, true);
+            expect(Object.keys(resultDesc)).toEqual(["b", "a"]);
+            expect(Object.keys(resultDesc["a"] as Record<string, unknown>)).toEqual(
+                ["y", "x", "f", "e"],
+            );
+            expect(Object.keys(resultDesc["b"] as Record<string, unknown>)).toEqual(
+                ["z", "y", "x", "d", "c"],
+            );
+        });
+
+        it("should recursively sort object with arrays", () => {
+            const obj = { b: { d: [3, 1, 2, 3], c: 1 }, a: { f: 4, e: 3 } };
+            const result = Obj.sortRecursive(obj);
+
+            expect(Object.keys(result)).toEqual(["a", "b"]);
+            expect(Object.keys(result["a"])).toEqual(
+                ["e", "f"],
+            );
+            expect(Object.keys(result["b"])).toEqual(
                 ["c", "d"],
             );
+            expect(result["b"]["d"]).toEqual([1, 2, 3, 3]);
+
+            const resultDesc = Obj.sortRecursive(obj, true);
+            expect(Object.keys(resultDesc)).toEqual(["b", "a"]);
+            expect(Object.keys(resultDesc["a"])).toEqual(
+                ["f", "e"],
+            );
+            expect(Object.keys(resultDesc["b"])).toEqual(
+                ["d", "c"],
+            );
+            expect(resultDesc["b"]["d"]).toEqual([3, 3, 2, 1]);
         });
     });
 

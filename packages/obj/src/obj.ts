@@ -2118,6 +2118,8 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Sort the object in descending order using the given callback or "dot" notation.
+ * 
+ * TODO: use the sort function with a "descending" parameter defined
  *
  * @param data - The object to sort.
  * @param callback - The sorting callback, field name, or null for natural sorting.
@@ -2240,7 +2242,6 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
  * Recursively sort an object by keys and values.
  *
  * @param data - The object to sort recursively.
- * @param options - Sort options (currently unused, for PHP compatibility).
  * @param descending - Whether to sort in descending order.
  * @returns A new recursively sorted object.
  *
@@ -2249,36 +2250,47 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
  * sortRecursive({ b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }); -> { a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }
  * sortRecursive({ user1: { name: 'john', age: 30 }, user2: { name: 'jane', age: 25 } }); -> sorted objects with sorted keys
  */
-export function sortRecursive<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | unknown,
-    options?: number,
+export function sortRecursive<TValue>(
+    data: Record<PropertyKey, TValue> | unknown,
     descending: boolean = false,
-): Record<TKey, TValue> {
+): Record<PropertyKey, TValue> {
     if (!accessible(data)) {
-        return {} as Record<TKey, TValue>;
+        return {} as Record<PropertyKey, TValue>;
     }
 
-    const obj = data as Record<TKey, TValue>;
-    const entries = Object.entries(obj) as [TKey, TValue][];
+    const obj = data as Record<PropertyKey, TValue>;
+    const entries = Object.entries(obj) as [PropertyKey, TValue][];
 
     // Recursively sort nested objects first
-    const processedEntries: [TKey, TValue][] = [];
+    const processedEntries: [PropertyKey, TValue][] = [];
     for (const [key, value] of entries) {
         if (isObject(value)) {
             processedEntries.push([
                 key,
-                sortRecursive(value, options, descending) as TValue,
+                sortRecursive(value, descending) as TValue,
             ]);
         } else if (isArray(value)) {
             // For arrays, sort them if they contain sortable items
             const sortedArray = [...value].sort((a, b) => {
                 if (descending) {
-                    if (a > b) return -1;
-                    if (a < b) return 1;
+                    if (a > b) {
+                        return -1;
+                    }
+                    
+                    if (a < b) {
+                        return 1;
+                    }
+
                     return 0;
                 } else {
-                    if (a < b) return -1;
-                    if (a > b) return 1;
+                    if (a < b) {
+                        return -1;
+                    }
+
+                    if (a > b) {
+                        return 1;
+                    }
+
                     return 0;
                 }
             });
@@ -2294,18 +2306,30 @@ export function sortRecursive<TValue, TKey extends PropertyKey = PropertyKey>(
         const strKeyB = String(keyB);
         
         if (descending) {
-            if (strKeyA > strKeyB) return -1;
-            if (strKeyA < strKeyB) return 1;
+            if (strKeyA > strKeyB) {
+                return -1;
+            }
+
+            if (strKeyA < strKeyB) {
+                return 1;
+            }
+
             return 0;
         } else {
-            if (strKeyA < strKeyB) return -1;
-            if (strKeyA > strKeyB) return 1;
+            if (strKeyA < strKeyB) {
+                return -1;
+            }
+
+            if (strKeyA > strKeyB) {
+                return 1;
+            }
+            
             return 0;
         }
     });
 
     // Rebuild object with sorted keys
-    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+    const result: Record<PropertyKey, TValue> = {} as Record<PropertyKey, TValue>;
     for (const [key, value] of processedEntries) {
         result[key] = value;
     }
@@ -2326,9 +2350,8 @@ export function sortRecursive<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function sortRecursiveDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    options?: number,
 ): Record<TKey, TValue> {
-    return sortRecursive(data, options, true);
+    return sortRecursive(data, true);
 }
 
 /**
