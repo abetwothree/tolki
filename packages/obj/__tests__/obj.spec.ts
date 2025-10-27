@@ -1064,6 +1064,13 @@ describe("Obj", () => {
     });
 
     describe("some", () => {
+        it("should return false for non-object values", () => {
+            expect(Obj.some(false, () => true)).toBe(false);
+            expect(Obj.some(null, () => true)).toBe(false);
+            expect(Obj.some(undefined, () => true)).toBe(false);
+            expect(Obj.some(42, () => true)).toBe(false);
+        });
+
         it("should return true if any item passes test", () => {
             const obj = { a: 1, b: 2, c: 3 };
             expect(Obj.some(obj, (value) => (value as number) % 2 === 0)).toBe(
