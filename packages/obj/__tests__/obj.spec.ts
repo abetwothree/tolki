@@ -1397,6 +1397,47 @@ describe("Obj", () => {
         });
     });
 
+    describe("shift", () => {
+        it("should handle non-object data", () => {
+            expect(Obj.shift(null)).toBeNull();
+            expect(Obj.shift([])).toBeNull();
+            expect(Obj.shift(null, 2)).toEqual([]);
+            expect(Obj.shift([], 2)).toEqual([]);
+        });
+
+        it("should remove and return first item", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Obj.shift(obj);
+            expect(result).toBe(1);
+            expect(obj).toEqual({ b: 2, c: 3 });
+        });
+
+        it("should remove and return first n items", () => {
+            const obj = { a: 1, b: 2, c: 3, d: 4 };
+            const result = Obj.shift(obj, 2);
+            expect(result).toEqual([1, 2]);
+            expect(obj).toEqual({ c: 3, d: 4 });
+        });
+
+        it("should remove and return all items if n exceeds length", () => {
+            const obj = { a: 1, b: 2 };
+            const result = Obj.shift(obj, 5);
+            expect(result).toEqual([1, 2]);
+            expect(obj).toEqual({});
+        });
+
+        it("should handle empty object", () => {
+            const obj = {};
+            const result = Obj.shift(obj);
+            expect(result).toBeNull();
+            expect(obj).toEqual({});
+
+            const resultMultiple = Obj.shift(obj, 3);
+            expect(resultMultiple).toEqual([]);
+            expect(obj).toEqual({});
+        });
+    });
+
     describe("push", () => {
         it("should push to nested array", () => {
             const obj = { items: ["a", "b"] };

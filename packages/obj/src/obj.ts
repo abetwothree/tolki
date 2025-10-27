@@ -1731,7 +1731,7 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
  * @returns The shifted item(s) or null/empty array if none.
  */
 export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
+    data: Record<TKey, TValue> | unknown,
     count: number = 1,
 ): TValue | TValue[] | null {
     if (!accessible(data)) {
