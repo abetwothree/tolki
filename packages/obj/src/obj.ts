@@ -380,16 +380,26 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
  * @returns A new object with the items prepended
  */
 export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
-    ...items: Array<[TKey, TValue]>
+    ...items: Record<TKey, TValue>[] | unknown[]
 ): Record<TKey, TValue> {
-    const itemsObject: Record<TKey, TValue> = {} as Record<TKey, TValue>;
-
-    for (const [key, value] of items) {
-        itemsObject[key] = value;
+    if (items.length <= 1) {
+        return (items[0] ?? {}) as Record<TKey, TValue>;
     }
 
-    return { ...itemsObject, ...data };
+    const data = items[0] as Record<TKey, TValue>;
+    const itemsObject = {} as Record<TKey, TValue>;
+    
+    const itemsToPrepend = items.slice(1);
+
+    for (const item of itemsToPrepend) {
+        if (accessible(item)) {
+            for (const [key, value] of Object.entries(item)) {
+                itemsObject[key as TKey] = value as TValue;
+            }
+        }
+    }
+
+    return union(itemsObject, data);
 }
 
 /**

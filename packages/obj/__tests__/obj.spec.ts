@@ -303,7 +303,29 @@ describe("Obj", () => {
         it("union objects", () => {
             expect(Obj.union({ a: 1 }, { b: 2 })).toEqual({ a: 1, b: 2 });
             expect(Obj.union({ a: 1 }, { a: 2 })).toEqual({ a: 1 });
+            expect(Obj.union({ a: "house", b: 3, c: 4 }, { a: "home", b: 2 }, {d: 5})).toEqual({ a: "house", b: 3, c: 4, d: 5});
         });
+    });
+
+    describe("unshift", () => {
+        it("unshift objects", () => {
+            expect(Obj.unshift({ b: 2 }, { a: 1 }, {d: "house"})).toEqual({ a: 1, d: "house", b: 2 }); 
+        });
+
+        it("test unshift null", () => {
+            expect(Obj.unshift(null, { a: 1 })).toEqual({ a: 1 });
+            expect(Obj.unshift({ a: 1 }, null)).toEqual({ a: 1 });
+        });
+
+        it("unshift with one object or none", () => {
+            expect(Obj.unshift({ a: 1 })).toEqual({ a: 1 });
+            expect(Obj.unshift()).toEqual({});
+        });
+
+        it('test order of keys', () => {
+            expect(Obj.unshift({ c: 3 }, { a: 1, b: 2 })).toEqual({ a: 1, b: 2, c: 3 });
+            expect(Obj.unshift({ a: 10, b: 20 }, { a: 1, b: 2 })).toEqual({ a: 1, b: 2});
+        })
     });
 
     describe("except", () => {
