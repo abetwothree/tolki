@@ -1366,9 +1366,21 @@ describe("Obj", () => {
             expect([1, 2, 3]).toContain(result);
         });
 
+        it("handle a single item object", () => {
+            const obj = {};
+            expect(Obj.random(obj)).toBeNull();
+            expect(Obj.random(obj, 0)).toEqual({});
+        });
+
         it("should return multiple random values", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
             const result = Obj.random(obj, 2) as Record<string, unknown>;
+            expect(Object.keys(result)).toHaveLength(2);
+        });
+
+        it("should return multiple random values while not preserving keys", () => {
+            const obj = { a: 1, b: 2, c: 3, d: 4 };
+            const result = Obj.random(obj, 2, false) as Record<string, unknown>;
             expect(Object.keys(result)).toHaveLength(2);
         });
 
@@ -1377,6 +1389,11 @@ describe("Obj", () => {
             expect(() => Obj.random(obj, 5)).toThrow(
                 "You requested 5 items, but there are only 2 items available.",
             );
+        });
+
+        it("should handle non-object values", () => {
+            expect(Obj.random(null)).toBeNull();
+            expect(Obj.random(undefined)).toBeNull();
         });
     });
 
