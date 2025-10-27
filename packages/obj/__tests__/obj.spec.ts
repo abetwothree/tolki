@@ -1554,6 +1554,13 @@ describe("Obj", () => {
         it("should work with callback", () => {
             const obj = { a: 1, b: 2, c: 3 };
             expect(Obj.sole(obj, (value) => (value as number) > 2)).toBe(3);
+
+            expect(() => Obj.sole(obj, (value) => (value as number) > 3)).toThrow("No items found");
+        });
+
+        it("should handle non-objects", () => {
+            expect(() => Obj.sole(null)).toThrow("No items found");
+            expect(() => Obj.sole([])).toThrow("No items found");
         });
     });
 
