@@ -780,6 +780,11 @@ describe("Obj", () => {
             const result = Obj.set({}, "a.b.c.d", "value");
             expect(result).toEqual({ a: { b: { c: { d: "value" } } } });
         });
+
+        it("should handle non-objects", () => {
+            expect(Obj.set(null, "key", "value")).toEqual({});
+            expect(Obj.set("string", "key", "value")).toEqual({});
+        });
     });
 
     describe("string", () => {
