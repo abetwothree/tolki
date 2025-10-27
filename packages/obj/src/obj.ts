@@ -375,8 +375,7 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Prepend one or more items to the beginning of the object
  * 
- * @param data - The object to prepend items to
- * @param items - The items to prepend as [key, value] tuples
+ * @param items - The items to prepend. The first item is the target object.
  * @returns A new object with the items prepended
  */
 export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
@@ -680,7 +679,7 @@ export function flatten<TValue, TKey extends PropertyKey = PropertyKey>(
  * flip({one: 'b', two: {hi: 'hello', skip: 'bye'}}); -> {b: 'one', {hello: 'hi', bye: 'skip'}}
  */
 export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
+    data: Record<TKey, TValue> | unknown,
 ) {
     if (!accessible(data)) {
         return {};

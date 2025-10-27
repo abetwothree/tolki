@@ -933,6 +933,31 @@ describe("Obj", () => {
         });
     });
 
+    describe("flip", () => {
+        it("should flip keys and values", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            expect(Obj.flip(obj)).toEqual({ 1: "a", 2: "b", 3: "c" });
+        });
+
+        it("should handle duplicate values", () => {
+            const obj = { a: 1, b: 2, c: 1 };
+            expect(Obj.flip(obj)).toEqual({ 1: "c", 2: "b" });
+        });
+        
+        it("should handle empty objects", () => {
+            expect(Obj.flip({})).toEqual({});
+        });
+
+        it("should handle non-object values", () => {
+            expect(Obj.flip(null)).toEqual({});
+        });
+
+        it("should handle recursively flip values with child objects and child arrays", () => {
+            const obj = { a: 1, b: { x: 10, y: 20 }, c: [ 'p', 'q' ] };
+            expect(Obj.flip(obj)).toEqual({ 1: "a", 10: "b.x", 20: "b.y", "c": { "p": 0, "q": 1}});
+        });
+    });
+
     describe("from", () => {
         it("should create object from callback results", () => {
             const items = [1, 2, 3];
