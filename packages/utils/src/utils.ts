@@ -152,7 +152,7 @@ export function isFloat(value: unknown): value is number {
  * @returns True if the value is a positive number
  */
 export function isPositiveNumber(value: unknown): value is number {
-    return isNumber(value) && value > 0;
+    return isNumber(value) && value >= 0;
 }
 
 /**

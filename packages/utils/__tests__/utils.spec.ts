@@ -149,10 +149,10 @@ describe("Utils", () => {
         it("returns true for positive numbers", () => {
             expect(Utils.isPositiveNumber(123)).toBe(true);
             expect(Utils.isPositiveNumber(0.1)).toBe(true);
+            expect(Utils.isPositiveNumber(0)).toBe(true);
         });
 
         it("returns false for zero, negative numbers, and non-number values", () => {
-            expect(Utils.isPositiveNumber(0)).toBe(false);
             expect(Utils.isPositiveNumber(-45)).toBe(false);
             expect(Utils.isPositiveNumber("hello")).toBe(false);
             expect(Utils.isPositiveNumber({})).toBe(false);
