@@ -870,21 +870,28 @@ describe("Obj", () => {
     });
 
     describe("contains", () => {
+        it("should handle non-object data", () => {
+            expect(Obj.contains(null, "value")).toBe(false);
+            expect(Obj.contains([], "value")).toBe(false);
+        });
+
         it("should find values in object", () => {
-            const obj = { name: "John", age: 30, city: "NYC" };
+            const obj = { name: "John", age: 30, city: "NYC", zip: "35" };
             expect(Obj.contains(obj, "John")).toBe(true);
             expect(Obj.contains(obj, 30)).toBe(true);
             expect(Obj.contains(obj, "Jane")).toBe(false);
+            expect(Obj.contains(obj, 35, true)).toBe(false);
         });
 
         it("should not find nested values", () => {
-            const obj = { user: { name: "John" } };
+            const obj = { user: { name: "John", age: 30 } };
             expect(Obj.contains(obj, "John")).toBe(false);
         });
 
-        it("should handle non-accessible data", () => {
-            expect(Obj.contains(null, "value")).toBe(false);
-            expect(Obj.contains([], "value")).toBe(false);
+        it("should handle value as callback function", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            expect(Obj.contains(obj, (x) => x > 2)).toBe(true);
+            expect(Obj.contains(obj, (x) => x > 5)).toBe(false);
         });
     });
 
