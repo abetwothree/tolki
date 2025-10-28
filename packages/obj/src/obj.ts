@@ -9,7 +9,7 @@ import {
     undotExpandObject,
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
-import { isArray, isBoolean, isFalsy, isFunction, isInteger, isMap, isNull, isNumber, isObject, isString, isStringable, isUndefined, isWeakMap, typeOf, isPositiveNumber } from '@laravel-js/utils';
+import { isArray, isBoolean, isFalsy, isFunction, isInteger, isMap, isNull, isNumber, isObject, isPositiveNumber,isString, isStringable, isUndefined, isWeakMap, typeOf } from '@laravel-js/utils';
 import type { PathKey, PathKeys } from "packages/types";
 
 /**
