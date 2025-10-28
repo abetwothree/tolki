@@ -2272,9 +2272,9 @@ export function splice<TValue>(
     offset: number,
     length?: number,
     ...replacement: TValue[]
-): { array: TValue[]; removed: TValue[] } {
+): { value: TValue[]; removed: TValue[] } {
     if (!accessible(data)) {
-        return { array: [] as TValue[], removed: [] as TValue[] };
+        return { value: [] as TValue[], removed: [] as TValue[] };
     }
 
     const values = (data as ArrayItems<TValue>).slice();
@@ -2297,7 +2297,7 @@ export function splice<TValue>(
         removed = values.splice(offset, length, ...flatReplacement);
     }
 
-    return { array: values, removed };
+    return { value: values, removed };
 }
 
 /**
