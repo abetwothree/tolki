@@ -10,6 +10,7 @@
         "build:collection": "pnpm -F @laravel-js/collection build",
         "build:num": "pnpm -F @laravel-js/num build",
         "build:str": "pnpm -F @laravel-js/str build",
+        "build:utils": "pnpm -F @laravel-js/utils build",
         "format": "npx prettier --write . --cache",
         "format:check": "npx prettier --check .",
         "lint": "run-s lint:*",
@@ -67,6 +68,6 @@
         "vite": "^7.1.12",
         "vite-plugin-dts": "^4.5.4",
         "vitepress": "2.0.0-alpha.12",
-        "vitest": "^4.0.3"
+        "vitest": "^4.0.4"
     }
 }
