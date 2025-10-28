@@ -152,7 +152,7 @@ import type {
     PathKey,
     PathKeys,
 } from "@laravel-js/types";
-import { isArray, isFunction, isObject, isUndefined } from "@laravel-js/utils";
+import { isArray, isFunction, isObject, isUndefined, isBoolean } from "@laravel-js/utils";
 
 /**
  * Add an element to data.
@@ -240,14 +240,42 @@ export function dataBoolean<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param size - The size of each chunk
  * @param preserveKeys - Whether to preserve the original keys, defaults to false
  * @returns Chunked data
+ * TValue[] | Record<TKey, TValue>
  */
-export function dataChunk<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
+export function dataChunk<TValue extends Record<PropertyKey, unknown>>(
+    data: TValue,
     size: number,
-    preserveKeys: boolean = true,
-){
+    preserveKeys?: boolean,
+): ReturnType<typeof objChunk>;
+export function dataChunk<TValue>(
+    data: TValue[],
+    size: number,
+    preserveKeys?: boolean,
+): ReturnType<typeof arrChunk>;
+export function dataChunk<TValue>(
+    data: DataItems<TValue, PropertyKey>,
+    size: number,
+    preserveKeys?: boolean,
+) {
     if (isObject(data)) {
-        return objChunk(data as Record<TKey, TValue>, size, preserveKeys);
+        if (preserveKeys === true) {
+            return objChunk(
+                data as Record<PropertyKey, TValue>,
+                size,
+                true
+            );
+        } else if (preserveKeys === false) {
+            return objChunk(
+                data as Record<PropertyKey, TValue>,
+                size,
+                false
+            );
+        } else {
+            return objChunk(
+                data as Record<PropertyKey, TValue>,
+                size
+            );
+        }
     }
 
     return arrChunk(arrWrap(data), size, preserveKeys);

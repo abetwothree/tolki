@@ -2,6 +2,68 @@ import * as Data from "@laravel-js/data";
 import { describe, expect,it } from "vitest";
 
 describe("Data", () => {
+    it("add", () => {
+        expect(Data.dataAdd([1, 2], 2, 3)).toEqual([1, 2, 3]);
+        expect(Data.dataAdd({ a: 1 }, "b", 2)).toEqual({ a: 1, b: 2 });
+    });
+
+    it("dataItem", () => {
+        expect(Data.dataItem([[1,2], [2,3]], 1)).toEqual([2,3]);
+        expect(Data.dataItem({ a: {f:3}, b: {g:4} }, "b")).toEqual({g:4});
+
+        expect(Data.dataItem([[1,2], [2,3]], 3, ['not found'])).toEqual(['not found']);
+        expect(Data.dataItem({ a: {f:3}, b: {g:4} }, "x", {error: 'not found'})).toEqual({error: 'not found'});
+    });
+
+    it("dataBoolean", () => {
+        expect(Data.dataBoolean([true, false], 0, false)).toBe(true);
+        expect(Data.dataBoolean({ active: true }, "active", false)).toBe(true);
+        expect(Data.dataBoolean({ active: false }, "missing", true)).toBe(true);
+    });
+
+    describe("dataChunk", () => {
+        it("is object", () => {
+            const result = Data.dataChunk({'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5}, 2);
+            expect(result).toEqual({
+                0: { a: 1, b: 2 },
+                1: { c: 3, d: 4 },
+                2: { e: 5 },
+            });
+
+            const result1 = Data.dataChunk({'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5}, 2, true);
+            expect(result1).toEqual({
+                0: { a: 1, b: 2 },
+                1: { c: 3, d: 4 },
+                2: { e: 5 },
+            });
+
+            const result2 = Data.dataChunk({'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5}, 2, false);
+            expect(result2).toEqual({
+                0: { 0: 1, 1: 2 },
+                1: { 0: 3, 1: 4 },
+                2: { 0: 5 },
+            });
+        });
+
+        it("is array", () => {
+            const result = Data.dataChunk([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3);
+            expect(result).toEqual([
+                [1, 2, 3],
+                [4, 5, 6],
+                [7, 8, 9],
+                [10],
+            ]);
+
+            const result2 = Data.dataChunk([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3, false);
+            expect(result2).toEqual([
+                [ [ 0, 1 ], [ 1, 2 ], [ 2, 3 ] ],
+                [ [ 3, 4 ], [ 4, 5 ], [ 5, 6 ] ],
+                [ [ 6, 7 ], [ 7, 8 ], [ 8, 9 ] ],
+                [ [ 9, 10 ] ],
+            ]);
+        });
+    });
+
     it("values", () => {
         expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
         expect(Data.dataValues({ a: 1, b: 2, c: 3 })).toEqual([1, 2, 3]);
@@ -103,17 +165,6 @@ describe("Data", () => {
                 "name",
             ),
         ).toEqual(["House", "Condo", "Apartment"]);
-    });
-
-    it("add", () => {
-        expect(Data.dataAdd([1, 2], 2, 3)).toEqual([1, 2, 3]);
-        expect(Data.dataAdd({ a: 1 }, "b", 2)).toEqual({ a: 1, b: 2 });
-    });
-
-    it("boolean", () => {
-        expect(Data.dataBoolean([true, false], 0, false)).toBe(true);
-        expect(Data.dataBoolean({ active: true }, "active", false)).toBe(true);
-        expect(Data.dataBoolean({ active: false }, "missing", true)).toBe(true);
     });
 
     it("collapse", () => {
