@@ -2927,23 +2927,23 @@ export function diff<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param callable - Optional function to compare values
  * @returns A new object containing items present in both objects
  */
-export function intersect<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
-    other: Record<TKey, TValue>,
-    callable: ((a: TValue, b: TValue) => boolean) | null = null,
+export function intersect<T1, T2, TResponse>(
+    data: Record<PropertyKey, T1>,
+    other: Record<PropertyKey, T2>,
+    callable: ((a: T1, b: T2) => boolean) | null = null,
 ) {
-    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+    const result: Record<PropertyKey, TResponse> = {} as Record<PropertyKey, TResponse>;
 
     for (const [key, value] of Object.entries(data)) {
         if (key in other) {
-            const otherValue = other[key as TKey];
+            const otherValue = other[key as PropertyKey];
 
             const isEqual = isFunction(callable)
-                ? callable(value as TValue, otherValue)
+                ? callable(value as T1, otherValue as T2)
                 : value === otherValue;
 
             if (isEqual) {
-                result[key as TKey] = value as TValue;
+                result[key as PropertyKey] = value as unknown as TResponse;
             }
         }
     }

@@ -915,6 +915,26 @@ describe("Obj", () => {
         });
     });
 
+    describe("intersect", () => {
+        it("should return items present in both objects", () => {
+            const obj1 = { a: 1, b: 2, c: 3 };
+            const obj2 = { b: 2, c: 4 };
+            expect(Obj.intersect(obj1, obj2)).toEqual({ b: 2 });
+        });
+
+        it("should consider different values as different", () => {
+            const obj1 = { a: 1, b: 2 };
+            const obj2 = { a: 1, b: 3 };
+            expect(Obj.intersect(obj1, obj2)).toEqual({ a: 1 });
+        });
+
+        it("should handle closure callable third param", () => {
+            const obj1 = { a: 1, b: 2, c: "3" };
+            const obj2 = { b: 2, c: 3 };
+            expect(Obj.intersect(obj1, obj2, (a, b) => a === b)).toEqual({ b: 2 });
+        });
+    });
+
     describe("pluck", () => {
         it("should pluck values with string key", () => {
             const obj = {
