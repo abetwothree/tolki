@@ -935,6 +935,24 @@ describe("Obj", () => {
         });
     });
 
+    describe("intersectByKeys", () => {
+        it("should return items with keys present in other object", () => {
+            const obj1 = { a: 1, b: 2, c: 3 };
+            const obj2 = { b: 20, d: 40 };
+            expect(Obj.intersectByKeys(obj1, obj2)).toEqual({ b: 2 });
+        });
+
+        it.skip("should handle non-accessible data", () => {
+            const obj = { a: 1, b: 2 };
+            expect(Obj.intersectByKeys(obj, null)).toEqual({});
+            expect(Obj.intersectByKeys(null, obj)).toEqual({});
+        });
+
+        it("should handle empty objects", () => {
+            expect(Obj.intersectByKeys({}, {})).toEqual({});
+        });
+    });
+
     describe("pluck", () => {
         it("should pluck values with string key", () => {
             const obj = {

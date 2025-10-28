@@ -2958,15 +2958,15 @@ export function intersect<T1, T2, TResponse>(
  * @param other - The object to intersect with
  * @returns A new object containing items with keys present in both objects
  */
-export function intersectByKeys<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
-    other: Record<TKey, TValue>,
+export function intersectByKeys<T1, T2, TResponse>(
+    data: Record<PropertyKey, T1>,
+    other: Record<PropertyKey, T2>,
 ) {
-    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+    const result: Record<PropertyKey, TResponse> = {} as Record<PropertyKey, TResponse>;
 
     for (const [key, value] of Object.entries(data)) {
         if (key in other) {
-            result[key as TKey] = value as TValue;
+            result[key] = value as unknown as TResponse;
         }
     }
 
