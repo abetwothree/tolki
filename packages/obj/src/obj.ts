@@ -2578,23 +2578,23 @@ export function replace<T1, T2>(
  * @param replacerData - The object containing items to replace.
  * @returns The modified original object with replaced items.
  */
-export function replaceRecursive<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
-    replacerData: Record<TKey, TValue>,
+export function replaceRecursive<T1, T2>(
+    data: Record<PropertyKey, T1>,
+    replacerData: Record<PropertyKey, T2>,
 ){
     for (const [key, value] of Object.entries(replacerData)) {
-        if (isObject(value) && isObject(data[key as TKey])) {
-            data[key as TKey] = replaceRecursive(
-                data[key as TKey] as Record<TKey, TValue>,
-                value as Record<TKey, TValue>,
-            ) as TValue;
-        } else if (isArray(value) && isArray(data[key as TKey])) {
-            data[key as TKey] = arrReplaceRecursive(
-                data[key as TKey] as TValue[],
-                value as TValue[],
-            ) as TValue;
+        if (isObject(value) && isObject(data[key as PropertyKey])) {
+            data[key] = replaceRecursive(
+                data[key as PropertyKey] as Record<PropertyKey, T1>,
+                value as Record<PropertyKey, T2>,
+            ) as T1;
+        } else if (isArray(value) && isArray(data[key as PropertyKey])) {
+            data[key] = arrReplaceRecursive(
+                data[key] as T1[],
+                value as T2[],
+            ) as unknown as T1;
         } else {
-            data[key as TKey] = value as TValue;
+            data[key] = value as unknown as T2;
         }
     }
 
@@ -2613,7 +2613,7 @@ export function replaceRecursive<TValue, TKey extends PropertyKey = PropertyKey>
  * reverse({ name: 'John', age: 30, city: 'NYC' }); -> { city: 'NYC', age: 30, name: 'John' }
  */
 export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>
+    data: Record<TKey, TValue> | unknown
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;

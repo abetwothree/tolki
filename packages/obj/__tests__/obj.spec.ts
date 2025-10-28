@@ -1983,6 +1983,23 @@ describe("Obj", () => {
         });
     });
 
+    describe("reverse", () => {
+        it("should reverse the order of object keys", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Obj.reverse(obj);
+            expect(Object.keys(result)).toEqual(["c", "b", "a"]);
+        });
+
+        it("should handle empty objects", () => {
+            expect(Obj.reverse({})).toEqual({});
+        });
+
+        it("should handle non-object values", () => {
+            expect(Obj.reverse(null)).toEqual({});
+            expect(Obj.reverse([])).toEqual({});
+        });
+    });
+
     describe("partition", () => {
         it("should partition into passed and failed", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
