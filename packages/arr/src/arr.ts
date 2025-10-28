@@ -91,8 +91,10 @@ export function arrayItem<TValue, TDefault = null>(
     const value = getMixedValue(data, key, defaultValue);
 
     if (!isArray(value)) {
+        const typeName = isNull(value) ? "null" : typeOf(value);
+
         throw new Error(
-            `Array value for key [${key}] must be an array, ${typeOf(value)} found.`,
+            `Array value for key [${key}] must be an array, ${typeName} found.`,
         );
     }
 
@@ -142,8 +144,10 @@ export function boolean<TValue, TDefault = null>(
 export function chunk<TValue>(
     data: ArrayItems<TValue>,
     size: number,
-    preserveKeys: boolean = true
+    preserveKeys?: boolean,
 ): TValue[][] | [number, TValue][][] {
+    preserveKeys = isUndefined(preserveKeys) ? true : preserveKeys;
+
     if (size <= 0) {
         return [];
     }
