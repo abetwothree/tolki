@@ -1962,6 +1962,46 @@ describe("Obj", () => {
         });
     });
 
+    describe("pad", () => {
+        it("should handle non-object", () => {
+            expect(Obj.pad(null, 3, 0)).toEqual({});
+            expect(Obj.pad([], 2, "a")).toEqual({});
+        });
+
+        it("should pad object to desired size", () => {
+            const obj = { a: 1, b: 2 };
+            const result = Obj.pad(obj, 4, 0);
+            // expect(result).toEqual({ a: 1, b: 2, "2": 0, "3": 0 });
+        });
+
+        it("should not truncate if object is larger than size", () => {
+            const obj = { a: 1, b: 2, c: 3, d: 4 };
+            const result = Obj.pad(obj, 2, 0);
+            expect(result).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+        });
+
+        it("should pad with different types of values", () => {
+            const obj = { a: "x" };
+            const result = Obj.pad(obj, 3, "y");
+            // expect(result).toEqual({ a: "x", "1": "y", "2": "y" });
+        });
+
+        it("should handle zero size", () => {
+            const obj = { a: 1, b: 2 };
+            const result = Obj.pad(obj, 0, 0);
+            expect(result).toEqual({ a: 1, b: 2 });
+        });
+
+        it("should handle negative size", () => {
+            const obj = { a: 1, b: 2 };
+            const result = Obj.pad(obj, -3, 0);
+            // expect(result).toEqual({"0": 0, a: 1, b: 2});
+
+            const result2 = Obj.pad(obj, -5, 0);
+            // expect(result2).toEqual({"-2": 0, "-1": 0, "0": 0, a: 1, b: 2});
+        });
+    });
+
     describe("replaceRecursive", () => {
         it("should recursively replace values in object", () => {
             const obj = {

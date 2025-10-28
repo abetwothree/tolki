@@ -2636,13 +2636,15 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Pad object to the specified length with a value.
  * 
+ * TODO: implement proper padding and negative numbers
+ * 
  * @param data - The object to pad.
  * @param size - The desired size of the object after padding. Positive to pad at the end, negative to pad at the beginning.
  * @param value - The value to use for padding.
  * @returns A new padded object.
  */
 export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
+    data: Record<TKey, TValue> | unknown,
     size: number,
     value: TPadValue,
 ): Record<TKey, TValue | TPadValue> {
