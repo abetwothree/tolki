@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "outDir": "dist",
         "baseUrl": ".",
         "module": "esnext",
         "moduleResolution": "bundler",
@@ -26,5 +27,5 @@
             "@laravel-js/*": ["packages/*/src/index.ts"]
         }
     },
-    "include": ["packages/**/src", "packages/**/__tests__"]
+    "include": ["packages/**/src"]
 }

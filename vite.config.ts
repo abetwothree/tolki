@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 import { configDefaults } from "vitest/config";
@@ -8,9 +10,12 @@ export default defineConfig({
             outDir: "dist",
             entryRoot: "src",
             staticImport: true,
+            tsconfigPath: path.resolve(__dirname, "tsconfig.json"),
+            exclude: ["**/*.spec.ts", "**/__tests__/**"],
         }),
     ],
     build: {
+        emptyOutDir: true,
         outDir: "dist",
         rollupOptions: {
             external: [
