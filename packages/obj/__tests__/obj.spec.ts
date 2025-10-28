@@ -1874,7 +1874,19 @@ describe("Obj", () => {
         });
     });
 
+    describe("splice", () => {
+        it("should handle non-object data", () => {
+            expect(Obj.splice(null, 0, 2)).toEqual({ value: {}, removed: {} });
+            expect(Obj.splice([], 0, 2)).toEqual({ value: {}, removed: {} });
+        });
+    });
+
     describe("toCssClasses", () => {
+        it("should handle non-object data", () => {
+            expect(Obj.toCssClasses(null)).toBe("");
+            expect(Obj.toCssClasses([])).toBe("");
+        });
+
         it("should convert to CSS classes", () => {
             const obj = { "font-bold": true, "text-red": false, "mt-4": true };
             expect(Obj.toCssClasses(obj)).toBe("font-bold mt-4");
@@ -1886,6 +1898,11 @@ describe("Obj", () => {
     });
 
     describe("toCssStyles", () => {
+        it("should handle non-object data", () => {
+            expect(Obj.toCssStyles(null)).toBe("");
+            expect(Obj.toCssStyles([])).toBe("");
+        });
+
         it("should convert to CSS styles", () => {
             const obj = {
                 "font-weight: bold": true,
@@ -1910,6 +1927,11 @@ describe("Obj", () => {
     });
 
     describe("where", () => {
+        it("should handle non-object data", () => {
+            expect(Obj.where(null, () => true)).toEqual({});
+            expect(Obj.where([], () => true)).toEqual({});
+        });
+
         it("should filter with callback", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
             const result = Obj.where(obj, (value) => (value as number) > 2);
@@ -1928,6 +1950,36 @@ describe("Obj", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
             const result = Obj.reject(obj, (value) => (value as number) > 2);
             expect(result).toEqual({ a: 1, b: 2 });
+        });
+    });
+
+    describe("replace", () => {
+        it("should replace values in object", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const replacements = { b: 20, c: 30, d: 40 };
+            const result = Obj.replace(obj, replacements);
+            expect(result).toEqual({ a: 1, b: 20, c: 30, d: 40 });
+        });
+    });
+
+    describe("replaceRecursive", () => {
+        it("should recursively replace values in object", () => {
+            const obj = {
+                user: { name: "John", address: { city: "NYC", zip: "10001" } },
+                age: 30,
+                locations: ["NYC", "LA", "CHI", "SF"],
+            };
+            const replacements = {
+                user: { address: { city: "LA" } },
+                age: 31,
+                locations: ["DETROIT", "PORTLAND"],
+            };
+            const result = Obj.replaceRecursive(obj, replacements);
+            expect(result).toEqual({
+                user: { name: "John", address: { city: "LA", zip: "10001" } },
+                age: 31,
+                locations: ["DETROIT", "PORTLAND", "CHI", "SF"],
+            });
         });
     });
 

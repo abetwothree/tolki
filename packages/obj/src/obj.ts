@@ -2366,38 +2366,48 @@ export function sortRecursiveDesc<TValue, TKey extends PropertyKey = PropertyKey
  * @returns Spliced object
  */
 export function splice<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
+    data: Record<TKey, TValue> | unknown,
     offset: number,
     length: number = 0,
-    replacement: Record<TKey, TValue> = {} as Record<TKey, TValue>,
-){
+    ...replacement: Record<TKey, TValue>[]
+): { value: Record<TKey, TValue>; removed: Record<TKey, TValue> } {
     if (!accessible(data)) {
-        return {} as Record<TKey, TValue>;
+        return { value: {} as Record<TKey, TValue>, removed: {} as Record<TKey, TValue> };
     }
 
     const obj = data as Record<string, TValue>;
     const entries = Object.entries(obj);
 
+    // Get removed entries
+    const removedEntries = length > 0
+        ? entries.slice(offset, offset + length)
+        : [];
+    const removed: TValue[] = removedEntries.map(([, value]) => value);
+
+    // Prepare replacement entries
+    const replacementEntries: [string, TValue][] = [];
+    for (const repObj of replacement) {
+        for (const [key, value] of Object.entries(repObj)) {
+            replacementEntries.push([key, value as TValue]);
+        }
+    }
+
+    // Build new array
     const beforeEntries = entries.slice(0, offset);
+    
     const afterEntries = length > 0
         ? entries.slice(offset + length)
         : entries.slice(offset);
-
-    const replacementEntries = Object.entries(replacement);
-
-    const splicedEntries = [
+    
+        const splicedEntries = [
         ...beforeEntries,
         ...replacementEntries,
         ...afterEntries,
     ];
 
-    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+    const value: TValue[] = splicedEntries.map(([, value]) => value);
 
-    for (const [key, value] of splicedEntries) {
-        result[key as TKey] = value as TValue;
-    }
-
-    return result as Record<TKey, TValue>;
+    return { value, removed };
 }
 
 /**
@@ -2550,12 +2560,12 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param replacerData - The object containing items to replace.
  * @returns The modified original object with replaced items.
  */
-export function replace<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
-    replacerData: Record<TKey, TValue>,
+export function replace<T1, T2>(
+    data: Record<PropertyKey, T1>,
+    replacerData: Record<PropertyKey, T2>,
 ){
     for (const [key, value] of Object.entries(replacerData)) {
-        data[key as TKey] = value as TValue;
+        data[key as PropertyKey] = value as unknown as T1;
     }
 
     return data;
