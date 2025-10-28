@@ -2041,6 +2041,16 @@ describe("Obj", () => {
     });
 
     describe("partition", () => {
+        it("should handle non-object data", () => {
+            const [passed, failed] = Obj.partition(null, () => true);
+            expect(passed).toEqual({});
+            expect(failed).toEqual({});
+            
+            const [passed2, failed2] = Obj.partition([], () => true);
+            expect(passed2).toEqual({});
+            expect(failed2).toEqual({});
+        });
+
         it("should partition into passed and failed", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
             const [passed, failed] = Obj.partition(
