@@ -150,7 +150,6 @@ import {
 import type { DataItems, PathKey, PathKeys } from "@laravel-js/types";
 import {
     isArray,
-    isBoolean,
     isFunction,
     isObject,
     isUndefined,
@@ -169,15 +168,25 @@ import {
  * dataAdd([1, 2], 2, 3); -> [1, 2, 3]
  * dataAdd({a: 1}, 'b', 2); -> {a: 1, b: 2}
  */
-export function dataAdd<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
+export function dataAdd<TValue extends Record<PropertyKey, unknown>>(
+    data: TValue,
     key: PathKey,
-    value: TValue,
-): DataItems<TValue, TKey> {
+    value: unknown,
+): ReturnType<typeof objAdd<TValue>>;
+export function dataAdd<TValue>(
+    data: TValue[],
+    key: number,
+    value: unknown,
+): ReturnType<typeof arrAdd<TValue>>;
+export function dataAdd<TValue>(
+    data: DataItems<TValue, PropertyKey>,
+    key: PathKey,
+    value: unknown,
+) {
     if (isObject(data)) {
-        return objAdd(data as Record<TKey, TValue>, key, value) as DataItems<
+        return objAdd(data as Record<PropertyKey, TValue>, key, value) as DataItems<
             TValue,
-            TKey
+            PropertyKey
         >;
     }
 

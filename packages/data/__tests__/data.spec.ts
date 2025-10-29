@@ -4,11 +4,17 @@ import { assertType, describe, expect, it } from "vitest";
 describe("Data", () => {
     describe("dataAdd", () => {
         it("is object", () => {
-            expect(Data.dataAdd({ a: 1 }, "b", 2)).toEqual({ a: 1, b: 2 });
+            const result = Data.dataAdd({ a: 1 }, "b", 2);
+            expect(result).toEqual({ a: 1, b: 2 });
+
+            assertType<Record<PropertyKey, {a: number;}>>(result);
         });
 
         it("is array", () => {
-            expect(Data.dataAdd([1, 2], 2, 3)).toEqual([1, 2, 3]);
+            const result = Data.dataAdd([1, 2], 2, 3);
+            expect(result).toEqual([1, 2, 3]);
+            
+            assertType<number[]>(result);
         });
     });
 
