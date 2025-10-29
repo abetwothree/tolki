@@ -126,6 +126,18 @@ describe("Data", () => {
         });
     });
 
+    describe("dataCount", () => {
+        it("is object", () => {
+            const obj = { a: 1, b: 2, c: 3, d: 4 };
+            expect(Data.dataCount(obj)).toBe(4);
+        });
+
+        it("is array", () => {
+            const arr = [1, 2, 3, 4, 5];
+            expect(Data.dataCount(arr)).toBe(5);
+        });
+    });
+
     it("values", () => {
         expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
         expect(Data.dataValues({ a: 1, b: 2, c: 3 })).toEqual([1, 2, 3]);
