@@ -7,7 +7,7 @@ describe("Data", () => {
             const result = Data.dataAdd({ a: 1 }, "b", 2);
             expect(result).toEqual({ a: 1, b: 2 });
 
-            assertType<Record<PropertyKey, {a: number;}>>(result);
+            assertType<Record<string, {a: number;}>>(result);
         });
 
         it("is array", () => {
@@ -22,6 +22,8 @@ describe("Data", () => {
         it("is object", () => {
             const result = Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "b");
             expect(result).toEqual({g: 4});
+
+            assertType<Record<string, {a: {f: number;};b: {g: number;}}>>(result);
             
             expect(
                 Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "x", {

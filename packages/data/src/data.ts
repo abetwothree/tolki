@@ -184,13 +184,10 @@ export function dataAdd<TValue>(
     value: unknown,
 ) {
     if (isObject(data)) {
-        return objAdd(data as Record<PropertyKey, TValue>, key, value) as DataItems<
-            TValue,
-            PropertyKey
-        >;
+        return objAdd(data, key, value);
     }
 
-    return arrAdd(arrWrap(data), key as number, value) as DataItems<TValue>;
+    return arrAdd(arrWrap(data), key as number, value);
 }
 
 /**
@@ -209,24 +206,20 @@ export function dataAdd<TValue>(
 export function dataItem<TValue extends Record<PropertyKey, unknown>, TDefault = null>(
     data: TValue,
     key: PathKey,
-    defaultValue?: TDefault,
+    defaultValue?: TDefault | (() => TDefault) | null,
 ): ReturnType<typeof objectItem<TValue>>;
 export function dataItem<TValue, TDefault = null>(
     data: TValue[],
     key: number,
-    defaultValue?: TDefault,
+    defaultValue?: TDefault | (() => TDefault) | null,
 ): ReturnType<typeof arrayItem<TValue>>;
 export function dataItem<TValue, TDefault = null>(
     data: DataItems<TValue, PropertyKey>,
     key: PathKey,
-    defaultValue?: TDefault,
+    defaultValue: TDefault | (() => TDefault) | null = null
 ) {
     if (isObject(data)) {
-        return objectItem(
-            data as Record<PropertyKey, TValue>,
-            key as string,
-            defaultValue,
-        );
+        return objectItem(data, key, defaultValue);
     }
 
     return arrayItem(arrWrap(data), key as number, defaultValue);
