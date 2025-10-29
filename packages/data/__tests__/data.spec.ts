@@ -94,6 +94,38 @@ describe("Data", () => {
         });
     });
 
+    describe("dataCombine", () => {
+        it("is object", () => {
+            const keys = { 1: 'name', 2: 'family', 3: () => 'callback', 4: undefined };
+            const values = { 0: "John", 1: "Doe", 2: 58 };
+            const result = Data.dataCombine(keys, values);
+
+            expect(result).toEqual({
+                name: "John",
+                family: "Doe",
+                callback: 58,
+            });
+        });
+
+        it("is array", () => {
+            const baseData = [1,2,3];
+            const result = Data.dataCombine(baseData,[4,5,6]);
+
+            expect(result).toEqual([
+                [1,4],
+                [2,5],
+                [3,6],
+            ]);
+        });
+
+        it("throws error on mismatched types", () => {
+            // @ts-expect-error Testing runtime error for mismatched types
+            expect(() => Data.dataCombine([1, 2, 3], { a: 1 })).toThrowError();
+            // @ts-expect-error Testing runtime error for mismatched types
+            expect(() => Data.dataCombine({ a: 1 }, [1, 2, 3])).toThrowError();
+        });
+    });
+
     it("values", () => {
         expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
         expect(Data.dataValues({ a: 1, b: 2, c: 3 })).toEqual([1, 2, 3]);

@@ -314,16 +314,24 @@ export function dataCollapse<TValue>(
  * @param itemsB - The second data set
  * @returns Combined data set
  */
-export function dataCombine<TCombine>(
-    itemsA: DataItems<TCombine>,
-    itemsB: DataItems<TCombine>,
+export function dataCombine<TKeys extends Record<PropertyKey, unknown>, TValues extends Record<PropertyKey, unknown>>(
+    itemsA: Record<PropertyKey, TKeys>,
+    itemsB: Record<PropertyKey, TValues>,
+): ReturnType<typeof objCombine>;
+export function dataCombine<TKeys, TValues>(
+    itemsA: TKeys[],
+    itemsB: TValues[],
+): ReturnType<typeof arrCombine>;
+export function dataCombine<TKeys, TValues>(
+    itemsA: DataItems<TKeys>,
+    itemsB: DataItems<TValues>,
 ){
     if (isObject(itemsA) && isObject(itemsB)) {
-        return objCombine(itemsA as Record<PropertyKey, TCombine>, itemsB as Record<PropertyKey, TCombine>);
+        return objCombine(itemsA as Record<PropertyKey, TKeys>, itemsB as Record<PropertyKey, TValues>);
     }
 
     if (isArray(itemsA) && isArray(itemsB)) {
-        return arrCombine(itemsA as TCombine[], itemsB as TCombine[]);
+        return arrCombine(itemsA as TKeys[], itemsB as TValues[]);
     }
 
     throw new Error("dataCombine requires both itemsA and itemsB to be of the same type (both objects or both arrays).");
