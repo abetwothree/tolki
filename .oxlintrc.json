@@ -7,7 +7,12 @@
     "env": {
         "builtin": true
     },
-    "ignorePatterns": ["**/dist/**", "coverage/**"],
+    "ignorePatterns": [
+        "**/dist/**",
+        "coverage/**",
+        "docs/.vitepress/dist/**",
+        "docs/.vitepress/cache/**"
+    ],
     "rules": {
         "@typescript-eslint/ban-ts-comment": "error",
         "no-array-constructor": "error",
