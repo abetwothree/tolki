@@ -13,40 +13,44 @@ describe("Data", () => {
         it("is array", () => {
             const result = Data.dataAdd([1, 2], 2, 3);
             expect(result).toEqual([1, 2, 3]);
-            
+
             assertType<number[]>(result);
         });
     });
 
-    it("dataItem", () => {
-        expect(
-            Data.dataItem(
-                [
-                    [1, 2],
-                    [2, 3],
-                ],
-                1,
-            ),
-        ).toEqual([2, 3]);
-        expect(Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "b")).toEqual({
-            g: 4,
+    describe("dataItem", () => {
+        it("is object", () => {
+            const result = Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "b");
+            expect(result).toEqual({g: 4});
+            
+            expect(
+                Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "x", {
+                    error: "not found",
+                }),
+            ).toEqual({ error: "not found" });
         });
 
-        expect(
-            Data.dataItem(
-                [
-                    [1, 2],
-                    [2, 3],
-                ],
-                3,
-                ["not found"],
-            ),
-        ).toEqual(["not found"]);
-        expect(
-            Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "x", {
-                error: "not found",
-            }),
-        ).toEqual({ error: "not found" });
+        it("is array", () => {
+            const result = Data.dataItem(
+                    [
+                        [1, 2],
+                        [2, 3],
+                    ],
+                    1,
+                );
+            expect(result).toEqual([2, 3]);
+
+            expect(
+                Data.dataItem(
+                    [
+                        [1, 2],
+                        [2, 3],
+                    ],
+                    3,
+                    ["not found"],
+                ),
+            ).toEqual(["not found"]);
+        });
     });
 
     it("dataBoolean", () => {

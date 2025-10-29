@@ -206,14 +206,24 @@ export function dataAdd<TValue>(
  * dataItem([['a', 'b'], ['c', 'd']], 0); -> ['a', 'b']
  * dataItem({items: ['x', 'y']}, 'items'); -> ['x', 'y']
  */
-export function dataItem<D = null>(
-    data: unknown,
+export function dataItem<TValue extends Record<PropertyKey, unknown>, TDefault = null>(
+    data: TValue,
     key: PathKey,
-    defaultValue?: D,
-): unknown[] | Record<string, unknown> {
+    defaultValue?: TDefault,
+): ReturnType<typeof objectItem<TValue>>;
+export function dataItem<TValue, TDefault = null>(
+    data: TValue[],
+    key: number,
+    defaultValue?: TDefault,
+): ReturnType<typeof arrayItem<TValue>>;
+export function dataItem<TValue, TDefault = null>(
+    data: DataItems<TValue, PropertyKey>,
+    key: PathKey,
+    defaultValue?: TDefault,
+) {
     if (isObject(data)) {
         return objectItem(
-            data as Record<string, unknown>,
+            data as Record<PropertyKey, TValue>,
             key as string,
             defaultValue,
         );
