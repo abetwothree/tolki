@@ -238,20 +238,19 @@ export function dataBoolean<TValue, TKey extends PropertyKey = PropertyKey>(
  * 
  * @param data - The data to chunk
  * @param size - The size of each chunk
- * @param preserveKeys - Whether to preserve the original keys, defaults to false
+ * @param preserveKeys - Whether to preserve the original keys, defaults to true
  * @returns Chunked data
- * TValue[] | Record<TKey, TValue>
  */
 export function dataChunk<TValue extends Record<PropertyKey, unknown>>(
     data: TValue,
     size: number,
     preserveKeys?: boolean,
-): ReturnType<typeof objChunk>;
+): ReturnType<typeof objChunk<TValue>>;
 export function dataChunk<TValue>(
     data: TValue[],
     size: number,
     preserveKeys?: boolean,
-): ReturnType<typeof arrChunk>;
+): ReturnType<typeof arrChunk<TValue>>;
 export function dataChunk<TValue>(
     data: DataItems<TValue, PropertyKey>,
     size: number,
@@ -292,11 +291,17 @@ export function dataChunk<TValue>(
  * dataCollapse([[1, 2], [3, 4]]); -> [1, 2, 3, 4]
  * dataCollapse({a: {x: 1, y: 2}, b: {z: 3}}); -> {x: 1, y: 2, z: 3}
  */
-export function dataCollapse<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
+export function dataCollapse<TValue extends Record<PropertyKey, unknown>>(
+    data: TValue,
+): ReturnType<typeof objCollapse>;
+export function dataCollapse<TValue>(
+    data: TValue[],
+): ReturnType<typeof arrCollapse>;
+export function dataCollapse<TValue>(
+    data: DataItems<TValue, PropertyKey>,
 ) {
     if (isObject(data)) {
-        return objCollapse(data as Record<TKey, Record<TKey, TValue>>);
+        return objCollapse(data as Record<PropertyKey, Record<PropertyKey, TValue>>);
     }
 
     return arrCollapse(arrWrap(data));

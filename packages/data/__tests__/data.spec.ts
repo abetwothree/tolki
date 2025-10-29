@@ -1,5 +1,5 @@
 import * as Data from "@laravel-js/data";
-import { describe, expect,it } from "vitest";
+import { describe, expect, it, assertType } from "vitest";
 
 describe("Data", () => {
     it("add", () => {
@@ -30,6 +30,8 @@ describe("Data", () => {
                 2: { e: 5 },
             });
 
+            assertType<Record<number, Record<number, {a: number; b: number; c: number; d: number; e: number;}>>>(result);
+
             const result1 = Data.dataChunk({'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5}, 2, true);
             expect(result1).toEqual({
                 0: { a: 1, b: 2 },
@@ -54,6 +56,8 @@ describe("Data", () => {
                 [10],
             ]);
 
+            assertType<number[][] | [number, number][][]>(result);
+
             const result2 = Data.dataChunk([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3, false);
             expect(result2).toEqual([
                 [ [ 0, 1 ], [ 1, 2 ], [ 2, 3 ] ],
@@ -61,6 +65,32 @@ describe("Data", () => {
                 [ [ 6, 7 ], [ 7, 8 ], [ 8, 9 ] ],
                 [ [ 9, 10 ] ],
             ]);
+
+            assertType<number[][] | [number, number][][]>(result2);
+        });
+    });
+
+    describe("dataCollapse", () => {
+        it("is object", () => {
+            const obj = { a: { x: 1 }, b: { y: 2 }, c: { z: 3 } };
+            expect(Data.dataCollapse(obj)).toEqual({ x: 1, y: 2, z: 3 });
+
+            expect(Data.dataCollapse({ a: { x: 1 }, b: { y: 2 } })).toEqual({
+                x: 1,
+                y: 2,
+            });
+        });
+        
+        it("is array", () => {
+            const data = [["foo", "bar"], ["baz"]];
+            expect(Data.dataCollapse(data)).toEqual(["foo", "bar", "baz"]);
+
+            expect(
+                Data.dataCollapse([
+                    [1, 2],
+                    [3, 4],
+                ]),
+            ).toEqual([1, 2, 3, 4]);
         });
     });
 
@@ -165,19 +195,6 @@ describe("Data", () => {
                 "name",
             ),
         ).toEqual(["House", "Condo", "Apartment"]);
-    });
-
-    it("collapse", () => {
-        expect(
-            Data.dataCollapse([
-                [1, 2],
-                [3, 4],
-            ]),
-        ).toEqual([1, 2, 3, 4]);
-        expect(Data.dataCollapse({ a: { x: 1 }, b: { y: 2 } })).toEqual({
-            x: 1,
-            y: 2,
-        });
     });
 
     it("divide", () => {
