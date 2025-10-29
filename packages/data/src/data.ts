@@ -147,12 +147,14 @@ import {
     where as objWhere,
     whereNotNull as objWhereNotNull,
 } from "@laravel-js/obj";
-import type {
-    DataItems,
-    PathKey,
-    PathKeys,
-} from "@laravel-js/types";
-import { isArray, isFunction, isObject, isUndefined, isBoolean } from "@laravel-js/utils";
+import type { DataItems, PathKey, PathKeys } from "@laravel-js/types";
+import {
+    isArray,
+    isBoolean,
+    isFunction,
+    isObject,
+    isUndefined,
+} from "@laravel-js/utils";
 
 /**
  * Add an element to data.
@@ -173,7 +175,10 @@ export function dataAdd<TValue, TKey extends PropertyKey = PropertyKey>(
     value: TValue,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objAdd(data as Record<TKey, TValue>, key, value) as DataItems<TValue, TKey>;
+        return objAdd(data as Record<TKey, TValue>, key, value) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrAdd(arrWrap(data), key as number, value) as DataItems<TValue>;
@@ -235,7 +240,7 @@ export function dataBoolean<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Chunk the data into chunks of the given size.
- * 
+ *
  * @param data - The data to chunk
  * @param size - The size of each chunk
  * @param preserveKeys - Whether to preserve the original keys, defaults to true
@@ -258,22 +263,11 @@ export function dataChunk<TValue>(
 ) {
     if (isObject(data)) {
         if (preserveKeys === true) {
-            return objChunk(
-                data as Record<PropertyKey, TValue>,
-                size,
-                true
-            );
+            return objChunk(data as Record<PropertyKey, TValue>, size, true);
         } else if (preserveKeys === false) {
-            return objChunk(
-                data as Record<PropertyKey, TValue>,
-                size,
-                false
-            );
+            return objChunk(data as Record<PropertyKey, TValue>, size, false);
         } else {
-            return objChunk(
-                data as Record<PropertyKey, TValue>,
-                size
-            );
+            return objChunk(data as Record<PropertyKey, TValue>, size);
         }
     }
 
@@ -297,11 +291,11 @@ export function dataCollapse<TValue extends Record<PropertyKey, unknown>>(
 export function dataCollapse<TValue>(
     data: TValue[],
 ): ReturnType<typeof arrCollapse>;
-export function dataCollapse<TValue>(
-    data: DataItems<TValue, PropertyKey>,
-) {
+export function dataCollapse<TValue>(data: DataItems<TValue, PropertyKey>) {
     if (isObject(data)) {
-        return objCollapse(data as Record<PropertyKey, Record<PropertyKey, TValue>>);
+        return objCollapse(
+            data as Record<PropertyKey, Record<PropertyKey, TValue>>,
+        );
     }
 
     return arrCollapse(arrWrap(data));
@@ -309,12 +303,15 @@ export function dataCollapse<TValue>(
 
 /**
  * Combine two data sets.
- * 
+ *
  * @param itemsA - The first data set
  * @param itemsB - The second data set
  * @returns Combined data set
  */
-export function dataCombine<TKeys extends Record<PropertyKey, unknown>, TValues extends Record<PropertyKey, unknown>>(
+export function dataCombine<
+    TKeys extends Record<PropertyKey, unknown>,
+    TValues extends Record<PropertyKey, unknown>,
+>(
     itemsA: Record<PropertyKey, TKeys>,
     itemsB: Record<PropertyKey, TValues>,
 ): ReturnType<typeof objCombine>;
@@ -325,24 +322,29 @@ export function dataCombine<TKeys, TValues>(
 export function dataCombine<TKeys, TValues>(
     itemsA: DataItems<TKeys>,
     itemsB: DataItems<TValues>,
-){
+) {
     if (isObject(itemsA) && isObject(itemsB)) {
-        return objCombine(itemsA as Record<PropertyKey, TKeys>, itemsB as Record<PropertyKey, TValues>);
+        return objCombine(
+            itemsA as Record<PropertyKey, TKeys>,
+            itemsB as Record<PropertyKey, TValues>,
+        );
     }
 
     if (isArray(itemsA) && isArray(itemsB)) {
         return arrCombine(itemsA as TKeys[], itemsB as TValues[]);
     }
 
-    throw new Error("dataCombine requires both itemsA and itemsB to be of the same type (both objects or both arrays).");
+    throw new Error(
+        "dataCombine requires both itemsA and itemsB to be of the same type (both objects or both arrays).",
+    );
 }
 
 /**
  * Count the number of items in data.
- * 
+ *
  * @param data - the data to count
  * @returns The count of items in the object or array
- * 
+ *
  * @example
  *
  * dataCount([1, 2, 3]); -> 3
@@ -376,10 +378,7 @@ export function dataCrossJoin(data: unknown, ...others: unknown[]): unknown[] {
     }
 
     // For arrays
-    return arrCrossJoin(
-        arrWrap(data) as unknown[],
-        ...(others as unknown[][]),
-    );
+    return arrCrossJoin(arrWrap(data) as unknown[], ...(others as unknown[][]));
 }
 
 /**
@@ -438,7 +437,7 @@ export function dataDot<TValue, TKey extends PropertyKey = PropertyKey>(
 export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
 ): DataItems<TValue, TKey> {
-    if(isObject(data)){
+    if (isObject(data)) {
         return objUndot(data) as DataItems<TValue, TKey>;
     }
 
@@ -452,19 +451,21 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
     return arrUndot(result) as DataItems<TValue>;
 }
 
-export function dataUnion(
-    itemsA: unknown,
-    itemsB: unknown,
-){
+export function dataUnion(itemsA: unknown, itemsB: unknown) {
     if (isObject(itemsA) && isObject(itemsB)) {
-        return objUnion(itemsA as Record<string, unknown>, itemsB as Record<string, unknown>);
+        return objUnion(
+            itemsA as Record<string, unknown>,
+            itemsB as Record<string, unknown>,
+        );
     }
 
     if (isArray(itemsA) && isArray(itemsB)) {
         return arrUnion(itemsA as unknown[], itemsB as unknown[]);
     }
 
-    throw new Error("dataUnion requires both itemsA and itemsB to be of the same type (both objects or both arrays).");
+    throw new Error(
+        "dataUnion requires both itemsA and itemsB to be of the same type (both objects or both arrays).",
+    );
 }
 
 /**
@@ -484,7 +485,10 @@ export function dataExcept<TValue, TKey extends PropertyKey = PropertyKey>(
     keys: PathKeys,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objExcept(data as Record<TKey, TValue>, keys as string[]) as DataItems<TValue,TKey>;
+        return objExcept(
+            data as Record<TKey, TValue>,
+            keys as string[],
+        ) as DataItems<TValue, TKey>;
     }
 
     return arrExcept(arrWrap(data), keys as number[]) as DataItems<TValue>;
@@ -530,7 +534,10 @@ export function dataTake<TValue, TKey extends PropertyKey = PropertyKey>(
     limit: number,
 ): DataItems<TValue, TKey> | DataItems<TValue> {
     if (isObject(data)) {
-        return objTake(data as Record<TKey, TValue>, limit) as DataItems<TValue, TKey>;
+        return objTake(data as Record<TKey, TValue>, limit) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrTake(arrWrap(data), limit) as DataItems<TValue>;
@@ -611,10 +618,10 @@ export function dataForget<TValue, TKey extends PropertyKey = PropertyKey>(
     keys: PathKeys,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objForget(data as Record<TKey, TValue>, keys as string[]) as DataItems<
-            TValue,
-            TKey
-        >;
+        return objForget(
+            data as Record<TKey, TValue>,
+            keys as string[],
+        ) as DataItems<TValue, TKey>;
     }
 
     return arrForget(arrWrap(data), keys as number[]) as DataItems<TValue>;
@@ -653,13 +660,21 @@ export function dataFrom(items: unknown): unknown[] | Record<string, unknown> {
  * dataGet([1, 2, 3], 1, 'default'); -> 2
  * dataGet({a: 1, b: 2}, 'c', 'default'); -> 'default'
  */
-export function dataGet<TValue, TKey extends PropertyKey = PropertyKey, TGetDefault = null>(
+export function dataGet<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TGetDefault = null,
+>(
     data: DataItems<TValue, TKey>,
     key: PathKey,
     defaultValue?: TGetDefault | (() => TGetDefault),
 ): TValue | TGetDefault | null {
     if (isObject(data)) {
-        return objGet(data as Record<TKey, TValue>, key as string, defaultValue);
+        return objGet(
+            data as Record<TKey, TValue>,
+            key as string,
+            defaultValue,
+        );
     }
 
     return arrGet(arrWrap(data), key as number, defaultValue);
@@ -862,8 +877,8 @@ export function dataKeyBy(
         return objKeyBy(
             data as Record<string, unknown>,
             keyBy as
-            | string
-            | ((item: Record<string, unknown>) => string | number),
+                | string
+                | ((item: Record<string, unknown>) => string | number),
         );
     }
 
@@ -885,10 +900,10 @@ export function dataKeyBy(
  * dataPrependKeysWith({name: 'John', age: 30}, 'user_');
  * -> {user_name: 'John', user_age: 30}
  */
-export function dataPrependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    prependWith: string,
-): Record<string, TValue> {
+export function dataPrependKeysWith<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(data: DataItems<TValue, TKey>, prependWith: string): Record<string, TValue> {
     if (isObject(data)) {
         return objPrependKeysWith(data as Record<TKey, TValue>, prependWith);
     }
@@ -908,18 +923,15 @@ export function dataPrependKeysWith<TValue, TKey extends PropertyKey = PropertyK
  * dataOnly([1, 2, 3, 4], [0, 2]); -> [1, 3]
  * dataOnly({a: 1, b: 2, c: 3}, ['a', 'c']); -> {a: 1, c: 3}
  */
-export function dataOnly<
-    TValue,
-    TKey extends PropertyKey = PropertyKey
->(
+export function dataOnly<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
     keys: PathKey[],
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objOnly(data as Record<TKey, TValue>, keys as string[]) as DataItems<
-            TValue,
-            TKey
-        >;
+        return objOnly(
+            data as Record<TKey, TValue>,
+            keys as string[],
+        ) as DataItems<TValue, TKey>;
     }
 
     return arrOnly(arrWrap(data), keys as number[]) as DataItems<TValue>;
@@ -936,10 +948,10 @@ export function dataOnly<
  *
  * dataSelect([{a: 1, b: 2, c: 3}], ['a', 'c']); -> [{a: 1, c: 3}]
  */
-export function dataSelect<
-    TValue,
-    TKey extends PropertyKey = PropertyKey
->(data: DataItems<TValue, TKey>, keys: PathKey[] | PathKeys) {
+export function dataSelect<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: DataItems<TValue, TKey>,
+    keys: PathKey[] | PathKeys,
+) {
     if (isObject(data)) {
         return objSelect(data as Record<string, Record<string, TValue>>, keys);
     }
@@ -969,18 +981,29 @@ export function dataMapWithKeys<
     TMapWithKeysKey extends PropertyKey = PropertyKey,
 >(
     data: unknown,
-    callback: (value: TValue, key: TKey) => [TMapWithKeysKey, TMapWithKeysValue] | Record<TMapWithKeysKey, TMapWithKeysValue>,
+    callback: (
+        value: TValue,
+        key: TKey,
+    ) =>
+        | [TMapWithKeysKey, TMapWithKeysValue]
+        | Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue> {
     if (isObject(data)) {
         return objMapWithKeys(
             data as Record<string, TValue>,
-            callback as (value: TValue, key: string) => Record<TMapWithKeysKey, TMapWithKeysValue>,
+            callback as (
+                value: TValue,
+                key: string,
+            ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
         ) as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
 
     return arrMapWithKeys(
         arrWrap(data) as TValue[],
-        callback as (value: TValue, index: number) => [TMapWithKeysKey, TMapWithKeysValue],
+        callback as (
+            value: TValue,
+            index: number,
+        ) => [TMapWithKeysKey, TMapWithKeysValue],
     ) as Record<TMapWithKeysKey, TMapWithKeysValue>;
 }
 
@@ -1048,7 +1071,11 @@ export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataPull([1, 2, 3], 1, 'default'); -> {value: 2, data: [1, 3]}
  * dataPull({a: 1, b: 2}, 'b', 'default'); -> {value: 2, data: {a: 1}}
  */
-export function dataPull<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
+export function dataPull<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TDefault = null,
+>(
     data: DataItems<TValue, TKey>,
     key: PathKey,
     defaultValue?: TDefault,
@@ -1218,7 +1245,7 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Get and remove the first N items from the data.
- * 
+ *
  * @param items - The data to shift from
  * @param count - Number of items to shift
  * @returns The shifted items
@@ -1228,7 +1255,10 @@ export function dataShift<TValue, TKey extends PropertyKey = PropertyKey>(
     count: number = 1,
 ) {
     if (isObject(items)) {
-        return objShift(items as Record<TKey, TValue>, count) as DataItems<TValue, TKey>;
+        return objShift(items as Record<TKey, TValue>, count) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrShift(arrWrap(items), count) as DataItems<TValue>;
@@ -1247,7 +1277,11 @@ export function dataShift<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataSet([1, 2, 3], 1, 'new'); -> [1, 'new', 3]
  * dataSet({a: 1, b: 2}, 'c', 3); -> {a: 1, b: 2, c: 3}
  */
-export function dataSet<TValue, TKey extends PropertyKey = PropertyKey, TSet = TValue>(
+export function dataSet<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TSet = TValue,
+>(
     data: DataItems<TValue, TKey>,
     key: PathKey,
     value: TSet,
@@ -1260,7 +1294,10 @@ export function dataSet<TValue, TKey extends PropertyKey = PropertyKey, TSet = T
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrSet(arrWrap(data), key as number, value) as DataItems<TValue, TKey>;
+    return arrSet(arrWrap(data), key as number, value) as DataItems<
+        TValue,
+        TKey
+    >;
 }
 
 /**
@@ -1282,19 +1319,18 @@ export function dataPush<TValue, TKey extends PropertyKey = PropertyKey>(
     values: TValue | TValue[],
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objPush(
-            data,
-            key as string,
-            values,
-        ) as DataItems<TValue, TKey>;
+        return objPush(data, key as string, values) as DataItems<TValue, TKey>;
     }
 
-    return arrPush(arrWrap(data), key as number, values) as DataItems<TValue, TKey>;
+    return arrPush(arrWrap(data), key as number, values) as DataItems<
+        TValue,
+        TKey
+    >;
 }
 
 /**
  * Prepend one or more items to the beginning of the data items
- * 
+ *
  * @param data - The data to unshift to
  * @param items - The items to prepend
  * @returns Data with prepended items
@@ -1306,11 +1342,14 @@ export function dataUnshift<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objUnshift(
             data,
-            ...items as Array<[TKey, TValue]>,
+            ...(items as Array<[TKey, TValue]>),
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrUnshift(arrWrap(data), ...items as Array<[TValue]>) as DataItems<TValue, TKey>;
+    return arrUnshift(
+        arrWrap(data),
+        ...(items as Array<[TValue]>),
+    ) as DataItems<TValue, TKey>;
 }
 
 /**
@@ -1328,7 +1367,10 @@ export function dataShuffle<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objShuffle(data as Record<string, TValue>) as DataItems<TValue, TKey>;
+        return objShuffle(data as Record<string, TValue>) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrShuffle(arrWrap(data)) as DataItems<TValue, TKey>;
@@ -1336,7 +1378,7 @@ export function dataShuffle<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Slice the underlying data items
- * 
+ *
  * @param data - The data to slice
  * @param offset - The starting index
  * @param length - The number of items to include
@@ -1346,9 +1388,13 @@ export function dataSlice<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
     offset: number,
     length: number | null = null,
-){
+) {
     if (isObject(data)) {
-        return objSlice(data as Record<TKey, TValue>, offset, length) as DataItems<TValue, TKey>;
+        return objSlice(
+            data as Record<TKey, TValue>,
+            offset,
+            length,
+        ) as DataItems<TValue, TKey>;
     }
 
     return arrSlice(arrWrap(data), offset, length) as DataItems<TValue>;
@@ -1401,7 +1447,10 @@ export function dataSort<TValue, TKey extends PropertyKey = PropertyKey>(
     callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objSort(data as Record<string, TValue>, callback) as DataItems<TValue, TKey>;
+        return objSort(data as Record<string, TValue>, callback) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrSort(arrWrap(data), callback) as DataItems<TValue, TKey>;
@@ -1445,7 +1494,10 @@ export function dataSortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * dataSortRecursive({b: {y: 2, x: 1}, a: {z: 3, w: 4}}); -> {a: {w: 4, z: 3}, b: {x: 1, y: 2}}
  */
-export function dataSortRecursive<TValue, TKey extends PropertyKey = PropertyKey>(
+export function dataSortRecursive<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(
     data: DataItems<TValue, TKey>,
     options?: number,
     descending = false,
@@ -1458,7 +1510,11 @@ export function dataSortRecursive<TValue, TKey extends PropertyKey = PropertyKey
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrSortRecursive(arrWrap(data), options, descending) as DataItems<TValue>;
+    return arrSortRecursive(
+        arrWrap(data),
+        options,
+        descending,
+    ) as DataItems<TValue>;
 }
 
 /**
@@ -1472,10 +1528,10 @@ export function dataSortRecursive<TValue, TKey extends PropertyKey = PropertyKey
  *
  * dataSortRecursiveDesc({a: {w: 4, z: 3}, b: {x: 1, y: 2}}); -> {b: {y: 2, x: 1}, a: {z: 3, w: 4}}
  */
-export function dataSortRecursiveDesc<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    options?: number,
-): DataItems<TValue, TKey> {
+export function dataSortRecursiveDesc<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(data: DataItems<TValue, TKey>, options?: number): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objSortRecursiveDesc(
             data as Record<TKey, TValue>,
@@ -1483,12 +1539,15 @@ export function dataSortRecursiveDesc<TValue, TKey extends PropertyKey = Propert
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrSortRecursiveDesc(arrWrap(data), options) as DataItems<TValue, TKey>;
+    return arrSortRecursiveDesc(arrWrap(data), options) as DataItems<
+        TValue,
+        TKey
+    >;
 }
 
 /**
  * Splice a portion of the underlying data items.
- * 
+ *
  * @param data - The data to splice
  * @param offset - The starting index
  * @param length - The number of items to remove
@@ -1510,12 +1569,10 @@ export function dataSplice<TValue, TKey extends PropertyKey = PropertyKey>(
         ) as { array: DataItems<TValue, TKey>; removed: TValue[] };
     }
 
-    return arrSplice(
-        arrWrap(data),
-        offset,
-        length,
-        ...replacement,
-    ) as { array: DataItems<TValue, TKey>; removed: TValue[] };
+    return arrSplice(arrWrap(data), offset, length, ...replacement) as {
+        array: DataItems<TValue, TKey>;
+        removed: TValue[];
+    };
 }
 
 /**
@@ -1537,11 +1594,7 @@ export function dataString<TValue, TKey extends PropertyKey = PropertyKey>(
     defaultValue = "",
 ): string {
     if (isObject(data)) {
-        return objString(
-            data as Record<TKey, TValue>,
-            key,
-            defaultValue,
-        );
+        return objString(data as Record<TKey, TValue>, key, defaultValue);
     }
 
     return arrString(arrWrap(data), key as number, defaultValue);
@@ -1558,9 +1611,10 @@ export function dataString<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataToCssClasses(['btn', 'btn-primary']); -> 'btn btn-primary'
  * dataToCssClasses({btn: true, 'btn-primary': true, disabled: false}); -> 'btn btn-primary'
  */
-export function dataToCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-): string {
+export function dataToCssClasses<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(data: DataItems<TValue, TKey>): string {
     if (isObject(data)) {
         return objToCssClasses(data as Record<TKey, TValue>);
     }
@@ -1620,7 +1674,7 @@ export function dataWhere<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Replace the data items with the given items.
- * 
+ *
  * @param data - The original data
  * @param items - The items to replace with
  * @returns The replaced data
@@ -1628,7 +1682,7 @@ export function dataWhere<TValue, TKey extends PropertyKey = PropertyKey>(
 export function dataReplace<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
     replacerData: DataItems<TValue, TKey>,
-){
+) {
     if (isObject(data) && isObject(replacerData)) {
         return objReplace(
             data as Record<TKey, TValue>,
@@ -1637,26 +1691,25 @@ export function dataReplace<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     if (isArray(data) && isArray(replacerData)) {
-        return arrReplace(
-            data,
-            replacerData,
-        ) as DataItems<TValue>;
+        return arrReplace(data, replacerData) as DataItems<TValue>;
     }
 
-    throw new Error('Data to replace and items must be of the same type (both array or both object).');
+    throw new Error(
+        "Data to replace and items must be of the same type (both array or both object).",
+    );
 }
 
 /**
  * Recursively replace the data items with the given items recursively.
- * 
+ *
  * @param data - The original data
  * @param items - The items to replace with
  * @returns The replaced data
  */
-export function dataReplaceRecursive<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    replacerData: DataItems<TValue, TKey>,
-){
+export function dataReplaceRecursive<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(data: DataItems<TValue, TKey>, replacerData: DataItems<TValue, TKey>) {
     if (isObject(data) && isObject(replacerData)) {
         return objReplaceRecursive(
             data as Record<TKey, TValue>,
@@ -1665,13 +1718,12 @@ export function dataReplaceRecursive<TValue, TKey extends PropertyKey = Property
     }
 
     if (isArray(data) && isArray(replacerData)) {
-        return arrReplaceRecursive(
-            data,
-            replacerData,
-        ) as DataItems<TValue>;
+        return arrReplaceRecursive(data, replacerData) as DataItems<TValue>;
     }
 
-    throw new Error('Data to replace and items must be of the same type (both array or both object).');
+    throw new Error(
+        "Data to replace and items must be of the same type (both array or both object).",
+    );
 }
 
 /**
@@ -1707,7 +1759,10 @@ export function dataReverse<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objReverse(data as Record<string, TValue>) as DataItems<TValue, TKey>;
+        return objReverse(data as Record<string, TValue>) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrReverse(arrWrap(data)) as DataItems<TValue>;
@@ -1715,19 +1770,22 @@ export function dataReverse<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Pad data to the specified length with a value.
- * 
+ *
  * @param data - The data to pad
  * @param size - The desired size
  * @param value - The value to pad with
  * @returns Padded data
  */
-export function dataPad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    size: number,
-    value: TPadValue,
-){
+export function dataPad<
+    TPadValue,
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(data: DataItems<TValue, TKey>, size: number, value: TPadValue) {
     if (isObject(data)) {
-        return objPad(data as Record<TKey, TValue>, size, value) as DataItems<TValue, TKey>;
+        return objPad(data as Record<TKey, TValue>, size, value) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrPad(arrWrap(data), size, value) as DataItems<TValue>;
@@ -1754,7 +1812,10 @@ export function dataPartition<TValue, TKey extends PropertyKey = PropertyKey>(
             data as Record<TKey, TValue>,
             callback as (value: TValue, key: TKey) => boolean,
         );
-        return [passing as DataItems<TValue, TKey>, failing as DataItems<TValue, TKey>];
+        return [
+            passing as DataItems<TValue, TKey>,
+            failing as DataItems<TValue, TKey>,
+        ];
     }
 
     const [passing, failing] = arrPartition(
@@ -1775,14 +1836,14 @@ export function dataPartition<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataWhereNotNull([1, null, 2, null, 3]); -> [1, 2, 3]
  * dataWhereNotNull({a: 1, b: null, c: 2}); -> {a: 1, c: 2}
  */
-export function dataWhereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue | null, TKey>,
-): DataItems<TValue, TKey> {
+export function dataWhereNotNull<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(data: DataItems<TValue | null, TKey>): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objWhereNotNull(data as Record<TKey, TValue | null>) as DataItems<
-            TValue,
-            TKey
-        >;
+        return objWhereNotNull(
+            data as Record<TKey, TValue | null>,
+        ) as DataItems<TValue, TKey>;
     }
 
     return arrWhereNotNull(arrWrap(data)) as DataItems<TValue>;
@@ -1871,7 +1932,11 @@ export function dataFilter<TValue, TKey extends PropertyKey = PropertyKey>(
  * Data.map([1, 2, 3], (value) => value * 2); -> [2, 4, 6]
  * Data.map({a: 1, b: 2}, (value) => value * 2); -> {a: 2, b: 4}
  */
-export function dataMap<TMapValue, TValue, TKey extends PropertyKey = PropertyKey>(
+export function dataMap<
+    TMapValue,
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(
     data: DataItems<TValue, TKey>,
     callback: (value: TValue, key: TKey) => TMapValue,
 ): DataItems<TMapValue, TKey> {
@@ -1901,17 +1966,17 @@ export function dataMap<TMapValue, TValue, TKey extends PropertyKey = PropertyKe
  * Data.first([1, 2, 3, 4], (value) => value > 2); -> 3
  * Data.first({a: 1, b: 2, c: 3}, (value) => value > 1); -> 2
  */
-export function dataFirst<TValue, TKey extends PropertyKey = PropertyKey, TFirstDefault = null>(
+export function dataFirst<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TFirstDefault = null,
+>(
     data: DataItems<TValue, TKey>,
     callback?: ((value: TValue, key: TKey) => boolean) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
     if (isObject(data)) {
-        const result = objFirst(
-            data,
-            callback,
-            defaultValue,
-        );
+        const result = objFirst(data, callback, defaultValue);
 
         return isUndefined(result) ? null : result;
     }
@@ -1938,7 +2003,11 @@ export function dataFirst<TValue, TKey extends PropertyKey = PropertyKey, TFirst
  * Data.last([1, 2, 3, 4], (value) => value < 4); -> 3
  * Data.last({a: 1, b: 2, c: 3}, (value) => value > 1); -> 3
  */
-export function dataLast<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
+export function dataLast<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TDefault = null,
+>(
     data: DataItems<TValue, TKey>,
     callback?: ((value: TValue, key: TKey) => boolean) | null,
     defaultValue?: TDefault | (() => TDefault),
@@ -1951,11 +2020,17 @@ export function dataLast<TValue, TKey extends PropertyKey = PropertyKey, TDefaul
                 defaultValue,
             );
 
-            return (isUndefined(result) || (isObject(result) && Object.keys(result).length === 0)) ? null : result as TValue | TDefault | null;
+            return isUndefined(result) ||
+                (isObject(result) && Object.keys(result).length === 0)
+                ? null
+                : (result as TValue | TDefault | null);
         } else {
             const result = objLast(data, undefined, defaultValue);
 
-            return (isUndefined(result) || (isObject(result) && Object.keys(result).length === 0)) ? null : result as TValue | TDefault | null;
+            return isUndefined(result) ||
+                (isObject(result) && Object.keys(result).length === 0)
+                ? null
+                : (result as TValue | TDefault | null);
         }
     }
 
@@ -1966,11 +2041,17 @@ export function dataLast<TValue, TKey extends PropertyKey = PropertyKey, TDefaul
             defaultValue,
         );
 
-        return (isUndefined(result) || (isObject(result) && Object.keys(result).length === 0)) ? null : result as TValue | TDefault | null;
+        return isUndefined(result) ||
+            (isObject(result) && Object.keys(result).length === 0)
+            ? null
+            : (result as TValue | TDefault | null);
     } else {
         const result = arrLast(data, undefined, defaultValue);
 
-        return (isUndefined(result) || (isObject(result) && Object.keys(result).length === 0)) ? null : result as TValue | TDefault | null;
+        return isUndefined(result) ||
+            (isObject(result) && Object.keys(result).length === 0)
+            ? null
+            : (result as TValue | TDefault | null);
     }
 }
 
@@ -1995,11 +2076,11 @@ export function dataContains<TValue, TKey extends PropertyKey = PropertyKey>(
         return objContains(
             data as Record<TKey, TValue>,
             value as
-            | Record<string, unknown>
-            | ((
-                value: Record<string, unknown>,
-                key: string | number,
-            ) => boolean),
+                | Record<string, unknown>
+                | ((
+                      value: Record<string, unknown>,
+                      key: string | number,
+                  ) => boolean),
             strict,
         );
     }
@@ -2059,20 +2140,26 @@ export function dataPluck<TValue, TKey extends PropertyKey = PropertyKey>(
         return objPluck(
             data as Record<TKey, TValue>,
             value as string | ((item: Record<TKey, TValue>) => unknown),
-            key as string | ((item: Record<TKey, TValue>) => string | number) | null,
+            key as
+                | string
+                | ((item: Record<TKey, TValue>) => string | number)
+                | null,
         ) as DataItems<TValue, TKey>;
     }
 
     return arrPluck(
         arrWrap(data) as unknown as Record<TKey, TValue>[],
         value as string | ((item: Record<TKey, TValue>) => TValue),
-        key as string | ((item: Record<TKey, TValue>) => string | number) | null,
+        key as
+            | string
+            | ((item: Record<TKey, TValue>) => string | number)
+            | null,
     ) as DataItems<TValue, TKey>;
 }
 
 /**
  * Get and remove the last N items from the data
- * 
+ *
  * @param data - The data to pop from
  * @param count - The number of items to pop
  * @returns Data with the last N items removed
@@ -2090,7 +2177,7 @@ export function dataPop<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Intersect the data with the given items.
- * 
+ *
  * @param data - The original data
  * @param items - The items to intersect with
  * @param callable - Optional comparison function
@@ -2113,20 +2200,22 @@ export function dataIntersect<TValue, TKey extends PropertyKey = PropertyKey>(
         return arrIntersect(data, other, callable) as DataItems<TValue>;
     }
 
-    throw new Error('Data to intersect must be of the same type (both array or both object).');
+    throw new Error(
+        "Data to intersect must be of the same type (both array or both object).",
+    );
 }
 
 /**
  * Intersect the data with the given items by key.
- * 
+ *
  * @param data - The original data
  * @param items - The items to intersect with
  * @returns The intersected data
  */
-export function dataIntersectByKeys<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    other: DataItems<TValue, TKey>,
-) {
+export function dataIntersectByKeys<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(data: DataItems<TValue, TKey>, other: DataItems<TValue, TKey>) {
     if (isObject(data) && isObject(other)) {
         return objIntersectByKeys(
             data as Record<string, TValue>,
@@ -2138,5 +2227,7 @@ export function dataIntersectByKeys<TValue, TKey extends PropertyKey = PropertyK
         return arrIntersectByKeys(data, other) as DataItems<TValue>;
     }
 
-    throw new Error('Data to intersect must be of the same type (both array or both object).');
+    throw new Error(
+        "Data to intersect must be of the same type (both array or both object).",
+    );
 }

@@ -4,14 +4,17 @@ import {
     type MarkDownOptions,
     Str,
 } from "@laravel-js/str";
-import type { ConditionableClosure, ConditionableValue } from "@laravel-js/types";
+import type {
+    ConditionableClosure,
+    ConditionableValue,
+} from "@laravel-js/types";
 import { isArray, isFunction } from "@laravel-js/utils";
 
 export class Stringable {
     /**
      * Create a new instance of the class.
      */
-    constructor(private readonly _value: string = "") { }
+    constructor(private readonly _value: string = "") {}
 
     /**
      * Return the remainder of a string after the first occurrence of a given value.
@@ -752,21 +755,21 @@ export class Stringable {
 
     /**
      * Apply the callback if the given "value" is (or resolves to) truthy.
-     * 
+     *
      * @param value - The value to evaluate or a closure that returns the value
      * @param callback - The callback to execute if the value is truthy
      * @param defaultCallback - The callback to execute if the value is falsy
      * @returns Stringable - The current instance or the result of the callback
-     * 
+     *
      * @example
-     * 
+     *
      * ```typescript
      * const str = new Stringable('hello world');
-     * 
+     *
      * // Using a direct value
      * str.when(true, s => s.upper()); // Returns 'HELLO WORLD'
      * str.when(false, s => s.upper(), s => s.lower()); // Returns 'hello world'
-     * 
+     *
      * // Using a closure to determine the value
      * str.when(s => s.contains('world'), s => s.upper()); // Returns 'HELLO WORLD'
      * str.when(s => s.contains('foo'), s => s.upper(), s => s.lower()); // Returns 'hello world'
@@ -774,8 +777,12 @@ export class Stringable {
      */
     when<TWhenParameter, TWhenReturnType>(
         value: ((instance: this) => TWhenParameter) | TWhenParameter | null,
-        callback: ((instance: this, value: TWhenParameter) => TWhenReturnType) | null = null,
-        defaultCallback: ((instance: this, value: TWhenParameter) => TWhenReturnType) | null = null,
+        callback:
+            | ((instance: this, value: TWhenParameter) => TWhenReturnType)
+            | null = null,
+        defaultCallback:
+            | ((instance: this, value: TWhenParameter) => TWhenReturnType)
+            | null = null,
     ): Stringable {
         const resolvedValue = isFunction(value)
             ? (value as (instance: this) => TWhenParameter)(this)
@@ -784,10 +791,7 @@ export class Stringable {
         if (resolvedValue) {
             return (callback?.(this, resolvedValue) ?? this) as Stringable;
         } else if (defaultCallback) {
-            return (defaultCallback(
-                this,
-                resolvedValue,
-            ) ?? this) as Stringable;
+            return (defaultCallback(this, resolvedValue) ?? this) as Stringable;
         }
 
         return this;
@@ -795,35 +799,35 @@ export class Stringable {
 
     /**
      * Apply the callback if the given "value" is (or resolves to) falsy.
-     * 
+     *
      * @param value - The value to evaluate or a closure that returns the value
      * @param callback - The callback to execute if the value is falsy
      * @param defaultCallback - The callback to execute if the value is truthy
      * @returns Stringable - The current instance or the result of the callback
-     * 
+     *
      * @example
-     * 
+     *
      * const str = new Stringable('hello world');
      * str.unless(true, s => s.upper()); // Returns 'hello world'
      * str.unless(false, s => s.upper(), s => s.lower()); // Returns 'HELLO WORLD'
      */
     unless<TUnlessParameter, TUnlessReturnType>(
         value: ((instance: this) => TUnlessParameter) | TUnlessParameter | null,
-        callback: ((instance: this, value: TUnlessParameter) => TUnlessReturnType) | null = null,
-        defaultCallback: ((instance: this, value: TUnlessParameter) => TUnlessReturnType) | null = null,
+        callback:
+            | ((instance: this, value: TUnlessParameter) => TUnlessReturnType)
+            | null = null,
+        defaultCallback:
+            | ((instance: this, value: TUnlessParameter) => TUnlessReturnType)
+            | null = null,
     ): Stringable {
-        const resolvedValue = (isFunction(value)
-            ? value(this)
-            : value) as TUnlessParameter;
+        const resolvedValue = (
+            isFunction(value) ? value(this) : value
+        ) as TUnlessParameter;
 
         if (!resolvedValue) {
-            return (callback?.(this, resolvedValue) ??
-                this) as Stringable;
+            return (callback?.(this, resolvedValue) ?? this) as Stringable;
         } else if (defaultCallback) {
-            return (defaultCallback(
-                this,
-                resolvedValue,
-            ) ?? this) as Stringable;
+            return (defaultCallback(this, resolvedValue) ?? this) as Stringable;
         }
 
         return this;

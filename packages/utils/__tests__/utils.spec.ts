@@ -1,5 +1,5 @@
 import * as Utils from "@laravel-js/utils";
-import { describe, expect,it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 describe("Utils", () => {
     describe("isArray", () => {
@@ -145,7 +145,7 @@ describe("Utils", () => {
         });
     });
 
-    describe("isPositiveNumber",  () => {
+    describe("isPositiveNumber", () => {
         it("returns true for positive numbers", () => {
             expect(Utils.isPositiveNumber(123)).toBe(true);
             expect(Utils.isPositiveNumber(0.1)).toBe(true);

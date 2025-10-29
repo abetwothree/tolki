@@ -1,5 +1,5 @@
 import * as Obj from "@laravel-js/obj";
-import { describe, expect,it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 describe("Obj", () => {
     describe("accessible", () => {
@@ -122,7 +122,7 @@ describe("Obj", () => {
     });
 
     it("chunk", () => {
-        const baseData = {'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5};
+        const baseData = { a: 1, b: 2, c: 3, d: 4, e: 5 };
         expect(Obj.chunk(baseData, 2)).toEqual({
             0: { a: 1, b: 2 },
             1: { c: 3, d: 4 },
@@ -144,13 +144,18 @@ describe("Obj", () => {
         expect(Obj.chunk(baseData, 0)).toEqual({});
         expect(Obj.chunk(baseData, -2)).toEqual({});
         expect(Obj.chunk(null, 4)).toEqual({});
-        expect(Obj.chunk('', 5)).toEqual({});
+        expect(Obj.chunk("", 5)).toEqual({});
         expect(Obj.chunk(false, 2)).toEqual({});
     });
 
     describe("combine", () => {
         it("should combine two objects into an object", () => {
-            const keys = { 1: 'name', 2: 'family', 3: () => 'callback', 4: undefined };
+            const keys = {
+                1: "name",
+                2: "family",
+                3: () => "callback",
+                4: undefined,
+            };
             const values = { 0: "John", 1: "Doe", 2: 58 };
             expect(Obj.combine(keys, values)).toEqual({
                 name: "John",
@@ -267,7 +272,7 @@ describe("Obj", () => {
         });
 
         it("passes non-object values", () => {
-            expect(Obj.dot('')).toEqual({});
+            expect(Obj.dot("")).toEqual({});
         });
     });
 
@@ -303,13 +308,23 @@ describe("Obj", () => {
         it("union objects", () => {
             expect(Obj.union({ a: 1 }, { b: 2 })).toEqual({ a: 1, b: 2 });
             expect(Obj.union({ a: 1 }, { a: 2 })).toEqual({ a: 1 });
-            expect(Obj.union({ a: "house", b: 3, c: 4 }, { a: "home", b: 2 }, {d: 5})).toEqual({ a: "house", b: 3, c: 4, d: 5});
+            expect(
+                Obj.union(
+                    { a: "house", b: 3, c: 4 },
+                    { a: "home", b: 2 },
+                    { d: 5 },
+                ),
+            ).toEqual({ a: "house", b: 3, c: 4, d: 5 });
         });
     });
 
     describe("unshift", () => {
         it("unshift objects", () => {
-            expect(Obj.unshift({ b: 2 }, { a: 1 }, {d: "house"})).toEqual({ a: 1, d: "house", b: 2 }); 
+            expect(Obj.unshift({ b: 2 }, { a: 1 }, { d: "house" })).toEqual({
+                a: 1,
+                d: "house",
+                b: 2,
+            });
         });
 
         it("test unshift null", () => {
@@ -322,10 +337,17 @@ describe("Obj", () => {
             expect(Obj.unshift()).toEqual({});
         });
 
-        it('test order of keys', () => {
-            expect(Obj.unshift({ c: 3 }, { a: 1, b: 2 })).toEqual({ a: 1, b: 2, c: 3 });
-            expect(Obj.unshift({ a: 10, b: 20 }, { a: 1, b: 2 })).toEqual({ a: 1, b: 2});
-        })
+        it("test order of keys", () => {
+            expect(Obj.unshift({ c: 3 }, { a: 1, b: 2 })).toEqual({
+                a: 1,
+                b: 2,
+                c: 3,
+            });
+            expect(Obj.unshift({ a: 10, b: 20 }, { a: 1, b: 2 })).toEqual({
+                a: 1,
+                b: 2,
+            });
+        });
     });
 
     describe("except", () => {
@@ -385,16 +407,16 @@ describe("Obj", () => {
         });
 
         it("should return an object", () => {
-            const items = {a: 1, b: 2, c: 3};
+            const items = { a: 1, b: 2, c: 3 };
             const result = Obj.from(items);
-            expect(result).toEqual({a: 1, b: 2, c: 3 });
+            expect(result).toEqual({ a: 1, b: 2, c: 3 });
         });
 
         it("should return the values of a Map", () => {
             const keys = new Map([
-                ['name', 'John'],
-                ['age', 30],
-                ['city', 'NYC'],
+                ["name", "John"],
+                ["age", 30],
+                ["city", "NYC"],
             ]);
 
             expect(Obj.from(keys)).toEqual({
@@ -421,18 +443,9 @@ describe("Obj", () => {
             ];
 
             expect(Obj.from(entries)).toEqual({
-                "0": [
-                    "name",
-                    "John",
-                ],
-                "1": [
-                    "age",
-                    30,
-                ],
-                "2": [
-                    "city",
-                    "NYC",
-                ],
+                "0": ["name", "John"],
+                "1": ["age", 30],
+                "2": ["city", "NYC"],
             });
         });
 
@@ -743,7 +756,10 @@ describe("Obj", () => {
 
         it("should pass key to callback", () => {
             const obj = { a: 1, b: 2, aa: 3 };
-            const result = Obj.filter(obj, (_value, key) => typeof key === "string" && key.length === 1);
+            const result = Obj.filter(
+                obj,
+                (_value, key) => typeof key === "string" && key.length === 1,
+            );
             expect(result).toEqual({ a: 1, b: 2 });
         });
 
@@ -931,7 +947,9 @@ describe("Obj", () => {
         it("should handle closure callable third param", () => {
             const obj1 = { a: 1, b: 2, c: "3" };
             const obj2 = { b: 2, c: 3 };
-            expect(Obj.intersect(obj1, obj2, (a, b) => a === b)).toEqual({ b: 2 });
+            expect(Obj.intersect(obj1, obj2, (a, b) => a === b)).toEqual({
+                b: 2,
+            });
         });
     });
 
@@ -1105,7 +1123,7 @@ describe("Obj", () => {
             const obj = { a: 1, b: 2, c: 1 };
             expect(Obj.flip(obj)).toEqual({ 1: "c", 2: "b" });
         });
-        
+
         it("should handle empty objects", () => {
             expect(Obj.flip({})).toEqual({});
         });
@@ -1115,8 +1133,13 @@ describe("Obj", () => {
         });
 
         it("should handle recursively flip values with child objects and child arrays", () => {
-            const obj = { a: 1, b: { x: 10, y: 20 }, c: [ 'p', 'q' ] };
-            expect(Obj.flip(obj)).toEqual({ 1: "a", 10: "b.x", 20: "b.y", "c": { "p": 0, "q": 1}});
+            const obj = { a: 1, b: { x: 10, y: 20 }, c: ["p", "q"] };
+            expect(Obj.flip(obj)).toEqual({
+                1: "a",
+                10: "b.x",
+                20: "b.y",
+                c: { p: 0, q: 1 },
+            });
         });
     });
 
@@ -1176,10 +1199,10 @@ describe("Obj", () => {
 
     describe("join", () => {
         it("should return empty string for non-object values", () => {
-            expect(Obj.join(null, ',')).toBe("");
-            expect(Obj.join(undefined, ',')).toBe("");
-            expect(Obj.join(42, ',')).toBe("");
-            expect(Obj.join("string", ',')).toBe("");
+            expect(Obj.join(null, ",")).toBe("");
+            expect(Obj.join(undefined, ",")).toBe("");
+            expect(Obj.join(42, ",")).toBe("");
+            expect(Obj.join("string", ",")).toBe("");
         });
 
         it("should join values with glue", () => {
@@ -1388,8 +1411,12 @@ describe("Obj", () => {
         });
 
         it("should handle arrays with various types", () => {
-            const obj = { tags: ["js", "ts", null, undefined, { home: "page" }] };
-            expect(Obj.query(obj)).toBe("tags[0]=js&tags[1]=ts&tags[4][home]=page");
+            const obj = {
+                tags: ["js", "ts", null, undefined, { home: "page" }],
+            };
+            expect(Obj.query(obj)).toBe(
+                "tags[0]=js&tags[1]=ts&tags[4][home]=page",
+            );
         });
 
         it("should handle when query is null or undefined", () => {
@@ -1594,7 +1621,9 @@ describe("Obj", () => {
             const obj = { a: 1, b: 2, c: 3 };
             expect(Obj.sole(obj, (value) => (value as number) > 2)).toBe(3);
 
-            expect(() => Obj.sole(obj, (value) => (value as number) > 3)).toThrow("No items found");
+            expect(() =>
+                Obj.sole(obj, (value) => (value as number) > 3),
+            ).toThrow("No items found");
         });
 
         it("should handle non-objects", () => {
@@ -1616,13 +1645,26 @@ describe("Obj", () => {
             it("should handle when values are falsy", () => {
                 const obj = { a: 0, b: null, c: undefined, d: false, e: [] };
                 const result = Obj.sort(obj);
-                expect(Object.values(result)).toEqual([0, null, undefined, false, []]);
+                expect(Object.values(result)).toEqual([
+                    0,
+                    null,
+                    undefined,
+                    false,
+                    [],
+                ]);
             });
 
             it("should handle a few values are falsy", () => {
                 const obj = { x: 1000, a: {}, b: 1, c: 2, d: [], y: 1000 };
                 const result = Obj.sort(obj);
-                expect(Object.values(result)).toEqual([{}, [], 1, 2, 1000, 1000]);
+                expect(Object.values(result)).toEqual([
+                    {},
+                    [],
+                    1,
+                    2,
+                    1000,
+                    1000,
+                ]);
             });
         });
 
@@ -1652,7 +1694,11 @@ describe("Obj", () => {
                     user3: { name: "Doe", age: 25 },
                 };
                 const result = Obj.sort(obj, "age");
-                expect(Object.keys(result)).toEqual(["user1", "user2", "user3"]);
+                expect(Object.keys(result)).toEqual([
+                    "user1",
+                    "user2",
+                    "user3",
+                ]);
             });
 
             it("should handle when some values are falsy", () => {
@@ -1666,7 +1712,15 @@ describe("Obj", () => {
                     user6: { name: "Jane", age: 100 },
                 };
                 const result = Obj.sort(obj, "age");
-                expect(Object.keys(result)).toEqual(["user2", "user4", "user5", "user3", "user1", "user0", "user6"]);
+                expect(Object.keys(result)).toEqual([
+                    "user2",
+                    "user4",
+                    "user5",
+                    "user3",
+                    "user1",
+                    "user0",
+                    "user6",
+                ]);
             });
         });
 
@@ -1705,7 +1759,11 @@ describe("Obj", () => {
                     obj,
                     (item) => (item as Record<string, unknown>)["age"],
                 );
-                expect(Object.keys(result)).toEqual(["user2", "user1", "user3"]);
+                expect(Object.keys(result)).toEqual([
+                    "user2",
+                    "user1",
+                    "user3",
+                ]);
             });
 
             it("should handle when some values are falsy in callback", () => {
@@ -1722,7 +1780,15 @@ describe("Obj", () => {
                     obj,
                     (item) => (item as Record<string, unknown>)["age"],
                 );
-                expect(Object.keys(result)).toEqual(["user2", "user4", "user3", "user1", "user0", "user5", "user6"]);
+                expect(Object.keys(result)).toEqual([
+                    "user2",
+                    "user4",
+                    "user3",
+                    "user1",
+                    "user0",
+                    "user5",
+                    "user6",
+                ]);
             });
         });
 
@@ -1772,7 +1838,11 @@ describe("Obj", () => {
                     user3: { name: "Doe", age: 25 },
                 };
                 const result = Obj.sortDesc(obj, "age");
-                expect(Object.keys(result)).toEqual(["user3", "user1", "user2"]);
+                expect(Object.keys(result)).toEqual([
+                    "user3",
+                    "user1",
+                    "user2",
+                ]);
             });
 
             it("should handle when some values are falsy", () => {
@@ -1786,7 +1856,15 @@ describe("Obj", () => {
                     user6: { name: "Jane", age: 100 },
                 };
                 const result = Obj.sortDesc(obj, "age");
-                expect(Object.keys(result)).toEqual(["user0", "user6", "user1", "user3", "user4", "user2", "user5"]);
+                expect(Object.keys(result)).toEqual([
+                    "user0",
+                    "user6",
+                    "user1",
+                    "user3",
+                    "user4",
+                    "user2",
+                    "user5",
+                ]);
             });
         });
 
@@ -1796,10 +1874,13 @@ describe("Obj", () => {
                 const result = Obj.sortDesc(obj, (value) => -(value as number));
                 expect(Object.values(result)).toEqual([1, 2, 3]);
 
-                const result2 = Obj.sortDesc(obj, (value) => (value as number));
+                const result2 = Obj.sortDesc(obj, (value) => value as number);
                 expect(Object.values(result2)).toEqual([3, 2, 1]);
 
-                const result3 = Obj.sortDesc({x: 100, a: 3, c: 3, b: 3, y: 100 }, (value) => (value as number));
+                const result3 = Obj.sortDesc(
+                    { x: 100, a: 3, c: 3, b: 3, y: 100 },
+                    (value) => value as number,
+                );
                 expect(Object.values(result3)).toEqual([100, 100, 3, 3, 3]);
             });
 
@@ -1825,7 +1906,11 @@ describe("Obj", () => {
                     obj,
                     (item) => (item as Record<string, unknown>)["age"],
                 );
-                expect(Object.keys(result)).toEqual(["user3", "user1", "user2"]);
+                expect(Object.keys(result)).toEqual([
+                    "user3",
+                    "user1",
+                    "user2",
+                ]);
             });
 
             it("should handle when some values are falsy in callback", () => {
@@ -1842,7 +1927,15 @@ describe("Obj", () => {
                     obj,
                     (item) => (item as Record<string, unknown>)["age"],
                 );
-                expect(Object.keys(result)).toEqual(["user0", "user1", "user3", "user5", "user6", "user2", "user4"]);
+                expect(Object.keys(result)).toEqual([
+                    "user0",
+                    "user1",
+                    "user3",
+                    "user5",
+                    "user6",
+                    "user2",
+                    "user4",
+                ]);
             });
         });
     });
@@ -1860,7 +1953,10 @@ describe("Obj", () => {
         });
 
         it("should recursively sort object", () => {
-            const obj = { b: { d: 2, c: 1, z: 50, y: 55, x: 50 }, a: { f: 4, e: 3, x: 100, y: 100 } };
+            const obj = {
+                b: { d: 2, c: 1, z: 50, y: 55, x: 50 },
+                a: { f: 4, e: 3, x: 100, y: 100 },
+            };
             const result = Obj.sortRecursive(obj);
             expect(Object.keys(result)).toEqual(["a", "b"]);
             expect(Object.keys(result["a"] as Record<string, unknown>)).toEqual(
@@ -1872,12 +1968,12 @@ describe("Obj", () => {
 
             const resultDesc = Obj.sortRecursive(obj, true);
             expect(Object.keys(resultDesc)).toEqual(["b", "a"]);
-            expect(Object.keys(resultDesc["a"] as Record<string, unknown>)).toEqual(
-                ["y", "x", "f", "e"],
-            );
-            expect(Object.keys(resultDesc["b"] as Record<string, unknown>)).toEqual(
-                ["z", "y", "x", "d", "c"],
-            );
+            expect(
+                Object.keys(resultDesc["a"] as Record<string, unknown>),
+            ).toEqual(["y", "x", "f", "e"]);
+            expect(
+                Object.keys(resultDesc["b"] as Record<string, unknown>),
+            ).toEqual(["z", "y", "x", "d", "c"]);
         });
 
         it("should recursively sort object with arrays", () => {
@@ -1885,22 +1981,14 @@ describe("Obj", () => {
             const result = Obj.sortRecursive(obj);
 
             expect(Object.keys(result)).toEqual(["a", "b"]);
-            expect(Object.keys(result["a"])).toEqual(
-                ["e", "f"],
-            );
-            expect(Object.keys(result["b"])).toEqual(
-                ["c", "d"],
-            );
+            expect(Object.keys(result["a"])).toEqual(["e", "f"]);
+            expect(Object.keys(result["b"])).toEqual(["c", "d"]);
             expect(result["b"]["d"]).toEqual([1, 2, 3, 3]);
 
             const resultDesc = Obj.sortRecursive(obj, true);
             expect(Object.keys(resultDesc)).toEqual(["b", "a"]);
-            expect(Object.keys(resultDesc["a"])).toEqual(
-                ["f", "e"],
-            );
-            expect(Object.keys(resultDesc["b"])).toEqual(
-                ["d", "c"],
-            );
+            expect(Object.keys(resultDesc["a"])).toEqual(["f", "e"]);
+            expect(Object.keys(resultDesc["b"])).toEqual(["d", "c"]);
             expect(resultDesc["b"]["d"]).toEqual([3, 3, 2, 1]);
         });
     });
@@ -2084,7 +2172,7 @@ describe("Obj", () => {
             const [passed, failed] = Obj.partition(null, () => true);
             expect(passed).toEqual({});
             expect(failed).toEqual({});
-            
+
             const [passed2, failed2] = Obj.partition([], () => true);
             expect(passed2).toEqual({});
             expect(failed2).toEqual({});

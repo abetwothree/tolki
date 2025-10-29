@@ -1,4 +1,4 @@
-import type { DataItems} from "@laravel-js/types";
+import type { DataItems } from "@laravel-js/types";
 
 /**
  * Check if a value is an array.
@@ -82,16 +82,18 @@ export function isString(value: unknown): value is string {
  *
  * @param value - The value to check
  * @returns True if the value is stringable
- * 
+ *
  * @example
- * 
+ *
  * isStringable("hello"); -> true
  * isStringable(new Stringable('test')); -> true
  * isStringable({ toString: () => "world" }); -> true
  * isStringable(123); -> false
  * isStringable(null); -> false
  */
-export function isStringable(value: unknown): value is string | { toString(): string } {
+export function isStringable(
+    value: unknown,
+): value is string | { toString(): string } {
     if (isString(value)) {
         return true;
     }
@@ -101,8 +103,10 @@ export function isStringable(value: unknown): value is string | { toString(): st
     }
 
     if (isObject(value)) {
-        return Object.prototype.hasOwnProperty.call(value, 'toString') && 
-               isFunction((value as { toString?: unknown }).toString);
+        return (
+            Object.prototype.hasOwnProperty.call(value, "toString") &&
+            isFunction((value as { toString?: unknown }).toString)
+        );
     }
 
     return false;
@@ -290,7 +294,9 @@ export function isSet<T>(value: unknown): value is Set<T> {
  * @param value - The value to check
  * @returns True if the value is a WeakMap
  */
-export function isWeakMap<K extends object, V>(value: unknown): value is WeakMap<K, V> {
+export function isWeakMap<K extends object, V>(
+    value: unknown,
+): value is WeakMap<K, V> {
     return value instanceof WeakMap;
 }
 
@@ -300,7 +306,9 @@ export function isWeakMap<K extends object, V>(value: unknown): value is WeakMap
  * @param value - The value to check
  * @returns True if the value is a WeakSet
  */
-export function isWeakSet<T extends object>(value: unknown): value is WeakSet<T> {
+export function isWeakSet<T extends object>(
+    value: unknown,
+): value is WeakSet<T> {
     return value instanceof WeakSet;
 }
 
@@ -317,7 +325,11 @@ export function isWeakSet<T extends object>(value: unknown): value is WeakSet<T>
  * isArrayable("hello"); -> false
  */
 export function toArrayable<T>(value: unknown): value is { toArray(): T[] } {
-    return isObject(value) && !isNull(value) && isFunction((value as { toArray: () => T[] }).toArray);
+    return (
+        isObject(value) &&
+        !isNull(value) &&
+        isFunction((value as { toArray: () => T[] }).toArray)
+    );
 }
 
 /**
@@ -332,7 +344,11 @@ export function toArrayable<T>(value: unknown): value is { toArray(): T[] } {
  * isJsonable("hello"); -> false
  */
 export function toJsonable<T>(value: unknown): value is { toJSON(): T } {
-    return isObject(value) && !isNull(value) && isFunction((value as { toJSON: () => T }).toJSON);
+    return (
+        isObject(value) &&
+        !isNull(value) &&
+        isFunction((value as { toJSON: () => T }).toJSON)
+    );
 }
 
 /**
@@ -346,8 +362,14 @@ export function toJsonable<T>(value: unknown): value is { toJSON(): T } {
  * isJsonSerializable({ jsonSerialize: () => ({ a: 1 }) }); -> true
  * isJsonSerializable("hello"); -> false
  */
-export function toJsonSerializable<T>(value: unknown): value is { jsonSerialize(): T } {
-    return isObject(value) && !isNull(value) && isFunction((value as { jsonSerialize: () => T }).jsonSerialize);
+export function toJsonSerializable<T>(
+    value: unknown,
+): value is { jsonSerialize(): T } {
+    return (
+        isObject(value) &&
+        !isNull(value) &&
+        isFunction((value as { jsonSerialize: () => T }).jsonSerialize)
+    );
 }
 
 /**
@@ -355,9 +377,9 @@ export function toJsonSerializable<T>(value: unknown): value is { jsonSerialize(
  *
  * @param value - The value to check
  * @returns True if the value is falsy
- * 
+ *
  * @example
- * 
+ *
  * isFalsy(undefined); -> true
  * isFalsy(null); -> true
  * isFalsy(false); -> true
@@ -374,7 +396,7 @@ export function isFalsy<TValue = unknown>(value: TValue): boolean {
         return true;
     }
 
-    if (isNumber(value)) {        
+    if (isNumber(value)) {
         return value === 0;
     }
 
@@ -414,9 +436,9 @@ export function isFalsy<TValue = unknown>(value: TValue): boolean {
  *
  * @param value - The value to check
  * @returns True if the value is truthy
- * 
+ *
  * @example
- * 
+ *
  * isTruthy(1); -> true
  * isTruthy("hello"); -> true
  * isTruthy([1, 2, 3]); -> true

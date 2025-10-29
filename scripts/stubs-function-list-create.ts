@@ -162,7 +162,7 @@ function main(): void {
 }
 
 // Export the main function for use in other modules
-export { findStubFiles, generateFunctionList,main };
+export { findStubFiles, generateFunctionList, main };
 
 // Call main if running directly
 if (import.meta.url === `file://${process.argv[1]}`) {

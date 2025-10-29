@@ -1,4 +1,7 @@
-import { flip as arrFlip, replaceRecursive as arrReplaceRecursive } from "@laravel-js/arr";
+import {
+    flip as arrFlip,
+    replaceRecursive as arrReplaceRecursive,
+} from "@laravel-js/arr";
 import {
     dotFlatten,
     forgetKeys,
@@ -9,7 +12,23 @@ import {
     undotExpandObject,
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
-import { isArray, isBoolean, isFalsy, isFunction, isInteger, isMap, isNull, isNumber, isObject, isPositiveNumber,isString, isStringable, isUndefined, isWeakMap, typeOf } from '@laravel-js/utils';
+import {
+    isArray,
+    isBoolean,
+    isFalsy,
+    isFunction,
+    isInteger,
+    isMap,
+    isNull,
+    isNumber,
+    isObject,
+    isPositiveNumber,
+    isString,
+    isStringable,
+    isUndefined,
+    isWeakMap,
+    typeOf,
+} from "@laravel-js/utils";
 import type { PathKey, PathKeys } from "packages/types";
 
 /**
@@ -90,14 +109,18 @@ export function add<TValue, TKey extends PropertyKey = PropertyKey>(
  * objectItem({ user: { tags: ['js', 'ts'] } }, 'user.tags'); -> ['js', 'ts']
  * objectItem({ user: { name: 'John' } }, 'user.name'); -> throws Error
  */
-export function objectItem<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
+export function objectItem<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TDefault = null,
+>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault) | null = null,
 ): Record<TKey, TValue> {
     const value = getObjectValue(data, key, defaultValue);
 
-    if (! isObject(value)) {
+    if (!isObject(value)) {
         const typeName = isNull(value) ? "null" : typeOf(value);
         throw new Error(
             `Object value for key [${key}] must be an object, ${typeName} found.`,
@@ -123,14 +146,18 @@ export function objectItem<TValue, TKey extends PropertyKey = PropertyKey, TDefa
  * boolean({ user: { verified: false } }, 'user.verified'); -> false
  * boolean({ user: { name: 'John' } }, 'user.name'); -> throws Error
  */
-export function boolean<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
+export function boolean<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TDefault = null,
+>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault) | null = null,
 ): boolean {
     const value = getObjectValue(data, key, defaultValue);
 
-    if (! isBoolean(value)) {
+    if (!isBoolean(value)) {
         throw new Error(
             `Object value for key [${key}] must be a boolean, ${typeOf(value)} found.`,
         );
@@ -141,7 +168,7 @@ export function boolean<TValue, TKey extends PropertyKey = PropertyKey, TDefault
 
 /**
  * Chunk the object into chunks of the given size.
- * 
+ *
  * @param data - The record to chunk
  * @param size - The size of each chunk
  * @param preserveKeys - Whether to preserve the original keys, defaults to false
@@ -166,10 +193,12 @@ export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     size: number,
     preserveKeys?: boolean,
-): Record<number, Record<TKey, TValue>> | Record<number, Record<number, TValue>> {
+):
+    | Record<number, Record<TKey, TValue>>
+    | Record<number, Record<number, TValue>> {
     preserveKeys = isUndefined(preserveKeys) ? true : preserveKeys;
 
-    if(size <= 0){
+    if (size <= 0) {
         return {} as Record<PropertyKey, never>;
     }
 
@@ -178,23 +207,30 @@ export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     const entries = Object.entries(data as Record<TKey, TValue>);
-    const chunks: Record<number, Record<TKey, TValue>> | Record<number, Record<number, TValue>> = {};
+    const chunks:
+        | Record<number, Record<TKey, TValue>>
+        | Record<number, Record<number, TValue>> = {};
     let chunkIndex = 0;
 
-    for(let i = 0; i < entries.length; i += size){
+    for (let i = 0; i < entries.length; i += size) {
         const chunkEntries = entries.slice(i, i + size);
         if (preserveKeys) {
-            chunks[chunkIndex] = Object.fromEntries(chunkEntries) as Record<TKey, TValue>;
+            chunks[chunkIndex] = Object.fromEntries(chunkEntries) as Record<
+                TKey,
+                TValue
+            >;
         } else {
             let index = 0;
-            chunks[chunkIndex] = Object.fromEntries(chunkEntries.map(([, value]) => {
-                const data =  [index, value];
-                index += 1;
+            chunks[chunkIndex] = Object.fromEntries(
+                chunkEntries.map(([, value]) => {
+                    const data = [index, value];
+                    index += 1;
 
-                return data;
-            })) as Record<number, TValue>;
+                    return data;
+                }),
+            ) as Record<number, TValue>;
         }
-        
+
         chunkIndex++;
     }
 
@@ -216,9 +252,9 @@ export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
  * collapse({ a: { x: 1 }, b: { y: 2 }, c: { z: 3 } }); -> { x: 1, y: 2, z: 3 }
  * collapse({ users: { john: { age: 30 } }, admins: { jane: { role: 'admin' } } }); -> { john: { age: 30 }, jane: { role: 'admin' } }
  */
-export function collapse<TValue extends Record<PropertyKey, Record<PropertyKey, unknown>>>(
-    object: TValue,
-): Record<string, TValue[keyof TValue]> {
+export function collapse<
+    TValue extends Record<PropertyKey, Record<PropertyKey, unknown>>,
+>(object: TValue): Record<string, TValue[keyof TValue]> {
     const out: Record<string, TValue[keyof TValue]> = {};
 
     for (const item of Object.values(object)) {
@@ -232,7 +268,7 @@ export function collapse<TValue extends Record<PropertyKey, Record<PropertyKey, 
 
 /**
  * Combine two objects into one, using the values from the first object as keys
- * 
+ *
  * @param keysObject - The object containing keys.
  * @param valuesObject - The object containing values.
  * @return A new object containing combined key-value pairs.
@@ -243,7 +279,9 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
 ): Record<PropertyKey, TCombineValue> {
     const result: Record<PropertyKey, TCombineValue> = {};
     const maxLength = Object.keys(keysObject).length;
-    const keys = Object.values(keysObject).map((k) => isFunction(k) ? String(k()) : String(k));
+    const keys = Object.values(keysObject).map((k) =>
+        isFunction(k) ? String(k()) : String(k),
+    );
     const values = Object.values(valuesObject);
 
     for (let i = 0; i < maxLength; i++) {
@@ -327,7 +365,7 @@ export function dot<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     prepend: string = "",
 ): Record<TKey, TValue> {
-    if(!accessible(data)){
+    if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
     }
 
@@ -352,29 +390,35 @@ export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Union multiple objects into one.
- * 
+ *
  * @param objects - The objects to union.
  * @return A new object containing all key-value pairs from the input objects.
  */
 export function union<TValue, TKey extends PropertyKey = PropertyKey>(
     ...objects: Record<TKey, TValue>[] | unknown[]
 ): Record<TKey, TValue> {
-    return objects.reduce((acc: Record<PropertyKey, TValue>, obj: Record<TKey, TValue> | unknown) => {
-        if (accessible(obj)) {
-            for (const [key, value] of Object.entries(obj)) {
-                if (isUndefined(acc[key])) {
-                    acc[key as TKey] = value as TValue;
+    return objects.reduce(
+        (
+            acc: Record<PropertyKey, TValue>,
+            obj: Record<TKey, TValue> | unknown,
+        ) => {
+            if (accessible(obj)) {
+                for (const [key, value] of Object.entries(obj)) {
+                    if (isUndefined(acc[key])) {
+                        acc[key as TKey] = value as TValue;
+                    }
                 }
             }
-        }
 
-        return acc;
-    }, {} as Record<TKey, TValue>);
+            return acc;
+        },
+        {} as Record<TKey, TValue>,
+    );
 }
 
 /**
  * Prepend one or more items to the beginning of the object
- * 
+ *
  * @param items - The items to prepend. The first item is the target object.
  * @returns A new object with the items prepended
  */
@@ -387,7 +431,7 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const data = items[0] as Record<TKey, TValue>;
     const itemsObject = {} as Record<TKey, TValue>;
-    
+
     const itemsToPrepend = items.slice(1);
 
     for (const item of itemsToPrepend) {
@@ -455,13 +499,17 @@ export function exists<TValue extends Record<PropertyKey, unknown>>(
  *
  * @example
  *
- * first({ a: 1, b: 2, c: 3 }); -> 1    
+ * first({ a: 1, b: 2, c: 3 }); -> 1
  * first({}); -> null
  * first({}, null, 'default'); -> 'default'
  * first({ a: 1, b: 2, c: 3 }, x => x > 1); -> 2
  * first({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  */
-export function first<TValue, TKey extends PropertyKey = PropertyKey, TFirstDefault = null>(
+export function first<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TFirstDefault = null,
+>(
     data: Record<TKey, TValue> | unknown,
     callback?: ((value: TValue, key: TKey) => boolean) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
@@ -517,7 +565,11 @@ export function first<TValue, TKey extends PropertyKey = PropertyKey, TFirstDefa
  * last({ a: 1, b: 2, c: 3 }, x => x < 3); -> 2
  * last({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  */
-export function last<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
+export function last<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TDefault = null,
+>(
     data: Record<TKey, TValue> | unknown,
     callback?: ((value: TValue, key: TKey) => boolean) | null,
     defaultValue?: TDefault | (() => TDefault),
@@ -671,7 +723,7 @@ export function flatten<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Flip the keys and values of an object recursively
- * 
+ *
  * @param data - The object of items to flip
  * @return - the data items flipped
  *
@@ -729,14 +781,18 @@ export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
  * float({ product: { price: 19.99 } }, 'product.price'); -> 19.99
  * float({ product: { name: 'Widget' } }, 'product.name'); -> throws Error
  */
-export function float<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
+export function float<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TDefault = null,
+>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault) | null = null,
 ): number {
     const value = getObjectValue(data, key, defaultValue);
 
-    if (! isNumber(value)) {
+    if (!isNumber(value)) {
         throw new Error(
             `Object value for key [${key}] must be a float, ${typeOf(value)} found.`,
         );
@@ -787,7 +843,7 @@ export function from(items: object): Record<string, unknown>;
 export function from(items: unknown): Record<string, unknown> {
     if (isMap(items)) {
         const out: Record<string, unknown> = {};
-        
+
         for (const [k, v] of items as Map<PropertyKey, unknown>) {
             out[String(k)] = v;
         }
@@ -827,12 +883,16 @@ export function from(items: unknown): Record<string, unknown> {
  * @returns The value or the default
  *
  * @example
- * 
+ *
  * get({ name: 'John', age: 30 }, 'name'); -> 'John'
  * get({ user: { name: 'John' } }, 'user.name'); -> 'John'
  * get({ name: 'John' }, 'email', 'default'); -> 'default'
  */
-export function get<TValue, TKey extends PropertyKey = PropertyKey, TDefault = unknown>(
+export function get<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TDefault = unknown,
+>(
     object: Record<TKey, TValue> | unknown,
     key: PathKey | null | undefined,
     defaultValue: TDefault | (() => TDefault) | null = null,
@@ -841,8 +901,8 @@ export function get<TValue, TKey extends PropertyKey = PropertyKey, TDefault = u
         return isObject(object)
             ? (object as TDefault)
             : isFunction(defaultValue)
-                ? (defaultValue as () => TDefault)()
-                : defaultValue;
+              ? (defaultValue as () => TDefault)()
+              : defaultValue;
     }
 
     if (!isObject(object)) {
@@ -854,21 +914,21 @@ export function get<TValue, TKey extends PropertyKey = PropertyKey, TDefault = u
     // Handle simple key access
     if (isString(key) && !key.includes(".")) {
         const value = (object as Record<string, unknown>)[key];
-        return ! isUndefined(value)
+        return !isUndefined(value)
             ? (value as TDefault)
             : isFunction(defaultValue)
-                ? (defaultValue as () => TDefault)()
-                : defaultValue;
+              ? (defaultValue as () => TDefault)()
+              : defaultValue;
     }
 
     if (isNumber(key)) {
         const stringKey = String(key);
         const value = (object as Record<string, unknown>)[stringKey];
-        return ! isUndefined(value)
+        return !isUndefined(value)
             ? (value as TDefault)
             : isFunction(defaultValue)
-                ? (defaultValue as () => TDefault)()
-                : defaultValue;
+              ? (defaultValue as () => TDefault)()
+              : defaultValue;
     }
 
     // Handle dot notation for nested object access
@@ -894,8 +954,8 @@ export function get<TValue, TKey extends PropertyKey = PropertyKey, TDefault = u
     return !isUndefined(current)
         ? (current as TDefault)
         : isFunction(defaultValue)
-            ? (defaultValue as () => TDefault)()
-            : defaultValue;
+          ? (defaultValue as () => TDefault)()
+          : defaultValue;
 }
 
 /**
@@ -1080,7 +1140,11 @@ export function some<TValue, TKey extends PropertyKey = PropertyKey>(
  * integer({ user: { age: 30 } }, 'user.age'); -> 30
  * integer({ user: { name: 'John' } }, 'user.name'); -> Error: The value is not an integer.
  */
-export function integer<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
+export function integer<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TDefault = null,
+>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault) | null = null,
@@ -1259,8 +1323,9 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
     }
 
     const obj = data as Record<PropertyKey, TValue>;
-    const keyList = (isArray(keys) ? keys : [keys])
-        .filter((key: unknown) => !isNull(key) && !isUndefined(key)) as PropertyKey[];
+    const keyList = (isArray(keys) ? keys : [keys]).filter(
+        (key: unknown) => !isNull(key) && !isUndefined(key),
+    ) as PropertyKey[];
     const result: Record<PropertyKey, Record<PropertyKey, unknown>> = {};
 
     for (const [objKey, item] of Object.entries(obj)) {
@@ -1320,7 +1385,9 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
             if (isFunction(key)) {
                 itemKey = key(item) as string | number;
             } else {
-                itemKey = getObjectValue(item, key as PathKey) as string | number;
+                itemKey = getObjectValue(item, key as PathKey) as
+                    | string
+                    | number;
             }
 
             // Convert objects with toString to string
@@ -1344,7 +1411,7 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Get and remove the last N items from the collection.
- * 
+ *
  * @param data - The object to pop items from.
  * @param count - The number of items to pop. Defaults to 1.
  * @returns The popped item(s) or null/empty array if none.
@@ -1366,7 +1433,7 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
 
     if (count === 1) {
         const lastEntry = entries[entries.length - 1];
-        
+
         if (!lastEntry) {
             return null;
         }
@@ -1375,13 +1442,13 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
         delete obj[key];
         return value;
     }
-    
+
     const poppedValues: TValue[] = [];
     const actualCount = Math.min(count, entries.length);
 
     for (let i = 0; i < actualCount; i++) {
         const entry = entries[entries.length - 1 - i];
-        
+
         if (!entry) {
             continue;
         }
@@ -1407,7 +1474,11 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
  * map({ a: 1, b: 2, c: 3 }, (value) => value * 2); -> { a: 2, b: 4, c: 6 }
  * map({ name: 'john', email: 'JOHN@EXAMPLE.COM' }, (value, key) => key === 'name' ? value.toUpperCase() : value.toLowerCase()); -> { name: 'JOHN', email: 'john@example.com' }
  */
-export function map<TValue, TKey extends PropertyKey = PropertyKey, TMapValue = unknown>(
+export function map<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TMapValue = unknown,
+>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => TMapValue,
 ): Record<TKey, TMapValue> {
@@ -1445,14 +1516,20 @@ export function mapWithKeys<
     TMapWithKeysKey extends PropertyKey = PropertyKey,
 >(
     data: Record<TKey, TValue> | unknown,
-    callback: (value: TValue, key: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
+    callback: (
+        value: TValue,
+        key: TKey,
+    ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue> {
     if (!accessible(data)) {
         return {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
 
     const obj = data as Record<string, TValue>;
-    const result: Record<TMapWithKeysKey, TMapWithKeysValue> = {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
+    const result: Record<TMapWithKeysKey, TMapWithKeysValue> = {} as Record<
+        TMapWithKeysKey,
+        TMapWithKeysValue
+    >;
 
     for (const [key, value] of Object.entries(obj)) {
         const mappedObject = callback(value, key as TKey);
@@ -1477,7 +1554,10 @@ export function mapWithKeys<
  * mapSpread({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (name, age) => `${name} is ${age}`); -> { user1: 'John is 25', user2: 'Jane is 30' }
  * mapSpread({ item1: { x: 1, y: 2 }, item2: { x: 3, y: 4 } }, (x, y) => x + y); -> { item1: 3, item2: 7 }
  */
-export function mapSpread<TValue extends Record<PropertyKey, unknown>, TMapSpreadValue>(
+export function mapSpread<
+    TValue extends Record<PropertyKey, unknown>,
+    TMapSpreadValue,
+>(
     data: Record<PropertyKey, TValue> | unknown,
     callback: (...args: unknown[]) => TMapSpreadValue,
 ): Record<PropertyKey, TMapSpreadValue> {
@@ -1525,7 +1605,10 @@ export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     const obj = data as Record<TKey, TValue>;
-    const result: Record<TKey, TValue> = { [key]: value } as Record<TKey, TValue>;
+    const result: Record<TKey, TValue> = { [key]: value } as Record<
+        TKey,
+        TValue
+    >;
 
     // Add existing entries after the prepended one
     for (const [existingKey, existingValue] of Object.entries(obj)) {
@@ -1549,7 +1632,11 @@ export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
  * pull({ user: { name: 'John', age: 30 } }, 'user.name'); -> { value: 'John', data: { user: { age: 30 } } }
  * pull({ a: 1, b: 2 }, 'x', 'default'); -> { value: 'default', data: { a: 1, b: 2 } }
  */
-export function pull<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
+export function pull<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TDefault = null,
+>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault) | null = null,
@@ -1673,7 +1760,9 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     preserveKeys: boolean = true,
 ): TValue | Record<TKey, TValue> | null {
     if (!accessible(data)) {
-        return isNull(number) || isUndefined(number) ? null : {} as Record<TKey, TValue>;
+        return isNull(number) || isUndefined(number)
+            ? null
+            : ({} as Record<TKey, TValue>);
     }
 
     const obj = data as Record<TKey, TValue>;
@@ -1682,7 +1771,9 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     const requested = isNull(number) || isUndefined(number) ? 1 : number;
 
     if (count === 0 || requested <= 0) {
-        return isNull(number) || isUndefined(number) ? null : {} as Record<TKey, TValue>;
+        return isNull(number) || isUndefined(number)
+            ? null
+            : ({} as Record<TKey, TValue>);
     }
 
     if (requested > count) {
@@ -1703,7 +1794,10 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
 
     // If only one item requested, return it directly
     if (isNull(number) || isUndefined(number)) {
-        const [, value] = entries[selectedIndices[0] as number] as [TKey, TValue];
+        const [, value] = entries[selectedIndices[0] as number] as [
+            TKey,
+            TValue,
+        ];
         return value;
     }
 
@@ -1725,7 +1819,7 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Get and remove the first N items from the object
- * 
+ *
  * @param data - The object to shift items from.
  * @param count - The number of items to shift. Defaults to 1.
  * @returns The shifted item(s) or null/empty array if none.
@@ -1755,7 +1849,7 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
         delete obj[key];
         return value;
     }
-    
+
     const shiftedValues: TValue[] = [];
     const actualCount = Math.min(count, entries.length);
 
@@ -1795,7 +1889,10 @@ export function set<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    return setObjectValue(object as Record<TKey, TValue>, key, value) as Record<TKey, TValue>;
+    return setObjectValue(object as Record<TKey, TValue>, key, value) as Record<
+        TKey,
+        TValue
+    >;
 }
 
 /**
@@ -1815,11 +1912,12 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
     ...values: TValue[]
-): Record<TKey, TValue>
-{
+): Record<TKey, TValue> {
     if (!accessible(data)) {
         if (isNull(key)) {
-            throw new Error("Cannot push to root of non-object data when key is null");
+            throw new Error(
+                "Cannot push to root of non-object data when key is null",
+            );
         }
 
         return setObjectValue({} as Record<TKey, TValue>, key, values);
@@ -1884,7 +1982,7 @@ export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Slice the underlying object items
- * 
+ *
  * @param data - The object to slice
  * @param offset - The starting index
  * @param length - The number of items to include
@@ -1894,7 +1992,7 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     offset: number,
     length: number | null = null,
-){
+) {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
     }
@@ -1903,12 +2001,12 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
     const entries = Object.entries(obj);
 
     let slicedEntries;
-    if(isNull(length)){
-        slicedEntries = entries.slice(offset)
-    }else if(isPositiveNumber(length)){
-        slicedEntries = entries.slice(offset, offset + length)
+    if (isNull(length)) {
+        slicedEntries = entries.slice(offset);
+    } else if (isPositiveNumber(length)) {
+        slicedEntries = entries.slice(offset, offset + length);
     } else {
-        slicedEntries = entries.slice(offset, length)
+        slicedEntries = entries.slice(offset, length);
     }
 
     const result: Record<string, TValue> = {};
@@ -2118,7 +2216,7 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Sort the object in descending order using the given callback or "dot" notation.
- * 
+ *
  * TODO: use the sort function with a "descending" parameter defined
  *
  * @param data - The object to sort.
@@ -2276,7 +2374,7 @@ export function sortRecursive<TValue>(
                     if (a > b) {
                         return -1;
                     }
-                    
+
                     if (a < b) {
                         return 1;
                     }
@@ -2304,7 +2402,7 @@ export function sortRecursive<TValue>(
     processedEntries.sort(([keyA], [keyB]) => {
         const strKeyA = String(keyA);
         const strKeyB = String(keyB);
-        
+
         if (descending) {
             if (strKeyA > strKeyB) {
                 return -1;
@@ -2323,13 +2421,16 @@ export function sortRecursive<TValue>(
             if (strKeyA > strKeyB) {
                 return 1;
             }
-            
+
             return 0;
         }
     });
 
     // Rebuild object with sorted keys
-    const result: Record<PropertyKey, TValue> = {} as Record<PropertyKey, TValue>;
+    const result: Record<PropertyKey, TValue> = {} as Record<
+        PropertyKey,
+        TValue
+    >;
     for (const [key, value] of processedEntries) {
         result[key] = value;
     }
@@ -2348,17 +2449,18 @@ export function sortRecursive<TValue>(
  *
  * sortRecursiveDesc({ a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }); -> { b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }
  */
-export function sortRecursiveDesc<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | unknown,
-): Record<TKey, TValue> {
+export function sortRecursiveDesc<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(data: Record<TKey, TValue> | unknown): Record<TKey, TValue> {
     return sortRecursive(data, true);
 }
 
 /**
  * Splice a portion of the underlying object
- * 
+ *
  * TODO: update return to be this: { array: TValue[]; removed: TValue[] }
- * 
+ *
  * @param data - The object to splice
  * @param offset - The starting index
  * @param length - The number of items to remove
@@ -2372,16 +2474,18 @@ export function splice<TValue, TKey extends PropertyKey = PropertyKey>(
     ...replacement: Record<TKey, TValue>[]
 ): { value: Record<TKey, TValue>; removed: Record<TKey, TValue> } {
     if (!accessible(data)) {
-        return { value: {} as Record<TKey, TValue>, removed: {} as Record<TKey, TValue> };
+        return {
+            value: {} as Record<TKey, TValue>,
+            removed: {} as Record<TKey, TValue>,
+        };
     }
 
     const obj = data as Record<string, TValue>;
     const entries = Object.entries(obj);
 
     // Get removed entries
-    const removedEntries = length > 0
-        ? entries.slice(offset, offset + length)
-        : [];
+    const removedEntries =
+        length > 0 ? entries.slice(offset, offset + length) : [];
     const removed: TValue[] = removedEntries.map(([, value]) => value);
 
     // Prepare replacement entries
@@ -2394,12 +2498,11 @@ export function splice<TValue, TKey extends PropertyKey = PropertyKey>(
 
     // Build new array
     const beforeEntries = entries.slice(0, offset);
-    
-    const afterEntries = length > 0
-        ? entries.slice(offset + length)
-        : entries.slice(offset);
-    
-        const splicedEntries = [
+
+    const afterEntries =
+        length > 0 ? entries.slice(offset + length) : entries.slice(offset);
+
+    const splicedEntries = [
         ...beforeEntries,
         ...replacementEntries,
         ...afterEntries,
@@ -2426,10 +2529,14 @@ export function splice<TValue, TKey extends PropertyKey = PropertyKey>(
  * string({ user: { name: 'John' } }, 'user.name'); -> 'John'
  * string({ user: { age: 30 } }, 'user.age'); -> throws Error
  */
-export function string<TValue, TKey extends PropertyKey = PropertyKey, TDefault = null>(
+export function string<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TDefault = null,
+>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
-    defaultValue:TDefault | (() => TDefault) | null = null,
+    defaultValue: TDefault | (() => TDefault) | null = null,
 ): string {
     const value = getObjectValue(data, key, defaultValue);
 
@@ -2454,7 +2561,9 @@ export function string<TValue, TKey extends PropertyKey = PropertyKey, TDefault 
  * toCssClasses({ 'font-bold': true, 'text-red': false, 'ml-2': true }); -> 'font-bold ml-2'
  * toCssClasses({ primary: true, secondary: false }); -> 'primary'
  */
-export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(data: Record<TKey, TValue> | unknown): string {
+export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+): string {
     if (!accessible(data)) {
         return "";
     }
@@ -2483,7 +2592,9 @@ export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(dat
  * toCssStyles({ 'font-weight: bold': true, 'margin-top: 4px': true }); -> 'font-weight: bold; margin-top: 4px;'
  * toCssStyles({ 'font-weight: bold': true, 'color: red': false, 'margin-left: 2px': true }); -> 'font-weight: bold; margin-left: 2px;'
  */
-export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(data: Record<TKey, TValue> | unknown): string {
+export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+): string {
     if (!accessible(data)) {
         return "";
     }
@@ -2555,7 +2666,7 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Replace the data items with the given replacer items.
- * 
+ *
  * @param data - The original object to replace items in.
  * @param replacerData - The object containing items to replace.
  * @returns The modified original object with replaced items.
@@ -2563,7 +2674,7 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
 export function replace<T1, T2>(
     data: Record<PropertyKey, T1>,
     replacerData: Record<PropertyKey, T2>,
-){
+) {
     for (const [key, value] of Object.entries(replacerData)) {
         data[key as PropertyKey] = value as unknown as T1;
     }
@@ -2581,7 +2692,7 @@ export function replace<T1, T2>(
 export function replaceRecursive<T1, T2>(
     data: Record<PropertyKey, T1>,
     replacerData: Record<PropertyKey, T2>,
-){
+) {
     for (const [key, value] of Object.entries(replacerData)) {
         if (isObject(value) && isObject(data[key as PropertyKey])) {
             data[key] = replaceRecursive(
@@ -2603,17 +2714,17 @@ export function replaceRecursive<T1, T2>(
 
 /**
  * Reverse the order of the object's entries.
- * 
+ *
  * @param data - The object to reverse.
  * @returns A new object with reversed entries.
- * 
+ *
  * @example
- * 
+ *
  * reverse({ a: 1, b: 2, c: 3 }); -> { c: 3, b: 2, a: 1 }
  * reverse({ name: 'John', age: 30, city: 'NYC' }); -> { city: 'NYC', age: 30, name: 'John' }
  */
 export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | unknown
+    data: Record<TKey, TValue> | unknown,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
@@ -2635,9 +2746,9 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Pad object to the specified length with a value.
- * 
+ *
  * TODO: implement proper padding and negative numbers
- * 
+ *
  * @param data - The object to pad.
  * @param size - The desired size of the object after padding. Positive to pad at the end, negative to pad at the beginning.
  * @param value - The value to use for padding.
@@ -2766,12 +2877,14 @@ export function contains<TValue>(
                 return true;
             }
         }
-        
+
         return false;
     }
 
     if (strict) {
-        return Object.values(data as Record<PropertyKey, TValue>).includes(value);
+        return Object.values(data as Record<PropertyKey, TValue>).includes(
+            value,
+        );
     }
 
     const obj = data as Record<PropertyKey, TValue>;
@@ -2809,7 +2922,9 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
 
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
         // If no callback, filter out falsy values
-        const shouldInclude = isFunction(callback) ? callback(value, key) : Boolean(value);
+        const shouldInclude = isFunction(callback)
+            ? callback(value, key)
+            : Boolean(value);
 
         if (shouldInclude) {
             result[key] = value;
@@ -2832,12 +2947,16 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
  * wrap(null); -> {}
  * wrap(undefined); -> { 0: undefined }
  */
-export function wrap<TValue>(value: TValue | null): Record<PropertyKey, TValue> {
+export function wrap<TValue>(
+    value: TValue | null,
+): Record<PropertyKey, TValue> {
     if (isNull(value)) {
         return {};
     }
 
-    return isObject<TValue>(value) ? (value as Record<PropertyKey, TValue>) : { 0: value };
+    return isObject<TValue>(value)
+        ? (value as Record<PropertyKey, TValue>)
+        : { 0: value };
 }
 
 /**
@@ -2921,7 +3040,7 @@ export function diff<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Intersect the data object with the given other object
- * 
+ *
  * @param data - The original object
  * @param other - The object to intersect with
  * @param callable - Optional function to compare values
@@ -2932,7 +3051,10 @@ export function intersect<T1, T2, TResponse>(
     other: Record<PropertyKey, T2>,
     callable: ((a: T1, b: T2) => boolean) | null = null,
 ) {
-    const result: Record<PropertyKey, TResponse> = {} as Record<PropertyKey, TResponse>;
+    const result: Record<PropertyKey, TResponse> = {} as Record<
+        PropertyKey,
+        TResponse
+    >;
 
     for (const [key, value] of Object.entries(data)) {
         if (key in other) {
@@ -2953,7 +3075,7 @@ export function intersect<T1, T2, TResponse>(
 
 /**
  * Intersect the object with the given items by key.
- * 
+ *
  * @param data - The original object
  * @param other - The object to intersect with
  * @returns A new object containing items with keys present in both objects
@@ -2962,7 +3084,10 @@ export function intersectByKeys<T1, T2, TResponse>(
     data: Record<PropertyKey, T1>,
     other: Record<PropertyKey, T2>,
 ) {
-    const result: Record<PropertyKey, TResponse> = {} as Record<PropertyKey, TResponse>;
+    const result: Record<PropertyKey, TResponse> = {} as Record<
+        PropertyKey,
+        TResponse
+    >;
 
     for (const [key, value] of Object.entries(data)) {
         if (key in other) {

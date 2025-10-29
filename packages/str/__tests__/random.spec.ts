@@ -1,5 +1,5 @@
 import { Random, random_int, Str } from "@laravel-js/str";
-import { describe, expect,it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 describe("Random utilities", () => {
     it("generates alpha-numeric string of given length", () => {

@@ -1,6 +1,6 @@
 import * as Arr from "@laravel-js/arr";
 import { isArray } from "@laravel-js/utils";
-import { describe, expect,it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 describe("Arr", () => {
     it("accessible", () => {
@@ -88,18 +88,14 @@ describe("Arr", () => {
     });
 
     it("combine", () => {
-        const baseData = [1,2,3];
-        expect(Arr.combine(baseData,[4,5,6])).toEqual([
-            [1,4],
-            [2,5],
-            [3,6],
+        const baseData = [1, 2, 3];
+        expect(Arr.combine(baseData, [4, 5, 6])).toEqual([
+            [1, 4],
+            [2, 5],
+            [3, 6],
         ]);
 
-        expect(Arr.combine(baseData)).toEqual([
-            [1],
-            [2],
-            [3],
-        ]);
+        expect(Arr.combine(baseData)).toEqual([[1], [2], [3]]);
 
         expect(Arr.combine()).toEqual([]);
     });
@@ -1016,45 +1012,37 @@ describe("Arr", () => {
 
     it("union", () => {
         expect(Arr.union([1, 2], [2, 3])).toEqual([1, 2, 3]);
-        expect(Arr.union(["a", "b"], ["b", "c", "a"])).toEqual([
-            "a",
-            "b",
-            "c",
-        ]);
+        expect(Arr.union(["a", "b"], ["b", "c", "a"])).toEqual(["a", "b", "c"]);
         expect(Arr.union([], [1, 2])).toEqual([1, 2]);
         expect(Arr.union([1, 2], [])).toEqual([1, 2]);
         expect(Arr.union([], [])).toEqual([]);
     });
-    
+
     it("unshift", () => {
         const expected = [
-            'Jonny from Laroe',
-            ['Jonny', 'from', 'Laroe'],
-            ['a', 'b', 'c'],
+            "Jonny from Laroe",
+            ["Jonny", "from", "Laroe"],
+            ["a", "b", "c"],
             4,
             5,
             6,
         ];
 
-        const data = [4,5,6];
-        
-        let result: unknown[] = Arr.unshift(data, ['a', 'b', 'c']);
-        result = Arr.unshift(result, ['Jonny', 'from', 'Laroe']);
-        result = Arr.unshift(result, 'Jonny from Laroe');
+        const data = [4, 5, 6];
+
+        let result: unknown[] = Arr.unshift(data, ["a", "b", "c"]);
+        result = Arr.unshift(result, ["Jonny", "from", "Laroe"]);
+        result = Arr.unshift(result, "Jonny from Laroe");
         expect(result).toEqual(expected);
     });
 
     it("where", () => {
         // Basic array filtering
-        expect(Arr.where([1, 2, 3, 4], (value) => value > 2)).toEqual([
-            3, 4,
+        expect(Arr.where([1, 2, 3, 4], (value) => value > 2)).toEqual([3, 4]);
+        expect(Arr.where([1, 2, 3, 4], (value) => value % 2 === 0)).toEqual([
+            2, 4,
         ]);
-        expect(
-            Arr.where([1, 2, 3, 4], (value) => value % 2 === 0),
-        ).toEqual([2, 4]);
-        expect(Arr.where([1, 2, 3, 4], (value) => value > 10)).toEqual(
-            [],
-        );
+        expect(Arr.where([1, 2, 3, 4], (value) => value > 10)).toEqual([]);
 
         // With index parameter
         expect(
@@ -1098,79 +1086,79 @@ describe("Arr", () => {
     });
 
     it("contains", () => {
-        const data = ['michael', 'tom'];
+        const data = ["michael", "tom"];
         let result = data;
-        if (Arr.contains(data, 'michael')) {
-            result = result.concat(['chris']);
+        if (Arr.contains(data, "michael")) {
+            result = result.concat(["chris"]);
         }
-        expect(result).toEqual(['michael', 'tom', 'chris']);
+        expect(result).toEqual(["michael", "tom", "chris"]);
 
         result = data;
-        if (Arr.contains(data, 'tom')) {
-            result = result.concat(['chris']);
+        if (Arr.contains(data, "tom")) {
+            result = result.concat(["chris"]);
         }
-        expect(result).toEqual(['michael', 'tom', 'chris']);
+        expect(result).toEqual(["michael", "tom", "chris"]);
 
         result = data;
-        if (Arr.contains(data, 'missing')) {
-            result = result.concat(['adam']);
+        if (Arr.contains(data, "missing")) {
+            result = result.concat(["adam"]);
         }
-        expect(result).toEqual(['michael', 'tom']);
+        expect(result).toEqual(["michael", "tom"]);
 
         result = data;
-        if (Arr.contains(data, 'adam')) {
-            result = result.concat(['bogdan']);
+        if (Arr.contains(data, "adam")) {
+            result = result.concat(["bogdan"]);
         }
-        expect(result).toEqual(['michael', 'tom']);
+        expect(result).toEqual(["michael", "tom"]);
 
         result = data;
-        if (!Arr.contains(data, 'michael')) {
-            result = result.concat(['chris']);
+        if (!Arr.contains(data, "michael")) {
+            result = result.concat(["chris"]);
         }
-        expect(result).toEqual(['michael', 'tom']);
+        expect(result).toEqual(["michael", "tom"]);
 
         result = data;
-        if (!Arr.contains(data, 'tom')) {
-            result = result.concat(['chris']);
+        if (!Arr.contains(data, "tom")) {
+            result = result.concat(["chris"]);
         }
-        expect(result).toEqual(['michael', 'tom']);
+        expect(result).toEqual(["michael", "tom"]);
 
         result = data;
-        if (!Arr.contains(data, 'missing')) {
-            result = result.concat(['adam']);
+        if (!Arr.contains(data, "missing")) {
+            result = result.concat(["adam"]);
         }
-        expect(result).toEqual(['michael', 'tom', 'adam']);
+        expect(result).toEqual(["michael", "tom", "adam"]);
 
         result = data;
-        if (!Arr.contains(data, 'adam')) {
-            result = result.concat(['bogdan']);
+        if (!Arr.contains(data, "adam")) {
+            result = result.concat(["bogdan"]);
         }
-        expect(result).toEqual(['michael', 'tom', 'bogdan']);
+        expect(result).toEqual(["michael", "tom", "bogdan"]);
 
         const data2 = [1, 3, 5];
         expect(Arr.contains(data2, 1)).toBe(true);
-        expect(Arr.contains(data2, '1')).toBe(true);
+        expect(Arr.contains(data2, "1")).toBe(true);
         expect(Arr.contains(data2, 2)).toBe(false);
-        expect(Arr.contains(data2, '2')).toBe(false);
+        expect(Arr.contains(data2, "2")).toBe(false);
 
-        const data3 = ['1'];
-        expect(Arr.contains(data3, '1')).toBe(true);
+        const data3 = ["1"];
+        expect(Arr.contains(data3, "1")).toBe(true);
         expect(Arr.contains(data3, 1)).toBe(true);
 
         const data4 = [null];
         expect(Arr.contains(data4, false)).toBe(false);
         expect(Arr.contains(data4, null)).toBe(true);
         expect(Arr.contains(data4, 0)).toBe(false);
-        expect(Arr.contains(data4, '')).toBe(false);
+        expect(Arr.contains(data4, "")).toBe(false);
         expect(Arr.contains(data4, [])).toBe(false);
 
         const data5 = [0];
 
         expect(Arr.contains(data5, 0)).toBe(true);
-        expect(Arr.contains(data5, '0')).toBe(true);
+        expect(Arr.contains(data5, "0")).toBe(true);
         expect(Arr.contains(data5, false)).toBe(true);
         expect(Arr.contains(data5, null)).toBe(false);
-        
+
         expect(Arr.contains(data5, (value) => value < 5)).toBe(true);
         expect(Arr.contains(data5, (value) => value > 5)).toBe(false);
 
@@ -1179,13 +1167,16 @@ describe("Arr", () => {
         expect(Arr.contains(data6, (item) => item.v === 1)).toBe(true);
         expect(Arr.contains(data6, (item) => item.v === 2)).toBe(false);
 
-        const data7 = ['date', 'class', { foo: 50 }];
+        const data7 = ["date", "class", { foo: 50 }];
 
-        expect(Arr.contains(data7, 'date')).toBe(true);
-        expect(Arr.contains(data7, 'class')).toBe(true);
-        expect(Arr.contains(data7, 'foo')).toBe(false);
+        expect(Arr.contains(data7, "date")).toBe(true);
+        expect(Arr.contains(data7, "class")).toBe(true);
+        expect(Arr.contains(data7, "foo")).toBe(false);
 
-        const data8 = [{ a: false, b: false }, { a: true, b: false }];
+        const data8 = [
+            { a: false, b: false },
+            { a: true, b: false },
+        ];
 
         expect(Arr.contains(data8, (item) => item.a)).toBe(true);
         expect(Arr.contains(data8, (item) => item.b)).toBe(false);
@@ -1194,29 +1185,38 @@ describe("Arr", () => {
         expect(Arr.contains(data9, (item) => item === null)).toBe(true);
         expect(Arr.contains(data9, (item) => Number.isNaN(item))).toBe(true);
 
-        expect(Arr.contains(null, 'house')).toBe(false);
-        expect(Arr.contains(undefined, 'house')).toBe(false);
-        expect(Arr.contains({'house': true}, 'house')).toBe(false);
+        expect(Arr.contains(null, "house")).toBe(false);
+        expect(Arr.contains(undefined, "house")).toBe(false);
+        expect(Arr.contains({ house: true }, "house")).toBe(false);
 
-        const data10 = ['1'];
+        const data10 = ["1"];
         expect(Arr.contains(data10, 1)).toBe(true);
         expect(Arr.contains(data10, 1, true)).toBe(false);
     });
 
     it("filter", () => {
         const data = [
-            { id: 1, name: 'Hello' },
-            { id: 2, name: 'World' },
+            { id: 1, name: "Hello" },
+            { id: 2, name: "World" },
         ];
-        expect(Arr.filter(data, (item) => item.id === 2)).toEqual([{ id: 2, name: 'World' }]);
-        expect(Arr.filter(data, (item) => item.name === 'Hello')).toEqual([{ id: 1, name: 'Hello' }]);
+        expect(Arr.filter(data, (item) => item.id === 2)).toEqual([
+            { id: 2, name: "World" },
+        ]);
+        expect(Arr.filter(data, (item) => item.name === "Hello")).toEqual([
+            { id: 1, name: "Hello" },
+        ]);
 
-        const data2 = [null, '', 'Hello', '', 'World'];
-        expect(Arr.filter(data2, (item) => Boolean(item))).toEqual(['Hello', 'World']);
-        expect(Arr.filter(data2)).toEqual(['Hello', 'World']);
+        const data2 = [null, "", "Hello", "", "World"];
+        expect(Arr.filter(data2, (item) => Boolean(item))).toEqual([
+            "Hello",
+            "World",
+        ]);
+        expect(Arr.filter(data2)).toEqual(["Hello", "World"]);
 
         const data3 = [0, 1, 2, 3, 4, 5];
-        expect(Arr.filter(data3, (_item, key) => key % 2 === 0)).toEqual([0, 2, 4]);
+        expect(Arr.filter(data3, (_item, key) => key % 2 === 0)).toEqual([
+            0, 2, 4,
+        ]);
 
         expect(Arr.filter(null, () => true)).toEqual([]);
         expect(Arr.filter(undefined, () => true)).toEqual([]);
@@ -1225,15 +1225,13 @@ describe("Arr", () => {
 
     it("reject", () => {
         // Basic rejection (opposite of where)
-        expect(Arr.reject([1, 2, 3, 4], (value) => value > 2)).toEqual([
-            1, 2,
+        expect(Arr.reject([1, 2, 3, 4], (value) => value > 2)).toEqual([1, 2]);
+        expect(Arr.reject([1, 2, 3, 4], (value) => value % 2 === 0)).toEqual([
+            1, 3,
         ]);
-        expect(
-            Arr.reject([1, 2, 3, 4], (value) => value % 2 === 0),
-        ).toEqual([1, 3]);
-        expect(Arr.reject([1, 2, 3, 4], (value) => value > 10)).toEqual(
-            [1, 2, 3, 4],
-        );
+        expect(Arr.reject([1, 2, 3, 4], (value) => value > 10)).toEqual([
+            1, 2, 3, 4,
+        ]);
 
         // With index parameter
         expect(
@@ -1254,30 +1252,63 @@ describe("Arr", () => {
         const data = ["a", "b", "c"];
         expect(Arr.replace(data, null)).toEqual(["a", "b", "c"]);
 
-        expect(Arr.replace(data, ['d', 'e'])).toEqual(['d', 'e', 'c']);
+        expect(Arr.replace(data, ["d", "e"])).toEqual(["d", "e", "c"]);
 
-        expect(Arr.replace(data, { 1: 'd', 2: 'e', 3: 'f', 4: 'g' })).toEqual(['a', 'd', 'e', 'f', 'g']);
-        
-        const data2 = ['amir', 'otwell'];
-        expect(Arr.replace(data2, { 0: 'taylor', 2: 26 })).toEqual(['taylor', 'otwell', 26]);
+        expect(Arr.replace(data, { 1: "d", 2: "e", 3: "f", 4: "g" })).toEqual([
+            "a",
+            "d",
+            "e",
+            "f",
+            "g",
+        ]);
+
+        const data2 = ["amir", "otwell"];
+        expect(Arr.replace(data2, { 0: "taylor", 2: 26 })).toEqual([
+            "taylor",
+            "otwell",
+            26,
+        ]);
     });
 
     it("replaceRecursive", () => {
-        const data = ['a', 'b', ['c', 'd']];
+        const data = ["a", "b", ["c", "d"]];
 
-        expect(Arr.replaceRecursive(data, null)).toEqual(['a', 'b', ['c', 'd']]);
-        expect(Arr.replaceRecursive(data, ['z', {2: {1: 'e'}}])).toEqual(['z', 'b', ['c', 'e']]);
-        expect(Arr.replaceRecursive(data, ['z', {2: {1: 'e'}}, 'f'])).toEqual(['z', 'b', ['c', 'e'], 'f']);
-        expect(Arr.replaceRecursive(data, ['z', {2: {1: 'e'}}])).toEqual(['z', 'b', ['c', 'e']]);
-        expect(Arr.replaceRecursive(data, {2: {1: 'e'}})).toEqual(['a', 'b', ['c', 'e']]);
+        expect(Arr.replaceRecursive(data, null)).toEqual([
+            "a",
+            "b",
+            ["c", "d"],
+        ]);
+        expect(Arr.replaceRecursive(data, ["z", { 2: { 1: "e" } }])).toEqual([
+            "z",
+            "b",
+            ["c", "e"],
+        ]);
+        expect(
+            Arr.replaceRecursive(data, ["z", { 2: { 1: "e" } }, "f"]),
+        ).toEqual(["z", "b", ["c", "e"], "f"]);
+        expect(Arr.replaceRecursive(data, ["z", { 2: { 1: "e" } }])).toEqual([
+            "z",
+            "b",
+            ["c", "e"],
+        ]);
+        expect(Arr.replaceRecursive(data, { 2: { 1: "e" } })).toEqual([
+            "a",
+            "b",
+            ["c", "e"],
+        ]);
     });
 
     it("reverse", () => {
         const data = ["zaeed", "alan"];
         expect(Arr.reverse(data)).toEqual(["alan", "zaeed"]);
 
-        const data2 = ['house', 'roof', ['doors', 'table'], 'floor'];
-        expect(Arr.reverse(data2)).toEqual(['floor', ['doors', 'table'], 'roof', 'house']);
+        const data2 = ["house", "roof", ["doors", "table"], "floor"];
+        expect(Arr.reverse(data2)).toEqual([
+            "floor",
+            ["doors", "table"],
+            "roof",
+            "house",
+        ]);
     });
 
     it("pad", () => {
@@ -1292,24 +1323,24 @@ describe("Arr", () => {
 
     it("partition", () => {
         // Basic partitioning
-        expect(
-            Arr.partition([1, 2, 3, 4], (value) => value > 2),
-        ).toEqual([
+        expect(Arr.partition([1, 2, 3, 4], (value) => value > 2)).toEqual([
             [3, 4],
             [1, 2],
         ]);
-        expect(
-            Arr.partition([1, 2, 3, 4], (value) => value % 2 === 0),
-        ).toEqual([
-            [2, 4],
-            [1, 3],
+        expect(Arr.partition([1, 2, 3, 4], (value) => value % 2 === 0)).toEqual(
+            [
+                [2, 4],
+                [1, 3],
+            ],
+        );
+        expect(Arr.partition([1, 2, 3, 4], (value) => value > 10)).toEqual([
+            [],
+            [1, 2, 3, 4],
         ]);
-        expect(
-            Arr.partition([1, 2, 3, 4], (value) => value > 10),
-        ).toEqual([[], [1, 2, 3, 4]]);
-        expect(
-            Arr.partition([1, 2, 3, 4], (value) => value < 10),
-        ).toEqual([[1, 2, 3, 4], []]);
+        expect(Arr.partition([1, 2, 3, 4], (value) => value < 10)).toEqual([
+            [1, 2, 3, 4],
+            [],
+        ]);
 
         // With index parameter
         expect(
@@ -1441,18 +1472,30 @@ describe("Arr", () => {
         expect(Arr.intersect(data, [5, 6])).toEqual([]);
         expect(Arr.intersect(data, data)).toEqual([1, 2, 3, 4]);
         expect(Arr.intersect([], [1, 2])).toEqual([]);
-        
-        const data2 = [{ id: 1, first_word: 'Hello' }];
-        const data3 = [{ first_word: 'Hello', last_word: 'World' }];
+
+        const data2 = [{ id: 1, first_word: "Hello" }];
+        const data3 = [{ first_word: "Hello", last_word: "World" }];
         expect(Arr.intersect(data2, data3)).toEqual([]);
-        expect(Arr.intersect(data2, data3, (a, b) => a.first_word === b.first_word)).toEqual([{id: 1, first_word: 'Hello' }]);
+        expect(
+            Arr.intersect(
+                data2,
+                data3,
+                (a, b) => a.first_word === b.first_word,
+            ),
+        ).toEqual([{ id: 1, first_word: "Hello" }]);
     });
 
     it("intersectByKeys", () => {
-        expect(Arr.intersectByKeys([1,3,5], [2,4])).toEqual([1,3]);
+        expect(Arr.intersectByKeys([1, 3, 5], [2, 4])).toEqual([1, 3]);
 
-        const data = [{ name: 'Mateus', age: 18 }, { name: 'Nuno', age: 25 }, { name: 'Chris', age: 30 }];
-        expect(Arr.intersectByKeys(data, [1])).toEqual([{name: 'Mateus', age: 18}]);
+        const data = [
+            { name: "Mateus", age: 18 },
+            { name: "Nuno", age: 25 },
+            { name: "Chris", age: 30 },
+        ];
+        expect(Arr.intersectByKeys(data, [1])).toEqual([
+            { name: "Mateus", age: 18 },
+        ]);
         expect(Arr.intersectByKeys(data, null)).toEqual([]);
         expect(Arr.intersectByKeys(null, data)).toEqual([]);
         expect(Arr.intersectByKeys(null, null)).toEqual([]);
@@ -1527,9 +1570,7 @@ describe("Arr", () => {
 
     it("map", () => {
         // Basic mapping
-        expect(Arr.map([1, 2, 3], (value) => value * 2)).toEqual([
-            2, 4, 6,
-        ]);
+        expect(Arr.map([1, 2, 3], (value) => value * 2)).toEqual([2, 4, 6]);
         expect(
             Arr.map(["a", "b", "c"], (value) => value.toUpperCase()),
         ).toEqual(["A", "B", "C"]);
@@ -1545,9 +1586,9 @@ describe("Arr", () => {
             "2",
             "3",
         ]);
-        expect(
-            Arr.map(["1", "2", "3"], (value) => parseInt(value)),
-        ).toEqual([1, 2, 3]);
+        expect(Arr.map(["1", "2", "3"], (value) => parseInt(value))).toEqual([
+            1, 2, 3,
+        ]);
 
         // Empty array
         expect(Arr.map([], (value) => value)).toEqual([]);
@@ -1558,9 +1599,7 @@ describe("Arr", () => {
 
         // Complex transformation
         const objects = [{ a: 1 }, { a: 2 }, { a: 3 }];
-        expect(Arr.map(objects, (obj) => obj.a)).toEqual([
-            1, 2, 3,
-        ]);
+        expect(Arr.map(objects, (obj) => obj.a)).toEqual([1, 2, 3]);
     });
 
     it("pluck", () => {
@@ -1589,18 +1628,12 @@ describe("Arr", () => {
         });
 
         // Plucking with callback functions
-        expect(
-            Arr.pluck(users, (user) =>
-                user.name.toUpperCase(),
-            ),
-        ).toEqual(["JOHN", "JANE", "BOB"]);
-        expect(
-            Arr.pluck(
-                users,
-                "name",
-                (user) => `user_${user.age}`,
-            ),
-        ).toEqual({
+        expect(Arr.pluck(users, (user) => user.name.toUpperCase())).toEqual([
+            "JOHN",
+            "JANE",
+            "BOB",
+        ]);
+        expect(Arr.pluck(users, "name", (user) => `user_${user.age}`)).toEqual({
             user_30: "John",
             user_25: "Jane",
             user_35: "Bob",
@@ -1622,9 +1655,9 @@ describe("Arr", () => {
     });
 
     it("pop", () => {
-        const data = [undefined, 'foo', 'bar'];
+        const data = [undefined, "foo", "bar"];
 
-        expect(Arr.pop(data)).toBe('bar');
+        expect(Arr.pop(data)).toBe("bar");
 
         expect(Arr.pop(null)).toBeNull();
         expect(Arr.pop(undefined)).toBeNull();
@@ -1660,12 +1693,7 @@ describe("Arr", () => {
         });
 
         // Keying with callback
-        expect(
-            Arr.keyBy(
-                users,
-                (user) => `user_${user.id}`,
-            ),
-        ).toEqual({
+        expect(Arr.keyBy(users, (user) => `user_${user.id}`)).toEqual({
             user_1: { id: 1, name: "John" },
             user_2: { id: 2, name: "Jane" },
             user_3: { id: 3, name: "Bob" },
@@ -1689,12 +1717,9 @@ describe("Arr", () => {
     it("mapWithKeys", () => {
         // Basic mapping with keys
         expect(
-            Arr.mapWithKeys(
-                [{ id: 1, name: "John" }],
-                (item) => ({
-                    [item.name]: item.id,
-                }),
-            ),
+            Arr.mapWithKeys([{ id: 1, name: "John" }], (item) => ({
+                [item.name]: item.id,
+            })),
         ).toEqual({
             John: 1,
         });
@@ -1819,10 +1844,22 @@ describe("Arr", () => {
         const chunksNoKeys = Arr.chunk(baseData, 3, false);
 
         expect(chunksNoKeys.length).toBe(4);
-        expect(chunksNoKeys[0]).toEqual([ [ 0, 1 ], [ 1, 2 ], [ 2, 3 ] ]);
-        expect(chunksNoKeys[1]).toEqual([ [ 3, 4 ], [ 4, 5 ], [ 5, 6 ] ]);
-        expect(chunksNoKeys[2]).toEqual([ [ 6, 7 ], [ 7, 8 ], [ 8, 9 ] ]);
-        expect(chunksNoKeys[3]).toEqual([ [ 9, 10 ] ]);
+        expect(chunksNoKeys[0]).toEqual([
+            [0, 1],
+            [1, 2],
+            [2, 3],
+        ]);
+        expect(chunksNoKeys[1]).toEqual([
+            [3, 4],
+            [4, 5],
+            [5, 6],
+        ]);
+        expect(chunksNoKeys[2]).toEqual([
+            [6, 7],
+            [7, 8],
+            [8, 9],
+        ]);
+        expect(chunksNoKeys[3]).toEqual([[9, 10]]);
         expect(Arr.chunk(baseData, 0, false)).toEqual([]);
         expect(Arr.chunk(baseData, -1, false)).toEqual([]);
     });
@@ -1883,17 +1920,17 @@ describe("Arr", () => {
 
         // Should throw for empty arrays
         expect(() => Arr.sole([])).toThrow("No items found");
-        expect(() =>
-            Arr.sole([1, 2, 3], (value) => value > 5),
-        ).toThrow("No items found");
+        expect(() => Arr.sole([1, 2, 3], (value) => value > 5)).toThrow(
+            "No items found",
+        );
 
         // Should throw for multiple items
         expect(() => Arr.sole([1, 2])).toThrow(
             "Multiple items found (2 items)",
         );
-        expect(() =>
-            Arr.sole([1, 2, 3], (value) => value > 1),
-        ).toThrow("Multiple items found (2 items)");
+        expect(() => Arr.sole([1, 2, 3], (value) => value > 1)).toThrow(
+            "Multiple items found (2 items)",
+        );
 
         // Should throw for non-accessible data
         expect(() => Arr.sole(null)).toThrow("No items found");
@@ -2100,13 +2137,13 @@ describe("Arr", () => {
     });
 
     it("shift", () => {
-        const data = ['Taylor', 'Otwell'];
+        const data = ["Taylor", "Otwell"];
 
-        expect(Arr.shift(data)).toBe('Taylor');
+        expect(Arr.shift(data)).toBe("Taylor");
 
         data.unshift(undefined!);
         expect(Arr.shift(data)).toBeNull();
-        expect(Arr.shift(data, 2)).toEqual(['Taylor']);
+        expect(Arr.shift(data, 2)).toEqual(["Taylor"]);
 
         expect(Arr.shift({}, 2)).toEqual([]);
 
@@ -2130,17 +2167,13 @@ describe("Arr", () => {
             { name: "Bob", age: 20 },
         ];
 
-        expect(
-            Arr.sort(people, (person) => person.age),
-        ).toEqual([
+        expect(Arr.sort(people, (person) => person.age)).toEqual([
             { name: "Bob", age: 20 },
             { name: "John", age: 25 },
             { name: "Jane", age: 30 },
         ]);
 
-        expect(
-            Arr.sort(people, person => person.name),
-        ).toEqual([
+        expect(Arr.sort(people, (person) => person.name)).toEqual([
             { name: "Bob", age: 20 },
             { name: "Jane", age: 30 },
             { name: "John", age: 25 },
@@ -2204,17 +2237,13 @@ describe("Arr", () => {
             { name: "Bob", age: 20 },
         ];
 
-        expect(
-            Arr.sortDesc(people, (person) => person.age),
-        ).toEqual([
+        expect(Arr.sortDesc(people, (person) => person.age)).toEqual([
             { name: "Jane", age: 30 },
             { name: "John", age: 25 },
             { name: "Bob", age: 20 },
         ]);
 
-        expect(
-            Arr.sortDesc(people, (person) => person.name),
-        ).toEqual([
+        expect(Arr.sortDesc(people, (person) => person.name)).toEqual([
             { name: "John", age: 25 },
             { name: "Jane", age: 30 },
             { name: "Bob", age: 20 },
@@ -2516,50 +2545,56 @@ describe("Arr", () => {
     });
 
     it("splice", () => {
-        let data = ['foo', 'baz'];
-        expect(Arr.splice(data, 1).removed).toEqual(['baz']);
-        expect(Arr.splice(data, 0).removed).toEqual(['foo', 'baz']);
+        let data = ["foo", "baz"];
+        expect(Arr.splice(data, 1).removed).toEqual(["baz"]);
+        expect(Arr.splice(data, 0).removed).toEqual(["foo", "baz"]);
         expect(Arr.splice(data, 2).removed).toEqual([]);
 
         // Remove 1 element at index 1
-        data = ['foo', 'baz'];
+        data = ["foo", "baz"];
         let result = Arr.splice(data, 1, 1);
-        expect(result.value).toEqual(['foo']);
-        expect(result.removed).toEqual(['baz']);
+        expect(result.value).toEqual(["foo"]);
+        expect(result.removed).toEqual(["baz"]);
 
         // Remove 1 element at index 1 and insert 'bar'
-        data = ['foo', 'baz'];
-        result = Arr.splice(data, 1, 1, 'bar');
-        expect(result.value).toEqual(['foo', 'bar']);
-        expect(result.removed).toEqual(['baz']);
+        data = ["foo", "baz"];
+        result = Arr.splice(data, 1, 1, "bar");
+        expect(result.value).toEqual(["foo", "bar"]);
+        expect(result.removed).toEqual(["baz"]);
 
         // Insert 'bar' at index 1 without removing anything
-        data = ['foo', 'baz'];
-        result = Arr.splice(data, 1, 0, 'bar');
-        expect(result.value).toEqual(['foo', 'bar', 'baz']);
+        data = ["foo", "baz"];
+        result = Arr.splice(data, 1, 0, "bar");
+        expect(result.value).toEqual(["foo", "bar", "baz"]);
         expect(result.removed).toEqual([]);
 
         // Insert array ['bar'] at index 1 - should flatten it
-        data = ['foo', 'baz'];
-        const result4 = Arr.splice(data, 1, 0, ['bar'] as unknown as string);
-        expect(result4.value).toEqual(['foo', 'bar', 'baz']);
+        data = ["foo", "baz"];
+        const result4 = Arr.splice(data, 1, 0, ["bar"] as unknown as string);
+        expect(result4.value).toEqual(["foo", "bar", "baz"]);
         expect(result4.removed).toEqual([]);
 
         // Edge cases
-        data = ['foo', 'baz'];
-        result = Arr.splice(data, 0, 0, 'start');
-        expect(result.value).toEqual(['start', 'foo', 'baz']);
+        data = ["foo", "baz"];
+        result = Arr.splice(data, 0, 0, "start");
+        expect(result.value).toEqual(["start", "foo", "baz"]);
         expect(result.removed).toEqual([]);
 
         // Remove multiple elements
-        data = ['foo', 'bar', 'baz'];
+        data = ["foo", "bar", "baz"];
         result = Arr.splice(data, 0, 2);
-        expect(result.value).toEqual(['baz']);
-        expect(result.removed).toEqual(['foo', 'bar']);
+        expect(result.value).toEqual(["baz"]);
+        expect(result.removed).toEqual(["foo", "bar"]);
 
         // Non-accessible data
-        expect(Arr.splice(null as unknown as string[], 0, 1)).toEqual({ value: [], removed: [] });
-        expect(Arr.splice(undefined as unknown as string[], 0, 1)).toEqual({ value: [], removed: [] });
+        expect(Arr.splice(null as unknown as string[], 0, 1)).toEqual({
+            value: [],
+            removed: [],
+        });
+        expect(Arr.splice(undefined as unknown as string[], 0, 1)).toEqual({
+            value: [],
+            removed: [],
+        });
     });
 
     // Edge cases and error conditions
@@ -2588,12 +2623,10 @@ describe("Arr", () => {
             expect(Arr.pluck(data, "user.name")).toEqual(["John", "Jane"]);
 
             // Test with callback function
-            expect(
-                Arr.pluck(
-                    data,
-                    (item) => item.user.name,
-                ),
-            ).toEqual(["John", "Jane"]);
+            expect(Arr.pluck(data, (item) => item.user.name)).toEqual([
+                "John",
+                "Jane",
+            ]);
         });
 
         it("query with nested objects", () => {

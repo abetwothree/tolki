@@ -1,5 +1,19 @@
 import { wrap as arrWrap } from "@laravel-js/arr";
-import { castableToArray, isArray, isBoolean, isFunction, isInteger, isNull, isNumber, isObject, isObjectAny, isString, isSymbol, isUndefined, typeOf } from '@laravel-js/utils';
+import {
+    castableToArray,
+    isArray,
+    isBoolean,
+    isFunction,
+    isInteger,
+    isNull,
+    isNumber,
+    isObject,
+    isObjectAny,
+    isString,
+    isSymbol,
+    isUndefined,
+    typeOf,
+} from "@laravel-js/utils";
 import type { ArrayItems, PathKey, PathKeys } from "packages/types";
 
 /**
@@ -23,7 +37,7 @@ export function parseSegments(key: PathKey): (number | string)[] | null {
     if (isNull(key) || isUndefined(key)) {
         return [];
     }
-    
+
     if (!isNumber(key) && Number.isNaN(key)) {
         return null;
     }
@@ -258,10 +272,10 @@ export function forgetKeys<TValue, TKey extends PropertyKey = PropertyKey>(
  * forgetKeysObject({user: {name: 'John', age: 30}}, 'user.age'); -> {user: {name: 'John'}}
  * forgetKeysObject({a: 1, b: 2, c: 3}, ['a', 'c']); -> {b: 2}
  */
-export function forgetKeysObject<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
-    keys: PathKeys,
-): Record<TKey, TValue> {
+export function forgetKeysObject<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(data: Record<TKey, TValue>, keys: PathKeys): Record<TKey, TValue> {
     const keyList = isArray(keys) ? keys : [keys];
     const result = { ...data };
 
@@ -285,11 +299,7 @@ export function forgetKeysObject<TValue, TKey extends PropertyKey = PropertyKey>
         // Navigate to the parent of the property to be removed
         for (let i = 0; i < segments.length - 1; i++) {
             const segment = segments[i];
-            if (
-                !segment ||
-                !current[segment] ||
-                !isObject(current[segment])
-            ) {
+            if (!segment || !current[segment] || !isObject(current[segment])) {
                 break; // Path doesn't exist, nothing to remove
             }
 
@@ -336,7 +346,7 @@ export function forgetKeysArray<TValue>(
         if (!isInteger(index) || index < 0 || index >= arr.length) {
             return arr.slice();
         }
-        
+
         const clone = arr.slice();
         clone.splice(index, 1);
 
@@ -347,17 +357,17 @@ export function forgetKeysArray<TValue>(
         const head = path[0];
         const rest = path.slice(1);
         const clone = arr.slice();
-        
+
         if (rest.length === 0) {
             return removeAt(clone, head!);
         }
-        
+
         if (!isInteger(head) || head! < 0 || head! >= clone.length) {
             return clone;
         }
-        
+
         const child = clone[head!] as unknown;
-        
+
         if (isArray(child)) {
             clone[head!] = forgetPath(child as unknown[], rest) as unknown as U;
         }
@@ -374,20 +384,20 @@ export function forgetKeysArray<TValue>(
         if (parentPath.length === 0) {
             return updater(arr.slice() as unknown as U[]) as unknown as U[];
         }
-        
+
         const [head, ...rest] = parentPath;
-        
+
         if (!isInteger(head) || head! < 0 || head! >= arr.length) {
             return arr.slice();
         }
-        
+
         const clone = arr.slice();
         const child = clone[head!] as unknown;
-        
+
         if (!isArray(child)) {
             return clone;
         }
-        
+
         clone[head!] = updateAtPath(
             child as unknown[],
             rest,
@@ -411,15 +421,15 @@ export function forgetKeysArray<TValue>(
         if (isNumber(k)) {
             return removeAt(data, k);
         }
-        
+
         const parts = String(k)
             .split(".")
             .map((p) => (p.length ? Number(p) : NaN));
-        
-            if (parts.length === 1) {
+
+        if (parts.length === 1) {
             return removeAt(data, parts[0]!);
         }
-        
+
         if (parts.some((n) => Number.isNaN(n))) {
             return data.slice();
         }
@@ -457,7 +467,7 @@ export function forgetKeysArray<TValue>(
         entry.indices.add(leaf);
         groupsMap.set(key, entry);
     }
-    
+
     const groups = Array.from(groupsMap.values()).sort(
         (a, b) => b.path.length - a.path.length,
     );
@@ -467,8 +477,8 @@ export function forgetKeysArray<TValue>(
         const sorted = Array.from(indices)
             .filter((i) => isInteger(i) && i >= 0)
             .sort((a, b) => b - a);
-        
-            if (sorted.length === 0) {
+
+        if (sorted.length === 0) {
             continue;
         }
 
@@ -528,10 +538,7 @@ export function setImmutable<TValue>(
         return idx > length ? length : idx;
     };
 
-    if (
-        isNumber(key) ||
-        (isString(key) && key.indexOf(".") === -1)
-    ) {
+    if (isNumber(key) || (isString(key) && key.indexOf(".") === -1)) {
         const raw = isNumber(key) ? key : Number(key);
         if (!isInteger(raw) || raw < 0) {
             return root as TValue[];
@@ -651,9 +658,7 @@ export function pushWithPath<TValue>(
         }
 
         // Filter to only numeric segments for array operations
-        const numericSegs = segs.filter(
-            (s): s is number => isNumber(s),
-        );
+        const numericSegs = segs.filter((s): s is number => isNumber(s));
         if (numericSegs.length !== segs.length) {
             // Mixed paths not supported in this array-only function
             return out as TValue[];
@@ -806,7 +811,10 @@ export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
  * dotFlattenObject({a: {b: {c: 1}}}); -> {'a.b.c': 1}
  * dotFlattenObject({user: {name: 'John'}}, 'data'); -> {'data.user.name': 'John'}
  */
-export function dotFlattenObject<TValue, TKey extends PropertyKey = PropertyKey>(
+export function dotFlattenObject<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(
     data: Record<TKey, TValue> | unknown,
     prepend: string = "",
 ): Record<PropertyKey, TValue> {
@@ -814,7 +822,10 @@ export function dotFlattenObject<TValue, TKey extends PropertyKey = PropertyKey>
         return {};
     }
 
-    const results: Record<PropertyKey, TValue> = {} as Record<PropertyKey, TValue>;
+    const results: Record<PropertyKey, TValue> = {} as Record<
+        PropertyKey,
+        TValue
+    >;
 
     const walk = (obj: Record<TKey, TValue>, prefix: string): void => {
         for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
@@ -877,7 +888,7 @@ export function dotFlattenArray<TValue>(
             walk(arr[i], nextPath);
         }
     };
-    
+
     walk(root, "");
 
     return out;
@@ -919,9 +930,10 @@ export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
  * undotExpandObject({'user.name': 'John', 'user.age': 30}); -> {user: {name: 'John', age: 30}}
  * undotExpandObject({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
  */
-export function undotExpandObject<TValue, TKey extends PropertyKey = PropertyKey>(
-    map: Record<TKey, TValue>,
-): Record<TKey, TValue> {
+export function undotExpandObject<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(map: Record<TKey, TValue>): Record<TKey, TValue> {
     const results: Record<string, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(map) as [TKey, TValue][]) {
@@ -946,9 +958,10 @@ export function undotExpandObject<TValue, TKey extends PropertyKey = PropertyKey
  * undotExpandArray({ '0': 'a', '1.0': 'b', '1.1': 'c' }); -> ['a', ['b', 'c']]
  * undotExpandArray({ '0.0.0': 'deep' }); -> [[['deep']]]
  */
-export function undotExpandArray<TValue, TKey extends PropertyKey = PropertyKey>(
-    map: Record<TKey, TValue>,
-): TValue[] {
+export function undotExpandArray<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(map: Record<TKey, TValue>): TValue[] {
     const root: unknown[] = [];
     const isValidIndex = (seg: string): boolean => {
         const n = seg.length ? Number(seg) : NaN;
@@ -958,7 +971,7 @@ export function undotExpandArray<TValue, TKey extends PropertyKey = PropertyKey>
         if (!isString(rawKey) || rawKey.length === 0) {
             continue;
         }
-        
+
         const segments = rawKey.split(".");
         if (segments.some((s) => !isValidIndex(s))) {
             continue;
@@ -991,7 +1004,7 @@ export function undotExpandArray<TValue, TKey extends PropertyKey = PropertyKey>
             }
         }
     }
-    
+
     return root as TValue[];
 }
 
@@ -1026,7 +1039,7 @@ export function undotExpandArray<TValue, TKey extends PropertyKey = PropertyKey>
  * getNestedValue([{items: ['x']}], '0.items.5'); -> undefined
  */
 export function getNestedValue<TReturn>(
-    obj: unknown, 
+    obj: unknown,
     path: string,
 ): TReturn | undefined {
     // Accept both arrays and objects - just check for null/undefined
@@ -1230,7 +1243,11 @@ export function setMixed<TValue>(
 
             // If the next level doesn't exist or isn't an object/array, create it
             const nextValue = current[index];
-            if (isNull(nextValue) || isUndefined(nextValue) || !isObjectAny(nextValue)) {
+            if (
+                isNull(nextValue) ||
+                isUndefined(nextValue) ||
+                !isObjectAny(nextValue)
+            ) {
                 const nextSegment = segments[i + 1];
                 if (nextSegment) {
                     const nextIndex = parseInt(nextSegment, 10);
@@ -1241,11 +1258,19 @@ export function setMixed<TValue>(
             }
 
             current = current[index];
-        } else if (!isNull(current) && isUndefined(current) === false && isObjectAny(current)) {
+        } else if (
+            !isNull(current) &&
+            isUndefined(current) === false &&
+            isObjectAny(current)
+        ) {
             // Handle non-numeric keys (object properties)
             const obj = current as Record<string, unknown>;
             const nextValue = obj[segment];
-            if (isNull(nextValue) || isUndefined(nextValue) || !isObjectAny(nextValue)) {
+            if (
+                isNull(nextValue) ||
+                isUndefined(nextValue) ||
+                !isObjectAny(nextValue)
+            ) {
                 const nextSegment = segments[i + 1];
                 if (nextSegment) {
                     const nextIndex = parseInt(nextSegment, 10);
@@ -1443,17 +1468,17 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
         if (isNull(data) || isUndefined(data)) {
             return false;
         }
-        
+
         // For arrays, check if they have elements
         if (isArray(data)) {
             return data.length > 0;
         }
-        
+
         // For objects, check if they have keys
         if (isObject(data)) {
             return Object.keys(data).length > 0;
         }
-        
+
         // For other types (primitives), return true as they exist
         return true;
     }
@@ -1477,7 +1502,12 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
  * @param defaultValue - The default value if the key is not found.
  * @returns The value or the default value.
  */
-export function getObjectValue<TValue, TKey extends PropertyKey = PropertyKey, TReturn = unknown, TDefault = null>(
+export function getObjectValue<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TReturn = unknown,
+    TDefault = null,
+>(
     obj: Record<TKey, TValue> | unknown,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault) | null = null,
@@ -1539,7 +1569,7 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
     // Handle simple property access (no dots)
     if (!keyStr.includes(".")) {
         result[keyStr as TKey] = value;
-        
+
         return result as Record<TKey, TValue>;
     }
 
@@ -1581,8 +1611,8 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
  * @returns True if the key exists, false otherwise.
  */
 export function hasObjectKey<TValue, TKey extends PropertyKey = PropertyKey>(
-    obj: Record<TKey, TValue> | unknown, 
-    key: PathKey
+    obj: Record<TKey, TValue> | unknown,
+    key: PathKey,
 ): boolean {
     if (!isObject(obj) || isNull(key)) {
         return false;

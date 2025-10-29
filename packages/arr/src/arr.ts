@@ -12,8 +12,32 @@ import {
     undotExpandArray,
 } from "@laravel-js/path";
 import { Random, Str } from "@laravel-js/str";
-import type { ArrayInnerValue, ArrayItems, PathKey, PathKeys, } from "@laravel-js/types";
-import { castableToArray, compareValues, getAccessibleValues, isArray, isBoolean, isFalsy, isFunction, isInteger, isMap, isNull, isNumber, isObject, isString, isStringable, isSymbol, isUndefined, isWeakMap, typeOf } from '@laravel-js/utils';
+import type {
+    ArrayInnerValue,
+    ArrayItems,
+    PathKey,
+    PathKeys,
+} from "@laravel-js/types";
+import {
+    castableToArray,
+    compareValues,
+    getAccessibleValues,
+    isArray,
+    isBoolean,
+    isFalsy,
+    isFunction,
+    isInteger,
+    isMap,
+    isNull,
+    isNumber,
+    isObject,
+    isString,
+    isStringable,
+    isSymbol,
+    isUndefined,
+    isWeakMap,
+    typeOf,
+} from "@laravel-js/utils";
 
 /**
  * Determine whether the given value is array accessible.
@@ -24,7 +48,9 @@ import { castableToArray, compareValues, getAccessibleValues, isArray, isBoolean
  * accessible([1, 2]); // true
  * accessible({ a: 1, b: 2 }); // false
  */
-export function accessible<TValue>(value: TValue): value is TValue & Array<TValue> {
+export function accessible<TValue>(
+    value: TValue,
+): value is TValue & Array<TValue> {
     return isArray(value);
 }
 
@@ -64,7 +90,7 @@ export function add<TValue>(
     if (!hasMixed(mutableData, key)) {
         return setMixed(mutableData, key, value);
     }
-    
+
     return mutableData;
 }
 
@@ -159,7 +185,9 @@ export function chunk<TValue>(
         if (preserveKeys) {
             (chunks as TValue[][]).push(chunk);
         } else {
-            (chunks as [number, TValue][][]).push(chunk.map((item, index) => [i + index, item]));
+            (chunks as [number, TValue][][]).push(
+                chunk.map((item, index) => [i + index, item]),
+            );
         }
     }
 
@@ -216,18 +244,16 @@ export function collapse<TValue extends ArrayItems<unknown>>(
 
 /**
  * Combine multiple arrays into a single array.
- * 
+ *
  * @param arrays - The arrays to combine.
  * @returns A new array containing all elements from the input arrays.
  */
-export function combine<TValue>(
-    ...arrays: ArrayItems<TValue>[]
-) {
+export function combine<TValue>(...arrays: ArrayItems<TValue>[]) {
     const length = arrays[0]?.length || 0;
     const result = [];
 
     for (let i = 0; i < length; i++) {
-        result.push(arrays.map(array => array[i]));
+        result.push(arrays.map((array) => array[i]));
     }
 
     return result;
@@ -291,8 +317,8 @@ export function divide<A extends readonly unknown[]>(
     return [
         keys,
         array.slice() as unknown as A extends ArrayItems<infer V>
-        ? V[]
-        : unknown[],
+            ? V[]
+            : unknown[],
     ];
 }
 
@@ -336,9 +362,7 @@ export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param arrays - The arrays to union.
  * @returns A new array containing all elements from the input arrays.
  */
-export function union<TValue>(
-    ...arrays: ArrayItems<TValue>[]
-): TValue[] {
+export function union<TValue>(...arrays: ArrayItems<TValue>[]): TValue[] {
     const result: TValue[] = [];
 
     for (const array of arrays) {
@@ -356,7 +380,7 @@ export function union<TValue>(
 
 /**
  * Prepend one or more items to the beginning of the array
- * 
+ *
  * @param data - The array to prepend items to
  * @param items - The items to prepend as [key, value] tuples
  * @returns A new array with the items prepended
@@ -366,7 +390,7 @@ export function unshift<TValue, TNewValue>(
     ...items: TNewValue[]
 ): ArrayItems<TValue | TNewValue> {
     const result: (TValue | TNewValue)[] = [...data];
-    
+
     for (let i = items.length - 1; i >= 0; i--) {
         const item = items[i];
         if (!isUndefined(item)) {
@@ -391,7 +415,7 @@ export function unshift<TValue, TNewValue>(
  */
 export function except<TValue>(
     data: ArrayItems<TValue>,
-    keys: PathKeys
+    keys: PathKeys,
 ): TValue[] {
     return forget(data, keys);
 }
@@ -728,16 +752,14 @@ export function flatten<TValue>(
 
 /**
  * Flip the keys and values of an array or array of objects.
- * 
+ *
  * @param data - The array of items to flip
  * @return - the data items flipped
  *
  * @example
  * flip(['a', 'b', 'c']); -> {a: 0, b: 1, c: 2}
  */
-export function flip<TValue>(
-    data: ArrayItems<TValue> | unknown,
-) {
+export function flip<TValue>(data: ArrayItems<TValue> | unknown) {
     if (!accessible(data)) {
         return {};
     }
@@ -802,7 +824,10 @@ export function float<TValue, TDefault = null>(
  * forget(['products', ['desk', [100]]], '1.1'); -> ['products', ['desk']]
  * forget(['products', ['desk', [100]]], 2); -> ['products', ['desk', [100]]]
  */
-export function forget<TValue>(data: ArrayItems<TValue>, keys: PathKeys): TValue[] {
+export function forget<TValue>(
+    data: ArrayItems<TValue>,
+    keys: PathKeys,
+): TValue[] {
     return forgetKeys(data, keys) as TValue[];
 }
 
@@ -821,7 +846,9 @@ export function forget<TValue>(data: ArrayItems<TValue>, keys: PathKeys): TValue
  * @throws Error if items is a WeakMap or a scalar value.
  */
 export function from<TValue>(items: ArrayItems<TValue>): TValue[];
-export function from<TValue, TKey extends PropertyKey = PropertyKey>(items: Map<PropertyKey, TValue>): Record<TKey, TValue>;
+export function from<TValue, TKey extends PropertyKey = PropertyKey>(
+    items: Map<PropertyKey, TValue>,
+): Record<TKey, TValue>;
 export function from(
     items: number | string | boolean | symbol | null | undefined,
 ): never;
@@ -878,10 +905,10 @@ export function get<TValue, TDefault = unknown>(
 ): TDefault | null {
     if (isNull(key) || isUndefined(key)) {
         return isArray(array)
-            ? (array as TValue[]) as unknown as TDefault
+            ? (array as TValue[] as unknown as TDefault)
             : isFunction(defaultValue)
-                ? (defaultValue as () => TDefault)()
-                : defaultValue;
+              ? (defaultValue as () => TDefault)()
+              : defaultValue;
     }
 
     if (!isArray(array)) {
@@ -1251,7 +1278,10 @@ export function prependKeysWith<TValue>(
  * only(['a', 'b', 'c', 'd'], [0, 2]); -> ['a', 'c']
  * only(['a', 'b', 'c'], [1]); -> ['b']
  */
-export function only<TValue>(data: ArrayItems<TValue> | unknown, keys: number[]): TValue[] {
+export function only<TValue>(
+    data: ArrayItems<TValue> | unknown,
+    keys: number[],
+): TValue[] {
     const values = getAccessibleValues(data);
     const result: TValue[] = [];
 
@@ -1359,7 +1389,10 @@ export function pluck<TValue extends Record<string, unknown>>(
                 itemKey = (key as (item: TValue) => string | number)(item);
             } else {
                 const nestedKey = getNestedValue(item, key as string);
-                if (typeof nestedKey === 'string' || typeof nestedKey === 'number') {
+                if (
+                    typeof nestedKey === "string" ||
+                    typeof nestedKey === "number"
+                ) {
                     itemKey = nestedKey;
                 } else if (!isNull(nestedKey)) {
                     itemKey = String(nestedKey) as string;
@@ -1411,11 +1444,11 @@ export function pop<TValue>(
         }
     }
 
-    return poppedValues.length === 0 
-        ? null 
-        : poppedValues.length === 1 
-            ? poppedValues[0] as TValue 
-            : poppedValues;
+    return poppedValues.length === 0
+        ? null
+        : poppedValues.length === 1
+          ? (poppedValues[0] as TValue)
+          : poppedValues;
 }
 
 /**
@@ -1476,7 +1509,10 @@ export function mapWithKeys<
     TMapWithKeysKey extends PropertyKey = PropertyKey,
 >(
     data: TValue[],
-    callback: (value: TValue, index: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
+    callback: (
+        value: TValue,
+        index: TKey,
+    ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue>;
 // Overload: non-array fallback
 export function mapWithKeys<
@@ -1486,7 +1522,10 @@ export function mapWithKeys<
     TMapWithKeysKey extends PropertyKey = PropertyKey,
 >(
     data: unknown,
-    callback: (value: TValue, index: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
+    callback: (
+        value: TValue,
+        index: TKey,
+    ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue>;
 // Implementation
 export function mapWithKeys<
@@ -1496,7 +1535,10 @@ export function mapWithKeys<
     TMapWithKeysKey extends PropertyKey = PropertyKey,
 >(
     data: ArrayItems<TValue> | unknown,
-    callback: (value: TValue, index: TKey) => Record<TMapWithKeysKey, TMapWithKeysValue>,
+    callback: (
+        value: TValue,
+        index: TKey,
+    ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue> {
     if (!accessible(data)) {
         return {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
@@ -1542,23 +1584,36 @@ export function mapSpread<T1, T2, T3, TMapReturn>(
 // Overload: 4-element tuples with proper type inference
 export function mapSpread<T1, T2, T3, T4, TMapReturn>(
     data: [T1, T2, T3, T4][],
-    callback: (arg1: T1, arg2: T2, arg3: T3, arg4: T4, index: number) => TMapReturn,
+    callback: (
+        arg1: T1,
+        arg2: T2,
+        arg3: T3,
+        arg4: T4,
+        index: number,
+    ) => TMapReturn,
 ): TMapReturn[];
 // Overload: 5-element tuples with proper type inference
 export function mapSpread<T1, T2, T3, T4, T5, TMapReturn>(
     data: [T1, T2, T3, T4, T5][],
-    callback: (arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5, index: number) => TMapReturn,
+    callback: (
+        arg1: T1,
+        arg2: T2,
+        arg3: T3,
+        arg4: T4,
+        arg5: T5,
+        index: number,
+    ) => TMapReturn,
 ): TMapReturn[];
 // Overload: generic fallback for any data
 export function mapSpread<TMapReturn>(
     data: unknown,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     callback: (...args: any[]) => TMapReturn,
 ): TMapReturn[];
 // Implementation (using any[] for compatibility with all overloads)
 export function mapSpread<TMapReturn>(
     data: unknown,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     callback: (...args: any[]) => TMapReturn,
 ): TMapReturn[] {
     const values = getAccessibleValues(data);
@@ -1655,7 +1710,10 @@ export function pull<TValue, TDefault = null>(
 
     const updated = forget(root as TValue[], key as number | string);
 
-    return { value: value as unknown as TValue | TDefault | null, data: updated };
+    return {
+        value: value as unknown as TValue | TDefault | null,
+        data: updated,
+    };
 }
 
 /**
@@ -1797,7 +1855,7 @@ export function random<TValue>(
 
 /**
  * Get and remove the first N items from the array
- * 
+ *
  * @param data - The array to shift items from.
  * @param count - The number of items to shift. Defaults to 1.
  * @returns The shifted item(s) or null/empty array if none.
@@ -1807,7 +1865,7 @@ export function shift<TValue>(
     count: number = 1,
 ): TValue | TValue[] | null {
     if (!accessible(data)) {
-        return count === 1 ? null : [] as TValue[];
+        return count === 1 ? null : ([] as TValue[]);
     }
 
     const values = (data as ArrayItems<TValue>).slice();
@@ -1821,11 +1879,13 @@ export function shift<TValue>(
         }
     }
 
-    return shiftedValues.length === 0 
-        ? (count === 1 ? null : [] as TValue[]) 
-        : (shiftedValues.length === 1 && count === 1 
-            ? shiftedValues[0] as TValue 
-            : shiftedValues);
+    return shiftedValues.length === 0
+        ? count === 1
+            ? null
+            : ([] as TValue[])
+        : shiftedValues.length === 1 && count === 1
+          ? (shiftedValues[0] as TValue)
+          : shiftedValues;
 }
 
 /**
@@ -1899,19 +1959,19 @@ export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
 
 /**
  * Slice the underlying array items.
- * 
+ *
  * This is a READ operation that extracts a portion of the array without modifying the original.
  * Similar to JavaScript's Array.slice() and PHP's array_slice(), it returns only the subset.
- * 
+ *
  * For a WRITE operation that tracks removed elements, use `splice()` instead.
- * 
+ *
  * @param data - The array to slice
  * @param offset - The starting index
  * @param length - The number of items to include (negative means stop that many from the end)
  * @returns Sliced array (subset of the original)
- * 
+ *
  * @example
- * 
+ *
  * slice([1, 2, 3, 4], 1, 2); -> [2, 3]
  * slice([1, 2, 3, 4], 1, -1); -> [2, 3]
  * slice([1, 2, 3, 4], 2); -> [3, 4]
@@ -1920,7 +1980,7 @@ export function slice<TValue>(
     data: ArrayItems<TValue> | unknown,
     offset: number,
     length: number | null = null,
-){
+) {
     if (!accessible(data)) {
         return [] as ArrayItems<TValue>;
     }
@@ -1961,10 +2021,7 @@ export function sole<TValue>(
     callback: (value: TValue, index: number) => boolean,
 ): TValue;
 // Overload: array type without callback
-export function sole<TValue>(
-    data: TValue[],
-    callback?: undefined,
-): TValue;
+export function sole<TValue>(data: TValue[], callback?: undefined): TValue;
 // Overload: non-array fallback
 export function sole<TValue>(
     data: unknown,
@@ -2030,9 +2087,7 @@ export function sort<TValue>(
     callback: ((a: TValue, b: TValue) => unknown) | string | null,
 ): TValue[];
 // Overload: array type without callback (natural sorting)
-export function sort<TValue>(
-    data: TValue[],
-): TValue[];
+export function sort<TValue>(data: TValue[]): TValue[];
 // Overload: non-array fallback
 export function sort<TValue>(
     data: unknown,
@@ -2100,9 +2155,7 @@ export function sortDesc<TValue>(
     callback: ((item: TValue) => unknown) | string | null,
 ): TValue[];
 // Overload: array type without callback (natural sorting)
-export function sortDesc<TValue>(
-    data: TValue[],
-): TValue[];
+export function sortDesc<TValue>(data: TValue[]): TValue[];
 // Overload: non-array fallback
 export function sortDesc<TValue>(
     data: unknown,
@@ -2203,10 +2256,7 @@ export function sortRecursive<TValue>(
 
         // Recursively sort nested values first
         for (const [key, value] of entries) {
-            if (
-                isArray(value) ||
-                (isObject(value) && !isNull(value))
-            ) {
+            if (isArray(value) || (isObject(value) && !isNull(value))) {
                 result[key] = sortRecursive(value, options, descending);
             }
         }
@@ -2248,24 +2298,24 @@ export function sortRecursiveDesc<TValue>(
 
 /**
  * Splice a portion of the underlying array.
- * 
+ *
  * This is a WRITE operation that removes and/or replaces elements, tracking what was removed.
  * Similar to PHP's array_splice(), it returns both the modified array and removed elements.
  * Unlike JavaScript's Array.splice() (which mutates and returns only removed elements),
  * this function is immutable and returns both values for tracking changes.
- * 
+ *
  * For a READ operation that just extracts a subset, use `slice()` instead.
- * 
+ *
  * Replacement values that are arrays will be flattened into the result.
- * 
+ *
  * @param data - The array to splice
  * @param offset - The starting index
  * @param length - The number of items to remove (undefined removes all from offset to end)
  * @param replacement - The replacement items (arrays will be flattened)
  * @returns Object with `array` (modified array) and `removed` (removed elements)
- * 
+ *
  * @example
- * 
+ *
  * splice(['foo', 'baz'], 1, 1); -> { array: ['foo'], removed: ['baz'] }
  * splice(['foo', 'baz'], 1, 1, 'bar'); -> { array: ['foo', 'bar'], removed: ['baz'] }
  * splice(['foo', 'baz'], 1, 0, 'bar'); -> { array: ['foo', 'bar', 'baz'], removed: [] }
@@ -2282,7 +2332,7 @@ export function splice<TValue>(
     }
 
     const values = (data as ArrayItems<TValue>).slice();
-    
+
     // Flatten replacement if it's an array within an array
     const flatReplacement: TValue[] = [];
     for (const item of replacement) {
@@ -2296,7 +2346,11 @@ export function splice<TValue>(
     let removed: TValue[];
     if (isUndefined(length)) {
         // If length is not provided, remove all elements from offset to end
-        removed = values.splice(offset, values.length - offset, ...flatReplacement);
+        removed = values.splice(
+            offset,
+            values.length - offset,
+            ...flatReplacement,
+        );
     } else {
         removed = values.splice(offset, length, ...flatReplacement);
     }
@@ -2509,23 +2563,23 @@ export function reject<TValue>(
 
 /**
  * Replace the data items with the given replacer items.
- * 
+ *
  * Supports both arrays and numeric keyed objects as replacement values.
  * When using a numeric keyed object, keys determine positions to replace/add.
- * 
+ *
  * @param data - The array to replace items in.
  * @param replacerData - The array or numeric keyed object containing items to replace.
  * @returns The modified original array with replaced items.
- * 
+ *
  * @example
- * 
+ *
  * replace(['a', 'b', 'c'], ['d', 'e']); -> ['d', 'e', 'c']
  * replace(['a', 'b', 'c'], { 1: 'd', 2: 'e', 3: 'f' }); -> ['a', 'd', 'e', 'f']
  */
 export function replace<TValue, TReplace = TValue>(
     data: ArrayItems<TValue> | unknown,
     replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
-){
+) {
     const values = getAccessibleValues(data) as TValue[];
 
     // Handle null/undefined replacer
@@ -2579,16 +2633,16 @@ export function replace<TValue, TReplace = TValue>(
  * @param data - The original array to replace items in.
  * @param replacerData - The array or numeric keyed object containing items to replace.
  * @returns The modified original array with replaced items.
- * 
+ *
  * @example
- * 
+ *
  * replaceRecursive(['a', 'b', ['c', 'd']], null); -> ['a', 'b', ['c', 'd']]
  * replaceRecursive(['a', 'b', ['c', 'd']], ['z', {2: {1: 'e'}}]); -> ['z', 'b', ['c', 'e']]
  */
 export function replaceRecursive<TValue, TReplace = TValue>(
     data: ArrayItems<TValue> | unknown,
     replacerData: ArrayItems<TValue> | Record<number, TReplace> | unknown,
-){
+) {
     const values = getAccessibleValues(data) as TValue[];
 
     // Handle null/undefined replacer
@@ -2597,32 +2651,49 @@ export function replaceRecursive<TValue, TReplace = TValue>(
     }
 
     // Helper function to check if an object is a numeric keyed object
-    const isNumericKeyedObject = (obj: unknown): obj is Record<number, unknown> => {
+    const isNumericKeyedObject = (
+        obj: unknown,
+    ): obj is Record<number, unknown> => {
         if (!isObject(obj) || isArray(obj)) {
             return false;
         }
         const keys = Object.keys(obj);
-        return keys.length > 0 && keys.every(key => !isNaN(parseInt(key, 10)));
+        return (
+            keys.length > 0 && keys.every((key) => !isNaN(parseInt(key, 10)))
+        );
     };
 
     // Helper function to process a single replacement value
-    const processReplacement = (originalValue: TValue, replacementValue: unknown): TValue => {
+    const processReplacement = (
+        originalValue: TValue,
+        replacementValue: unknown,
+    ): TValue => {
         // Both are arrays or the replacement is a numeric keyed object that should be treated as array
-        if (isArray(originalValue) && (isArray(replacementValue) || isNumericKeyedObject(replacementValue))) {
+        if (
+            isArray(originalValue) &&
+            (isArray(replacementValue) ||
+                isNumericKeyedObject(replacementValue))
+        ) {
             return replaceRecursive(
                 originalValue as unknown as ArrayItems<TValue>,
-                replacementValue as ArrayItems<TValue> | Record<number, TReplace>,
+                replacementValue as
+                    | ArrayItems<TValue>
+                    | Record<number, TReplace>,
             ) as unknown as TValue;
         }
-        
+
         // Both are objects (non-array, non-numeric-keyed)
-        if (isObject(originalValue) && isObject(replacementValue) && !isNumericKeyedObject(replacementValue)) {
+        if (
+            isObject(originalValue) &&
+            isObject(replacementValue) &&
+            !isNumericKeyedObject(replacementValue)
+        ) {
             return objReplaceRecursive(
                 originalValue as unknown as Record<PropertyKey, TValue>,
                 replacementValue as unknown as Record<PropertyKey, TValue>,
             ) as unknown as TValue;
         }
-        
+
         // Otherwise, just replace
         return replacementValue as TValue;
     };
@@ -2630,14 +2701,14 @@ export function replaceRecursive<TValue, TReplace = TValue>(
     // If replacerData is an array
     if (isArray(replacerData)) {
         const replacerArray = replacerData as unknown[];
-        
+
         // Collect all replacements with their intended indices
         const allReplacements: Map<number, unknown> = new Map();
         let currentIndex = 0;
-        
+
         for (let i = 0; i < replacerArray.length; i++) {
             const item = replacerArray[i];
-            
+
             // If this item is a numeric keyed object, it represents sparse replacements
             if (isNumericKeyedObject(item)) {
                 const numericObj = item as Record<number, unknown>;
@@ -2657,11 +2728,14 @@ export function replaceRecursive<TValue, TReplace = TValue>(
                 currentIndex++;
             }
         }
-        
+
         // Apply all replacements
         for (const [index, replacementValue] of allReplacements) {
             if (index < values.length) {
-                values[index] = processReplacement(values[index]!, replacementValue);
+                values[index] = processReplacement(
+                    values[index]!,
+                    replacementValue,
+                );
             } else {
                 // Fill gaps with undefined if necessary
                 while (values.length < index) {
@@ -2670,7 +2744,7 @@ export function replaceRecursive<TValue, TReplace = TValue>(
                 values.push(replacementValue as TValue);
             }
         }
-        
+
         return values;
     }
 
@@ -2681,7 +2755,10 @@ export function replaceRecursive<TValue, TReplace = TValue>(
             const index = parseInt(key, 10);
             if (!isNaN(index)) {
                 if (index < values.length) {
-                    values[index] = processReplacement(values[index]!, replacerObj[index]);
+                    values[index] = processReplacement(
+                        values[index]!,
+                        replacerObj[index],
+                    );
                 } else {
                     // Fill gaps with undefined if necessary
                     while (values.length < index) {
@@ -2699,18 +2776,16 @@ export function replaceRecursive<TValue, TReplace = TValue>(
 
 /**
  * Reverse the order of the array and return the result.
- * 
+ *
  * @param data - The array to reverse.
  * @returns A new array with the items in reverse order.
- * 
+ *
  * @example
- * 
+ *
  * reverse([1, 2, 3]); -> [3, 2, 1]
  * reverse(['a', 'b', 'c']); -> ['c', 'b', 'a']
  */
-export function reverse<TValue>(
-    data: ArrayItems<TValue> | unknown,
-): TValue[] {
+export function reverse<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
 
     return values.slice().reverse();
@@ -2718,17 +2793,17 @@ export function reverse<TValue>(
 
 /**
  * Pad array to the specified length with a value.
- * 
+ *
  * If size is positive, pads on the right (append).
  * If size is negative, pads on the left (prepend).
- * 
+ *
  * @param data - The array to pad.
  * @param size - The desired length of the array (negative means pad left).
  * @param value - The value to pad with.
  * @returns A new padded array.
- * 
+ *
  * @example
- * 
+ *
  * pad([1, 2, 3], 5, 0); -> [1, 2, 3, 0, 0]
  * pad([1, 2, 3], -5, 0); -> [0, 0, 1, 2, 3]
  */
@@ -2812,11 +2887,10 @@ export function partition<TValue>(
  * whereNotNull([1, null, 2, undefined, 3]); -> [1, 2, undefined, 3]
  * whereNotNull(['a', null, 'b', null]); -> ['a', 'b']
  */
-export function whereNotNull<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
-    return where(
-        data,
-        (value) => !isNull(value),
-    );
+export function whereNotNull<TValue>(
+    data: ArrayItems<TValue> | unknown,
+): TValue[] {
+    return where(data, (value) => !isNull(value));
 }
 
 /**
@@ -3020,7 +3094,7 @@ export function diff<TValue>(
 
 /**
  * Intersect the data array with the given other array
- * 
+ *
  * @param data - The original array
  * @param other - The array to intersect with
  * @param callable - Optional function to compare values
@@ -3061,7 +3135,9 @@ export function intersect<TValue, TOther = TValue>(
     for (const item of dataValues) {
         const found = isFunction(callable)
             ? otherValues.some((otherItem) => callable(item, otherItem))
-            : otherValues.some((otherItem) => otherItem === (item as unknown as TOther));
+            : otherValues.some(
+                  (otherItem) => otherItem === (item as unknown as TOther),
+              );
 
         if (found) {
             result.push(item);
@@ -3073,7 +3149,7 @@ export function intersect<TValue, TOther = TValue>(
 
 /**
  * Intersect the array with the given items by key.
- * 
+ *
  * @param data - The original array
  * @param other - The array to intersect with
  * @returns A new array containing items with keys present in both arrays
@@ -3090,9 +3166,7 @@ export function intersectByKeys<TValue>(
     const otherValues = getAccessibleValues(other) as TValue[];
     const result: TValue[] = [];
 
-    const otherKeys = new Set<number>(
-        otherValues.map((_, index) => index),
-    );
+    const otherKeys = new Set<number>(otherValues.map((_, index) => index));
 
     for (let index = 0; index < dataValues.length; index++) {
         if (otherKeys.has(index)) {
