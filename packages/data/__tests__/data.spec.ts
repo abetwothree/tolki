@@ -424,6 +424,18 @@ describe("Data", () => {
         });
     });
 
+    describe("dataFloat", () => {
+        it("is object", () => {
+            const result = Data.dataFloat({ price: 19.99, discount: 0.1 }, "price");
+            expect(result).toBe(19.99);
+        });
+
+        it("is array", () => {
+            const result = Data.dataFloat([1.5, 2.3], 1);
+            expect(result).toBe(2.3);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
