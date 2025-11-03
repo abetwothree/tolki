@@ -524,6 +524,32 @@ describe("Data", () => {
         });
     });
 
+    describe("dataSome", () => {
+        it("is object", () => {
+            const result = Data.dataSome({ a: 1, b: 2 }, (value) => value > 2);
+            expect(result).toBe(false);
+        });
+
+        it("is array", () => {
+            const result = Data.dataSome([1, 2, 3], (value) => value > 2);
+            expect(result).toBe(true);
+        });
+    });
+
+    describe("dataInteger", () => {
+        it("is object", () => {
+            const result = Data.dataInteger({ count: 42 }, "count", 0);
+            expect(result).toBe(42);
+            
+            expect(Data.dataInteger({}, "missing", 5)).toBe(5);
+        });
+
+        it("is array", () => {
+            const result = Data.dataInteger([1, 2, 3], 0, 0);
+            expect(result).toBe(1);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -642,21 +668,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataSome", () => {
-        it("some", () => {
-            expect(Data.dataSome([1, 2, 3], (value) => value > 2)).toBe(true);
-            expect(Data.dataSome({ a: 1, b: 2 }, (value) => value > 2)).toBe(false);
-        });
-    });
-
-    describe("dataInteger", () => {
-        it("integer", () => {
-            expect(Data.dataInteger([1, 2, 3], 0, 0)).toBe(1);
-            expect(Data.dataInteger({ count: 42 }, "count", 0)).toBe(42);
-            expect(Data.dataInteger({}, "missing", 5)).toBe(5);
         });
     });
 
