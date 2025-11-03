@@ -652,6 +652,29 @@ describe("Data", () => {
         });
     });
 
+    describe("dataMapWithKeys", () => {
+        it("is object", () => {
+            const obj = { user1: "John", user2: "Jane" };
+            const result = Data.dataMapWithKeys(obj, (value, key) => ({
+                [`name_${String(key)}`]: (value as string).toUpperCase(),
+            }));
+            expect(result).toEqual({ name_user1: "JOHN", name_user2: "JANE" });
+        });
+        it("is array", () => {
+            const users = [
+                { id: 1, name: "John" },
+                { id: 2, name: "Jane" },
+            ];
+            const result = Data.dataMapWithKeys(users, (item) => ({
+                [item.name]: item.id,
+            }));
+            expect(result).toEqual({
+                John: 1,
+                Jane: 2,
+            });
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
