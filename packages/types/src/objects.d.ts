@@ -3,6 +3,6 @@
  */
 export type AddToObject<
     T extends Record<PropertyKey, unknown>,
-    K extends string,
-    V,
+    K extends PropertyKey,
+    V
 > = T & Record<K, V>;

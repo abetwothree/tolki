@@ -7,7 +7,7 @@ describe("Data", () => {
             const result = Data.dataAdd({ a: 1 }, "b", 2);
             expect(result).toEqual({ a: 1, b: 2 });
 
-            assertType<Record<string, { a: number }>>(result);
+            assertType<{ a: number; b: number; }>(result);
         });
 
         it("is array", () => {
@@ -15,6 +15,20 @@ describe("Data", () => {
             expect(result).toEqual([1, 2, 3]);
 
             assertType<number[]>(result);
+
+            const result2 = Data.dataAdd([1, "b"], 2, 3);
+            expect(result2).toEqual([1, "b", 3]);
+
+            assertType<(number | string)[]>(result2);
+        });
+
+        it("rejects readonly arrays at compile time", () => {
+            const readonlyArray: readonly number[] = [1, 2, 3];
+            
+            // This should cause a TypeScript error because readonly arrays
+            // cannot be passed to dataAdd (they cannot be mutated)
+            // @ts-expect-error - readonly arrays should not be accepted
+            Data.dataAdd(readonlyArray, 3, 4);
         });
     });
 

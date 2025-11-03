@@ -161,6 +161,8 @@ import { isArray, isFunction, isObject, isUndefined } from "@laravel-js/utils";
 /**
  * Add an element to data.
  *
+ * Note: This function does not accept readonly arrays as they cannot be mutated.
+ *
  * @param data - The data to add to
  * @param key - The key to add at
  * @param value - The value to add
@@ -171,16 +173,19 @@ import { isArray, isFunction, isObject, isUndefined } from "@laravel-js/utils";
  * dataAdd([1, 2], 2, 3); -> [1, 2, 3]
  * dataAdd({a: 1}, 'b', 2); -> {a: 1, b: 2}
  */
-export function dataAdd<TValue extends Record<PropertyKey, unknown>>(
+// Overload: object
+export function dataAdd<TValue extends Record<PropertyKey, unknown>, TKey extends PropertyKey, TNewValue>(
     data: TValue,
-    key: PathKey,
-    value: unknown,
-): ReturnType<typeof objAdd<TValue>>;
-export function dataAdd<TValue>(
+    key: TKey,
+    value: TNewValue,
+): AddToObject<TValue, TKey, TNewValue>;
+// Overload: mutable array only (excludes readonly arrays)
+export function dataAdd<TValue, TNewValue>(
     data: TValue[],
     key: number,
-    value: unknown,
-): ReturnType<typeof arrAdd<TValue>>;
+    value: TNewValue,
+): AddToArray<TValue[], TNewValue>;
+// Implementation
 export function dataAdd<TValue>(
     data: DataItems<TValue, PropertyKey>,
     key: PathKey,
