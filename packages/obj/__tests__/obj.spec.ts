@@ -1,5 +1,5 @@
 import * as Obj from "@laravel-js/obj";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, assertType } from "vitest";
 
 describe("Obj", () => {
     describe("accessible", () => {
@@ -42,24 +42,38 @@ describe("Obj", () => {
             const result = Obj.add(obj, "age", 30);
             expect(result).toEqual({ name: "John", age: 30 });
             expect(result).not.toBe(obj); // should be immutable
+            assertType<{ name: string; age: number }>(result);
         });
 
         it("should not add a value if key exists", () => {
             const obj = { name: "John", age: 25 };
             const result = Obj.add(obj, "age", 30);
             expect(result).toEqual({ name: "John", age: 25 });
+            // When key exists, type should remain unchanged
+            assertType<{ name: string; age: number }>(result);
         });
 
         it("should add nested values using dot notation", () => {
             const obj = { user: { name: "John" } };
             const result = Obj.add(obj, "user.age", 30);
             expect(result).toEqual({ user: { name: "John", age: 30 } });
+            // Type should reflect nested addition
+            assertType<{ user: { name: string; age: number } }>(result);
         });
 
         it("should add to empty objects", () => {
             const obj = {};
             const result = Obj.add(obj, "name", "John");
             expect(result).toEqual({ name: "John" });
+            assertType<{ name: string }>(result);
+        });
+
+        it("should preserve type when nested key exists", () => {
+            const obj = { user: { name: "John", age: 25 } };
+            const result = Obj.add(obj, "user.age", 30);
+            expect(result).toEqual({ user: { name: "John", age: 25 } });
+            // Type should remain unchanged when nested key exists
+            assertType<{ user: { name: string; age: number } }>(result);
         });
     });
 
