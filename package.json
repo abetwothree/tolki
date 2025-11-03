@@ -48,20 +48,20 @@
         "@laravel-js/str": "workspace:^",
         "@laravel-js/types": "workspace:^",
         "@laravel-js/utils": "workspace:^",
-        "@oxlint/migrate": "^1.24.0",
+        "@oxlint/migrate": "^1.25.0",
         "@types/node": "^24.9.2",
         "@vitest/coverage-istanbul": "4.0.3",
         "@vitest/ui": "4.0.3",
         "dotenv": "^17.2.3",
         "eslint": "^9.38.0",
-        "eslint-plugin-oxlint": "^1.24.0",
+        "eslint-plugin-oxlint": "^1.25.0",
         "eslint-plugin-simple-import-sort": "^12.1.1",
         "glob": "^11.0.3",
         "globals": "^16.4.0",
         "jiti": "^2.6.1",
-        "jsdom": "^27.0.1",
+        "jsdom": "^27.1.0",
         "npm-run-all2": "^8.0.4",
-        "oxlint": "^1.24.0",
+        "oxlint": "^1.25.0",
         "path": "^0.12.7",
         "prettier": "3.6.2",
         "ts-node": "^10.9.2",
@@ -70,6 +70,9 @@
         "vite": "^7.1.12",
         "vite-plugin-dts": "^4.5.4",
         "vitepress": "2.0.0-alpha.12",
-        "vitest": "^4.0.4"
+        "vitest": "^4.0.6"
+    },
+    "dependencies": {
+        "lodash-es": "^4.17.21"
     }
 }
