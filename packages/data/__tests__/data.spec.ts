@@ -374,6 +374,40 @@ describe("Data", () => {
         });
     });
 
+    describe("dataTake", () => {
+        it("is object", () => {
+            const result = Data.dataTake({ a: 1, b: 2, c: 3, d: 4 }, 2);
+            expect(result).toEqual({
+                a: 1,
+                b: 2,
+            });
+        });
+
+        it("is array", () => {
+            const result = Data.dataTake([1, 2, 3, 4, 5], 3);
+            expect(result).toEqual([1, 2, 3]);
+        });
+    });
+
+    describe("dataFlatten", () => {
+        it("is object", () => {
+            const result = Data.dataFlatten({
+                users: { john: { name: "John" }, jane: { name: "Jane" } },
+                posts: { "1": { title: "Hello" } },
+            }, 1);
+            expect(result).toEqual({
+                "users.john": { name: "John" },
+                "users.jane": { name: "Jane" },
+                "posts.1": { title: "Hello" },
+            });
+        });
+
+        it("is array", () => {
+            const result = Data.dataFlatten([["#foo", ["#bar"]], ["#baz"]]);
+            expect(result).toEqual(["#foo", "#bar", "#baz"]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -492,16 +526,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataTake", () => {
-        it("take", () => {
-            expect(Data.dataTake([1, 2, 3, 4, 5], 3)).toEqual([1, 2, 3]);
-            expect(Data.dataTake({ a: 1, b: 2, c: 3, d: 4 }, 2)).toEqual({
-                a: 1,
-                b: 2,
-            });
         });
     });
 
