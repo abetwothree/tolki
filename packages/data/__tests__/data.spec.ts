@@ -408,6 +408,22 @@ describe("Data", () => {
         });
     });
 
+    describe("dataFlip", () => {
+        it("is object", () => {
+            const result = Data.dataFlip({ a: 1, b: 2, c: 3 });
+            expect(result).toEqual({ 1: "a", 2: "b", 3: "c" });
+        });
+
+        it("is array", () => {
+            const result = Data.dataFlip(["apple", "banana", "cherry"]);
+            expect(result).toEqual({
+                apple: 0,
+                banana: 1,
+                cherry: 2,
+            });
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);

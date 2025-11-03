@@ -619,6 +619,12 @@ export function dataFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
     return arrFlatten(arrWrap(data), depth);
 }
 
+/**
+ * Flip the keys and values of an object or array, or array of objects recursively 
+ * 
+ * @param data - The data of items to flip
+ * @return - the data items flipped
+ */
 export function dataFlip<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
 ) {
