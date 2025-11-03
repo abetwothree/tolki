@@ -508,6 +508,22 @@ describe("Data", () => {
         });
     });
 
+
+    describe("dataEvery", () => {
+        it("is object", () => {
+            const result = Data.dataEvery({ a: 2, b: 4 }, (value) => value % 2 === 0);
+            expect(result).toBe(true);
+        });
+
+        it("is array", () => {
+            const result = Data.dataEvery([2, 4, 6], (value) => value % 2 === 0);
+            expect(result).toBe(true);
+            expect(Data.dataEvery([1, 2, 3], (value) => value % 2 === 0)).toBe(
+                false,
+            );
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -626,20 +642,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataEvery", () => {
-        it("every", () => {
-            expect(Data.dataEvery([2, 4, 6], (value) => value % 2 === 0)).toBe(
-                true,
-            );
-            expect(Data.dataEvery({ a: 2, b: 4 }, (value) => value % 2 === 0)).toBe(
-                true,
-            );
-            expect(Data.dataEvery([1, 2, 3], (value) => value % 2 === 0)).toBe(
-                false,
-            );
         });
     });
 
