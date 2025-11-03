@@ -288,14 +288,17 @@ describe("Data", () => {
     });
 
     describe("dataDivide", () => {
-        it("divide", () => {
-            expect(Data.dataDivide([1, 2, 3])).toEqual([
-                [0, 1, 2],
-                [1, 2, 3],
-            ]);
+        it("is object", () => {
             expect(Data.dataDivide({ a: 1, b: 2 })).toEqual([
                 ["a", "b"],
                 [1, 2],
+            ]);
+        });
+        
+        it("is array", () => {
+            expect(Data.dataDivide([1, 2, 3])).toEqual([
+                [0, 1, 2],
+                [1, 2, 3],
             ]);
         });
     });
