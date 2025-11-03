@@ -322,6 +322,31 @@ describe("Data", () => {
         });
     });
 
+    describe("dataUndot", () => {
+        it("is object", () => {
+            const result = Data.dataUndot({
+                name: "John",
+                "address.city": "NYC",
+                "address.zip": "10001",
+            });
+            expect(result).toEqual({
+                name: "John",
+                address: {
+                    city: "NYC",
+                    zip: "10001",
+                },
+            });
+        });
+
+        it("is array", () => {
+            const result = Data.dataUndot({ "0": "a", "1.0": "b", "1.1.0": "c" }, true);
+            expect(result).toEqual([
+                "a",
+                ["b", ["c"]],
+            ]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);

@@ -485,7 +485,8 @@ export function dataDot<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Convert dot notation back to nested data.
  *
- * @param data - The dot notation data to convert
+ * @param data - The dot notation data object to convert
+ * @param asArray - Pass the object to conver values to array
  * @returns Nested data structure
  *
  * @example
@@ -494,19 +495,13 @@ export function dataDot<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
+    asArray: boolean = false,
 ): DataItems<TValue, TKey> {
-    if (isObject(data)) {
+    if (isObject(data) && !asArray) {
         return objUndot(data) as DataItems<TValue, TKey>;
     }
 
-    const values = isArray(data) ? data : arrWrap(data);
-    const result: Record<string, TValue> = {};
-    // convert values to an object
-    values.forEach((value, index) => {
-        result[index.toString()] = value;
-    });
-
-    return arrUndot(result) as DataItems<TValue>;
+    return arrUndot(data) as DataItems<TValue>;
 }
 
 export function dataUnion(itemsA: unknown, itemsB: unknown) {
