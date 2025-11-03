@@ -22,9 +22,8 @@ describe("Data", () => {
         it("is object", () => {
             const result = Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "b");
             expect(result).toEqual({g: 4});
+            assertType<{g: number;}>(result);
 
-            assertType<Record<string, {a: {f: number;};b: {g: number;}}>>(result);
-            
             expect(
                 Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "x", {
                     error: "not found",
@@ -41,6 +40,23 @@ describe("Data", () => {
                     1,
                 );
             expect(result).toEqual([2, 3]);
+
+            assertType<number[]>(result);
+
+            // Use as const with explicit tuple type
+            const tupleData = [[2, 3], ["a", "b"]] as const;
+            const result2 = Data.dataItem(tupleData, 1);
+            expect(result2).toEqual(["a", "b"]);
+            // TypeScript infers: readonly [2, 3] | readonly ["a", "b"]
+            // We need to assert the specific type we expect
+            assertType<readonly [2, 3] | readonly ["a", "b"]>(result2);
+
+            // Explicit tuple type annotation
+            const explicitTuple: [readonly [number, number], readonly [string, string]] = 
+                [[2, 3], ["a", "b"]];
+            const result3 = Data.dataItem(explicitTuple, 1);
+            expect(result3).toEqual(["a", "b"]);
+            assertType<readonly [string, string] | readonly [number, number]>(result3);
 
             expect(
                 Data.dataItem(

@@ -148,12 +148,14 @@ import {
     whereNotNull as objWhereNotNull,
 } from "@laravel-js/obj";
 import type { DataItems, PathKey, PathKeys } from "@laravel-js/types";
+import type { GetFieldType, Unwrap } from "@laravel-js/types";
 import {
     isArray,
     isFunction,
     isObject,
     isUndefined,
 } from "@laravel-js/utils";
+
 
 /**
  * Add an element to data.
@@ -203,20 +205,56 @@ export function dataAdd<TValue>(
  * dataItem([['a', 'b'], ['c', 'd']], 0); -> ['a', 'b']
  * dataItem({items: ['x', 'y']}, 'items'); -> ['x', 'y']
  */
-export function dataItem<TValue extends Record<PropertyKey, unknown>, TDefault = null>(
+// Overload: no default value - return field type or never if path doesn't exist
+export function dataItem<
+    TValue extends Record<PropertyKey, unknown>,
+    TPath extends string
+>(
     data: TValue,
-    key: PathKey,
-    defaultValue?: TDefault | (() => TDefault) | null,
-): ReturnType<typeof objectItem<TValue>>;
-export function dataItem<TValue, TDefault = null>(
-    data: TValue[],
+    key: TPath,
+): GetFieldType<TValue, TPath, never>;
+// Overload: with default value - return field type if exists, otherwise unwrapped default
+export function dataItem<
+    TValue extends Record<PropertyKey, unknown>,
+    TPath extends string,
+    TDefault
+>(
+    data: TValue,
+    key: TPath,
+    defaultValue: TDefault | null,
+): GetFieldType<TValue, TPath, Unwrap<TDefault>>;
+// Overload: with default value as a function
+export function dataItem<
+    TValue extends Record<PropertyKey, unknown>,
+    TPath extends string,
+    TDefault extends (...args: unknown[]) => unknown
+>(
+    data: TValue,
+    key: TPath,
+    defaultValue: TDefault,
+): GetFieldType<TValue, TPath, Unwrap<TDefault>>;
+// Overload: array with no default
+export function dataItem<TValue, TIndex extends number>(
+    data: TValue[] | readonly TValue[],
+    key: TIndex,
+): GetFieldType<TValue[] | readonly TValue[], TIndex, never>;
+// Overload: array with default
+export function dataItem<TValue, TDefault>(
+    data: TValue[] | readonly TValue[],
     key: number,
-    defaultValue?: TDefault | (() => TDefault) | null,
-): ReturnType<typeof arrayItem<TValue>>;
+    defaultValue: TDefault | null,
+): GetFieldType<TValue[] | readonly TValue[], number, Unwrap<TDefault>>;
+// Overload: array with default as function
+export function dataItem<TValue, TDefault extends (...args: unknown[]) => unknown>(
+    data: TValue[] | readonly TValue[],
+    key: number,
+    defaultValue: TDefault,
+): GetFieldType<TValue[] | readonly TValue[], number, Unwrap<TDefault>>;
+// Implementation
 export function dataItem<TValue, TDefault = null>(
-    data: DataItems<TValue, PropertyKey>,
+    data: DataItems<TValue, PropertyKey> | readonly TValue[],
     key: PathKey,
-    defaultValue: TDefault | (() => TDefault) | null = null
+    defaultValue?: TDefault | (() => TDefault) | null,
 ) {
     if (isObject(data)) {
         return objectItem(data, key, defaultValue);
