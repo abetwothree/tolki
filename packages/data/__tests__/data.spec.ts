@@ -347,6 +347,21 @@ describe("Data", () => {
         });
     });
 
+    describe("dataExcept", () => {
+        it("is object", () => {
+            const result = Data.dataExcept({ name: "John", age: 30, city: "NYC" }, "age");
+            expect(result).toEqual({
+                name: "John",
+                city: "NYC",
+            });
+        });
+
+        it("is array", () => {
+            const result = Data.dataExcept([1, 2, 3, 4], [1, 3]);
+            expect(result).toEqual([1, 3]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -465,16 +480,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataExcept", () => {
-        it("except", () => {
-            expect(Data.dataExcept([1, 2, 3, 4], [1, 3])).toEqual([1, 3]);
-            expect(Data.dataExcept({ a: 1, b: 2, c: 3 }, ["b"])).toEqual({
-                a: 1,
-                c: 3,
-            });
         });
     });
 
