@@ -24,6 +24,14 @@ describe("Data", () => {
             expect(result).toEqual({g: 4});
             assertType<{g: number;}>(result);
 
+            const result2 = Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "c", {t: 4});
+            expect(result2).toEqual({t: 4});
+            assertType<{t: number;}>(result2);
+
+            const result3 = Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "c", () => ({x: 5}));
+            expect(result3).toEqual({x: 5});
+            assertType<{x: number;}>(result3);
+
             expect(
                 Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "x", {
                     error: "not found",
