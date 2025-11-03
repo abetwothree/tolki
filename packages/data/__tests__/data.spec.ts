@@ -550,6 +550,18 @@ describe("Data", () => {
         });
     });
 
+    describe("dataJoin", () => {
+        it("is object", () => {
+            const result = Data.dataJoin({ a: "hello", b: "world", c: "test" }, ", ",  " and ");
+            expect(result).toBe("hello, world and test");
+        });
+
+        it("is array", () => {
+            const result = Data.dataJoin(["a", "b", "c"], ", ", " and ");
+            expect(result).toBe("a, b and c");
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
