@@ -162,6 +162,8 @@ import { isArray, isFunction, isObject, isUndefined } from "@laravel-js/utils";
  * Add an element to data.
  *
  * Note: This function does not accept readonly arrays as they cannot be mutated.
+ * 
+ * TODO: AddToObject should be converted to match the way the "add" functions work
  *
  * @param data - The data to add to
  * @param key - The key to add at
