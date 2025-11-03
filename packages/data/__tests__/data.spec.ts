@@ -460,6 +460,18 @@ describe("Data", () => {
         });
     });
 
+    describe("dataGet", () => {
+        it("is object", () => {
+            const result = Data.dataGet({ a: 1, b: 2 }, "c", "default")
+            expect(result).toBe("default");
+        });
+
+        it("is array", () => {
+            const result = Data.dataGet([1, 2, 3], 1, "default");
+            expect(result).toBe(2);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -578,13 +590,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataGet", () => {
-        it("get", () => {
-            expect(Data.dataGet([1, 2, 3], 1, "default")).toBe(2);
-            expect(Data.dataGet({ a: 1, b: 2 }, "c", "default")).toBe("default");
         });
     });
 
