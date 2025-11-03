@@ -554,11 +554,64 @@ describe("Data", () => {
         it("is object", () => {
             const result = Data.dataJoin({ a: "hello", b: "world", c: "test" }, ", ",  " and ");
             expect(result).toBe("hello, world and test");
+
+            expect(Data.dataJoin(["a", "b", "c"], ", ", " and ")).toBe(
+                "a, b and c",
+            );
         });
 
         it("is array", () => {
             const result = Data.dataJoin(["a", "b", "c"], ", ", " and ");
             expect(result).toBe("a, b and c");
+
+            expect(Data.dataJoin([1, 2, 3], ", ")).toBe("1, 2, 3");
+        });
+    });
+
+    describe("dataKeyBy", () => {
+        it("is object", () => {
+            const data = {
+                user1: { id: 10, name: "John" },
+                user2: { id: 20, name: "Jane" },
+            };
+            const result = Data.dataKeyBy(data, "id");
+            expect(result).toEqual({
+                10: { id: 10, name: "John" },
+                20: { id: 20, name: "Jane" },
+            });
+        });
+
+        it("is array", () => {
+            const users = [
+                { id: 1, name: "John" },
+                { id: 2, name: "Jane" },
+                { id: 3, name: "Bob" },
+            ];
+            const result = Data.dataKeyBy(users, "id");
+            expect(result).toEqual({
+                1: { id: 1, name: "John" },
+                2: { id: 2, name: "Jane" },
+                3: { id: 3, name: "Bob" },
+            });
+        });
+    });
+
+    describe("dataPrependKeysWith", () => {
+        it("is object", () => {
+            const result = Data.dataPrependKeysWith(
+                { name: "John", age: 30 },
+                "user_",
+            );
+            expect(result).toEqual({ user_name: "John", user_age: 30 });
+        });
+
+        it("is array", () => {
+            const result = Data.dataPrependKeysWith(["a", "b", "c"], "item_");
+            expect(result).toEqual({
+                item_0: "a",
+                item_1: "b",
+                item_2: "c",
+            });
         });
     });
 
@@ -680,39 +733,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataJoin", () => {
-        it("join", () => {
-            expect(Data.dataJoin([1, 2, 3], ", ")).toBe("1, 2, 3");
-            expect(Data.dataJoin(["a", "b", "c"], ", ", " and ")).toBe(
-                "a, b and c",
-            );
-        });
-    });
-
-    describe("dataKeyBy", () => {
-        it("keyBy", () => {
-            const data = [
-                { id: 1, name: "John" },
-                { id: 2, name: "Jane" },
-            ];
-            const result = Data.dataKeyBy(data, "id");
-            expect(result).toEqual({
-                1: { id: 1, name: "John" },
-                2: { id: 2, name: "Jane" },
-            });
-        });
-    });
-
-    describe("dataPrependKeysWith", () => {
-        it("prependKeysWith", () => {
-            const result = Data.dataPrependKeysWith(
-                { name: "John", age: 30 },
-                "user_",
-            );
-            expect(result).toEqual({ user_name: "John", user_age: 30 });
         });
     });
 
