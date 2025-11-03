@@ -270,7 +270,35 @@ describe("Data", () => {
         });
     });
 
-    describe("dataCrossJoin", () => {});
+    describe("dataCrossJoin", () => {
+        it("is object", () => {
+            const result = Data.dataCrossJoin({ a: [1] }, { b: ["x"] });
+            expect(result).toEqual([{ a: 1, b: "x" }]);
+        });
+
+        it("is array", () => {
+            const result = Data.dataCrossJoin([1, 2], ["a", "b"]);
+            expect(result).toEqual([
+                [1, "a"],
+                [1, "b"],
+                [2, "a"],
+                [2, "b"],
+            ]);
+        });
+    });
+
+    describe("dataDivide", () => {
+        it("divide", () => {
+            expect(Data.dataDivide([1, 2, 3])).toEqual([
+                [0, 1, 2],
+                [1, 2, 3],
+            ]);
+            expect(Data.dataDivide({ a: 1, b: 2 })).toEqual([
+                ["a", "b"],
+                [1, 2],
+            ]);
+        });
+    });
 
     describe("dataValues", () => {
         it("values", () => {
@@ -390,19 +418,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataDivide", () => {
-        it("divide", () => {
-            expect(Data.dataDivide([1, 2, 3])).toEqual([
-                [0, 1, 2],
-                [1, 2, 3],
-            ]);
-            expect(Data.dataDivide({ a: 1, b: 2 })).toEqual([
-                ["a", "b"],
-                [1, 2],
-            ]);
         });
     });
 
