@@ -294,12 +294,31 @@ describe("Data", () => {
                 [1, 2],
             ]);
         });
-        
+
         it("is array", () => {
             expect(Data.dataDivide([1, 2, 3])).toEqual([
                 [0, 1, 2],
                 [1, 2, 3],
             ]);
+        });
+    });
+
+    describe("dataDot", () => {
+        it("is object", () => {
+            const result = Data.dataDot({ a: { b: 1, c: 2 } });
+            expect(result).toEqual({
+                "a.b": 1,
+                "a.c": 2,
+            });
+        });
+
+        it("is array", () => {
+            const result = Data.dataDot(["a", ["b", ["c"]]]);
+            expect(result).toEqual({
+                "0": "a",
+                "1.0": "b",
+                "1.1.0": "c",
+            });
         });
     });
 
@@ -421,15 +440,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataDot", () => {
-        it("dot", () => {
-            expect(Data.dataDot({ a: { b: 1, c: 2 } })).toEqual({
-                "a.b": 1,
-                "a.c": 2,
-            });
         });
     });
 
