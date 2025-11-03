@@ -148,7 +148,7 @@ import {
     whereNotNull as objWhereNotNull,
 } from "@laravel-js/obj";
 import type { DataItems, PathKey, PathKeys } from "@laravel-js/types";
-import type { GetFieldType, Unwrap } from "@laravel-js/types";
+import type { GetFieldType, UnwrapFn } from "@laravel-js/types";
 import {
     isArray,
     isFunction,
@@ -222,7 +222,7 @@ export function dataItem<
     data: TValue,
     key: TPath,
     defaultValue: TDefault | null,
-): GetFieldType<TValue, TPath, Unwrap<TDefault>>;
+): GetFieldType<TValue, TPath, UnwrapFn<TDefault>>;
 // Overload: with default value as a function
 export function dataItem<
     TValue extends Record<PropertyKey, unknown>,
@@ -232,7 +232,7 @@ export function dataItem<
     data: TValue,
     key: TPath,
     defaultValue: TDefault,
-): GetFieldType<TValue, TPath, Unwrap<TDefault>>;
+): GetFieldType<TValue, TPath, UnwrapFn<TDefault>>;
 // Overload: array with no default
 export function dataItem<TValue, TIndex extends number>(
     data: TValue[] | readonly TValue[],
@@ -243,13 +243,13 @@ export function dataItem<TValue, TDefault>(
     data: TValue[] | readonly TValue[],
     key: number,
     defaultValue: TDefault | null,
-): GetFieldType<TValue[] | readonly TValue[], number, Unwrap<TDefault>>;
+): GetFieldType<TValue[] | readonly TValue[], number, UnwrapFn<TDefault>>;
 // Overload: array with default as function
 export function dataItem<TValue, TDefault extends (...args: unknown[]) => unknown>(
     data: TValue[] | readonly TValue[],
     key: number,
     defaultValue: TDefault,
-): GetFieldType<TValue[] | readonly TValue[], number, Unwrap<TDefault>>;
+): GetFieldType<TValue[] | readonly TValue[], number, UnwrapFn<TDefault>>;
 // Implementation
 export function dataItem<TValue, TDefault = null>(
     data: DataItems<TValue, PropertyKey> | readonly TValue[],

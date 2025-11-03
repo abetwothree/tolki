@@ -11,7 +11,7 @@ export type PathKeys = number | string | null | undefined | Array<PathKey>;
 /**
  * Unwraps a value or function that returns a value.
  */
-export type Unwrap<T> = T extends (...args: unknown[]) => infer R ? R : T;
+export type UnwrapFn<T> = T extends (...args: unknown[]) => infer R ? R : T;
 
 /**
  * Helper to get array element type
