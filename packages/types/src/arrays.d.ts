@@ -12,3 +12,8 @@ export interface ArrayAccess<TValue> {
 export type ArrayInnerValue<X> = X extends ReadonlyArray<infer U> ? U : never;
 
 export type ArrayItems<T> = T[] | Array<T>;
+
+/**
+ * Helper type to add a value to an array type
+ */
+export type AddToArray<T, V> = (T | V)[];

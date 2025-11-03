@@ -147,15 +147,16 @@ import {
     where as objWhere,
     whereNotNull as objWhereNotNull,
 } from "@laravel-js/obj";
-import type { DataItems, PathKey, PathKeys } from "@laravel-js/types";
-import type { GetFieldType, UnwrapFn } from "@laravel-js/types";
-import {
-    isArray,
-    isFunction,
-    isObject,
-    isUndefined,
-} from "@laravel-js/utils";
-
+import type {
+    AddToArray,
+    AddToObject,
+    DataItems,
+    GetFieldType,
+    PathKey,
+    PathKeys,
+    UnwrapFn,
+} from "@laravel-js/types";
+import { isArray, isFunction, isObject, isUndefined } from "@laravel-js/utils";
 
 /**
  * Add an element to data.
@@ -208,16 +209,13 @@ export function dataAdd<TValue>(
 // Overload: no default value - return field type or never if path doesn't exist
 export function dataItem<
     TValue extends Record<PropertyKey, unknown>,
-    TPath extends string
->(
-    data: TValue,
-    key: TPath,
-): GetFieldType<TValue, TPath, never>;
+    TPath extends string,
+>(data: TValue, key: TPath): GetFieldType<TValue, TPath, never>;
 // Overload: with default value - return field type if exists, otherwise unwrapped default
 export function dataItem<
     TValue extends Record<PropertyKey, unknown>,
     TPath extends string,
-    TDefault
+    TDefault,
 >(
     data: TValue,
     key: TPath,
@@ -227,7 +225,7 @@ export function dataItem<
 export function dataItem<
     TValue extends Record<PropertyKey, unknown>,
     TPath extends string,
-    TDefault extends (...args: unknown[]) => unknown
+    TDefault extends (...args: unknown[]) => unknown,
 >(
     data: TValue,
     key: TPath,
@@ -245,7 +243,10 @@ export function dataItem<TValue, TDefault>(
     defaultValue: TDefault | null,
 ): GetFieldType<TValue[] | readonly TValue[], number, UnwrapFn<TDefault>>;
 // Overload: array with default as function
-export function dataItem<TValue, TDefault extends (...args: unknown[]) => unknown>(
+export function dataItem<
+    TValue,
+    TDefault extends (...args: unknown[]) => unknown,
+>(
     data: TValue[] | readonly TValue[],
     key: number,
     defaultValue: TDefault,

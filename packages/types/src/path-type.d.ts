@@ -26,44 +26,49 @@ type IsArray<T> = T extends readonly unknown[] ? true : false;
 /**
  * Helper to check if a type is a tuple with at least one element
  */
-type IsTuple<T> = T extends readonly [unknown, ...unknown[]] 
-    ? true 
-    : T extends readonly [] 
-        ? true 
-        : false;
+type IsTuple<T> = T extends readonly [unknown, ...unknown[]]
+    ? true
+    : T extends readonly []
+      ? true
+      : false;
 
 /**
  * Helper to get element at specific index in tuple
  * For unions of tuples, returns the union of elements at that index
  */
-type TupleElement<T extends readonly unknown[], N extends number> = 
-    T extends readonly unknown[]
-        ? N extends keyof T 
-            ? T[N] 
-            : ArrayElement<T>
-        : never;
+type TupleElement<
+    T extends readonly unknown[],
+    N extends number,
+> = T extends readonly unknown[]
+    ? N extends keyof T
+        ? T[N]
+        : ArrayElement<T>
+    : never;
 
 /**
  * Gets the type of a value at a given path in an object or array.
  * Supports dot notation (a.b.c) and array indexing (a.0.b).
  */
-export type GetFieldType<T, P extends string | number, TDefault = never> =
-    P extends keyof T
-        ? T[P]
+export type GetFieldType<
+    T,
+    P extends string | number,
+    TDefault = never,
+> = P extends keyof T
+    ? T[P]
     : P extends `${infer First}.${infer Rest}`
-        ? First extends keyof T
-            ? GetFieldType<T[First], Rest, TDefault>
-            : First extends `${infer N extends number}`
-                ? IsArray<T> extends true
-                    ? T extends readonly unknown[]
-                        ? GetFieldType<T[N], Rest, TDefault>
-                        : TDefault
-                    : TDefault
-                : TDefault
-        : P extends `${infer N extends number}`
+      ? First extends keyof T
+          ? GetFieldType<T[First], Rest, TDefault>
+          : First extends `${infer N extends number}`
             ? IsArray<T> extends true
                 ? T extends readonly unknown[]
-                    ? T[N]
+                    ? GetFieldType<T[N], Rest, TDefault>
                     : TDefault
                 : TDefault
-    : TDefault;
+            : TDefault
+      : P extends `${infer N extends number}`
+        ? IsArray<T> extends true
+            ? T extends readonly unknown[]
+                ? T[N]
+                : TDefault
+            : TDefault
+        : TDefault;

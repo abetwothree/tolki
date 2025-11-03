@@ -7,7 +7,7 @@ describe("Data", () => {
             const result = Data.dataAdd({ a: 1 }, "b", 2);
             expect(result).toEqual({ a: 1, b: 2 });
 
-            assertType<Record<string, {a: number;}>>(result);
+            assertType<Record<string, { a: number }>>(result);
         });
 
         it("is array", () => {
@@ -21,16 +21,22 @@ describe("Data", () => {
     describe("dataItem", () => {
         it("is object", () => {
             const result = Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "b");
-            expect(result).toEqual({g: 4});
-            assertType<{g: number;}>(result);
+            expect(result).toEqual({ g: 4 });
+            assertType<{ g: number }>(result);
 
-            const result2 = Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "c", {t: 4});
-            expect(result2).toEqual({t: 4});
-            assertType<{t: number;}>(result2);
+            const result2 = Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "c", {
+                t: 4,
+            });
+            expect(result2).toEqual({ t: 4 });
+            assertType<{ t: number }>(result2);
 
-            const result3 = Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "c", () => ({x: 5}));
-            expect(result3).toEqual({x: 5});
-            assertType<{x: number;}>(result3);
+            const result3 = Data.dataItem(
+                { a: { f: 3 }, b: { g: 4 } },
+                "c",
+                () => ({ x: 5 }),
+            );
+            expect(result3).toEqual({ x: 5 });
+            assertType<{ x: number }>(result3);
 
             expect(
                 Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "x", {
@@ -41,18 +47,21 @@ describe("Data", () => {
 
         it("is array", () => {
             const result = Data.dataItem(
-                    [
-                        [1, 2],
-                        [2, 3],
-                    ],
-                    1,
-                );
+                [
+                    [1, 2],
+                    [2, 3],
+                ],
+                1,
+            );
             expect(result).toEqual([2, 3]);
 
             assertType<number[]>(result);
 
             // Use as const with explicit tuple type
-            const tupleData = [[2, 3], ["a", "b"]] as const;
+            const tupleData = [
+                [2, 3],
+                ["a", "b"],
+            ] as const;
             const result2 = Data.dataItem(tupleData, 1);
             expect(result2).toEqual(["a", "b"]);
             // TypeScript infers: readonly [2, 3] | readonly ["a", "b"]
@@ -60,11 +69,18 @@ describe("Data", () => {
             assertType<readonly [2, 3] | readonly ["a", "b"]>(result2);
 
             // Explicit tuple type annotation
-            const explicitTuple: [readonly [number, number], readonly [string, string]] = 
-                [[2, 3], ["a", "b"]];
+            const explicitTuple: [
+                readonly [number, number],
+                readonly [string, string],
+            ] = [
+                [2, 3],
+                ["a", "b"],
+            ];
             const result3 = Data.dataItem(explicitTuple, 1);
             expect(result3).toEqual(["a", "b"]);
-            assertType<readonly [string, string] | readonly [number, number]>(result3);
+            assertType<readonly [string, string] | readonly [number, number]>(
+                result3,
+            );
 
             expect(
                 Data.dataItem(
