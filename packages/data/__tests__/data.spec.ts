@@ -629,6 +629,29 @@ describe("Data", () => {
         });
     });
 
+    describe("dataSelect", () => {
+        it("is object", () => {
+            const result = Data.dataSelect({
+                user1: { name: "John", age: 30, city: "NYC" },
+                user2: { name: "Jane", age: 25, city: "LA" },
+            }, ["name", "city"]);
+            expect(result).toEqual({
+                user1: { name: "John", city: "NYC" },
+                user2: { name: "Jane", city: "LA" },
+            });
+        });
+        it("is array", () => {
+            const result = Data.dataSelect([
+                { a: 1, b: 2, c: 3 },
+                { a: 4, b: 5, c: 6 },
+            ], ["a", "b"]);
+            expect(result).toEqual([
+                { a: 1, b: 2 },
+                { a: 4, b: 5 },
+            ]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
