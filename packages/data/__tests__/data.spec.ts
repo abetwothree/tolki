@@ -436,6 +436,18 @@ describe("Data", () => {
         });
     });
 
+    describe("dataForget", () => {
+        it("is object", () => {
+            const result = Data.dataForget({ name: "John", age: 30, city: "NYC" }, "age");
+            expect(result).toEqual({ name: "John", city: "NYC" });
+        });
+
+        it("is array", () => {
+            const result = Data.dataForget(["products", ["desk", [100]]], "1.1");
+            expect(result).toEqual(["products", ["desk"]]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
