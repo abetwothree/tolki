@@ -484,6 +484,18 @@ describe("Data", () => {
         });
     });
 
+    describe("dataHasAll", () => {
+        it("is object", () => {
+            const result = Data.dataHasAll({ a: 1, b: 2 }, ["a", "c"]);
+            expect(result).toBe(false);
+        });
+
+        it("is array", () => {
+            const result = Data.dataHasAll([1, 2, 3], [0, 1]);
+            expect(result).toBe(true);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -602,13 +614,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataHasAll", () => {
-        it("hasAll", () => {
-            expect(Data.dataHasAll([1, 2, 3], [0, 1])).toBe(true);
-            expect(Data.dataHasAll({ a: 1, b: 2 }, ["a", "c"])).toBe(false);
         });
     });
 
