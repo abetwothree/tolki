@@ -110,7 +110,7 @@ export function add<TValue>(
  * arrayItem([{items: 'not array'}], '0.items'); -> throws Error
  */
 export function arrayItem<TValue, TDefault = null>(
-    data: ArrayItems<TValue> | unknown,
+    data: TValue[] | unknown,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault) | null = null,
 ): unknown[] {
