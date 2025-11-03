@@ -362,6 +362,18 @@ describe("Data", () => {
         });
     });
 
+    describe("dataExists", () => {
+        it("is object", () => {
+            expect(Data.dataExists({ a: 1, b: 2 }, "a")).toBe(true);
+            expect(Data.dataExists({ a: 1, b: 2 }, "c")).toBe(false);
+        });
+
+        it("is array", () => {
+            expect(Data.dataExists([1, 2, 3], 1)).toBe(true);
+            expect(Data.dataExists([1, 2, 3], 5)).toBe(false);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -480,15 +492,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataExists", () => {
-        it("exists", () => {
-            expect(Data.dataExists([1, 2, 3], 1)).toBe(true);
-            expect(Data.dataExists({ a: 1, b: 2 }, "a")).toBe(true);
-            expect(Data.dataExists([1, 2, 3], 5)).toBe(false);
-            expect(Data.dataExists({ a: 1, b: 2 }, "c")).toBe(false);
         });
     });
 
