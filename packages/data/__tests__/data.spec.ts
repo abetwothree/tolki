@@ -472,6 +472,18 @@ describe("Data", () => {
         });
     });
 
+    describe("dataHas", () => {
+        it("is object", () => {
+            const result = Data.dataHas({ a: 1, b: 2 }, ["a", "c"]);
+            expect(result).toBe(false);
+        });
+
+        it("is array", () => {
+            const result = Data.dataHas([1, 2, 3], [0, 1]);
+            expect(result).toBe(true);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -590,13 +602,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataHas", () => {
-        it("has", () => {
-            expect(Data.dataHas([1, 2, 3], [0, 1])).toBe(true);
-            expect(Data.dataHas({ a: 1, b: 2 }, ["a", "c"])).toBe(false);
         });
     });
 
