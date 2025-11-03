@@ -448,6 +448,18 @@ describe("Data", () => {
         });
     });
 
+    describe("dataFrom", () => {
+        it("is object", () => {
+            const result = Data.dataFrom({ a: 1, b: 2, c: 3 });
+            expect(result).toEqual({ a: 1, b: 2, c: 3 });
+        });
+
+        it("is array", () => {
+            const result = Data.dataFrom([1, 2, 3]);
+            expect(result).toEqual([1, 2, 3]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
