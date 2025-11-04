@@ -961,6 +961,18 @@ describe("Data", () => {
         });
     });
 
+    describe("dataSole", () => {
+        it("is object", () => {
+            const obj = { only: 42 };
+            const result = Data.dataSole(obj);
+            expect(result).toBe(42);
+        });
+        it("is array", () => {
+            const result = Data.dataSole([42]);
+            expect(result).toBe(42);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
