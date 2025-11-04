@@ -736,6 +736,20 @@ describe("Data", () => {
         });
     });
 
+    describe("dataRandom", () => {
+        it("is object", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Data.dataRandom(obj);
+            expect(Object.keys(result)).toHaveLength(1);
+            expect([1, 2, 3]).toContain(Object.values(result)[0]);
+        });
+        it("is array", () => {
+            const arr = [1, 2, 3, 4, 5];
+            const result = Data.dataRandom(arr);
+            expect(arr).toContain(result[0]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
