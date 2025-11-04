@@ -1076,6 +1076,18 @@ describe("Data", () => {
         });
     });
 
+    describe("dataString", () => {
+        it("is object", () => {
+            expect(Data.dataString({ name: "John" }, "name", "")).toBe("John");
+            expect(Data.dataString({}, "missing", "default")).toBe("default");
+        });
+
+        it("is array", () => {
+            expect(Data.dataString(["hello", "world"], 0, "")).toBe("hello");
+            expect(Data.dataString([], 0, "default")).toBe("default");
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -1194,14 +1206,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataString", () => {
-        it("string", () => {
-            expect(Data.dataString(["hello", "world"], 0, "")).toBe("hello");
-            expect(Data.dataString({ name: "John" }, "name", "")).toBe("John");
-            expect(Data.dataString({}, "missing", "default")).toBe("default");
         });
     });
 
