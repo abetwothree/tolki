@@ -1122,6 +1122,19 @@ describe("Data", () => {
         });
     });
 
+    describe("dataWhere", () => {
+        it("is object", () => {
+            expect(
+                Data.dataWhere({ a: 1, b: 2, c: 3 }, (value) => value > 1),
+            ).toEqual({ b: 2, c: 3 });
+        });
+        it("is array", () => {
+            expect(Data.dataWhere([1, 2, 3, 4], (value) => value > 2)).toEqual([
+                3, 4,
+            ]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -1240,17 +1253,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataWhere", () => {
-        it("where", () => {
-            expect(Data.dataWhere([1, 2, 3, 4], (value) => value > 2)).toEqual([
-                3, 4,
-            ]);
-            expect(
-                Data.dataWhere({ a: 1, b: 2, c: 3 }, (value) => value > 1),
-            ).toEqual({ b: 2, c: 3 });
         });
     });
 
