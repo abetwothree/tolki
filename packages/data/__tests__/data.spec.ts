@@ -901,6 +901,34 @@ describe("Data", () => {
         });
     });
 
+    describe("dataUnshift", () => {
+        it("is object", () => {
+            const result = Data.dataUnshift({ b: 2 }, { a: 1 }, { d: "house" });
+            expect(result).toEqual({
+                a: 1,
+                d: "house",
+                b: 2,
+            })
+        });
+        it("is array", () => {
+            const expected = [
+                "Jonny from Laroe",
+                ["Jonny", "from", "Laroe"],
+                ["a", "b", "c"],
+                4,
+                5,
+                6,
+            ];
+    
+            const data = [4, 5, 6];
+    
+            let result: unknown[] = Data.dataUnshift(data, ["a", "b", "c"]);
+            result = Data.dataUnshift(result, ["Jonny", "from", "Laroe"]);
+            result = Data.dataUnshift(result, "Jonny from Laroe");
+            expect(result).toEqual(expected);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
