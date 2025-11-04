@@ -2454,11 +2454,11 @@ describe("Arr", () => {
         });
 
         // Test descending parameter
-        expect(Arr.sortRecursive([3, 1, 2], undefined, true)).toEqual([
+        expect(Arr.sortRecursive([3, 1, 2], true)).toEqual([
             3, 2, 1,
         ]);
         expect(
-            Arr.sortRecursive({ c: 3, a: 1, b: 2 }, undefined, true),
+            Arr.sortRecursive({ c: 3, a: 1, b: 2 }, true),
         ).toEqual({ c: 3, b: 2, a: 1 });
     });
 

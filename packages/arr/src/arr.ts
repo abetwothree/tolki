@@ -2218,7 +2218,6 @@ export function sortDesc<TValue>(
  */
 export function sortRecursive<TValue>(
     data: ArrayItems<TValue> | Record<string, unknown> | unknown,
-    options?: number,
     descending: boolean = false,
 ): TValue[] | Record<string, unknown> {
     if (!accessible(data) && !isObject(data)) {
@@ -2241,7 +2240,7 @@ export function sortRecursive<TValue>(
         for (let i = 0; i < result.length; i++) {
             const item = result[i];
             if (isArray(item) || isObject(item)) {
-                result[i] = sortRecursive(item, options, descending) as TValue;
+                result[i] = sortRecursive(item, descending) as TValue;
             }
         }
 
@@ -2257,7 +2256,7 @@ export function sortRecursive<TValue>(
         // Recursively sort nested values first
         for (const [key, value] of entries) {
             if (isArray(value) || (isObject(value) && !isNull(value))) {
-                result[key] = sortRecursive(value, options, descending);
+                result[key] = sortRecursive(value, descending);
             }
         }
 
@@ -2291,9 +2290,8 @@ export function sortRecursive<TValue>(
  */
 export function sortRecursiveDesc<TValue>(
     data: ArrayItems<TValue> | Record<string, unknown> | unknown,
-    options?: number,
 ): TValue[] | Record<string, unknown> {
-    return sortRecursive(data, options, true);
+    return sortRecursive(data, true);
 }
 
 /**
