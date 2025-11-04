@@ -1242,6 +1242,14 @@ export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
     return false;
 }
 
+/** 
+ * Get the item before a specified value in data.
+ * 
+ * @param items - The data items to search
+ * @param value - The value or callback to search for
+ * @param strict - Whether to use strict comparison
+ * @returns The item before the found item or false
+ */
 export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     value: TValue | ((item: TValue, key: TKey) => boolean),
@@ -1259,12 +1267,12 @@ export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
             if (item === value) {
                 return prev;
             }
-
-            continue;
         }
 
-        if (item == value) {
-            return prev;
+        if (!strict) {
+            if (item == value) {
+                return prev;
+            }
         }
 
         prev = item as TValue;
