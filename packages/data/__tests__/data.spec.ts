@@ -929,6 +929,27 @@ describe("Data", () => {
         });
     });
 
+    describe("dataShuffle", () => {
+        it("is object", () => {
+            const result = Data.dataShuffle({ a: 1, b: 2, c: 3, d: 4, e: 5 });
+            // Should have same values
+            expect(Object.values(result).sort()).toEqual([1, 2, 3, 4, 5]);
+            // Should have same keys
+            expect(Object.keys(result).sort()).toEqual([
+                "a",
+                "b",
+                "c",
+                "d",
+                "e",
+            ]);
+        });
+        it("is array", () => {
+            const result = Data.dataShuffle([1, 2, 3, 4]);
+            expect(result).toHaveLength(4);
+            expect(result).toEqual(expect.arrayContaining([1, 2, 3, 4]));
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -1047,14 +1068,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataShuffle", () => {
-        it("shuffle", () => {
-            const result = Data.dataShuffle([1, 2, 3, 4]);
-            expect(result).toHaveLength(4);
-            expect(result).toEqual(expect.arrayContaining([1, 2, 3, 4]));
         });
     });
 
