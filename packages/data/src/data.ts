@@ -1628,23 +1628,23 @@ export function dataSortRecursiveDesc<
  * @param replacement - The items to insert
  * @returns Object with modified data and removed elements
  */
-export function dataSplice<TValue, TKey extends PropertyKey = PropertyKey>(
+export function dataSplice<TValue, TKey extends PropertyKey, TReplacements>(
     data: DataItems<TValue, TKey>,
     offset: number,
     length?: number,
-    ...replacement: TValue[]
-): { array: DataItems<TValue, TKey>; removed: TValue[] } {
+    ...replacement: TReplacements[]
+): { value: DataItems<TValue, TKey>; removed: TValue[] } {
     if (isObject(data)) {
         return objSplice(
             data as Record<TKey, TValue>,
             offset,
             length,
             ...replacement,
-        ) as { array: DataItems<TValue, TKey>; removed: TValue[] };
+        ) as { value: DataItems<TValue, TKey>; removed: TValue[] };
     }
 
     return arrSplice(arrWrap(data), offset, length, ...replacement) as {
-        array: DataItems<TValue, TKey>;
+        value: DataItems<TValue, TKey>;
         removed: TValue[];
     };
 }

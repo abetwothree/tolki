@@ -2459,7 +2459,7 @@ export function sortRecursiveDesc<
 /**
  * Splice a portion of the underlying object
  *
- * TODO: update return to be this: { array: TValue[]; removed: TValue[] }
+ * TODO: update return to be this: { value: TValue[]; removed: TValue[] }
  *
  * @param data - The object to splice
  * @param offset - The starting index
@@ -2467,11 +2467,11 @@ export function sortRecursiveDesc<
  * @param replacement - The replacement object
  * @returns Spliced object
  */
-export function splice<TValue, TKey extends PropertyKey = PropertyKey>(
+export function splice<TValue, TKey extends PropertyKey, TReplacements>(
     data: Record<TKey, TValue> | unknown,
     offset: number,
     length: number = 0,
-    ...replacement: Record<TKey, TValue>[]
+    ...replacement: TReplacements[]
 ): { value: Record<TKey, TValue>; removed: Record<TKey, TValue> } {
     if (!accessible(data)) {
         return {

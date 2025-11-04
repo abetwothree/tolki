@@ -1059,6 +1059,23 @@ describe("Data", () => {
         });
     });
 
+    describe("dataSplice", () => {
+        it("is object", () => {
+            const result = Data.dataSplice({ a: 1, b: 2, c: 3, d: 4 }, 1, 2, { x: 99, y: 100 });
+            expect(result).toEqual({
+                value: [1, 99, 100, 4],
+                removed: [2, 3],
+            });
+        });
+        it("is array", () => {
+            const result = Data.dataSplice([1, 2, 3, 4], 1, 2, [99, 100]);
+            expect(result).toEqual({
+                value: [1, 99, 100, 4],
+                removed: [2, 3],
+            });
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
