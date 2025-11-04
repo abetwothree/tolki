@@ -1088,6 +1088,23 @@ describe("Data", () => {
         });
     });
 
+    describe("dataToCssClasses", () => {
+        it("is object", () => {
+            expect(
+                Data.dataToCssClasses({
+                    btn: true,
+                    "btn-primary": true,
+                    disabled: false,
+                }),
+            ).toBe("btn btn-primary");
+        });
+        it("is array", () => {
+            expect(Data.dataToCssClasses(["btn", "btn-primary"])).toBe(
+                "btn btn-primary",
+            );
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -1206,21 +1223,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataToCssClasses", () => {
-        it("toCssClasses", () => {
-            expect(Data.dataToCssClasses(["btn", "btn-primary"])).toBe(
-                "btn btn-primary",
-            );
-            expect(
-                Data.dataToCssClasses({
-                    btn: true,
-                    "btn-primary": true,
-                    disabled: false,
-                }),
-            ).toBe("btn btn-primary");
         });
     });
 
