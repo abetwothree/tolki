@@ -1281,6 +1281,14 @@ export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
     return false;
 }
 
+/**
+ * Get the item after a specified value in data.
+ * 
+ * @param items - The data items to search
+ * @param value - The value or callback to search for
+ * @param strict - Whether to use strict comparison
+ * @returns The item after the found item or false
+ */
 export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     value: TValue | ((item: TValue, key: TKey) => boolean),
@@ -1295,7 +1303,7 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
 
         if (isFunction(value)) {
             if (value(item as TValue, key as TKey)) {
-                returnNext = false;
+                returnNext = true;
                 continue;
             }
         }

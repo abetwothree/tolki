@@ -802,7 +802,7 @@ describe("Data", () => {
             const result3 = Data.dataBefore(obj, (value) => value > 3);
             expect(result3).toBe(false);
 
-            const result4 = Data.dataBefore(obj, (value) => value == 3);
+            const result4 = Data.dataBefore(obj, (value) => value === 3);
             expect(result4).toBe(2);
         });
         it("is array", () => {
@@ -819,8 +819,45 @@ describe("Data", () => {
             const result3 = Data.dataBefore(arr, (value) => value > 5);
             expect(result3).toBe(false);
 
-            const result4 = Data.dataBefore(arr, (value) => value == 4);
+            const result4 = Data.dataBefore(arr, (value) => value === 4);
             expect(result4).toBe(3);
+        });
+    });
+
+    describe("dataAfter", () => {
+        it("is object", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Data.dataAfter(obj, "2");
+            expect(result).toBe(3);
+
+            const result1 = Data.dataAfter(obj, "2", true);
+            expect(result1).toBe(false);
+
+            const result2 = Data.dataAfter(obj, 2, true);
+            expect(result2).toBe(3);
+
+            const result3 = Data.dataAfter(obj, (value) => value < 1);
+            expect(result3).toBe(false);
+
+            const result4 = Data.dataAfter(obj, (value) => value === 1);
+            expect(result4).toBe(2);
+        });
+        it("is array", () => {
+            const arr = [1, 2, 3, 4, 5];
+            const result = Data.dataAfter(arr, "3");
+            expect(result).toBe(4);
+
+            const result1 = Data.dataAfter(arr, "3", true);
+            expect(result1).toBe(false);
+
+            const result2 = Data.dataAfter(arr, 3, true);
+            expect(result2).toBe(4);
+
+            const result3 = Data.dataAfter(arr, (value) => value < 1);
+            expect(result3).toBe(false);
+
+            const result4 = Data.dataAfter(arr, (value) => value === 4);
+            expect(result4).toBe(5);
         });
     });
 
