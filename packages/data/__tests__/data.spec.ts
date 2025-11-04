@@ -942,6 +942,14 @@ describe("Data", () => {
                 "d",
                 "e",
             ]);
+
+            const obj = { a: 1, b: 2, c: 3, d: 4, e: 5 };
+            const shuffled = Data.dataShuffle(obj);
+
+            expect(Object.values(shuffled).length).toBe(5);
+            expect(Object.keys(shuffled).length).toBe(5);
+            expect(Object.values(shuffled).sort()).toEqual([1, 2, 3, 4, 5]);
+            expect(Object.keys(shuffled).sort()).toEqual(["a", "b", "c", "d", "e"]);
         });
         it("is array", () => {
             const result = Data.dataShuffle([1, 2, 3, 4]);
@@ -970,6 +978,19 @@ describe("Data", () => {
         it("is array", () => {
             const result = Data.dataSole([42]);
             expect(result).toBe(42);
+        });
+    });
+
+    describe("dataSort", () => {
+        it("is object", () => {
+            const obj = { c: 3, a: 1, b: 2 };
+            const result = Data.dataSort(obj);
+            expect(result).toEqual({ a: 1, b: 2, c: 3 });
+        });
+        it("is array", () => {
+            const arr = [3, 1, 2];
+            const result = Data.dataSort(arr);
+            expect(result).toEqual([1, 2, 3]);
         });
     });
 
