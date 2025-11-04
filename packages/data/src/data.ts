@@ -1396,16 +1396,16 @@ export function dataSet<
  * dataPush([1, 2], null, [3, 4]); -> [1, 2, 3, 4]
  * dataPush({a: [1, 2]}, 'a', [3, 4]); -> {a: [1, 2, 3, 4]}
  */
-export function dataPush<TValue, TKey extends PropertyKey = PropertyKey>(
+export function dataPush<TValue, TKey extends PropertyKey, TNewValues>(
     data: DataItems<TValue, TKey>,
     key: PathKey,
-    values: TValue | TValue[],
+    ...values: TNewValues[]
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objPush(data, key as string, values) as DataItems<TValue, TKey>;
+        return objPush(data, key as string, ...values) as DataItems<TValue, TKey>;
     }
 
-    return arrPush(arrWrap(data), key as number, values) as DataItems<
+    return arrPush(arrWrap(data), key as number, ...values) as DataItems<
         TValue,
         TKey
     >;

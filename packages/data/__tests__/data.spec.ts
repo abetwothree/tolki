@@ -889,6 +889,18 @@ describe("Data", () => {
         });
     });
 
+    describe("dataPush", () => {
+        it("is object", () => {
+            const obj = { items: ["a", "b"] };
+            const result = Data.dataPush(obj, "items", "c", "d");
+            expect(result).toEqual({ items: ["a", "b", "c", "d"] })
+        });
+        it("is array", () => {
+            const result = Data.dataPush([["a", "b"], ["c", "d"]], 1, ["x", "y"]);
+            expect(result).toEqual([["a", "b"], ["c", "d"], ["x", "y"]]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
