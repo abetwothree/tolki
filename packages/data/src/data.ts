@@ -1206,6 +1206,14 @@ export function dataRandom<TValue, TKey extends PropertyKey = PropertyKey>(
     return arrRandom(arrWrap(data), number, preserveKeys);
 }
 
+/** 
+ * Search for a value in data and return its key.
+ * 
+ * @param items - The data items to search
+ * @param value - The value or callback to search for
+ * @param strict - Whether to use strict comparison
+ * @returns The key of the found item or false
+ */
 export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     value: TValue | ((item: TValue, key: TKey) => boolean),

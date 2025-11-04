@@ -750,6 +750,43 @@ describe("Data", () => {
         });
     });
 
+    describe("dataSearch", () => {
+        it("is object", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Data.dataSearch(obj, "2");
+            expect(result).toBe("b");
+
+            const result1 = Data.dataSearch(obj, "2", true);
+            expect(result1).toBe(false);
+
+            const result2 = Data.dataSearch(obj, 2, true);
+            expect(result2).toBe("b");
+
+            const result3 = Data.dataSearch(obj, (value) => value > 3);
+            expect(result3).toBe(false);
+
+            const result4 = Data.dataSearch(obj, (value) => value == 3);
+            expect(result4).toBe("c");
+        });
+        it("is array", () => {
+            const arr = [1, 2, 3, 4, 5];
+            const result = Data.dataSearch(arr, "3");
+            expect(result).toBe("2");
+
+            const result1 = Data.dataSearch(arr, "3", true);
+            expect(result1).toBe(false);
+
+            const result2 = Data.dataSearch(arr, 3, true);
+            expect(result2).toBe("2");
+
+            const result3 = Data.dataSearch(arr, (value) => value > 5);
+            expect(result3).toBe(false);
+
+            const result4 = Data.dataSearch(arr, (value) => value == 4);
+            expect(result4).toBe("3");
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
