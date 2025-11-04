@@ -1007,6 +1007,35 @@ describe("Data", () => {
         });
     });
 
+    describe("dataSortRecursive", () => {
+        it("is object", () => {
+            const obj = {
+                b: { d: 2, c: 1, z: 50, y: 55, x: 50 },
+                a: { f: 4, e: 3, x: 100, y: 100 },
+            };
+            const result = Data.dataSortRecursive(obj);
+            expect(Object.keys(result)).toEqual(["a", "b"]);
+            expect(Object.keys(result["a"])).toEqual(
+                ["e", "f", "x", "y"],
+            );
+            expect(Object.keys(result["b"])).toEqual(
+                ["c", "d", "x", "y", "z"],
+            );
+        });
+        it("is array", () => {
+            const basic = [{
+                b: [3, 1, 2],
+                a: { d: 2, c: 1 },
+            }];
+            const basicExpected = [{
+                a: { c: 1, d: 2 },
+                b: [1, 2, 3],
+            }];
+            const result = Data.dataSortRecursive(basic);
+            expect(result).toEqual(basicExpected);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);

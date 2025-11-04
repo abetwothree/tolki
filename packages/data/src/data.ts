@@ -1582,20 +1582,17 @@ export function dataSortRecursive<
     TKey extends PropertyKey = PropertyKey,
 >(
     data: DataItems<TValue, TKey>,
-    options?: number,
     descending = false,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objSortRecursive(
             data as Record<TKey, TValue>,
-            options,
             descending,
         ) as DataItems<TValue, TKey>;
     }
 
     return arrSortRecursive(
         arrWrap(data),
-        options,
         descending,
     ) as DataItems<TValue>;
 }
@@ -1614,18 +1611,12 @@ export function dataSortRecursive<
 export function dataSortRecursiveDesc<
     TValue,
     TKey extends PropertyKey = PropertyKey,
->(data: DataItems<TValue, TKey>, options?: number): DataItems<TValue, TKey> {
+>(data: DataItems<TValue, TKey>): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objSortRecursiveDesc(
-            data as Record<TKey, TValue>,
-            options,
-        ) as DataItems<TValue, TKey>;
+        return objSortRecursiveDesc(data as Record<TKey, TValue>) as DataItems<TValue, TKey>;
     }
 
-    return arrSortRecursiveDesc(arrWrap(data), options) as DataItems<
-        TValue,
-        TKey
-    >;
+    return arrSortRecursiveDesc(arrWrap(data)) as DataItems<TValue, TKey>;
 }
 
 /**
