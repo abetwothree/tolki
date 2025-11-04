@@ -994,6 +994,19 @@ describe("Data", () => {
         });
     });
 
+    describe("dataSortDesc", () => {
+        it("is object", () => {
+            const obj = { c: 3, a: 1, b: 2 };
+            const result = Data.dataSortDesc(obj);
+            expect(result).toEqual({ c: 3, b: 2, a: 1 });
+        });
+        it("is array", () => {
+            const arr = [3, 1, 2];
+            const result = Data.dataSortDesc(arr);
+            expect(result).toEqual([3, 2, 1]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
