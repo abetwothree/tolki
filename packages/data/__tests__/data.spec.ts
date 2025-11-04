@@ -874,6 +874,21 @@ describe("Data", () => {
         });
     });
 
+    describe("dataSet", () => {
+        it("is object", () => {
+            const result = Data.dataSet({ a: 1, b: 2 }, "c", 3);
+            expect(result).toEqual({
+                a: 1,
+                b: 2,
+                c: 3,
+            });
+        });
+        it("is array", () => {
+            const result = Data.dataSet([1, 2, 3], 1, 99);
+            expect(result).toEqual([1, 99, 3]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -992,17 +1007,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataSet", () => {
-        it("set", () => {
-            expect(Data.dataSet([1, 2, 3], 1, 99)).toEqual([1, 99, 3]);
-            expect(Data.dataSet({ a: 1, b: 2 }, "c", 3)).toEqual({
-                a: 1,
-                b: 2,
-                c: 3,
-            });
         });
     });
 
