@@ -675,6 +675,28 @@ describe("Data", () => {
         });
     });
 
+    describe("dataMapSpread", () => {
+        it("is object", () => {
+            const obj = {
+                user1: { name: "John", age: 25 },
+                user2: { name: "Jane", age: 30 },
+            };
+            const result = Data.dataMapSpread(obj, (name, age) => `${name} is ${age}`);
+            expect(result).toEqual({
+                user1: "John is 25",
+                user2: "Jane is 30",
+            });
+        });
+        it("is array", () => {
+            const data = [
+                    [1, 2],
+                    [3, 4],
+                ];
+            const result = Data.dataMapSpread(data, (a, b) => a + b);
+            expect(result).toEqual([3, 7]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
