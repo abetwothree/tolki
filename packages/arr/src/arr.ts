@@ -2310,20 +2310,20 @@ export function sortRecursiveDesc<TValue>(
  * @param offset - The starting index
  * @param length - The number of items to remove (undefined removes all from offset to end)
  * @param replacement - The replacement items (arrays will be flattened)
- * @returns Object with `array` (modified array) and `removed` (removed elements)
+ * @returns Object with `value` (modified array) and `removed` (removed elements)
  *
  * @example
  *
- * splice(['foo', 'baz'], 1, 1); -> { array: ['foo'], removed: ['baz'] }
- * splice(['foo', 'baz'], 1, 1, 'bar'); -> { array: ['foo', 'bar'], removed: ['baz'] }
- * splice(['foo', 'baz'], 1, 0, 'bar'); -> { array: ['foo', 'bar', 'baz'], removed: [] }
- * splice(['foo', 'baz'], 1, 0, ['bar']); -> { array: ['foo', 'bar', 'baz'], removed: [] } // flattened
+ * splice(['foo', 'baz'], 1, 1); -> { value: ['foo'], removed: ['baz'] }
+ * splice(['foo', 'baz'], 1, 1, 'bar'); -> { value: ['foo', 'bar'], removed: ['baz'] }
+ * splice(['foo', 'baz'], 1, 0, 'bar'); -> { value: ['foo', 'bar', 'baz'], removed: [] }
+ * splice(['foo', 'baz'], 1, 0, ['bar']); -> { value: ['foo', 'bar', 'baz'], removed: [] } // flattened
  */
-export function splice<TValue>(
+export function splice<TValue, TReplacements>(
     data: ArrayItems<TValue>,
     offset: number,
     length?: number,
-    ...replacement: TValue[]
+    ...replacement: TReplacements[]
 ): { value: TValue[]; removed: TValue[] } {
     if (!accessible(data)) {
         return { value: [] as TValue[], removed: [] as TValue[] };
