@@ -861,6 +861,19 @@ describe("Data", () => {
         });
     });
 
+    describe("dataShift", () => {
+        it("is object", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Data.dataShift(obj);
+            expect(result).toBe(1);
+        });
+        it("is array", () => {
+            const arr = [1, 2, 3, 4, 5];
+            const result = Data.dataShift(arr);
+            expect(result).toBe(1);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
