@@ -697,6 +697,21 @@ describe("Data", () => {
         });
     });
 
+    describe("dataPrepend", () => {
+        it("is object", () => {
+            const result = Data.dataPrepend({ b: 2, c: 3 }, 1, "a");
+            expect(result).toEqual({
+                a: 1,
+                b: 2,
+                c: 3,
+            });
+        });
+        it("is array", () => {
+            const result = Data.dataPrepend([2, 3], 1);
+            expect(result).toEqual([1, 2, 3]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -815,17 +830,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataPrepend", () => {
-        it("prepend", () => {
-            expect(Data.dataPrepend([2, 3], 1)).toEqual([1, 2, 3]);
-            expect(Data.dataPrepend({ b: 2, c: 3 }, 1, "a")).toEqual({
-                a: 1,
-                b: 2,
-                c: 3,
-            });
         });
     });
 
