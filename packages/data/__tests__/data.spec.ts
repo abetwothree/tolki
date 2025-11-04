@@ -950,6 +950,17 @@ describe("Data", () => {
         });
     });
 
+    describe("dataSlice", () => {
+        it("is object", () => {
+            const result = Data.dataSlice({ a: 1, b: 2, c: 3, d: 4, e: 5 }, 1, -1);
+            expect(result).toEqual({ b: 2, c: 3, d: 4 });
+        });
+        it("is array", () => {
+            const result = Data.dataSlice([1, 2, 3, 4, 5, 6, 7, 8], 1, -1);
+            expect(result).toEqual([2, 3, 4, 5, 6, 7]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
