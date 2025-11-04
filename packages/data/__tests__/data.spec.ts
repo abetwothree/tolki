@@ -1007,32 +1007,55 @@ describe("Data", () => {
         });
     });
 
-    describe("dataSortRecursive", () => {
-        it("is object", () => {
-            const obj = {
-                b: { d: 2, c: 1, z: 50, y: 55, x: 50 },
-                a: { f: 4, e: 3, x: 100, y: 100 },
-            };
-            const result = Data.dataSortRecursive(obj);
-            expect(Object.keys(result)).toEqual(["a", "b"]);
-            expect(Object.keys(result["a"])).toEqual(
-                ["e", "f", "x", "y"],
-            );
-            expect(Object.keys(result["b"])).toEqual(
-                ["c", "d", "x", "y", "z"],
-            );
+    describe("data sort recursive", () => {
+        const obj = {
+            b: { d: 2, c: 1, z: 50, y: 55, x: 50 },
+            a: { f: 4, e: 3, x: 100, y: 100 },
+        };
+
+        const arr = [{
+            b: [3, 1, 2],
+            a: { d: 2, c: 1 },
+        }];
+
+        describe("dataSortRecursive", () => {
+            it("is object", () => {
+                const result = Data.dataSortRecursive(obj);
+                expect(Object.keys(result)).toEqual(["a", "b"]);
+                expect(Object.keys(result["a"])).toEqual(
+                    ["e", "f", "x", "y"],
+                );
+                expect(Object.keys(result["b"])).toEqual(
+                    ["c", "d", "x", "y", "z"],
+                );
+            });
+            it("is array", () => {
+                const result = Data.dataSortRecursive(arr);
+                expect(result).toEqual([{
+                    a: { c: 1, d: 2 },
+                    b: [1, 2, 3],
+                }]);
+            });
         });
-        it("is array", () => {
-            const basic = [{
-                b: [3, 1, 2],
-                a: { d: 2, c: 1 },
-            }];
-            const basicExpected = [{
-                a: { c: 1, d: 2 },
-                b: [1, 2, 3],
-            }];
-            const result = Data.dataSortRecursive(basic);
-            expect(result).toEqual(basicExpected);
+
+        describe("dataSortRecursiveDesc", () => {
+            it("is object", () => {
+                const result = Data.dataSortRecursiveDesc(obj);
+                expect(Object.keys(result)).toEqual(["b", "a"]);
+                expect(Object.keys(result["a"])).toEqual(
+                    ["y", "x", "f", "e"],
+                );
+                expect(Object.keys(result["b"])).toEqual(
+                    ["z", "y", "x", "d", "c"],
+                );
+            });
+            it("is array", () => {
+                const result = Data.dataSortRecursiveDesc(arr);
+                expect(result).toEqual([{
+                    b: [3, 2, 1],
+                    a: { d: 2, c: 1 },
+                }]);
+            });
         });
     });
 
