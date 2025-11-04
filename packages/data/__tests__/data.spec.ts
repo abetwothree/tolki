@@ -725,6 +725,17 @@ describe("Data", () => {
         });
     });
 
+    describe("dataQuery", () => {
+        it("is object", () => {
+            expect(Data.dataQuery({ name: "John", age: 30 })).toBe(
+                "name=John&age=30",
+            );
+        });
+        it("is array", () => {
+            expect(Data.dataQuery([1, 2, 3])).toBe("0=1&1=2&2=3");
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -843,15 +854,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataQuery", () => {
-        it("query", () => {
-            expect(Data.dataQuery({ name: "John", age: 30 })).toBe(
-                "name=John&age=30",
-            );
-            expect(Data.dataQuery([1, 2, 3])).toBe("0=1&1=2&2=3");
         });
     });
 
