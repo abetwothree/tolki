@@ -712,6 +712,19 @@ describe("Data", () => {
         });
     });
 
+    describe("dataPull", () => {
+        it("is object", () => {
+            const result2 = Data.dataPull({ a: 1, b: 2 }, "b", "default");
+            expect(result2.value).toBe(2);
+            expect(result2.data).toEqual({ a: 1 });
+        });
+        it("is array", () => {
+            const result1 = Data.dataPull([1, 2, 3], 1, "default");
+            expect(result1.value).toBe(2);
+            expect(result1.data).toEqual([1, 3]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -830,18 +843,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataPull", () => {
-        it("pull", () => {
-            const result1 = Data.dataPull([1, 2, 3], 1, "default");
-            expect(result1.value).toBe(2);
-            expect(result1.data).toEqual([1, 3]);
-
-            const result2 = Data.dataPull({ a: 1, b: 2 }, "b", "default");
-            expect(result2.value).toBe(2);
-            expect(result2.data).toEqual({ a: 1 });
         });
     });
 
