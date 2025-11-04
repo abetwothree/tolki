@@ -1105,6 +1105,23 @@ describe("Data", () => {
         });
     });
 
+    describe("dataToCssStyles", () => {
+        it("is object", () => {
+            expect(
+                Data.dataToCssStyles({
+                "font-weight: bold": true,
+                "color: red": false,
+                "margin-top: 4px": true,
+            }),
+            ).toBe("font-weight: bold; margin-top: 4px;");
+        });
+        it("is array", () => {
+            expect(Data.dataToCssStyles(["font-weight: bold", "margin-top: 4px"])).toBe(
+                "font-weight: bold; margin-top: 4px;",
+            );
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
