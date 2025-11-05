@@ -1249,92 +1249,122 @@ describe("Data", () => {
         });
     });
 
+    describe("dataWhereNotNull", () => {
+        it("is object", () => {
+            expect(Data.dataWhereNotNull({ a: 1, b: null, c: 2 })).toEqual({
+                a: 1,
+                c: 2,
+            });
+        });
+        it("is array", () => {
+            expect(Data.dataWhereNotNull([1, null, 2, null, 3])).toEqual([1, 2, 3]);
+        });
+    });
+
     describe("dataValues", () => {
-        it("values", () => {
-            expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
+        it("is object", () => {
             expect(Data.dataValues({ a: 1, b: 2, c: 3 })).toEqual([1, 2, 3]);
+        });
+        it("is array", () => {
+            expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
         });
     });
 
     describe("dataKeys", () => {
-        it("keys", () => {
-            expect(Data.dataKeys([1, 2, 3])).toEqual([0, 1, 2]);
+        it("is object", () => {
             expect(Data.dataKeys({ a: 1, b: 2, c: 3 })).toEqual(["a", "b", "c"]);
+        });
+        it("is array", () => {
+            expect(Data.dataKeys([1, 2, 3])).toEqual([0, 1, 2]);
         });
     });
 
     describe("dataFilter", () => {
-        it("filter", () => {
-            expect(Data.dataFilter([1, 2, 3, 4], (value) => value > 2)).toEqual([
-                3, 4,
-            ]);
+        it("is object", () => {
             expect(
                 Data.dataFilter({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2),
             ).toEqual({ c: 3, d: 4 });
         });
+        it("is array", () => {
+            expect(Data.dataFilter([1, 2, 3, 4], (value) => value > 2)).toEqual([
+                3, 4,
+            ]);
+        });
     });
 
     describe("dataMap", () => {
-        it("map", () => {
-            expect(Data.dataMap([1, 2, 3], (value) => value * 2)).toEqual([
-                2, 4, 6,
-            ]);
+        it("is object", () => {
             expect(
                 Data.dataMap({ a: 1, b: 2, c: 3 }, (value) => value * 2),
             ).toEqual({ a: 2, b: 4, c: 6 });
         });
+        it("is array", () => {
+            expect(Data.dataMap([1, 2, 3], (value) => value * 2)).toEqual([
+                2, 4, 6,
+            ]);
+        });
     });
 
     describe("dataFirst", () => {
-        it("first", () => {
-            expect(Data.dataFirst([1, 2, 3])).toBe(1);
+         it("is object", () => {
             expect(Data.dataFirst({ a: 1, b: 2, c: 3 })).toBe(1);
-            expect(Data.dataFirst([1, 2, 3], (value) => value > 1)).toBe(2);
             expect(Data.dataFirst({ a: 1, b: 2, c: 3 }, (value) => value > 1)).toBe(
                 2,
             );
-            expect(Data.dataFirst([1, 2, 3], (value) => value > 3, 42)).toBe(42);
             expect(
                 Data.dataFirst({ a: 1, b: 2, c: 3 }, (value) => value > 3, 42),
             ).toBe(42);
+
+            expect(
+                Data.dataFirst({ a: 1, b: 2, c: 3 }, (value) => value > 3, undefined),
+            ).toBeNull();
+        });
+        it("is array", () => {
+            expect(Data.dataFirst([1, 2, 3])).toBe(1);
+            expect(Data.dataFirst([1, 2, 3], (value) => value > 1)).toBe(2);
+            expect(Data.dataFirst([1, 2, 3], (value) => value > 3, 42)).toBe(42);
+            expect(Data.dataFirst([1, 2, 3], (value) => value > 3, undefined)).toBeNull();
         });
     });
 
     describe("dataLast", () => {
-        it("last", () => {
-            expect(Data.dataLast([1, 2, 3])).toBe(3);
+        it("is object", () => {
             expect(Data.dataLast({ a: 1, b: 2, c: 3 })).toBe(3);
-            expect(Data.dataLast([1, 2, 3], (value) => value < 3)).toBe(2);
             expect(Data.dataLast({ a: 1, b: 2, c: 3 }, (value) => value < 3)).toBe(
                 2,
             );
-            expect(Data.dataLast([1, 2, 3], (value) => value < 1, 42)).toBe(42);
             expect(
                 Data.dataLast({ a: 1, b: 2, c: 3 }, (value) => value < 1, 42),
             ).toBe(42);
         });
+        it("is array", () => {
+            expect(Data.dataLast([1, 2, 3])).toBe(3);
+            expect(Data.dataLast([1, 2, 3], (value) => value < 3)).toBe(2);
+            expect(Data.dataLast([1, 2, 3], (value) => value < 1, 42)).toBe(42);
+        });
     });
 
     describe("dataContains", () => {
-        it("contains", () => {
-            expect(Data.dataContains([1, 2, 3], 2)).toBe(true);
+        it("is object", () => {
             expect(Data.dataContains({ a: 1, b: 2, c: 3 }, 2)).toBe(true);
-            expect(Data.dataContains([1, 2, 3], 42)).toBe(false);
             expect(Data.dataContains({ a: 1, b: 2, c: 3 }, 42)).toBe(false);
-            expect(Data.dataContains([1, 2, 3], (value) => value > 2)).toBe(true);
             expect(
                 Data.dataContains({ a: 1, b: 2, c: 3 }, (value) => value > 2),
             ).toBe(true);
-            expect(Data.dataContains([1, 2, 3], (value) => value > 3)).toBe(false);
             expect(
                 Data.dataContains({ a: 1, b: 2, c: 3 }, (value) => value > 3),
             ).toBe(false);
         });
+        it("is array", () => {
+            expect(Data.dataContains([1, 2, 3], 2)).toBe(true);
+            expect(Data.dataContains([1, 2, 3], 42)).toBe(false);
+            expect(Data.dataContains([1, 2, 3], (value) => value > 2)).toBe(true);
+            expect(Data.dataContains([1, 2, 3], (value) => value > 3)).toBe(false);
+        });
     });
 
     describe("dataDiff", () => {
-        it("diff", () => {
-            expect(Data.dataDiff([1, 2, 3], [2, 3, 4])).toEqual([1]);
+        it("is object", () => {
             expect(
                 Data.dataDiff<number, string>(
                     { a: 1, b: 2, c: 3 },
@@ -1342,21 +1372,13 @@ describe("Data", () => {
                 ),
             ).toEqual({ a: 1 });
         });
+        it("is array", () => {
+            expect(Data.dataDiff([1, 2, 3], [2, 3, 4])).toEqual([1]);
+        });
     });
 
     describe("dataPluck", () => {
-        it("pluck", () => {
-            expect(
-                Data.dataPluck(
-                    [
-                        { id: 1, name: "House" },
-                        { id: 2, name: "Condo" },
-                        { id: 3, name: "Apartment" },
-                    ],
-                    "name",
-                ),
-            ).toEqual(["House", "Condo", "Apartment"]);
-
+        it("is object", () => {
             expect(
                 Data.dataPluck(
                     {
@@ -1368,15 +1390,17 @@ describe("Data", () => {
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
         });
-    });
-
-    describe("dataWhereNotNull", () => {
-        it("whereNotNull", () => {
-            expect(Data.dataWhereNotNull([1, null, 2, null, 3])).toEqual([1, 2, 3]);
-            expect(Data.dataWhereNotNull({ a: 1, b: null, c: 2 })).toEqual({
-                a: 1,
-                c: 2,
-            });
+        it("is array", () => {
+            expect(
+                Data.dataPluck(
+                    [
+                        { id: 1, name: "House" },
+                        { id: 2, name: "Condo" },
+                        { id: 3, name: "Apartment" },
+                    ],
+                    "name",
+                ),
+            ).toEqual(["House", "Condo", "Apartment"]);
         });
     });
 });
