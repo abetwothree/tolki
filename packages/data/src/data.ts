@@ -2308,6 +2308,6 @@ export function dataIntersectByKeys<
     }
 
     throw new Error(
-        "Data to intersect must be of the same type (both array or both object).",
+        "Data to intersect by keys must be of the same type (both array or both object).",
     );
 }

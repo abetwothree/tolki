@@ -1437,4 +1437,24 @@ describe("Data", () => {
             }).toThrowError("Data to intersect must be of the same type (both array or both object).");
         });
     });
+
+    describe("dataIntersectByKeys", () => {
+        it("is object", () => {
+            const obj1 = { a: 1, b: 2, c: 3 };
+            const obj2 = { b: 20, d: 40 };
+            const result = Data.dataIntersectByKeys(obj1, obj2);
+            expect(result).toEqual({ b: 2 });
+        });
+        it("is array", () => {
+            const data1 = [1, 3, 5];
+            const data2 = [2, 4];
+            const result = Data.dataIntersectByKeys(data1, data2);
+            expect(result).toEqual([1, 3]);
+        });
+        it('throws when values do not match type', () => {
+            expect(() => {
+                Data.dataIntersectByKeys({ a: 1, b: 2 }, [2, 3]);
+            }).toThrowError("Data to intersect by keys must be of the same type (both array or both object).");
+        });
+    });
 });
