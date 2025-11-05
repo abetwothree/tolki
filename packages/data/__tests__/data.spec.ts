@@ -1403,4 +1403,38 @@ describe("Data", () => {
             ).toEqual(["House", "Condo", "Apartment"]);
         });
     });
+
+    describe("dataPop", () => {
+        it("is object", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Data.dataPop(obj, 2);
+            expect(result).toEqual([2, 3]);
+            expect(obj).toEqual({ a: 1 });
+        });
+        it("is array", () => {
+            const arr = [1, 2, 3];
+            const result = Data.dataPop(arr, 2);
+            expect(result).toEqual([2, 3]);
+        });
+    });
+
+    describe("dataIntersect", () => {
+        it("is object", () => {
+            const obj1 = { a: 1, b: 2, c: 3 };
+            const obj2 = { b: 2, c: 4 };
+            const result = Data.dataIntersect(obj1, obj2);
+            expect(result).toEqual({ b: 2 });
+        });
+        it("is array", () => {
+            const data1 = [1, 2, 3, 4];
+            const data2 = [3, 4, 5, 6];
+            const result = Data.dataIntersect(data1, data2);
+            expect(result).toEqual([3, 4]);
+        });
+        it('throws when values do not match type', () => {
+            expect(() => {
+                Data.dataIntersect({ a: 1, b: 2 }, [2]);
+            }).toThrowError("Data to intersect must be of the same type (both array or both object).");
+        });
+    });
 });
