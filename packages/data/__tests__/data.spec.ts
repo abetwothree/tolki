@@ -1135,6 +1135,27 @@ describe("Data", () => {
         });
     });
 
+    describe("dataReplace", () => {
+        it("is object", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const replacements = { b: 20, c: 30, d: 40 };
+            const result = Data.dataReplace(obj, replacements);
+            expect(result).toEqual({ a: 1, b: 20, c: 30, d: 40 });
+        });
+        it("is array", () => {
+            const data = ["a", "b", "c"];
+            const replacements = ["d", "e"];
+            const result = Data.dataReplace(data, replacements);
+            expect(result).toEqual(["d", "e", "c"]);
+        });
+
+        it('throws when values do not match type', () => {
+            expect(() => {
+                Data.dataReplace({ a: 1, b: 2 }, [3, 4]);
+            }).toThrowError("Data to replace and items must be of the same type (both array or both object).");
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
