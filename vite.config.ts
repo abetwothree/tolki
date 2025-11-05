@@ -52,7 +52,11 @@ export default defineConfig({
         globals: true,
         coverage: {
             provider: "istanbul",
-            reporter: ["text", "html", "lcov", "text-summary"],
+            reporter: [
+                "text", "text-summary",
+                ...(process.env.CI ? ["json-summary", "json"] : ["html", "lcov"]),
+            ],
+            reportOnFailure: true,
             exclude: [...configDefaults.exclude, "./scripts/**", "./docs/**"],
         },
         projects: ["packages/*"],

@@ -24,6 +24,10 @@ jobs:
       - name: Run unit tests
         run: pnpm run test
 
+      - name: Vitest Report coverage
+        if: always()
+        uses: davelosert/vitest-coverage-report-action@v2
+
   unit-test-windows:
     runs-on: windows-latest
     env:
