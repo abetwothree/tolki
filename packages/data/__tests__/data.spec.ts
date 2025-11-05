@@ -1230,6 +1230,25 @@ describe("Data", () => {
         });
     });
 
+    describe("dataPartition", () => {
+        it("is object", () => {
+            const [passing2, failing2] = Data.dataPartition(
+                { a: 1, b: 2, c: 3 },
+                (value) => value > 1,
+            );
+            expect(passing2).toEqual({ b: 2, c: 3 });
+            expect(failing2).toEqual({ a: 1 });
+        });
+        it("is array", () => {
+            const [passing, failing] = Data.dataPartition(
+                [1, 2, 3, 4],
+                (value) => value > 2,
+            );
+            expect(passing).toEqual([3, 4]);
+            expect(failing).toEqual([1, 2]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -1348,24 +1367,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataPartition", () => {
-        it("partition", () => {
-            const [passing, failing] = Data.dataPartition(
-                [1, 2, 3, 4],
-                (value) => value > 2,
-            );
-            expect(passing).toEqual([3, 4]);
-            expect(failing).toEqual([1, 2]);
-
-            const [passing2, failing2] = Data.dataPartition(
-                { a: 1, b: 2, c: 3 },
-                (value) => value > 1,
-            );
-            expect(passing2).toEqual({ b: 2, c: 3 });
-            expect(failing2).toEqual({ a: 1 });
         });
     });
 
