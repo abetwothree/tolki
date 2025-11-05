@@ -2110,6 +2110,7 @@ describe("Obj", () => {
         });
 
         it("should pad object to desired size", () => {
+            // TODO: implement pad
             const obj = { a: 1, b: 2 };
             const result = Obj.pad(obj, 4, 0);
             // expect(result).toEqual({ a: 1, b: 2, "2": 0, "3": 0 });
@@ -2122,6 +2123,7 @@ describe("Obj", () => {
         });
 
         it("should pad with different types of values", () => {
+            // TODO: implement pad
             const obj = { a: "x" };
             const result = Obj.pad(obj, 3, "y");
             // expect(result).toEqual({ a: "x", "1": "y", "2": "y" });
@@ -2134,6 +2136,7 @@ describe("Obj", () => {
         });
 
         it("should handle negative size", () => {
+            // TODO: implement pad
             const obj = { a: 1, b: 2 };
             const result = Obj.pad(obj, -3, 0);
             // expect(result).toEqual({"0": 0, a: 1, b: 2});

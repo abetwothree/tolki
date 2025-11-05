@@ -1218,6 +1218,18 @@ describe("Data", () => {
         });
     });
 
+    describe("dataPad", () => {
+        it("is object", () => {
+            // TODO: implement pad
+            const result = Data.dataPad({ a: 1, b: 2 }, 4, 0);
+            // expect(Object.keys(result)).toEqual(["c", "b", "a"]);
+        });
+        it("is array", () => {
+            const result = Data.dataPad([1, 2, 3, 4, 5], 7, 0);
+            expect(result).toEqual([1, 2, 3, 4, 5, 0, 0]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
