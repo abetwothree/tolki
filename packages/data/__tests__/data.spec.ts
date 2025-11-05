@@ -1156,6 +1156,39 @@ describe("Data", () => {
         });
     });
 
+    describe("dataReplaceRecursive", () => {
+        it("is object", () => {
+            const obj = {
+                user: { name: "John", address: { city: "NYC", zip: "10001" } },
+                age: 30,
+                locations: ["NYC", "LA", "CHI", "SF"],
+            };
+            const replacements = {
+                user: { address: { city: "LA" } },
+                age: 31,
+                locations: ["DETROIT", "PORTLAND"],
+            };
+            const result = Data.dataReplaceRecursive(obj, replacements);
+            expect(result).toEqual({
+                user: { name: "John", address: { city: "LA", zip: "10001" } },
+                age: 31,
+                locations: ["DETROIT", "PORTLAND", "CHI", "SF"],
+            });
+        });
+        it("is array", () => {
+            const data = ["a", "b", ["c", "d"]];
+            const replacements = ["d", "e", ["f", "g"]];
+            const result = Data.dataReplaceRecursive(data, replacements);
+            expect(result).toEqual(["d", "e", ["f", "g"]]);
+        });
+
+        it('throws when values do not match type', () => {
+            expect(() => {
+                Data.dataReplaceRecursive({ a: 1, b: 2 }, [3, 4]);
+            }).toThrowError("Data to replace and items must be of the same type (both array or both object).");
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
