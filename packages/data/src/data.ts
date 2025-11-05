@@ -48,7 +48,7 @@ import {
     reject as arrReject,
     replace as arrReplace,
     replaceRecursive as arrReplaceRecursive,
-    reverse as objReverse,
+    reverse as arrReverse,
     select as arrSelect,
     set as arrSet,
     shift as arrShift,
@@ -123,7 +123,7 @@ import {
     reject as objReject,
     replace as objReplace,
     replaceRecursive as objReplaceRecursive,
-    reverse as arrReverse,
+    reverse as objReverse,
     select as objSelect,
     set as objSet,
     shift as objShift,
@@ -1829,6 +1829,12 @@ export function dataReject<TValue, TKey extends PropertyKey = PropertyKey>(
     ) as DataItems<TValue>;
 }
 
+/**
+ * Reverse the data items.
+ * 
+ * @param data - The data to reverse
+ * @returns Reversed data
+ */
 export function dataReverse<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
 ): DataItems<TValue, TKey> {

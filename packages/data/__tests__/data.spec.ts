@@ -1189,6 +1189,35 @@ describe("Data", () => {
         });
     });
 
+    describe("dataReject", () => {
+        it("is object", () => {
+            expect(
+                Data.dataReject({ a: 1, b: 2, c: 3 }, (value) => value > 1),
+            ).toEqual({ a: 1 });
+        });
+        it("is array", () => {
+            expect(Data.dataReject([1, 2, 3, 4], (value) => value > 2)).toEqual([
+                1, 2,
+            ]);
+        });
+    });
+
+    describe("dataReverse", () => {
+        it("is object", () => {
+            const result = Data.dataReverse({ a: 1, b: 2, c: 3 });
+            expect(Object.keys(result)).toEqual(["c", "b", "a"]);
+        });
+        it("is array", () => {
+            const result = Data.dataReverse(["house", "roof", ["doors", "table"], "floor"]);
+            expect(result).toEqual([
+                "floor",
+                ["doors", "table"],
+                "roof",
+                "house",
+            ]);
+        });
+    });
+
     describe("dataValues", () => {
         it("values", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
@@ -1307,17 +1336,6 @@ describe("Data", () => {
                     "name",
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
-        });
-    });
-
-    describe("dataReject", () => {
-        it("reject", () => {
-            expect(Data.dataReject([1, 2, 3, 4], (value) => value > 2)).toEqual([
-                1, 2,
-            ]);
-            expect(
-                Data.dataReject({ a: 1, b: 2, c: 3 }, (value) => value > 1),
-            ).toEqual({ a: 1 });
         });
     });
 
