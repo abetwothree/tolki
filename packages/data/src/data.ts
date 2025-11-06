@@ -518,7 +518,7 @@ export function dataUnion<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     if (items.every(isArray)) {
-        return arrUnion(...items as TValue[]);
+        return arrUnion(...items);
     }
 
     throw new Error(

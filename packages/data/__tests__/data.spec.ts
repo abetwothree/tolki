@@ -347,6 +347,23 @@ describe("Data", () => {
         });
     });
 
+    describe("dataUnion", () => {
+        it("is object", () => {
+            const result = Data.dataUnion({ a: 1 }, { b: 2 });
+            expect(result).toEqual({ a: 1, b: 2 });
+        });
+
+        it("is array", () => {
+            const result = Data.dataUnion([1, 2], [2, 3]);
+            expect(result).toEqual([1, 2, 3]);
+        });
+
+        it("throws error on mismatched types", () => {
+            expect(() => Data.dataUnion({ a: 1 }, [1, 2])).toThrowError();
+            expect(() => Data.dataUnion([1, 2], { a: 1 })).toThrowError();
+        });
+    });
+
     describe("dataExcept", () => {
         it("is object", () => {
             const result = Data.dataExcept({ name: "John", age: 30, city: "NYC" }, "age");
