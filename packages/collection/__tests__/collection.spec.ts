@@ -11,11 +11,47 @@ describe("Collection", () => {
         it("creates collection from array", () => {
             const collection = collect([1, 2, 3]);
             expect(collection.all()).toEqual([1, 2, 3]);
+
+            const collection2 = collect([]);
+            expect(collection2.all()).toEqual([]);
         });
 
         it("creates collection from object", () => {
             const collection = collect({ a: 1, b: 2 });
             expect(collection.all()).toEqual({ a: 1, b: 2 });
+        });
+
+        it("creates collection from null or undefined values", () => {
+            const collectionFromNull = collect(null);
+            expect(collectionFromNull.all()).toEqual([]);
+
+            const collectionFromUndefined = collect(undefined);
+            expect(collectionFromUndefined.all()).toEqual([]);
+        });
+
+        it("creates a collection from another collection", () => {
+            const original = collect([1, 2, 3]);
+            const collection = collect(original);
+            expect(collection.all()).toEqual([1, 2, 3]);
+        });
+
+        it("creates a collection from an object with a toArray method", () => {
+            const arrayable = {
+                toArray: () => [4, 5, 6],
+            };
+            const collection = collect(arrayable);
+            expect(collection.all()).toEqual([4, 5, 6]);
+        });
+
+        it("creates a collection from a primitive value (string, number, boolean)", () => {
+            const stringCollection = collect("hello");
+            expect(stringCollection.all()).toEqual(["hello"]);
+
+            const numberCollection = collect(42);
+            expect(numberCollection.all()).toEqual([42]);
+
+            const booleanCollection = collect(true);
+            expect(booleanCollection.all()).toEqual([true]);
         });
     });
 

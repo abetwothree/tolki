@@ -197,7 +197,7 @@ export class Collection<TValue, TKey extends PropertyKey = PropertyKey> {
     constructor(
         items?: TValue[] | DataItems<TValue, TKey> | Arrayable<TValue> | null,
     ) {
-        this.items = this.getRawItems(items ?? []);
+        this.items = this.getRawItems(items);
 
         // Return a proxy that intercepts property access
         // return this.createProxy();
@@ -206,9 +206,9 @@ export class Collection<TValue, TKey extends PropertyKey = PropertyKey> {
     /**
      * Create a proxy that intercepts property access for both array and object usage
      */
-    private createProxy(): this {
-        return new Proxy(this, initProxyHandler<TValue>());
-    }
+    // private createProxy(): this {
+    //     return new Proxy(this, initProxyHandler<TValue>());
+    // }
 
     /**
      * Make the collection iterable with for...of loops.
@@ -4475,7 +4475,7 @@ export class Collection<TValue, TKey extends PropertyKey = PropertyKey> {
         }
 
         // If it's an object, keep it as an object
-        if (typeof items === "object" && items !== null) {
+        if (!isNull(items) && isObject(items)) {
             return items as Record<TKey, TValue>;
         }
 
