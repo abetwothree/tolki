@@ -55,6 +55,26 @@ describe("Collection", () => {
         });
     });
 
+    describe("Symbol.iterator", () => {
+        it("makes the collection iterable with for...of", () => {
+            const collection = collect([10, 20, 30]);
+            const result: number[] = [];
+            for (const item of collection) {
+                result.push(item);
+            }
+            expect(result).toEqual([10, 20, 30]);
+        });
+
+        it("makes the collection iterable with for...of for object items", () => {
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            const result: number[] = [];
+            for (const item of collection) {
+                result.push(item);
+            }
+            expect(result).toEqual([1, 2, 3]);
+        });
+    });
+
     describe("range", () => {
         it("creates collection with range", () => {
             const collection = Collection.range(1, 5);
