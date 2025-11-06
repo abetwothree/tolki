@@ -504,20 +504,25 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
     return arrUndot(data) as DataItems<TValue>;
 }
 
-export function dataUnion(itemsA: unknown, itemsB: unknown) {
-    if (isObject(itemsA) && isObject(itemsB)) {
-        return objUnion(
-            itemsA as Record<string, unknown>,
-            itemsB as Record<string, unknown>,
-        );
+/**
+ * Union multiple objects or arrays items into one. Can only union items of the same type.
+ * 
+ * @param items - the data items to union
+ * @return A new object or array containing all values
+ */
+export function dataUnion<TValue, TKey extends PropertyKey = PropertyKey>(
+    ...items: DataItems<TValue, TKey>[]
+) {
+    if (items.every(isObject)) {
+        return objUnion(...items);
     }
 
-    if (isArray(itemsA) && isArray(itemsB)) {
-        return arrUnion(itemsA as unknown[], itemsB as unknown[]);
+    if (items.every(isArray)) {
+        return arrUnion(...items as TValue[]);
     }
 
     throw new Error(
-        "dataUnion requires both itemsA and itemsB to be of the same type (both objects or both arrays).",
+        "dataUnion requires all provided items to be of the same type (all objects or all arrays).",
     );
 }
 
