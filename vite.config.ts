@@ -58,6 +58,12 @@ export default defineConfig({
             ],
             reportOnFailure: true,
             exclude: [...configDefaults.exclude, "./scripts/**", "./docs/**"],
+            thresholds: {
+                lines: 95,
+                branches: 90,
+                functions: 90,
+                statements: 90,
+            },
         },
         projects: ["packages/*"],
     },
