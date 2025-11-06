@@ -1040,7 +1040,7 @@ export function undotExpandArray<
  */
 export function getNestedValue<TReturn>(
     obj: unknown,
-    path: string,
+    path: PropertyKey,
 ): TReturn | undefined {
     // Accept both arrays and objects - just check for null/undefined
     if (isNull(obj) || isUndefined(obj)) {
@@ -1052,7 +1052,12 @@ export function getNestedValue<TReturn>(
         return undefined;
     }
 
-    const segments = path.split(".");
+    // if path is number or symbol, convert to string
+    const pathStr =
+        isNumber(path) || isSymbol(path) ? String(path) : String(path);
+
+    // Split path into segments
+    const segments = pathStr.split(".");
     let current: unknown = obj;
 
     for (const segment of segments) {

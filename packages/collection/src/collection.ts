@@ -280,7 +280,7 @@ export class Collection<TValue, TKey extends PropertyKey = PropertyKey> {
      * new Collection([1, 2, 3, 4, 5, 6]).median(); -> 3.5
      * new Collection([{value: 1}, {value: 3}, {value: 3}, {value: 6}, {value: 7}, {value: 8}, {value: 9}]).median('value'); -> 6
      */
-    median(key: null = null): number | null {
+    median(key: PropertyKey | null = null): number | null {
         const values = (!isNull(key) ? this.pluck(key) : this)
             .reject((item) => isNull(item))
             .sort()
@@ -1366,7 +1366,7 @@ export class Collection<TValue, TKey extends PropertyKey = PropertyKey> {
     pluck<TPluckValue = TValue>(
         value: string | ((item: TValue, key: TKey) => TPluckValue),
         key:
-            | string
+            | PropertyKey
             | ((item: TValue, key: TKey) => string | number)
             | null = null,
     ): Collection<TPluckValue, TKey> {

@@ -101,6 +101,43 @@ describe("Collection", () => {
         });
     });
 
+    describe("median", () => {
+        it("test median with no values", () => {
+            const collection = collect([]);
+            expect(collection.median()).toBe(null);
+        });
+        it("test median with range", () => {
+            const collection = Collection.range(1, 5);
+            expect(collection.median()).toBe(3);
+
+            const collection2 = Collection.range(1, 10, 2);
+            expect(collection2.median()).toBe(5);
+        });
+        it("test with objects", () => {
+            const collection = collect([{ value: 1, age: 20 }, { value: 3, age: 30 }, { value: 2, age: 25 }]);
+            expect(collection.median()).toEqual({
+                "age": 30,
+                "value": 3,
+            });
+
+            expect(collection.median("value")).toBe(2);
+            expect(collection.median("age")).toBe(25);
+        });
+        it("test with arrays", () => {
+            const collection = collect([[1, 2], [3, 4], [5, 6]]);
+            expect(collection.median()).toEqual([3, 4]);
+            expect(collection.median(0)).toBe(3);
+            expect(collection.median(1)).toBe(4);
+        });
+        it("test when count is not % === 2", () => {
+            const collection = collect([1, 2, 3, 4, 5, 6]);
+            expect(collection.median()).toBe(3);
+        });
+        it("Laravel tests", () => {
+            // TODO
+        });
+    });
+
     describe("collapse", () => {
         it("collapses nested arrays", () => {
             const collection = collect([

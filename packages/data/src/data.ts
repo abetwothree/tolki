@@ -2219,7 +2219,7 @@ export function dataDiff<TValue, TKey extends PropertyKey = PropertyKey>(
 export function dataPluck<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
     value: string | ((item: TValue, key: TKey) => TValue),
-    key: string | ((item: TValue, key: TKey) => string | number) | null = null,
+    key: PropertyKey | ((item: TValue, key: TKey) => string | number) | null = null,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objPluck(
