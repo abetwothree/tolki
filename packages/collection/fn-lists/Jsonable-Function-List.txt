@@ -1,5 +1,5 @@
 
-Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/collection/stubs/Jsonable.php
+Analyzing file: packages/collection/stubs/Jsonable.php
 
 Found 1 function(s):
 

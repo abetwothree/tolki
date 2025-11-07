@@ -1,5 +1,5 @@
 
-Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/collection/stubs/Enumerable.php
+Analyzing file: packages/collection/stubs/Enumerable.php
 
 Found 145 function(s):
 

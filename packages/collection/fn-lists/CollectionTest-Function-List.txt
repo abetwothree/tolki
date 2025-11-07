@@ -1,5 +1,5 @@
 
-Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/collection/stubs/CollectionTest.php
+Analyzing file: packages/collection/stubs/CollectionTest.php
 
 Found 397 function(s):
 

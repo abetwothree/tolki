@@ -1,5 +1,5 @@
 
-Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/num/stubs/NumberTest.php
+Analyzing file: packages/num/stubs/NumberTest.php
 
 Found 22 function(s):
 

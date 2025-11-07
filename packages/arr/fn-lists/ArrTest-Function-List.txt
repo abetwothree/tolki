@@ -1,5 +1,5 @@
 
-Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/arr/stubs/ArrTest.php
+Analyzing file: packages/arr/stubs/ArrTest.php
 
 Found 77 function(s):
 

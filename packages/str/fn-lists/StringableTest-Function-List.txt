@@ -1,5 +1,5 @@
 
-Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/str/stubs/StringableTest.php
+Analyzing file: packages/str/stubs/StringableTest.php
 
 Found 129 function(s):
 

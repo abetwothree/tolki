@@ -1,5 +1,5 @@
 
-Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/str/stubs/StrTest.php
+Analyzing file: packages/str/stubs/StrTest.php
 
 Found 123 function(s):
 

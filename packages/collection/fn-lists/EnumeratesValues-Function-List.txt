@@ -1,5 +1,5 @@
 
-Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/collection/stubs/EnumeratesValues.php
+Analyzing file: packages/collection/stubs/EnumeratesValues.php
 
 Found 70 function(s):
 

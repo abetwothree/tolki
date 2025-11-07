@@ -1,5 +1,5 @@
 
-Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/collection/stubs/HigherOrderCollectionProxy.php
+Analyzing file: packages/collection/stubs/HigherOrderCollectionProxy.php
 
 Found 3 function(s):
 

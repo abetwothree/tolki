@@ -91,8 +91,11 @@ function generateFunctionList(stubFile: StubFile): void {
     console.log(`  Output: ${outputPath}`);
 
     try {
+        // Calculate relative path from repository root
+        const relativePath = path.relative(process.cwd(), stubFile.fullPath);
+        
         // Run the functions-list.ts script and capture output
-        const command = `npx ts-node scripts/functions-list.ts "${stubFile.fullPath}"`;
+        const command = `npx ts-node scripts/functions-list.ts "${relativePath}"`;
         const output = execSync(command, {
             encoding: "utf-8",
             cwd: process.cwd(),

@@ -1,5 +1,5 @@
 
-Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/collection/stubs/Conditionable.php
+Analyzing file: packages/collection/stubs/Conditionable.php
 
 Found 2 function(s):
 
