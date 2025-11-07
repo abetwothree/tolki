@@ -1,0 +1,11 @@
+
+Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/collection/stubs/TransformsToResourceCollection.php
+
+Found 4 function(s):
+
+METHOD DECLARATIONS:
+  public toResourceCollection(?string $resourceClass) [line 22]
+  protected guessResourceCollection() [line 38]
+  protected resolveResourceFromAttribute($class) [line 90]
+  protected resolveResourceCollectionFromAttribute($class) [line 109]
+

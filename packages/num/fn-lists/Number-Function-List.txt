@@ -1,0 +1,30 @@
+
+Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/num/stubs/Number.php
+
+Found 23 function(s):
+
+METHOD DECLARATIONS:
+  public format(int|float $number, ?int $precision, ?int $maxPrecision, ?string $locale) [line 36]
+  public parse($string, ?int $type, ?string $locale) [line 59]
+  public parseInt($string, ?string $locale) [line 75]
+  public parseFloat($string, ?string $locale) [line 87]
+  public spell(int|float $number, ?string $locale, ?int $after, ?int $until) [line 101]
+  public ordinal(int|float $number, ?string $locale) [line 125]
+  public spellOrdinal(int|float $number, ?string $locale) [line 141]
+  public percentage(int|float $number, $precision, ?int $maxPrecision, ?string $locale) [line 161]
+  public currency(int|float $number, $in, ?string $locale, ?int $precision) [line 185]
+  public fileSize(int|float $bytes, $precision, ?int $maxPrecision) [line 206]
+  public abbreviate(int|float $number, $precision, ?int $maxPrecision) [line 227]
+  public forHumans(int|float $number, $precision, ?int $maxPrecision, $abbreviate) [line 241]
+  protected summarize(int|float $number, $precision, ?int $maxPrecision, $units) [line 267]
+  public clamp(int|float $number, int|float $min, int|float $max) [line 303]
+  public pairs(int|float $to, int|float $by, int|float $start, int|float $offset) [line 317]
+  public trim(int|float $number) [line 340]
+  public withLocale($locale, $callback) [line 352]
+  public withCurrency($currency, $callback) [line 372]
+  public useLocale($locale) [line 391]
+  public useCurrency($currency) [line 402]
+  public defaultLocale() [line 412]
+  public defaultCurrency() [line 422]
+  protected ensureIntlExtensionIsInstalled() [line 434]
+

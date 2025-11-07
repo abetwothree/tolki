@@ -30,6 +30,7 @@ const packageFiles = {
     },
     num: {
         "Number.php": "src/Illuminate/Support/Number.php",
+        "NumberTest.php": "tests/Support/SupportNumberTest.php",
     },
     str: {
         "Str.php": "src/Illuminate/Support/Str.php",

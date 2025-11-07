@@ -1,0 +1,8 @@
+
+Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/collection/stubs/Jsonable.php
+
+Found 1 function(s):
+
+METHOD DECLARATIONS:
+  public toJson($options) [line 13]
+

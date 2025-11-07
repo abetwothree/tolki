@@ -1,0 +1,10 @@
+
+Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/collection/stubs/HigherOrderCollectionProxy.php
+
+Found 3 function(s):
+
+METHOD DECLARATIONS:
+  public __construct($collection, $method) [line 35]
+  public __get($key) [line 47]
+  public __call($method, $parameters) [line 61]
+

@@ -1,0 +1,8 @@
+
+Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/collection/stubs/Countable.php
+
+Found 1 function(s):
+
+FUNCTION DECLARATIONS:
+  count() [line 15]
+

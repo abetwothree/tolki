@@ -8,11 +8,11 @@
  *
  * For each PHP file found in packages/[package]/stubs/[file].php, it will:
  * 1. Run the functions-list.ts script on that file
- * 2. Save the output to a new file with "-Function-List" suffix in the same directory
+ * 2. Save the output to a new file with "-Function-List" suffix in packages/[package]/fn-lists/
  *
  * Example:
- *   packages/arr/stubs/Arr.php -> packages/arr/stubs/Arr-Function-List.txt
- *   packages/str/stubs/Str.php -> packages/str/stubs/Str-Function-List.txt
+ *   packages/arr/stubs/Arr.php -> packages/arr/fn-lists/Arr-Function-List.txt
+ *   packages/str/stubs/Str.php -> packages/str/fn-lists/Str-Function-List.txt
  */
 
 import { execSync } from "child_process";
@@ -72,10 +72,19 @@ function findStubFiles(): StubFile[] {
  */
 function generateFunctionList(stubFile: StubFile): void {
     const outputFileName = `${stubFile.baseName}-Function-List.txt`;
-    const outputPath = path.join(
-        path.dirname(stubFile.fullPath),
-        outputFileName,
+    const fnListsDir = path.join(
+        process.cwd(),
+        "packages",
+        stubFile.packageName,
+        "fn-lists",
     );
+    
+    // Create fn-lists directory if it doesn't exist
+    if (!fs.existsSync(fnListsDir)) {
+        fs.mkdirSync(fnListsDir, { recursive: true });
+    }
+    
+    const outputPath = path.join(fnListsDir, outputFileName);
 
     console.log(`Processing: ${stubFile.packageName}/${stubFile.fileName}`);
     console.log(`  Input:  ${stubFile.fullPath}`);

@@ -1,0 +1,29 @@
+
+Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/num/stubs/NumberTest.php
+
+Found 22 function(s):
+
+METHOD DECLARATIONS:
+  public testDefaultLocale() [line 11]
+  public testDefaultCurrency() [line 16]
+  public testFormat() [line 22]
+  public testFormatWithDifferentLocale() [line 54]
+  public testFormatWithAppLocale() [line 64]
+  public testSpellout() [line 75]
+  public testSpelloutWithLocale() [line 82]
+  public testSpelloutWithThreshold() [line 88]
+  public testOrdinal() [line 102]
+  public testSpellOrdinal() [line 110]
+  public testToPercent() [line 118]
+  public testToCurrency() [line 141]
+  public testToCurrencyWithDifferentLocale() [line 161]
+  public testBytesToHuman() [line 172]
+  public testClamp() [line 191]
+  public testToHuman() [line 200]
+  public testSummarize() [line 256]
+  public testPairs() [line 312]
+  public testTrim() [line 328]
+  public testParse() [line 340]
+  public testParseInt() [line 352]
+  public testParseFloat() [line 363]
+

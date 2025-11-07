@@ -1,0 +1,13 @@
+
+Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/collection/stubs/Macroable.php
+
+Found 6 function(s):
+
+METHOD DECLARATIONS:
+  public macro($name, $macro) [line 29]
+  public mixin($mixin, $replace) [line 43]
+  public hasMacro($name) [line 62]
+  public flushMacros() [line 72]
+  public __callStatic($method, $parameters) [line 86]
+  public __call($method, $parameters) [line 112]
+

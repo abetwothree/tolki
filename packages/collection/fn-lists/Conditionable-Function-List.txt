@@ -1,0 +1,9 @@
+
+Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/collection/stubs/Conditionable.php
+
+Found 2 function(s):
+
+METHOD DECLARATIONS:
+  public when($value, ?callable $callback, ?callable $default) [line 21]
+  public unless($value, ?callable $callback, ?callable $default) [line 53]
+

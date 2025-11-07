@@ -1,0 +1,11 @@
+
+Analyzing file: /Users/abe/Documents/Programming/GitHub/laravel-js-support/packages/collection/stubs/ArrayAccess.php
+
+Found 4 function(s):
+
+FUNCTION DECLARATIONS:
+  offsetExists($offset) [line 19]
+  offsetGet($offset) [line 28]
+  offsetSet($offset, $value) [line 37]
+  offsetUnset($offset) [line 45]
+
