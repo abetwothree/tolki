@@ -2529,7 +2529,6 @@ export class Str {
 
     /**
      * Split a string into pieces by uppercase characters.
-     * TODO - return type should be a collection
      *
      * @example
      *
@@ -2544,13 +2543,17 @@ export class Str {
     /**
      * Uppercase the first letter of each word in a string.
      *
+     * TODO: implement separators parameter
+     * 
      * @example
      *
      * Str.ucwords('hello world'); -> 'Hello World'
      * Str.ucwords('laravel php framework'); -> 'Laravel Php Framework'
      * Str.ucwords('Öffentliche Überraschungen'); -> 'Öffentliche Überraschungen'
      */
-    static ucwords(value: string): string {
+    static ucwords(value: string, $separators = " \t\r\n\f\v"): string {
+        // TODO: PHP code for separators $pattern = '/(^|['.preg_quote($separators, '/').'])(\p{Ll})/u';
+
         return value.replace(
             /(^|\s)(\p{L})/gu,
             (_m, p1: string, p2: string) => p1 + p2.toUpperCase(),
