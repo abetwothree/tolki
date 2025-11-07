@@ -166,6 +166,34 @@ describe("Collection", () => {
         });
     });
 
+    describe("mode", () => {
+        it("Laravel Tests", () => {
+            expect(collect().mode()).toBeNull();
+
+            const data = collect([1, 2, 3, 4, 4, 5]);
+            expect(data.mode()).toBeInstanceOf(Array);
+            expect(data.mode()).toEqual([4]);
+
+            const data1 = new Collection([
+                { foo: 1 },
+                { foo: 1 },
+                { foo: 2 },
+                { foo: 4 },
+            ]);
+            const data2 = new Collection([
+                { foo: 1 },
+                { foo: 1 },
+                { foo: 2 },
+                { foo: 4 },
+            ]);
+
+            expect(data1.mode("foo")).toEqual([1]);
+            expect(data2.mode("foo")).toEqual(data1.mode("foo"));
+
+            expect(collect([1, 2, 2, 1]).mode()).toEqual([1, 2]);
+        });
+    });
+
     describe("collapse", () => {
         it("collapses nested arrays", () => {
             const collection = collect([
