@@ -195,7 +195,7 @@ export class Collection<TValue, TKey extends PropertyKey = PropertyKey> {
      * @param items - The items to initialize the collection with
      */
     constructor(
-        items?: TValue[] | DataItems<TValue, TKey> | Arrayable<TValue> | null,
+        items?: TValue[] | Arrayable<TValue> | DataItems<TValue, TKey> | null | undefined,
     ) {
         this.items = this.getRawItems(items);
 
@@ -317,14 +317,14 @@ export class Collection<TValue, TKey extends PropertyKey = PropertyKey> {
      * new Collection([{value: 1}, {value: 2}, {value: 2}, {value: 3}, {value: 3}, {value: 3}]).mode('value'); -> [3]
      * new Collection([{value: 1}, {value: 1}, {value: 2}, {value: 2}, {value: 3}, {value: 3}]).mode('value'); -> [1, 2, 3]
      */
-    mode(key: null = null): number[] | null {
+    mode(key: PropertyKey | null = null): number[] | null {
         if (this.count() === 0) {
             return null;
         }
 
         const keyList = !isNull(key) ? this.pluck(key) : this;
 
-        const counts = new Collection();
+        const counts = new Collection<number, PropertyKey>({});
 
         keyList.each((keyValue) => {
             counts.set(
@@ -333,16 +333,17 @@ export class Collection<TValue, TKey extends PropertyKey = PropertyKey> {
             );
         });
 
-        const sorted = counts.sort();
+        const highestCount = counts.max();
 
-        const highestCount = sorted.last();
-
-        return sorted
+        return counts
             .filter((value) => value === highestCount)
             .sort()
             .keys()
-            .values()
-            .all() as number[];
+            .all()
+            .map((key) => {
+                const num = Number(key);
+                return !isNaN(num) && String(num) === String(key) ? num : key;
+            }) as number[];
     }
 
     /**
