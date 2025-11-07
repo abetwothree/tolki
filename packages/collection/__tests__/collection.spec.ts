@@ -1,4 +1,5 @@
 import { collect, Collection } from "@laravel-js/collection";
+import object from "lodash-es/object";
 import { describe, expect, it } from "vitest";
 
 describe("Collection", () => {
@@ -131,10 +132,37 @@ describe("Collection", () => {
         });
         it("test when count is not % === 2", () => {
             const collection = collect([1, 2, 3, 4, 5, 6]);
-            expect(collection.median()).toBe(3);
+            expect(collection.median()).toBe(3.5);
         });
         it("Laravel tests", () => {
-            // TODO
+            expect(collect([1, 2, 2, 4]).median()).toBe(2);
+            
+            expect(collect([
+                { foo: 1 },
+                { foo: 2 },
+                { foo: 2 },
+                { foo: 4 },
+            ]).median("foo")).toBe(2);
+
+            expect(collect([
+                { foo: 1 },
+                { foo: 2 },
+                { foo: 4 },
+                { foo: null },
+            ]).median("foo")).toBe(2);
+
+            expect(collect([
+                { foo: 0 },
+                { foo: 3 },
+            ]).median("foo")).toBe(1.5);
+
+            expect(collect([
+                { foo: 0 },
+                { foo: 5 },
+                { foo: 3 },
+            ]).median("foo")).toBe(3);
+
+            expect(collect().median()).toBeNull();
         });
     });
 

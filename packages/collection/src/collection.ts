@@ -280,7 +280,7 @@ export class Collection<TValue, TKey extends PropertyKey = PropertyKey> {
      * new Collection([1, 2, 3, 4, 5, 6]).median(); -> 3.5
      * new Collection([{value: 1}, {value: 3}, {value: 3}, {value: 6}, {value: 7}, {value: 8}, {value: 9}]).median('value'); -> 6
      */
-    median(key: PropertyKey | null = null): number | null {
+    median(key: PropertyKey | null = null): TValue | null {
         const values = (!isNull(key) ? this.pluck(key) : this)
             .reject((item) => isNull(item))
             .sort()
@@ -295,13 +295,13 @@ export class Collection<TValue, TKey extends PropertyKey = PropertyKey> {
         const middle = Math.floor(count / 2);
 
         if (count % 2) {
-            return values.get(middle) as number;
+            return values.get(middle);
         }
 
         return new Collection([
-            values.get(middle - 1) as number,
-            values.get(middle) as number,
-        ]).average();
+            values.get(middle - 1),
+            values.get(middle),
+        ]).average() as TValue;
     }
 
     /**
@@ -1364,7 +1364,7 @@ export class Collection<TValue, TKey extends PropertyKey = PropertyKey> {
      * new Collection({a: { id: 1, name: "John" }, b: { id: 2, name: "Jane" }}).pluck('name', 'id'); -> Collection({1: "John", 2: "Jane"})
      */
     pluck<TPluckValue = TValue>(
-        value: string | ((item: TValue, key: TKey) => TPluckValue),
+        value: string | PropertyKey | ((item: TValue, key: TKey) => TPluckValue),
         key:
             | PropertyKey
             | ((item: TValue, key: TKey) => string | number)
@@ -4333,6 +4333,13 @@ export class Collection<TValue, TKey extends PropertyKey = PropertyKey> {
     ) {
         if (isFunction(value)) {
             return value;
+        }
+
+        // If value is null or undefined, return the item itself
+        if (isNull(value) || isUndefined(value)) {
+            return function (...args: TArgs[]) {
+                return args[0];
+            };
         }
 
         return function (...args: TArgs[]) {
