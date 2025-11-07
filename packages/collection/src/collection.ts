@@ -228,6 +228,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | DataItems<TValue, TKey>
             | null
             | undefined,
+    );
+    constructor(
+        items?:
+            | TValue[]
+            | Record<TKey, TValue>
+            | Collection<TValue, TKey>
+            | Arrayable<TValue>
+            | DataItems<TValue, TKey>
+            | null
+            | undefined,
     ) {
         this.items = this.getRawItems(items);
 
