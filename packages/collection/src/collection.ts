@@ -172,10 +172,35 @@ import {
 
 import { initProxyHandler } from "./proxy";
 
+export function collect<TValue>(items: TValue[]): Collection<TValue, number>;
 export function collect<
-    TValue = unknown,
-    TKey extends PropertyKey = PropertyKey,
->(items?: TValue[] | DataItems<TValue> | null) {
+    TValue extends Record<PropertyKey, unknown>, 
+    TKey extends PropertyKey
+>(
+    items: TValue,
+): Collection<TValue, TKey>;
+export function collect<
+    TValue,
+    TKey extends PropertyKey
+>(
+    items: Collection<TValue, TKey>,
+): Collection<TValue, TKey>;
+export function collect<TValue>(
+    items: Arrayable<TValue>,
+): Collection<TValue, number>;
+export function collect<TValue = unknown>(
+    items?: null | undefined,
+): Collection<TValue, number>;
+export function collect<TValue, TKey extends PropertyKey>(
+    items?:
+        | TValue[]
+        | Record<TKey, TValue>
+        | Collection<TValue, TKey>
+        | Arrayable<TValue>
+        | DataItems<TValue, TKey>
+        | null
+        | undefined,
+): Collection<TValue, TKey> {
     return new Collection<TValue, TKey>(items);
 }
 
@@ -183,19 +208,26 @@ export function collect<
  * Laravel-style Collection class for JavaScript/TypeScript.
  * Provides a fluent interface for working with arrays and objects.
  */
-export class Collection<TValue, TKey extends PropertyKey = PropertyKey> {
+export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * The items contained in the collection.
      */
     protected items: DataItems<TValue, TKey>;
 
-    /**
-     * Create a new collection.
-     *
-     * @param items - The items to initialize the collection with
-     */
+    constructor(items: TValue[]);
+    constructor(items: Record<TKey, TValue>);
+    constructor(items: Collection<TValue, TKey>);
+    constructor(items: Arrayable<TValue>);
+    constructor(items?: null | undefined);
     constructor(
-        items?: TValue[] | Arrayable<TValue> | DataItems<TValue, TKey> | null | undefined,
+        items?:
+            | TValue[]
+            | Record<TKey, TValue>
+            | Collection<TValue, TKey>
+            | Arrayable<TValue>
+            | DataItems<TValue, TKey>
+            | null
+            | undefined,
     ) {
         this.items = this.getRawItems(items);
 
