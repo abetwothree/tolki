@@ -33,14 +33,16 @@ describe("Collection", () => {
             const fromCollection = collect(objColl);
             assertType<Collection<{ foo: number }, string>>(fromCollection);
 
-            const objColl2 = collect({1: "a", 2: "b"});
+            const objColl2 = collect({ 1: "a", 2: "b" });
             assertType<Collection<{ 1: string; 2: string }, string>>(objColl2);
 
-            const obj2 = new Collection({1: "a", 2: "b"});
+            const obj2 = new Collection({ 1: "a", 2: "b" });
             assertType<Collection<{ 1: string; 2: string }, string>>(obj2);
 
             const fromCollection2 = collect(objColl2);
-            assertType<Collection<{ 1: string; 2: string }, string>>(fromCollection2);
+            assertType<Collection<{ 1: string; 2: string }, string>>(
+                fromCollection2,
+            );
         });
 
         it("arrayable", () => {
@@ -307,10 +309,22 @@ describe("Collection", () => {
             expect(collect([[], [], []]).collapse().all()).toEqual([]);
             expect(collect([{}, {}, {}]).collapse().all()).toEqual({});
 
-            const data = new Collection([[1], [2], [3], ['foo', 'bar'], 
-                new Collection(['baz', 'boom'])
+            const data = new Collection([
+                [1],
+                [2],
+                [3],
+                ["foo", "bar"],
+                new Collection(["baz", "boom"]),
             ]);
-            expect(data.collapse().all()).toEqual([1, 2, 3, 'foo', 'bar', 'baz', 'boom']);
+            expect(data.collapse().all()).toEqual([
+                1,
+                2,
+                3,
+                "foo",
+                "bar",
+                "baz",
+                "boom",
+            ]);
 
             const data2 = new Collection({
                 first: new Collection({ a: 1, b: 2 }),
@@ -318,24 +332,36 @@ describe("Collection", () => {
             });
             expect(data2.collapse().all()).toEqual({ a: 1, b: 2, c: 3, d: 4 });
 
-            expect(collect([[], [1, 2], [], ['foo', 'bar']]).collapse().all()).toEqual([1, 2, 'foo', 'bar']);
+            expect(
+                collect([[], [1, 2], [], ["foo", "bar"]])
+                    .collapse()
+                    .all(),
+            ).toEqual([1, 2, "foo", "bar"]);
         });
     });
 
     describe("collapseWithKeys", () => {
         it("Laravel Tests", () => {
-            const data = collect([{1: 'a'}, {3: 'c'}, {2: 'b'}, 'drop']);
-            expect(data.collapseWithKeys().all()).toEqual({1: 'a', 3: 'c', 2: 'b'});
+            const data = collect([{ 1: "a" }, { 3: "c" }, { 2: "b" }, "drop"]);
+            expect(data.collapseWithKeys().all()).toEqual({
+                1: "a",
+                3: "c",
+                2: "b",
+            });
 
-            const data2 = collect(['a', 'b', 'c']);
+            const data2 = collect(["a", "b", "c"]);
             expect(data2.collapseWithKeys().all()).toEqual([]);
 
             const data3 = collect([
-                new Collection({'a': '1a', 'b': '1b'}),
-                new Collection({'b': '2b', 'c': '2c'}),
-                'drop',
+                new Collection({ a: "1a", b: "1b" }),
+                new Collection({ b: "2b", c: "2c" }),
+                "drop",
             ]);
-            expect(data3.collapseWithKeys().all()).toEqual({a: '1a', b: '2b', c: '2c'});
+            expect(data3.collapseWithKeys().all()).toEqual({
+                a: "1a",
+                b: "2b",
+                c: "2c",
+            });
         });
 
         it("test empty collection", () => {
@@ -344,18 +370,72 @@ describe("Collection", () => {
         });
 
         it("test multi-dimenssional array", () => {
-            const data = collect([{a: 1, b: 2}, {c: 3, d: 4}]);
-            expect(data.collapseWithKeys().all()).toEqual({a: 1, b: 2, c: 3, d: 4});
+            const data = collect([
+                { a: 1, b: 2 },
+                { c: 3, d: 4 },
+            ]);
+            expect(data.collapseWithKeys().all()).toEqual({
+                a: 1,
+                b: 2,
+                c: 3,
+                d: 4,
+            });
 
-            const data2 = collect([[1, 2], [3, 4]]);
+            const data2 = collect([
+                [1, 2],
+                [3, 4],
+            ]);
             expect(data2.collapseWithKeys().all()).toEqual([3, 4]);
 
-            const data3 = collect([[1, 2, 5, 6], [3, 4]]);
+            const data3 = collect([
+                [1, 2, 5, 6],
+                [3, 4],
+            ]);
             expect(data3.collapseWithKeys().all()).toEqual([3, 4, 5, 6]);
         });
     });
 
     describe("contains", () => {
+        it("Laravel Tests", () => {
+            const c = new Collection([1, 3, 5]);
+
+            expect(c.contains(1)).toBe(true);
+            expect(c.contains("1")).toBe(true);
+            expect(c.contains(2)).toBe(false);
+            expect(c.contains("2")).toBe(false);
+
+            const d = collect([1]);
+            expect(d.contains(1)).toBe(true);
+            expect(d.contains("1")).toBe(true);
+
+            const e = collect([null]);
+            expect(e.contains(false)).toBe(true);
+            expect(e.contains(null)).toBe(true);
+            expect(e.contains([])).toBe(true);
+            expect(e.contains(0)).toBe(true);
+            expect(e.contains("")).toBe(true);
+
+            const f = collect([0]);
+            expect(f.contains(0)).toBe(true);
+            expect(f.contains("0")).toBe(true);
+            expect(f.contains(false)).toBe(true);
+            expect(f.contains(null)).toBe(true);
+            expect(f.contains((item) => item < 5)).toBe(true);
+            expect(f.contains((item) => item > 5)).toBe(false);
+
+            const g = collect([{ v: 1 }, { v: 3 }, { v: 5 }]);
+            expect(g.contains("v", 1)).toBe(true);
+            expect(g.contains("v", 2)).toBe(false);
+
+            const h = collect(["date", "class", { foo: 50 }]);
+            expect(h.contains("date")).toBe(true);
+            expect(h.contains("class")).toBe(true);
+            expect(h.contains("foo")).toBe(false);
+
+            const i = collect([null, 1, 2]);
+            expect(i.contains((item) => item === null)).toBe(true);
+        });
+
         it("checks if value exists in array", () => {
             const collection = collect([1, 2, 3]);
             expect(collection.contains(2)).toBe(true);
@@ -369,17 +449,10 @@ describe("Collection", () => {
         });
 
         it("works with callback in array", () => {
-            const data = [
-                { id: 1 },
-                { id: 2 },
-            ];
+            const data = [{ id: 1 }, { id: 2 }];
             const collection = collect(data);
-            expect(
-                collection.contains((item) => item.id === 2),
-            ).toBe(true);
-            expect(
-                collection.contains((item) => item.id === 3),
-            ).toBe(false);
+            expect(collection.contains((item) => item.id === 2)).toBe(true);
+            expect(collection.contains((item) => item.id === 3)).toBe(false);
         });
 
         it("works with callback in object", () => {
@@ -387,12 +460,8 @@ describe("Collection", () => {
                 a: { id: 1 },
                 b: { id: 2 },
             });
-            expect(
-                collection.contains((item) => item.id === 2),
-            ).toBe(true);
-            expect(
-                collection.contains((item) => item.id === 3),
-            ).toBe(false);
+            expect(collection.contains((item) => item.id === 2)).toBe(true);
+            expect(collection.contains((item) => item.id === 3)).toBe(false);
         });
     });
 

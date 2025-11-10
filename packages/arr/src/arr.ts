@@ -36,6 +36,7 @@ import {
     isSymbol,
     isUndefined,
     isWeakMap,
+    looseEqual,
     typeOf,
 } from "@laravel-js/utils";
 
@@ -2946,7 +2947,8 @@ export function contains<TValue>(
         return data.some((item) => item === value);
     }
 
-    return data.some((item) => item == value);
+    // Use PHP-like loose comparison
+    return data.some((item) => looseEqual(item, value));
 }
 
 /**

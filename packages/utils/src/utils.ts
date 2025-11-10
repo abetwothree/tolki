@@ -649,3 +649,47 @@ export function getAccessibleValues<T>(data: ReadonlyArray<T> | unknown): T[] {
     const normalized = normalizeToArray<T>(data);
     return normalized || [];
 }
+
+/**
+ * PHP-like loose equality comparison.
+ * Mimics PHP's == operator behavior where null, false, 0, '', and [] are considered loosely equal.
+ *
+ * @param a - First value to compare
+ * @param b - Second value to compare
+ * @returns True if values are loosely equal in PHP-like manner
+ *
+ * @example
+ *
+ * looseEqual(null, false); -> true
+ * looseEqual(null, 0); -> true
+ * looseEqual(null, ''); -> true
+ * looseEqual(0, false); -> true
+ * looseEqual(1, '1'); -> true
+ */
+export function looseEqual(a: unknown, b: unknown): boolean {
+    // Use JavaScript's loose equality first
+    if (a == b) {
+        return true;
+    }
+
+    // PHP considers these "falsy" values as loosely equal to each other:
+    // null, false, 0, '', []
+    const isFalsyA =
+        a === null ||
+        a === false ||
+        a === 0 ||
+        a === "" ||
+        (Array.isArray(a) && a.length === 0);
+    const isFalsyB =
+        b === null ||
+        b === false ||
+        b === 0 ||
+        b === "" ||
+        (Array.isArray(b) && b.length === 0);
+
+    if (isFalsyA && isFalsyB) {
+        return true;
+    }
+
+    return false;
+}

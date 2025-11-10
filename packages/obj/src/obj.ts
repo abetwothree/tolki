@@ -27,6 +27,7 @@ import {
     isStringable,
     isUndefined,
     isWeakMap,
+    looseEqual,
     typeOf,
 } from "@laravel-js/utils";
 import type { PathKey, PathKeys } from "packages/types";
@@ -2887,9 +2888,10 @@ export function contains<TValue>(
         );
     }
 
+    // Use PHP-like loose comparison
     const obj = data as Record<PropertyKey, TValue>;
     for (const val of Object.values(obj)) {
-        if (val == value) {
+        if (looseEqual(val, value)) {
             return true;
         }
     }

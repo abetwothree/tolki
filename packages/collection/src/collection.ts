@@ -162,6 +162,7 @@ import {
     isUndefined,
     isWeakMap,
     isWeakSet,
+    looseEqual,
     normalizeToArray,
     resolveDefault,
     toArrayable,
@@ -209,7 +210,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     constructor(items: TValue extends unknown[] ? TValue : never);
     constructor(items: TValue extends readonly unknown[] ? TValue : never);
-    constructor(items: TValue extends Record<PropertyKey, unknown> ? TValue : never);
+    constructor(
+        items: TValue extends Record<PropertyKey, unknown> ? TValue : never,
+    );
     constructor(items: Collection<TValue, TKey>);
     constructor(items: Arrayable<TValue>);
     constructor(items?: null | undefined);
@@ -489,7 +492,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return this.contains(
             this.operatorForWhere(
                 key as PathKey | ((value: TValue, index: TKey) => unknown),
-                isString(operator) ? operator : null,
+                operator,
                 value,
             ),
         );
@@ -4228,15 +4231,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return key as (value: TValue, index: TKey) => boolean;
         }
 
-        if (isNull(operator) || isNull(value)) {
+        // func_num_args() === 1: both operator and value are null
+        if (isNull(operator) && isNull(value)) {
             value = true;
-
             operator = "=";
         }
 
+        // func_num_args() === 2: operator has value but value is null
         if (!isNull(operator) && isNull(value)) {
             value = operator;
-
             operator = "=";
         }
 
@@ -4269,10 +4272,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 default:
                 case "=":
                 case "==":
-                    return retrieved == value;
+                    return looseEqual(retrieved, value);
                 case "!=":
                 case "<>":
-                    return retrieved != value;
+                    return !looseEqual(retrieved, value);
                 case "<":
                     return (
                         !isNull(retrieved) &&
