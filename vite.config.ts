@@ -53,8 +53,11 @@ export default defineConfig({
         coverage: {
             provider: "istanbul",
             reporter: [
-                "text", "text-summary",
-                ...(process.env.CI ? ["json-summary", "json"] : ["html", "lcov"]),
+                "text",
+                "text-summary",
+                ...(process.env.CI
+                    ? ["json-summary", "json"]
+                    : ["html", "lcov"]),
             ],
             reportOnFailure: true,
             exclude: [...configDefaults.exclude, "./scripts/**", "./docs/**"],
