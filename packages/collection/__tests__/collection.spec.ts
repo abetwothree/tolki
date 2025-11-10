@@ -437,6 +437,21 @@ describe("Collection", () => {
 
             const i = collect([null, 1, 2]);
             expect(i.contains((item) => item === null)).toBe(true);
+
+            const j = collect([{ v: 1 }, { v: 3 }, { v: "4" }, { v: 5 }]);
+            expect(j.contains("v", '=', 4)).toBe(true);
+            expect(j.contains("v", '==', 4)).toBe(true);
+            expect(j.contains("v", '===', 4)).toBe(false);
+            expect(j.contains("v", '>', 4)).toBe(true);
+
+            expect(j.contains("v", '!=', 4)).toBe(true);
+            expect(j.contains("v", '!==', 4)).toBe(true);
+            expect(j.contains("v", '<>', 4)).toBe(true);
+            expect(j.contains("v", '<', 4)).toBe(true);
+
+            expect(j.contains("v", '<=', 4)).toBe(true);
+            expect(j.contains("v", '>=', 4)).toBe(true);
+            expect(j.contains("v", '<=>', 4)).toBe(true);
         });
 
         it("checks if value exists in array", () => {
