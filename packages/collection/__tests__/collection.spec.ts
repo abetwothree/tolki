@@ -322,6 +322,28 @@ describe("Collection", () => {
         });
     });
 
+    describe("collapseWithKeys", () => {
+        it("Laravel Tests", () => {
+            const data = collect([{1: 'a'}, {3: 'c'}, {2: 'b'}, 'drop']);
+            expect(data.collapseWithKeys().all()).toEqual({1: 'a', 3: 'c', 2: 'b'});
+
+            const data2 = collect(['a', 'b', 'c']);
+            expect(data2.collapseWithKeys().all()).toEqual([]);
+
+            const data3 = collect([
+                new Collection({'a': '1a', 'b': '1b'}),
+                new Collection({'b': '2b', 'c': '2c'}),
+                'drop',
+            ]);
+            expect(data3.collapseWithKeys().all()).toEqual({a: '1a', b: '2b', c: '2c'});
+        });
+
+        it("test empty collection", () => {
+            const data = collect([]);
+            expect(data.collapseWithKeys().all()).toEqual([]);
+        });
+    });
+
     describe("contains", () => {
         it("checks if value exists in array", () => {
             const collection = collect([1, 2, 3]);

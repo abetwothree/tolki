@@ -419,40 +419,31 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return new Collection();
         }
 
-        if (isObject(this.items)) {
-            const resultsObj = {} as Record<TKey, TValue>;
-
-            for (const [key, value] of Object.entries(
-                this.items as Record<PropertyName, TValue>,
-            )) {
-                if (resultsObj[key as TKey]) {
-                    continue;
-                }
-
-                resultsObj[key as TKey] = value;
+        // Extract raw items from nested Collections and filter out non-arrays/objects
+        const results = dataMap(this.items, (value) => {
+            // If it's a Collection, get its raw items
+            if (value instanceof Collection) {
+                return value.all();
+            }
+            
+            // If it's not an array or object, skip it
+            if (!isArray(value) && !isObject(value)) {
+                return null;
             }
 
-            if (Object.keys(resultsObj).length > 0) {
-                return new Collection(resultsObj);
-            }
+            return value;
+        });
+
+        // Filter out nulls (non-arrays/objects that we skipped)
+        const validResults = dataFilter(results, (item) => item !== null);
+
+        if (Object.values(validResults).length === 0) {
+            return new Collection();
         }
 
-        const resultsArr = [];
-        for (const value of Object.values(
-            this.items as Record<PropertyName, TValue>,
-        )) {
-            if (isArray(value)) {
-                resultsArr.push(...value);
-            } else {
-                resultsArr.push(value);
-            }
-        }
-
-        if (resultsArr.length > 0) {
-            return new Collection(resultsArr);
-        }
-
-        return new Collection();
+        // Merge all arrays/objects with later keys overwriting earlier ones
+        // This is equivalent to PHP's array_replace(...$results)
+        return new Collection(Object.assign({}, ...validResults));
     }
 
     /**
