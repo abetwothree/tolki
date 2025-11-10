@@ -78,12 +78,12 @@ function generateFunctionList(stubFile: StubFile): void {
         stubFile.packageName,
         "fn-lists",
     );
-    
+
     // Create fn-lists directory if it doesn't exist
     if (!fs.existsSync(fnListsDir)) {
         fs.mkdirSync(fnListsDir, { recursive: true });
     }
-    
+
     const outputPath = path.join(fnListsDir, outputFileName);
 
     console.log(`Processing: ${stubFile.packageName}/${stubFile.fileName}`);
@@ -93,7 +93,7 @@ function generateFunctionList(stubFile: StubFile): void {
     try {
         // Calculate relative path from repository root
         const relativePath = path.relative(process.cwd(), stubFile.fullPath);
-        
+
         // Run the functions-list.ts script and capture output
         const command = `npx ts-node scripts/functions-list.ts "${relativePath}"`;
         const output = execSync(command, {
