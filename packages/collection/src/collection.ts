@@ -401,9 +401,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return item;
         });
 
-        return new Collection(
-            dataCollapse(items) as DataItems<TValue, TKey>,
-        );
+        return new Collection(dataCollapse(items));
     }
 
     /**
