@@ -302,6 +302,24 @@ describe("Collection", () => {
             const collapsed = collection.collapse();
             expect(collapsed.all()).toEqual({ a: 2, b: 3, c: 4, d: 5 });
         });
+
+        it("Laravel Tests", () => {
+            expect(collect([[], [], []]).collapse().all()).toEqual([]);
+            expect(collect([{}, {}, {}]).collapse().all()).toEqual({});
+
+            const data = new Collection([[1], [2], [3], ['foo', 'bar'], 
+                new Collection(['baz', 'boom'])
+            ]);
+            expect(data.collapse().all()).toEqual([1, 2, 3, 'foo', 'bar', 'baz', 'boom']);
+
+            const data2 = new Collection({
+                first: new Collection({ a: 1, b: 2 }),
+                second: { c: 3, d: 4 },
+            });
+            expect(data2.collapse().all()).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+
+            expect(collect([[], [1, 2], [], ['foo', 'bar']]).collapse().all()).toEqual([1, 2, 'foo', 'bar']);
+        });
     });
 
     describe("contains", () => {
@@ -318,41 +336,42 @@ describe("Collection", () => {
         });
 
         it("works with callback in array", () => {
-            const collection = new Collection<{ id: number }>([
+            const data = [
                 { id: 1 },
                 { id: 2 },
-            ]);
+            ];
+            const collection = collect(data);
             expect(
-                collection.contains((item: { id: number }) => item.id === 2),
+                collection.contains((item) => item.id === 2),
             ).toBe(true);
             expect(
-                collection.contains((item: { id: number }) => item.id === 3),
+                collection.contains((item) => item.id === 3),
             ).toBe(false);
         });
 
         it("works with callback in object", () => {
-            const collection = new Collection<{ id: number }>({
+            const collection = new Collection({
                 a: { id: 1 },
                 b: { id: 2 },
             });
             expect(
-                collection.contains((item: { id: number }) => item.id === 2),
+                collection.contains((item) => item.id === 2),
             ).toBe(true);
             expect(
-                collection.contains((item: { id: number }) => item.id === 3),
+                collection.contains((item) => item.id === 3),
             ).toBe(false);
         });
     });
 
     describe("containsStrict", () => {
         it("uses strict comparison in array", () => {
-            const collection = new Collection<number | string>([1, 2, 3]);
+            const collection = new Collection([1, 2, 3]);
             expect(collection.containsStrict(2)).toBe(true);
             expect(collection.containsStrict("2")).toBe(false);
         });
 
         it("uses strict comparison in object", () => {
-            const collection = new Collection<number | string>({
+            const collection = new Collection({
                 a: 1,
                 b: 2,
                 c: 3,
