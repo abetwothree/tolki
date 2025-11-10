@@ -342,6 +342,17 @@ describe("Collection", () => {
             const data = collect([]);
             expect(data.collapseWithKeys().all()).toEqual([]);
         });
+
+        it("test multi-dimenssional array", () => {
+            const data = collect([{a: 1, b: 2}, {c: 3, d: 4}]);
+            expect(data.collapseWithKeys().all()).toEqual({a: 1, b: 2, c: 3, d: 4});
+
+            const data2 = collect([[1, 2], [3, 4]]);
+            expect(data2.collapseWithKeys().all()).toEqual([3, 4]);
+
+            const data3 = collect([[1, 2, 5, 6], [3, 4]]);
+            expect(data3.collapseWithKeys().all()).toEqual([3, 4, 5, 6]);
+        });
     });
 
     describe("contains", () => {

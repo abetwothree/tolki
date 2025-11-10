@@ -425,7 +425,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             if (value instanceof Collection) {
                 return value.all();
             }
-            
+
             // If it's not an array or object, skip it
             if (!isArray(value) && !isObject(value)) {
                 return null;
@@ -441,9 +441,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return new Collection();
         }
 
+        // Check if all valid results are arrays
+        const allArrays = Object.values(validResults).every((item) =>
+            isArray(item),
+        );
+
         // Merge all arrays/objects with later keys overwriting earlier ones
-        // This is equivalent to PHP's array_replace(...$results)
-        return new Collection(Object.assign({}, ...validResults));
+        const merged = Object.assign({}, ...validResults);
+
+        // If all inputs were arrays, convert the result back to an array
+        // to match PHP's behavior
+        if (allArrays) {
+            return new Collection(Object.values(merged));
+        }
+
+        return new Collection(merged);
     }
 
     /**
