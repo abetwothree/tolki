@@ -409,10 +409,8 @@ describe("Collection", () => {
             expect(d.contains("1")).toBe(true);
 
             const e = collect([null]);
-            // @ts-expect-error testing various falsy values
             expect(e.contains(false)).toBe(true);
             expect(e.contains(null)).toBe(true);
-            // @ts-expect-error testing various falsy values
             expect(e.contains([])).toBe(true);
             expect(e.contains(0)).toBe(true);
             expect(e.contains("")).toBe(true);
@@ -420,7 +418,6 @@ describe("Collection", () => {
             const f = collect([0]);
             expect(f.contains(0)).toBe(true);
             expect(f.contains("0")).toBe(true);
-            // @ts-expect-error testing various falsy values
             expect(f.contains(false)).toBe(true);
             expect(f.contains(null)).toBe(true);
             expect(f.contains((item) => item < 5)).toBe(true);
