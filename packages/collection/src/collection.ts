@@ -172,12 +172,12 @@ import {
 
 import { initProxyHandler } from "./proxy";
 
-export function collect<TValue extends unknown[]>(
-    items: TValue,
-): Collection<TValue, number>;
 export function collect<TValue extends Record<PropertyKey, unknown>>(
     items: TValue,
 ): Collection<TValue, string>;
+export function collect<TValue>(
+    items: TValue[] | readonly TValue[],
+): Collection<TValue, number>;
 export function collect<TValue, TKey extends PropertyKey>(
     items: Collection<TValue, TKey>,
 ): Collection<TValue, TKey>;
@@ -205,9 +205,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * The items contained in the collection.
      */
-    protected items: DataItems<TValue, TKey>;
+    protected items: TValue[] | Record<TKey, TValue>;
 
     constructor(items: TValue extends unknown[] ? TValue : never);
+    constructor(items: TValue extends readonly unknown[] ? TValue : never);
     constructor(items: TValue extends Record<PropertyKey, unknown> ? TValue : never);
     constructor(items: Collection<TValue, TKey>);
     constructor(items: Arrayable<TValue>);
@@ -215,6 +216,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     constructor(
         items?:
             | TValue[]
+            | readonly TValue[]
             | Record<TKey, TValue>
             | Collection<TValue, TKey>
             | Arrayable<TValue>
@@ -224,6 +226,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     constructor(
         items?:
             | TValue[]
+            | readonly TValue[]
             | Record<TKey, TValue>
             | Collection<TValue, TKey>
             | Arrayable<TValue>
@@ -390,8 +393,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{a: 1}, {b: 2}]).collapse(); -> new Collection({a: 1, b: 2})
      */
     collapse() {
+        // Loop through items and extract raw items from any nested Collections
+        const items = dataMap(this.items, (item) => {
+            if (item instanceof Collection) {
+                return item.all();
+            }
+            return item;
+        });
+
         return new Collection(
-            dataCollapse(this.items) as DataItems<TValue, TKey>,
+            dataCollapse(items) as DataItems<TValue, TKey>,
         );
     }
 
