@@ -172,32 +172,25 @@ import {
 
 import { initProxyHandler } from "./proxy";
 
-export function collect<TValue>(items: TValue[]): Collection<TValue, number>;
-export function collect<
-    TValue extends Record<PropertyKey, unknown>, 
-    TKey extends PropertyKey
->(
+export function collect<TValue extends unknown[]>(
     items: TValue,
-): Collection<TValue, TKey>;
-export function collect<
-    TValue,
-    TKey extends PropertyKey
->(
+): Collection<TValue, number>;
+export function collect<TValue extends Record<PropertyKey, unknown>>(
+    items: TValue,
+): Collection<TValue, string>;
+export function collect<TValue, TKey extends PropertyKey>(
     items: Collection<TValue, TKey>,
 ): Collection<TValue, TKey>;
 export function collect<TValue>(
     items: Arrayable<TValue>,
-): Collection<TValue, number>;
-export function collect<TValue = unknown>(
-    items?: null | undefined,
-): Collection<TValue, number>;
+): Collection<ReturnType<Arrayable<TValue>["toArray"]>, number>;
+export function collect(items?: null | undefined): Collection<[], number>;
 export function collect<TValue, TKey extends PropertyKey>(
     items?:
         | TValue[]
         | Record<TKey, TValue>
         | Collection<TValue, TKey>
         | Arrayable<TValue>
-        | DataItems<TValue, TKey>
         | null
         | undefined,
 ): Collection<TValue, TKey> {
@@ -214,8 +207,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     protected items: DataItems<TValue, TKey>;
 
-    constructor(items: TValue[]);
-    constructor(items: Record<TKey, TValue>);
+    constructor(items: TValue extends unknown[] ? TValue : never);
+    constructor(items: TValue extends Record<PropertyKey, unknown> ? TValue : never);
     constructor(items: Collection<TValue, TKey>);
     constructor(items: Arrayable<TValue>);
     constructor(items?: null | undefined);
@@ -225,7 +218,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Record<TKey, TValue>
             | Collection<TValue, TKey>
             | Arrayable<TValue>
-            | DataItems<TValue, TKey>
             | null
             | undefined,
     );
@@ -235,7 +227,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Record<TKey, TValue>
             | Collection<TValue, TKey>
             | Arrayable<TValue>
-            | DataItems<TValue, TKey>
             | null
             | undefined,
     ) {
@@ -1407,7 +1398,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: { id: 1, name: "John" }, b: { id: 2, name: "Jane" }}).pluck('name', 'id'); -> Collection({1: "John", 2: "Jane"})
      */
     pluck<TPluckValue = TValue>(
-        value: string | PropertyKey | ((item: TValue, key: TKey) => TPluckValue),
+        value:
+            | string
+            | PropertyKey
+            | ((item: TValue, key: TKey) => TPluckValue),
         key:
             | PropertyKey
             | ((item: TValue, key: TKey) => string | number)

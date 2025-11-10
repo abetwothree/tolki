@@ -1,8 +1,74 @@
 import { collect, Collection } from "@laravel-js/collection";
 import object from "lodash-es/object";
-import { describe, expect, it } from "vitest";
+import { assertType, describe, expect, it } from "vitest";
 
 describe("Collection", () => {
+    describe("assert constructor types", () => {
+        it("arrays", () => {
+            const arrColl = collect([{ foo: 1 }, { try: 5 }]);
+
+            assertType<Collection<[{ foo: number }, { try: number }], number>>(
+                arrColl,
+            );
+
+            const arr = new Collection([{ foo: 1 }, { try: 5 }]);
+
+            assertType<Collection<[{ foo: number }, { try: number }], number>>(
+                arr,
+            );
+
+            const fromCollection = collect(arrColl);
+            assertType<Collection<[{ foo: number }, { try: number }], number>>(
+                fromCollection,
+            );
+        });
+
+        it("objects", () => {
+            const objColl = collect({ foo: 1 });
+            assertType<Collection<{ foo: number }, string>>(objColl);
+
+            const obj = new Collection({ foo: 1 });
+            assertType<Collection<{ foo: number }, string>>(obj);
+
+            const fromCollection = collect(objColl);
+            assertType<Collection<{ foo: number }, string>>(fromCollection);
+
+            const objColl2 = collect({1: "a", 2: "b"});
+            assertType<Collection<{ 1: string; 2: string }, string>>(objColl2);
+
+            const obj2 = new Collection({1: "a", 2: "b"});
+            assertType<Collection<{ 1: string; 2: string }, string>>(obj2);
+
+            const fromCollection2 = collect(objColl2);
+            assertType<Collection<{ 1: string; 2: string }, string>>(fromCollection2);
+        });
+
+        it("arrayable", () => {
+            const arrayable = {
+                toArray: () => [4, 5, 6],
+            };
+            const collection = collect(arrayable);
+            assertType<Collection<number[], number>>(collection);
+
+            const collection2 = new Collection(arrayable);
+            assertType<Collection<number[], number>>(collection2);
+
+            const fromCollection = collect(collection);
+            assertType<Collection<number[], number>>(fromCollection);
+        });
+
+        it("null and undefined", () => {
+            const collection = collect(null);
+            assertType<Collection<[], number>>(collection);
+
+            const collection2 = new Collection(null);
+            assertType<Collection<[], number>>(collection2);
+
+            const fromCollection = collect(collection);
+            assertType<Collection<[], number>>(fromCollection);
+        });
+    });
+
     describe("constructor", () => {
         it("creates empty collection with no arguments", () => {
             const collection = collect();
@@ -115,17 +181,25 @@ describe("Collection", () => {
             expect(collection2.median()).toBe(5);
         });
         it("test with objects", () => {
-            const collection = collect([{ value: 1, age: 20 }, { value: 3, age: 30 }, { value: 2, age: 25 }]);
+            const collection = collect([
+                { value: 1, age: 20 },
+                { value: 3, age: 30 },
+                { value: 2, age: 25 },
+            ]);
             expect(collection.median()).toEqual({
-                "age": 30,
-                "value": 3,
+                age: 30,
+                value: 3,
             });
 
             expect(collection.median("value")).toBe(2);
             expect(collection.median("age")).toBe(25);
         });
         it("test with arrays", () => {
-            const collection = collect([[1, 2], [3, 4], [5, 6]]);
+            const collection = collect([
+                [1, 2],
+                [3, 4],
+                [5, 6],
+            ]);
             expect(collection.median()).toEqual([3, 4]);
             expect(collection.median(0)).toBe(3);
             expect(collection.median(1)).toBe(4);
@@ -136,31 +210,30 @@ describe("Collection", () => {
         });
         it("Laravel tests", () => {
             expect(collect([1, 2, 2, 4]).median()).toBe(2);
-            
-            expect(collect([
-                { foo: 1 },
-                { foo: 2 },
-                { foo: 2 },
-                { foo: 4 },
-            ]).median("foo")).toBe(2);
 
-            expect(collect([
-                { foo: 1 },
-                { foo: 2 },
-                { foo: 4 },
-                { foo: null },
-            ]).median("foo")).toBe(2);
+            expect(
+                collect([
+                    { foo: 1 },
+                    { foo: 2 },
+                    { foo: 2 },
+                    { foo: 4 },
+                ]).median("foo"),
+            ).toBe(2);
 
-            expect(collect([
-                { foo: 0 },
-                { foo: 3 },
-            ]).median("foo")).toBe(1.5);
+            expect(
+                collect([
+                    { foo: 1 },
+                    { foo: 2 },
+                    { foo: 4 },
+                    { foo: null },
+                ]).median("foo"),
+            ).toBe(2);
 
-            expect(collect([
-                { foo: 0 },
-                { foo: 5 },
-                { foo: 3 },
-            ]).median("foo")).toBe(3);
+            expect(collect([{ foo: 0 }, { foo: 3 }]).median("foo")).toBe(1.5);
+
+            expect(
+                collect([{ foo: 0 }, { foo: 5 }, { foo: 3 }]).median("foo"),
+            ).toBe(3);
 
             expect(collect().median()).toBeNull();
         });
