@@ -162,7 +162,7 @@ import { isArray, isFunction, isObject, isUndefined } from "@laravel-js/utils";
  * Add an element to data.
  *
  * Note: This function does not accept readonly arrays as they cannot be mutated.
- * 
+ *
  * TODO: AddToObject should be converted to match the way the "add" functions work
  *
  * @param data - The data to add to
@@ -176,7 +176,11 @@ import { isArray, isFunction, isObject, isUndefined } from "@laravel-js/utils";
  * dataAdd({a: 1}, 'b', 2); -> {a: 1, b: 2}
  */
 // Overload: object
-export function dataAdd<TValue extends Record<PropertyKey, unknown>, TKey extends PropertyKey, TNewValue>(
+export function dataAdd<
+    TValue extends Record<PropertyKey, unknown>,
+    TKey extends PropertyKey,
+    TNewValue,
+>(
     data: TValue,
     key: TKey,
     value: TNewValue,
@@ -506,7 +510,7 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Union multiple objects or arrays items into one. Can only union items of the same type.
- * 
+ *
  * @param items - the data items to union
  * @return A new object or array containing all values
  */
@@ -625,8 +629,8 @@ export function dataFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Flip the keys and values of an object or array, or array of objects recursively 
- * 
+ * Flip the keys and values of an object or array, or array of objects recursively
+ *
  * @param data - The data of items to flip
  * @return - the data items flipped
  */
@@ -1211,9 +1215,9 @@ export function dataRandom<TValue, TKey extends PropertyKey = PropertyKey>(
     return arrRandom(arrWrap(data), number, preserveKeys);
 }
 
-/** 
+/**
  * Search for a value in data and return its key.
- * 
+ *
  * @param items - The data items to search
  * @param value - The value or callback to search for
  * @param strict - Whether to use strict comparison
@@ -1247,9 +1251,9 @@ export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
     return false;
 }
 
-/** 
+/**
  * Get the item before a specified value in data.
- * 
+ *
  * @param items - The data items to search
  * @param value - The value or callback to search for
  * @param strict - Whether to use strict comparison
@@ -1288,7 +1292,7 @@ export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Get the item after a specified value in data.
- * 
+ *
  * @param items - The data items to search
  * @param value - The value or callback to search for
  * @param strict - Whether to use strict comparison
@@ -1407,7 +1411,10 @@ export function dataPush<TValue, TKey extends PropertyKey, TNewValues>(
     ...values: TNewValues[]
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objPush(data, key as string, ...values) as DataItems<TValue, TKey>;
+        return objPush(data, key as string, ...values) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrPush(arrWrap(data), key as number, ...values) as DataItems<
@@ -1585,10 +1592,7 @@ export function dataSortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
 export function dataSortRecursive<
     TValue,
     TKey extends PropertyKey = PropertyKey,
->(
-    data: DataItems<TValue, TKey>,
-    descending = false,
-): DataItems<TValue, TKey> {
+>(data: DataItems<TValue, TKey>, descending = false): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objSortRecursive(
             data as Record<TKey, TValue>,
@@ -1596,10 +1600,7 @@ export function dataSortRecursive<
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrSortRecursive(
-        arrWrap(data),
-        descending,
-    ) as DataItems<TValue>;
+    return arrSortRecursive(arrWrap(data), descending) as DataItems<TValue>;
 }
 
 /**
@@ -1618,7 +1619,10 @@ export function dataSortRecursiveDesc<
     TKey extends PropertyKey = PropertyKey,
 >(data: DataItems<TValue, TKey>): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objSortRecursiveDesc(data as Record<TKey, TValue>) as DataItems<TValue, TKey>;
+        return objSortRecursiveDesc(data as Record<TKey, TValue>) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrSortRecursiveDesc(arrWrap(data)) as DataItems<TValue, TKey>;
@@ -1836,7 +1840,7 @@ export function dataReject<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Reverse the data items.
- * 
+ *
  * @param data - The data to reverse
  * @returns Reversed data
  */
@@ -2219,7 +2223,10 @@ export function dataDiff<TValue, TKey extends PropertyKey = PropertyKey>(
 export function dataPluck<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
     value: string | ((item: TValue, key: TKey) => TValue),
-    key: PropertyKey | ((item: TValue, key: TKey) => string | number) | null = null,
+    key:
+        | PropertyKey
+        | ((item: TValue, key: TKey) => string | number)
+        | null = null,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objPluck(

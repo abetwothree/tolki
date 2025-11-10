@@ -1,5 +1,5 @@
 import * as Obj from "@laravel-js/obj";
-import { describe, expect, it, assertType } from "vitest";
+import { assertType, describe, expect, it } from "vitest";
 
 describe("Obj", () => {
     describe("accessible", () => {

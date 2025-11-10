@@ -4,5 +4,5 @@
 export type AddToObject<
     T extends Record<PropertyKey, unknown>,
     K extends PropertyKey,
-    V
+    V,
 > = T & Record<K, V>;

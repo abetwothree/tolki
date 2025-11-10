@@ -26,8 +26,9 @@ type IsMutableArray<T> = T extends readonly unknown[]
  * Helper type to add a value to an array type.
  * Excludes readonly arrays as they cannot be mutated.
  */
-export type AddToArray<T extends unknown[], V> = IsMutableArray<T> extends true
-    ? T extends Array<infer U>
-        ? Array<U | V>
-        : never
-    : never;
+export type AddToArray<T extends unknown[], V> =
+    IsMutableArray<T> extends true
+        ? T extends Array<infer U>
+            ? Array<U | V>
+            : never
+        : never;

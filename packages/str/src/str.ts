@@ -2544,7 +2544,7 @@ export class Str {
      * Uppercase the first letter of each word in a string.
      *
      * TODO: implement separators parameter
-     * 
+     *
      * @example
      *
      * Str.ucwords('hello world'); -> 'Hello World'

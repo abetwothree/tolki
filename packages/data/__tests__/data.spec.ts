@@ -7,7 +7,7 @@ describe("Data", () => {
             const result = Data.dataAdd({ a: 1 }, "b", 2);
             expect(result).toEqual({ a: 1, b: 2 });
 
-            assertType<{ a: number; b: number; }>(result);
+            assertType<{ a: number; b: number }>(result);
         });
 
         it("is array", () => {
@@ -24,7 +24,7 @@ describe("Data", () => {
 
         it("rejects readonly arrays at compile time", () => {
             const readonlyArray: readonly number[] = [1, 2, 3];
-            
+
             // This should cause a TypeScript error because readonly arrays
             // cannot be passed to dataAdd (they cannot be mutated)
             // @ts-expect-error - readonly arrays should not be accepted
@@ -339,11 +339,11 @@ describe("Data", () => {
         });
 
         it("is array", () => {
-            const result = Data.dataUndot({ "0": "a", "1.0": "b", "1.1.0": "c" }, true);
-            expect(result).toEqual([
-                "a",
-                ["b", ["c"]],
-            ]);
+            const result = Data.dataUndot(
+                { "0": "a", "1.0": "b", "1.1.0": "c" },
+                true,
+            );
+            expect(result).toEqual(["a", ["b", ["c"]]]);
         });
     });
 
@@ -366,7 +366,10 @@ describe("Data", () => {
 
     describe("dataExcept", () => {
         it("is object", () => {
-            const result = Data.dataExcept({ name: "John", age: 30, city: "NYC" }, "age");
+            const result = Data.dataExcept(
+                { name: "John", age: 30, city: "NYC" },
+                "age",
+            );
             expect(result).toEqual({
                 name: "John",
                 city: "NYC",
@@ -408,10 +411,13 @@ describe("Data", () => {
 
     describe("dataFlatten", () => {
         it("is object", () => {
-            const result = Data.dataFlatten({
-                users: { john: { name: "John" }, jane: { name: "Jane" } },
-                posts: { "1": { title: "Hello" } },
-            }, 1);
+            const result = Data.dataFlatten(
+                {
+                    users: { john: { name: "John" }, jane: { name: "Jane" } },
+                    posts: { "1": { title: "Hello" } },
+                },
+                1,
+            );
             expect(result).toEqual({
                 "users.john": { name: "John" },
                 "users.jane": { name: "Jane" },
@@ -443,7 +449,10 @@ describe("Data", () => {
 
     describe("dataFloat", () => {
         it("is object", () => {
-            const result = Data.dataFloat({ price: 19.99, discount: 0.1 }, "price");
+            const result = Data.dataFloat(
+                { price: 19.99, discount: 0.1 },
+                "price",
+            );
             expect(result).toBe(19.99);
         });
 
@@ -455,12 +464,18 @@ describe("Data", () => {
 
     describe("dataForget", () => {
         it("is object", () => {
-            const result = Data.dataForget({ name: "John", age: 30, city: "NYC" }, "age");
+            const result = Data.dataForget(
+                { name: "John", age: 30, city: "NYC" },
+                "age",
+            );
             expect(result).toEqual({ name: "John", city: "NYC" });
         });
 
         it("is array", () => {
-            const result = Data.dataForget(["products", ["desk", [100]]], "1.1");
+            const result = Data.dataForget(
+                ["products", ["desk", [100]]],
+                "1.1",
+            );
             expect(result).toEqual(["products", ["desk"]]);
         });
     });
@@ -479,7 +494,7 @@ describe("Data", () => {
 
     describe("dataGet", () => {
         it("is object", () => {
-            const result = Data.dataGet({ a: 1, b: 2 }, "c", "default")
+            const result = Data.dataGet({ a: 1, b: 2 }, "c", "default");
             expect(result).toBe("default");
         });
 
@@ -525,15 +540,20 @@ describe("Data", () => {
         });
     });
 
-
     describe("dataEvery", () => {
         it("is object", () => {
-            const result = Data.dataEvery({ a: 2, b: 4 }, (value) => value % 2 === 0);
+            const result = Data.dataEvery(
+                { a: 2, b: 4 },
+                (value) => value % 2 === 0,
+            );
             expect(result).toBe(true);
         });
 
         it("is array", () => {
-            const result = Data.dataEvery([2, 4, 6], (value) => value % 2 === 0);
+            const result = Data.dataEvery(
+                [2, 4, 6],
+                (value) => value % 2 === 0,
+            );
             expect(result).toBe(true);
             expect(Data.dataEvery([1, 2, 3], (value) => value % 2 === 0)).toBe(
                 false,
@@ -557,7 +577,7 @@ describe("Data", () => {
         it("is object", () => {
             const result = Data.dataInteger({ count: 42 }, "count", 0);
             expect(result).toBe(42);
-            
+
             expect(Data.dataInteger({}, "missing", 5)).toBe(5);
         });
 
@@ -569,7 +589,11 @@ describe("Data", () => {
 
     describe("dataJoin", () => {
         it("is object", () => {
-            const result = Data.dataJoin({ a: "hello", b: "world", c: "test" }, ", ",  " and ");
+            const result = Data.dataJoin(
+                { a: "hello", b: "world", c: "test" },
+                ", ",
+                " and ",
+            );
             expect(result).toBe("hello, world and test");
 
             expect(Data.dataJoin(["a", "b", "c"], ", ", " and ")).toBe(
@@ -648,20 +672,26 @@ describe("Data", () => {
 
     describe("dataSelect", () => {
         it("is object", () => {
-            const result = Data.dataSelect({
-                user1: { name: "John", age: 30, city: "NYC" },
-                user2: { name: "Jane", age: 25, city: "LA" },
-            }, ["name", "city"]);
+            const result = Data.dataSelect(
+                {
+                    user1: { name: "John", age: 30, city: "NYC" },
+                    user2: { name: "Jane", age: 25, city: "LA" },
+                },
+                ["name", "city"],
+            );
             expect(result).toEqual({
                 user1: { name: "John", city: "NYC" },
                 user2: { name: "Jane", city: "LA" },
             });
         });
         it("is array", () => {
-            const result = Data.dataSelect([
-                { a: 1, b: 2, c: 3 },
-                { a: 4, b: 5, c: 6 },
-            ], ["a", "b"]);
+            const result = Data.dataSelect(
+                [
+                    { a: 1, b: 2, c: 3 },
+                    { a: 4, b: 5, c: 6 },
+                ],
+                ["a", "b"],
+            );
             expect(result).toEqual([
                 { a: 1, b: 2 },
                 { a: 4, b: 5 },
@@ -698,7 +728,10 @@ describe("Data", () => {
                 user1: { name: "John", age: 25 },
                 user2: { name: "Jane", age: 30 },
             };
-            const result = Data.dataMapSpread(obj, (name, age) => `${name} is ${age}`);
+            const result = Data.dataMapSpread(
+                obj,
+                (name, age) => `${name} is ${age}`,
+            );
             expect(result).toEqual({
                 user1: "John is 25",
                 user2: "Jane is 30",
@@ -706,9 +739,9 @@ describe("Data", () => {
         });
         it("is array", () => {
             const data = [
-                    [1, 2],
-                    [3, 4],
-                ];
+                [1, 2],
+                [3, 4],
+            ];
             const result = Data.dataMapSpread(data, (a, b) => a + b);
             expect(result).toEqual([3, 7]);
         });
@@ -910,11 +943,22 @@ describe("Data", () => {
         it("is object", () => {
             const obj = { items: ["a", "b"] };
             const result = Data.dataPush(obj, "items", "c", "d");
-            expect(result).toEqual({ items: ["a", "b", "c", "d"] })
+            expect(result).toEqual({ items: ["a", "b", "c", "d"] });
         });
         it("is array", () => {
-            const result = Data.dataPush([["a", "b"], ["c", "d"]], 1, ["x", "y"]);
-            expect(result).toEqual([["a", "b"], ["c", "d"], ["x", "y"]]);
+            const result = Data.dataPush(
+                [
+                    ["a", "b"],
+                    ["c", "d"],
+                ],
+                1,
+                ["x", "y"],
+            );
+            expect(result).toEqual([
+                ["a", "b"],
+                ["c", "d"],
+                ["x", "y"],
+            ]);
         });
     });
 
@@ -925,7 +969,7 @@ describe("Data", () => {
                 a: 1,
                 d: "house",
                 b: 2,
-            })
+            });
         });
         it("is array", () => {
             const expected = [
@@ -936,9 +980,9 @@ describe("Data", () => {
                 5,
                 6,
             ];
-    
+
             const data = [4, 5, 6];
-    
+
             let result: unknown[] = Data.dataUnshift(data, ["a", "b", "c"]);
             result = Data.dataUnshift(result, ["Jonny", "from", "Laroe"]);
             result = Data.dataUnshift(result, "Jonny from Laroe");
@@ -966,7 +1010,13 @@ describe("Data", () => {
             expect(Object.values(shuffled).length).toBe(5);
             expect(Object.keys(shuffled).length).toBe(5);
             expect(Object.values(shuffled).sort()).toEqual([1, 2, 3, 4, 5]);
-            expect(Object.keys(shuffled).sort()).toEqual(["a", "b", "c", "d", "e"]);
+            expect(Object.keys(shuffled).sort()).toEqual([
+                "a",
+                "b",
+                "c",
+                "d",
+                "e",
+            ]);
         });
         it("is array", () => {
             const result = Data.dataShuffle([1, 2, 3, 4]);
@@ -977,7 +1027,11 @@ describe("Data", () => {
 
     describe("dataSlice", () => {
         it("is object", () => {
-            const result = Data.dataSlice({ a: 1, b: 2, c: 3, d: 4, e: 5 }, 1, -1);
+            const result = Data.dataSlice(
+                { a: 1, b: 2, c: 3, d: 4, e: 5 },
+                1,
+                -1,
+            );
             expect(result).toEqual({ b: 2, c: 3, d: 4 });
         });
         it("is array", () => {
@@ -1030,28 +1084,34 @@ describe("Data", () => {
             a: { f: 4, e: 3, x: 100, y: 100 },
         };
 
-        const arr = [{
-            b: [3, 1, 2],
-            a: { d: 2, c: 1 },
-        }];
+        const arr = [
+            {
+                b: [3, 1, 2],
+                a: { d: 2, c: 1 },
+            },
+        ];
 
         describe("dataSortRecursive", () => {
             it("is object", () => {
                 const result = Data.dataSortRecursive(obj);
                 expect(Object.keys(result)).toEqual(["a", "b"]);
-                expect(Object.keys(result["a"])).toEqual(
-                    ["e", "f", "x", "y"],
-                );
-                expect(Object.keys(result["b"])).toEqual(
-                    ["c", "d", "x", "y", "z"],
-                );
+                expect(Object.keys(result["a"])).toEqual(["e", "f", "x", "y"]);
+                expect(Object.keys(result["b"])).toEqual([
+                    "c",
+                    "d",
+                    "x",
+                    "y",
+                    "z",
+                ]);
             });
             it("is array", () => {
                 const result = Data.dataSortRecursive(arr);
-                expect(result).toEqual([{
-                    a: { c: 1, d: 2 },
-                    b: [1, 2, 3],
-                }]);
+                expect(result).toEqual([
+                    {
+                        a: { c: 1, d: 2 },
+                        b: [1, 2, 3],
+                    },
+                ]);
             });
         });
 
@@ -1059,26 +1119,33 @@ describe("Data", () => {
             it("is object", () => {
                 const result = Data.dataSortRecursiveDesc(obj);
                 expect(Object.keys(result)).toEqual(["b", "a"]);
-                expect(Object.keys(result["a"])).toEqual(
-                    ["y", "x", "f", "e"],
-                );
-                expect(Object.keys(result["b"])).toEqual(
-                    ["z", "y", "x", "d", "c"],
-                );
+                expect(Object.keys(result["a"])).toEqual(["y", "x", "f", "e"]);
+                expect(Object.keys(result["b"])).toEqual([
+                    "z",
+                    "y",
+                    "x",
+                    "d",
+                    "c",
+                ]);
             });
             it("is array", () => {
                 const result = Data.dataSortRecursiveDesc(arr);
-                expect(result).toEqual([{
-                    b: [3, 2, 1],
-                    a: { d: 2, c: 1 },
-                }]);
+                expect(result).toEqual([
+                    {
+                        b: [3, 2, 1],
+                        a: { d: 2, c: 1 },
+                    },
+                ]);
             });
         });
     });
 
     describe("dataSplice", () => {
         it("is object", () => {
-            const result = Data.dataSplice({ a: 1, b: 2, c: 3, d: 4 }, 1, 2, { x: 99, y: 100 });
+            const result = Data.dataSplice({ a: 1, b: 2, c: 3, d: 4 }, 1, 2, {
+                x: 99,
+                y: 100,
+            });
             expect(result).toEqual({
                 value: [1, 99, 100, 4],
                 removed: [2, 3],
@@ -1126,16 +1193,16 @@ describe("Data", () => {
         it("is object", () => {
             expect(
                 Data.dataToCssStyles({
-                "font-weight: bold": true,
-                "color: red": false,
-                "margin-top: 4px": true,
-            }),
+                    "font-weight: bold": true,
+                    "color: red": false,
+                    "margin-top: 4px": true,
+                }),
             ).toBe("font-weight: bold; margin-top: 4px;");
         });
         it("is array", () => {
-            expect(Data.dataToCssStyles(["font-weight: bold", "margin-top: 4px"])).toBe(
-                "font-weight: bold; margin-top: 4px;",
-            );
+            expect(
+                Data.dataToCssStyles(["font-weight: bold", "margin-top: 4px"]),
+            ).toBe("font-weight: bold; margin-top: 4px;");
         });
     });
 
@@ -1166,10 +1233,12 @@ describe("Data", () => {
             expect(result).toEqual(["d", "e", "c"]);
         });
 
-        it('throws when values do not match type', () => {
+        it("throws when values do not match type", () => {
             expect(() => {
                 Data.dataReplace({ a: 1, b: 2 }, [3, 4]);
-            }).toThrowError("Data to replace and items must be of the same type (both array or both object).");
+            }).toThrowError(
+                "Data to replace and items must be of the same type (both array or both object).",
+            );
         });
     });
 
@@ -1199,10 +1268,12 @@ describe("Data", () => {
             expect(result).toEqual(["d", "e", ["f", "g"]]);
         });
 
-        it('throws when values do not match type', () => {
+        it("throws when values do not match type", () => {
             expect(() => {
                 Data.dataReplaceRecursive({ a: 1, b: 2 }, [3, 4]);
-            }).toThrowError("Data to replace and items must be of the same type (both array or both object).");
+            }).toThrowError(
+                "Data to replace and items must be of the same type (both array or both object).",
+            );
         });
     });
 
@@ -1213,9 +1284,9 @@ describe("Data", () => {
             ).toEqual({ a: 1 });
         });
         it("is array", () => {
-            expect(Data.dataReject([1, 2, 3, 4], (value) => value > 2)).toEqual([
-                1, 2,
-            ]);
+            expect(Data.dataReject([1, 2, 3, 4], (value) => value > 2)).toEqual(
+                [1, 2],
+            );
         });
     });
 
@@ -1225,7 +1296,12 @@ describe("Data", () => {
             expect(Object.keys(result)).toEqual(["c", "b", "a"]);
         });
         it("is array", () => {
-            const result = Data.dataReverse(["house", "roof", ["doors", "table"], "floor"]);
+            const result = Data.dataReverse([
+                "house",
+                "roof",
+                ["doors", "table"],
+                "floor",
+            ]);
             expect(result).toEqual([
                 "floor",
                 ["doors", "table"],
@@ -1274,7 +1350,9 @@ describe("Data", () => {
             });
         });
         it("is array", () => {
-            expect(Data.dataWhereNotNull([1, null, 2, null, 3])).toEqual([1, 2, 3]);
+            expect(Data.dataWhereNotNull([1, null, 2, null, 3])).toEqual([
+                1, 2, 3,
+            ]);
         });
     });
 
@@ -1289,7 +1367,11 @@ describe("Data", () => {
 
     describe("dataKeys", () => {
         it("is object", () => {
-            expect(Data.dataKeys({ a: 1, b: 2, c: 3 })).toEqual(["a", "b", "c"]);
+            expect(Data.dataKeys({ a: 1, b: 2, c: 3 })).toEqual([
+                "a",
+                "b",
+                "c",
+            ]);
         });
         it("is array", () => {
             expect(Data.dataKeys([1, 2, 3])).toEqual([0, 1, 2]);
@@ -1299,13 +1381,16 @@ describe("Data", () => {
     describe("dataFilter", () => {
         it("is object", () => {
             expect(
-                Data.dataFilter({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2),
+                Data.dataFilter(
+                    { a: 1, b: 2, c: 3, d: 4 },
+                    (value) => value > 2,
+                ),
             ).toEqual({ c: 3, d: 4 });
         });
         it("is array", () => {
-            expect(Data.dataFilter([1, 2, 3, 4], (value) => value > 2)).toEqual([
-                3, 4,
-            ]);
+            expect(Data.dataFilter([1, 2, 3, 4], (value) => value > 2)).toEqual(
+                [3, 4],
+            );
         });
     });
 
@@ -1323,33 +1408,41 @@ describe("Data", () => {
     });
 
     describe("dataFirst", () => {
-         it("is object", () => {
+        it("is object", () => {
             expect(Data.dataFirst({ a: 1, b: 2, c: 3 })).toBe(1);
-            expect(Data.dataFirst({ a: 1, b: 2, c: 3 }, (value) => value > 1)).toBe(
-                2,
-            );
+            expect(
+                Data.dataFirst({ a: 1, b: 2, c: 3 }, (value) => value > 1),
+            ).toBe(2);
             expect(
                 Data.dataFirst({ a: 1, b: 2, c: 3 }, (value) => value > 3, 42),
             ).toBe(42);
 
             expect(
-                Data.dataFirst({ a: 1, b: 2, c: 3 }, (value) => value > 3, undefined),
+                Data.dataFirst(
+                    { a: 1, b: 2, c: 3 },
+                    (value) => value > 3,
+                    undefined,
+                ),
             ).toBeNull();
         });
         it("is array", () => {
             expect(Data.dataFirst([1, 2, 3])).toBe(1);
             expect(Data.dataFirst([1, 2, 3], (value) => value > 1)).toBe(2);
-            expect(Data.dataFirst([1, 2, 3], (value) => value > 3, 42)).toBe(42);
-            expect(Data.dataFirst([1, 2, 3], (value) => value > 3, undefined)).toBeNull();
+            expect(Data.dataFirst([1, 2, 3], (value) => value > 3, 42)).toBe(
+                42,
+            );
+            expect(
+                Data.dataFirst([1, 2, 3], (value) => value > 3, undefined),
+            ).toBeNull();
         });
     });
 
     describe("dataLast", () => {
         it("is object", () => {
             expect(Data.dataLast({ a: 1, b: 2, c: 3 })).toBe(3);
-            expect(Data.dataLast({ a: 1, b: 2, c: 3 }, (value) => value < 3)).toBe(
-                2,
-            );
+            expect(
+                Data.dataLast({ a: 1, b: 2, c: 3 }, (value) => value < 3),
+            ).toBe(2);
             expect(
                 Data.dataLast({ a: 1, b: 2, c: 3 }, (value) => value < 1, 42),
             ).toBe(42);
@@ -1375,8 +1468,12 @@ describe("Data", () => {
         it("is array", () => {
             expect(Data.dataContains([1, 2, 3], 2)).toBe(true);
             expect(Data.dataContains([1, 2, 3], 42)).toBe(false);
-            expect(Data.dataContains([1, 2, 3], (value) => value > 2)).toBe(true);
-            expect(Data.dataContains([1, 2, 3], (value) => value > 3)).toBe(false);
+            expect(Data.dataContains([1, 2, 3], (value) => value > 2)).toBe(
+                true,
+            );
+            expect(Data.dataContains([1, 2, 3], (value) => value > 3)).toBe(
+                false,
+            );
         });
     });
 
@@ -1448,10 +1545,12 @@ describe("Data", () => {
             const result = Data.dataIntersect(data1, data2);
             expect(result).toEqual([3, 4]);
         });
-        it('throws when values do not match type', () => {
+        it("throws when values do not match type", () => {
             expect(() => {
                 Data.dataIntersect({ a: 1, b: 2 }, [2]);
-            }).toThrowError("Data to intersect must be of the same type (both array or both object).");
+            }).toThrowError(
+                "Data to intersect must be of the same type (both array or both object).",
+            );
         });
     });
 
@@ -1468,10 +1567,12 @@ describe("Data", () => {
             const result = Data.dataIntersectByKeys(data1, data2);
             expect(result).toEqual([1, 3]);
         });
-        it('throws when values do not match type', () => {
+        it("throws when values do not match type", () => {
             expect(() => {
                 Data.dataIntersectByKeys({ a: 1, b: 2 }, [2, 3]);
-            }).toThrowError("Data to intersect by keys must be of the same type (both array or both object).");
+            }).toThrowError(
+                "Data to intersect by keys must be of the same type (both array or both object).",
+            );
         });
     });
 });
