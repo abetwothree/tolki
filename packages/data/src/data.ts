@@ -2018,8 +2018,8 @@ export function dataFilter<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @example
  *
- * Data.map([1, 2, 3], (value) => value * 2); -> [2, 4, 6]
- * Data.map({a: 1, b: 2}, (value) => value * 2); -> {a: 2, b: 4}
+ * dataMap([1, 2, 3], (value) => value * 2); -> [2, 4, 6]
+ * dataMap({a: 1, b: 2}, (value) => value * 2); -> {a: 2, b: 4}
  */
 export function dataMap<
     TMapValue,
@@ -2052,8 +2052,8 @@ export function dataMap<
  *
  * @example
  *
- * Data.first([1, 2, 3, 4], (value) => value > 2); -> 3
- * Data.first({a: 1, b: 2, c: 3}, (value) => value > 1); -> 2
+ * dataFirst([1, 2, 3, 4], (value) => value > 2); -> 3
+ * dataFirst({a: 1, b: 2, c: 3}, (value) => value > 1); -> 2
  */
 export function dataFirst<
     TValue,
