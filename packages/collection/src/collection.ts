@@ -657,8 +657,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get the items in the collection whose keys and values are not present in the given items.
      *
-     * TODO: validate parity with Laravel's implementation
-     *
      * @param items - The items to diff against
      * @returns A new collection with the difference
      *
