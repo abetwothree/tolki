@@ -667,6 +667,26 @@ describe("Collection", () => {
     });
 
     describe("diff", () => {
+        it("Laravel Tests", () => {
+            const c = collect({ id: 1, first_word: "Hello" });
+            expect(
+                c
+                    .diff(collect({ first_word: "Hello", last_word: "World" }))
+                    .all(),
+            ).toEqual({ id: 1 });
+
+            const d = collect(["en_GB", "fr", "HR"]);
+            expect(
+                d
+                    .diff(collect(["en_gb", "hr"]))
+                    .values()
+                    .toArray(),
+            ).toEqual(["en_GB", "fr", "HR"]);
+
+            const e = collect({ id: 1, first_word: "Hello" });
+            expect(e.diff(null).all()).toEqual({ id: 1, first_word: "Hello" });
+        });
+
         it("returns items not in given array collection", () => {
             const collection = collect([1, 2, 3, 4]);
             const diff = collection.diff([2, 4]);

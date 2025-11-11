@@ -2197,7 +2197,7 @@ export function dataDiff<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
     other: DataItems<TValue, TKey>,
 ): DataItems<TValue, TKey> {
-    if (isObject(data) && isObject(other)) {
+    if (isObject(data)) {
         return objDiff(
             data as Record<TKey, TValue>,
             other as Record<TKey, TValue>,

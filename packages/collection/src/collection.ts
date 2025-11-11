@@ -4137,7 +4137,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     toArray() {
         return this.map((value) =>
-            Object.values(this.getRawItems(value)),
+            toArrayable(value) ? value.toArray() : value,
         ).all();
     }
 
