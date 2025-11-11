@@ -626,6 +626,33 @@ describe("Collection", () => {
         });
     });
 
+    describe("crossJoin", () => {
+        it("Laravel Tests", () => {
+            expect(collect([1, 2]).crossJoin(['a', 'b']).all()).toEqual([[1, 'a'], [1, 'b'], [2, 'a'], [2, 'b']]);
+
+            expect(collect([1, 2]).crossJoin(collect(['a', 'b'])).all()).toEqual([
+                [1, 'a'],
+                [1, 'b'],
+                [2, 'a'],
+                [2, 'b']
+            ]);
+
+            expect(collect([1, 2]).crossJoin(
+                collect(['a', 'b']),
+                collect(['I', 'II']),
+            ).all()).toEqual([
+                [1, 'a', 'I'],
+                [1, 'a', 'II'],
+                [1, 'b', 'I'],
+                [1, 'b', 'II'],
+                [2, 'a', 'I'],
+                [2, 'a', 'II'],
+                [2, 'b', 'I'],
+                [2, 'b', 'II']
+            ]);
+        });
+    });
+
     describe("diff", () => {
         it("returns items not in given array collection", () => {
             const collection = collect([1, 2, 3, 4]);
