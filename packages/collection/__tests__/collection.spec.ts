@@ -587,6 +587,45 @@ describe("Collection", () => {
         });
     });
 
+    describe("doesntContainStrict", () => {
+        it("Laravel Tests", () => {
+            const c = collect([1, 3, 5, '02']);
+            expect(c.doesntContainStrict(1)).toBe(false);
+            expect(c.doesntContainStrict('1')).toBe(true);
+            expect(c.doesntContainStrict(2)).toBe(true);
+            expect(c.doesntContainStrict('2')).toBe(true);
+            expect(c.doesntContainStrict('02')).toBe(false);
+            expect(c.doesntContainStrict((item) => item < 5)).toBe(false);
+            expect(c.doesntContainStrict((item) => item > 5)).toBe(true);
+
+            const d = collect([0]);
+            expect(d.doesntContainStrict(0)).toBe(false);
+            expect(d.doesntContainStrict('0')).toBe(true);
+            expect(d.doesntContainStrict(false)).toBe(true);
+            expect(d.doesntContainStrict(null)).toBe(true);
+
+            const e = collect([1, null]);
+            expect(e.doesntContainStrict(null)).toBe(false);
+            expect(e.doesntContainStrict(0)).toBe(true);
+            expect(e.doesntContainStrict(false)).toBe(true);
+
+            const f = collect([{ 'v': 1 }, { 'v': 3 }, { 'v': '04' }, { 'v': 5 }]);
+            expect(f.doesntContainStrict('v', 1)).toBe(false);
+            expect(f.doesntContainStrict('v', 2)).toBe(true);
+            expect(f.doesntContainStrict('v', '1')).toBe(true);
+            expect(f.doesntContainStrict('v', 4)).toBe(true);
+            expect(f.doesntContainStrict('v', '04')).toBe(false);
+            expect(f.doesntContainStrict('v', '4')).toBe(true);
+
+            const g = collect(['date', 'class', { foo: 50 }, '']);
+            expect(g.doesntContainStrict('date')).toBe(false);
+            expect(g.doesntContainStrict('class')).toBe(false);
+            expect(g.doesntContainStrict('foo')).toBe(true);
+            expect(g.doesntContainStrict(null)).toBe(true);
+            expect(g.doesntContainStrict('')).toBe(false);
+        });
+    });
+
     describe("diff", () => {
         it("returns items not in given array collection", () => {
             const collection = collect([1, 2, 3, 4]);
