@@ -868,6 +868,30 @@ describe("Collection", () => {
         });
     });
 
+    describe("duplicatesStrict", () => {
+        it("Laravel Tests", () => {
+            // Laravel: [2 => 1, 5 => 'laravel', 7 => null]
+            const c = collect([1, 2, 1, 'laravel', null, 'laravel', 'php', null]).duplicatesStrict().all();
+            expect(c).toEqual({2: 1, 5: 'laravel', 7: null});
+
+            // does strict comparison
+            // Laravel: []
+            const d = collect([2, '2', [], null]).duplicatesStrict().all();
+            expect(d).toEqual({});
+
+            // works with mix of primitives
+            // Laravel: [3 => ['laravel'], 5 => '2']
+            const e = collect([1, '2', ['laravel'], ['laravel'], null, '2']).duplicatesStrict().all();
+            expect(e).toEqual({3: ['laravel'], 5: '2'});
+
+            // works with mix of primitives, objects, and numbers
+            // Laravel: [2 => $expected, 5 => '2']
+            const expected = collect(['laravel']);
+            const duplicates = collect([collect(['laravel']), expected, expected, [], '2', '2']).duplicatesStrict().all();
+            expect(duplicates).toEqual({2: expected, 5: '2'});
+        });
+    });
+
     describe("filter", () => {
         it("filters array with callback", () => {
             const collection = collect([1, 2, 3, 4]);

@@ -167,6 +167,7 @@ import {
     looseEqual,
     normalizeToArray,
     resolveDefault,
+    strictEqual,
     toArrayable,
     toJsonable,
     toJsonSerializable,
@@ -831,7 +832,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     duplicateComparator(strict: boolean) {
         if (strict) {
-            return (a: TValue, b: TValue) => a === b;
+            return (a: TValue, b: TValue) => strictEqual(a, b);
         }
 
         return (a: TValue, b: TValue) => looseEqual(a, b);
@@ -2832,17 +2833,22 @@ export class Collection<TValue, TKey extends PropertyKey> {
         );
 
         if (strict) {
-            // For strict mode, we can use Set for better performance
-            const seen = new Set<unknown>();
+            // For strict mode, use strictEqual for PHP-like strict comparison
+            // This does deep comparison for arrays/objects but strict type checking for primitives
+            const seen: unknown[] = [];
             
             return new Collection(
                 dataFilter(this.items, (value, key) => {
                     const result = callback(value, key as TKey);
-                    if (seen.has(result)) {
-                        return false;
+                    
+                    // Check if we've seen this result using strict comparison
+                    for (const seenValue of seen) {
+                        if (strictEqual(result, seenValue)) {
+                            return false;
+                        }
                     }
                     
-                    seen.add(result);
+                    seen.push(result);
                     return true;
                 }),
             );
