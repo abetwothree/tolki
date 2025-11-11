@@ -82,6 +82,7 @@ import {
     contains as objContains,
     crossJoin as objCrossJoin,
     diff as objDiff,
+    diffAssocUsing as objDiffAssocUsing,
     divide as objDivide,
     dot as objDot,
     every as objEvery,
@@ -2204,6 +2205,38 @@ export function dataDiff<TValue, TKey extends PropertyKey = PropertyKey>(
         ) as DataItems<TValue, TKey>;
     }
 
+    return arrDiff(arrWrap(data), arrWrap(other)) as DataItems<TValue>;
+}
+
+/**
+ * Diff data with the given other data using a callback for key comparison.
+ * For objects, compares keys using the callback and values using strict equality.
+ * For arrays, wraps them and falls back to arrDiff.
+ *
+ * @param data - The data to diff
+ * @param other - The data to diff against
+ * @param callback - Function to compare keys (returns true if keys match)
+ * @returns Diff result maintaining appropriate structure
+ *
+ * @example
+ *
+ * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
+ * dataDiffAssocUsing({a: 'green', b: 'brown'}, {A: 'green', c: 'blue'}, strcasecmp); -> {b: 'brown'}
+ */
+export function dataDiffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: DataItems<TValue, TKey>,
+    other: DataItems<TValue, TKey>,
+    callback: (keyA: TKey, keyB: TKey) => boolean,
+): DataItems<TValue, TKey> {
+    if (isObject(data)) {
+        return objDiffAssocUsing(
+            data as Record<TKey, TValue>,
+            other as Record<TKey, TValue>,
+            callback,
+        ) as DataItems<TValue, TKey>;
+    }
+
+    // For arrays, there's no meaningful key comparison, so fall back to regular diff
     return arrDiff(arrWrap(data), arrWrap(other)) as DataItems<TValue>;
 }
 

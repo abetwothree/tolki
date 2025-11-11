@@ -750,7 +750,10 @@ describe("Collection", () => {
 
             // Test case-sensitive key comparison
             const c3 = collect({ a: "green", b: "brown", c: "blue", 0: "red" });
-            const c4 = collect({ A: "green", 0: "yellow", 1: "red" });
+            const c4 = { A: "green", 0: "yellow", 1: "red" } as Record<
+                string,
+                string
+            >;
 
             // diffAssoc is case-sensitive for keys:
             // 'a' !== 'A', so 'a: green' is included
@@ -764,18 +767,19 @@ describe("Collection", () => {
                 0: "red",
             });
 
-            // TODO: diffAssocUsing test - requires fixing the implementation
-            // diffAssocUsing should use callback for KEY comparison (case-insensitive), not value comparison
+            // diffAssocUsing uses callback for KEY comparison (case-insensitive), values compared strictly
             // Expected: { b: "brown", c: "blue", 0: "red" }
             // 'a' matches 'A' case-insensitively with same value → excluded
-            // 'b' has no match → included
-            // 'c' has no match → included
-            // index 0 has different value ('red' vs 'yellow') → included
-            // expect(c3.diffAssocUsing(c4, strcasecmp).all()).toEqual({
-            //     b: "brown",
-            //     c: "blue",
-            //     0: "red"
-            // });
+            // 'b' has no case-insensitive match → included
+            // 'c' has no case-insensitive match → included
+            // index 0 exists in both BUT different value ('red' vs 'yellow') → included
+            const strcasecmpKeys = (a: unknown, b: unknown) =>
+                String(a).toLowerCase() === String(b).toLowerCase();
+            expect(c3.diffAssocUsing(c4, strcasecmpKeys).all()).toEqual({
+                b: "brown",
+                c: "blue",
+                0: "red",
+            });
         });
     });
 

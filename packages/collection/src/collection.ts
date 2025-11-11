@@ -12,6 +12,7 @@ import {
     dataCount,
     dataCrossJoin,
     dataDiff,
+    dataDiffAssocUsing,
     dataDivide,
     dataDot,
     dataEvery,
@@ -674,24 +675,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * Get the items in the collection whose keys and values are not present in the given items, using the callback.
-     *
-     * TODO: validate parity with Laravel's implementation
+     * The callback is used to compare keys (case-insensitively, for example), while values are compared strictly.
      *
      * @param items - The items to diff against
-     * @param callback - The callback function to determine equality
+     * @param callback - The callback function to compare keys (returns true if keys match)
      * @returns A new collection with the difference
      *
      * @example
      *
-     * new Collection({a: {id: 1}, b: {id: 2}, c: {id: 3}}).diffAssocUsing({b: {id: 2}}, (a, b) => a.id === b.id); -> new Collection({a: {id: 1}, c: {id: 3}})
-     * new Collection({a: {id: 1}, b: {id: 2}, c: {id: 3}}).diffAssocUsing({b: {id: 3}}, (a, b) => a.id === b.id); -> new Collection({a: {id: 1}, b: {id: 2}, c: {id: 3}})
-     * new Collection({a: {id: 1}, b: {id: 2}, c: {id: 3}}).diffAssocUsing({d: {id: 4}}, (a, b) => a.id === b.id); -> new Collection({a: {id: 1}, b: {id: 2}, c: {id: 3}})
+     * const strcasecmp = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+     * new Collection({a: 'green', b: 'brown', c: 'blue', 0: 'red'}).diffAssocUsing({A: 'green', 0: 'yellow', 1: 'red'}, strcasecmp); -> new Collection({b: 'brown', c: 'blue', 0: 'red'})
      */
     diffAssocUsing(
         items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
-        callback: (a: TValue, b: TValue) => boolean,
+        callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
-        return this.diffUsing(items, callback);
+        return new Collection(
+            dataDiffAssocUsing<TValue, TKey>(
+                this.items,
+                this.getRawItems(items),
+                callback,
+            ),
+        );
     }
 
     /**
