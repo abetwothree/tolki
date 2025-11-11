@@ -700,6 +700,35 @@ describe("Collection", () => {
         });
     });
 
+    describe("diffUsing", () => {
+        it("Laravel Tests", () => {
+            const d = collect(["en_GB", "fr", "HR"]);
+            
+            // Case-insensitive string comparison (like PHP's strcasecmp)
+            // Returns true if items are equal (should be excluded from diff)
+            const strcasecmp = (a: unknown, b: unknown): boolean => {
+                if (typeof a === 'string' && typeof b === 'string') {
+                    return a.toLowerCase() === b.toLowerCase();
+                }
+                return a === b;
+            };
+            
+            // Test case-insensitive diff: 'en_GB' matches 'en_gb', 'HR' matches 'hr', only 'fr' remains
+            expect(
+                d.diffUsing(collect(["en_gb", "hr"]), strcasecmp)
+                    .values()
+                    .toArray()
+            ).toEqual(["fr"]);
+
+            // Test diff against empty collection: all items should remain
+            expect(d.diffUsing(null, strcasecmp).values().toArray()).toEqual([
+                "en_GB",
+                "fr",
+                "HR",
+            ]);
+        });
+    });
+
     describe("filter", () => {
         it("filters array with callback", () => {
             const collection = collect<number>([1, 2, 3, 4]);
