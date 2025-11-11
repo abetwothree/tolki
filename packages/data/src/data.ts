@@ -83,6 +83,7 @@ import {
     crossJoin as objCrossJoin,
     diff as objDiff,
     diffAssocUsing as objDiffAssocUsing,
+    diffKeysUsing as objDiffKeysUsing,
     divide as objDivide,
     dot as objDot,
     every as objEvery,
@@ -2223,13 +2224,51 @@ export function dataDiff<TValue, TKey extends PropertyKey = PropertyKey>(
  * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataDiffAssocUsing({a: 'green', b: 'brown'}, {A: 'green', c: 'blue'}, strcasecmp); -> {b: 'brown'}
  */
-export function dataDiffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
+export function dataDiffAssocUsing<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(
     data: DataItems<TValue, TKey>,
     other: DataItems<TValue, TKey>,
     callback: (keyA: TKey, keyB: TKey) => boolean,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objDiffAssocUsing(
+            data as Record<TKey, TValue>,
+            other as Record<TKey, TValue>,
+            callback,
+        ) as DataItems<TValue, TKey>;
+    }
+
+    // For arrays, there's no meaningful key comparison, so fall back to regular diff
+    return arrDiff(arrWrap(data), arrWrap(other)) as DataItems<TValue>;
+}
+
+/**
+ * Diff data keys with the given other data using a callback for key comparison only.
+ * For objects, compares keys using the callback and ignores values completely.
+ * For arrays, falls back to regular diff since key comparison doesn't make sense for numeric indices.
+ *
+ * @param data - The data to diff
+ * @param other - The data to diff against
+ * @param callback - Function to compare keys (returns true if keys match)
+ * @returns Diff result maintaining appropriate structure
+ *
+ * @example
+ *
+ * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
+ * dataDiffKeysUsing({id: 1, first_word: 'Hello'}, {ID: 123, foo_bar: 'Hello'}, strcasecmp); -> {first_word: 'Hello'}
+ */
+export function dataDiffKeysUsing<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(
+    data: DataItems<TValue, TKey>,
+    other: DataItems<TValue, TKey>,
+    callback: (keyA: TKey, keyB: TKey) => boolean,
+): DataItems<TValue, TKey> {
+    if (isObject(data)) {
+        return objDiffKeysUsing(
             data as Record<TKey, TValue>,
             other as Record<TKey, TValue>,
             callback,

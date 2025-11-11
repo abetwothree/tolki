@@ -11,6 +11,9 @@ const strcasecmp = (a: unknown, b: unknown): boolean => {
     return a === b;
 };
 
+const strcasecmpKeys = (a: unknown, b: unknown) =>
+    String(a).toLowerCase() === String(b).toLowerCase();
+
 describe("Collection", () => {
     describe("assert constructor types", () => {
         it("arrays", () => {
@@ -770,8 +773,6 @@ describe("Collection", () => {
             // 'b' has no case-insensitive match → included
             // 'c' has no case-insensitive match → included
             // index 0 exists in both BUT different value ('red' vs 'yellow') → included
-            const strcasecmpKeys = (a: unknown, b: unknown) =>
-                String(a).toLowerCase() === String(b).toLowerCase();
             expect(c3.diffAssocUsing(c4, strcasecmpKeys).all()).toEqual({
                 b: "brown",
                 c: "blue",
@@ -788,22 +789,33 @@ describe("Collection", () => {
 
             const d1 = collect({ id: 1, first_word: "Hello" });
             const d2 = collect({ ID: 123, foo_bar: "Hello" });
-            expect(d1.diffKeys(d2).all()).toEqual({ id: 1, first_word: "Hello" });
-
-            // allow for case insensitive difference
-            // $this->assertEquals(['first_word' => 'Hello'], $c1->diffKeysUsing($c2, 'strcasecmp')->all());
-            // TODO when testing diffKeysUsing
-            // const strcasecmpKeys = (a: unknown, b: unknown) =>
-            //     String(a).toLowerCase() === String(b).toLowerCase();
-            // expect(d1.diffKeysUsing(d2, strcasecmpKeys).all()).toEqual({
-            //     first_word: "Hello",
-            // });
+            expect(d1.diffKeys(d2).all()).toEqual({
+                id: 1,
+                first_word: "Hello",
+            });
         });
 
         it("signature examples", () => {
-            expect(new Collection({a: 1, b: 2, c: 3}).diffKeys({b: 2}).all()).toEqual({a: 1, c: 3});
-            expect(new Collection([1, 3, 5, 7, 8]).diffKeys([1, 3, 5]).all()).toEqual([7, 8]);
-            expect(new Collection([1, 3, 5]).diffKeys([1, 3, 5, 7, 8]).all()).toEqual([]);
+            expect(
+                new Collection({ a: 1, b: 2, c: 3 }).diffKeys({ b: 2 }).all(),
+            ).toEqual({ a: 1, c: 3 });
+            expect(
+                new Collection([1, 3, 5, 7, 8]).diffKeys([1, 3, 5]).all(),
+            ).toEqual([7, 8]);
+            expect(
+                new Collection([1, 3, 5]).diffKeys([1, 3, 5, 7, 8]).all(),
+            ).toEqual([]);
+        });
+    });
+
+    describe("diffKeysUsing", () => {
+        it("Laravel Tests", () => {
+            const c1 = collect({ id: 1, first_word: "Hello" });
+            const c2 = { ID: 123, foo_bar: "Hello" } as Record<string, unknown>;
+
+            expect(c1.diffKeysUsing(c2, strcasecmpKeys).all()).toEqual({
+                first_word: "Hello",
+            });
         });
     });
 

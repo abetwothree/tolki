@@ -3089,6 +3089,54 @@ export function diffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
+ * Diff the data object with the given other object using a callback for key comparison only.
+ * Compares keys using the callback and ignores values completely.
+ *
+ * @param data - The original object
+ * @param other - The object to diff against
+ * @param callback - Function to compare keys (returns true if keys match)
+ * @returns A new object containing key-value pairs whose keys are not present in other
+ *
+ * @example
+ *
+ * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
+ * diffKeysUsing({id: 1, first_word: 'Hello'}, {ID: 123, foo_bar: 'Hello'}, strcasecmp); -> {first_word: 'Hello'}
+ * diffKeysUsing({a: 1, b: 2}, {A: 999}, strcasecmp); -> {b: 2}
+ */
+export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    other: Record<TKey, TValue> | unknown,
+    callback: (keyA: TKey, keyB: TKey) => boolean,
+): Record<TKey, TValue> {
+    if (!accessible(data)) {
+        return {} as Record<TKey, TValue>;
+    }
+
+    if (!accessible(other)) {
+        return { ...(data as Record<TKey, TValue>) };
+    }
+
+    const obj = data as Record<TKey, TValue>;
+    const otherObj = other as Record<TKey, TValue>;
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+    const otherKeys = Object.keys(otherObj) as TKey[];
+
+    for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
+        // Find if there's a matching key in other object using callback
+        const matchingKey = otherKeys.find((otherKey) =>
+            callback(key, otherKey),
+        );
+
+        // Include if: no matching key found (values are ignored)
+        if (matchingKey === undefined) {
+            result[key] = value;
+        }
+    }
+
+    return result;
+}
+
+/**
  * Intersect the data object with the given other object
  *
  * @param data - The original object

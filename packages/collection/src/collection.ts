@@ -13,6 +13,7 @@ import {
     dataCrossJoin,
     dataDiff,
     dataDiffAssocUsing,
+    dataDiffKeysUsing,
     dataDivide,
     dataDot,
     dataEvery,
@@ -728,6 +729,32 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return new Collection(results);
+    }
+
+    /**
+     * Get the items in the collection whose keys are not present in the given items, using the callback.
+     * The callback is used to compare keys only (ignoring values).
+     *
+     * @param items - The items to diff against
+     * @param callback - The callback function to compare keys (returns true if keys match)
+     * @returns A new collection with the difference
+     *
+     * @example
+     *
+     * const strcasecmp = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+     * new Collection({id: 1, first_word: 'Hello'}).diffKeysUsing({ID: 123, foo_bar: 'Hello'}, strcasecmp); -> new Collection({first_word: 'Hello'})
+     */
+    diffKeysUsing(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+        callback: (keyA: TKey, keyB: TKey) => boolean,
+    ) {
+        return new Collection(
+            dataDiffKeysUsing<TValue, TKey>(
+                this.items,
+                this.getRawItems(items),
+                callback,
+            ),
+        );
     }
 
     /**
