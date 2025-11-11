@@ -653,6 +653,7 @@ export function getAccessibleValues<T>(data: ReadonlyArray<T> | unknown): T[] {
 /**
  * PHP-like loose equality comparison.
  * Mimics PHP's == operator behavior where null, false, 0, '', and [] are considered loosely equal.
+ * Also handles deep comparison for arrays and objects.
  *
  * @param a - First value to compare
  * @param b - Second value to compare
@@ -665,6 +666,7 @@ export function getAccessibleValues<T>(data: ReadonlyArray<T> | unknown): T[] {
  * looseEqual(null, ''); -> true
  * looseEqual(0, false); -> true
  * looseEqual(1, '1'); -> true
+ * looseEqual(['a'], ['a']); -> true
  */
 export function looseEqual(a: unknown, b: unknown): boolean {
     // Use JavaScript's loose equality first
@@ -688,6 +690,55 @@ export function looseEqual(a: unknown, b: unknown): boolean {
         (Array.isArray(b) && b.length === 0);
 
     if (isFalsyA && isFalsyB) {
+        return true;
+    }
+
+    // Handle deep comparison for arrays
+    if (Array.isArray(a) && Array.isArray(b)) {
+        if (a.length !== b.length) {
+            return false;
+        }
+        
+        for (let i = 0; i < a.length; i++) {
+            if (!looseEqual(a[i], b[i])) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    // Handle deep comparison for plain objects
+    if (
+        a !== null &&
+        b !== null &&
+        typeof a === "object" &&
+        typeof b === "object" &&
+        !Array.isArray(a) &&
+        !Array.isArray(b)
+    ) {
+        const keysA = Object.keys(a as Record<string, unknown>);
+        const keysB = Object.keys(b as Record<string, unknown>);
+
+        if (keysA.length !== keysB.length) {
+            return false;
+        }
+
+        for (const key of keysA) {
+            if (!keysB.includes(key)) {
+                return false;
+            }
+
+            if (
+                !looseEqual(
+                    (a as Record<string, unknown>)[key],
+                    (b as Record<string, unknown>)[key],
+                )
+            ) {
+                return false;
+            }
+        }
+
         return true;
     }
 

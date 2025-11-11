@@ -819,15 +819,64 @@ describe("Collection", () => {
         });
     });
 
+    describe("duplicates", () => {
+        describe("Laravel Tests", () => {
+            it("test duplicates", () => {
+                // Keys are preserved! Returns duplicate items with their original indices
+                // Laravel: [2 => 1, 5 => 'laravel', 7 => null]
+                const c = collect([1, 2, 1, 'laravel', null, 'laravel', 'php', null]).duplicates().all();
+                expect(c).toEqual({2: 1, 5: 'laravel', 7: null});
+
+                // does loose comparison
+                // Laravel: [1 => '2', 3 => null]
+                const d = collect([2, '2', [], null]).duplicates().all();
+                expect(d).toEqual({1: '2', 3: null});
+
+                // works with mix of primitives
+                // Laravel: [3 => ['laravel'], 5 => '2']
+                const e = collect([1, '2', ['laravel'], ['laravel'], null, '2']).duplicates().all();
+                expect(e).toEqual({3: ['laravel'], 5: '2'});
+
+                // works with mix of objects and primitives **excepts numbers**.
+                // Laravel: [1 => $expected, 2 => $expected, 5 => '2']
+                const expected = collect(['laravel']);
+                const duplicates = collect([collect(['laravel']), expected, expected, [], '2', '2']).duplicates().all();
+                expect(duplicates).toEqual({1: expected, 2: expected, 5: '2'});
+            });
+
+            it("test duplicates with keys", () => {
+                // When using a key, Laravel returns the VALUES (not the full objects) at duplicate indices
+                // Laravel: [2 => 'laravel']
+                const items = [{ framework: 'vue' }, { framework: 'laravel' }, { framework: 'laravel' }];
+                const c = collect(items).duplicates('framework').all();
+                expect(c).toEqual({2: 'laravel'});
+
+                // works with key and strict
+                // Laravel: [2 => 'vue']
+                const items2 = [{ Framework: 'vue' }, { framework: 'vue' }, { Framework: 'vue' }];
+                const d = collect(items2).duplicates('Framework', true).all();
+                expect(d).toEqual({2: 'vue'});
+            });
+
+            it("test duplicates with callback", () => {
+                // When using a callback, Laravel returns the CALLBACK RESULT (not the full objects) at duplicate indices
+                // Laravel: [2 => 'laravel']
+                const items = [{ framework: 'vue' }, { framework: 'laravel' }, { framework: 'laravel' }];
+                const c = collect(items).duplicates((item) => item.framework).all();
+                expect(c).toEqual({2: 'laravel'});
+            });
+        });
+    });
+
     describe("filter", () => {
         it("filters array with callback", () => {
-            const collection = collect<number>([1, 2, 3, 4]);
+            const collection = collect([1, 2, 3, 4]);
             const filtered = collection.filter((x) => x > 2);
             expect(filtered.all()).toEqual([3, 4]);
         });
 
         it("filters object with callback", () => {
-            const collection = collect<number>({ a: 1, b: 2, c: 3, d: 4 });
+            const collection = collect({ a: 1, b: 2, c: 3, d: 4 });
             const filtered = collection.filter((value) => value > 2);
             expect(filtered.all()).toEqual({ c: 3, d: 4 });
         });

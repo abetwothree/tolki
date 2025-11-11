@@ -760,19 +760,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Retrieve duplicate items from the collection.
      *
-     * TODO: validate parity with Laravel's implementation
+     * This method preserves the original keys/indices of duplicate items.
+     * When using a callback or key, it returns the transformed values (not original items).
      *
      * @param callback - The callback function to determine the value to check for duplicates, or a string key, or null to use the values themselves
-     * @param strict - Whether to use strict comparison (===) or not (==)
-     * @returns A new collection with the duplicate items
+     * @param strict - Whether to use strict comparison (===) or loose comparison (like PHP's ==)
+     * @returns A new collection with an object with the duplicate items preserving their original keys
      *
      * @example
      *
-     * new Collection([1, 2, 2, 3, 3, 3]).duplicates(); -> new Collection([2, 2, 3, 3, 3])
-     * new Collection([{id: 1}, {id: 2}, {id: 2}, {id: 3}, {id: 3}, {id: 3}]).duplicates('id'); -> new Collection([{id: 2}, {id: 2}, {id: 3}, {id: 3}, {id: 3}])
-     * new Collection([1, '1', 2, '2', 2]).duplicates(null, true); -> new Collection([2, 2])
-     * new Collection([{id: 1}, {id: '1'}, {id: 2}, {id: '2'}, {id: 2}]).duplicates('id', true); -> new Collection([{id: 2}, {id: 2}])
-     * new Collection([{id: 1}, {id: 1}, {id: 2}, {id: 2}]).duplicates((item) => item.id > 1); -> new Collection([{id: 2}, {id: 2}])
+     * new Collection([1, 2, 1, 'a', null, 'a']).duplicates(); -> new Collection({2: 1, 5: 'a'})
+     * new Collection([{id: 1}, {id: 2}, {id: 2}]).duplicates('id'); -> new Collection({2: 2})
+     * new Collection([1, '1', 2, '2', 2]).duplicates(null, true); -> new Collection({4: 2})
      */
     duplicates<TMapValue>(
         callback: ((value: TValue, key: TKey) => TMapValue) | PathKey = null,
@@ -786,30 +785,29 @@ export class Collection<TValue, TKey extends PropertyKey> {
             ),
         );
 
-        const uniqueItems = items.unique(null, strict);
+        // Get unique items and reset keys to 0, 1, 2, ... for proper iteration
+        let uniqueItems = items.unique(null, strict).values();
 
         const compare = this.duplicateComparator(strict);
 
-        const duplicatesItems = {} as DataItems<TValue, TKey>;
+        const duplicatesItems = {} as Record<TKey, TMapValue>;
 
         for (const [key, value] of Object.entries(
-            items.items as Record<TKey, TValue>,
+            items.items as Record<TKey, TMapValue>,
         )) {
             if (
                 uniqueItems.isNotEmpty() &&
                 compare(value as TValue, uniqueItems.first() as TValue)
             ) {
-                uniqueItems.shift();
+                // Skip the first item (equivalent to shift() in PHP which mutates)
+                // Don't call .values() again as it would reset keys unnecessarily
+                uniqueItems = uniqueItems.skip(1);
             } else {
-                (duplicatesItems as Record<TKey, TValue>)[key as TKey] =
-                    value as TValue;
+                duplicatesItems[key as TKey] = value as TMapValue;
             }
         }
 
-        if (isArray(this.items)) {
-            return new Collection(Object.values(duplicatesItems) as TValue[]);
-        }
-
+        // Laravel preserves keys for both arrays and objects
         return new Collection(duplicatesItems);
     }
 
@@ -828,7 +826,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get the comparison function to detect duplicates.
      *
-     * @param strict - Whether to use strict comparison (===) or not (==)
+     * @param strict - Whether to use strict comparison (===) or loose comparison (like PHP's ==)
      * @returns A comparison function for detecting duplicates
      */
     duplicateComparator(strict: boolean) {
@@ -836,7 +834,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return (a: TValue, b: TValue) => a === b;
         }
 
-        return (a: TValue, b: TValue) => a == b;
+        return (a: TValue, b: TValue) => looseEqual(a, b);
     }
 
     /**
@@ -2809,16 +2807,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: ((item: TValue, key: TKey) => unknown) | PathKey = null,
         strict: boolean = false,
     ) {
-        const seen = new Set<unknown>();
-
         if (isNull(key) && strict === false) {
+            // For non-strict mode without a key, we need to do loose comparison
+            // We can't use Set because it uses SameValueZero (strict comparison)
+            const seen: unknown[] = [];
+            
             return new Collection(
                 dataFilter(this.items, (value) => {
-                    if (seen.has(value)) {
-                        return false;
+                    // Check if we've seen this value using loose comparison
+                    for (const seenValue of seen) {
+                        if (looseEqual(value, seenValue)) {
+                            return false;
+                        }
                     }
-
-                    seen.add(value);
+                    
+                    seen.push(value);
                     return true;
                 }),
             );
@@ -2828,18 +2831,41 @@ export class Collection<TValue, TKey extends PropertyKey> {
             key as PathKey | ((...args: (TValue | TKey)[]) => unknown),
         );
 
-        return new Collection(
-            dataReject(this.items, (value, key) => {
-                const result = callback(value, key as TKey);
-                if (seen.has(result)) {
-                    return false;
-                }
-
-                seen.add(result);
-
-                return true;
-            }),
-        );
+        if (strict) {
+            // For strict mode, we can use Set for better performance
+            const seen = new Set<unknown>();
+            
+            return new Collection(
+                dataFilter(this.items, (value, key) => {
+                    const result = callback(value, key as TKey);
+                    if (seen.has(result)) {
+                        return false;
+                    }
+                    
+                    seen.add(result);
+                    return true;
+                }),
+            );
+        } else {
+            // For non-strict mode with a key/callback, use loose comparison
+            const seen: unknown[] = [];
+            
+            return new Collection(
+                dataFilter(this.items, (value, key) => {
+                    const result = callback(value, key as TKey);
+                    
+                    // Check if we've seen this result using loose comparison
+                    for (const seenValue of seen) {
+                        if (looseEqual(result, seenValue)) {
+                            return false;
+                        }
+                    }
+                    
+                    seen.push(result);
+                    return true;
+                }),
+            );
+        }
     }
 
     /**
@@ -4420,14 +4446,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return function (...args: TArgs[]) {
-            if (arguments.length >= 2) {
-                return dataGet(
-                    args[0] as DataItems<unknown, PropertyKey>,
-                    args[1] as PathKey,
-                    (args[2] ?? null) as unknown | null,
-                );
-            }
-
             return dataGet(
                 args[0] as DataItems<unknown, PropertyKey>,
                 value as PathKey,
