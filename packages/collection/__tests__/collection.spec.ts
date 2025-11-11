@@ -750,10 +750,7 @@ describe("Collection", () => {
 
             // Test case-sensitive key comparison
             const c3 = collect({ a: "green", b: "brown", c: "blue", 0: "red" });
-            const c4 = { A: "green", 0: "yellow", 1: "red" } as Record<
-                string,
-                string
-            >;
+            const c4 = collect({ A: "green", 0: "yellow", 1: "red" });
 
             // diffAssoc is case-sensitive for keys:
             // 'a' !== 'A', so 'a: green' is included
@@ -780,6 +777,33 @@ describe("Collection", () => {
                 c: "blue",
                 0: "red",
             });
+        });
+    });
+
+    describe("diffKeys", () => {
+        it("Laravel Tests", () => {
+            const c1 = collect({ id: 1, first_word: "Hello" });
+            const c2 = collect({ id: 123, foo_bar: "Hello" });
+            expect(c1.diffKeys(c2).all()).toEqual({ first_word: "Hello" });
+
+            const d1 = collect({ id: 1, first_word: "Hello" });
+            const d2 = collect({ ID: 123, foo_bar: "Hello" });
+            expect(d1.diffKeys(d2).all()).toEqual({ id: 1, first_word: "Hello" });
+
+            // allow for case insensitive difference
+            // $this->assertEquals(['first_word' => 'Hello'], $c1->diffKeysUsing($c2, 'strcasecmp')->all());
+            // TODO when testing diffKeysUsing
+            // const strcasecmpKeys = (a: unknown, b: unknown) =>
+            //     String(a).toLowerCase() === String(b).toLowerCase();
+            // expect(d1.diffKeysUsing(d2, strcasecmpKeys).all()).toEqual({
+            //     first_word: "Hello",
+            // });
+        });
+
+        it("signature examples", () => {
+            expect(new Collection({a: 1, b: 2, c: 3}).diffKeys({b: 2}).all()).toEqual({a: 1, c: 3});
+            expect(new Collection([1, 3, 5, 7, 8]).diffKeys([1, 3, 5]).all()).toEqual([7, 8]);
+            expect(new Collection([1, 3, 5]).diffKeys([1, 3, 5, 7, 8]).all()).toEqual([]);
         });
     });
 

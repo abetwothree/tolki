@@ -702,15 +702,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get the items in the collection whose keys are not present in the given items.
      *
-     * TODO: validate parity with Laravel's implementation
-     *
      * @param items - The items to diff against
      * @returns A new collection with the difference
      *
      * @example
      *
      * new Collection({a: 1, b: 2, c: 3}).diffKeys({b: 2}); -> new Collection({a: 1, c: 3})
-     * new Collection([1, 3, 5]).diffKeys([1, 3, 5, 7, 8]); -> new Collection([1, 3, 5])
+     * new Collection([1, 3, 5, 7, 8]).diffKeys([1, 3, 5]); -> new Collection([7, 8])
      */
     diffKeys(items: DataItems<TValue, TKey> | Collection<TValue, TKey>) {
         const otherItems = this.getRawItems(items);
