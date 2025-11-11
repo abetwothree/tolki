@@ -534,6 +534,59 @@ describe("Collection", () => {
         });
     });
 
+    describe("doesntContain", () => {
+        it("Laravel Tests", () => {
+            const c = collect([1, 3, 5]);
+
+            expect(c.doesntContain(1)).toBe(false);
+            expect(c.doesntContain("1")).toBe(false);
+            expect(c.doesntContain(2)).toBe(true);
+            expect(c.doesntContain("2")).toBe(true);
+
+            const d = collect(["1"]);
+
+            expect(d.doesntContain("1")).toBe(false);
+            expect(d.doesntContain(1)).toBe(false);
+            
+            const e = collect([null]);
+            
+            expect(e.doesntContain(false)).toBe(false);
+            expect(e.doesntContain(null)).toBe(false);
+            expect(e.doesntContain([])).toBe(false);
+            expect(e.doesntContain(0)).toBe(false);
+            expect(e.doesntContain("")).toBe(false);
+
+            const f = collect([0]);
+            
+            expect(f.doesntContain(0)).toBe(false);
+            expect(f.doesntContain("0")).toBe(false);
+            expect(f.doesntContain(false)).toBe(false);
+            expect(f.doesntContain(null)).toBe(false);
+            expect(f.doesntContain((item) => item < 5)).toBe(false);
+            expect(f.doesntContain((item) => item > 5)).toBe(true);
+
+            const g = collect([{ v: 1 }, { v: 3 }, { v: 5 }]);
+
+            expect(g.doesntContain("v", 1)).toBe(false);
+            expect(g.doesntContain("v", 2)).toBe(true);
+
+            const h = collect(["date", "class", { foo: 50 }]);
+
+            expect(h.doesntContain("date")).toBe(false);
+            expect(h.doesntContain("class")).toBe(false);
+            expect(h.doesntContain("foo")).toBe(true);
+
+            const i = collect([{ 'a': false, 'b': false }, { 'a': true, 'b': false }]);
+
+            expect(i.doesntContain((item) => item.a === true)).toBe(false);
+            expect(i.doesntContain((item) => item.b === true)).toBe(true);
+
+            const j = collect([null, 1, 2]);
+            
+            expect(j.doesntContain((item) => item === null)).toBe(false);
+        });
+    });
+
     describe("diff", () => {
         it("returns items not in given array collection", () => {
             const collection = collect([1, 2, 3, 4]);
