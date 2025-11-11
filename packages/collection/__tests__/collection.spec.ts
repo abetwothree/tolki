@@ -436,19 +436,19 @@ describe("Collection", () => {
             expect(i.contains((item) => item === null)).toBe(true);
 
             const j = collect([{ v: 1 }, { v: 3 }, { v: "4" }, { v: 5 }]);
-            expect(j.contains("v", '=', 4)).toBe(true);
-            expect(j.contains("v", '==', 4)).toBe(true);
-            expect(j.contains("v", '===', 4)).toBe(false);
-            expect(j.contains("v", '>', 4)).toBe(true);
+            expect(j.contains("v", "=", 4)).toBe(true);
+            expect(j.contains("v", "==", 4)).toBe(true);
+            expect(j.contains("v", "===", 4)).toBe(false);
+            expect(j.contains("v", ">", 4)).toBe(true);
 
-            expect(j.contains("v", '!=', 4)).toBe(true);
-            expect(j.contains("v", '!==', 4)).toBe(true);
-            expect(j.contains("v", '<>', 4)).toBe(true);
-            expect(j.contains("v", '<', 4)).toBe(true);
+            expect(j.contains("v", "!=", 4)).toBe(true);
+            expect(j.contains("v", "!==", 4)).toBe(true);
+            expect(j.contains("v", "<>", 4)).toBe(true);
+            expect(j.contains("v", "<", 4)).toBe(true);
 
-            expect(j.contains("v", '<=', 4)).toBe(true);
-            expect(j.contains("v", '>=', 4)).toBe(true);
-            expect(j.contains("v", '<=>', 4)).toBe(true);
+            expect(j.contains("v", "<=", 4)).toBe(true);
+            expect(j.contains("v", ">=", 4)).toBe(true);
+            expect(j.contains("v", "<=>", 4)).toBe(true);
         });
 
         it("checks if value exists in array", () => {
@@ -481,19 +481,19 @@ describe("Collection", () => {
     });
 
     describe("containsStrict", () => {
-        it('Laravel Tests', () => {
-            const c = new Collection([1, 3, 5, '02']);
+        it("Laravel Tests", () => {
+            const c = new Collection([1, 3, 5, "02"]);
             expect(c.containsStrict(1)).toBe(true);
-            expect(c.containsStrict('1')).toBe(false);
+            expect(c.containsStrict("1")).toBe(false);
             expect(c.containsStrict(2)).toBe(false);
-            expect(c.containsStrict('2')).toBe(false);
-            expect(c.containsStrict('02')).toBe(true);
+            expect(c.containsStrict("2")).toBe(false);
+            expect(c.containsStrict("02")).toBe(true);
             expect(c.containsStrict((item) => item < 5)).toBe(true);
             expect(c.containsStrict((item) => item > 5)).toBe(false);
 
             const d = collect([0]);
             expect(d.containsStrict(0)).toBe(true);
-            expect(d.containsStrict('0')).toBe(false);
+            expect(d.containsStrict("0")).toBe(false);
             expect(d.containsStrict(false)).toBe(false);
             expect(d.containsStrict(null)).toBe(false);
 
@@ -502,19 +502,19 @@ describe("Collection", () => {
             expect(e.containsStrict(0)).toBe(false);
             expect(e.containsStrict(false)).toBe(false);
 
-            const f = collect([{ 'v': 1 }, { 'v': 3 }, { 'v': '04' }, { 'v': 5 }]);
-            expect(f.containsStrict('v', 1)).toBe(true);
-            expect(f.containsStrict('v', 2)).toBe(false);
-            expect(f.containsStrict('v', '1')).toBe(false);
-            expect(f.containsStrict('v', 4)).toBe(false);
-            expect(f.containsStrict('v', '04')).toBe(true);
+            const f = collect([{ v: 1 }, { v: 3 }, { v: "04" }, { v: 5 }]);
+            expect(f.containsStrict("v", 1)).toBe(true);
+            expect(f.containsStrict("v", 2)).toBe(false);
+            expect(f.containsStrict("v", "1")).toBe(false);
+            expect(f.containsStrict("v", 4)).toBe(false);
+            expect(f.containsStrict("v", "04")).toBe(true);
 
-            const g = collect(['date', 'class', { foo: 50 }, '']);
-            expect(g.containsStrict('date')).toBe(true);
-            expect(g.containsStrict('class')).toBe(true);
-            expect(g.containsStrict('foo')).toBe(false);
+            const g = collect(["date", "class", { foo: 50 }, ""]);
+            expect(g.containsStrict("date")).toBe(true);
+            expect(g.containsStrict("class")).toBe(true);
+            expect(g.containsStrict("foo")).toBe(false);
             expect(g.containsStrict(null)).toBe(false);
-            expect(g.containsStrict('')).toBe(true);
+            expect(g.containsStrict("")).toBe(true);
         });
 
         it("uses strict comparison in array", () => {
@@ -547,9 +547,9 @@ describe("Collection", () => {
 
             expect(d.doesntContain("1")).toBe(false);
             expect(d.doesntContain(1)).toBe(false);
-            
+
             const e = collect([null]);
-            
+
             expect(e.doesntContain(false)).toBe(false);
             expect(e.doesntContain(null)).toBe(false);
             expect(e.doesntContain([])).toBe(false);
@@ -557,7 +557,7 @@ describe("Collection", () => {
             expect(e.doesntContain("")).toBe(false);
 
             const f = collect([0]);
-            
+
             expect(f.doesntContain(0)).toBe(false);
             expect(f.doesntContain("0")).toBe(false);
             expect(f.doesntContain(false)).toBe(false);
@@ -576,31 +576,34 @@ describe("Collection", () => {
             expect(h.doesntContain("class")).toBe(false);
             expect(h.doesntContain("foo")).toBe(true);
 
-            const i = collect([{ 'a': false, 'b': false }, { 'a': true, 'b': false }]);
+            const i = collect([
+                { a: false, b: false },
+                { a: true, b: false },
+            ]);
 
             expect(i.doesntContain((item) => item.a === true)).toBe(false);
             expect(i.doesntContain((item) => item.b === true)).toBe(true);
 
             const j = collect([null, 1, 2]);
-            
+
             expect(j.doesntContain((item) => item === null)).toBe(false);
         });
     });
 
     describe("doesntContainStrict", () => {
         it("Laravel Tests", () => {
-            const c = collect([1, 3, 5, '02']);
+            const c = collect([1, 3, 5, "02"]);
             expect(c.doesntContainStrict(1)).toBe(false);
-            expect(c.doesntContainStrict('1')).toBe(true);
+            expect(c.doesntContainStrict("1")).toBe(true);
             expect(c.doesntContainStrict(2)).toBe(true);
-            expect(c.doesntContainStrict('2')).toBe(true);
-            expect(c.doesntContainStrict('02')).toBe(false);
+            expect(c.doesntContainStrict("2")).toBe(true);
+            expect(c.doesntContainStrict("02")).toBe(false);
             expect(c.doesntContainStrict((item) => item < 5)).toBe(false);
             expect(c.doesntContainStrict((item) => item > 5)).toBe(true);
 
             const d = collect([0]);
             expect(d.doesntContainStrict(0)).toBe(false);
-            expect(d.doesntContainStrict('0')).toBe(true);
+            expect(d.doesntContainStrict("0")).toBe(true);
             expect(d.doesntContainStrict(false)).toBe(true);
             expect(d.doesntContainStrict(null)).toBe(true);
 
@@ -609,46 +612,56 @@ describe("Collection", () => {
             expect(e.doesntContainStrict(0)).toBe(true);
             expect(e.doesntContainStrict(false)).toBe(true);
 
-            const f = collect([{ 'v': 1 }, { 'v': 3 }, { 'v': '04' }, { 'v': 5 }]);
-            expect(f.doesntContainStrict('v', 1)).toBe(false);
-            expect(f.doesntContainStrict('v', 2)).toBe(true);
-            expect(f.doesntContainStrict('v', '1')).toBe(true);
-            expect(f.doesntContainStrict('v', 4)).toBe(true);
-            expect(f.doesntContainStrict('v', '04')).toBe(false);
-            expect(f.doesntContainStrict('v', '4')).toBe(true);
+            const f = collect([{ v: 1 }, { v: 3 }, { v: "04" }, { v: 5 }]);
+            expect(f.doesntContainStrict("v", 1)).toBe(false);
+            expect(f.doesntContainStrict("v", 2)).toBe(true);
+            expect(f.doesntContainStrict("v", "1")).toBe(true);
+            expect(f.doesntContainStrict("v", 4)).toBe(true);
+            expect(f.doesntContainStrict("v", "04")).toBe(false);
+            expect(f.doesntContainStrict("v", "4")).toBe(true);
 
-            const g = collect(['date', 'class', { foo: 50 }, '']);
-            expect(g.doesntContainStrict('date')).toBe(false);
-            expect(g.doesntContainStrict('class')).toBe(false);
-            expect(g.doesntContainStrict('foo')).toBe(true);
+            const g = collect(["date", "class", { foo: 50 }, ""]);
+            expect(g.doesntContainStrict("date")).toBe(false);
+            expect(g.doesntContainStrict("class")).toBe(false);
+            expect(g.doesntContainStrict("foo")).toBe(true);
             expect(g.doesntContainStrict(null)).toBe(true);
-            expect(g.doesntContainStrict('')).toBe(false);
+            expect(g.doesntContainStrict("")).toBe(false);
         });
     });
 
     describe("crossJoin", () => {
         it("Laravel Tests", () => {
-            expect(collect([1, 2]).crossJoin(['a', 'b']).all()).toEqual([[1, 'a'], [1, 'b'], [2, 'a'], [2, 'b']]);
-
-            expect(collect([1, 2]).crossJoin(collect(['a', 'b'])).all()).toEqual([
-                [1, 'a'],
-                [1, 'b'],
-                [2, 'a'],
-                [2, 'b']
+            expect(collect([1, 2]).crossJoin(["a", "b"]).all()).toEqual([
+                [1, "a"],
+                [1, "b"],
+                [2, "a"],
+                [2, "b"],
             ]);
 
-            expect(collect([1, 2]).crossJoin(
-                collect(['a', 'b']),
-                collect(['I', 'II']),
-            ).all()).toEqual([
-                [1, 'a', 'I'],
-                [1, 'a', 'II'],
-                [1, 'b', 'I'],
-                [1, 'b', 'II'],
-                [2, 'a', 'I'],
-                [2, 'a', 'II'],
-                [2, 'b', 'I'],
-                [2, 'b', 'II']
+            expect(
+                collect([1, 2])
+                    .crossJoin(collect(["a", "b"]))
+                    .all(),
+            ).toEqual([
+                [1, "a"],
+                [1, "b"],
+                [2, "a"],
+                [2, "b"],
+            ]);
+
+            expect(
+                collect([1, 2])
+                    .crossJoin(collect(["a", "b"]), collect(["I", "II"]))
+                    .all(),
+            ).toEqual([
+                [1, "a", "I"],
+                [1, "a", "II"],
+                [1, "b", "I"],
+                [1, "b", "II"],
+                [2, "a", "I"],
+                [2, "a", "II"],
+                [2, "b", "I"],
+                [2, "b", "II"],
             ]);
         });
     });
