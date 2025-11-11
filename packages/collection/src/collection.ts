@@ -830,7 +830,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param strict - Whether to use strict comparison (===) or loose comparison (like PHP's ==)
      * @returns A comparison function for detecting duplicates
      */
-    duplicateComparator(strict: boolean) {
+    protected duplicateComparator(strict: boolean) {
         if (strict) {
             return (a: TValue, b: TValue) => strictEqual(a, b);
         }
