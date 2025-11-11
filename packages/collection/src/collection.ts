@@ -515,9 +515,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
     ): boolean {
         if (value !== null) {
             return this.contains((item) => {
-                if (!isAccessibleData(item)) {
-                    return false;
-                }
                 return (
                     dataGet(
                         item as DataItems<unknown, PropertyKey>,

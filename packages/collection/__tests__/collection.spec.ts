@@ -481,6 +481,42 @@ describe("Collection", () => {
     });
 
     describe("containsStrict", () => {
+        it('Laravel Tests', () => {
+            const c = new Collection([1, 3, 5, '02']);
+            expect(c.containsStrict(1)).toBe(true);
+            expect(c.containsStrict('1')).toBe(false);
+            expect(c.containsStrict(2)).toBe(false);
+            expect(c.containsStrict('2')).toBe(false);
+            expect(c.containsStrict('02')).toBe(true);
+            expect(c.containsStrict((item) => item < 5)).toBe(true);
+            expect(c.containsStrict((item) => item > 5)).toBe(false);
+
+            const d = collect([0]);
+            expect(d.containsStrict(0)).toBe(true);
+            expect(d.containsStrict('0')).toBe(false);
+            expect(d.containsStrict(false)).toBe(false);
+            expect(d.containsStrict(null)).toBe(false);
+
+            const e = collect([1, null]);
+            expect(e.containsStrict(null)).toBe(true);
+            expect(e.containsStrict(0)).toBe(false);
+            expect(e.containsStrict(false)).toBe(false);
+
+            const f = collect([{ 'v': 1 }, { 'v': 3 }, { 'v': '04' }, { 'v': 5 }]);
+            expect(f.containsStrict('v', 1)).toBe(true);
+            expect(f.containsStrict('v', 2)).toBe(false);
+            expect(f.containsStrict('v', '1')).toBe(false);
+            expect(f.containsStrict('v', 4)).toBe(false);
+            expect(f.containsStrict('v', '04')).toBe(true);
+
+            const g = collect(['date', 'class', { foo: 50 }, '']);
+            expect(g.containsStrict('date')).toBe(true);
+            expect(g.containsStrict('class')).toBe(true);
+            expect(g.containsStrict('foo')).toBe(false);
+            expect(g.containsStrict(null)).toBe(false);
+            expect(g.containsStrict('')).toBe(true);
+        });
+
         it("uses strict comparison in array", () => {
             const collection = new Collection([1, 2, 3]);
             expect(collection.containsStrict(2)).toBe(true);
