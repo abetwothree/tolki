@@ -1267,6 +1267,40 @@ describe("Collection", () => {
         });
     });
 
+    describe("forget", () => {
+        describe("Laravel Tests", () => {
+            it("test forget single key", () => {
+                const c = collect(["bar", "qux"]).forget(0).all();
+                expect(c).toEqual(["qux"]);
+
+                const d = collect({ foo: "bar", baz: "qux" }).forget("foo").all();
+                expect(d).toEqual({ baz: "qux" });
+            });
+
+            it("test forget array of keys", () => {
+                const d = collect(["foo", "bar", "baz"])
+                    .forget([0, 2])
+                    .all();
+                expect(d).toEqual(["bar"]);
+
+                const c = collect({ name: "taylor", foo: "bar", baz: "qux" })
+                    .forget(["foo", "baz"])
+                    .all();
+                expect(c).toEqual({ name: "taylor" });
+            });
+
+            it("test forget collection of keys", () => {
+                const c = collect(["foo", "bar", "baz"]);
+                const res = c.forget(collect([0, 2])).all();
+                expect(res).toEqual(["bar"]);
+
+                const d = collect({ name: "taylor", foo: "bar", baz: "qux" });
+                const res2 = d.forget(collect(["foo", "baz"])).all();
+                expect(res2).toEqual({ name: "taylor" });
+            });
+        })
+    });
+
     describe("isEmpty", () => {
         it("returns true for empty array collection", () => {
             const collection = collect([]);

@@ -971,13 +971,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3, 4]).forget([0, 2]); -> new Collection([2, 4])
      * new Collection([1, 2, 3, 4]).forget(new Collection([0, 2])); -> new Collection([2, 4])
      */
-    forget(keys: PathKeys | Collection<TKey>) {
-        if (isNull(keys) || isUndefined(keys)) {
-            return new Collection(this.items);
-        }
-
+    forget<T, K extends PropertyKey = PropertyKey>(keys: PathKeys | Collection<T, K>) {
         keys = this.getRawItems(keys) as PathKey[];
-
         this.items = dataForget(this.items, keys);
 
         return this;
