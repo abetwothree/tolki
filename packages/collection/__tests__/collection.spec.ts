@@ -969,6 +969,42 @@ describe("Collection", () => {
     });
 
     describe("first", () => {
+        describe("Laravel Tests", () => {
+            it("test first returns first item in collection", () => {
+                const c = collect(["foo", "bar"]);
+                expect(c.first()).toBe("foo");
+            });
+
+            it("test first with callback", () => {
+                const c = collect(["foo", "bar", "baz"]);
+                expect(
+                    c.first((value) => {
+                        return value === "bar";
+                    }),
+                ).toBe("bar");
+            });
+
+            it("test first with callback and default", () => {
+                const c = collect(["foo", "bar"]);
+                expect(
+                    c.first(
+                        (value) => {
+                            return value === "baz";
+                        },
+                        "default",
+                    ),
+                ).toBe("default");
+            });
+
+            it("test first with default and without callback", () => {
+                const c = collect();
+                expect(c.first(null, "default")).toBe("default");
+
+                const d = collect(['foo', 'bar']);
+                expect(d.first(null, 'default')).toBe('foo');
+            });
+        });
+
         it("returns first array item", () => {
             const collection = collect([1, 2, 3]);
             expect(collection.first()).toBe(1);
