@@ -399,15 +399,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{a: 1}, {b: 2}]).collapse(); -> new Collection({a: 1, b: 2})
      */
     collapse() {
-        // Loop through items and extract raw items from any nested Collections
-        const items = dataMap(this.items, (item) => {
-            if (item instanceof Collection) {
-                return item.all();
-            }
-            return item;
-        });
-
-        return new Collection(dataCollapse(items));
+        return new Collection(dataCollapse(this.itemsToRawValues()));
     }
 
     /**
@@ -943,7 +935,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     flatten(depth: number = Infinity) {
         return new Collection(
-            dataFlatten(this.items, depth) as DataItems<TValue, TKey>,
+            dataFlatten(this.recursivelyConvertCollections(this.items), depth) as DataItems<TValue, TKey>,
         );
     }
 
@@ -4575,6 +4567,47 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     protected getItemValues(items: DataItems<TValue, TKey>): TValue[] {
         return isArray(items) ? items : Object.values(items);
+    }
+
+    /**
+     * Get the raw values of all items. 
+     * Basically, if an item is a collection, get the underlying raw items. 
+     */
+    protected itemsToRawValues() {
+        return dataMap(this.items, (item) => {
+            if(item instanceof Collection){
+                return item.all();
+            }
+
+            return item;
+        });
+    }
+
+    /**
+     * Recursively convert all Collection instances to their raw values.
+     * This is needed for operations like flatten that need to handle nested Collections.
+     *
+     * @param data - The data to convert
+     * @returns The data with all Collection instances converted to raw values
+     */
+    protected recursivelyConvertCollections(data: unknown) {
+        if (data instanceof Collection) {
+            return this.recursivelyConvertCollections(data.all());
+        }
+
+        if (isArray(data)) {
+            return data.map((item) => this.recursivelyConvertCollections(item));
+        }
+
+        if (isObject(data)) {
+            const result: Record<PropertyKey, unknown> = {};
+            for (const [key, value] of Object.entries(data)) {
+                result[key] = this.recursivelyConvertCollections(value);
+            }
+            return result;
+        }
+
+        return data;
     }
 
     /**

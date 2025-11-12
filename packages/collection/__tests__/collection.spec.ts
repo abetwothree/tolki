@@ -1139,6 +1139,75 @@ describe("Collection", () => {
         });
     });
 
+    describe("flatten", () => {
+        describe("Laravel Tests", () => {
+            it("test flatten", () => {
+                // Flat arrays are unaffected
+                const c = collect(["#foo", "#bar", "#baz"]);
+                expect(c.flatten().all()).toEqual(["#foo", "#bar", "#baz"]);
+
+                const c2 = collect({ a: "#foo", b: "#bar", c: "#baz" });
+                expect(c2.flatten().all()).toEqual({ a: "#foo", b: "#bar", c: "#baz" });
+
+                // Nested arrays are flattened with existing flat items
+                const d = collect([["#foo", "#bar"], "#baz"]);
+                expect(d.flatten().all()).toEqual(["#foo", "#bar", "#baz"]);
+
+                const d2 = collect({ a: ["#foo", "#bar"], b: "#baz" });
+                expect(d2.flatten().all()).toEqual({ a: [ '#foo', '#bar' ], b: '#baz' });
+
+                // Sets of nested arrays are flattened
+                const e = collect([["#foo", "#bar"], ["#baz"]]);
+                expect(e.flatten().all()).toEqual(["#foo", "#bar", "#baz"]);
+
+                const e2 = collect({ a: ["#foo", "#bar"], b: ["#baz"] });
+                expect(e2.flatten().all()).toEqual({ a: ["#foo", "#bar"], b: ["#baz"] });
+
+                // Deeply nested arrays are flattened
+                const f = collect([["#foo", ["#bar"]], ["#baz"]]);
+                expect(f.flatten().all()).toEqual(["#foo", "#bar", "#baz"]);
+
+                const f2 = collect({ a: ["#foo", ["#bar"]], b: ["#baz"] });
+                expect(f2.flatten().all()).toEqual({ a: ["#foo", ["#bar"]], b: ["#baz"] });
+
+                // Deeply nested arrays with multiple items are flattened
+                const g = collect([["#foo", ["#bar", "#zap"]], ["#baz"]]);
+                expect(g.flatten().all()).toEqual(["#foo", "#bar", "#zap", "#baz"]);
+
+                const g2 = collect({ a: ["#foo", ["#bar", "#zap"]], b: ["#baz"] });
+                expect(g2.flatten().all()).toEqual({ a: ["#foo", ["#bar", "#zap"]], b: ["#baz"] });
+
+                // Nested collections are flattened alongside arrays
+                const h = collect([collect(["#foo", "#bar"]), ["#baz"]]);
+                expect(h.flatten().all()).toEqual(["#foo", "#bar", "#baz"]);
+
+                const h2 = collect({ a: collect(["#foo", "#bar"]), b: ["#baz"] });
+                expect(h2.flatten().all()).toEqual({ a: ["#foo", "#bar"], b: ["#baz"] });
+
+                // Nested collections containing plain arrays are flattened
+                const i = collect([collect(["#foo", ["#bar"]]), ["#baz"]]);
+                expect(i.flatten().all()).toEqual(["#foo", "#bar", "#baz"]);
+
+                const i2 = collect({ a: collect(["#foo", ["#bar"]]), b: ["#baz"] });
+                expect(i2.flatten().all()).toEqual({ a: ["#foo", ["#bar"]], b: ["#baz"] });
+
+                // Nested arrays containing collections are flattened
+                const j = collect([["#foo", collect(["#bar"])], ["#baz"]]);
+                expect(j.flatten().all()).toEqual(["#foo", "#bar", "#baz"]);
+
+                const j2 = collect({ a: ["#foo", collect(["#bar"])], b: ["#baz"] });
+                expect(j2.flatten().all()).toEqual({ a: ["#foo", ["#bar"]], b: ["#baz"] });
+
+                // Nested arrays containing collections containing arrays are flattened
+                const k = collect([["#foo", collect(["#bar", ["#zap"]])], ["#baz"]]);
+                expect(k.flatten().all()).toEqual(["#foo", "#bar", "#zap", "#baz"]);
+
+                const k2 = collect({ a: ["#foo", collect(["#bar", ["#zap"]])], b: ["#baz"] });
+                expect(k2.flatten().all()).toEqual({ a: ["#foo", ["#bar", ["#zap"]]], b: ["#baz"] });
+            });
+        });
+    });
+
     describe("isEmpty", () => {
         it("returns true for empty array collection", () => {
             const collection = collect([]);
