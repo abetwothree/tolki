@@ -1032,15 +1032,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: PathKey,
         value: TGetOrPutValue | (() => TGetOrPutValue),
     ): TValue | TGetOrPutValue {
-        if (this.has(key)) {
-            return this.get(key) as TValue;
+        const normalizedKey = key ?? "";
+
+        if (this.has(normalizedKey)) {
+            return this.get(normalizedKey) as TValue;
         }
 
         if (isFunction(value)) {
             value = value();
         }
-
-        this.items = dataSet(this.items, key, value);
+        
+        this.offsetSet(key as TKey | null, value);
 
         return value;
     }
@@ -3135,7 +3137,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * objCollection.offsetSet(null, 3); -> collection is now {a: 1, b: 2, '2': 3}
      * objCollection.offsetSet('c', 4); -> collection is now {a: 1, b: 2, '2': 3, c: 4}
      */
-    offsetSet(key: TKey | null, value: TValue) {
+    offsetSet(key: TKey | null, value: TValue | unknown) {
         this.add(value, key);
     }
 

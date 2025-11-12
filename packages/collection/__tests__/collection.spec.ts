@@ -1301,6 +1301,41 @@ describe("Collection", () => {
         })
     });
 
+    describe("getOrPut", () => {
+        describe("Laravel tests", () => {
+            it("test get or put", () => {
+                const data = collect({ name: "taylor", email: "foo" });
+                expect(data.getOrPut("name", null)).toBe("taylor");
+                expect(data.getOrPut("email", null)).toBe("foo");
+                expect(data.getOrPut("gender", "male")).toBe("male");
+
+                expect(data.get("name")).toBe("taylor");
+                expect(data.get("email")).toBe("foo");
+                expect(data.get("gender")).toBe("male");
+
+                const data2 = collect({ name: "taylor", email: "foo" });
+                expect(data2.getOrPut("name", () => null)).toBe("taylor");
+                expect(data2.getOrPut("email", () => null)).toBe("foo");
+                expect(data2.getOrPut("gender", () => "male")).toBe("male");
+
+                expect(data2.get("name")).toBe("taylor");
+                expect(data2.get("email")).toBe("foo");
+                expect(data2.get("gender")).toBe("male");
+            });
+
+            it("test get or put with no key", () => {
+                const data = collect(["taylor", "shawn"]);
+                expect(data.getOrPut(null, "dayle")).toBe("dayle");
+                expect(data.getOrPut(null, "john")).toBe("john");
+                expect(data.all()).toEqual(["taylor", "shawn", "dayle", "john"]);
+
+                const data2 = collect({ 0: "taylor", "": "shawn" });
+                expect(data2.getOrPut(null, "dayle")).toBe("shawn");
+                expect(data2.all()).toEqual({ 0: "taylor", "": "shawn" });
+            });
+        });
+    });
+
     describe("isEmpty", () => {
         it("returns true for empty array collection", () => {
             const collection = collect([]);
