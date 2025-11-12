@@ -841,24 +841,50 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get all items except for those with the specified keys.
      *
-     * @param keys - The keys to exclude, or a collection of keys
+     * @param keys - The keys to exclude, can be: a single key, an array of keys, a Collection, null, or multiple key arguments
      * @returns A new collection without the specified keys
      *
      * @example
      *
      * new Collection({a: 1, b: 2, c: 3}).except(['a', 'c']); -> new Collection({b: 2})
+     * new Collection({a: 1, b: 2, c: 3}).except('a', 'c'); -> new Collection({b: 2})
      * new Collection({a: 1, b: 2, c: 3}).except(new Collection(['a', 'c'])); -> new Collection({b: 2})
-     * new Collection([1, 2, 3, 4]).except([0, 2]); -> new Collection([1, 3])
-     * new Collection([1, 2, 3, 4]).except(new Collection([0, 2])); -> new Collection([1, 3])
+     * new Collection([1, 2, 3, 4]).except([0, 2]); -> new Collection({1: 2, 3: 4})
+     * new Collection([1, 2, 3, 4]).except(new Collection([0, 2])); -> new Collection({1: 2, 3: 4})
      */
-    except(keys: PathKeys | Collection<TKey>) {
-        if (isNull(keys) || isUndefined(keys)) {
+    except<TExceptValue, TExceptKey extends PropertyKey>(
+        ...keys: (
+            | PathKey
+            | PathKey[]
+            | Collection<TExceptValue, TExceptKey>
+            | null
+            | undefined
+        )[]
+    ) {
+        // Handle null/undefined - return all items
+        if (keys.length === 0 || isNull(keys[0]) || isUndefined(keys[0])) {
             return new Collection(this.items);
         }
 
-        keys = this.getRawItems(keys) as PathKey[];
+        let keysToExcept: PathKey[];
 
-        return new Collection(dataExcept(this.items, keys));
+        // If first argument is a Collection, extract its items
+        if (keys[0] instanceof Collection) {
+            const collectionItems = keys[0].all();
+            keysToExcept = isArray(collectionItems)
+                ? collectionItems
+                : Object.values(collectionItems);
+        }
+        // If first argument is an array, use it directly
+        else if (isArray(keys[0])) {
+            keysToExcept = keys[0];
+        }
+        // Otherwise, treat all arguments as individual keys
+        else {
+            keysToExcept = keys as PathKey[];
+        }
+
+        return new Collection(dataExcept(this.items, keysToExcept));
     }
 
     /**

@@ -892,6 +892,24 @@ describe("Collection", () => {
         });
     });
 
+    describe("except", () => {
+        it("Laravel Tests", () => {
+            const data = collect({ first: 'Taylor', last: 'Otwell', email: 'taylorotwell@gmail.com' });
+
+            expect(data.except(null).all()).toEqual(data.all());
+            expect(data.except(['last', 'email', 'missing']).all()).toEqual({ first: 'Taylor' }); 
+            expect(data.except('last', 'email', 'missing').all()).toEqual({ first: 'Taylor' });
+            expect(data.except(collect(['last', 'email', 'missing'])).all()).toEqual({ first: 'Taylor' });
+            
+            expect(data.except(['last']).all()).toEqual({ first: 'Taylor', email: 'taylorotwell@gmail.com' });
+            expect(data.except('last').all()).toEqual({ first: 'Taylor', email: 'taylorotwell@gmail.com' });
+            expect(data.except(collect(['last'])).all()).toEqual({ first: 'Taylor', email: 'taylorotwell@gmail.com' });
+            
+            const data2 = collect({ first: 'Taylor', last: 'Otwell' });
+            expect(data2.except(data2).all()).toEqual({ first: 'Taylor', last: 'Otwell' });
+        });
+    });
+
     describe("filter", () => {
         it("filters array with callback", () => {
             const collection = collect([1, 2, 3, 4]);
