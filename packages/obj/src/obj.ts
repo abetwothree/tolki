@@ -2923,10 +2923,21 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
-        // If no callback, filter out falsy values
+        // If no callback, filter out falsy values (including empty arrays and empty objects)
         const shouldInclude = isFunction(callback)
             ? callback(value, key)
-            : Boolean(value);
+            : (() => {
+                  // Empty arrays are falsy in PHP
+                  if (isArray(value) && value.length === 0) {
+                      return false;
+                  }
+                  // Empty objects are falsy in PHP
+                  if (isObject(value) && Object.keys(value).length === 0) {
+                      return false;
+                  }
+                  // Otherwise use standard JavaScript truthiness
+                  return Boolean(value);
+              })();
 
         if (shouldInclude) {
             result[key] = value;

@@ -2986,7 +2986,19 @@ export function filter<TValue>(
 
     if (!isFunction(callback)) {
         // Filter out falsy values by default
-        return data.filter((value): value is TValue => Boolean(value));
+        // In PHP, empty arrays and empty objects are falsy, so we need to check for them
+        return data.filter((value): value is TValue => {
+            // Empty arrays are falsy in PHP
+            if (isArray(value) && value.length === 0) {
+                return false;
+            }
+            // Empty objects are falsy in PHP
+            if (isObject(value) && Object.keys(value).length === 0) {
+                return false;
+            }
+            // Otherwise use standard JavaScript truthiness
+            return Boolean(value);
+        });
     }
 
     return (data as TValue[]).filter(callback);

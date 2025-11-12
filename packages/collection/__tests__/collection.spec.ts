@@ -911,6 +911,31 @@ describe("Collection", () => {
     });
 
     describe("filter", () => {
+        it("Laravel Tests", () => {
+            const c = collect([{ id: 1, name: "Hello" }, { id: 2, name: "World" }]);
+            expect(
+                c
+                    .filter((item) => item.id === 2)
+                    .all(),
+            ).toEqual([{ id: 2, name: "World" }]);
+
+            const c2 = collect(["", "Hello", "", "World"]);
+            expect(c2.filter().values().toArray()).toEqual(["Hello", "World"]);
+
+            const c3 = collect({ id: 1, first: "Hello", second: "World" });
+            expect(
+                c3
+                    .filter((item, key) => key !== "id")
+                    .all(),
+            ).toEqual({ first: "Hello", second: "World" });
+
+            const c4 = collect([1, 2, 3, null, false, "", 0, [], {}]);
+            expect(c4.filter().all()).toEqual([1, 2, 3]);
+
+            const c5 = collect({ a: 1, b: 2, c: 3, d: null, e: false, f: "", g: 0, h: [], i: {} });
+            expect(c5.filter().all()).toEqual({ a: 1, b: 2, c: 3 });
+        });
+
         it("filters array with callback", () => {
             const collection = collect([1, 2, 3, 4]);
             const filtered = collection.filter((x) => x > 2);
