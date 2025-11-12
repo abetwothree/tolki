@@ -1250,6 +1250,23 @@ describe("Collection", () => {
         });
     });
 
+    describe("flip", () => {
+        it("Laravel Test", () => {
+            const data = collect({ name: "taylor", framework: "laravel" });
+            expect(data.flip().all()).toEqual({
+                taylor: "name",
+                laravel: "framework",
+            });
+
+            const data2 = collect(["apple", "banana", "orange"]);
+            expect(data2.flip().all()).toEqual({
+                apple: 0,
+                banana: 1,
+                orange: 2,
+            });
+        });
+    });
+
     describe("isEmpty", () => {
         it("returns true for empty array collection", () => {
             const collection = collect([]);

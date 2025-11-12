@@ -4595,13 +4595,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     protected recursivelyConvertCollections<T, K = PropertyKey>(
         data: T[] | Record<K, T> | Collection<T, K>,
-    ) {
+    ): T[] | Record<K, T> {
         if (data instanceof Collection) {
             return this.recursivelyConvertCollections(data.all());
         }
 
         if (isArray(data)) {
-            return data.map((item) => this.recursivelyConvertCollections(item));
+            return data.map((item) => this.recursivelyConvertCollections(item)) as T[];
         }
 
         if (isObject(data)) {
@@ -4609,10 +4609,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             for (const [key, value] of Object.entries(data)) {
                 result[key] = this.recursivelyConvertCollections(value);
             }
-            return result;
+            return result as Record<K, T>;
         }
 
-        return data;
+        return data as T[] | Record<K, T>;
     }
 
     /**
