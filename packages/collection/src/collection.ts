@@ -1053,13 +1053,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param groupByValue - The key to group by, a callback function, or an array of keys/callbacks for nested grouping
      * @param preserveKeys - Whether to preserve the original keys in the grouped collections
      * @returns A new collection with grouped items
-     *
-     * @example
-     *
-     * new Collection([{age: 20}, {age: 30}]).groupBy('age'); -> new Collection({20: Collection([{age: 20}]), 30: Collection([{age: 30}])})
-     * new Collection([{age: 20}, {age: 30}, {age: 20}]).groupBy('age', true); -> new Collection({20: Collection({0: {age: 20}, 2: {age: 20}}), 30: Collection({1: {age: 30}})})
-     * new Collection([{name: 'Alice', age: 20}, {name: 'Bob', age: 30}, {name: 'Charlie', age: 20}]).groupBy(['age', 'name']); -> new Collection({20: Collection({'Alice': Collection([{name: 'Alice', age: 20}]), 'Charlie': Collection([{name: 'Charlie', age: 20}])}), 30: Collection({'Bob': Collection([{name: 'Bob', age: 30}])})})
-     * new Collection([{name: 'Alice', age: 20}, {name: 'Bob', age: 30}, {name: 'Charlie', age: 20}]).groupBy([item => item.age, 'name'], true); -> new Collection({20: Collection({'0': Collection({0: {name: 'Alice', age: 20}}), '2': Collection({2: {name: 'Charlie', age: 20}})}), 30: Collection({'1': Collection({1: {name: 'Bob', age: 30}})})})
      */
     groupBy<TGroupKey extends TKey = TKey>(
         groupByValue:
@@ -1069,7 +1062,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         preserveKeys: boolean = false,
     ): Collection<Collection<TValue, TKey>, TGroupKey> {
         let nextGroups: TGroupKey[] | null = null;
-        
+
         if (!isFunction(groupByValue) && isArray(groupByValue)) {
             nextGroups = groupByValue;
 
