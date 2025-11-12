@@ -1064,11 +1064,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
     groupBy<TGroupKey extends TKey = TKey>(
         groupByValue:
             | ((value: TValue, index: TKey) => TGroupKey)
-            | ArrayItems<TGroupKey>
+            | TGroupKey[]
             | PathKey,
         preserveKeys: boolean = false,
     ): Collection<Collection<TValue, TKey>, TGroupKey> {
-        let nextGroups: ArrayItems<TGroupKey> | null = null;
+        let nextGroups: TGroupKey[] | null = null;
+        
         if (!isFunction(groupByValue) && isArray(groupByValue)) {
             nextGroups = groupByValue;
 
@@ -1100,6 +1101,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 return String(groupKey);
             }
 
+            // Handle stringable objects (objects with toString method)
+            // Check if it's an object/function with a toString method
+            if (
+                (isObject(groupKey) || isFunction(groupKey)) &&
+                isFunction((groupKey as Record<string, unknown>).toString)
+            ) {
+                const stringValue = String(groupKey);
+                // Only use toString if it's not the default [object Object]
+                if (stringValue !== "[object Object]") {
+                    return stringValue;
+                }
+            }
+
             if (isObject(groupKey) || isArray(groupKey)) {
                 return JSON.stringify(groupKey);
             }
@@ -1128,7 +1142,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
-        const result = new Collection(results);
+        // Convert inner collections to arrays/objects to match Laravel's toArray() behavior
+        const convertedResults = {} as Record<
+            TGroupKey,
+            TValue[] | Record<TKey, TValue>
+        >;
+        for (const [groupKey, collection] of Object.entries(results)) {
+            convertedResults[groupKey as TGroupKey] = collection.all() as
+                | TValue[]
+                | Record<TKey, TValue>;
+        }
+
+        const result = new Collection(convertedResults);
 
         if (isArray(nextGroups) && nextGroups.length > 0) {
             return result.map((group: Collection<TValue, TKey>) => {

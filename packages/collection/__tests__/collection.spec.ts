@@ -1,6 +1,7 @@
 import { collect, Collection } from "@laravel-js/collection";
 import object from "lodash-es/object";
 import { assertType, describe, expect, it } from "vitest";
+import { Stringable } from "@laravel-js/str";
 
 // Case-insensitive string comparison (like PHP's strcasecmp)
 // Returns true if items are equal (should be excluded from diff)
@@ -1332,6 +1333,96 @@ describe("Collection", () => {
                 const data2 = collect({ 0: "taylor", "": "shawn" });
                 expect(data2.getOrPut(null, "dayle")).toBe("shawn");
                 expect(data2.all()).toEqual({ 0: "taylor", "": "shawn" });
+            });
+        });
+    });
+
+    describe("groupBy", () => {
+        describe("Laravel Tests", () => {
+            it("test group by attribute", () => {
+                const data = collect([
+                    { rating: 1, url: "1" },
+                    { rating: 1, url: "1" },
+                    { rating: 2, url: "2" },
+                ]);
+
+                const resultByRating = data.groupBy("rating");
+                expect(resultByRating.all()).toEqual({
+                    1: [
+                        { rating: 1, url: "1" },
+                        { rating: 1, url: "1" },
+                    ],
+                    2: [{ rating: 2, url: "2" }],
+                });
+
+                const resultByUrl = data.groupBy("url");
+                expect(resultByUrl.all()).toEqual({
+                    1: [
+                        { rating: 1, url: "1" },
+                        { rating: 1, url: "1" },
+                    ],
+                    2: [{ rating: 2, url: "2" }],
+                });
+            });
+
+            it("test group by attribute with stringable key", () => {
+                const payload = [
+                    { name: new Stringable("Laravel"), url: "1" },
+                    { name: new Stringable("Laravel"), url: "1" },
+                    {
+                        name: {
+                            toString(): string {
+                                return "Framework";
+                            },
+                        },
+                        url: "2",
+                    },
+                ];
+                const data = collect(payload);
+
+                const resultByName = data.groupBy("name");
+                expect(resultByName.all()).toEqual({
+                    Laravel: [
+                        payload[0],
+                        payload[1],
+                    ],
+                    Framework: [payload[2]],
+                });
+
+                const resultByUrl = data.groupBy("url");
+                expect(resultByUrl.all()).toEqual({
+                    1: [
+                        payload[0],
+                        payload[1],
+                    ],
+                    2: [payload[2]],
+                });
+            });
+
+            it("test group by callable", () => {
+                const data = collect([
+                    { rating: 1, url: "1" },
+                    { rating: 1, url: "1" },
+                    { rating: 2, url: "2" },
+                ]);
+
+                const resultByRating = data.groupBy((item) => item.rating);
+                expect(resultByRating.all()).toEqual({
+                    1: [
+                        { rating: 1, url: "1" },
+                        { rating: 1, url: "1" },
+                    ],
+                    2: [{ rating: 2, url: "2" }],
+                });
+
+                const resultByUrl = data.groupBy((item) => item.url);
+                expect(resultByUrl.all()).toEqual({
+                    1: [
+                        { rating: 1, url: "1" },
+                        { rating: 1, url: "1" },
+                    ],
+                    2: [{ rating: 2, url: "2" }],
+                });
             });
         });
     });
