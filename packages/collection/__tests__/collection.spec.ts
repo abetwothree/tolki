@@ -1424,6 +1424,18 @@ describe("Collection", () => {
                     2: [{ rating: 2, url: "2" }],
                 });
             });
+
+            it("test group by attribute preserving keys", () => {});
+
+            it("test group by closure where items have single group", () => {});
+
+            it("test group by closure where items have single group preserving keys", () => {});
+
+            it("test group by closure where items have multiple groups", () => {});
+
+            it("test group by closure where items have multiple groups preserving keys", () => {});
+
+            it("test group by multi-level and closure preserving keys", () => {});
         });
     });
 
