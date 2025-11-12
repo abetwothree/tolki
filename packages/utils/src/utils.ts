@@ -698,13 +698,13 @@ export function looseEqual(a: unknown, b: unknown): boolean {
         if (a.length !== b.length) {
             return false;
         }
-        
+
         for (let i = 0; i < a.length; i++) {
             if (!looseEqual(a[i], b[i])) {
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -794,9 +794,11 @@ export function strictEqual(a: unknown, b: unknown): boolean {
     ) {
         // Check if these are plain objects (constructor is Object)
         // If they're class instances, they should only match by reference (already failed above)
-        const isPlainA = a.constructor === Object || a.constructor === undefined;
-        const isPlainB = b.constructor === Object || b.constructor === undefined;
-        
+        const isPlainA =
+            a.constructor === Object || a.constructor === undefined;
+        const isPlainB =
+            b.constructor === Object || b.constructor === undefined;
+
         if (!isPlainA || !isPlainB) {
             // At least one is a class instance, use reference equality (already failed)
             return false;

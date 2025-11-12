@@ -824,46 +824,86 @@ describe("Collection", () => {
             it("test duplicates", () => {
                 // Keys are preserved! Returns duplicate items with their original indices
                 // Laravel: [2 => 1, 5 => 'laravel', 7 => null]
-                const c = collect([1, 2, 1, 'laravel', null, 'laravel', 'php', null]).duplicates().all();
-                expect(c).toEqual({2: 1, 5: 'laravel', 7: null});
+                const c = collect([
+                    1,
+                    2,
+                    1,
+                    "laravel",
+                    null,
+                    "laravel",
+                    "php",
+                    null,
+                ])
+                    .duplicates()
+                    .all();
+                expect(c).toEqual({ 2: 1, 5: "laravel", 7: null });
 
                 // does loose comparison
                 // Laravel: [1 => '2', 3 => null]
-                const d = collect([2, '2', [], null]).duplicates().all();
-                expect(d).toEqual({1: '2', 3: null});
+                const d = collect([2, "2", [], null]).duplicates().all();
+                expect(d).toEqual({ 1: "2", 3: null });
 
                 // works with mix of primitives
                 // Laravel: [3 => ['laravel'], 5 => '2']
-                const e = collect([1, '2', ['laravel'], ['laravel'], null, '2']).duplicates().all();
-                expect(e).toEqual({3: ['laravel'], 5: '2'});
+                const e = collect([1, "2", ["laravel"], ["laravel"], null, "2"])
+                    .duplicates()
+                    .all();
+                expect(e).toEqual({ 3: ["laravel"], 5: "2" });
 
                 // works with mix of objects and primitives **excepts numbers**.
                 // Laravel: [1 => $expected, 2 => $expected, 5 => '2']
-                const expected = collect(['laravel']);
-                const duplicates = collect([collect(['laravel']), expected, expected, [], '2', '2']).duplicates().all();
-                expect(duplicates).toEqual({1: expected, 2: expected, 5: '2'});
+                const expected = collect(["laravel"]);
+                const duplicates = collect([
+                    collect(["laravel"]),
+                    expected,
+                    expected,
+                    [],
+                    "2",
+                    "2",
+                ])
+                    .duplicates()
+                    .all();
+                expect(duplicates).toEqual({
+                    1: expected,
+                    2: expected,
+                    5: "2",
+                });
             });
 
             it("test duplicates with keys", () => {
                 // When using a key, Laravel returns the VALUES (not the full objects) at duplicate indices
                 // Laravel: [2 => 'laravel']
-                const items = [{ framework: 'vue' }, { framework: 'laravel' }, { framework: 'laravel' }];
-                const c = collect(items).duplicates('framework').all();
-                expect(c).toEqual({2: 'laravel'});
+                const items = [
+                    { framework: "vue" },
+                    { framework: "laravel" },
+                    { framework: "laravel" },
+                ];
+                const c = collect(items).duplicates("framework").all();
+                expect(c).toEqual({ 2: "laravel" });
 
                 // works with key and strict
                 // Laravel: [2 => 'vue']
-                const items2 = [{ Framework: 'vue' }, { framework: 'vue' }, { Framework: 'vue' }];
-                const d = collect(items2).duplicates('Framework', true).all();
-                expect(d).toEqual({2: 'vue'});
+                const items2 = [
+                    { Framework: "vue" },
+                    { framework: "vue" },
+                    { Framework: "vue" },
+                ];
+                const d = collect(items2).duplicates("Framework", true).all();
+                expect(d).toEqual({ 2: "vue" });
             });
 
             it("test duplicates with callback", () => {
                 // When using a callback, Laravel returns the CALLBACK RESULT (not the full objects) at duplicate indices
                 // Laravel: [2 => 'laravel']
-                const items = [{ framework: 'vue' }, { framework: 'laravel' }, { framework: 'laravel' }];
-                const c = collect(items).duplicates((item) => item.framework).all();
-                expect(c).toEqual({2: 'laravel'});
+                const items = [
+                    { framework: "vue" },
+                    { framework: "laravel" },
+                    { framework: "laravel" },
+                ];
+                const c = collect(items)
+                    .duplicates((item) => item.framework)
+                    .all();
+                expect(c).toEqual({ 2: "laravel" });
             });
         });
     });
@@ -871,68 +911,122 @@ describe("Collection", () => {
     describe("duplicatesStrict", () => {
         it("Laravel Tests", () => {
             // Laravel: [2 => 1, 5 => 'laravel', 7 => null]
-            const c = collect([1, 2, 1, 'laravel', null, 'laravel', 'php', null]).duplicatesStrict().all();
-            expect(c).toEqual({2: 1, 5: 'laravel', 7: null});
+            const c = collect([
+                1,
+                2,
+                1,
+                "laravel",
+                null,
+                "laravel",
+                "php",
+                null,
+            ])
+                .duplicatesStrict()
+                .all();
+            expect(c).toEqual({ 2: 1, 5: "laravel", 7: null });
 
             // does strict comparison
             // Laravel: []
-            const d = collect([2, '2', [], null]).duplicatesStrict().all();
+            const d = collect([2, "2", [], null]).duplicatesStrict().all();
             expect(d).toEqual({});
 
             // works with mix of primitives
             // Laravel: [3 => ['laravel'], 5 => '2']
-            const e = collect([1, '2', ['laravel'], ['laravel'], null, '2']).duplicatesStrict().all();
-            expect(e).toEqual({3: ['laravel'], 5: '2'});
+            const e = collect([1, "2", ["laravel"], ["laravel"], null, "2"])
+                .duplicatesStrict()
+                .all();
+            expect(e).toEqual({ 3: ["laravel"], 5: "2" });
 
             // works with mix of primitives, objects, and numbers
             // Laravel: [2 => $expected, 5 => '2']
-            const expected = collect(['laravel']);
-            const duplicates = collect([collect(['laravel']), expected, expected, [], '2', '2']).duplicatesStrict().all();
-            expect(duplicates).toEqual({2: expected, 5: '2'});
+            const expected = collect(["laravel"]);
+            const duplicates = collect([
+                collect(["laravel"]),
+                expected,
+                expected,
+                [],
+                "2",
+                "2",
+            ])
+                .duplicatesStrict()
+                .all();
+            expect(duplicates).toEqual({ 2: expected, 5: "2" });
         });
     });
 
     describe("except", () => {
         it("Laravel Tests", () => {
-            const data = collect({ first: 'Taylor', last: 'Otwell', email: 'taylorotwell@gmail.com' });
+            const data = collect({
+                first: "Taylor",
+                last: "Otwell",
+                email: "taylorotwell@gmail.com",
+            });
 
             expect(data.except(null).all()).toEqual(data.all());
-            expect(data.except(['last', 'email', 'missing']).all()).toEqual({ first: 'Taylor' }); 
-            expect(data.except('last', 'email', 'missing').all()).toEqual({ first: 'Taylor' });
-            expect(data.except(collect(['last', 'email', 'missing'])).all()).toEqual({ first: 'Taylor' });
-            
-            expect(data.except(['last']).all()).toEqual({ first: 'Taylor', email: 'taylorotwell@gmail.com' });
-            expect(data.except('last').all()).toEqual({ first: 'Taylor', email: 'taylorotwell@gmail.com' });
-            expect(data.except(collect(['last'])).all()).toEqual({ first: 'Taylor', email: 'taylorotwell@gmail.com' });
-            
-            const data2 = collect({ first: 'Taylor', last: 'Otwell' });
-            expect(data2.except(data2).all()).toEqual({ first: 'Taylor', last: 'Otwell' });
+            expect(data.except(["last", "email", "missing"]).all()).toEqual({
+                first: "Taylor",
+            });
+            expect(data.except("last", "email", "missing").all()).toEqual({
+                first: "Taylor",
+            });
+            expect(
+                data.except(collect(["last", "email", "missing"])).all(),
+            ).toEqual({ first: "Taylor" });
+
+            expect(data.except(["last"]).all()).toEqual({
+                first: "Taylor",
+                email: "taylorotwell@gmail.com",
+            });
+            expect(data.except("last").all()).toEqual({
+                first: "Taylor",
+                email: "taylorotwell@gmail.com",
+            });
+            expect(data.except(collect(["last"])).all()).toEqual({
+                first: "Taylor",
+                email: "taylorotwell@gmail.com",
+            });
+
+            const data2 = collect({ first: "Taylor", last: "Otwell" });
+            expect(data2.except(data2).all()).toEqual({
+                first: "Taylor",
+                last: "Otwell",
+            });
         });
     });
 
     describe("filter", () => {
         it("Laravel Tests", () => {
-            const c = collect([{ id: 1, name: "Hello" }, { id: 2, name: "World" }]);
-            expect(
-                c
-                    .filter((item) => item.id === 2)
-                    .all(),
-            ).toEqual([{ id: 2, name: "World" }]);
+            const c = collect([
+                { id: 1, name: "Hello" },
+                { id: 2, name: "World" },
+            ]);
+            expect(c.filter((item) => item.id === 2).all()).toEqual([
+                { id: 2, name: "World" },
+            ]);
 
             const c2 = collect(["", "Hello", "", "World"]);
             expect(c2.filter().values().toArray()).toEqual(["Hello", "World"]);
 
             const c3 = collect({ id: 1, first: "Hello", second: "World" });
-            expect(
-                c3
-                    .filter((item, key) => key !== "id")
-                    .all(),
-            ).toEqual({ first: "Hello", second: "World" });
+            expect(c3.filter((item, key) => key !== "id").all()).toEqual({
+                first: "Hello",
+                second: "World",
+            });
 
             const c4 = collect([1, 2, 3, null, false, "", 0, [], {}]);
             expect(c4.filter().all()).toEqual([1, 2, 3]);
 
-            const c5 = collect({ a: 1, b: 2, c: 3, d: null, e: false, f: "", g: 0, h: [], i: {} });
+            const c5 = collect({
+                a: 1,
+                b: 2,
+                c: 3,
+                d: null,
+                e: false,
+                f: "",
+                g: 0,
+                h: [],
+                i: {},
+            });
             expect(c5.filter().all()).toEqual({ a: 1, b: 2, c: 3 });
         });
 
@@ -987,12 +1081,9 @@ describe("Collection", () => {
             it("test first with callback and default", () => {
                 const c = collect(["foo", "bar"]);
                 expect(
-                    c.first(
-                        (value) => {
-                            return value === "baz";
-                        },
-                        "default",
-                    ),
+                    c.first((value) => {
+                        return value === "baz";
+                    }, "default"),
                 ).toBe("default");
             });
 
@@ -1000,8 +1091,8 @@ describe("Collection", () => {
                 const c = collect();
                 expect(c.first(null, "default")).toBe("default");
 
-                const d = collect(['foo', 'bar']);
-                expect(d.first(null, 'default')).toBe('foo');
+                const d = collect(["foo", "bar"]);
+                expect(d.first(null, "default")).toBe("foo");
             });
         });
 

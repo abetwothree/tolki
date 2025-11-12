@@ -2838,7 +2838,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             // For non-strict mode without a key, we need to do loose comparison
             // We can't use Set because it uses SameValueZero (strict comparison)
             const seen: unknown[] = [];
-            
+
             return new Collection(
                 dataFilter(this.items, (value) => {
                     // Check if we've seen this value using loose comparison
@@ -2847,7 +2847,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                             return false;
                         }
                     }
-                    
+
                     seen.push(value);
                     return true;
                 }),
@@ -2862,18 +2862,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
             // For strict mode, use strictEqual for PHP-like strict comparison
             // This does deep comparison for arrays/objects but strict type checking for primitives
             const seen: unknown[] = [];
-            
+
             return new Collection(
                 dataFilter(this.items, (value, key) => {
                     const result = callback(value, key as TKey);
-                    
+
                     // Check if we've seen this result using strict comparison
                     for (const seenValue of seen) {
                         if (strictEqual(result, seenValue)) {
                             return false;
                         }
                     }
-                    
+
                     seen.push(result);
                     return true;
                 }),
@@ -2881,18 +2881,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
         } else {
             // For non-strict mode with a key/callback, use loose comparison
             const seen: unknown[] = [];
-            
+
             return new Collection(
                 dataFilter(this.items, (value, key) => {
                     const result = callback(value, key as TKey);
-                    
+
                     // Check if we've seen this result using loose comparison
                     for (const seenValue of seen) {
                         if (looseEqual(result, seenValue)) {
                             return false;
                         }
                     }
-                    
+
                     seen.push(result);
                     return true;
                 }),
