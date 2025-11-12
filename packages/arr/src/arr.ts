@@ -733,6 +733,21 @@ export function flatten<TValue>(
     const result: TValue[] = [];
 
     for (const item of data) {
+        // Convert objects to arrays of their values (ignoring keys)
+        // This matches Laravel's behavior where associative arrays are flattened to just values
+        if (isObject(item)) {
+            const objectValues = Object.values(item);
+            const values =
+                depth === 1
+                    ? objectValues
+                    : flatten(objectValues as ArrayItems<unknown>, depth - 1);
+
+            for (const value of values) {
+                result.push(value as TValue);
+            }
+            continue;
+        }
+
         if (!isArray(item)) {
             result.push(item);
             continue;

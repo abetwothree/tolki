@@ -935,7 +935,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     flatten(depth: number = Infinity) {
         return new Collection(
-            dataFlatten(this.recursivelyConvertCollections(this.items), depth) as DataItems<TValue, TKey>,
+            dataFlatten(
+                this.recursivelyConvertCollections(this.items),
+                depth,
+            ) as DataItems<TValue, TKey>,
         );
     }
 
@@ -4570,12 +4573,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Get the raw values of all items. 
-     * Basically, if an item is a collection, get the underlying raw items. 
+     * Get the raw values of all items.
+     * Basically, if an item is a collection, get the underlying raw items.
      */
     protected itemsToRawValues() {
         return dataMap(this.items, (item) => {
-            if(item instanceof Collection){
+            if (item instanceof Collection) {
                 return item.all();
             }
 
@@ -4590,7 +4593,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param data - The data to convert
      * @returns The data with all Collection instances converted to raw values
      */
-    protected recursivelyConvertCollections(data: unknown) {
+    protected recursivelyConvertCollections<T, K = PropertyKey>(
+        data: T[] | Record<K, T> | Collection<T, K>,
+    ) {
         if (data instanceof Collection) {
             return this.recursivelyConvertCollections(data.all());
         }

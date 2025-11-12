@@ -428,6 +428,14 @@ describe("Data", () => {
         it("is array", () => {
             const result = Data.dataFlatten([["#foo", ["#bar"]], ["#baz"]]);
             expect(result).toEqual(["#foo", "#bar", "#baz"]);
+
+            const result2 = ["#foo", { key: "#bar" }, { key: "#baz" }, "#zap"];
+            expect(Data.dataFlatten(result2, 1)).toEqual([
+                "#foo",
+                "#bar",
+                "#baz",
+                "#zap",
+            ]);
         });
     });
 
