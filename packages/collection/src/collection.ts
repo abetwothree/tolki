@@ -1072,7 +1072,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             nextGroups = [...groupByValue];
 
             const shiftedValue = nextGroups.shift();
-            
+
             if (isUndefined(shiftedValue)) {
                 throw new Error(
                     "groupBy requires at least one callback or key",
@@ -1238,9 +1238,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).has(['a', 'b']); -> true
      * new Collection({a: 1, b: 2, c: 3}).has(['a', 'd']); -> false
      */
-    has(
-        ...keys: PathKey[] | PathKeys[]
-    ): boolean {
+    has(...keys: PathKey[] | PathKeys[]): boolean {
         if (keys.length > 1) {
             return dataHasAll(this.items, keys.flat() as PathKeys);
         }
@@ -1260,9 +1258,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).hasAny(['a', 'd']); -> true
      * new Collection({a: 1, b: 2, c: 3}).hasAny(['d', 'e']); -> false
      */
-    hasAny(
-        ...keys: PathKey[] | PathKeys[]
-    ) {
+    hasAny(...keys: PathKey[] | PathKeys[]) {
         if (this.isEmpty()) {
             return false;
         }
@@ -1284,35 +1280,55 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{name: 'John'}, {name: 'Jane'}]).implode('name', ', '); -> 'John, Jane'
      * new Collection({a: {name: 'John'}, b: {name: 'Jane'}}).implode(item => item.name.toUpperCase(), ' - '); -> 'JOHN - JANE'
      */
-    implode(
-        value: ((item: TValue, key: TKey) => unknown) | string | null = null,
+    implode<TReturnValue>(
+        value: ((item: TValue, key: TKey) => TReturnValu) | string | null = null,
         glue: string | null = null,
     ) {
-        const joinItems = (items: Array<unknown> | Record<string, unknown>) => {
-            if (isArray(items)) {
-                return items.join(glue ?? "");
+        const convertToString = (item: unknown): string => {
+            if (objectToString(item)) {
+                return item.toString();
             }
 
-            return Object.values(items).join(glue ?? "");
+            return String(item);
+        };
+
+        const joinItems = (
+            items: Array<unknown> | Record<string, unknown>,
+            separator: string | null,
+        ) => {
+            const values = isArray(items) ? items : Object.values(items);
+            const stringValues = values.map(convertToString);
+
+            return stringValues.join(separator ?? "");
         };
 
         if (isFunction(value)) {
             const items = this.map(value).all();
 
-            return joinItems(items);
+            return joinItems(items, glue);
         }
 
         const first = this.first();
 
         if (!isNull(value)) {
-            if (isArray(first) || (isObject(first) && !isStringable(first))) {
+            // Check if we should pluck: first item is an array or a plain object
+            // Note: We check isArray first, then isObject. For objects, we want to pluck
+            // unless they are Stringable objects (which have custom toString).
+            // Plain objects inherit toString from Object.prototype, so we need to check
+            // if toString is a custom method or the inherited one.
+            if (
+                isArray(first) ||
+                (isObject(first) && first.constructor === Object)
+            ) {
                 const items = this.pluck(value).all();
 
-                return joinItems(items);
+                return joinItems(items, glue);
             }
         }
 
-        return joinItems(this.all());
+        // When dealing with simple values (strings, numbers, etc.),
+        // the value parameter becomes the glue
+        return joinItems(this.all(), value);
     }
 
     /**

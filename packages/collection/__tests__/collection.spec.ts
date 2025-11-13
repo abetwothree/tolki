@@ -1641,10 +1641,7 @@ describe("Collection", () => {
             const grouped = collection.groupBy("tags");
             expect(grouped.all()).toEqual({
                 tag1: [{ tags: ["tag1", "tag2"] }],
-                tag2: [
-                    { tags: ["tag1", "tag2"] },
-                    { tags: ["tag2", "tag3"] },
-                ],
+                tag2: [{ tags: ["tag1", "tag2"] }, { tags: ["tag2", "tag3"] }],
                 tag3: [{ tags: ["tag2", "tag3"] }],
             });
         });
@@ -1666,7 +1663,9 @@ describe("Collection", () => {
                     3: { rating: 3, name: "3" },
                 });
 
-                const resultByDoubleRating = data.keyBy((item) => item.rating * 2);
+                const resultByDoubleRating = data.keyBy(
+                    (item) => item.rating * 2,
+                );
                 expect(resultByDoubleRating.all()).toEqual({
                     2: { rating: 1, name: "1" },
                     4: { rating: 2, name: "2" },
@@ -1725,25 +1724,22 @@ describe("Collection", () => {
 
         it("resolved key is object", () => {
             const collection = collect([
-                { id: {name: "John"} },
-                { id: {name: "Jane"} },
+                { id: { name: "John" } },
+                { id: { name: "Jane" } },
             ]);
             const keyed = collection.keyBy((item) => item.id);
             expect(keyed.all()).toEqual({
-                '{"name":"John"}': { id: {name: "John"} },
-                '{"name":"Jane"}': { id: {name: "Jane"} },
+                '{"name":"John"}': { id: { name: "John" } },
+                '{"name":"Jane"}': { id: { name: "Jane" } },
             });
         });
 
         it("resolved key is array", () => {
-            const collection = collect([
-                { id: [1, 2] },
-                { id: [3, 4] },
-            ]);
+            const collection = collect([{ id: [1, 2] }, { id: [3, 4] }]);
             const keyed = collection.keyBy((item) => item.id);
             expect(keyed.all()).toEqual({
-                '1.2': { id: [1, 2] },
-                '3.4': { id: [3, 4] },
+                "1.2": { id: [1, 2] },
+                "3.4": { id: [3, 4] },
             });
         });
     });
@@ -1800,7 +1796,56 @@ describe("Collection", () => {
             expect(collect().hasAny("key", "any", [0, 1], "test")).toBe(false);
         });
     });
-    
+
+    describe("implode", () => {
+        describe("Laravel Tests", () => {
+            it("test implode", () => {
+                const data = collect([
+                    { name: "taylor", email: "foo" },
+                    { name: "dayle", email: "bar" },
+                ]);
+                expect(data.implode("email")).toBe("foobar");
+                expect(data.implode("email", ",")).toBe("foo,bar");
+
+                const data2 = collect(["taylor", "dayle"]);
+                expect(data2.implode("")).toBe("taylordayle");
+                expect(data2.implode(",")).toBe("taylor,dayle");
+
+                const data3 = collect([
+                    {
+                        name: new Stringable("taylor"),
+                        email: new Stringable("foo"),
+                    },
+                    {
+                        name: new Stringable("dayle"),
+                        email: new Stringable("bar"),
+                    },
+                ]);
+                expect(data3.implode("email")).toBe("foobar");
+                expect(data3.implode("email", ",")).toBe("foo,bar");
+
+                const data4 = collect([
+                    new Stringable("taylor"),
+                    new Stringable("dayle"),
+                ]);
+                expect(data4.implode("")).toBe("taylordayle");
+                expect(data4.implode(",")).toBe("taylor,dayle");
+                expect(data4.implode("_")).toBe("taylor_dayle");
+
+                const data5 = collect([
+                    { name: "taylor", email: "foo" },
+                    { name: "dayle", email: "bar" },
+                ]);
+                expect(
+                    data5.implode((user) => `${user.name}-${user.email}`),
+                ).toBe("taylor-foodayle-bar");
+                expect(
+                    data5.implode((user) => `${user.name}-${user.email}`, ","),
+                ).toBe("taylor-foo,dayle-bar");
+            });
+        });
+    });
+
     describe("isEmpty", () => {
         it("returns true for empty array collection", () => {
             const collection = collect([]);
