@@ -1748,6 +1748,59 @@ describe("Collection", () => {
         });
     });
 
+    describe("has", () => {
+        it("Laravel Tests", () => {
+            const data = collect({ id: 1, first: "Hello", second: "World" });
+            expect(data.has("first")).toBe(true);
+            expect(data.has("third")).toBe(false);
+            expect(data.has(["first", "second"])).toBe(true);
+            expect(data.has(["third", "first"])).toBe(false);
+            expect(data.has("first", "second")).toBe(true);
+        });
+
+        it("checks if key exists in object", () => {
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            expect(collection.has("a")).toBe(true);
+            expect(collection.has("d")).toBe(false);
+        });
+
+        it("checks if index exists in array", () => {
+            const collection = collect([1, 2, 3]);
+            expect(collection.has(0)).toBe(true);
+            expect(collection.has(5)).toBe(false);
+        });
+
+        it("checks multiple keys in object", () => {
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            expect(collection.has(["a", "b"])).toBe(true);
+            expect(collection.has(["a", "d"])).toBe(false);
+        });
+
+        it("checks multiple indices in array", () => {
+            const collection = collect([1, 2, 3]);
+            expect(collection.has([0, 1])).toBe(true);
+            expect(collection.has([0, 5])).toBe(false);
+        });
+    });
+
+    describe("hasAny", () => {
+        it("Laravel Tests", () => {
+            const data = collect({ id: 1, first: "Hello", second: "World" });
+
+            expect(data.hasAny("first")).toBe(true);
+            expect(data.hasAny("third")).toBe(false);
+            expect(data.hasAny(["first", "second"])).toBe(true);
+            expect(data.hasAny(["first", "fourth"])).toBe(true);
+            expect(data.hasAny(["third", "fourth"])).toBe(false);
+            expect(data.hasAny("third", "fourth")).toBe(false);
+            expect(data.hasAny([])).toBe(false);
+        });
+
+        it("test has any if collection is empty", () => {
+            expect(collect().hasAny("key", "any", [0, 1], "test")).toBe(false);
+        });
+    });
+    
     describe("isEmpty", () => {
         it("returns true for empty array collection", () => {
             const collection = collect([]);
@@ -1905,32 +1958,6 @@ describe("Collection", () => {
         it("returns default for missing array index", () => {
             const collection = collect([1, 2, 3]);
             expect(collection.get(5, "default")).toBe("default");
-        });
-    });
-
-    describe("has", () => {
-        it("checks if key exists in object", () => {
-            const collection = collect({ a: 1, b: 2, c: 3 });
-            expect(collection.has("a")).toBe(true);
-            expect(collection.has("d")).toBe(false);
-        });
-
-        it("checks if index exists in array", () => {
-            const collection = collect([1, 2, 3]);
-            expect(collection.has(0)).toBe(true);
-            expect(collection.has(5)).toBe(false);
-        });
-
-        it("checks multiple keys in object", () => {
-            const collection = collect({ a: 1, b: 2, c: 3 });
-            expect(collection.has(["a", "b"])).toBe(true);
-            expect(collection.has(["a", "d"])).toBe(false);
-        });
-
-        it("checks multiple indices in array", () => {
-            const collection = collect([1, 2, 3]);
-            expect(collection.has([0, 1])).toBe(true);
-            expect(collection.has([0, 5])).toBe(false);
         });
     });
 });

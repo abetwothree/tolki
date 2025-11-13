@@ -1215,9 +1215,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 resolvedKey = JSON.stringify(resolvedKey.all()) as TNewKey;
             } else if (isObject(resolvedKey)) {
                 resolvedKey = JSON.stringify(resolvedKey) as TNewKey;
-            }
-
-            if (isArray(resolvedKey)) {
+            } else if (isArray(resolvedKey)) {
                 resolvedKey = resolvedKey.join(".") as TNewKey;
             }
 
@@ -1240,12 +1238,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).has(['a', 'b']); -> true
      * new Collection({a: 1, b: 2, c: 3}).has(['a', 'd']); -> false
      */
-    has(key: PathKeys): boolean {
-        if (isArray(key)) {
-            return dataHasAll(this.items, key);
+    has(
+        ...keys: PathKey[] | PathKeys[]
+    ): boolean {
+        if (keys.length > 1) {
+            return dataHasAll(this.items, keys.flat() as PathKeys);
         }
 
-        return dataHas(this.items, key);
+        return dataHas(this.items, keys[0]);
     }
 
     /**
@@ -1260,12 +1260,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).hasAny(['a', 'd']); -> true
      * new Collection({a: 1, b: 2, c: 3}).hasAny(['d', 'e']); -> false
      */
-    hasAny(key: PathKeys) {
+    hasAny(
+        ...keys: PathKey[] | PathKeys[]
+    ) {
         if (this.isEmpty()) {
             return false;
         }
 
-        return dataHasAny(this.items, key);
+        return dataHasAny(this.items, keys.flat() as PathKeys);
     }
 
     /**
