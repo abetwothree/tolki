@@ -1281,7 +1281,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: {name: 'John'}, b: {name: 'Jane'}}).implode(item => item.name.toUpperCase(), ' - '); -> 'JOHN - JANE'
      */
     implode<TReturnValue>(
-        value: ((item: TValue, key: TKey) => TReturnValu) | string | null = null,
+        value: ((item: TValue, key: TKey) => TReturnValue) | string | null = null,
         glue: string | null = null,
     ) {
         const convertToString = (item: unknown): string => {
