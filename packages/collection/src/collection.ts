@@ -1199,9 +1199,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
         )) {
-            let resolvedKey = keyByValueCallback(value as TValue, key as TKey);
+            let callbackKey: string | number = key;
 
-            if (isObject(resolvedKey)) {
+            if (isArray(this.items)) {
+                callbackKey = Number(key);
+            }
+
+            let resolvedKey = keyByValueCallback(
+                value as TValue,
+                callbackKey as TKey,
+            );
+
+            // Convert Collection instances to arrays before JSON stringifying
+            if (resolvedKey instanceof Collection) {
+                resolvedKey = JSON.stringify(resolvedKey.all()) as TNewKey;
+            } else if (isObject(resolvedKey)) {
                 resolvedKey = JSON.stringify(resolvedKey) as TNewKey;
             }
 

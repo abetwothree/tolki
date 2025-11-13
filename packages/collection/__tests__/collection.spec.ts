@@ -1650,6 +1650,114 @@ describe("Collection", () => {
         });
     });
 
+    describe("keyBy", () => {
+        describe("Laravel Tests", () => {
+            it("test key by attribute", () => {
+                // $data = new $collection([['rating' => 1, 'name' => '1'], ['rating' => 2, 'name' => '2'], ['rating' => 3, 'name' => '3']]);
+
+                // $result = $data->keyBy('rating');
+                // $this->assertEquals([1 => ['rating' => 1, 'name' => '1'], 2 => ['rating' => 2, 'name' => '2'], 3 => ['rating' => 3, 'name' => '3']], $result->all());
+
+                // $result = $data->keyBy(function ($item) {
+                //     return $item['rating'] * 2;
+                // });
+                // $this->assertEquals([2 => ['rating' => 1, 'name' => '1'], 4 => ['rating' => 2, 'name' => '2'], 6 => ['rating' => 3, 'name' => '3']], $result->all());
+
+                const data = collect([
+                    { rating: 1, name: "1" },
+                    { rating: 2, name: "2" },
+                    { rating: 3, name: "3" },
+                ]);
+
+                const resultByRating = data.keyBy("rating");
+                expect(resultByRating.all()).toEqual({
+                    1: { rating: 1, name: "1" },
+                    2: { rating: 2, name: "2" },
+                    3: { rating: 3, name: "3" },
+                });
+
+                const resultByDoubleRating = data.keyBy((item) => item.rating * 2);
+                expect(resultByDoubleRating.all()).toEqual({
+                    2: { rating: 1, name: "1" },
+                    4: { rating: 2, name: "2" },
+                    6: { rating: 3, name: "3" },
+                });
+            });
+
+            it("test key by closure", () => {
+                // $data = new $collection([
+                //     ['firstname' => 'Taylor', 'lastname' => 'Otwell', 'locale' => 'US'],
+                //     ['firstname' => 'Lucas', 'lastname' => 'Michot', 'locale' => 'FR'],
+                // ]);
+                // $result = $data->keyBy(function ($item, $key) {
+                //     return strtolower($key.'-'.$item['firstname'].$item['lastname']);
+                // });
+                // $this->assertEquals([
+                //     '0-taylorotwell' => ['firstname' => 'Taylor', 'lastname' => 'Otwell', 'locale' => 'US'],
+                //     '1-lucasmichot' => ['firstname' => 'Lucas', 'lastname' => 'Michot', 'locale' => 'FR'],
+                // ], $result->all());
+
+                const data = collect([
+                    { firstname: "Taylor", lastname: "Otwell", locale: "US" },
+                    { firstname: "Lucas", lastname: "Michot", locale: "FR" },
+                ]);
+
+                const result = data.keyBy((item, key) =>
+                    `${key}-${item.firstname}${item.lastname}`.toLowerCase(),
+                );
+
+                expect(result.all()).toEqual({
+                    "0-taylorotwell": {
+                        firstname: "Taylor",
+                        lastname: "Otwell",
+                        locale: "US",
+                    },
+                    "1-lucasmichot": {
+                        firstname: "Lucas",
+                        lastname: "Michot",
+                        locale: "FR",
+                    },
+                });
+            });
+
+            it("test key by object", () => {
+                // $data = new $collection([
+                //     ['firstname' => 'Taylor', 'lastname' => 'Otwell', 'locale' => 'US'],
+                //     ['firstname' => 'Lucas', 'lastname' => 'Michot', 'locale' => 'FR'],
+                // ]);
+                // $result = $data->keyBy(function ($item, $key) use ($collection) {
+                //     return new $collection([$key, $item['firstname'], $item['lastname']]);
+                // });
+                // $this->assertEquals([
+                //     '[0,"Taylor","Otwell"]' => ['firstname' => 'Taylor', 'lastname' => 'Otwell', 'locale' => 'US'],
+                //     '[1,"Lucas","Michot"]' => ['firstname' => 'Lucas', 'lastname' => 'Michot', 'locale' => 'FR'],
+                // ], $result->all());
+
+                const data = collect([
+                    { firstname: "Taylor", lastname: "Otwell", locale: "US" },
+                    { firstname: "Lucas", lastname: "Michot", locale: "FR" },
+                ]);
+
+                const result = data.keyBy((item, key) => {
+                    return collect([key, item.firstname, item.lastname]);
+                });
+
+                expect(result.all()).toEqual({
+                    '[0,"Taylor","Otwell"]': {
+                        firstname: "Taylor",
+                        lastname: "Otwell",
+                        locale: "US",
+                    },
+                    '[1,"Lucas","Michot"]': {
+                        firstname: "Lucas",
+                        lastname: "Michot",
+                        locale: "FR",
+                    },
+                });
+            });
+        });
+    });
+
     describe("isEmpty", () => {
         it("returns true for empty array collection", () => {
             const collection = collect([]);
