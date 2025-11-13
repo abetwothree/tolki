@@ -1096,15 +1096,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             // Handle stringable objects (objects with toString method)
             // Check if it's an object/function with a toString method
-            if (
-                (isObject(groupKey) || isFunction(groupKey)) &&
-                isFunction((groupKey as Record<string, unknown>).toString)
+            if (isObject(groupKey) && isFunction((groupKey as Record<string, unknown>).toString)
             ) {
-                const stringValue = String(groupKey);
-                // Only use toString if it's not the default [object Object]
-                if (stringValue !== "[object Object]") {
-                    return stringValue;
-                }
+                return groupKey.toString();
             }
 
             if (isObject(groupKey) || isArray(groupKey)) {
