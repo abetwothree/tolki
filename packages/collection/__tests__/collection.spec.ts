@@ -1,7 +1,7 @@
 import { collect, Collection } from "@laravel-js/collection";
+import { Stringable } from "@laravel-js/str";
 import object from "lodash-es/object";
 import { assertType, describe, expect, it } from "vitest";
-import { Stringable } from "@laravel-js/str";
 
 // Case-insensitive string comparison (like PHP's strcasecmp)
 // Returns true if items are equal (should be excluded from diff)
@@ -1274,14 +1274,14 @@ describe("Collection", () => {
                 const c = collect(["bar", "qux"]).forget(0).all();
                 expect(c).toEqual(["qux"]);
 
-                const d = collect({ foo: "bar", baz: "qux" }).forget("foo").all();
+                const d = collect({ foo: "bar", baz: "qux" })
+                    .forget("foo")
+                    .all();
                 expect(d).toEqual({ baz: "qux" });
             });
 
             it("test forget array of keys", () => {
-                const d = collect(["foo", "bar", "baz"])
-                    .forget([0, 2])
-                    .all();
+                const d = collect(["foo", "bar", "baz"]).forget([0, 2]).all();
                 expect(d).toEqual(["bar"]);
 
                 const c = collect({ name: "taylor", foo: "bar", baz: "qux" })
@@ -1299,7 +1299,7 @@ describe("Collection", () => {
                 const res2 = d.forget(collect(["foo", "baz"])).all();
                 expect(res2).toEqual({ name: "taylor" });
             });
-        })
+        });
     });
 
     describe("getOrPut", () => {
@@ -1328,7 +1328,12 @@ describe("Collection", () => {
                 const data = collect(["taylor", "shawn"]);
                 expect(data.getOrPut(null, "dayle")).toBe("dayle");
                 expect(data.getOrPut(null, "john")).toBe("john");
-                expect(data.all()).toEqual(["taylor", "shawn", "dayle", "john"]);
+                expect(data.all()).toEqual([
+                    "taylor",
+                    "shawn",
+                    "dayle",
+                    "john",
+                ]);
 
                 const data2 = collect({ 0: "taylor", "": "shawn" });
                 expect(data2.getOrPut(null, "dayle")).toBe("shawn");
@@ -1382,19 +1387,13 @@ describe("Collection", () => {
 
                 const resultByName = data.groupBy("name");
                 expect(resultByName.all()).toEqual({
-                    Laravel: [
-                        payload[0],
-                        payload[1],
-                    ],
+                    Laravel: [payload[0], payload[1]],
                     Framework: [payload[2]],
                 });
 
                 const resultByUrl = data.groupBy("url");
                 expect(resultByUrl.all()).toEqual({
-                    1: [
-                        payload[0],
-                        payload[1],
-                    ],
+                    1: [payload[0], payload[1]],
                     2: [payload[2]],
                 });
             });
@@ -1425,17 +1424,180 @@ describe("Collection", () => {
                 });
             });
 
-            it("test group by attribute preserving keys", () => {});
+            it("test group by attribute preserving keys", () => {
+                const data = collect({
+                    10: { rating: 1, url: "1" },
+                    20: { rating: 1, url: "1" },
+                    30: { rating: 2, url: "2" },
+                });
 
-            it("test group by closure where items have single group", () => {});
+                const result = data.groupBy("rating", true);
 
-            it("test group by closure where items have single group preserving keys", () => {});
+                const expected_result = {
+                    1: {
+                        10: { rating: 1, url: "1" },
+                        20: { rating: 1, url: "1" },
+                    },
+                    2: {
+                        30: { rating: 2, url: "2" },
+                    },
+                };
 
-            it("test group by closure where items have multiple groups", () => {});
+                expect(result.all()).toEqual(expected_result);
+            });
 
-            it("test group by closure where items have multiple groups preserving keys", () => {});
+            it("test group by closure where items have single group", () => {
+                const data = collect([
+                    { rating: 1, url: "1" },
+                    { rating: 1, url: "1" },
+                    { rating: 2, url: "2" },
+                ]);
 
-            it("test group by multi-level and closure preserving keys", () => {});
+                const result = data.groupBy((item) => item.rating);
+
+                const expected_result = {
+                    1: [
+                        { rating: 1, url: "1" },
+                        { rating: 1, url: "1" },
+                    ],
+                    2: [{ rating: 2, url: "2" }],
+                };
+
+                expect(result.all()).toEqual(expected_result);
+            });
+
+            it("test group by closure where items have single group preserving keys", () => {
+                const data = collect({
+                    10: { rating: 1, url: "1" },
+                    20: { rating: 1, url: "1" },
+                    30: { rating: 2, url: "2" },
+                });
+
+                const result = data.groupBy((item) => item.rating, true);
+
+                const expected_result = {
+                    1: {
+                        10: { rating: 1, url: "1" },
+                        20: { rating: 1, url: "1" },
+                    },
+                    2: {
+                        30: { rating: 2, url: "2" },
+                    },
+                };
+
+                expect(result.all()).toEqual(expected_result);
+            });
+
+            it("test group by closure where items have multiple groups", () => {
+                const data = collect([
+                    { user: 1, roles: ["Role_1", "Role_3"] },
+                    { user: 2, roles: ["Role_1", "Role_2"] },
+                    { user: 3, roles: ["Role_1"] },
+                ]);
+
+                const result = data.groupBy((item) => item.roles);
+
+                const expected_result = {
+                    Role_1: [
+                        { user: 1, roles: ["Role_1", "Role_3"] },
+                        { user: 2, roles: ["Role_1", "Role_2"] },
+                        { user: 3, roles: ["Role_1"] },
+                    ],
+                    Role_2: [{ user: 2, roles: ["Role_1", "Role_2"] }],
+                    Role_3: [{ user: 1, roles: ["Role_1", "Role_3"] }],
+                };
+
+                expect(result.all()).toEqual(expected_result);
+            });
+
+            it("test group by closure where items have multiple groups preserving keys", () => {
+                const data = collect({
+                    10: { user: 1, roles: ["Role_1", "Role_3"] },
+                    20: { user: 2, roles: ["Role_1", "Role_2"] },
+                    30: { user: 3, roles: ["Role_1"] },
+                });
+
+                const result = data.groupBy((item) => item.roles, true);
+
+                const expected_result = {
+                    Role_1: {
+                        10: { user: 1, roles: ["Role_1", "Role_3"] },
+                        20: { user: 2, roles: ["Role_1", "Role_2"] },
+                        30: { user: 3, roles: ["Role_1"] },
+                    },
+                    Role_2: {
+                        20: { user: 2, roles: ["Role_1", "Role_2"] },
+                    },
+                    Role_3: {
+                        10: { user: 1, roles: ["Role_1", "Role_3"] },
+                    },
+                };
+
+                expect(result.all()).toEqual(expected_result);
+            });
+
+            it("test group by multi-level and closure preserving keys", () => {
+                const data = collect({
+                    10: { user: 1, skilllevel: 1, roles: ["Role_1", "Role_3"] },
+                    20: { user: 2, skilllevel: 1, roles: ["Role_1", "Role_2"] },
+                    30: { user: 3, skilllevel: 2, roles: ["Role_1"] },
+                    40: { user: 4, skilllevel: 2, roles: ["Role_2"] },
+                });
+
+                const result = data.groupBy(
+                    ["skilllevel", (item) => item.roles],
+                    true,
+                );
+
+                const expected_result = {
+                    1: {
+                        Role_1: {
+                            10: {
+                                user: 1,
+                                skilllevel: 1,
+                                roles: ["Role_1", "Role_3"],
+                            },
+                            20: {
+                                user: 2,
+                                skilllevel: 1,
+                                roles: ["Role_1", "Role_2"],
+                            },
+                        },
+                        Role_3: {
+                            10: {
+                                user: 1,
+                                skilllevel: 1,
+                                roles: ["Role_1", "Role_3"],
+                            },
+                        },
+                        Role_2: {
+                            20: {
+                                user: 2,
+                                skilllevel: 1,
+                                roles: ["Role_1", "Role_2"],
+                            },
+                        },
+                    },
+                    2: {
+                        Role_1: {
+                            30: {
+                                user: 3,
+                                skilllevel: 2,
+                                roles: ["Role_1"],
+                            },
+                        },
+                        Role_2: {
+                            40: {
+                                user: 4,
+                                skilllevel: 2,
+                                roles: ["Role_2"],
+                            },
+                        },
+                    },
+                };
+
+                expect(result.all()).toEqual(expected_result);
+            });
         });
     });
 

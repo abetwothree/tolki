@@ -111,12 +111,17 @@ export function isStringable(
 
 /**
  * Check if a value is an object with a toString method.
- * 
+ *
  * @param value - The value to check
  * @returns True if the value is an object with a toString method
  */
-export function objectToString(value: unknown): value is { toString(): string } {
-    if (isObject(value) && isFunction((value as Record<string, unknown>).toString)) {
+export function objectToString(
+    value: unknown,
+): value is { toString(): string } {
+    if (
+        isObject(value) &&
+        isFunction((value as Record<string, unknown>).toString)
+    ) {
         return true;
     }
 

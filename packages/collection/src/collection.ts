@@ -141,7 +141,6 @@ import type {
     ProxyTarget,
 } from "@laravel-js/types";
 import {
-    objectToString,
     castableToArray,
     compareValues,
     getAccessibleValues,
@@ -167,6 +166,7 @@ import {
     isWeakSet,
     looseEqual,
     normalizeToArray,
+    objectToString,
     resolveDefault,
     strictEqual,
     toArrayable,
@@ -972,7 +972,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3, 4]).forget([0, 2]); -> new Collection([2, 4])
      * new Collection([1, 2, 3, 4]).forget(new Collection([0, 2])); -> new Collection([2, 4])
      */
-    forget<T, K extends PropertyKey = PropertyKey>(keys: PathKeys | Collection<T, K>) {
+    forget<T, K extends PropertyKey = PropertyKey>(
+        keys: PathKeys | Collection<T, K>,
+    ) {
         keys = this.getRawItems(keys) as PathKey[];
         this.items = dataForget(this.items, keys);
 
@@ -1042,7 +1044,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         if (isFunction(value)) {
             value = value();
         }
-        
+
         this.offsetSet(key as TKey | null, value);
 
         return value;
@@ -1059,13 +1061,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         groupByValue:
             | ((value: TValue, index: TKey) => TGroupKey)
             | TGroupKey[]
+            | TGroupKey
             | PathKey,
         preserveKeys: boolean = false,
     ): Collection<Collection<TValue, TKey>, TGroupKey> {
         let nextGroups: TGroupKey[] | null = null;
 
         if (!isFunction(groupByValue) && isArray(groupByValue)) {
-            nextGroups = groupByValue;
+            // Make a copy of the array so we don't mutate the original
+            nextGroups = [...groupByValue];
 
             const shiftedValue = nextGroups.shift();
             if (isUndefined(shiftedValue)) {
@@ -1085,6 +1089,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         ) as (value: TValue, key: TKey) => TGroupKey;
 
         const results = {} as Record<TGroupKey, Collection<TValue, TKey>>;
+
+        // Determine if we should use objects for grouped collections
+        // When preserving keys from an object collection, use objects
+        const useObjects = preserveKeys && isObject(this.items);
 
         const normalizeGroupKey = (groupKey: unknown) => {
             if (isBoolean(groupKey)) {
@@ -1119,7 +1127,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 groupKey = normalizeGroupKey(groupKey) as TGroupKey;
 
                 if (!results[groupKey]) {
-                    results[groupKey] = new Collection();
+                    results[groupKey] = useObjects
+                        ? new Collection({})
+                        : new Collection();
                 }
 
                 results[groupKey]!.offsetSet(
@@ -1129,7 +1139,32 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
+        const result = new Collection(results);
+
+        if (isArray(nextGroups) && nextGroups.length > 0) {
+            const nestedResult = result.map(
+                (group: Collection<TValue, TKey>) => {
+                    return group.groupBy(nextGroups, preserveKeys);
+                },
+            ) as unknown as Collection<Collection<TValue, TKey>, TGroupKey>;
+
+            // For nested groupBy, we also need to convert to arrays/objects
+            const nestedConvertedResults = {} as Record<
+                TGroupKey,
+                TValue[] | Record<TKey, TValue>
+            >;
+            for (const [groupKey, collection] of Object.entries(
+                nestedResult.items,
+            )) {
+                nestedConvertedResults[groupKey as TGroupKey] =
+                    collection.all() as TValue[] | Record<TKey, TValue>;
+            }
+
+            return new Collection(nestedConvertedResults);
+        }
+
         // Convert inner collections to arrays/objects to match Laravel's toArray() behavior
+        // This must be done AFTER nested groupBy to keep Collection instances during recursion
         const convertedResults = {} as Record<
             TGroupKey,
             TValue[] | Record<TKey, TValue>
@@ -1140,15 +1175,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 | Record<TKey, TValue>;
         }
 
-        const result = new Collection(convertedResults);
-
-        if (isArray(nextGroups) && nextGroups.length > 0) {
-            return result.map((group: Collection<TValue, TKey>) => {
-                return group.groupBy(nextGroups, preserveKeys);
-            }) as unknown as Collection<Collection<TValue, TKey>, TGroupKey>;
-        }
-
-        return result;
+        return new Collection(convertedResults);
     }
 
     /**
@@ -4610,7 +4637,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (isArray(data)) {
-            return data.map((item) => this.recursivelyConvertCollections(item)) as T[];
+            return data.map((item) =>
+                this.recursivelyConvertCollections(item),
+            ) as T[];
         }
 
         if (isObject(data)) {
