@@ -1653,16 +1653,6 @@ describe("Collection", () => {
     describe("keyBy", () => {
         describe("Laravel Tests", () => {
             it("test key by attribute", () => {
-                // $data = new $collection([['rating' => 1, 'name' => '1'], ['rating' => 2, 'name' => '2'], ['rating' => 3, 'name' => '3']]);
-
-                // $result = $data->keyBy('rating');
-                // $this->assertEquals([1 => ['rating' => 1, 'name' => '1'], 2 => ['rating' => 2, 'name' => '2'], 3 => ['rating' => 3, 'name' => '3']], $result->all());
-
-                // $result = $data->keyBy(function ($item) {
-                //     return $item['rating'] * 2;
-                // });
-                // $this->assertEquals([2 => ['rating' => 1, 'name' => '1'], 4 => ['rating' => 2, 'name' => '2'], 6 => ['rating' => 3, 'name' => '3']], $result->all());
-
                 const data = collect([
                     { rating: 1, name: "1" },
                     { rating: 2, name: "2" },
@@ -1685,18 +1675,6 @@ describe("Collection", () => {
             });
 
             it("test key by closure", () => {
-                // $data = new $collection([
-                //     ['firstname' => 'Taylor', 'lastname' => 'Otwell', 'locale' => 'US'],
-                //     ['firstname' => 'Lucas', 'lastname' => 'Michot', 'locale' => 'FR'],
-                // ]);
-                // $result = $data->keyBy(function ($item, $key) {
-                //     return strtolower($key.'-'.$item['firstname'].$item['lastname']);
-                // });
-                // $this->assertEquals([
-                //     '0-taylorotwell' => ['firstname' => 'Taylor', 'lastname' => 'Otwell', 'locale' => 'US'],
-                //     '1-lucasmichot' => ['firstname' => 'Lucas', 'lastname' => 'Michot', 'locale' => 'FR'],
-                // ], $result->all());
-
                 const data = collect([
                     { firstname: "Taylor", lastname: "Otwell", locale: "US" },
                     { firstname: "Lucas", lastname: "Michot", locale: "FR" },
@@ -1721,18 +1699,6 @@ describe("Collection", () => {
             });
 
             it("test key by object", () => {
-                // $data = new $collection([
-                //     ['firstname' => 'Taylor', 'lastname' => 'Otwell', 'locale' => 'US'],
-                //     ['firstname' => 'Lucas', 'lastname' => 'Michot', 'locale' => 'FR'],
-                // ]);
-                // $result = $data->keyBy(function ($item, $key) use ($collection) {
-                //     return new $collection([$key, $item['firstname'], $item['lastname']]);
-                // });
-                // $this->assertEquals([
-                //     '[0,"Taylor","Otwell"]' => ['firstname' => 'Taylor', 'lastname' => 'Otwell', 'locale' => 'US'],
-                //     '[1,"Lucas","Michot"]' => ['firstname' => 'Lucas', 'lastname' => 'Michot', 'locale' => 'FR'],
-                // ], $result->all());
-
                 const data = collect([
                     { firstname: "Taylor", lastname: "Otwell", locale: "US" },
                     { firstname: "Lucas", lastname: "Michot", locale: "FR" },
@@ -1754,6 +1720,30 @@ describe("Collection", () => {
                         locale: "FR",
                     },
                 });
+            });
+        });
+
+        it("resolved key is object", () => {
+            const collection = collect([
+                { id: {name: "John"} },
+                { id: {name: "Jane"} },
+            ]);
+            const keyed = collection.keyBy((item) => item.id);
+            expect(keyed.all()).toEqual({
+                '{"name":"John"}': { id: {name: "John"} },
+                '{"name":"Jane"}': { id: {name: "Jane"} },
+            });
+        });
+
+        it("resolved key is array", () => {
+            const collection = collect([
+                { id: [1, 2] },
+                { id: [3, 4] },
+            ]);
+            const keyed = collection.keyBy((item) => item.id);
+            expect(keyed.all()).toEqual({
+                '1.2': { id: [1, 2] },
+                '3.4': { id: [3, 4] },
             });
         });
     });
