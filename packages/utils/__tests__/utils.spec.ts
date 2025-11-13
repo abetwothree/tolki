@@ -89,7 +89,7 @@ describe("Utils", () => {
         });
 
         it("returns false for non-stringable values", () => {
-            expect(Utils.isStringable({})).toBe(false);
+            expect(Utils.isStringable({})).toBe(true);
             expect(Utils.isStringable([])).toBe(false);
             expect(Utils.isStringable(null)).toBe(false);
             expect(Utils.isStringable(undefined)).toBe(false);

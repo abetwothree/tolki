@@ -141,6 +141,7 @@ import type {
     ProxyTarget,
 } from "@laravel-js/types";
 import {
+    objectToString,
     castableToArray,
     compareValues,
     getAccessibleValues,
@@ -1096,8 +1097,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             // Handle stringable objects (objects with toString method)
             // Check if it's an object/function with a toString method
-            if (isObject(groupKey) && isFunction((groupKey as Record<string, unknown>).toString)
-            ) {
+            if (objectToString(groupKey)) {
                 return groupKey.toString();
             }
 
