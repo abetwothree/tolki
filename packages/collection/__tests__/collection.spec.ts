@@ -1599,6 +1599,55 @@ describe("Collection", () => {
                 expect(result.all()).toEqual(expected_result);
             });
         });
+
+        it("throw error when no groupBy is undefined", () => {
+            const collection = collect([1, 2, 3]);
+            expect(() => {
+                // @ts-expect-error testing invalid input
+                collection.groupBy([undefined]);
+            }).toThrowError();
+        });
+
+        it("group key is boolean", () => {
+            const collection = collect([{ active: true }, { active: false }]);
+            const grouped = collection.groupBy("active");
+            expect(grouped.all()).toEqual({
+                1: [{ active: true }],
+                0: [{ active: false }],
+            });
+        });
+
+        it("group key is null", () => {
+            const collection = collect([{ value: null }, { value: 1 }]);
+            const grouped = collection.groupBy("value");
+            expect(grouped.all()).toEqual({
+                1: [{ value: 1 }],
+            });
+        });
+
+        it("group key is undefined", () => {
+            const collection = collect([{ value: undefined }, { value: 1 }]);
+            const grouped = collection.groupBy("value");
+            expect(grouped.all()).toEqual({
+                1: [{ value: 1 }],
+            });
+        });
+
+        it("group key is array", () => {
+            const collection = collect([
+                { tags: ["tag1", "tag2"] },
+                { tags: ["tag2", "tag3"] },
+            ]);
+            const grouped = collection.groupBy("tags");
+            expect(grouped.all()).toEqual({
+                tag1: [{ tags: ["tag1", "tag2"] }],
+                tag2: [
+                    { tags: ["tag1", "tag2"] },
+                    { tags: ["tag2", "tag3"] },
+                ],
+                tag3: [{ tags: ["tag2", "tag3"] }],
+            });
+        });
     });
 
     describe("isEmpty", () => {

@@ -1064,7 +1064,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | TGroupKey
             | PathKey,
         preserveKeys: boolean = false,
-    ): Collection<Collection<TValue, TKey>, TGroupKey> {
+    ) {
         let nextGroups: TGroupKey[] | null = null;
 
         if (!isFunction(groupByValue) && isArray(groupByValue)) {
@@ -1072,11 +1072,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
             nextGroups = [...groupByValue];
 
             const shiftedValue = nextGroups.shift();
+            
             if (isUndefined(shiftedValue)) {
                 throw new Error(
                     "groupBy requires at least one callback or key",
                 );
             }
+
             groupByValue = shiftedValue as
                 | ((value: TValue, index: TKey) => TGroupKey)
                 | PathKey;
@@ -1099,18 +1101,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 return groupKey ? 1 : 0;
             }
 
-            if (isNull(groupKey) || isUndefined(groupKey)) {
-                return String(groupKey);
-            }
-
             // Handle stringable objects (objects with toString method)
             // Check if it's an object/function with a toString method
             if (objectToString(groupKey)) {
                 return groupKey.toString();
-            }
-
-            if (isObject(groupKey) || isArray(groupKey)) {
-                return JSON.stringify(groupKey);
             }
 
             return groupKey as TGroupKey | string | number;
