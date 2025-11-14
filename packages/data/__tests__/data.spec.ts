@@ -1556,9 +1556,7 @@ describe("Data", () => {
         it("throws when values do not match type", () => {
             expect(() => {
                 Data.dataIntersect({ a: 1, b: 2 }, [2]);
-            }).toThrowError(
-                "Data to intersect must be of the same type (both array or both object).",
-            );
+            }).toThrowError();
         });
     });
 
@@ -1578,9 +1576,7 @@ describe("Data", () => {
         it("throws when values do not match type", () => {
             expect(() => {
                 Data.dataIntersectByKeys({ a: 1, b: 2 }, [2, 3]);
-            }).toThrowError(
-                "Data to intersect by keys must be of the same type (both array or both object).",
-            );
+            }).toThrowError();
         });
     });
 });

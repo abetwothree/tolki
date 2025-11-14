@@ -1344,7 +1344,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3, 4]).intersect([2, 4, 6]); -> new Collection({1: 2, 3: 4})
      * new Collection({a: 1, b: 2, c: 3}).intersect({b: 2, d: 4}); -> new Collection({b: 2})
      */
-    intersect<T, K extends PropertyKey>(
+    intersect<T, K extends PropertyKey = PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null
     ) {
         if(isNull(items)){
@@ -1371,14 +1371,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 1}, {id: 2}, {id: 3}]).intersectUsing([{id: 2}], (a, b) => a.id === b.id); -> new Collection([{id: 2}])
      * new Collection(['apple', 'banana', 'cherry']).intersectUsing(['banana'], (a, b) => a === b); -> new Collection(['banana'])
      */
-    intersectUsing(
-        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+    intersectUsing<T, K extends PropertyKey = PropertyKey>(
+        items: T[] | Record<K, T> | Collection<T, K> | null,
         callback: (a: TValue, b: TValue) => boolean,
     ) {
+        if(isNull(items)){
+            return new Collection(isArray(this.items) ? [] : {});
+        }
+
         return new Collection(
             dataIntersect<TValue, TKey>(
                 this.items,
-                this.getRawItems(items),
+                this.recursivelyConvertCollections(items),
                 callback,
             ),
         );
@@ -1396,8 +1400,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 'green', b: 'brown', c: 'blue'}).intersectAssoc({a: 'green', b: 'yellow', c: 'blue'}); -> new Collection({a: 'green', c: 'blue'})
      * new Collection([1, 2, 3]).intersectAssoc([2, 3, 4]); -> new Collection([])
      */
-    intersectAssoc(
-        items: DataItems<TValue, TKey> | Collection<TValue, TKey> | null
+    intersectAssoc<T, K extends PropertyKey = PropertyKey>(
+        items: T[] | Record<K, T> | Collection<T, K> | null
     ) {
         if(isNull(items)){
             return new Collection(isArray(this.items) ? [] : {});
@@ -1406,7 +1410,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return new Collection(
             dataIntersectAssoc<TValue, TKey>(
                 this.items,
-                this.getRawItems(items),
+                this.recursivelyConvertCollections(items),
             ),
         );
     }
@@ -1424,8 +1428,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * const strcasecmpKeys = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
      * new Collection({a: 'green', b: 'brown'}).intersectAssocUsing({A: 'GREEN', B: 'brown'}, strcasecmpKeys); -> new Collection({b: 'brown'})
      */
-    intersectAssocUsing(
-        items: DataItems<TValue, TKey> | Collection<TValue, TKey> | null,
+    intersectAssocUsing<T, K extends PropertyKey = PropertyKey>(
+        items: T[] | Record<K, T> | Collection<T, K> | null,
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
         if(isNull(items)){
@@ -1435,7 +1439,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return new Collection(
             dataIntersectAssocUsing<TValue, TKey>(
                 this.items,
-                this.getRawItems(items),
+                this.recursivelyConvertCollections(items),
                 callback,
             ),
         );
@@ -1452,11 +1456,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).intersectByKeys({b: 2, d: 4}); -> new Collection({b: 2})
      * new Collection([1, 2, 3, 4]).intersectByKeys([1, 3]); -> new Collection([1, 2, 3])
      */
-    intersectByKeys(items: DataItems<TValue, TKey> | Collection<TValue, TKey>) {
+    intersectByKeys<T, K extends PropertyKey = PropertyKey>(
+        items: T[] | Record<K, T> | Collection<T, K> | null
+    ) {
+        if(isNull(items)){
+            return new Collection(isArray(this.items) ? [] : {});
+        }
         return new Collection(
             dataIntersectByKeys<TValue, TKey>(
                 this.items,
-                this.getRawItems(items),
+                this.recursivelyConvertCollections(items),
             ),
         );
     }

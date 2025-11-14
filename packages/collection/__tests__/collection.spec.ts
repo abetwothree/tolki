@@ -2028,15 +2028,35 @@ describe("Collection", () => {
 
     describe("intersectByKeys", () => {
         describe("Laravel Tests", () => {
-            it("test intersect by keys null", () => {});
+            it("test intersect by keys null", () => {
+                const c = collect({ name: "Mateus", age: 18 });
+                expect(c.intersectByKeys(null).all()).toEqual({});
+            });
 
-            it("test intersect by keys", () => {});
+            it("test intersect by keys", () => {
+                const c = collect({ name: "Mateus", age: 18 });
+                expect(
+                    c.intersectByKeys(
+                        collect({ name: "Mateus", surname: "Guimaraes" }),
+                    ).all(),
+                ).toEqual({ name: "Mateus" });
+            });
+
+            it("test intersect by keys with different values", () => {
+                const c = collect({ name: "taylor", family: "otwell", age: 26 });
+                expect(
+                    c.intersectByKeys(
+                        collect({ height: 180, name: "amir", family: "moharami" }),
+                    ).all(),
+                ).toEqual({ name: "taylor", family: "otwell" });
+            });
         });
     });
     
     describe("isEmpty", () => {
-        // describe("Laravel Tests", () => {
-        // });
+        describe("Laravel Tests", () => {
+            it("", () => {});
+        });
 
         it("returns true for empty array collection", () => {
             const collection = collect([]);
@@ -2059,13 +2079,17 @@ describe("Collection", () => {
         });
     });
     
-    // describe("", () => {
-    //     describe("Laravel Tests", () => {});
-    // });
+    describe("", () => {
+        describe("Laravel Tests", () => {
+            it("", () => {});
+        });
+    });
     
-    // describe("", () => {
-    //     describe("Laravel Tests", () => {});
-    // });
+    describe("", () => {
+        describe("Laravel Tests", () => {
+            it("", () => {});
+        });
+    });
 
     describe("count", () => {
         it("returns number of array items", () => {
