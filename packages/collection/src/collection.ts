@@ -1360,6 +1360,31 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
+     * Intersect the collection with the given items, using the callback.
+     *
+     * @param items - The items to intersect with
+     * @param callback - The callback function to determine equality
+     * @returns A new collection with the intersected items
+     *
+     * @example
+     *
+     * new Collection([{id: 1}, {id: 2}, {id: 3}]).intersectUsing([{id: 2}], (a, b) => a.id === b.id); -> new Collection([{id: 2}])
+     * new Collection(['apple', 'banana', 'cherry']).intersectUsing(['banana'], (a, b) => a === b); -> new Collection(['banana'])
+     */
+    intersectUsing(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+        callback: (a: TValue, b: TValue) => boolean,
+    ) {
+        return new Collection(
+            dataIntersect<TValue, TKey>(
+                this.items,
+                this.getRawItems(items),
+                callback,
+            ),
+        );
+    }
+
+    /**
      * Intersect the collection with the given items with additional key check.
      * Returns items where both the key AND value match.
      *
@@ -1409,31 +1434,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         return new Collection(
             dataIntersectAssocUsing<TValue, TKey>(
-                this.items,
-                this.getRawItems(items),
-                callback,
-            ),
-        );
-    }
-
-    /**
-     * Intersect the collection with the given items, using the callback.
-     *
-     * @param items - The items to intersect with
-     * @param callback - The callback function to determine equality
-     * @returns A new collection with the intersected items
-     *
-     * @example
-     *
-     * new Collection([{id: 1}, {id: 2}, {id: 3}]).intersectUsing([{id: 2}], (a, b) => a.id === b.id); -> new Collection([{id: 2}])
-     * new Collection(['apple', 'banana', 'cherry']).intersectUsing(['banana'], (a, b) => a === b); -> new Collection(['banana'])
-     */
-    intersectUsing(
-        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
-        callback: (a: TValue, b: TValue) => boolean,
-    ) {
-        return new Collection(
-            dataIntersect<TValue, TKey>(
                 this.items,
                 this.getRawItems(items),
                 callback,
