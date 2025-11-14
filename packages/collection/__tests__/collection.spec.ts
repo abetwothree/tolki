@@ -1870,6 +1870,9 @@ describe("Collection", () => {
             it("test intersect using with null", () => {
                 const c = collect(["green", "brown", "blue"]);
                 expect(c.intersectUsing(null, strcasecmp).all()).toEqual([]);
+
+                const d = collect({ id: 1, first_word: "Hello" });
+                expect(d.intersectUsing(null, strcasecmp).all()).toEqual({});
             });
 
             it("test intersect using collection", () => {
