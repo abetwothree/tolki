@@ -26,6 +26,8 @@ import {
     hasAny as arrHasAny,
     integer as arrInteger,
     intersect as arrIntersect,
+    intersectAssoc as arrIntersectAssoc,
+    intersectAssocUsing as arrIntersectAssocUsing,
     intersectByKeys as arrIntersectByKeys,
     join as arrJoin,
     keyBy as arrKeyBy,
@@ -102,6 +104,8 @@ import {
     hasAny as objHasAny,
     integer as objInteger,
     intersect as objIntersect,
+    intersectAssoc as objIntersectAssoc,
+    intersectAssocUsing as objIntersectAssocUsing,
     intersectByKeys as objIntersectByKeys,
     join as objJoin,
     keyBy as objKeyBy,
@@ -2362,6 +2366,82 @@ export function dataIntersect<TValue, TKey extends PropertyKey = PropertyKey>(
 
     if (isArray(data) && isArray(other)) {
         return arrIntersect(data, other, callable) as DataItems<TValue>;
+    }
+
+    throw new Error(
+        "Data to intersect must be of the same type (both array or both object).",
+    );
+}
+
+/**
+ * Intersect the data with the given items with additional key check.
+ * Returns items where both the key AND value match.
+ *
+ * @param data - The original data
+ * @param items - The items to intersect with
+ * @returns The intersected data
+ *
+ * @example
+ *
+ * dataIntersectAssoc({a: 'green', b: 'brown'}, {a: 'green', b: 'yellow'}); -> {a: 'green'}
+ * dataIntersectAssoc([1, 2, 3], [2, 3, 4]); -> []
+ */
+export function dataIntersectAssoc<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(data: DataItems<TValue, TKey>, other: DataItems<TValue, TKey>) {
+    if (isObject(data) && isObject(other)) {
+        return objIntersectAssoc(
+            data as Record<string, TValue>,
+            other as Record<string, TValue>,
+        ) as DataItems<TValue, TKey>;
+    }
+
+    if (isArray(data) && isArray(other)) {
+        return arrIntersectAssoc(data, other) as DataItems<TValue>;
+    }
+
+    throw new Error(
+        "Data to intersect must be of the same type (both array or both object).",
+    );
+}
+
+/**
+ * Intersect the data with the given items with additional key check, using the callback.
+ * The callback is used to compare keys, while values are compared strictly.
+ *
+ * @param data - The original data
+ * @param items - The items to intersect with
+ * @param callback - The callback function to compare keys (returns true if keys match)
+ * @returns The intersected data
+ *
+ * @example
+ *
+ * const strcasecmpKeys = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+ * dataIntersectAssocUsing({a: 'green', b: 'brown'}, {A: 'GREEN', B: 'brown'}, strcasecmpKeys); -> {b: 'brown'}
+ */
+export function dataIntersectAssocUsing<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(
+    data: DataItems<TValue, TKey>,
+    other: DataItems<TValue, TKey>,
+    callback: (keyA: TKey, keyB: TKey) => boolean,
+) {
+    if (isObject(data) && isObject(other)) {
+        return objIntersectAssocUsing(
+            data as Record<string, TValue>,
+            other as Record<string, TValue>,
+            callback as (keyA: PropertyKey, keyB: PropertyKey) => boolean,
+        ) as DataItems<TValue, TKey>;
+    }
+
+    if (isArray(data) && isArray(other)) {
+        return arrIntersectAssocUsing(
+            data,
+            other,
+            callback as (keyA: number, keyB: number) => boolean,
+        ) as DataItems<TValue>;
     }
 
     throw new Error(

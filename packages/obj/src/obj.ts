@@ -3183,6 +3183,73 @@ export function intersect<T1, T2, TResponse>(
 }
 
 /**
+ * Intersect the object with the given items with additional key check.
+ * Returns items where both the key AND value match.
+ *
+ * @param data - The original object
+ * @param other - The object to intersect with
+ * @returns A new object containing items where both key and value match
+ *
+ * @example
+ *
+ * intersectAssoc({a: 'green', b: 'brown', c: 'blue'}, {a: 'green', b: 'yellow', c: 'blue'}); -> {a: 'green', c: 'blue'}
+ * intersectAssoc({a: 1, b: 2}, {a: 1, c: 3}); -> {a: 1}
+ */
+export function intersectAssoc<T1, T2, TResponse>(
+    data: Record<PropertyKey, T1>,
+    other: Record<PropertyKey, T2>,
+) {
+    const result: Record<PropertyKey, TResponse> = {} as Record<
+        PropertyKey,
+        TResponse
+    >;
+
+    for (const [key, value] of Object.entries(data)) {
+        if (key in other && value === other[key as PropertyKey]) {
+            result[key] = value as unknown as TResponse;
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Intersect the object with the given items with additional key check, using the callback.
+ * The callback is used to compare keys, while values are compared strictly.
+ *
+ * @param data - The original object
+ * @param other - The object to intersect with
+ * @param callback - The callback function to compare keys (returns true if keys match)
+ * @returns A new object containing items where both key (via callback) and value match
+ *
+ * @example
+ *
+ * const strcasecmpKeys = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+ * intersectAssocUsing({a: 'green', b: 'brown'}, {A: 'GREEN', B: 'brown'}, strcasecmpKeys); -> {b: 'brown'}
+ */
+export function intersectAssocUsing<T1, T2, TResponse>(
+    data: Record<PropertyKey, T1>,
+    other: Record<PropertyKey, T2>,
+    callback: (keyA: PropertyKey, keyB: PropertyKey) => boolean,
+) {
+    const result: Record<PropertyKey, TResponse> = {} as Record<
+        PropertyKey,
+        TResponse
+    >;
+
+    for (const [dataKey, dataValue] of Object.entries(data)) {
+        for (const [otherKey, otherValue] of Object.entries(other)) {
+            if (callback(dataKey, otherKey) && dataValue === otherValue) {
+                result[dataKey] = dataValue as unknown as TResponse;
+                break; // Only add once per dataKey
+            }
+        }
+    }
+
+    return result;
+}
+
+/**
  * Intersect the object with the given items by key.
  *
  * @param data - The original object

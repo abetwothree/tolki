@@ -32,6 +32,8 @@ import {
     dataHasAny,
     dataInteger,
     dataIntersect,
+    dataIntersectAssoc,
+    dataIntersectAssocUsing,
     dataIntersectByKeys,
     dataItem,
     dataJoin,
@@ -1342,9 +1344,75 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3, 4]).intersect([2, 4, 6]); -> new Collection({1: 2, 3: 4})
      * new Collection({a: 1, b: 2, c: 3}).intersect({b: 2, d: 4}); -> new Collection({b: 2})
      */
-    intersect(items: DataItems<TValue, TKey> | Collection<TValue, TKey>) {
+    intersect<T, K extends PropertyKey>(
+        items: T[] | Record<K, T> | Collection<T, K> | null
+    ) {
+        if(isNull(items)){
+            return new Collection(isArray(this.items) ? [] : {});
+        }
+
         return new Collection(
-            dataIntersect<TValue, TKey>(this.items, this.getRawItems(items)),
+            dataIntersect(
+                this.recursivelyConvertCollections(this.items), 
+                this.recursivelyConvertCollections(items) as DataItems<T, K>
+            ),
+        );
+    }
+
+    /**
+     * Intersect the collection with the given items with additional key check.
+     * Returns items where both the key AND value match.
+     *
+     * @param items - The items to intersect with
+     * @returns A new collection with the intersected items
+     *
+     * @example
+     *
+     * new Collection({a: 'green', b: 'brown', c: 'blue'}).intersectAssoc({a: 'green', b: 'yellow', c: 'blue'}); -> new Collection({a: 'green', c: 'blue'})
+     * new Collection([1, 2, 3]).intersectAssoc([2, 3, 4]); -> new Collection([])
+     */
+    intersectAssoc(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey> | null
+    ) {
+        if(isNull(items)){
+            return new Collection(isArray(this.items) ? [] : {});
+        }
+
+        return new Collection(
+            dataIntersectAssoc<TValue, TKey>(
+                this.items,
+                this.getRawItems(items),
+            ),
+        );
+    }
+
+    /**
+     * Intersect the collection with the given items with additional key check, using the callback.
+     * The callback is used to compare keys, while values are compared strictly.
+     *
+     * @param items - The items to intersect with
+     * @param callback - The callback function to compare keys (returns true if keys match)
+     * @returns A new collection with the intersected items
+     *
+     * @example
+     *
+     * const strcasecmpKeys = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+     * new Collection({a: 'green', b: 'brown'}).intersectAssocUsing({A: 'GREEN', B: 'brown'}, strcasecmpKeys); -> new Collection({b: 'brown'})
+     */
+    intersectAssocUsing(
+        items: DataItems<TValue, TKey> | Collection<TValue, TKey> | null,
+        callback: (keyA: TKey, keyB: TKey) => boolean,
+    ) {
+        if(isNull(items)){
+            return new Collection(isArray(this.items) ? [] : {});
+        }
+
+        return new Collection(
+            dataIntersectAssocUsing<TValue, TKey>(
+                this.items,
+                this.getRawItems(items),
+                callback,
+            ),
         );
     }
 
@@ -4653,7 +4721,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param data - The data to convert
      * @returns The data with all Collection instances converted to raw values
      */
-    protected recursivelyConvertCollections<T, K = PropertyKey>(
+    protected recursivelyConvertCollections<T, K extends PropertyKey = PropertyKey>(
         data: T[] | Record<K, T> | Collection<T, K>,
     ): T[] | Record<K, T> {
         if (data instanceof Collection) {

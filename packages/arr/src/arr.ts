@@ -3175,6 +3175,87 @@ export function intersect<TValue, TOther = TValue>(
 }
 
 /**
+ * Intersect the array with the given items with additional index check.
+ * Returns items where both the index AND value match.
+ *
+ * @param data - The original array
+ * @param other - The array to intersect with
+ * @returns A new array containing items where both index and value match
+ *
+ * @example
+ *
+ * intersectAssoc([1, 2, 3], [2, 3, 4]); -> []
+ * intersectAssoc(['a', 'b', 'c'], ['a', 'b', 'd']); -> ['a', 'b']
+ * intersectAssoc([1, 2, 3, 4], [5, 2, 3]); -> [2, 3]
+ */
+export function intersectAssoc<TValue>(
+    data: ArrayItems<TValue> | unknown,
+    other: ArrayItems<TValue> | unknown,
+): TValue[] {
+    if (!accessible(data) || !accessible(other)) {
+        return [] as TValue[];
+    }
+
+    const dataValues = getAccessibleValues(data) as TValue[];
+    const otherValues = getAccessibleValues(other) as TValue[];
+    const result: TValue[] = [];
+
+    for (let index = 0; index < dataValues.length; index++) {
+        if (
+            index < otherValues.length &&
+            dataValues[index] === otherValues[index]
+        ) {
+            result.push(dataValues[index] as TValue);
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Intersect the array with the given items with additional index check, using the callback.
+ * The callback is used to compare indices, while values are compared strictly.
+ *
+ * @param data - The original array
+ * @param other - The array to intersect with
+ * @param callback - The callback function to compare indices (returns true if indices match)
+ * @returns A new array containing items where both index (via callback) and value match
+ *
+ * @example
+ *
+ * // Example: treat all indices as equal (not very useful, but demonstrates the concept)
+ * const alwaysEqual = (a: number, b: number) => true;
+ * intersectAssocUsing([1, 2, 3], [1, 2, 3], alwaysEqual); -> [1, 2, 3]
+ */
+export function intersectAssocUsing<TValue>(
+    data: ArrayItems<TValue> | unknown,
+    other: ArrayItems<TValue> | unknown,
+    callback: (keyA: number, keyB: number) => boolean,
+): TValue[] {
+    if (!accessible(data) || !accessible(other)) {
+        return [] as TValue[];
+    }
+
+    const dataValues = getAccessibleValues(data) as TValue[];
+    const otherValues = getAccessibleValues(other) as TValue[];
+    const result: TValue[] = [];
+
+    for (let dataIndex = 0; dataIndex < dataValues.length; dataIndex++) {
+        for (let otherIndex = 0; otherIndex < otherValues.length; otherIndex++) {
+            if (
+                callback(dataIndex, otherIndex) &&
+                dataValues[dataIndex] === otherValues[otherIndex]
+            ) {
+                result.push(dataValues[dataIndex] as TValue);
+                break; // Only add once per dataIndex
+            }
+        }
+    }
+
+    return result;
+}
+
+/**
  * Intersect the array with the given items by key.
  *
  * @param data - The original array

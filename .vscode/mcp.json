@@ -1,0 +1,12 @@
+{
+    "servers": {
+        "vitest": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@djankies/vitest-mcp"
+            ],
+            "type": "stdio"
+        }
+    }
+}

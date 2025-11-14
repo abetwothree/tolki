@@ -1846,7 +1846,198 @@ describe("Collection", () => {
         });
     });
 
+    describe("intersect", () => {
+        describe("Laravel Tests", () => {
+            it("test intersect null", () => {
+                const c = collect({ id: 1, first_word: "Hello" });
+                expect(c.intersect(null).all()).toEqual({});
+
+                const c2 = collect([1, "Hello"]);
+                expect(c2.intersect(null).all()).toEqual([]);
+            });
+
+            it("test intersect collection", () => {
+                const c = collect({ id: 1, first_word: "Hello" });
+                expect(c.intersect(collect({ first_word: "Hello", last_word: "World" })).all()).toEqual({
+                    first_word: "Hello",
+                });
+            });
+        });
+    })
+
+    describe("intersectUsing", () => {
+        describe("Laravel Tests", () => {
+            it("test intersect using with null", () => {
+                const c = collect(["green", "brown", "blue"]);
+                expect(c.intersectUsing(null, strcasecmp).all()).toEqual([]);
+            });
+
+            it("test intersect using collection", () => {
+                const c = collect(["green", "brown", "blue"]);
+                expect(
+                    c.intersectUsing(
+                        collect(["GREEN", "brown", "yellow"]),
+                        strcasecmp,
+                    ).all(),
+                ).toEqual(["green", "brown"]);
+            });
+        })
+    });
+
+    describe("intersectAssoc", () => {
+        describe("Laravel Tests", () => {
+            it("test intersect assoc with null", () => {
+                const array1 = collect({
+                    a: "green",
+                    b: "brown",
+                    c: "blue",
+                    0: "red",
+                });
+
+                expect(array1.intersectAssoc(null).all()).toEqual({});
+            });
+
+            it("test intersect assoc collection", () => {
+                const array1 = collect({
+                    a: "green",
+                    b: "brown",
+                    c: "blue",
+                    0: "red",
+                });
+                const array2 = collect({
+                    a: "green",
+                    b: "yellow",
+                    0: "blue",
+                    1: "red",
+                });
+
+                expect(array1.intersectAssoc(array2).all()).toEqual({
+                    a: "green",
+                });
+            });
+        });
+
+        describe("test intersect assoc with arrays", () => {
+            it("test intersect assoc array with null", () => {
+                const array1 = collect([
+                    "green",
+                    "brown",
+                    "blue",
+                    "red",
+                ]);
+
+                expect(array1.intersectAssoc(null).all()).toEqual([]);
+            });
+
+            it("test intersect assoc array collection", () => {
+                const array1 = collect([
+                    "green",
+                    "brown",
+                    "blue",
+                    "red",
+                ]);
+                const array2 = collect([
+                    "green",
+                    "yellow",
+                    "blue",
+                    "red",
+                ]);
+
+                expect(array1.intersectAssoc(array2).all()).toEqual([
+                    "green",
+                    "blue",
+                    "red",
+                ]);
+            });
+        });
+    });
+
+    describe("intersectAssocUsing", () => {
+        describe("Laravel Tests", () => {
+            it("test intersect assoc using with null", () => {
+                const array1 = collect({
+                    a: "green",
+                    b: "brown",
+                    c: "blue",
+                    0: "red",
+                });
+
+                expect(
+                    array1.intersectAssocUsing(null, strcasecmpKeys).all(),
+                ).toEqual({});
+            });
+
+            it("test intersect assoc using collection", () => {
+                const array1 = collect({
+                    a: "green",
+                    b: "brown",
+                    c: "blue",
+                    0: "red",
+                });
+                const array2 = collect({
+                    a: "GREEN",
+                    B: "brown",
+                    0: "yellow",
+                    1: "red",
+                });
+
+                expect(
+                    array1
+                        .intersectAssocUsing(array2, strcasecmpKeys)
+                        .all(),
+                ).toEqual({ b: "brown" });
+            });
+        });
+
+        describe("test intersect assoc using with arrays", () => {
+            it("test intersect assoc using with arrays with null", () => {
+                const array1 = collect([
+                    "green",
+                    "brown",
+                    "blue",
+                    "red",
+                ]);
+
+                expect(
+                    array1.intersectAssocUsing(null, strcasecmpKeys).all(),
+                ).toEqual([]);
+            });
+
+            it("test intersect assoc using with arrays collection", () => {
+                const array1 = collect([
+                    "green",
+                    "brown",
+                    "blue",
+                    "red",
+                ]);
+                const array2 = collect([
+                    "GREEN",
+                    "brown",
+                    "yellow",
+                    "red",
+                ]);
+
+                expect(
+                    array1
+                        .intersectAssocUsing(array2, strcasecmpKeys)
+                        .all(),
+                ).toEqual(["brown", "red"]);
+            });
+        });
+    });
+
+    describe("intersectByKeys", () => {
+        describe("Laravel Tests", () => {
+            it("test intersect by keys null", () => {});
+
+            it("test intersect by keys", () => {});
+        });
+    });
+    
     describe("isEmpty", () => {
+        // describe("Laravel Tests", () => {
+        // });
+
         it("returns true for empty array collection", () => {
             const collection = collect([]);
             expect(collection.isEmpty()).toBe(true);
@@ -1867,6 +2058,14 @@ describe("Collection", () => {
             expect(collection.isEmpty()).toBe(false);
         });
     });
+    
+    // describe("", () => {
+    //     describe("Laravel Tests", () => {});
+    // });
+    
+    // describe("", () => {
+    //     describe("Laravel Tests", () => {});
+    // });
 
     describe("count", () => {
         it("returns number of array items", () => {
