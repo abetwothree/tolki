@@ -1555,10 +1555,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).keys(); -> new Collection(['a', 'b', 'c'])
      * new Collection([1, 2, 3]).keys(); -> new Collection([0, 1, 2])
      */
-    keys(): Collection<string | number> {
-        return new Collection(dataKeys(this.items)) as Collection<
-            string | number
-        >;
+    keys(): Collection<TKey, number> {
+        return new Collection(dataKeys(this.items));
     }
 
     /**
@@ -1989,11 +1987,43 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return new Collection();
         }
 
+        if (count === 1) {
+            if (isArray(this.items)) {
+                return (this.items as TValue[]).pop() ?? null;
+            }
+
+            // For objects, remove and return the last item
+            const keys = Object.keys(this.items) as TKey[];
+
+            if (keys.length === 0) {
+                return null;
+            }
+
+            const lastKey = keys[keys.length - 1];
+            const value = (this.items as Record<TKey, TValue>)[lastKey];
+            delete (this.items as Record<TKey, TValue>)[lastKey];
+
+            return value;
+        }
+
         if (this.isEmpty()) {
             return new Collection();
         }
 
         const poppedValues = dataPop(this.items, count);
+
+        // Remove the popped items from this.items
+        if (isArray(this.items)) {
+            this.items = (this.items as TValue[]).slice(0, -(count)) as DataItems<TValue, TKey>;
+        } else {
+            // For objects, remove the last count keys
+            const keys = Object.keys(this.items) as TKey[];
+            const keysToRemove = keys.slice(-count);
+            
+            for (const key of keysToRemove) {
+                delete (this.items as Record<TKey, TValue>)[key];
+            }
+        }
 
         if (isNull(poppedValues) || !isArray(poppedValues)) {
             return poppedValues;

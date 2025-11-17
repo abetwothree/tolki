@@ -2115,6 +2115,36 @@ describe("Collection", () => {
         });
     });
     
+    describe("join", () => {
+        it("Laravel Tests", () => {
+            expect(collect(['a', 'b', 'c']).join(', ')).toBe('a, b, c');
+            expect(collect(['a', 'b', 'c']).join(', ', ' and ')).toBe('a, b and c');
+            expect(collect(['a', 'b']).join(', ', ' and ')).toBe('a and b');
+            expect(collect(['a']).join(', ', ' and ')).toBe('a');
+            expect(collect([]).join(', ', ' and ')).toBe('');
+        });
+    });
+
+    describe("keys", () => {
+        it("Laravel Tests", () => {
+            const c = collect({ name: "taylor", framework: "laravel" });
+            expect(c.keys().all()).toEqual(["name", "framework"]);
+
+            const c2 = collect(["taylor", "laravel"]);;
+            expect(c2.keys().all()).toEqual([0, 1]);
+        });
+
+        it("returns collection of object keys", () => {
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            expect(collection.keys().all()).toEqual(["a", "b", "c"]);
+        });
+
+        it("returns collection of numeric keys for array", () => {
+            const collection = collect([1, 2, 3]);
+            expect(collection.keys().all()).toEqual([0, 1, 2]);
+        });
+    });
+    
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
@@ -2140,18 +2170,6 @@ describe("Collection", () => {
         it("returns 0 for empty object collection", () => {
             const collection = collect({});
             expect(collection.count()).toBe(0);
-        });
-    });
-
-    describe("keys", () => {
-        it("returns collection of object keys", () => {
-            const collection = collect({ a: 1, b: 2, c: 3 });
-            expect(collection.keys().all()).toEqual(["a", "b", "c"]);
-        });
-
-        it("returns collection of numeric keys for array", () => {
-            const collection = collect([1, 2, 3]);
-            expect(collection.keys().all()).toEqual([0, 1, 2]);
         });
     });
 
