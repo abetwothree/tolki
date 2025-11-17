@@ -2144,6 +2144,82 @@ describe("Collection", () => {
             expect(collection.keys().all()).toEqual([0, 1, 2]);
         });
     });
+
+    describe("last", () => {
+        describe("Laravel Tests", () => {
+            it("test last returns last item in collection" , () => {
+                const c = collect(['foo', 'bar']);
+                expect(c.last()).toBe('bar');
+
+                const c2 = collect([]);
+                expect(c2.last()).toBeNull();
+            });
+
+            it("test last with callback", () => {
+                const c = collect([100, 200, 300]);
+                expect(
+                    c.last((value) => value < 250),
+                ).toBe(200);
+
+                expect(
+                    c.last((value, key) => key < 2),
+                ).toBe(200);
+
+                expect(
+                    c.last((value) => value > 300),
+                ).toBeNull();
+            });
+
+            it("test last with default and without callback", () => {
+                const c = collect(['foo', 'bar']);
+                expect(
+                    c.last((value) => value === 'baz', 'default'),
+                ).toBe('default');
+
+                const c2 = collect(['foo', 'bar', 'Bar']);
+                expect(
+                    c2.last((value) => value === 'bar', 'default'),
+                ).toBe('bar');
+            });
+
+            it("test last with default and without callback", () => {
+                const c = collect();
+                expect(
+                    c.last(null, 'default'),
+                ).toBe('default');
+            });
+        });
+
+        it("returns last array item", () => {
+            const collection = collect([1, 2, 3]);
+            expect(collection.last()).toBe(3);
+        });
+
+        it("returns last object item", () => {
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            expect(collection.last()).toBe(3);
+        });
+
+        it("returns last array item matching callback", () => {
+            const collection = collect([1, 2, 3, 4]);
+            expect(collection.last((x) => x < 4)).toBe(3);
+        });
+
+        it("returns last object item matching callback", () => {
+            const collection = collect({ a: 1, b: 2, c: 3, d: 4 });
+            expect(collection.last((value) => value < 4)).toBe(3);
+        });
+
+        it("returns default when empty array", () => {
+            const collection = collect([]);
+            expect(collection.last(null, "default")).toBe("default");
+        });
+
+        it("returns default when empty object", () => {
+            const collection = collect({});
+            expect(collection.last(null, "default")).toBe("default");
+        });
+    });
     
     describe("", () => {
         describe("Laravel Tests", () => {
@@ -2220,38 +2296,6 @@ describe("Collection", () => {
             expect(names.all()).toEqual(["John", "Jane"]);
             const idedNames = collection.pluck("name", "id");
             expect(idedNames.all()).toEqual({ 1: "John", 2: "Jane" });
-        });
-    });
-
-    describe("last", () => {
-        it("returns last array item", () => {
-            const collection = collect([1, 2, 3]);
-            expect(collection.last()).toBe(3);
-        });
-
-        it("returns last object item", () => {
-            const collection = collect({ a: 1, b: 2, c: 3 });
-            expect(collection.last()).toBe(3);
-        });
-
-        it("returns last array item matching callback", () => {
-            const collection = collect<number>([1, 2, 3, 4]);
-            expect(collection.last((x) => x < 4)).toBe(3);
-        });
-
-        it("returns last object item matching callback", () => {
-            const collection = collect<number>({ a: 1, b: 2, c: 3, d: 4 });
-            expect(collection.last((value) => value < 4)).toBe(3);
-        });
-
-        it("returns default when empty array", () => {
-            const collection = collect([]);
-            expect(collection.last(null, "default")).toBe("default");
-        });
-
-        it("returns default when empty object", () => {
-            const collection = collect({});
-            expect(collection.last(null, "default")).toBe("default");
         });
     });
 
