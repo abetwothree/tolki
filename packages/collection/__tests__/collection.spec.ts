@@ -2034,6 +2034,9 @@ describe("Collection", () => {
             it("test intersect by keys null", () => {
                 const c = collect({ name: "Mateus", age: 18 });
                 expect(c.intersectByKeys(null).all()).toEqual({});
+
+                const d = collect(["Mateus", 18]);
+                expect(d.intersectByKeys(null).all()).toEqual([]);
             });
 
             it("test intersect by keys", () => {
