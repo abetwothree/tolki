@@ -1624,8 +1624,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     map<TMapValue>(
         callback: (value: TValue, key: TKey) => TMapValue,
-    ): Collection<TMapValue> {
-        return new Collection<TMapValue>(dataMap(this.items, callback));
+    ) {
+        return new Collection(dataMap(this.items, callback));
     }
 
     /**

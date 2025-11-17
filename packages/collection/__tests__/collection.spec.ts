@@ -2328,6 +2328,36 @@ describe("Collection", () => {
             expect(idedNames.all()).toEqual({ 1: "John", 2: "Jane" });
         });
     });
+
+    describe("map", () => {
+        it("Laravel Tests", () => {
+            const data = collect([1, 2, 3]);
+            const mapped = data.map((item) => item * 2);
+            expect(mapped.all()).toEqual([2, 4, 6]);
+            expect(data.all()).toEqual([1, 2, 3]);
+
+            const data2 = collect({ first: "taylor", last: "otwell" });
+            const mapped2 = data2.map((item, key) => `${key}-${item.split("").reverse().join("")}`);
+            expect(mapped2.all()).toEqual({
+                first: "first-rolyat",
+                last: "last-llewto",
+            });
+        });
+
+        it("transforms each array item", () => {
+            const collection = collect([1, 2, 3]);
+            const mapped = collection.map((x) => x * 2);
+            expect(mapped.all()).toEqual([2, 4, 6]);
+        });
+
+        it("transforms each object item", () => {
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            const mapped = collection.map(
+                (value, key) => `${String(key)}:${value * 2}`,
+            );
+            expect(mapped.all()).toEqual({ a: "a:2", b: "b:4", c: "c:6" });
+        });
+    });
     
     describe("", () => {
         describe("Laravel Tests", () => {
@@ -2366,22 +2396,6 @@ describe("Collection", () => {
         it("returns collection of values with numeric keys", () => {
             const collection = collect([1, 2, 3]);
             expect(collection.values().all()).toEqual([1, 2, 3]);
-        });
-    });
-
-    describe("map", () => {
-        it("transforms each array item", () => {
-            const collection = collect<number>([1, 2, 3]);
-            const mapped = collection.map((x) => x * 2);
-            expect(mapped.all()).toEqual([2, 4, 6]);
-        });
-
-        it("transforms each object item", () => {
-            const collection = collect<number>({ a: 1, b: 2, c: 3 });
-            const mapped = collection.map(
-                (value, key) => `${String(key)}:${value * 2}`,
-            );
-            expect(mapped.all()).toEqual({ a: "a:2", b: "b:4", c: "c:6" });
         });
     });
 
