@@ -2061,7 +2061,17 @@ describe("Collection", () => {
     
     describe("isEmpty", () => {
         describe("Laravel Tests", () => {
-            it("", () => {});
+            it("", () => {
+                const data = collect();
+
+                expect(data.isEmpty()).toBe(true);
+                expect(data.isNotEmpty()).toBe(false);
+
+                const data2 = collect([1]);
+
+                expect(data2.isEmpty()).toBe(false);
+                expect(data2.isNotEmpty()).toBe(true);
+            });
         });
 
         it("returns true for empty array collection", () => {
