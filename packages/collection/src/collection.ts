@@ -192,6 +192,9 @@ export function collect<TValue, TKey extends PropertyKey>(
 export function collect<TValue>(
     items: Arrayable<TValue>,
 ): Collection<ReturnType<Arrayable<TValue>["toArray"]>, number>;
+export function collect<TValue, TKey extends PropertyKey>(
+    items: Map<TKey, TValue>,
+): Collection<TValue, TKey>;
 export function collect(items?: null | undefined): Collection<[], number>;
 export function collect<TValue, TKey extends PropertyKey>(
     items?:
@@ -199,6 +202,7 @@ export function collect<TValue, TKey extends PropertyKey>(
         | Record<TKey, TValue>
         | Collection<TValue, TKey>
         | Arrayable<TValue>
+        | Map<TKey, TValue>
         | null
         | undefined,
 ): Collection<TValue, TKey> {
@@ -214,6 +218,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * The items contained in the collection.
      */
     protected items: TValue[] | Record<TKey, TValue>;
+    
+    /**
+     * Preserve insertion order for numeric object keys (JavaScript limitation workaround).
+     * When set, this array of [key, value] pairs preserves the original insertion order.
+     */
+    protected itemsWithOrder?: Array<[TKey, TValue]>;
 
     constructor(items: TValue extends unknown[] ? TValue : never);
     constructor(items: TValue extends readonly unknown[] ? TValue : never);
@@ -222,6 +232,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     );
     constructor(items: Collection<TValue, TKey>);
     constructor(items: Arrayable<TValue>);
+    constructor(items: Map<TKey, TValue>);
     constructor(items?: null | undefined);
     constructor(
         items?:
@@ -230,6 +241,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Record<TKey, TValue>
             | Collection<TValue, TKey>
             | Arrayable<TValue>
+            | Map<TKey, TValue>
             | null
             | undefined,
     );
@@ -240,6 +252,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Record<TKey, TValue>
             | Collection<TValue, TKey>
             | Arrayable<TValue>
+            | Map<TKey, TValue>
             | null
             | undefined,
     ) {
@@ -1557,6 +1570,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).keys(); -> new Collection([0, 1, 2])
      */
     keys(): Collection<TKey, number> {
+        // If we have preserved order for numeric keys, use it
+        if (this.itemsWithOrder) {
+            return new Collection(this.itemsWithOrder.map(([key]) => key));
+        }
+        
         return new Collection(dataKeys(this.items));
     }
 
@@ -1718,6 +1736,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
             key: TKey,
         ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
     ) {
+        // If we have preserved insertion order, use it for iteration
+        if (this.itemsWithOrder) {
+            const map = new Map<TMapWithKeysKey, TMapWithKeysValue>();
+            
+            for (const [key, value] of this.itemsWithOrder) {
+                const result = callback(value, key);
+                // Spread the result object to get the key-value pairs
+                for (const [newKey, newValue] of Object.entries(result)) {
+                    map.set(newKey as TMapWithKeysKey, newValue as TMapWithKeysValue);
+                }
+            }
+            
+            return new Collection(map);
+        }
+        
         return new Collection(dataMapWithKeys(this.items, callback));
     }
 
@@ -4810,7 +4843,38 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         // If it's already a Collection, get its items
         if (items instanceof Collection) {
+            // Also preserve the itemsWithOrder if it exists
+            if (items.itemsWithOrder) {
+                this.itemsWithOrder = [...items.itemsWithOrder];
+            }
             return items.all();
+        }
+
+        // If it's a Map, convert to object and preserve insertion order
+        if (isMap(items)) {
+            const obj = {} as Record<TKey, TValue>;
+            const orderedPairs: Array<[TKey, TValue]> = [];
+            let hasNumericKeys = false;
+            
+            for (const [key, value] of items.entries()) {
+                // Convert numeric string keys to numbers
+                let finalKey: TKey = key as TKey;
+                const numKey = Number(key);
+                if (!Number.isNaN(numKey) && String(numKey) === String(key)) {
+                    hasNumericKeys = true;
+                    finalKey = numKey as TKey;
+                }
+                
+                obj[finalKey] = value as TValue;
+                orderedPairs.push([finalKey, value as TValue]);
+            }
+            
+            // Store ordered pairs only if we have numeric keys (to preserve insertion order)
+            if (hasNumericKeys) {
+                this.itemsWithOrder = orderedPairs;
+            }
+            
+            return obj;
         }
 
         // If it has a toArray method, use it

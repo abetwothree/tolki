@@ -82,6 +82,18 @@ describe("Collection", () => {
             const fromCollection = collect(collection);
             assertType<Collection<[], number>>(fromCollection);
         });
+
+        it("map", () => {
+            const data = collect(
+                new Map([
+                    [3, { id: 1, name: "A" }],
+                    [5, { id: 3, name: "B" }],
+                    [4, { id: 2, name: "C" }],
+                ])
+            );
+
+            assertType<Collection<{ id: number; name: string }, number>>(data);
+        });
     });
 
     describe("constructor", () => {
@@ -134,6 +146,21 @@ describe("Collection", () => {
 
             const booleanCollection = collect(true);
             expect(booleanCollection.all()).toEqual([true]);
+        });
+
+        it("creates a collection from a Map", () => {
+            const data = collect(
+                new Map([
+                    [3, { id: 1, name: "A" }],
+                    [5, { id: 3, name: "B" }],
+                    [4, { id: 2, name: "C" }],
+                ])
+            );
+            expect(data.all()).toEqual({
+                3: { id: 1, name: "A" },
+                5: { id: 3, name: "B" },
+                4: { id: 2, name: "C" },
+            });
         });
     });
 
@@ -2443,6 +2470,82 @@ describe("Collection", () => {
                     2: [1, 3],
                     3: [2],
                 });
+            });
+        });
+    });
+    
+    describe("mapWithKeys", () => {
+        describe("Laravel Tests", () => {
+            it("test map with keys", () => {
+                const data = collect([
+                    { name: "Blastoise", type: "Water", idx: 9 },
+                    { name: "Charmander", type: "Fire", idx: 4 },
+                    { name: "Dragonair", type: "Dragon", idx: 148 },
+                ]);
+
+                const mapped = data.mapWithKeys((pokemon) => {
+                    return { [pokemon.name]: pokemon.type };
+                });
+
+                expect(mapped.all()).toEqual({
+                    Blastoise: "Water",
+                    Charmander: "Fire",
+                    Dragonair: "Dragon",
+                });
+            });
+
+            it("test map with keys integer keys", () => {
+                const data = collect([
+                    { id: 1, name: "A" },
+                    { id: 3, name: "B" },
+                    { id: 2, name: "C" },
+                ]);
+
+                const mapped = data.mapWithKeys((item) => {
+                    return { [item.id]: item };
+                });
+
+                expect(mapped.keys().all()).toEqual([1, 3, 2]);
+            });
+
+            it("test map with keys multiple rows", () => {
+                const data = collect([
+                    { id: 1, name: "A" },
+                    { id: 2, name: "B" },
+                    { id: 3, name: "C" },
+                ]);
+
+                const mapped = data.mapWithKeys((item) => {
+                    return {
+                        [item.id]: item.name,
+                        [item.name]: item.id,
+                    };
+                });
+
+                expect(mapped.all()).toEqual({
+                    1: "A",
+                    A: 1,
+                    2: "B",
+                    B: 2,
+                    3: "C",
+                    C: 3,
+                });
+            });
+
+            it("test map with keys callback key", () => {
+                const data = collect(
+                    new Map([
+                        [3, { id: 1, name: "A" }],
+                        [5, { id: 3, name: "B" }],
+                        [4, { id: 2, name: "C" }],
+                    ])
+                );
+
+                const mapped = data.mapWithKeys((item, key) => {
+                    return { [key]: item.id };
+                });
+
+                expect(mapped.keys().all()).toEqual([3, 5, 4]);
             });
         });
     });

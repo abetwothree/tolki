@@ -1521,7 +1521,7 @@ export function mapWithKeys<
         value: TValue,
         key: TKey,
     ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
-): Record<TMapWithKeysKey, TMapWithKeysValue> {
+): Record<TMapWithKeysKey, TMapWithKeysValue> | Map<TMapWithKeysKey, TMapWithKeysValue> {
     if (!accessible(data)) {
         return {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
@@ -1531,16 +1531,26 @@ export function mapWithKeys<
         TMapWithKeysKey,
         TMapWithKeysValue
     >;
+    const resultMap = new Map<TMapWithKeysKey, TMapWithKeysValue>();
+    let hasNumericKeys = false;
 
     for (const [key, value] of Object.entries(obj)) {
         const mappedObject = callback(value, key as TKey);
 
         for (const [mapKey, mapValue] of Object.entries(mappedObject)) {
+            // Check if this is a numeric key
+            const numKey = Number(mapKey);
+            if (!Number.isNaN(numKey) && String(numKey) === mapKey) {
+                hasNumericKeys = true;
+            }
+            
             result[mapKey as TMapWithKeysKey] = mapValue as TMapWithKeysValue;
+            resultMap.set(mapKey as TMapWithKeysKey, mapValue as TMapWithKeysValue);
         }
     }
 
-    return result;
+    // Return Map if we have numeric keys to preserve insertion order
+    return hasNumericKeys ? resultMap : result;
 }
 
 /**
@@ -2985,12 +2995,33 @@ export function wrap<TValue>(
  */
 export function keys<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-): string[] {
+): (string | number)[] {
     if (!accessible(data)) {
         return [];
     }
 
-    return Object.keys(data as Record<TKey, TValue>);
+    // Use Reflect.ownKeys() to preserve insertion order for all key types
+    // Then convert numeric string keys back to numbers
+    const result: (string | number)[] = [];
+    const allKeys = Reflect.ownKeys(data as Record<TKey, TValue>);
+    
+    for (const key of allKeys) {
+        // Skip symbol keys
+        if (typeof key === 'symbol') {
+            continue;
+        }
+        
+        // Convert numeric string keys back to numbers
+        const numericKey = Number(key);
+        
+        if (!Number.isNaN(numericKey) && String(numericKey) === key) {
+            result.push(numericKey);
+        } else {
+            result.push(key);
+        }
+    }
+    
+    return result;
 }
 
 /**
