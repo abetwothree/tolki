@@ -2095,9 +2095,23 @@ describe("Collection", () => {
         });
     });
     
-    describe("", () => {
-        describe("Laravel Tests", () => {
-            it("", () => {});
+    describe("containsOneItem", () => {
+        it("Laravel Tests", () => {
+            expect(collect([]).containsOneItem()).toBe(false);
+            expect(collect([1]).containsOneItem()).toBe(true);
+            expect(collect([1, 2]).containsOneItem()).toBe(false);
+
+            expect(collect({}).containsOneItem()).toBe(false);
+            expect(collect({a: 1}).containsOneItem()).toBe(true);
+            expect(collect({a: 1, b: 2}).containsOneItem()).toBe(false);
+
+            expect(collect([1, 2, 2]).containsOneItem((number) => number === 2)).toBe(false);
+            expect(collect(["ant", "bear", "cat"]).containsOneItem((word) => word.length === 4)).toBe(true);
+            expect(collect(["ant", "bear", "cat"]).containsOneItem((word) => word.length > 4)).toBe(false);
+
+            expect(collect({a: 1, b: 2, c: 2}).containsOneItem((number) => number === 2)).toBe(false);
+            expect(collect({a: "ant", b: "bear", c: "cat"}).containsOneItem((word) => word.length === 4)).toBe(true);
+            expect(collect({a: "ant", b: "bear", c: "cat"}).containsOneItem((word) => word.length > 4)).toBe(false);
         });
     });
     
