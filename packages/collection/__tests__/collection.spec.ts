@@ -2675,6 +2675,23 @@ describe("Collection", () => {
         })
     });
     
+    describe("multiply", () => {
+        it("Laravel Tests", () => {
+            const c = collect(['Hello', 1, { tags: ['a', 'b'], role: 'admin' }]);
+
+            expect(c.multiply(-1).all()).toEqual([]);
+            expect(c.multiply(0).all()).toEqual([]);
+
+            expect(c.multiply(1).all()).toEqual(['Hello', 1, { tags: ['a', 'b'], role: 'admin' }]);
+
+            expect(c.multiply(3).all()).toEqual([
+                'Hello', 1, { tags: ['a', 'b'], role: 'admin' },
+                'Hello', 1, { tags: ['a', 'b'], role: 'admin' },
+                'Hello', 1, { tags: ['a', 'b'], role: 'admin' }
+            ]);
+        });
+    });
+    
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
