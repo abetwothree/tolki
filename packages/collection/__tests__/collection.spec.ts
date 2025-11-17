@@ -2359,6 +2359,94 @@ describe("Collection", () => {
         });
     });
     
+    describe("mapToDictionary", () => {
+        describe("Laravel Tests", () => {
+            it("test map to dictionary", () => {
+                const data = collect([
+                    { id: 1, name: "A" },
+                    { id: 2, name: "B" },
+                    { id: 3, name: "C" },
+                    { id: 4, name: "B" },
+                ]);
+
+                const groups = data.mapToDictionary((item) => {
+                    return { [item.name]: item.id };
+                });
+
+                expect(groups).toBeInstanceOf(Collection);
+                expect(groups.all()).toEqual({
+                    A: [1],
+                    B: [2, 4],
+                    C: [3],
+                });
+                expect(Array.isArray(groups.get("A"))).toBe(true);
+
+                const groups2 = data.mapToDictionary((item) => {
+                    return { [item.name]: item.name };
+                });
+
+                expect(groups2.all()).toEqual({
+                    A: ["A"],
+                    B: ["B", "B"],
+                    C: ["C"],
+                });
+
+                const groups3 = data.mapToDictionary((item) => {
+                    return [item.name, item.id];
+                });
+
+                expect(groups3.all()).toEqual({
+                    A: [1],
+                    B: [2, 4],
+                    C: [3],
+                });
+
+                expect(() => data.mapToDictionary((item) => {
+                    return [item.name];
+                })).toThrowError();
+
+                expect(() => data.mapToDictionary((item) => {
+                    return [item.name, item.id, 'error'];
+                })).toThrowError();
+            });
+
+            it("test map to dictionary with numeric keys", () => {
+                const data = collect([1, 2, 3, 2, 1]);
+
+                const groups = data.mapToDictionary((item, key) => {
+                    return { [item]: key };
+                });
+
+                expect(groups.all()).toEqual({
+                    1: [0, 4],
+                    2: [1, 3],
+                    3: [2],
+                });
+
+                const data2 = collect({1: 'a', 2: 'b', 3: 'a'});
+
+                const groups2 = data2.mapToDictionary((item, key) => {
+                    return { [item]: key };
+                });
+
+                expect(groups2.all()).toEqual({
+                    a: [1, 3],
+                    b: [2],
+                });
+
+                const groups3 = data.mapToDictionary((item, key) => {
+                    return [item, key];
+                });
+
+                expect(groups3.all()).toEqual({
+                    1: [0, 4],
+                    2: [1, 3],
+                    3: [2],
+                });
+            });
+        });
+    });
+    
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});

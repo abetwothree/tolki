@@ -175,6 +175,7 @@ import {
     toJsonable,
     toJsonSerializable,
     typeOf,
+    entriesKeyValue,
 } from "@laravel-js/utils";
 
 import { initProxyHandler } from "./proxy";
@@ -1634,12 +1635,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * The callback should return an array with two elements: [key, value] or an object with a single key/value pair.
      *
      * @param callback - The callback function to map with
-     * @returns A new collection with mapped items as a dictionary
+     * @returns A new collection with mapped items as a dictionary where each value is an array of accumulated values
      *
      * @example
      *
-     * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).mapToDictionary(item => ({[item.id]: item.name})); -> new Collection({1: 'John', 2: 'Jane'})
-     * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).mapToDictionary(item => [item.id, item.name]); -> new Collection({1: 'John', 2: 'Jane'})
+     * new Collection([{id: 1, name: 'A'}, {id: 2, name: 'B'}, {id: 3, name: 'A'}]).mapToDictionary(item => ({[item.name]: item.id})); -> new Collection({A: [1, 3], B: [2]})
      */
     mapToDictionary<
         TMapToDictionaryValue,
@@ -1652,13 +1652,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
     ) {
         const dictionary = {} as Record<
             TMapToDictionaryKey,
-            TMapToDictionaryValue
+            TMapToDictionaryValue[]
         >;
 
+        // For objects, use Object.entries
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
         )) {
-            const mapped = callback(value as TValue, key as TKey);
+            const loopKey = entriesKeyValue(key);
+
+            const mapped = callback(value as TValue, loopKey as TKey);
 
             if (isArray(mapped)) {
                 if (mapped.length !== 2) {
@@ -1669,14 +1672,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
                 const [mappedKey, mappedValue] = mapped;
 
-                dictionary[mappedKey as TMapToDictionaryKey] =
-                    mappedValue as TMapToDictionaryValue;
+                if (!dictionary[mappedKey as TMapToDictionaryKey]) {
+                    dictionary[mappedKey as TMapToDictionaryKey] = [];
+                }
+
+                dictionary[mappedKey as TMapToDictionaryKey].push(
+                    mappedValue as TMapToDictionaryValue,
+                );
                 continue;
             }
 
             for (const [mappedKey, mappedValue] of Object.entries(mapped)) {
-                dictionary[mappedKey as TMapToDictionaryKey] =
-                    mappedValue as TMapToDictionaryValue;
+                if (!dictionary[mappedKey as TMapToDictionaryKey]) {
+                    dictionary[mappedKey as TMapToDictionaryKey] = [];
+                }
+
+                dictionary[mappedKey as TMapToDictionaryKey].push(
+                    mappedValue as TMapToDictionaryValue,
+                );
             }
         }
 

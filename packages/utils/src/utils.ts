@@ -847,3 +847,19 @@ export function strictEqual(a: unknown, b: unknown): boolean {
 
     return false;
 }
+
+/**
+ * Figures out if the entry key should be a number or a string.
+ * 
+ * @param value - The entry key value (number, string, or symbol)
+ * @returns The entry key as a number if it can be converted, otherwise returns the original value
+ */
+export function entriesKeyValue<T extends PropertyKey>(
+    value: T,
+): T extends `${number}` ? number : T {
+    if (!isNaN(Number(value)) && !isNaN(parseFloat(String(value)))) {
+        return Number(value) as T extends `${number}` ? number : T;
+    }
+
+    return value as T extends `${number}` ? number : T;
+}
