@@ -2550,6 +2550,45 @@ describe("Collection", () => {
         });
     });
     
+    describe("merge", () => {
+        describe("Laravel Tests", () => {
+            it("test merge null", () => {
+                const c = collect({name: 'hello'});
+                expect(c.merge(null).all()).toEqual({name: 'hello'});
+            });
+
+            it("test merge array", () => {
+                const c = collect({ name: "Hello" });
+                expect(c.merge({ id: 1 }).all()).toEqual({ name: "Hello", id: 1 });
+
+                const d = collect(["hello"]);
+                expect(d.merge(1).all()).toEqual(["hello", 1]);
+            });
+
+            it("test merge collection", () => {
+                const c = collect({name: 'Hello'});
+                expect(c.merge(collect({name: 'World', id: 1})).all()).toEqual({name: 'World', id: 1});
+
+                const d = collect(['hello']);
+                expect(d.merge(collect(['world'])).all()).toEqual(['hello', 'world']);
+            });            
+        });
+
+        it("merge object items with array", () => {
+            const c = collect({a: 1, b: 2});
+            expect(c.merge([3, 4]).all()).toEqual({ '0': 3, '1': 4, a: 1, b: 2 });
+        })
+    });
+    
+    describe("mergeRecursive", () => {
+        describe("Laravel Tests", () => {
+            it("test merge recursive null", () => {
+                const c = collect({name: 'hello'});
+                expect(c.mergeRecursive(null).all()).toEqual({name: 'hello'});
+            });
+        });
+    });
+    
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});

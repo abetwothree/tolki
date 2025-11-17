@@ -1767,7 +1767,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).merge({a: 3}); -> new Collection([1, 2, {a: 3}])
      * new Collection({a: 1}).merge([2]); -> new Collection({a: 1, 0: 2})
      */
-    merge(items: DataItems<TValue, TKey> | Collection<TValue, TKey>) {
+    merge<T, K extends PropertyKey>(items: T[] | Record<K, T> | Collection<T, K> | null) {
+        if(isNull(items)){
+            return this;
+        }
+
         items = this.getRawItems(items);
 
         if (isArray(this.items) && isArray(items)) {
@@ -1778,15 +1782,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return new Collection({ ...this.items, ...items });
         }
 
-        if (isArray(this.items)) {
-            return new Collection([...this.items, items]);
-        }
-
-        if (isObject(items)) {
-            return new Collection([this.items, items]);
-        }
-
-        return new Collection([this.items, items]);
+        return new Collection({ ...this.items, ...items });
     }
 
     /**
