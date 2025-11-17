@@ -2586,7 +2586,93 @@ describe("Collection", () => {
                 const c = collect({name: 'hello'});
                 expect(c.mergeRecursive(null).all()).toEqual({name: 'hello'});
             });
+
+            it("test merge recursive array", () => {
+                const c = collect({ name: "Hello", id: 1 });
+                expect(c.mergeRecursive({ id: 2 }).all()).toEqual({ name: "Hello", id: [1, 2] });
+
+                const d = collect({ name: "Hello", tags: ["a"] });
+                expect(d.mergeRecursive({ tags: ["b", "c"] }).all()).toEqual({
+                    name: "Hello",
+                    tags: ["a", "b", "c"],
+                });
+            });
+
+            it("test merge recursive collection", () => {
+                const c = collect({ name: "Hello", id: 1, meta: { tags: ["a", "b"], roles: "admin" } });
+                const merged = c.mergeRecursive(collect({ meta: { tags: ["c"], roles: "editor" } }));
+                expect(merged.all()).toEqual({
+                    name: "Hello",
+                    id: 1,
+                    meta: { tags: ["a", "b", "c"], roles: ["admin", "editor"] },
+                });
+            });
         });
+
+        it("test target is array and source is not", () => {
+            const target = collect({a: [1, 2, 3]});
+            const source = collect({ a: 4});
+            expect(target.mergeRecursive(source).all()).toEqual({ a: [1, 2, 3, 4] });
+        });
+
+        it("test source is array and target is not", () => {
+            const target = collect({a: 7});
+            const source = collect({a: [1, 2, 3]});
+            expect(target.mergeRecursive(source).all()).toEqual({ a: [7, 1, 2, 3] });
+        });
+
+        it("test merging existing keys and adding new keys", () => {
+            const target = collect({a: 5, b: [3, 4], c: {z: 5, y: [9,0]}});
+            const source = collect({a: 6, b: [5, 6], c: {z: 6, y: [10,11]}, d: 'new'});
+            expect(target.mergeRecursive(source).all()).toEqual({
+                a: [5, 6],
+                b: [3, 4, 5, 6],
+                c: {z: [5, 6], y: [9,0,10,11]},
+                d: 'new'
+            });
+        });
+
+        it("test merging arrays", () => {
+            const target = collect([1, [4, 5, 7], {b: 4, c: 5, d: [8,9], e: {x: 1, y: 2}}]);
+            const source = collect([2, [6, 8], {b: 5, c: 6, d: [10,11], e: {x: 3, z: 4}}, 3]);
+            expect(target.mergeRecursive(source).all()).toEqual([
+                [1, 2],
+                [4, 5, 7, 6, 8],
+                {b: [4, 5], c: [5, 6], d: [8, 9, 10, 11], e: {x: [1, 3], y: 2, z: 4}},
+                3
+            ]);
+        })
+
+        it("test merging arrays when target array is longer than source", () => {
+            const target = collect([1, [2, 3, 4], {a: 7, b: 8, c: 9}]);
+            const source = collect([5, [6]]);
+            expect(target.mergeRecursive(source).all()).toEqual([
+                [1, 5],
+                [2, 3, 4, 6],
+                {a: 7, b: 8, c: 9}
+            ]);
+        });
+
+        it("test merging object and arrays", () => {
+            const target = collect({a: 1, b: [2, 3], c: {x: 4, y: 5}});
+            const source = collect({a: [6, 7], b: 4, c: {x: [8, 9]}});
+            expect(target.mergeRecursive(source).all()).toEqual({
+                a: [1, 6, 7],
+                b: [2, 3, 4],
+                c: {x: [4, 8, 9], y: 5},
+            });
+
+            const target2 = collect({a: 1, b: {x: 2, y: 3}, c: [4, 5]});
+            const source2 = collect([[6, 7], 4, {x: [8, 9]}]);
+            expect(target2.mergeRecursive(source2).all()).toEqual({
+                "0": [6, 7],
+                "1": 4,
+                "2": {x: [8, 9]},
+                a: 1,
+                b: {x: 2, y: 3},
+                c: [4, 5],
+            });
+        })
     });
     
     describe("", () => {

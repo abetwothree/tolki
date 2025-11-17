@@ -1772,17 +1772,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this;
         }
 
-        items = this.getRawItems(items);
+        const rawItems = this.getRawItems(items);
 
-        if (isArray(this.items) && isArray(items)) {
-            return new Collection([...this.items, ...items]);
+        if (isArray(this.items) && isArray(rawItems)) {
+            return new Collection([...this.items, ...rawItems]);
         }
 
-        if (isObject(this.items) && isObject(items)) {
-            return new Collection({ ...this.items, ...items });
+        if (isObject(this.items) && isObject(rawItems)) {
+            return new Collection({ ...this.items, ...rawItems });
         }
 
-        return new Collection({ ...this.items, ...items });
+        return new Collection({ ...this.items, ...rawItems });
     }
 
     /**
@@ -1798,22 +1798,41 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, {a: 2}]).mergeRecursive([{b: 3}, {a: 4}]); -> new Collection([1, {a: 4, b: 3}])
      * new Collection([1, 2]).mergeRecursive({a: 3}); -> new Collection([1, 2, {a: 3}])
      */
-    mergeRecursive<TMergeRecursiveValue>(
+    mergeRecursive<TMergeRecursiveValue, TMergeKey extends PropertyKey>(
         items:
-            | DataItems<TMergeRecursiveValue, TKey>
-            | Collection<TMergeRecursiveValue, TKey>,
+            TMergeRecursiveValue[]
+            | Record<TMergeKey, TMergeRecursiveValue>
+            | Collection<TMergeRecursiveValue, TMergeKey>
+            | null,
     ) {
+        if(isNull(items)){
+            return this;
+        }
+
         const otherItems = this.getRawItems(items);
 
         // Helper function to recursively merge two values
+        // Mimics PHP's array_merge_recursive behavior
         const mergeRecursively = (
             target: unknown,
             source: unknown,
         ): unknown => {
+            // If both are arrays, concatenate them
             if (isArray(target) && isArray(source)) {
                 return [...target, ...source];
             }
 
+            // If target is array and source is not, append source to target
+            if (isArray(target) && !isArray(source)) {
+                return [...target, source];
+            }
+
+            // If source is array and target is not, prepend target to source
+            if (!isArray(target) && isArray(source)) {
+                return [target, ...source];
+            }
+
+            // If both are objects (but not arrays), merge them recursively
             if (
                 isObject(target) &&
                 !isArray(target) &&
@@ -1834,7 +1853,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 return result;
             }
 
-            return source;
+            // If neither are arrays or objects, create an array with both values
+            // This mimics PHP's array_merge_recursive where duplicate keys create arrays
+            return [target, source];
         };
 
         if (isArray(this.items) && isArray(otherItems)) {
