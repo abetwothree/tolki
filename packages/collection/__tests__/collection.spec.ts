@@ -2220,6 +2220,114 @@ describe("Collection", () => {
             expect(collection.last(null, "default")).toBe("default");
         });
     });
+
+    describe("pluck", () => {
+        describe("Laravel Tests", () => {
+            it("test pluck with array and object values", () => {
+                const data = collect([
+                    { name: "taylor", email: "foo" },
+                    { name: "dayle", email: "bar" },
+                ]);
+
+                expect(data.pluck("email", "name").all()).toEqual({
+                    taylor: "foo",
+                    dayle: "bar",
+                });
+                expect(data.pluck("email").all()).toEqual(["foo", "bar"]);
+            });
+
+            it("test pluck with dot notation", () => {
+                const data = collect([
+                    {
+                        name: "amir",
+                        skill: {
+                            backend: ["php", "python"],
+                        },
+                    },
+                    {
+                        name: "taylor",
+                        skill: {
+                            backend: ["php", "asp", "java"],
+                        },
+                    },
+                ]);
+
+                expect(data.pluck("skill.backend").all()).toEqual([
+                    ["php", "python"],
+                    ["php", "asp", "java"],
+                ]);
+            });
+            
+            it("test pluck with closure", () => {
+                const data = collect([
+                    {
+                        name: "amir",
+                        skill: {
+                            backend: ["php", "python"],
+                        },
+                    },
+                    {
+                        name: "taylor",
+                        skill: {
+                            backend: ["php", "asp", "java"],
+                        },
+                    },
+                ]);
+
+                expect(
+                    data
+                        .pluck((row) => `${row.name} (verified)`)
+                        .all(),
+                ).toEqual(["amir (verified)", "taylor (verified)"]);
+
+                expect(
+                    data
+                        .pluck(
+                            "name",
+                            (row) => row.skill.backend.join("/"),
+                        )
+                        .all(),
+                ).toEqual({
+                    "php/python": "amir",
+                    "php/asp/java": "taylor",
+                });
+            });
+
+            it("test pluck duplicate keys exist", () => {
+                const data = collect([
+                    { brand: "Tesla", color: "red" },
+                    { brand: "Pagani", color: "white" },
+                    { brand: "Tesla", color: "black" },
+                    { brand: "Pagani", color: "orange" },
+                ]);
+
+                expect(data.pluck("color", "brand").all()).toEqual({
+                    Tesla: "black",
+                    Pagani: "orange",
+                });
+            });
+        });
+
+        it("plucks array values by key", () => {
+            const collection = collect([
+                { id: 1, name: "John" },
+                { id: 2, name: "Jane" },
+            ]);
+            const names = collection.pluck("name");
+            expect(names.all()).toEqual(["John", "Jane"]);
+        });
+
+        it("plucks object values by key", () => {
+            const collection = collect({
+                a: { id: 1, name: "John" },
+                b: { id: 2, name: "Jane" },
+            });
+            const names = collection.pluck("name");
+            expect(names.all()).toEqual(["John", "Jane"]);
+            const idedNames = collection.pluck("name", "id");
+            expect(idedNames.all()).toEqual({ 1: "John", 2: "Jane" });
+        });
+    });
     
     describe("", () => {
         describe("Laravel Tests", () => {
@@ -2274,28 +2382,6 @@ describe("Collection", () => {
                 (value, key) => `${String(key)}:${value * 2}`,
             );
             expect(mapped.all()).toEqual({ a: "a:2", b: "b:4", c: "c:6" });
-        });
-    });
-
-    describe("pluck", () => {
-        it("plucks array values by key", () => {
-            const collection = collect([
-                { id: 1, name: "John" },
-                { id: 2, name: "Jane" },
-            ]);
-            const names = collection.pluck("name");
-            expect(names.all()).toEqual(["John", "Jane"]);
-        });
-
-        it("plucks object values by key", () => {
-            const collection = collect({
-                a: { id: 1, name: "John" },
-                b: { id: 2, name: "Jane" },
-            });
-            const names = collection.pluck("name");
-            expect(names.all()).toEqual(["John", "Jane"]);
-            const idedNames = collection.pluck("name", "id");
-            expect(idedNames.all()).toEqual({ 1: "John", 2: "Jane" });
         });
     });
 
