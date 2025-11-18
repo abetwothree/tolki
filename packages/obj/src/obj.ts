@@ -1521,7 +1521,9 @@ export function mapWithKeys<
         value: TValue,
         key: TKey,
     ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
-): Record<TMapWithKeysKey, TMapWithKeysValue> | Map<TMapWithKeysKey, TMapWithKeysValue> {
+):
+    | Record<TMapWithKeysKey, TMapWithKeysValue>
+    | Map<TMapWithKeysKey, TMapWithKeysValue> {
     if (!accessible(data)) {
         return {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
@@ -1543,9 +1545,12 @@ export function mapWithKeys<
             if (!Number.isNaN(numKey) && String(numKey) === mapKey) {
                 hasNumericKeys = true;
             }
-            
+
             result[mapKey as TMapWithKeysKey] = mapValue as TMapWithKeysValue;
-            resultMap.set(mapKey as TMapWithKeysKey, mapValue as TMapWithKeysValue);
+            resultMap.set(
+                mapKey as TMapWithKeysKey,
+                mapValue as TMapWithKeysValue,
+            );
         }
     }
 
@@ -3004,23 +3009,23 @@ export function keys<TValue, TKey extends PropertyKey = PropertyKey>(
     // Then convert numeric string keys back to numbers
     const result: (string | number)[] = [];
     const allKeys = Reflect.ownKeys(data as Record<TKey, TValue>);
-    
+
     for (const key of allKeys) {
         // Skip symbol keys
-        if (typeof key === 'symbol') {
+        if (typeof key === "symbol") {
             continue;
         }
-        
+
         // Convert numeric string keys back to numbers
         const numericKey = Number(key);
-        
+
         if (!Number.isNaN(numericKey) && String(numericKey) === key) {
             result.push(numericKey);
         } else {
             result.push(key);
         }
     }
-    
+
     return result;
 }
 

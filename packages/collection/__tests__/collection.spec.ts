@@ -89,7 +89,7 @@ describe("Collection", () => {
                     [3, { id: 1, name: "A" }],
                     [5, { id: 3, name: "B" }],
                     [4, { id: 2, name: "C" }],
-                ])
+                ]),
             );
 
             assertType<Collection<{ id: number; name: string }, number>>(data);
@@ -154,7 +154,7 @@ describe("Collection", () => {
                     [3, { id: 1, name: "A" }],
                     [5, { id: 3, name: "B" }],
                     [4, { id: 2, name: "C" }],
-                ])
+                ]),
             );
             expect(data.all()).toEqual({
                 3: { id: 1, name: "A" },
@@ -1885,12 +1885,21 @@ describe("Collection", () => {
 
             it("test intersect collection", () => {
                 const c = collect({ id: 1, first_word: "Hello" });
-                expect(c.intersect(collect({ first_word: "Hello", last_word: "World" })).all()).toEqual({
+                expect(
+                    c
+                        .intersect(
+                            collect({
+                                first_word: "Hello",
+                                last_word: "World",
+                            }),
+                        )
+                        .all(),
+                ).toEqual({
                     first_word: "Hello",
                 });
             });
         });
-    })
+    });
 
     describe("intersectUsing", () => {
         describe("Laravel Tests", () => {
@@ -1905,13 +1914,15 @@ describe("Collection", () => {
             it("test intersect using collection", () => {
                 const c = collect(["green", "brown", "blue"]);
                 expect(
-                    c.intersectUsing(
-                        collect(["GREEN", "brown", "yellow"]),
-                        strcasecmp,
-                    ).all(),
+                    c
+                        .intersectUsing(
+                            collect(["GREEN", "brown", "yellow"]),
+                            strcasecmp,
+                        )
+                        .all(),
                 ).toEqual(["green", "brown"]);
             });
-        })
+        });
     });
 
     describe("intersectAssoc", () => {
@@ -1949,29 +1960,14 @@ describe("Collection", () => {
 
         describe("test intersect assoc with arrays", () => {
             it("test intersect assoc array with null", () => {
-                const array1 = collect([
-                    "green",
-                    "brown",
-                    "blue",
-                    "red",
-                ]);
+                const array1 = collect(["green", "brown", "blue", "red"]);
 
                 expect(array1.intersectAssoc(null).all()).toEqual([]);
             });
 
             it("test intersect assoc array collection", () => {
-                const array1 = collect([
-                    "green",
-                    "brown",
-                    "blue",
-                    "red",
-                ]);
-                const array2 = collect([
-                    "green",
-                    "yellow",
-                    "blue",
-                    "red",
-                ]);
+                const array1 = collect(["green", "brown", "blue", "red"]);
+                const array2 = collect(["green", "yellow", "blue", "red"]);
 
                 expect(array1.intersectAssoc(array2).all()).toEqual([
                     "green",
@@ -2012,21 +2008,14 @@ describe("Collection", () => {
                 });
 
                 expect(
-                    array1
-                        .intersectAssocUsing(array2, strcasecmpKeys)
-                        .all(),
+                    array1.intersectAssocUsing(array2, strcasecmpKeys).all(),
                 ).toEqual({ b: "brown" });
             });
         });
 
         describe("test intersect assoc using with arrays", () => {
             it("test intersect assoc using with arrays with null", () => {
-                const array1 = collect([
-                    "green",
-                    "brown",
-                    "blue",
-                    "red",
-                ]);
+                const array1 = collect(["green", "brown", "blue", "red"]);
 
                 expect(
                     array1.intersectAssocUsing(null, strcasecmpKeys).all(),
@@ -2034,23 +2023,11 @@ describe("Collection", () => {
             });
 
             it("test intersect assoc using with arrays collection", () => {
-                const array1 = collect([
-                    "green",
-                    "brown",
-                    "blue",
-                    "red",
-                ]);
-                const array2 = collect([
-                    "GREEN",
-                    "brown",
-                    "yellow",
-                    "red",
-                ]);
+                const array1 = collect(["green", "brown", "blue", "red"]);
+                const array2 = collect(["GREEN", "brown", "yellow", "red"]);
 
                 expect(
-                    array1
-                        .intersectAssocUsing(array2, strcasecmpKeys)
-                        .all(),
+                    array1.intersectAssocUsing(array2, strcasecmpKeys).all(),
                 ).toEqual(["brown", "red"]);
             });
         });
@@ -2069,23 +2046,35 @@ describe("Collection", () => {
             it("test intersect by keys", () => {
                 const c = collect({ name: "Mateus", age: 18 });
                 expect(
-                    c.intersectByKeys(
-                        collect({ name: "Mateus", surname: "Guimaraes" }),
-                    ).all(),
+                    c
+                        .intersectByKeys(
+                            collect({ name: "Mateus", surname: "Guimaraes" }),
+                        )
+                        .all(),
                 ).toEqual({ name: "Mateus" });
             });
 
             it("test intersect by keys with different values", () => {
-                const c = collect({ name: "taylor", family: "otwell", age: 26 });
+                const c = collect({
+                    name: "taylor",
+                    family: "otwell",
+                    age: 26,
+                });
                 expect(
-                    c.intersectByKeys(
-                        collect({ height: 180, name: "amir", family: "moharami" }),
-                    ).all(),
+                    c
+                        .intersectByKeys(
+                            collect({
+                                height: 180,
+                                name: "amir",
+                                family: "moharami",
+                            }),
+                        )
+                        .all(),
                 ).toEqual({ name: "taylor", family: "otwell" });
             });
         });
     });
-    
+
     describe("isEmpty", () => {
         describe("Laravel Tests", () => {
             it("", () => {
@@ -2121,7 +2110,7 @@ describe("Collection", () => {
             expect(collection.isEmpty()).toBe(false);
         });
     });
-    
+
     describe("containsOneItem", () => {
         it("Laravel Tests", () => {
             expect(collect([]).containsOneItem()).toBe(false);
@@ -2129,26 +2118,50 @@ describe("Collection", () => {
             expect(collect([1, 2]).containsOneItem()).toBe(false);
 
             expect(collect({}).containsOneItem()).toBe(false);
-            expect(collect({a: 1}).containsOneItem()).toBe(true);
-            expect(collect({a: 1, b: 2}).containsOneItem()).toBe(false);
+            expect(collect({ a: 1 }).containsOneItem()).toBe(true);
+            expect(collect({ a: 1, b: 2 }).containsOneItem()).toBe(false);
 
-            expect(collect([1, 2, 2]).containsOneItem((number) => number === 2)).toBe(false);
-            expect(collect(["ant", "bear", "cat"]).containsOneItem((word) => word.length === 4)).toBe(true);
-            expect(collect(["ant", "bear", "cat"]).containsOneItem((word) => word.length > 4)).toBe(false);
+            expect(
+                collect([1, 2, 2]).containsOneItem((number) => number === 2),
+            ).toBe(false);
+            expect(
+                collect(["ant", "bear", "cat"]).containsOneItem(
+                    (word) => word.length === 4,
+                ),
+            ).toBe(true);
+            expect(
+                collect(["ant", "bear", "cat"]).containsOneItem(
+                    (word) => word.length > 4,
+                ),
+            ).toBe(false);
 
-            expect(collect({a: 1, b: 2, c: 2}).containsOneItem((number) => number === 2)).toBe(false);
-            expect(collect({a: "ant", b: "bear", c: "cat"}).containsOneItem((word) => word.length === 4)).toBe(true);
-            expect(collect({a: "ant", b: "bear", c: "cat"}).containsOneItem((word) => word.length > 4)).toBe(false);
+            expect(
+                collect({ a: 1, b: 2, c: 2 }).containsOneItem(
+                    (number) => number === 2,
+                ),
+            ).toBe(false);
+            expect(
+                collect({ a: "ant", b: "bear", c: "cat" }).containsOneItem(
+                    (word) => word.length === 4,
+                ),
+            ).toBe(true);
+            expect(
+                collect({ a: "ant", b: "bear", c: "cat" }).containsOneItem(
+                    (word) => word.length > 4,
+                ),
+            ).toBe(false);
         });
     });
-    
+
     describe("join", () => {
         it("Laravel Tests", () => {
-            expect(collect(['a', 'b', 'c']).join(', ')).toBe('a, b, c');
-            expect(collect(['a', 'b', 'c']).join(', ', ' and ')).toBe('a, b and c');
-            expect(collect(['a', 'b']).join(', ', ' and ')).toBe('a and b');
-            expect(collect(['a']).join(', ', ' and ')).toBe('a');
-            expect(collect([]).join(', ', ' and ')).toBe('');
+            expect(collect(["a", "b", "c"]).join(", ")).toBe("a, b, c");
+            expect(collect(["a", "b", "c"]).join(", ", " and ")).toBe(
+                "a, b and c",
+            );
+            expect(collect(["a", "b"]).join(", ", " and ")).toBe("a and b");
+            expect(collect(["a"]).join(", ", " and ")).toBe("a");
+            expect(collect([]).join(", ", " and ")).toBe("");
         });
     });
 
@@ -2157,7 +2170,7 @@ describe("Collection", () => {
             const c = collect({ name: "taylor", framework: "laravel" });
             expect(c.keys().all()).toEqual(["name", "framework"]);
 
-            const c2 = collect(["taylor", "laravel"]);;
+            const c2 = collect(["taylor", "laravel"]);
             expect(c2.keys().all()).toEqual([0, 1]);
         });
 
@@ -2174,9 +2187,9 @@ describe("Collection", () => {
 
     describe("last", () => {
         describe("Laravel Tests", () => {
-            it("test last returns last item in collection" , () => {
-                const c = collect(['foo', 'bar']);
-                expect(c.last()).toBe('bar');
+            it("test last returns last item in collection", () => {
+                const c = collect(["foo", "bar"]);
+                expect(c.last()).toBe("bar");
 
                 const c2 = collect([]);
                 expect(c2.last()).toBeNull();
@@ -2184,36 +2197,28 @@ describe("Collection", () => {
 
             it("test last with callback", () => {
                 const c = collect([100, 200, 300]);
-                expect(
-                    c.last((value) => value < 250),
-                ).toBe(200);
+                expect(c.last((value) => value < 250)).toBe(200);
 
-                expect(
-                    c.last((value, key) => key < 2),
-                ).toBe(200);
+                expect(c.last((value, key) => key < 2)).toBe(200);
 
-                expect(
-                    c.last((value) => value > 300),
-                ).toBeNull();
+                expect(c.last((value) => value > 300)).toBeNull();
             });
 
             it("test last with default and without callback", () => {
-                const c = collect(['foo', 'bar']);
-                expect(
-                    c.last((value) => value === 'baz', 'default'),
-                ).toBe('default');
+                const c = collect(["foo", "bar"]);
+                expect(c.last((value) => value === "baz", "default")).toBe(
+                    "default",
+                );
 
-                const c2 = collect(['foo', 'bar', 'Bar']);
-                expect(
-                    c2.last((value) => value === 'bar', 'default'),
-                ).toBe('bar');
+                const c2 = collect(["foo", "bar", "Bar"]);
+                expect(c2.last((value) => value === "bar", "default")).toBe(
+                    "bar",
+                );
             });
 
             it("test last with default and without callback", () => {
                 const c = collect();
-                expect(
-                    c.last(null, 'default'),
-                ).toBe('default');
+                expect(c.last(null, "default")).toBe("default");
             });
         });
 
@@ -2284,7 +2289,7 @@ describe("Collection", () => {
                     ["php", "asp", "java"],
                 ]);
             });
-            
+
             it("test pluck with closure", () => {
                 const data = collect([
                     {
@@ -2302,17 +2307,12 @@ describe("Collection", () => {
                 ]);
 
                 expect(
-                    data
-                        .pluck((row) => `${row.name} (verified)`)
-                        .all(),
+                    data.pluck((row) => `${row.name} (verified)`).all(),
                 ).toEqual(["amir (verified)", "taylor (verified)"]);
 
                 expect(
                     data
-                        .pluck(
-                            "name",
-                            (row) => row.skill.backend.join("/"),
-                        )
+                        .pluck("name", (row) => row.skill.backend.join("/"))
                         .all(),
                 ).toEqual({
                     "php/python": "amir",
@@ -2364,7 +2364,9 @@ describe("Collection", () => {
             expect(data.all()).toEqual([1, 2, 3]);
 
             const data2 = collect({ first: "taylor", last: "otwell" });
-            const mapped2 = data2.map((item, key) => `${key}-${item.split("").reverse().join("")}`);
+            const mapped2 = data2.map(
+                (item, key) => `${key}-${item.split("").reverse().join("")}`,
+            );
             expect(mapped2.all()).toEqual({
                 first: "first-rolyat",
                 last: "last-llewto",
@@ -2385,7 +2387,7 @@ describe("Collection", () => {
             expect(mapped.all()).toEqual({ a: "a:2", b: "b:4", c: "c:6" });
         });
     });
-    
+
     describe("mapToDictionary", () => {
         describe("Laravel Tests", () => {
             it("test map to dictionary", () => {
@@ -2428,13 +2430,17 @@ describe("Collection", () => {
                     C: [3],
                 });
 
-                expect(() => data.mapToDictionary((item) => {
-                    return [item.name];
-                })).toThrowError();
+                expect(() =>
+                    data.mapToDictionary((item) => {
+                        return [item.name];
+                    }),
+                ).toThrowError();
 
-                expect(() => data.mapToDictionary((item) => {
-                    return [item.name, item.id, 'error'];
-                })).toThrowError();
+                expect(() =>
+                    data.mapToDictionary((item) => {
+                        return [item.name, item.id, "error"];
+                    }),
+                ).toThrowError();
             });
 
             it("test map to dictionary with numeric keys", () => {
@@ -2450,7 +2456,7 @@ describe("Collection", () => {
                     3: [2],
                 });
 
-                const data2 = collect({1: 'a', 2: 'b', 3: 'a'});
+                const data2 = collect({ 1: "a", 2: "b", 3: "a" });
 
                 const groups2 = data2.mapToDictionary((item, key) => {
                     return { [item]: key };
@@ -2473,7 +2479,7 @@ describe("Collection", () => {
             });
         });
     });
-    
+
     describe("mapWithKeys", () => {
         describe("Laravel Tests", () => {
             it("test map with keys", () => {
@@ -2538,7 +2544,7 @@ describe("Collection", () => {
                         [3, { id: 1, name: "A" }],
                         [5, { id: 3, name: "B" }],
                         [4, { id: 2, name: "C" }],
-                    ])
+                    ]),
                 );
 
                 const mapped = data.mapWithKeys((item, key) => {
@@ -2549,47 +2555,63 @@ describe("Collection", () => {
             });
         });
     });
-    
+
     describe("merge", () => {
         describe("Laravel Tests", () => {
             it("test merge null", () => {
-                const c = collect({name: 'hello'});
-                expect(c.merge(null).all()).toEqual({name: 'hello'});
+                const c = collect({ name: "hello" });
+                expect(c.merge(null).all()).toEqual({ name: "hello" });
             });
 
             it("test merge array", () => {
                 const c = collect({ name: "Hello" });
-                expect(c.merge({ id: 1 }).all()).toEqual({ name: "Hello", id: 1 });
+                expect(c.merge({ id: 1 }).all()).toEqual({
+                    name: "Hello",
+                    id: 1,
+                });
 
                 const d = collect(["hello"]);
                 expect(d.merge(1).all()).toEqual(["hello", 1]);
             });
 
             it("test merge collection", () => {
-                const c = collect({name: 'Hello'});
-                expect(c.merge(collect({name: 'World', id: 1})).all()).toEqual({name: 'World', id: 1});
+                const c = collect({ name: "Hello" });
+                expect(
+                    c.merge(collect({ name: "World", id: 1 })).all(),
+                ).toEqual({ name: "World", id: 1 });
 
-                const d = collect(['hello']);
-                expect(d.merge(collect(['world'])).all()).toEqual(['hello', 'world']);
-            });            
+                const d = collect(["hello"]);
+                expect(d.merge(collect(["world"])).all()).toEqual([
+                    "hello",
+                    "world",
+                ]);
+            });
         });
 
         it("merge object items with array", () => {
-            const c = collect({a: 1, b: 2});
-            expect(c.merge([3, 4]).all()).toEqual({ '0': 3, '1': 4, a: 1, b: 2 });
-        })
+            const c = collect({ a: 1, b: 2 });
+            expect(c.merge([3, 4]).all()).toEqual({
+                "0": 3,
+                "1": 4,
+                a: 1,
+                b: 2,
+            });
+        });
     });
-    
+
     describe("mergeRecursive", () => {
         describe("Laravel Tests", () => {
             it("test merge recursive null", () => {
-                const c = collect({name: 'hello'});
-                expect(c.mergeRecursive(null).all()).toEqual({name: 'hello'});
+                const c = collect({ name: "hello" });
+                expect(c.mergeRecursive(null).all()).toEqual({ name: "hello" });
             });
 
             it("test merge recursive array", () => {
                 const c = collect({ name: "Hello", id: 1 });
-                expect(c.mergeRecursive({ id: 2 }).all()).toEqual({ name: "Hello", id: [1, 2] });
+                expect(c.mergeRecursive({ id: 2 }).all()).toEqual({
+                    name: "Hello",
+                    id: [1, 2],
+                });
 
                 const d = collect({ name: "Hello", tags: ["a"] });
                 expect(d.mergeRecursive({ tags: ["b", "c"] }).all()).toEqual({
@@ -2599,8 +2621,14 @@ describe("Collection", () => {
             });
 
             it("test merge recursive collection", () => {
-                const c = collect({ name: "Hello", id: 1, meta: { tags: ["a", "b"], roles: "admin" } });
-                const merged = c.mergeRecursive(collect({ meta: { tags: ["c"], roles: "editor" } }));
+                const c = collect({
+                    name: "Hello",
+                    id: 1,
+                    meta: { tags: ["a", "b"], roles: "admin" },
+                });
+                const merged = c.mergeRecursive(
+                    collect({ meta: { tags: ["c"], roles: "editor" } }),
+                );
                 expect(merged.all()).toEqual({
                     name: "Hello",
                     id: 1,
@@ -2610,88 +2638,125 @@ describe("Collection", () => {
         });
 
         it("test target is array and source is not", () => {
-            const target = collect({a: [1, 2, 3]});
-            const source = collect({ a: 4});
-            expect(target.mergeRecursive(source).all()).toEqual({ a: [1, 2, 3, 4] });
+            const target = collect({ a: [1, 2, 3] });
+            const source = collect({ a: 4 });
+            expect(target.mergeRecursive(source).all()).toEqual({
+                a: [1, 2, 3, 4],
+            });
         });
 
         it("test source is array and target is not", () => {
-            const target = collect({a: 7});
-            const source = collect({a: [1, 2, 3]});
-            expect(target.mergeRecursive(source).all()).toEqual({ a: [7, 1, 2, 3] });
+            const target = collect({ a: 7 });
+            const source = collect({ a: [1, 2, 3] });
+            expect(target.mergeRecursive(source).all()).toEqual({
+                a: [7, 1, 2, 3],
+            });
         });
 
         it("test merging existing keys and adding new keys", () => {
-            const target = collect({a: 5, b: [3, 4], c: {z: 5, y: [9,0]}});
-            const source = collect({a: 6, b: [5, 6], c: {z: 6, y: [10,11]}, d: 'new'});
+            const target = collect({ a: 5, b: [3, 4], c: { z: 5, y: [9, 0] } });
+            const source = collect({
+                a: 6,
+                b: [5, 6],
+                c: { z: 6, y: [10, 11] },
+                d: "new",
+            });
             expect(target.mergeRecursive(source).all()).toEqual({
                 a: [5, 6],
                 b: [3, 4, 5, 6],
-                c: {z: [5, 6], y: [9,0,10,11]},
-                d: 'new'
+                c: { z: [5, 6], y: [9, 0, 10, 11] },
+                d: "new",
             });
         });
 
         it("test merging arrays", () => {
-            const target = collect([1, [4, 5, 7], {b: 4, c: 5, d: [8,9], e: {x: 1, y: 2}}]);
-            const source = collect([2, [6, 8], {b: 5, c: 6, d: [10,11], e: {x: 3, z: 4}}, 3]);
+            const target = collect([
+                1,
+                [4, 5, 7],
+                { b: 4, c: 5, d: [8, 9], e: { x: 1, y: 2 } },
+            ]);
+            const source = collect([
+                2,
+                [6, 8],
+                { b: 5, c: 6, d: [10, 11], e: { x: 3, z: 4 } },
+                3,
+            ]);
             expect(target.mergeRecursive(source).all()).toEqual([
                 [1, 2],
                 [4, 5, 7, 6, 8],
-                {b: [4, 5], c: [5, 6], d: [8, 9, 10, 11], e: {x: [1, 3], y: 2, z: 4}},
-                3
+                {
+                    b: [4, 5],
+                    c: [5, 6],
+                    d: [8, 9, 10, 11],
+                    e: { x: [1, 3], y: 2, z: 4 },
+                },
+                3,
             ]);
-        })
+        });
 
         it("test merging arrays when target array is longer than source", () => {
-            const target = collect([1, [2, 3, 4], {a: 7, b: 8, c: 9}]);
+            const target = collect([1, [2, 3, 4], { a: 7, b: 8, c: 9 }]);
             const source = collect([5, [6]]);
             expect(target.mergeRecursive(source).all()).toEqual([
                 [1, 5],
                 [2, 3, 4, 6],
-                {a: 7, b: 8, c: 9}
+                { a: 7, b: 8, c: 9 },
             ]);
         });
 
         it("test merging object and arrays", () => {
-            const target = collect({a: 1, b: [2, 3], c: {x: 4, y: 5}});
-            const source = collect({a: [6, 7], b: 4, c: {x: [8, 9]}});
+            const target = collect({ a: 1, b: [2, 3], c: { x: 4, y: 5 } });
+            const source = collect({ a: [6, 7], b: 4, c: { x: [8, 9] } });
             expect(target.mergeRecursive(source).all()).toEqual({
                 a: [1, 6, 7],
                 b: [2, 3, 4],
-                c: {x: [4, 8, 9], y: 5},
+                c: { x: [4, 8, 9], y: 5 },
             });
 
-            const target2 = collect({a: 1, b: {x: 2, y: 3}, c: [4, 5]});
-            const source2 = collect([[6, 7], 4, {x: [8, 9]}]);
+            const target2 = collect({ a: 1, b: { x: 2, y: 3 }, c: [4, 5] });
+            const source2 = collect([[6, 7], 4, { x: [8, 9] }]);
             expect(target2.mergeRecursive(source2).all()).toEqual({
                 "0": [6, 7],
                 "1": 4,
-                "2": {x: [8, 9]},
+                "2": { x: [8, 9] },
                 a: 1,
-                b: {x: 2, y: 3},
+                b: { x: 2, y: 3 },
                 c: [4, 5],
             });
-        })
+        });
     });
-    
+
     describe("multiply", () => {
         it("Laravel Tests", () => {
-            const c = collect(['Hello', 1, { tags: ['a', 'b'], role: 'admin' }]);
+            const c = collect([
+                "Hello",
+                1,
+                { tags: ["a", "b"], role: "admin" },
+            ]);
 
             expect(c.multiply(-1).all()).toEqual([]);
             expect(c.multiply(0).all()).toEqual([]);
 
-            expect(c.multiply(1).all()).toEqual(['Hello', 1, { tags: ['a', 'b'], role: 'admin' }]);
+            expect(c.multiply(1).all()).toEqual([
+                "Hello",
+                1,
+                { tags: ["a", "b"], role: "admin" },
+            ]);
 
             expect(c.multiply(3).all()).toEqual([
-                'Hello', 1, { tags: ['a', 'b'], role: 'admin' },
-                'Hello', 1, { tags: ['a', 'b'], role: 'admin' },
-                'Hello', 1, { tags: ['a', 'b'], role: 'admin' }
+                "Hello",
+                1,
+                { tags: ["a", "b"], role: "admin" },
+                "Hello",
+                1,
+                { tags: ["a", "b"], role: "admin" },
+                "Hello",
+                1,
+                { tags: ["a", "b"], role: "admin" },
             ]);
         });
     });
-    
+
     describe("combine", () => {
         describe("Laravel Tests", () => {
             it("test combine with array", () => {
@@ -2702,22 +2767,22 @@ describe("Collection", () => {
                     [3, 6],
                 ]);
 
-                const d = collect(['name', 'family']);
-                expect(d.combine(['taylor', 'otwell']).all()).toEqual([
-                    ['name', 'taylor'],
-                    ['family', 'otwell'],
+                const d = collect(["name", "family"]);
+                expect(d.combine(["taylor", "otwell"]).all()).toEqual([
+                    ["name", "taylor"],
+                    ["family", "otwell"],
                 ]);
 
-                const e = collect({1: 'name', 2: 'family'});
-                expect(e.combine({2: 'taylor', 3: 'otwell'}).all()).toEqual({
-                    name: 'taylor',
-                    family: 'otwell',
+                const e = collect({ 1: "name", 2: "family" });
+                expect(e.combine({ 2: "taylor", 3: "otwell" }).all()).toEqual({
+                    name: "taylor",
+                    family: "otwell",
                 });
 
-                const f = collect({1: 'name', 2: 'family'});
-                expect(f.combine({2: 'taylor', 3: 'otwell'}).all()).toEqual({
-                    name: 'taylor',
-                    family: 'otwell',
+                const f = collect({ 1: "name", 2: "family" });
+                expect(f.combine({ 2: "taylor", 3: "otwell" }).all()).toEqual({
+                    name: "taylor",
+                    family: "otwell",
                 });
             });
 
@@ -2729,34 +2794,41 @@ describe("Collection", () => {
                     [3, 6],
                 ]);
 
-                const f = collect({1: 'name', 2: 'family'});
-                expect(f.combine(collect({2: 'taylor', 3: 'otwell'})).all()).toEqual({
-                    name: 'taylor',
-                    family: 'otwell',
+                const f = collect({ 1: "name", 2: "family" });
+                expect(
+                    f.combine(collect({ 2: "taylor", 3: "otwell" })).all(),
+                ).toEqual({
+                    name: "taylor",
+                    family: "otwell",
                 });
             });
         });
     });
-    
+
     describe("union", () => {
         describe("Laravel Tests", () => {
             it("test union null", () => {
-                const c = collect({name: 'Hello'});
-                expect(c.union(null).all()).toEqual({name: 'Hello'});
+                const c = collect({ name: "Hello" });
+                expect(c.union(null).all()).toEqual({ name: "Hello" });
             });
 
             it("test union array", () => {
-                const c = collect({name: 'Hello'});
-                expect(c.union({id: 1}).all()).toEqual({name: 'Hello', id: 1});
+                const c = collect({ name: "Hello" });
+                expect(c.union({ id: 1 }).all()).toEqual({
+                    name: "Hello",
+                    id: 1,
+                });
             });
 
             it("test union collection", () => {
-                const c = collect({name: 'Hello'});
-                expect(c.union(collect({name: 'World', id: 1})).all()).toEqual({name: 'Hello', id: 1});
+                const c = collect({ name: "Hello" });
+                expect(
+                    c.union(collect({ name: "World", id: 1 })).all(),
+                ).toEqual({ name: "Hello", id: 1 });
             });
         });
     });
-    
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});

@@ -850,7 +850,7 @@ export function strictEqual(a: unknown, b: unknown): boolean {
 
 /**
  * Figures out if the entry key should be a number or a string.
- * 
+ *
  * @param value - The entry key value (number, string, or symbol)
  * @returns The entry key as a number if it can be converted, otherwise returns the original value
  */

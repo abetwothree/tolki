@@ -1555,7 +1555,9 @@ export function mapWithKeys<
         value: TValue,
         index: TKey,
     ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
-): Record<TMapWithKeysKey, TMapWithKeysValue> | Map<TMapWithKeysKey, TMapWithKeysValue> {
+):
+    | Record<TMapWithKeysKey, TMapWithKeysValue>
+    | Map<TMapWithKeysKey, TMapWithKeysValue> {
     if (!accessible(data)) {
         return {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
@@ -1575,9 +1577,12 @@ export function mapWithKeys<
             if (!Number.isNaN(numKey) && String(numKey) === mapKey) {
                 hasNumericKeys = true;
             }
-            
+
             result[mapKey as TMapWithKeysKey] = mapValue as TMapWithKeysValue;
-            resultMap.set(mapKey as TMapWithKeysKey, mapValue as TMapWithKeysValue);
+            resultMap.set(
+                mapKey as TMapWithKeysKey,
+                mapValue as TMapWithKeysValue,
+            );
         }
     }
 
@@ -3251,7 +3256,11 @@ export function intersectAssocUsing<TValue>(
     const result: TValue[] = [];
 
     for (let dataIndex = 0; dataIndex < dataValues.length; dataIndex++) {
-        for (let otherIndex = 0; otherIndex < otherValues.length; otherIndex++) {
+        for (
+            let otherIndex = 0;
+            otherIndex < otherValues.length;
+            otherIndex++
+        ) {
             if (
                 callback(dataIndex, otherIndex) &&
                 dataValues[dataIndex] === otherValues[otherIndex]

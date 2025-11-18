@@ -218,7 +218,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * The items contained in the collection.
      */
     protected items: TValue[] | Record<TKey, TValue>;
-    
+
     /**
      * Preserve insertion order for numeric object keys (JavaScript limitation workaround).
      * When set, this array of [key, value] pairs preserves the original insertion order.
@@ -1297,7 +1297,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: {name: 'John'}, b: {name: 'Jane'}}).implode(item => item.name.toUpperCase(), ' - '); -> 'JOHN - JANE'
      */
     implode<TReturnValue>(
-        value: ((item: TValue, key: TKey) => TReturnValue) | string | null = null,
+        value:
+            | ((item: TValue, key: TKey) => TReturnValue)
+            | string
+            | null = null,
         glue: string | null = null,
     ) {
         const convertToString = (item: unknown): string => {
@@ -1359,16 +1362,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).intersect({b: 2, d: 4}); -> new Collection({b: 2})
      */
     intersect<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null
+        items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
-        if(isNull(items)){
+        if (isNull(items)) {
             return new Collection(isArray(this.items) ? [] : {});
         }
 
         return new Collection(
             dataIntersect(
-                this.recursivelyConvertCollections(this.items), 
-                this.recursivelyConvertCollections(items) as DataItems<T, K>
+                this.recursivelyConvertCollections(this.items),
+                this.recursivelyConvertCollections(items) as DataItems<T, K>,
             ),
         );
     }
@@ -1389,7 +1392,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: T[] | Record<K, T> | Collection<T, K> | null,
         callback: (a: TValue, b: TValue) => boolean,
     ) {
-        if(isNull(items)){
+        if (isNull(items)) {
             return new Collection(isArray(this.items) ? [] : {});
         }
 
@@ -1415,9 +1418,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).intersectAssoc([2, 3, 4]); -> new Collection([])
      */
     intersectAssoc<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null
+        items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
-        if(isNull(items)){
+        if (isNull(items)) {
             return new Collection(isArray(this.items) ? [] : {});
         }
 
@@ -1446,7 +1449,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: T[] | Record<K, T> | Collection<T, K> | null,
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
-        if(isNull(items)){
+        if (isNull(items)) {
             return new Collection(isArray(this.items) ? [] : {});
         }
 
@@ -1471,9 +1474,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3, 4]).intersectByKeys([1, 3]); -> new Collection([1, 2, 3])
      */
     intersectByKeys<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null
+        items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
-        if(isNull(items)){
+        if (isNull(items)) {
             return new Collection(isArray(this.items) ? [] : {});
         }
         return new Collection(
@@ -1574,7 +1577,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         if (this.itemsWithOrder) {
             return new Collection(this.itemsWithOrder.map(([key]) => key));
         }
-        
+
         return new Collection(dataKeys(this.items));
     }
 
@@ -1641,9 +1644,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).map(x => x * 2); -> new Collection([2, 4, 6])
      * new Collection({a: 1, b: 2, c: 3}).map((value, key) => value * 2); -> new Collection({a: 2, b: 4, c: 6})
      */
-    map<TMapValue>(
-        callback: (value: TValue, key: TKey) => TMapValue,
-    ) {
+    map<TMapValue>(callback: (value: TValue, key: TKey) => TMapValue) {
         return new Collection(dataMap(this.items, callback));
     }
 
@@ -1739,18 +1740,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // If we have preserved insertion order, use it for iteration
         if (this.itemsWithOrder) {
             const map = new Map<TMapWithKeysKey, TMapWithKeysValue>();
-            
+
             for (const [key, value] of this.itemsWithOrder) {
                 const result = callback(value, key);
                 // Spread the result object to get the key-value pairs
                 for (const [newKey, newValue] of Object.entries(result)) {
-                    map.set(newKey as TMapWithKeysKey, newValue as TMapWithKeysValue);
+                    map.set(
+                        newKey as TMapWithKeysKey,
+                        newValue as TMapWithKeysValue,
+                    );
                 }
             }
-            
+
             return new Collection(map);
         }
-        
+
         return new Collection(dataMapWithKeys(this.items, callback));
     }
 
@@ -1767,8 +1771,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).merge({a: 3}); -> new Collection([1, 2, {a: 3}])
      * new Collection({a: 1}).merge([2]); -> new Collection({a: 1, 0: 2})
      */
-    merge<T, K extends PropertyKey>(items: T[] | Record<K, T> | Collection<T, K> | null) {
-        if(isNull(items)){
+    merge<T, K extends PropertyKey>(
+        items: T[] | Record<K, T> | Collection<T, K> | null,
+    ) {
+        if (isNull(items)) {
             return this;
         }
 
@@ -1800,12 +1806,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     mergeRecursive<TMergeRecursiveValue, TMergeKey extends PropertyKey>(
         items:
-            TMergeRecursiveValue[]
+            | TMergeRecursiveValue[]
             | Record<TMergeKey, TMergeRecursiveValue>
             | Collection<TMergeRecursiveValue, TMergeKey>
             | null,
     ) {
-        if(isNull(items)){
+        if (isNull(items)) {
             return this;
         }
 
@@ -1949,12 +1955,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).union({a: 3}); -> new Collection([1, 2, {a: 3}])
      */
     union<T, K extends PropertyKey>(
-        items: | T[] | Record<K, T> | Collection<T, K> | null
+        items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
-        if(isNull(items)){
+        if (isNull(items)) {
             return this;
         }
-        
+
         return new Collection(dataUnion(this.items, this.getRawItems(items)));
     }
 
@@ -2081,12 +2087,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         // Remove the popped items from this.items
         if (isArray(this.items)) {
-            this.items = (this.items as TValue[]).slice(0, -(count)) as DataItems<TValue, TKey>;
+            this.items = (this.items as TValue[]).slice(0, -count) as DataItems<
+                TValue,
+                TKey
+            >;
         } else {
             // For objects, remove the last count keys
             const keys = Object.keys(this.items) as TKey[];
             const keysToRemove = keys.slice(-count);
-            
+
             for (const key of keysToRemove) {
                 delete (this.items as Record<TKey, TValue>)[key];
             }
@@ -4827,9 +4836,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param data - The data to convert
      * @returns The data with all Collection instances converted to raw values
      */
-    protected recursivelyConvertCollections<T, K extends PropertyKey = PropertyKey>(
-        data: T[] | Record<K, T> | Collection<T, K>,
-    ): T[] | Record<K, T> {
+    protected recursivelyConvertCollections<
+        T,
+        K extends PropertyKey = PropertyKey,
+    >(data: T[] | Record<K, T> | Collection<T, K>): T[] | Record<K, T> {
         if (data instanceof Collection) {
             return this.recursivelyConvertCollections(data.all());
         }
@@ -4876,7 +4886,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             const obj = {} as Record<TKey, TValue>;
             const orderedPairs: Array<[TKey, TValue]> = [];
             let hasNumericKeys = false;
-            
+
             for (const [key, value] of items.entries()) {
                 // Convert numeric string keys to numbers
                 let finalKey: TKey = key as TKey;
@@ -4885,16 +4895,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     hasNumericKeys = true;
                     finalKey = numKey as TKey;
                 }
-                
+
                 obj[finalKey] = value as TValue;
                 orderedPairs.push([finalKey, value as TValue]);
             }
-            
+
             // Store ordered pairs only if we have numeric keys (to preserve insertion order)
             if (hasNumericKeys) {
                 this.itemsWithOrder = orderedPairs;
             }
-            
+
             return obj;
         }
 
