@@ -1948,7 +1948,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).union({b: 2, c: 3}); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection([1, 2]).union({a: 3}); -> new Collection([1, 2, {a: 3}])
      */
-    union(items: DataItems<TValue, TKey> | Collection<TValue, TKey>) {
+    union<T, K extends PropertyKey>(
+        items: | T[] | Record<K, T> | Collection<T, K> | null
+    ) {
+        if(isNull(items)){
+            return this;
+        }
+        
         return new Collection(dataUnion(this.items, this.getRawItems(items)));
     }
 

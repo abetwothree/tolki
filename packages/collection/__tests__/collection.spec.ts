@@ -2738,6 +2738,25 @@ describe("Collection", () => {
         });
     });
     
+    describe("union", () => {
+        describe("Laravel Tests", () => {
+            it("test union null", () => {
+                const c = collect({name: 'Hello'});
+                expect(c.union(null).all()).toEqual({name: 'Hello'});
+            });
+
+            it("test union array", () => {
+                const c = collect({name: 'Hello'});
+                expect(c.union({id: 1}).all()).toEqual({name: 'Hello', id: 1});
+            });
+
+            it("test union collection", () => {
+                const c = collect({name: 'Hello'});
+                expect(c.union(collect({name: 'World', id: 1})).all()).toEqual({name: 'Hello', id: 1});
+            });
+        });
+    });
+    
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
