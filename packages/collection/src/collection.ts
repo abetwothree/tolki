@@ -1973,19 +1973,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * new Collection([1, 2, 3, 4, 5]).nth(2); -> new Collection([1, 3, 5])
-     * new Collection([1, 2, 3, 4, 5]).nth(2, 1); -> new Collection([2, 4])
-     * new Collection({a: 1, b: 2, c: 3, d: 4}).nth(2); -> new Collection({a: 1, c: 3})
-     * new Collection({a: 1, b: 2, c: 3, d: 4}).nth(2, 1); -> new Collection({b: 2, d: 4})
+     * collect(new Map([[6, "a"], [4, "b"], [7, "c"], [1, "d"], [5, "e"], [3, "f"]])).nth(4).all() -> ["a", "e"]
      */
     nth(step: number, offset: number = 0) {
         const newItems = [];
 
         let position = 0;
 
-        for (const [, value] of Object.entries(
-            this.slice(offset) as Record<TKey, TValue>,
-        )) {
+        // Use itemsWithOrder when available to preserve numeric key insertion order
+        const entries = this.itemsWithOrder
+            ? this.itemsWithOrder.slice(offset)
+            : Object.entries(this.slice(offset) as Record<TKey, TValue>);
+
+        for (const [, value] of entries) {
             if (position % step === 0) {
                 newItems.push(value as TValue);
             }

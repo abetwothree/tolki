@@ -2829,6 +2829,25 @@ describe("Collection", () => {
         });
     });
 
+    describe("nth", () => {
+        it("Laravel Tests", () => {
+            // Use Map to preserve insertion order for numeric keys (JavaScript objects auto-sort numeric keys)
+            const data = collect(new Map([[6, "a"], [4, "b"], [7, "c"], [1, "d"], [5, "e"], [3, "f"]]));
+
+            expect(data.nth(4).all()).toEqual(["a", "e"]);
+            expect(data.nth(4, 1).all()).toEqual(["b", "f"]);
+            expect(data.nth(4, 2).all()).toEqual(["c"]);
+            expect(data.nth(4, 3).all()).toEqual(["d"]);
+            expect(data.nth(2, 2).all()).toEqual(["c", "e"]);
+            expect(data.nth(1, 2).all()).toEqual(["c", "d", "e", "f"]);
+            expect(data.nth(1, 2).all()).toEqual(["c", "d", "e", "f"]);
+            expect(data.nth(1, -2).all()).toEqual(["e", "f"]);
+            expect(data.nth(2, -4).all()).toEqual(["c", "e"]);
+            expect(data.nth(4, -2).all()).toEqual(["e"]);
+            expect(data.nth(2, -2).all()).toEqual(["e"]);
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
