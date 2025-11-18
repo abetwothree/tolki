@@ -1925,16 +1925,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).combine({c: 3, d: 4}); -> new Collection({a: 3, b: 4})
      * new Collection([1, 2]).combine({a: 3, b: 4}); -> new Collection({0: 3, 1: 4})
      */
-    combine<TCombineValue extends TValue = TValue>(
+    combine<TCombineValue, TCombineKey extends PropertyKey>(
         values:
-            | DataItems<TCombineValue, TKey>
-            | Collection<TCombineValue, TKey>,
+            | TCombineValue[]
+            | Record<TCombineKey, TCombineValue>
+            | Collection<TCombineValue, TCombineKey>,
     ) {
-        return new Collection<TCombineValue, TKey>(
-            dataCombine(this.items, this.getRawItems(values)) as DataItems<
-                TCombineValue,
-                TKey
-            >,
+        return new Collection(
+            dataCombine(this.items, this.getRawItems(values)),
         );
     }
 

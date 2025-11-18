@@ -2692,6 +2692,52 @@ describe("Collection", () => {
         });
     });
     
+    describe("combine", () => {
+        describe("Laravel Tests", () => {
+            it("test combine with array", () => {
+                const c = collect([1, 2, 3]);
+                expect(c.combine([4, 5, 6]).all()).toEqual([
+                    [1, 4],
+                    [2, 5],
+                    [3, 6],
+                ]);
+
+                const d = collect(['name', 'family']);
+                expect(d.combine(['taylor', 'otwell']).all()).toEqual([
+                    ['name', 'taylor'],
+                    ['family', 'otwell'],
+                ]);
+
+                const e = collect({1: 'name', 2: 'family'});
+                expect(e.combine({2: 'taylor', 3: 'otwell'}).all()).toEqual({
+                    name: 'taylor',
+                    family: 'otwell',
+                });
+
+                const f = collect({1: 'name', 2: 'family'});
+                expect(f.combine({2: 'taylor', 3: 'otwell'}).all()).toEqual({
+                    name: 'taylor',
+                    family: 'otwell',
+                });
+            });
+
+            it("test combine with collection", () => {
+                const c = collect([1, 2, 3]);
+                expect(c.combine(collect([4, 5, 6])).all()).toEqual([
+                    [1, 4],
+                    [2, 5],
+                    [3, 6],
+                ]);
+
+                const f = collect({1: 'name', 2: 'family'});
+                expect(f.combine(collect({2: 'taylor', 3: 'otwell'})).all()).toEqual({
+                    name: 'taylor',
+                    family: 'otwell',
+                });
+            });
+        });
+    });
+    
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
