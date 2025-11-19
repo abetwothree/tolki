@@ -2102,7 +2102,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
             >;
         }
 
-        // For objects, dataPop already mutates this.items, so no need to delete keys
         return new Collection(poppedValues);
     }
 
@@ -2120,7 +2119,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([]).prepend(1); -> new Collection([1])
      * new Collection({}).prepend(1, 'a'); -> new Collection({a: 1})
      */
-    prepend(value: TValue, key: TKey | null = null) {
+    prepend<T, K extends PropertyKey>(value: T, key: K | null = null) {
         this.items = dataPrepend(this.items, value, key);
 
         return this;
@@ -2137,13 +2136,31 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).push(3); -> new Collection([1, 2, 3])
      * new Collection([1, 2]).push(3, 4, 5); -> new Collection([1, 2, 3, 4, 5])
      * new Collection({a: 1}).push(2); -> new Collection({a: 1, 0: 2})
-     * new Collection({a: 1}).push({b: 2}); -> new Collection({a: 1, b: 2})
      */
-    push(...values: TValue[]) {
-        const newItems = values.flatMap((value) => arrWrap(value));
+    push<T>(...values: T[]) {
+        if (isArray(this.items)) {
+            // For arrays, simply push each value
+            for (const value of values) {
+                (this.items as TValue[]).push(value as TValue);
+            }
+        } else {
+            // For objects, add with numeric keys
+            const keys = Object.keys(this.items);
+            let nextIndex = 0;
 
-        for (const [key, value] of Object.entries(newItems)) {
-            this.items = dataPush(this.items, key, value);
+            // Find the next numeric index
+            for (const key of keys) {
+                const numKey = Number(key);
+                if (!isNaN(numKey) && numKey >= nextIndex) {
+                    nextIndex = numKey + 1;
+                }
+            }
+
+            for (const value of values) {
+                (this.items as Record<TKey, TValue>)[nextIndex as TKey] =
+                    value as TValue;
+                nextIndex++;
+            }
         }
 
         return this;

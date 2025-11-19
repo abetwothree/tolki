@@ -3024,34 +3024,34 @@ describe("Collection", () => {
     describe("pop", () => {
         describe("Laravel Tests", () => {
             it("test pop returns and removes last item in collection", () => {
-                const c = collect(['foo', 'bar']);
+                const c = collect(["foo", "bar"]);
 
-                expect(c.pop()).toBe('bar');
-                expect(c.first()).toBe('foo');
+                expect(c.pop()).toBe("bar");
+                expect(c.first()).toBe("foo");
             });
 
             it("test pop returns and removes last x items in collection", () => {
-                const c = collect(['foo', 'bar', 'baz']);
+                const c = collect(["foo", "bar", "baz"]);
 
-                expect(c.pop(2).all()).toEqual(['baz', 'bar']);
-                expect(c.first()).toBe('foo');
+                expect(c.pop(2).all()).toEqual(["baz", "bar"]);
+                expect(c.first()).toBe("foo");
 
-                const c2 = collect(['foo', 'bar', 'baz']);
-                expect(c2.pop(6).all()).toEqual(['baz', 'bar', 'foo']);
+                const c2 = collect(["foo", "bar", "baz"]);
+                expect(c2.pop(6).all()).toEqual(["baz", "bar", "foo"]);
             });
         });
 
         it("test pop with count < 1 returns empty collection", () => {
-            const c = collect(['foo', 'bar', 'baz']);
+            const c = collect(["foo", "bar", "baz"]);
             expect(c.pop(0).all()).toEqual([]);
             expect(c.pop(-1).all()).toEqual([]);
-            expect(c.all()).toEqual(['foo', 'bar', 'baz']); // Original collection unchanged
+            expect(c.all()).toEqual(["foo", "bar", "baz"]); // Original collection unchanged
         });
 
         it("test pop with count === 1 on array returns single value", () => {
-            const c = collect(['foo', 'bar']);
-            expect(c.pop(1)).toBe('bar');
-            expect(c.all()).toEqual(['foo']);
+            const c = collect(["foo", "bar"]);
+            expect(c.pop(1)).toBe("bar");
+            expect(c.all()).toEqual(["foo"]);
         });
 
         it("test pop with count === 1 on empty array returns null", () => {
@@ -3082,26 +3082,26 @@ describe("Collection", () => {
         });
 
         it("test pop with count > 1 on array returns collection", () => {
-            const c = collect(['a', 'b', 'c', 'd']);
+            const c = collect(["a", "b", "c", "d"]);
             const result = c.pop(2);
-            
+
             expect(result).toBeInstanceOf(Collection);
-            expect(result.all()).toEqual(['d', 'c']);
-            expect(c.all()).toEqual(['a', 'b']);
+            expect(result.all()).toEqual(["d", "c"]);
+            expect(c.all()).toEqual(["a", "b"]);
         });
 
         it("test pop with count > 1 on object returns collection", () => {
             const c = collect({ a: 1, b: 2, c: 3, d: 4 });
             const result = c.pop(2);
-            
+
             expect(result).toBeInstanceOf(Collection);
             expect(result.all()).toEqual([4, 3]);
             expect(c.all()).toEqual({ a: 1, b: 2 });
         });
 
         it("test pop with count greater than collection size", () => {
-            const c1 = collect(['a', 'b']);
-            expect(c1.pop(5).all()).toEqual(['b', 'a']);
+            const c1 = collect(["a", "b"]);
+            expect(c1.pop(5).all()).toEqual(["b", "a"]);
             expect(c1.all()).toEqual([]);
 
             const c2 = collect({ x: 10, y: 20 });
@@ -3112,23 +3112,23 @@ describe("Collection", () => {
 
     describe("prepend", () => {
         it("Laravel Tests", () => {
-            const c = collect(['one', 'two', 'three', 'four']);
-            expect(c.prepend('zero').all()).toEqual([
-                'zero',
-                'one',
-                'two',
-                'three',
-                'four',
+            const c = collect(["one", "two", "three", "four"]);
+            expect(c.prepend("zero").all()).toEqual([
+                "zero",
+                "one",
+                "two",
+                "three",
+                "four",
             ]);
 
-            const c2 = collect({ 'one': 1, 'two': 2 });
-            expect(c2.prepend(0, 'zero').all()).toEqual({
+            const c2 = collect({ one: 1, two: 2 });
+            expect(c2.prepend(0, "zero").all()).toEqual({
                 zero: 0,
                 one: 1,
                 two: 2,
             });
 
-            const c3 = collect({ 'one': 1, 'two': 2 });
+            const c3 = collect({ one: 1, two: 2 });
             expect(c3.prepend(0, null).all()).toEqual({
                 null: 0,
                 one: 1,
@@ -3137,9 +3137,107 @@ describe("Collection", () => {
         });
     });
 
-    describe("", () => {
+    describe("push", () => {
         describe("Laravel Tests", () => {
-            it("", () => {});
+            it("test push with one item", () => {
+                const expected = [
+                    4,
+                    5,
+                    6,
+                    ["a", "b", "c"],
+                    { who: "Jonny", preposition: "from", where: "Laroe" },
+                    "Jonny from Laroe",
+                ];
+
+                const data = collect([4, 5, 6]);
+                data.push(["a", "b", "c"]);
+                data.push({
+                    who: "Jonny",
+                    preposition: "from",
+                    where: "Laroe",
+                });
+                const actual = data.push("Jonny from Laroe").all();
+
+                expect(actual).toEqual(expected);
+            });
+
+            it("test push with multiple items", () => {
+                const expected = [
+                    4,
+                    5,
+                    6,
+                    "Jonny",
+                    "from",
+                    "Laroe",
+                    "Jonny",
+                    "from",
+                    "Laroe",
+                    "a",
+                    "b",
+                    "c",
+                ];
+
+                const data = collect([4, 5, 6]);
+                data.push("Jonny", "from", "Laroe");
+                data.push("Jonny", "from", "Laroe");
+                data.push(...collect(["a", "b", "c"]));
+                const actual = data.push().all();
+
+                expect(actual).toEqual(expected);
+            });
+        });
+
+        it("test push function", () => {
+            // Test pushing to empty array
+            const c1 = collect([]);
+            c1.push(1);
+            expect(c1.all()).toEqual([1]);
+
+            // Test pushing to empty object
+            const c2 = collect({});
+            c2.push("value");
+            expect(c2.all()).toEqual({ 0: "value" });
+
+            // Test pushing multiple values to object
+            const c3 = collect({});
+            c3.push("a", "b", "c");
+            expect(c3.all()).toEqual({ 0: "a", 1: "b", 2: "c" });
+
+            // Test pushing to object with existing numeric keys
+            const c4 = collect({ 0: "first", 1: "second" });
+            c4.push("third", "fourth");
+            expect(c4.all()).toEqual({
+                0: "first",
+                1: "second",
+                2: "third",
+                3: "fourth",
+            });
+
+            // Test pushing to object with mixed keys
+            const c5 = collect({ a: "value", 5: "item", b: "other" });
+            c5.push("new");
+            expect(c5.all()).toEqual({
+                a: "value",
+                5: "item",
+                b: "other",
+                6: "new",
+            });
+
+            // Test pushing to object with non-sequential numeric keys
+            const c6 = collect({ 0: "a", 2: "b", 5: "c" });
+            c6.push("d");
+            expect(c6.all()).toEqual({ 0: "a", 2: "b", 5: "c", 6: "d" });
+
+            // Test pushing no values (edge case)
+            const c7 = collect([1, 2, 3]);
+            c7.push();
+            expect(c7.all()).toEqual([1, 2, 3]);
+
+            // Test chaining
+            const c8 = collect([1, 2]);
+            const result = c8.push(3).push(4);
+            expect(result).toBe(c8); // Should return same instance
+            expect(c8.all()).toEqual([1, 2, 3, 4]);
         });
     });
 

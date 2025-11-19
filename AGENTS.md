@@ -123,30 +123,30 @@ Look at the package-docs.md file at the root for more details on the long term t
 
 Packages table layout:
 
-| Directory               | Package Name           | Description                                               |
-|-------------------------|------------------------|-----------------------------------------------------------|
-| packages/all            | @laravel-js/all        | Meta package that includes all other packages             |
-| packages/arr            | @laravel-js/arr        | Array helpers                                             |
-| packages/collection     | @laravel-js/collection | Collection class and helpers                              |
-| packages/data           | @laravel-js/data       | Helpers for working with arrays and objects               |
-| packages/num            | @laravel-js/num        | Number helpers and formatting                             |
-| packages/obj            | @laravel-js/obj        | Object helpers                                            |
-| packages/path           | @laravel-js/path       | Path helpers for working with paths in objects and arrays |
-| packages/str            | @laravel-js/str        | String helpers                                            |
-| packages/types          | @laravel-js/types      | Type definitions and helpers                              |
-| packages/utils          | @laravel-js/utils      | General utility functions                                 |
+| Directory           | Package Name           | Description                                               |
+| ------------------- | ---------------------- | --------------------------------------------------------- |
+| packages/all        | @laravel-js/all        | Meta package that includes all other packages             |
+| packages/arr        | @laravel-js/arr        | Array helpers                                             |
+| packages/collection | @laravel-js/collection | Collection class and helpers                              |
+| packages/data       | @laravel-js/data       | Helpers for working with arrays and objects               |
+| packages/num        | @laravel-js/num        | Number helpers and formatting                             |
+| packages/obj        | @laravel-js/obj        | Object helpers                                            |
+| packages/path       | @laravel-js/path       | Path helpers for working with paths in objects and arrays |
+| packages/str        | @laravel-js/str        | String helpers                                            |
+| packages/types      | @laravel-js/types      | Type definitions and helpers                              |
+| packages/utils      | @laravel-js/utils      | General utility functions                                 |
 
 Folder and root files list and description of each package:
 
-| Directory                  | Description                                                    |
-|----------------------------|----------------------------------------------------------------|
-| packages/**/__tests__      | Tests for the package                                          |
-| packages/**/dist           | Compiled output of the package                                 |
-| packages/**/fn-lists       | Function lists extracted from stubs for reference              |
-| packages/**/src            | Source code for the package                                    |
-| packages/**/stubs          | Laravel PHP source used as source of truth for implementation  |
-| packages/**/package.json   | Package configuration file                                     |
-| packages/**/vite.config.ts | Vite configuration file for building the package               |
+| Directory                    | Description                                                   |
+| ---------------------------- | ------------------------------------------------------------- |
+| packages/\*\*/**tests**      | Tests for the package                                         |
+| packages/\*\*/dist           | Compiled output of the package                                |
+| packages/\*\*/fn-lists       | Function lists extracted from stubs for reference             |
+| packages/\*\*/src            | Source code for the package                                   |
+| packages/\*\*/stubs          | Laravel PHP source used as source of truth for implementation |
+| packages/\*\*/package.json   | Package configuration file                                    |
+| packages/\*\*/vite.config.ts | Vite configuration file for building the package              |
 
 More detailed description of the packages to be implemented:
 
