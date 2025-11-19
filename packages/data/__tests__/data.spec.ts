@@ -1530,13 +1530,13 @@ describe("Data", () => {
         it("is object", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const result = Data.dataPop(obj, 2);
-            expect(result).toEqual([2, 3]);
+            expect(result).toEqual([3, 2]);
             expect(obj).toEqual({ a: 1 });
         });
         it("is array", () => {
             const arr = [1, 2, 3];
             const result = Data.dataPop(arr, 2);
-            expect(result).toEqual([2, 3]);
+            expect(result).toEqual([3, 2]);
         });
     });
 

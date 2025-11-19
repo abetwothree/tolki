@@ -2053,17 +2053,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get and remove the last N items from the collection.
      *
-     * @param count - The number of items to pop, defaults to 1
+     * @param count - The number of items to pop
      * @returns A new collection with the popped items
      *
      * @example
      *
-     * new Collection([1, 2, 3]).pop(); -> new Collection([3])
-     * new Collection([1, 2, 3]).pop(2); -> new Collection([2, 3])
-     * new Collection({a: 1, b: 2, c: 3}).pop(); -> new Collection({c: 3})
-     * new Collection({a: 1, b: 2, c: 3}).pop(2); -> new Collection({b: 2, c: 3})
+     * new Collection([1, 2, 3]).pop(2); -> new Collection([3, 2])
+     * new Collection({a: 1, b: 2, c: 3}).pop(2); -> new Collection([3, 2])
      */
-    pop(count: number = 1) {
+    pop(): TValue | null;
+    pop(count: number): Collection<TValue[], number>;
+    pop(count: number = 1): TValue | null | Collection<TValue[], number> {
         if (count < 1) {
             return new Collection();
         }

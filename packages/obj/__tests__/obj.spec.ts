@@ -1057,14 +1057,14 @@ describe("Obj", () => {
         it("should remove and return last items", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const result = Obj.pop(obj, 2);
-            expect(result).toEqual([2, 3]);
+            expect(result).toEqual([3, 2]);
             expect(obj).toEqual({ a: 1 });
         });
 
         it("should remove and return last items", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const result = Obj.pop(obj, 5);
-            expect(result).toEqual([1, 2, 3]);
+            expect(result).toEqual([3, 2, 1]);
             expect(obj).toEqual({});
         });
 

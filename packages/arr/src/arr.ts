@@ -1456,7 +1456,7 @@ export function pop<TValue>(
         const value = values.pop();
 
         if (!isUndefined(value)) {
-            poppedValues.unshift(value);
+            poppedValues.push(value);
         }
     }
 

@@ -121,7 +121,22 @@ function functionName(param) {
 
 Look at the package-docs.md file at the root for more details on the long term this monorepo is going for.
 
-Long term plan of the packages to be implemented:
+Packages table layout:
+
+| Directory               | Package Name           | Description                                               |
+|-------------------------|------------------------|-----------------------------------------------------------|
+| packages/all            | @laravel-js/all        | Meta package that includes all other packages             |
+| packages/arr            | @laravel-js/arr        | Array helpers                                             |
+| packages/collection     | @laravel-js/collection | Collection class and helpers                              |
+| packages/data           | @laravel-js/data       | Helpers for working with arrays and objects               |
+| packages/num            | @laravel-js/num        | Number helpers and formatting                             |
+| packages/obj            | @laravel-js/obj        | Object helpers                                            |
+| packages/path           | @laravel-js/path       | Path helpers for working with paths in objects and arrays |
+| packages/str            | @laravel-js/str        | String helpers                                            |
+| packages/types          | @laravel-js/types      | Type definitions and helpers                              |
+| packages/utils          | @laravel-js/utils      | General utility functions                                 |
+
+More detailed description of the packages to be implemented:
 
 ### @laravel-js/all
 

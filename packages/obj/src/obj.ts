@@ -1457,7 +1457,7 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
         const [key, value] = entry;
         delete obj[key];
 
-        poppedValues.unshift(value);
+        poppedValues.push(value);
     }
 
     return poppedValues;

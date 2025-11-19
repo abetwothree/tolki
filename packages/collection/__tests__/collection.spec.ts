@@ -3021,6 +3021,27 @@ describe("Collection", () => {
         });
     });
 
+    describe("pop", () => {
+        describe("Laravel Tests", () => {
+            it("test pop returns and removes last item in collection", () => {
+                const c = collect(['foo', 'bar']);
+
+                expect(c.pop()).toBe('bar');
+                expect(c.first()).toBe('foo');
+            });
+
+            it("test pop returns and removes last x items in collection", () => {
+                const c = collect(['foo', 'bar', 'baz']);
+
+                expect(c.pop(2).all()).toEqual(['baz', 'bar']);
+                expect(c.first()).toBe('foo');
+
+                const c2 = collect(['foo', 'bar', 'baz']);
+                expect(c2.pop(6).all()).toEqual(['baz', 'bar', 'foo']);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
