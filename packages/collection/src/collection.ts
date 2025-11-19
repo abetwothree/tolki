@@ -2013,13 +2013,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
     only<T, K extends PropertyKey>(
         ...keys: PathKey[] | PathKeys[] | Collection<T, K>[]
     ) {
-        if (keys.every(key => isNull(key))) {
+        if (keys.every((key) => isNull(key))) {
             return new Collection(this.items);
         }
 
-        keys = keys.flatMap((key) => arrWrap(this.getRawItems(key))) as PathKey[];
+        const keysParam = keys.flatMap((key) =>
+            arrWrap(this.getRawItems(key)),
+        ) as PathKey[];
 
-        return new Collection(dataOnly(this.items, keys));
+        return new Collection(dataOnly(this.items, keysParam));
     }
 
     /**
@@ -2034,14 +2036,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: {id: 1, name: 'John'}, b: {id: 2, name: 'Jane'}}).select('id'); -> new Collection({a: {id: 1}, b: {id: 2}})
      * new Collection([{id: 1, details: {age: 30, city: 'NY'}}, {id: 2, details: {age: 25, city: 'LA'}}]).select(['id', 'details.age']); -> new Collection([{id: 1, details: {age: 30}}, {id: 2, details: {age: 25}}])
      */
-    select(...keys: PathKey[]) {
-        if (isNull(keys)) {
+    select<T, K extends PropertyKey>(
+        ...keys: PathKey[] | PathKeys[] | Collection<T, K>[]
+    ) {
+        if (keys.every((key) => isNull(key))) {
             return new Collection(this.items);
         }
 
-        keys = keys.flatMap((key) => arrWrap(key)) as PathKey[];
+        const keysParam = keys.flatMap((key) =>
+            arrWrap(this.getRawItems(key)),
+        ) as PathKey[];
 
-        return new Collection(dataSelect<TValue, TKey>(this.items, keys));
+        return new Collection(dataSelect<TValue, TKey>(this.items, keysParam));
     }
 
     /**

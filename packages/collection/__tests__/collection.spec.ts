@@ -2832,7 +2832,16 @@ describe("Collection", () => {
     describe("nth", () => {
         it("Laravel Tests", () => {
             // Use Map to preserve insertion order for numeric keys (JavaScript objects auto-sort numeric keys)
-            const data = collect(new Map([[6, "a"], [4, "b"], [7, "c"], [1, "d"], [5, "e"], [3, "f"]]));
+            const data = collect(
+                new Map([
+                    [6, "a"],
+                    [4, "b"],
+                    [7, "c"],
+                    [1, "d"],
+                    [5, "e"],
+                    [3, "f"],
+                ]),
+            );
 
             expect(data.nth(4).all()).toEqual(["a", "e"]);
             expect(data.nth(4, 1).all()).toEqual(["b", "f"]);
@@ -2850,17 +2859,165 @@ describe("Collection", () => {
 
     describe("only", () => {
         it("Laravel Tests", () => {
-            const c = collect({ first: "Taylor", last: "Otwell", email: "taylorotwell@gmail.com" });
+            const c = collect({
+                first: "Taylor",
+                last: "Otwell",
+                email: "taylorotwell@gmail.com",
+            });
 
             expect(c.only(null).all()).toEqual(c.all());
 
-            expect(c.only(["first", "missing"]).all()).toEqual({ first: "Taylor" });
-            expect(c.only("first", "missing").all()).toEqual({ first: "Taylor" });
-            expect(c.only(collect(["first", "missing"])).all()).toEqual({ first: "Taylor" });
+            expect(c.only(["first", "missing"]).all()).toEqual({
+                first: "Taylor",
+            });
+            expect(c.only("first", "missing").all()).toEqual({
+                first: "Taylor",
+            });
+            expect(c.only(collect(["first", "missing"])).all()).toEqual({
+                first: "Taylor",
+            });
 
-            expect(c.only(["first", "email"]).all()).toEqual({ first: "Taylor", email: "taylorotwell@gmail.com" });
-            expect(c.only("first", "email").all()).toEqual({ first: "Taylor", email: "taylorotwell@gmail.com" });
-            expect(c.only(collect(["first", "email"])).all()).toEqual({ first: "Taylor", email: "taylorotwell@gmail.com" });
+            expect(c.only(["first", "email"]).all()).toEqual({
+                first: "Taylor",
+                email: "taylorotwell@gmail.com",
+            });
+            expect(c.only("first", "email").all()).toEqual({
+                first: "Taylor",
+                email: "taylorotwell@gmail.com",
+            });
+            expect(c.only(collect(["first", "email"])).all()).toEqual({
+                first: "Taylor",
+                email: "taylorotwell@gmail.com",
+            });
+        });
+    });
+
+    describe("select", () => {
+        describe("Laravel Tests", () => {
+            it("test select with arrays", () => {
+                const data = collect([
+                    {
+                        first: "Taylor",
+                        last: "Otwell",
+                        email: "taylorotwell@gmail.com",
+                    },
+                    {
+                        first: "Jess",
+                        last: "Archer",
+                        email: "jessarcher@gmail.com",
+                    },
+                ]);
+
+                expect(data.select(null).all()).toEqual(data.all());
+                expect(data.select(["first", "missing"]).all()).toEqual([
+                    { first: "Taylor" },
+                    { first: "Jess" },
+                ]);
+                expect(data.select("first", "missing").all()).toEqual([
+                    { first: "Taylor" },
+                    { first: "Jess" },
+                ]);
+                expect(
+                    data.select(collect(["first", "missing"])).all(),
+                ).toEqual([{ first: "Taylor" }, { first: "Jess" }]);
+
+                expect(data.select(["first", "email"]).all()).toEqual([
+                    {
+                        first: "Taylor",
+                        email: "taylorotwell@gmail.com",
+                    },
+                    {
+                        first: "Jess",
+                        email: "jessarcher@gmail.com",
+                    },
+                ]);
+
+                expect(data.select("first", "email").all()).toEqual([
+                    {
+                        first: "Taylor",
+                        email: "taylorotwell@gmail.com",
+                    },
+                    {
+                        first: "Jess",
+                        email: "jessarcher@gmail.com",
+                    },
+                ]);
+
+                expect(data.select(collect(["first", "email"])).all()).toEqual([
+                    {
+                        first: "Taylor",
+                        email: "taylorotwell@gmail.com",
+                    },
+                    {
+                        first: "Jess",
+                        email: "jessarcher@gmail.com",
+                    },
+                ]);
+            });
+
+            it("test select with objects", () => {
+                const data = collect([
+                    {
+                        first: "Taylor",
+                        last: "Otwell",
+                        email: "taylorotwell@gmail.com",
+                    },
+                    {
+                        first: "Jess",
+                        last: "Archer",
+                        email: "jessarcher@gmail.com",
+                    },
+                ]);
+
+                expect(data.select(null).all()).toEqual(data.all());
+
+                expect(data.select(["first", "missing"]).all()).toEqual([
+                    { first: "Taylor" },
+                    { first: "Jess" },
+                ]);
+
+                expect(data.select("first", "missing").all()).toEqual([
+                    { first: "Taylor" },
+                    { first: "Jess" },
+                ]);
+
+                expect(
+                    data.select(collect(["first", "missing"])).all(),
+                ).toEqual([{ first: "Taylor" }, { first: "Jess" }]);
+
+                expect(data.select(["first", "email"]).all()).toEqual([
+                    {
+                        first: "Taylor",
+                        email: "taylorotwell@gmail.com",
+                    },
+                    {
+                        first: "Jess",
+                        email: "jessarcher@gmail.com",
+                    },
+                ]);
+
+                expect(data.select("first", "email").all()).toEqual([
+                    {
+                        first: "Taylor",
+                        email: "taylorotwell@gmail.com",
+                    },
+                    {
+                        first: "Jess",
+                        email: "jessarcher@gmail.com",
+                    },
+                ]);
+
+                expect(data.select(collect(["first", "email"])).all()).toEqual([
+                    {
+                        first: "Taylor",
+                        email: "taylorotwell@gmail.com",
+                    },
+                    {
+                        first: "Jess",
+                        email: "jessarcher@gmail.com",
+                    },
+                ]);
+            });
         });
     });
 
