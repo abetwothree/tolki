@@ -3040,6 +3040,74 @@ describe("Collection", () => {
                 expect(c2.pop(6).all()).toEqual(['baz', 'bar', 'foo']);
             });
         });
+
+        it("test pop with count < 1 returns empty collection", () => {
+            const c = collect(['foo', 'bar', 'baz']);
+            expect(c.pop(0).all()).toEqual([]);
+            expect(c.pop(-1).all()).toEqual([]);
+            expect(c.all()).toEqual(['foo', 'bar', 'baz']); // Original collection unchanged
+        });
+
+        it("test pop with count === 1 on array returns single value", () => {
+            const c = collect(['foo', 'bar']);
+            expect(c.pop(1)).toBe('bar');
+            expect(c.all()).toEqual(['foo']);
+        });
+
+        it("test pop with count === 1 on empty array returns null", () => {
+            const c = collect([]);
+            expect(c.pop()).toBe(null);
+            expect(c.pop(1)).toBe(null);
+        });
+
+        it("test pop with count === 1 on object returns single value", () => {
+            const c = collect({ a: 1, b: 2, c: 3 });
+            expect(c.pop()).toBe(3);
+            expect(c.all()).toEqual({ a: 1, b: 2 });
+        });
+
+        it("test pop with count === 1 on empty object returns null", () => {
+            const c = collect({});
+            expect(c.pop()).toBe(null);
+            expect(c.pop(1)).toBe(null);
+            expect(c.all()).toEqual({});
+        });
+
+        it("test pop with count > 1 on empty collection returns empty collection", () => {
+            const c1 = collect([]);
+            expect(c1.pop(3).all()).toEqual([]);
+
+            const c2 = collect({});
+            expect(c2.pop(3).all()).toEqual([]);
+        });
+
+        it("test pop with count > 1 on array returns collection", () => {
+            const c = collect(['a', 'b', 'c', 'd']);
+            const result = c.pop(2);
+            
+            expect(result).toBeInstanceOf(Collection);
+            expect(result.all()).toEqual(['d', 'c']);
+            expect(c.all()).toEqual(['a', 'b']);
+        });
+
+        it("test pop with count > 1 on object returns collection", () => {
+            const c = collect({ a: 1, b: 2, c: 3, d: 4 });
+            const result = c.pop(2);
+            
+            expect(result).toBeInstanceOf(Collection);
+            expect(result.all()).toEqual([4, 3]);
+            expect(c.all()).toEqual({ a: 1, b: 2 });
+        });
+
+        it("test pop with count greater than collection size", () => {
+            const c1 = collect(['a', 'b']);
+            expect(c1.pop(5).all()).toEqual(['b', 'a']);
+            expect(c1.all()).toEqual([]);
+
+            const c2 = collect({ x: 10, y: 20 });
+            expect(c2.pop(5).all()).toEqual([20, 10]);
+            expect(c2.all()).toEqual({});
+        });
     });
 
     describe("", () => {

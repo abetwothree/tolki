@@ -2094,25 +2094,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const poppedValues = dataPop(this.items, count);
 
         // Remove the popped items from this.items
+        // Note: dataPop mutates objects but not arrays
         if (isArray(this.items)) {
             this.items = (this.items as TValue[]).slice(0, -count) as DataItems<
                 TValue,
                 TKey
             >;
-        } else {
-            // For objects, remove the last count keys
-            const keys = Object.keys(this.items) as TKey[];
-            const keysToRemove = keys.slice(-count);
-
-            for (const key of keysToRemove) {
-                delete (this.items as Record<TKey, TValue>)[key];
-            }
         }
 
-        if (isNull(poppedValues) || !isArray(poppedValues)) {
-            return poppedValues;
-        }
-
+        // For objects, dataPop already mutates this.items, so no need to delete keys
         return new Collection(poppedValues);
     }
 
