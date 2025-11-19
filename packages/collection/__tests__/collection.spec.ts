@@ -3371,6 +3371,74 @@ describe("Collection", () => {
         });
     });
 
+    describe("concat", () => {
+        describe("Laravel Tests", () => {
+            it("test concat with array", () => {
+                const expected = [
+                    4,
+                    5,
+                    6,
+                    "a",
+                    "b",
+                    "c",
+                    "Jonny",
+                    "from",
+                    "Laroe",
+                    "Jonny",
+                    "from",
+                    "Laroe",
+                ];
+
+                let data = collect([4, 5, 6]);
+                data = data.concat(["a", "b", "c"]);
+                data = data.concat({
+                    who: "Jonny",
+                    preposition: "from",
+                    where: "Laroe",
+                });
+                const actual = data
+                    .concat({
+                        who: "Jonny",
+                        preposition: "from",
+                        where: "Laroe",
+                    })
+                    .all();
+
+                expect(actual).toEqual(expected);
+            });
+
+            it("test concat with collection", () => {
+                const expected = [
+                    4,
+                    5,
+                    6,
+                    "a",
+                    "b",
+                    "c",
+                    "Jonny",
+                    "from",
+                    "Laroe",
+                    "Jonny",
+                    "from",
+                    "Laroe",
+                ];
+
+                let firstCollection = collect([4, 5, 6]);
+                const secondCollection = collect(["a", "b", "c"]);
+                const thirdCollection = collect({
+                    who: "Jonny",
+                    preposition: "from",
+                    where: "Laroe",
+                });
+                firstCollection = firstCollection.concat(secondCollection);
+                firstCollection = firstCollection.concat(thirdCollection);
+                const actual = firstCollection.concat(thirdCollection).all();
+
+                expect(actual).toEqual(expected);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});

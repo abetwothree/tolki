@@ -2185,12 +2185,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         } else {
             // For objects, we need to rebuild the entire object with new numeric indices
             const oldItems = { ...this.items };
-            const newItems: Record<PropertyKey, TValue> = {};
+            const newItems: Record<PropertyKey, T> = {};
 
             // Add new values with numeric indices starting at 0
             let index = 0;
             for (const value of values) {
-                newItems[index] = value as TValue;
+                newItems[index] = value;
                 index++;
             }
 
@@ -2199,15 +2199,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 const numKey = Number(key);
                 if (!isNaN(numKey)) {
                     // Renumber numeric keys
-                    newItems[index] = value;
+                    newItems[index] = value as T;
                     index++;
                 } else {
                     // Keep string keys as-is
-                    newItems[key] = value;
+                    newItems[key] = value as T;
                 }
             }
 
-            this.items = newItems as DataItems<TValue, TKey>;
+            this.items = newItems as Record<number | string, T>;
         }
 
         return this;
@@ -2227,7 +2227,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     concat<TConcatValue, TConcatKey extends PropertyKey = PropertyKey>(
         source:
-            | DataItems<TConcatValue, TConcatKey>
+            | TConcatValue[]
+            | Record<TConcatKey, TConcatValue>
             | Collection<TConcatValue, TConcatKey>,
     ) {
         const result = new Collection(this.items);
