@@ -3241,6 +3241,142 @@ describe("Collection", () => {
         });
     });
 
+    describe("unshift", () => {
+        describe("Laravel Tests", () => {
+            it("test unshift with one item", () => {
+                const expected = [
+                    "Jonny from Laroe",
+                    { who: "Jonny", preposition: "from", where: "Laroe" },
+                    ["a", "b", "c"],
+                    4,
+                    5,
+                    6,
+                ];
+
+                const data = collect([4, 5, 6]);
+                data.unshift(["a", "b", "c"]);
+                data.unshift({
+                    who: "Jonny",
+                    preposition: "from",
+                    where: "Laroe",
+                });
+                const actual = data.unshift("Jonny from Laroe").all();
+
+                expect(actual).toEqual(expected);
+            });
+
+            it("test unshift with multiple items", () => {
+                const expected = [
+                    "a",
+                    "b",
+                    "c",
+                    "Jonny",
+                    "from",
+                    "Laroe",
+                    "Jonny",
+                    "from",
+                    "Laroe",
+                    4,
+                    5,
+                    6,
+                ];
+
+                const data = collect([4, 5, 6]);
+                data.unshift("Jonny", "from", "Laroe");
+                data.unshift(
+                    ...Object.values({ 11: "Jonny", 12: "from", 13: "Laroe" }),
+                );
+                data.unshift(...collect(["a", "b", "c"]));
+                const actual = data.unshift(...[]).all();
+
+                expect(actual).toEqual(expected);
+            });
+        });
+
+        it("test unshift function", () => {
+            // Test unshifting to empty array
+            const c1 = collect([]);
+            c1.unshift(1);
+            expect(c1.all()).toEqual([1]);
+
+            // Test unshifting to empty object
+            const c2 = collect({});
+            c2.unshift("value");
+            expect(c2.all()).toEqual({ 0: "value" });
+
+            // Test unshifting multiple values to object
+            const c3 = collect({});
+            c3.unshift("a", "b", "c");
+            expect(c3.all()).toEqual({ 0: "a", 1: "b", 2: "c" });
+
+            // Test unshifting to object with existing numeric keys
+            const c4 = collect({ 0: "first", 1: "second" });
+            c4.unshift("new");
+            expect(c4.all()).toEqual({
+                0: "new",
+                1: "first",
+                2: "second",
+            });
+
+            // Test unshifting to object with string keys only
+            const c5 = collect({ a: "value", b: "other" });
+            c5.unshift("new");
+            expect(c5.all()).toEqual({
+                0: "new",
+                a: "value",
+                b: "other",
+            });
+
+            // Test unshifting to object with mixed keys
+            const c6 = collect({ a: "value", 5: "item", b: "other" });
+            c6.unshift("new1", "new2");
+            expect(c6.all()).toEqual({
+                0: "new1",
+                1: "new2",
+                2: "item",
+                a: "value",
+                b: "other",
+            });
+
+            // Test unshifting to object with non-sequential numeric keys
+            const c7 = collect({ 0: "a", 2: "b", 5: "c" });
+            c7.unshift("x");
+            expect(c7.all()).toEqual({
+                0: "x",
+                1: "a",
+                2: "b",
+                3: "c",
+            });
+
+            // Test unshifting no values (edge case)
+            const c8 = collect([1, 2, 3]);
+            c8.unshift();
+            expect(c8.all()).toEqual([1, 2, 3]);
+
+            // Test chaining
+            const c9 = collect([3, 4]);
+            const result = c9.unshift(2).unshift(1);
+            expect(result).toBe(c9); // Should return same instance
+            expect(c9.all()).toEqual([1, 2, 3, 4]);
+
+            // Test object chaining
+            const c10 = collect({ a: "value" });
+            const result2 = c10.unshift("second").unshift("first");
+            expect(result2).toBe(c10); // Should return same instance
+            expect(c10.all()).toEqual({
+                0: "first",
+                1: "second",
+                a: "value",
+            });
+        });
+    });
+
+    describe("", () => {
+        describe("Laravel Tests", () => {
+            it("", () => {});
+        });
+    });
+
     describe("count", () => {
         it("returns number of array items", () => {
             const collection = collect([1, 2, 3]);

@@ -2176,13 +2176,39 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * new Collection([2, 3]).unshift(1); -> new Collection([1, 2, 3])
      * new Collection([3, 4]).unshift(1, 2); -> new Collection([1, 2, 3, 4])
-     * new Collection({b: 2}).unshift(1); -> new Collection({0: 1, b: 2})
-     * new Collection({b: 2}).unshift({a: 1}, {c: 3}); -> new Collection({a: 1, c: 3, b: 2})
+     * new Collection([4, 5, 6]).unshift(['a', 'b', 'c']); -> new Collection([['a', 'b', 'c'], 4, 5, 6])
      */
-    unshift(...values: Array<[TKey, TValue]>) {
-        const newItems = values.flatMap((value) => arrWrap(value));
+    unshift<T>(...values: T[]) {
+        if (isArray(this.items)) {
+            // For arrays, use built-in unshift
+            this.items.unshift(...values);
+        } else {
+            // For objects, we need to rebuild the entire object with new numeric indices
+            const oldItems = { ...this.items };
+            const newItems: Record<PropertyKey, TValue> = {};
 
-        this.items = dataUnshift(this.items, ...newItems);
+            // Add new values with numeric indices starting at 0
+            let index = 0;
+            for (const value of values) {
+                newItems[index] = value as TValue;
+                index++;
+            }
+
+            // Add old items, renumbering numeric keys and keeping string keys
+            for (const [key, value] of Object.entries(oldItems)) {
+                const numKey = Number(key);
+                if (!isNaN(numKey)) {
+                    // Renumber numeric keys
+                    newItems[index] = value;
+                    index++;
+                } else {
+                    // Keep string keys as-is
+                    newItems[key] = value;
+                }
+            }
+
+            this.items = newItems as DataItems<TValue, TKey>;
+        }
 
         return this;
     }
