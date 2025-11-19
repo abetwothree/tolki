@@ -136,6 +136,18 @@ Packages table layout:
 | packages/types          | @laravel-js/types      | Type definitions and helpers                              |
 | packages/utils          | @laravel-js/utils      | General utility functions                                 |
 
+Folder and root files list and description of each package:
+
+| Directory                  | Description                                                    |
+|----------------------------|----------------------------------------------------------------|
+| packages/**/__tests__      | Tests for the package                                          |
+| packages/**/dist           | Compiled output of the package                                 |
+| packages/**/fn-lists       | Function lists extracted from stubs for reference              |
+| packages/**/src            | Source code for the package                                    |
+| packages/**/stubs          | Laravel PHP source used as source of truth for implementation  |
+| packages/**/package.json   | Package configuration file                                     |
+| packages/**/vite.config.ts | Vite configuration file for building the package               |
+
 More detailed description of the packages to be implemented:
 
 ### @laravel-js/all
