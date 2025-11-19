@@ -3110,6 +3110,33 @@ describe("Collection", () => {
         });
     });
 
+    describe("prepend", () => {
+        it("Laravel Tests", () => {
+            const c = collect(['one', 'two', 'three', 'four']);
+            expect(c.prepend('zero').all()).toEqual([
+                'zero',
+                'one',
+                'two',
+                'three',
+                'four',
+            ]);
+
+            const c2 = collect({ 'one': 1, 'two': 2 });
+            expect(c2.prepend(0, 'zero').all()).toEqual({
+                zero: 0,
+                one: 1,
+                two: 2,
+            });
+
+            const c3 = collect({ 'one': 1, 'two': 2 });
+            expect(c3.prepend(0, null).all()).toEqual({
+                null: 0,
+                one: 1,
+                two: 2,
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
