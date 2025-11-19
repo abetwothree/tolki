@@ -1975,7 +1975,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * collect(new Map([[6, "a"], [4, "b"], [7, "c"], [1, "d"], [5, "e"], [3, "f"]])).nth(4).all() -> ["a", "e"]
      */
-    nth(step: number, offset: number = 0) {
+    nth(step: number, offset: number = 0): Collection<TValue[], number> {
         const newItems = [];
 
         let position = 0;
@@ -2010,14 +2010,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).only(1); -> new Collection([2])
      * new Collection([1, 2, 3]).only(null); -> new Collection([1, 2, 3])
      */
-    only(...keys: PathKey[]) {
-        if (isNull(keys)) {
+    only<T, K extends PropertyKey>(
+        ...keys: PathKey[] | PathKeys[] | Collection<T, K>[]
+    ) {
+        if (keys.every(key => isNull(key))) {
             return new Collection(this.items);
         }
 
-        keys = keys.flatMap((key) => arrWrap(key)) as PathKey[];
+        keys = keys.flatMap((key) => arrWrap(this.getRawItems(key))) as PathKey[];
 
-        return new Collection(dataOnly<TValue, TKey>(this.items, keys));
+        return new Collection(dataOnly(this.items, keys));
     }
 
     /**

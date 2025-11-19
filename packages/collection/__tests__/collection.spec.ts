@@ -2848,6 +2848,22 @@ describe("Collection", () => {
         });
     });
 
+    describe("only", () => {
+        it("Laravel Tests", () => {
+            const c = collect({ first: "Taylor", last: "Otwell", email: "taylorotwell@gmail.com" });
+
+            expect(c.only(null).all()).toEqual(c.all());
+
+            expect(c.only(["first", "missing"]).all()).toEqual({ first: "Taylor" });
+            expect(c.only("first", "missing").all()).toEqual({ first: "Taylor" });
+            expect(c.only(collect(["first", "missing"])).all()).toEqual({ first: "Taylor" });
+
+            expect(c.only(["first", "email"]).all()).toEqual({ first: "Taylor", email: "taylorotwell@gmail.com" });
+            expect(c.only("first", "email").all()).toEqual({ first: "Taylor", email: "taylorotwell@gmail.com" });
+            expect(c.only(collect(["first", "email"])).all()).toEqual({ first: "Taylor", email: "taylorotwell@gmail.com" });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
