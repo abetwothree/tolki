@@ -3439,6 +3439,167 @@ describe("Collection", () => {
         });
     });
 
+    describe("pull", () => {
+        describe("Laravel Tests", () => {
+            it("test pull retrieves item from collection", () => {
+                const c = collect(["foo", "bar"]);
+
+                expect(c.pull(0)).toBe("foo");
+                expect(c.pull(1)).toBe("bar");
+
+                const c2 = collect(["foo", "bar"]);
+                
+                expect(c2.pull(-1)).toBeNull();
+                expect(c2.pull(2)).toBeNull();
+            });
+
+            it("test pull removes item from collection", () => {
+                const c = collect(["foo", "bar"]);
+                c.pull(0);
+                expect(c.all()).toEqual({ 1: "bar" });
+                c.pull(1);
+                expect(c.all()).toEqual({});
+            });
+            
+            it("test pull removes item from nested collection", () => {
+                const nestedCollection = collect([
+                    collect([
+                        "value",
+                        collect({
+                            bar: "baz",
+                            test: "value",
+                        }),
+                    ]),
+                    "bar",
+                ]);
+
+                nestedCollection.pull("0.1.test");
+
+                const actualArray = nestedCollection.toArray();
+                const expectedArray = [
+                    [
+                        "value",
+                        { bar: "baz" },
+                    ],
+                    "bar",
+                ];
+
+                expect(actualArray).toEqual(expectedArray);
+            });
+            
+            it("test pull returns default", () => {
+                const c = collect([]);
+                const value = c.pull(0, "foo");
+                expect(value).toBe("foo");
+            });
+        });
+
+        it("test pull function comprehensive coverage", () => {
+            const c = collect([1, 2, [3, 4, 5, [6, 7]]]);
+            expect(c.pull("2.3.1")).toBe(7);
+
+            // Test pulling from object with simple string key
+            const c1 = collect({ a: "value1", b: "value2", c: "value3" });
+            expect(c1.pull("b")).toBe("value2");
+            expect(c1.all()).toEqual({ a: "value1", c: "value3" });
+
+            // Test pulling from object with numeric key
+            const c2 = collect({ 0: "first", 1: "second", 2: "third" });
+            expect(c2.pull(1)).toBe("second");
+            expect(c2.all()).toEqual({ 0: "first", 2: "third" });
+
+            // Test pulling non-existent key from object
+            const c3 = collect({ a: 1, b: 2 });
+            expect(c3.pull("nonexistent")).toBeNull();
+            expect(c3.all()).toEqual({ a: 1, b: 2 });
+
+            // Test pulling with default value
+            const c4 = collect({ a: 1 });
+            expect(c4.pull("missing", "default")).toBe("default");
+
+            // Test pulling with default value as function
+            const c5 = collect({ x: "val" });
+            expect(c5.pull("missing", () => "computed")).toBe("computed");
+
+            // Test pulling from empty object
+            const c6 = collect({});
+            expect(c6.pull("any")).toBeNull();
+            expect(c6.all()).toEqual({});
+
+            // Test pulling nested path from object
+            const c7 = collect({ 
+                level1: { 
+                    level2: { 
+                        level3: "deep" 
+                    } 
+                } 
+            });
+            expect(c7.pull("level1.level2.level3")).toBe("deep");
+            expect(c7.all()).toEqual({ level1: { level2: {} } });
+
+            // Test pulling with path that has non-object parent
+            const c8 = collect({ 
+                str: "string value",
+                nested: { valid: "data" }
+            });
+            expect(c8.pull("str.invalid.path")).toBeNull();
+            expect(c8.all()).toEqual({ 
+                str: "string value",
+                nested: { valid: "data" }
+            });
+
+            // Test pulling from array with simple numeric index (already covered but ensuring)
+            const c9 = collect([10, 20, 30]);
+            expect(c9.pull(1)).toBe(20);
+            expect(c9.all()).toEqual({ 0: 10, 2: 30 });
+
+            // Test pulling from mixed object (string and numeric keys)
+            const c10 = collect({ 
+                name: "test", 
+                0: "zero", 
+                1: "one",
+                other: "value"
+            });
+            expect(c10.pull(0)).toBe("zero");
+            expect(c10.all()).toEqual({ 
+                name: "test", 
+                1: "one",
+                other: "value"
+            });
+
+            // Test pulling nested path from array
+            const c11 = collect([
+                { id: 1, data: "first" },
+                { id: 2, data: "second" }
+            ]);
+            expect(c11.pull("1.data")).toBe("second");
+            expect(c11.all()).toEqual([
+                { id: 1, data: "first" },
+                { id: 2 }
+            ]);
+
+            // Test pulling with invalid numeric string key on array
+            const c12 = collect([1, 2, 3]);
+            expect(c12.pull("invalid")).toBeNull();
+
+            // Test chaining after pull
+            const c13 = collect({ a: 1, b: 2, c: 3 });
+            c13.pull("a");
+            c13.pull("c");
+            expect(c13.all()).toEqual({ b: 2 });
+
+            // Test pulling with path that starts invalid (no parent found)
+            const c14 = collect({ a: 1 });
+            expect(c14.pull("nonexistent.nested.path")).toBeNull();
+            expect(c14.all()).toEqual({ a: 1 });
+
+            // Test pulling from object - ensure all object branches are covered
+            const c15 = collect({ x: "val", y: "other" });
+            expect(c15.pull("y")).toBe("other");
+            expect(c15.all()).toEqual({ x: "val" });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
