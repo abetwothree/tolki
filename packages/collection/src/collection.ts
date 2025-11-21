@@ -2260,12 +2260,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
     ) {
         // Convert nested Collections to plain objects for path operations
         const items = this.recursivelyConvertCollections(this.items);
-        
+
         // Get the value first
         const value = dataGet(items, key, defaultValue);
-        
+
         // Handle simple numeric key on array - convert to object to preserve keys
-        if (isArray(this.items) && typeof key === 'number' && !String(key).includes('.')) {
+        if (
+            isArray(this.items) &&
+            typeof key === "number" &&
+            !String(key).includes(".")
+        ) {
             // Convert array to object to preserve keys when removing (PHP behavior)
             const obj: Record<number, TValue> = {};
             for (let i = 0; i < (this.items as TValue[]).length; i++) {
@@ -2277,12 +2281,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
         } else {
             // For objects or path-based keys, manually remove the path
             const keyStr = String(key);
-            const segments = keyStr.split('.');
-            
+            const segments = keyStr.split(".");
+
             if (segments.length === 1) {
                 // Simple key - just delete it
                 if (isObject(items)) {
-                    delete (items as Record<PropertyKey, unknown>)[key as PropertyKey];
+                    delete (items as Record<PropertyKey, unknown>)[
+                        key as PropertyKey
+                    ];
                 } else if (isArray(items)) {
                     const numKey = Number(key);
                     if (!isNaN(numKey)) {
@@ -2295,22 +2301,26 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 for (let i = 0; i < segments.length - 1; i++) {
                     const segment = segments[i];
                     if (isObject(current) || isArray(current)) {
-                        current = (current as Record<PropertyKey, unknown>)[segment];
+                        current = (current as Record<PropertyKey, unknown>)[
+                            segment
+                        ];
                     } else {
                         break;
                     }
                 }
-                
+
                 // Delete the final segment
                 const finalSegment = segments[segments.length - 1];
                 if (isObject(current) || isArray(current)) {
-                    delete (current as Record<PropertyKey, unknown>)[finalSegment];
+                    delete (current as Record<PropertyKey, unknown>)[
+                        finalSegment
+                    ];
                 }
             }
-            
+
             this.items = items as DataItems<TValue, TKey>;
         }
-        
+
         return value;
     }
 
@@ -2327,7 +2337,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1}).put('b', 2); -> new Collection({a: 1, b: 2})
      * new Collection([1, 2]).put(2, 3); -> new Collection([1, 2, 3])
      */
-    put(key: TKey, value: TValue) {
+    put<K, V>(key: K, value: V) {
         this.offsetSet(key, value);
 
         return this;

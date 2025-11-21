@@ -3448,7 +3448,7 @@ describe("Collection", () => {
                 expect(c.pull(1)).toBe("bar");
 
                 const c2 = collect(["foo", "bar"]);
-                
+
                 expect(c2.pull(-1)).toBeNull();
                 expect(c2.pull(2)).toBeNull();
             });
@@ -3460,7 +3460,7 @@ describe("Collection", () => {
                 c.pull(1);
                 expect(c.all()).toEqual({});
             });
-            
+
             it("test pull removes item from nested collection", () => {
                 const nestedCollection = collect([
                     collect([
@@ -3476,17 +3476,11 @@ describe("Collection", () => {
                 nestedCollection.pull("0.1.test");
 
                 const actualArray = nestedCollection.toArray();
-                const expectedArray = [
-                    [
-                        "value",
-                        { bar: "baz" },
-                    ],
-                    "bar",
-                ];
+                const expectedArray = [["value", { bar: "baz" }], "bar"];
 
                 expect(actualArray).toEqual(expectedArray);
             });
-            
+
             it("test pull returns default", () => {
                 const c = collect([]);
                 const value = c.pull(0, "foo");
@@ -3527,25 +3521,25 @@ describe("Collection", () => {
             expect(c6.all()).toEqual({});
 
             // Test pulling nested path from object
-            const c7 = collect({ 
-                level1: { 
-                    level2: { 
-                        level3: "deep" 
-                    } 
-                } 
+            const c7 = collect({
+                level1: {
+                    level2: {
+                        level3: "deep",
+                    },
+                },
             });
             expect(c7.pull("level1.level2.level3")).toBe("deep");
             expect(c7.all()).toEqual({ level1: { level2: {} } });
 
             // Test pulling with path that has non-object parent
-            const c8 = collect({ 
+            const c8 = collect({
                 str: "string value",
-                nested: { valid: "data" }
+                nested: { valid: "data" },
             });
             expect(c8.pull("str.invalid.path")).toBeNull();
-            expect(c8.all()).toEqual({ 
+            expect(c8.all()).toEqual({
                 str: "string value",
-                nested: { valid: "data" }
+                nested: { valid: "data" },
             });
 
             // Test pulling from array with simple numeric index (already covered but ensuring)
@@ -3554,29 +3548,26 @@ describe("Collection", () => {
             expect(c9.all()).toEqual({ 0: 10, 2: 30 });
 
             // Test pulling from mixed object (string and numeric keys)
-            const c10 = collect({ 
-                name: "test", 
-                0: "zero", 
+            const c10 = collect({
+                name: "test",
+                0: "zero",
                 1: "one",
-                other: "value"
+                other: "value",
             });
             expect(c10.pull(0)).toBe("zero");
-            expect(c10.all()).toEqual({ 
-                name: "test", 
+            expect(c10.all()).toEqual({
+                name: "test",
                 1: "one",
-                other: "value"
+                other: "value",
             });
 
             // Test pulling nested path from array
             const c11 = collect([
                 { id: 1, data: "first" },
-                { id: 2, data: "second" }
+                { id: 2, data: "second" },
             ]);
             expect(c11.pull("1.data")).toBe("second");
-            expect(c11.all()).toEqual([
-                { id: 1, data: "first" },
-                { id: 2 }
-            ]);
+            expect(c11.all()).toEqual([{ id: 1, data: "first" }, { id: 2 }]);
 
             // Test pulling with invalid numeric string key on array
             const c12 = collect([1, 2, 3]);
@@ -3597,6 +3588,45 @@ describe("Collection", () => {
             const c15 = collect({ x: "val", y: "other" });
             expect(c15.pull("y")).toBe("other");
             expect(c15.all()).toEqual({ x: "val" });
+        });
+    });
+
+    describe("put", () => {
+        describe("Laravel Tests", () => {
+            it("test put", () => {
+                const data = collect({ name: "taylor", email: "foo" });
+                data.put("name", "dayle");
+                expect(data.all()).toEqual({ name: "dayle", email: "foo" });
+            });
+
+            it("test put with no key", () => {
+                const data = collect(["taylor", "shawn"]);
+                data.put(null, "dayle");
+                expect(data.all()).toEqual(["taylor", "shawn", "dayle"]);
+            });
+
+            it("test put add item to collection", () => {
+                const data = collect({});
+                expect(data.toArray()).toEqual({});
+                data.put("foo", 1);
+                expect(data.toArray()).toEqual({ foo: 1 });
+                data.put("bar", { nested: "two" });
+                expect(data.toArray()).toEqual({
+                    foo: 1,
+                    bar: { nested: "two" },
+                });
+                data.put("foo", 3);
+                expect(data.toArray()).toEqual({
+                    foo: 3,
+                    bar: { nested: "two" },
+                });
+            });
+        });
+    });
+
+    describe("random", () => {
+        describe("Laravel Tests", () => {
+            it("", () => {});
         });
     });
 
