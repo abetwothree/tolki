@@ -2358,12 +2358,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).random(collection => Math.floor(collection.count() / 2)); -> new Collection([2])
      * new Collection([]).random(); -> undefined
      */
+    random(count?: null, preserveKeys?: boolean): TValue;
     random(
-        count?: ((collection: this) => number) | number | null,
+        count: number | string | ((collection: this) => number),
+        preserveKeys?: boolean,
+    ): Collection<TValue, TKey>;
+    random(
+        count?: ((collection: this) => number) | number | string | null,
+        preserveKeys?: boolean,
+    ): TValue | Collection<TValue, TKey>;
+    random(
+        count?: ((collection: this) => number) | number | string | null,
         preserveKeys: boolean = false,
-    ) {
-        if (isNull(count)) {
-            return dataRandom(this.items);
+    ): TValue | Collection<TValue, TKey> {
+        if (isNull(count) || isUndefined(count)) {
+            return dataRandom(this.items) as TValue;
         }
 
         if (isFunction(count)) {

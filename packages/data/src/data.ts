@@ -1211,7 +1211,7 @@ export function dataQuery<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function dataRandom<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
-    number = 1,
+    number?: number | null,
     preserveKeys = false,
 ) {
     if (isObject(data)) {

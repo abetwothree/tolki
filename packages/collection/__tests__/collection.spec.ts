@@ -3626,7 +3626,125 @@ describe("Collection", () => {
 
     describe("random", () => {
         describe("Laravel Tests", () => {
-            it("", () => {});
+            it("test random", () => {
+                const data = collect([1, 2, 3, 4, 5, 6]);
+                const random = data.random();
+                expect(typeof random).toBe("number");
+                expect(data.all()).toContain(random);
+
+                const randomMultiple = data.random(0);
+                expect(randomMultiple).toBeInstanceOf(Collection);
+                expect(randomMultiple.count()).toBe(0);
+
+                const randomSingle = data.random(1);
+                expect(randomSingle).toBeInstanceOf(Collection);
+                expect(randomSingle.count()).toBe(1);
+
+                const randomDouble = data.random(2);
+                expect(randomDouble).toBeInstanceOf(Collection);
+                expect(randomDouble.count()).toBe(2);
+
+                const randomStringZero = data.random("0");
+                expect(randomStringZero).toBeInstanceOf(Collection);
+                expect(randomStringZero.count()).toBe(0);
+
+                const randomStringOne = data.random("1");
+                expect(randomStringOne).toBeInstanceOf(Collection);
+                expect(randomStringOne.count()).toBe(1);
+
+                const randomStringTwo = data.random("2");
+                expect(randomStringTwo).toBeInstanceOf(Collection);
+                expect(randomStringTwo.count()).toBe(2);
+
+                const randomWithRepetition = data.random(2, true);
+                expect(randomWithRepetition).toBeInstanceOf(Collection);
+                expect(randomWithRepetition.count()).toBe(2);
+                // When preserveKeys is true, result can be an object with numeric keys
+                const randomAll = randomWithRepetition.all();
+                const dataAll = data.all();
+                if (Array.isArray(randomAll)) {
+                    const intersection = randomAll.filter((value) =>
+                        dataAll.includes(value),
+                    );
+                    expect(intersection.length).toBe(2);
+                } else {
+                    // For objects, check if all keys and values match
+                    let matchCount = 0;
+                    for (const [key, value] of Object.entries(randomAll)) {
+                        if (Array.isArray(dataAll)) {
+                            if (dataAll[Number(key)] === value) {
+                                matchCount++;
+                            }
+                        } else {
+                            if (
+                                (dataAll as Record<string, unknown>)[key] ===
+                                value
+                            ) {
+                                matchCount++;
+                            }
+                        }
+                    }
+                    expect(matchCount).toBe(2);
+                }
+
+                const randomCallback = data.random((items) =>
+                    Math.min(10, items.count()),
+                );
+                expect(randomCallback).toBeInstanceOf(Collection);
+                expect(randomCallback.count()).toBe(6);
+
+                const randomCallbackWithRepetition = data.random(
+                    (items) => Math.min(10, items.count() - 1),
+                    true,
+                );
+                expect(randomCallbackWithRepetition).toBeInstanceOf(Collection);
+                expect(randomCallbackWithRepetition.count()).toBe(5);
+                // When preserveKeys is true, result can be an object with numeric keys
+                const randomAll2 = randomCallbackWithRepetition.all();
+                const dataAll2 = data.all();
+                if (Array.isArray(randomAll2)) {
+                    const intersection2 = randomAll2.filter((value) =>
+                        dataAll2.includes(value),
+                    );
+                    expect(intersection2.length).toBe(5);
+                } else {
+                    // For objects, check if all keys and values match
+                    let matchCount = 0;
+                    for (const [key, value] of Object.entries(randomAll2)) {
+                        if (Array.isArray(dataAll2)) {
+                            if (dataAll2[Number(key)] === value) {
+                                matchCount++;
+                            }
+                        } else {
+                            if (
+                                (dataAll2 as Record<string, unknown>)[key] ===
+                                value
+                            ) {
+                                matchCount++;
+                            }
+                        }
+                    }
+                    expect(matchCount).toBe(5);
+                }
+            });
+
+            it("test random on empty collection", () => {
+                const data = collect([]);
+                const random = data.random(0);
+                expect(random).toBeInstanceOf(Collection);
+                expect(random.count()).toBe(0);
+
+                const randomStringZero = data.random("0");
+                expect(randomStringZero).toBeInstanceOf(Collection);
+                expect(randomStringZero.count()).toBe(0);
+            });
+
+            it("test random throws an exception using amount bigger than collection size", () => {
+                const data = collect([1, 2, 3]);
+                expect(() => {
+                    data.random(4);
+                }).toThrowError();
+            });
         });
     });
 

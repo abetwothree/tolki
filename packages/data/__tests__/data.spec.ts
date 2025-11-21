@@ -798,13 +798,14 @@ describe("Data", () => {
         it("is object", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const result = Data.dataRandom(obj);
-            expect(Object.keys(result)).toHaveLength(1);
-            expect([1, 2, 3]).toContain(Object.values(result)[0]);
+            // dataRandom with no count returns a single value
+            expect([1, 2, 3]).toContain(result);
         });
         it("is array", () => {
             const arr = [1, 2, 3, 4, 5];
             const result = Data.dataRandom(arr);
-            expect(arr).toContain(result[0]);
+            // dataRandom with no count returns a single value
+            expect(arr).toContain(result);
         });
     });
 
