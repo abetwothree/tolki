@@ -3843,6 +3843,25 @@ describe("Collection", () => {
         });
     });
 
+    describe("reverse", () => {
+        describe("Laravel Tests", () => {
+            it("", () => {
+                const data = collect(["zaeed", "alan"]);
+                const reversed = data.reverse();
+
+                expect(reversed.all()).toEqual(["alan", "zaeed"]);
+
+                const data2 = collect({ name: "taylor", framework: "laravel" });
+                const reversed2 = data2.reverse();
+
+                expect(reversed2.all()).toEqual({
+                    framework: "laravel",
+                    name: "taylor",
+                });
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
