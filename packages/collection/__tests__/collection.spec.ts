@@ -3134,6 +3134,14 @@ describe("Collection", () => {
                 one: 1,
                 two: 2,
             });
+
+            // Laravel: Test prepend with empty string key (converts to null)
+            const c4 = collect({ one: 1, two: 2 });
+            expect(c4.prepend(0, "").all()).toEqual({
+                null: 0,
+                one: 1,
+                two: 2,
+            });
         });
     });
 
@@ -3745,6 +3753,12 @@ describe("Collection", () => {
                     data.random(4);
                 }).toThrowError();
             });
+        });
+    });
+
+    describe("replace", () => {
+        describe("Laravel Tests", () => {
+            it("", () => {});
         });
     });
 

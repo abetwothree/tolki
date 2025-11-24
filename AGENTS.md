@@ -18,6 +18,22 @@
 
 When it makes sense, create a to-do list when working on a feature or bugfix. Use checkboxes so that it's easy to see what is done and what is left to do.
 
+## Function Overrides
+
+When creating function overrides for better typing, make sure to keep the most general override at the bottom so that TypeScript can pick the most specific one first.
+
+Overrides should typically be added when a parameter being passed in can affect the return type so that the end user gets better type inference of the result based on the parameters passed in.
+
+Example of the pop function which changes the return type based on the `count` parameter:
+
+```TypeScript
+pop(): TValue | null;
+pop(count: number): Collection<TValue[], number>;
+pop(count: number = 1): TValue | null | Collection<TValue[], number> {
+  // function implementation ...
+}
+```
+
 ## Code style
 
 - Use TypeScript and read tsconfig.json at the root for configuration

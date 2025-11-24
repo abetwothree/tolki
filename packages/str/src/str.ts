@@ -1535,12 +1535,12 @@ export class Str {
      *
      * Str.replace("foo", "bar", "foo baz"); -> "bar baz"
      */
-    static replace(
+    static replace<T extends string | Iterable<string>>(
         search: string | Iterable<string>,
         replacement: string | Iterable<string>,
-        subject: string | Iterable<string>,
+        subject: T,
         caseSensitive = true, // NOTE: behaves as ignoreCase=true (Laravel parity TBD)
-    ): string | string[] {
+    ): T extends string ? string : string[] {
         const toArray = (v: string | Iterable<string>): string[] =>
             typeof v === "string" ? [v] : Array.from(v);
 

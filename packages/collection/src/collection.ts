@@ -2119,8 +2119,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([]).prepend(1); -> new Collection([1])
      * new Collection({}).prepend(1, 'a'); -> new Collection({a: 1})
      */
-    prepend<T, K extends PropertyKey>(value: T, key: K | null = null) {
-        this.items = dataPrepend(this.items, value, key);
+    prepend<T, K extends PropertyKey>(value: T, key?: K | null) {
+        if (arguments.length > 1) {
+            this.items = dataPrepend(this.items, value, key ?? null);
+        } else {
+            this.items = dataPrepend(this.items, value);
+        }
 
         return this;
     }
