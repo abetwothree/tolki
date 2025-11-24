@@ -4234,6 +4234,103 @@ describe("Collection", () => {
         });
     });
 
+    describe("sliding", () => {
+        describe("Laravel Tests", () => {
+            it("test sliding", () => {
+                // Default parameters: $size = 2, $step = 1
+                expect(Collection.times(0).sliding().toArray()).toEqual([]);
+                expect(Collection.times(1).sliding().toArray()).toEqual([]);
+                expect(Collection.times(2).sliding().toArray()).toEqual([
+                    [1, 2],
+                ]);
+                expect(
+                    Collection.times(3)
+                        .sliding()
+                        .map((item) => item.values())
+                        .toArray(),
+                ).toEqual([
+                    [1, 2],
+                    [2, 3],
+                ]);
+
+                // Custom step: $size = 2, $step = 3
+                expect(Collection.times(1).sliding(2, 3).toArray()).toEqual([]);
+                expect(Collection.times(2).sliding(2, 3).toArray()).toEqual([
+                    [1, 2],
+                ]);
+                expect(Collection.times(3).sliding(2, 3).toArray()).toEqual([
+                    [1, 2],
+                ]);
+                expect(Collection.times(4).sliding(2, 3).toArray()).toEqual([
+                    [1, 2],
+                ]);
+                expect(
+                    Collection.times(5)
+                        .sliding(2, 3)
+                        .map((item) => item.values())
+                        .toArray(),
+                ).toEqual([
+                    [1, 2],
+                    [4, 5],
+                ]);
+
+                // Custom size: $size = 3, $step = 1
+                expect(Collection.times(2).sliding(3).toArray()).toEqual([]);
+                expect(Collection.times(3).sliding(3).toArray()).toEqual([
+                    [1, 2, 3],
+                ]);
+                expect(
+                    Collection.times(4)
+                        .sliding(3)
+                        .map((item) => item.values())
+                        .toArray(),
+                ).toEqual([
+                    [1, 2, 3],
+                    [2, 3, 4],
+                ]);
+
+                // Custom size and custom step: $size = 3, $step = 2
+                expect(Collection.times(2).sliding(3, 2).toArray()).toEqual([]);
+                expect(Collection.times(3).sliding(3, 2).toArray()).toEqual([
+                    [1, 2, 3],
+                ]);
+                expect(Collection.times(4).sliding(3, 2).toArray()).toEqual([
+                    [1, 2, 3],
+                ]);
+                expect(
+                    Collection.times(5)
+                        .sliding(3, 2)
+                        .map((item) => item.values())
+                        .toArray(),
+                ).toEqual([
+                    [1, 2, 3],
+                    [3, 4, 5],
+                ]);
+                expect(
+                    Collection.times(6)
+                        .sliding(3, 2)
+                        .map((item) => item.values())
+                        .toArray(),
+                ).toEqual([
+                    [1, 2, 3],
+                    [3, 4, 5],
+                ]);
+
+                // Ensure keys are preserved, and inner chunks are also collections
+                const chunks = Collection.times(3).sliding();
+
+                expect(chunks.toArray()).toEqual([
+                    [1, 2],
+                    [2, 3],
+                ]);
+
+                expect(chunks).toBeInstanceOf(Collection);
+                expect(chunks.first()).toBeInstanceOf(Collection);
+                expect(chunks.skip(1).first()).toBeInstanceOf(Collection);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});

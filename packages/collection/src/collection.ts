@@ -2616,7 +2616,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).sliding(); -> new Collection([ {a: 1, b: 2}, {b: 2, c: 3} ])
      */
     sliding(size: number = 2, step: number = 1) {
-        const chunks = Math.floor(this.count() / size / step) + 1;
+        const chunks = Math.floor((this.count() - size) / step) + 1;
 
         return Collection.times(chunks, (count: number) =>
             this.slice((count - 1) * step, size),
