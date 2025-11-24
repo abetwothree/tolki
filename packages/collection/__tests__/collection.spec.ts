@@ -4548,6 +4548,67 @@ describe("Collection", () => {
         });
     });
 
+    describe("sole", () => {
+        describe("Laravel Tests", () => {
+            it("test sole returns first item in collection if only one exists", () => {
+                const c = collect([{ name: "foo" }, { name: "bar" }]);
+
+                expect(c.where("name", "foo").sole()).toEqual({ name: "foo" });
+                expect(c.sole("name", "=", "foo")).toEqual({ name: "foo" });
+                expect(c.sole("name", "foo")).toEqual({ name: "foo" });
+            });
+
+            it("test sole throws exception if no items exist", () => {
+                const c = collect([{ name: "foo" }, { name: "bar" }]);
+
+                expect(() => {
+                    c.where("name", "INVALID").sole();
+                }).toThrowError();
+            });
+
+            it("test sole throws exception if more than one item exists", () => {
+                const c = collect([
+                    { name: "foo" },
+                    { name: "foo" },
+                    { name: "bar" },
+                ]);
+
+                expect(() => {
+                    c.where("name", "foo").sole();
+                }).toThrowError();
+            });
+
+            it("test sole returns first item in collection if only one exists with callback", () => {
+                const data = collect(["foo", "bar", "baz"]);
+
+                const result = data.sole((value) => {
+                    return value === "bar";
+                });
+
+                expect(result).toBe("bar");
+            });
+
+            it("test sole throws exception if no items exist with callback", () => {
+                const data = collect(["foo", "bar", "baz"]);
+                expect(() => {
+                    data.sole((value) => {
+                        return value === "invalid";
+                    });
+                }).toThrowError();
+            });
+
+            it("test solr throws exception if more than one item exists with callback", () => {
+                const data = collect(["foo", "bar", "bar"]);
+
+                expect(() => {
+                    data.sole((value) => {
+                        return value === "bar";
+                    });
+                }).toThrowError();
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
