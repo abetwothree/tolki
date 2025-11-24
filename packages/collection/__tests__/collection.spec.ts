@@ -4331,6 +4331,20 @@ describe("Collection", () => {
         });
     });
 
+    describe("skip", () => {
+        describe("Laravel Tests", () => {
+            it("test skip method", () => {
+                const data = collect([1, 2, 3, 4, 5, 6]);
+
+                // Total items to skip is smaller than collection length
+                expect(data.skip(4).values().all()).toEqual([5, 6]);
+
+                // Total items to skip is more than collection length
+                expect(data.skip(10).values().all()).toEqual([]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
