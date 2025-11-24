@@ -18,6 +18,25 @@
 
 When it makes sense, create a to-do list when working on a feature or bugfix. Use checkboxes so that it's easy to see what is done and what is left to do.
 
+## Return types with generics
+
+The return type should use generics where appropriate to give better type inference to the end user.
+
+Example of a function that returns a Collection of TValue items:
+
+```TypeScript
+// Types in types package
+type ArrayFirst<T extends any[]> = T extends [] ? never : T[0];
+
+function shift(): ArrayFirst<TItems> {
+  // function implementation ...
+}
+
+function get<TValue, TKey extends PropertyKey>(Items: Record<TKey, TValue>, key: TKey): InferedValue<TKey, TValue> | undefined {
+  // function implementation ...
+}
+```
+
 ## Function Overrides
 
 When creating function overrides for better typing, make sure to keep the most general override at the bottom so that TypeScript can pick the most specific one first.
@@ -33,6 +52,25 @@ pop(count: number = 1): TValue | null | Collection<TValue[], number> {
   // function implementation ...
 }
 ```
+
+## Parameter types with generics
+
+When using generics in parameter types, make sure to use the correct syntax for arrays and objects.
+
+- For arrays, use `TValue[]` for an array of values of type `TValue`
+- For objects, use `Record<TKey, TValue>` for an object with keys of type `TKey` and values of type `TValue`
+- For union types, use `TValue | TValue[]` for a value that can be either a single value of type `TValue` or an array of values of type `TValue`
+- For a key that can be the key of an array or object, use `TKey extends PropertyKey` where `PropertyKey` is a built-in TypeScript type that includes `string`, `number`, and `symbol`
+  - Example:
+
+  ```TypeScript
+    function exampleFunction<TValue, TKey extends PropertyKey>(
+      data: TValue[] | Record<TKey, TValue>,
+      key: TKey
+    ): TValue | undefined {
+      // function implementation ...
+    }
+  ```
 
 ## Code style
 
