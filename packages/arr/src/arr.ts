@@ -2127,8 +2127,8 @@ export function sort<TValue>(
     const result = values.slice();
 
     if (isFalsy(callback)) {
-        // Natural sorting
-        return result.sort();
+        // Natural sorting - use compareValues for proper numeric/string comparison
+        return result.sort((a, b) => compareValues(a, b));
     }
 
     if (isString(callback)) {

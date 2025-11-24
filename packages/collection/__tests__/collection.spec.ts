@@ -228,9 +228,12 @@ describe("Collection", () => {
                 { value: 3, age: 30 },
                 { value: 2, age: 25 },
             ]);
+            // After sorting by JSON string representation, the order is:
+            // {"age":20,"value":1}, {"age":25,"value":2}, {"age":30,"value":3}
+            // So the median (middle item) is {"age":25,"value":2}
             expect(collection.median()).toEqual({
-                age: 30,
-                value: 3,
+                age: 25,
+                value: 2,
             });
 
             expect(collection.median("value")).toBe(2);
@@ -4726,6 +4729,31 @@ describe("Collection", () => {
                 const data2 = collect([1, 2, 3, 4, 5]);
 
                 expect(data2.chunk(2, false).toArray()).toEqual([[1, 2], [3, 4], [5]]);
+            });
+        });
+    });
+
+    describe("sort", () => {
+        describe("Laravel Tests", () => {
+            it("test sort", () => {
+                const data = collect([5, 3, 1, 2, 4]).sort();
+                expect(data.values().all()).toEqual([1, 2, 3, 4, 5]);
+
+                const data2 = collect([-1, -3, -2, -4, -5, 0, 5, 3, 1, 2, 4]).sort();
+                expect(data2.values().all()).toEqual([
+                    -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5,
+                ]);
+
+                const data3 = collect(["foo", "bar-10", "bar-1"]).sort();
+                expect(data3.values().all()).toEqual(["bar-1", "bar-10", "foo"]);
+
+                const data4 = collect(["T2", "T1", "T10"]).sort();
+                expect(data4.values().all()).toEqual(["T1", "T10", "T2"]);
+
+                // $data = (new $collection(['T2', 'T1', 'T10']))->sort(SORT_NATURAL);
+                // $this->assertEquals(['T1', 'T2', 'T10'], $data->values()->all());
+                // Note: JavaScript doesn't have SORT_NATURAL flag like PHP, so we skip this test case
+                // Natural sorting would require a different implementation with localeCompare numeric option
             });
         });
     });
