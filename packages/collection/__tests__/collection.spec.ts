@@ -4532,6 +4532,22 @@ describe("Collection", () => {
         });
     });
 
+    describe("splitIn", () => {
+        describe("Laravel Tests", () => {
+            it("test split in", () => {
+                const data = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+                const split = data.splitIn(3);
+
+                expect(split).toBeInstanceOf(Collection);
+                expect(split.first()).toBeInstanceOf(Collection);
+                expect(split.count()).toBe(3);
+                expect(split.get(0).values().toArray()).toEqual([1, 2, 3, 4]);
+                expect(split.get(1).values().toArray()).toEqual([5, 6, 7, 8]);
+                expect(split.get(2).values().toArray()).toEqual([9, 10]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
