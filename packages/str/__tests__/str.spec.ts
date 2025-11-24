@@ -503,9 +503,21 @@ describe("Str tests", () => {
         expect(Str.finish("abcbbcbc", "bc")).toBe("abcbbc");
     });
 
-    it("wrap", () => {
-        expect(Str.wrap("value", '"')).toBe('"value"');
-        expect(Str.wrap("-bar-", "foo", "baz")).toBe("foo-bar-baz");
+    describe("wrap", () => {
+        it("wrap tests", () => {
+            expect(Str.wrap("value", '"')).toBe('"value"');
+            expect(Str.wrap("-bar-", "foo", "baz")).toBe("foo-bar-baz");
+        });
+
+        it("wrap edge cases", () => {
+            expect(Str.wrap("mid", "[]")).toBe("[]mid[]");
+            expect(Str.wrap("mid", "(", "")).toBe("(mid");
+            expect(Str.wrap("mid", "<")).toBe("<mid<");
+            expect(Str.wrap("value", "")).toBe("value");
+            expect(Str.wrap("", "[]")).toBe("[][]");
+            expect(Str.wrap("値", "«", "»")).toBe("«値»");
+            expect(Str.wrap("X", "🧪")).toBe("🧪X🧪");
+        });
     });
 
     it("unwrap", () => {
