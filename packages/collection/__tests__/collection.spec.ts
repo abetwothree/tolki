@@ -4027,6 +4027,117 @@ describe("Collection", () => {
         });
     });
 
+    describe("after", () => {
+        describe("Laravel Tests", () => {
+            it("test after returns item after the given item", () => {
+                // $c = new $collection([1, 2, 3, 4, 2, 5, 'name' => 'taylor', 'framework' => 'laravel']);
+
+                // $this->assertEquals(2, $c->after(1));
+                // $this->assertEquals(3, $c->after(2));
+                // $this->assertEquals(4, $c->after(3));
+                // $this->assertEquals(2, $c->after(4));
+                // $this->assertEquals('taylor', $c->after(5));
+                // $this->assertEquals('laravel', $c->after('taylor'));
+
+                // $this->assertEquals(4, $c->after(function ($value) {
+                //     return $value > 2;
+                // }));
+                // $this->assertEquals('laravel', $c->after(function ($value) {
+                //     return ! is_numeric($value);
+                // }));
+
+                const c = collect({
+                    0: 1,
+                    1: 2,
+                    2: 3,
+                    3: 4,
+                    4: 2,
+                    5: 5,
+                    name: "taylor",
+                    framework: "laravel",
+                });
+
+                expect(c.after(1)).toBe(2);
+                expect(c.after(2)).toBe(3);
+                expect(c.after(3)).toBe(4);
+                expect(c.after(4)).toBe(2);
+                expect(c.after(5)).toBe("taylor");
+                expect(c.after("taylor")).toBe("laravel");
+
+                expect(
+                    c.after((value) => {
+                        return value > 2;
+                    }),
+                ).toBe(4);
+                expect(
+                    c.after((value) => {
+                        return typeof value === "string";
+                    }),
+                ).toBe("laravel");
+            });
+
+            it("test after in strict mode", () => {
+                const emptyArray: unknown[] = [];
+                const c = collect([false, 0, 1, emptyArray, ""]);
+
+                expect(c.after("false", true)).toBeNull();
+                expect(c.after("1", true)).toBeNull();
+                expect(c.after("", true)).toBeNull();
+                expect(c.after(false, true)).toBe(0);
+                expect(c.after(1, true)).toBe(emptyArray);
+                expect(c.after(emptyArray, true)).toBe("");
+            });
+
+            it("test after returns null when item is not found", () => {
+                const c = collect({
+                    0: 1,
+                    1: 2,
+                    2: 3,
+                    3: 4,
+                    4: 5,
+                    foo: "bar",
+                });
+
+                expect(c.after(6)).toBeNull();
+                expect(c.after("foo")).toBeNull();
+                expect(
+                    c.after((value) => {
+                        return value < 1 && typeof value === "number";
+                    }),
+                ).toBeNull();
+                expect(
+                    c.after((value) => {
+                        return value === "nope";
+                    }),
+                ).toBeNull();
+            });
+
+            it("test after returns null when item on the last item", () => {
+                const c = collect({
+                    0: 1,
+                    1: 2,
+                    2: 3,
+                    3: 4,
+                    4: 5,
+                    foo: "bar",
+                });
+
+                expect(c.after("bar")).toBeNull();
+                expect(
+                    c.after((value) => {
+                        return value > 4 && typeof value !== "number";
+                    }),
+                ).toBeNull();
+
+                // In JavaScript, object keys with numeric names are always ordered first,
+                // so we cannot replicate PHP's behavior of ['foo' => 'bar', 1, 2, 3, 4, 5]
+                // where '5' would be the last key. Instead, we test with all string keys.
+                const c2 = collect({ a: "first", b: "second", c: "third" });
+                expect(c2.after("third")).toBeNull();
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
