@@ -27,6 +27,7 @@ Example of a function that returns a Collection of TValue items:
 ```TypeScript
 // Types in types package
 type ArrayFirst<T extends any[]> = T extends [] ? never : T[0];
+type InferedValue<TKey extends PropertyKey, TValue> = TKey extends number ? TValue : TValue | undefined;
 
 function shift(): ArrayFirst<TItems> {
   // function implementation ...
