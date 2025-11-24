@@ -4615,65 +4615,65 @@ describe("Collection", () => {
     describe("firstOrFail", () => {
         describe("Laravel Tests", () => {
             it("test first or fail returns first item in collection", () => {
-                const c = collect([
-                    {name: 'foo'},
-                    {name: 'bar'},
-                ]);
+                const c = collect([{ name: "foo" }, { name: "bar" }]);
 
-                expect(c.where('name', 'foo').firstOrFail()).toEqual({name: 'foo'});
-                expect(c.firstOrFail('name', '=', 'foo')).toEqual({name: 'foo'});
-                expect(c.firstOrFail('name', 'foo')).toEqual({name: 'foo'});
+                expect(c.where("name", "foo").firstOrFail()).toEqual({
+                    name: "foo",
+                });
+                expect(c.firstOrFail("name", "=", "foo")).toEqual({
+                    name: "foo",
+                });
+                expect(c.firstOrFail("name", "foo")).toEqual({ name: "foo" });
             });
-            
+
             it("test first or fail throws exception if no items exist", () => {
-                const c = collect([
-                    {name: 'foo'},
-                    {name: 'bar'},
-                ]);
+                const c = collect([{ name: "foo" }, { name: "bar" }]);
 
                 expect(() => {
-                    c.where('name', 'INVALID').firstOrFail();
+                    c.where("name", "INVALID").firstOrFail();
                 }).toThrowError();
             });
-            
+
             it("test first or fail doesnt throw exception if more than one item exists", () => {
                 const c = collect([
-                    {name: 'foo'},
-                    {name: 'foo'},
-                    {name: 'bar'},
+                    { name: "foo" },
+                    { name: "foo" },
+                    { name: "bar" },
                 ]);
 
-                expect(c.where('name', 'foo').firstOrFail()).toEqual({name: 'foo'});
-            });
-            
-            it("test first or fail returns first item in collection if only one exists with callback", () => {
-                const data = collect(['foo', 'bar', 'baz']);
-                const result = data.firstOrFail((value) => {
-                    return value === 'bar';
+                expect(c.where("name", "foo").firstOrFail()).toEqual({
+                    name: "foo",
                 });
-                expect(result).toBe('bar');
             });
-            
+
+            it("test first or fail returns first item in collection if only one exists with callback", () => {
+                const data = collect(["foo", "bar", "baz"]);
+                const result = data.firstOrFail((value) => {
+                    return value === "bar";
+                });
+                expect(result).toBe("bar");
+            });
+
             it("test first or fail throws exception if no items exist with callback", () => {
-                const data = collect(['foo', 'bar', 'baz']);
+                const data = collect(["foo", "bar", "baz"]);
 
                 expect(() => {
                     data.firstOrFail((value) => {
-                        return value === 'invalid';
+                        return value === "invalid";
                     });
                 }).toThrowError();
             });
-            
+
             it("test first or fail doesn't throw exception if more than one item exists with callback", () => {
-                const data = collect(['foo', 'bar', 'bar']);
+                const data = collect(["foo", "bar", "bar"]);
 
                 expect(
                     data.firstOrFail((value) => {
-                        return value === 'bar';
+                        return value === "bar";
                     }),
-                ).toBe('bar');
+                ).toBe("bar");
             });
-            
+
             it("test first or fail stops iterating at first match", () => {
                 const data = collect([
                     () => {
@@ -4708,27 +4708,35 @@ describe("Collection", () => {
                 expect(chunked.get(0).values().toArray()).toEqual([1, 2, 3]);
                 expect(chunked.get(3).values().toArray()).toEqual([10]);
             });
-            
+
             it("test chunk when given zero as size", () => {
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
                 expect(data.chunk(0).toArray()).toEqual([]);
             });
-            
+
             it("test chunck when given less than zero", () => {
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
                 expect(data.chunk(-1).toArray()).toEqual([]);
             });
-            
+
             it("test chunk preserving keys", () => {
                 const data = collect({ a: 1, b: 2, c: 3, d: 4, e: 5 });
-                
-                expect(data.chunk(2).toArray()).toEqual([{ a: 1, b: 2 }, { c: 3, d: 4 }, { e: 5 }]);
+
+                expect(data.chunk(2).toArray()).toEqual([
+                    { a: 1, b: 2 },
+                    { c: 3, d: 4 },
+                    { e: 5 },
+                ]);
 
                 const data2 = collect([1, 2, 3, 4, 5]);
 
-                expect(data2.chunk(2, false).toArray()).toEqual([[1, 2], [3, 4], [5]]);
+                expect(data2.chunk(2, false).toArray()).toEqual([
+                    [1, 2],
+                    [3, 4],
+                    [5],
+                ]);
             });
         });
     });
@@ -4739,13 +4747,19 @@ describe("Collection", () => {
                 const data = collect([5, 3, 1, 2, 4]).sort();
                 expect(data.values().all()).toEqual([1, 2, 3, 4, 5]);
 
-                const data2 = collect([-1, -3, -2, -4, -5, 0, 5, 3, 1, 2, 4]).sort();
+                const data2 = collect([
+                    -1, -3, -2, -4, -5, 0, 5, 3, 1, 2, 4,
+                ]).sort();
                 expect(data2.values().all()).toEqual([
                     -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5,
                 ]);
 
                 const data3 = collect(["foo", "bar-10", "bar-1"]).sort();
-                expect(data3.values().all()).toEqual(["bar-1", "bar-10", "foo"]);
+                expect(data3.values().all()).toEqual([
+                    "bar-1",
+                    "bar-10",
+                    "foo",
+                ]);
 
                 const data4 = collect(["T2", "T1", "T10"]).sort();
                 expect(data4.values().all()).toEqual(["T1", "T10", "T2"]);
@@ -4764,11 +4778,19 @@ describe("Collection", () => {
                 const data = collect([5, 3, 1, 2, 4]).sortDesc();
                 expect(data.values().all()).toEqual([5, 4, 3, 2, 1]);
 
-                const data2 = collect([-1, -3, -2, -4, -5, 0, 5, 3, 1, 2, 4]).sortDesc();
-                expect(data2.values().all()).toEqual([5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5]);
+                const data2 = collect([
+                    -1, -3, -2, -4, -5, 0, 5, 3, 1, 2, 4,
+                ]).sortDesc();
+                expect(data2.values().all()).toEqual([
+                    5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5,
+                ]);
 
                 const data3 = collect(["bar-1", "foo", "bar-10"]).sortDesc();
-                expect(data3.values().all()).toEqual(["foo", "bar-10", "bar-1"]);
+                expect(data3.values().all()).toEqual([
+                    "foo",
+                    "bar-10",
+                    "bar-1",
+                ]);
 
                 const data4 = collect(["T2", "T1", "T10"]).sortDesc();
                 expect(data4.values().all()).toEqual(["T2", "T10", "T1"]);

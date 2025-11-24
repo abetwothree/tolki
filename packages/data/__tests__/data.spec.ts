@@ -174,12 +174,7 @@ describe("Data", () => {
                 3,
                 false,
             );
-            expect(result2).toEqual([
-                [1, 2, 3],
-                [4, 5, 6],
-                [7, 8, 9],
-                [10],
-            ]);
+            expect(result2).toEqual([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]]);
 
             assertType<number[][] | [number, number][][]>(result2);
         });
