@@ -4379,6 +4379,159 @@ describe("Collection", () => {
         });
     });
 
+    describe("split", () => {
+        describe("Laravel Tests", () => {
+            it("test split collection with a divisible count", () => {
+                const data = collect(["a", "b", "c", "d"]);
+                const split = data.split(2);
+
+                expect(split.get(0).all()).toEqual(["a", "b"]);
+                expect(split.get(1).all()).toEqual(["c", "d"]);
+                expect(split).toBeInstanceOf(Collection);
+
+                expect(
+                    data
+                        .split(2)
+                        .map((chunk) => chunk.values().toArray())
+                        .toArray(),
+                ).toEqual([
+                    ["a", "b"],
+                    ["c", "d"],
+                ]);
+
+                const data2 = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+                const split2 = data2.split(2);
+
+                expect(split2.get(0).all()).toEqual([1, 2, 3, 4, 5]);
+                expect(split2.get(1).all()).toEqual([6, 7, 8, 9, 10]);
+
+                expect(
+                    data2
+                        .split(2)
+                        .map((chunk) => chunk.values().toArray())
+                        .toArray(),
+                ).toEqual([
+                    [1, 2, 3, 4, 5],
+                    [6, 7, 8, 9, 10],
+                ]);
+            });
+
+            it("test split collection with an undivisable count", () => {
+                const data = collect(["a", "b", "c"]);
+                const split = data.split(2);
+
+                expect(split.get(0).all()).toEqual(["a", "b"]);
+                expect(split.get(1).all()).toEqual(["c"]);
+
+                expect(
+                    data
+                        .split(2)
+                        .map((chunk) => chunk.values().toArray())
+                        .toArray(),
+                ).toEqual([["a", "b"], ["c"]]);
+            });
+
+            it("test split collection with countless then divisor", () => {
+                const data = collect(["a"]);
+                const split = data.split(2);
+
+                expect(split.get(0).all()).toEqual(["a"]);
+                expect(split.get(1)).toBeNull();
+
+                expect(
+                    data
+                        .split(2)
+                        .map((chunk) => chunk.values().toArray())
+                        .toArray(),
+                ).toEqual([["a"]]);
+            });
+
+            it("test split collection into three with count of four", () => {
+                const data = collect(["a", "b", "c", "d"]);
+                const split = data.split(3);
+
+                expect(split.get(0).all()).toEqual(["a", "b"]);
+                expect(split.get(1).all()).toEqual(["c"]);
+                expect(split.get(2).all()).toEqual(["d"]);
+
+                expect(
+                    data
+                        .split(3)
+                        .map((chunk) => chunk.values().toArray())
+                        .toArray(),
+                ).toEqual([["a", "b"], ["c"], ["d"]]);
+            });
+
+            it("test split collection into threee with count of five", () => {
+                const data = collect(["a", "b", "c", "d", "e"]);
+                const split = data.split(3);
+
+                expect(split.get(0).all()).toEqual(["a", "b"]);
+                expect(split.get(1).all()).toEqual(["c", "d"]);
+                expect(split.get(2).all()).toEqual(["e"]);
+
+                expect(
+                    data
+                        .split(3)
+                        .map((chunk) => chunk.values().toArray())
+                        .toArray(),
+                ).toEqual([["a", "b"], ["c", "d"], ["e"]]);
+            });
+
+            it("test split collection into six with count of ten", () => {
+                const data = collect([
+                    "a",
+                    "b",
+                    "c",
+                    "d",
+                    "e",
+                    "f",
+                    "g",
+                    "h",
+                    "i",
+                    "j",
+                ]);
+                const split = data.split(6);
+
+                expect(split.get(0).all()).toEqual(["a", "b"]);
+                expect(split.get(1).all()).toEqual(["c", "d"]);
+                expect(split.get(2).all()).toEqual(["e", "f"]);
+                expect(split.get(3).all()).toEqual(["g", "h"]);
+                expect(split.get(4).all()).toEqual(["i"]);
+                expect(split.get(5).all()).toEqual(["j"]);
+
+                expect(
+                    data
+                        .split(6)
+                        .map((chunk) => chunk.values().toArray())
+                        .toArray(),
+                ).toEqual([
+                    ["a", "b"],
+                    ["c", "d"],
+                    ["e", "f"],
+                    ["g", "h"],
+                    ["i"],
+                    ["j"],
+                ]);
+            });
+
+            it("test split empty collection", () => {
+                const data = collect([]);
+                const split = data.split(2);
+
+                expect(split.get(0)).toBeNull();
+                expect(split.get(1)).toBeNull();
+
+                expect(
+                    data
+                        .split(2)
+                        .map((chunk) => chunk.values().toArray())
+                        .toArray(),
+                ).toEqual([]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
