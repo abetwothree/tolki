@@ -1844,22 +1844,10 @@ describe("Arr", () => {
         const chunksNoKeys = Arr.chunk(baseData, 3, false);
 
         expect(chunksNoKeys.length).toBe(4);
-        expect(chunksNoKeys[0]).toEqual([
-            [0, 1],
-            [1, 2],
-            [2, 3],
-        ]);
-        expect(chunksNoKeys[1]).toEqual([
-            [3, 4],
-            [4, 5],
-            [5, 6],
-        ]);
-        expect(chunksNoKeys[2]).toEqual([
-            [6, 7],
-            [7, 8],
-            [8, 9],
-        ]);
-        expect(chunksNoKeys[3]).toEqual([[9, 10]]);
+        expect(chunksNoKeys[0]).toEqual([1, 2, 3]);
+        expect(chunksNoKeys[1]).toEqual([4, 5, 6]);
+        expect(chunksNoKeys[2]).toEqual([7, 8, 9]);
+        expect(chunksNoKeys[3]).toEqual([10]);
         expect(Arr.chunk(baseData, 0, false)).toEqual([]);
         expect(Arr.chunk(baseData, -1, false)).toEqual([]);
     });

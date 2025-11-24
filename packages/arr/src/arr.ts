@@ -172,24 +172,18 @@ export function chunk<TValue>(
     data: ArrayItems<TValue>,
     size: number,
     preserveKeys?: boolean,
-): TValue[][] | [number, TValue][][] {
+): TValue[][] {
     preserveKeys = isUndefined(preserveKeys) ? true : preserveKeys;
 
     if (size <= 0) {
         return [];
     }
 
-    const chunks: TValue[][] | [number, TValue][][] = [];
+    const chunks: TValue[][] = [];
 
     for (let i = 0; i < data.length; i += size) {
         const chunk = data.slice(i, i + size);
-        if (preserveKeys) {
-            (chunks as TValue[][]).push(chunk);
-        } else {
-            (chunks as [number, TValue][][]).push(
-                chunk.map((item, index) => [i + index, item]),
-            );
-        }
+        chunks.push(chunk);
     }
 
     return chunks;

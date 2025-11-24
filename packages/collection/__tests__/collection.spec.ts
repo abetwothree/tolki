@@ -4693,6 +4693,43 @@ describe("Collection", () => {
         });
     });
 
+    describe("chunk", () => {
+        describe("Laravel Tests", () => {
+            it("test chunk", () => {
+                const data = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+                const chunked = data.chunk(3);
+
+                expect(chunked).toBeInstanceOf(Collection);
+                expect(chunked.first()).toBeInstanceOf(Collection);
+                expect(chunked.count()).toBe(4);
+                expect(chunked.get(0).values().toArray()).toEqual([1, 2, 3]);
+                expect(chunked.get(3).values().toArray()).toEqual([10]);
+            });
+            
+            it("test chunk when given zero as size", () => {
+                const data = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+                expect(data.chunk(0).toArray()).toEqual([]);
+            });
+            
+            it("test chunck when given less than zero", () => {
+                const data = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+                expect(data.chunk(-1).toArray()).toEqual([]);
+            });
+            
+            it("test chunk preserving keys", () => {
+                const data = collect({ a: 1, b: 2, c: 3, d: 4, e: 5 });
+                
+                expect(data.chunk(2).toArray()).toEqual([{ a: 1, b: 2 }, { c: 3, d: 4 }, { e: 5 }]);
+
+                const data2 = collect([1, 2, 3, 4, 5]);
+
+                expect(data2.chunk(2, false).toArray()).toEqual([[1, 2], [3, 4], [5]]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
