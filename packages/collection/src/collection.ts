@@ -2905,32 +2905,62 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.sortByMany(callback, descending);
         }
 
-        const results = {} as Record<TKey, TSortValue>;
-
         const callbackFn = this.valueRetriever(
             callback as PathKey | ((...args: (TValue | TKey)[]) => TSortValue),
         );
 
+        // Create array of [key, value, sortValue] tuples
+        const entries: Array<[TKey, TValue, TSortValue]> = [];
         for (const [key, value] of Object.entries(this.items)) {
-            results[key as TKey] = callbackFn(
+            const sortValue = callbackFn(
                 value as TValue,
                 key as TKey,
             ) as TSortValue;
+            entries.push([key as TKey, value as TValue, sortValue]);
         }
 
-        const resultsCollection = new Collection(results);
-        const items = descending
-            ? resultsCollection.sortDesc().all()
-            : resultsCollection.sort().all();
+        // Sort by the sort values
+        entries.sort(([, , a], [, , b]) => {
+            if (a == null && b == null) return 0;
+            if (a == null) return -1;
+            if (b == null) return 1;
 
+            let comparison: number;
+            if (a < b) {
+                comparison = -1;
+            } else if (a > b) {
+                comparison = 1;
+            } else {
+                comparison = 0;
+            }
+
+            return descending ? -comparison : comparison;
+        });
+
+        // Rebuild collection maintaining sorted key order
         const sortedItems = {} as DataItems<TValue, TKey>;
-        for (const key of Object.keys(items)) {
-            (sortedItems as Record<TKey, TValue>)[key as TKey] = (
-                this.items as Record<TKey, TValue>
-            )[key as TKey];
+        const orderedPairs: Array<[TKey, TValue]> = [];
+        let hasNumericKeys = false;
+
+        for (const [key, value] of entries) {
+            // Check if key is numeric
+            const numKey = Number(key);
+            if (!Number.isNaN(numKey) && String(numKey) === String(key)) {
+                hasNumericKeys = true;
+            }
+
+            (sortedItems as Record<TKey, TValue>)[key] = value;
+            orderedPairs.push([key, value]);
         }
 
-        return new Collection(sortedItems);
+        const result = new Collection(sortedItems);
+
+        // Preserve insertion order for numeric keys
+        if (hasNumericKeys) {
+            result.itemsWithOrder = orderedPairs;
+        }
+
+        return result;
     }
 
     /**
@@ -3010,12 +3040,27 @@ export class Collection<TValue, TKey extends PropertyKey> {
         });
 
         const sortedItems = {} as DataItems<TValue, TKey>;
+        const orderedPairs: Array<[TKey, TValue]> = [];
+        let hasNumericKeys = false;
+
         for (const [key, value] of entries) {
+            // Check if key is numeric
+            const numKey = Number(key);
+            if (!Number.isNaN(numKey) && String(numKey) === String(key)) {
+                hasNumericKeys = true;
+            }
+
             (sortedItems as Record<TKey, TValue>)[key as TKey] =
                 value as TValue;
+            orderedPairs.push([key as TKey, value as TValue]);
         }
 
-        return new Collection(sortedItems);
+        const result = new Collection(sortedItems);
+        if (hasNumericKeys) {
+            result.itemsWithOrder = orderedPairs;
+        }
+
+        return result;
     }
 
     /**
@@ -3307,10 +3352,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).values(); -> new Collection({0: 1, 1: 2, 2: 3})
      * new Collection([1, 2, 3]).values(); -> new Collection([1, 2, 3])
      */
-    values(): Collection<TValue> {
-        return new Collection<TValue>(
-            dataValues(this.items) as DataItems<TValue>,
-        );
+    values() {
+        // Use itemsWithOrder when available to preserve numeric key insertion order
+        if (this.itemsWithOrder) {
+            return new Collection(
+                this.itemsWithOrder.map(([, value]) => value),
+            );
+        }
+
+        return new Collection(dataValues(this.items) as DataItems<TValue>);
     }
 
     /**

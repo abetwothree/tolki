@@ -4798,9 +4798,208 @@ describe("Collection", () => {
         });
     });
 
-    describe("", () => {
+    describe("sortBy", () => {
         describe("Laravel Tests", () => {
-            it("", () => {});
+            it("test sort by", () => {
+                const data = collect(["taylor", "dayle"]);
+                const sorted = data.sortBy((x) => x);
+
+                expect(sorted.values().all()).toEqual(["dayle", "taylor"]);
+
+                const data2 = collect(["dayle", "taylor"]);
+                const sorted2 = data2.sortByDesc((x) => x);
+
+                expect(sorted2.values().all()).toEqual(["taylor", "dayle"]);
+            });
+
+            it("test sort by string", () => {
+                const data = collect([{ name: "taylor" }, { name: "dayle" }]);
+                const sorted = data.sortBy("name");
+
+                expect(sorted.values().all()).toEqual([
+                    { name: "dayle" },
+                    { name: "taylor" },
+                ]);
+
+                const data2 = collect([{ name: "taylor" }, { name: "dayle" }]);
+                const sorted2 = data2.sortBy("name", true);
+
+                expect(sorted2.values().all()).toEqual([
+                    { name: "taylor" },
+                    { name: "dayle" },
+                ]);
+            });
+
+            it("test sort by callable string", () => {
+                const data = collect([{ sort: 2 }, { sort: 1 }]);
+                const sorted = data.sortBy("sort");
+
+                expect(sorted.values().all()).toEqual([
+                    { sort: 1 },
+                    { sort: 2 },
+                ]);
+            });
+
+            it("test sort by callable string desc", () => {
+                const data = collect([
+                    { id: 1, name: "foo" },
+                    { id: 2, name: "bar" },
+                ]);
+                const sorted = data.sortByDesc("id");
+
+                const data2 = collect([
+                    { id: 1, name: "foo" },
+                    { id: 2, name: "bar" },
+                    { id: 2, name: "baz" },
+                ]);
+                const sorted2 = data2.sortByDesc("id");
+
+                expect(sorted.values().all()).toEqual([
+                    { id: 2, name: "bar" },
+                    { id: 1, name: "foo" },
+                ]);
+
+                expect(sorted2.values().all()).toEqual([
+                    { id: 2, name: "bar" },
+                    { id: 2, name: "baz" },
+                    { id: 1, name: "foo" },
+                ]);
+            });
+
+            it("test sort by always returns assoc", () => {
+                const data = collect({ a: "taylor", b: "dayle" });
+                const sorted = data.sortBy((x) => x);
+
+                expect(sorted.all()).toEqual({ b: "dayle", a: "taylor" });
+
+                const data2 = collect(["taylor", "dayle"]);
+                const sorted2 = data2.sortBy((x) => x);
+
+                expect(sorted2.all()).toEqual({ 1: "dayle", 0: "taylor" });
+
+                const data3 = collect({ a: { sort: 2 }, b: { sort: 1 } });
+                const sorted3 = data3.sortBy("sort");
+
+                expect(sorted3.all()).toEqual({
+                    b: { sort: 1 },
+                    a: { sort: 2 },
+                });
+
+                const data4 = collect([{ sort: 2 }, { sort: 1 }]);
+                const sorted4 = data4.sortBy("sort");
+
+                expect(sorted4.all()).toEqual({
+                    1: { sort: 1 },
+                    0: { sort: 2 },
+                });
+            });
+        });
+    });
+
+    describe("sort by many", () => {
+        describe("Laravel Tests", () => {
+            it("test sort by many", () => {
+                // Test sorting with mixed types - JavaScript compares them all as strings
+                const data = collect([
+                    { item: "1" },
+                    { item: "10" },
+                    { item: 5 },
+                    { item: 20 },
+                ]);
+
+                // Sort ascending by single field - all converted to strings for comparison
+                // "1" < "10" < "20" < "5" (lexicographic order)
+                let sorted = data.sortBy(["item"]);
+                expect(sorted.pluck("item").all()).toEqual(["1", "10", 5, 20]);
+
+                // Sort descending by single field using global descending parameter
+                // Note: sortByMany second parameter applies globally to all fields
+                sorted = collect(data.all()).sortByMany(["item"], true);
+                const values = sorted.values().all();
+                expect(
+                    values.map((v: { item: string | number }) => v.item),
+                ).toEqual([20, 5, "10", "1"]);
+
+                // Test natural string sorting with numbers
+                const data2 = collect([
+                    { item: "img1" },
+                    { item: "img101" },
+                    { item: "img10" },
+                    { item: "img11" },
+                ]);
+
+                sorted = data2.sortBy(["item"]);
+                // JavaScript sorts strings lexicographically
+                expect(sorted.pluck("item").all()).toEqual([
+                    "img1",
+                    "img101",
+                    "img10",
+                    "img11",
+                ]);
+
+                // Sort descending
+                sorted = collect(data2.all()).sortByMany(["item"], true);
+                const values2 = sorted.values().all();
+                expect(values2.map((v: { item: string }) => v.item)).toEqual([
+                    "img11",
+                    "img101",
+                    "img10",
+                    "img1",
+                ]);
+
+                // Test multi-level sorting
+                const data3 = collect([
+                    { first: "b", second: 2 },
+                    { first: "a", second: 3 },
+                    { first: "b", second: 1 },
+                    { first: "a", second: 1 },
+                ]);
+
+                // Sort by first asc, then second asc
+                sorted = data3.sortBy(["first", "second"]);
+                const values3 = sorted.values().all();
+                expect(values3).toEqual([
+                    { first: "a", second: 1 },
+                    { first: "a", second: 3 },
+                    { first: "b", second: 1 },
+                    { first: "b", second: 2 },
+                ]); // Sort by first desc, then second desc (global descending)
+                sorted = collect(data3.all()).sortByMany(
+                    ["first", "second"],
+                    true,
+                );
+                expect(sorted.values().all()).toEqual([
+                    { first: "b", second: 2 },
+                    { first: "b", second: 1 },
+                    { first: "a", second: 3 },
+                    { first: "a", second: 1 },
+                ]);
+
+                // Test with null values
+                const data4 = collect([
+                    { first: "f", second: null },
+                    { first: "f", second: "s" },
+                    { first: "a", second: "z" },
+                ]);
+
+                // Nulls should sort first in ascending order
+                sorted = data4.sortBy(["first", "second"]);
+                const values4 = sorted.values().all();
+                expect(values4).toEqual([
+                    { first: "a", second: "z" },
+                    { first: "f", second: null },
+                    { first: "f", second: "s" },
+                ]); // Nulls should sort last in descending order (comes first when values are swapped)
+                sorted = collect(data4.all()).sortByMany(
+                    ["first", "second"],
+                    true,
+                );
+                expect(sorted.values().all()).toEqual([
+                    { first: "f", second: "s" },
+                    { first: "f", second: null },
+                    { first: "a", second: "z" },
+                ]);
+            });
         });
     });
 
