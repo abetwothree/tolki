@@ -4345,6 +4345,40 @@ describe("Collection", () => {
         });
     });
 
+    describe("slice", () => {
+        describe("Laravel Tests", () => {
+            it("test slice offset", () => {
+                const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
+                expect(data.slice(3).values().all()).toEqual([4, 5, 6, 7, 8]);
+            });
+
+            it("test slice negative offset", () => {
+                const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
+                expect(data.slice(-3).values().all()).toEqual([6, 7, 8]);
+            });
+
+            it("test slice offset and length", () => {
+                const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
+                expect(data.slice(3, 3).values().all()).toEqual([4, 5, 6]);
+            });
+
+            it("test slice offset and negative length", () => {
+                const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
+                expect(data.slice(3, -1).values().all()).toEqual([4, 5, 6, 7]);
+            });
+
+            it("test slice negative offset and length", () => {
+                const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
+                expect(data.slice(-5, 3).values().all()).toEqual([4, 5, 6]);
+            });
+
+            it("test slice negative offset and negative length", () => {
+                const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
+                expect(data.slice(-6, -2).values().all()).toEqual([3, 4, 5, 6]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
