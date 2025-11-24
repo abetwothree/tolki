@@ -4138,6 +4138,87 @@ describe("Collection", () => {
         });
     });
 
+    describe("shift", () => {
+        describe("Laravel Tests", () => {
+            it("test shift returns and removes first item in collection", () => {
+                const data = collect(["Taylor", "Otwell"]);
+
+                expect(data.shift()).toBe("Taylor");
+                expect(data.first()).toBe("Otwell");
+                expect(data.shift()).toBe("Otwell");
+                expect(data.first()).toBeNull();
+            });
+
+            it("test shift returns and removes first x items in collection", () => {
+                const data = collect(["foo", "bar", "baz"]);
+
+                expect(data.shift(2).all()).toEqual(["foo", "bar"]);
+                expect(data.first()).toBe("baz");
+
+                expect(collect(["foo", "bar", "baz"]).shift(6).all()).toEqual([
+                    "foo",
+                    "bar",
+                    "baz",
+                ]);
+
+                const data2 = collect(["foo", "bar", "baz"]);
+
+                expect(data2.shift(0).all()).toEqual([]);
+                expect(data2.all()).toEqual(["foo", "bar", "baz"]);
+
+                expect(() => {
+                    collect(["foo", "bar", "baz"]).shift(-1);
+                }).toThrowError();
+
+                expect(() => {
+                    collect(["foo", "bar", "baz"]).shift(-2);
+                }).toThrowError();
+            });
+
+            it("test shift returns null on empty collection", () => {
+                const items = collect([]);
+
+                expect(items.shift()).toBeNull();
+
+                const itemFoo: Record<string, string> = { text: "f" };
+                const itemBar: Record<string, string> = { text: "x" };
+
+                const items2 = collect([itemFoo, itemBar]);
+
+                const foo = items2.shift();
+                const bar = items2.shift();
+
+                expect(foo?.text).toBe("f");
+                expect(bar?.text).toBe("x");
+                expect(items2.shift()).toBeNull();
+            });
+        });
+
+        it("test shift function comprehensive coverage", () => {
+            // Test shift with objects - single item (count = 1)
+            const objCollection = collect({ a: 1, b: 2, c: 3 });
+            expect(objCollection.shift()).toBe(1);
+            expect(objCollection.all()).toEqual({ b: 2, c: 3 });
+
+            // Test shift with objects - multiple items (count > 1)
+            const objCollection2 = collect({ x: 10, y: 20, z: 30 });
+            const shifted = objCollection2.shift(2);
+            expect(shifted.all()).toEqual([10, 20]);
+            expect(objCollection2.all()).toEqual({ z: 30 });
+
+            // Test shift with objects - shift more than available
+            const objCollection3 = collect({ p: 100, q: 200 });
+            const shiftedAll = objCollection3.shift(5);
+            expect(shiftedAll.all()).toEqual([100, 200]);
+            expect(objCollection3.count()).toBe(0);
+
+            // Test shift with array containing undefined
+            const arrWithUndef = collect([undefined, 1, 2]);
+            expect(arrWithUndef.shift()).toBeUndefined();
+            expect(arrWithUndef.all()).toEqual([1, 2]);
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});

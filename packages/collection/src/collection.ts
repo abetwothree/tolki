@@ -2516,18 +2516,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get and remove the first N items from the collection.
      *
-     * @param count - The number of items to shift, defaults to 1
-     * @returns A new collection with the shifted items, or null if the collection is empty
+     * @param count - The number of items to shift
+     * @returns A new collection with the shifted items
      *
      * @example
      *
-     * new Collection([1, 2, 3]).shift(); -> new Collection([1])
-     * new Collection([1, 2, 3]).shift(2); -> new Collection([1, 2])
-     * new Collection({a: 1, b: 2, c: 3}).shift(); -> new Collection({a: 1})
-     * new Collection({a: 1, b: 2, c: 3}).shift(2); -> new Collection({a: 1, b: 2})
+     * new Collection([1, 2, 3]).shift(); -> 1
+     * new Collection({a: 1, b: 2, c: 3}).shift(); -> 1
      * new Collection([]).shift(); -> null
+     * new Collection([1, 2, 3]).shift(2); -> new Collection([1, 2])
+     * new Collection({a: 1, b: 2, c: 3}).shift(2); -> new Collection({a: 1, b: 2})
+     * new Collection([1, 2, 3]).shift(0); -> new Collection([])
      */
-    shift(count: number = 1) {
+    shift(): TValue | null;
+    shift(count: number): Collection<TValue[], number>;
+    shift(count: number = 1): TValue | null | Collection<TValue[], number> {
         if (count < 0) {
             throw new Error(
                 "Number of shifted items may not be less than zero.",
@@ -2538,9 +2541,50 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return null;
         }
 
-        return new Collection(
-            dataShift(this.items, count) as DataItems<TValue, TKey>,
-        );
+        if (count === 0) {
+            return new Collection([]);
+        }
+
+        if (count === 1) {
+            if (isArray(this.items)) {
+                const value = (this.items as TValue[]).shift();
+                // Since we already checked isEmpty(), if shift() returns undefined,
+                // it means the first element was actually undefined, not that array was empty
+                return value as TValue;
+            }
+
+            // For objects, remove and return the first item
+            const keys = Object.keys(this.items) as TKey[];
+            const firstKey = keys[0];
+            const value = (this.items as Record<TKey, TValue>)[firstKey];
+            delete (this.items as Record<TKey, TValue>)[firstKey];
+
+            return value;
+        }
+
+        // For count > 1, shift multiple items
+        const shiftedValues: TValue[] = [];
+        const itemCount = this.count();
+
+        for (let i = 0; i < Math.min(count, itemCount); i++) {
+            if (isArray(this.items)) {
+                const value = (this.items as TValue[]).shift();
+                shiftedValues.push(value as TValue);
+            } else {
+                const keys = Object.keys(this.items) as TKey[];
+
+                if (keys.length > 0) {
+                    const firstKey = keys[0];
+                    const value = (this.items as Record<TKey, TValue>)[
+                        firstKey
+                    ];
+                    delete (this.items as Record<TKey, TValue>)[firstKey];
+                    shiftedValues.push(value);
+                }
+            }
+        }
+
+        return new Collection(shiftedValues);
     }
 
     /**
