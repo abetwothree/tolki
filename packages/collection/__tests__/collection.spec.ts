@@ -3804,6 +3804,45 @@ describe("Collection", () => {
         });
     });
 
+    describe("replaceRecursive", () => {
+        describe("Laravel Tests", () => {
+            it("test replace recursive null", () => {
+                const c = collect(["a", "b", ["c", "d"]]);
+                expect(c.replaceRecursive(null).all()).toEqual([
+                    "a",
+                    "b",
+                    ["c", "d"],
+                ]);
+            });
+
+            it("test replace recursive array", () => {
+                const c = collect(["a", "b", ["c", "d"]]);
+                expect(
+                    c.replaceRecursive(["z", "b", ["c", "e"]]).all(),
+                ).toEqual(["z", "b", ["c", "e"]]);
+
+                const c2 = collect(["a", "b", ["c", "d"]]);
+                expect(
+                    c2.replaceRecursive(["z", "b", ["c", "e"], "f"]).all(),
+                ).toEqual(["z", "b", ["c", "e"], "f"]);
+            });
+
+            it("test replace recursive collection", () => {
+                const c = collect(["a", "b", ["c", "d"]]);
+                expect(
+                    c.replaceRecursive(collect(["z", "b", ["c", "e"]])).all(),
+                ).toEqual(["z", "b", ["c", "e"]]);
+
+                const c2 = collect(["a", "b", ["c", "d"]]);
+                expect(
+                    c2
+                        .replaceRecursive(collect(["z", "b", ["c", "e"], "f"]))
+                        .all(),
+                ).toEqual(["z", "b", ["c", "e"], "f"]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
