@@ -5001,6 +5001,33 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("sort by many coverage", () => {
+            // Test empty comparison array throws error
+            const data = collect([{ a: 1 }, { a: 2 }]);
+            expect(() => data.sortByMany([])).toThrowError();
+
+            // Test with function comparator returning numbers directly
+            // This tests the path: if (!isString(prop) && isFunction(prop))
+            const data2 = collect([
+                { value: 10 },
+                { value: 5 },
+                { value: 20 },
+            ]);
+
+            const sorted = data2.sortByMany([
+                (a: { value: number }, b: { value: number }) => a.value - b.value,
+            ]);
+
+            expect(sorted.pluck("value").all()).toEqual([5, 10, 20]);
+
+            // Test numeric key handling - ensure hasNumericKeys path is covered
+            const arrayData = collect([3, 1, 2]);
+            const sortedArray = arrayData.sortByMany([
+                (a: number, b: number) => a - b,
+            ]);
+            expect(sortedArray.all()).toEqual([1, 2, 3]);
+        });
     });
 
     describe("count", () => {
