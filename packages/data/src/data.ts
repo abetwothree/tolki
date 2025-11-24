@@ -162,7 +162,13 @@ import type {
     PathKeys,
     UnwrapFn,
 } from "@laravel-js/types";
-import { isArray, isFunction, isObject, isUndefined } from "@laravel-js/utils";
+import {
+    entriesKeyValue,
+    isArray,
+    isFunction,
+    isObject,
+    isUndefined,
+} from "@laravel-js/utils";
 
 /**
  * Add an element to data.
@@ -1235,22 +1241,24 @@ export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
     strict: boolean = false,
 ): TKey | false {
     for (const [key, item] of Object.entries(items)) {
+        const actualKey = entriesKeyValue(key) as TKey;
+
         if (isFunction(value)) {
-            if (value(item as TValue, key as TKey)) {
-                return key as TKey;
+            if (value(item as TValue, actualKey)) {
+                return actualKey;
             }
         }
 
         if (strict) {
             if (item === value) {
-                return key as TKey;
+                return actualKey;
             }
 
             continue;
         }
 
         if (item == value) {
-            return key as TKey;
+            return actualKey;
         }
     }
 

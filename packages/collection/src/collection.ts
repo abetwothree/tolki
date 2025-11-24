@@ -2426,8 +2426,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, [2, 3]]).replaceRecursive([4, [5]]); -> new Collection([4, [5]])
      * new Collection([1, {a: 2}]).replaceRecursive([{b: 3}, {a: 4}]); -> new Collection([{b: 3}, {a: 4}])
      */
-    replaceRecursive(
-        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+    replaceRecursive<T, K extends PropertyKey>(
+        items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
         return new Collection(
             dataReplaceRecursive(this.items, this.getRawItems(items)),

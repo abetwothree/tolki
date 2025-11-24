@@ -82,6 +82,7 @@ pop(count: number = 1): TValue | null | Collection<TValue[], number> {
   - `isWeakMap(variable)` - checks if the variable is a WeakMap
   - `isWeakSet(variable)` - checks if the variable is a WeakSet
   - `looseEqual(value1, value2)` - checks if two values are loosely equal the way that PHP does it with `==`
+  - `entriesKeyValue(variable)` - converts a key of an array or object to number if it should be a number, otherwise, returns the key as is. This is useful when iterating over arrays or objects and getting the keys from `Object.entries()` or similar methods.
 - Use full return statements with curly braces, even for single statements:
 
 ```JavaScript

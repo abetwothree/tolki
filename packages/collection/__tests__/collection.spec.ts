@@ -3862,6 +3862,77 @@ describe("Collection", () => {
         });
     });
 
+    describe("search", () => {
+        describe("Laravel Tests", () => {
+            it("test search returns index of first found item", () => {
+                const c = collect({
+                    0: 1,
+                    1: 2,
+                    2: 3,
+                    3: 4,
+                    4: 5,
+                    5: 2,
+                    6: 5,
+                    foo: "bar",
+                });
+
+                expect(c.search(2)).toBe(1);
+                expect(c.search("2")).toBe(1);
+                expect(c.search("bar")).toBe("foo");
+                expect(
+                    c.search((value) => {
+                        return value > 4;
+                    }),
+                ).toBe(4);
+                expect(
+                    c.search((value) => {
+                        return typeof value === "string";
+                    }),
+                ).toBe("foo");
+            });
+
+            it("test search in strict mode", () => {
+                // Note: In JavaScript, we must search for the same array reference
+                // because strict comparison uses === which checks reference equality
+                // for objects and arrays
+                const emptyArray: unknown[] = [];
+                const c = collect([false, 0, 1, emptyArray, ""]);
+
+                expect(c.search("false", true)).toBe(false);
+                expect(c.search("1", true)).toBe(false);
+                expect(c.search(false, true)).toBe(0);
+                expect(c.search(0, true)).toBe(1);
+                expect(c.search(1, true)).toBe(2);
+                expect(c.search(emptyArray, true)).toBe(3);
+                expect(c.search("", true)).toBe(4);
+            });
+
+            it("test search returns false when item is not found", () => {
+                const c = collect({
+                    0: 1,
+                    1: 2,
+                    2: 3,
+                    3: 4,
+                    4: 5,
+                    foo: "bar",
+                });
+
+                expect(c.search(6)).toBe(false);
+                expect(c.search("foo")).toBe(false);
+                expect(
+                    c.search((value) => {
+                        return value < 1 && typeof value === "number";
+                    }),
+                ).toBe(false);
+                expect(
+                    c.search((value) => {
+                        return value === "nope";
+                    }),
+                ).toBe(false);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});

@@ -830,19 +830,19 @@ describe("Data", () => {
         it("is array", () => {
             const arr = [1, 2, 3, 4, 5];
             const result = Data.dataSearch(arr, "3");
-            expect(result).toBe("2");
+            expect(result).toBe(2);
 
             const result1 = Data.dataSearch(arr, "3", true);
             expect(result1).toBe(false);
 
             const result2 = Data.dataSearch(arr, 3, true);
-            expect(result2).toBe("2");
+            expect(result2).toBe(2);
 
             const result3 = Data.dataSearch(arr, (value) => value > 5);
             expect(result3).toBe(false);
 
             const result4 = Data.dataSearch(arr, (value) => value == 4);
-            expect(result4).toBe("3");
+            expect(result4).toBe(3);
         });
     });
 
