@@ -4758,6 +4758,24 @@ describe("Collection", () => {
         });
     });
 
+    describe("sortDesc", () => {
+        describe("Laravel Tests", () => {
+            it("test sort desc", () => {
+                const data = collect([5, 3, 1, 2, 4]).sortDesc();
+                expect(data.values().all()).toEqual([5, 4, 3, 2, 1]);
+
+                const data2 = collect([-1, -3, -2, -4, -5, 0, 5, 3, 1, 2, 4]).sortDesc();
+                expect(data2.values().all()).toEqual([5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5]);
+
+                const data3 = collect(["bar-1", "foo", "bar-10"]).sortDesc();
+                expect(data3.values().all()).toEqual(["foo", "bar-10", "bar-1"]);
+
+                const data4 = collect(["T2", "T1", "T10"]).sortDesc();
+                expect(data4.values().all()).toEqual(["T2", "T10", "T1"]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
