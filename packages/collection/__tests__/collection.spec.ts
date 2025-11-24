@@ -3758,7 +3758,49 @@ describe("Collection", () => {
 
     describe("replace", () => {
         describe("Laravel Tests", () => {
-            it("", () => {});
+            it("test replace null", () => {
+                const c = collect(["a", "b", "c"]);
+                expect(c.replace(null).all()).toEqual(["a", "b", "c"]);
+            });
+
+            it("test replace array", () => {
+                const c = collect(["a", "b", "c"]);
+                expect(c.replace(["d", "e"]).all()).toEqual(["d", "e", "c"]);
+
+                const c2 = collect(["a", "b", "c"]);
+                expect(c2.replace(["d", "e", "f", "g"]).all()).toEqual([
+                    "d",
+                    "e",
+                    "f",
+                    "g",
+                ]);
+
+                const c3 = collect({ name: "amir", family: "otwell" });
+                expect(c3.replace({ name: "taylor", age: 26 }).all()).toEqual({
+                    name: "taylor",
+                    family: "otwell",
+                    age: 26,
+                });
+            });
+
+            it("test replace collection", () => {
+                const c = collect(["a", "b", "c"]);
+                expect(c.replace(collect(["d", "e"])).all()).toEqual([
+                    "d",
+                    "e",
+                    "c",
+                ]);
+
+                const c2 = collect(["a", "b", "c"]);
+                expect(c2.replace(collect(["d", "e", "f", "g"])).all()).toEqual(
+                    ["d", "e", "f", "g"],
+                );
+
+                const c3 = collect({ name: "amir", family: "otwell" });
+                expect(
+                    c3.replace(collect({ name: "taylor", age: 26 })).all(),
+                ).toEqual({ name: "taylor", family: "otwell", age: 26 });
+            });
         });
     });
 

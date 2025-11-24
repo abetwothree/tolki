@@ -145,6 +145,7 @@ import type {
 import {
     castableToArray,
     compareValues,
+    entriesKeyValue,
     getAccessibleValues,
     isAccessibleData,
     isArray,
@@ -175,7 +176,6 @@ import {
     toJsonable,
     toJsonSerializable,
     typeOf,
-    entriesKeyValue,
 } from "@laravel-js/utils";
 
 import { initProxyHandler } from "./proxy";
@@ -2408,10 +2408,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).replace({c: 3}); -> new Collection({c: 3})
      * new Collection([1, 2]).replace({a: 3}); -> new Collection({a: 3})
      */
-    replace(items: DataItems<TValue, TKey> | Collection<TValue, TKey>) {
-        return new Collection(
-            dataReplace<TValue, TKey>(this.items, this.getRawItems(items)),
-        );
+    replace<T, K extends PropertyKey>(
+        items: T[] | Record<K, T> | Collection<T, K> | null,
+    ) {
+        return new Collection(dataReplace(this.items, this.getRawItems(items)));
     }
 
     /**
