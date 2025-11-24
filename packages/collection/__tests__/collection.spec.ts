@@ -3933,6 +3933,100 @@ describe("Collection", () => {
         });
     });
 
+    describe("before", () => {
+        describe("Laravel Tests", () => {
+            it("test before returns item before the given item", () => {
+                const c = collect({
+                    0: 1,
+                    1: 2,
+                    2: 3,
+                    3: 4,
+                    4: 5,
+                    5: 2,
+                    6: 5,
+                    name: "taylor",
+                    framework: "laravel",
+                });
+
+                expect(c.before(2)).toBe(1);
+                expect(c.before("2")).toBe(1);
+                expect(c.before("taylor")).toBe(5);
+                expect(c.before("laravel")).toBe("taylor");
+                expect(
+                    c.before((value) => {
+                        return value > 4;
+                    }),
+                ).toBe(4);
+                expect(
+                    c.before((value) => {
+                        return typeof value === "string";
+                    }),
+                ).toBe(5);
+            });
+
+            it("test before in strict mode", () => {
+                const emptyArray: unknown[] = [];
+                const c = collect([false, 0, 1, emptyArray, ""]);
+
+                expect(c.before("false", true)).toBeNull();
+                expect(c.before("1", true)).toBeNull();
+                expect(c.before(false, true)).toBeNull();
+                expect(c.before(0, true)).toBe(false);
+                expect(c.before(1, true)).toBe(0);
+                expect(c.before(emptyArray, true)).toBe(1);
+                expect(c.before("", true)).toBe(emptyArray);
+            });
+
+            it("test before returns null when item is not found", () => {
+                const c = collect({
+                    0: 1,
+                    1: 2,
+                    2: 3,
+                    3: 4,
+                    4: 5,
+                    foo: "bar",
+                });
+
+                expect(c.before(6)).toBeNull();
+                expect(c.before("foo")).toBeNull();
+                expect(
+                    c.before((value) => {
+                        return value < 1 && typeof value === "number";
+                    }),
+                ).toBeNull();
+                expect(
+                    c.before((value) => {
+                        return value === "nope";
+                    }),
+                ).toBeNull();
+            });
+
+            it("test before returns null when item on the first item", () => {
+                const c = collect({
+                    0: 1,
+                    1: 2,
+                    2: 3,
+                    3: 4,
+                    4: 5,
+                    foo: "bar",
+                });
+
+                expect(c.before(1)).toBeNull();
+                expect(
+                    c.before((value) => {
+                        return value < 2 && typeof value === "number";
+                    }),
+                ).toBeNull();
+
+                // In JavaScript, object keys with numeric names are always ordered first,
+                // so we cannot replicate PHP's behavior of ['foo' => 'bar', 1, 2, 3, 4, 5]
+                // where 'foo' would be the first key. Instead, we test with all string keys.
+                const c2 = collect({ a: "first", b: "second", c: "third" });
+                expect(c2.before("first")).toBeNull();
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});

@@ -1277,31 +1277,21 @@ export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     value: TValue | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
-): TValue | false {
-    let prev: TValue | false = false;
-    for (const [key, item] of Object.entries(items)) {
-        if (isFunction(value)) {
-            if (value(item as TValue, key as TKey)) {
-                return prev;
-            }
-        }
+): TValue | null {
+    const key = dataSearch(items, value, strict);
 
-        if (strict) {
-            if (item === value) {
-                return prev;
-            }
-        }
-
-        if (!strict) {
-            if (item == value) {
-                return prev;
-            }
-        }
-
-        prev = item as TValue;
+    if (key === false) {
+        return null;
     }
 
-    return false;
+    const keys = dataKeys(items);
+    const position = keys.indexOf(key as string | number);
+
+    if (position === 0) {
+        return null;
+    }
+
+    return dataGet(items, keys[position - 1] as PathKey) as TValue;
 }
 
 /**
@@ -1310,43 +1300,27 @@ export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param items - The data items to search
  * @param value - The value or callback to search for
  * @param strict - Whether to use strict comparison
- * @returns The item after the found item or false
+ * @returns The item after the found item or null
  */
 export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     value: TValue | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
-): TValue | false {
-    let returnNext: boolean = false;
+): TValue | null {
+    const key = dataSearch(items, value, strict);
 
-    for (const [key, item] of Object.entries(items)) {
-        if (returnNext !== false) {
-            return item as TValue;
-        }
-
-        if (isFunction(value)) {
-            if (value(item as TValue, key as TKey)) {
-                returnNext = true;
-                continue;
-            }
-        }
-
-        if (strict) {
-            if (item === value) {
-                returnNext = true;
-                continue;
-            }
-
-            continue;
-        }
-
-        if (item == value) {
-            returnNext = true;
-            continue;
-        }
+    if (key === false) {
+        return null;
     }
 
-    return false;
+    const keys = dataKeys(items);
+    const position = keys.indexOf(key as string | number);
+
+    if (position === keys.length - 1) {
+        return null;
+    }
+
+    return dataGet(items, keys[position + 1] as PathKey) as TValue;
 }
 
 /**

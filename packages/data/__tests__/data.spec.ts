@@ -853,13 +853,13 @@ describe("Data", () => {
             expect(result).toBe(1);
 
             const result1 = Data.dataBefore(obj, "2", true);
-            expect(result1).toBe(false);
+            expect(result1).toBeNull();
 
             const result2 = Data.dataBefore(obj, 2, true);
             expect(result2).toBe(1);
 
             const result3 = Data.dataBefore(obj, (value) => value > 3);
-            expect(result3).toBe(false);
+            expect(result3).toBeNull();
 
             const result4 = Data.dataBefore(obj, (value) => value === 3);
             expect(result4).toBe(2);
@@ -870,13 +870,13 @@ describe("Data", () => {
             expect(result).toBe(2);
 
             const result1 = Data.dataBefore(arr, "3", true);
-            expect(result1).toBe(false);
+            expect(result1).toBeNull();
 
             const result2 = Data.dataBefore(arr, 3, true);
             expect(result2).toBe(2);
 
             const result3 = Data.dataBefore(arr, (value) => value > 5);
-            expect(result3).toBe(false);
+            expect(result3).toBeNull();
 
             const result4 = Data.dataBefore(arr, (value) => value === 4);
             expect(result4).toBe(3);
@@ -890,13 +890,13 @@ describe("Data", () => {
             expect(result).toBe(3);
 
             const result1 = Data.dataAfter(obj, "2", true);
-            expect(result1).toBe(false);
+            expect(result1).toBeNull();
 
             const result2 = Data.dataAfter(obj, 2, true);
             expect(result2).toBe(3);
 
             const result3 = Data.dataAfter(obj, (value) => value < 1);
-            expect(result3).toBe(false);
+            expect(result3).toBeNull();
 
             const result4 = Data.dataAfter(obj, (value) => value === 1);
             expect(result4).toBe(2);
@@ -907,13 +907,13 @@ describe("Data", () => {
             expect(result).toBe(4);
 
             const result1 = Data.dataAfter(arr, "3", true);
-            expect(result1).toBe(false);
+            expect(result1).toBeNull();
 
             const result2 = Data.dataAfter(arr, 3, true);
             expect(result2).toBe(4);
 
             const result3 = Data.dataAfter(arr, (value) => value < 1);
-            expect(result3).toBe(false);
+            expect(result3).toBeNull();
 
             const result4 = Data.dataAfter(arr, (value) => value === 4);
             expect(result4).toBe(5);

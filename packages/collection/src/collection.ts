@@ -2474,20 +2474,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param value - The value to search for, or a callback to determine a match
      * @param strict - Whether to use strict comparison, defaults to false
-     * @returns The item before the found item, or false if not found or no previous item
+     * @returns The item before the found item, or null if not found or no previous item
      *
      * @example
      *
      * new Collection([1, 2, 3]).before(2); -> 1
      * new Collection({a: 1, b: 2, c: 3}).before(3); -> 2
      * new Collection([1, 2, 3]).before(x => x > 2); -> 2
-     * new Collection([1, 2, 3]).before(1); -> false
-     * new Collection([1, 2, 3]).before(4); -> false
+     * new Collection([1, 2, 3]).before(1); -> null
+     * new Collection([1, 2, 3]).before(4); -> null
      */
     before(
         value: TValue | ((item: TValue, key: TKey) => boolean),
         strict: boolean = false,
-    ): TValue | false {
+    ): TValue | null {
         return dataBefore(this.items, value, strict);
     }
 
@@ -2496,20 +2496,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param value - The value to search for, or a callback to determine a match
      * @param strict - Whether to use strict comparison, defaults to false
-     * @returns The item after the found item, or false if not found or no next item
+     * @returns The item after the found item, or null if not found or is last item
      *
      * @example
      *
-     * new Collection([1, 2, 3]).after(2); -> 3
+     * new Collection([1, 2, 3]).after(1); -> 2
      * new Collection({a: 1, b: 2, c: 3}).after(2); -> 3
-     * new Collection([1, 2, 3]).after(x => x < 2); -> 2
-     * new Collection([1, 2, 3]).after(3); -> false
-     * new Collection([1, 2, 3]).after(4); -> false
+     * new Collection([1, 2, 3]).after(x => x > 1); -> 3
+     * new Collection([1, 2, 3]).after(3); -> null
+     * new Collection([1, 2, 3]).after(4); -> null
      */
     after(
         value: TValue | ((item: TValue, key: TKey) => boolean),
         strict: boolean = false,
-    ): TValue | false {
+    ): TValue | null {
         return dataAfter(this.items, value, strict);
     }
 
