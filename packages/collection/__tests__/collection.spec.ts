@@ -4219,6 +4219,21 @@ describe("Collection", () => {
         });
     });
 
+    describe("shuffle", () => {
+        it("test shuffle", () => {
+            const data = collect([1, 2, 3, 4, 5, 6]);
+            const shuffled = data.shuffle();
+
+            expect(shuffled.count()).toBe(6);
+            expect(data.all()).toContain(shuffled.get(0));
+            expect(data.all()).toContain(shuffled.get(1));
+            expect(data.all()).toContain(shuffled.get(2));
+            expect(data.all()).toContain(shuffled.get(3));
+            expect(data.all()).toContain(shuffled.get(4));
+            expect(data.all()).toContain(shuffled.get(5));
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
