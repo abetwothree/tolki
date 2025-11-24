@@ -4609,6 +4609,90 @@ describe("Collection", () => {
         });
     });
 
+    describe("firstOrFail", () => {
+        describe("Laravel Tests", () => {
+            it("test first or fail returns first item in collection", () => {
+                const c = collect([
+                    {name: 'foo'},
+                    {name: 'bar'},
+                ]);
+
+                expect(c.where('name', 'foo').firstOrFail()).toEqual({name: 'foo'});
+                expect(c.firstOrFail('name', '=', 'foo')).toEqual({name: 'foo'});
+                expect(c.firstOrFail('name', 'foo')).toEqual({name: 'foo'});
+            });
+            
+            it("test first or fail throws exception if no items exist", () => {
+                const c = collect([
+                    {name: 'foo'},
+                    {name: 'bar'},
+                ]);
+
+                expect(() => {
+                    c.where('name', 'INVALID').firstOrFail();
+                }).toThrowError();
+            });
+            
+            it("test first or fail doesnt throw exception if more than one item exists", () => {
+                const c = collect([
+                    {name: 'foo'},
+                    {name: 'foo'},
+                    {name: 'bar'},
+                ]);
+
+                expect(c.where('name', 'foo').firstOrFail()).toEqual({name: 'foo'});
+            });
+            
+            it("test first or fail returns first item in collection if only one exists with callback", () => {
+                const data = collect(['foo', 'bar', 'baz']);
+                const result = data.firstOrFail((value) => {
+                    return value === 'bar';
+                });
+                expect(result).toBe('bar');
+            });
+            
+            it("test first or fail throws exception if no items exist with callback", () => {
+                const data = collect(['foo', 'bar', 'baz']);
+
+                expect(() => {
+                    data.firstOrFail((value) => {
+                        return value === 'invalid';
+                    });
+                }).toThrowError();
+            });
+            
+            it("test first or fail doesn't throw exception if more than one item exists with callback", () => {
+                const data = collect(['foo', 'bar', 'bar']);
+
+                expect(
+                    data.firstOrFail((value) => {
+                        return value === 'bar';
+                    }),
+                ).toBe('bar');
+            });
+            
+            it("test first or fail stops iterating at first match", () => {
+                const data = collect([
+                    () => {
+                        return false;
+                    },
+                    () => {
+                        return true;
+                    },
+                    () => {
+                        throw new Error();
+                    },
+                ]);
+
+                expect(
+                    data.firstOrFail((callback) => {
+                        return callback();
+                    }),
+                ).not.toBeNull();
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
