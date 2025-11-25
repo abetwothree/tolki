@@ -5271,9 +5271,69 @@ describe("Collection", () => {
         });
     });
 
+    describe("unique", () => {
+        describe("Laravel Tests", () => {
+            it("test unique", () => {
+                const c = collect(['Hello', 'World', 'World']);
+                expect(c.unique().all()).toEqual(['Hello', 'World']);
+
+                const c2 = collect([[1, 2], [1, 2], [2, 3], [3, 4], [2, 3]]);
+                expect(c2.unique().values().all()).toEqual([[1, 2], [2, 3], [3, 4]]);
+            });
+            
+            it("test unique with callback", () => {
+                const c = collect({
+                    1: { id: 1, first: 'Taylor', last: 'Otwell' },
+                    2: { id: 2, first: 'Taylor', last: 'Otwell' },
+                    3: { id: 3, first: 'Abigail', last: 'Otwell' },
+                    4: { id: 4, first: 'Abigail', last: 'Otwell' },
+                    5: { id: 5, first: 'Taylor', last: 'Swift' },
+                    6: { id: 6, first: 'Taylor', last: 'Swift' },
+                })
+
+                expect(c.unique('first').all()).toEqual({
+                    1: { id: 1, first: 'Taylor', last: 'Otwell' },
+                    3: { id: 3, first: 'Abigail', last: 'Otwell' },
+                });
+
+                expect(c.unique((item) => {
+                    return item.first + item.last;
+                }).all()).toEqual({
+                    1: { id: 1, first: 'Taylor', last: 'Otwell' },
+                    3: { id: 3, first: 'Abigail', last: 'Otwell' },
+                    5: { id: 5, first: 'Taylor', last: 'Swift' },
+                });
+
+                expect(c.unique((item, key) => {
+                    return key % 2;
+                }).all()).toEqual({
+                    1: { id: 1, first: 'Taylor', last: 'Otwell' },
+                    2: { id: 2, first: 'Taylor', last: 'Otwell' },
+                });
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
+        });
+    });
+
+    describe("uniqueStrict", () => {
+        describe("Laravel Tests", () => {
+            it("test unique strict", () => {
+                const c = collect([
+                    {id: '0', name: 'zero'},
+                    {id: '00', name: 'double zero'},
+                    {id: '0', name: 'again zero'},
+                ]);
+
+                expect(c.uniqueStrict('id').all()).toEqual([
+                    {id: '0', name: 'zero'},
+                    {id: '00', name: 'double zero'},
+                ]);
+            });
         });
     });
 
