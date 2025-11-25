@@ -5183,51 +5183,47 @@ describe("Collection", () => {
         describe("Laravel Tests", () => {
             it("test dot", () => {
                 const data = Collection.make({
-                    name: 'Taylor',
+                    name: "Taylor",
                     meta: {
-                        foo: 'bar',
-                        baz: 'boom',
+                        foo: "bar",
+                        baz: "boom",
                         bam: {
-                            boom: 'bip',
+                            boom: "bip",
                         },
                     },
                 }).dot();
 
                 expect(data.all()).toEqual({
-                    'name': 'Taylor',
-                    'meta.foo': 'bar',
-                    'meta.baz': 'boom',
-                    'meta.bam.boom': 'bip',
+                    name: "Taylor",
+                    "meta.foo": "bar",
+                    "meta.baz": "boom",
+                    "meta.bam.boom": "bip",
                 });
 
                 // In JS, we can't have mixed numeric and string keys in the same array like PHP
                 // So we use an object to represent PHP's associative array with mixed keys
                 const data2 = Collection.make({
                     foo: {
-                        0: 'bar',
-                        1: 'baz',
-                        baz: 'boom',
+                        0: "bar",
+                        1: "baz",
+                        baz: "boom",
                     },
                 }).dot();
 
                 expect(data2.all()).toEqual({
-                    'foo.0': 'bar',
-                    'foo.1': 'baz',
-                    'foo.baz': 'boom',
+                    "foo.0": "bar",
+                    "foo.1": "baz",
+                    "foo.baz": "boom",
                 });
 
                 const data3 = Collection.make({
-                    foo: [
-                        'bar',
-                        'baz',
-                        {baz: 'boom'},
-                    ],
+                    foo: ["bar", "baz", { baz: "boom" }],
                 }).dot();
 
                 expect(data3.all()).toEqual({
-                    'foo.0': 'bar',
-                    'foo.1': 'baz',
-                    'foo.2.baz': 'boom',
+                    "foo.0": "bar",
+                    "foo.1": "baz",
+                    "foo.2.baz": "boom",
                 });
             });
         });
@@ -5237,34 +5233,34 @@ describe("Collection", () => {
         describe("Laravel Tests", () => {
             it("test undot", () => {
                 const data = Collection.make({
-                    name: 'Taylor',
-                    'meta.foo': 'bar',
-                    'meta.baz': 'boom',
-                    'meta.bam.boom': 'bip',
+                    name: "Taylor",
+                    "meta.foo": "bar",
+                    "meta.baz": "boom",
+                    "meta.bam.boom": "bip",
                 }).undot();
 
                 expect(data.all()).toEqual({
-                    name: 'Taylor',
+                    name: "Taylor",
                     meta: {
-                        foo: 'bar',
-                        baz: 'boom',
+                        foo: "bar",
+                        baz: "boom",
                         bam: {
-                            boom: 'bip',
+                            boom: "bip",
                         },
                     },
-                });                
+                });
 
                 const data2 = Collection.make({
-                    'foo.0': 'bar',
-                    'foo.1': 'baz',
-                    'foo.baz': 'boom',
+                    "foo.0": "bar",
+                    "foo.1": "baz",
+                    "foo.baz": "boom",
                 }).undot();
 
                 expect(data2.all()).toEqual({
                     foo: {
-                        0: 'bar',
-                        1: 'baz',
-                        baz: 'boom',
+                        0: "bar",
+                        1: "baz",
+                        baz: "boom",
                     },
                 });
             });
@@ -5274,41 +5270,59 @@ describe("Collection", () => {
     describe("unique", () => {
         describe("Laravel Tests", () => {
             it("test unique", () => {
-                const c = collect(['Hello', 'World', 'World']);
-                expect(c.unique().all()).toEqual(['Hello', 'World']);
+                const c = collect(["Hello", "World", "World"]);
+                expect(c.unique().all()).toEqual(["Hello", "World"]);
 
-                const c2 = collect([[1, 2], [1, 2], [2, 3], [3, 4], [2, 3]]);
-                expect(c2.unique().values().all()).toEqual([[1, 2], [2, 3], [3, 4]]);
+                const c2 = collect([
+                    [1, 2],
+                    [1, 2],
+                    [2, 3],
+                    [3, 4],
+                    [2, 3],
+                ]);
+                expect(c2.unique().values().all()).toEqual([
+                    [1, 2],
+                    [2, 3],
+                    [3, 4],
+                ]);
             });
-            
+
             it("test unique with callback", () => {
                 const c = collect({
-                    1: { id: 1, first: 'Taylor', last: 'Otwell' },
-                    2: { id: 2, first: 'Taylor', last: 'Otwell' },
-                    3: { id: 3, first: 'Abigail', last: 'Otwell' },
-                    4: { id: 4, first: 'Abigail', last: 'Otwell' },
-                    5: { id: 5, first: 'Taylor', last: 'Swift' },
-                    6: { id: 6, first: 'Taylor', last: 'Swift' },
-                })
-
-                expect(c.unique('first').all()).toEqual({
-                    1: { id: 1, first: 'Taylor', last: 'Otwell' },
-                    3: { id: 3, first: 'Abigail', last: 'Otwell' },
+                    1: { id: 1, first: "Taylor", last: "Otwell" },
+                    2: { id: 2, first: "Taylor", last: "Otwell" },
+                    3: { id: 3, first: "Abigail", last: "Otwell" },
+                    4: { id: 4, first: "Abigail", last: "Otwell" },
+                    5: { id: 5, first: "Taylor", last: "Swift" },
+                    6: { id: 6, first: "Taylor", last: "Swift" },
                 });
 
-                expect(c.unique((item) => {
-                    return item.first + item.last;
-                }).all()).toEqual({
-                    1: { id: 1, first: 'Taylor', last: 'Otwell' },
-                    3: { id: 3, first: 'Abigail', last: 'Otwell' },
-                    5: { id: 5, first: 'Taylor', last: 'Swift' },
+                expect(c.unique("first").all()).toEqual({
+                    1: { id: 1, first: "Taylor", last: "Otwell" },
+                    3: { id: 3, first: "Abigail", last: "Otwell" },
                 });
 
-                expect(c.unique((item, key) => {
-                    return key % 2;
-                }).all()).toEqual({
-                    1: { id: 1, first: 'Taylor', last: 'Otwell' },
-                    2: { id: 2, first: 'Taylor', last: 'Otwell' },
+                expect(
+                    c
+                        .unique((item) => {
+                            return item.first + item.last;
+                        })
+                        .all(),
+                ).toEqual({
+                    1: { id: 1, first: "Taylor", last: "Otwell" },
+                    3: { id: 3, first: "Abigail", last: "Otwell" },
+                    5: { id: 5, first: "Taylor", last: "Swift" },
+                });
+
+                expect(
+                    c
+                        .unique((item, key) => {
+                            return key % 2;
+                        })
+                        .all(),
+                ).toEqual({
+                    1: { id: 1, first: "Taylor", last: "Otwell" },
+                    2: { id: 2, first: "Taylor", last: "Otwell" },
                 });
             });
         });
@@ -5318,8 +5332,8 @@ describe("Collection", () => {
         describe("Laravel Tests", () => {
             it("test values", () => {
                 const c = collect([
-                    { id: 1, name: 'Hello' },
-                    { id: 2, name: 'World' },
+                    { id: 1, name: "Hello" },
+                    { id: 2, name: "World" },
                 ]);
                 expect(
                     c
@@ -5328,12 +5342,12 @@ describe("Collection", () => {
                         })
                         .values()
                         .all(),
-                ).toEqual([{ id: 2, name: 'World' }]);
+                ).toEqual([{ id: 2, name: "World" }]);
             });
 
             it("test values reset key", () => {
-                const data = collect({ 1: 'a', 2: 'b', 3: 'c' });
-                expect(data.values().all()).toEqual(['a', 'b', 'c']);
+                const data = collect({ 1: "a", 2: "b", 3: "c" });
+                expect(data.values().all()).toEqual(["a", "b", "c"]);
             });
         });
 
@@ -5383,14 +5397,14 @@ describe("Collection", () => {
         describe("Laravel Tests", () => {
             it("test unique strict", () => {
                 const c = collect([
-                    {id: '0', name: 'zero'},
-                    {id: '00', name: 'double zero'},
-                    {id: '0', name: 'again zero'},
+                    { id: "0", name: "zero" },
+                    { id: "00", name: "double zero" },
+                    { id: "0", name: "again zero" },
                 ]);
 
-                expect(c.uniqueStrict('id').all()).toEqual([
-                    {id: '0', name: 'zero'},
-                    {id: '00', name: 'double zero'},
+                expect(c.uniqueStrict("id").all()).toEqual([
+                    { id: "0", name: "zero" },
+                    { id: "00", name: "double zero" },
                 ]);
             });
         });
