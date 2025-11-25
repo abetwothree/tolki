@@ -5099,6 +5099,37 @@ describe("Collection", () => {
         });
     });
 
+    describe("splice", () => {
+        describe("Laravel Tests", () => {
+            it("test splice", () => {
+                const data = collect(["foo", "baz"]);
+                data.splice(1);
+                expect(data.all()).toEqual(["foo"]);
+
+                const data2 = collect(["foo", "baz"]);
+                data2.splice(1, 0, "bar");
+                expect(data2.all()).toEqual(["foo", "bar", "baz"]);
+
+                const data3 = collect(["foo", "baz"]);
+                data3.splice(1, 1);
+                expect(data3.all()).toEqual(["foo"]);
+
+                const data4 = collect(["foo", "baz"]);
+                const cut = data4.splice(1, 1, "bar");
+                expect(data4.all()).toEqual(["foo", "bar"]);
+                expect(cut.all()).toEqual(["baz"]);
+
+                const data5 = collect(["foo", "baz"]);
+                data5.splice(1, 0, ["bar"]);
+                expect(data5.all()).toEqual(["foo", "bar", "baz"]);
+
+                const data6 = collect(["foo", "baz"]);
+                data6.splice(1, 0, collect(["bar"]));
+                expect(data6.all()).toEqual(["foo", "bar", "baz"]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});

@@ -3164,9 +3164,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Splice a portion of the underlying collection array.
      *
      * @param offset - The offset to start the splice
-     * @param length - The number of items to remove, defaults to 0
-     * @param replacement - The items to insert in place of the removed items, defaults to an empty array/object
-     * @returns A new collection with the spliced items
+     * @param length - The number of items to remove (if undefined, removes all from offset to end)
+     * @param replacement - The items to insert in place of the removed items
+     * @returns A new collection with the removed items
      *
      * @example
      *
@@ -3175,17 +3175,23 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).splice(1, 1, [4, 5]); -> new Collection([2]), original collection is now [1, 4, 5, 3]
      * new Collection({a: 1, b: 2, c: 3}).splice(1); -> new Collection({b: 2, c: 3}), original collection is now {a: 1}
      */
-    splice(
+    splice<TReplace, TKeyReplace extends PropertyKey>(
         offset: number,
-        length: number = 0,
-        replacement: DataItems<TValue, TKey> = {} as DataItems<TValue, TKey>,
+        length?: number,
+        replacement?:
+            | DataItems<TReplace, TKeyReplace>
+            | Collection<TReplace, TKeyReplace>,
     ) {
-        return new Collection(
-            dataSplice(this.items, offset, length, replacement) as DataItems<
-                TValue,
-                TKey
-            >,
+        const result = dataSplice(
+            this.items,
+            offset,
+            length,
+            ...(replacement !== undefined
+                ? [this.getRawItems(replacement)]
+                : []),
         );
+        this.items = result.value as DataItems<TValue, TKey>;
+        return new Collection(result.removed);
     }
 
     /**
