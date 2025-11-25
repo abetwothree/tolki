@@ -5179,6 +5179,62 @@ describe("Collection", () => {
         });
     });
 
+    describe("undot", () => {
+        describe("Laravel Tests", () => {
+            it("test undot", () => {
+                // $data = $collection::make([
+                //     'name' => 'Taylor',
+                //     'meta.foo' => 'bar',
+                //     'meta.baz' => 'boom',
+                //     'meta.bam.boom' => 'bip',
+                // ])->undot();
+
+                // $this->assertSame([
+                //     'name' => 'Taylor',
+                //     'meta' => [
+                //         'foo' => 'bar',
+                //         'baz' => 'boom',
+                //         'bam' => [
+                //             'boom' => 'bip',
+                //         ],
+                //     ],
+                // ], $data->all());
+
+                const data = Collection.make({
+                    name: 'Taylor',
+                    'meta.foo': 'bar',
+                    'meta.baz': 'boom',
+                    'meta.bam.boom': 'bip',
+                }).undot();
+
+                expect(data.all()).toEqual({
+                    name: 'Taylor',
+                    meta: {
+                        foo: 'bar',
+                        baz: 'boom',
+                        bam: {
+                            boom: 'bip',
+                        },
+                    },
+                });                
+
+                const data2 = Collection.make({
+                    'foo.0': 'bar',
+                    'foo.1': 'baz',
+                    'foo.baz': 'boom',
+                }).undot();
+
+                expect(data2.all()).toEqual({
+                    foo: {
+                        0: 'bar',
+                        1: 'baz',
+                        baz: 'boom',
+                    },
+                });
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
