@@ -5415,6 +5415,22 @@ describe("Collection", () => {
         });
     });
 
+    describe("getIterator", () => {
+        describe("Laravel Tests", () => {
+            it("test iterable", () => {
+                const c = collect(["foo"]);
+                const iterator = c.getIterator();
+                expect(iterator[Symbol.iterator]).toBeDefined();
+
+                const items = [];
+                for (const item of iterator) {
+                    items.push(item);
+                }
+                expect(items).toEqual(["foo"]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
