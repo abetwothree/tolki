@@ -5314,9 +5314,37 @@ describe("Collection", () => {
         });
     });
 
-    describe("", () => {
+    describe("values", () => {
         describe("Laravel Tests", () => {
-            it("", () => {});
+            it("test values", () => {
+                const c = collect([
+                    { id: 1, name: 'Hello' },
+                    { id: 2, name: 'World' },
+                ]);
+                expect(
+                    c
+                        .filter((item) => {
+                            return item.id === 2;
+                        })
+                        .values()
+                        .all(),
+                ).toEqual([{ id: 2, name: 'World' }]);
+            });
+
+            it("test values reset key", () => {
+                const data = collect({ 1: 'a', 2: 'b', 3: 'c' });
+                expect(data.values().all()).toEqual(['a', 'b', 'c']);
+            });
+        });
+
+        it("returns collection of values with object keys", () => {
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            expect(collection.values().all()).toEqual([1, 2, 3]);
+        });
+
+        it("returns collection of values with numeric keys", () => {
+            const collection = collect([1, 2, 3]);
+            expect(collection.values().all()).toEqual([1, 2, 3]);
         });
     });
 
@@ -5356,18 +5384,6 @@ describe("Collection", () => {
         it("returns 0 for empty object collection", () => {
             const collection = collect({});
             expect(collection.count()).toBe(0);
-        });
-    });
-
-    describe("values", () => {
-        it("returns collection of values with object keys", () => {
-            const collection = collect({ a: 1, b: 2, c: 3 });
-            expect(collection.values().all()).toEqual([1, 2, 3]);
-        });
-
-        it("returns collection of values with numeric keys", () => {
-            const collection = collect([1, 2, 3]);
-            expect(collection.values().all()).toEqual([1, 2, 3]);
         });
     });
 
