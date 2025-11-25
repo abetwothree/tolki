@@ -23,6 +23,10 @@ const strnatcasecmp = (a: unknown, b: unknown): number => {
     return 0;
 };
 
+const strrev = (s: string): string => {
+    return s.split('').reverse().join('');
+};
+
 describe("Collection", () => {
     describe("assert constructor types", () => {
         it("arrays", () => {
@@ -5141,6 +5145,16 @@ describe("Collection", () => {
                 const data = collect(['taylor', 'dayle', 'shawn']);
                 expect(data.take(-2).all()).toEqual(['dayle', 'shawn']);
             })
+        });
+    });
+
+    describe("transform", () => {
+        describe("Laravel Tests", () => {
+            it("test transform", () => {
+                const data = collect({first: 'taylor', last: 'otwell'});
+                data.transform((item, key) => `${key}-${strrev(item)}`);
+                expect(data.all()).toEqual({first: 'first-rolyat', last: 'last-llewto'});
+            });
         });
     });
 
