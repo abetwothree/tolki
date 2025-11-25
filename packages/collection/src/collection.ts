@@ -3525,11 +3525,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 1}, {id: 2}, {id: 1}]).countBy('id'); -> new Collection({ '1': 2, '2': 1 })
      * new Collection([{id: 1}, {id: 2}, {id: 1}]).countBy(item => item.id); -> new Collection({ '1': 2, '2': 1 })
      */
-    countBy(countByValue: ((value: TValue, key: TKey) => unknown) | PathKey) {
+    countBy<TCountByResult>(
+        countByValue:
+            | ((value: TValue, key: TKey) => TCountByResult)
+            | PathKey = null,
+    ) {
         const results = {} as Record<string | number, number>;
 
         const callback = this.valueRetriever(
-            countByValue as PathKey | ((...args: (TValue | TKey)[]) => unknown),
+            countByValue as
+                | PathKey
+                | ((...args: (TValue | TKey)[]) => TCountByResult),
         );
 
         for (const [key, value] of Object.entries(this.items)) {

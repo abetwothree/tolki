@@ -5397,20 +5397,20 @@ describe("Collection", () => {
         describe("Laravel Tests", () => {
             it("test pad", () => {
                 let c = collect([1, 2, 3]);
-                c = c.pad(4, 0)
-                expect(c.all()).toEqual([1, 2, 3, 0])
+                c = c.pad(4, 0);
+                expect(c.all()).toEqual([1, 2, 3, 0]);
 
                 let d = collect([1, 2, 3, 4, 5]);
-                d = d.pad(4, 0)
-                expect(d.all()).toEqual([1, 2, 3, 4, 5])
+                d = d.pad(4, 0);
+                expect(d.all()).toEqual([1, 2, 3, 4, 5]);
 
                 let e = collect([1, 2, 3]);
-                e = e.pad(-4, 0)
-                expect(e.all()).toEqual([0, 1, 2, 3])
+                e = e.pad(-4, 0);
+                expect(e.all()).toEqual([0, 1, 2, 3]);
 
                 let f = collect([1, 2, 3, 4, 5]);
-                f = f.pad(-4, 0)
-                expect(f.all()).toEqual([1, 2, 3, 4, 5])
+                f = f.pad(-4, 0);
+                expect(f.all()).toEqual([1, 2, 3, 4, 5]);
             });
         });
     });
@@ -5439,7 +5439,7 @@ describe("Collection", () => {
                 expect(c).toHaveLength(2);
             });
         });
-        
+
         it("returns number of array items", () => {
             const collection = collect([1, 2, 3]);
             expect(collection.count()).toBe(3);
@@ -5463,8 +5463,61 @@ describe("Collection", () => {
 
     describe("countBy", () => {
         describe("Laravel Tests", () => {
-            it("", () => {
-                
+            it("test count by standalone", () => {
+                const c = collect([
+                    "foo",
+                    "foo",
+                    "foo",
+                    "bar",
+                    "bar",
+                    "foobar",
+                ]);
+                expect(c.countBy().all()).toEqual({
+                    foo: 3,
+                    bar: 2,
+                    foobar: 1,
+                });
+
+                const d = collect([true, true, false, false, false]);
+                expect(d.countBy().all()).toEqual({ true: 2, false: 3 });
+
+                const e = collect([1, 5, 1, 5, 5, 1]);
+                expect(e.countBy().all()).toEqual({ 1: 3, 5: 3 });
+
+                const f = collect(["James", "Joe", "Taylor"]);
+                expect(f.countBy().all()).toEqual({
+                    James: 1,
+                    Joe: 1,
+                    Taylor: 1,
+                });
+            });
+
+            it("test count by with key", () => {
+                const c = collect([
+                    { key: "a" },
+                    { key: "a" },
+                    { key: "a" },
+                    { key: "a" },
+                    { key: "b" },
+                    { key: "b" },
+                    { key: "b" },
+                ]);
+                expect(c.countBy("key").all()).toEqual({ a: 4, b: 3 });
+            });
+
+            it("test count by with callback", () => {
+                const c = collect([
+                    "apple",
+                    "apricot",
+                    "banana",
+                    "blueberry",
+                    "cherry",
+                ]);
+                expect(c.countBy((item) => item.charAt(0)).all()).toEqual({
+                    a: 2,
+                    b: 2,
+                    c: 1,
+                });
             });
         });
     });
