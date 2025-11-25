@@ -3104,10 +3104,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const keys = Object.keys(this.items);
 
         keys.sort((a, b) => {
-            if (a === b) {
-                return 0;
-            }
-
             if (descending) {
                 return a < b ? 1 : -1;
             }

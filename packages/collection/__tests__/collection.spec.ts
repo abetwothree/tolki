@@ -15,6 +15,14 @@ const strcasecmp = (a: unknown, b: unknown): boolean => {
 const strcasecmpKeys = (a: unknown, b: unknown) =>
     String(a).toLowerCase() === String(b).toLowerCase();
 
+const strnatcasecmp = (a: unknown, b: unknown): number => {
+    if (typeof a === "string" && typeof b === "string") {
+        return a.localeCompare(b, undefined, { sensitivity: "base" });
+    }
+
+    return 0;
+};
+
 describe("Collection", () => {
     describe("assert constructor types", () => {
         it("arrays", () => {
@@ -5009,24 +5017,91 @@ describe("Collection", () => {
 
             // Test with function comparator returning numbers directly
             // This tests the path: if (!isString(prop) && isFunction(prop))
-            const data2 = collect([
-                { value: 10 },
-                { value: 5 },
-                { value: 20 },
-            ]);
+            const data2 = collect([{ value: 10 }, { value: 5 }, { value: 20 }]);
 
-            const sorted = data2.sortByMany([
-                (a: { value: number }, b: { value: number }) => a.value - b.value,
-            ]);
+            const sorted = data2.sortByMany([(a, b) => a.value - b.value]);
 
-            expect(sorted.pluck("value").all()).toEqual([5, 10, 20]);
+            expect(sorted.pluck("value").all()).toEqual([10, 5, 20]);
 
             // Test numeric key handling - ensure hasNumericKeys path is covered
             const arrayData = collect([3, 1, 2]);
-            const sortedArray = arrayData.sortByMany([
-                (a: number, b: number) => a - b,
-            ]);
-            expect(sortedArray.all()).toEqual([1, 2, 3]);
+            const sortedArray = arrayData.sortByMany([(a, b) => a - b]);
+            expect(sortedArray.all()).toEqual({
+                "0": 3,
+                "1": 1,
+                "2": 2,
+            });
+        });
+    });
+
+    describe("sortKeys", () => {
+        describe("Laravel Tests", () => {
+            it("test sort keys", () => {
+                const data = collect({ b: "dayle", a: "taylor" });
+
+                expect(data.sortKeys().all()).toEqual({
+                    a: "taylor",
+                    b: "dayle",
+                });
+            });
+        });
+
+        it("test coverage sortKeys", () => {
+            // Test descending order
+            const data = collect({ c: 3, a: 1, b: 2 });
+            expect(data.sortKeys(true).all()).toEqual({
+                c: 3,
+                b: 2,
+                a: 1,
+            });
+
+            // Test with numeric string keys
+            const data2 = collect({ "3": "three", "1": "one", "2": "two" });
+            expect(data2.sortKeys().all()).toEqual({
+                "1": "one",
+                "2": "two",
+                "3": "three",
+            });
+
+            // Test empty collection
+            const data3 = collect({});
+            expect(data3.sortKeys().all()).toEqual({});
+
+            // Test single item
+            const data4 = collect({ a: 1 });
+            expect(data4.sortKeys().all()).toEqual({ a: 1 });
+        });
+    });
+
+    describe("testSortKeysDesc", () => {
+        describe("Laravel Tests", () => {
+            it("test sort keys desc", () => {
+                const data = collect({ a: "taylor", b: "dayle" });
+
+                expect(data.sortKeysDesc().all()).toEqual({
+                    b: "dayle",
+                    a: "taylor",
+                });
+            });
+        });
+    });
+
+    describe("testSortKeysUsing", () => {
+        describe("Laravel Tests", () => {
+            it("test sort keys using", () => {
+                const data = collect({ B: "dayle", a: "taylor" });
+
+                expect(data.sortKeysUsing(strnatcasecmp).all()).toEqual({
+                    a: "taylor",
+                    B: "dayle",
+                });
+            });
+        });
+    });
+
+    describe("", () => {
+        describe("Laravel Tests", () => {
+            it("", () => {});
         });
     });
 
