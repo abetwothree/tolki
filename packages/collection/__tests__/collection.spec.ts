@@ -5548,6 +5548,63 @@ describe("Collection", () => {
                     [],
                     "name",
                 ]);
+                c.add(3, 0);
+                expect(c.values().all()).toEqual([
+                    3,
+                    2,
+                    "",
+                    null,
+                    false,
+                    [],
+                    "name",
+                ]);
+            });
+        });
+
+        it('test add to objects', () => {
+            const c = collect({});
+            c.add(1, 'a');
+            expect(c.all()).toEqual({ a: 1 });
+            c.add(2, 'b');
+            expect(c.all()).toEqual({ a: 1, b: 2 });
+            c.add('', 'c');
+            expect(c.all()).toEqual({ a: 1, b: 2, c: '' });
+            c.add(null, 'd');
+            expect(c.all()).toEqual({ a: 1, b: 2, c: '', d: null });
+            c.add(false, 'e');
+            expect(c.all()).toEqual({ a: 1, b: 2, c: '', d: null, e: false });
+            c.add([], 'f');
+            expect(c.all()).toEqual({ a: 1, b: 2, c: '', d: null, e: false, f: [] });
+            c.add('name', 'g');
+            expect(c.all()).toEqual({
+                a: 1,
+                b: 2,
+                c: '',
+                d: null,
+                e: false,
+                f: [],
+                g: 'name',
+            });
+            c.add(5, 'a')
+            expect(c.all()).toEqual({
+                a: 5,
+                b: 2,
+                c: '',
+                d: null,
+                e: false,
+                f: [],
+                g: 'name',
+            });
+            c.add('home')
+            expect(c.all()).toEqual({
+                a: 5,
+                b: 2,
+                c: '',
+                d: null,
+                e: false,
+                f: [],
+                g: 'name',
+                7: 'home',
             });
         });
     });
