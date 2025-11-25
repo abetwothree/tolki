@@ -832,7 +832,10 @@ export function dotFlattenObject<
             const keyStr = String(key);
             const newKey = prefix ? prefix + "." + keyStr : keyStr;
 
-            if (isObject(value) && Object.keys(value).length > 0) {
+            if (isArray(value) && value.length > 0) {
+                // Handle arrays within objects by flattening them with numeric indices
+                walk(value as unknown as Record<TKey, TValue>, newKey);
+            } else if (isObject(value) && Object.keys(value).length > 0) {
                 walk(value as Record<TKey, TValue>, newKey);
             } else {
                 results[newKey] = value;

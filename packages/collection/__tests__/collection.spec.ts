@@ -5179,27 +5179,63 @@ describe("Collection", () => {
         });
     });
 
+    describe("dot", () => {
+        describe("Laravel Tests", () => {
+            it("test dot", () => {
+                const data = Collection.make({
+                    name: 'Taylor',
+                    meta: {
+                        foo: 'bar',
+                        baz: 'boom',
+                        bam: {
+                            boom: 'bip',
+                        },
+                    },
+                }).dot();
+
+                expect(data.all()).toEqual({
+                    'name': 'Taylor',
+                    'meta.foo': 'bar',
+                    'meta.baz': 'boom',
+                    'meta.bam.boom': 'bip',
+                });
+
+                // In JS, we can't have mixed numeric and string keys in the same array like PHP
+                // So we use an object to represent PHP's associative array with mixed keys
+                const data2 = Collection.make({
+                    foo: {
+                        0: 'bar',
+                        1: 'baz',
+                        baz: 'boom',
+                    },
+                }).dot();
+
+                expect(data2.all()).toEqual({
+                    'foo.0': 'bar',
+                    'foo.1': 'baz',
+                    'foo.baz': 'boom',
+                });
+
+                const data3 = Collection.make({
+                    foo: [
+                        'bar',
+                        'baz',
+                        {baz: 'boom'},
+                    ],
+                }).dot();
+
+                expect(data3.all()).toEqual({
+                    'foo.0': 'bar',
+                    'foo.1': 'baz',
+                    'foo.2.baz': 'boom',
+                });
+            });
+        });
+    });
+
     describe("undot", () => {
         describe("Laravel Tests", () => {
             it("test undot", () => {
-                // $data = $collection::make([
-                //     'name' => 'Taylor',
-                //     'meta.foo' => 'bar',
-                //     'meta.baz' => 'boom',
-                //     'meta.bam.boom' => 'bip',
-                // ])->undot();
-
-                // $this->assertSame([
-                //     'name' => 'Taylor',
-                //     'meta' => [
-                //         'foo' => 'bar',
-                //         'baz' => 'boom',
-                //         'bam' => [
-                //             'boom' => 'bip',
-                //         ],
-                //     ],
-                // ], $data->all());
-
                 const data = Collection.make({
                     name: 'Taylor',
                     'meta.foo': 'bar',
