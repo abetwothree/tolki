@@ -5130,6 +5130,20 @@ describe("Collection", () => {
         });
     });
 
+    describe("take", () => {
+        describe("Laravel Tests", () => {
+            it("test take", () => {
+                const data = collect(["taylor", "dayle", "shawn"]);
+                expect(data.take(2).all()).toEqual(["taylor", "dayle"]);
+            });
+
+            it("test take last", () => {
+                const data = collect(['taylor', 'dayle', 'shawn']);
+                expect(data.take(-2).all()).toEqual(['dayle', 'shawn']);
+            })
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
