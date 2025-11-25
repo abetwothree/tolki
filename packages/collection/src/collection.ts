@@ -3386,7 +3386,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).zip(new Collection(['a', 'b', 'c'])); -> new Collection([[1, 'a'], [2, 'b']])
      * new Collection({a: 1, b: 2}).zip({x: 'a', y: 'b', z: 'c'}); -> new Collection([[1, 'a'], [2, 'b']])
      */
-    zip<TZipValue>(...list: DataItems<TZipValue>[] | Collection<TZipValue>[]) {
+    zip<TZipValue, TKeyZip extends PropertyKey>(
+        ...list:
+            | DataItems<TZipValue, TKeyZip>[]
+            | Collection<TZipValue, TKeyZip>[]
+    ) {
         const arraysToZip = list.map((items) => {
             const rawItems = this.getRawItems(items) as DataItems<TZipValue>;
             return isArray(rawItems) ? rawItems : Object.values(rawItems);
@@ -3436,9 +3440,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).pad(-4, 0); -> new Collection({'-2': 0, '-1': 0, a: 1, b: 2})
      */
     pad<TPadValue>(size: number, value: TPadValue) {
-        return new Collection(
-            dataPad(this.items, size, value) as DataItems<TValue, TKey>,
-        );
+        return new Collection(dataPad(this.items, size, value));
     }
 
     /**

@@ -5393,6 +5393,18 @@ describe("Collection", () => {
         });
     });
 
+    describe("pad", () => {
+        describe("Laravel Tests", () => {
+            it("", () => {});
+        });
+    });
+
+    describe("", () => {
+        describe("Laravel Tests", () => {
+            it("", () => {});
+        });
+    });
+
     describe("uniqueStrict", () => {
         describe("Laravel Tests", () => {
             it("test unique strict", () => {
