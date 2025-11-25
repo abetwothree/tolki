@@ -3397,7 +3397,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             ...arraysToZip.map((arr) => arr.length),
         );
 
-        const zipped: Array<Array<TValue | TZipValue>> = [];
+        const zipped: Array<Collection<Array<TValue | TZipValue>, number>> = [];
 
         for (let i = 0; i < maxLength; i++) {
             const row: Array<TValue | TZipValue> = [];
@@ -3410,10 +3410,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
             for (const arr of arraysToZip) {
                 if (i < arr.length) {
                     row.push(arr[i]!);
+                } else {
+                    row.push(null as TZipValue);
                 }
             }
 
-            zipped.push(row);
+            zipped.push(new Collection(row));
         }
 
         return new Collection(zipped);

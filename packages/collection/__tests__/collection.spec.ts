@@ -5348,6 +5348,37 @@ describe("Collection", () => {
         });
     });
 
+    describe("zip", () => {
+        describe("Laravel Tests", () => {
+            it("test zip", () => {
+                let c = collect([1, 2, 3]);
+                c = c.zip(collect([4, 5, 6]));
+                expect(c).toBeInstanceOf(Collection);
+                expect(c.get(0)).toBeInstanceOf(Collection);
+                expect(c.get(1)).toBeInstanceOf(Collection);
+                expect(c.get(2)).toBeInstanceOf(Collection);
+                expect(c.count()).toBe(3);
+                expect(c.get(0).all()).toEqual([1, 4]);
+                expect(c.get(1).all()).toEqual([2, 5]);
+                expect(c.get(2).all()).toEqual([3, 6]);
+
+                let d = collect([1, 2, 3]);
+                d = d.zip([4, 5, 6], [7, 8, 9]);
+                expect(d.count()).toBe(3);
+                expect(d.get(0).all()).toEqual([1, 4, 7]);
+                expect(d.get(1).all()).toEqual([2, 5, 8]);
+                expect(d.get(2).all()).toEqual([3, 6, 9]);
+
+                let e = collect([1, 2, 3]);
+                e = e.zip([4, 5, 6], [7]);
+                expect(e.count()).toBe(3);
+                expect(e.get(0).all()).toEqual([1, 4, 7]);
+                expect(e.get(1).all()).toEqual([2, 5, null]);
+                expect(e.get(2).all()).toEqual([3, 6, null]);
+            });
+        });
+    });
+
     describe("uniqueStrict", () => {
         describe("Laravel Tests", () => {
             it("test unique strict", () => {
