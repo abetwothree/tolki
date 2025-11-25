@@ -4342,6 +4342,24 @@ describe("Collection", () => {
                 expect(chunks).toBeInstanceOf(Collection);
                 expect(chunks.first()).toBeInstanceOf(Collection);
                 expect(chunks.skip(1).first()).toBeInstanceOf(Collection);
+
+                // Test invalid size parameter (size must be at least 1)
+                expect(() =>
+                    Collection.times(5).sliding(0, 1).toArray(),
+                ).toThrow("Size value must be at least 1.");
+
+                expect(() =>
+                    Collection.times(5).sliding(-1, 1).toArray(),
+                ).toThrow("Size value must be at least 1.");
+
+                // Test invalid step parameter (step must be at least 1)
+                expect(() =>
+                    Collection.times(5).sliding(2, 0).toArray(),
+                ).toThrow("Step value must be at least 1.");
+
+                expect(() =>
+                    Collection.times(5).sliding(2, -1).toArray(),
+                ).toThrow("Step value must be at least 1.");
             });
         });
     });

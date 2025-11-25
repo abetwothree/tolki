@@ -2604,9 +2604,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Create chunks representing a "sliding window" view of the items in the collection.
      *
-     * @param size - The size of each chunk, defaults to 2
-     * @param step - The number of items to skip between chunks, defaults to 1
+     * @param size - The size of each chunk, defaults to 2 (must be at least 1)
+     * @param step - The number of items to skip between chunks, defaults to 1 (must be at least 1)
      * @returns A new collection with the sliding window chunks
+     * @throws Error if size or step is less than 1
      *
      * @example
      *
@@ -2616,6 +2617,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).sliding(); -> new Collection([ {a: 1, b: 2}, {b: 2, c: 3} ])
      */
     sliding(size: number = 2, step: number = 1) {
+        if (size < 1) {
+            throw new Error("Size value must be at least 1.");
+        }
+
+        if (step < 1) {
+            throw new Error("Step value must be at least 1.");
+        }
+
         const chunks = Math.floor((this.count() - size) / step) + 1;
 
         return Collection.times(chunks, (count: number) =>
