@@ -5431,6 +5431,44 @@ describe("Collection", () => {
         });
     });
 
+    describe("count", () => {
+        describe("Laravel Tests", () => {
+            it("test countable", () => {
+                const c = collect(["foo", "bar"]);
+                expect(Number(c)).toBe(2);
+                expect(c).toHaveLength(2);
+            });
+        });
+        
+        it("returns number of array items", () => {
+            const collection = collect([1, 2, 3]);
+            expect(collection.count()).toBe(3);
+        });
+
+        it("returns number of object items", () => {
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            expect(collection.count()).toBe(3);
+        });
+
+        it("returns 0 for empty array collection", () => {
+            const collection = collect([]);
+            expect(collection.count()).toBe(0);
+        });
+
+        it("returns 0 for empty object collection", () => {
+            const collection = collect({});
+            expect(collection.count()).toBe(0);
+        });
+    });
+
+    describe("countBy", () => {
+        describe("Laravel Tests", () => {
+            it("", () => {
+                
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
@@ -5451,28 +5489,6 @@ describe("Collection", () => {
                     { id: "00", name: "double zero" },
                 ]);
             });
-        });
-    });
-
-    describe("count", () => {
-        it("returns number of array items", () => {
-            const collection = collect([1, 2, 3]);
-            expect(collection.count()).toBe(3);
-        });
-
-        it("returns number of object items", () => {
-            const collection = collect({ a: 1, b: 2, c: 3 });
-            expect(collection.count()).toBe(3);
-        });
-
-        it("returns 0 for empty array collection", () => {
-            const collection = collect([]);
-            expect(collection.count()).toBe(0);
-        });
-
-        it("returns 0 for empty object collection", () => {
-            const collection = collect({});
-            expect(collection.count()).toBe(0);
         });
     });
 

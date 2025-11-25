@@ -3480,6 +3480,40 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
+     * Convert the collection to a primitive value (returns count).
+     * This allows the collection to be used in numeric contexts.
+     *
+     * @returns The number of items in the collection
+     *
+     * @example
+     *
+     * const c = new Collection([1, 2, 3]);
+     * +c; -> 3
+     * Number(c); -> 3
+     * c == 3; -> true (loose comparison)
+     */
+    valueOf(): number {
+        return this.count();
+    }
+
+    /**
+     * Get the length of the collection.
+     * This property allows the collection to work with JavaScript's length-based APIs
+     * like Array.from() and testing matchers like toHaveLength().
+     *
+     * @returns The number of items in the collection
+     *
+     * @example
+     *
+     * const c = new Collection([1, 2, 3]);
+     * c.length; -> 3
+     * expect(c).toHaveLength(3); // Works in tests
+     */
+    get length(): number {
+        return this.count();
+    }
+
+    /**
      * Count the number of items in the collection by a field or using a callback.
      *
      * @param countByValue - The key or callback to determine the count grouping, or null to count all items as one group
