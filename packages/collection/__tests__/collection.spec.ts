@@ -5395,7 +5395,23 @@ describe("Collection", () => {
 
     describe("pad", () => {
         describe("Laravel Tests", () => {
-            it("", () => {});
+            it("test pad", () => {
+                let c = collect([1, 2, 3]);
+                c = c.pad(4, 0)
+                expect(c.all()).toEqual([1, 2, 3, 0])
+
+                let d = collect([1, 2, 3, 4, 5]);
+                d = d.pad(4, 0)
+                expect(d.all()).toEqual([1, 2, 3, 4, 5])
+
+                let e = collect([1, 2, 3]);
+                e = e.pad(-4, 0)
+                expect(e.all()).toEqual([0, 1, 2, 3])
+
+                let f = collect([1, 2, 3, 4, 5]);
+                f = f.pad(-4, 0)
+                expect(f.all()).toEqual([1, 2, 3, 4, 5])
+            });
         });
     });
 
