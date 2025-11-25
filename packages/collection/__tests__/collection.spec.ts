@@ -5522,6 +5522,36 @@ describe("Collection", () => {
         });
     });
 
+    describe("add", () => {
+        describe("Laravel Tests", () => {
+            it("test add", () => {
+                const c = collect([]);
+                c.add(1);
+                expect(c.values().all()).toEqual([1]);
+                c.add(2);
+                expect(c.values().all()).toEqual([1, 2]);
+                c.add("");
+                expect(c.values().all()).toEqual([1, 2, ""]);
+                c.add(null);
+                expect(c.values().all()).toEqual([1, 2, "", null]);
+                c.add(false);
+                expect(c.values().all()).toEqual([1, 2, "", null, false]);
+                c.add([]);
+                expect(c.values().all()).toEqual([1, 2, "", null, false, []]);
+                c.add("name");
+                expect(c.values().all()).toEqual([
+                    1,
+                    2,
+                    "",
+                    null,
+                    false,
+                    [],
+                    "name",
+                ]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});

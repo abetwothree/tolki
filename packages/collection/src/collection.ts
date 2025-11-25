@@ -3566,24 +3566,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).add(3); -> collection is now {a: 1, b: 2, '2': 3}
      * new Collection({a: 1, b: 2}).add(3, 'c'); -> collection is now {a: 1, b: 2, 'c': 3}
      */
-    add(item: TValue, key: TKey | null = null) {
+    add<T, K extends PropertyKey>(item: T, key: K | null = null) {
         if (isArray(this.items)) {
             if (!isNull(key)) {
-                (this.items as TValue[])[key as number] = item;
+                this.items[key] = item;
             } else {
-                (this.items as TValue[]).push(item);
+                this.items.push(item);
             }
 
             return this;
         }
 
         if (!isNull(key)) {
-            (this.items as Record<TKey, TValue>)[key] = item;
+            this.items[key] = item;
             return this;
         }
 
-        const lengthKey = Object.keys(this.items).length as TKey;
-        (this.items as Record<TKey, TValue>)[lengthKey] = item;
+        const lengthKey = Object.keys(this.items).length;
+        this.items[lengthKey] = item;
 
         return this;
     }
