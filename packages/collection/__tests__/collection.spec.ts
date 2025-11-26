@@ -6260,6 +6260,40 @@ describe("Collection", () => {
         });
     });
 
+    describe("firstWhere", () => {
+        describe("Laravel Tests", () => {
+            it("test first where", () => {
+                const data = collect([
+                    { material: "paper", type: "book" },
+                    { material: "rubber", type: "gasket" },
+                ]);
+
+                expect(data.firstWhere("material", "paper")?.type).toBe("book");
+                expect(data.firstWhere("material", "rubber")?.type).toBe("gasket");
+                expect(data.firstWhere("material", "nonexistent")).toBeNull();
+                expect(data.firstWhere("nonexistent", "key")).toBeNull();
+
+                expect(
+                    data.firstWhere((value) => value.material === "paper")?.type,
+                ).toBe("book");
+                expect(
+                    data.firstWhere((value) => value.material === "rubber")
+                        ?.type,
+                ).toBe("gasket");
+                expect(
+                    data.firstWhere(
+                        (value) => value.material === "nonexistent",
+                    ),
+                ).toBeNull();
+                expect(
+                    data.firstWhere(
+                        (value) => value.nonexistent === "key",
+                    ),
+                ).toBeNull();
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
