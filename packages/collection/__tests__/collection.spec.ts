@@ -5639,6 +5639,37 @@ describe("Collection", () => {
         });
     });
 
+    describe("offsetSet", () => {
+        describe("Laravel Tests", () => {
+            it("test offsetSet", () => {
+                // TODO figure out how to test based on indexes directly on Collection like PHP does
+                // $c = new Collection(['foo', 'foo']);
+
+                // $c->offsetSet(1, 'bar');
+                // $this->assertSame('bar', $c[1]);
+
+                // $c->offsetSet(null, 'qux');
+                // $this->assertSame('qux', $c[2]);
+
+                const c = collect({ a: "foo", b: "foo" });
+                
+                c.offsetSet("b", "bar");
+                expect(c.get("b")).toBe("bar");
+
+                c.offsetSet(null, "qux");
+                expect(c.get(2)).toBe("qux");
+
+                const d = collect(['foo', 'foo']);
+
+                d.offsetSet(1, 'bar');
+                expect(d.get(1)).toBe('bar');
+
+                d.offsetSet(null, 'qux');
+                expect(d.get(2)).toBe('qux');
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
