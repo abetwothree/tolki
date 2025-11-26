@@ -5790,6 +5790,23 @@ describe("Collection", () => {
         });
     });
 
+    describe("unwrap", () => {
+        describe("Laravel Tests", () => {
+            it("test unwrap collection", () => {
+                const data = new Collection(["foo"]);
+                expect(Collection.unwrap(data)).toEqual(["foo"]);
+            });
+            
+            it("test unwrap collection with array", () => {
+                expect(Collection.unwrap(["foo"])).toEqual(["foo"]);
+            });
+            
+            it("test unwrap collection with scalar", () => {
+                expect(Collection.unwrap("foo")).toBe("foo");
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
