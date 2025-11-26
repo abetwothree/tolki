@@ -3954,10 +3954,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const reduced = this.reduce(
             (carry, item, key) => {
-                const value = callbackValue(item, key);
-                if (isNumber(value)) {
-                    carry[0] = (carry[0] ?? 0) + value;
-                    carry[1] = (carry[1] ?? 0) + 1;
+                const resolved = callbackValue(item, key);
+                if (resolved !== null && resolved !== undefined) {
+                    const numValue = Number(resolved);
+                    if (!isNaN(numValue)) {
+                        carry[0] = (carry[0] ?? 0) + numValue;
+                        carry[1] = (carry[1] ?? 0) + 1;
+                    }
                 }
 
                 return carry;
