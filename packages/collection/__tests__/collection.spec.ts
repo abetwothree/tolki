@@ -5928,6 +5928,65 @@ describe("Collection", () => {
         });
     });
 
+    describe("average", () => {
+        describe("Laravel Tests", () => {
+            it("test average method", () => {
+                const c = collect([{ foo: 10 }, { foo: 20 }]);
+                expect(
+                    c.average((item) => {
+                        return item.foo;
+                    }),
+                ).toBe(15);
+                expect(c.average("foo")).toBe(15);
+                expect(
+                    c.average((item) => {
+                        return item.foo;
+                    }),
+                ).toBe(15);
+
+                const d = collect([{ foo: 10 }, { foo: 20 }, { foo: null }]);
+                expect(
+                    d.average((item) => {
+                        return item.foo;
+                    }),
+                ).toBe(15);
+                expect(d.average("foo")).toBe(15);
+                expect(
+                    d.average((item) => {
+                        return item.foo;
+                    }),
+                ).toBe(15);
+
+                const e = collect([{ foo: 10 }, { foo: 20 }]);
+                expect(e.average("foo")).toBe(15);
+                expect(
+                    e.average((item) => {
+                        return item.foo;
+                    }),
+                ).toBe(15);
+
+                const f = collect([1, 2, 3, 4, 5]);
+                expect(f.average()).toBe(3);
+
+                const g = collect();
+                expect(g.average()).toBeNull();
+
+                const h = collect([{ foo: "4" }, { foo: "2" }]);
+                expect(typeof h.average("foo")).toBe("number");
+                expect(h.average("foo")).toBe(3);
+                const i = collect([{ foo: 1 }, { foo: 2 }]);
+                expect(typeof i.average("foo")).toBe("number");
+                expect(i.average("foo")).toBe(1.5);
+
+                const j = collect([{ foo: 1 }, { foo: 2 }, { foo: 6 }]);
+                expect(j.average("foo")).toBe(3);
+
+                const k = collect([0]);
+                expect(k.average()).toBe(0);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
