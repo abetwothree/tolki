@@ -4085,6 +4085,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     return false;
                 }
             }
+            
+            return true;
         }
 
         return this.every(

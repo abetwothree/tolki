@@ -6218,6 +6218,48 @@ describe("Collection", () => {
         });
     });
 
+    describe("every", () => {
+        describe("Laravel Tests", () => {
+            it("test every", () => {
+                const c = collect([]);
+                expect(c.every("key", "value")).toBe(true);
+                expect(
+                    c.every(() => {
+                        return false;
+                    }),
+                ).toBe(true);
+
+                const d = collect([{ age: 18 }, { age: 20 }, { age: 20 }]);
+                expect(d.every("age", 18)).toBe(false);
+                expect(d.every("age", ">=", 18)).toBe(true);
+                expect(
+                    d.every((item) => {
+                        return item.age >= 18;
+                    }),
+                ).toBe(true);
+                expect(
+                    d.every((item) => {
+                        return item.age >= 20;
+                    }),
+                ).toBe(false);
+
+                const e = collect([null, null]);
+                expect(
+                    e.every((item) => {
+                        return item === null;
+                    }),
+                ).toBe(true);
+
+                const f = collect([{ active: true }, { active: true }]);
+                expect(f.every("active")).toBe(true);
+                expect(f.every((item) => item.active)).toBe(true);
+                expect(
+                    f.concat([{ active: false }]).every((item) => item.active),
+                ).toBe(false);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
