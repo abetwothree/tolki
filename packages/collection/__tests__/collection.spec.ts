@@ -5625,6 +5625,20 @@ describe("Collection", () => {
         });
     });
 
+    describe("offsetGet", () => {
+        describe("Laravel Tests", () => {
+            it("test offset get", () => {
+                const c = collect({ a: "foo", b: "bar" });
+                expect(c.offsetGet("a")).toBe("foo");
+                expect(c.offsetGet("b")).toBe("bar");
+
+                const d = collect(["foo", "bar"]);
+                expect(d.offsetGet(0)).toBe("foo");
+                expect(d.offsetGet(1)).toBe("bar");
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
