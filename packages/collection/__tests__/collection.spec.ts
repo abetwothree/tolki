@@ -5561,50 +5561,57 @@ describe("Collection", () => {
             });
         });
 
-        it('test add to objects', () => {
+        it("test add to objects", () => {
             const c = collect({});
-            c.add(1, 'a');
+            c.add(1, "a");
             expect(c.all()).toEqual({ a: 1 });
-            c.add(2, 'b');
+            c.add(2, "b");
             expect(c.all()).toEqual({ a: 1, b: 2 });
-            c.add('', 'c');
-            expect(c.all()).toEqual({ a: 1, b: 2, c: '' });
-            c.add(null, 'd');
-            expect(c.all()).toEqual({ a: 1, b: 2, c: '', d: null });
-            c.add(false, 'e');
-            expect(c.all()).toEqual({ a: 1, b: 2, c: '', d: null, e: false });
-            c.add([], 'f');
-            expect(c.all()).toEqual({ a: 1, b: 2, c: '', d: null, e: false, f: [] });
-            c.add('name', 'g');
+            c.add("", "c");
+            expect(c.all()).toEqual({ a: 1, b: 2, c: "" });
+            c.add(null, "d");
+            expect(c.all()).toEqual({ a: 1, b: 2, c: "", d: null });
+            c.add(false, "e");
+            expect(c.all()).toEqual({ a: 1, b: 2, c: "", d: null, e: false });
+            c.add([], "f");
             expect(c.all()).toEqual({
                 a: 1,
                 b: 2,
-                c: '',
+                c: "",
                 d: null,
                 e: false,
                 f: [],
-                g: 'name',
             });
-            c.add(5, 'a')
+            c.add("name", "g");
+            expect(c.all()).toEqual({
+                a: 1,
+                b: 2,
+                c: "",
+                d: null,
+                e: false,
+                f: [],
+                g: "name",
+            });
+            c.add(5, "a");
             expect(c.all()).toEqual({
                 a: 5,
                 b: 2,
-                c: '',
+                c: "",
                 d: null,
                 e: false,
                 f: [],
-                g: 'name',
+                g: "name",
             });
-            c.add('home')
+            c.add("home");
             expect(c.all()).toEqual({
                 a: 5,
                 b: 2,
-                c: '',
+                c: "",
                 d: null,
                 e: false,
                 f: [],
-                g: 'name',
-                7: 'home',
+                g: "name",
+                7: "home",
             });
         });
     });
@@ -5652,20 +5659,20 @@ describe("Collection", () => {
                 // $this->assertSame('qux', $c[2]);
 
                 const c = collect({ a: "foo", b: "foo" });
-                
+
                 c.offsetSet("b", "bar");
                 expect(c.get("b")).toBe("bar");
 
                 c.offsetSet(null, "qux");
                 expect(c.get(2)).toBe("qux");
 
-                const d = collect(['foo', 'foo']);
+                const d = collect(["foo", "foo"]);
 
-                d.offsetSet(1, 'bar');
-                expect(d.get(1)).toBe('bar');
+                d.offsetSet(1, "bar");
+                expect(d.get(1)).toBe("bar");
 
-                d.offsetSet(null, 'qux');
-                expect(d.get(2)).toBe('qux');
+                d.offsetSet(null, "qux");
+                expect(d.get(2)).toBe("qux");
             });
         });
     });
@@ -5680,6 +5687,37 @@ describe("Collection", () => {
                 const d = collect(["foo", "bar"]);
                 d.offsetUnset(1);
                 expect(d.offsetExists(1)).toBe(false);
+            });
+        });
+    });
+
+    describe("make", () => {
+        describe("Laravel Tests", () => {
+            it("test make method", () => {
+                const data = Collection.make("foo");
+                expect(data.all()).toEqual(["foo"]);
+            });
+
+            it("test make method from null", () => {
+                const data = Collection.make(null);
+                expect(data.all()).toEqual([]);
+
+                const data2 = Collection.make();
+                expect(data2.all()).toEqual([]);
+            });
+
+            it("test make method from collection", () => {
+                const firstCollection = Collection.make({ foo: "bar" });
+                const secondCollection = Collection.make(firstCollection);
+                expect(secondCollection.all()).toEqual({ foo: "bar" });
+            });
+
+            it("test make method from array", () => {
+                const data = Collection.make({ foo: "bar" });
+                expect(data.all()).toEqual({ foo: "bar" });
+
+                const data2 = Collection.make(["foo", "bar"]);
+                expect(data2.all()).toEqual(["foo", "bar"]);
             });
         });
     });

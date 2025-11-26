@@ -196,6 +196,10 @@ export function collect<TValue, TKey extends PropertyKey>(
     items: Map<TKey, TValue>,
 ): Collection<TValue, TKey>;
 export function collect(items?: null | undefined): Collection<[], number>;
+export function collect(items: string): Collection<string[], number>;
+export function collect(items: number): Collection<number[], number>;
+export function collect(items: boolean): Collection<boolean[], number>;
+export function collect(items: symbol): Collection<symbol[], number>;
 export function collect<TValue, TKey extends PropertyKey>(
     items?:
         | TValue[]
@@ -203,6 +207,10 @@ export function collect<TValue, TKey extends PropertyKey>(
         | Collection<TValue, TKey>
         | Arrayable<TValue>
         | Map<TKey, TValue>
+        | string
+        | number
+        | boolean
+        | symbol
         | null
         | undefined,
 ): Collection<TValue, TKey> {
@@ -225,15 +233,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     protected itemsWithOrder?: Array<[TKey, TValue]>;
 
+    constructor(items: Collection<TValue, TKey>);
+    constructor(items: Arrayable<TValue>);
+    constructor(items: Map<TKey, TValue>);
+    constructor(items?: null | undefined);
     constructor(items: TValue extends unknown[] ? TValue : never);
     constructor(items: TValue extends readonly unknown[] ? TValue : never);
     constructor(
         items: TValue extends Record<PropertyKey, unknown> ? TValue : never,
     );
-    constructor(items: Collection<TValue, TKey>);
-    constructor(items: Arrayable<TValue>);
-    constructor(items: Map<TKey, TValue>);
-    constructor(items?: null | undefined);
     constructor(
         items?:
             | TValue[]
@@ -242,6 +250,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Collection<TValue, TKey>
             | Arrayable<TValue>
             | Map<TKey, TValue>
+            | string
+            | number
+            | boolean
+            | symbol
             | null
             | undefined,
     );
@@ -3689,10 +3701,39 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Collection.make(new Collection([1, 2, 3])); -> new Collection([1, 2, 3])
      * Collection.make(null); -> new Collection([])
      */
+    static make<TValue extends Record<PropertyKey, unknown>>(
+        items: TValue,
+    ): Collection<TValue, string>;
+    static make<TValue>(
+        items: TValue[] | readonly TValue[],
+    ): Collection<TValue, number>;
+    static make<TValue, TKey extends PropertyKey>(
+        items: Collection<TValue, TKey>,
+    ): Collection<TValue, TKey>;
+    static make<TValue>(
+        items: Arrayable<TValue>,
+    ): Collection<ReturnType<Arrayable<TValue>["toArray"]>, number>;
+    static make<TValue, TKey extends PropertyKey>(
+        items: Map<TKey, TValue>,
+    ): Collection<TValue, TKey>;
+    static make(items?: null | undefined): Collection<[], number>;
+    static make(items: string): Collection<string[], number>;
+    static make(items: number): Collection<number[], number>;
+    static make(items: boolean): Collection<boolean[], number>;
+    static make(items: symbol): Collection<symbol[], number>;
     static make<TMakeValue, TMakeKey extends PropertyKey = PropertyKey>(
-        items: DataItems<TMakeValue, TMakeKey> = [],
+        items?:
+            | DataItems<TMakeValue, TMakeKey>
+            | string
+            | number
+            | boolean
+            | symbol
+            | null
+            | undefined,
     ) {
-        return new Collection<TMakeValue, TMakeKey>(items);
+        return new Collection<TMakeValue, TMakeKey>(
+            items ?? ([] as DataItems<TMakeValue, TMakeKey>),
+        );
     }
 
     /**
