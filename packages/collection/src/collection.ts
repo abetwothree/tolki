@@ -3997,7 +3997,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     some(
         key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
-        operator: unknown,
+        operator: unknown = null,
         value: unknown = null,
     ) {
         return this.contains(key, operator, value);

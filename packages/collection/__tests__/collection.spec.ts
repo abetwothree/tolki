@@ -5987,6 +5987,54 @@ describe("Collection", () => {
         });
     });
 
+    describe("some", () => {
+        describe("Laravel Tests", () => {
+            it("test some", () => {
+                const c = collect([1, 3, 5]);
+
+                expect(c.some(1)).toBe(true);
+                expect(c.some(2)).toBe(false);
+                expect(
+                    c.some((value) => {
+                        return value < 5;
+                    }),
+                ).toBe(true);
+                expect(
+                    c.some((value) => {
+                        return value > 5;
+                    }),
+                ).toBe(false);
+
+                const d = collect(["date", "class", { foo: 50 }]);
+
+                expect(d.some("date")).toBe(true);
+                expect(d.some("class")).toBe(true);
+                expect(d.some("foo")).toBe(false);
+
+                const e = collect([{ a: false, b: false }, { a: true, b: false }]);
+
+                expect(
+                    e.some((value) => {
+                        return value.a;
+                    }),
+                ).toBe(true);
+                expect(
+                    e.some((value) => {
+                        return value.b;
+                    }),
+                ).toBe(false);
+
+                const f = collect([null, 1, 2]);
+
+                expect(
+                    f.some((value) => {
+                        return value === null;
+                    }),
+                ).toBe(true);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
