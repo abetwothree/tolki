@@ -5670,6 +5670,20 @@ describe("Collection", () => {
         });
     });
 
+    describe("offsetUnset", () => {
+        describe("Laravel Tests", () => {
+            it("test offsetUnset", () => {
+                const c = collect({ a: "foo", b: "bar" });
+                c.offsetUnset("b");
+                expect(c.offsetExists("b")).toBe(false);
+
+                const d = collect(["foo", "bar"]);
+                d.offsetUnset(1);
+                expect(d.offsetExists(1)).toBe(false);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
