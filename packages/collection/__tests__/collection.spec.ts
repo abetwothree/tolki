@@ -5796,11 +5796,11 @@ describe("Collection", () => {
                 const data = new Collection(["foo"]);
                 expect(Collection.unwrap(data)).toEqual(["foo"]);
             });
-            
+
             it("test unwrap collection with array", () => {
                 expect(Collection.unwrap(["foo"])).toEqual(["foo"]);
             });
-            
+
             it("test unwrap collection with scalar", () => {
                 expect(Collection.unwrap("foo")).toBe("foo");
             });
@@ -5818,12 +5818,12 @@ describe("Collection", () => {
                 expect(d.count()).toBe(0);
                 expect(d.all()).toEqual({});
             });
-            
+
             it("test empty collection is empty", () => {
                 const c = new Collection();
                 expect(c.isEmpty()).toBe(true);
             });
-            
+
             it("test empty collection is not empty", () => {
                 const c = new Collection(["foo", "bar"]);
                 expect(c.isEmpty()).toBe(false);
@@ -6011,7 +6011,10 @@ describe("Collection", () => {
                 expect(d.some("class")).toBe(true);
                 expect(d.some("foo")).toBe(false);
 
-                const e = collect([{ a: false, b: false }, { a: true, b: false }]);
+                const e = collect([
+                    { a: false, b: false },
+                    { a: true, b: false },
+                ]);
 
                 expect(
                     e.some((value) => {
