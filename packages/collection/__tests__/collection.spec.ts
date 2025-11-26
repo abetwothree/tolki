@@ -5609,6 +5609,22 @@ describe("Collection", () => {
         });
     });
 
+    describe("offsetExists", () => {
+        describe("Laravel Tests", () => {
+            it("test offsetExists", () => {
+                const c = collect({ a: "foo", b: "bar", c: null });
+                expect(c.offsetExists("a")).toBe(true);
+                expect(c.offsetExists("b")).toBe(true);
+                expect(c.offsetExists("c")).toBe(false);
+
+                const d = collect(["foo", "bar", null]);
+                expect(d.offsetExists(0)).toBe(true);
+                expect(d.offsetExists(1)).toBe(true);
+                expect(d.offsetExists(2)).toBe(false);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
