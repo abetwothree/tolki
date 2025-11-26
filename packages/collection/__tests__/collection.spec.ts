@@ -6092,6 +6092,132 @@ describe("Collection", () => {
         });
     });
 
+    describe("eachSpread", () => {
+        describe("Laravel Tests", () => {
+            it("test each spread", () => {
+                // $c = new $collection([[1, 'a'], [2, 'b']]);
+
+                const c = collect([[1, "a"], [2, "b"]]);
+
+                // $result = [];
+                // $c->eachSpread(function ($number, $character) use (&$result) {
+                //     $result[] = [$number, $character];
+                // });
+                // $this->assertEquals($c->all(), $result);
+
+                let result: unknown[] = [];
+                c.eachSpread((number, character) => {
+                    result.push([number, character]);
+                });
+                expect(result).toEqual(c.all());
+
+                // $result = [];
+                // $c->eachSpread(function ($number, $character) use (&$result) {
+                //     $result[] = [$number, $character];
+
+                //     return false;
+                // });
+                // $this->assertEquals([[1, 'a']], $result);
+
+                result = [];
+                c.eachSpread((number, character, key) => {
+                    result.push([number, character, key]);
+                });
+                expect(result).toEqual([[1, "a", 0], [2, "b", 1]]);
+
+                // $result = [];
+                // $c->eachSpread(function ($number, $character, $key) use (&$result) {
+                //     $result[] = [$number, $character, $key];
+                // });
+                // $this->assertEquals([[1, 'a', 0], [2, 'b', 1]], $result);
+
+                result = [];
+                const c2 = collect([collect([1, "a"]), collect([2, "b"])]);
+                c2.eachSpread((number, character, key) => {
+                    result.push([number, character, key]);
+                });
+                expect(result).toEqual([[1, "a", 0], [2, "b", 1]]);
+
+                // $c = new $collection([new Collection([1, 'a']), new Collection([2, 'b'])]);
+                // $result = [];
+                // $c->eachSpread(function ($number, $character, $key) use (&$result) {
+                //     $result[] = [$number, $character, $key];
+                // });
+                // $this->assertEquals([[1, 'a', 0], [2, 'b', 1]], $result);
+
+                const d = new Collection([new Collection([1, "a"]), new Collection([2, "b"])]);
+                result = [];
+                d.eachSpread((number, character, key) => {
+                    result.push([number, character, key]);
+                });
+                expect(result).toEqual([[1, "a", 0], [2, "b", 1]]);
+            });
+        });
+
+        it("stops when callback returns false", () => {
+            const c = collect([[1, "a"], [2, "b"]]);
+            const seen: unknown[] = [];
+            c.eachSpread((n, ch) => {
+                seen.push([n, ch]);
+                return false;
+            });
+            expect(seen).toEqual([[1, "a"]]);
+        });
+
+        it("spreads scalar items and passes index last", () => {
+            const c = collect([10, 20]);
+            const args: unknown[] = [];
+            c.eachSpread((value, key) => {
+                args.push([value, key]);
+            });
+            expect(args).toEqual([[10, 0], [20, 1]]);
+        });
+
+        it("passes plain objects as single arg and index last", () => {
+            const obj1 = { x: 1 };
+            const obj2 = { y: 2 };
+            const c = collect([obj1, obj2]);
+            const args: unknown[] = [];
+            c.eachSpread((value, key) => {
+                args.push([value, key]);
+            });
+            expect(args).toEqual([[obj1, 0], [obj2, 1]]);
+        });
+
+        it("handles nested Collection of objects", () => {
+            const c = collect([collect({ a: 1 }), collect({ b: 2 })]);
+            const args: unknown[] = [];
+            c.eachSpread((value, key) => {
+                args.push([value, key]);
+            });
+            expect(args).toEqual([[{ a: 1 }, 0], [{ b: 2 }, 1]]);
+        });
+
+        it("uses object keys when collection has string keys", () => {
+            const c = collect({ first: [1, "a"], second: [2, "b"] });
+            const args: unknown[] = [];
+            c.eachSpread((n, ch, key) => {
+                args.push([n, ch, key]);
+            });
+            expect(args).toEqual([[1, "a", "first"], [2, "b", "second"]]);
+        });
+
+        it("returns the same collection instance", () => {
+            const c = collect([[1, 2]]);
+            const returned = c.eachSpread(() => {});
+            expect(returned).toBe(c);
+        });
+
+        it("no-op on empty collection", () => {
+            const c = collect<number[]>([]);
+            const seen: unknown[] = [];
+            c.eachSpread((...vals) => {
+                seen.push(vals);
+            });
+            expect(seen).toEqual([]);
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
