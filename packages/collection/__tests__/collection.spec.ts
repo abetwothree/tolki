@@ -6041,13 +6041,13 @@ describe("Collection", () => {
     describe("each", () => {
         describe("Laravel Tests", () => {
             it("test each", () => {
-                const c = collect([1, 2, {"foo": "bar"}, {"bam": "baz"}]);
+                const c = collect([1, 2, { foo: "bar" }, { bam: "baz" }]);
 
                 let result: unknown[] = [];
                 c.each((item, key) => {
                     result[key] = item;
                 });
-                expect(result).toEqual([1, 2, {"foo": "bar"}, {"bam": "baz"}]);
+                expect(result).toEqual([1, 2, { foo: "bar" }, { bam: "baz" }]);
 
                 result = [];
                 c.each((item, key) => {
@@ -6056,11 +6056,14 @@ describe("Collection", () => {
                         return false;
                     }
                 });
-                expect(result).toEqual([1, 2, {"foo": "bar"}]);
+                expect(result).toEqual([1, 2, { foo: "bar" }]);
             });
 
             it("test each spread", () => {
-                const c = collect([[1, "a"], [2, "b"]]);
+                const c = collect([
+                    [1, "a"],
+                    [2, "b"],
+                ]);
 
                 let result: unknown[] = [];
                 c.eachSpread((number, character) => {
@@ -6080,14 +6083,20 @@ describe("Collection", () => {
                 c.eachSpread((number, character, key) => {
                     result.push([number, character, key]);
                 });
-                expect(result).toEqual([[1, "a", 0], [2, "b", 1]]);
+                expect(result).toEqual([
+                    [1, "a", 0],
+                    [2, "b", 1],
+                ]);
 
                 const c2 = collect([collect([1, "a"]), collect([2, "b"])]);
                 result = [];
                 c2.eachSpread((number, character, key) => {
                     result.push([number, character, key]);
                 });
-                expect(result).toEqual([[1, "a", 0], [2, "b", 1]]);
+                expect(result).toEqual([
+                    [1, "a", 0],
+                    [2, "b", 1],
+                ]);
             });
         });
     });
@@ -6097,7 +6106,10 @@ describe("Collection", () => {
             it("test each spread", () => {
                 // $c = new $collection([[1, 'a'], [2, 'b']]);
 
-                const c = collect([[1, "a"], [2, "b"]]);
+                const c = collect([
+                    [1, "a"],
+                    [2, "b"],
+                ]);
 
                 // $result = [];
                 // $c->eachSpread(function ($number, $character) use (&$result) {
@@ -6123,7 +6135,10 @@ describe("Collection", () => {
                 c.eachSpread((number, character, key) => {
                     result.push([number, character, key]);
                 });
-                expect(result).toEqual([[1, "a", 0], [2, "b", 1]]);
+                expect(result).toEqual([
+                    [1, "a", 0],
+                    [2, "b", 1],
+                ]);
 
                 // $result = [];
                 // $c->eachSpread(function ($number, $character, $key) use (&$result) {
@@ -6136,7 +6151,10 @@ describe("Collection", () => {
                 c2.eachSpread((number, character, key) => {
                     result.push([number, character, key]);
                 });
-                expect(result).toEqual([[1, "a", 0], [2, "b", 1]]);
+                expect(result).toEqual([
+                    [1, "a", 0],
+                    [2, "b", 1],
+                ]);
 
                 // $c = new $collection([new Collection([1, 'a']), new Collection([2, 'b'])]);
                 // $result = [];
@@ -6145,17 +6163,26 @@ describe("Collection", () => {
                 // });
                 // $this->assertEquals([[1, 'a', 0], [2, 'b', 1]], $result);
 
-                const d = new Collection([new Collection([1, "a"]), new Collection([2, "b"])]);
+                const d = new Collection([
+                    new Collection([1, "a"]),
+                    new Collection([2, "b"]),
+                ]);
                 result = [];
                 d.eachSpread((number, character, key) => {
                     result.push([number, character, key]);
                 });
-                expect(result).toEqual([[1, "a", 0], [2, "b", 1]]);
+                expect(result).toEqual([
+                    [1, "a", 0],
+                    [2, "b", 1],
+                ]);
             });
         });
 
         it("stops when callback returns false", () => {
-            const c = collect([[1, "a"], [2, "b"]]);
+            const c = collect([
+                [1, "a"],
+                [2, "b"],
+            ]);
             const seen: unknown[] = [];
             c.eachSpread((n, ch) => {
                 seen.push([n, ch]);
@@ -6170,7 +6197,10 @@ describe("Collection", () => {
             c.eachSpread((value, key) => {
                 args.push([value, key]);
             });
-            expect(args).toEqual([[10, 0], [20, 1]]);
+            expect(args).toEqual([
+                [10, 0],
+                [20, 1],
+            ]);
         });
 
         it("passes plain objects as single arg and index last", () => {
@@ -6181,7 +6211,10 @@ describe("Collection", () => {
             c.eachSpread((value, key) => {
                 args.push([value, key]);
             });
-            expect(args).toEqual([[obj1, 0], [obj2, 1]]);
+            expect(args).toEqual([
+                [obj1, 0],
+                [obj2, 1],
+            ]);
         });
 
         it("handles nested Collection of objects", () => {
@@ -6190,7 +6223,10 @@ describe("Collection", () => {
             c.eachSpread((value, key) => {
                 args.push([value, key]);
             });
-            expect(args).toEqual([[{ a: 1 }, 0], [{ b: 2 }, 1]]);
+            expect(args).toEqual([
+                [{ a: 1 }, 0],
+                [{ b: 2 }, 1],
+            ]);
         });
 
         it("uses object keys when collection has string keys", () => {
@@ -6199,7 +6235,10 @@ describe("Collection", () => {
             c.eachSpread((n, ch, key) => {
                 args.push([n, ch, key]);
             });
-            expect(args).toEqual([[1, "a", "first"], [2, "b", "second"]]);
+            expect(args).toEqual([
+                [1, "a", "first"],
+                [2, "b", "second"],
+            ]);
         });
 
         it("returns the same collection instance", () => {
@@ -6269,12 +6308,15 @@ describe("Collection", () => {
                 ]);
 
                 expect(data.firstWhere("material", "paper")?.type).toBe("book");
-                expect(data.firstWhere("material", "rubber")?.type).toBe("gasket");
+                expect(data.firstWhere("material", "rubber")?.type).toBe(
+                    "gasket",
+                );
                 expect(data.firstWhere("material", "nonexistent")).toBeNull();
                 expect(data.firstWhere("nonexistent", "key")).toBeNull();
 
                 expect(
-                    data.firstWhere((value) => value.material === "paper")?.type,
+                    data.firstWhere((value) => value.material === "paper")
+                        ?.type,
                 ).toBe("book");
                 expect(
                     data.firstWhere((value) => value.material === "rubber")
@@ -6286,9 +6328,7 @@ describe("Collection", () => {
                     ),
                 ).toBeNull();
                 expect(
-                    data.firstWhere(
-                        (value) => value.nonexistent === "key",
-                    ),
+                    data.firstWhere((value) => value.nonexistent === "key"),
                 ).toBeNull();
             });
         });

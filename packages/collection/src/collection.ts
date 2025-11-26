@@ -4044,14 +4044,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
             if (isArray(chunk)) {
                 values = chunk as unknown[];
             } else if (chunk instanceof Collection) {
-                const all = (chunk as unknown as Collection<unknown, PropertyKey>).all();
+                const all = (
+                    chunk as unknown as Collection<unknown, PropertyKey>
+                ).all();
                 values = isArray(all) ? (all as unknown[]) : [all as unknown];
             } else {
                 values = arrWrap(chunk as unknown);
             }
 
             const loopKey = entriesKeyValue(key as unknown as PropertyKey);
-            return callback(...(values as TValue[]), loopKey as unknown as TValue);
+            return callback(
+                ...(values as TValue[]),
+                loopKey as unknown as TValue,
+            );
         });
     }
 
@@ -4085,7 +4090,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     return false;
                 }
             }
-            
+
             return true;
         }
 
