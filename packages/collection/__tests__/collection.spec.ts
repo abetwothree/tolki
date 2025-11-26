@@ -5722,6 +5722,74 @@ describe("Collection", () => {
         });
     });
 
+    describe("wrap", () => {
+        describe("Laravel Tests", () => {
+            it("test wrap with scalar", () => {
+                const data = Collection.wrap("foo");
+                expect(data.all()).toEqual(["foo"]);
+            });
+
+            it("test wrap with array", () => {
+                const data = Collection.wrap(["foo"]);
+                expect(data.all()).toEqual(["foo"]);
+            });
+
+            it("test wrap with arrayable", () => {
+                class TestArrayableObject {
+                    toArray() {
+                        return ["arrayable"];
+                    }
+                }
+
+                const obj = new TestArrayableObject();
+                const data = Collection.wrap(obj);
+                expect(data.all()).toEqual([obj]);
+            });
+
+            it("test wrap with jsonable", () => {
+                class TestJsonableObject {
+                    toJSON() {
+                        return JSON.stringify(["jsonable"]);
+                    }
+                }
+
+                const obj = new TestJsonableObject();
+                const data = Collection.wrap(obj);
+                expect(data.all()).toEqual([obj]);
+            });
+
+            it("test wrap with json serialize", () => {
+                class TestJsonSerializeObject {
+                    toJSON() {
+                        return JSON.stringify(["jsonserialize"]);
+                    }
+                }
+
+                const obj = new TestJsonSerializeObject();
+                const data = Collection.wrap(obj);
+                expect(data.all()).toEqual([obj]);
+            });
+
+            it("test wrap with collection class", () => {
+                const innerCollection = Collection.make(["foo"]);
+                const data = Collection.wrap(innerCollection);
+                expect(data.all()).toEqual(["foo"]);
+            });
+
+            it("test wrap with collection sub class", () => {
+                class TestCollectionSubclass extends Collection<
+                    unknown,
+                    string
+                > {}
+
+                const innerCollection = Collection.make(["foo"]);
+                const data = TestCollectionSubclass.wrap(innerCollection);
+                expect(data.all()).toEqual(["foo"]);
+                expect(data).toBeInstanceOf(TestCollectionSubclass);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});

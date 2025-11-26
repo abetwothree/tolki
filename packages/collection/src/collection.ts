@@ -3757,18 +3757,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Collection<TWrapValue, TWrapKey>,
     ) {
         if (value instanceof Collection) {
-            return value;
+            return new this(value);
         }
 
-        if (isArray(value) || isObject(value)) {
-            return new Collection<TWrapValue, TWrapKey>(
-                value as DataItems<TWrapValue, TWrapKey>,
-            );
-        }
-
-        return new Collection<TWrapValue, TWrapKey>(
-            arrWrap(value) as DataItems<TWrapValue, TWrapKey>,
-        );
+        return new this(arrWrap(value) as DataItems<TWrapValue, TWrapKey>);
     }
 
     /**
