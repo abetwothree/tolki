@@ -5832,6 +5832,30 @@ describe("Collection", () => {
         });
     });
 
+    describe("times", () => {
+        describe("Laravel Tests", () => {
+            it("test times method", () => {
+                const two = Collection.times(2, (number) => {
+                    return `slug-${number}`;
+                });
+                expect(two.all()).toEqual(["slug-1", "slug-2"]);
+
+                const zero = Collection.times(0, (number) => {
+                    return `slug-${number}`;
+                });
+                expect(zero.isEmpty()).toBe(true);
+
+                const negative = Collection.times(-4, (number) => {
+                    return `slug-${number}`;
+                });
+                expect(negative.isEmpty()).toBe(true);
+
+                const range = Collection.times(5);
+                expect(range.all()).toEqual([1, 2, 3, 4, 5]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
