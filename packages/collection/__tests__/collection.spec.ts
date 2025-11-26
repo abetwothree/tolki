@@ -5856,6 +5856,18 @@ describe("Collection", () => {
         });
     });
 
+    describe("fromJson", () => {
+        describe("Laravel Tests", () => {
+            it("test from json", () => {
+                const json = JSON.stringify({ foo: "bar", baz: "quz" });
+
+                const instance = Collection.fromJson(json);
+
+                expect(instance.all()).toEqual({ foo: "bar", baz: "quz" });
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
