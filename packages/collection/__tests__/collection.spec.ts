@@ -6038,6 +6038,60 @@ describe("Collection", () => {
         });
     });
 
+    describe("each", () => {
+        describe("Laravel Tests", () => {
+            it("test each", () => {
+                const c = collect([1, 2, {"foo": "bar"}, {"bam": "baz"}]);
+
+                let result: unknown[] = [];
+                c.each((item, key) => {
+                    result[key] = item;
+                });
+                expect(result).toEqual([1, 2, {"foo": "bar"}, {"bam": "baz"}]);
+
+                result = [];
+                c.each((item, key) => {
+                    result[key] = item;
+                    if (typeof key === "string") {
+                        return false;
+                    }
+                });
+                expect(result).toEqual([1, 2, {"foo": "bar"}]);
+            });
+
+            it("test each spread", () => {
+                const c = collect([[1, "a"], [2, "b"]]);
+
+                let result: unknown[] = [];
+                c.eachSpread((number, character) => {
+                    result.push([number, character]);
+                });
+                expect(result).toEqual(c.all());
+
+                result = [];
+                c.eachSpread((number, character) => {
+                    result.push([number, character]);
+
+                    return false;
+                });
+                expect(result).toEqual([[1, "a"]]);
+
+                result = [];
+                c.eachSpread((number, character, key) => {
+                    result.push([number, character, key]);
+                });
+                expect(result).toEqual([[1, "a", 0], [2, "b", 1]]);
+
+                const c2 = collect([collect([1, "a"]), collect([2, "b"])]);
+                result = [];
+                c2.eachSpread((number, character, key) => {
+                    result.push([number, character, key]);
+                });
+                expect(result).toEqual([[1, "a", 0], [2, "b", 1]]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});

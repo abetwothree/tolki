@@ -4019,7 +4019,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     each(callback: (value: TValue, key: TKey) => unknown) {
         for (const [key, value] of Object.entries(this.items)) {
-            if (callback(value as TValue, key as TKey) === false) {
+            let loopKey = entriesKeyValue(key) as unknown;
+            if (isObject(value)) {
+                loopKey = String(loopKey);
+            }
+            if (callback(value as TValue, loopKey as TKey) === false) {
                 break;
             }
         }
@@ -4034,8 +4038,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @return True if all items pass the truth test, false otherwise
      */
     eachSpread(callback: (...values: TValue[]) => unknown) {
-        return this.each((chunk) => {
-            return callback(...(arrWrap(chunk) as TValue[]));
+        return this.each((chunk, key) => {
+            let values: unknown[];
+
+            if (isArray(chunk)) {
+                values = chunk as unknown[];
+            } else if (chunk instanceof Collection) {
+                const all = (chunk as unknown as Collection<unknown, PropertyKey>).all();
+                values = isArray(all) ? (all as unknown[]) : [all as unknown];
+            } else {
+                values = arrWrap(chunk as unknown);
+            }
+
+            const loopKey = entriesKeyValue(key as unknown as PropertyKey);
+            return callback(...(values as TValue[]), loopKey as unknown as TValue);
         });
     }
 
