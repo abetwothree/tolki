@@ -3887,9 +3887,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Collection.empty(true); -> new Collection({})
      */
     static empty(asArray: boolean = true) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            asArray ? [] : {},
-        );
+        return new this(asArray ? [] : {});
     }
 
     /**

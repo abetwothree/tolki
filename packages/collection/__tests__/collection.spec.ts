@@ -5807,6 +5807,31 @@ describe("Collection", () => {
         });
     });
 
+    describe("empty", () => {
+        describe("Laravel Tests", () => {
+            it("test empty method", () => {
+                const c = Collection.empty();
+                expect(c.count()).toBe(0);
+                expect(c.all()).toEqual([]);
+
+                const d = Collection.empty(false);
+                expect(d.count()).toBe(0);
+                expect(d.all()).toEqual({});
+            });
+            
+            it("test empty collection is empty", () => {
+                const c = new Collection();
+                expect(c.isEmpty()).toBe(true);
+            });
+            
+            it("test empty collection is not empty", () => {
+                const c = new Collection(["foo", "bar"]);
+                expect(c.isEmpty()).toBe(false);
+                expect(c.isNotEmpty()).toBe(true);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
