@@ -6513,7 +6513,11 @@ describe("Collection", () => {
                     return { [item]: key };
                 });
 
-                expect(groups.toArray()).toEqual({ 1: [0, 4], 2: [1, 3], 3: [2] });
+                expect(groups.toArray()).toEqual({
+                    1: [0, 4],
+                    2: [1, 3],
+                    3: [2],
+                });
                 expect(data.all()).toEqual([1, 2, 3, 2, 1]);
             });
         });
@@ -6676,9 +6680,7 @@ describe("Collection", () => {
                     { free: false, title: "Premium" },
                 ]);
 
-                const [free, premium] = courses
-                    .partition("free")
-                    .all();
+                const [free, premium] = courses.partition("free").all();
 
                 expect(free.values().all()).toEqual([
                     { free: true, title: "Basic" },
@@ -6696,9 +6698,7 @@ describe("Collection", () => {
                     { name: "Tim", age: 41 },
                 ]);
 
-                const [tims, others] = data
-                    .partition("name", "Tim")
-                    .all();
+                const [tims, others] = data.partition("name", "Tim").all();
 
                 expect(tims.values().all()).toEqual([
                     { name: "Tim", age: 17 },
@@ -6710,9 +6710,7 @@ describe("Collection", () => {
                     { name: "Kristina", age: 33 },
                 ]);
 
-                const [adults, minors] = data
-                    .partition("age", ">=", 18)
-                    .all();
+                const [adults, minors] = data.partition("age", ">=", 18).all();
 
                 expect(adults.values().all()).toEqual([
                     { name: "Agatha", age: 62 },
@@ -6720,7 +6718,9 @@ describe("Collection", () => {
                     { name: "Tim", age: 41 },
                 ]);
 
-                expect(minors.values().all()).toEqual([{ name: "Tim", age: 17 }]);
+                expect(minors.values().all()).toEqual([
+                    { name: "Tim", age: 17 },
+                ]);
             });
 
             it("test partition preserves keys", () => {
@@ -6730,9 +6730,7 @@ describe("Collection", () => {
                     c: { free: true },
                 });
 
-                const [free, premium] = courses
-                    .partition("free")
-                    .all();
+                const [free, premium] = courses.partition("free").all();
 
                 expect(free.toArray()).toEqual({
                     a: { free: true },
@@ -6746,9 +6744,86 @@ describe("Collection", () => {
             it("test partition empty collection", () => {
                 const data = collect();
 
-                expect(data.partition(() => {
-                    return true;
-                }).all().length).toBe(2);
+                expect(
+                    data
+                        .partition(() => {
+                            return true;
+                        })
+                        .all().length,
+                ).toBe(2);
+            });
+        });
+    });
+
+    describe("percentage", () => {
+        describe("Laravel Tests", () => {
+            it("test percentage with flat collection", () => {
+                const c = collect([1, 1, 2, 2, 2, 3]);
+
+                expect(
+                    parseFloat(
+                        c.percentage((value) => value === 1)?.toFixed(2) || "0",
+                    ),
+                ).toBe(33.33);
+                expect(
+                    parseFloat(
+                        c.percentage((value) => value === 2)?.toFixed(2) || "0",
+                    ),
+                ).toBe(50.0);
+                expect(
+                    parseFloat(
+                        c.percentage((value) => value === 3)?.toFixed(2) || "0",
+                    ),
+                ).toBe(16.67);
+                expect(
+                    parseFloat(
+                        c.percentage((value) => value === 5)?.toFixed(2) || "0",
+                    ),
+                ).toBe(0.0);
+            });
+
+            it("test percetage with nested collection", () => {
+                const c = collect([
+                    { name: "Taylor", foo: "foo" },
+                    { name: "Nuno", foo: "bar" },
+                    { name: "Dries", foo: "bar" },
+                    { name: "Jess", foo: "baz" },
+                ]);
+
+                expect(
+                    parseFloat(
+                        c
+                            .percentage((value) => value.foo === "foo")
+                            ?.toFixed(2) || "0",
+                    ),
+                ).toBe(25.0);
+                expect(
+                    parseFloat(
+                        c
+                            .percentage((value) => value.foo === "bar")
+                            ?.toFixed(2) || "0",
+                    ),
+                ).toBe(50.0);
+                expect(
+                    parseFloat(
+                        c
+                            .percentage((value) => value.foo === "baz")
+                            ?.toFixed(2) || "0",
+                    ),
+                ).toBe(25.0);
+                expect(
+                    parseFloat(
+                        c
+                            .percentage((value) => value.foo === "test")
+                            ?.toFixed(2) || "0",
+                    ),
+                ).toBe(0.0);
+            });
+
+            it("test percentage returns null for empty collections", () => {
+                const c = collect([]);
+
+                expect(c.percentage((value) => value === 1)).toBeNull();
             });
         });
     });

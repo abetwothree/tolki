@@ -4313,10 +4313,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns The min value, or null if no numeric values found
      */
     min<TMinValue, TMinKey extends PropertyKey = PropertyKey>(
-        callback: ((value: TMinValue, key: TMinKey) => number) | PathKey = null
+        callback: ((value: TMinValue, key: TMinKey) => number) | PathKey = null,
     ) {
         const callbackValue = this.valueRetriever(
-            callback as PathKey | ((...args: (TMinValue | TMinKey)[]) => number),
+            callback as
+                | PathKey
+                | ((...args: (TMinValue | TMinKey)[]) => number),
         );
 
         return this.map((value: TValue) => callbackValue(value))
@@ -4337,10 +4339,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns The max value, or null if no numeric values found
      */
     max<TMaxValue, TMaxKey extends PropertyKey = PropertyKey>(
-        callback: ((value: TMaxValue, key: TMaxKey) => number) | PathKey = null
+        callback: ((value: TMaxValue, key: TMaxKey) => number) | PathKey = null,
     ) {
         const callbackValue = this.valueRetriever(
-            callback as PathKey | ((...args: (TMaxValue | TMaxKey)[]) => number),
+            callback as
+                | PathKey
+                | ((...args: (TMaxValue | TMaxKey)[]) => number),
         );
 
         return this.reject((value: TValue) => isNull(value)).reduce(
@@ -4406,14 +4410,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Calculate the percentage of items that pass a given truth test.
      *
      * @param callback - The callback to execute, receives the value and key as arguments
-     * @returns The percentage of items that pass the truth test, rounded to the nearest integer, or null if the collection is empty
+     * @param precision - Decimal places to round to (default 2)
+     * @returns The percentage of items that pass the truth test, rounded to the given precision, or null if the collection is empty
      */
-    percentage(callback: (value: TValue, key: TKey) => boolean) {
+    percentage(
+        callback: (value: TValue, key: TKey) => boolean,
+        precision: number = 2,
+    ) {
         if (this.isEmpty()) {
             return null;
         }
 
-        return Math.round((this.filter(callback).count() / this.count()) * 100);
+        const ratio = this.filter(callback).count() / this.count();
+        const percent = ratio * 100;
+        
+        // Round to the specified precision (matches Laravel's round(..., precision))
+        const factor = Math.pow(10, precision);
+
+        return Math.round(percent * factor) / factor;
     }
 
     /**
