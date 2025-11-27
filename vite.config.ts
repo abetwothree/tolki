@@ -63,10 +63,10 @@ export default defineConfig({
             exclude: [...configDefaults.exclude, "./scripts/**", "./docs/**"],
             thresholds: {
                 autoUpdate: true,
-                statements: 93,
+                statements: 93.02,
                 branches: 86.34,
-                functions: 94.55,
-                lines: 93.34,
+                functions: 94.65,
+                lines: 93.36,
             },
         },
         projects: ["packages/*"],

@@ -7184,6 +7184,42 @@ describe("Collection", () => {
         });
     });
 
+    describe("whereNotNull", () => {
+        describe("Laravel Tests", () => {
+            it("test where not null", () => {
+                const originalData = [
+                    { name: "Taylor" },
+                    { name: null },
+                    { name: "Bert" },
+                    { name: false },
+                    { name: "" },
+                ];
+                const data = collect(originalData);
+
+                expect(data.whereNotNull("name").all()).toEqual([
+                    { name: "Taylor" },
+                    { name: "Bert" },
+                    { name: false },
+                    { name: "" },
+                ]);
+
+                expect(data.whereNotNull().all()).toEqual(originalData);
+            });
+
+            it("test where not null without key", () => {
+                const data = collect([1, null, 3, "null", false, true]);
+
+                expect(data.whereNotNull().all()).toEqual([
+                    1,
+                    3,
+                    "null",
+                    false,
+                    true,
+                ]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
