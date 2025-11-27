@@ -4399,7 +4399,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             Boolean(callback(item as TValue, key as TKey)),
         );
 
-        return [new Collection(passed), new Collection(failed)];
+        return new Collection([new Collection(passed), new Collection(failed)]);
     }
 
     /**

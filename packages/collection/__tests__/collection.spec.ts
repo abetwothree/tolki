@@ -6640,6 +6640,119 @@ describe("Collection", () => {
         });
     });
 
+    describe("partition", () => {
+        describe("Laravel Tests", () => {
+            it("test partition", () => {
+                const data = collect(Collection.range(1, 10));
+
+                const [firstPartition, secondPartition] = data
+                    .partition((i) => {
+                        return i <= 5;
+                    })
+                    .all();
+
+                expect(firstPartition.values().all()).toEqual([1, 2, 3, 4, 5]);
+                expect(secondPartition.values().all()).toEqual([
+                    6, 7, 8, 9, 10,
+                ]);
+            });
+
+            it("test partition callback with key", () => {
+                const data = collect(["zero", "one", "two", "three"]);
+
+                const [even, odd] = data
+                    .partition((item, index) => {
+                        return index % 2 === 0;
+                    })
+                    .all();
+
+                expect(even.values().all()).toEqual(["zero", "two"]);
+                expect(odd.values().all()).toEqual(["one", "three"]);
+            });
+
+            it("test partition by key", () => {
+                const courses = collect([
+                    { free: true, title: "Basic" },
+                    { free: false, title: "Premium" },
+                ]);
+
+                const [free, premium] = courses
+                    .partition("free")
+                    .all();
+
+                expect(free.values().all()).toEqual([
+                    { free: true, title: "Basic" },
+                ]);
+                expect(premium.values().all()).toEqual([
+                    { free: false, title: "Premium" },
+                ]);
+            });
+
+            it("test partition with operators", () => {
+                const data = collect([
+                    { name: "Tim", age: 17 },
+                    { name: "Agatha", age: 62 },
+                    { name: "Kristina", age: 33 },
+                    { name: "Tim", age: 41 },
+                ]);
+
+                const [tims, others] = data
+                    .partition("name", "Tim")
+                    .all();
+
+                expect(tims.values().all()).toEqual([
+                    { name: "Tim", age: 17 },
+                    { name: "Tim", age: 41 },
+                ]);
+
+                expect(others.values().all()).toEqual([
+                    { name: "Agatha", age: 62 },
+                    { name: "Kristina", age: 33 },
+                ]);
+
+                const [adults, minors] = data
+                    .partition("age", ">=", 18)
+                    .all();
+
+                expect(adults.values().all()).toEqual([
+                    { name: "Agatha", age: 62 },
+                    { name: "Kristina", age: 33 },
+                    { name: "Tim", age: 41 },
+                ]);
+
+                expect(minors.values().all()).toEqual([{ name: "Tim", age: 17 }]);
+            });
+
+            it("test partition preserves keys", () => {
+                const courses = collect({
+                    a: { free: true },
+                    b: { free: false },
+                    c: { free: true },
+                });
+
+                const [free, premium] = courses
+                    .partition("free")
+                    .all();
+
+                expect(free.toArray()).toEqual({
+                    a: { free: true },
+                    c: { free: true },
+                });
+                expect(premium.toArray()).toEqual({
+                    b: { free: false },
+                });
+            });
+
+            it("test partition empty collection", () => {
+                const data = collect();
+
+                expect(data.partition(() => {
+                    return true;
+                }).all().length).toBe(2);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
