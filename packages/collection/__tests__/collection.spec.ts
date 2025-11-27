@@ -6962,6 +6962,43 @@ describe("Collection", () => {
         });
     });
 
+    describe("unlessNotEmpty", () => {
+        describe("Laravel Tests", () => {
+            it("test unless not empty", () => {
+                const data = collect(["michael", "tom"]);
+
+                const result = data.unlessNotEmpty(() => {
+                    return data.concat(["adam"]);
+                });
+
+                expect(result.all()).toEqual(["michael", "tom"]);
+
+                const emptyData = collect();
+
+                const result2 = emptyData.unlessNotEmpty(() => {
+                    return emptyData.concat(["adam"]);
+                });
+
+                expect(result2.all()).toEqual(["adam"]);
+            });
+
+            it("test unless not empty default", () => {
+                const data = collect(["michael", "tom"]);
+
+                const result = data.unlessNotEmpty(
+                    (col) => {
+                        return col.concat(["adam"]);
+                    },
+                    (col) => {
+                        return col.concat(["taylor"]);
+                    },
+                );
+
+                expect(result.all()).toEqual(["michael", "tom", "taylor"]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
