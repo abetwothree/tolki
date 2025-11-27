@@ -7407,6 +7407,25 @@ describe("Collection", () => {
         });
     });
 
+    describe("pipeInto", () => {
+        describe("Laravel Tests", () => {
+            it("test pipe into", () => {
+                const data = collect(["first", "second"]);
+
+                class TestCollectionMapIntoObject {
+                    value: Collection<string, number>;
+                    constructor(value: Collection<string, number>) {
+                        this.value = value;
+                    }
+                }
+
+                const instance = data.pipeInto(TestCollectionMapIntoObject);
+
+                expect(instance.value).toBe(data);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {
