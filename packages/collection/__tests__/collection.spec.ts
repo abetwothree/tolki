@@ -7475,6 +7475,41 @@ describe("Collection", () => {
         });
     });
 
+    describe("reduceSpread", () => {
+        describe("Laravel Tests", () => {
+            it("test reduce spread", () => {
+                const data = collect([-1, 0, 1, 2, 3, 4, 5]);
+
+                const [sum, max, min] = data.reduceSpread(
+                    (sum, max, min, value) => {
+                        sum += value;
+                        max = Math.max(max, value);
+                        min = Math.min(min, value);
+
+                        return [sum, max, min];
+                    },
+                    0,
+                    Number.MIN_SAFE_INTEGER,
+                    Number.MAX_SAFE_INTEGER,
+                );
+
+                expect(sum).toBe(14);
+                expect(max).toBe(5);
+                expect(min).toBe(-1);
+            });
+
+            it("test reduce spread throws an exception if reducer does not return an array", () => {
+                const data = collect([1]);
+
+                expect(() => {
+                    data.reduceSpread(() => {
+                        return false;
+                    }, null);
+                }).toThrow(Error);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {
