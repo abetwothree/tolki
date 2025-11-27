@@ -7632,12 +7632,6 @@ describe("Collection", () => {
         });
     });
 
-    describe("", () => {
-        describe("Laravel Tests", () => {
-            it("", () => {});
-        });
-    });
-
     describe("uniqueStrict", () => {
         describe("Laravel Tests", () => {
             it("test unique strict", () => {
@@ -7652,6 +7646,12 @@ describe("Collection", () => {
                     { id: "00", name: "double zero" },
                 ]);
             });
+        });
+    });
+
+    describe("", () => {
+        describe("Laravel Tests", () => {
+            it("", () => {});
         });
     });
 
