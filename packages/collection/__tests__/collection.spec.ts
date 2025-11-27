@@ -7255,6 +7255,25 @@ describe("Collection", () => {
         });
     });
 
+    describe("whereInStrict", () => {
+        describe("Laravel Tests", () => {
+            it("test where in strict", () => {
+                const c = collect([
+                    { v: 1 },
+                    { v: 2 },
+                    { v: 3 },
+                    { v: "3" },
+                    { v: 4 },
+                ]);
+
+                expect(c.whereInStrict("v", [1, 3]).values().all()).toEqual([
+                    { v: 1 },
+                    { v: 3 },
+                ]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {
