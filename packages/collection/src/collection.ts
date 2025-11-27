@@ -4639,10 +4639,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
         values: TValueSet,
     ) {
         return this.filter((item: TValue) => {
-            if (!isAccessibleData(item)) {
-                return false;
-            }
-
             const itemValue = dataGet(
                 item as DataItems<unknown, PropertyKey>,
                 key,
@@ -4652,8 +4648,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             return (
                 compareValues(itemValue, valuesArray[0]) < 0 ||
-                compareValues(itemValue, valuesArray[valuesArray.length - 1]) >
-                    0
+                compareValues(itemValue, valuesArray[valuesArray.length - 1]) > 0
             );
         });
     }
