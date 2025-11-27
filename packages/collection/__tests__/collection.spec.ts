@@ -8084,6 +8084,35 @@ describe("Collection", () => {
         });
     });
 
+    describe("toString", () => {
+        it("toString returns same output as toJson()", () => {
+            const c = collect([
+                new TestArrayableObject(),
+                new TestJsonableObject(),
+                new TestJsonSerializeObject(),
+                new TestJsonSerializeToStringObject(),
+                "baz",
+            ]);
+
+            const asString = c.toString();
+            const asJson = c.toJson();
+            expect(asString).toBe(asJson);
+        });
+
+        it("toString encodes current jsonSerialize result", () => {
+            const c = collect([{ a: 1 }, { b: 2 }]);
+            const expected = JSON.stringify(c.jsonSerialize());
+            expect(c.toString()).toBe(expected);
+        });
+
+        it("toString reflects changes after set operations", () => {
+            const c = collect({ a: 1 });
+            c.set("b", 2);
+            const expected = JSON.stringify({ a: 1, b: 2 });
+            expect(c.toString()).toBe(expected);
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
