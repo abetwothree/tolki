@@ -4934,15 +4934,42 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     jsonSerialize() {
         return this.map((value) => {
-            if (toJsonable(value)) {
-                return value.toJSON();
+            // If the item is Arrayable, use its array representation
+            if (toArrayable(value)) {
+                return value.toArray();
             }
 
+            // If the item is Jsonable, use its JSON representation via toJson(),
+            // and parse it to a native value to match Laravel expectations
+            if (toJsonable(value)) {
+                // Prefer Laravel-style toJson(); otherwise fall back to JS toJSON()
+                let jsonOut: unknown;
+                if (isFunction((value as { toJson: () => unknown }).toJson)) {
+                    jsonOut = (value as { toJson: () => unknown }).toJson();
+                } else {
+                    const raw = (value as { toJSON: () => unknown }).toJSON();
+                    // If toJSON returned an object/value, stringify then parse to normalize
+                    jsonOut = JSON.stringify(raw);
+                }
+
+                // If we have a string, try to parse to native; otherwise return as-is
+                if (isString(jsonOut)) {
+                    try {
+                        return JSON.parse(jsonOut);
+                    } catch {
+                        return jsonOut;
+                    }
+                }
+                return jsonOut;
+            }
+
+            // If the item is JsonSerializable, delegate to jsonSerialize()
             if (toJsonSerializable(value)) {
                 return value.jsonSerialize();
             }
 
-            return this.getRawItems(value);
+            // Otherwise, return the raw value as-is (no wrapping)
+            return value as unknown;
         }).all();
     }
 

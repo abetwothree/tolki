@@ -7846,14 +7846,6 @@ describe("Collection", () => {
     describe("jsonSerialize", () => {
         describe("Laravel Tests", () => {
             it("test jsonSerialize", () => {
-                // $c = new $collection([
-                //     new TestArrayableObject,
-                //     new TestJsonableObject,
-                //     new TestJsonSerializeObject,
-                //     new TestJsonSerializeToStringObject,
-                //     'baz',
-                // ]);
-
                 const c = collect([
                     new TestArrayableObject(),
                     new TestJsonableObject(),
@@ -7862,16 +7854,8 @@ describe("Collection", () => {
                     "baz",
                 ]);
 
-                // $this->assertSame([
-                //     ['foo' => 'bar'],
-                //     ['foo' => 'bar'],
-                //     ['foo' => 'bar'],
-                //     'foobar',
-                //     'baz',
-                // ], $c->jsonSerialize());
-
                 expect(c.jsonSerialize()).toEqual([
-                    { foo: "bar" },
+                    [{ foo: "bar" }],
                     { foo: "bar" },
                     { foo: "bar" },
                     "foobar",

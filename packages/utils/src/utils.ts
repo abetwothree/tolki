@@ -359,12 +359,17 @@ export function toArrayable<T>(value: unknown): value is { toArray(): T[] } {
  * isJsonable({ toJSON: () => ({ a: 1 }) }); -> true
  * isJsonable("hello"); -> false
  */
-export function toJsonable<T>(value: unknown): value is { toJSON(): T } {
-    return (
-        isObject(value) &&
-        !isNull(value) &&
-        isFunction((value as { toJSON: () => T }).toJSON)
-    );
+export function toJsonable<T>(
+    value: unknown,
+): value is { toJson(): T } | { toJSON(): T } {
+    if (!isObject(value) || isNull(value)) {
+        return false;
+    }
+
+    const hasToJson = isFunction((value as { toJson: () => T }).toJson);
+    const hasToJSON = isFunction((value as { toJSON: () => T }).toJSON);
+
+    return hasToJson || hasToJSON;
 }
 
 /**
