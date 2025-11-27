@@ -8111,11 +8111,5 @@ describe("Collection", () => {
             const expected = JSON.stringify({ a: 1, b: 2 });
             expect(c.toString()).toBe(expected);
         });
-    });
-
-    describe("", () => {
-        describe("Laravel Tests", () => {
-            it("", () => {});
-        });
-    });
+    });    
 });

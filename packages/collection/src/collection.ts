@@ -5152,25 +5152,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         );
     }
 
-    /**
-     *  Make a function to check an item's equality.
-     *
-     * @param value - The value to use a comparison
-     * @returns A function that receives an item to compare with the initial value
-     */
-    protected equality(value: unknown) {
-        return (item: unknown) => item === value;
-    }
-
-    /**
-     * Make a function using another function, by negating its result.
-     *
-     * @param callback - The callback to negate
-     * @returns A function that receives the same arguments as the initial callback and returns its result
-     */
-    protected negate(callback: (...values: unknown[]) => unknown) {
-        return (...values: unknown[]) => callback(...values);
-    }
+    
 
     /**
      * Make a function that returns what's passed to it.
