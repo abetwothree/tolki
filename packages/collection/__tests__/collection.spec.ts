@@ -7915,6 +7915,61 @@ describe("Collection", () => {
         // 
     });
 
+    describe("toJson", () => {
+        it("toJson returns serialized items by default", () => {
+            const c = collect([
+                new TestArrayableObject(),
+                new TestJsonableObject(),
+                new TestJsonSerializeObject(),
+                new TestJsonSerializeToStringObject(),
+                "baz",
+            ]);
+
+            const json = c.toJson();
+            expect(json).toBe(
+                JSON.stringify([
+                    [{ foo: "bar" }],
+                    { foo: "bar" },
+                    { foo: "bar" },
+                    "foobar",
+                    "baz",
+                ]),
+            );
+        });
+
+        it("toJson supports pretty printing with space", () => {
+            const c = collect([{ a: 1 }, { b: 2 }]);
+            const json = c.toJson(undefined, 2);
+            expect(json).toBe(JSON.stringify([{ a: 1 }, { b: 2 }], undefined, 2));
+        });
+
+        it("toJson with array replacer filters keys", () => {
+            const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
+            const replacer: (string | number)[] = ["b"]; // keep only key 'b'
+            const json = c.toJson(replacer);
+            expect(json).toBe(JSON.stringify(c.jsonSerialize(), replacer));
+        });
+
+        it("toJson with function replacer transforms values", () => {
+            const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
+            const replacer = (key: string, value: unknown) => {
+                if (key === "b" && typeof value === "number") {
+                    return (value as number) * 10;
+                }
+                return value;
+            };
+            const json = c.toJson(replacer);
+            expect(json).toBe(JSON.stringify(c.jsonSerialize(), replacer));
+        });
+
+        it("toJson with null replacer behaves like no replacer", () => {
+            const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
+            const jsonNull = c.toJson(null);
+            const jsonDefault = c.toJson();
+            expect(jsonNull).toBe(jsonDefault);
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
