@@ -7649,6 +7649,26 @@ describe("Collection", () => {
         });
     });
 
+    describe("collect", () => {
+        describe("Laravel Tests", () => {
+            it("test collect", () => {
+                const data = Collection.make({
+                    a: 1,
+                    b: 2,
+                    c: 3,
+                }).collect();
+
+                expect(data).toBeInstanceOf(Collection);
+
+                expect(data.all()).toEqual({
+                    a: 1,
+                    b: 2,
+                    c: 3,
+                });
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
