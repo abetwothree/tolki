@@ -4312,9 +4312,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The key or callback to determine the value to min, or null to min the items directly
      * @returns The min value, or null if no numeric values found
      */
-    min(callback: ((value: TValue, key: TKey) => number) | PathKey = null) {
+    min<TMinValue, TMinKey extends PropertyKey = PropertyKey>(
+        callback: ((value: TMinValue, key: TMinKey) => number) | PathKey = null
+    ) {
         const callbackValue = this.valueRetriever(
-            callback as PathKey | ((...args: (TValue | TKey)[]) => number),
+            callback as PathKey | ((...args: (TMinValue | TMinKey)[]) => number),
         );
 
         return this.map((value: TValue) => callbackValue(value))
@@ -4334,9 +4336,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The key or callback to determine the value to max, or null to max the items directly
      * @returns The max value, or null if no numeric values found
      */
-    max(callback: ((value: TValue, key: TKey) => number) | PathKey = null) {
+    max<TMaxValue, TMaxKey extends PropertyKey = PropertyKey>(
+        callback: ((value: TMaxValue, key: TMaxKey) => number) | PathKey = null
+    ) {
         const callbackValue = this.valueRetriever(
-            callback as PathKey | ((...args: (TValue | TKey)[]) => number),
+            callback as PathKey | ((...args: (TMaxValue | TMaxKey)[]) => number),
         );
 
         return this.reject((value: TValue) => !isNumber(value)).reduce(

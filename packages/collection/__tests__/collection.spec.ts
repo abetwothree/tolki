@@ -6571,6 +6571,39 @@ describe("Collection", () => {
         });
     });
 
+    describe("min", () => {
+        describe("Laravel Tests", () => {
+            it("test min", () => {
+                const c = collect([{ foo: 10 }, { foo: 20 }]);
+
+                expect(c.min((item) => item.foo)).toBe(10);
+
+                expect(c.min("foo")).toBe(10);
+                expect(c.min((item) => item.foo)).toBe(10);
+
+                const d = collect([{ foo: 10 }, { foo: 20 }]);
+                expect(d.min("foo")).toBe(10);
+                expect(d.min((item) => item.foo)).toBe(10);
+
+                const e = collect([{ foo: 10 }, { foo: 20 }, { foo: null }]);
+                expect(e.min("foo")).toBe(10);
+                expect(e.min((item) => item.foo)).toBe(10);
+
+                const f = collect([1, 2, 3, 4, 5]);
+                expect(f.min()).toBe(1);
+
+                const g = collect([1, null, 3, 4, 5]);
+                expect(g.min()).toBe(1);
+
+                const h = collect([0, 1, 2, 3, 4]);
+                expect(h.min()).toBe(0);
+
+                const i = collect();
+                expect(i.min()).toBeNull();
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
