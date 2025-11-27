@@ -97,8 +97,7 @@
         {
             "files": ["**/*.{js,mjs,cjs,ts,mts,cts}"],
             "env": {
-                "browser": true,
-                "shared-node-browser": true
+                "browser": true
             }
         },
         {

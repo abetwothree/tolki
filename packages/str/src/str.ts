@@ -2551,13 +2551,23 @@ export class Str {
      * Str.ucwords('laravel php framework'); -> 'Laravel Php Framework'
      * Str.ucwords('Öffentliche Überraschungen'); -> 'Öffentliche Überraschungen'
      */
-    static ucwords(value: string, $separators = " \t\r\n\f\v"): string {
-        // TODO: PHP code for separators $pattern = '/(^|['.preg_quote($separators, '/').'])(\p{Ll})/u';
+    static ucwords(
+        value: string,
+        separators: string | string[] = " \t\r\n\f\v",
+    ): string {
+        // Build a character class of separators, similar to PHP's preg_quote behavior.
+        const sepStr = isArray(separators) ? separators.join("") : separators;
+        const escapeForCharClass = (s: string) =>
+            s.replace(/[-\\^$*+?.()|[\]{}]/g, "\\$&");
 
-        return value.replace(
-            /(^|\s)(\p{L})/gu,
-            (_m, p1: string, p2: string) => p1 + p2.toUpperCase(),
-        );
+        const chars = sepStr.length ? escapeForCharClass(sepStr) : "";
+        // Always treat whitespace as a separator, and add custom separators when provided.
+        const classSource = chars.length ? `(?:\\s|[${chars}])` : `\\s`;
+
+        const pattern = new RegExp(`(^|${classSource})(\\p{Ll})`, "gu");
+        return value.replace(pattern, (_m: string, p1: string, p2: string) => {
+            return p1 + p2.toUpperCase();
+        });
     }
 
     /**

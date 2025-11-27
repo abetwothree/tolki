@@ -2130,14 +2130,36 @@ describe("Str tests", () => {
         ]);
     });
 
-    it("ucwords", () => {
-        expect(Str.ucwords("hello world")).toBe("Hello World");
-        expect(Str.ucwords("laravel php framework")).toBe(
-            "Laravel Php Framework",
-        );
-        expect(Str.ucwords("Öffentliche Überraschungen")).toBe(
-            "Öffentliche Überraschungen",
-        );
+    describe("ucwords", () => {
+        it("test ucwords", () => {
+            expect(Str.ucwords("hello world")).toBe("Hello World");
+            expect(Str.ucwords("laravel php framework")).toBe(
+                "Laravel Php Framework",
+            );
+            expect(Str.ucwords("Öffentliche Überraschungen")).toBe(
+                "Öffentliche Überraschungen",
+            );
+        });
+
+        it("test ucwords separator", () => {
+            // Hyphen as separator
+            expect(Str.ucwords("laravel-framework", "-")).toBe(
+                "Laravel-Framework",
+            );
+            // Underscore as separator
+            expect(Str.ucwords("laravel_framework", "_")).toBe(
+                "Laravel_Framework",
+            );
+            // Multiple custom separators provided as array
+            expect(Str.ucwords("hello-world_laravel", ["-", "_"])).toBe(
+                "Hello-World_Laravel",
+            );
+            // Mixed whitespace and separator characters
+            expect(Str.ucwords("hello-world laravel_framework", ["-", "_"]))
+                .toBe("Hello-World Laravel_Framework");
+            // Ensure only lowercase letters are uppercased (e.g., "JJ watt" → "JJ Watt")
+            expect(Str.ucwords("JJ watt")).toBe("JJ Watt");
+        });
     });
 
     it("wordCount", () => {

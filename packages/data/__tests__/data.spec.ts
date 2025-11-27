@@ -1305,9 +1305,8 @@ describe("Data", () => {
 
     describe("dataPad", () => {
         it("is object", () => {
-            // TODO: implement pad
             const result = Data.dataPad({ a: 1, b: 2 }, 4, 0);
-            // expect(Object.keys(result)).toEqual(["c", "b", "a"]);
+            expect(Object.keys(result)).toEqual(["0", "1", "a", "b"]);
         });
         it("is array", () => {
             const result = Data.dataPad([1, 2, 3, 4, 5], 7, 0);
