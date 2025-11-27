@@ -1,12 +1,15 @@
 import { collect, Collection } from "@laravel-js/collection";
 import { Stringable } from "@laravel-js/str";
 import { assertType, describe, expect, it } from "vitest";
+
 import {
     TestArrayableObject,
     TestJsonableObject,
     TestJsonSerializeObject,
     TestJsonSerializeWithScalarValueObject,
     TestTraversableAndJsonSerializableObject,
+    TestJsonSerializeToStringObject,
+    TestCollectionMapIntoObject,
 } from "./test-classes";
 
 // Case-insensitive string comparison (like PHP's strcasecmp)
@@ -237,6 +240,16 @@ describe("Collection", () => {
 
             // Test JsonSerializable
             expect(obj.jsonSerialize()).toEqual([1, 2, 3]);
+        });
+
+        it("TestJsonSerializeToStringObject implements jsonSerialize returning string", () => {
+            const obj = new TestJsonSerializeToStringObject();
+            expect(obj.jsonSerialize()).toBe("foobar");
+        });
+
+        it("TestCollectionMapIntoObject stores and retrieves value", () => {
+            const obj = new TestCollectionMapIntoObject("test value");
+            expect(obj.value).toBe("test value");
         });
     });
 
@@ -6600,13 +6613,6 @@ describe("Collection", () => {
             it("test map into", () => {
                 const data = collect(["first", "second"]);
 
-                class TestCollectionMapIntoObject {
-                    value: string;
-                    constructor(value: string) {
-                        this.value = value;
-                    }
-                }
-
                 const mapped = data.mapInto(TestCollectionMapIntoObject);
                 expect(mapped.all()).toEqual([
                     new TestCollectionMapIntoObject("first"),
@@ -7848,6 +7854,14 @@ describe("Collection", () => {
                 //     'baz',
                 // ]);
 
+                const c = collect([
+                    new TestArrayableObject(),
+                    new TestJsonableObject(),
+                    new TestJsonSerializeObject(),
+                    new TestJsonSerializeToStringObject(),
+                    "baz",
+                ]);
+
                 // $this->assertSame([
                 //     ['foo' => 'bar'],
                 //     ['foo' => 'bar'],
@@ -7855,6 +7869,14 @@ describe("Collection", () => {
                 //     'foobar',
                 //     'baz',
                 // ], $c->jsonSerialize());
+
+                expect(c.jsonSerialize()).toEqual([
+                    { foo: "bar" },
+                    { foo: "bar" },
+                    { foo: "bar" },
+                    "foobar",
+                    "baz",
+                ]);
             });
         });
     });

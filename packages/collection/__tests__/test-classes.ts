@@ -1,8 +1,8 @@
 import type {
     Arrayable,
+    IteratorAggregate,
     Jsonable,
     JsonSerializable,
-    IteratorAggregate,
 } from "@laravel-js/types";
 
 /**
@@ -63,5 +63,25 @@ export class TestTraversableAndJsonSerializableObject
 
     jsonSerialize(): unknown {
         return JSON.parse(JSON.stringify(this.items));
+    }
+}
+
+/**
+ * Test class that implements JsonSerializable interface returning a string
+ */
+export class TestJsonSerializeToStringObject implements JsonSerializable {
+    jsonSerialize(): string {
+        return "foobar";
+    }
+}
+
+/**
+ * Test class for Collection mapInto method
+ */
+export class TestCollectionMapIntoObject<T> {
+    public value: T;
+
+    constructor(value: T) {
+        this.value = value;
     }
 }
