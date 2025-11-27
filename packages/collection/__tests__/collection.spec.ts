@@ -1,6 +1,5 @@
 import { collect, Collection } from "@laravel-js/collection";
 import { Stringable } from "@laravel-js/str";
-import object from "lodash-es/object";
 import { assertType, describe, expect, it } from "vitest";
 
 // Case-insensitive string comparison (like PHP's strcasecmp)
@@ -7370,6 +7369,26 @@ describe("Collection", () => {
                     { v: "3" },
                     { v: 4 },
                 ]);
+            });
+        });
+    });
+
+    describe("whereInstanceOf", () => {
+        describe("Laravel Tests", () => {
+            it("test where instance of", () => {
+                const c = collect([
+                    {},
+                    {},
+                    collect([]),
+                    {},
+                    new Stringable("example"),
+                ]);
+                
+                expect(c.whereInstanceOf(Object).all().length).toBe(5);
+                
+                expect(c.whereInstanceOf([Collection]).all().length).toBe(1);
+
+                expect(c.whereInstanceOf([Stringable]).all().length).toBe(1);
             });
         });
     });
