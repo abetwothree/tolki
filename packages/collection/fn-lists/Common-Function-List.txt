@@ -1,0 +1,14 @@
+
+Analyzing file: packages/collection/stubs/Common.php
+
+Found 7 function(s):
+
+METHOD DECLARATIONS:
+  public toArray() [line 14]
+  public toJson($options) [line 22]
+  public jsonSerialize() [line 30]
+  public jsonSerialize() [line 38]
+  public __construct($items) [line 48]
+  public getIterator() [line 53]
+  public jsonSerialize() [line 58]
+

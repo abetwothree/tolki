@@ -27,6 +27,7 @@ const packageFiles = {
         "HigherOrderCollectionProxy.php":
             "src/Illuminate/Collections/HigherOrderCollectionProxy.php",
         "Jsonable.php": "src/Illuminate/Contracts/Support/Jsonable.php",
+        "Common.php": "tests/Support/Common.php",
     },
     num: {
         "Number.php": "src/Illuminate/Support/Number.php",
