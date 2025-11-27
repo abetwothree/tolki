@@ -6607,43 +6607,35 @@ describe("Collection", () => {
     describe("max", () => {
         describe("Laravel Tests", () => {
             it("test max", () => {
-                // $c = new $collection([(object) ['foo' => 10], (object) ['foo' => 20]]);
-
                 const c = collect([{ foo: 10 }, { foo: 20 }]);
 
-                // $this->assertEquals(20, $c->max(function ($item) {
-                //     return $item->foo;
-                // }));
-
                 expect(c.max((item) => item.foo)).toBe(20);
-
-                // $this->assertEquals(20, $c->max('foo'));
-                // $this->assertEquals(20, $c->max->foo);
 
                 expect(c.max("foo")).toBe(20);
                 expect(c.max((item) => item.foo)).toBe(20);
 
-                // $c = new $collection([['foo' => 10], ['foo' => 20]]);
-
                 const d = collect([{ foo: 10 }, { foo: 20 }]);
-
-                // $this->assertEquals(20, $c->max('foo'));
-                // $this->assertEquals(20, $c->max->foo);
 
                 expect(d.max("foo")).toBe(20);
                 expect(d.max((item) => item.foo)).toBe(20);
 
-                // $c = new $collection([1, 2, 3, 4, 5]);
-                // $this->assertEquals(5, $c->max());
-
                 const e = collect([1, 2, 3, 4, 5]);
                 expect(e.max()).toBe(5);
 
-                // $c = new $collection;
-                // $this->assertNull($c->max());
-
                 const f = collect();
                 expect(f.max()).toBeNull();
+            });
+        });
+    });
+
+    describe("forPage", () => {
+        describe("Laravel Tests", () => {
+            it("test paginate", () => {
+                const c = collect(["one", "two", "three", "four"]);
+                expect(c.forPage(0, 2).all()).toEqual(["one", "two"]);
+                expect(c.forPage(1, 2).all()).toEqual(["one", "two"]);
+                expect(c.forPage(2, 2).all()).toEqual(["three", "four"]);
+                expect(c.forPage(3, 2).all()).toEqual([]);
             });
         });
     });
