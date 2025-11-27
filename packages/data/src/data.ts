@@ -345,7 +345,7 @@ export function dataChunk<TValue>(
         }
     }
 
-    return arrChunk(arrWrap(data), size, preserveKeys);
+    return arrChunk(arrWrap(data), size);
 }
 
 /**
