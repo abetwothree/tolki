@@ -4320,7 +4320,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         );
 
         return this.map((value: TValue) => callbackValue(value))
-            .reject((value: TValue) => !isNumber(value))
+            .reject((value: TValue) => isNull(value))
             .reduce((carry: number | null, value: unknown) => {
                 if (isNull(carry) || (value as number) < carry) {
                     return value as number;
@@ -4343,11 +4343,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             callback as PathKey | ((...args: (TMaxValue | TMaxKey)[]) => number),
         );
 
-        return this.reject((value: TValue) => !isNumber(value)).reduce(
-            (carry: number | null, value: TValue, key: TKey) => {
-                const numValue = callbackValue(value, key) as number;
-                if (isNull(carry) || numValue > carry) {
-                    return numValue;
+        return this.reject((value: TValue) => isNull(value)).reduce(
+            (carry: number | null, item: TValue) => {
+                const value = callbackValue(item) as number;
+                if (isNull(carry) || value > carry) {
+                    return value;
                 }
 
                 return carry;
