@@ -6828,6 +6828,36 @@ describe("Collection", () => {
         });
     });
 
+    describe("sum", () => {
+        describe("Laravel Tests", () => {
+            it("test sum from from collection", () => {
+                const c = collect([{ foo: 50 }, { foo: 50 }]);
+                expect(
+                    c.sum((item) => {
+                        return item.foo;
+                    }),
+                ).toBe(100);
+
+                const d = collect([{ foo: 50 }, { foo: 50 }]);
+                expect(
+                    d.sum((item) => {
+                        return item.foo;
+                    }),
+                ).toBe(100);
+            });
+            
+            it("test can sum values without a callback", () => {
+                const c = collect([1, 2, 3, 4, 5]);
+                expect(c.sum()).toBe(15);
+            });
+
+            it("test getting sum from empty collection", () => {
+                const c = collect();
+                expect(c.sum('foo')).toBe(0);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
