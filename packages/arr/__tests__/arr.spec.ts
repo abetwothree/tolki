@@ -1268,6 +1268,17 @@ describe("Arr", () => {
             "otwell",
             26,
         ]);
+
+        // Fills gaps with undefined when replacement index skips ahead
+        const gapData = ["x", "y", "z"];
+        expect(Arr.replace(gapData, { 5: "end" })).toEqual([
+            "x",
+            "y",
+            "z",
+            undefined,
+            undefined,
+            "end",
+        ]);
     });
 
     it("replaceRecursive", () => {
