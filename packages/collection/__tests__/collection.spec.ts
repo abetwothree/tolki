@@ -6999,6 +6999,167 @@ describe("Collection", () => {
         });
     });
 
+    describe("where", () => {
+        describe("Laravel Tests", () => {
+            it("test where", () => {
+                const c = collect([
+                    { v: 1 },
+                    { v: 2 },
+                    { v: 3 },
+                    { v: "3" },
+                    { v: 4 },
+                ]);
+
+                expect(c.where("v", 3).values().all()).toEqual([
+                    { v: 3 },
+                    { v: "3" },
+                ]);
+                expect(c.where("v", "=", 3).values().all()).toEqual([
+                    { v: 3 },
+                    { v: "3" },
+                ]);
+                expect(c.where("v", "==", 3).values().all()).toEqual([
+                    { v: 3 },
+                    { v: "3" },
+                ]);
+                expect(c.where("v", "garbage", 3).values().all()).toEqual([
+                    { v: 3 },
+                    { v: "3" },
+                ]);
+                expect(c.where("v", "===", 3).values().all()).toEqual([{ v: 3 }]);
+
+                
+                expect(c.where("v", "<>", 3).values().all()).toEqual([
+                    { v: 1 },
+                    { v: 2 },
+                    { v: 4 },
+                ]);
+                expect(c.where("v", "!=", 3).values().all()).toEqual([
+                    { v: 1 },
+                    { v: 2 },
+                    { v: 4 },
+                ]);
+                expect(c.where("v", "!==", 3).values().all()).toEqual([
+                    { v: 1 },
+                    { v: 2 },
+                    { v: "3" },
+                    { v: 4 },
+                ]);
+                expect(c.where("v", "<=", 3).values().all()).toEqual([
+                    { v: 1 },
+                    { v: 2 },
+                    { v: 3 },
+                    { v: "3" },
+                ]);
+                expect(c.where("v", ">=", 3).values().all()).toEqual([
+                    { v: 3 },
+                    { v: "3" },
+                    { v: 4 },
+                ]);
+                expect(c.where("v", "<", 3).values().all()).toEqual([
+                    { v: 1 },
+                    { v: 2 },
+                ]);
+                expect(c.where("v", ">", 3).values().all()).toEqual([{ v: 4 }]);
+
+                
+                const object = { foo: "bar" };
+
+                expect(c.where("v", object).values().all()).toEqual([]);
+
+                expect(c.where("v", "<>", object).values().all()).toEqual([
+                    { v: 1 },
+                    { v: 2 },
+                    { v: 3 },
+                    { v: "3" },
+                    { v: 4 },
+                ]);
+
+                expect(c.where("v", "!=", object).values().all()).toEqual([
+                    { v: 1 },
+                    { v: 2 },
+                    { v: 3 },
+                    { v: "3" },
+                    { v: 4 },
+                ]);
+
+                expect(c.where("v", "!==", object).values().all()).toEqual([
+                    { v: 1 },
+                    { v: 2 },
+                    { v: 3 },
+                    { v: "3" },
+                    { v: 4 },
+                ]);
+
+                expect(c.where("v", ">", object).values().all()).toEqual([]);
+
+                expect(c.where((value) => value.v == 3).values().all()).toEqual([
+                    { v: 3 },
+                    { v: "3" },
+                ]);
+
+                expect(c.where((value) => value.v === 3).values().all()).toEqual([
+                    { v: 3 },
+                ]);
+
+                const c2 = collect([{ v: 1 }, { v: object }]);
+
+                expect(c2.where("v", object).values().all()).toEqual([{ v: object }]);
+
+                expect(c2.where("v", "<>", null).values().all()).toEqual([{ v: 1 }, { v: object }]);
+
+                expect(c2.where("v", "<", null).values().all()).toEqual([]);
+
+                class HtmlString {
+                    private value: string;
+                    constructor(value: string) {
+                        this.value = value;
+                    }
+                    toString() {
+                        return this.value;
+                    }
+                }
+
+                const c3 = collect([{ v: 1 }, { v: new HtmlString("hello") }]);
+
+                expect(c3.where("v", "hello").values().all()).toEqual([
+                    { v: new HtmlString("hello") },
+                ]);
+
+                const c4 = collect([{ v: 1 }, { v: "hello" }]);
+
+                expect(c4.where("v", new HtmlString("hello")).values().all()).toEqual([
+                    { v: "hello" },
+                ]);
+
+                const c5 = collect([{ v: 1 }, { v: 2 }, { v: null }]);
+
+                expect(c5.where("v").values().all()).toEqual([{ v: 1 }, { v: 2 }]);
+
+                const c6 = collect([
+                    { v: 1, g: 3 },
+                    { v: 2, g: 2 },
+                    { v: 2, g: 3 },
+                    { v: 2, g: null },
+                ]);
+
+                expect(c6.where("v", 2).where("g", 3).values().all()).toEqual([
+                    { v: 2, g: 3 },
+                ]);
+
+                expect(c6.where("v", 2).where("g", ">", 2).values().all()).toEqual([
+                    { v: 2, g: 3 },
+                ]);
+
+                expect(c6.where("v", 2).where("g", 4).values().all()).toEqual([]);
+
+                expect(c6.where("v", 2).whereNull("g").values().all()).toEqual([
+                    { v: 2, g: null },
+                ]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});

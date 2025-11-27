@@ -690,6 +690,36 @@ export function looseEqual(a: unknown, b: unknown): boolean {
         return true;
     }
 
+    // PHP's boolean comparison rules:
+    // - true == any truthy value
+    // - false == any falsy value
+    if (typeof a === "boolean" || typeof b === "boolean") {
+        const boolValue = typeof a === "boolean" ? a : b;
+        const otherValue = typeof a === "boolean" ? b : a;
+
+        // In PHP, true == any truthy value, false == any falsy value
+        if (boolValue === true) {
+            // Check if otherValue is truthy in PHP terms
+            return !(
+                otherValue === null ||
+                otherValue === false ||
+                otherValue === 0 ||
+                otherValue === "" ||
+                (Array.isArray(otherValue) && otherValue.length === 0)
+            );
+        } else {
+            // boolValue === false
+            // Check if otherValue is falsy in PHP terms
+            return (
+                otherValue === null ||
+                otherValue === false ||
+                otherValue === 0 ||
+                otherValue === "" ||
+                (Array.isArray(otherValue) && otherValue.length === 0)
+            );
+        }
+    }
+
     // PHP considers these "falsy" values as loosely equal to each other:
     // null, false, 0, '', []
     const isFalsyA =

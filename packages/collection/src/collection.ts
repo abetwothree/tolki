@@ -504,10 +504,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     contains(
         key: ((value: TValue, index: TKey) => boolean) | TValue | PathKey,
-        operator: unknown = null,
-        value: unknown = null,
+        operator?: unknown,
+        value?: unknown,
     ): boolean {
-        if (isNull(operator) && isNull(value)) {
+        if (isUndefined(operator) && isUndefined(value)) {
             if (isFunction(key)) {
                 const callback = key as (value: TValue, index: TKey) => boolean;
 
@@ -520,7 +520,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return this.contains(
             this.operatorForWhere(
                 key as PathKey | ((value: TValue, index: TKey) => unknown),
-                operator,
+                operator as string | undefined,
                 value,
             ),
         );
@@ -539,9 +539,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     containsStrict(
         key: ((value: TValue, index: TKey) => boolean) | TValue | TKey,
-        value: TValue | null = null,
+        value?: TValue | null,
     ): boolean {
-        if (value !== null) {
+        if (!isNull(value) && !isUndefined(value)) {
             return this.contains((item) => {
                 return (
                     dataGet(
@@ -577,8 +577,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     doesntContain(
         key: ((value: TValue, index: TKey) => boolean) | TValue | string,
-        operator: unknown = null,
-        value: unknown = null,
+        operator?: unknown,
+        value?: unknown,
     ) {
         return !this.contains(key, operator, value);
     }
@@ -599,7 +599,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     doesntContainStrict(
         key: ((value: TValue, index: TKey) => boolean) | TValue | TKey,
-        value: TValue | null = null,
+        value?: TValue | null,
     ): boolean {
         return !this.containsStrict(key, value);
     }
@@ -2818,11 +2818,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     sole(
         key: ((value: TValue, index: TKey) => boolean) | PathKey = null,
-        operator: string | null = null,
-        value: unknown = null,
+        operator?: string,
+        value?: unknown,
     ) {
         let filter: ((value: TValue, key: TKey) => boolean) | null;
-        if (isNull(operator) && isNull(value)) {
+        if (isUndefined(operator) && isUndefined(value)) {
             filter = isNull(key)
                 ? key
                 : (this.valueRetriever(
@@ -2831,7 +2831,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                           | ((...args: (TValue | TKey)[]) => boolean),
                   ) as (value: TValue, key: TKey) => boolean);
         } else {
-            filter = this.operatorForWhere(key, operator, value);
+            filter = this.operatorForWhere(key, operator as string | undefined, value);
         }
 
         const items = this.unless(isNull(filter)).filter(filter);
@@ -2866,11 +2866,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     firstOrFail(
         key: ((value: TValue, index: TKey) => boolean) | PathKey = null,
-        operator: string | null = null,
-        value: unknown = null,
+        operator?: string,
+        value?: unknown,
     ) {
         let filter: ((value: TValue, key: TKey) => boolean) | null;
-        if (isNull(operator) && isNull(value)) {
+        if (isUndefined(operator) && isUndefined(value)) {
             filter = isNull(key)
                 ? key
                 : (this.valueRetriever(
@@ -2879,7 +2879,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                           | ((...args: (TValue | TKey)[]) => boolean),
                   ) as (value: TValue, key: TKey) => boolean);
         } else {
-            filter = this.operatorForWhere(key, operator, value);
+            filter = this.operatorForWhere(key, operator as string | undefined, value);
         }
 
         const placeholder = null;
@@ -3997,8 +3997,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     some(
         key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
-        operator: unknown = null,
-        value: unknown = null,
+        operator?: unknown,
+        value?: unknown,
     ) {
         return this.contains(key, operator, value);
     }
@@ -4097,7 +4097,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return this.every(
             this.operatorForWhere(
                 key as PathKey | ((value: TValue, index: TKey) => unknown),
-                isString(operator) ? operator : null,
+                isString(operator) ? operator : undefined,
                 value,
             ),
         );
@@ -4120,13 +4120,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     firstWhere(
         key: ((value: TValue, key: TKey) => boolean) | PathKey = null,
-        operator: unknown = null,
-        value: unknown = null,
+        operator?: unknown,
+        value?: unknown,
     ) {
         return this.first(
             this.operatorForWhere(
                 key,
-                isString(operator) ? operator : null,
+                operator as string | undefined,
                 value,
             ),
         );
@@ -4383,18 +4383,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     partition(
         key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
-        operator: unknown = null,
-        value: unknown = null,
+        operator?: unknown,
+        value?: unknown,
     ) {
         let callback;
-        if (isNull(operator) && isNull(value)) {
+        if (isUndefined(operator) && isUndefined(value)) {
             callback = this.valueRetriever(
                 key as PathKey | ((...args: (TValue | TKey)[]) => boolean),
             );
         } else {
             callback = this.operatorForWhere(
                 key as PathKey | ((value: TValue, index: TKey) => unknown),
-                isString(operator) ? operator : null,
+                operator as string | undefined,
                 value,
             );
         }
@@ -4525,11 +4525,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     where(
         key: ((value: TValue, index: TKey) => unknown) | PathKey,
-        operator: unknown = null,
-        value: unknown = null,
+        operator?: unknown,
+        value?: unknown,
     ) {
         return this.filter(
-            this.operatorForWhere(key, operator as string | null, value),
+            this.operatorForWhere(key, operator as string | undefined, value),
         );
     }
 
@@ -4983,21 +4983,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     protected operatorForWhere(
         key: ((value: TValue, index: TKey) => unknown) | PathKey,
-        operator: string | null = null,
-        value: unknown = null,
+        operator?: string,
+        value?: unknown,
     ): (value: TValue, index: TKey) => boolean {
         if (this.useAsCallable(key)) {
             return key as (value: TValue, index: TKey) => boolean;
         }
 
-        // func_num_args() === 1: both operator and value are null
-        if (isNull(operator) && isNull(value)) {
+        // func_num_args() === 1: both operator and value are undefined
+        if (isUndefined(operator) && isUndefined(value)) {
             value = true;
             operator = "=";
         }
 
-        // func_num_args() === 2: operator has value but value is null
-        if (!isNull(operator) && isNull(value)) {
+        // func_num_args() === 2: operator has value but value is undefined
+        if (!isUndefined(operator) && isUndefined(value)) {
             value = operator;
             operator = "=";
         }
@@ -5024,7 +5024,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 dataCount(strings) < 2 &&
                 dataCount(dataFilter([retrieved, value], isObject)) === 1
             ) {
-                return ["!=", "<>", "!=="].includes(operator);
+                return ["!=", "<>", "!=="].includes(operator!);
             }
 
             switch (operator) {
