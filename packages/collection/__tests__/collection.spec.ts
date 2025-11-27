@@ -6487,6 +6487,38 @@ describe("Collection", () => {
         });
     });
 
+    describe("mapToGroups", () => {
+        describe("Laravel Tests", () => {
+            it("test map to groups", () => {
+                const data = collect([
+                    { id: 1, name: "A" },
+                    { id: 2, name: "B" },
+                    { id: 3, name: "C" },
+                    { id: 4, name: "B" },
+                ]);
+
+                const groups = data.mapToGroups((item) => {
+                    return { [item.name]: item.id };
+                });
+
+                expect(groups).toBeInstanceOf(Collection);
+                expect(groups.toArray()).toEqual({ A: [1], B: [2, 4], C: [3] });
+                expect(groups.get("A")).toBeInstanceOf(Collection);
+            });
+
+            it("test map to groups with numeric keys", () => {
+                const data = collect([1, 2, 3, 2, 1]);
+
+                const groups = data.mapToGroups((item, key) => {
+                    return { [item]: key };
+                });
+
+                expect(groups.toArray()).toEqual({ 1: [0, 4], 2: [1, 3], 3: [2] });
+                expect(data.all()).toEqual([1, 2, 3, 2, 1]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
