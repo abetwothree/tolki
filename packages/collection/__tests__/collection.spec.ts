@@ -7970,6 +7970,69 @@ describe("Collection", () => {
         });
     });
 
+    describe("toPrettyJson", () => {
+        it("returns pretty-printed JSON by default (4 spaces)", () => {
+            const c = collect([
+                new TestArrayableObject(),
+                new TestJsonableObject(),
+                new TestJsonSerializeObject(),
+                new TestJsonSerializeToStringObject(),
+                "baz",
+            ]);
+
+            const pretty = c.toPrettyJson();
+            const expected = JSON.stringify(
+                [
+                    [{ foo: "bar" }],
+                    { foo: "bar" },
+                    { foo: "bar" },
+                    "foobar",
+                    "baz",
+                ],
+                undefined,
+                4,
+            );
+
+            expect(pretty).toBe(expected);
+        });
+
+        it("supports custom indentation spaces", () => {
+            const c = collect([{ a: 1 }, { b: 2 }]);
+            const pretty2 = c.toPrettyJson(undefined, 2);
+            const pretty4 = c.toPrettyJson(undefined, 4);
+
+            expect(pretty2).toBe(JSON.stringify(c.jsonSerialize(), undefined, 2));
+            expect(pretty4).toBe(JSON.stringify(c.jsonSerialize(), undefined, 4));
+        });
+
+        it("supports array replacer to filter keys", () => {
+            const c = collect([{ a: 1, b: 2 }, { b: 3, c: 4 }]);
+            const replacer: (string | number)[] = ["b"]; // keep only key 'b'
+            const pretty = c.toPrettyJson(replacer, 2);
+            expect(pretty).toBe(JSON.stringify(c.jsonSerialize(), replacer, 2));
+        });
+
+        it("supports function replacer to transform values", () => {
+            const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
+            const replacer = (key: string, value: unknown) => {
+                if (key === "b" && typeof value === "number") {
+                    return (value as number) * 10;
+                }
+                return value;
+            };
+
+            const pretty = c.toPrettyJson(replacer, 2);
+            expect(pretty).toBe(JSON.stringify(c.jsonSerialize(), replacer, 2));
+        });
+
+        it("null replacer behaves like no replacer", () => {
+            const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
+            const prettyNull = c.toPrettyJson(null, 2);
+            const prettyDefault = c.toPrettyJson(undefined, 2);
+            expect(prettyNull).toBe(prettyDefault);
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
