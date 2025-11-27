@@ -1,7 +1,6 @@
 import { collect, Collection } from "@laravel-js/collection";
 import { Stringable } from "@laravel-js/str";
 import { assertType, describe, expect, it } from "vitest";
-
 import {
     TestArrayableObject,
     TestJsonableObject,
@@ -182,6 +181,24 @@ describe("Collection", () => {
                 5: { id: 3, name: "B" },
                 4: { id: 2, name: "C" },
             });
+        });
+
+        it('constructor preserves itemsWithOrder when created from another Collection', () => {
+            // Create a collection via Map with numeric keys to set itemsWithOrder
+            const m = new Map<number, { v: string }>([
+                [2, { v: 'b' }],
+                [1, { v: 'a' }],
+                [3, { v: 'c' }],
+            ]);
+            const base = new Collection(m);
+            // @ts-expect-error internal check
+            expect(Array.isArray(base.itemsWithOrder)).toBe(true);
+            const next = new Collection(base);
+            // Ensure itemsWithOrder was preserved by constructor branch
+            // @ts-expect-error internal check
+            expect(Array.isArray(next.itemsWithOrder)).toBe(true);
+            // And data preserved
+            expect(next.toJson()).toEqual(base.toJson());
         });
     });
 
@@ -8111,5 +8128,5 @@ describe("Collection", () => {
             const expected = JSON.stringify({ a: 1, b: 2 });
             expect(c.toString()).toBe(expected);
         });
-    });    
+    });
 });
