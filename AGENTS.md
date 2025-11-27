@@ -100,7 +100,7 @@ When using generics in parameter types, make sure to use the correct syntax for 
 - Use `oxlint` and `eslint` for linting
 - Do place line numbers on tests as the lines change often and they become outdated quickly
 - Use `===` and `!==` instead of `==` and `!=`
-- Do not use `any` for types. Use the most specific type possibl. 
+- Do not use `any` for types. Use the most specific type possibl.
 - Use `unknown` for types that are not known or cannot be narrowed down.
 - Use `const` for variables that are not reassigned
 - Use functional patterns where possible
