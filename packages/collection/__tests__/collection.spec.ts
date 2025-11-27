@@ -1,14 +1,15 @@
 import { collect, Collection } from "@laravel-js/collection";
 import { Stringable } from "@laravel-js/str";
 import { assertType, describe, expect, it } from "vitest";
+
 import {
     TestArrayableObject,
+    TestCollectionMapIntoObject,
     TestJsonableObject,
     TestJsonSerializeObject,
+    TestJsonSerializeToStringObject,
     TestJsonSerializeWithScalarValueObject,
     TestTraversableAndJsonSerializableObject,
-    TestJsonSerializeToStringObject,
-    TestCollectionMapIntoObject,
 } from "./test-classes";
 
 // Case-insensitive string comparison (like PHP's strcasecmp)
