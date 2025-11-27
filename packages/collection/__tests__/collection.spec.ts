@@ -6858,6 +6858,42 @@ describe("Collection", () => {
         });
     });
 
+    describe("whenEmpty", () => {
+        describe("Laravel Tests", () => {
+            it("test when empty", () => {
+                const data = collect(["michael", "tom"]);
+
+                const result = data.whenEmpty(() => {
+                    throw new Error(
+                        "whenEmpty() should not trigger on a collection with items",
+                    );
+                });
+
+                expect(result.all()).toEqual(["michael", "tom"]);
+
+                let emptyData = collect();
+
+                emptyData = emptyData.whenEmpty((col) => {
+                    return col.concat(["adam"]);
+                });
+
+                expect(emptyData.all()).toEqual(["adam"]);
+            });
+
+            it("test when empty default", () => {
+                const data = collect(["michael", "tom"]);
+
+                const result = data.whenEmpty((col) => {
+                    return col.concat(["adam"]);
+                }, (col) => {
+                    return col.concat(["taylor"]);
+                });
+
+                expect(result.all()).toEqual(["michael", "tom", "taylor"]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
