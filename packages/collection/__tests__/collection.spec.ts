@@ -7610,6 +7610,28 @@ describe("Collection", () => {
         });
     });
 
+    describe("tap", () => {
+        describe("Laravel Tests", () => {
+            it("test tap", () => {
+                const data = collect([1, 2, 3]);
+
+                const fromTap: number[] = [];
+                let tappedInstance: Collection<number, number> | null = null;
+
+                data.tap((col) => {
+                    col.slice(0, 1).each((value) => {
+                        fromTap.push(value);
+                    });
+                    tappedInstance = col;
+                });
+
+                expect(tappedInstance).toBe(data);
+                expect(fromTap).toEqual([1]);
+                expect(data.all()).toEqual([1, 2, 3]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
