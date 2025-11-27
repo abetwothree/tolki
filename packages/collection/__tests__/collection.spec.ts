@@ -6519,6 +6519,34 @@ describe("Collection", () => {
         });
     });
 
+    describe("flatMap", () => {
+        describe("Laravel Tests", () => {
+            it("test flat map", () => {
+                const data = collect([
+                    {
+                        name: "taylor",
+                        hobbies: ["programming", "basketball"],
+                    },
+                    {
+                        name: "adam",
+                        hobbies: ["music", "powerlifting"],
+                    },
+                ]);
+
+                const flatMapped = data.flatMap((person) => {
+                    return person.hobbies;
+                });
+
+                expect(flatMapped.all()).toEqual([
+                    "programming",
+                    "basketball",
+                    "music",
+                    "powerlifting",
+                ]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
