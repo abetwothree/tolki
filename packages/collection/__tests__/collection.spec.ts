@@ -6377,10 +6377,7 @@ describe("Collection", () => {
 
                 expect(e.value("balance")).toBeNull();
 
-                const f = collect([
-                    { id: 1 },
-                    { id: 2, balance: 200 },
-                ]);
+                const f = collect([{ id: 1 }, { id: 2, balance: 200 }]);
 
                 expect(f.value("balance")).toBe(200);
 
@@ -6424,7 +6421,7 @@ describe("Collection", () => {
                     data2.ensure("number");
                 }).toThrowError();
             });
-            
+
             it("test ensure for objects", () => {
                 const data = collect([{}, {}, {}]);
                 data.ensure("object");
@@ -6476,7 +6473,7 @@ describe("Collection", () => {
                     return `${number}-${character}-${key}`;
                 });
                 expect(result2.all()).toEqual(["1-a-0", "2-b-1"]);
-                
+
                 const d = new Collection([
                     new Collection([1, "a"]),
                     new Collection([2, "b"]),

@@ -4243,10 +4243,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: (...values: TValue[]) => TMapSpreadValue,
     ) {
         return this.map((chunk, key) => {
-            const values = chunk instanceof Collection 
-                ? (chunk.all() as TValue[])
-                : (arrWrap(chunk) as TValue[]);
-                
+            const values =
+                chunk instanceof Collection
+                    ? (chunk.all() as TValue[])
+                    : (arrWrap(chunk) as TValue[]);
+
             return callback(...values, key as unknown as TValue);
         });
     }
@@ -4510,11 +4511,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         value: unknown = null,
     ) {
         return this.filter(
-            this.operatorForWhere(
-                key,
-                operator as string | null,
-                value,
-            ),
+            this.operatorForWhere(key, operator as string | null, value),
         );
     }
 
