@@ -4151,12 +4151,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: PathKey,
         defaultValue: TValueDefault | (() => TValueDefault) | null = null,
     ) {
-        const value = this.firstWhere(key);
-        if (isArray(value) || isObject(value)) {
-            return dataGet(value, key, defaultValue);
-        }
+        const item = this.first((target) => {
+            return dataHas(target as DataItems<unknown, PropertyKey>, key);
+        });
 
-        return isFunction(defaultValue) ? defaultValue() : defaultValue;
+        return dataGet(
+            item as DataItems<unknown, PropertyKey>,
+            key,
+            defaultValue,
+        );
     }
 
     /**
@@ -4500,7 +4503,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return this.filter(
             this.operatorForWhere(
                 key,
-                isString(operator) ? operator : null,
+                operator as string | null,
                 value,
             ),
         );

@@ -6334,6 +6334,85 @@ describe("Collection", () => {
         });
     });
 
+    describe("value", () => {
+        describe("Laravel Tests", () => {
+            it("test value", () => {
+                const c = collect([
+                    { id: 1, name: "Hello" },
+                    { id: 2, name: "World" },
+                ]);
+
+                expect(c.value("name")).toBe("Hello");
+                expect(c.where("id", 2).value("name")).toBe("World");
+
+                const d = collect([
+                    { id: 1, pivot: { value: "foo" } },
+                    { id: 2, pivot: { value: "bar" } },
+                ]);
+
+                expect(d.value("pivot")).toEqual({ value: "foo" });
+                expect(d.value("pivot.value")).toBe("foo");
+                expect(d.where("id", 2).value("pivot.value")).toBe("bar");
+            });
+
+            it("test value with negative value", () => {
+                const c = collect([
+                    { id: 1, balance: 0 },
+                    { id: 2, balance: 200 },
+                ]);
+
+                expect(c.value("balance")).toBe(0);
+
+                const d = collect([
+                    { id: 1, balance: "" },
+                    { id: 2, balance: 200 },
+                ]);
+
+                expect(d.value("balance")).toBe("");
+
+                const e = collect([
+                    { id: 1, balance: null },
+                    { id: 2, balance: 200 },
+                ]);
+
+                expect(e.value("balance")).toBeNull();
+
+                const f = collect([
+                    { id: 1 },
+                    { id: 2, balance: 200 },
+                ]);
+
+                expect(f.value("balance")).toBe(200);
+
+                const g = collect([
+                    { id: 1 },
+                    { id: 2, balance: 0 },
+                    { id: 3, balance: 200 },
+                ]);
+
+                expect(g.value("balance")).toBe(0);
+            });
+
+            it("test value with objects", () => {
+                const c = collect([
+                    { id: 1 },
+                    { id: 2, balance: "" },
+                    { id: 3, balance: 200 },
+                ]);
+
+                expect(c.value("balance")).toBe("");
+
+                const d = collect([
+                    { id: 1 },
+                    { id: 2, balance: { currency: "USD", value: 0 } },
+                    { id: 3, balance: { currency: "USD", value: 200 } },
+                ]);
+
+                expect(d.value("balance.value")).toBe(0);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
