@@ -7220,9 +7220,46 @@ describe("Collection", () => {
         });
     });
 
+    describe("whereStrict", () => {
+        describe("Laravel Tests", () => {
+            it("test where strict", () => {
+                const c = collect([{ v: 3 }, { v: "3" }]);
+
+                expect(c.whereStrict("v", 3).values().all()).toEqual([{ v: 3 }]);
+            });
+        });
+    });
+
+    describe("whereIn", () => {
+        describe("Laravel Tests", () => {
+            it("test where in", () => {
+                const c = collect([
+                    { v: 1 },
+                    { v: 2 },
+                    { v: 3 },
+                    { v: "3" },
+                    { v: 4 },
+                ]);
+
+
+                expect(c.whereIn("v", [1, 3]).values().all()).toEqual([
+                    { v: 1 },
+                    { v: 3 },
+                    { v: "3" },
+                ]);
+                
+                expect(c.whereIn("v", [2]).whereIn("v", [1, 3]).values().all()).toEqual([]);
+
+                expect(c.whereIn("v", [1]).whereIn("v", [1, 3]).values().all()).toEqual([{ v: 1 }]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
-            it("", () => {});
+            it("", () => {
+                
+            });
         });
     });
 
