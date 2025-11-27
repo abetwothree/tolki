@@ -7446,6 +7446,35 @@ describe("Collection", () => {
         });
     });
 
+    describe("reduce", () => {
+        describe("Laravel Tests", () => {
+            it("test reduce", () => {
+                const data = collect([1, 2, 3]);
+
+                expect(
+                    data.reduce((carry, element) => {
+                        return carry + element;
+                    }),
+                ).toBe(6);
+
+                expect(
+                    data.reduce((carry, element, key) => {
+                        return carry += (element + key);
+                    }),
+                ).toBe(9);
+
+                const data2 = collect({ foo: "bar", baz: "qux" });
+
+                // Using initial value is the clean approach when you need all keys processed
+                expect(
+                    data2.reduce((carry, element, key) => {
+                        return carry + key + element;
+                    }, ""),
+                ).toBe("foobarbazqux");
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {

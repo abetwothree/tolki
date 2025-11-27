@@ -4758,13 +4758,32 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns The reduced value
      */
     reduce<TReduce>(
-        callback: (carry: TReduce, value: TValue, key: TKey) => TReduce,
-        initial: TReduce,
+        callback: (carry: TValue|TReduce, value: TValue, key: TKey) => TReduce,
+        initial?: TReduce,
     ) {
-        let result: TReduce = initial;
+        const entries = Object.entries(this.items);
+        
+        if (entries.length === 0) {
+            return initial as TReduce;
+        }
 
-        for (const [key, value] of Object.entries(this.items)) {
-            result = callback(result, value as TValue, key as TKey);
+        let result: TReduce;
+        let startIndex: number;
+
+        if (isUndefined(initial)) {
+            // Use first element as initial value (like native JS Array.reduce)
+            result = entries[0]![1] as unknown as TReduce;
+            startIndex = 1;
+        } else {
+            result = initial;
+            startIndex = 0;
+        }
+
+        for (let i = startIndex; i < entries.length; i++) {
+            const [key, value] = entries[i]!;
+
+
+            result = callback(result, value as TValue, entriesKeyValue(key) as TKey);
         }
 
         return result;
