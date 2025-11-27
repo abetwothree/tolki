@@ -7535,11 +7535,84 @@ describe("Collection", () => {
         });
     });
 
+    describe("reject", () => {
+        describe("Laravel Tests", () => {
+            it("test reject removes elements passing truth test", () => {
+                const c = collect(['foo', 'bar']);
+                expect(c.reject((v) => v === 'bar').values().all()).toEqual(['foo']);
+
+                const d = collect(['foo', 'bar']);
+                expect(d.reject((v) => v === 'bar').values().all()).toEqual(['foo']);
+
+                const e = collect(['foo', null]);
+                expect(e.reject((v) => v === null).values().all()).toEqual(['foo']);
+
+                const f = collect(['foo', 'bar']);
+                expect(f.reject((v) => v === 'baz').values().all()).toEqual(['foo', 'bar']);
+
+                const g = collect(['foo', 'bar']);
+                expect(g.reject((v) => v === 'baz').values().all()).toEqual(['foo', 'bar']);
+
+                const h = collect({ id: 1, primary: 'foo', secondary: 'bar' });
+                expect(
+                    h.reject((item, key) => key === 'id').all(),
+                ).toEqual({ primary: 'foo', secondary: 'bar' });
+            });
+
+            it("test reject without an argument removes truthy values", () => {
+                const data1 = collect([
+                    false,
+                    true,
+                    collect(),
+                    0,
+                ]);
+                expect(data1.reject().values().all()).toEqual([false, 0]);
+
+                const data2 = collect({
+                    a: true,
+                    b: true,
+                    c: true,
+                });
+                expect(data2.reject().isEmpty()).toBe(true);
+
+                const data3 = collect({
+                    a: true,
+                    b: true,
+                    c: false,
+                });
+                expect(data3.reject().isEmpty()).toBe(false);
+            });
+        });
+
+        it("test reject with specific value removes matching elements", () => {
+            // Test rejecting elements that match a specific value (not a function, not true)
+            const data1 = collect([1, 2, 3, 2, 4]);
+            expect(data1.reject(2).values().all()).toEqual([1, 3, 4]);
+
+            const data2 = collect(['foo', 'bar', 'baz', 'bar']);
+            expect(data2.reject('bar').values().all()).toEqual(['foo', 'baz']);
+
+            const data3 = collect([null, 'test', null, 'value']);
+            expect(data3.reject(null).values().all()).toEqual(['test', 'value']);
+
+            const data4 = collect([0, 1, 2, 0, 3]);
+            expect(data4.reject(0).values().all()).toEqual([1, 2, 3]);
+
+            const data5 = collect([false, true, false, true]);
+            expect(data5.reject(false).values().all()).toEqual([true, true]);
+
+            // Test with objects
+            const data6 = collect({ a: 1, b: 2, c: 1, d: 3 });
+            expect(data6.reject(1).all()).toEqual({ b: 2, d: 3 });
+
+            const data7 = collect({ a: 'foo', b: 'bar', c: 'foo' });
+            expect(data7.reject('foo').all()).toEqual({ b: 'bar' });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
-            it("", () => {
-                
-            });
+            it("", () => {});
         });
     });
 

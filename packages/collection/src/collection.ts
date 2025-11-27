@@ -4852,12 +4852,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const useAsCallable = this.useAsCallable(callback);
 
         return this.filter((value: TValue, key: TKey) => {
-            return useAsCallable
-                ? !(callback as (value: TValue, key: TKey) => boolean)(
-                      value,
-                      key,
-                  )
-                : value != callback;
+            if (useAsCallable) {
+                return !(callback as (value: TValue, key: TKey) => boolean)(
+                    value,
+                    key,
+                );
+            }
+            
+            // When reject() is called without arguments (or with true),
+            // filter out all truthy values (like PHP does)
+            if (callback === true) {
+                return !value;
+            }
+            
+            return value != callback;
         });
     }
 
