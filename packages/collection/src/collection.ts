@@ -4236,14 +4236,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Run a map over each nested chunk of items.
      *
-     * @param callback - The callback to execute, receives the value(s) as arguments
+     * @param callback - The callback to execute, receives the value(s) as arguments, with the key as the last argument
      * @returns A new collection with the results of the callback
      */
     mapSpread<TMapSpreadValue>(
         callback: (...values: TValue[]) => TMapSpreadValue,
     ) {
-        return this.map((chunk) => {
-            return callback(...(arrWrap(chunk) as TValue[]));
+        return this.map((chunk, key) => {
+            const values = chunk instanceof Collection 
+                ? (chunk.all() as TValue[])
+                : (arrWrap(chunk) as TValue[]);
+                
+            return callback(...values, key as unknown as TValue);
         });
     }
 

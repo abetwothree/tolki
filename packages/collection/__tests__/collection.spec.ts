@@ -6459,6 +6459,37 @@ describe("Collection", () => {
         });
     });
 
+    describe("mapSpread", () => {
+        describe("Laravel Tests", () => {
+            it("test map spread", () => {
+                const c = collect([
+                    [1, "a"],
+                    [2, "b"],
+                ]);
+
+                const result = c.mapSpread((number, character) => {
+                    return `${number}-${character}`;
+                });
+                expect(result.all()).toEqual(["1-a", "2-b"]);
+
+                const result2 = c.mapSpread((number, character, key) => {
+                    return `${number}-${character}-${key}`;
+                });
+                expect(result2.all()).toEqual(["1-a-0", "2-b-1"]);
+                
+                const d = new Collection([
+                    new Collection([1, "a"]),
+                    new Collection([2, "b"]),
+                ]);
+
+                const result3 = d.mapSpread((number, character, key) => {
+                    return `${number}-${character}-${key}`;
+                });
+                expect(result3.all()).toEqual(["1-a-0", "2-b-1"]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
