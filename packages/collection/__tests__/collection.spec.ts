@@ -7669,6 +7669,63 @@ describe("Collection", () => {
         });
     });
 
+    describe("toArray", () => {
+        it("test to array", () => {
+            const data = Collection.make({ a: 1, b: 2, c: 3 });
+
+            expect(data.toArray()).toEqual({ a: 1, b: 2, c: 3 });
+
+            const data2 = Collection.make([1, 2, 3]);
+
+            expect(data2.toArray()).toEqual([1, 2, 3]);
+
+            const data3 = Collection.make([{ a: 1 }, { b: 2 }, { c: 3 }]);
+
+            expect(data3.toArray()).toEqual([{ a: 1 }, { b: 2 }, { c: 3 }]);
+
+            const data4 = Collection.make([
+                Collection.make({ a: 1 }),
+                Collection.make({ b: 2 }),
+                Collection.make({ c: 3 }),
+            ]);
+
+            expect(data4.toArray()).toEqual([{ a: 1 }, { b: 2 }, { c: 3 }]);
+
+            const data5 = Collection.make({
+                a: Collection.make(1),
+                b: Collection.make(2),
+                c: Collection.make(3),
+            });
+
+            expect(data5.toArray()).toEqual({ a: [1], b: [2], c: [3] });
+
+            const data6 = Collection.make({
+                a: Collection.make({ x: 1 }),
+                b: Collection.make({ y: 2 }),
+                c: Collection.make({ z: 3 }),
+            });
+
+            expect(data6.toArray()).toEqual({
+                a: { x: 1 },
+                b: { y: 2 },
+                c: { z: 3 },
+            });
+
+            class ToArrayTest {
+                toArray() {
+                    return { test: "value" };
+                }
+            }
+
+            const data7 = Collection.make({
+                a: new ToArrayTest(),
+                b: 2,
+            });
+
+            expect(data7.toArray()).toEqual({ a: { test: "value" }, b: 2 });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
