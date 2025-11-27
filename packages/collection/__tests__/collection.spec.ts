@@ -6547,6 +6547,30 @@ describe("Collection", () => {
         });
     });
 
+    describe("mapInto", () => {
+        describe("Laravel Tests", () => {
+            it("test map into", () => {
+                const data = collect(["first", "second"]);
+
+                class TestCollectionMapIntoObject {
+                    value: string;
+                    constructor(value: string) {
+                        this.value = value;
+                    }
+                }
+
+                const mapped = data.mapInto(TestCollectionMapIntoObject);
+                expect(mapped.all()).toEqual([
+                    new TestCollectionMapIntoObject("first"),
+                    new TestCollectionMapIntoObject("second"),
+                ]);
+
+                expect(mapped.get(0).value).toBe("first");
+                expect(mapped.get(1).value).toBe("second");
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
