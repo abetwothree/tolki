@@ -1633,13 +1633,13 @@ export function mapSpread<T1, T2, T3, T4, T5, TMapReturn>(
 export function mapSpread<TMapReturn>(
     data: unknown,
 
-    callback: (...args: any[]) => TMapReturn,
+    callback: (...args: unknown[]) => TMapReturn,
 ): TMapReturn[];
-// Implementation (using any[] for compatibility with all overloads)
+// Implementation (using unknown[] for compatibility with all overloads)
 export function mapSpread<TMapReturn>(
     data: unknown,
 
-    callback: (...args: any[]) => TMapReturn,
+    callback: (...args: unknown[]) => TMapReturn,
 ): TMapReturn[] {
     const values = getAccessibleValues(data);
     const result: TMapReturn[] = [];

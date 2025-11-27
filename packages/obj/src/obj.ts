@@ -2794,8 +2794,19 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     const padCount = Math.abs(size) - currentLength;
     const padEntries: [string, TPadValue][] = [];
 
-    for (let i = 0; i < padCount; i++) {
-        padEntries.push([i.toString(), value]);
+    if (padCount > 0) {
+        if (size >= 0) {
+            for (let i = 0; i < padCount; i++) {
+                padEntries.push([i.toString(), value]);
+            }
+        } else {
+            // Negative size: left padding with keys counting up to 0 (including negatives)
+            // Example: currentLength=2, size=-5 => padCount=3 => keys -2, -1, 0
+            const start = -(padCount - 1);
+            for (let k = start; k <= 0; k++) {
+                padEntries.push([k.toString(), value]);
+            }
+        }
     }
 
     let resultEntries: [string, TValue | TPadValue][];

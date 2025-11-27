@@ -99,6 +99,16 @@ When using generics in parameter types, make sure to use the correct syntax for 
 - Use `prettier` for formatting
 - Use `oxlint` and `eslint` for linting
 - Do place line numbers on tests as the lines change often and they become outdated quickly
+- Use `===` and `!==` instead of `==` and `!=`
+- Do not use `any` for types. Use the most specific type possibl. 
+- Use `unknown` for types that are not known or cannot be narrowed down.
+- Use `const` for variables that are not reassigned
+- Use functional patterns where possible
+- Aim for 100% test coverage
+  - Remove any code that isn't needed and not covered by tests
+  - Code coverage files are in `./coverage/` folder after running tests with coverage
+- Use `Vitest` for testing
+- This is a monorepo, so all packages should be in `packages/` folder
 - Instead of using the JavaScript `typeof` directly to check for value types, use the following utility functions from `@laravel-js/utils`:
   - `isArray(variable)` - checks if the variable is an array
   - `toArrayable(variable)` - converts the variable is an object with the `toArray` method
@@ -122,7 +132,7 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `isWeakSet(variable)` - checks if the variable is a WeakSet
   - `looseEqual(value1, value2)` - checks if two values are loosely equal the way that PHP does it with `==`
   - `entriesKeyValue(variable)` - converts a key of an array or object to number if it should be a number, otherwise, returns the key as is. This is useful when iterating over arrays or objects and getting the keys from `Object.entries()` or similar methods.
-- Use full return statements with curly braces, even for single statements:
+- For better code coverage results, use full return statements with curly braces, even for single statements, no implicit returns:
 
 ```JavaScript
 // bad
@@ -134,15 +144,6 @@ if (condition) {
 }
 ```
 
-- Use `===` and `!==` instead of `==` and `!=`
-- Do not use `any` for types. Use the most specific type possible and as last resort, use `unknown` and then narrow it down later.
-- Use `const` for variables that are not reassigned
-- Use functional patterns where possible
-- Aim for 100% test coverage
-  - Remove any code that isn't needed and not covered by tests
-  - Code coverage files are in `./coverage/` folder after running tests with coverage
-- Use `Vitest` for testing
-- This is a monorepo, so all packages should be in `packages/` folder
 - Each function or method should have a JSDoc comment explaining its purpose, parameters, return value and examples of how to use it. Example format:
 
 ```JavaScript
@@ -157,7 +158,7 @@ if (condition) {
  * Example of how to use the function
  * functionName(param); -> returnValue
  */
-function functionName(param) {
+function functionName<PossibleGeneric>(paramName: PossibleGeneric): ReturnType {
   // function implementation
 }
 ```
