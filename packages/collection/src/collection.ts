@@ -5003,7 +5003,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return function (item: unknown): boolean {
-            const retrieved = dataGet(item!, key as PathKey);
+            const retrieved = isNull(key) ? item : dataGet(item!, key as PathKey);
 
             const strings = dataFilter([retrieved, value], function (value) {
                 if (isString(value)) {
