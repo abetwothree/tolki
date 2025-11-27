@@ -1,6 +1,13 @@
 import { collect, Collection } from "@laravel-js/collection";
 import { Stringable } from "@laravel-js/str";
 import { assertType, describe, expect, it } from "vitest";
+import {
+    TestArrayableObject,
+    TestJsonableObject,
+    TestJsonSerializeObject,
+    TestJsonSerializeWithScalarValueObject,
+    TestTraversableAndJsonSerializableObject,
+} from "./test-classes";
 
 // Case-insensitive string comparison (like PHP's strcasecmp)
 // Returns true if items are equal (should be excluded from diff)
@@ -192,6 +199,44 @@ describe("Collection", () => {
                 result.push(item);
             }
             expect(result).toEqual([1, 2, 3]);
+        });
+    });
+
+    describe("test helper classes", () => {
+        it("TestArrayableObject implements toArray", () => {
+            const obj = new TestArrayableObject();
+            expect(obj.toArray()).toEqual([{ foo: "bar" }]);
+        });
+
+        it("TestJsonableObject implements toJson", () => {
+            const obj = new TestJsonableObject();
+            expect(obj.toJson()).toBe('{"foo":"bar"}');
+        });
+
+        it("TestJsonSerializeObject implements jsonSerialize with object", () => {
+            const obj = new TestJsonSerializeObject();
+            expect(obj.jsonSerialize()).toEqual({ foo: "bar" });
+        });
+
+        it("TestJsonSerializeWithScalarValueObject implements jsonSerialize with scalar", () => {
+            const obj = new TestJsonSerializeWithScalarValueObject();
+            expect(obj.jsonSerialize()).toBe("foo");
+        });
+
+        it("TestTraversableAndJsonSerializableObject implements both interfaces", () => {
+            const items = [1, 2, 3];
+            const obj = new TestTraversableAndJsonSerializableObject(items);
+
+            // Test IteratorAggregate
+            const collected: unknown[] = [];
+            for (const [index, value] of obj.getIterator()) {
+                collected.push(value);
+                expect(typeof index).toBe("number");
+            }
+            expect(collected).toEqual([1, 2, 3]);
+
+            // Test JsonSerializable
+            expect(obj.jsonSerialize()).toEqual([1, 2, 3]);
         });
     });
 
@@ -6844,7 +6889,7 @@ describe("Collection", () => {
                     }),
                 ).toBe(100);
             });
-            
+
             it("test can sum values without a callback", () => {
                 const c = collect([1, 2, 3, 4, 5]);
                 expect(c.sum()).toBe(15);
@@ -6852,7 +6897,7 @@ describe("Collection", () => {
 
             it("test getting sum from empty collection", () => {
                 const c = collect();
-                expect(c.sum('foo')).toBe(0);
+                expect(c.sum("foo")).toBe(0);
             });
         });
     });
@@ -6882,11 +6927,14 @@ describe("Collection", () => {
             it("test when empty default", () => {
                 const data = collect(["michael", "tom"]);
 
-                const result = data.whenEmpty((col) => {
-                    return col.concat(["adam"]);
-                }, (col) => {
-                    return col.concat(["taylor"]);
-                });
+                const result = data.whenEmpty(
+                    (col) => {
+                        return col.concat(["adam"]);
+                    },
+                    (col) => {
+                        return col.concat(["taylor"]);
+                    },
+                );
 
                 expect(result.all()).toEqual(["michael", "tom", "taylor"]);
             });
@@ -6912,15 +6960,18 @@ describe("Collection", () => {
 
                 expect(emptyData.all()).toEqual([]);
             });
-            
+
             it("test when not empty default", () => {
                 const data = collect(["michael", "tom"]);
 
-                const result = data.whenNotEmpty((col) => {
-                    return col.concat(["adam"]);
-                }, (col) => {
-                    return col.concat(["taylor"]);
-                });
+                const result = data.whenNotEmpty(
+                    (col) => {
+                        return col.concat(["adam"]);
+                    },
+                    (col) => {
+                        return col.concat(["taylor"]);
+                    },
+                );
 
                 expect(result.all()).toEqual(["michael", "tom", "adam"]);
             });
@@ -6950,11 +7001,14 @@ describe("Collection", () => {
             it("test unless empty default", () => {
                 const data = collect(["michael", "tom"]);
 
-                const result = data.unlessEmpty((col) => {
-                    return col.concat(["adam"]);
-                }, (col) => {
-                    return col.concat(["taylor"]);
-                });
+                const result = data.unlessEmpty(
+                    (col) => {
+                        return col.concat(["adam"]);
+                    },
+                    (col) => {
+                        return col.concat(["taylor"]);
+                    },
+                );
 
                 expect(result.all()).toEqual(["michael", "tom", "adam"]);
             });
@@ -7025,9 +7079,10 @@ describe("Collection", () => {
                     { v: 3 },
                     { v: "3" },
                 ]);
-                expect(c.where("v", "===", 3).values().all()).toEqual([{ v: 3 }]);
+                expect(c.where("v", "===", 3).values().all()).toEqual([
+                    { v: 3 },
+                ]);
 
-                
                 expect(c.where("v", "<>", 3).values().all()).toEqual([
                     { v: 1 },
                     { v: 2 },
@@ -7061,7 +7116,6 @@ describe("Collection", () => {
                 ]);
                 expect(c.where("v", ">", 3).values().all()).toEqual([{ v: 4 }]);
 
-                
                 const object = { foo: "bar" };
 
                 expect(c.where("v", object).values().all()).toEqual([]);
@@ -7092,20 +7146,30 @@ describe("Collection", () => {
 
                 expect(c.where("v", ">", object).values().all()).toEqual([]);
 
-                expect(c.where((value) => value.v == 3).values().all()).toEqual([
-                    { v: 3 },
-                    { v: "3" },
-                ]);
+                expect(
+                    c
+                        .where((value) => value.v == 3)
+                        .values()
+                        .all(),
+                ).toEqual([{ v: 3 }, { v: "3" }]);
 
-                expect(c.where((value) => value.v === 3).values().all()).toEqual([
-                    { v: 3 },
-                ]);
+                expect(
+                    c
+                        .where((value) => value.v === 3)
+                        .values()
+                        .all(),
+                ).toEqual([{ v: 3 }]);
 
                 const c2 = collect([{ v: 1 }, { v: object }]);
 
-                expect(c2.where("v", object).values().all()).toEqual([{ v: object }]);
+                expect(c2.where("v", object).values().all()).toEqual([
+                    { v: object },
+                ]);
 
-                expect(c2.where("v", "<>", null).values().all()).toEqual([{ v: 1 }, { v: object }]);
+                expect(c2.where("v", "<>", null).values().all()).toEqual([
+                    { v: 1 },
+                    { v: object },
+                ]);
 
                 expect(c2.where("v", "<", null).values().all()).toEqual([]);
 
@@ -7127,13 +7191,16 @@ describe("Collection", () => {
 
                 const c4 = collect([{ v: 1 }, { v: "hello" }]);
 
-                expect(c4.where("v", new HtmlString("hello")).values().all()).toEqual([
-                    { v: "hello" },
-                ]);
+                expect(
+                    c4.where("v", new HtmlString("hello")).values().all(),
+                ).toEqual([{ v: "hello" }]);
 
                 const c5 = collect([{ v: 1 }, { v: 2 }, { v: null }]);
 
-                expect(c5.where("v").values().all()).toEqual([{ v: 1 }, { v: 2 }]);
+                expect(c5.where("v").values().all()).toEqual([
+                    { v: 1 },
+                    { v: 2 },
+                ]);
 
                 const c6 = collect([
                     { v: 1, g: 3 },
@@ -7146,11 +7213,13 @@ describe("Collection", () => {
                     { v: 2, g: 3 },
                 ]);
 
-                expect(c6.where("v", 2).where("g", ">", 2).values().all()).toEqual([
-                    { v: 2, g: 3 },
-                ]);
+                expect(
+                    c6.where("v", 2).where("g", ">", 2).values().all(),
+                ).toEqual([{ v: 2, g: 3 }]);
 
-                expect(c6.where("v", 2).where("g", 4).values().all()).toEqual([]);
+                expect(c6.where("v", 2).where("g", 4).values().all()).toEqual(
+                    [],
+                );
 
                 expect(c6.where("v", 2).whereNull("g").values().all()).toEqual([
                     { v: 2, g: null },
@@ -7224,7 +7293,9 @@ describe("Collection", () => {
             it("test where strict", () => {
                 const c = collect([{ v: 3 }, { v: "3" }]);
 
-                expect(c.whereStrict("v", 3).values().all()).toEqual([{ v: 3 }]);
+                expect(c.whereStrict("v", 3).values().all()).toEqual([
+                    { v: 3 },
+                ]);
             });
         });
     });
@@ -7240,16 +7311,19 @@ describe("Collection", () => {
                     { v: 4 },
                 ]);
 
-
                 expect(c.whereIn("v", [1, 3]).values().all()).toEqual([
                     { v: 1 },
                     { v: 3 },
                     { v: "3" },
                 ]);
-                
-                expect(c.whereIn("v", [2]).whereIn("v", [1, 3]).values().all()).toEqual([]);
 
-                expect(c.whereIn("v", [1]).whereIn("v", [1, 3]).values().all()).toEqual([{ v: 1 }]);
+                expect(
+                    c.whereIn("v", [2]).whereIn("v", [1, 3]).values().all(),
+                ).toEqual([]);
+
+                expect(
+                    c.whereIn("v", [1]).whereIn("v", [1, 3]).values().all(),
+                ).toEqual([{ v: 1 }]);
             });
         });
     });
@@ -7291,7 +7365,9 @@ describe("Collection", () => {
                     { v: 4 },
                 ]);
 
-                expect(c.whereBetween("v", [-1, 1]).values().all()).toEqual([{ v: 1 }]);
+                expect(c.whereBetween("v", [-1, 1]).values().all()).toEqual([
+                    { v: 1 },
+                ]);
 
                 expect(c.whereBetween("v", [3, 3]).values().all()).toEqual([
                     { v: 3 },
@@ -7312,7 +7388,9 @@ describe("Collection", () => {
                     { v: 4 },
                 ]);
 
-                expect(c.whereNotBetween("v", [2, 4]).values().all()).toEqual([{ v: 1 }]);
+                expect(c.whereNotBetween("v", [2, 4]).values().all()).toEqual([
+                    { v: 1 },
+                ]);
 
                 expect(c.whereNotBetween("v", [-1, 1]).values().all()).toEqual([
                     { v: 2 },
@@ -7346,9 +7424,13 @@ describe("Collection", () => {
                     { v: 4 },
                 ]);
 
-                expect(c.whereNotIn("v", [2]).whereNotIn("v", [1, 3]).values().all()).toEqual([
-                    { v: 4 },
-                ]);
+                expect(
+                    c
+                        .whereNotIn("v", [2])
+                        .whereNotIn("v", [1, 3])
+                        .values()
+                        .all(),
+                ).toEqual([{ v: 4 }]);
             });
         });
     });
@@ -7383,9 +7465,9 @@ describe("Collection", () => {
                     {},
                     new Stringable("example"),
                 ]);
-                
+
                 expect(c.whereInstanceOf(Object).all().length).toBe(5);
-                
+
                 expect(c.whereInstanceOf([Collection]).all().length).toBe(1);
 
                 expect(c.whereInstanceOf([Stringable]).all().length).toBe(1);
@@ -7431,15 +7513,14 @@ describe("Collection", () => {
             it("test pipe through", () => {
                 const data = collect([1, 2, 3]);
 
-                const result = data
-                    .pipeThrough([
-                        (data) => {
-                            return data.merge([4, 5]);
-                        },
-                        (data) => {
-                            return data.sum();
-                        },
-                    ]);
+                const result = data.pipeThrough([
+                    (data) => {
+                        return data.merge([4, 5]);
+                    },
+                    (data) => {
+                        return data.sum();
+                    },
+                ]);
 
                 expect(result).toBe(15);
             });
@@ -7459,7 +7540,7 @@ describe("Collection", () => {
 
                 expect(
                     data.reduce((carry, element, key) => {
-                        return carry += (element + key);
+                        return (carry += element + key);
                     }),
                 ).toBe(9);
 
@@ -7522,14 +7603,20 @@ describe("Collection", () => {
                     }, ""),
                 ).toBe("a1b2c3");
 
-                const data2 = collect([{ key: "a", value: 1 }, { key: "b", value: 2 }]);
+                const data2 = collect([
+                    { key: "a", value: 1 },
+                    { key: "b", value: 2 },
+                ]);
 
                 expect(
-                    data2.reduceWithKeys((carry, item) => {
-                        carry[item.key] = item.value;
+                    data2.reduceWithKeys(
+                        (carry, item) => {
+                            carry[item.key] = item.value;
 
-                        return carry;
-                    }, {} as Record<string, number>),
+                            return carry;
+                        },
+                        {} as Record<string, number>,
+                    ),
                 ).toEqual({ a: 1, b: 2 });
             });
         });
@@ -7538,34 +7625,55 @@ describe("Collection", () => {
     describe("reject", () => {
         describe("Laravel Tests", () => {
             it("test reject removes elements passing truth test", () => {
-                const c = collect(['foo', 'bar']);
-                expect(c.reject((v) => v === 'bar').values().all()).toEqual(['foo']);
-
-                const d = collect(['foo', 'bar']);
-                expect(d.reject((v) => v === 'bar').values().all()).toEqual(['foo']);
-
-                const e = collect(['foo', null]);
-                expect(e.reject((v) => v === null).values().all()).toEqual(['foo']);
-
-                const f = collect(['foo', 'bar']);
-                expect(f.reject((v) => v === 'baz').values().all()).toEqual(['foo', 'bar']);
-
-                const g = collect(['foo', 'bar']);
-                expect(g.reject((v) => v === 'baz').values().all()).toEqual(['foo', 'bar']);
-
-                const h = collect({ id: 1, primary: 'foo', secondary: 'bar' });
+                const c = collect(["foo", "bar"]);
                 expect(
-                    h.reject((item, key) => key === 'id').all(),
-                ).toEqual({ primary: 'foo', secondary: 'bar' });
+                    c
+                        .reject((v) => v === "bar")
+                        .values()
+                        .all(),
+                ).toEqual(["foo"]);
+
+                const d = collect(["foo", "bar"]);
+                expect(
+                    d
+                        .reject((v) => v === "bar")
+                        .values()
+                        .all(),
+                ).toEqual(["foo"]);
+
+                const e = collect(["foo", null]);
+                expect(
+                    e
+                        .reject((v) => v === null)
+                        .values()
+                        .all(),
+                ).toEqual(["foo"]);
+
+                const f = collect(["foo", "bar"]);
+                expect(
+                    f
+                        .reject((v) => v === "baz")
+                        .values()
+                        .all(),
+                ).toEqual(["foo", "bar"]);
+
+                const g = collect(["foo", "bar"]);
+                expect(
+                    g
+                        .reject((v) => v === "baz")
+                        .values()
+                        .all(),
+                ).toEqual(["foo", "bar"]);
+
+                const h = collect({ id: 1, primary: "foo", secondary: "bar" });
+                expect(h.reject((item, key) => key === "id").all()).toEqual({
+                    primary: "foo",
+                    secondary: "bar",
+                });
             });
 
             it("test reject without an argument removes truthy values", () => {
-                const data1 = collect([
-                    false,
-                    true,
-                    collect(),
-                    0,
-                ]);
+                const data1 = collect([false, true, collect(), 0]);
                 expect(data1.reject().values().all()).toEqual([false, 0]);
 
                 const data2 = collect({
@@ -7589,11 +7697,14 @@ describe("Collection", () => {
             const data1 = collect([1, 2, 3, 2, 4]);
             expect(data1.reject(2).values().all()).toEqual([1, 3, 4]);
 
-            const data2 = collect(['foo', 'bar', 'baz', 'bar']);
-            expect(data2.reject('bar').values().all()).toEqual(['foo', 'baz']);
+            const data2 = collect(["foo", "bar", "baz", "bar"]);
+            expect(data2.reject("bar").values().all()).toEqual(["foo", "baz"]);
 
-            const data3 = collect([null, 'test', null, 'value']);
-            expect(data3.reject(null).values().all()).toEqual(['test', 'value']);
+            const data3 = collect([null, "test", null, "value"]);
+            expect(data3.reject(null).values().all()).toEqual([
+                "test",
+                "value",
+            ]);
 
             const data4 = collect([0, 1, 2, 0, 3]);
             expect(data4.reject(0).values().all()).toEqual([1, 2, 3]);
@@ -7605,8 +7716,8 @@ describe("Collection", () => {
             const data6 = collect({ a: 1, b: 2, c: 1, d: 3 });
             expect(data6.reject(1).all()).toEqual({ b: 2, d: 3 });
 
-            const data7 = collect({ a: 'foo', b: 'bar', c: 'foo' });
-            expect(data7.reject('foo').all()).toEqual({ b: 'bar' });
+            const data7 = collect({ a: "foo", b: "bar", c: "foo" });
+            expect(data7.reject("foo").all()).toEqual({ b: "bar" });
         });
     });
 
@@ -7723,6 +7834,28 @@ describe("Collection", () => {
             });
 
             expect(data7.toArray()).toEqual({ a: { test: "value" }, b: 2 });
+        });
+    });
+
+    describe("jsonSerialize", () => {
+        describe("Laravel Tests", () => {
+            it("test jsonSerialize", () => {
+                // $c = new $collection([
+                //     new TestArrayableObject,
+                //     new TestJsonableObject,
+                //     new TestJsonSerializeObject,
+                //     new TestJsonSerializeToStringObject,
+                //     'baz',
+                // ]);
+
+                // $this->assertSame([
+                //     ['foo' => 'bar'],
+                //     ['foo' => 'bar'],
+                //     ['foo' => 'bar'],
+                //     'foobar',
+                //     'baz',
+                // ], $c->jsonSerialize());
+            });
         });
     });
 

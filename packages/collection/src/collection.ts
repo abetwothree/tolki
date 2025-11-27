@@ -2831,7 +2831,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
                           | ((...args: (TValue | TKey)[]) => boolean),
                   ) as (value: TValue, key: TKey) => boolean);
         } else {
-            filter = this.operatorForWhere(key, operator as string | undefined, value);
+            filter = this.operatorForWhere(
+                key,
+                operator as string | undefined,
+                value,
+            );
         }
 
         const items = this.unless(isNull(filter)).filter(filter);
@@ -2879,7 +2883,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
                           | ((...args: (TValue | TKey)[]) => boolean),
                   ) as (value: TValue, key: TKey) => boolean);
         } else {
-            filter = this.operatorForWhere(key, operator as string | undefined, value);
+            filter = this.operatorForWhere(
+                key,
+                operator as string | undefined,
+                value,
+            );
         }
 
         const placeholder = null;
@@ -4124,11 +4132,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         value?: unknown,
     ) {
         return this.first(
-            this.operatorForWhere(
-                key,
-                operator as string | undefined,
-                value,
-            ),
+            this.operatorForWhere(key, operator as string | undefined, value),
         );
     }
 
@@ -4423,7 +4427,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const ratio = this.filter(callback).count() / this.count();
         const percent = ratio * 100;
-        
+
         // Round to the specified precision (matches Laravel's round(..., precision))
         const factor = Math.pow(10, precision);
 
@@ -4648,7 +4652,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             return (
                 compareValues(itemValue, valuesArray[0]) < 0 ||
-                compareValues(itemValue, valuesArray[valuesArray.length - 1]) > 0
+                compareValues(itemValue, valuesArray[valuesArray.length - 1]) >
+                    0
             );
         });
     }
@@ -4758,11 +4763,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns The reduced value
      */
     reduce<TReduce>(
-        callback: (carry: TValue|TReduce, value: TValue, key: TKey) => TReduce,
+        callback: (
+            carry: TValue | TReduce,
+            value: TValue,
+            key: TKey,
+        ) => TReduce,
         initial?: TReduce,
     ) {
         const entries = Object.entries(this.items);
-        
+
         if (entries.length === 0) {
             return initial as TReduce;
         }
@@ -4782,8 +4791,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         for (let i = startIndex; i < entries.length; i++) {
             const [key, value] = entries[i]!;
 
-
-            result = callback(result, value as TValue, entriesKeyValue(key) as TKey);
+            result = callback(
+                result,
+                value as TValue,
+                entriesKeyValue(key) as TKey,
+            );
         }
 
         return result;
@@ -4858,13 +4870,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     key,
                 );
             }
-            
+
             // When reject() is called without arguments (or with true),
             // filter out all truthy values (like PHP does)
             if (callback === true) {
                 return !value;
             }
-            
+
             return value != callback;
         });
     }
@@ -5015,7 +5027,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return function (item: unknown): boolean {
-            const retrieved = isNull(key) ? item : dataGet(item!, key as PathKey);
+            const retrieved = isNull(key)
+                ? item
+                : dataGet(item!, key as PathKey);
 
             const strings = dataFilter([retrieved, value], function (value) {
                 if (isString(value)) {

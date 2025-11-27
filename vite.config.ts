@@ -55,19 +55,17 @@ export default defineConfig({
             reporter: [
                 "text",
                 "text-summary",
-                ...(process.env.CI
-                    ? ["json-summary", "json"]
-                    : ["lcov"]),
+                ...(process.env.CI ? ["json-summary", "json"] : ["lcov"]),
                 ...(process.argv.includes("--ui") ? ["html"] : []),
             ],
             reportOnFailure: true,
             exclude: [...configDefaults.exclude, "./scripts/**", "./docs/**"],
             thresholds: {
                 autoUpdate: true,
-                statements: 94.01,
+                statements: 94.02,
                 branches: 86.89,
-                functions: 96.87,
-                lines: 94.33,
+                functions: 96.89,
+                lines: 94.34,
             },
         },
         projects: ["packages/*"],
