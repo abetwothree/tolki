@@ -6,7 +6,8 @@ import {
 } from "@laravel-js/str";
 import type {
     ConditionableClosure,
-    ConditionableValue,
+    // TODO: update conditionable functions like in Collection.ts
+    // ConditionableValue,
 } from "@laravel-js/types";
 import { isArray, isFunction } from "@laravel-js/utils";
 
