@@ -4960,6 +4960,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                         return jsonOut;
                     }
                 }
+
                 return jsonOut;
             }
 

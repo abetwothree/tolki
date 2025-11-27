@@ -7863,6 +7863,56 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("jsonSerialize handles Jsonable with toJSON only", () => {
+            class ToJSONOnly {
+                toJSON() {
+                    return { foo: "bar" };
+                }
+            }
+
+            const c = collect([new ToJSONOnly()]);
+            expect(c.jsonSerialize()).toEqual([{ foo: "bar" }]);
+        });
+
+        it("jsonSerialize handles invalid JSON string from toJson", () => {
+            class BadJsonable {
+                toJson() {
+                    return "not-json";
+                }
+            }
+
+            const c = collect([new BadJsonable()]);
+            expect(c.jsonSerialize()).toEqual(["not-json"]);
+        });
+
+        it("jsonSerialize handles Jsonable toJson returning object", () => {
+            class ToJsonReturnsObject {
+                toJson() {
+                    return { x: 1, y: "z" };
+                }
+            }
+
+            const c = collect([new ToJsonReturnsObject()]);
+            expect(c.jsonSerialize()).toEqual([{ x: 1, y: "z" }]);
+        });
+
+        it("jsonSerialize passes through raw values unchanged", () => {
+            const input = [
+                123,
+                "hello",
+                { a: 1 },
+                [1, 2, 3],
+                true,
+                null,
+                undefined,
+            ];
+
+            const c = collect(input);
+            expect(c.jsonSerialize()).toEqual(input);
+        });
+
+        // 
     });
 
     describe("", () => {
