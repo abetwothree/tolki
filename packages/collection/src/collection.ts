@@ -4205,6 +4205,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return this.each((item, index) => {
             const itemType = typeOf(item);
             for (const allowedType of types) {
+                // When checking for 'object' type, exclude Collection instances
+                if (allowedType === "object" && item instanceof Collection) {
+                    continue;
+                }
+
                 if (
                     itemType === allowedType ||
                     (isFunction(allowedType) && item instanceof allowedType)

@@ -6413,6 +6413,52 @@ describe("Collection", () => {
         });
     });
 
+    describe("ensure", () => {
+        describe("Laravel Tests", () => {
+            it("test ensure for scalar", () => {
+                const data = collect([1, 2, 3]);
+                data.ensure("number");
+
+                const data2 = collect([1, 2, 3, "foo"]);
+                expect(() => {
+                    data2.ensure("number");
+                }).toThrowError();
+            });
+            
+            it("test ensure for objects", () => {
+                const data = collect([{}, {}, {}]);
+                data.ensure("object");
+
+                const data2 = collect([{}, {}, {}, collect([])]);
+                expect(() => {
+                    data2.ensure("object");
+                }).toThrowError();
+            });
+
+            it("test ensure for inheritance", () => {
+                const data = collect([new Error(), new Error()]);
+                data.ensure("object");
+
+                const wrongType = collect([]);
+                const data2 = collect([new Error(), new Error(), wrongType]);
+                expect(() => {
+                    data2.ensure("object");
+                }).toThrowError();
+            });
+
+            it("test ensure for multiple types", () => {
+                const data = collect([new Error(), 123]);
+                data.ensure(["object", "number"]);
+
+                const wrongType = collect([]);
+                const data2 = collect([new Error(), new Error(), wrongType]);
+                expect(() => {
+                    data2.ensure(["object", "number"]);
+                }).toThrowError();
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
