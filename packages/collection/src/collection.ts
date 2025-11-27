@@ -1035,7 +1035,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).set('c', 3); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection([1, 2, 3]).set(1, 4); -> new Collection([1, 4, 3])
      */
-    set(key: PathKey, value: TValue) {
+    set<K extends PathKey, T>(key: K, value: T) {
         this.items = dataSet(this.items, key, value);
 
         return this;

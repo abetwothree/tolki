@@ -1401,6 +1401,57 @@ describe("Collection", () => {
         });
     });
 
+    describe("set", () => {
+        it("sets value by key in object", () => {
+            const collection = collect({ a: 1, b: 2 });
+            collection.set("c", 3);
+            expect(collection.all()).toEqual({ a: 1, b: 2, c: 3 });
+        });
+
+        it("sets value by index in array", () => {
+            const collection = collect([1, 2, 3]);
+            collection.set(1, 4);
+            expect(collection.all()).toEqual([1, 4, 3]);
+        });
+
+        it("sets nested object path using dot notation", () => {
+            const collection = collect({});
+            collection.set("user.profile.name", "Taylor");
+            expect(collection.all()).toEqual({ user: { profile: { name: "Taylor" } } });
+        });
+
+        // Note: nested array index via dot paths is not supported by dataSet in this implementation.
+
+        it("returns the collection instance for chaining", () => {
+            const collection = collect({});
+            const returned = collection.set("a", 1).set("b.c", 2);
+            expect(returned).toBe(collection);
+            expect(collection.all()).toEqual({ a: 1, b: { c: 2 } });
+        });
+    });
+
+    describe("get", () => {
+        it("gets value by key in object", () => {
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            expect(collection.get("b")).toBe(2);
+        });
+
+        it("gets value by key in array", () => {
+            const collection = collect([1, 2, 3]);
+            expect(collection.get(1)).toBe(2);
+        });
+
+        it("returns default for missing object key", () => {
+            const collection = collect({ a: 1, b: 2, c: 3 });
+            expect(collection.get("d", "default")).toBe("default");
+        });
+
+        it("returns default for missing array index", () => {
+            const collection = collect([1, 2, 3]);
+            expect(collection.get(5, "default")).toBe("default");
+        });
+    });
+
     describe("getOrPut", () => {
         describe("Laravel tests", () => {
             it("test get or put", () => {
@@ -8036,28 +8087,6 @@ describe("Collection", () => {
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {});
-        });
-    });
-
-    describe("get", () => {
-        it("gets value by key in object", () => {
-            const collection = collect({ a: 1, b: 2, c: 3 });
-            expect(collection.get("b")).toBe(2);
-        });
-
-        it("gets value by key in array", () => {
-            const collection = collect([1, 2, 3]);
-            expect(collection.get(1)).toBe(2);
-        });
-
-        it("returns default for missing object key", () => {
-            const collection = collect({ a: 1, b: 2, c: 3 });
-            expect(collection.get("d", "default")).toBe("default");
-        });
-
-        it("returns default for missing array index", () => {
-            const collection = collect([1, 2, 3]);
-            expect(collection.get(5, "default")).toBe("default");
         });
     });
 });
