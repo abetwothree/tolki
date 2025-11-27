@@ -5054,8 +5054,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
         );
     }
 
-    
-
     /**
      * Make a function that returns what's passed to it.
      *

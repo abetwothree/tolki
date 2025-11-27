@@ -184,12 +184,12 @@ describe("Collection", () => {
             });
         });
 
-        it('constructor preserves itemsWithOrder when created from another Collection', () => {
+        it("constructor preserves itemsWithOrder when created from another Collection", () => {
             // Create a collection via Map with numeric keys to set itemsWithOrder
             const m = new Map<number, { v: string }>([
-                [2, { v: 'b' }],
-                [1, { v: 'a' }],
-                [3, { v: 'c' }],
+                [2, { v: "b" }],
+                [1, { v: "a" }],
+                [3, { v: "c" }],
             ]);
             const base = new Collection(m);
             // @ts-expect-error internal check
@@ -1435,7 +1435,9 @@ describe("Collection", () => {
         it("sets nested object path using dot notation", () => {
             const collection = collect({});
             collection.set("user.profile.name", "Taylor");
-            expect(collection.all()).toEqual({ user: { profile: { name: "Taylor" } } });
+            expect(collection.all()).toEqual({
+                user: { profile: { name: "Taylor" } },
+            });
         });
 
         // Note: nested array index via dot paths is not supported by dataSet in this implementation.
@@ -7981,7 +7983,7 @@ describe("Collection", () => {
             expect(c.jsonSerialize()).toEqual(input);
         });
 
-        // 
+        //
     });
 
     describe("toJson", () => {
@@ -8009,7 +8011,9 @@ describe("Collection", () => {
         it("toJson supports pretty printing with space", () => {
             const c = collect([{ a: 1 }, { b: 2 }]);
             const json = c.toJson(undefined, 2);
-            expect(json).toBe(JSON.stringify([{ a: 1 }, { b: 2 }], undefined, 2));
+            expect(json).toBe(
+                JSON.stringify([{ a: 1 }, { b: 2 }], undefined, 2),
+            );
         });
 
         it("toJson with array replacer filters keys", () => {
@@ -8070,12 +8074,19 @@ describe("Collection", () => {
             const pretty2 = c.toPrettyJson(undefined, 2);
             const pretty4 = c.toPrettyJson(undefined, 4);
 
-            expect(pretty2).toBe(JSON.stringify(c.jsonSerialize(), undefined, 2));
-            expect(pretty4).toBe(JSON.stringify(c.jsonSerialize(), undefined, 4));
+            expect(pretty2).toBe(
+                JSON.stringify(c.jsonSerialize(), undefined, 2),
+            );
+            expect(pretty4).toBe(
+                JSON.stringify(c.jsonSerialize(), undefined, 4),
+            );
         });
 
         it("supports array replacer to filter keys", () => {
-            const c = collect([{ a: 1, b: 2 }, { b: 3, c: 4 }]);
+            const c = collect([
+                { a: 1, b: 2 },
+                { b: 3, c: 4 },
+            ]);
             const replacer: (string | number)[] = ["b"]; // keep only key 'b'
             const pretty = c.toPrettyJson(replacer, 2);
             expect(pretty).toBe(JSON.stringify(c.jsonSerialize(), replacer, 2));
