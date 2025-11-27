@@ -53,8 +53,8 @@
         "@laravel-js/utils": "workspace:^",
         "@oxlint/migrate": "^1.30.0",
         "@types/node": "^24.10.1",
-        "@vitest/coverage-istanbul": "^4.0.13",
-        "@vitest/ui": "^4.0.13",
+        "@vitest/coverage-istanbul": "^4.0.14",
+        "@vitest/ui": "^4.0.14",
         "dotenv": "^17.2.3",
         "eslint": "^9.39.1",
         "eslint-plugin-oxlint": "^1.30.0",
@@ -73,7 +73,7 @@
         "vite": "^7.2.4",
         "vite-plugin-dts": "^4.5.4",
         "vitepress": "2.0.0-alpha.12",
-        "vitest": "^4.0.13"
+        "vitest": "^4.0.14"
     },
     "dependencies": {
         "lodash-es": "^4.17.21"

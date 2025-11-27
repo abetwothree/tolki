@@ -2155,8 +2155,9 @@ describe("Str tests", () => {
                 "Hello-World_Laravel",
             );
             // Mixed whitespace and separator characters
-            expect(Str.ucwords("hello-world laravel_framework", ["-", "_"]))
-                .toBe("Hello-World Laravel_Framework");
+            expect(
+                Str.ucwords("hello-world laravel_framework", ["-", "_"]),
+            ).toBe("Hello-World Laravel_Framework");
             // Ensure only lowercase letters are uppercased (e.g., "JJ watt" → "JJ Watt")
             expect(Str.ucwords("JJ watt")).toBe("JJ Watt");
         });
