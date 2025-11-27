@@ -4834,9 +4834,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         ) => TReduceWithKeysReturnType,
         initial: TReduceWithKeysInitial | null = null,
     ) {
-        return this.reduce<
-            TReduceWithKeysInitial | TReduceWithKeysReturnType | null
-        >(callback, initial);
+        return this.reduce(callback, initial);
     }
 
     /**

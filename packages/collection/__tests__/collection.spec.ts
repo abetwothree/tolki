@@ -7510,6 +7510,31 @@ describe("Collection", () => {
         });
     });
 
+    describe("reduceWithKeys", () => {
+        describe("Laravel Tests", () => {
+            it("test reduce with keys", () => {
+                const data = collect({ a: 1, b: 2, c: 3 });
+
+                expect(
+                    data.reduceWithKeys((carry, value, key) => {
+                        carry += key + value;
+                        return carry;
+                    }, ""),
+                ).toBe("a1b2c3");
+
+                const data2 = collect([{ key: "a", value: 1 }, { key: "b", value: 2 }]);
+
+                expect(
+                    data2.reduceWithKeys((carry, item) => {
+                        carry[item.key] = item.value;
+
+                        return carry;
+                    }, {} as Record<string, number>),
+                ).toEqual({ a: 1, b: 2 });
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {
