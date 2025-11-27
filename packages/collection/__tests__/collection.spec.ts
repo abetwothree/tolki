@@ -7331,6 +7331,29 @@ describe("Collection", () => {
         });
     });
 
+    describe("whereNotIn", () => {
+        describe("Laravel Tests", () => {
+            it("test where not in", () => {
+                const c = collect([
+                    { v: 1 },
+                    { v: 2 },
+                    { v: 3 },
+                    { v: "3" },
+                    { v: 4 },
+                ]);
+
+                expect(c.whereNotIn("v", [1, 3]).values().all()).toEqual([
+                    { v: 2 },
+                    { v: 4 },
+                ]);
+
+                expect(c.whereNotIn("v", [2]).whereNotIn("v", [1, 3]).values().all()).toEqual([
+                    { v: 4 },
+                ]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {

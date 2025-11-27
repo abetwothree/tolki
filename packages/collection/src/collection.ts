@@ -4669,10 +4669,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const valueSet = this.getRawItems(values);
 
         return this.reject((item: TValue) => {
-            if (!isAccessibleData(item)) {
-                return false;
-            }
-
             const itemValue = dataGet(
                 item as DataItems<unknown, PropertyKey>,
                 key,
