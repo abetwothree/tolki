@@ -7426,6 +7426,26 @@ describe("Collection", () => {
         });
     });
 
+    describe("pipeThrough", () => {
+        describe("Laravel Tests", () => {
+            it("test pipe through", () => {
+                const data = collect([1, 2, 3]);
+
+                const result = data
+                    .pipeThrough([
+                        (data) => {
+                            return data.merge([4, 5]);
+                        },
+                        (data) => {
+                            return data.sum();
+                        },
+                    ]);
+
+                expect(result).toBe(15);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {
