@@ -57,16 +57,17 @@ export default defineConfig({
                 "text-summary",
                 ...(process.env.CI
                     ? ["json-summary", "json"]
-                    : ["html", "lcov"]),
+                    : ["lcov"]),
+                ...(process.argv.includes("--ui") ? ["html"] : []),
             ],
             reportOnFailure: true,
             exclude: [...configDefaults.exclude, "./scripts/**", "./docs/**"],
             thresholds: {
                 autoUpdate: true,
-                statements: 93.69,
+                statements: 93.71,
                 branches: 86.77,
-                functions: 96.06,
-                lines: 94,
+                functions: 96.16,
+                lines: 94.02,
             },
         },
         projects: ["packages/*"],
