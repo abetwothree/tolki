@@ -7274,6 +7274,34 @@ describe("Collection", () => {
         });
     });
 
+    describe("whereBetween", () => {
+        describe("Laravel Tests", () => {
+            it("test where between", () => {
+                const c = collect([
+                    { v: 1 },
+                    { v: 2 },
+                    { v: 3 },
+                    { v: "3" },
+                    { v: 4 },
+                ]);
+
+                expect(c.whereBetween("v", [2, 4]).values().all()).toEqual([
+                    { v: 2 },
+                    { v: 3 },
+                    { v: "3" },
+                    { v: 4 },
+                ]);
+
+                expect(c.whereBetween("v", [-1, 1]).values().all()).toEqual([{ v: 1 }]);
+
+                expect(c.whereBetween("v", [3, 3]).values().all()).toEqual([
+                    { v: 3 },
+                    { v: "3" },
+                ]);
+            });
+        });
+    });
+
     describe("", () => {
         describe("Laravel Tests", () => {
             it("", () => {
