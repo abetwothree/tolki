@@ -8,9 +8,8 @@ import {
     type MarkDownOptions,
     MarkdownRenderer,
     Pluralizer,
-    Random,
+    randomString,
     Replacer,
-    Stringable,
     Trimmer,
 } from "@laravel-js/str";
 import { isArray } from "@laravel-js/utils";
@@ -62,17 +61,6 @@ let ulidFactory: (() => string) | null = null;
  * The callback that should be used to generate random strings.
  */
 let randomStringFactory: ((length: number) => string) | null = null;
-
-/**
- * Get a new stringable object from the given string.
- *
- * @example
- *
- * of('foo').append('bar'); -> 'foobar'
- */
-export function of(value: string): Stringable {
-    return new Stringable(value);
-}
 
 /**
  * Return the remainder of a string after the last occurrence of a given value.
@@ -1401,8 +1389,7 @@ export function position(
  * random(); -> "a1b2c3d4e5f6g7h8"
  */
 export function random(length: number = 16): string {
-    const factory =
-        randomStringFactory ?? ((len: number) => Random.string(len));
+    const factory = randomStringFactory ?? ((len: number) => randomString(len));
     return factory(length);
 }
 

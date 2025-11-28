@@ -1,4 +1,5 @@
-import { CaseTypes, Random, Str, Stringable } from "@laravel-js/str";
+import { CaseTypes, randomInt, Stringable } from "@laravel-js/str";
+import * as Str from "@laravel-js/str";
 import type MarkdownIt from "markdown-it";
 import type { PluginSimple, PluginWithOptions } from "markdown-it";
 import { describe, expect, it } from "vitest";
@@ -1204,7 +1205,7 @@ describe("Str tests", () => {
         expect(Str.random()).toHaveLength(16);
         expect(Str.random(32)).toHaveLength(32);
 
-        const randomInteger = Random.int(1, 100);
+        const randomInteger = Str.randomInt(1, 100);
         expect(Str.random(randomInteger)).toHaveLength(randomInteger);
         expect(Str.random()).toEqual(expect.any(String));
     });

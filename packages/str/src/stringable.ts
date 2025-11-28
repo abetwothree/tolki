@@ -1,8 +1,94 @@
+import type {
+    ConvertCaseMode,
+    MarkDownExtensions,
+    MarkDownOptions,
+} from "@laravel-js/str";
 import {
-    type ConvertCaseMode,
-    type MarkDownExtensions,
-    type MarkDownOptions,
-    Str,
+    after,
+    afterLast,
+    apa,
+    ascii,
+    before,
+    beforeLast,
+    between,
+    betweenFirst,
+    camel,
+    charAt,
+    chopEnd,
+    chopStart,
+    contains,
+    containsAll,
+    convertCase,
+    deduplicate,
+    doesntContain,
+    doesntEndWith,
+    doesntStartWith,
+    endsWith,
+    excerpt,
+    finish,
+    fromBase64,
+    headline,
+    inlineMarkdown,
+    is,
+    isAscii,
+    isJson,
+    isMatch,
+    isUlid,
+    isUrl,
+    isUuid,
+    kebab,
+    lcfirst,
+    length,
+    lower,
+    ltrim,
+    markdown,
+    mask,
+    match,
+    matchAll,
+    numbers,
+    padBoth,
+    padLeft,
+    padRight,
+    pascal,
+    plural,
+    pluralPascal,
+    pluralStudly,
+    position,
+    remove,
+    repeat,
+    replace,
+    replaceArray,
+    replaceEnd,
+    replaceFirst,
+    replaceLast,
+    replaceMatches,
+    replaceStart,
+    reverse,
+    rtrim,
+    singular,
+    slug,
+    snake,
+    start,
+    startsWith,
+    stripTags,
+    studly,
+    substr,
+    substrCount,
+    substrReplace,
+    swap,
+    take,
+    title,
+    toBase64,
+    transliterate,
+    trim,
+    ucfirst,
+    ucsplit,
+    ucwords,
+    unwrap,
+    upper,
+    wordCount,
+    wordWrap,
+    wrap,
 } from "@laravel-js/str";
 import type {
     ConditionableClosure,
@@ -10,6 +96,17 @@ import type {
     // ConditionableValue,
 } from "@laravel-js/types";
 import { isArray, isFunction } from "@laravel-js/utils";
+
+/**
+ * Get a new stringable object from the given string.
+ *
+ * @example
+ *
+ * of('foo').append('bar'); -> 'foobar'
+ */
+export function of(value: string): Stringable {
+    return new Stringable(value);
+}
 
 export class Stringable {
     /**
@@ -21,14 +118,14 @@ export class Stringable {
      * Return the remainder of a string after the first occurrence of a given value.
      */
     after(search: string | number): Stringable {
-        return new Stringable(Str.after(this._value, search));
+        return new Stringable(after(this._value, search));
     }
 
     /**
      * Return the remainder of a string after the last occurrence of a given value
      */
     afterLast(search: string | number): Stringable {
-        return new Stringable(Str.afterLast(this._value, search));
+        return new Stringable(afterLast(this._value, search));
     }
 
     /**
@@ -49,77 +146,77 @@ export class Stringable {
      * Transliterate a UTF-8 value to ASCII.
      */
     ascii(): Stringable {
-        return new Stringable(Str.ascii(this._value));
+        return new Stringable(ascii(this._value));
     }
 
     /**
      * Get the portion of a string before the first occurrence of a given value.
      */
     before(search: string | number): Stringable {
-        return new Stringable(Str.before(this._value, search));
+        return new Stringable(before(this._value, search));
     }
 
     /**
      * Get the portion of a string before the last occurrence of a given value.
      */
     beforeLast(search: string | number): Stringable {
-        return new Stringable(Str.beforeLast(this._value, search));
+        return new Stringable(beforeLast(this._value, search));
     }
 
     /**
      * Get the portion of a string between two given values.
      */
     between(from: string | number, to: string | number): Stringable {
-        return new Stringable(Str.between(this._value, from, to));
+        return new Stringable(between(this._value, from, to));
     }
 
     /**
      * Get the smallest possible portion of a string between two given values.
      */
     betweenFirst(from: string | number, to: string | number): Stringable {
-        return new Stringable(Str.betweenFirst(this._value, from, to));
+        return new Stringable(betweenFirst(this._value, from, to));
     }
 
     /**
      * Convert a value to camel case.
      */
     camel(): Stringable {
-        return new Stringable(Str.camel(this._value));
+        return new Stringable(camel(this._value));
     }
 
     /**
      * Get the character at the specified index.
      */
     charAt(index: number): string | false {
-        return Str.charAt(this._value, index);
+        return charAt(this._value, index);
     }
 
     /**
      * Remove the given string if it exists at the start of the current string.
      */
     chopStart(needle: string | string[]): Stringable {
-        return new Stringable(Str.chopStart(this._value, needle));
+        return new Stringable(chopStart(this._value, needle));
     }
 
     /**
      * Remove the given string if it exists at the end of the current string.
      */
     chopEnd(needle: string | string[]): Stringable {
-        return new Stringable(Str.chopEnd(this._value, needle));
+        return new Stringable(chopEnd(this._value, needle));
     }
 
     /**
      * Determine if a given string contains a given substring.
      */
     contains(needles: string | Iterable<string>, ignoreCase = false): boolean {
-        return Str.contains(this._value, needles, ignoreCase);
+        return contains(this._value, needles, ignoreCase);
     }
 
     /**
      * Determine if a given string contains all array values.
      */
     containsAll(needles: Iterable<string>, ignoreCase = false): boolean {
-        return Str.containsAll(this._value, needles, ignoreCase);
+        return containsAll(this._value, needles, ignoreCase);
     }
 
     /**
@@ -129,35 +226,35 @@ export class Stringable {
      * @returns boolean - True if the substring(s) are not found, false otherwise
      */
     doesntContain(needles: string | Iterable<string>): boolean {
-        return Str.doesntContain(this._value, needles);
+        return doesntContain(this._value, needles);
     }
 
     /**
      * Convert the case of a string.
      */
     convertCase(mode: ConvertCaseMode): Stringable {
-        return new Stringable(Str.convertCase(this._value, mode));
+        return new Stringable(convertCase(this._value, mode));
     }
 
     /**
      * Replace consecutive instances of a given character with a single character.
      */
     deduplicate(character: string | string[] = " "): Stringable {
-        return new Stringable(Str.deduplicate(this._value, character));
+        return new Stringable(deduplicate(this._value, character));
     }
 
     /**
      * Determine if a given string ends with a given substring.
      */
     endsWith(needles: string | number | Iterable<string>): boolean {
-        return Str.endsWith(this._value, needles);
+        return endsWith(this._value, needles);
     }
 
     /**
      * Determine if a given string doesn't end with a given substring.
      */
     doesntEndWith(needles: string | number | Iterable<string>): boolean {
-        return Str.doesntEndWith(this._value, needles);
+        return doesntEndWith(this._value, needles);
     }
 
     /**
@@ -177,7 +274,7 @@ export class Stringable {
         phrase: string | null = "",
         options: { radius?: number; omission?: string } = {},
     ): string | null {
-        return Str.excerpt(this._value, phrase, options);
+        return excerpt(this._value, phrase, options);
     }
 
     /**
@@ -215,49 +312,49 @@ export class Stringable {
      * Cap a string with a single instance of a given value.
      */
     finish(cap: string): Stringable {
-        return new Stringable(Str.finish(this._value, cap));
+        return new Stringable(finish(this._value, cap));
     }
 
     /**
      * Determine if a given string matches a given pattern.
      */
     is(pattern: string | Iterable<string>, ignoreCase = false): boolean {
-        return Str.is(pattern, this._value, ignoreCase);
+        return is(pattern, this._value, ignoreCase);
     }
 
     /**
      * Determine if a given string is 7 bit ASCII.
      */
     isAscii(): boolean {
-        return Str.isAscii(this._value);
+        return isAscii(this._value);
     }
 
     /**
      * Determine if a given string is valid JSON.
      */
     isJson(): boolean {
-        return Str.isJson(this._value);
+        return isJson(this._value);
     }
 
     /**
      * Determine if a given value is a valid URL.
      */
     isUrl(protocols: string[] = []): boolean {
-        return Str.isUrl(this._value, protocols);
+        return isUrl(this._value, protocols);
     }
 
     /**
      * Determine if a given string is a valid UUID.
      */
     isUuid(version: number | "nil" | "max" | null = null): boolean {
-        return Str.isUuid(this._value, version);
+        return isUuid(this._value, version);
     }
 
     /**
      * Determine if a given string is a valid ULID.
      */
     isUlid(): boolean {
-        return Str.isUlid(this._value);
+        return isUlid(this._value);
     }
 
     /**
@@ -278,30 +375,28 @@ export class Stringable {
      * Convert a string to kebab case.
      */
     kebab(): Stringable {
-        return new Stringable(Str.kebab(this._value));
+        return new Stringable(kebab(this._value));
     }
 
     /**
      * Return the length of the given string.
      */
     length(): number {
-        return Str.length(this._value);
+        return length(this._value);
     }
 
     /**
      * Limit the number of characters in a string.
      */
     limit(limit = 100, end = "...", preserveWords = false): Stringable {
-        return new Stringable(
-            Str.limit(this._value, limit, end, preserveWords),
-        );
+        return new Stringable(limit(this._value, limit, end, preserveWords));
     }
 
     /**
      * Convert the given string to lower-case.
      */
     lower(): Stringable {
-        return new Stringable(Str.lower(this._value));
+        return new Stringable(lower(this._value));
     }
 
     /**
@@ -311,7 +406,7 @@ export class Stringable {
         options: MarkDownOptions = { gfm: true, anchors: false },
         extensions: MarkDownExtensions = [],
     ): Stringable {
-        return new Stringable(Str.markdown(this._value, options, extensions));
+        return new Stringable(markdown(this._value, options, extensions));
     }
 
     /**
@@ -321,9 +416,7 @@ export class Stringable {
         options: MarkDownOptions = { gfm: true },
         extensions: MarkDownExtensions = [],
     ): Stringable {
-        return new Stringable(
-            Str.inlineMarkdown(this._value, options, extensions),
-        );
+        return new Stringable(inlineMarkdown(this._value, options, extensions));
     }
 
     /**
@@ -334,28 +427,28 @@ export class Stringable {
         index: number,
         length: number | null = null,
     ): Stringable {
-        return new Stringable(Str.mask(this._value, character, index, length));
+        return new Stringable(mask(this._value, character, index, length));
     }
 
     /**
      * Get the string matching the given pattern.
      */
     match(pattern: string): Stringable {
-        return new Stringable(Str.match(pattern, this._value));
+        return new Stringable(match(pattern, this._value));
     }
 
     /**
      * Determine if a given string matches a given pattern.
      */
     isMatch(pattern: string | Iterable<string>): boolean {
-        return Str.isMatch(pattern, this._value);
+        return isMatch(pattern, this._value);
     }
 
     /**
      * Get the string matching the given pattern.
      */
     matchAll(pattern: string): string[] {
-        return Str.matchAll(pattern, this._value);
+        return matchAll(pattern, this._value);
     }
 
     /**
@@ -369,28 +462,28 @@ export class Stringable {
      * Remove all non-numeric characters from a string.
      */
     numbers(): Stringable {
-        return new Stringable(Str.numbers(this._value) as string);
+        return new Stringable(numbers(this._value) as string);
     }
 
     /**
      * Pad both sides of the string with another.
      */
     padBoth(length: number, pad = " "): Stringable {
-        return new Stringable(Str.padBoth(this._value, length, pad));
+        return new Stringable(padBoth(this._value, length, pad));
     }
 
     /**
      * Pad the left side of the string with another.
      */
     padLeft(length: number, pad = " "): Stringable {
-        return new Stringable(Str.padLeft(this._value, length, pad));
+        return new Stringable(padLeft(this._value, length, pad));
     }
 
     /**
      * Pad the right side of the string with another.
      */
     padRight(length: number, pad = " "): Stringable {
-        return new Stringable(Str.padRight(this._value, length, pad));
+        return new Stringable(padRight(this._value, length, pad));
     }
 
     /**
@@ -406,7 +499,7 @@ export class Stringable {
      * Get the plural form of an English word.
      */
     plural(count: number = 2, prependCount: boolean = false): Stringable {
-        return new Stringable(Str.plural(this._value, count, prependCount));
+        return new Stringable(plural(this._value, count, prependCount));
     }
 
     /**
@@ -415,7 +508,7 @@ export class Stringable {
     pluralStudly(count: number = 2): Stringable {
         const c = isArray(count) ? count.length : Number(count);
 
-        return new Stringable(Str.pluralStudly(this._value, c));
+        return new Stringable(pluralStudly(this._value, c));
     }
 
     /**
@@ -424,14 +517,14 @@ export class Stringable {
     pluralPascal(count: number = 2): Stringable {
         const c = isArray(count) ? count.length : Number(count);
 
-        return new Stringable(Str.pluralPascal(this._value, c));
+        return new Stringable(pluralPascal(this._value, c));
     }
 
     /**
      * Find the multi-byte safe position of the first occurrence of the given substring.
      */
     position(needle: string, offset = 0): number | false {
-        return Str.position(this._value, needle, offset);
+        return position(this._value, needle, offset);
     }
 
     /**
@@ -449,7 +542,7 @@ export class Stringable {
         caseSensitive = true,
     ): Stringable {
         return new Stringable(
-            Str.remove(search, this._value, caseSensitive) as string,
+            remove(search, this._value, caseSensitive) as string,
         );
     }
 
@@ -457,14 +550,14 @@ export class Stringable {
      * Reverse the string.
      */
     reverse(): Stringable {
-        return new Stringable(Str.reverse(this._value));
+        return new Stringable(reverse(this._value));
     }
 
     /**
      * Repeat the string.
      */
     repeat(times: number): Stringable {
-        return new Stringable(Str.repeat(this._value, times));
+        return new Stringable(repeat(this._value, times));
     }
 
     /**
@@ -476,12 +569,7 @@ export class Stringable {
         caseSensitive = true,
     ): Stringable {
         return new Stringable(
-            Str.replace(
-                search,
-                replacement,
-                this._value,
-                caseSensitive,
-            ) as string,
+            replace(search, replacement, this._value, caseSensitive) as string,
         );
     }
 
@@ -492,35 +580,35 @@ export class Stringable {
         search: string,
         replace: Record<string, string> | Iterable<string>,
     ): Stringable {
-        return new Stringable(Str.replaceArray(search, replace, this._value));
+        return new Stringable(replaceArray(search, replace, this._value));
     }
 
     /**
      * Replace the first occurrence of a given value in the string.
      */
     replaceFirst(search: string | number, replace: string): Stringable {
-        return new Stringable(Str.replaceFirst(search, replace, this._value));
+        return new Stringable(replaceFirst(search, replace, this._value));
     }
 
     /**
      * Replace the first occurrence of the given value if it appears at the start of the string.
      */
     replaceStart(search: string | number, replace: string): Stringable {
-        return new Stringable(Str.replaceStart(search, replace, this._value));
+        return new Stringable(replaceStart(search, replace, this._value));
     }
 
     /**
      * Replace the last occurrence of a given value in the string.
      */
     replaceLast(search: string | number, replace: string): Stringable {
-        return new Stringable(Str.replaceLast(search, replace, this._value));
+        return new Stringable(replaceLast(search, replace, this._value));
     }
 
     /**
      * Replace the last occurrence of a given value if it appears at the end of the string.
      */
     replaceEnd(search: string | number, replace: string): Stringable {
-        return new Stringable(Str.replaceEnd(search, replace, this._value));
+        return new Stringable(replaceEnd(search, replace, this._value));
     }
 
     /**
@@ -531,7 +619,7 @@ export class Stringable {
         replace: string | string[] | ((match: string[]) => string),
         limit = -1,
     ): Stringable {
-        const out = Str.replaceMatches(pattern, replace, this._value, limit);
+        const out = replaceMatches(pattern, replace, this._value, limit);
 
         return new Stringable(out as string);
     }
@@ -558,56 +646,56 @@ export class Stringable {
      * Begin a string with a single instance of a given value.
      */
     start(prefix: string): Stringable {
-        return new Stringable(Str.start(this._value, prefix));
+        return new Stringable(start(this._value, prefix));
     }
 
     /**
      * Strip HTML and PHP tags from the given string.
      */
     stripTags(): Stringable {
-        return new Stringable(Str.stripTags(this._value));
+        return new Stringable(stripTags(this._value));
     }
 
     /**
      * Convert the given string to upper-case.
      */
     upper(): Stringable {
-        return new Stringable(Str.upper(this._value));
+        return new Stringable(upper(this._value));
     }
 
     /**
      * Convert the given string to proper case.
      */
     title(): Stringable {
-        return new Stringable(Str.title(this._value));
+        return new Stringable(title(this._value));
     }
 
     /**
      * Convert the given string to proper case for each word.
      */
     headline(): Stringable {
-        return new Stringable(Str.headline(this._value));
+        return new Stringable(headline(this._value));
     }
 
     /**
      * Convert the given string to APA-style title case.
      */
     apa(): Stringable {
-        return new Stringable(Str.apa(this._value));
+        return new Stringable(apa(this._value));
     }
 
     /**
      * Transliterate a string to its closest ASCII representation.
      */
     transliterate(): Stringable {
-        return new Stringable(Str.transliterate(this._value));
+        return new Stringable(transliterate(this._value));
     }
 
     /**
      * Get the singular form of an English word.
      */
     singular(): Stringable {
-        return new Stringable(Str.singular(this._value));
+        return new Stringable(singular(this._value));
     }
 
     /**
@@ -617,14 +705,14 @@ export class Stringable {
         separator = "-",
         dictionary: Record<string, string> = { "@": "at" },
     ): Stringable {
-        return new Stringable(Str.slug(this._value, separator, dictionary));
+        return new Stringable(slug(this._value, separator, dictionary));
     }
 
     /**
      * Convert a string to snake case.
      */
     snake(delimiter = "_"): Stringable {
-        return new Stringable(Str.snake(this._value, delimiter));
+        return new Stringable(snake(this._value, delimiter));
     }
 
     /**
@@ -633,7 +721,7 @@ export class Stringable {
     startsWith(
         needles: string | number | null | Iterable<string | number | null>,
     ): boolean {
-        return Str.startsWith(this._value, needles);
+        return startsWith(this._value, needles);
     }
 
     /**
@@ -642,28 +730,28 @@ export class Stringable {
     doesntStartWith(
         needles: string | number | null | Iterable<string | number | null>,
     ): boolean {
-        return Str.doesntStartWith(this._value, needles);
+        return doesntStartWith(this._value, needles);
     }
 
     /**
      * Convert a value to studly caps case.
      */
     studly(): Stringable {
-        return new Stringable(Str.studly(this._value));
+        return new Stringable(studly(this._value));
     }
 
     /**
      * Convert the string to Pascal case.
      */
     pascal(): Stringable {
-        return new Stringable(Str.pascal(this._value));
+        return new Stringable(pascal(this._value));
     }
 
     /**
      * Returns the portion of the string specified by the start and length parameters.
      */
     substr(start: number, length: number | null = null): Stringable {
-        return new Stringable(Str.substr(this._value, start, length));
+        return new Stringable(substr(this._value, start, length));
     }
 
     /**
@@ -674,7 +762,7 @@ export class Stringable {
         offset = 0,
         length: number | null = null,
     ): number {
-        return Str.substrCount(this._value, needle, offset, length);
+        return substrCount(this._value, needle, offset, length);
     }
 
     /**
@@ -686,7 +774,7 @@ export class Stringable {
         length: number | number[] | null = null,
     ): Stringable {
         return new Stringable(
-            Str.substrReplace(this._value, replace, offset, length) as string,
+            substrReplace(this._value, replace, offset, length) as string,
         );
     }
 
@@ -694,49 +782,49 @@ export class Stringable {
      * Swap multiple keywords in a string with other keywords.
      */
     swap(map: Record<string, string>): Stringable {
-        return new Stringable(Str.swap(map, this._value));
+        return new Stringable(swap(map, this._value));
     }
 
     /**
      * Take the first or last {$limit} characters.
      */
     take(limit: number): Stringable {
-        return new Stringable(Str.take(this._value, limit));
+        return new Stringable(take(this._value, limit));
     }
 
     /**
      * Trim the string of the given characters.
      */
     trim(charlist: string | null = null): Stringable {
-        return new Stringable(Str.trim(this._value, charlist));
+        return new Stringable(trim(this._value, charlist));
     }
 
     /**
      * Left trim the string of the given characters.
      */
     ltrim(charlist: string | null = null): Stringable {
-        return new Stringable(Str.ltrim(this._value, charlist));
+        return new Stringable(ltrim(this._value, charlist));
     }
 
     /**
      * Right trim the string of the given characters.
      */
     rtrim(charlist: string | null = null): Stringable {
-        return new Stringable(Str.rtrim(this._value, charlist));
+        return new Stringable(rtrim(this._value, charlist));
     }
 
     /**
      * Make a string's first character lowercase.
      */
     lcfirst(): Stringable {
-        return new Stringable(Str.lcfirst(this._value));
+        return new Stringable(lcfirst(this._value));
     }
 
     /**
      * Make a string's first character uppercase.
      */
     ucfirst(): Stringable {
-        return new Stringable(Str.ucfirst(this._value));
+        return new Stringable(ucfirst(this._value));
     }
 
     /**
@@ -744,14 +832,14 @@ export class Stringable {
      * TODO - return type should be a collection
      */
     ucsplit(): string[] {
-        return Str.ucsplit(this._value);
+        return ucsplit(this._value);
     }
 
     /**
      * Uppercase the first character of each word in a string.
      */
     ucwords(): Stringable {
-        return new Stringable(Str.ucwords(this._value));
+        return new Stringable(ucwords(this._value));
     }
 
     /**
@@ -991,14 +1079,14 @@ export class Stringable {
      * Limit the number of words in a string.
      */
     words(words: number = 100, end: string = "..."): Stringable {
-        return new Stringable(Str.words(this._value, words, end));
+        return new Stringable(words(this._value, words, end));
     }
 
     /**
      * Get the number of words a string contains.
      */
     wordCount(characters: string | null = null): number {
-        return Str.wordCount(this._value, characters);
+        return wordCount(this._value, characters);
     }
 
     /**
@@ -1010,7 +1098,7 @@ export class Stringable {
         cutLongWords = false,
     ): Stringable {
         return new Stringable(
-            Str.wordWrap(this._value, characters, breakStr, cutLongWords),
+            wordWrap(this._value, characters, breakStr, cutLongWords),
         );
     }
 
@@ -1018,28 +1106,28 @@ export class Stringable {
      * Wrap the string with the given strings.
      */
     wrap(before: string, after: string | null = null): Stringable {
-        return new Stringable(Str.wrap(this._value, before, after));
+        return new Stringable(wrap(this._value, before, after));
     }
 
     /**
      * Unwrap the string with the given strings.
      */
     unwrap(before: string, after: string | null = null): Stringable {
-        return new Stringable(Str.unwrap(this._value, before, after));
+        return new Stringable(unwrap(this._value, before, after));
     }
 
     /**
      * Convert the string to Base64 encoding.
      */
     toBase64(): Stringable {
-        return new Stringable(Str.toBase64(this._value));
+        return new Stringable(toBase64(this._value));
     }
 
     /**
      * Decode the Base64 encoded string.
      */
     fromBase64(strict = false): Stringable | false {
-        const decoded = Str.fromBase64(this._value, strict);
+        const decoded = fromBase64(this._value, strict);
         return decoded === false ? false : new Stringable(decoded);
     }
 
@@ -1078,7 +1166,7 @@ export class Stringable {
      * Returns true when value is "1", "true", "on", and "yes". Otherwise, returns false.
      */
     toBoolean(): boolean {
-        const v = Str.lower(Str.trim(this._value));
+        const v = lower(trim(this._value));
 
         return v === "1" || v === "true" || v === "on" || v === "yes";
     }
