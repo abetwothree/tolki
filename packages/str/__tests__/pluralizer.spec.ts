@@ -1,21 +1,21 @@
-import { Pluralizer } from "@laravel-js/str";
+import * as Str from "@laravel-js/str";
 import { describe, expect, it } from "vitest";
 
 describe("Str/Pluralizer", () => {
     it("pluralizes/singularizes and respects uncountable", () => {
-        expect(Pluralizer.plural("cat")).toBe("cats");
-        expect(Pluralizer.singular("dogs")).toBe("dog");
+        expect(Str.plural("cat")).toBe("cats");
+        expect(Str.singular("dogs")).toBe("dog");
 
         // uncountable words remain unchanged
-        expect(Pluralizer.plural("fish")).toBe("fish");
-        expect(Pluralizer.singular("series")).toBe("series");
+        expect(Str.plural("fish")).toBe("fish");
+        expect(Str.singular("series")).toBe("series");
 
         // case matching
-        expect(Pluralizer.plural("DOG")).toBe("DOGS");
-        expect(Pluralizer.plural("Dog")).toBe("Dogs");
+        expect(Str.plural("DOG")).toBe("DOGS");
+        expect(Str.plural("Dog")).toBe("Dogs");
 
         // isPlural / isSingular
-        expect(Pluralizer.isPlural("cars")).toBe(true);
-        expect(Pluralizer.isSingular("car")).toBe(true);
+        expect(Str.isPlural("cars")).toBe(true);
+        expect(Str.isSingular("car")).toBe(true);
     });
 });

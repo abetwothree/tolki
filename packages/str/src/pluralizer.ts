@@ -1,3 +1,4 @@
+import { format as numberFormat } from "@laravel-js/num";
 import pluralize from "pluralize";
 
 export interface PluralizerRules {
@@ -7,148 +8,164 @@ export interface PluralizerRules {
     uncountable: string[];
 }
 
-export class Pluralizer {
-    static inflection: typeof pluralize;
+let inflection: typeof pluralize;
 
-    static rules: PluralizerRules = {
-        plural: {},
-        singular: {},
-        irregular: {},
-        uncountable: [
-            "audio",
-            "bison",
-            "cattle",
-            "chassis",
-            "compensation",
-            "coreopsis",
-            "data",
-            "deer",
-            "education",
-            "emoji",
-            "equipment",
-            "evidence",
-            "feedback",
-            "firmware",
-            "fish",
-            "furniture",
-            "gold",
-            "hardware",
-            "information",
-            "jedi",
-            "kin",
-            "knowledge",
-            "love",
-            "metadata",
-            "money",
-            "moose",
-            "news",
-            "nutrition",
-            "offspring",
-            "plankton",
-            "pokemon",
-            "police",
-            "rain",
-            "recommended",
-            "related",
-            "rice",
-            "series",
-            "sheep",
-            "software",
-            "species",
-            "swine",
-            "traffic",
-            "wheat",
-        ],
-    };
+const rules: PluralizerRules = {
+    plural: {},
+    singular: {},
+    irregular: {},
+    uncountable: [
+        "audio",
+        "bison",
+        "cattle",
+        "chassis",
+        "compensation",
+        "coreopsis",
+        "data",
+        "deer",
+        "education",
+        "emoji",
+        "equipment",
+        "evidence",
+        "feedback",
+        "firmware",
+        "fish",
+        "furniture",
+        "gold",
+        "hardware",
+        "information",
+        "jedi",
+        "kin",
+        "knowledge",
+        "love",
+        "metadata",
+        "money",
+        "moose",
+        "news",
+        "nutrition",
+        "offspring",
+        "plankton",
+        "pokemon",
+        "police",
+        "rain",
+        "recommended",
+        "related",
+        "rice",
+        "series",
+        "sheep",
+        "software",
+        "species",
+        "swine",
+        "traffic",
+        "wheat",
+    ],
+};
 
-    /**
-     * Get the plural form of an English word.
-     */
-    static plural(value: string, count: number = 2): string {
-        if (Math.abs(count) === 1 || Pluralizer.uncountable(value)) {
-            return value;
-        }
+/**
+ * Get the plural form of an English word.
+ *
+ * @example
+ *
+ * plural("child"); -> "children"
+ * plural("apple", 1); -> "apple"
+ * plural("apple", 2, true); -> "2 apples"
+ */
+export function plural(
+    value: string,
+    count: number = 2,
+    prependCount: boolean = false,
+): string {
+    return (
+        (prependCount ? numberFormat(count) + " " : "") +
+        pluralValue(value, count)
+    );
+}
 
-        const plural = Pluralizer.inflector().plural(value);
-
-        return Pluralizer.matchCase(plural, value);
-    }
-
-    /**
-     * Get the singular form of an English word.
-     */
-    static singular(value: string): string {
-        const single = Pluralizer.inflector().singular(value);
-
-        return Pluralizer.matchCase(single, value);
-    }
-
-    /**
-     * Determine if the given value is uncountable.
-     */
-    static uncountable(value: string): boolean {
-        return Pluralizer.rules.uncountable.includes(value.toLowerCase());
-    }
-
-    /**
-     * Determine if the given value is plural.
-     */
-    static isPlural(value: string = ""): boolean {
-        return Pluralizer.inflector().isPlural(value);
-    }
-
-    /**
-     * Determine if the given value is singular.
-     */
-    static isSingular(value: string = ""): boolean {
-        return Pluralizer.inflector().isSingular(value);
-    }
-
-    /**
-     * Attempt to match the case on two strings
-     */
-    static matchCase(value: string, comparison: string): string {
-        if (comparison.toLowerCase() === comparison) {
-            return value.toLowerCase();
-        }
-
-        if (comparison.toUpperCase() === comparison) {
-            return value.toUpperCase();
-        }
-
-        if (
-            comparison[0] &&
-            comparison[0].toUpperCase() + comparison.slice(1) === comparison
-        ) {
-            return (value[0] ?? "").toUpperCase() + value.slice(1);
-        }
-
+/**
+ * Get the plural form of an English word.
+ */
+function pluralValue(value: string, count: number = 2): string {
+    if (Math.abs(count) === 1 || uncountable(value)) {
         return value;
     }
 
-    /**
-     * Get the pluralize instance
-     */
-    static inflector(): typeof pluralize {
-        if (typeof Pluralizer.inflection === "undefined") {
-            Pluralizer.inflection = pluralize;
+    const plural = inflector().plural(value);
 
-            Pluralizer.rules.uncountable.forEach((uncountable) =>
-                Pluralizer.inflection.addUncountableRule(uncountable),
-            );
-            Object.entries(Pluralizer.rules.plural).forEach(([plural, rule]) =>
-                Pluralizer.inflection.addIrregularRule(rule, plural),
-            );
-            Object.entries(Pluralizer.rules.singular).forEach(
-                ([singular, rule]) =>
-                    Pluralizer.inflection.addIrregularRule(rule, singular),
-            );
-            Object.entries(Pluralizer.rules.irregular).forEach(
-                ([irregularity, rule]) =>
-                    Pluralizer.inflection.addIrregularRule(rule, irregularity),
-            );
-        }
+    return matchCase(plural, value);
+}
 
-        return Pluralizer.inflection;
+/**
+ * Get the singular form of an English word.
+ */
+export function singular(value: string): string {
+    const single = inflector().singular(value);
+
+    return matchCase(single, value);
+}
+
+/**
+ * Determine if the given value is uncountable.
+ */
+export function uncountable(value: string): boolean {
+    return rules.uncountable.includes(value.toLowerCase());
+}
+
+/**
+ * Determine if the given value is plural.
+ */
+export function isPlural(value: string = ""): boolean {
+    return inflector().isPlural(value);
+}
+
+/**
+ * Determine if the given value is singular.
+ */
+export function isSingular(value: string = ""): boolean {
+    return inflector().isSingular(value);
+}
+
+/**
+ * Attempt to match the case on two strings
+ */
+export function matchCase(value: string, comparison: string): string {
+    if (comparison.toLowerCase() === comparison) {
+        return value.toLowerCase();
     }
+
+    if (comparison.toUpperCase() === comparison) {
+        return value.toUpperCase();
+    }
+
+    if (
+        comparison[0] &&
+        comparison[0].toUpperCase() + comparison.slice(1) === comparison
+    ) {
+        return (value[0] ?? "").toUpperCase() + value.slice(1);
+    }
+
+    return value;
+}
+
+/**
+ * Get the pluralize instance
+ */
+export function inflector(): typeof pluralize {
+    if (typeof inflection === "undefined") {
+        inflection = pluralize;
+
+        rules.uncountable.forEach((uncountable) =>
+            inflection.addUncountableRule(uncountable),
+        );
+        Object.entries(rules.plural).forEach(([plural, rule]) =>
+            inflection.addIrregularRule(rule, plural),
+        );
+        Object.entries(rules.singular).forEach(([singular, rule]) =>
+            inflection.addIrregularRule(rule, singular),
+        );
+        Object.entries(rules.irregular).forEach(([irregularity, rule]) =>
+            inflection.addIrregularRule(rule, irregularity),
+        );
+    }
+
+    return inflection;
 }

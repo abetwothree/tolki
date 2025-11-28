@@ -1,4 +1,3 @@
-import { format as numberFormat } from "@laravel-js/num";
 import {
     CaseTypes,
     ConvertCase,
@@ -6,7 +5,7 @@ import {
     type MarkDownExtensions,
     type MarkDownOptions,
     MarkdownRenderer,
-    Pluralizer,
+    plural,
     randomString,
     Replacer,
     Trimmer,
@@ -1238,26 +1237,6 @@ export function makePad(padStr: string, needed: number): string {
 }
 
 /**
- * Get the plural form of an English word.
- *
- * @example
- *
- * plural("child"); -> "children"
- * plural("apple", 1); -> "apple"
- * plural("apple", 2, true); -> "2 apples"
- */
-export function plural(
-    value: string,
-    count: number = 2,
-    prependCount: boolean = false,
-): string {
-    return (
-        (prependCount ? numberFormat(count) + " " : "") +
-        Pluralizer.plural(value, count)
-    );
-}
-
-/**
  * Pluralize the last word of an English, studly caps case string.
  *
  * @example
@@ -2090,19 +2069,6 @@ export function apa(value: string): string {
     }
 
     return words.join(" ");
-}
-
-/**
- * Get the singular form of an English word.
- *
- * @example
- *
- * singular("apples"); -> "apple"
- * singular("children"); -> "child"
- * singular("mice"); -> "mouse"
- */
-export function singular(value: string) {
-    return Pluralizer.singular(value);
 }
 
 /**
