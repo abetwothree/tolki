@@ -1,6 +1,6 @@
+import { Stringable } from "@laravel-js/str";
+import * as Str from "@laravel-js/str";
 import { describe, expect, it } from "vitest";
-
-import { Str, Stringable } from "../src/index.js";
 
 // Helper to compare Stringable result to plain string
 function expectEqual(strResult: string, s: Stringable) {

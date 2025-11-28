@@ -1,6 +1,5 @@
 import { format as numberFormat } from "@laravel-js/num";
 import {
-    Base64,
     CaseTypes,
     ConvertCase,
     type ConvertCaseMode,
@@ -2474,31 +2473,6 @@ export function take(value: string, limit: number): string {
     }
 
     return substr(value, 0, limit);
-}
-
-/**
- * Convert the given string to Base64 encoding.
- *
- * @example
- *
- * toBase64("hello world"); -> "aGVsbG8gd29ybGQ="
- */
-export function toBase64(value: string): string {
-    return Base64.toBase64(value);
-}
-
-/**
- * Decode the given Base64 encoded string.
- *
- * @example
- *
- * fromBase64("aGVsbG8gd29ybGQ=", true); -> "hello world"
- */
-export function fromBase64(
-    value: string,
-    strict: boolean = false,
-): string | false {
-    return Base64.fromBase64(value, strict);
 }
 
 /**
