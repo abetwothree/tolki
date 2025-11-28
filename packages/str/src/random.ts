@@ -6,7 +6,7 @@
 
 /**
  * Generate a more truly "random" alpha-numeric string (Laravel compatible algorithm).
- * 
+ *
  * @param length - The length of the random string to generate. Default is 16.
  * @returns A random alpha-numeric string of the specified length.
  *
@@ -45,11 +45,11 @@ export function randomInt(min: number, max: number): number {
     if (!Number.isInteger(min) || !Number.isInteger(max)) {
         throw new TypeError("randomInt bounds must be safe integers");
     }
-    
+
     if (min > max) {
         throw new RangeError("randomInt min must be <= max");
     }
-    
+
     if (min === max) {
         return min;
     }
@@ -68,12 +68,12 @@ export function randomInt(min: number, max: number): number {
 
     while (true) {
         const randomBytes = secureRandomBytes(bytesNeeded);
-        
+
         let value = 0;
         for (let i = 0; i < bytesNeeded; i++) {
             value = (value << 8) | (randomBytes[i] as number);
         }
-        
+
         // Apply mask to highest bits if bits not multiple of 8
         if (bits % 8 !== 0) {
             const shift = 8 - (bits % 8);

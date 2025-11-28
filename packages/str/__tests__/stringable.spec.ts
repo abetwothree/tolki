@@ -1,4 +1,5 @@
-import { CaseTypes, Str, Stringable } from "@laravel-js/str";
+import { CaseTypes, Stringable } from "@laravel-js/str";
+import * as Str from "@laravel-js/str";
 import { describe, expect, it } from "vitest";
 
 // Helper to compare Stringable method against Str function

@@ -39,6 +39,7 @@ import {
     kebab,
     lcfirst,
     length,
+    limit,
     lower,
     ltrim,
     markdown,
@@ -68,6 +69,7 @@ import {
     singular,
     slug,
     snake,
+    squish,
     start,
     startsWith,
     stripTags,
@@ -87,6 +89,7 @@ import {
     unwrap,
     upper,
     wordCount,
+    words,
     wordWrap,
     wrap,
 } from "@laravel-js/str";
@@ -388,8 +391,10 @@ export class Stringable {
     /**
      * Limit the number of characters in a string.
      */
-    limit(limit = 100, end = "...", preserveWords = false): Stringable {
-        return new Stringable(limit(this._value, limit, end, preserveWords));
+    limit(limitValue = 100, end = "...", preserveWords = false): Stringable {
+        return new Stringable(
+            limit(this._value, limitValue, end, preserveWords),
+        );
     }
 
     /**
@@ -639,7 +644,7 @@ export class Stringable {
      * Remove all "extra" blank space from the given string.
      */
     squish(): Stringable {
-        return new Stringable(Str.squish(this._value));
+        return new Stringable(squish(this._value));
     }
 
     /**
@@ -1078,8 +1083,8 @@ export class Stringable {
     /**
      * Limit the number of words in a string.
      */
-    words(words: number = 100, end: string = "..."): Stringable {
-        return new Stringable(words(this._value, words, end));
+    words(wordsValue: number = 100, end: string = "..."): Stringable {
+        return new Stringable(words(this._value, wordsValue, end));
     }
 
     /**
