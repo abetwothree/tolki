@@ -11,7 +11,7 @@ import {
     setObjectValue,
     undotExpandObject,
 } from "@laravel-js/path";
-import { Random, Str } from "@laravel-js/str";
+import { finish, randomInt } from "@laravel-js/str";
 import {
     isArray,
     isBoolean,
@@ -1807,7 +1807,7 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     const availableIndices = Array.from({ length: count }, (_, i) => i);
 
     for (let i = 0; i < requested; i++) {
-        const randomIndex = Random.int(0, availableIndices.length - 1);
+        const randomIndex = randomInt(0, availableIndices.length - 1);
         selectedIndices.push(availableIndices[randomIndex] as number);
         availableIndices.splice(randomIndex, 1);
     }
@@ -2625,7 +2625,7 @@ export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
     for (const [key, value] of Object.entries(obj)) {
         // Use key as style if value is truthy
         if (value) {
-            const style = Str.finish(key, ";");
+            const style = finish(key, ";");
             styles.push(style);
         }
     }

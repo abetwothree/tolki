@@ -11,7 +11,7 @@ import {
     setMixedImmutable,
     undotExpandArray,
 } from "@laravel-js/path";
-import { Random, Str } from "@laravel-js/str";
+import { finish, randomInt } from "@laravel-js/str";
 import type {
     ArrayInnerValue,
     ArrayItems,
@@ -1852,7 +1852,7 @@ export function random<TValue>(
     const availableIndices = Array.from({ length: count }, (_, i) => i);
 
     for (let i = 0; i < requested; i++) {
-        const randomIndex = Random.int(0, availableIndices.length - 1);
+        const randomIndex = randomInt(0, availableIndices.length - 1);
         selectedIndices.push(availableIndices[randomIndex] as number);
         availableIndices.splice(randomIndex, 1);
     }
@@ -1971,8 +1971,7 @@ export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
 
     // Fisher-Yates shuffle algorithm
     for (let i = result.length - 1; i > 0; i--) {
-        // Use the Random.int from @laravel-js/str for secure randomness
-        const j = Random.int(0, i);
+        const j = randomInt(0, i);
         [result[i], result[j]] = [result[j] as TValue, result[i] as TValue];
     }
 
@@ -2498,12 +2497,12 @@ export function toCssStyles(
         if (numericKey) {
             // Numeric key: use the value as style
             if (isString(value)) {
-                styles.push(Str.finish(value, ";"));
+                styles.push(finish(value, ";"));
             }
         } else {
             // String key: use key as style if value is truthy
             if (value) {
-                styles.push(Str.finish(key, ";"));
+                styles.push(finish(key, ";"));
             }
         }
     }
