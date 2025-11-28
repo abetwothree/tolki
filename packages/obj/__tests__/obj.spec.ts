@@ -2136,10 +2136,10 @@ describe("Obj", () => {
         it("should handle negative size", () => {
             const obj = { a: 1, b: 2 };
             const result = Obj.pad(obj, -3, 0);
-            expect(result).toEqual({"0": 0, a: 1, b: 2});
+            expect(result).toEqual({ "0": 0, a: 1, b: 2 });
 
             const result2 = Obj.pad(obj, -5, 0);
-            expect(result2).toEqual({"-2": 0, "-1": 0, "0": 0, a: 1, b: 2});
+            expect(result2).toEqual({ "-2": 0, "-1": 0, "0": 0, a: 1, b: 2 });
         });
     });
 
