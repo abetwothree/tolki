@@ -2,13 +2,15 @@ import {
     CaseTypes,
     ConvertCase,
     type ConvertCaseMode,
+    ltrim,
     type MarkDownExtensions,
     type MarkDownOptions,
     MarkdownRenderer,
     plural,
     randomString,
-    Replacer,
-    Trimmer,
+    rtrim,
+    substr,
+    trim,
 } from "@laravel-js/str";
 import { isArray } from "@laravel-js/utils";
 import anyAscii from "any-ascii";
@@ -2186,39 +2188,6 @@ export function snake(value: string, delimiter: string = "_"): string {
 }
 
 /**
- * Remove all whitespace from both ends of a string.
- *
- * @example
- *
- * trim("   foo bar   "); -> "foo bar"
- */
-export function trim(value: string, charlist: string | null = null): string {
-    return Trimmer.trim(value, charlist);
-}
-
-/**
- * Remove all whitespace from the beginning of a string.
- *
- * @example
- *
- * ltrim("   foo bar   "); -> "foo bar   "
- */
-export function ltrim(value: string, charlist: string | null = null): string {
-    return Trimmer.ltrim(value, charlist);
-}
-
-/**
- * Remove all whitespace from the end of a string.
- *
- * @example
- *
- * rtrim("   foo bar   "); -> "   foo bar"
- */
-export function rtrim(value: string, charlist: string | null = null): string {
-    return Trimmer.rtrim(value, charlist);
-}
-
-/**
      * Remove all "extra" blank space from the given string.
      *
      * @example
@@ -2339,58 +2308,6 @@ export function studly(value: string): string {
  */
 export function pascal(value: string): string {
     return studly(value);
-}
-
-/**
- * Returns the portion of the string specified by the start and length parameters.
- *
- * @example
- *
- * substr('hello world', 6, 5); -> 'world'
- * substr('hello world', 0, 5); -> 'hello'
- * substr('hello world', 6);    -> 'world'
- */
-export function substr(
-    string: string,
-    start: number,
-    length: number | null = null,
-): string {
-    return Replacer.substr(string, start, length);
-}
-
-/**
- * Returns the number of substring occurrences.
- *
- * @example
- *
- * substrCount('laravelPHPFramework', 'a'); -> 3
- * substrCount('laravelPHPFramework', 'a', 1); -> 2
- * substrCount('laravelPHPFramework', 'a', 1, 2); -> 1
- */
-export function substrCount(
-    haystack: string,
-    needle: string,
-    offset: number = 0,
-    length: number | null = null,
-): number {
-    return Replacer.substrCount(haystack, needle, offset, length);
-}
-
-/**
- * Replace text within a portion of a string.
- *
- * @example
- *
- * substrReplace('hello world', 'hi', 6); -> 'hello hi'
- * substrReplace('hello world', ['hi', 'there'], 6); -> ['hello hi', 'hello there']
- */
-export function substrReplace(
-    value: string,
-    replace: string | string[],
-    offset: number | number[] = 0,
-    length: number | number[] | null = null,
-): string | string[] {
-    return Replacer.substrReplace(value, replace, offset, length);
 }
 
 /**
