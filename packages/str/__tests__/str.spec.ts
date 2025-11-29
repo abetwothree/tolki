@@ -1178,7 +1178,33 @@ describe("Str tests", () => {
         );
     });
 
-    it.skip("password", () => {});
+    describe("password", () => {
+        it("test password", () => {
+            expect(Str.password().length).toBe(32);
+
+            expect(Str.password().includes(" ")).toBe(false);
+            expect(Str.password(32, true, true, true, true).includes(" ")).toBe(
+                true,
+            );
+
+            expect(
+                Str.of(Str.password()).contains([
+                    "0",
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                    "6",
+                    "7",
+                    "8",
+                    "9",
+                ]),
+            ).toBe(true);
+
+            expect(Str.password(32, false, false, false, false)).toBe("");
+        });
+    });
 
     it("position", () => {
         expect(Str.position("Hello, World!", "")).toBe(false);

@@ -7,6 +7,7 @@ import {
     type MarkDownOptions,
     MarkdownRenderer,
     plural,
+    randomInt,
     randomString,
     rtrim,
     substr,
@@ -1266,52 +1267,154 @@ export function pluralPascal(value: string, count: number = 2): string {
 /**
  * Generate a random, secure password.
  *
- * TODO when collections are implemented
+ * Mirrors Laravel's Str::password behavior:
+ * - Ensures at least one character from each enabled set
+ * - Uses a combined pool for remaining characters
+ * - Shuffles result and returns a string of requested length
  *
- * @example
- *
- * password();
+ * @param length The desired length of the password (default: 32)
+ * @param letters Whether to include letters (default: true)
+ * @param numbers Whether to include numbers (default: true)
+ * @param symbols Whether to include symbols (default: true)
+ * @param spaces Whether to include spaces (default: false)
+ * @return The generated password string
  */
 export function password(
-    _length: number = 32,
-    _letters: boolean = true,
-    _numbers: boolean = true,
-    _symbols: boolean = true,
-    _spaces: boolean = false,
+    length: number = 32,
+    letters: boolean = true,
+    numbers: boolean = true,
+    symbols: boolean = true,
+    spaces: boolean = false,
 ): string {
-    // Reference parameters to satisfy TypeScript noUnusedParameters while keeping API parity
-    void [_length, _letters, _numbers, _symbols, _spaces];
+    // Build character classes based on flags
+    const lettersSet = letters
+        ? [
+              "a",
+              "b",
+              "c",
+              "d",
+              "e",
+              "f",
+              "g",
+              "h",
+              "i",
+              "j",
+              "k",
+              "l",
+              "m",
+              "n",
+              "o",
+              "p",
+              "q",
+              "r",
+              "s",
+              "t",
+              "u",
+              "v",
+              "w",
+              "x",
+              "y",
+              "z",
+              "A",
+              "B",
+              "C",
+              "D",
+              "E",
+              "F",
+              "G",
+              "H",
+              "I",
+              "J",
+              "K",
+              "L",
+              "M",
+              "N",
+              "O",
+              "P",
+              "Q",
+              "R",
+              "S",
+              "T",
+              "U",
+              "V",
+              "W",
+              "X",
+              "Y",
+              "Z",
+          ]
+        : null;
+    const numbersSet = numbers
+        ? ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+        : null;
+    const symbolsSet = symbols
+        ? [
+              "~",
+              "!",
+              "#",
+              "$",
+              "%",
+              "^",
+              "&",
+              "*",
+              "(",
+              ")",
+              "-",
+              "_",
+              ".",
+              ",",
+              "<",
+              ">",
+              "?",
+              "/",
+              "\\",
+              "{",
+              "}",
+              "[",
+              "]",
+              "|",
+              ":",
+              ";",
+          ]
+        : null;
+    const spacesSet = spaces ? [" "] : null;
 
-    // const password = new Collection();
+    const enabledSets: string[][] = [
+        lettersSet,
+        numbersSet,
+        symbolsSet,
+        spacesSet,
+    ].filter((s): s is string[] => isArray(s));
 
-    // $options = (new Collection([
-    //     'letters' => $letters === true ? [
-    //         'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
-    //         'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-    //         'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G',
-    //         'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
-    //         'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-    //     ] : null,
-    //     'numbers' => $numbers === true ? [
-    //         '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-    //     ] : null,
-    //     'symbols' => $symbols === true ? [
-    //         '~', '!', '#', '$', '%', '^', '&', '*', '(', ')', '-',
-    //         '_', '.', ',', '<', '>', '?', '/', '\\', '{', '}', '[',
-    //         ']', '|', ':', ';',
-    //     ] : null,
-    //     'spaces' => $spaces === true ? [' '] : null,
-    // ]))
-    //     ->filter()
-    //     ->each(fn ($c) => $password->push($c[random_int(0, count($c) - 1)]))
-    //     ->flatten();
+    // Fallback: if no sets enabled, return empty string
+    if (enabledSets.length === 0 || length <= 0) {
+        return "";
+    }
 
-    // $length = $length - $password->count();
+    const passwordChars: string[] = [];
 
-    // return $password->merge($options->pipe(
-    //     fn ($c) => Collection::times($length, fn () => $c[random_int(0, $c->count() - 1)])
-    // ))->shuffle()->implode('');
-    return ""; // placeholder until implemented
+    // Ensure at least one char from each enabled set
+    for (const set of enabledSets) {
+        const idx = randomInt(0, set.length - 1);
+        passwordChars.push(set[idx]!);
+    }
+
+    // Remaining characters from the combined pool
+    const remaining = Math.max(0, length - passwordChars.length);
+    const pool: string[] = enabledSets.flat();
+    for (let i = 0; i < remaining; i++) {
+        const idx = randomInt(0, pool.length - 1);
+        passwordChars.push(pool[idx]!);
+    }
+
+    // Shuffle (Fisher-Yates)
+    for (let i = passwordChars.length - 1; i > 0; i--) {
+        const j = randomInt(0, i);
+        const tmp = passwordChars[i]!;
+        passwordChars[i] = passwordChars[j]!;
+        passwordChars[j] = tmp;
+    }
+
+    return passwordChars.join("");
 }
 
 /**
