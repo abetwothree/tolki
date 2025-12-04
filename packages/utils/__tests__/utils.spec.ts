@@ -609,4 +609,24 @@ describe("Utils", () => {
         expect(Utils.getAccessibleValues(null)).toEqual([]);
         expect(Utils.getAccessibleValues(undefined)).toEqual([]);
     });
+
+    it("entriesKeyValue converts numeric-like strings and preserves others", () => {
+        expect(Utils.entriesKeyValue("42" as unknown as PropertyKey)).toBe(42);
+        expect(Utils.entriesKeyValue("004" as unknown as PropertyKey)).toBe(4);
+        expect(Utils.entriesKeyValue("abc" as unknown as PropertyKey)).toBe(
+            "abc",
+        );
+    });
+
+    it("strictEqual handles class instances vs plain objects and key mismatches", () => {
+        class Foo {
+            x: number;
+            constructor(x: number) {
+                this.x = x;
+            }
+        }
+        expect(Utils.strictEqual(new Foo(1), { x: 1 })).toBe(false);
+        expect(Utils.strictEqual({ a: 1 }, { a: 1, b: 2 })).toBe(false);
+        expect(Utils.strictEqual([1, 2], [1])).toBe(false);
+    });
 });

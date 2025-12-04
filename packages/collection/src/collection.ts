@@ -15,7 +15,6 @@ import {
     dataExcept,
     dataFilter,
     dataFirst,
-    dataFlatten,
     dataFlip,
     dataForget,
     dataGet,
@@ -866,24 +865,60 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Get a flattened array of the items in the collection.
+     * Flatten a multi-dimensional collection into a single level.
+     *
+     * Laravel's flatten always returns an array-based collection, iterating over
+     * values and recursively flattening nested arrays.
      *
      * @param depth - The depth to flatten to, defaults to Infinity
-     * @returns A new collection with flattened items
+     * @returns A new collection with flattened items (always array-based)
      *
      * @example
      *
      * new Collection([1, [2, [3, 4]], 5]).flatten(); -> new Collection([1, 2, 3, 4, 5])
      * new Collection([1, [2, [3, 4]], 5]).flatten(1); -> new Collection([1, 2, [3, 4], 5])
-     * new Collection({a: 1, b: {c: 2, d: {e: 3}}}).flatten(); -> new Collection({a: 1, c: 2, e: 3})
-     * new Collection({a: 1, b: {c: 2, d: {e: 3}}}).flatten(1); -> new Collection({a: 1, c: 2, d: {e: 3}})
+     * new Collection({a: [1, 2], b: [3, 4]}).flatten(); -> new Collection([1, 2, 3, 4])
+     * new Collection({a: [1, [2, 3]], b: [4]}).flatten(1); -> new Collection([1, [2, 3], 4])
      */
     flatten(depth: number = Infinity) {
+        const result: unknown[] = [];
+
+        const flattenRecursive = (items: unknown, currentDepth: number) => {
+            // Get the values to iterate over
+            const values = isArray(items)
+                ? items
+                : isObject(items)
+                  ? Object.values(items)
+                  : [items];
+
+            for (let item of values) {
+                // Convert Collection instances to their items
+                if (item instanceof Collection) {
+                    item = item.all();
+                }
+
+                // If item is not an array/object, add it directly
+                if (!isArray(item) && !isObject(item)) {
+                    result.push(item);
+                } else if (currentDepth <= 1) {
+                    // If we've reached the depth limit, add the values as-is
+                    const itemValues = isArray(item)
+                        ? item
+                        : Object.values(item);
+                    for (const value of itemValues) {
+                        result.push(value);
+                    }
+                } else {
+                    // Recursively flatten
+                    flattenRecursive(item, currentDepth - 1);
+                }
+            }
+        };
+
+        flattenRecursive(this.items, depth);
+
         return new (this.constructor as new (...args: unknown[]) => this)(
-            dataFlatten(
-                this.recursivelyConvertCollections(this.items),
-                depth,
-            ) as DataItems<TValue, TKey>,
+            result as DataItems<TValue, TKey>,
         );
     }
 

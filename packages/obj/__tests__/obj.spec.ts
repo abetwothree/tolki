@@ -1109,21 +1109,62 @@ describe("Obj", () => {
     });
 
     describe("flatten", () => {
-        it("should flatten nested objects", () => {
+        it("flattens nested object values into a single array", () => {
             const obj = {
                 users: { john: { name: "John" }, jane: { name: "Jane" } },
                 posts: { "1": { title: "Hello" } },
             };
-            expect(Obj.flatten(obj, 1)).toEqual({
-                "users.john": { name: "John" },
-                "users.jane": { name: "Jane" },
-                "posts.1": { title: "Hello" },
-            });
+
+            const result = Obj.flatten(obj);
+
+            expect(result).toEqual([
+                { name: "John" },
+                { name: "Jane" },
+                { title: "Hello" },
+            ]);
         });
 
-        it("should handle depth parameter", () => {
+        it("respects the depth parameter", () => {
             const obj = { a: { b: { c: { d: "value" } } } };
-            expect(Obj.flatten(obj, 2)).toEqual({ "a.b.c": { d: "value" } });
+
+            // depth = 1: only flatten top-level values
+            expect(Obj.flatten(obj, 1)).toEqual([{ b: { c: { d: "value" } } }]);
+
+            // depth = 2: flatten one more level
+            expect(Obj.flatten(obj, 2)).toEqual([{ c: { d: "value" } }]);
+        });
+
+        it("handles arrays within object values at boundary depth", () => {
+            const obj = { items: [{ v: 1 }, { v: 2 }] };
+            // Default depth should gather array elements
+            expect(Obj.flatten(obj)).toEqual([{ v: 1 }, { v: 2 }]);
+            // Explicit depth=2 should behave the same
+            expect(Obj.flatten(obj, 2)).toEqual([{ v: 1 }, { v: 2 }]);
+        });
+
+        it("returns empty array for non-accessible data", () => {
+            expect(
+                Obj.flatten(null as unknown as Record<string, unknown>),
+            ).toEqual([]);
+            expect(
+                Obj.flatten(undefined as unknown as Record<string, unknown>),
+            ).toEqual([]);
+        });
+
+        it("honors depth=0 by returning top-level values", () => {
+            const obj = {
+                users: { john: { name: "John" }, jane: { name: "Jane" } },
+                posts: { "1": { title: "Hello" } },
+            };
+            expect(Obj.flatten(obj, 0)).toEqual([
+                { john: { name: "John" }, jane: { name: "Jane" } },
+                { "1": { title: "Hello" } },
+            ]);
+        });
+
+        it("flattens objects with primitive values", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            expect(Obj.flatten(obj, 1)).toEqual([1, 2, 3]);
         });
     });
 

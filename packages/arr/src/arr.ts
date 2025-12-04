@@ -736,11 +736,13 @@ export function flatten<TValue>(
             for (const value of values) {
                 result.push(value as TValue);
             }
+
             continue;
         }
 
         if (!isArray(item)) {
             result.push(item);
+
             continue;
         }
 

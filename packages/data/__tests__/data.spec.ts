@@ -401,13 +401,40 @@ describe("Data", () => {
                 },
                 1,
             );
-            expect(result).toEqual({
-                "users.john": { name: "John" },
-                "users.jane": { name: "Jane" },
-                "posts.1": { title: "Hello" },
-            });
+
+            expect(result).toEqual([
+                {
+                    jane: {
+                        name: "Jane",
+                    },
+                    john: {
+                        name: "John",
+                    },
+                },
+                {
+                    "1": {
+                        title: "Hello",
+                    },
+                },
+            ]);
         });
 
+        it("is object with array values", () => {
+            const result = Data.dataFlatten({ list: ["x", "y"] }, 1);
+            expect(result).toEqual([["x", "y"]]);
+        });
+
+        it("is object with deeper nesting", () => {
+            const data = { a: { b: { c: 1 } } };
+            // depth = 2 should include three segments in the key
+            expect(Data.dataFlatten(data, 2)).toEqual([
+                {
+                    c: 1,
+                },
+            ]);
+            // default (Infinity) should also fully dot-flatten to the leaf
+            expect(Data.dataFlatten(data)).toEqual([1]);
+        });
         it("is array", () => {
             const result = Data.dataFlatten([["#foo", ["#bar"]], ["#baz"]]);
             expect(result).toEqual(["#foo", "#bar", "#baz"]);

@@ -676,50 +676,123 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
 }
 
 /**
- * Flatten a multi-dimensional object into a single level.
+ * Flatten a multi-dimensional object into a single-level array.
  *
- * @param data The object to flatten.
- * @param depth Maximum depth to flatten. Use Infinity for full flattening.
- * @returns A new flattened object.
+ * This mirrors Laravel's Arr::flatten behavior but for objects: it iterates over
+ * the values, recursively flattening nested arrays and objects into a single
+ * array of values, discarding keys.
+ *
+ * @param data - The object (or value) to flatten.
+ * @param depth - Maximum depth to flatten. Use Infinity for full flattening.
+ * @returns A new flattened array of values.
  *
  * @example
  *
- * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }); -> { a: 1, 'b.c': 2, 'b.d.e': 3 }
- * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }, 1); -> { a: 1, 'b.c': 2, 'b.d': { e: 3 } }
+ * flatten({ a: [1, 2], b: [3, 4] }); -> [1, 2, 3, 4]
+ * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }); -> [1, 2, 3]
+ * flatten({ a: [1, [2, 3]], b: [4] }, 1); -> [1, [2, 3], 4]
  */
-export function flatten<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | TValue,
-    depth: number = Infinity,
-): Record<TKey, TValue> {
+export function flatten<TValue>(
+    data: Record<PropertyKey, TValue> | TValue,
+    depth: number = 2,
+): unknown[] {
     if (!accessible(data)) {
-        return {} as Record<TKey, TValue>;
+        return [];
     }
 
-    const result: Record<string, unknown> = {};
+    const result: unknown[] = [];
 
-    const flattenRecursive = (
-        obj: Record<string, unknown>,
-        currentDepth: number,
-        prefix: string = "",
-    ) => {
-        for (const [key, value] of Object.entries(obj)) {
-            const newKey = prefix ? `${prefix}.${key}` : key;
+    const flattenRecursive = (items: unknown, currentDepth: number) => {
+        const values = isArray(items)
+            ? items
+            : isObject(items)
+              ? Object.values(items)
+              : [items];
 
-            if (isObject(value) && currentDepth > 0) {
-                flattenRecursive(
-                    value as Record<string, unknown>,
-                    currentDepth - 1,
-                    newKey,
-                );
+        for (const item of values) {
+            if (!isArray(item) && !isObject(item)) {
+                result.push(item);
+            } else if (currentDepth <= 1) {
+                // At boundary depth, push the immediate items themselves
+                // (objects or arrays) without descending further.
+                result.push(item);
             } else {
-                result[newKey] = value;
+                flattenRecursive(item, currentDepth - 1);
             }
         }
     };
 
-    flattenRecursive(data as Record<string, unknown>, depth);
+    flattenRecursive(data, depth);
 
-    return result as Record<TKey, TValue>;
+    return result;
+}
+
+/**
+ * Flatten a multi-dimensional object into dot-notation with depth control.
+ *
+ * Creates dot-notation keys up to the specified depth, with values being the
+ * nodes at that depth boundary.
+ *
+ * @param data - The object to flatten.
+ * @param depth - Maximum depth for dot-notation keys.
+ * @returns A flat object with dot-notated keys.
+ *
+ * @example
+ *
+ * flattenDot({ users: { john: { name: 'John' } } }, 1); -> { 'users.john': { name: 'John' } }
+ * flattenDot({ a: { b: { c: 1 } } }, 2); -> { 'a.b.c': 1 }
+ */
+export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    depth: number = Infinity,
+): Record<PropertyKey, TValue> {
+    if (!accessible(data)) {
+        return {} as Record<PropertyKey, TValue>;
+    }
+
+    const out: Record<string, unknown> = {};
+
+    const walk = (
+        node: unknown,
+        pathParts: string[],
+        maxSegments: number,
+    ): void => {
+        const pathLen = pathParts.length;
+        const isObj = isObject(node);
+        const isArr = isArray(node);
+
+        // Stop if node is scalar or we've reached the target segment length
+        if ((!isObj && !isArr) || pathLen >= maxSegments) {
+            if (pathLen > 0) {
+                out[pathParts.join(".")] = node as unknown;
+            }
+            return;
+        }
+
+        if (isArr) {
+            for (let i = 0; i < (node as unknown[]).length; i++) {
+                walk(
+                    (node as unknown[])[i],
+                    [...pathParts, String(i)],
+                    maxSegments,
+                );
+            }
+            return;
+        }
+
+        for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+            walk(v, [...pathParts, String(k)], maxSegments);
+        }
+    };
+
+    // Depth represents additional levels beyond the root to flatten into keys.
+    // Example: depth=1 -> two segments (root child and its child): users.john
+    const maxSegments = Number.isFinite(depth)
+        ? (depth as number) + 1
+        : Infinity;
+    walk(data as Record<string, unknown>, [], maxSegments);
+
+    return out as Record<PropertyKey, TValue>;
 }
 
 /**

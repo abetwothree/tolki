@@ -634,7 +634,7 @@ export function dataFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
     depth: number = Infinity,
 ) {
     if (isObject(data)) {
-        return objFlatten<TValue, TKey>(data, depth);
+        return objFlatten(data, depth);
     }
 
     return arrFlatten(arrWrap(data), depth);
