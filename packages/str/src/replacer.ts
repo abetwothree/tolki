@@ -128,7 +128,8 @@ export function substrReplace(
         const size = chars.length;
 
         // Use size if length not provided
-        const finalLength = lenArg === null || lenArg === undefined ? size : lenArg;
+        const finalLength =
+            lenArg === null || lenArg === undefined ? size : lenArg;
 
         const { start, end } = computeRange(size, off, finalLength);
         const head = chars.slice(0, start).join("");
