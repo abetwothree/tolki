@@ -2053,6 +2053,11 @@ describe("Str tests", () => {
         ]);
     });
 
+    it("substrReplace with multibyte", () => {
+        expect(Str.substrReplace("kenkä", "ng", -3, 2)).toBe("kengä");
+        expect(Str.substrReplace("kenka", "ng", -3, 2)).toBe("kenga");
+    });
+
     it("swap", () => {
         expect(
             Str.swap(

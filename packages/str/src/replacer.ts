@@ -104,6 +104,7 @@ export function substrCount(
 
 /**
  * Replace text within a portion of a string.
+ * Properly handles multibyte characters.
  *
  * @param value
  * @param replace
@@ -126,7 +127,10 @@ export function substrReplace(
         const chars = Array.from(value);
         const size = chars.length;
 
-        const { start, end } = computeRange(size, off, lenArg);
+        // Use size if length not provided
+        const finalLength = lenArg === null || lenArg === undefined ? size : lenArg;
+
+        const { start, end } = computeRange(size, off, finalLength);
         const head = chars.slice(0, start).join("");
         const tail = chars.slice(end).join("");
         return head + rep + tail;

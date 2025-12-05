@@ -258,6 +258,31 @@ describe("Arr", () => {
         ).toBe(1);
     });
 
+    it("first works with ArrayObject", () => {
+        // Simulate ArrayObject-like structure (array-like iterable)
+        const arrayObject = [0, 10, 20];
+
+        const result = Arr.first(arrayObject, (value: number) => value === 0);
+
+        expect(result).toBe(0);
+
+        // Test with object being passed (from() will return an object for objects with callback)
+        const objectData = { a: 5, b: 15, c: 25 };
+        const objectResult = Arr.first(
+            objectData as any,
+            (value: number) => value === 15,
+        );
+        expect(objectResult).toBe(15);
+
+        // Test with object and no match - should return default
+        const noMatchResult = Arr.first(
+            objectData as any,
+            (value: number) => value > 100,
+            "default",
+        );
+        expect(noMatchResult).toBe("default");
+    });
+
     it("last", () => {
         // Callback is null and array is empty
         expect(Arr.last(null)).toBeNull();

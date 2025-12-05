@@ -309,8 +309,8 @@ export function divide<A extends readonly unknown[]>(
     return [
         keys,
         array.slice() as unknown as A extends ArrayItems<infer V>
-            ? V[]
-            : unknown[],
+        ? V[]
+        : unknown[],
     ];
 }
 
@@ -526,10 +526,25 @@ export function first<TValue, TFirstDefault = null>(
         return resolveDefault();
     }
 
+    // Convert to array to ensure we can iterate properly with callback
+    const array = from(data);
+
+    if (!isArray(array)) {
+        // If from() returns an object, iterate over values
+        let index = 0;
+        for (const value of Object.values(array)) {
+            if (callback(value as TValue, index++)) {
+                return value as TValue;
+            }
+        }
+
+        return resolveDefault();
+    }
+
     let index = 0;
-    for (const item of iterable) {
-        if (callback(item, index++)) {
-            return item;
+    for (const item of array) {
+        if (callback(item as TValue, index++)) {
+            return item as TValue;
         }
     }
 
@@ -916,8 +931,8 @@ export function get<TValue, TDefault = unknown>(
         return isArray(array)
             ? (array as TValue[] as unknown as TDefault)
             : isFunction(defaultValue)
-              ? (defaultValue as () => TDefault)()
-              : defaultValue;
+                ? (defaultValue as () => TDefault)()
+                : defaultValue;
     }
 
     if (!isArray(array)) {
@@ -1456,8 +1471,8 @@ export function pop<TValue>(
     return poppedValues.length === 0
         ? null
         : poppedValues.length === 1
-          ? (poppedValues[0] as TValue)
-          : poppedValues;
+            ? (poppedValues[0] as TValue)
+            : poppedValues;
 }
 
 /**
@@ -1908,8 +1923,8 @@ export function shift<TValue>(
             ? null
             : ([] as TValue[])
         : shiftedValues.length === 1 && count === 1
-          ? (shiftedValues[0] as TValue)
-          : shiftedValues;
+            ? (shiftedValues[0] as TValue)
+            : shiftedValues;
 }
 
 /**
@@ -2698,8 +2713,8 @@ export function replaceRecursive<TValue, TReplace = TValue>(
             return replaceRecursive(
                 originalValue as unknown as ArrayItems<TValue>,
                 replacementValue as
-                    | ArrayItems<TValue>
-                    | Record<number, TReplace>,
+                | ArrayItems<TValue>
+                | Record<number, TReplace>,
             ) as unknown as TValue;
         }
 
@@ -3170,8 +3185,8 @@ export function intersect<TValue, TOther = TValue>(
         const found = isFunction(callable)
             ? otherValues.some((otherItem) => callable(item, otherItem))
             : otherValues.some(
-                  (otherItem) => otherItem === (item as unknown as TOther),
-              );
+                (otherItem) => otherItem === (item as unknown as TOther),
+            );
 
         if (found) {
             result.push(item);
