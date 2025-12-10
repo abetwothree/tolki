@@ -115,7 +115,7 @@ export class Stringable {
     /**
      * Create a new instance of the class.
      */
-    constructor(private readonly _value: string = "") {}
+    constructor(private readonly _value: string = "") { }
 
     /**
      * Return the remainder of a string after the first occurrence of a given value.
@@ -834,7 +834,6 @@ export class Stringable {
 
     /**
      * Split a string by uppercase characters.
-     * TODO - return type should be a collection
      */
     ucsplit(): string[] {
         return ucsplit(this._value);
