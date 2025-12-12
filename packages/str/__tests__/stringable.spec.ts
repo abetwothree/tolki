@@ -71,6 +71,102 @@ describe("Stringable basic delegation", () => {
         expect(Str.excerpt(input)).toBe(Str.of(input).excerpt());
     });
 
+    describe("explode", () => {
+        it("test explode", () => {
+            expect(Str.of("Foo Bar Baz").explode(" ")).toEqual([
+                "Foo",
+                "Bar",
+                "Baz",
+            ]);
+
+            expect(Str.of("Foo Bar Baz").explode(" ", 2)).toEqual([
+                "Foo",
+                "Bar Baz",
+            ]);
+
+            expect(Str.of("Foo Bar Baz").explode(" ", -1)).toEqual([
+                "Foo",
+                "Bar",
+            ]);
+
+            // Test limit=0 (no limit) and limit=1
+            expect(Str.of("Foo Bar Baz").explode(" ", 0)).toEqual([
+                "Foo",
+                "Bar",
+                "Baz",
+            ]);
+            expect(Str.of("Foo Bar Baz").explode(" ", 1)).toEqual([
+                "Foo Bar Baz",
+            ]);
+
+            // Test negative limit removes last elements
+            expect(Str.of("Foo Bar Baz Qux").explode(" ", -2)).toEqual([
+                "Foo",
+                "Bar",
+            ]);
+        });
+    });
+
+    describe("split", () => {
+        it("test split by chunk length", () => {
+            // Integer pattern splits string into chunks of specified length
+            expect(Str.of("foobarbaz").split(3)).toEqual(["foo", "bar", "baz"]);
+        });
+
+        it("test split with uneven chunk length", () => {
+            // When string length is not divisible by chunk size, last chunk is smaller
+            expect(Str.of("hello").split(2)).toEqual(["he", "ll", "o"]);
+            expect(Str.of("abcde").split(3)).toEqual(["abc", "de"]);
+        });
+
+        it("test split with chunk size 1", () => {
+            // Split every character
+            expect(Str.of("hello").split(1)).toEqual(["h", "e", "l", "l", "o"]);
+        });
+
+        it("test split with chunk size larger than string", () => {
+            // If chunk size is larger than string, return whole string as single element
+            expect(Str.of("hello").split(10)).toEqual(["hello"]);
+        });
+
+        it("test split empty string", () => {
+            // Empty string returns empty array
+            expect(Str.of("").split(3)).toEqual([]);
+        });
+
+        it("test split by regex pattern", () => {
+            // String pattern splits by regex
+            expect(Str.of("foo-bar-baz").split("-")).toEqual([
+                "foo",
+                "bar",
+                "baz",
+            ]);
+            expect(Str.of("hello world test").split(" ")).toEqual([
+                "hello",
+                "world",
+                "test",
+            ]);
+        });
+
+        it("test split by regex with limit", () => {
+            // Regex pattern with limit parameter
+            expect(Str.of("foo-bar-baz-qux").split("-", 2)).toEqual([
+                "foo",
+                "bar",
+            ]);
+            expect(Str.of("a b c d e").split(" ", 3)).toEqual(["a", "b", "c"]);
+        });
+
+        it("test split with complex patterns", () => {
+            // Test splitting by various patterns
+            expect(Str.of("hello123world456test").split("\\d+")).toEqual([
+                "hello",
+                "world",
+                "test",
+            ]);
+        });
+    });
+
     it("isJson/isUrl", () => {
         const json = '{"key":"value"}';
         const notJson = '{"key":"value"';

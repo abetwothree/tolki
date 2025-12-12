@@ -98,7 +98,7 @@ import type {
     // TODO: update conditionable functions like in Collection.ts
     // ConditionableValue,
 } from "@laravel-js/types";
-import { isArray, isFunction } from "@laravel-js/utils";
+import { isArray, isFunction, isInteger } from "@laravel-js/utils";
 
 /**
  * Get a new stringable object from the given string.
@@ -115,7 +115,7 @@ export class Stringable {
     /**
      * Create a new instance of the class.
      */
-    constructor(private readonly _value: string = "") { }
+    constructor(private readonly _value: string = "") {}
 
     /**
      * Return the remainder of a string after the first occurrence of a given value.
@@ -281,34 +281,47 @@ export class Stringable {
     }
 
     /**
-     * Explode the string into a collection.
-     * TODO
+     * Explode the string into an array
      */
-    explode(
-        _delimiter: string,
+    explode(delimiter: string, limit: number = Number.MAX_SAFE_INTEGER) {
+        // PHP explode semantics:
+        // limit > 0: return at most 'limit' elements (last element contains rest)
+        // limit < 0: return all elements except the last 'limit' elements
+        // limit = 0: same as no limit
 
-        _limit: number | null = null,
-    ) {
-        _limit ??= Number.MAX_SAFE_INTEGER;
-        // return new Collection(explode($delimiter, this._value, $limit));
+        const parts = this._value.split(delimiter);
+
+        if (limit > 0 && parts.length > limit) {
+            const result = parts.slice(0, limit - 1);
+            result.push(parts.slice(limit - 1).join(delimiter));
+            return result;
+        } else if (limit < 0) {
+            return parts.slice(0, limit);
+        }
+
+        return parts;
     }
 
     /**
      * Split a string using a regular expression or by length.
-     * TODO
      */
-    split(
-        _pattern: string | number,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _limit: number | null = null,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _flags: number | null = null,
-    ) {
-        // if (filter_var($pattern, FILTER_VALIDATE_INT) !== false) {
-        //     return new Collection(mb_str_split($this->value, $pattern));
-        // }
-        // $segments = preg_split($pattern, $this->value, $limit, $flags);
-        // return ! empty($segments) ? new Collection($segments) : new Collection;
+    split(pattern: string | number, limit: number | null = null) {
+        if (isInteger(pattern)) {
+            const length = Number(pattern);
+            const result: string[] = [];
+            for (let i = 0; i < this._value.length; i += length) {
+                result.push(this._value.substr(i, length));
+            }
+
+            return result;
+        }
+
+        const segments = this._value.split(
+            new RegExp(String(pattern)),
+            limit ?? undefined,
+        );
+
+        return segments;
     }
 
     /**
