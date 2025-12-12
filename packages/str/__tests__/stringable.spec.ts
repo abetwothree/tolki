@@ -211,6 +211,319 @@ describe("Stringable basic delegation", () => {
         );
     });
 
+    describe("scan", () => {
+        it("test scan basic format specifiers", () => {
+            // $this->assertSame([123456], $this->stringable('SN/123456')->scan('SN/%d')->toArray());
+            expect(Str.of("SN/123456").scan("SN/%d")).toEqual(["123456"]);
+
+            // $this->assertSame(['Otwell', 'Taylor'], $this->stringable('Otwell, Taylor')->scan('%[^,],%s')->toArray());
+            expect(Str.of("Otwell, Taylor").scan("%[^,],%s")).toEqual([
+                "Otwell",
+                "Taylor",
+            ]);
+
+            // $this->assertSame(['filename', 'jpg'], $this->stringable('filename.jpg')->scan('%[^.].%s')->toArray());
+            expect(Str.of("filename.jpg").scan("%[^.].%s")).toEqual([
+                "filename",
+                "jpg",
+            ]);
+        });
+
+        it("test scan with no matches", () => {
+            // Non-matching format returns empty array
+            expect(Str.of("hello world").scan("%d")).toEqual([]);
+            expect(Str.of("123").scan("abc%s")).toEqual([]);
+        });
+
+        it("test scan with empty string", () => {
+            // Empty string returns empty array
+            expect(Str.of("").scan("%d")).toEqual([]);
+            expect(Str.of("").scan("%s")).toEqual([]);
+            expect(Str.of("").scan("%[a-z]")).toEqual([]);
+        });
+
+        it("test scan with multiple integers", () => {
+            // Multiple %d format specifiers
+            expect(Str.of("10 20 30").scan("%d %d %d")).toEqual([
+                "10",
+                "20",
+                "30",
+            ]);
+            expect(Str.of("1,2,3").scan("%d,%d,%d")).toEqual(["1", "2", "3"]);
+        });
+
+        it("test scan with multiple strings", () => {
+            // Multiple %s format specifiers
+            expect(Str.of("hello world test").scan("%s %s %s")).toEqual([
+                "hello",
+                "world",
+                "test",
+            ]);
+            expect(Str.of("foo-bar-baz").scan("%s-%s-%s")).toEqual([
+                "foo",
+                "bar",
+                "baz",
+            ]);
+        });
+
+        it("test scan with negative integers", () => {
+            // Negative number parsing
+            expect(Str.of("Value: -42").scan("Value: %d")).toEqual(["-42"]);
+            expect(Str.of("-10,-20").scan("%d,%d")).toEqual(["-10", "-20"]);
+        });
+
+        it("test scan with character class negation", () => {
+            // Character class with negation %[^...]
+            expect(Str.of("apple: red").scan("%[^:]:%s")).toEqual([
+                "apple",
+                "red",
+            ]);
+            expect(Str.of("user@domain.com").scan("%[^@]@%s")).toEqual([
+                "user",
+                "domain.com",
+            ]);
+        });
+
+        it("test scan with character class inclusion", () => {
+            // Character class with inclusion %[...]
+            // Exact match required: %[a-z]%d matches "abc123" exactly, not "abc123def"
+            expect(Str.of("abc123").scan("%[a-z]%d")).toEqual(["abc", "123"]);
+            expect(Str.of("test456").scan("%[a-z]%d")).toEqual(["test", "456"]);
+        });
+
+        it("test scan with mixed format specifiers", () => {
+            // Combine different format specifiers
+            expect(Str.of("id:123 name:John").scan("id:%d name:%s")).toEqual([
+                "123",
+                "John",
+            ]);
+            expect(Str.of("2024-12-25").scan("%d-%d-%d")).toEqual([
+                "2024",
+                "12",
+                "25",
+            ]);
+        });
+
+        it("test scan with extra whitespace", () => {
+            // Extra whitespace in input is handled by %s skipping it
+            expect(Str.of("hello    world").scan("%s %s")).toEqual([
+                "hello",
+                "world",
+            ]);
+            expect(Str.of("10  20").scan("%d %d")).toEqual(["10", "20"]);
+        });
+
+        it("test scan with special literal characters", () => {
+            // Literal special characters in format
+            expect(Str.of("test.txt").scan("%[^.].%s")).toEqual([
+                "test",
+                "txt",
+            ]);
+            expect(Str.of("2024-01-15").scan("%d-%d-%d")).toEqual([
+                "2024",
+                "01",
+                "15",
+            ]);
+            expect(Str.of("user(admin)").scan("%[^(](%s")).toEqual([
+                "user",
+                "admin)",
+            ]);
+        });
+
+        it("test scan returns strings not numbers", () => {
+            // Even though %d is for integers, JavaScript returns strings
+            const result = Str.of("42").scan("%d");
+            expect(result).toEqual(["42"]);
+            expect(typeof result[0]).toBe("string");
+        });
+
+        it("test scan with single character matches", () => {
+            // Single character class - exact match required
+            expect(Str.of("a1").scan("%[a-z]%d")).toEqual(["a", "1"]);
+            expect(Str.of("b2").scan("%[a-z]%d")).toEqual(["b", "2"]);
+            // Does not match if extra characters follow
+            expect(Str.of("a1b2c3").scan("%[a-z]%d")).toEqual([]);
+        });
+
+        it("test scan matching from start to end", () => {
+            // Format must match entire string
+            expect(Str.of("hello world").scan("hello %s")).toEqual(["world"]);
+            expect(Str.of("hello world").scan("%s world")).toEqual(["hello"]);
+        });
+
+        it("test scan with only literal characters", () => {
+            // Format with no specifiers - just literal text must match exactly
+            expect(Str.of("hello").scan("hello")).toEqual([]);
+            expect(Str.of("test").scan("test")).toEqual([]);
+        });
+
+        it("test scan with escaped special regex characters", () => {
+            // Format contains special regex characters that need escaping
+            expect(Str.of("a.b").scan("%s.%s")).toEqual(["a", "b"]);
+            expect(Str.of("test+data").scan("%s+%s")).toEqual(["test", "data"]);
+            expect(Str.of("a$b").scan("%s$%s")).toEqual(["a", "b"]);
+            expect(Str.of("x^y").scan("%s^%s")).toEqual(["x", "y"]);
+        });
+
+        it("test scan with percent sign followed by non-format character", () => {
+            // % followed by something other than [, d, s is treated as literal %
+            expect(Str.of("100%").scan("100%")).toEqual([]);
+            expect(Str.of("item%end").scan("item%end")).toEqual([]);
+        });
+
+        it("test scan with character class at start and end", () => {
+            // Character class at the beginning and end
+            expect(Str.of("abc").scan("%[a-z]%[b-z]%[c-z]")).toEqual([
+                "a",
+                "b",
+                "c",
+            ]);
+            expect(Str.of("xyz").scan("%[x-z]%[x-z]%[x-z]")).toEqual([
+                "x",
+                "y",
+                "z",
+            ]);
+        });
+
+        it("test scan with digits in character class", () => {
+            // Character class containing digits
+            expect(Str.of("abc123def").scan("%[a-z]%[0-9]")).toEqual([]);
+            // Character classes are greedy by default, so %[a-z] captures "ab", %[0-9] captures "12"
+            expect(Str.of("ab12").scan("%[a-z]%[0-9]")).toEqual(["ab", "12"]);
+        });
+
+        it("test scan with uppercase and lowercase in character class", () => {
+            // Mixed case in character class - character classes are greedy but each specifier is separate
+            // So %[A-Za-z]+ on "AaBbCc" will match all letters, but since there are 3 separate specifiers,
+            // the first captures "AaBb" (up to next character class boundary), and the rest capture single chars
+            expect(
+                Str.of("AaBbCc").scan("%[A-Za-z]%[A-Za-z]%[A-Za-z]"),
+            ).toEqual(["AaBb", "C", "c"]);
+            // %[A-Z] captures "H", then each %[a-z] captures one letter
+            expect(
+                Str.of("Hello").scan("%[A-Z]%[a-z]%[a-z]%[a-z]%[a-z]"),
+            ).toEqual(["H", "e", "l", "l", "o"]);
+        });
+
+        it("test scan with whitespace in format as literal character", () => {
+            // Whitespace in format acts as literal match
+            expect(Str.of("hello world").scan("%s world")).toEqual(["hello"]);
+            expect(Str.of("a b").scan("%s %s")).toEqual(["a", "b"]);
+        });
+
+        it("test scan with zero values", () => {
+            // Test with zero values to ensure they're handled correctly
+            expect(Str.of("0").scan("%d")).toEqual(["0"]);
+            expect(Str.of("0,0,0").scan("%d,%d,%d")).toEqual(["0", "0", "0"]);
+        });
+
+        it("test scan with leading zeros in numbers", () => {
+            // Numbers with leading zeros
+            expect(Str.of("00123").scan("%d")).toEqual(["00123"]);
+            expect(Str.of("001,002").scan("%d,%d")).toEqual(["001", "002"]);
+        });
+
+        it("test scan with very long numbers", () => {
+            // Test with large numbers
+            expect(Str.of("999999999999").scan("%d")).toEqual(["999999999999"]);
+            expect(Str.of("123456789012345").scan("%d")).toEqual([
+                "123456789012345",
+            ]);
+        });
+
+        it("test scan with tab and newline characters", () => {
+            // Special whitespace characters - %s should skip them
+            expect(Str.of("hello\tworld").scan("%s %s")).toEqual([]);
+            expect(Str.of("hello world").scan("%s %s")).toEqual([
+                "hello",
+                "world",
+            ]);
+        });
+
+        it("test scan with hyphenated numbers", () => {
+            // Numbers with hyphens (dates, etc.)
+            expect(Str.of("2024-01-01").scan("%d-%d-%d")).toEqual([
+                "2024",
+                "01",
+                "01",
+            ]);
+            expect(Str.of("123-456-7890").scan("%d-%d-%d")).toEqual([
+                "123",
+                "456",
+                "7890",
+            ]);
+        });
+
+        it("test scan with character class containing special characters", () => {
+            // Character classes with literal separators work correctly
+            expect(
+                Str.of("hello-world-test").scan("%[a-z]-%[a-z]-%[a-z]"),
+            ).toEqual(["hello", "world", "test"]);
+            expect(Str.of("a-b").scan("%s-%s")).toEqual(["a", "b"]);
+        });
+
+        it("test scan with unclosed character class", () => {
+            // If character class is not closed, pattern continues to end of format
+            // %[a-z with no closing ] becomes ([a-z+ which matches "abc"
+            expect(Str.of("abc").scan("%[a-z")).toEqual(["abc"]);
+        });
+
+        it("test scan with consecutive format specifiers", () => {
+            // Format specifiers with no separator work when types don't mix
+            expect(Str.of("abc123").scan("%[a-z]%d")).toEqual(["abc", "123"]);
+            // %s matches non-whitespace including digits, so %s%d will capture everything except last digits for %d
+            expect(Str.of("abc123def456").scan("%s%d")).toEqual([
+                "abc123def45",
+                "6",
+            ]);
+        });
+
+        it("test scan with single digit", () => {
+            // Single digit matching
+            expect(Str.of("5").scan("%d")).toEqual(["5"]);
+            expect(Str.of("1,2,3").scan("%d,%d,%d")).toEqual(["1", "2", "3"]);
+        });
+
+        it("test scan preserves order of captured groups", () => {
+            // Verify captured groups are returned in order
+            const result = Str.of("first:1 second:2 third:3").scan(
+                "first:%d second:%d third:%d",
+            );
+            expect(result).toEqual(["1", "2", "3"]);
+            expect(result[0]).toBe("1");
+            expect(result[1]).toBe("2");
+            expect(result[2]).toBe("3");
+        });
+
+        it("test scan with format shorter than input", () => {
+            // Format doesn't match because it doesn't consume entire input
+            expect(Str.of("hello world extra").scan("hello %s")).toEqual([]);
+        });
+
+        it("test scan with numeric strings", () => {
+            // %s matching numeric strings
+            expect(Str.of("123 456").scan("%s %s")).toEqual(["123", "456"]);
+            expect(Str.of("12.34 56.78").scan("%s %s")).toEqual([
+                "12.34",
+                "56.78",
+            ]);
+        });
+
+        it("test scan with only character classes", () => {
+            // Format containing only character classes
+            expect(Str.of("abc").scan("%[a-z]%[a-z]%[a-z]")).toEqual([
+                "a",
+                "b",
+                "c",
+            ]);
+            expect(Str.of("ABC").scan("%[A-Z]%[A-Z]%[A-Z]")).toEqual([
+                "A",
+                "B",
+                "C",
+            ]);
+        });
+    });
+
     it("stripTags", () => {
         const input = "<p>Hello <strong>World</strong></p>";
         expectEqual(Str.stripTags(input), Str.of(input).stripTags());

@@ -643,14 +643,74 @@ export class Stringable {
     }
 
     /**
-     * Parse input from a string to a collection, according to a format.
-     * TODO
+     * Parse input from a string to an array, according to a format.
+     *
+     * @param format - A format string like "%d", "%s", "%[^,],%s", etc.
+     * @returns Array of parsed values according to the format
+     *
+     * @example
+     *
+     * Str.of("SN/123456").scan("SN/%d") -> ["123456"]
+     * Str.of("Otwell, Taylor").scan("%[^,],%s") -> ["Otwell", "Taylor"]
+     * Str.of("filename.jpg").scan("%[^.].%s") -> ["filename", "jpg"]
      */
-    scan(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _format: string,
-    ) {
-        // return new Collection(sscanf($this->value, $format));
+    scan(format: string): string[] {
+        // Convert PHP sscanf format to JavaScript regex
+        // Supported format specifiers: %d (int), %s (string), %[...] (character class)
+        // Note: %s skips leading whitespace and matches until next whitespace
+
+        let regexPattern = "";
+        let i = 0;
+
+        while (i < format.length) {
+            if (format[i] === "%") {
+                if (format[i + 1] === "[") {
+                    // Character class like %[^,]
+                    let j = i + 2;
+                    while (j < format.length && format[j] !== "]") {
+                        j++;
+                    }
+                    const charClass = format.substring(i + 2, j);
+                    regexPattern += "([" + charClass + "]+)";
+                    i = j + 1;
+                } else if (format[i + 1] === "d") {
+                    // Integer (may have optional leading whitespace)
+                    regexPattern += "\\s*(-?\\d+)";
+                    i += 2;
+                } else if (format[i + 1] === "s") {
+                    // String - skip leading whitespace, then match non-whitespace
+                    regexPattern += "\\s*(\\S+)";
+                    i += 2;
+                } else {
+                    regexPattern += format[i];
+                    i++;
+                }
+            } else {
+                // Escape special regex chars
+                const char = format[i];
+                if (/[.+?^${}()|\\]/.test(char)) {
+                    regexPattern += "\\" + char;
+                } else {
+                    regexPattern += char;
+                }
+                i++;
+            }
+        }
+
+        const regex = new RegExp("^" + regexPattern + "$");
+        const matches = this._value.match(regex);
+
+        if (!matches) {
+            return [];
+        }
+
+        // Return captured groups as strings
+        const result: string[] = [];
+        for (let i = 1; i < matches.length; i++) {
+            result.push(matches[i]);
+        }
+
+        return result;
     }
 
     /**
