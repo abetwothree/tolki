@@ -688,7 +688,7 @@ export class Stringable {
             } else {
                 // Escape special regex chars
                 const char = format[i];
-                if (/[.+?^${}()|\\]/.test(char)) {
+                if (char && /[.+?^${}()|\\]/.test(char)) {
                     regexPattern += "\\" + char;
                 } else {
                     regexPattern += char;
@@ -707,7 +707,10 @@ export class Stringable {
         // Return captured groups as strings
         const result: string[] = [];
         for (let i = 1; i < matches.length; i++) {
-            result.push(matches[i]);
+            const match = matches[i];
+            if (match) {
+                result.push(match);
+            }
         }
 
         return result;
