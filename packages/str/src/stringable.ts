@@ -935,11 +935,11 @@ export class Stringable {
      * ```typescript
      * const str = new Stringable('hello world');
      *
-     * // Using a direct value
+     * Using a direct value
      * str.when(true, s => s.upper()); // Returns 'HELLO WORLD'
      * str.when(false, s => s.upper(), s => s.lower()); // Returns 'hello world'
      *
-     * // Using a closure to determine the value
+     * Using a closure to determine the value
      * str.when(s => s.contains('world'), s => s.upper()); // Returns 'HELLO WORLD'
      * str.when(s => s.contains('foo'), s => s.upper(), s => s.lower()); // Returns 'hello world'
      * ```
