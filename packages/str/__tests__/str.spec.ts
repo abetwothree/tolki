@@ -1334,7 +1334,6 @@ describe("Str tests", () => {
         expect(
             Str.replace("baz", "laravel", ["baz", "foo", "Baz"], false),
         ).toStrictEqual(["laravel", "foo", "Baz"]);
-        // expect(Str.replace(collect(['?1', '?2', '?3']), collect(['foo', 'bar', 'baz']), collect(['?1', '?2', '?3']))).toEqual(['foo', 'bar', 'baz']); // TODO when collections are implemented
     });
 
     it("replaceFirst", () => {
