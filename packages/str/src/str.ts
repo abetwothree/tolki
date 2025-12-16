@@ -1652,9 +1652,9 @@ export function replace<T extends string | Iterable<string>>(
         }, input);
     };
 
-    return typeof subject === "string"
+    return (isString(subject)
         ? apply(subject)
-        : Array.from(subject).map(apply);
+        : Array.from(subject).map(apply)) as T extends string ? string : string[];
 }
 
 /**
