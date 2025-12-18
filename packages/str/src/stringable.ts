@@ -228,8 +228,8 @@ export class Stringable {
      * @param needles - The substring(s) to search for
      * @returns boolean - True if the substring(s) are not found, false otherwise
      */
-    doesntContain(needles: string | Iterable<string>): boolean {
-        return doesntContain(this._value, needles);
+    doesntContain(needles: string | Iterable<string>, ignoreCase = false): boolean {
+        return doesntContain(this._value, needles, ignoreCase);
     }
 
     /**
