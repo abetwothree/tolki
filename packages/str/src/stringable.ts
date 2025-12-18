@@ -226,6 +226,7 @@ export class Stringable {
      * Determine if a given string doesn't contain a given substring.
      *
      * @param needles - The substring(s) to search for
+     * @param ignoreCase - Whether the search should be case-insensitive
      * @returns boolean - True if the substring(s) are not found, false otherwise
      */
     doesntContain(needles: string | Iterable<string>, ignoreCase = false): boolean {
