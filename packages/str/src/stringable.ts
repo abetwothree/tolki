@@ -93,12 +93,17 @@ import {
     wordWrap,
     wrap,
 } from "@laravel-js/str";
-import type {
-    ConditionableClosure,
-    // TODO: update conditionable functions like in Collection.ts
-    // ConditionableValue,
-} from "@laravel-js/types";
 import { isArray, isFunction, isInteger } from "@laravel-js/utils";
+
+export type ConditionableValue =
+    | string
+    | number
+    | boolean
+    | ((instance: Stringable) => string | number | boolean);
+
+export type ConditionableClosure =
+    | ((instance: Stringable, value: ConditionableValue) => unknown)
+    | null;
 
 /**
  * Get a new stringable object from the given string.
