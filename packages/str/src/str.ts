@@ -255,7 +255,10 @@ export function charAt(subject: string, index: number): string | false {
 export function chopStart(subject: string, needle: string | string[]): string {
     for (const n of isArray(needle) ? needle : [needle]) {
         if (subject.startsWith(n)) {
-            return subject.slice(n.length);
+            // Use spread operator to properly handle multibyte characters
+            const chars = [...subject];
+            const needleChars = [...n];
+            return chars.slice(needleChars.length).join("");
         }
     }
 
@@ -272,7 +275,10 @@ export function chopStart(subject: string, needle: string | string[]): string {
 export function chopEnd(subject: string, needle: string | string[]): string {
     for (const n of isArray(needle) ? needle : [needle]) {
         if (subject.endsWith(n)) {
-            return subject.slice(0, -n.length);
+            // Use spread operator to properly handle multibyte characters
+            const chars = [...subject];
+            const needleChars = [...n];
+            return chars.slice(0, -needleChars.length).join("");
         }
     }
 

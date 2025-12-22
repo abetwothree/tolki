@@ -65,7 +65,7 @@ export default defineConfig({
                 statements: 95.21,
                 branches: 88.77,
                 functions: 98.88,
-                lines: 95.52,
+                lines: 95.53,
             },
         },
         projects: ["packages/*"],
