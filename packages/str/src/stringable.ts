@@ -234,7 +234,10 @@ export class Stringable {
      * @param ignoreCase - Whether the search should be case-insensitive
      * @returns boolean - True if the substring(s) are not found, false otherwise
      */
-    doesntContain(needles: string | Iterable<string>, ignoreCase = false): boolean {
+    doesntContain(
+        needles: string | Iterable<string>,
+        ignoreCase = false,
+    ): boolean {
         return doesntContain(this._value, needles, ignoreCase);
     }
 

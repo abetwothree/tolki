@@ -709,21 +709,21 @@ describe("Stringable basic delegation", () => {
     describe("doestContain", () => {
         it("test doesntContain", () => {
             expect(Str.of("taylor").doesntContain("xxx")).toBe(true);
-            
+
             expect(Str.of("taylor").doesntContain(["xxx"])).toBe(true);
-            
+
             expect(Str.of("taylor").doesntContain(["xxx", "yyy"])).toBe(true);
-            
+
             expect(Str.of("taylor").doesntContain(["xxx", "yyy"])).toBe(true);
-            
+
             expect(Str.of("taylor").doesntContain("")).toBe(true);
 
             expect(Str.of("taylor").doesntContain("ylo")).toBe(false);
-            
+
             expect(Str.of("taylor").doesntContain("taylor")).toBe(false);
-            
+
             expect(Str.of("taylor").doesntContain(["xxx", "ylo"])).toBe(false);
-            
+
             expect(Str.of("taylor").doesntContain(["LOR"], true)).toBe(false);
         });
     });
