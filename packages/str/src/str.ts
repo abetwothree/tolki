@@ -9,12 +9,10 @@ import {
     trim,
     upper,
 } from "@laravel-js/str";
-import { isArray } from "@laravel-js/utils";
+import { isArray, isFunction, isString } from "@laravel-js/utils";
 import anyAscii from "any-ascii";
 // TODO: remove reliance on lodash-es
 import {
-    isFunction,
-    isString,
     replace as lodashReplace,
     toLower,
 } from "lodash-es";
