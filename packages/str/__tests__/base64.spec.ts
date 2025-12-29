@@ -291,11 +291,11 @@ describe("Str/Base64", () => {
             const OriginalMap = Map;
             // Force manualBase64DecodeToBytes to throw
 
-            (globalThis as any).Map = class MapThrows {
+            globalThis.Map = class MapThrows {
                 constructor() {
                     throw new Error("map fail");
                 }
-            };
+            } as unknown as MapConstructor;
 
             expect(fromBase64("TQ==")).toBe(false);
 
@@ -309,7 +309,7 @@ describe("Str/Base64", () => {
             g["TextDecoder"] = undefined;
             const OriginalMap = Map;
 
-            (globalThis as any).Map = class AlwaysFalseMap {
+            globalThis.Map = class AlwaysFalseMap {
                 has(): boolean {
                     return false;
                 }
@@ -319,7 +319,7 @@ describe("Str/Base64", () => {
                 set(): this {
                     return this;
                 }
-            };
+            } as unknown as MapConstructor;
 
             const res = fromBase64("TQ==");
             expect(typeof res === "string").toBe(true);
