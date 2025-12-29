@@ -128,6 +128,44 @@ describe("Stringable unique behaviors", () => {
             );
             expect(sameUnless).toBe(s);
         });
+
+        it("when with falsy value and no defaultCallback returns this", () => {
+            const s = Str.of("hello");
+            // No defaultCallback provided, falsy condition returns original instance
+            const result = s.when(false, (inst) => inst.upper());
+            expect(result).toBe(s);
+            expect(result.toString()).toBe("hello");
+
+            // Also test with null value
+            const resultNull = s.when(null, (inst) => inst.upper());
+            expect(resultNull).toBe(s);
+
+            // And with function returning falsy
+            const resultFunc = s.when(
+                () => 0,
+                (inst) => inst.upper(),
+            );
+            expect(resultFunc).toBe(s);
+        });
+
+        it("unless with truthy value and no defaultCallback returns this", () => {
+            const s = Str.of("hello");
+            // No defaultCallback provided, truthy condition returns original instance
+            const result = s.unless(true, (inst) => inst.upper());
+            expect(result).toBe(s);
+            expect(result.toString()).toBe("hello");
+
+            // Also test with truthy string value
+            const resultTruthy = s.unless("yes", (inst) => inst.upper());
+            expect(resultTruthy).toBe(s);
+
+            // And with function returning truthy
+            const resultFunc = s.unless(
+                () => 1,
+                (inst) => inst.upper(),
+            );
+            expect(resultFunc).toBe(s);
+        });
     });
 
     describe("conditional helpers (when*)", () => {
