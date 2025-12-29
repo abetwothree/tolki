@@ -1146,9 +1146,7 @@ describe("Str tests", () => {
         expect(Str.padBoth("Alien", 10, "_")).toBe("__Alien___");
         expect(Str.padBoth("Alien", 10)).toBe("  Alien   ");
         expect(Str.padBoth("❤MultiByte☆", 16)).toBe("  ❤MultiByte☆   ");
-        expect(Str.padBoth("❤MultiByte☆", 16, "❤☆")).toBe(
-            "❤☆❤MultiByte☆❤☆❤",
-        );
+        expect(Str.padBoth("❤MultiByte☆", 16, "❤☆")).toBe("❤☆❤MultiByte☆❤☆❤");
     });
 
     it("padLeft", () => {
@@ -1157,9 +1155,7 @@ describe("Str tests", () => {
         expect(Str.padLeft("Alien", 10, "-=")).toBe("-=-=-Alien");
         expect(Str.padLeft("Alien", 10)).toBe("     Alien");
         expect(Str.padLeft("❤MultiByte☆", 16)).toBe("     ❤MultiByte☆");
-        expect(Str.padLeft("❤MultiByte☆", 16, "❤☆")).toBe(
-            "❤☆❤☆❤❤MultiByte☆",
-        );
+        expect(Str.padLeft("❤MultiByte☆", 16, "❤☆")).toBe("❤☆❤☆❤❤MultiByte☆");
     });
 
     it("padRight", () => {
@@ -1168,9 +1164,7 @@ describe("Str tests", () => {
         expect(Str.padRight("Alien", 10, "-=")).toBe("Alien-=-=-");
         expect(Str.padRight("Alien", 10)).toBe("Alien     ");
         expect(Str.padRight("❤MultiByte☆", 16)).toBe("❤MultiByte☆     ");
-        expect(Str.padRight("❤MultiByte☆", 16, "❤☆")).toBe(
-            "❤MultiByte☆❤☆❤☆❤",
-        );
+        expect(Str.padRight("❤MultiByte☆", 16, "❤☆")).toBe("❤MultiByte☆❤☆❤☆❤");
     });
 
     it("plural", () => {

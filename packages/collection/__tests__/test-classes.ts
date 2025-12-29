@@ -35,9 +35,7 @@ export class TestJsonSerializeObject implements JsonSerializable {
 /**
  * Test class that implements JsonSerializable interface with scalar return
  */
-export class TestJsonSerializeWithScalarValueObject
-    implements JsonSerializable
-{
+export class TestJsonSerializeWithScalarValueObject implements JsonSerializable {
     jsonSerialize(): string {
         return "foo";
     }

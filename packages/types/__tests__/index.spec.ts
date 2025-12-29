@@ -37,7 +37,8 @@ type Assert<T extends true> = T;
 type IsAssignable<A, B> = A extends B ? true : false;
 
 interface FullModel
-    extends AllTimestampsModel,
+    extends
+        AllTimestampsModel,
         WithCount<"posts">,
         WithMax<"rating">,
         WithMin<"rating">,
