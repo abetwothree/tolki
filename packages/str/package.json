@@ -13,6 +13,7 @@
     "packageManager": "pnpm@10.12.1",
     "dependencies": {
         "@laravel-js/num": "workspace:^",
+        "@laravel-js/utils": "workspace:^",
         "@types/pluralize": "^0.0.33",
         "any-ascii": "^0.3.3",
         "markdown-it": "^14.1.0",

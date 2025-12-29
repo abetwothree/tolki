@@ -146,6 +146,9 @@ importers:
       "@laravel-js/num":
         specifier: workspace:^
         version: link:../num
+      "@laravel-js/utils":
+        specifier: workspace:^
+        version: link:../utils
       "@types/pluralize":
         specifier: ^0.0.33
         version: 0.0.33
