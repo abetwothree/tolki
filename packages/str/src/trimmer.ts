@@ -12,7 +12,7 @@ const INVISIBLE_CHAR_CLASS: string = (() => {
         0xffa0, 0x1d159, 0x1d173, 0x1d174, 0x1d175, 0x1d176, 0x1d177, 0x1d178,
         0x1d179, 0x1d17a, 0xe0020,
     ];
-    
+
     return cps.map((cp) => `\\u{${cp.toString(16)}}`).join("");
 })();
 
