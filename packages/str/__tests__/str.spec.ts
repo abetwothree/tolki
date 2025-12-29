@@ -1087,6 +1087,18 @@ describe("Str tests", () => {
         expect(Str.match("/foo \\(.\\*)$/", "foo bar")).toBe("");
         expect(Str.match("/nothing/", "foo bar")).toBe("");
         expect(Str.match("/pattern/", "")).toBe("");
+
+        // Test with escaped slashes in pattern (covers backslash counting loop)
+        expect(Str.match("/\\/foo\\//", "/foo/")).toBe("/foo/");
+        expect(Str.match("/foo\\\\/", "foo\\")).toBe("foo\\");
+
+        // Test with flags in pattern (covers flag parsing branch)
+        expect(Str.match("/BAR/i", "foo bar")).toBe("bar");
+        expect(Str.match("/bar/im", "foo\nbar")).toBe("bar");
+        expect(Str.match("/bar/imu", "foo bar")).toBe("bar");
+
+        // Test invalid regex pattern (covers catch block)
+        expect(Str.match("/[invalid/", "foo bar")).toBe("");
     });
 
     it("isMatch", () => {
@@ -1115,6 +1127,20 @@ describe("Str tests", () => {
                 "Hello, Laravel!",
             ),
         ).toBe(true);
+
+        // Test with escaped slashes in pattern (covers backslash counting loop)
+        expect(Str.isMatch("/\\/foo\\//", "/foo/")).toBe(true);
+        expect(Str.isMatch("/foo\\\\/", "foo\\")).toBe(true);
+
+        // Test with flags in pattern (covers flag parsing branch)
+        expect(Str.isMatch("/BAR/i", "foo bar")).toBe(true);
+        expect(Str.isMatch("/bar/im", "foo\nbar")).toBe(true);
+
+        // Test invalid regex pattern (covers catch block)
+        expect(Str.isMatch("/[invalid/", "foo bar")).toBe(false);
+
+        // Test empty/null patterns in array
+        expect(Str.isMatch(["", "/bar/"], "foo bar")).toBe(true);
     });
 
     it("matchAll", () => {
@@ -1129,6 +1155,22 @@ describe("Str tests", () => {
         expect(Str.matchAll("*invalid", "text")).toEqual([]);
         // zero-width match safety
         expect(Str.matchAll("/^/m", "a\nb").length).toBeGreaterThan(0);
+
+        // Test with escaped slashes in pattern (covers backslash counting loop)
+        expect(Str.matchAll("/\\//", "/foo/")).toEqual(["/", "/"]);
+
+        // Test with flags in pattern (covers flag parsing branch)
+        expect(Str.matchAll("/BAR/i", "bar BAR")).toEqual(["bar", "BAR"]);
+        expect(Str.matchAll("/^line/im", "line1\nline2")).toEqual([
+            "line",
+            "line",
+        ]);
+
+        // Test pattern with backslash before closing delimiter (tests backslash counting)
+        expect(Str.matchAll("/a\\\\/", "a\\b")).toEqual(["a\\"]);
+
+        // Test pattern with consecutive backslashes
+        expect(Str.matchAll("/\\\\\\\\/", "a\\\\b")).toEqual(["\\\\"]);
     });
 
     it("numbers", () => {
@@ -1159,12 +1201,16 @@ describe("Str tests", () => {
     });
 
     it("padRight", () => {
-        expect(Str.padLeft("Al", 2, "")).toBe("Al");
-        expect(Str.padLeft("Al", 10, "")).toBe("Al");
+        expect(Str.padRight("Al", 2, "")).toBe("Al");
+        expect(Str.padRight("Al", 10, "")).toBe("Al");
         expect(Str.padRight("Alien", 10, "-=")).toBe("Alien-=-=-");
         expect(Str.padRight("Alien", 10)).toBe("Alien     ");
         expect(Str.padRight("❤MultiByte☆", 16)).toBe("❤MultiByte☆     ");
         expect(Str.padRight("❤MultiByte☆", 16, "❤☆")).toBe("❤MultiByte☆❤☆❤☆❤");
+
+        // Test when length equals or is less than value length
+        expect(Str.padRight("Alien", 5)).toBe("Alien");
+        expect(Str.padRight("Alien", 3)).toBe("Alien");
     });
 
     it("plural", () => {
@@ -1535,6 +1581,38 @@ describe("Str tests", () => {
             1,
         );
         expect(result).toBe("foo baZ baz bar");
+
+        // Test with array subject
+        expect(
+            Str.replaceMatches("/bar/", "XXX", ["foo bar", "bar baz"]),
+        ).toEqual(["foo XXX", "XXX baz"]);
+
+        // Test with string replacement with limit
+        expect(Str.replaceMatches("/ba(.)/", "ba$1", "baz bar bam", 2)).toBe(
+            "baZ baR bam",
+        );
+
+        // Test with string replacement with limit=-1 (unlimited, covers hasGroupsMeta branch)
+        expect(Str.replaceMatches("/ba(.)/", "ba$1", "baz bar bam", -1)).toBe(
+            "baZ baR baM",
+        );
+
+        // Test with escaped slashes in regex pattern (covers backslash counting branch)
+        expect(Str.replaceMatches("/\\//", "-", "a/b/c")).toBe("a-b-c");
+
+        // Test with pattern having escaped backslash (tests backslash counting loop)
+        expect(Str.replaceMatches("/\\\\/", "-", "a\\b\\c")).toBe("a-b-c");
+
+        // Test with invalid regex (covers error handling)
+        expect(Str.replaceMatches("/[invalid/", "x", "foo bar")).toBe(null);
+
+        // Test with RegExp pattern directly
+        expect(Str.replaceMatches(/foo/, "bar", "foo baz")).toBe("bar baz");
+
+        // Test with flags in pattern string (covers flag parsing branch)
+        expect(Str.replaceMatches("/BAR/i", "XXX", "foo bar baz")).toBe(
+            "foo XXX baz",
+        );
     });
 
     it("stripTags", () => {
@@ -1946,6 +2024,9 @@ describe("Str tests", () => {
             ),
         ).toBe("foo bar ");
         expect(Str.swap({}, "foo bar ⓐⓑ")).toBe("foo bar ⓐⓑ");
+
+        // Test with only empty string keys (covers the empty keys filter branch)
+        expect(Str.swap({ "": "replacement" }, "foo bar")).toBe("foo bar");
     });
 
     it("take", () => {
@@ -2103,6 +2184,42 @@ describe("Str tests", () => {
         expect(Str.wordWrap("❤Multi Byte☆❤☆❤☆❤", 3, "<br />")).toBe(
             "❤Multi<br />Byte☆❤☆❤☆❤",
         );
+
+        // Edge cases for coverage
+        // Empty string returns empty
+        expect(Str.wordWrap("", 10)).toBe("");
+        // Characters < 1 returns original
+        expect(Str.wordWrap("Hello", 0)).toBe("Hello");
+        // Empty breakStr returns original
+        expect(Str.wordWrap("Hello World", 5, "")).toBe("Hello World");
+
+        // Test cutLongWords with leading whitespace
+        expect(Str.wordWrap("   Hello", 3, "\n", true)).toBe("Hel\nlo");
+        // Test cutLongWords with trailing whitespace in chunk
+        expect(Str.wordWrap("a b c", 2, "\n", true)).toBe("a\nb\nc");
+
+        // Test non-cut mode: line shorter than width
+        expect(Str.wordWrap("Hi", 10)).toBe("Hi");
+        // Test non-cut mode: leading whitespace trimming
+        expect(Str.wordWrap("   Hello World", 5)).toBe("Hello\nWorld");
+        // Test non-cut mode: find whitespace within window
+        expect(Str.wordWrap("Hello World Test", 8)).toBe("Hello\nWorld\nTest");
+        // Test non-cut mode: no whitespace within window, break at next space
+        expect(Str.wordWrap("Superlongword test", 5)).toBe(
+            "Superlongword\ntest",
+        );
+        // Test non-cut mode: no whitespace at all
+        expect(Str.wordWrap("Superlongword", 5)).toBe("Superlongword");
+
+        // Test with empty line in input
+        expect(Str.wordWrap("Hello\n\nWorld", 10)).toBe("Hello\n\nWorld");
+        // Test with multiple lines
+        expect(Str.wordWrap("Hello\nWorld", 10)).toBe("Hello\nWorld");
+
+        // Test cutLongWords with line exactly at width
+        expect(Str.wordWrap("abc", 3, "\n", true)).toBe("abc");
+        // Test non-cut with line fitting in remaining
+        expect(Str.wordWrap("ab cd", 5)).toBe("ab cd");
     });
 
     it("uuid", () => {
