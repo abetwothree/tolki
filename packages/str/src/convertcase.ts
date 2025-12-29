@@ -13,6 +13,7 @@ export const CaseTypes = {
 
 export type ConvertCaseMode = (typeof CaseTypes)[keyof typeof CaseTypes];
 
+// TODO: refactor class to import functions and place here and get rid of class
 export class ConvertCase {
     constructor(
         private value: string,

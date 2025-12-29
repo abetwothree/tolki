@@ -20,6 +20,7 @@ export type MarkDownExtension =
 
 export type MarkDownExtensions = MarkDownExtension[];
 
+// TODO: refactor class to import functions and place here and get rid of class
 export class MarkdownRenderer {
     constructor(
         private options: MarkDownOptions = { gfm: true, anchors: false },
