@@ -31,6 +31,33 @@ export function toBase64(value: string): string {
     return manualBase64Encode(utf8Binary);
 }
 
+/**
+ * Convert raw bytes to a Base64 string using the same fallbacks as toBase64.
+ */
+export function bytesToBase64(bytes: Uint8Array): string {
+    const g = getGlobal() as unknown as {
+        Buffer?: {
+            from(data: Uint8Array): { toString(encoding: string): string };
+        };
+        btoa?: (data: string) => string;
+    };
+
+    if (g.Buffer && typeof g.Buffer.from === "function") {
+        return g.Buffer.from(bytes).toString("base64");
+    }
+
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i] as number);
+    }
+
+    if (typeof g.btoa === "function") {
+        return g.btoa(binary);
+    }
+
+    return manualBase64Encode(binary);
+}
+
 export function fromBase64(
     value: string,
     strict: boolean = false,

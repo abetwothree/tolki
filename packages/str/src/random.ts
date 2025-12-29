@@ -4,6 +4,8 @@
  * Uses a cryptographically secure RNG when available (Web Crypto / Node crypto).
  */
 
+import { bytesToBase64 } from "@laravel-js/str";
+
 /**
  * Generate a more truly "random" alpha-numeric string (Laravel compatible algorithm).
  *
@@ -107,61 +109,4 @@ function secureRandomBytes(size: number): Uint8Array {
         return globalThis.crypto.getRandomValues(new Uint8Array(size));
     }
     throw new Error("Secure randomness not available in this environment");
-}
-
-/**
- * Convert a Uint8Array to a base64 string.
- * Uses Node.js Buffer when available, falls back to btoa, or manual encoding.
- *
- * @param bytes - The bytes to convert to base64.
- * @returns The base64 encoded string.
- *
- * @example
- *
- * bytesToBase64(new Uint8Array([72, 101, 108, 108, 111])); -> "SGVsbG8="
- * bytesToBase64(new Uint8Array([])); -> ""
- */
-function bytesToBase64(bytes: Uint8Array): string {
-    const B = (
-        globalThis as unknown as {
-            Buffer?: {
-                from(data: Uint8Array): { toString(encoding: string): string };
-            };
-        }
-    ).Buffer;
-
-    if (B && typeof B.from === "function") {
-        return B.from(bytes).toString("base64");
-    }
-
-    let binary = "";
-    for (let i = 0; i < bytes.length; i++) {
-        binary += String.fromCharCode(bytes[i] as number);
-    }
-
-    // btoa available in browsers
-    if (typeof btoa === "function") {
-        return btoa(binary);
-    }
-    // Fallback (very unlikely path) – manual base64 encoding
-    const chars =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-    let result = "";
-
-    for (let i = 0; i < binary.length; i += 3) {
-        const c1 = binary.charCodeAt(i);
-        const c2 = binary.charCodeAt(i + 1);
-        const c3 = binary.charCodeAt(i + 2);
-        const e1 = c1 >> 2;
-        const e2 = ((c1 & 3) << 4) | (c2 >> 4);
-        const e3 = isNaN(c2) ? 64 : ((c2 & 15) << 2) | (c3 >> 6);
-        const e4 = isNaN(c2) || isNaN(c3) ? 64 : c3 & 63;
-        result +=
-            chars.charAt(e1) +
-            chars.charAt(e2) +
-            chars.charAt(e3) +
-            chars.charAt(e4);
-    }
-
-    return result;
 }
