@@ -1,50 +1,5 @@
 import { isArray } from "@laravel-js/utils";
 
-// Compute [start, end) range on code points with PHP-like semantics for offset/length
-function computeRange(
-    size: number,
-    offset: number,
-    length: number | null | undefined,
-): { start: number; end: number } {
-    // Normalize start (offset may be negative)
-    let start = offset >= 0 ? offset : size + offset;
-    if (start < 0) start = 0;
-    if (start > size) start = size;
-
-    // Determine end
-    let end: number;
-    if (length === null || length === undefined) {
-        end = size;
-    } else if (length < 0) {
-        end = size + length; // omit characters from the end
-    } else {
-        end = start + length;
-    }
-
-    // Clamp
-    end = Math.max(0, Math.min(end, size));
-
-    return { start, end };
-}
-
-function countNonOverlapping(haystack: string, needle: string): number {
-    if (needle === "") {
-        return 0;
-    }
-
-    let count = 0;
-    let pos = 0;
-
-    while (true) {
-        const idx = haystack.indexOf(needle, pos);
-        if (idx === -1) break;
-        count++;
-        pos = idx + needle.length;
-    }
-
-    return count;
-}
-
 /**
  * Returns the portion of the string specified by the start and length parameters.
  *
@@ -142,4 +97,49 @@ export function substrReplace(
     }
 
     return doReplace(String(replace));
+}
+
+// Compute [start, end) range on code points with PHP-like semantics for offset/length
+function computeRange(
+    size: number,
+    offset: number,
+    length: number | null | undefined,
+): { start: number; end: number } {
+    // Normalize start (offset may be negative)
+    let start = offset >= 0 ? offset : size + offset;
+    if (start < 0) start = 0;
+    if (start > size) start = size;
+
+    // Determine end
+    let end: number;
+    if (length === null || length === undefined) {
+        end = size;
+    } else if (length < 0) {
+        end = size + length; // omit characters from the end
+    } else {
+        end = start + length;
+    }
+
+    // Clamp
+    end = Math.max(0, Math.min(end, size));
+
+    return { start, end };
+}
+
+function countNonOverlapping(haystack: string, needle: string): number {
+    if (needle === "") {
+        return 0;
+    }
+
+    let count = 0;
+    let pos = 0;
+
+    while (true) {
+        const idx = haystack.indexOf(needle, pos);
+        if (idx === -1) break;
+        count++;
+        pos = idx + needle.length;
+    }
+
+    return count;
 }
