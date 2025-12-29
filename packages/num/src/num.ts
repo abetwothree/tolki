@@ -147,7 +147,7 @@ export function parseFloat(
 
 /**
  * Spell out the given number in the given locale.
- * TODO
+ * @todo
  */
 export function spell(
     _number: number | string,
@@ -216,7 +216,7 @@ export function ordinal(value: number, locale: string | null = null): string {
 
 /**
  * Spell out the given number in the given locale in ordinal form.
- * TODO
+ * @todo
  *
  * @example
  *
