@@ -39,6 +39,7 @@
         {
             "files": ["**/*.{js,mjs,cjs,ts,mts,cts}"],
             "rules": {
+                "constructor-super": "error",
                 "for-direction": "error",
                 "no-async-promise-executor": "error",
                 "no-case-declarations": "error",
@@ -103,6 +104,7 @@
         {
             "files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
             "rules": {
+                "constructor-super": "off",
                 "no-class-assign": "off",
                 "no-const-assign": "off",
                 "no-dupe-class-members": "off",
