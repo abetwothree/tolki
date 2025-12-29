@@ -20,49 +20,70 @@ export type MarkDownExtension =
 
 export type MarkDownExtensions = MarkDownExtension[];
 
-// TODO: refactor class to import functions and place here and get rid of class
-export class MarkdownRenderer {
-    constructor(
-        private options: MarkDownOptions = { gfm: true, anchors: false },
-        private extensions: MarkDownExtensions = [],
-    ) {}
+/**
+ * Converts GitHub flavored Markdown into HTML.
+ *
+ * @example
+ *
+ * markdown('# Hello World'); -> '<h1>Hello World</h1>\n'
+ */
+export function markdown(
+    value: string,
+    options: MarkDownOptions = { gfm: true, anchors: false },
+    extensions: MarkDownExtensions = [],
+): string {
+    const md = markDownRenderer(options, extensions);
+    return md.render(value);
+}
 
-    renderer() {
-        const {
-            html = false,
-            linkify = true,
-            breaks = true,
-            gfm = true,
-            anchors = false,
-            ...rest
-        } = this.options;
+/**
+ * Converts inline Markdown into HTML.
+ *
+ * @example
+ *
+ * inlineMarkdown("Hello *World*"); -> "<p>Hello <em>World</em></p>"
+ */
+export function inlineMarkdown(
+    value: string,
+    options: MarkDownOptions = { gfm: true },
+    extensions: MarkDownExtensions = [],
+): string {
+    const md = markDownRenderer(options, extensions);
+    return md.renderInline(value);
+}
 
-        const md = new MarkdownIt({ html, linkify, breaks, ...rest });
+export function markDownRenderer(
+    options: MarkDownOptions = { gfm: true, anchors: false },
+    extensions: MarkDownExtensions = [],
+) {
+    const {
+        html = false,
+        linkify = true,
+        breaks = true,
+        gfm = true,
+        anchors = false,
+        ...rest
+    } = options;
 
-        if (gfm) {
-            md.use(markdownItTaskLists, { label: true, labelAfter: true });
-        }
+    const md = new MarkdownIt({ html, linkify, breaks, ...rest });
 
-        if (anchors) {
-            md.use(
-                markdownItAnchor,
-                typeof anchors === "object" ? anchors : {},
-            );
-        }
-
-        // Support extension array entries either as plugin or [plugin, opts]
-        for (const ext of this.extensions) {
-            if (isArray(ext)) {
-                const [plugin, opts] = ext as [
-                    PluginWithOptions<unknown>,
-                    unknown,
-                ];
-                md.use(plugin, opts);
-            } else if (ext) {
-                md.use(ext as PluginSimple | PluginWithOptions<unknown>);
-            }
-        }
-
-        return md;
+    if (gfm) {
+        md.use(markdownItTaskLists, { label: true, labelAfter: true });
     }
+
+    if (anchors) {
+        md.use(markdownItAnchor, typeof anchors === "object" ? anchors : {});
+    }
+
+    // Support extension array entries either as plugin or [plugin, opts]
+    for (const ext of extensions) {
+        if (isArray(ext)) {
+            const [plugin, opts] = ext as [PluginWithOptions<unknown>, unknown];
+            md.use(plugin, opts);
+        } else if (ext) {
+            md.use(ext as PluginSimple | PluginWithOptions<unknown>);
+        }
+    }
+
+    return md;
 }

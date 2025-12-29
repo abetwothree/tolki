@@ -3,9 +3,6 @@ import {
     ConvertCase,
     type ConvertCaseMode,
     ltrim,
-    type MarkDownExtensions,
-    type MarkDownOptions,
-    MarkdownRenderer,
     plural,
     randomInt,
     randomString,
@@ -876,38 +873,6 @@ export function words(
     }
 
     return matches[0].replace(/\s+$/, "") + end;
-}
-
-/**
- * Converts GitHub flavored Markdown into HTML.
- *
- * @example
- *
- * markdown('# Hello World'); -> '<h1>Hello World</h1>\n'
- */
-export function markdown(
-    value: string,
-    options: MarkDownOptions = { gfm: true, anchors: false },
-    extensions: MarkDownExtensions = [],
-): string {
-    const md = new MarkdownRenderer(options, extensions).renderer();
-    return md.render(value);
-}
-
-/**
- * Converts inline Markdown into HTML.
- *
- * @example
- *
- * inlineMarkdown("Hello *World*"); -> "<p>Hello <em>World</em></p>"
- */
-export function inlineMarkdown(
-    value: string,
-    options: MarkDownOptions = { gfm: true },
-    extensions: MarkDownExtensions = [],
-): string {
-    const md = new MarkdownRenderer(options, extensions).renderer();
-    return md.renderInline(value);
 }
 
 /**
