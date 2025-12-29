@@ -1,19 +1,14 @@
 import { format as numberFormat } from "@laravel-js/num";
+import { isUndefined } from "@laravel-js/utils";
 import pluralize from "pluralize";
 
 export interface PluralizerRules {
-    plural: Record<string, string>;
-    singular: Record<string, string>;
-    irregular: Record<string, string>;
     uncountable: string[];
 }
 
 let inflection: typeof pluralize;
 
 const rules: PluralizerRules = {
-    plural: {},
-    singular: {},
-    irregular: {},
     uncountable: [
         "audio",
         "bison",
@@ -84,7 +79,7 @@ export function plural(
 /**
  * Get the plural form of an English word.
  */
-function pluralValue(value: string, count: number = 2): string {
+function pluralValue(value: string, count: number): string {
     if (Math.abs(count) === 1 || uncountable(value)) {
         return value;
     }
@@ -150,20 +145,11 @@ export function matchCase(value: string, comparison: string): string {
  * Get the pluralize instance
  */
 export function inflector(): typeof pluralize {
-    if (typeof inflection === "undefined") {
+    if (isUndefined(inflection)) {
         inflection = pluralize;
 
         rules.uncountable.forEach((uncountable) =>
             inflection.addUncountableRule(uncountable),
-        );
-        Object.entries(rules.plural).forEach(([plural, rule]) =>
-            inflection.addIrregularRule(rule, plural),
-        );
-        Object.entries(rules.singular).forEach(([singular, rule]) =>
-            inflection.addIrregularRule(rule, singular),
-        );
-        Object.entries(rules.irregular).forEach(([irregularity, rule]) =>
-            inflection.addIrregularRule(rule, irregularity),
         );
     }
 
