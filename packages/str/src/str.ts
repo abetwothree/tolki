@@ -1,7 +1,4 @@
 import {
-    CaseTypes,
-    ConvertCase,
-    type ConvertCaseMode,
     ltrim,
     plural,
     randomInt,
@@ -9,6 +6,8 @@ import {
     rtrim,
     substr,
     trim,
+    title,
+    upper,
 } from "@laravel-js/str";
 import { isArray } from "@laravel-js/utils";
 import anyAscii from "any-ascii";
@@ -406,20 +405,6 @@ export function doesntContain(
     ignoreCase = false,
 ): boolean {
     return !contains(haystack, needles, ignoreCase);
-}
-
-/**
- * Convert the case of a string.
- *
- * @example
- *
- * convertCase('hello', CaseTypes.upper); -> 'HELLO'
- */
-export function convertCase(
-    value: string,
-    mode: ConvertCaseMode = CaseTypes.fold,
-) {
-    return new ConvertCase(value, mode).convert();
 }
 
 /**
@@ -1996,30 +1981,6 @@ export function start(value: string, prefix: string): string {
     const quoted = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     return prefix + value.replace(new RegExp(`^(?:${quoted})+`, "u"), "");
-}
-
-/**
- * Convert the given string to upper-case.
- *
- * @example
- *
- * upper("foo bar baz"); -> "FOO BAR BAZ"
- * upper("foO bAr BaZ"); -> "FOO BAR BAZ"
- */
-export function upper(value: string): string {
-    return new ConvertCase(value, CaseTypes.upper).convert();
-}
-
-/**
- * Convert the given string to proper case.
- *
- * @example
- *
- * title("foo bar baz"); -> "Foo Bar Baz"
- * title("foO bAr BaZ"); -> "Foo Bar Baz"
- */
-export function title(value: string): string {
-    return new ConvertCase(value, CaseTypes.title).convert();
 }
 
 /**

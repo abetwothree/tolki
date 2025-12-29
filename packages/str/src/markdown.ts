@@ -32,7 +32,7 @@ export function markdown(
     options: MarkDownOptions = { gfm: true, anchors: false },
     extensions: MarkDownExtensions = [],
 ): string {
-    return  markDownRenderer(options, extensions).render(value);
+    return markDownRenderer(options, extensions).render(value);
 }
 
 /**

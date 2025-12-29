@@ -13,45 +13,74 @@ export const CaseTypes = {
 
 export type ConvertCaseMode = (typeof CaseTypes)[keyof typeof CaseTypes];
 
-// TODO: refactor class to import functions and place here and get rid of class
-export class ConvertCase {
-    constructor(
-        private value: string,
-        private mode: ConvertCaseMode,
-    ) {}
+/**
+ * Convert the case of a string.
+ *
+ * @example
+ *
+ * convertCase('hello', CaseTypes.upper); -> 'HELLO'
+ */
+export function convertCase(
+    value: string,
+    mode: ConvertCaseMode = CaseTypes.fold,
+): string {
+    return caseConverter(value, mode);
+}
 
-    public convert(): string {
-        switch (this.mode) {
-            case CaseTypes.upper:
-                return toUpper(this.value);
-            case CaseTypes.lower:
-                return toLower(this.value);
-            case CaseTypes.title:
-                return this.value.replace(
-                    /\p{L}[\p{L}\p{M}\p{N}]*/gu,
-                    (word) =>
-                        word.charAt(0).toUpperCase() +
-                        word.slice(1).toLowerCase(),
-                );
-            case CaseTypes.fold:
-                return this.value.normalize("NFKD").toLowerCase();
-            case CaseTypes.simple:
-                return this.value.replace(/[^a-z0-9]+/g, " ").trim();
-            case CaseTypes.lower_simple:
-                return lowerFirst(this.value)
-                    .replace(/[^a-z0-9]+/g, " ")
-                    .trim();
-            case CaseTypes.title_simple:
-                return this.value
-                    .split(/[^a-z0-9]+/g)
-                    .map((word) => upperFirst(word))
-                    .join(" ");
-            case CaseTypes.fold_simple:
-                return this.value
-                    .normalize("NFKD")
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, " ")
-                    .trim();
-        }
+/**
+ * Convert the given string to upper-case.
+ *
+ * @example
+ *
+ * upper("foo bar baz"); -> "FOO BAR BAZ"
+ * upper("foO bAr BaZ"); -> "FOO BAR BAZ"
+ */
+export function upper(value: string): string {
+    return caseConverter(value, CaseTypes.upper);
+}
+
+/**
+ * Convert the given string to proper case.
+ *
+ * @example
+ *
+ * title("foo bar baz"); -> "Foo Bar Baz"
+ * title("foO bAr BaZ"); -> "Foo Bar Baz"
+ */
+export function title(value: string): string {
+    return caseConverter(value, CaseTypes.title);
+}
+
+function caseConverter(value: string, mode: ConvertCaseMode): string {
+    switch (mode) {
+        case CaseTypes.upper:
+            return toUpper(value);
+        case CaseTypes.lower:
+            return toLower(value);
+        case CaseTypes.title:
+            return value.replace(
+                /\p{L}[\p{L}\p{M}\p{N}]*/gu,
+                (word) =>
+                    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+            );
+        case CaseTypes.fold:
+            return value.normalize("NFKD").toLowerCase();
+        case CaseTypes.simple:
+            return value.replace(/[^a-z0-9]+/g, " ").trim();
+        case CaseTypes.lower_simple:
+            return lowerFirst(value)
+                .replace(/[^a-z0-9]+/g, " ")
+                .trim();
+        case CaseTypes.title_simple:
+            return value
+                .split(/[^a-z0-9]+/g)
+                .map((word) => upperFirst(word))
+                .join(" ");
+        case CaseTypes.fold_simple:
+            return value
+                .normalize("NFKD")
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, " ")
+                .trim();
     }
 }
