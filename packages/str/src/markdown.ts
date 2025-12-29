@@ -32,8 +32,7 @@ export function markdown(
     options: MarkDownOptions = { gfm: true, anchors: false },
     extensions: MarkDownExtensions = [],
 ): string {
-    const md = markDownRenderer(options, extensions);
-    return md.render(value);
+    return  markDownRenderer(options, extensions).render(value);
 }
 
 /**
@@ -48,8 +47,7 @@ export function inlineMarkdown(
     options: MarkDownOptions = { gfm: true },
     extensions: MarkDownExtensions = [],
 ): string {
-    const md = markDownRenderer(options, extensions);
-    return md.renderInline(value);
+    return markDownRenderer(options, extensions).renderInline(value);
 }
 
 export function markDownRenderer(
