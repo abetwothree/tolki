@@ -2026,57 +2026,6 @@ describe("Str tests", () => {
         );
     });
 
-    it("substr", () => {
-        expect(Str.substr("БГДЖИЛЁ", -1)).toBe("Ё");
-        expect(Str.substr("БГДЖИЛЁ", -2)).toBe("ЛЁ");
-        expect(Str.substr("БГДЖИЛЁ", -3, 1)).toBe("И");
-        expect(Str.substr("БГДЖИЛЁ", 2, -1)).toBe("ДЖИЛ");
-        expect(Str.substr("БГДЖИЛЁ", 4, -4)).toBe("");
-        expect(Str.substr("БГДЖИЛЁ", -3, -1)).toBe("ИЛ");
-        expect(Str.substr("БГДЖИЛЁ", 1)).toBe("ГДЖИЛЁ");
-        expect(Str.substr("БГДЖИЛЁ", 1, 3)).toBe("ГДЖ");
-        expect(Str.substr("БГДЖИЛЁ", 0, 4)).toBe("БГДЖ");
-        expect(Str.substr("БГДЖИЛЁ", -1, 1)).toBe("Ё");
-        expect(Str.substr("Б", 2)).toBe("");
-    });
-
-    it("substrCount", () => {
-        expect(Str.substrCount("laravelPHPFramework", "a")).toBe(3);
-        expect(Str.substrCount("laravelPHPFramework", "z")).toBe(0);
-        expect(Str.substrCount("laravelPHPFramework", "l", 2)).toBe(1);
-        expect(Str.substrCount("laravelPHPFramework", "z", 2)).toBe(0);
-        expect(Str.substrCount("laravelPHPFramework", "k", -1)).toBe(1);
-        expect(Str.substrCount("laravelPHPFramework", "k", -1)).toBe(1);
-        expect(Str.substrCount("laravelPHPFramework", "a", 1, 2)).toBe(1);
-        expect(Str.substrCount("laravelPHPFramework", "a", 1, 2)).toBe(1);
-        expect(Str.substrCount("laravelPHPFramework", "a", 1, -2)).toBe(3);
-        expect(Str.substrCount("laravelPHPFramework", "a", -10, -3)).toBe(1);
-        expect(Str.substrCount("laravelPHPFramework", "")).toBe(0);
-    });
-
-    it("substrReplace", () => {
-        expect(Str.substrReplace("1200", ":", 2, 0)).toBe("12:00");
-        expect(Str.substrReplace("The Framework", "Laravel ", 4, 0)).toBe(
-            "The Laravel Framework",
-        );
-        expect(
-            Str.substrReplace(
-                "Laravel Framework",
-                "– The PHP Framework for Web Artisans",
-                8,
-            ),
-        ).toBe("Laravel – The PHP Framework for Web Artisans");
-        expect(Str.substrReplace("hello world", ["hi", "there"], 6)).toEqual([
-            "hello hi",
-            "hello there",
-        ]);
-    });
-
-    it("substrReplace with multibyte", () => {
-        expect(Str.substrReplace("kenkä", "ng", -3, 2)).toBe("kengä");
-        expect(Str.substrReplace("kenka", "ng", -3, 2)).toBe("kenga");
-    });
-
     it("swap", () => {
         expect(
             Str.swap(

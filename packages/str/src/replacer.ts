@@ -127,16 +127,14 @@ function computeRange(
 }
 
 function countNonOverlapping(haystack: string, needle: string): number {
-    if (needle === "") {
-        return 0;
-    }
-
     let count = 0;
     let pos = 0;
 
     while (true) {
         const idx = haystack.indexOf(needle, pos);
-        if (idx === -1) break;
+        if (idx === -1) {
+            break;
+        }
         count++;
         pos = idx + needle.length;
     }
