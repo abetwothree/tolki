@@ -1,4 +1,4 @@
-import { lowerFirst, toLower, toUpper, upperFirst } from "lodash-es";
+import { lowerFirst, toLower, toUpper, upperFirst } from "@laravel-js/utils";
 
 export const CaseTypes = {
     upper: "upper",

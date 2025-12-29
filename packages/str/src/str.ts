@@ -9,13 +9,8 @@ import {
     trim,
     upper,
 } from "@laravel-js/str";
-import { isArray, isFunction, isString } from "@laravel-js/utils";
+import { isArray, isFunction, isString, toLower } from "@laravel-js/utils";
 import anyAscii from "any-ascii";
-// TODO: remove reliance on lodash-es
-import {
-    replace as lodashReplace,
-    toLower,
-} from "lodash-es";
 import { transliterate as transliteration } from "transliteration";
 import { ulid as createUlid } from "ulid";
 import {
@@ -1606,7 +1601,7 @@ export function replace<T extends string | Iterable<string>>(
 
             // Parameter true => treat as ignore-case (matches current test expectations)
             const re = new RegExp(escapeRegExp(s), "gi");
-            return lodashReplace(acc, re, () => r);
+            return acc.replace(re, () => r);
         }, input);
     };
 

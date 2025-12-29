@@ -78,6 +78,50 @@ export function isString(value: unknown): value is string {
 }
 
 /**
+ * Convert a string to lower-case.
+ */
+export function toLower(value: string): string {
+    return value.toLowerCase();
+}
+
+/**
+ * Convert a string to upper-case.
+ */
+export function toUpper(value: string): string {
+    return value.toUpperCase();
+}
+
+/**
+ * Convert the first character of a string to lower-case.
+ */
+export function lowerFirst(value: string): string {
+    const chars = [...value];
+
+    if (chars.length === 0) {
+        return value;
+    }
+
+    chars[0] = chars[0].toLowerCase();
+
+    return chars.join("");
+}
+
+/**
+ * Convert the first character of a string to upper-case.
+ */
+export function upperFirst(value: string): string {
+    const chars = [...value];
+
+    if (chars.length === 0) {
+        return value;
+    }
+
+    chars[0] = chars[0].toUpperCase();
+
+    return chars.join("");
+}
+
+/**
  * Check if a value is stringable (can be converted to a string).
  *
  * @param value - The value to check
