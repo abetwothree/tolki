@@ -54,6 +54,24 @@ pop(count: number = 1): TValue | null | Collection<TValue[], number> {
 }
 ```
 
+## Test structure
+
+Test should be structured with `describe` blocks for each function being tested, and `it` blocks for each test case.
+
+Example:
+
+```TypeScript
+describe("functionName", () => {
+  it("should do something", () => {
+    // test implementation ...
+  });
+
+  it("should do something else", () => {
+    // test implementation ...
+  });
+});
+```
+
 ## Parameter types with generics
 
 When using generics in parameter types, make sure to use the correct syntax for arrays and objects.
