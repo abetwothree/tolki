@@ -101,7 +101,7 @@ export function lowerFirst(value: string): string {
         return value;
     }
 
-    chars[0] = chars[0].toLowerCase();
+    chars[0] = (chars[0] as string).toLowerCase();
 
     return chars.join("");
 }
@@ -116,7 +116,7 @@ export function upperFirst(value: string): string {
         return value;
     }
 
-    chars[0] = chars[0].toUpperCase();
+    chars[0] = (chars[0] as string).toUpperCase();
 
     return chars.join("");
 }
@@ -759,13 +759,8 @@ export function looseEqual(a: unknown, b: unknown): boolean {
         } else {
             // boolValue === false
             // Check if otherValue is falsy in PHP terms
-            return (
-                otherValue === null ||
-                otherValue === false ||
-                otherValue === 0 ||
-                otherValue === "" ||
-                (Array.isArray(otherValue) && otherValue.length === 0)
-            );
+            // Note: otherValue === false and [] == false are already handled by JS loose equality above
+            return otherValue === null || otherValue === 0 || otherValue === "";
         }
     }
 

@@ -629,4 +629,201 @@ describe("Utils", () => {
         expect(Utils.strictEqual({ a: 1 }, { a: 1, b: 2 })).toBe(false);
         expect(Utils.strictEqual([1, 2], [1])).toBe(false);
     });
+
+    describe("toLower", () => {
+        it("should convert a string to lowercase", () => {
+            expect(Utils.toLower("HELLO")).toBe("hello");
+            expect(Utils.toLower("Hello World")).toBe("hello world");
+            expect(Utils.toLower("")).toBe("");
+            expect(Utils.toLower("already lowercase")).toBe(
+                "already lowercase",
+            );
+        });
+    });
+
+    describe("toUpper", () => {
+        it("should convert a string to uppercase", () => {
+            expect(Utils.toUpper("hello")).toBe("HELLO");
+            expect(Utils.toUpper("Hello World")).toBe("HELLO WORLD");
+            expect(Utils.toUpper("")).toBe("");
+            expect(Utils.toUpper("ALREADY UPPERCASE")).toBe(
+                "ALREADY UPPERCASE",
+            );
+        });
+    });
+
+    describe("lowerFirst", () => {
+        it("should convert the first character to lowercase", () => {
+            expect(Utils.lowerFirst("Hello")).toBe("hello");
+            expect(Utils.lowerFirst("HELLO")).toBe("hELLO");
+            expect(Utils.lowerFirst("hello")).toBe("hello");
+            expect(Utils.lowerFirst("A")).toBe("a");
+        });
+
+        it("should return empty string unchanged", () => {
+            expect(Utils.lowerFirst("")).toBe("");
+        });
+    });
+
+    describe("upperFirst", () => {
+        it("should convert the first character to uppercase", () => {
+            expect(Utils.upperFirst("hello")).toBe("Hello");
+            expect(Utils.upperFirst("HELLO")).toBe("HELLO");
+            expect(Utils.upperFirst("Hello")).toBe("Hello");
+            expect(Utils.upperFirst("a")).toBe("A");
+        });
+
+        it("should return empty string unchanged", () => {
+            expect(Utils.upperFirst("")).toBe("");
+        });
+    });
+
+    describe("looseEqual", () => {
+        it("should return true for JavaScript loosely equal values", () => {
+            expect(Utils.looseEqual(1, 1)).toBe(true);
+            expect(Utils.looseEqual("hello", "hello")).toBe(true);
+            expect(Utils.looseEqual(null, undefined)).toBe(true);
+            expect(Utils.looseEqual(1, "1")).toBe(true);
+        });
+
+        it("should handle boolean true comparisons (PHP rules)", () => {
+            // true == any truthy value
+            expect(Utils.looseEqual(true, 1)).toBe(true);
+            expect(Utils.looseEqual(true, "hello")).toBe(true);
+            expect(Utils.looseEqual(true, [1, 2, 3])).toBe(true);
+            expect(Utils.looseEqual(1, true)).toBe(true);
+            // true != falsy values
+            expect(Utils.looseEqual(true, null)).toBe(false);
+            expect(Utils.looseEqual(true, false)).toBe(false);
+            expect(Utils.looseEqual(true, 0)).toBe(false);
+            expect(Utils.looseEqual(true, "")).toBe(false);
+            expect(Utils.looseEqual(true, [])).toBe(false);
+        });
+
+        it("should handle boolean false comparisons (PHP rules)", () => {
+            // false == any falsy value
+            expect(Utils.looseEqual(false, null)).toBe(true);
+            expect(Utils.looseEqual(false, 0)).toBe(true);
+            expect(Utils.looseEqual(false, "")).toBe(true);
+            expect(Utils.looseEqual(false, [])).toBe(true);
+            expect(Utils.looseEqual(null, false)).toBe(true);
+            // Test the otherValue === false branch (when boolean is second argument)
+            expect(Utils.looseEqual(0, false)).toBe(true);
+            expect(Utils.looseEqual("", false)).toBe(true);
+            // Test empty array with false as second argument
+            expect(Utils.looseEqual([], false)).toBe(true);
+            // false != truthy values
+            expect(Utils.looseEqual(false, 1)).toBe(false);
+            expect(Utils.looseEqual(false, "hello")).toBe(false);
+        });
+
+        it("should consider PHP falsy values as equal to each other", () => {
+            // null, false, 0, '', [] are loosely equal in PHP
+            expect(Utils.looseEqual(null, 0)).toBe(true);
+            expect(Utils.looseEqual(null, "")).toBe(true);
+            expect(Utils.looseEqual(0, "")).toBe(true);
+            expect(Utils.looseEqual([], null)).toBe(true);
+            expect(Utils.looseEqual([], 0)).toBe(true);
+            expect(Utils.looseEqual([], "")).toBe(true);
+        });
+
+        it("should perform deep comparison for arrays", () => {
+            expect(Utils.looseEqual([1, 2, 3], [1, 2, 3])).toBe(true);
+            expect(Utils.looseEqual(["a", "b"], ["a", "b"])).toBe(true);
+            expect(Utils.looseEqual([[1], [2]], [[1], [2]])).toBe(true);
+            // Different lengths
+            expect(Utils.looseEqual([1, 2], [1, 2, 3])).toBe(false);
+            // Different values
+            expect(Utils.looseEqual([1, 2], [1, 3])).toBe(false);
+        });
+
+        it("should perform deep comparison for plain objects", () => {
+            expect(Utils.looseEqual({ a: 1, b: 2 }, { a: 1, b: 2 })).toBe(true);
+            expect(Utils.looseEqual({ x: { y: 1 } }, { x: { y: 1 } })).toBe(
+                true,
+            );
+            // Different key count
+            expect(Utils.looseEqual({ a: 1 }, { a: 1, b: 2 })).toBe(false);
+            // Missing key
+            expect(Utils.looseEqual({ a: 1, b: 2 }, { a: 1, c: 2 })).toBe(
+                false,
+            );
+            // Different values
+            expect(Utils.looseEqual({ a: 1 }, { a: 2 })).toBe(false);
+        });
+
+        it("should return false for non-equal non-falsy values", () => {
+            expect(Utils.looseEqual("hello", "world")).toBe(false);
+            expect(Utils.looseEqual(1, 2)).toBe(false);
+            expect(Utils.looseEqual({ a: 1 }, [1])).toBe(false);
+        });
+    });
+
+    describe("strictEqual", () => {
+        it("should return true for strictly equal primitives", () => {
+            expect(Utils.strictEqual(1, 1)).toBe(true);
+            expect(Utils.strictEqual("hello", "hello")).toBe(true);
+            expect(Utils.strictEqual(true, true)).toBe(true);
+            expect(Utils.strictEqual(null, null)).toBe(true);
+        });
+
+        it("should return false for different types", () => {
+            expect(Utils.strictEqual(1, "1")).toBe(false);
+            expect(Utils.strictEqual(true, 1)).toBe(false);
+            expect(Utils.strictEqual(null, undefined)).toBe(false);
+        });
+
+        it("should perform deep comparison for arrays", () => {
+            expect(Utils.strictEqual([1, 2, 3], [1, 2, 3])).toBe(true);
+            expect(Utils.strictEqual(["a", "b"], ["a", "b"])).toBe(true);
+            expect(Utils.strictEqual([[1], [2]], [[1], [2]])).toBe(true);
+            // Different lengths
+            expect(Utils.strictEqual([1, 2], [1, 2, 3])).toBe(false);
+            // Different values
+            expect(Utils.strictEqual([1, 2], [1, 3])).toBe(false);
+            // Type mismatches within arrays
+            expect(Utils.strictEqual([1], ["1"])).toBe(false);
+        });
+
+        it("should perform deep comparison for plain objects", () => {
+            expect(Utils.strictEqual({ a: 1, b: 2 }, { a: 1, b: 2 })).toBe(
+                true,
+            );
+            expect(Utils.strictEqual({ x: { y: 1 } }, { x: { y: 1 } })).toBe(
+                true,
+            );
+            // Different key count
+            expect(Utils.strictEqual({ a: 1 }, { a: 1, b: 2 })).toBe(false);
+            // Missing key
+            expect(Utils.strictEqual({ a: 1, b: 2 }, { a: 1, c: 2 })).toBe(
+                false,
+            );
+            // Different values
+            expect(Utils.strictEqual({ a: 1 }, { a: 2 })).toBe(false);
+        });
+
+        it("should use reference equality for class instances", () => {
+            class TestClass {
+                value: number;
+                constructor(v: number) {
+                    this.value = v;
+                }
+            }
+            const instance1 = new TestClass(1);
+            const instance2 = new TestClass(1);
+            // Same reference
+            expect(Utils.strictEqual(instance1, instance1)).toBe(true);
+            // Different references (same content)
+            expect(Utils.strictEqual(instance1, instance2)).toBe(false);
+            // Class instance vs plain object
+            expect(Utils.strictEqual(instance1, { value: 1 })).toBe(false);
+            // Plain object vs class instance
+            expect(Utils.strictEqual({ value: 1 }, instance1)).toBe(false);
+        });
+
+        it("should return false for different types of objects", () => {
+            expect(Utils.strictEqual({ a: 1 }, [1])).toBe(false);
+            expect(Utils.strictEqual([], {})).toBe(false);
+        });
+    });
 });
