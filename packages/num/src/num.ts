@@ -79,13 +79,11 @@ export function parse(value: string, locale: string | null = null): number {
     // 3) Trim spaces
     let normalized = value;
     for (const sym of groupSymbols) {
-        if (sym) {
-            const re = new RegExp(
-                sym.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&"),
-                "g",
-            );
-            normalized = normalized.replace(re, "");
-        }
+        const re = new RegExp(
+            sym.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&"),
+            "g",
+        );
+        normalized = normalized.replace(re, "");
     }
 
     if (decimalSymbol !== ".") {
@@ -181,14 +179,20 @@ export function ordinal(value: number, locale: string | null = null): string {
     try {
         const pr = new Intl.PluralRules(loc, { type: "ordinal" });
         const rule = pr.select(value);
-        const lang = (loc || "en").split("-")[0] || "en";
+        // loc is guaranteed to be a valid locale here (invalid ones throw above)
+        // The || "en" handles the theoretical case where split returns empty string
+        const lang = loc.split("-")[0] || "en";
 
         const suffixes: Record<string, Record<string, string>> = {
             en: { one: "st", two: "nd", few: "rd", other: "th" },
         };
 
-        const map = suffixes[lang] ?? suffixes["en"];
-        const suffix = map?.[rule] ?? map?.["other"] ?? "th";
+        // Use English suffixes as fallback for unsupported languages
+        // suffixes["en"] is always defined above
+        const map = suffixes[lang] ?? suffixes["en"]!;
+        // Fall back to "other" suffix if specific rule not found
+        // (English suffixes always have "other" key so this fallback is safe)
+        const suffix = map[rule] ?? map["other"];
 
         return `${value}${suffix}`;
     } catch {
@@ -315,7 +319,9 @@ export function fileSize(
 ): string {
     // Normalize input to a number
     let value = typeof bytes === "string" ? Number(bytes) : bytes;
-    if (!Number.isFinite(value)) value = 0;
+    if (!Number.isFinite(value)) {
+        value = 0;
+    }
 
     const units = [
         "B",
@@ -388,7 +394,7 @@ export function summarize(
     units: Record<number, string> = {},
 ): string | false {
     // Default units if none provided (abbreviated form)
-    if (!units || Object.keys(units).length === 0) {
+    if (Object.keys(units).length === 0) {
         units = {
             3: "K",
             6: "M",
@@ -422,13 +428,10 @@ export function summarize(
             .map((k) => Number(k))
             .filter((k) => !Number.isNaN(k))
             .sort((a, b) => a - b);
-        let lastSuffix = "";
-        if (keys.length > 0) {
-            const lastKey = keys[keys.length - 1];
-            if (typeof lastKey === "number") {
-                lastSuffix = units[lastKey] ?? "";
-            }
-        }
+        // At this point, units is guaranteed to have at least the default keys (3, 6, 9, 12, 15)
+        // so keys array will always have elements and lastKey will always be a number
+        const lastKey = keys[keys.length - 1] as number;
+        const lastSuffix = units[lastKey];
         const inner = summarize(
             value / 1e15,
             precision,

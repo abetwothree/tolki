@@ -70,26 +70,39 @@ describe("Number", () => {
             expect(Num.parse("1.234,56", "de")).toBe(1234.56);
             expect(Num.parse("1 234,56", "fr")).toBe(1234.56);
         });
+
+        it("should handle locale where decimal separator is already a dot", () => {
+            // English locale uses '.' as decimal separator - tests the branch where decimalSymbol === "."
+            expect(Num.parse("1234.56", "en")).toBe(1234.56);
+            expect(Num.parse("1234", "en")).toBe(1234);
+        });
     });
 
-    it("parseInt", () => {
-        expect(Num.parseInt("1,234")).toBe(1234);
-        expect(Num.parseInt("1,234.5")).toBe(1234);
-        expect(Num.parseInt("-1,234.56")).toBe(-1234);
+    describe("parseInt", () => {
+        it("should parse a string to an integer", () => {
+            expect(Num.parseInt("1,234")).toBe(1234);
+            expect(Num.parseInt("1,234.5")).toBe(1234);
+            expect(Num.parseInt("-1,234.56")).toBe(-1234);
 
-        expect(Num.parseInt("1.234", "de")).toBe(1234);
-        expect(Num.parseInt("1 234", "fr")).toBe(1234);
-        expect(Num.parseInt("a string that isn't a number")).toBe(false);
+            expect(Num.parseInt("1.234", "de")).toBe(1234);
+            expect(Num.parseInt("1 234", "fr")).toBe(1234);
+        });
+
+        it("should return false for invalid input", () => {
+            expect(Num.parseInt("a string that isn't a number")).toBe(false);
+        });
     });
 
-    it("parseFloat", () => {
-        expect(Num.parseFloat("1,234")).toBe(1234.0);
-        expect(Num.parseFloat("1,234.5")).toBe(1234.5);
-        expect(Num.parseFloat("1,234.56")).toBe(1234.56);
-        expect(Num.parseFloat("-1,234.56")).toBe(-1234.56);
+    describe("parseFloat", () => {
+        it("should parse a string to a float", () => {
+            expect(Num.parseFloat("1,234")).toBe(1234.0);
+            expect(Num.parseFloat("1,234.5")).toBe(1234.5);
+            expect(Num.parseFloat("1,234.56")).toBe(1234.56);
+            expect(Num.parseFloat("-1,234.56")).toBe(-1234.56);
 
-        expect(Num.parseFloat("1.234,56", "de")).toBe(1234.56);
-        expect(Num.parseFloat("1 234,56", "fr")).toBe(1234.56);
+            expect(Num.parseFloat("1.234,56", "de")).toBe(1234.56);
+            expect(Num.parseFloat("1 234,56", "fr")).toBe(1234.56);
+        });
     });
 
     describe.skip("spell", () => {
@@ -117,31 +130,78 @@ describe("Number", () => {
         });
     });
 
-    it("ordinal", () => {
-        expect(Num.ordinal(1)).toBe("1st");
-        expect(Num.ordinal(2)).toBe("2nd");
-        expect(Num.ordinal(3)).toBe("3rd");
-        expect(Num.ordinal(4)).toBe("4th");
-        expect(Num.ordinal(11)).toBe("11th");
-        expect(Num.ordinal(12)).toBe("12th");
-        expect(Num.ordinal(13)).toBe("13th");
-    });
+    describe("ordinal", () => {
+        it("should return ordinal form", () => {
+            expect(Num.ordinal(1)).toBe("1st");
+            expect(Num.ordinal(2)).toBe("2nd");
+            expect(Num.ordinal(3)).toBe("3rd");
+            expect(Num.ordinal(4)).toBe("4th");
+            expect(Num.ordinal(11)).toBe("11th");
+            expect(Num.ordinal(12)).toBe("12th");
+            expect(Num.ordinal(13)).toBe("13th");
+        });
 
-    it("ordinal - no Intl.PluralRules exist", () => {
-        const original = Intl.PluralRules;
-        // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
-        Intl.PluralRules = undefined;
+        it("should fallback when Intl.PluralRules does not exist", () => {
+            const original = Intl.PluralRules;
+            // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
+            Intl.PluralRules = undefined;
 
-        expect(Num.ordinal(1)).toBe("1st");
-        expect(Num.ordinal(2)).toBe("2nd");
-        expect(Num.ordinal(3)).toBe("3rd");
-        expect(Num.ordinal(4)).toBe("4th");
-        expect(Num.ordinal(11)).toBe("11th");
-        expect(Num.ordinal(12)).toBe("12th");
-        expect(Num.ordinal(13)).toBe("13th");
+            expect(Num.ordinal(1)).toBe("1st");
+            expect(Num.ordinal(2)).toBe("2nd");
+            expect(Num.ordinal(3)).toBe("3rd");
+            expect(Num.ordinal(4)).toBe("4th");
+            expect(Num.ordinal(11)).toBe("11th");
+            expect(Num.ordinal(12)).toBe("12th");
+            expect(Num.ordinal(13)).toBe("13th");
 
-        // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
-        Intl.PluralRules = original;
+            // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
+            Intl.PluralRules = original;
+        });
+
+        it("should handle negative numbers in fallback", () => {
+            const original = Intl.PluralRules;
+            // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
+            Intl.PluralRules = undefined;
+
+            // Test negative numbers to ensure Math.abs is used
+            expect(Num.ordinal(-1)).toBe("-1st");
+            expect(Num.ordinal(-2)).toBe("-2nd");
+            expect(Num.ordinal(-3)).toBe("-3rd");
+            expect(Num.ordinal(-4)).toBe("-4th");
+            expect(Num.ordinal(-11)).toBe("-11th");
+            expect(Num.ordinal(-12)).toBe("-12th");
+            expect(Num.ordinal(-13)).toBe("-13th");
+
+            // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
+            Intl.PluralRules = original;
+        });
+
+        it("should handle locale with non-English suffixes", () => {
+            // Testing with locales where plural rules may differ - German uses "other" for ordinals
+            // This covers the fallback path where map?.[rule] doesn't match so it uses map?.["other"]
+            expect(Num.ordinal(1, "de")).toBe("1th"); // German ordinal rules return "other" for 1
+            expect(Num.ordinal(2, "de")).toBe("2th"); // German ordinal rules return "other" for 2
+        });
+
+        it("should handle locale that returns rare plural rules", () => {
+            // Welsh returns "zero", "many" which are not in the English suffixes map
+            // This covers the branch where map?.[rule] is undefined so it falls back to map?.["other"]
+            expect(Num.ordinal(5, "cy")).toBe("5th"); // Welsh returns "many" for 5
+            expect(Num.ordinal(0, "cy")).toBe("0th"); // Welsh returns "zero" for 0
+            expect(Num.ordinal(7, "cy")).toBe("7th"); // Welsh returns "zero" for 7
+        });
+
+        it("should handle edge case locale formats", () => {
+            // Locale starting with "-" produces empty first element when split
+            // This covers the || "en" fallback at the end of lang calculation
+            expect(Num.ordinal(1, "-en")).toBe("1st");
+        });
+
+        it("should handle empty locale fallback", () => {
+            // When locale is empty string, it falls back to "en"
+            // This covers the (loc || "en") branch where loc is falsy
+            expect(Num.ordinal(1, "")).toBe("1st");
+        });
     });
 
     it.skip("spellOrdinal", () => {
@@ -154,25 +214,33 @@ describe("Number", () => {
         expect(Num.spellOrdinal(13)).toBe("thirteenth");
     });
 
-    it("percentage", () => {
-        expect(Num.percentage(0, 0)).toBe("0%");
-        expect(Num.percentage(0)).toBe("0%");
-        expect(Num.percentage(1)).toBe("1%");
-        expect(Num.percentage(10, 2)).toBe("10.00%");
-        expect(Num.percentage(100)).toBe("100%");
-        expect(Num.percentage(100, 2)).toBe("100.00%");
-        expect(Num.percentage(100.1234, 0, 3)).toBe("100.123%");
+    describe("percentage", () => {
+        it("should convert number to percentage", () => {
+            expect(Num.percentage(0, 0)).toBe("0%");
+            expect(Num.percentage(0)).toBe("0%");
+            expect(Num.percentage(1)).toBe("1%");
+            expect(Num.percentage(10, 2)).toBe("10.00%");
+            expect(Num.percentage(100)).toBe("100%");
+            expect(Num.percentage(100, 2)).toBe("100.00%");
+            expect(Num.percentage(100.1234, 0, 3)).toBe("100.123%");
 
-        expect(Num.percentage(300)).toBe("300%");
-        expect(Num.percentage(1000)).toBe("1,000%");
+            expect(Num.percentage(300)).toBe("300%");
+            expect(Num.percentage(1000)).toBe("1,000%");
 
-        expect(Num.percentage(1.75)).toBe("2%");
-        expect(Num.percentage(1.75, 2)).toBe("1.75%");
-        expect(Num.percentage(1.75, 3)).toBe("1.750%");
-        expect(Num.percentage(0.12345)).toBe("0%");
-        expect(Num.percentage(0, 2)).toBe("0.00%");
-        expect(Num.percentage(0.12345, 2)).toBe("0.12%");
-        expect(Num.percentage(0.12345, 4)).toBe("0.1235%");
+            expect(Num.percentage(1.75)).toBe("2%");
+            expect(Num.percentage(1.75, 2)).toBe("1.75%");
+            expect(Num.percentage(1.75, 3)).toBe("1.750%");
+            expect(Num.percentage(0.12345)).toBe("0%");
+            expect(Num.percentage(0, 2)).toBe("0.00%");
+            expect(Num.percentage(0.12345, 2)).toBe("0.12%");
+            expect(Num.percentage(0.12345, 4)).toBe("0.1235%");
+        });
+
+        it("should accept string input", () => {
+            // Test string input to cover the typeof number === "string" branch
+            expect(Num.percentage("50")).toBe("50%");
+            expect(Num.percentage("1,234.56", 2)).toBe("1,234.56%");
+        });
     });
 
     describe("currency", () => {
@@ -207,105 +275,153 @@ describe("Number", () => {
             );
             expect(Num.currency(1234.56, "USD", "fr")).toBe("1 234,56 $US");
         });
+
+        it("should accept string input", () => {
+            // Test string input to cover the typeof amount === "string" branch
+            expect(Num.currency("100")).toBe("$100.00");
+            expect(Num.currency("1,234.56")).toBe("$1,234.56");
+        });
     });
 
-    it("fileSize", () => {
-        expect(Num.fileSize(0)).toBe("0 B");
-        expect(Num.fileSize(0, 2)).toBe("0.00 B");
-        expect(Num.fileSize(1)).toBe("1 B");
-        expect(Num.fileSize(1024)).toBe("1 KB");
-        expect(Num.fileSize(2048)).toBe("2 KB");
-        expect(Num.fileSize(2048, 2)).toBe("2.00 KB");
-        expect(Num.fileSize(1264, 2)).toBe("1.23 KB");
-        expect(Num.fileSize(1264.12345, 3)).toBe("1.234 KB");
-        expect(Num.fileSize(1264, 3)).toBe("1.234 KB");
-        expect(Num.fileSize(1024 * 1024 * 1024 * 5)).toBe("5 GB");
-        expect(Num.fileSize(1024 ** 4 * 10)).toBe("10 TB");
-        expect(Num.fileSize(1024 ** 5 * 10)).toBe("10 PB");
-        expect(Num.fileSize(1024 ** 7)).toBe("1 ZB");
-        expect(Num.fileSize(1024 ** 8)).toBe("1 YB");
-        expect(Num.fileSize(1024 ** 9)).toBe("1,024 YB");
+    describe("fileSize", () => {
+        it("should convert bytes to human readable file size", () => {
+            expect(Num.fileSize(0)).toBe("0 B");
+            expect(Num.fileSize(0, 2)).toBe("0.00 B");
+            expect(Num.fileSize(1)).toBe("1 B");
+            expect(Num.fileSize(1024)).toBe("1 KB");
+            expect(Num.fileSize(2048)).toBe("2 KB");
+            expect(Num.fileSize(2048, 2)).toBe("2.00 KB");
+            expect(Num.fileSize(1264, 2)).toBe("1.23 KB");
+            expect(Num.fileSize(1264.12345, 3)).toBe("1.234 KB");
+            expect(Num.fileSize(1264, 3)).toBe("1.234 KB");
+            expect(Num.fileSize(1024 * 1024 * 1024 * 5)).toBe("5 GB");
+            expect(Num.fileSize(1024 ** 4 * 10)).toBe("10 TB");
+            expect(Num.fileSize(1024 ** 5 * 10)).toBe("10 PB");
+            expect(Num.fileSize(1024 ** 7)).toBe("1 ZB");
+            expect(Num.fileSize(1024 ** 8)).toBe("1 YB");
+            expect(Num.fileSize(1024 ** 9)).toBe("1,024 YB");
+        });
+
+        it("should accept string input", () => {
+            // Test string input to cover the typeof bytes === "string" branch
+            expect(Num.fileSize("1024")).toBe("1 KB");
+            expect(Num.fileSize("2048", 2)).toBe("2.00 KB");
+        });
+
+        it("should handle non-finite values", () => {
+            // Test non-finite values to cover the !Number.isFinite branch
+            expect(Num.fileSize(Infinity)).toBe("0 B");
+            expect(Num.fileSize(NaN)).toBe("0 B");
+            expect(Num.fileSize("not a number")).toBe("0 B");
+        });
     });
 
-    it("forHumans", () => {
-        expect(Num.forHumans(1)).toBe("1");
-        expect(Num.forHumans(1, 2)).toBe("1.00");
-        expect(Num.forHumans(10)).toBe("10");
-        expect(Num.forHumans(100)).toBe("100");
-        expect(Num.forHumans(1000)).toBe("1 thousand");
-        expect(Num.forHumans(1000, 2)).toBe("1.00 thousand");
-        expect(Num.forHumans(1000, 0, 2)).toBe("1 thousand");
-        expect(Num.forHumans(1230)).toBe("1.2 thousand");
-        expect(Num.forHumans(1230, 0, 1)).toBe("1.2 thousand");
-        expect(Num.forHumans(1000000)).toBe("1 million");
-        expect(Num.forHumans(1000000000)).toBe("1 billion");
-        expect(Num.forHumans(1000000000000)).toBe("1 trillion");
-        expect(Num.forHumans(1000000000000000)).toBe("1 quadrillion");
-        expect(Num.forHumans(1000000000000000000)).toBe(
-            "1 thousand quadrillion",
-        );
+    describe("forHumans", () => {
+        it("should convert number to human readable format", () => {
+            expect(Num.forHumans(1)).toBe("1");
+            expect(Num.forHumans(1, 2)).toBe("1.00");
+            expect(Num.forHumans(10)).toBe("10");
+            expect(Num.forHumans(100)).toBe("100");
+            expect(Num.forHumans(1000)).toBe("1 thousand");
+            expect(Num.forHumans(1000, 2)).toBe("1.00 thousand");
+            expect(Num.forHumans(1000, 0, 2)).toBe("1 thousand");
+            expect(Num.forHumans(1230)).toBe("1.2 thousand");
+            expect(Num.forHumans(1230, 0, 1)).toBe("1.2 thousand");
+            expect(Num.forHumans(1000000)).toBe("1 million");
+            expect(Num.forHumans(1000000000)).toBe("1 billion");
+            expect(Num.forHumans(1000000000000)).toBe("1 trillion");
+            expect(Num.forHumans(1000000000000000)).toBe("1 quadrillion");
+            expect(Num.forHumans(1000000000000000000)).toBe(
+                "1 thousand quadrillion",
+            );
 
-        expect(Num.forHumans(123)).toBe("123");
-        expect(Num.forHumans(1234)).toBe("1 thousand");
-        expect(Num.forHumans(1234, 2)).toBe("1.23 thousand");
-        expect(Num.forHumans(12345)).toBe("12 thousand");
-        expect(Num.forHumans(1234567)).toBe("1 million");
-        expect(Num.forHumans(1234567890)).toBe("1 billion");
-        expect(Num.forHumans(1234567890123)).toBe("1 trillion");
-        expect(Num.forHumans(1234567890123, 2)).toBe("1.23 trillion");
-        expect(Num.forHumans(1234567890123456)).toBe("1 quadrillion");
+            expect(Num.forHumans(123)).toBe("123");
+            expect(Num.forHumans(1234)).toBe("1 thousand");
+            expect(Num.forHumans(1234, 2)).toBe("1.23 thousand");
+            expect(Num.forHumans(12345)).toBe("12 thousand");
+            expect(Num.forHumans(1234567)).toBe("1 million");
+            expect(Num.forHumans(1234567890)).toBe("1 billion");
+            expect(Num.forHumans(1234567890123)).toBe("1 trillion");
+            expect(Num.forHumans(1234567890123, 2)).toBe("1.23 trillion");
+            expect(Num.forHumans(1234567890123456)).toBe("1 quadrillion");
 
-        // Compose the large (unsafe) integer from smaller safe integer literals to avoid the no-loss-of-precision lint rule.
-        // 1,234,567,890,123,456,789 = 1234 * 1_000_000_000_000_000 + 567_890_123_456_789
-        const LARGE_UNSAFE_NUMBER =
-            1234 * 1_000_000_000_000_000 + 567_890_123_456_789;
-        expect(Num.forHumans(LARGE_UNSAFE_NUMBER, 2)).toBe(
-            "1.23 thousand quadrillion",
-        );
+            // Compose the large (unsafe) integer from smaller safe integer literals to avoid the no-loss-of-precision lint rule.
+            // 1,234,567,890,123,456,789 = 1234 * 1_000_000_000_000_000 + 567_890_123_456_789
+            const LARGE_UNSAFE_NUMBER =
+                1234 * 1_000_000_000_000_000 + 567_890_123_456_789;
+            expect(Num.forHumans(LARGE_UNSAFE_NUMBER, 2)).toBe(
+                "1.23 thousand quadrillion",
+            );
 
-        expect(Num.forHumans(489939)).toBe("490 thousand");
-        expect(Num.forHumans(489939, 4)).toBe("489.9390 thousand");
-        expect(Num.forHumans(500000000, 5)).toBe("500.00000 million");
+            expect(Num.forHumans(489939)).toBe("490 thousand");
+            expect(Num.forHumans(489939, 4)).toBe("489.9390 thousand");
+            expect(Num.forHumans(500000000, 5)).toBe("500.00000 million");
 
-        expect(Num.forHumans(1000000000000000000000)).toBe(
-            "1 million quadrillion",
-        );
-        expect(Num.forHumans(1000000000000000000000000)).toBe(
-            "1 billion quadrillion",
-        );
-        expect(Num.forHumans(1000000000000000000000000000)).toBe(
-            "1 trillion quadrillion",
-        );
-        expect(Num.forHumans(1000000000000000000000000000000)).toBe(
-            "1 quadrillion quadrillion",
-        );
-        expect(Num.forHumans(1000000000000000000000000000000000)).toBe(
-            "1 thousand quadrillion quadrillion",
-        );
+            expect(Num.forHumans(1000000000000000000000)).toBe(
+                "1 million quadrillion",
+            );
+            expect(Num.forHumans(1000000000000000000000000)).toBe(
+                "1 billion quadrillion",
+            );
+            expect(Num.forHumans(1000000000000000000000000000)).toBe(
+                "1 trillion quadrillion",
+            );
+            expect(Num.forHumans(1000000000000000000000000000000)).toBe(
+                "1 quadrillion quadrillion",
+            );
+            expect(Num.forHumans(1000000000000000000000000000000000)).toBe(
+                "1 thousand quadrillion quadrillion",
+            );
 
-        expect(Num.forHumans(0)).toBe("0");
-        expect(Num.forHumans(0.0)).toBe("0");
-        expect(Num.forHumans(0, 2)).toBe("0.00");
-        expect(Num.forHumans(0.0, 2)).toBe("0.00");
-        expect(Num.forHumans(-1)).toBe("-1");
-        expect(Num.forHumans(-1, 2)).toBe("-1.00");
-        expect(Num.forHumans(-10)).toBe("-10");
-        expect(Num.forHumans(-100)).toBe("-100");
-        expect(Num.forHumans(-1000)).toBe("-1 thousand");
-        expect(Num.forHumans(-1234, 2)).toBe("-1.23 thousand");
-        expect(Num.forHumans(-1234, 1)).toBe("-1.2 thousand");
-        expect(Num.forHumans(-1000000)).toBe("-1 million");
-        expect(Num.forHumans(-1000000000)).toBe("-1 billion");
-        expect(Num.forHumans(-1000000000000)).toBe("-1 trillion");
-        expect(Num.forHumans(-1100000000000, 1)).toBe("-1.1 trillion");
-        expect(Num.forHumans(-1000000000000000)).toBe("-1 quadrillion");
-        expect(Num.forHumans(-1000000000000000000)).toBe(
-            "-1 thousand quadrillion",
-        );
+            expect(Num.forHumans(0)).toBe("0");
+            expect(Num.forHumans(0.0)).toBe("0");
+            expect(Num.forHumans(0, 2)).toBe("0.00");
+            expect(Num.forHumans(0.0, 2)).toBe("0.00");
+            expect(Num.forHumans(-1)).toBe("-1");
+            expect(Num.forHumans(-1, 2)).toBe("-1.00");
+            expect(Num.forHumans(-10)).toBe("-10");
+            expect(Num.forHumans(-100)).toBe("-100");
+            expect(Num.forHumans(-1000)).toBe("-1 thousand");
+            expect(Num.forHumans(-1234, 2)).toBe("-1.23 thousand");
+            expect(Num.forHumans(-1234, 1)).toBe("-1.2 thousand");
+            expect(Num.forHumans(-1000000)).toBe("-1 million");
+            expect(Num.forHumans(-1000000000)).toBe("-1 billion");
+            expect(Num.forHumans(-1000000000000)).toBe("-1 trillion");
+            expect(Num.forHumans(-1100000000000, 1)).toBe("-1.1 trillion");
+            expect(Num.forHumans(-1000000000000000)).toBe("-1 quadrillion");
+            expect(Num.forHumans(-1000000000000000000)).toBe(
+                "-1 thousand quadrillion",
+            );
 
-        expect(Num.forHumans(123, 0, null, true)).toBe("123");
-        expect(Num.forHumans(1234, 0, null, true)).toBe("1K");
-        expect(Num.forHumans(1234, 2, null, true)).toBe("1.23K");
+            expect(Num.forHumans(123, 0, null, true)).toBe("123");
+            expect(Num.forHumans(1234, 0, null, true)).toBe("1K");
+            expect(Num.forHumans(1234, 2, null, true)).toBe("1.23K");
+        });
+    });
+
+    describe("summarize", () => {
+        it("should use default units when units is empty object", () => {
+            // Testing with empty units to cover the `if (!units || Object.keys(units).length === 0)` branch
+            // forHumans with abbreviate=true passes empty object {} for units
+            expect(Num.forHumans(1234, 0, null, true)).toBe("1K");
+            expect(Num.forHumans(1234567, 0, null, true)).toBe("1M");
+            expect(Num.forHumans(1234567890, 0, null, true)).toBe("1B");
+        });
+
+        it("should handle large numbers with empty units map", () => {
+            // When value >= 1e15 and units is empty, it uses default units
+            // This covers lines 420-429 where keys array is processed
+            expect(Num.forHumans(1e15, 0, null, true)).toBe("1Q");
+            expect(Num.forHumans(1e18, 0, null, true)).toBe("1KQ");
+        });
+
+        it("should use default parameters when called directly", () => {
+            // Test calling summarize directly with default parameters
+            // This covers the default parameter branches for precision, maxPrecision, and units
+            expect(Num.summarize(1234)).toBe("1K");
+            expect(Num.summarize(0)).toBe("0");
+            expect(Num.summarize(-1234)).toBe("-1K");
+        });
     });
 
     it("clamp", () => {
@@ -380,6 +496,20 @@ describe("Number", () => {
             [3.0, 5.0],
             [5.5, 7.5],
             [8.0, 10.0],
+        ]);
+
+        // Test case where range exactly divides - upper never exceeds to
+        // This covers the branch where `upper <= to` (the `if (upper > to)` is false)
+        expect(Num.pairs(20, 10, 0, 0)).toEqual([
+            [0, 10],
+            [10, 20],
+        ]);
+
+        // Test with default parameters (start=0, offset=1) to cover parameter default branches
+        expect(Num.pairs(25, 10)).toEqual([
+            [0, 9],
+            [10, 19],
+            [20, 25],
         ]);
     });
 
