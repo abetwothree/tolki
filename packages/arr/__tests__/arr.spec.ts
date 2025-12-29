@@ -269,14 +269,14 @@ describe("Arr", () => {
         // Test with object being passed (from() will return an object for objects with callback)
         const objectData = { a: 5, b: 15, c: 25 };
         const objectResult = Arr.first(
-            objectData as any,
+            objectData,
             (value: number) => value === 15,
         );
         expect(objectResult).toBe(15);
 
         // Test with object and no match - should return default
         const noMatchResult = Arr.first(
-            objectData as any,
+            objectData,
             (value: number) => value > 100,
             "default",
         );

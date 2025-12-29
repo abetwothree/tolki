@@ -5,8 +5,8 @@ import {
     randomString,
     rtrim,
     substr,
-    trim,
     title,
+    trim,
     upper,
 } from "@laravel-js/str";
 import { isArray } from "@laravel-js/utils";
