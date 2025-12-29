@@ -32,15 +32,17 @@ function computeIndents(value: string): {
     let baseIndent = 0;
     const origLines = value.split(/\r?\n/);
     for (const ln of origLines) {
-        if (!/\S/.test(ln)) continue; // skip empty/whitespace-only
+        if (!/\S/.test(ln)) {
+            continue; // skip empty/whitespace-only
+        }
         const m = ln.match(/^[ \t]*/);
-        baseIndent = m ? m[0]!.length : 0;
+        baseIndent = m![0]!.length;
         break;
     }
 
-    const lastLine = origLines.length ? origLines[origLines.length - 1]! : "";
+    const lastLine = origLines[origLines.length - 1]!;
     const tailMatch = lastLine.match(/^[ \t]*/);
-    const tailIndent = tailMatch ? tailMatch[0]!.length : 0;
+    const tailIndent = tailMatch![0]!.length;
 
     return { baseIndent, tailIndent };
 }
