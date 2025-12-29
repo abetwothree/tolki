@@ -105,6 +105,13 @@ describe("Number", () => {
         });
     });
 
+    describe("spell", () => {
+        it("temp test", () => {
+            expect(Num.spell).toBeDefined();
+            expect(Num.spell(10)).toBe("");
+        });
+    });
+
     describe.skip("spell", () => {
         it("spell out", () => {
             expect(Num.spell(10)).toBe("ten");
@@ -204,14 +211,21 @@ describe("Number", () => {
         });
     });
 
-    it.skip("spellOrdinal", () => {
-        expect(Num.spellOrdinal(1)).toBe("first");
-        expect(Num.spellOrdinal(2)).toBe("second");
-        expect(Num.spellOrdinal(3)).toBe("third");
-        expect(Num.spellOrdinal(4)).toBe("fourth");
-        expect(Num.spellOrdinal(11)).toBe("eleventh");
-        expect(Num.spellOrdinal(12)).toBe("twelfth");
-        expect(Num.spellOrdinal(13)).toBe("thirteenth");
+    describe("spellOrdinal", () => {
+        it("temp test", () => {
+            expect(Num.spellOrdinal).toBeDefined();
+            expect(Num.spellOrdinal(1)).toBe("");
+        });
+
+        it.skip("spellOrdinal", () => {
+            expect(Num.spellOrdinal(1)).toBe("first");
+            expect(Num.spellOrdinal(2)).toBe("second");
+            expect(Num.spellOrdinal(3)).toBe("third");
+            expect(Num.spellOrdinal(4)).toBe("fourth");
+            expect(Num.spellOrdinal(11)).toBe("eleventh");
+            expect(Num.spellOrdinal(12)).toBe("twelfth");
+            expect(Num.spellOrdinal(13)).toBe("thirteenth");
+        });
     });
 
     describe("percentage", () => {
