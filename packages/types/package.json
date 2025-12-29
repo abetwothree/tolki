@@ -10,5 +10,16 @@
     "keywords": [],
     "author": "",
     "license": "MIT",
-    "packageManager": "pnpm@10.12.1"
+    "packageManager": "pnpm@10.12.1",
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./src/index.d.ts"
+        },
+        "./*": {
+            "types": "./src/*.d.ts"
+        }
+    }
 }

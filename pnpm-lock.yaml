@@ -148,6 +148,9 @@ importers:
       "@laravel-js/utils":
         specifier: workspace:^
         version: link:../utils
+      "@types/markdown-it":
+        specifier: ^14.1.2
+        version: 14.1.2
       "@types/pluralize":
         specifier: ^0.0.33
         version: 0.0.33
@@ -175,10 +178,6 @@ importers:
       uuid:
         specifier: ^11.1.0
         version: 11.1.0
-    devDependencies:
-      "@types/markdown-it":
-        specifier: ^14.1.2
-        version: 14.1.2
 
   packages/types: {}
 
