@@ -202,18 +202,18 @@ Look at the package-docs.md file at the root for more details on the long term t
 
 Packages table layout:
 
-| Directory           | Package Name           | Description                                               |
-| ------------------- | ---------------------- | --------------------------------------------------------- |
-| packages/all        | @aid/all               | Meta package that includes all other packages             |
-| packages/arr        | @aid/arr               | Array helpers                                             |
-| packages/collection | @aid/collection        | Collection class and helpers                              |
-| packages/data       | @aid/data              | Helpers for working with arrays and objects               |
-| packages/num        | @aid/num               | Number helpers and formatting                             |
-| packages/obj        | @aid/obj               | Object helpers                                            |
-| packages/path       | @aid/path              | Path helpers for working with paths in objects and arrays |
-| packages/str        | @aid/str               | String helpers                                            |
-| packages/types      | @aid/types             | Type definitions and helpers                              |
-| packages/utils      | @aid/utils             | General utility functions                                 |
+| Directory           | Package Name    | Description                                               |
+| ------------------- | --------------- | --------------------------------------------------------- |
+| packages/all        | @aid/all        | Meta package that includes all other packages             |
+| packages/arr        | @aid/arr        | Array helpers                                             |
+| packages/collection | @aid/collection | Collection class and helpers                              |
+| packages/data       | @aid/data       | Helpers for working with arrays and objects               |
+| packages/num        | @aid/num        | Number helpers and formatting                             |
+| packages/obj        | @aid/obj        | Object helpers                                            |
+| packages/path       | @aid/path       | Path helpers for working with paths in objects and arrays |
+| packages/str        | @aid/str        | String helpers                                            |
+| packages/types      | @aid/types      | Type definitions and helpers                              |
+| packages/utils      | @aid/utils      | General utility functions                                 |
 
 Folder and root files list and description of each package:
 
