@@ -1,9 +1,6 @@
 name: Lint and format code style issues
 
-on:
-  push:
-    paths:
-      - '**'
+on: workflow_call
 
 permissions:
   contents: write
