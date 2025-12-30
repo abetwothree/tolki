@@ -1,4 +1,4 @@
-import * as Path from "@laravel-js/path";
+import * as Path from "@aid/path";
 import { describe, expect, it } from "vitest";
 
 describe("Path Functions", () => {

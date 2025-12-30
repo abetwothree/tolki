@@ -1,4 +1,4 @@
-import * as Utils from "@laravel-js/utils";
+import * as Utils from "@aid/utils";
 import { describe, expect, it } from "vitest";
 
 describe("Utils", () => {

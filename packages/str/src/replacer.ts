@@ -1,4 +1,4 @@
-import { isArray } from "@laravel-js/utils";
+import { isArray } from "@aid/utils";
 
 /**
  * Returns the portion of the string specified by the start and length parameters.

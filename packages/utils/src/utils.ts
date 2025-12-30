@@ -1,4 +1,4 @@
-import type { DataItems } from "@laravel-js/types";
+import type { DataItems } from "@aid/types";
 
 /**
  * Check if a value is an array.

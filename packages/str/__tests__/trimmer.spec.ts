@@ -1,4 +1,4 @@
-import { ltrim, rtrim, trim } from "@laravel-js/str";
+import { ltrim, rtrim, trim } from "@aid/str";
 import { describe, expect, it } from "vitest";
 
 describe("Str/Trimmer", () => {

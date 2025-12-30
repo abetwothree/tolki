@@ -1,4 +1,4 @@
-import { wrap as arrWrap } from "@laravel-js/arr";
+import { wrap as arrWrap } from "@aid/arr";
 import {
     dataAfter,
     dataBefore,
@@ -49,14 +49,14 @@ import {
     dataUndot,
     dataUnion,
     dataValues,
-} from "@laravel-js/data";
+} from "@aid/data";
 import type {
     Arrayable,
     ArrayItems,
     DataItems,
     PathKey,
     PathKeys,
-} from "@laravel-js/types";
+} from "@aid/types";
 import {
     compareValues,
     entriesKeyValue,
@@ -77,7 +77,7 @@ import {
     toJsonable,
     toJsonSerializable,
     typeOf,
-} from "@laravel-js/utils";
+} from "@aid/utils";
 
 // import { initProxyHandler } from "./proxy";
 

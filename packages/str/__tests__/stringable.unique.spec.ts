@@ -1,5 +1,5 @@
-import { Stringable } from "@laravel-js/str";
-import * as Str from "@laravel-js/str";
+import { Stringable } from "@aid/str";
+import * as Str from "@aid/str";
 import { describe, expect, it } from "vitest";
 
 // Helper to compare Stringable result to plain string

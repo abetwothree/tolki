@@ -1,5 +1,5 @@
 {
-    "name": "@laravel-js/arr",
+    "name": "@aid/arr",
     "version": "0.0.0",
     "description": "A utility for working with arrays.",
     "private": true,

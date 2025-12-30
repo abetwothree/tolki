@@ -409,7 +409,7 @@ function main() {
                 console.log(
                     `import { ${importableFunctions.join(
                         ", ",
-                    )} } from '@laravel-js/${packageName}';\n`,
+                    )} } from '@aid/${packageName}';\n`,
                 );
             }
         }

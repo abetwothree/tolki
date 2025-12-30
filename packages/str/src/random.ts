@@ -4,7 +4,7 @@
  * Uses a cryptographically secure RNG when available (Web Crypto / Node crypto).
  */
 
-import { bytesToBase64 } from "@laravel-js/str";
+import { bytesToBase64 } from "@aid/str";
 
 /**
  * Generate a more truly "random" alpha-numeric string (Laravel compatible algorithm).

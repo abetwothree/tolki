@@ -1,7 +1,7 @@
 import {
     flip as arrFlip,
     replaceRecursive as arrReplaceRecursive,
-} from "@laravel-js/arr";
+} from "@aid/arr";
 import {
     dotFlatten,
     forgetKeys,
@@ -10,8 +10,8 @@ import {
     hasObjectKey,
     setObjectValue,
     undotExpandObject,
-} from "@laravel-js/path";
-import { finish, randomInt } from "@laravel-js/str";
+} from "@aid/path";
+import { finish, randomInt } from "@aid/str";
 import {
     isArray,
     isBoolean,
@@ -29,7 +29,7 @@ import {
     isWeakMap,
     looseEqual,
     typeOf,
-} from "@laravel-js/utils";
+} from "@aid/utils";
 import type { PathKey, PathKeys } from "packages/types";
 
 /**

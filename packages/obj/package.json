@@ -1,5 +1,5 @@
 {
-    "name": "@laravel-js/obj",
+    "name": "@aid/obj",
     "version": "0.0.0",
     "description": "Utilities for working with JavaScript objects.",
     "private": true,

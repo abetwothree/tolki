@@ -24,7 +24,7 @@ import type {
     WithMax,
     WithMin,
     WithSum,
-} from "@laravel-js/types";
+} from "@aid/types";
 import { expectTypeOf, test } from "vitest";
 
 declare type Data = Record<string, unknown>[];

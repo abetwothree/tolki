@@ -1,5 +1,5 @@
-import { collect, Collection } from "@laravel-js/collection";
-import { Stringable } from "@laravel-js/str";
+import { collect, Collection } from "@aid/collection";
+import { Stringable } from "@aid/str";
 import { assertType, describe, expect, it } from "vitest";
 
 import {

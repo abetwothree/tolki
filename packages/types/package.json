@@ -1,5 +1,5 @@
 {
-    "name": "@laravel-js/types",
+    "name": "@aid/types",
     "version": "0.0.0",
     "description": "Utility TypeScript types for HTTP response from Laravel.",
     "type": "module",

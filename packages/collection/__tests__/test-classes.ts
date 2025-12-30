@@ -3,7 +3,7 @@ import type {
     IteratorAggregate,
     Jsonable,
     JsonSerializable,
-} from "@laravel-js/types";
+} from "@aid/types";
 
 /**
  * Test class that implements Arrayable interface

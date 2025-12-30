@@ -1,4 +1,4 @@
-import { random, randomInt, randomString } from "@laravel-js/str";
+import { random, randomInt, randomString } from "@aid/str";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const NodeBuffer = globalThis.Buffer;

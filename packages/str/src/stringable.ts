@@ -2,7 +2,7 @@ import type {
     ConvertCaseMode,
     MarkDownExtensions,
     MarkDownOptions,
-} from "@laravel-js/str";
+} from "@aid/str";
 import {
     after,
     afterLast,
@@ -92,8 +92,8 @@ import {
     words,
     wordWrap,
     wrap,
-} from "@laravel-js/str";
-import { isArray, isFunction, isInteger } from "@laravel-js/utils";
+} from "@aid/str";
+import { isArray, isFunction, isInteger } from "@aid/utils";
 
 export type ConditionableValue =
     | string

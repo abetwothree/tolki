@@ -1,5 +1,5 @@
 {
-    "name": "@laravel-js/collection",
+    "name": "@aid/collection",
     "version": "0.0.0",
     "description": "A collection utility similar to Laravel's Collection class.",
     "private": true,

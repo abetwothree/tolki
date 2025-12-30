@@ -1,5 +1,5 @@
 {
-    "name": "@laravel-js/all",
+    "name": "@aid/all",
     "version": "0.0.0",
     "description": "A wrapper package to use all Laravel JS utilities at once.",
     "private": true,

@@ -1,4 +1,4 @@
-import { lowerFirst, toLower, toUpper, upperFirst } from "@laravel-js/utils";
+import { lowerFirst, toLower, toUpper, upperFirst } from "@aid/utils";
 
 export const CaseTypes = {
     upper: "upper",

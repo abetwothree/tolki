@@ -1,5 +1,5 @@
 {
-    "name": "@laravel-js/utils",
+    "name": "@aid/utils",
     "version": "0.0.0",
     "description": "A set of utility functions for Laravel JavaScript packages.",
     "type": "module",

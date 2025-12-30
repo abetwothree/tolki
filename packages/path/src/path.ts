@@ -1,4 +1,4 @@
-import { wrap as arrWrap } from "@laravel-js/arr";
+import { wrap as arrWrap } from "@aid/arr";
 import {
     castableToArray,
     isArray,
@@ -13,7 +13,7 @@ import {
     isSymbol,
     isUndefined,
     typeOf,
-} from "@laravel-js/utils";
+} from "@aid/utils";
 import type { ArrayItems, PathKey, PathKeys } from "packages/types";
 
 /**

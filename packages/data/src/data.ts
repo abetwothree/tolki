@@ -74,7 +74,7 @@ import {
     where as arrWhere,
     whereNotNull as arrWhereNotNull,
     wrap as arrWrap,
-} from "@laravel-js/arr";
+} from "@aid/arr";
 import {
     add as objAdd,
     boolean as objBoolean,
@@ -152,7 +152,7 @@ import {
     values as objValues,
     where as objWhere,
     whereNotNull as objWhereNotNull,
-} from "@laravel-js/obj";
+} from "@aid/obj";
 import type {
     AddToArray,
     AddToObject,
@@ -161,14 +161,14 @@ import type {
     PathKey,
     PathKeys,
     UnwrapFn,
-} from "@laravel-js/types";
+} from "@aid/types";
 import {
     entriesKeyValue,
     isArray,
     isFunction,
     isObject,
     isUndefined,
-} from "@laravel-js/utils";
+} from "@aid/utils";
 
 /**
  * Add an element to data.

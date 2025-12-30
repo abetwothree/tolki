@@ -1,4 +1,4 @@
-import { isArray } from "@laravel-js/utils";
+import { isArray } from "@aid/utils";
 import MarkdownIt, {
     type Options as MarkdownItOptions,
     type PluginSimple,

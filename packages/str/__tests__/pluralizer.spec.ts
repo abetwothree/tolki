@@ -1,4 +1,4 @@
-import * as Str from "@laravel-js/str";
+import * as Str from "@aid/str";
 import { describe, expect, it } from "vitest";
 
 describe("Str/Pluralizer", () => {

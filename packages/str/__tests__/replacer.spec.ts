@@ -1,4 +1,4 @@
-import { substr, substrCount, substrReplace } from "@laravel-js/str";
+import { substr, substrCount, substrReplace } from "@aid/str";
 import { describe, expect, it } from "vitest";
 
 describe("Str/Replacer", () => {

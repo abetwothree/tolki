@@ -1,5 +1,5 @@
 {
-    "name": "@laravel-js/str",
+    "name": "@aid/str",
     "version": "0.0.0",
     "description": "A string utility similar to Laravel's Str class facade.",
     "main": "src/index.ts",
@@ -12,8 +12,8 @@
     "license": "MIT",
     "packageManager": "pnpm@10.12.1",
     "dependencies": {
-        "@laravel-js/num": "workspace:^",
-        "@laravel-js/utils": "workspace:^",
+        "@aid/num": "workspace:^",
+        "@aid/utils": "workspace:^",
         "@types/markdown-it": "^14.1.2",
         "@types/pluralize": "^0.0.33",
         "any-ascii": "^0.3.3",

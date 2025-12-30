@@ -1,5 +1,5 @@
-import { format as numberFormat } from "@laravel-js/num";
-import { isUndefined } from "@laravel-js/utils";
+import { format as numberFormat } from "@aid/num";
+import { isUndefined } from "@aid/utils";
 import pluralize from "pluralize";
 
 export interface PluralizerRules {

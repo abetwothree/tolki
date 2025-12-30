@@ -1,4 +1,4 @@
-import { replaceRecursive as objReplaceRecursive } from "@laravel-js/obj";
+import { replaceRecursive as objReplaceRecursive } from "@aid/obj";
 import {
     dotFlatten,
     forgetKeys,
@@ -10,14 +10,14 @@ import {
     setMixed,
     setMixedImmutable,
     undotExpandArray,
-} from "@laravel-js/path";
-import { finish, randomInt } from "@laravel-js/str";
+} from "@aid/path";
+import { finish, randomInt } from "@aid/str";
 import type {
     ArrayInnerValue,
     ArrayItems,
     PathKey,
     PathKeys,
-} from "@laravel-js/types";
+} from "@aid/types";
 import {
     castableToArray,
     compareValues,
@@ -38,7 +38,7 @@ import {
     isWeakMap,
     looseEqual,
     typeOf,
-} from "@laravel-js/utils";
+} from "@aid/utils";
 
 /**
  * Determine whether the given value is array accessible.

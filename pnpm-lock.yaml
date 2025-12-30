@@ -22,34 +22,34 @@ importers:
       "@eslint/markdown":
         specifier: ^7.5.1
         version: 7.5.1
-      "@laravel-js/all":
+      "@aid/all":
         specifier: workspace:^
         version: link:packages/all
-      "@laravel-js/arr":
+      "@aid/arr":
         specifier: workspace:^
         version: link:packages/arr
-      "@laravel-js/collection":
+      "@aid/collection":
         specifier: workspace:^
         version: link:packages/collection
-      "@laravel-js/data":
+      "@aid/data":
         specifier: workspace:^
         version: link:packages/data
-      "@laravel-js/num":
+      "@aid/num":
         specifier: workspace:^
         version: link:packages/num
-      "@laravel-js/obj":
+      "@aid/obj":
         specifier: workspace:^
         version: link:packages/obj
-      "@laravel-js/path":
+      "@aid/path":
         specifier: workspace:^
         version: link:packages/path
-      "@laravel-js/str":
+      "@aid/str":
         specifier: workspace:^
         version: link:packages/str
-      "@laravel-js/types":
+      "@aid/types":
         specifier: workspace:^
         version: link:packages/types
-      "@laravel-js/utils":
+      "@aid/utils":
         specifier: workspace:^
         version: link:packages/utils
       "@oxlint/migrate":
@@ -142,10 +142,10 @@ importers:
 
   packages/str:
     dependencies:
-      "@laravel-js/num":
+      "@aid/num":
         specifier: workspace:^
         version: link:../num
-      "@laravel-js/utils":
+      "@aid/utils":
         specifier: workspace:^
         version: link:../utils
       "@types/markdown-it":
