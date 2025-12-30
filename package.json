@@ -5,6 +5,7 @@
     "type": "module",
     "private": true,
     "scripts": {
+        "ci:publish": "pnpm publish -r ",
         "build": "run-s build:*",
         "build:arr": "pnpm -F @laravel-js/arr build",
         "build:collection": "pnpm -F @laravel-js/collection build",
