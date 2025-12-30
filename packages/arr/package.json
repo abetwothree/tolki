@@ -2,6 +2,7 @@
     "name": "@laravel-js/arr",
     "version": "0.0.0",
     "description": "A utility for working with arrays.",
+    "private": true,
     "type": "module",
     "main": "src/index.ts",
     "scripts": {

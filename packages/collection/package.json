@@ -2,6 +2,7 @@
     "name": "@laravel-js/collection",
     "version": "0.0.0",
     "description": "A collection utility similar to Laravel's Collection class.",
+    "private": true,
     "type": "module",
     "main": "src/index.ts",
     "scripts": {

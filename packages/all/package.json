@@ -2,6 +2,7 @@
     "name": "@laravel-js/all",
     "version": "0.0.0",
     "description": "A wrapper package to use all Laravel JS utilities at once.",
+    "private": true,
     "type": "module",
     "main": "src/index.ts",
     "scripts": {

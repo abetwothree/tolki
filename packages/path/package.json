@@ -2,6 +2,7 @@
     "name": "@laravel-js/path",
     "version": "0.0.0",
     "description": "Utilities for working with path-based operations across arrays/objects.",
+    "private": true,
     "type": "module",
     "main": "src/index.ts",
     "scripts": {
