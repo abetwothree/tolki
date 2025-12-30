@@ -11,5 +11,24 @@
     "keywords": [],
     "author": "",
     "license": "MIT",
-    "packageManager": "pnpm@10.12.1"
+    "packageManager": "pnpm@10.12.1",
+    "files": [
+        "dist"
+    ],
+    "publishConfig": {
+        "main": "dist/index.js",
+        "types": "dist/index.d.ts",
+        "exports": {
+            ".": {
+                "import": "./dist/index.js",
+                "require": "./dist/index.js",
+                "types": "./dist/index.d.ts"
+            },
+            "./*": {
+                "import": "./dist/*.js",
+                "require": "./dist/*.js",
+                "types": "./dist/*.d.ts"
+            }
+        }
+    }
 }
