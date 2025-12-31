@@ -1,5 +1,11 @@
 # @zinaid/num
 
+## 0.0.3
+
+### Patch Changes
+
+- 3f9637d: Test publishing from CI
+
 ## 0.0.2
 
 ### Patch Changes

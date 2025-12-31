@@ -1,6 +1,6 @@
 {
     "name": "@zinaid/types",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "Utility TypeScript types for @zinaid packages and Laravel HTTP responses.",
     "type": "module",
     "types": "src/index.d.ts",

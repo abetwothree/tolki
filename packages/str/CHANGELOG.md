@@ -1,5 +1,14 @@
 # @zinaid/str
 
+## 0.0.3
+
+### Patch Changes
+
+- 3f9637d: Test publishing from CI
+- Updated dependencies [3f9637d]
+  - @zinaid/num@0.0.3
+  - @zinaid/utils@0.0.3
+
 ## 0.0.2
 
 ### Patch Changes

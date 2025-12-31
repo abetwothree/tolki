@@ -1,6 +1,6 @@
 {
     "name": "@zinaid/utils",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "A set of utility functions for the @zinaid packages.",
     "type": "module",
     "main": "src/index.ts",
