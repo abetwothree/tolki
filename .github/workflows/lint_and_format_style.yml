@@ -26,10 +26,10 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
-        
+
       - name: Lint Code
         run: pnpm run lint
-    
+
       - name: Format Code
         run: pnpm run format
 
