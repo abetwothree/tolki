@@ -47,5 +47,4 @@ jobs:
         run: pnpm ci:publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          SECRETS: ${{ secrets }}
           NPM_CONFIG_PROVENANCE: true
