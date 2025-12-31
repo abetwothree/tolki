@@ -39,7 +39,7 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          version: pnpm changeset version
+          version: pnpm document:version
 
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v6
