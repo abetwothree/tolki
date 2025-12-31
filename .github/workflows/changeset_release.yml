@@ -29,12 +29,10 @@ jobs:
         with:
           node-version-file: ".node-version"
           cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: pnpm install
-
-      - name: Build Packages
-        run: pnpm build
 
       - name: Version packages
         run: pnpm document:version
@@ -44,10 +42,11 @@ jobs:
         with:
           commit_message: Versions packages via changesets
 
-      - name: Version packages
-        id: publish
-        uses: changesets/action@v1
-        with:
-          publish: pnpm ci:publish
+      - name: Build Packages
+        run: pnpm build
+
+      - name: Publish packages
+        run: pnpm ci:publish
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
