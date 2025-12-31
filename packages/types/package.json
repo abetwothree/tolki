@@ -1,7 +1,7 @@
 {
     "name": "@aid/types",
-    "version": "0.0.0",
-    "description": "Utility TypeScript types for HTTP response from Laravel.",
+    "version": "0.0.1",
+    "description": "Utility TypeScript types for @aid packages and Laravel HTTP responses.",
     "type": "module",
     "types": "src/index.d.ts",
     "scripts": {

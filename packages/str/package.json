@@ -1,7 +1,7 @@
 {
     "name": "@aid/str",
-    "version": "0.0.0",
-    "description": "A string utility similar to Laravel's Str class facade.",
+    "version": "0.0.1",
+    "description": "Utilities for working with strings similar to Laravel's Str & Stringable classes.",
     "main": "src/index.ts",
     "type": "module",
     "scripts": {

@@ -1,7 +1,7 @@
 {
     "name": "@aid/num",
-    "version": "0.0.0",
-    "description": "A utility for working with numbers.",
+    "version": "0.0.1",
+    "description": "Utilities for working with numbers similar to Laravel's Num class facade.",
     "type": "module",
     "main": "src/index.ts",
     "scripts": {
