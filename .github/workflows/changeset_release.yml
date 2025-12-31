@@ -7,9 +7,6 @@ permissions:
   packages: write
   id-token: write
 
-env:
-  CI: true
-
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -50,4 +47,5 @@ jobs:
         run: pnpm ci:publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          SECRETS: ${{ secrets }}
           NPM_CONFIG_PROVENANCE: true
