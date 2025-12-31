@@ -5,7 +5,7 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "ci:publish": "pnpm publish -r --access=public --dry-run",
+        "ci:publish": "pnpm publish -r --access=public",
         "ci:publish-arr": "pnpm publish --filter @aid/arr --access=public",
         "ci:publish-collection": "pnpm publish --filter @aid/collection --access=public",
         "ci:publish-data": "pnpm publish --filter @aid/data --access=public",
