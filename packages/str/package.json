@@ -1,6 +1,6 @@
 {
     "name": "@zinaid/str",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Utilities for working with strings similar to Laravel's Str & Stringable classes.",
     "main": "src/index.ts",
     "type": "module",
@@ -10,20 +10,47 @@
     "keywords": [],
     "author": "",
     "license": "MIT",
+    "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
     "dependencies": {
         "@zinaid/num": "workspace:^",
-        "@zinaid/utils": "workspace:^",
-        "@types/markdown-it": "^14.1.2",
-        "@types/pluralize": "^0.0.33",
-        "any-ascii": "^0.3.3",
+        "@zinaid/utils": "workspace:^"
+    },
+    "peerDependencies": {
         "markdown-it": "^14.1.0",
         "markdown-it-anchor": "^9.2.0",
         "markdown-it-task-lists": "^2.1.1",
         "pluralize": "^8.0.0",
+        "any-ascii": "^0.3.3",
         "transliteration": "^2.3.5",
         "ulid": "^2.4.0",
         "uuid": "^11.1.0"
+    },
+    "peerDependenciesMeta": {
+        "markdown-it": {
+            "optional": true
+        },
+        "markdown-it-anchor": {
+            "optional": true
+        },
+        "markdown-it-task-lists": {
+            "optional": true
+        },
+        "pluralize": {
+            "optional": true
+        },
+        "any-ascii": {
+            "optional": true
+        },
+        "transliteration": {
+            "optional": true
+        },
+        "ulid": {
+            "optional": true
+        },
+        "uuid": {
+            "optional": true
+        }
     },
     "files": [
         "dist"
@@ -37,10 +64,41 @@
                 "require": "./dist/index.js",
                 "types": "./dist/index.d.ts"
             },
-            "./*": {
-                "import": "./dist/*.js",
-                "require": "./dist/*.js",
-                "types": "./dist/*.d.ts"
+            "./base64": {
+                "import": "./dist/base64.js",
+                "types": "./dist/base64.d.ts"
+            },
+            "./convertcase": {
+                "import": "./dist/convertcase.js",
+                "types": "./dist/convertcase.d.ts"
+            },
+            "./markdown": {
+                "import": "./dist/markdown.js",
+                "types": "./dist/markdown.d.ts"
+            },
+            "./pluralizer": {
+                "import": "./dist/pluralizer.js",
+                "types": "./dist/pluralizer.d.ts"
+            },
+            "./random": {
+                "import": "./dist/random.js",
+                "types": "./dist/random.d.ts"
+            },
+            "./replacer": {
+                "import": "./dist/replacer.js",
+                "types": "./dist/replacer.d.ts"
+            },
+            "./str": {
+                "import": "./dist/str.js",
+                "types": "./dist/str.d.ts"
+            },
+            "./stringable": {
+                "import": "./dist/stringable.js",
+                "types": "./dist/stringable.d.ts"
+            },
+            "./trimmer": {
+                "import": "./dist/trimmer.js",
+                "types": "./dist/trimmer.d.ts"
             }
         }
     }

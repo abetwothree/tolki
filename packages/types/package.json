@@ -1,6 +1,6 @@
 {
     "name": "@zinaid/types",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Utility TypeScript types for @zinaid packages and Laravel HTTP responses.",
     "type": "module",
     "types": "src/index.d.ts",
@@ -10,6 +10,7 @@
     "keywords": [],
     "author": "",
     "license": "MIT",
+    "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
     "files": [
         "dist"
@@ -18,8 +19,35 @@
         ".": {
             "types": "./src/index.d.ts"
         },
-        "./*": {
-            "types": "./src/*.d.ts"
+        "./arrays": {
+            "types": "./src/arrays.d.ts"
+        },
+        "./collections": {
+            "types": "./src/collections.d.ts"
+        },
+        "./data": {
+            "types": "./src/data.d.ts"
+        },
+        "./models": {
+            "types": "./src/models.d.ts"
+        },
+        "./objects": {
+            "types": "./src/objects.d.ts"
+        },
+        "./pagination": {
+            "types": "./src/pagination.d.ts"
+        },
+        "./path-type": {
+            "types": "./src/path-type.d.ts"
+        },
+        "./responses": {
+            "types": "./src/responses.d.ts"
+        },
+        "./strings": {
+            "types": "./src/strings.d.ts"
+        },
+        "./utils": {
+            "types": "./src/utils.d.ts"
         }
     }
 }

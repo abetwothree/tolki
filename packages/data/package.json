@@ -11,6 +11,7 @@
     "keywords": [],
     "author": "",
     "license": "MIT",
+    "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
     "files": [
         "dist"
@@ -24,10 +25,9 @@
                 "require": "./dist/index.js",
                 "types": "./dist/index.d.ts"
             },
-            "./*": {
-                "import": "./dist/*.js",
-                "require": "./dist/*.js",
-                "types": "./dist/*.d.ts"
+            "./data": {
+                "import": "./dist/data.js",
+                "types": "./dist/data.d.ts"
             }
         }
     }

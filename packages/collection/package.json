@@ -11,6 +11,7 @@
     "keywords": [],
     "author": "",
     "license": "MIT",
+    "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
     "files": [
         "dist"
@@ -24,10 +25,13 @@
                 "require": "./dist/index.js",
                 "types": "./dist/index.d.ts"
             },
-            "./*": {
-                "import": "./dist/*.js",
-                "require": "./dist/*.js",
-                "types": "./dist/*.d.ts"
+            "./collection": {
+                "import": "./dist/collection.js",
+                "types": "./dist/collection.d.ts"
+            },
+            "./proxy": {
+                "import": "./dist/proxy.js",
+                "types": "./dist/proxy.d.ts"
             }
         }
     }

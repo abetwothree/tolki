@@ -1,6 +1,6 @@
 {
     "name": "@zinaid/utils",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "A set of utility functions for the @zinaid packages.",
     "type": "module",
     "main": "src/index.ts",
@@ -10,6 +10,7 @@
     "keywords": [],
     "author": "",
     "license": "MIT",
+    "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
     "files": [
         "dist"
@@ -23,10 +24,9 @@
                 "require": "./dist/index.js",
                 "types": "./dist/index.d.ts"
             },
-            "./*": {
-                "import": "./dist/*.js",
-                "require": "./dist/*.js",
-                "types": "./dist/*.d.ts"
+            "./utils": {
+                "import": "./dist/utils.js",
+                "types": "./dist/utils.d.ts"
             }
         }
     }
