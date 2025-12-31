@@ -5,7 +5,7 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "ci:publish": "pnpm publish -r --access=public",
+        "ci:publish": "pnpm publish -r --access=public --no-git-checks --report-summary",
         "ci:publish-arr": "pnpm publish --filter @zinaid/arr --access=public",
         "ci:publish-collection": "pnpm publish --filter @zinaid/collection --access=public",
         "ci:publish-data": "pnpm publish --filter @zinaid/data --access=public",

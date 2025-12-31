@@ -35,17 +35,16 @@ jobs:
       - name: Version packages
         run: pnpm document:version
 
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v6
-        with:
-          commit_message: Versions packages via changesets
-
       - name: Build Packages
         run: pnpm build:num && pnpm build:str && pnpm build:utils
 
       - name: Publish packages
         run: pnpm ci:publish
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: Versions packages via changesets
