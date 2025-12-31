@@ -14,6 +14,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    environment: CI
 
     steps:
       - name: Checkout code
@@ -43,7 +44,7 @@ jobs:
           commit_message: Versions packages via changesets
 
       - name: Build Packages
-        run: pnpm build
+        run: pnpm build:num && pnpm build:str && pnpm build:utils
 
       - name: Publish packages
         run: pnpm ci:publish
