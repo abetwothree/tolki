@@ -1,4 +1,4 @@
-import * as Utils from "@aid/utils";
+import * as Utils from "@zinaid/utils";
 import { describe, expect, it } from "vitest";
 
 describe("Utils", () => {

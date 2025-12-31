@@ -8,11 +8,11 @@
     "baseBranch": "master",
     "updateInternalDependencies": "patch",
     "ignore": [
-        "@aid/all",
-        "@aid/arr",
-        "@aid/collection",
-        "@aid/data",
-        "@aid/obj",
-        "@aid/path"
+        "@zinaid/all",
+        "@zinaid/arr",
+        "@zinaid/collection",
+        "@zinaid/data",
+        "@zinaid/obj",
+        "@zinaid/path"
     ]
 }

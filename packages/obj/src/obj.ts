@@ -1,7 +1,7 @@
 import {
     flip as arrFlip,
     replaceRecursive as arrReplaceRecursive,
-} from "@aid/arr";
+} from "@zinaid/arr";
 import {
     dotFlatten,
     forgetKeys,
@@ -10,8 +10,8 @@ import {
     hasObjectKey,
     setObjectValue,
     undotExpandObject,
-} from "@aid/path";
-import { finish, randomInt } from "@aid/str";
+} from "@zinaid/path";
+import { finish, randomInt } from "@zinaid/str";
 import {
     isArray,
     isBoolean,
@@ -29,7 +29,7 @@ import {
     isWeakMap,
     looseEqual,
     typeOf,
-} from "@aid/utils";
+} from "@zinaid/utils";
 import type { PathKey, PathKeys } from "packages/types";
 
 /**

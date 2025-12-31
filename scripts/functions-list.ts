@@ -409,7 +409,7 @@ function main() {
                 console.log(
                     `import { ${importableFunctions.join(
                         ", ",
-                    )} } from '@aid/${packageName}';\n`,
+                    )} } from '@zinaid/${packageName}';\n`,
                 );
             }
         }

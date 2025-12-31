@@ -1,5 +1,5 @@
 {
-    "name": "@aid/str",
+    "name": "@zinaid/str",
     "version": "0.0.1",
     "description": "Utilities for working with strings similar to Laravel's Str & Stringable classes.",
     "main": "src/index.ts",
@@ -12,8 +12,8 @@
     "license": "MIT",
     "packageManager": "pnpm@10.12.1",
     "dependencies": {
-        "@aid/num": "workspace:^",
-        "@aid/utils": "workspace:^",
+        "@zinaid/num": "workspace:^",
+        "@zinaid/utils": "workspace:^",
         "@types/markdown-it": "^14.1.2",
         "@types/pluralize": "^0.0.33",
         "any-ascii": "^0.3.3",

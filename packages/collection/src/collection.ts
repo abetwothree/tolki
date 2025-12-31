@@ -1,4 +1,4 @@
-import { wrap as arrWrap } from "@aid/arr";
+import { wrap as arrWrap } from "@zinaid/arr";
 import {
     dataAfter,
     dataBefore,
@@ -49,14 +49,14 @@ import {
     dataUndot,
     dataUnion,
     dataValues,
-} from "@aid/data";
+} from "@zinaid/data";
 import type {
     Arrayable,
     ArrayItems,
     DataItems,
     PathKey,
     PathKeys,
-} from "@aid/types";
+} from "@zinaid/types";
 import {
     compareValues,
     entriesKeyValue,
@@ -77,7 +77,7 @@ import {
     toJsonable,
     toJsonSerializable,
     typeOf,
-} from "@aid/utils";
+} from "@zinaid/utils";
 
 // import { initProxyHandler } from "./proxy";
 

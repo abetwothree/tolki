@@ -1,4 +1,4 @@
-import { random, randomInt, randomString } from "@aid/str";
+import { random, randomInt, randomString } from "@zinaid/str";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const NodeBuffer = globalThis.Buffer;

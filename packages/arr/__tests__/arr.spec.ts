@@ -1,5 +1,5 @@
-import * as Arr from "@aid/arr";
-import { isArray } from "@aid/utils";
+import * as Arr from "@zinaid/arr";
+import { isArray } from "@zinaid/utils";
 import { describe, expect, it } from "vitest";
 
 describe("Arr", () => {

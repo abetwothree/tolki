@@ -1,4 +1,4 @@
-# @aid/utils
+# @zinaid/utils
 
 ## 0.0.1
 

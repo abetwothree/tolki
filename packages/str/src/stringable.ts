@@ -2,7 +2,7 @@ import type {
     ConvertCaseMode,
     MarkDownExtensions,
     MarkDownOptions,
-} from "@aid/str";
+} from "@zinaid/str";
 import {
     after,
     afterLast,
@@ -92,8 +92,8 @@ import {
     words,
     wordWrap,
     wrap,
-} from "@aid/str";
-import { isArray, isFunction, isInteger } from "@aid/utils";
+} from "@zinaid/str";
+import { isArray, isFunction, isInteger } from "@zinaid/utils";
 
 export type ConditionableValue =
     | string

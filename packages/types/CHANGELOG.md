@@ -1,4 +1,4 @@
-# @aid/types
+# @zinaid/types
 
 ## 0.0.1
 

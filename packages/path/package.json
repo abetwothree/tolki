@@ -1,5 +1,5 @@
 {
-    "name": "@aid/path",
+    "name": "@zinaid/path",
     "version": "0.0.0",
     "description": "Utilities for working with path-based operations across arrays/objects.",
     "private": true,

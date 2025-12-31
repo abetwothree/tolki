@@ -1,4 +1,4 @@
-import { lowerFirst, toLower, toUpper, upperFirst } from "@aid/utils";
+import { lowerFirst, toLower, toUpper, upperFirst } from "@zinaid/utils";
 
 export const CaseTypes = {
     upper: "upper",

@@ -1,4 +1,4 @@
-# @aid/num
+# @zinaid/num
 
 ## 0.0.1
 

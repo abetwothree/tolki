@@ -1,4 +1,4 @@
-import { Speller } from "@aid/num";
+import { Speller } from "@zinaid/num";
 import { describe, expect, it } from "vitest";
 
 // Smoke tests to cover the speller class and its constructor path

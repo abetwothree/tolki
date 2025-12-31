@@ -1,4 +1,4 @@
-import type { PropertyName, ProxyTarget } from "@aid/types";
+import type { PropertyName, ProxyTarget } from "@zinaid/types";
 
 export function initProxyHandler<TValue>() {
     const handler: ProxyHandler<ProxyTarget> = {

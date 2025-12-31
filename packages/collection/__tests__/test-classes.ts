@@ -3,7 +3,7 @@ import type {
     IteratorAggregate,
     Jsonable,
     JsonSerializable,
-} from "@aid/types";
+} from "@zinaid/types";
 
 /**
  * Test class that implements Arrayable interface

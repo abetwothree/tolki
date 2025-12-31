@@ -1,4 +1,4 @@
-# @aid/str
+# @zinaid/str
 
 ## 0.0.1
 
@@ -6,5 +6,5 @@
 
 - c7fcc01: Test initial releasing
 - Updated dependencies \[c7fcc01\]
-  - @aid/num@0.0.1
-  - @aid/utils@0.0.1
+  - @zinaid/num@0.0.1
+  - @zinaid/utils@0.0.1

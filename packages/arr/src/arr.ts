@@ -1,4 +1,4 @@
-import { replaceRecursive as objReplaceRecursive } from "@aid/obj";
+import { replaceRecursive as objReplaceRecursive } from "@zinaid/obj";
 import {
     dotFlatten,
     forgetKeys,
@@ -10,14 +10,14 @@ import {
     setMixed,
     setMixedImmutable,
     undotExpandArray,
-} from "@aid/path";
-import { finish, randomInt } from "@aid/str";
+} from "@zinaid/path";
+import { finish, randomInt } from "@zinaid/str";
 import type {
     ArrayInnerValue,
     ArrayItems,
     PathKey,
     PathKeys,
-} from "@aid/types";
+} from "@zinaid/types";
 import {
     castableToArray,
     compareValues,
@@ -38,7 +38,7 @@ import {
     isWeakMap,
     looseEqual,
     typeOf,
-} from "@aid/utils";
+} from "@zinaid/utils";
 
 /**
  * Determine whether the given value is array accessible.

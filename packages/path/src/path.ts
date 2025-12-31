@@ -1,4 +1,4 @@
-import { wrap as arrWrap } from "@aid/arr";
+import { wrap as arrWrap } from "@zinaid/arr";
 import {
     castableToArray,
     isArray,
@@ -13,7 +13,7 @@ import {
     isSymbol,
     isUndefined,
     typeOf,
-} from "@aid/utils";
+} from "@zinaid/utils";
 import type { ArrayItems, PathKey, PathKeys } from "packages/types";
 
 /**

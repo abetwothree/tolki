@@ -1,4 +1,4 @@
-import * as Str from "@aid/str";
+import * as Str from "@zinaid/str";
 import { describe, expect, it } from "vitest";
 
 describe("Str/Pluralizer", () => {

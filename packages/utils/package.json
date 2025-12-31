@@ -1,7 +1,7 @@
 {
-    "name": "@aid/utils",
+    "name": "@zinaid/utils",
     "version": "0.0.1",
-    "description": "A set of utility functions for the @aid packages.",
+    "description": "A set of utility functions for the @zinaid packages.",
     "type": "module",
     "main": "src/index.ts",
     "scripts": {

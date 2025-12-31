@@ -22,34 +22,34 @@ importers:
       "@eslint/markdown":
         specifier: ^7.5.1
         version: 7.5.1
-      "@aid/all":
+      "@zinaid/all":
         specifier: workspace:^
         version: link:packages/all
-      "@aid/arr":
+      "@zinaid/arr":
         specifier: workspace:^
         version: link:packages/arr
-      "@aid/collection":
+      "@zinaid/collection":
         specifier: workspace:^
         version: link:packages/collection
-      "@aid/data":
+      "@zinaid/data":
         specifier: workspace:^
         version: link:packages/data
-      "@aid/num":
+      "@zinaid/num":
         specifier: workspace:^
         version: link:packages/num
-      "@aid/obj":
+      "@zinaid/obj":
         specifier: workspace:^
         version: link:packages/obj
-      "@aid/path":
+      "@zinaid/path":
         specifier: workspace:^
         version: link:packages/path
-      "@aid/str":
+      "@zinaid/str":
         specifier: workspace:^
         version: link:packages/str
-      "@aid/types":
+      "@zinaid/types":
         specifier: workspace:^
         version: link:packages/types
-      "@aid/utils":
+      "@zinaid/utils":
         specifier: workspace:^
         version: link:packages/utils
       "@oxlint/migrate":
@@ -142,10 +142,10 @@ importers:
 
   packages/str:
     dependencies:
-      "@aid/num":
+      "@zinaid/num":
         specifier: workspace:^
         version: link:../num
-      "@aid/utils":
+      "@zinaid/utils":
         specifier: workspace:^
         version: link:../utils
       "@types/markdown-it":

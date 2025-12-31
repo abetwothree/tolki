@@ -1,5 +1,5 @@
-import { format as numberFormat } from "@aid/num";
-import { isUndefined } from "@aid/utils";
+import { format as numberFormat } from "@zinaid/num";
+import { isUndefined } from "@zinaid/utils";
 import pluralize from "pluralize";
 
 export interface PluralizerRules {

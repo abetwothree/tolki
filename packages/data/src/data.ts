@@ -74,7 +74,7 @@ import {
     where as arrWhere,
     whereNotNull as arrWhereNotNull,
     wrap as arrWrap,
-} from "@aid/arr";
+} from "@zinaid/arr";
 import {
     add as objAdd,
     boolean as objBoolean,
@@ -152,7 +152,7 @@ import {
     values as objValues,
     where as objWhere,
     whereNotNull as objWhereNotNull,
-} from "@aid/obj";
+} from "@zinaid/obj";
 import type {
     AddToArray,
     AddToObject,
@@ -161,14 +161,14 @@ import type {
     PathKey,
     PathKeys,
     UnwrapFn,
-} from "@aid/types";
+} from "@zinaid/types";
 import {
     entriesKeyValue,
     isArray,
     isFunction,
     isObject,
     isUndefined,
-} from "@aid/utils";
+} from "@zinaid/utils";
 
 /**
  * Add an element to data.

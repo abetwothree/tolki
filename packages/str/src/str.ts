@@ -8,8 +8,8 @@ import {
     title,
     trim,
     upper,
-} from "@aid/str";
-import { isArray, isFunction, isString, toLower } from "@aid/utils";
+} from "@zinaid/str";
+import { isArray, isFunction, isString, toLower } from "@zinaid/utils";
 import anyAscii from "any-ascii";
 import { transliterate as transliteration } from "transliteration";
 import { ulid as createUlid } from "ulid";

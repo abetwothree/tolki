@@ -1,4 +1,4 @@
-import * as Num from "@aid/num";
+import * as Num from "@zinaid/num";
 import { describe, expect, it } from "vitest";
 
 describe("Number", () => {

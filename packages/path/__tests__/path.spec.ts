@@ -1,4 +1,4 @@
-import * as Path from "@aid/path";
+import * as Path from "@zinaid/path";
 import { describe, expect, it } from "vitest";
 
 describe("Path Functions", () => {
