@@ -6,7 +6,7 @@
     "private": true,
     "scripts": {
         "release": "pnpm build:num && pnpm build:str && pnpm build:utils && pnpm ci:publish",
-        "ci:publish": "pnpm publish -r --access=public --no-git-checks --report-summary",
+        "ci:publish": "pnpm publish -r --access=public --no-git-checks",
         "ci:publish-arr": "pnpm publish --filter @zinaid/arr --access=public",
         "ci:publish-collection": "pnpm publish --filter @zinaid/collection --access=public",
         "ci:publish-data": "pnpm publish --filter @zinaid/data --access=public",
