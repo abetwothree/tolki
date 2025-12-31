@@ -16,6 +16,12 @@
     "files": [
         "dist"
     ],
+    "dependencies": {
+        "@zinaid/num": "workspace:^",
+        "@zinaid/str": "workspace:^",
+        "@zinaid/types": "workspace:^",
+        "@zinaid/utils": "workspace:^"
+    },
     "publishConfig": {
         "main": "dist/index.js",
         "types": "dist/index.d.ts",
