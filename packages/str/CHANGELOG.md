@@ -1,11 +1,20 @@
 # @zinaid/str
 
+## 0.0.4
+
+### Patch Changes
+
+- Test making dependencies optional properly and only complain about 3rd party packages until used
+- Updated dependencies
+  - @zinaid/utils@0.0.4
+  - @zinaid/num@0.0.4
+
 ## 0.0.3
 
 ### Patch Changes
 
 - 3f9637d: Test publishing from CI
-- Updated dependencies [3f9637d]
+- Updated dependencies \[3f9637d\]
   - @zinaid/num@0.0.3
   - @zinaid/utils@0.0.3
 

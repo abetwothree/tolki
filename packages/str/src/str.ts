@@ -10,17 +10,66 @@ import {
     upper,
 } from "@zinaid/str";
 import { isArray, isFunction, isString, toLower } from "@zinaid/utils";
-import anyAscii from "any-ascii";
-import { transliterate as transliteration } from "transliteration";
-import { ulid as createUlid } from "ulid";
-import {
-    MAX as UUID_MAX,
-    NIL as UUID_NIL,
-    v4 as uuidv4,
-    v7 as uuidv7,
-    validate as uuidValidate,
-    version as uuidVersion,
-} from "uuid";
+import { optionalRequire } from "@zinaid/utils";
+
+/**
+ * Lazily load any-ascii and throw helpful error if not installed
+ */
+function loadAnyAscii(): typeof import("any-ascii").default {
+    return optionalRequire<{ default: typeof import("any-ascii").default }>(
+        "any-ascii",
+        'The "any-ascii" package is required for ASCII transliteration. ' +
+            "Please install it: npm install any-ascii",
+    ).default;
+}
+
+/**
+ * Lazily load transliteration and throw helpful error if not installed
+ */
+function loadTransliteration(): typeof import("transliteration").transliterate {
+    return optionalRequire<typeof import("transliteration")>(
+        "transliteration",
+        'The "transliteration" package is required for transliteration. ' +
+            "Please install it: npm install transliteration",
+    ).transliterate;
+}
+
+/**
+ * Lazily load ulid and throw helpful error if not installed
+ */
+function loadUlid(): typeof import("ulid").ulid {
+    return optionalRequire<typeof import("ulid")>(
+        "ulid",
+        'The "ulid" package is required for ULID generation. ' +
+            "Please install it: npm install ulid",
+    ).ulid;
+}
+
+/**
+ * Lazily load uuid functions and throw helpful error if not installed
+ */
+function loadUuid(): {
+    v4: typeof import("uuid").v4;
+    v7: typeof import("uuid").v7;
+    validate: typeof import("uuid").validate;
+    version: typeof import("uuid").version;
+    NIL: string;
+    MAX: string;
+} {
+    const uuid = optionalRequire<typeof import("uuid")>(
+        "uuid",
+        'The "uuid" package is required for UUID functions. ' +
+            "Please install it: npm install uuid",
+    );
+    return {
+        v4: uuid.v4,
+        v7: uuid.v7,
+        validate: uuid.validate,
+        version: uuid.version,
+        NIL: uuid.NIL,
+        MAX: uuid.MAX,
+    };
+}
 
 /**
  * The cache of snake-cased words.
@@ -103,7 +152,7 @@ export function afterLast(subject: string, search: string | number): string {
  * ascii('Héllo Wörld'); -> 'Hello World'
  */
 export function ascii(value: string): string {
-    return transliteration(value);
+    return loadTransliteration()(value);
 }
 
 /**
@@ -114,7 +163,7 @@ export function ascii(value: string): string {
  * transliterate('ⓣⓔⓢⓣ@ⓛⓐⓡⓐⓥⓔⓛ.ⓒⓞⓜ'); -> 'test@laravel.com'
  */
 export function transliterate(value: string): string {
-    return anyAscii(value);
+    return loadAnyAscii()(value);
 }
 
 /**
@@ -708,9 +757,11 @@ export function isUuid(
         return false;
     }
 
+    const uuid = loadUuid();
+
     // Quick fail if not a valid UUID at all when version is specified (or will be needed).
     // When version is null we keep Laravel's looser regex behavior (already close to validate())
-    if (version !== null && !uuidValidate(value)) {
+    if (version !== null && !uuid.validate(value)) {
         return false;
     }
 
@@ -723,11 +774,11 @@ export function isUuid(
 
     // Normalize special versions
     if (version === 0 || version === "nil") {
-        return value.toLowerCase() === UUID_NIL;
+        return value.toLowerCase() === uuid.NIL;
     }
 
     if (version === "max") {
-        return value.toLowerCase() === UUID_MAX;
+        return value.toLowerCase() === uuid.MAX;
     }
 
     // Numeric version bounds (Laravel supports 1..8 currently). Reject out of range.
@@ -736,7 +787,7 @@ export function isUuid(
     }
 
     // Ensure it's a valid UUID string (already validated above for non-null) and compare versions.
-    return uuidVersion(value) === version;
+    return uuid.version(value) === version;
 }
 
 /**
@@ -2590,7 +2641,7 @@ export function wordWrap(
  * uuid(); -> "550e8400-e29b-41d4-a716-446655440000"
  */
 export function uuid(): string {
-    return uuidFactory ? uuidFactory() : uuidv4();
+    return uuidFactory ? uuidFactory() : loadUuid().v4();
 }
 
 /**
@@ -2601,7 +2652,7 @@ export function uuid(): string {
  * uuid7(); -> "550e8400-e29b-41d4-a716-446655440000"
  */
 export function uuid7() {
-    return uuidFactory ? uuidFactory() : uuidv7();
+    return uuidFactory ? uuidFactory() : loadUuid().v7();
 }
 
 /**
@@ -2698,6 +2749,8 @@ export function ulid(time: Date | number | null = null): string {
     if (ulidFactory) {
         return ulidFactory();
     }
+
+    const createUlid = loadUlid();
 
     if (time === null || time === undefined) {
         return createUlid();

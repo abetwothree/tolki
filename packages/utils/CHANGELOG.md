@@ -1,5 +1,11 @@
 # @zinaid/utils
 
+## 0.0.4
+
+### Patch Changes
+
+- Test making dependencies optional properly and only complain about 3rd party packages until used
+
 ## 0.0.3
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
     "name": "@zinaid/num",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Utilities for working with numbers similar to Laravel's Num class facade.",
     "type": "module",
     "main": "src/index.ts",
@@ -12,6 +12,12 @@
     "license": "MIT",
     "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
+    "dependencies": {
+        "@zinaid/utils": "workspace:^"
+    },
+    "devDependencies": {
+        "to-words": "^4.7.0"
+    },
     "peerDependencies": {
         "to-words": "^4.7.0"
     },

@@ -5,7 +5,7 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "release": "pnpm build:num && pnpm build:str && pnpm build:utils && pnpm ci:publish",
+        "release": "pnpm test && pnpm build:num && pnpm build:str && pnpm build:utils && pnpm document:version && pnpm ci:publish",
         "ci:publish": "pnpm publish -r --access=public --no-git-checks",
         "ci:publish-arr": "pnpm publish --filter @zinaid/arr --access=public",
         "ci:publish-collection": "pnpm publish --filter @zinaid/collection --access=public",
@@ -24,7 +24,7 @@
         "build:path": "pnpm -F @zinaid/path build",
         "build:str": "pnpm -F @zinaid/str build",
         "build:utils": "pnpm -F @zinaid/utils build",
-        "document:add": "pnpx @changesets/cli add",
+        "document:change": "pnpx @changesets/cli add",
         "document:version": "pnpx @changesets/cli version",
         "document:publish": "pnpx @changesets/cli publish",
         "format": "npx prettier --write . --cache",
