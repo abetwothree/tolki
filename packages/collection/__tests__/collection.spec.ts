@@ -5944,7 +5944,7 @@ describe("Collection", () => {
                 class TestCollectionSubclass extends Collection<
                     unknown,
                     string
-                > { }
+                > {}
 
                 const innerCollection = Collection.make(["foo"]);
                 const data = TestCollectionSubclass.wrap(innerCollection);
@@ -6407,7 +6407,7 @@ describe("Collection", () => {
 
         it("returns the same collection instance", () => {
             const c = collect([[1, 2]]);
-            const returned = c.eachSpread(() => { });
+            const returned = c.eachSpread(() => {});
             expect(returned).toBe(c);
         });
 
