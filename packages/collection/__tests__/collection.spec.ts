@@ -2998,6 +2998,18 @@ describe("Collection", () => {
             expect(data.nth(4, -2).all()).toEqual(["e"]);
             expect(data.nth(2, -2).all()).toEqual(["e"]);
         });
+
+        it("throws exception for invalid step", () => {
+            expect(() => {
+                collect([1, 2, 3]).nth(0);
+            }).toThrowError("Step value must be at least 1.");
+        });
+
+        it("throws exception for negative step", () => {
+            expect(() => {
+                collect([1, 2, 3]).nth(-1);
+            }).toThrowError("Step value must be at least 1.");
+        });
     });
 
     describe("only", () => {
@@ -4690,6 +4702,18 @@ describe("Collection", () => {
                         .toArray(),
                 ).toEqual([]);
             });
+
+            it("throws exception for invalid number of groups", () => {
+                expect(() => {
+                    collect([1, 2, 3]).split(0);
+                }).toThrowError("Number of groups must be at least 1.");
+            });
+
+            it("throws exception for negative number of groups", () => {
+                expect(() => {
+                    collect([1, 2, 3]).split(-1);
+                }).toThrowError("Number of groups must be at least 1.");
+            });
         });
     });
 
@@ -4705,6 +4729,18 @@ describe("Collection", () => {
                 expect(split.get(0).values().toArray()).toEqual([1, 2, 3, 4]);
                 expect(split.get(1).values().toArray()).toEqual([5, 6, 7, 8]);
                 expect(split.get(2).values().toArray()).toEqual([9, 10]);
+            });
+
+            it("throws exception for invalid number of groups", () => {
+                expect(() => {
+                    collect([1, 2, 3]).splitIn(0);
+                }).toThrowError("Number of groups must be at least 1.");
+            });
+
+            it("throws exception for negative number of groups", () => {
+                expect(() => {
+                    collect([1, 2, 3]).splitIn(-1);
+                }).toThrowError("Number of groups must be at least 1.");
             });
         });
     });
@@ -5908,7 +5944,7 @@ describe("Collection", () => {
                 class TestCollectionSubclass extends Collection<
                     unknown,
                     string
-                > {}
+                > { }
 
                 const innerCollection = Collection.make(["foo"]);
                 const data = TestCollectionSubclass.wrap(innerCollection);
@@ -6371,7 +6407,7 @@ describe("Collection", () => {
 
         it("returns the same collection instance", () => {
             const c = collect([[1, 2]]);
-            const returned = c.eachSpread(() => {});
+            const returned = c.eachSpread(() => { });
             expect(returned).toBe(c);
         });
 

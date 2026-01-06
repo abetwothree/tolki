@@ -166,6 +166,11 @@ describe("Str tests", () => {
 
     it("chopStart", () => {
         const data: [string, string | string[], string][] = [
+            // Empty string needle tests
+            ["", "", ""],
+            ["Laravel", "", "Laravel"],
+            ["Ship it", ["", "Ship "], "it"],
+            // Standard tests
             ["http://laravel.com", "http://", "laravel.com"],
             ["http://-http://", "http://", "-http://"],
             ["http://laravel.com", "htp:/", "http://laravel.com"],
@@ -198,6 +203,11 @@ describe("Str tests", () => {
 
     it("chopEnd", () => {
         const data: [string, string | string[], string][] = [
+            // Empty string needle tests
+            ["", "", ""],
+            ["Laravel", "", "Laravel"],
+            ["Ship it", ["", " it"], "Ship"],
+            // Standard tests
             ["path/to/file.php", ".php", "path/to/file"],
             [".php-.php", ".php", ".php-"],
             ["path/to/file.php", ".ph", "path/to/file.php"],

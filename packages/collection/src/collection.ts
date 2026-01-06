@@ -711,8 +711,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const items = this.map(
             this.valueRetriever(
                 callback as
-                    | PathKey
-                    | ((...args: (TValue | TKey)[]) => TMapValue),
+                | PathKey
+                | ((...args: (TValue | TKey)[]) => TMapValue),
             ),
         );
 
@@ -888,8 +888,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
             const values = isArray(items)
                 ? items
                 : isObject(items)
-                  ? Object.values(items)
-                  : [items];
+                    ? Object.values(items)
+                    : [items];
 
             for (let item of values) {
                 // Convert Collection instances to their items
@@ -1065,8 +1065,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         groupByValue = this.valueRetriever(
             groupByValue as
-                | PathKey
-                | ((...args: (TValue | TKey)[]) => TGroupKey),
+            | PathKey
+            | ((...args: (TValue | TKey)[]) => TGroupKey),
         ) as (value: TValue, key: TKey) => TGroupKey;
 
         const results = {} as Record<TGroupKey, Collection<TValue, TKey>>;
@@ -1972,6 +1972,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * collect(new Map([[6, "a"], [4, "b"], [7, "c"], [1, "d"], [5, "e"], [3, "f"]])).nth(4).all() -> ["a", "e"]
      */
     nth(step: number, offset: number = 0): Collection<TValue[], number> {
+        if (step < 1) {
+            throw new Error("Step value must be at least 1.");
+        }
+
         const newItems = [];
 
         let position = 0;
@@ -2694,6 +2698,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).split(5); -> new Collection([ new Collection([1]), new Collection([2]), new Collection([3]) ])
      */
     split(numberOfGroups: number) {
+        if (numberOfGroups < 1) {
+            throw new Error("Number of groups must be at least 1.");
+        }
+
         const groups = new Collection();
 
         if (this.isEmpty()) {
@@ -2736,6 +2744,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).splitIn(5); -> new Collection([ new Collection([1]), new Collection([2]), new Collection([3]) ])
      */
     splitIn(numberOfGroups: number) {
+        if (numberOfGroups < 1) {
+            throw new Error("Number of groups must be at least 1.");
+        }
+
         return this.chunk(Math.ceil(this.count() / numberOfGroups));
     }
 
@@ -2763,10 +2775,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             filter = isNull(key)
                 ? key
                 : (this.valueRetriever(
-                      key as
-                          | PathKey
-                          | ((...args: (TValue | TKey)[]) => boolean),
-                  ) as (value: TValue, key: TKey) => boolean);
+                    key as
+                    | PathKey
+                    | ((...args: (TValue | TKey)[]) => boolean),
+                ) as (value: TValue, key: TKey) => boolean);
         } else {
             filter = this.operatorForWhere(
                 key,
@@ -2815,10 +2827,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             filter = isNull(key)
                 ? key
                 : (this.valueRetriever(
-                      key as
-                          | PathKey
-                          | ((...args: (TValue | TKey)[]) => boolean),
-                  ) as (value: TValue, key: TKey) => boolean);
+                    key as
+                    | PathKey
+                    | ((...args: (TValue | TKey)[]) => boolean),
+                ) as (value: TValue, key: TKey) => boolean);
         } else {
             filter = this.operatorForWhere(
                 key,
@@ -2931,11 +2943,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
     sortBy<TSortValue>(
         callback:
             | Array<
-                  | ((a: TValue, b: TValue) => TSortValue)
-                  | ((item: TValue, key: TKey) => TSortValue)
-                  | PathKey
-                  | [PathKey, PathKey]
-              >
+                | ((a: TValue, b: TValue) => TSortValue)
+                | ((item: TValue, key: TKey) => TSortValue)
+                | PathKey
+                | [PathKey, PathKey]
+            >
             | ((item: TValue, key: TKey) => TSortValue)
             | PathKey,
         descending: boolean = false,
@@ -3117,11 +3129,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
     sortByDesc<TSortValue>(
         callback:
             | Array<
-                  | ((a: TValue, b: TValue) => TSortValue)
-                  | ((item: TValue, key: TKey) => TSortValue)
-                  | PathKey
-                  | [PathKey, PathKey]
-              >
+                | ((a: TValue, b: TValue) => TSortValue)
+                | ((item: TValue, key: TKey) => TSortValue)
+                | PathKey
+                | [PathKey, PathKey]
+            >
             | ((item: TValue, key: TKey) => TSortValue)
             | PathKey,
     ) {
@@ -3576,8 +3588,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const callback = this.valueRetriever(
             countByValue as
-                | PathKey
-                | ((...args: (TValue | TKey)[]) => TCountByResult),
+            | PathKey
+            | ((...args: (TValue | TKey)[]) => TCountByResult),
         );
 
         for (const [key, value] of Object.entries(this.items)) {
@@ -4140,8 +4152,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const types = isArray(type)
             ? type
             : isObject(type)
-              ? Object.values(type)
-              : [type];
+                ? Object.values(type)
+                : [type];
 
         return this.each((item, index) => {
             const itemType = typeOf(item);
@@ -4258,8 +4270,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
     ) {
         const callbackValue = this.valueRetriever(
             callback as
-                | PathKey
-                | ((...args: (TMinValue | TMinKey)[]) => number),
+            | PathKey
+            | ((...args: (TMinValue | TMinKey)[]) => number),
         );
 
         return this.map((value: TValue) => callbackValue(value))
@@ -4284,8 +4296,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
     ) {
         const callbackValue = this.valueRetriever(
             callback as
-                | PathKey
-                | ((...args: (TMaxValue | TMaxKey)[]) => number),
+            | PathKey
+            | ((...args: (TMaxValue | TMaxKey)[]) => number),
         );
 
         return this.reject((value: TValue) => isNull(value)).reduce(
@@ -4383,10 +4395,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const callbackValue = isNull(callback)
             ? this.identity()
             : this.valueRetriever(
-                  callback as
-                      | PathKey
-                      | ((...args: (TValue | TKey)[]) => TReturnType),
-              );
+                callback as
+                | PathKey
+                | ((...args: (TValue | TKey)[]) => TReturnType),
+            );
 
         return this.reduce((carry, value, key) => {
             const result = callbackValue(value, key) as number;
@@ -4590,7 +4602,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return (
                 compareValues(itemValue, valuesArray[0]) < 0 ||
                 compareValues(itemValue, valuesArray[valuesArray.length - 1]) >
-                    0
+                0
             );
         });
     }
@@ -5031,28 +5043,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
                         !isNull(retrieved) &&
                         !isNull(value) &&
                         (retrieved as number | string) <
-                            (value as number | string)
+                        (value as number | string)
                     );
                 case ">":
                     return (
                         !isNull(retrieved) &&
                         !isNull(value) &&
                         (retrieved as number | string) >
-                            (value as number | string)
+                        (value as number | string)
                     );
                 case "<=":
                     return (
                         !isNull(retrieved) &&
                         !isNull(value) &&
                         (retrieved as number | string) <=
-                            (value as number | string)
+                        (value as number | string)
                     );
                 case ">=":
                     return (
                         !isNull(retrieved) &&
                         !isNull(value) &&
                         (retrieved as number | string) >=
-                            (value as number | string)
+                        (value as number | string)
                     );
                 case "===":
                     return retrieved === value;
@@ -5062,12 +5074,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     return (
                         (!isNull(retrieved) && !isNull(value)
                             ? (retrieved as number | string) <
-                              (value as number | string)
+                                (value as number | string)
                                 ? -1
                                 : (retrieved as number | string) >
                                     (value as number | string)
-                                  ? 1
-                                  : 0
+                                    ? 1
+                                    : 0
                             : 0) !== 0
                     );
             }
