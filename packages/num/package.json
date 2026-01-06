@@ -39,6 +39,11 @@
                 "require": "./dist/index.js",
                 "types": "./dist/index.d.ts"
             },
+            "./*": {
+                "import": "./dist/*",
+                "require": "./dist/*",
+                "types": "./dist/*"
+            },
             "./num": {
                 "import": "./dist/num.js",
                 "types": "./dist/num.d.ts"
