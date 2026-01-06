@@ -53,7 +53,7 @@ function loadMarkdownItTaskLists(): typeof import("markdown-it-task-lists").defa
         'The "markdown-it-task-lists" package is required for GFM task list support. ' +
             "Please install it: npm install markdown-it-task-lists",
     );
-    
+
     // Handle both ESM default export and CommonJS module.exports
     return "default" in mod ? mod.default : mod;
 }
