@@ -5,7 +5,8 @@
     "type": "module",
     "main": "src/index.ts",
     "scripts": {
-        "build": "vite build"
+        "build": "vite build",
+        "prepack": "pnpm run build"
     },
     "keywords": [],
     "author": "",

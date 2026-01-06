@@ -1,11 +1,12 @@
 {
     "name": "@zinaid/num",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "description": "Utilities for working with numbers similar to Laravel's Num class facade.",
     "type": "module",
     "main": "src/index.ts",
     "scripts": {
-        "build": "vite build"
+        "build": "vite build",
+        "prepack": "pnpm run build"
     },
     "keywords": [],
     "author": "",

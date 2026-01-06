@@ -23,8 +23,7 @@ jobs:
       contents: write
   release:
     if: ${{ startsWith(github.event.head_commit.message, 'release:') && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-    uses: ./.github/workflows/changeset_release.yml
+    uses: ./.github/workflows/publish.yml
     permissions:
       contents: write
-      packages: write
       id-token: write

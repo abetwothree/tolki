@@ -5,7 +5,7 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "release": "pnpm test && pnpm build:num && pnpm build:str && pnpm build:utils && pnpm document:version && pnpm ci:publish",
+        "release": "pnpm test && pnpm document:version && pnpm ci:publish",
         "ci:publish": "pnpm publish -r --access=public --no-git-checks",
         "ci:publish-arr": "pnpm publish --filter @zinaid/arr --access=public",
         "ci:publish-collection": "pnpm publish --filter @zinaid/collection --access=public",

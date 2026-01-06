@@ -1,23 +1,19 @@
-name: Changeset Release
+name: Publish Packages
 
 on: workflow_call
 
 permissions:
   contents: write
-  packages: write
   id-token: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    environment: CI
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.head_ref }}
+          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4.1.0
@@ -26,8 +22,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: ".node-version"
-          cache: "pnpm"
           registry-url: https://registry.npmjs.org
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install
@@ -35,14 +31,9 @@ jobs:
       - name: Version packages
         run: pnpm document:version
 
-      - name: Build Packages
-        run: pnpm build:num && pnpm build:str && pnpm build:utils
-
       - name: Publish packages
         run: pnpm ci:publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
