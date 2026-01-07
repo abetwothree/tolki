@@ -26,7 +26,6 @@
         "build:utils": "pnpm -F @zinaid/utils build",
         "document:change": "pnpx @changesets/cli add",
         "document:version": "pnpx @changesets/cli version",
-        "document:publish": "pnpx @changesets/cli publish",
         "format": "npx prettier --write . --cache",
         "format:check": "npx prettier --check .",
         "lint": "run-s lint:*",

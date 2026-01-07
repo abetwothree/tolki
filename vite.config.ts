@@ -42,6 +42,7 @@ export default defineConfig({
                 "transliteration",
                 "ulid",
                 "uuid",
+                "to-words",
             ],
         },
     },
@@ -61,7 +62,7 @@ export default defineConfig({
             thresholds: {
                 autoUpdate: true,
                 statements: 97.6,
-                branches: 91.7,
+                branches: 91.72,
                 functions: 99.79,
                 lines: 97.8,
             },

@@ -1,5 +1,11 @@
 # @zinaid/num
 
+## 0.0.6
+
+### Patch Changes
+
+- Test out making speller its own smaller module
+
 ## 0.0.4
 
 ### Patch Changes

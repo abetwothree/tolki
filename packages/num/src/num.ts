@@ -10,6 +10,11 @@ let _currency: string = "USD";
 
 /**
  * Format the given number according to the current locale.
+ * 
+ * @param number The number to format.
+ * @param precision The number of decimal places to use.
+ * @param maxPrecision The maximum number of decimal places to use.
+ * @param locale The locale to use for formatting.
  *
  * @example
  *
