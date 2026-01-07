@@ -97,6 +97,10 @@
         },
         {
             "files": ["**/*.{js,mjs,cjs,ts,mts,cts}"],
+            "globals": {
+                "CSSStyleProperties": "readonly",
+                "Temporal": "readonly"
+            },
             "env": {
                 "browser": true
             }
