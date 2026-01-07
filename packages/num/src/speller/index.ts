@@ -1,5 +1,5 @@
 import type { ToWords as ToWordsType } from "to-words";
-import { ToWords } from 'to-words';
+import { ToWords } from "to-words";
 
 export class Speller {
     protected toWords: ToWordsType | undefined;
@@ -15,7 +15,6 @@ export class Speller {
         return this.getToWords().convert(num);
     }
 }
-
 
 /**
  * Spell out the given number in the given locale.

@@ -4,6 +4,44 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  num:
+    to-words:
+      specifier: ^4.7.0
+      version: 4.9.0
+  str:
+    any-ascii:
+      specifier: ^0.3.3
+      version: 0.3.3
+    markdown-it:
+      specifier: ^14.1.0
+      version: 14.1.0
+    markdown-it-anchor:
+      specifier: ^9.2.0
+      version: 9.2.0
+    markdown-it-task-lists:
+      specifier: ^2.1.1
+      version: 2.1.1
+    pluralize:
+      specifier: ^8.0.0
+      version: 8.0.0
+    transliteration:
+      specifier: ^2.3.5
+      version: 2.6.0
+    ulid:
+      specifier: ^2.4.0
+      version: 2.4.0
+    uuid:
+      specifier: ^11.1.0
+      version: 11.1.0
+  types:
+    "@types/markdown-it":
+      specifier: ^14.1.2
+      version: 14.1.2
+    "@types/pluralize":
+      specifier: ^0.0.33
+      version: 0.0.33
+
 importers:
   .:
     devDependencies:
@@ -177,8 +215,8 @@ importers:
         version: link:../utils
     devDependencies:
       to-words:
-        specifier: ^4.7.0
-        version: 4.7.0
+        specifier: catalog:num
+        version: 4.9.0
 
   packages/obj: {}
 
@@ -194,34 +232,34 @@ importers:
         version: link:../utils
     devDependencies:
       "@types/markdown-it":
-        specifier: ^14.1.2
+        specifier: catalog:types
         version: 14.1.2
       "@types/pluralize":
-        specifier: ^0.0.33
+        specifier: catalog:types
         version: 0.0.33
       any-ascii:
-        specifier: ^0.3.3
+        specifier: catalog:str
         version: 0.3.3
       markdown-it:
-        specifier: ^14.1.0
+        specifier: catalog:str
         version: 14.1.0
       markdown-it-anchor:
-        specifier: ^9.2.0
+        specifier: catalog:str
         version: 9.2.0(@types/markdown-it@14.1.2)(markdown-it@14.1.0)
       markdown-it-task-lists:
-        specifier: ^2.1.1
+        specifier: catalog:str
         version: 2.1.1
       pluralize:
-        specifier: ^8.0.0
+        specifier: catalog:str
         version: 8.0.0
       transliteration:
-        specifier: ^2.3.5
-        version: 2.3.5
+        specifier: catalog:str
+        version: 2.6.0
       ulid:
-        specifier: ^2.4.0
+        specifier: catalog:str
         version: 2.4.0
       uuid:
-        specifier: ^11.1.0
+        specifier: catalog:str
         version: 11.1.0
 
   packages/types: {}
@@ -2619,13 +2657,6 @@ packages:
       }
     engines: { node: ">=8" }
 
-  cliui@8.0.1:
-    resolution:
-      {
-        integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==,
-      }
-    engines: { node: ">=12" }
-
   color-convert@2.0.1:
     resolution:
       {
@@ -2817,12 +2848,6 @@ packages:
     resolution:
       {
         integrity: sha512-0Drusm6MVRXSOJpGbaSVgcQsuB4hEkMpHXaVstcPmhu5LIedxs1xNK/nIxmQIU/RPC0+1/o0AVZfBTkTNJOdUw==,
-      }
-
-  emoji-regex@8.0.0:
-    resolution:
-      {
-        integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==,
       }
 
   enquirer@2.4.1:
@@ -3168,13 +3193,6 @@ packages:
       }
     engines: { node: ">=6.9.0" }
 
-  get-caller-file@2.0.5:
-    resolution:
-      {
-        integrity: sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==,
-      }
-    engines: { node: 6.* || 8.* || >= 10.* }
-
   github-slugger@2.0.0:
     resolution:
       {
@@ -3375,13 +3393,6 @@ packages:
         integrity: sha512-SbKbANkN603Vi4jEZv49LeVJMn4yGwsbzZworEoyEiutsN3nJYdbO36zfhGJ6QEDpOZIFkDtnq5JRxmvl3jsoQ==,
       }
     engines: { node: ">=0.10.0" }
-
-  is-fullwidth-code-point@3.0.0:
-    resolution:
-      {
-        integrity: sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==,
-      }
-    engines: { node: ">=8" }
 
   is-glob@4.0.3:
     resolution:
@@ -4488,13 +4499,6 @@ packages:
         integrity: sha512-6VwtthbV4o/7+OaAF9I5L5V3llLEsoPyq9P1JVXkedTP33c7MfCG0/5NOPcSJn0TzXcG9YUrR0gQSWioew3LDg==,
       }
 
-  require-directory@2.1.1:
-    resolution:
-      {
-        integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==,
-      }
-    engines: { node: ">=0.10.0" }
-
   require-from-string@2.0.2:
     resolution:
       {
@@ -4705,13 +4709,6 @@ packages:
       }
     engines: { node: ">=0.6.19" }
 
-  string-width@4.2.3:
-    resolution:
-      {
-        integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==,
-      }
-    engines: { node: ">=8" }
-
   stringify-entities@4.0.4:
     resolution:
       {
@@ -4848,13 +4845,6 @@ packages:
       }
     engines: { node: ">=8.0" }
 
-  to-words@4.7.0:
-    resolution:
-      {
-        integrity: sha512-A113L8FrmpHBTbH2Y/c7phYTpeVWYadbXFCAGrc4pnxGzC+x14ju44UO0+8HMJA9SlsuV2dS6UzrHT236SJenw==,
-      }
-    engines: { node: ">=12.0.0" }
-
   to-words@4.9.0:
     resolution:
       {
@@ -4882,14 +4872,6 @@ packages:
         integrity: sha512-bLVMLPtstlZ4iMQHpFHTR7GAGj2jxi8Dg0s2h2MafAE4uSWF98FC/3MomU51iQAMf8/qDUbKWf5GxuvvVcXEhw==,
       }
     engines: { node: ">=20" }
-
-  transliteration@2.3.5:
-    resolution:
-      {
-        integrity: sha512-HAGI4Lq4Q9dZ3Utu2phaWgtm3vB6PkLUFqWAScg/UW+1eZ/Tg6Exo4oC0/3VUol/w4BlefLhUUSVBr/9/ZGQOw==,
-      }
-    engines: { node: ">=6.0.0" }
-    hasBin: true
 
   transliteration@2.6.0:
     resolution:
@@ -5293,13 +5275,6 @@ packages:
       }
     engines: { node: ">=0.10.0" }
 
-  wrap-ansi@7.0.0:
-    resolution:
-      {
-        integrity: sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==,
-      }
-    engines: { node: ">=10" }
-
   ws@8.18.3:
     resolution:
       {
@@ -5328,13 +5303,6 @@ packages:
         integrity: sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==,
       }
 
-  y18n@5.0.8:
-    resolution:
-      {
-        integrity: sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==,
-      }
-    engines: { node: ">=10" }
-
   yallist@3.1.1:
     resolution:
       {
@@ -5346,20 +5314,6 @@ packages:
       {
         integrity: sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==,
       }
-
-  yargs-parser@21.1.1:
-    resolution:
-      {
-        integrity: sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==,
-      }
-    engines: { node: ">=12" }
-
-  yargs@17.7.2:
-    resolution:
-      {
-        integrity: sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w==,
-      }
-    engines: { node: ">=12" }
 
   yn@3.1.1:
     resolution:
@@ -6907,12 +6861,6 @@ snapshots:
 
   ci-info@3.9.0: {}
 
-  cliui@8.0.1:
-    dependencies:
-      string-width: 4.2.3
-      strip-ansi: 6.0.1
-      wrap-ansi: 7.0.0
-
   color-convert@2.0.1:
     dependencies:
       color-name: 1.1.4
@@ -6997,8 +6945,6 @@ snapshots:
   dotenv@17.2.3: {}
 
   electron-to-chromium@1.5.267: {}
-
-  emoji-regex@8.0.0: {}
 
   enquirer@2.4.1:
     dependencies:
@@ -7224,8 +7170,6 @@ snapshots:
 
   gensync@1.0.0-beta.2: {}
 
-  get-caller-file@2.0.5: {}
-
   github-slugger@2.0.0: {}
 
   glob-parent@5.1.2:
@@ -7337,8 +7281,6 @@ snapshots:
       hasown: 2.0.2
 
   is-extglob@2.1.1: {}
-
-  is-fullwidth-code-point@3.0.0: {}
 
   is-glob@4.0.3:
     dependencies:
@@ -8130,8 +8072,6 @@ snapshots:
     dependencies:
       regex-utilities: 2.3.0
 
-  require-directory@2.1.1: {}
-
   require-from-string@2.0.2: {}
 
   resolve-from@4.0.0: {}
@@ -8248,12 +8188,6 @@ snapshots:
 
   string-argv@0.3.2: {}
 
-  string-width@4.2.3:
-    dependencies:
-      emoji-regex: 8.0.0
-      is-fullwidth-code-point: 3.0.0
-      strip-ansi: 6.0.1
-
   stringify-entities@4.0.4:
     dependencies:
       character-entities-html4: 2.1.0
@@ -8316,8 +8250,6 @@ snapshots:
     dependencies:
       is-number: 7.0.0
 
-  to-words@4.7.0: {}
-
   to-words@4.9.0: {}
 
   totalist@3.0.1: {}
@@ -8329,10 +8261,6 @@ snapshots:
   tr46@6.0.0:
     dependencies:
       punycode: 2.3.1
-
-  transliteration@2.3.5:
-    dependencies:
-      yargs: 17.7.2
 
   transliteration@2.6.0: {}
 
@@ -8617,35 +8545,15 @@ snapshots:
 
   word-wrap@1.2.5: {}
 
-  wrap-ansi@7.0.0:
-    dependencies:
-      ansi-styles: 4.3.0
-      string-width: 4.2.3
-      strip-ansi: 6.0.1
-
   ws@8.18.3: {}
 
   xml-name-validator@5.0.0: {}
 
   xmlchars@2.2.0: {}
 
-  y18n@5.0.8: {}
-
   yallist@3.1.1: {}
 
   yallist@4.0.0: {}
-
-  yargs-parser@21.1.1: {}
-
-  yargs@17.7.2:
-    dependencies:
-      cliui: 8.0.1
-      escalade: 3.2.0
-      get-caller-file: 2.0.5
-      require-directory: 2.1.1
-      string-width: 4.2.3
-      y18n: 5.0.8
-      yargs-parser: 21.1.1
 
   yn@3.1.1: {}
 

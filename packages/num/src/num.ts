@@ -10,7 +10,7 @@ let _currency: string = "USD";
 
 /**
  * Format the given number according to the current locale.
- * 
+ *
  * @param number The number to format.
  * @param precision The number of decimal places to use.
  * @param maxPrecision The maximum number of decimal places to use.
@@ -51,7 +51,7 @@ export function format(
 
 /**
  * Parse the given string according to the specified format type.
- * 
+ *
  * @param value The string to parse.
  * @param locale The locale to use for parsing.
  * @returns The parsed number.
@@ -123,7 +123,7 @@ export function parse(value: string, locale: string | null = null): number {
 
 /**
  * Parse a string into an integer according to the specified locale.
- * 
+ *
  * @param value The string to parse.
  * @param locale The locale to use for parsing.
  * @returns The parsed integer or false if parsing fails.
@@ -161,7 +161,7 @@ export function parseFloat(
 
 /**
  * Convert the given number to ordinal form.
- * 
+ *
  * @param value The number to convert.
  * @param locale The locale to use for determining ordinal rules.
  * @returns The number in ordinal form.
@@ -217,7 +217,7 @@ export function ordinal(value: number, locale: string | null = null): string {
 
 /**
  * Convert the given number to its percentage equivalent.
- * 
+ *
  * @param number The number to convert.
  * @param precision The number of decimal places to use.
  * @param maxPrecision The maximum number of decimal places to use.
@@ -260,7 +260,7 @@ export function percentage(
 
 /**
  * Convert the given number to its currency equivalent.
- * 
+ *
  * @param amount The amount to convert.
  * @param currencyCode The currency code to use (e.g. "USD", "EUR").
  * @param locale The locale to use for formatting.
@@ -299,7 +299,7 @@ export function currency(
 
 /**
  * Convert the given number to its file size equivalent.
- * 
+ *
  * @param bytes The number of bytes.
  * @param precision The number of decimal places to use.
  * @param maxPrecision The maximum number of decimal places to use.
@@ -348,7 +348,7 @@ export function fileSize(
 
 /**
  * Convert the number to its human-readable equivalent.
- * 
+ *
  * @param value The number to convert.
  * @param precision The number of decimal places to use.
  * @param maxPrecision The maximum number of decimal places to use.
@@ -383,7 +383,7 @@ export function forHumans(
 
 /**
  * Convert the number to its human-readable equivalent.
- * 
+ *
  * @param value The number to convert.
  * @param precision The number of decimal places to use.
  * @param maxPrecision The maximum number of decimal places to use.
@@ -481,7 +481,7 @@ export function summarize(
 
 /**
  * Clamp the given number between the given minimum and maximum.
- * 
+ *
  * @param value The number to clamp.
  * @param min The minimum value.
  * @param max The maximum value.
@@ -499,7 +499,7 @@ export function clamp(value: number, min: number, max: number): number {
 
 /**
  * Split the given number into pairs of min/max values.
- * 
+ *
  * @param to The maximum value.
  * @param by The size of each pair.
  * @param start The starting value.
@@ -533,7 +533,7 @@ export function pairs(
 
 /**
  * Remove any trailing zero digits after the decimal point of the given number.
- * 
+ *
  * @param value The number to trim.
  * @returns The trimmed number.
  *
@@ -638,7 +638,7 @@ export function secondsToHuman(
 
 /**
  * Execute the given callback using the given locale.
- * 
+ *
  * @param locale The locale to use.
  * @param callback The callback to execute.
  * @returns The result of the callback.
@@ -663,7 +663,7 @@ export function withLocale(locale: string, callback: () => unknown): unknown {
 
 /**
  * Execute the given callback using the given currency.
- * 
+ *
  * @param currency The currency to use.
  * @param callback The callback to execute.
  * @returns The result of the callback.
@@ -691,7 +691,7 @@ export function withCurrency(
 
 /**
  * Set the default locale.
- * 
+ *
  * @param locale The locale to set.
  * @returns void
  */
@@ -701,7 +701,7 @@ export function useLocale(locale: string): void {
 
 /**
  * Set the default currency.
- * 
+ *
  * @param currency The currency to set.
  * @returns void
  */
@@ -711,9 +711,9 @@ export function useCurrency(currency: string): void {
 
 /**
  * Get the default locale.
- * 
+ *
  * @returns The default locale.
- * 
+ *
  * @example
  *
  * defaultLocale(); // "en"
@@ -724,7 +724,7 @@ export function defaultLocale(): string {
 
 /**
  * Get the default currency.
- * 
+ *
  * @returns The default currency.
  *
  * @example
