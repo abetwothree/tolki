@@ -1966,6 +1966,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param step - The step interval to take elements
      * @param offset - The offset to start from, defaults to 0
      * @returns A new collection with every n-th element
+     * @throws Error if step is less than 1
      *
      * @example
      *
@@ -2690,6 +2691,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param numberOfGroups - The number of groups to split into
      * @returns A new collection with the split groups
+     * @throws Error if numberOfGroups is less than 1
      *
      * @example
      *
@@ -2736,6 +2738,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param numberOfGroups - The number of groups to split into
      * @returns A new collection with the split groups
+     * @throws Error if numberOfGroups is less than 1
      *
      * @example
      *
