@@ -17,10 +17,10 @@
         "@zinaid/utils": "workspace:^"
     },
     "devDependencies": {
-        "to-words": "^4.7.0"
+        "to-words": "catalog:num"
     },
     "peerDependencies": {
-        "to-words": "^4.7.0"
+        "to-words": "catalog:num"
     },
     "peerDependenciesMeta": {
         "to-words": {

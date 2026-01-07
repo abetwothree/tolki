@@ -18,26 +18,28 @@
         "@zinaid/utils": "workspace:^"
     },
     "devDependencies": {
-        "@types/markdown-it": "^14.1.2",
-        "@types/pluralize": "^0.0.33",
-        "any-ascii": "^0.3.3",
-        "markdown-it": "^14.1.0",
-        "markdown-it-anchor": "^9.2.0",
-        "markdown-it-task-lists": "^2.1.1",
-        "pluralize": "^8.0.0",
-        "transliteration": "^2.3.5",
-        "ulid": "^2.4.0",
-        "uuid": "^11.1.0"
+        "@types/markdown-it": "catalog:types",
+        "@types/pluralize": "catalog:types",
+        "any-ascii": "catalog:str",
+        "markdown-it": "catalog:str",
+        "markdown-it-anchor": "catalog:str",
+        "markdown-it-task-lists": "catalog:str",
+        "pluralize": "catalog:str",
+        "transliteration": "catalog:str",
+        "ulid": "catalog:str",
+        "uuid": "catalog:str"
     },
     "peerDependencies": {
-        "markdown-it": "^14.1.0",
-        "markdown-it-anchor": "^9.2.0",
-        "markdown-it-task-lists": "^2.1.1",
-        "pluralize": "^8.0.0",
-        "any-ascii": "^0.3.3",
-        "transliteration": "^2.3.5",
-        "ulid": "^2.4.0",
-        "uuid": "^11.1.0"
+        "@types/markdown-it": "catalog:types",
+        "@types/pluralize": "catalog:types",
+        "any-ascii": "catalog:str",
+        "markdown-it": "catalog:str",
+        "markdown-it-anchor": "catalog:str",
+        "markdown-it-task-lists": "catalog:str",
+        "pluralize": "catalog:str",
+        "transliteration": "catalog:str",
+        "ulid": "catalog:str",
+        "uuid": "catalog:str"
     },
     "peerDependenciesMeta": {
         "markdown-it": {
