@@ -1,7 +1,6 @@
 import {
     ascii,
     ltrim,
-    plural,
     randomInt,
     randomString,
     rtrim,
@@ -86,6 +85,10 @@ export function afterLast(subject: string, search: string | number): string {
 /**
  * Get the portion of a string before the first occurrence of a given value.
  *
+ * @param subject - The string to search in
+ * @param search - The value to search for
+ * @returns The portion of the string before the first occurrence of the search value
+ *
  * @example
  *
  * before('hannah', 'nah'); -> 'han'
@@ -102,6 +105,10 @@ export function before(subject: string, search: string | number): string {
 
 /**
  * Get the portion of a string before the last occurrence of a given value.
+ *
+ * @param subject - The string to search in
+ * @param search - The value to search for
+ * @returns The portion of the string before the last occurrence of the search value
  *
  * @example
  *
@@ -124,6 +131,11 @@ export function beforeLast(subject: string, search: string | number): string {
 /**
  * Get the portion of a string between two given values.
  *
+ * @param subject - The string to search in
+ * @param from - The starting value
+ * @param to - The ending value
+ * @returns The portion of the string between the two given values
+ *
  * @example
  *
  * between('foofoobar', 'foo', 'bar'); -> 'foo'
@@ -142,6 +154,11 @@ export function between(
 
 /**
  * Get the smallest possible portion of a string between two given values.
+ *
+ * @param subject - The string to search in
+ * @param from - The starting value
+ * @param to - The ending value
+ * @returns The smallest portion of the string between the two given values
  *
  * @example
  *
@@ -162,6 +179,9 @@ export function betweenFirst(
 /**
  * Convert a value to camel case.
  *
+ * @param value - The string to convert
+ * @returns The camel-cased string
+ *
  * @example
  *
  * camel('foo_bar'); -> 'fooBar'
@@ -180,6 +200,10 @@ export function camel(value: string): string {
 
 /**
  * Get the character at the specified index.
+ *
+ * @param subject - The string to get the character from
+ * @param index - The index of the character to get
+ * @returns The character at the specified index, or false if the index is out of bounds
  *
  * @example
  *
@@ -203,6 +227,10 @@ export function charAt(subject: string, index: number): string | false {
 /**
  * Remove the given string(s) if it exists at the start of the haystack.
  *
+ * @param subject - The string to chop from
+ * @param needle - The string or strings to remove
+ * @returns The string with the given string(s) removed from the start
+ *
  * @example
  *
  * chopStart('foobar', 'foo'); -> 'bar'
@@ -222,6 +250,10 @@ export function chopStart(subject: string, needle: string | string[]): string {
 
 /**
  * Remove the given string(s) if it exists at the end of the haystack.
+ *
+ * @param subject - The string to chop from
+ * @param needle - The string or strings to remove
+ * @returns The string with the given string(s) removed from the end
  *
  * @example
  *
@@ -285,6 +317,11 @@ export function contains(
 /**
  * Extracts an excerpt from text that matches the first instance of a phrase.
  *
+ * @param text - The text to extract the excerpt from
+ * @param phrase - The phrase to search for
+ * @param options - Additional options for excerpt extraction
+ * @returns The extracted excerpt, or null if the phrase is not found
+ *
  * @example
  * excerpt('The quick brown fox', 'brown', { radius: 5 });
  */
@@ -334,6 +371,11 @@ export function excerpt(
 /**
  * Determine if a given string contains all array values.
  *
+ * @param haystack - The string to search in
+ * @param needles - The substrings to search for
+ * @param ignoreCase - Whether to ignore case when searching
+ * @returns True if all substrings are found, false otherwise
+ *
  * @example
  *
  * containsAll('Taylor Otwell', ['taylor', 'otwell'], false); -> true
@@ -356,6 +398,11 @@ export function containsAll(
 /**
  * Determine if a given string doesn't contain a given substring.
  *
+ * @param haystack - The string to search in
+ * @param needles - The substring or substrings to search for
+ * @param ignoreCase - Whether to ignore case when searching
+ * @returns True if the substring is not found, false otherwise
+ *
  * @example
  *
  * doesntContain('Minion', 'ni'); -> false
@@ -372,6 +419,10 @@ export function doesntContain(
 
 /**
  * Replace consecutive instances of a given character with a single character in the given string.
+ *
+ * @param value - The string to process
+ * @param character - The character or characters to deduplicate
+ * @returns The string with consecutive instances of the character(s) replaced by a single instance
  *
  * @example
  *
@@ -393,6 +444,10 @@ export function deduplicate(value: string, character: string | string[] = " ") {
 
 /**
  * Determine if a given string ends with a given substring.
+ *
+ * @param haystack - The string to search in
+ * @param needles - The substring or substrings to search for
+ * @returns True if the string ends with any of the substrings, false otherwise
  *
  * @example
  *
@@ -427,6 +482,10 @@ export function endsWith(
 /**
  * Determine if a given string doesn't end with a given substring.
  *
+ * @param haystack - The string to search in
+ * @param needles - The substring or substrings to search for
+ * @returns True if the string does not end with any of the substrings, false otherwise
+ *
  * @example
  *
  * doesntEndWith("Jason", "on"); -> false
@@ -439,10 +498,12 @@ export function doesntEndWith(
     return !endsWith(haystack, needles);
 }
 
-// (excerpt implementation located above)
-
 /**
  * Cap a string with a single instance of a given value.
+ *
+ * @param value - The string to cap
+ * @param cap - The string to cap with
+ * @returns The capped string
  *
  * @example
  *
@@ -456,6 +517,11 @@ export function finish(value: string, cap: string): string {
 
 /**
  * Wrap the string with the given strings.
+ *
+ * @param value - The string to wrap
+ * @param before - The string to prepend
+ * @param after - The string to append (if null, use the 'before' string)
+ * @returns The wrapped string
  *
  * @example
  *
@@ -471,6 +537,11 @@ export function wrap(
 
 /**
  * Unwrap the string with the given strings.
+ *
+ * @param value - The string to unwrap
+ * @param before - The string to remove from the start
+ * @param after - The string to remove from the end (if null, use the 'before' string)
+ * @returns The unwrapped string
  *
  * @example
  *
@@ -494,6 +565,11 @@ export function unwrap(
 
 /**
  * Determine if a given string matches a given pattern.
+ *
+ * @param pattern - The pattern or patterns to match against
+ * @param value - The string or number to check
+ * @param ignoreCase - Whether to ignore case when matching
+ * @return True if the string matches the pattern, false otherwise
  *
  * @example
  *
@@ -551,6 +627,9 @@ export function is(
 /**
  * Determine if a given string is 7 bit ASCII.
  *
+ * @param value - The string to check
+ * @returns True if the string is ASCII, false otherwise
+ *
  * @example
  *
  * isAscii("Hello World"); -> true
@@ -568,6 +647,9 @@ export function isAscii(value: string): boolean {
 
 /**
  * Determine if a given value is valid JSON.
+ *
+ * @param value - The value to check if it's JSON
+ * @returns True if the value is valid JSON, false otherwise
  *
  * @example
  *
@@ -594,6 +676,7 @@ export function isJson(value: unknown): boolean {
  *
  * @param value - The value to check if it's URL
  * @param protocols - An optional array of allowed protocols (e.g., ['http', 'https'])
+ * @return True if the value is a valid URL, false otherwise
  *
  * @example
  *
@@ -663,22 +746,10 @@ export function isUrl(
 }
 
 /**
- * Determine if a given value is a valid ULID.
- *
- * @example
- *
- * isUlid("01F8MECHZX2D7J8F8C8D4B8F8C"); -> true
- */
-export function isUlid(value: unknown): boolean {
-    if (!isString(value)) {
-        return false;
-    }
-    const upper = value.toUpperCase();
-    return /^[0-9A-HJKMNP-TV-Z]{26}$/.test(upper);
-}
-
-/**
  * Convert a string to kebab case.
+ *
+ * @param value - The string to convert
+ * @returns The kebab-cased string
  *
  * @example
  *
@@ -691,6 +762,9 @@ export function kebab(value: string): string {
 /**
  * Return the length of the given string.
  *
+ * @param value - The string to measure
+ * @returns The length of the string
+ *
  * @example
  *
  * length("Hello World"); -> 11
@@ -702,11 +776,11 @@ export function length(value: string): number {
 /**
  * Limit the number of characters in a string.
  *
- * @param  string  $value
- * @param  int  $limit
- * @param  string  $end
- * @param  bool  $preserveWords
- * @return string
+ * @param value - The string to limit
+ * @param limit - The maximum number of characters
+ * @param end - The string to append if the value is truncated
+ * @param preserveWords - Whether to preserve whole words when truncating
+ * @returns The limited string
  */
 export function limit(
     value: string,
@@ -738,6 +812,9 @@ export function limit(
 /**
  * Convert the given string to lower-case.
  *
+ * @param value - The string to convert
+ * @returns The lower-cased string
+ *
  * @example
  *
  * lower("Hello World"); -> "hello world"
@@ -748,6 +825,11 @@ export function lower(value: string): string {
 
 /**
  * Limit the number of words in a string.
+ *
+ * @param value - The string to limit
+ * @param words - The maximum number of words
+ * @param end - The string to append if the value is truncated
+ * @returns The limited string
  *
  * @example
  *
@@ -778,6 +860,12 @@ export function words(
 
 /**
  * Masks a portion of a string with a repeated character.
+ *
+ * @param value - The string to mask
+ * @param character - The character to use for masking
+ * @param index - The starting index to begin masking (can be negative)
+ * @param length - The number of characters to mask (if null, mask to the end of the string)
+ * @returns The masked string
  *
  * @example
  *
@@ -822,9 +910,9 @@ export function mask(
 /**
  * Get the string matching the given pattern.
  *
- * @param  string  $pattern
- * @param  string  $subject
- * @return string
+ * @param pattern - The regex pattern to match
+ * @param subject - The string to search within
+ * @returns The matched string or an empty string if no match
  */
 export function match(pattern: string, subject: string): string {
     // Emulate Laravel's Str::match behavior:
@@ -880,6 +968,10 @@ export function match(pattern: string, subject: string): string {
 
 /**
  * Determine if a given string matches a given pattern.
+ *
+ * @param pattern - The pattern or patterns to match against
+ * @param value - The string to check
+ * @return True if the string matches the pattern, false otherwise
  *
  * @example
  *
@@ -946,6 +1038,10 @@ export function isMatch(
 /**
  * Get the string matching the given pattern.
  *
+ * @param pattern - The regex pattern to match
+ * @param subject - The string to search within
+ * @returns An array of all matched strings
+ *
  * @example
  *
  * matchAll("/foo (.*)/", "foo bar baz"); -> ["foo bar baz"]
@@ -1008,6 +1104,9 @@ export function matchAll(pattern: string, subject: string): string[] {
 /**
  * Remove all non-numeric characters from a string.
  *
+ * @param value - The string or array of strings to process
+ * @returns The numeric-only string or array of strings
+ *
  * @example
  *
  * numbers("foo123bar"); -> "123"
@@ -1024,10 +1123,10 @@ export function numbers(value: string | string[]): string | string[] {
 /**
  * Pad both sides of a string with another.
  *
- * @param  string  $value
- * @param  int  $length
- * @param  string  $pad
- * @return string
+ * @param value - The string to pad
+ * @param length - The desired total length after padding
+ * @param pad - The string to use for padding
+ * @returns The padded string
  */
 export function padBoth(
     value: string,
@@ -1048,6 +1147,11 @@ export function padBoth(
 
 /**
  * Pad the left side of a string with another.
+ *
+ * @param value - The string to pad
+ * @param length - The desired total length after padding
+ * @param pad - The string to use for padding
+ * @returns The padded string
  *
  * @example
  *
@@ -1075,6 +1179,11 @@ export function padLeft(
 /**
  * Pad the right side of a string with another.
  *
+ * @param value - The string to pad
+ * @param length - The desired total length after padding
+ * @param pad - The string to use for padding
+ * @returns The padded string
+ *
  * @example
  *
  * padRight("Alien", 10, "-="); -> "Alien-=-="
@@ -1101,6 +1210,10 @@ export function padRight(
 /**
  * Create a padding string.
  *
+ * @param padStr - The string to use for padding
+ * @param needed - The total length of padding needed
+ * @returns The generated padding string
+ *
  * @example
  *
  * makePad(" ", 5); -> "     "
@@ -1113,31 +1226,6 @@ export function makePad(padStr: string, needed: number): string {
     const repeatTimes = Math.ceil(needed / padStr.length);
 
     return padStr.repeat(repeatTimes).slice(0, needed);
-}
-
-/**
- * Pluralize the last word of an English, studly caps case string.
- *
- * @example
- *
- * pluralStudly("These are the school", 4); -> "These are the schools"
- */
-export function pluralStudly(value: string, count: number = 2): string {
-    const parts = value.split(/(?=[A-Z])/);
-    const lastWord = String(parts.pop());
-
-    return parts.join("") + plural(lastWord, count);
-}
-
-/**
- * Pluralize the last word of an English, Pascal caps case string.
- *
- * @example
- *
- * pluralPascal("These are the school", 4); -> "These are the schools"
- */
-export function pluralPascal(value: string, count: number = 2): string {
-    return pluralStudly(value, count);
 }
 
 /**
@@ -1296,6 +1384,11 @@ export function password(
 /**
  * Find the multi-byte safe position of the first occurrence of a given substring in a string.
  *
+ * @param haystack - The string to search within
+ * @param needle - The substring to search for
+ * @param offset - The position to start searching from (can be negative)
+ * @returns The position of the first occurrence or false if not found
+ *
  * @example
  *
  * position('Hello, World!', 'World!'); -> 7
@@ -1343,6 +1436,9 @@ export function position(
 /**
  * Generate a more truly "random" alpha-numeric string.
  *
+ * @param length - The desired length of the random string (default: 16)
+ * @returns The generated random string
+ *
  * @example
  *
  * random(); -> "a1b2c3d4e5f6g7h8"
@@ -1354,6 +1450,9 @@ export function random(length: number = 16): string {
 
 /**
  * Set the callable that will be used to generate random strings.
+ *
+ * @param factory - The factory function to generate random strings
+ * @returns void
  *
  * @example
  *
@@ -1367,6 +1466,10 @@ export function createRandomStringsUsing(
 
 /**
  * Set the sequence that will be used to generate random strings.
+ *
+ * @param sequence - An array of strings to use in sequence
+ * @param whenMissing - An optional callable to generate strings when the sequence is exhausted
+ * @returns void
  *
  * @example
  *
@@ -1407,6 +1510,8 @@ export function createRandomStringsUsingSequence(
 /**
  * Indicate that random strings should be created normally and not using a custom factory.
  *
+ * @returns void
+ *
  * @example
  *
  * createRandomStringsNormally();
@@ -1417,6 +1522,10 @@ export function createRandomStringsNormally(): void {
 
 /**
  * Repeat the given string.
+ *
+ * @param string - The string to repeat
+ * @param times - The number of times to repeat the string
+ * @returns The repeated string
  *
  * @example
  *
@@ -1432,6 +1541,11 @@ export function repeat(string: string, times: number): string {
 
 /**
  * Replace a given value in the string sequentially with an array.
+ *
+ * @param search - The value to search for
+ * @param replace - The array or record of replacements
+ * @param subject - The string to perform replacements on
+ * @returns The resulting string after replacements
  *
  * @example
  *
@@ -1472,6 +1586,10 @@ export function replaceArray(
 /**
  * Convert the given value to a string or return the given fallback on failure.
  *
+ * @param value - The value to convert
+ * @param fallback - The fallback string to return on failure
+ * @returns The converted string or the fallback
+ *
  * @example
  *
  * toStringOr(123);
@@ -1491,6 +1609,12 @@ export function toStringOr(value: unknown, fallback: string): string {
 
 /**
  * Replace the given value in the given string.
+ *
+ * @param search - The value or values to search for
+ * @param replacement - The value or values to replace with
+ * @param subject - The string or array of strings to perform replacements on
+ * @param caseSensitive - Whether the search should be case-sensitive (default: true)
+ * @returns The resulting string or array of strings after replacements
  *
  * @example
  *
@@ -1536,6 +1660,11 @@ export function replace<T extends string | Iterable<string>>(
 /**
  * Replace the first occurrence of a given value in the string.
  *
+ * @param search - The value to search for
+ * @param replace - The value to replace with
+ * @param subject - The string to perform the replacement on
+ * @returns The resulting string after replacement
+ *
  * @example
  *
  * replaceFirst('bar', 'qux', 'foobar foobar'); -> 'fooqux foobar'
@@ -1567,10 +1696,10 @@ export function replaceFirst(
 /**
  * Replace the first occurrence of the given value if it appears at the start of the string.
  *
- * @param  string  $search
- * @param  string  $replace
- * @param  string  $subject
- * @return string
+ * @param search - The value to search for
+ * @param replace - The value to replace with
+ * @param subject - The string to perform the replacement on
+ * @returns The resulting string after replacement
  */
 export function replaceStart(
     search: string | number,
@@ -1592,6 +1721,11 @@ export function replaceStart(
 
 /**
  * Replace the last occurrence of a given value in the string.
+ *
+ * @param search - The value to search for
+ * @param replace - The value to replace with
+ * @param subject - The string to perform the replacement on
+ * @returns The resulting string after replacement
  *
  * @example
  *
@@ -1624,6 +1758,11 @@ export function replaceLast(
 /**
  * Replace the last occurrence of a given value if it appears at the end of the string.
  *
+ * @param search - The value to search for
+ * @param replace - The value to replace with
+ * @param subject - The string to perform the replacement on
+ * @returns The resulting string after replacement
+ *
  * @example
  *
  * replaceEnd('bar', 'qux', 'foobar foobar'); -> 'foobar fooqux'
@@ -1648,6 +1787,12 @@ export function replaceEnd(
 
 /**
  * Replace the patterns matching the given regular expression.
+ *
+ * @param pattern - The regex pattern or patterns to search for
+ * @param replace - The replacement string, array of strings, or function
+ * @param subject - The string or array of strings to perform replacements on
+ * @param limit - The maximum number of replacements per pattern (-1 for no limit)
+ * @returns The resulting string, array of strings, or null on error
  *
  * @example
  *
@@ -1822,6 +1967,9 @@ export function replaceMatches(
 /**
  * Strip HTML tags from a string.
  *
+ * @param value - The string to process
+ * @returns The string with HTML tags removed
+ *
  * @example
  *
  * stripTags("<p>Hello World</p>"); -> "Hello World"
@@ -1832,6 +1980,11 @@ export function stripTags(value: string): string {
 
 /**
  * Remove any occurrence of the given string in the subject.
+ *
+ * @param search - The string or strings to remove
+ * @param subject - The string or strings to process
+ * @param caseSensitive - Whether the search should be case-sensitive (default: true)
+ * @returns The resulting string or array of strings after removal
  *
  * @example
  *
@@ -1874,6 +2027,9 @@ export function remove(
 /**
  * Reverse the given string.
  *
+ * @param value - The string to reverse
+ * @returns The reversed string
+ *
  * @example
  *
  * reverse("hello"); -> "olleh"
@@ -1886,6 +2042,10 @@ export function reverse(value: string): string {
 
 /**
  * Begin a string with a single instance of a given value.
+ *
+ * @param value - The string to process
+ * @param prefix - The prefix to ensure at the start
+ * @returns The resulting string starting with the prefix
  *
  * @example
  *
@@ -1901,6 +2061,9 @@ export function start(value: string, prefix: string): string {
 
 /**
  * Convert the given string to proper case for each word.
+ *
+ * @param value - The string to convert
+ * @returns The converted string in headline case
  *
  * @example
  *
@@ -1932,7 +2095,10 @@ export function headline(value: string): string {
 /**
  * Convert the given string to APA-style title case.
  *
- * See: https://apastyle.apa.org/style-grammar-guidelines/capitalization/title-case
+ * @param value - The string to convert
+ * @returns The converted string in APA title case
+ *
+ * @see https://apastyle.apa.org/style-grammar-guidelines/capitalization/title-case
  *
  * @example
  *
@@ -2031,10 +2197,10 @@ export function apa(value: string): string {
 /**
  * Generate a URL friendly "slug" from a given string.
  *
- * @param  string  $title
- * @param  string  $separator
- * @param  array<string, string>  $dictionary
- * @return string
+ * @param title - The string to convert to a slug
+ * @param separator - The word separator to use (default: "-")
+ * @param dictionary - An optional dictionary of replacements
+ * @returns The generated slug string
  */
 export function slug(
     title: string,
@@ -2116,9 +2282,9 @@ export function slug(
 /**
  * Convert a string to snake case.
  *
- * @param  string  $value
- * @param  string  $delimiter
- * @return string
+ * @param value - The string to convert
+ * @param delimiter - The word delimiter to use (default: "_")
+ * @returns The converted string in snake case
  */
 export function snake(value: string, delimiter: string = "_"): string {
     const key = value;
@@ -2143,15 +2309,18 @@ export function snake(value: string, delimiter: string = "_"): string {
 }
 
 /**
-     * Remove all "extra" blank space from the given string.
-     *
-     * @example
-     *
-     * squish(`   
-        foo 
-        bar
-       `); -> "foo bar"
-     */
+ * Remove all "extra" blank space from the given string.
+ * 
+ * @param value - The string to process
+ * @returns The resulting string with extra spaces removed
+ *
+ * @example
+ *
+ * squish(`   
+    foo 
+    bar
+    `); -> "foo bar"
+*/
 export function squish(value: string): string {
     const trimmed = trim(value);
 
@@ -2161,6 +2330,10 @@ export function squish(value: string): string {
 
 /**
  * Determine if a given string starts with a given substring.
+ *
+ * @param haystack - The string to search in
+ * @param needles - The substring or substrings to search for
+ * @returns True if the haystack starts with any of the needles, false otherwise
  *
  * @example
  *
@@ -2210,6 +2383,10 @@ export function startsWith(
 /**
  * Determine if a given string doesn't start with a given substring.
  *
+ * @param haystack - The string to search in
+ * @param needles - The substring or substrings to search for
+ * @returns True if the haystack doesn't start with any of the needles, false otherwise
+ *
  * @example
  *
  * expect(doesntStartWith("jason", ["day"])).toBe(true);
@@ -2223,6 +2400,9 @@ export function doesntStartWith(
 
 /**
  * Convert a value to studly caps case.
+ *
+ * @param value - The string to convert
+ * @returns The converted string in studly caps case
  *
  * @example
  *
@@ -2258,8 +2438,8 @@ export function studly(value: string): string {
 /**
  * Convert a value to Pascal case.
  *
- * @param  string  $value
- * @return string
+ * @param value - The string to convert
+ * @returns The converted string in Pascal case
  */
 export function pascal(value: string): string {
     return studly(value);
@@ -2267,6 +2447,10 @@ export function pascal(value: string): string {
 
 /**
  * Swap multiple keywords in a string with other keywords.
+ *
+ * @param map - The record of replacements
+ * @param subject - The string to perform replacements on
+ * @returns The resulting string after replacements
  *
  * @example
  *
@@ -2300,6 +2484,10 @@ export function swap(map: Record<string, string>, subject: string): string {
 /**
  * Take the first or last {$limit} characters of a string.
  *
+ * @param value - The string to process
+ * @param limit - The number of characters to take (negative for from end)
+ * @returns The resulting substring
+ *
  * @example
  *
  * take("hello world", 5); -> "hello"
@@ -2316,6 +2504,9 @@ export function take(value: string, limit: number): string {
 /**
  * Make a string's first character lowercase.
  *
+ * @param value - The string to process
+ * @returns The resulting string with the first character in lowercase
+ *
  * @example
  *
  * lcfirst('Hello World'); -> 'hello World'
@@ -2327,6 +2518,9 @@ export function lcfirst(value: string): string {
 /**
  * Make a string's first character uppercase.
  *
+ * @param value - The string to process
+ * @returns The resulting string with the first character in uppercase
+ *
  * @example
  *
  * ucfirst('hello world'); -> 'Hello world'
@@ -2337,6 +2531,9 @@ export function ucfirst(value: string): string {
 
 /**
  * Split a string into pieces by uppercase characters.
+ *
+ * @param value - The string to split
+ * @returns An array of string segments split at uppercase characters
  *
  * @example
  *
@@ -2350,6 +2547,10 @@ export function ucsplit(value: string): string[] {
 
 /**
  * Uppercase the first letter of each word in a string.
+ *
+ * @param value - The string to process
+ * @param separators - The word separators to use (default: whitespace characters)
+ * @returns The resulting string with each word capitalized
  *
  * @example
  *
@@ -2379,6 +2580,10 @@ export function ucwords(
 /**
  * Get the number of words a string contains.
  *
+ * @param value - The string to analyze
+ * @param characters - Additional characters to consider as part of words
+ * @returns The word count in the string
+ *
  * @example
  *
  * wordCount('Hello, world!'); -> 2
@@ -2405,6 +2610,12 @@ export function wordCount(
 
 /**
  * Wrap a string to a given number of characters.
+ *
+ * @param value - The string to wrap
+ * @param characters - The maximum number of characters per line (default: 75)
+ * @param breakStr - The string to insert as a line break (default: "\n")
+ * @param cutLongWords - Whether to cut words longer than the limit (default: false)
+ * @returns The resulting wrapped string
  *
  * @example
  *
@@ -2508,6 +2719,8 @@ export function wordWrap(
 /**
  * Get the size of the snake cache.
  *
+ * @returns The size of the snake cache
+ *
  * @example
  *
  * snakeCacheSize();
@@ -2518,6 +2731,8 @@ export function snakeCacheSize(): number {
 
 /**
  * Get the size of the camel cache.
+ *
+ * @returns The size of the camel cache
  *
  * @example
  *
@@ -2530,6 +2745,8 @@ export function camelCacheSize(): number {
 /**
  * Get the size of the studly cache.
  *
+ * @returns The size of the studly cache
+ *
  * @example
  *
  * studlyCacheSize();
@@ -2541,7 +2758,7 @@ export function studlyCacheSize(): number {
 /**
  * Remove all strings from the casing caches.
  *
- * @return void
+ * @returns void
  */
 export function flushCache(): void {
     snakeCache.clear();

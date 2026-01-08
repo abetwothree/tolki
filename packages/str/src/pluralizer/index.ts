@@ -57,6 +57,35 @@ const rules: PluralizerRules = {
 };
 
 /**
+ * Pluralize the last word of an English, studly caps case string.
+ *
+ * @param value - The studly caps case string to pluralize
+ * @param count - The count to determine pluralization (default: 2)
+ * @returns The pluralized studly caps case string
+ *
+ * @example
+ *
+ * pluralStudly("These are the school", 4); -> "These are the schools"
+ */
+export function pluralStudly(value: string, count: number = 2): string {
+    const parts = value.split(/(?=[A-Z])/);
+    const lastWord = String(parts.pop());
+
+    return parts.join("") + plural(lastWord, count);
+}
+
+/**
+ * Pluralize the last word of an English, Pascal caps case string.
+ *
+ * @example
+ *
+ * pluralPascal("These are the school", 4); -> "These are the schools"
+ */
+export function pluralPascal(value: string, count: number = 2): string {
+    return pluralStudly(value, count);
+}
+
+/**
  * Get the plural form of an English word.
  *
  * @example

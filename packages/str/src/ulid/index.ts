@@ -1,3 +1,4 @@
+import { isString } from "@zinaid/utils";
 import { ulid as createUlid } from "ulid";
 
 /**
@@ -119,4 +120,21 @@ export function freezeUlids(
     }
 
     return value;
+}
+
+/**
+ * Determine if a given value is a valid ULID.
+ *
+ * @example
+ *
+ * isUlid("01F8MECHZX2D7J8F8C8D4B8F8C"); -> true
+ */
+export function isUlid(value: unknown): boolean {
+    if (!isString(value)) {
+        return false;
+    }
+
+    const upper = value.toUpperCase();
+
+    return /^[0-9A-HJKMNP-TV-Z]{26}$/.test(upper);
 }
