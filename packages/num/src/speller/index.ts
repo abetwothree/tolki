@@ -18,9 +18,9 @@ export class Speller {
 
 /**
  * Spell out the given number in the given locale.
- * 
+ *
  * @todo
- * 
+ *
  * @requires {@link https://www.npmjs.com/package/to-words to-words package}
  */
 export function spell(
@@ -37,9 +37,9 @@ export function spell(
 }
 
 /**
- * Spell out the given number in the given locale in ordinal form. 
+ * Spell out the given number in the given locale in ordinal form.
  * @todo
- * 
+ *
  * @requires {@link https://www.npmjs.com/package/to-words to-words package}
  *
  * @example

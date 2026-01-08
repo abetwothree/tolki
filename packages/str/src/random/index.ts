@@ -13,8 +13,8 @@ import { bytesToBase64 } from "@zinaid/str";
  * @returns A random alpha-numeric string of the specified length.
  *
  * @example
- * Random.string(); // 16 chars
- * Random.string(40); // 40 chars
+ * randomString(); // 16 chars
+ * randomString(40); // 40 chars
  */
 export function randomString(length = 16): string {
     if (!Number.isFinite(length) || length <= 0) {
@@ -103,10 +103,14 @@ export function randomInt(min: number, max: number): number {
  * secureRandomBytes(0); -> Uint8Array(0) []
  */
 function secureRandomBytes(size: number): Uint8Array {
-    if (size <= 0) return new Uint8Array();
+    if (size <= 0) {
+        return new Uint8Array();
+    }
+
     // Browser / Deno / Edge runtime
     if (typeof globalThis.crypto?.getRandomValues === "function") {
         return globalThis.crypto.getRandomValues(new Uint8Array(size));
     }
+
     throw new Error("Secure randomness not available in this environment");
 }

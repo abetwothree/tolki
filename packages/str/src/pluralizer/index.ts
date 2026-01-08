@@ -1,12 +1,12 @@
 import { format as numberFormat } from "@zinaid/num";
 import { isUndefined } from "@zinaid/utils";
-import { optionalRequire } from "@zinaid/utils";
+import pluralize from "pluralize";
 
 export interface PluralizerRules {
     uncountable: string[];
 }
 
-let inflection: typeof import("pluralize") | undefined;
+let inflection: typeof pluralize;
 
 const rules: PluralizerRules = {
     uncountable: [
@@ -144,16 +144,12 @@ export function matchCase(value: string, comparison: string): string {
 /**
  * Get the pluralize instance
  */
-export function inflector(): typeof import("pluralize") {
+export function inflector(): typeof pluralize {
     if (isUndefined(inflection)) {
-        inflection = optionalRequire<typeof import("pluralize")>(
-            "pluralize",
-            'The "pluralize" package is required for pluralization functions. ' +
-                "Please install it: npm install pluralize",
-        );
+        inflection = pluralize;
 
         rules.uncountable.forEach((uncountable) =>
-            inflection!.addUncountableRule(uncountable),
+            inflection.addUncountableRule(uncountable),
         );
     }
 
