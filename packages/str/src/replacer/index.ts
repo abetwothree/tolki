@@ -3,10 +3,10 @@ import { isArray } from "@zinaid/utils";
 /**
  * Returns the portion of the string specified by the start and length parameters.
  *
- * @param string
- * @param start
- * @param length
- * @returns
+ * @param string - The input string.
+ * @param start - The starting position. If negative, it starts that many characters from the end of the string.
+ * @param length - The number of characters to return. If omitted or null, returns all characters from start to the end of the string. If negative, omits that many characters from the end.
+ * @returns The extracted substring.
  */
 export function substr(
     string: string,
@@ -28,11 +28,11 @@ export function substr(
 /**
  * Returns the number of substring occurrences.
  *
- * @param haystack
- * @param needle
- * @param offset
- * @param length
- * @returns
+ * @param haystack - The string to search within.
+ * @param needle - The substring to count.
+ * @param offset - The starting position for the search. If negative, it starts that many characters from the end of the string.
+ * @param length - The length of the segment to search within. If omitted or null, searches to the end of the string. If negative, omits that many characters from the end.
+ * @returns The number of occurrences of the substring within the specified segment.
  */
 export function substrCount(
     haystack: string,
@@ -61,11 +61,11 @@ export function substrCount(
  * Replace text within a portion of a string.
  * Properly handles multibyte characters.
  *
- * @param value
- * @param replace
- * @param offset
- * @param length
- * @returns
+ * @param value - The original string.
+ * @param replace - The replacement string or an array of replacement strings.
+ * @param offset - The starting position for the replacement. If negative, it starts that many characters from the end of the string.
+ * @param length - The number of characters to replace. If omitted or null, replaces all characters from offset to the end of the string. If negative, omits that many characters from the end.
+ * @returns The modified string or an array of modified strings if multiple replacements are provided.
  */
 export function substrReplace(
     value: string,
@@ -99,7 +99,14 @@ export function substrReplace(
     return doReplace(String(replace));
 }
 
-// Compute [start, end) range on code points with PHP-like semantics for offset/length
+/**
+ * Compute [start, end) range on code points with PHP-like semantics for offset/length
+ *
+ * @param size - The total size of the string in code points.
+ * @param offset - The starting position. If negative, it starts that many characters from the end of the string.
+ * @param length - The number of characters to include. If omitted or null, includes all characters from offset to the end of the string. If negative, omits that many characters from the end.
+ * @returns An object containing the computed start and end indices.
+ */
 function computeRange(
     size: number,
     offset: number,
@@ -126,6 +133,13 @@ function computeRange(
     return { start, end };
 }
 
+/**
+ * Count non-overlapping occurrences of a substring within a string.
+ *
+ * @param haystack - The string to search within.
+ * @param needle - The substring to count.
+ * @returns The number of non-overlapping occurrences of the substring.
+ */
 function countNonOverlapping(haystack: string, needle: string): number {
     let count = 0;
     let pos = 0;

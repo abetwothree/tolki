@@ -9,6 +9,9 @@ let ulidFactory: (() => string) | null = null;
 /**
  * Generate a ULID.
  *
+ * @param time - Optional time component as a Date or number of milliseconds since epoch.
+ * @returns The generated ULID string.
+ *
  * @example
  *
  * ulid(); -> "01F8MECHZX2D7J8F8C8D4B8F8C"
@@ -42,6 +45,8 @@ export function ulid(time: Date | number | null = null): string {
 /**
  * Indicate that ULIDs should be created normally and not using a custom factory.
  *
+ * @returns void.
+ *
  * @example
  *
  * createUlidsNormally();
@@ -53,6 +58,9 @@ export function createUlidsNormally(): void {
 /**
  * Set the callable that will be used to generate ULIDs.
  *
+ * @param factory - The callable ULID factory.
+ * @returns void.
+ *
  * @example
  *
  * createUlidsUsing(() => of("1234").toString());
@@ -63,6 +71,10 @@ export function createUlidsUsing(factory: (() => string) | null = null): void {
 
 /**
  * Set the sequence that will be used to generate ULIDs.
+ *
+ * @param sequence - The sequence of ULID strings to return.
+ * @param whenMissing - Optional callable to generate ULIDs when the sequence is exhausted.
+ * @returns void.
  *
  * @example
  *
@@ -100,6 +112,9 @@ export function createUlidsUsingSequence(
 /**
  * Always return the same ULID when generating new ULIDs.
  *
+ * @param callback - Optional callable to execute while ULIDs are frozen.
+ * @returns The frozen ULID string.
+ *
  * @example
  *
  * freezeUlids(() => "custom-ulid");
@@ -124,6 +139,9 @@ export function freezeUlids(
 
 /**
  * Determine if a given value is a valid ULID.
+ *
+ * @param value - The value to check.
+ * @returns True if the value is a valid ULID, false otherwise.
  *
  * @example
  *

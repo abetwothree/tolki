@@ -16,15 +16,32 @@ const INVISIBLE_CHAR_CLASS: string = (() => {
     return cps.map((cp) => `\\u{${cp.toString(16)}}`).join("");
 })();
 
+/**
+ * Get the default character class for trimming whitespace, including invisible characters.
+ *
+ * @returns The default character class as a string.
+ */
 function defaultClass(): string {
     // JS \s covers standard whitespace; add invisible class and explicit NUL (\u0000)
     return `\\s${INVISIBLE_CHAR_CLASS}\\u0000`;
 }
 
+/**
+ * Escape special regex characters in a string for use in a character class.
+ *
+ * @param s - The string to escape.
+ * @returns The escaped string.
+ */
 function escapeForClass(s: string): string {
     return s.replace(/[-\\^$*+?.()|[\]{}]/g, "\\$&");
 }
 
+/**
+ * Compute the base and tail indentation of a multiline string.
+ *
+ * @param value - The multiline string.
+ * @returns An object containing baseIndent and tailIndent.
+ */
 function computeIndents(value: string): {
     baseIndent: number;
     tailIndent: number;
@@ -47,6 +64,13 @@ function computeIndents(value: string): {
     return { baseIndent, tailIndent };
 }
 
+/**
+ * Remove all whitespace from both ends of a string.
+ *
+ * @param value - The string to trim.
+ * @param charlist - Optional list of characters to trim instead of whitespace.
+ * @returns The trimmed string.
+ */
 export function trim(value: string, charlist: string | null = null): string {
     if (charlist == null || charlist === "") {
         const { baseIndent, tailIndent } = computeIndents(value);
@@ -75,6 +99,13 @@ export function trim(value: string, charlist: string | null = null): string {
     return value.replace(re, "");
 }
 
+/**
+ * Remove all whitespace from the beginning of a string.
+ *
+ * @param value - The string to trim.
+ * @param charlist - Optional list of characters to trim instead of whitespace.
+ * @returns The left-trimmed string.
+ */
 export function ltrim(value: string, charlist: string | null = null): string {
     if (charlist == null || charlist === "") {
         const cls = defaultClass();
@@ -98,6 +129,13 @@ export function ltrim(value: string, charlist: string | null = null): string {
     return value.replace(re, "");
 }
 
+/**
+ * Remove all whitespace from the end of a string.
+ *
+ * @param value - The string to trim.
+ * @param charlist - Optional list of characters to trim instead of whitespace.
+ * @returns The right-trimmed string.
+ */
 export function rtrim(value: string, charlist: string | null = null): string {
     if (charlist == null || charlist === "") {
         const cls = defaultClass();

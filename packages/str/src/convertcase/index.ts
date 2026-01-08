@@ -16,6 +16,10 @@ export type ConvertCaseMode = (typeof CaseTypes)[keyof typeof CaseTypes];
 /**
  * Convert the case of a string.
  *
+ * @param value - The string to convert.
+ * @param mode - The case conversion mode to apply. Defaults to 'fold'.
+ * @returns The converted string.
+ *
  * @example
  *
  * convertCase('hello', CaseTypes.upper); -> 'HELLO'
@@ -30,6 +34,9 @@ export function convertCase(
 /**
  * Convert the given string to upper-case.
  *
+ * @param value - The string to convert.
+ * @returns The upper-case string.
+ *
  * @example
  *
  * upper("foo bar baz"); -> "FOO BAR BAZ"
@@ -42,6 +49,9 @@ export function upper(value: string): string {
 /**
  * Convert the given string to proper case.
  *
+ * @param value - The string to convert.
+ * @returns The proper-case string.
+ *
  * @example
  *
  * title("foo bar baz"); -> "Foo Bar Baz"
@@ -51,6 +61,13 @@ export function title(value: string): string {
     return caseConverter(value, CaseTypes.title);
 }
 
+/**
+ * Convert the given string to the specified case.
+ *
+ * @param value - The string to convert.
+ * @param mode - The case conversion mode to apply.
+ * @returns The converted string.
+ */
 function caseConverter(value: string, mode: ConvertCaseMode): string {
     switch (mode) {
         case CaseTypes.upper:

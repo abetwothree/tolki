@@ -77,6 +77,10 @@ export function pluralStudly(value: string, count: number = 2): string {
 /**
  * Pluralize the last word of an English, Pascal caps case string.
  *
+ * @param value - The Pascal caps case string to pluralize
+ * @param count - The count to determine pluralization (default: 2)
+ * @returns The pluralized Pascal caps case string
+ *
  * @example
  *
  * pluralPascal("These are the school", 4); -> "These are the schools"
@@ -87,6 +91,11 @@ export function pluralPascal(value: string, count: number = 2): string {
 
 /**
  * Get the plural form of an English word.
+ *
+ * @param value - The word to pluralize.
+ * @param count - The count to determine pluralization (default: 2)
+ * @param prependCount - Whether to prepend the count to the result (default: false)
+ * @returns The pluralized word, optionally with the count prepended.
  *
  * @example
  *
@@ -107,6 +116,10 @@ export function plural(
 
 /**
  * Get the plural form of an English word.
+ *
+ * @param value - The word to pluralize.
+ * @param count - The count to determine pluralization.
+ * @returns The pluralized word.
  */
 function pluralValue(value: string, count: number): string {
     if (Math.abs(count) === 1 || uncountable(value)) {
@@ -120,6 +133,9 @@ function pluralValue(value: string, count: number): string {
 
 /**
  * Get the singular form of an English word.
+ *
+ * @param value - The word to singularize.
+ * @returns The singular form of the word.
  */
 export function singular(value: string): string {
     const single = inflector().singular(value);
@@ -129,6 +145,9 @@ export function singular(value: string): string {
 
 /**
  * Determine if the given value is uncountable.
+ *
+ * @param value - The word to check.
+ * @returns True if the word is uncountable, false otherwise.
  */
 export function uncountable(value: string): boolean {
     return rules.uncountable.includes(value.toLowerCase());
@@ -136,6 +155,9 @@ export function uncountable(value: string): boolean {
 
 /**
  * Determine if the given value is plural.
+ *
+ * @param value - The word to check.
+ * @returns True if the word is plural, false otherwise.
  */
 export function isPlural(value: string = ""): boolean {
     return inflector().isPlural(value);
@@ -143,6 +165,9 @@ export function isPlural(value: string = ""): boolean {
 
 /**
  * Determine if the given value is singular.
+ *
+ * @param value - The word to check.
+ * @returns True if the word is singular, false otherwise.
  */
 export function isSingular(value: string = ""): boolean {
     return inflector().isSingular(value);
@@ -150,6 +175,10 @@ export function isSingular(value: string = ""): boolean {
 
 /**
  * Attempt to match the case on two strings
+ *
+ * @param value - The string to adjust.
+ * @param comparison - The string to match the case against.
+ * @returns The adjusted string with matched case.
  */
 export function matchCase(value: string, comparison: string): string {
     if (comparison.toLowerCase() === comparison) {
@@ -172,6 +201,8 @@ export function matchCase(value: string, comparison: string): string {
 
 /**
  * Get the pluralize instance
+ *
+ * @returns The pluralize instance.
  */
 export function inflector(): typeof pluralize {
     if (isUndefined(inflection)) {

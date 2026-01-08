@@ -23,6 +23,11 @@ export type MarkDownExtensions = MarkDownExtension[];
 /**
  * Converts GitHub flavored Markdown into HTML.
  *
+ * @param value - The markdown string to convert.
+ * @param options - Options to customize the markdown rendering. Defaults to GFM enabled and no anchors.
+ * @param extensions - An array of markdown-it extensions to apply during rendering.
+ * @returns The resulting HTML string.
+ *
  * @example
  *
  * markdown('# Hello World'); -> '<h1>Hello World</h1>\n'
@@ -38,6 +43,11 @@ export function markdown(
 /**
  * Converts inline Markdown into HTML.
  *
+ * @param value - The inline markdown string to convert.
+ * @param options - Options to customize the markdown rendering. Defaults to GFM enabled.
+ * @param extensions - An array of markdown-it extensions to apply during rendering.
+ * @returns The resulting HTML string.
+ *
  * @example
  *
  * inlineMarkdown("Hello *World*"); -> "<p>Hello <em>World</em></p>"
@@ -50,6 +60,13 @@ export function inlineMarkdown(
     return markDownRenderer(options, extensions).renderInline(value);
 }
 
+/**
+ * Creates and configures a MarkdownIt renderer with the specified options and extensions.
+ *
+ * @param options - Options to customize the markdown rendering. Defaults to GFM enabled and no anchors.
+ * @param extensions - An array of markdown-it extensions to apply during rendering.
+ * @returns A configured MarkdownIt instance.
+ */
 export function markDownRenderer(
     options: MarkDownOptions = { gfm: true, anchors: false },
     extensions: MarkDownExtensions = [],

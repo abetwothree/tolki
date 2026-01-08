@@ -24,6 +24,14 @@ describe("Stringable basic delegation", () => {
         );
     });
 
+    describe("str", () => {
+        it("test str function", () => {
+            const input = "hello world";
+            const s = Str.str(input);
+            expect(s).toBeInstanceOf(Stringable);
+        });
+    });
+
     it("ascii/isAscii/transliterate family delegates to Str", () => {
         const input = "foo";
         expect(Str.isAscii(input)).toBe(Str.of(input).isAscii());

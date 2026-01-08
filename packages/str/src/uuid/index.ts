@@ -16,6 +16,8 @@ let uuidFactory: (() => string) | null = null;
 /**
  * Generate a UUID (version 4).
  *
+ * @return The generated UUID string.
+ *
  * @example
  *
  * uuid(); -> "550e8400-e29b-41d4-a716-446655440000"
@@ -27,16 +29,21 @@ export function uuid(): string {
 /**
  * Generate a UUID (version 7).
  *
+ * @return The generated UUID string.
+ *
  * @example
  *
  * uuid7(); -> "550e8400-e29b-41d4-a716-446655440000"
  */
-export function uuid7() {
+export function uuid7(): string {
     return uuidFactory ? uuidFactory() : uuidv7();
 }
 
 /**
  * Set the callable that will be used to generate UUIDs.
+ *
+ * @param factory - The callable UUID factory.
+ * @returns void.
  *
  * @example
  *
@@ -48,6 +55,10 @@ export function createUuidsUsing(factory: (() => string) | null = null): void {
 
 /**
  * Set the sequence that will be used to generate UUIDs.
+ *
+ * @param sequence - The sequence of UUID strings to return.
+ * @param whenMissing - Optional callable to generate UUIDs when the sequence is exhausted.
+ * @returns void.
  *
  * @example
  *
@@ -85,6 +96,9 @@ export function createUuidsUsingSequence(
 /**
  * Always return the same UUID when generating new UUIDs.
  *
+ * @param callback - Optional callable to execute while UUIDs are frozen.
+ * @returns The frozen UUID string.
+ *
  * @example
  *
  * freezeUuids();
@@ -110,6 +124,8 @@ export function freezeUuids(
 /**
  * Indicate that UUIDs should be created normally and not using a custom factory.
  *
+ * @return void.
+ *
  * @example
  *
  * createUuidsNormally();
@@ -120,6 +136,10 @@ export function createUuidsNormally(): void {
 
 /**
  * Determine if a given value is a valid UUID.
+ *
+ * @param value - The value to check.
+ * @param version - The UUID version to check against (1-8), "nil", "max", or null for any version.
+ * @returns True if the value is a valid UUID of the specified version, false otherwise.
  *
  * @example
  *
