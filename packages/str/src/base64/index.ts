@@ -1,3 +1,11 @@
+import { isFunction } from "@zinaid/utils";
+
+/**
+ * Convert the given string to Base64 encoding.
+ *
+ * @param value - The string to encode.
+ * @returns The Base64 encoded string.
+ */
 export function toBase64(value: string): string {
     const g = getGlobal() as unknown as {
         Buffer?: {
@@ -12,12 +20,12 @@ export function toBase64(value: string): string {
     };
 
     // Node.js
-    if (g.Buffer && typeof g.Buffer.from === "function") {
+    if (g.Buffer && isFunction(g.Buffer.from)) {
         return g.Buffer.from(value, "utf8").toString("base64");
     }
 
     // Browser
-    if (typeof g.btoa === "function") {
+    if (isFunction(g.btoa)) {
         try {
             const binary = utf8ToBinary(value);
             return g.btoa(binary);
@@ -28,11 +36,15 @@ export function toBase64(value: string): string {
 
     // Fallback: manual Base64 from UTF-8 bytes
     const utf8Binary = utf8ToBinary(value);
+
     return manualBase64Encode(utf8Binary);
 }
 
 /**
  * Convert raw bytes to a Base64 string using the same fallbacks as toBase64.
+ *
+ * @param bytes - The bytes to encode.
+ * @returns The Base64 encoded string.
  */
 export function bytesToBase64(bytes: Uint8Array): string {
     const g = getGlobal() as unknown as {
@@ -42,7 +54,7 @@ export function bytesToBase64(bytes: Uint8Array): string {
         btoa?: (data: string) => string;
     };
 
-    if (g.Buffer && typeof g.Buffer.from === "function") {
+    if (g.Buffer && isFunction(g.Buffer.from)) {
         return g.Buffer.from(bytes).toString("base64");
     }
 
@@ -51,13 +63,20 @@ export function bytesToBase64(bytes: Uint8Array): string {
         binary += String.fromCharCode(bytes[i] as number);
     }
 
-    if (typeof g.btoa === "function") {
+    if (isFunction(g.btoa)) {
         return g.btoa(binary);
     }
 
     return manualBase64Encode(binary);
 }
 
+/**
+ * Decode the given Base64 encoded string.
+ *
+ * @param value - The Base64 encoded string to decode.
+ * @param strict - Whether to enforce strict Base64 validation.
+ * @returns The decoded string or false if decoding fails.
+ */
 export function fromBase64(
     value: string,
     strict: boolean = false,
@@ -90,7 +109,7 @@ export function fromBase64(
     }
 
     // Node.js fast-path
-    if (g.Buffer && typeof g.Buffer.from === "function") {
+    if (g.Buffer && isFunction(g.Buffer.from)) {
         try {
             return g.Buffer.from(input, "base64").toString("utf8");
         } catch {
@@ -99,7 +118,7 @@ export function fromBase64(
     }
 
     // Browser path
-    if (typeof g.atob === "function") {
+    if (isFunction(g.atob)) {
         try {
             const binary = g.atob(input);
 
@@ -132,12 +151,21 @@ export function fromBase64(
     }
 }
 
-// Get a reference to the global object in any environment
+/**
+ * Get the global object in a way that works in all environments.
+ *
+ * @returns The global object.
+ */
 function getGlobal(): typeof globalThis {
     return globalThis;
 }
 
-// Convert a JS string to a binary string of UTF-8 bytes
+/**
+ * Convert a UTF-8 string to a binary string (bytes).
+ *
+ * @param value - The UTF-8 string to convert.
+ * @returns The binary string.
+ */
 function utf8ToBinary(value: string): string {
     return encodeURIComponent(value).replace(
         /%([0-9A-F]{2})/g,
@@ -177,7 +205,12 @@ function manualBase64Encode(binary: string): string {
     return output;
 }
 
-// Manually decode Base64 to bytes (as number array)
+/**
+ * Manually decode a Base64 string to bytes.
+ *
+ * @param input - The Base64 encoded string.
+ * @returns The decoded bytes.
+ */
 function manualBase64DecodeToBytes(input: string): number[] {
     const alphabet =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -209,7 +242,12 @@ function manualBase64DecodeToBytes(input: string): number[] {
     return bytes;
 }
 
-// Convert bytes to a UTF-8 string
+/**
+ * Decode UTF-8 bytes to a string.
+ *
+ * @param bytes - The UTF-8 bytes to decode.
+ * @returns The decoded string.
+ */
 function bytesToUtf8(bytes: number[]): string {
     const g = getGlobal();
     if (typeof g.TextDecoder === "function") {
