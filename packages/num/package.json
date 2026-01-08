@@ -1,6 +1,6 @@
 {
     "name": "@zinaid/num",
-    "version": "0.0.6",
+    "version": "0.0.7",
     "description": "Utilities for working with numbers similar to Laravel's Num class facade.",
     "type": "module",
     "main": "src/index.ts",

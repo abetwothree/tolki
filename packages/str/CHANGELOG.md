@@ -1,5 +1,13 @@
 # @zinaid/str
 
+## 0.0.6
+
+### Patch Changes
+
+- Test modularization of packages
+- Updated dependencies
+  - @zinaid/num@0.0.7
+
 ## 0.0.5
 
 ### Patch Changes
