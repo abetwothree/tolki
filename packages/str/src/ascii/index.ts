@@ -6,6 +6,8 @@ import { transliterate as transliteration } from "transliteration";
  * @param value The value to transliterate.
  * @return The transliterated ASCII string.
  *
+ * @requires {@link https://www.npmjs.com/package/transliteration transliteration package}
+ *
  * @example
  *
  * ascii('Héllo Wörld'); -> 'Hello World'

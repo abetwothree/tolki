@@ -28,6 +28,8 @@ export type MarkDownExtensions = MarkDownExtension[];
  * @param extensions - An array of markdown-it extensions to apply during rendering.
  * @returns The resulting HTML string.
  *
+ * @requires {@link https://www.npmjs.com/package/markdown-it markdown-it package}
+ *
  * @example
  *
  * markdown('# Hello World'); -> '<h1>Hello World</h1>\n'
@@ -48,6 +50,8 @@ export function markdown(
  * @param extensions - An array of markdown-it extensions to apply during rendering.
  * @returns The resulting HTML string.
  *
+ * @requires {@link https://www.npmjs.com/package/markdown-it markdown-it package}
+ *
  * @example
  *
  * inlineMarkdown("Hello *World*"); -> "<p>Hello <em>World</em></p>"
@@ -66,6 +70,8 @@ export function inlineMarkdown(
  * @param options - Options to customize the markdown rendering. Defaults to GFM enabled and no anchors.
  * @param extensions - An array of markdown-it extensions to apply during rendering.
  * @returns A configured MarkdownIt instance.
+ *
+ * @requires {@link https://www.npmjs.com/package/markdown-it markdown-it package}
  */
 export function markDownRenderer(
     options: MarkDownOptions = { gfm: true, anchors: false },

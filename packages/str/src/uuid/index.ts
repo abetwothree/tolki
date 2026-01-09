@@ -18,6 +18,8 @@ let uuidFactory: (() => string) | null = null;
  *
  * @return The generated UUID string.
  *
+ * @requires {@link https://www.npmjs.com/package/uuid uuid package}
+ *
  * @example
  *
  * uuid(); -> "550e8400-e29b-41d4-a716-446655440000"
@@ -30,6 +32,8 @@ export function uuid(): string {
  * Generate a UUID (version 7).
  *
  * @return The generated UUID string.
+ *
+ * @requires {@link https://www.npmjs.com/package/uuid uuid package}
  *
  * @example
  *
@@ -45,6 +49,8 @@ export function uuid7(): string {
  * @param factory - The callable UUID factory.
  * @returns void.
  *
+ * @requires {@link https://www.npmjs.com/package/uuid uuid package}
+ *
  * @example
  *
  * createUuidsUsing(() => "custom-uuid");
@@ -59,6 +65,8 @@ export function createUuidsUsing(factory: (() => string) | null = null): void {
  * @param sequence - The sequence of UUID strings to return.
  * @param whenMissing - Optional callable to generate UUIDs when the sequence is exhausted.
  * @returns void.
+ *
+ * @requires {@link https://www.npmjs.com/package/uuid uuid package}
  *
  * @example
  *
@@ -99,6 +107,8 @@ export function createUuidsUsingSequence(
  * @param callback - Optional callable to execute while UUIDs are frozen.
  * @returns The frozen UUID string.
  *
+ * @requires {@link https://www.npmjs.com/package/uuid uuid package}
+ *
  * @example
  *
  * freezeUuids();
@@ -126,6 +136,8 @@ export function freezeUuids(
  *
  * @return void.
  *
+ * @requires {@link https://www.npmjs.com/package/uuid uuid package}
+ *
  * @example
  *
  * createUuidsNormally();
@@ -140,6 +152,8 @@ export function createUuidsNormally(): void {
  * @param value - The value to check.
  * @param version - The UUID version to check against (1-8), "nil", "max", or null for any version.
  * @returns True if the value is a valid UUID of the specified version, false otherwise.
+ *
+ * @requires {@link https://www.npmjs.com/package/uuid uuid package}
  *
  * @example
  *

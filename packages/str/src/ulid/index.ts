@@ -12,6 +12,8 @@ let ulidFactory: (() => string) | null = null;
  * @param time - Optional time component as a Date or number of milliseconds since epoch.
  * @returns The generated ULID string.
  *
+ * @requires {@link https://www.npmjs.com/package/ulid ulid package}
+ *
  * @example
  *
  * ulid(); -> "01F8MECHZX2D7J8F8C8D4B8F8C"
@@ -47,6 +49,8 @@ export function ulid(time: Date | number | null = null): string {
  *
  * @returns void.
  *
+ * @requires {@link https://www.npmjs.com/package/ulid ulid package}
+ *
  * @example
  *
  * createUlidsNormally();
@@ -60,6 +64,8 @@ export function createUlidsNormally(): void {
  *
  * @param factory - The callable ULID factory.
  * @returns void.
+ *
+ * @requires {@link https://www.npmjs.com/package/ulid ulid package}
  *
  * @example
  *
@@ -75,6 +81,8 @@ export function createUlidsUsing(factory: (() => string) | null = null): void {
  * @param sequence - The sequence of ULID strings to return.
  * @param whenMissing - Optional callable to generate ULIDs when the sequence is exhausted.
  * @returns void.
+ *
+ * @requires {@link https://www.npmjs.com/package/ulid ulid package}
  *
  * @example
  *
@@ -115,6 +123,8 @@ export function createUlidsUsingSequence(
  * @param callback - Optional callable to execute while ULIDs are frozen.
  * @returns The frozen ULID string.
  *
+ * @requires {@link https://www.npmjs.com/package/ulid ulid package}
+ *
  * @example
  *
  * freezeUlids(() => "custom-ulid");
@@ -142,6 +152,8 @@ export function freezeUlids(
  *
  * @param value - The value to check.
  * @returns True if the value is a valid ULID, false otherwise.
+ *
+ * @requires {@link https://www.npmjs.com/package/ulid ulid package}
  *
  * @example
  *

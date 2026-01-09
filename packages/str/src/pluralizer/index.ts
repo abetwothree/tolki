@@ -63,6 +63,8 @@ const rules: PluralizerRules = {
  * @param count - The count to determine pluralization (default: 2)
  * @returns The pluralized studly caps case string
  *
+ * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
+ *
  * @example
  *
  * pluralStudly("These are the school", 4); -> "These are the schools"
@@ -81,6 +83,8 @@ export function pluralStudly(value: string, count: number = 2): string {
  * @param count - The count to determine pluralization (default: 2)
  * @returns The pluralized Pascal caps case string
  *
+ * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
+ *
  * @example
  *
  * pluralPascal("These are the school", 4); -> "These are the schools"
@@ -96,6 +100,8 @@ export function pluralPascal(value: string, count: number = 2): string {
  * @param count - The count to determine pluralization (default: 2)
  * @param prependCount - Whether to prepend the count to the result (default: false)
  * @returns The pluralized word, optionally with the count prepended.
+ *
+ * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  *
  * @example
  *
@@ -120,6 +126,8 @@ export function plural(
  * @param value - The word to pluralize.
  * @param count - The count to determine pluralization.
  * @returns The pluralized word.
+ *
+ * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  */
 function pluralValue(value: string, count: number): string {
     if (Math.abs(count) === 1 || uncountable(value)) {
@@ -136,6 +144,8 @@ function pluralValue(value: string, count: number): string {
  *
  * @param value - The word to singularize.
  * @returns The singular form of the word.
+ *
+ * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  */
 export function singular(value: string): string {
     const single = inflector().singular(value);
@@ -148,6 +158,8 @@ export function singular(value: string): string {
  *
  * @param value - The word to check.
  * @returns True if the word is uncountable, false otherwise.
+ *
+ * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  */
 export function uncountable(value: string): boolean {
     return rules.uncountable.includes(value.toLowerCase());
@@ -158,6 +170,8 @@ export function uncountable(value: string): boolean {
  *
  * @param value - The word to check.
  * @returns True if the word is plural, false otherwise.
+ *
+ * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  */
 export function isPlural(value: string = ""): boolean {
     return inflector().isPlural(value);
@@ -168,6 +182,8 @@ export function isPlural(value: string = ""): boolean {
  *
  * @param value - The word to check.
  * @returns True if the word is singular, false otherwise.
+ *
+ * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  */
 export function isSingular(value: string = ""): boolean {
     return inflector().isSingular(value);
