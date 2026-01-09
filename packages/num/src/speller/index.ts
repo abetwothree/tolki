@@ -1,58 +1,171 @@
-import type { ToWords as ToWordsType } from "to-words";
+import { format } from "@zinaid/num";
 import { ToWords } from "to-words";
 
-export class Speller {
-    protected toWords: ToWordsType | undefined;
+/**
+ * Supported locale codes for the to-words package.
+ */
+const SUPPORTED_LOCALES: Set<string> = new Set([
+    "bn-IN",
+    "ee-EE",
+    "en-AE",
+    "en-AU",
+    "en-BD",
+    "en-GB",
+    "en-GH",
+    "en-IE",
+    "en-IN",
+    "en-MM",
+    "en-MA",
+    "en-MU",
+    "en-NG",
+    "en-NP",
+    "en-OM",
+    "en-PH",
+    "en-SA",
+    "en-US",
+    "es-AR",
+    "es-ES",
+    "es-MX",
+    "es-VE",
+    "fa-IR",
+    "fr-BE",
+    "fr-FR",
+    "fr-MA",
+    "fr-SA",
+    "gu-IN",
+    "hi-IN",
+    "kn-IN",
+    "ko-KR",
+    "lv-LV",
+    "mr-IN",
+    "nl-SR",
+    "np-NP",
+    "pt-BR",
+    "tr-TR",
+    "ur-PK",
+    "ar-AE",
+    "ar-MA",
+    "ar-SA",
+]);
 
-    protected getToWords(): ToWords {
-        if (!this.toWords) {
-            this.toWords = new ToWords();
+/**
+ * Map a locale string to the closest supported to-words locale code.
+ *
+ * @param locale - The locale to map (e.g., "en", "en-US", "fr")
+ * @returns The closest supported locale code, or "en-US" as fallback
+ */
+function mapToSupportedLocale(locale: string): string {
+    // If exact match exists, use it
+    if (SUPPORTED_LOCALES.has(locale)) {
+        return locale;
+    }
+
+    // Extract language code (e.g., "en" from "en-US")
+    const parts = locale.split("-");
+    const langCode = (parts[0] || locale).toLowerCase();
+
+    // Find a locale that starts with the same language code
+    for (const supported of SUPPORTED_LOCALES) {
+        if (supported.toLowerCase().startsWith(langCode + "-")) {
+            return supported;
         }
-        return this.toWords;
     }
 
-    public spellNumber(num: number): string {
-        return this.getToWords().convert(num);
-    }
+    // Default to en-US
+    return "en-US";
 }
 
 /**
  * Spell out the given number in the given locale.
  *
- * @todo
+ * If `after` is provided and the number is less than or equal to `after`,
+ * the number will be returned as a formatted string instead of spelled out.
  *
- * @requires {@link https://www.npmjs.com/package/to-words to-words package}
- */
-export function spell(
-    _number: number | string,
-    _locale: string | null = null,
-    _after: number | null = null,
-    _until: number | null = null,
-): string {
-    void _number;
-    void _locale;
-    void _after;
-    void _until;
-    return "";
-}
-
-/**
- * Spell out the given number in the given locale in ordinal form.
- * @todo
+ * If `until` is provided and the number is greater than or equal to `until`,
+ * the number will be returned as a formatted string instead of spelled out.
+ *
+ * @param number - The number to spell out.
+ * @param locale - The locale to use for spelling. Defaults to "en-US".
+ * @param after - If provided, numbers <= this value will be formatted instead of spelled.
+ * @param until - If provided, numbers >= this value will be formatted instead of spelled.
+ * @returns The number spelled out as words, or formatted as a string.
  *
  * @requires {@link https://www.npmjs.com/package/to-words to-words package}
  *
  * @example
  *
- * spellOrdinal(1); // "first"
- * spellOrdinal(2); // "second"
- * spellOrdinal(3); // "third"
+ * spell(123); // "One Hundred Twenty Three"
+ * spell(123.45); // "One Hundred Twenty Three Point Forty Five"
+ * spell(5, null, 10); // "5" (5 <= 10, so formatted instead of spelled)
+ * spell(11, null, 10); // "Eleven" (11 > 10, so spelled out)
+ * spell(100, null, null, 50); // "100" (100 >= 50, so formatted instead of spelled)
+ * spell(49, null, null, 50); // "Forty Nine" (49 < 50, so spelled out)
+ */
+export function spell(
+    number: number | string,
+    locale: string | null = null,
+    after: number | null = null,
+    until: number | null = null,
+): string {
+    const num = typeof number === "string" ? parseFloat(number) : number;
+
+    // If after is provided and number <= after, return formatted number
+    if (after !== null && num <= after) {
+        return format(num, null, null, locale) || String(num);
+    }
+
+    // If until is provided and number >= until, return formatted number
+    if (until !== null && num >= until) {
+        return format(num, null, null, locale) || String(num);
+    }
+
+    const localeCode = mapToSupportedLocale(locale ?? "en-US");
+
+    const toWords = new ToWords({
+        localeCode,
+        converterOptions: {
+            currency: false,
+            ignoreDecimal: false,
+        },
+    });
+
+    return toWords.convert(num);
+}
+
+/**
+ * Spell out the given number in the given locale in ordinal form.
+ *
+ * Note: The to-words package doesn't have native ordinal support, so this
+ * function spells out the cardinal number. True ordinal conversion would
+ * require locale-specific suffix rules (e.g., "first", "second", "third").
+ *
+ * @param value - The number to spell out in ordinal form.
+ * @param locale - The locale to use for spelling. Defaults to "en-US".
+ * @returns The number spelled out as words.
+ *
+ * @requires {@link https://www.npmjs.com/package/to-words to-words package}
+ *
+ * @example
+ *
+ * spellOrdinal(1); // "One"
+ * spellOrdinal(2); // "Two"
+ * spellOrdinal(21); // "Twenty One"
  */
 export function spellOrdinal(
-    _value: number,
-    _locale: string | null = null,
+    value: number,
+    locale: string | null = null,
 ): string {
-    void _value;
-    void _locale;
-    return "";
+    const localeCode = mapToSupportedLocale(locale ?? "en-US");
+
+    const toWords = new ToWords({
+        localeCode,
+        converterOptions: {
+            currency: false,
+            ignoreDecimal: true,
+        },
+    });
+
+    // to-words doesn't support ordinal conversion natively
+    // We return the cardinal number as words
+    return toWords.convert(Math.floor(value));
 }

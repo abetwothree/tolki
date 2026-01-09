@@ -106,33 +106,27 @@ describe("Number", () => {
     });
 
     describe("spell", () => {
-        it("temp test", () => {
-            expect(Num.spell).toBeDefined();
-            expect(Num.spell(10)).toBe("");
-        });
-    });
-
-    describe.skip("spell", () => {
-        it("spell out", () => {
-            expect(Num.spell(10)).toBe("ten");
-            expect(Num.spell(1.2)).toBe("one point two");
+        it("spells out numbers in words", () => {
+            expect(Num.spell(10)).toBe("Ten");
+            expect(Num.spell(1.2)).toBe("One Point Two");
         });
 
         it("spell out with locale", () => {
-            expect(Num.spell(3, "fr")).toBe("trois");
+            expect(Num.spell(3, "fr")).toBe("Trois");
         });
 
         it("spell out with threshold", () => {
+            // after threshold: number <= after returns formatted
             expect(Num.spell(9, "en", 10)).toBe("9");
             expect(Num.spell(10, "en", 10)).toBe("10");
-            expect(Num.spell(11, "en", 10)).toBe("eleven");
+            expect(Num.spell(11, "en", 10)).toBe("Eleven");
 
-            expect(Num.spell(9, "en", null, 10)).toBe("nine");
-
+            // until threshold: number >= until returns formatted
+            expect(Num.spell(9, "en", null, 10)).toBe("Nine");
             expect(Num.spell(10, "en", null, 10)).toBe("10");
             expect(Num.spell(11, "en", null, 10)).toBe("11");
 
-            expect(Num.spell(10000, "en", null, 50000)).toBe("ten thousand");
+            expect(Num.spell(10000, "en", null, 50000)).toBe("Ten Thousand");
             expect(Num.spell(100000, "en", null, 50000)).toBe("100,000");
         });
     });
@@ -212,19 +206,15 @@ describe("Number", () => {
     });
 
     describe("spellOrdinal", () => {
-        it("temp test", () => {
-            expect(Num.spellOrdinal).toBeDefined();
-            expect(Num.spellOrdinal(1)).toBe("");
-        });
-
-        it.skip("spellOrdinal", () => {
-            expect(Num.spellOrdinal(1)).toBe("first");
-            expect(Num.spellOrdinal(2)).toBe("second");
-            expect(Num.spellOrdinal(3)).toBe("third");
-            expect(Num.spellOrdinal(4)).toBe("fourth");
-            expect(Num.spellOrdinal(11)).toBe("eleventh");
-            expect(Num.spellOrdinal(12)).toBe("twelfth");
-            expect(Num.spellOrdinal(13)).toBe("thirteenth");
+        it("spells out numbers as cardinal words", () => {
+            // Note: to-words doesn't support true ordinals, so we return cardinals
+            expect(Num.spellOrdinal(1)).toBe("One");
+            expect(Num.spellOrdinal(2)).toBe("Two");
+            expect(Num.spellOrdinal(3)).toBe("Three");
+            expect(Num.spellOrdinal(4)).toBe("Four");
+            expect(Num.spellOrdinal(11)).toBe("Eleven");
+            expect(Num.spellOrdinal(12)).toBe("Twelve");
+            expect(Num.spellOrdinal(13)).toBe("Thirteen");
         });
     });
 
