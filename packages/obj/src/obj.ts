@@ -466,6 +466,41 @@ export function except<TValue extends Record<PropertyKey, unknown>>(
 }
 
 /**
+ * Get all of the given object except for a specified array of values.
+ *
+ * @param data - The object to filter.
+ * @param values - The value(s) to exclude from the object.
+ * @param strict - Whether to use strict comparison (default: false).
+ * @returns A new object with the specified values removed.
+ *
+ * @example
+ *
+ * exceptValues({ name: 'taylor', age: 26, city: 'austin' }, [26]); -> { name: 'taylor', city: 'austin' }
+ * exceptValues({ a: 1, b: 2, c: 1, d: 3 }, 1); -> { b: 2, d: 3 }
+ * exceptValues({ a: true, b: false, c: 1, d: 0 }, [1, 0], true); -> { a: true, b: false }
+ */
+export function exceptValues<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    values: TValue | TValue[],
+    strict: boolean = false,
+): Record<TKey, TValue> {
+    const valueArray = isArray(values) ? values : [values];
+    const result = {} as Record<TKey, TValue>;
+
+    for (const [key, value] of Object.entries(data) as [TKey, TValue][]) {
+        const shouldExclude = valueArray.some((v) =>
+            strict ? value === v : looseEqual(value, v),
+        );
+
+        if (!shouldExclude) {
+            result[key] = value;
+        }
+    }
+
+    return result;
+}
+
+/**
  * Determine if the given key exists in the provided object.
  *
  * @param  data - Object to check
@@ -1370,6 +1405,41 @@ export function only<TValue, TKey extends PropertyKey = PropertyKey>(
     for (const key of keys) {
         if (key in obj) {
             result[key] = obj[key] as TValue;
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Get a subset of the items from the given object by value.
+ *
+ * @param data - The object to filter.
+ * @param values - The value(s) to include in the result.
+ * @param strict - Whether to use strict comparison (default: false).
+ * @returns A new object containing only the specified values.
+ *
+ * @example
+ *
+ * onlyValues({ name: 'taylor', age: 26, city: 'austin' }, [26]); -> { age: 26 }
+ * onlyValues({ a: 1, b: 2, c: 1, d: 3 }, 1); -> { a: 1, c: 1 }
+ * onlyValues({ a: true, b: false, c: 1, d: 0 }, [1, 0], true); -> { c: 1, d: 0 }
+ */
+export function onlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    values: TValue | TValue[],
+    strict: boolean = false,
+): Record<TKey, TValue> {
+    const valueArray = isArray(values) ? values : [values];
+    const result = {} as Record<TKey, TValue>;
+
+    for (const [key, value] of Object.entries(data) as [TKey, TValue][]) {
+        const shouldInclude = valueArray.some((v) =>
+            strict ? value === v : looseEqual(value, v),
+        );
+
+        if (shouldInclude) {
+            result[key] = value;
         }
     }
 

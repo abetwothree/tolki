@@ -12,6 +12,7 @@ import {
     dot as arrDot,
     every as arrEvery,
     except as arrExcept,
+    exceptValues as arrExceptValues,
     exists as arrExists,
     filter as arrFilter,
     first as arrFirst,
@@ -37,6 +38,7 @@ import {
     mapSpread as arrMapSpread,
     mapWithKeys as arrMapWithKeys,
     only as arrOnly,
+    onlyValues as arrOnlyValues,
     pad as arrPad,
     partition as arrPartition,
     pluck as arrPluck,
@@ -90,6 +92,7 @@ import {
     dot as objDot,
     every as objEvery,
     except as objExcept,
+    exceptValues as objExceptValues,
     exists as objExists,
     filter as objFilter,
     first as objFirst,
@@ -116,6 +119,7 @@ import {
     mapWithKeys as objMapWithKeys,
     objectItem,
     only as objOnly,
+    onlyValues as objOnlyValues,
     pad as objPad,
     partition as objPartition,
     pluck as objPluck,
@@ -569,6 +573,41 @@ export function dataExcept<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
+ * Get all data except for specified values.
+ *
+ * @param data - The data to filter
+ * @param values - The values to exclude
+ * @param strict - Whether to use strict comparison
+ * @returns Data without specified values
+ *
+ * @example
+ *
+ * dataExceptValues(['foo', 'bar', 'baz'], ['foo', 'baz']); -> [1 => 'bar']
+ * dataExceptValues({name: 'taylor', age: 26}, [26]); -> {name: 'taylor'}
+ */
+export function dataExceptValues<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(
+    data: DataItems<TValue, TKey>,
+    values: TValue | TValue[],
+    strict: boolean = false,
+): DataItems<TValue, TKey> {
+    if (isObject(data)) {
+        return objExceptValues(
+            data as Record<TKey, TValue>,
+            values,
+            strict,
+        ) as DataItems<TValue, TKey>;
+    }
+
+    return arrExceptValues(arrWrap(data), values, strict) as DataItems<
+        TValue,
+        TKey
+    >;
+}
+
+/**
  * Check if a key exists in data.
  *
  * @param data - The data to check
@@ -1015,6 +1054,38 @@ export function dataOnly<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     return arrOnly(arrWrap(data), keys as number[]) as DataItems<TValue>;
+}
+
+/**
+ * Get only items with specified values from data.
+ *
+ * @param data - The data to filter
+ * @param values - The values to include
+ * @param strict - Whether to use strict comparison
+ * @returns Data with only specified values
+ *
+ * @example
+ *
+ * dataOnlyValues(['foo', 'bar', 'baz'], ['foo', 'baz']); -> [0 => 'foo', 2 => 'baz']
+ * dataOnlyValues({name: 'taylor', age: 26}, [26]); -> {age: 26}
+ */
+export function dataOnlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: DataItems<TValue, TKey>,
+    values: TValue | TValue[],
+    strict: boolean = false,
+): DataItems<TValue, TKey> {
+    if (isObject(data)) {
+        return objOnlyValues(
+            data as Record<TKey, TValue>,
+            values,
+            strict,
+        ) as DataItems<TValue, TKey>;
+    }
+
+    return arrOnlyValues(arrWrap(data), values, strict) as DataItems<
+        TValue,
+        TKey
+    >;
 }
 
 /**

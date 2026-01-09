@@ -413,6 +413,35 @@ export function except<TValue>(
 }
 
 /**
+ * Get all of the given array except for a specified array of values.
+ *
+ * @param data - The array to filter.
+ * @param values - The value(s) to exclude from the array.
+ * @param strict - Whether to use strict comparison (default: false).
+ * @returns A new array with the specified values removed.
+ *
+ * @example
+ *
+ * exceptValues(['foo', 'bar', 'baz', 'qux'], ['foo', 'baz']); -> [1 => 'bar', 3 => 'qux']
+ * exceptValues([1, 2, 3, 4, 5], [3, 4]); -> [0 => 1, 1 => 2, 4 => 5]
+ * exceptValues([1, '1', 2, '2', 3], [1, 2, 3], true); -> [1 => '1', 3 => '2']
+ */
+export function exceptValues<TValue>(
+    data: ArrayItems<TValue>,
+    values: TValue | TValue[],
+    strict: boolean = false,
+): TValue[] {
+    const array = !isArray(data) ? wrap(data) : data;
+    const valueArray = isArray(values) ? values : [values];
+
+    return array.filter((value) => {
+        return !valueArray.some((v) =>
+            strict ? value === v : looseEqual(value, v),
+        );
+    });
+}
+
+/**
  * Determine if the given key exists in the provided data structure.
  *
  * @param  data - array to check
@@ -1316,6 +1345,35 @@ export function only<TValue>(
     }
 
     return result;
+}
+
+/**
+ * Get a subset of the items from the given array by value.
+ *
+ * @param data - The array to filter.
+ * @param values - The value(s) to include in the result.
+ * @param strict - Whether to use strict comparison (default: false).
+ * @returns A new array containing only the specified values.
+ *
+ * @example
+ *
+ * onlyValues(['foo', 'bar', 'baz', 'qux'], ['foo', 'baz']); -> [0 => 'foo', 2 => 'baz']
+ * onlyValues([1, 2, 3, 4, 5], [3, 4]); -> [2 => 3, 3 => 4]
+ * onlyValues([1, '1', 2, '2', 3], [1, 2, 3], true); -> [0 => 1, 2 => 2, 4 => 3]
+ */
+export function onlyValues<TValue>(
+    data: ArrayItems<TValue>,
+    values: TValue | TValue[],
+    strict: boolean = false,
+): TValue[] {
+    const array = wrap(data);
+    const valueArray = isArray(values) ? values : [values];
+
+    return array.filter((value) => {
+        return valueArray.some((v) =>
+            strict ? value === v : looseEqual(value, v),
+        );
+    });
 }
 
 /**

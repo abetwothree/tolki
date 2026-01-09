@@ -1506,6 +1506,41 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
+     * Determine if the collection contains multiple items. If a callback is provided, determine if multiple items match the condition.
+     *
+     * @param callback - The callback function to test with, or null
+     * @returns True if multiple items exist or match the condition, false otherwise
+     *
+     * @example
+     *
+     * new Collection([1, 2]).containsManyItems(); -> true
+     * new Collection([1]).containsManyItems(); -> false
+     * new Collection([1, 2, 2]).containsManyItems(x => x === 2); -> true
+     * new Collection(['ant', 'bear', 'cat']).containsManyItems(x => x.length === 3); -> true
+     */
+    containsManyItems(
+        callback: ((value: TValue, key: TKey) => boolean) | null = null,
+    ): boolean {
+        if (!isFunction(callback)) {
+            return this.count() > 1;
+        }
+
+        let count = 0;
+
+        for (const [key, item] of Object.entries(this.items)) {
+            if (callback(item as TValue, key as TKey)) {
+                count++;
+            }
+
+            if (count > 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Join all items from the collection using a string. The final items can use a separate glue string.
      *
      * @param glue - The string to join all but the last item with

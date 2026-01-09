@@ -2296,6 +2296,64 @@ describe("Collection", () => {
         });
     });
 
+    describe("containsManyItems", () => {
+        it("Laravel Tests", () => {
+            expect(collect([]).containsManyItems()).toBe(false);
+            expect(collect([1]).containsManyItems()).toBe(false);
+            expect(collect([1, 2]).containsManyItems()).toBe(true);
+            expect(collect([1, 2, 3]).containsManyItems()).toBe(true);
+
+            expect(
+                collect([1, 2, 2]).containsManyItems((number) => number === 2),
+            ).toBe(true);
+            expect(
+                collect(["ant", "bear", "cat"]).containsManyItems(
+                    (word) => word.length === 4,
+                ),
+            ).toBe(false);
+            expect(
+                collect(["ant", "bear", "cat"]).containsManyItems(
+                    (word) => word.length > 4,
+                ),
+            ).toBe(false);
+            expect(
+                collect(["ant", "bear", "cat"]).containsManyItems(
+                    (word) => word.length === 3,
+                ),
+            ).toBe(true);
+        });
+
+        it("test with objects", () => {
+            expect(collect({}).containsManyItems()).toBe(false);
+            expect(collect({ a: 1 }).containsManyItems()).toBe(false);
+            expect(collect({ a: 1, b: 2 }).containsManyItems()).toBe(true);
+            expect(collect({ a: 1, b: 2, c: 3 }).containsManyItems()).toBe(
+                true,
+            );
+
+            expect(
+                collect({ a: 1, b: 2, c: 2 }).containsManyItems(
+                    (number) => number === 2,
+                ),
+            ).toBe(true);
+            expect(
+                collect({ a: "ant", b: "bear", c: "cat" }).containsManyItems(
+                    (word) => word.length === 4,
+                ),
+            ).toBe(false);
+            expect(
+                collect({ a: "ant", b: "bear", c: "cat" }).containsManyItems(
+                    (word) => word.length > 4,
+                ),
+            ).toBe(false);
+            expect(
+                collect({ a: "ant", b: "bear", c: "cat" }).containsManyItems(
+                    (word) => word.length === 3,
+                ),
+            ).toBe(true);
+        });
+    });
+
     describe("join", () => {
         it("Laravel Tests", () => {
             expect(collect(["a", "b", "c"]).join(", ")).toBe("a, b, c");

@@ -2980,4 +2980,89 @@ describe("Arr", () => {
             );
         });
     });
+
+    describe("exceptValues", () => {
+        it("should exclude specified values from array", () => {
+            const array = ["foo", "bar", "baz", "qux"];
+            expect(Arr.exceptValues(array, ["foo", "baz"])).toEqual([
+                "bar",
+                "qux",
+            ]);
+            expect(Arr.exceptValues(array, "baz")).toEqual([
+                "foo",
+                "bar",
+                "qux",
+            ]);
+        });
+
+        it("should work with numeric arrays", () => {
+            const array = [1, 2, 3, 4, 5];
+            expect(Arr.exceptValues(array, [3, 4])).toEqual([1, 2, 5]);
+        });
+
+        it("should handle empty arrays and values", () => {
+            expect(Arr.exceptValues([], "foo")).toEqual([]);
+            expect(Arr.exceptValues(["foo", "bar"], [])).toEqual([
+                "foo",
+                "bar",
+            ]);
+        });
+
+        it("should support strict comparison", () => {
+            const array = [1, "1", 2, "2", 3];
+            expect(Arr.exceptValues(array, [1, 2, 3], true)).toEqual([
+                "1",
+                "2",
+            ]);
+            expect(Arr.exceptValues(array, [1, 2, 3])).toEqual([]);
+        });
+
+        it("should handle boolean and number loose equality", () => {
+            const array = [true, false, 1, 0];
+            expect(Arr.exceptValues(array, [1, 0], true)).toEqual([
+                true,
+                false,
+            ]);
+            expect(Arr.exceptValues(array, [1, 0])).toEqual([]);
+        });
+    });
+
+    describe("onlyValues", () => {
+        it("should include only specified values from array", () => {
+            const array = ["foo", "bar", "baz", "qux"];
+            expect(Arr.onlyValues(array, ["foo", "baz"])).toEqual([
+                "foo",
+                "baz",
+            ]);
+            expect(Arr.onlyValues(array, "baz")).toEqual(["baz"]);
+        });
+
+        it("should work with numeric arrays", () => {
+            const array = [1, 2, 3, 4, 5];
+            expect(Arr.onlyValues(array, [3, 4])).toEqual([3, 4]);
+        });
+
+        it("should handle empty arrays and values", () => {
+            expect(Arr.onlyValues([], "foo")).toEqual([]);
+            expect(Arr.onlyValues(["foo", "bar"], [])).toEqual([]);
+        });
+
+        it("should support strict comparison", () => {
+            const array = [1, "1", 2, "2", 3];
+            expect(Arr.onlyValues(array, [1, 2, 3], true)).toEqual([1, 2, 3]);
+            expect(Arr.onlyValues(array, [1, 2, 3])).toEqual([
+                1,
+                "1",
+                2,
+                "2",
+                3,
+            ]);
+        });
+
+        it("should handle boolean and number loose equality", () => {
+            const array = [true, false, 1, 0];
+            expect(Arr.onlyValues(array, [1, 0], true)).toEqual([1, 0]);
+            expect(Arr.onlyValues(array, [1, 0])).toEqual([true, false, 1, 0]);
+        });
+    });
 });

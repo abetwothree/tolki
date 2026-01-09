@@ -1589,4 +1589,104 @@ describe("Data", () => {
             }).toThrowError();
         });
     });
+
+    describe("dataExceptValues", () => {
+        it("is object", () => {
+            const obj1 = { name: "taylor", age: 26, city: "austin" };
+            const result1 = Data.dataExceptValues(obj1, [26]);
+            expect(result1).toEqual({ name: "taylor", city: "austin" });
+
+            const result2 = Data.dataExceptValues(obj1, 26);
+            expect(result2).toEqual({ name: "taylor", city: "austin" });
+
+            const obj2 = { a: 1, b: 2, c: 1, d: 3 };
+            const result3 = Data.dataExceptValues(obj2, 1);
+            expect(result3).toEqual({ b: 2, d: 3 });
+
+            const obj3 = { a: true, b: false, c: 1, d: 0 };
+            const result4 = Data.dataExceptValues(obj3, [1, 0], true);
+            expect(result4).toEqual({ a: true, b: false });
+
+            const result5 = Data.dataExceptValues(obj3, [1, 0]);
+            expect(result5).toEqual({});
+        });
+
+        it("is array", () => {
+            const arr1 = ["foo", "bar", "baz", "qux"];
+            const result1 = Data.dataExceptValues(arr1, ["foo", "baz"]);
+            expect(result1).toEqual(["bar", "qux"]);
+
+            const result2 = Data.dataExceptValues(arr1, "baz");
+            expect(result2).toEqual(["foo", "bar", "qux"]);
+
+            const arr2 = [1, 2, 3, 4, 5];
+            const result3 = Data.dataExceptValues(arr2, [3, 4]);
+            expect(result3).toEqual([1, 2, 5]);
+
+            const arr3: unknown[] = [];
+            const result4 = Data.dataExceptValues(arr3, "foo");
+            expect(result4).toEqual([]);
+
+            const arr4 = ["foo", "bar"];
+            const result5 = Data.dataExceptValues(arr4, []);
+            expect(result5).toEqual(["foo", "bar"]);
+
+            const arr5 = [1, "1", 2, "2", 3];
+            const result6 = Data.dataExceptValues(arr5, [1, 2, 3], true);
+            expect(result6).toEqual(["1", "2"]);
+
+            const result7 = Data.dataExceptValues(arr5, [1, 2, 3]);
+            expect(result7).toEqual([]);
+        });
+    });
+
+    describe("dataOnlyValues", () => {
+        it("is object", () => {
+            const obj1 = { name: "taylor", age: 26, city: "austin" };
+            const result1 = Data.dataOnlyValues(obj1, [26]);
+            expect(result1).toEqual({ age: 26 });
+
+            const result2 = Data.dataOnlyValues(obj1, 26);
+            expect(result2).toEqual({ age: 26 });
+
+            const obj2 = { a: 1, b: 2, c: 1, d: 3 };
+            const result3 = Data.dataOnlyValues(obj2, 1);
+            expect(result3).toEqual({ a: 1, c: 1 });
+
+            const obj3 = { a: true, b: false, c: 1, d: 0 };
+            const result4 = Data.dataOnlyValues(obj3, [1, 0], true);
+            expect(result4).toEqual({ c: 1, d: 0 });
+
+            const result5 = Data.dataOnlyValues(obj3, [1, 0]);
+            expect(result5).toEqual({ a: true, b: false, c: 1, d: 0 });
+        });
+
+        it("is array", () => {
+            const arr1 = ["foo", "bar", "baz", "qux"];
+            const result1 = Data.dataOnlyValues(arr1, ["foo", "baz"]);
+            expect(result1).toEqual(["foo", "baz"]);
+
+            const result2 = Data.dataOnlyValues(arr1, "baz");
+            expect(result2).toEqual(["baz"]);
+
+            const arr2 = [1, 2, 3, 4, 5];
+            const result3 = Data.dataOnlyValues(arr2, [3, 4]);
+            expect(result3).toEqual([3, 4]);
+
+            const arr3: unknown[] = [];
+            const result4 = Data.dataOnlyValues(arr3, "foo");
+            expect(result4).toEqual([]);
+
+            const arr4 = ["foo", "bar"];
+            const result5 = Data.dataOnlyValues(arr4, []);
+            expect(result5).toEqual([]);
+
+            const arr5 = [1, "1", 2, "2", 3];
+            const result6 = Data.dataOnlyValues(arr5, [1, 2, 3], true);
+            expect(result6).toEqual([1, 2, 3]);
+
+            const result7 = Data.dataOnlyValues(arr5, [1, 2, 3]);
+            expect(result7).toEqual([1, "1", 2, "2", 3]);
+        });
+    });
 });

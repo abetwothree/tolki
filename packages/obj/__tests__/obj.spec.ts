@@ -2320,4 +2320,51 @@ describe("Obj", () => {
             expect(Obj.mapSpread([], () => "test")).toEqual({});
         });
     });
+
+    describe("exceptValues", () => {
+        it("test exceptValues", () => {
+            const obj1 = { name: "taylor", age: 26, city: "austin" };
+            expect(Obj.exceptValues(obj1, [26])).toEqual({
+                name: "taylor",
+                city: "austin",
+            });
+            expect(Obj.exceptValues(obj1, 26)).toEqual({
+                name: "taylor",
+                city: "austin",
+            });
+
+            const obj2 = { a: 1, b: 2, c: 1, d: 3 };
+            expect(Obj.exceptValues(obj2, 1)).toEqual({ b: 2, d: 3 });
+
+            const obj3 = { a: true, b: false, c: 1, d: 0 };
+            expect(Obj.exceptValues(obj3, [1, 0], true)).toEqual({
+                a: true,
+                b: false,
+            });
+            expect(Obj.exceptValues(obj3, [1, 0])).toEqual({});
+        });
+    });
+
+    describe("onlyValues", () => {
+        it("test onlyValues", () => {
+            const obj1 = { name: "taylor", age: 26, city: "austin" };
+            expect(Obj.onlyValues(obj1, [26])).toEqual({ age: 26 });
+            expect(Obj.onlyValues(obj1, 26)).toEqual({ age: 26 });
+
+            const obj2 = { a: 1, b: 2, c: 1, d: 3 };
+            expect(Obj.onlyValues(obj2, 1)).toEqual({ a: 1, c: 1 });
+
+            const obj3 = { a: true, b: false, c: 1, d: 0 };
+            expect(Obj.onlyValues(obj3, [1, 0], true)).toEqual({
+                c: 1,
+                d: 0,
+            });
+            expect(Obj.onlyValues(obj3, [1, 0])).toEqual({
+                a: true,
+                b: false,
+                c: 1,
+                d: 0,
+            });
+        });
+    });
 });
