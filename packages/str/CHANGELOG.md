@@ -1,5 +1,13 @@
 # @zinaid/str
 
+## 0.0.9
+
+### Patch Changes
+
+- Test publishing packages
+- Updated dependencies
+  - @zinaid/num@0.0.10
+
 ## 0.0.8
 
 ### Patch Changes

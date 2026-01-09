@@ -1,6 +1,6 @@
 {
     "name": "@zinaid/num",
-    "version": "0.0.9",
+    "version": "0.0.10",
     "description": "Utilities for working with numbers similar to Laravel's Num class facade.",
     "type": "module",
     "main": "src/index.ts",
@@ -22,11 +22,6 @@
     "peerDependencies": {
         "to-words": "catalog:num"
     },
-    "peerDependenciesMeta": {
-        "to-words": {
-            "optional": true
-        }
-    },
     "files": [
         "dist"
     ],
@@ -45,8 +40,8 @@
                 "types": "./dist/*"
             },
             "./num": {
-                "import": "./dist/num/index.js",
-                "types": "./dist/num/index.d.ts"
+                "import": "./dist/num.js",
+                "types": "./dist/num.d.ts"
             },
             "./speller": {
                 "import": "./dist/speller/index.js",

@@ -1,6 +1,6 @@
 {
     "name": "@zinaid/str",
-    "version": "0.0.8",
+    "version": "0.0.9",
     "description": "Utilities for working with strings similar to Laravel's Str & Stringable classes.",
     "main": "src/index.ts",
     "type": "module",
@@ -40,32 +40,6 @@
         "transliteration": "catalog:str",
         "ulid": "catalog:str",
         "uuid": "catalog:str"
-    },
-    "peerDependenciesMeta": {
-        "markdown-it": {
-            "optional": true
-        },
-        "markdown-it-anchor": {
-            "optional": true
-        },
-        "markdown-it-task-lists": {
-            "optional": true
-        },
-        "pluralize": {
-            "optional": true
-        },
-        "any-ascii": {
-            "optional": true
-        },
-        "transliteration": {
-            "optional": true
-        },
-        "ulid": {
-            "optional": true
-        },
-        "uuid": {
-            "optional": true
-        }
     },
     "files": [
         "dist"
@@ -113,8 +87,8 @@
                 "types": "./dist/replacer/index.d.ts"
             },
             "./str": {
-                "import": "./dist/str/index.js",
-                "types": "./dist/str/index.d.ts"
+                "import": "./dist/str.js",
+                "types": "./dist/str.d.ts"
             },
             "./stringable": {
                 "import": "./dist/stringable/index.js",
