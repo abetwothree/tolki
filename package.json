@@ -6,6 +6,7 @@
     "private": true,
     "scripts": {
         "release": "pnpm test && pnpm document:version && pnpm ci:publish",
+        "clean": "pnpm lint && pnpm format",
         "ci:publish": "pnpm publish -r --access=public --no-git-checks",
         "ci:publish-arr": "pnpm publish --filter @zinaid/arr --access=public",
         "ci:publish-collection": "pnpm publish --filter @zinaid/collection --access=public",

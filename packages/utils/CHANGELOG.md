@@ -1,5 +1,11 @@
 # @zinaid/utils
 
+## 0.0.5
+
+### Patch Changes
+
+- Test release package
+
 ## 0.0.4
 
 ### Patch Changes

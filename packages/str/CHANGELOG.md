@@ -1,5 +1,22 @@
 # @zinaid/str
 
+## 0.0.8
+
+### Patch Changes
+
+- Small fixes to package to modularize packages
+- Updated dependencies
+  - @zinaid/num@0.0.9
+
+## 0.0.7
+
+### Patch Changes
+
+- Test release package
+- Updated dependencies
+  - @zinaid/num@0.0.8
+  - @zinaid/utils@0.0.5
+
 ## 0.0.6
 
 ### Patch Changes
