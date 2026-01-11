@@ -1,6 +1,6 @@
 {
     "name": "@tolki/utils",
-    "version": "0.0.0",
+    "version": "1.0.0",
     "description": "A set of utility functions for the @tolki packages.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",

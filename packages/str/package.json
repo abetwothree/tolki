@@ -1,6 +1,6 @@
 {
     "name": "@tolki/str",
-    "version": "0.0.0",
+    "version": "1.0.0",
     "description": "Utilities for working with strings similar to Laravel's Str & Stringable classes.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",
