@@ -1,7 +1,3 @@
 # Tolki JS Utils Package
 
-This package provides utility functions used by other Tolki packages.
-
-## Archived
-
-This was a proof of concept package and is now archived. See the [Tolki](https://www.npmjs.com/org/tolki) organization for the actively maintained version of this package.
+This package provides utility functions used by other Tolki packages. Usage of these utilities directly is not recommended, as they are subject to change without notice.

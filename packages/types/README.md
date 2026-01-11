@@ -2,6 +2,6 @@
 
 Utility TypeScript types for @tolki packages and Laravel HTTP responses.
 
-## Archived
+## Documentation
 
-This was a proof of concept package and is now archived. See the [Tolki](https://www.npmjs.com/org/tolki) organization for the actively maintained version of this package.
+The full documentation for the TypeScript type utilities can be found at [https://tolki.abe.dev](https://tolki.abe.dev/typescript/).
