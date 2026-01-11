@@ -29,4 +29,4 @@ const { users } = defineProps<{
 </script>
 ```
 
-See the [TypeScript Types Documentation](/typescript/typescript-utilities-list/) for a full list of available types and their descriptions.
+See the [TypeScript Types Documentation](/typescript/typescript-utilities-list) for a full list of available types and their descriptions.
