@@ -66,10 +66,6 @@ export function after(subject: string, search: string | number): string {
  * @returns The portion of the string after the last occurrence of the search value
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#afterLast
- *
- * @example
- *
- * afterLast('A house on a lake', 'a'); -> ' lake'
  */
 export function afterLast(subject: string, search: string | number): string {
     if (search === "") {
@@ -91,10 +87,6 @@ export function afterLast(subject: string, search: string | number): string {
  * @param subject - The string to search in
  * @param search - The value to search for
  * @returns The portion of the string before the first occurrence of the search value
- *
- * @example
- *
- * before('hannah', 'nah'); -> 'han'
  */
 export function before(subject: string, search: string | number): string {
     if (search === "") {

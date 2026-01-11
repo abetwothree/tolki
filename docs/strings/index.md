@@ -1,6 +1,6 @@
 # String Utilities Installation
 
-The `@tolki/str` package provides a variety of string manipulation utilities inspired by Laravel's Str class. You can install it via npm, yarn, or pnpm:
+The [`@tolki/str`](https://www.npmjs.com/package/@tolki/str) package provides a variety of string manipulation utilities inspired by Laravel's Str class. You can install it via npm, yarn, or pnpm:
 
 ```bash
 npm install @tolki/str
