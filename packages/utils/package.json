@@ -1,6 +1,6 @@
 {
     "name": "@tolki/utils",
-    "version": "0.0.6",
+    "version": "0.0.0",
     "description": "A set of utility functions for the @tolki packages.",
     "type": "module",
     "main": "src/index.ts",

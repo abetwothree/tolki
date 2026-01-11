@@ -1,6 +1,6 @@
 {
     "name": "@tolki/str",
-    "version": "0.0.10",
+    "version": "0.0.0",
     "description": "Utilities for working with strings similar to Laravel's Str & Stringable classes.",
     "main": "src/index.ts",
     "type": "module",

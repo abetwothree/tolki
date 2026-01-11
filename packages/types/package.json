@@ -1,6 +1,6 @@
 {
     "name": "@tolki/types",
-    "version": "0.0.5",
+    "version": "0.0.0",
     "description": "Utility TypeScript types for @tolki packages and Laravel HTTP responses.",
     "type": "module",
     "types": "src/index.d.ts",
