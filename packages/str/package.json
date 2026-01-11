@@ -1,6 +1,6 @@
 {
     "name": "@zinaid/str",
-    "version": "0.0.9",
+    "version": "0.0.10",
     "description": "Utilities for working with strings similar to Laravel's Str & Stringable classes.",
     "main": "src/index.ts",
     "type": "module",

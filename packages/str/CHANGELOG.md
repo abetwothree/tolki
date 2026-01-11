@@ -1,5 +1,14 @@
 # @zinaid/str
 
+## 0.0.10
+
+### Patch Changes
+
+- Archive development zinaid proof-of-concept of these packages.
+- Updated dependencies
+  - @zinaid/utils@0.0.6
+  - @zinaid/num@0.0.11
+
 ## 0.0.9
 
 ### Patch Changes

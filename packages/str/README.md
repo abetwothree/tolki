@@ -2,9 +2,6 @@
 
 This package provides string utility functions similar to Laravel's Str class facade.
 
-## Install specific deps they need
+## Archived
 
-pnpm add markdown-it markdown-it-anchor markdown-it-task-lists # For markdown()
-pnpm add pluralize # For plural()/singular()
-pnpm add uuid ulid # For uuid()/ulid()
-pnpm add any-ascii transliteration # For ascii()/transliterate()
+This was a proof of concept package and is now archived. See the [Tolki](https://www.npmjs.com/org/tolki) organization for the actively maintained version of this package.

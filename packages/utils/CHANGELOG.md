@@ -1,5 +1,11 @@
 # @zinaid/utils
 
+## 0.0.6
+
+### Patch Changes
+
+- Archive development zinaid proof-of-concept of these packages.
+
 ## 0.0.5
 
 ### Patch Changes

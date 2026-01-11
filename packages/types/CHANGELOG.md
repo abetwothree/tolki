@@ -1,5 +1,11 @@
 # @zinaid/types
 
+## 0.0.5
+
+### Patch Changes
+
+- Archive development zinaid proof-of-concept of these packages.
+
 ## 0.0.4
 
 ### Patch Changes
