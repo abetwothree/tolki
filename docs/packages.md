@@ -1,5 +1,9 @@
 # List of Packages
 
+One of the problems with existing utility libraries is that they only implement a subset of the functionality that Laravel provides. Tolki JS Utilities aims to provide a more complete set of utilities that allow for a more cohesive set of packages that can be used together.
+
+Currently, only the string, number, and some TypeScript utilities are available. However, the work on arrays, objects, and collections is underway.
+
 | Package                        | Description                                                               |
 | ------------------------------ | ------------------------------------------------------------------------- |
 | [`@tolki/str`](/strings/)      | Utilities for working with strings like Laravel's Str class.              |
