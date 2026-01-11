@@ -37,6 +37,8 @@ let randomStringFactory: ((length: number) => string) | null = null;
  * @param search - The value to search for
  * @returns The portion of the string after the last occurrence of the search value
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#after
+ *
  * @example
  *
  * after('A house on a lake', 'house '); -> 'on a lake'
@@ -62,6 +64,8 @@ export function after(subject: string, search: string | number): string {
  * @param subject - The string to search in
  * @param search - The value to search for
  * @returns The portion of the string after the last occurrence of the search value
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#afterLast
  *
  * @example
  *
