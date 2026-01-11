@@ -1,8 +1,8 @@
 # AGENTS.md
 
-## What is the @zinaid monorepo?
+## What is the @tolki monorepo?
 
-The `@zinaid` monorepo is a collection of packages that provide a JavaScript/TypeScript implementation of various helper functions and classes inspired by the Laravel PHP framework. The goal is to provide developers with a set of tools that make it easier to work with arrays, objects, strings, numbers, and collections in a way that is familiar to Laravel developers.
+The `@tolki` monorepo is a collection of packages that provide a JavaScript/TypeScript implementation of various helper functions and classes inspired by the Laravel PHP framework. The goal is to provide developers with a set of tools that make it easier to work with arrays, objects, strings, numbers, and collections in a way that is familiar to Laravel developers.
 
 ## Package.json commands and their descriptions
 
@@ -131,7 +131,7 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - Code coverage files are in `./coverage/` folder after running tests with coverage
 - Use `Vitest` for testing
 - This is a monorepo, so all packages should be in `packages/` folder
-- Instead of using the JavaScript `typeof` directly to check for value types, use the following utility functions from `@zinaid/utils`:
+- Instead of using the JavaScript `typeof` directly to check for value types, use the following utility functions from `@tolki/utils`:
   - `isArray(variable)` - checks if the variable is an array
   - `toArrayable(variable)` - converts the variable is an object with the `toArray` method
   - `isObject(variable)` - checks if the variable is a non-null non-array object
@@ -202,18 +202,18 @@ Look at the package-docs.md file at the root for more details on the long term t
 
 Packages table layout:
 
-| Directory           | Package Name       | Description                                               |
-| ------------------- | ------------------ | --------------------------------------------------------- |
-| packages/all        | @zinaid/all        | Meta package that includes all other packages             |
-| packages/arr        | @zinaid/arr        | Array helpers                                             |
-| packages/collection | @zinaid/collection | Collection class and helpers                              |
-| packages/data       | @zinaid/data       | Helpers for working with arrays and objects               |
-| packages/num        | @zinaid/num        | Number helpers and formatting                             |
-| packages/obj        | @zinaid/obj        | Object helpers                                            |
-| packages/path       | @zinaid/path       | Path helpers for working with paths in objects and arrays |
-| packages/str        | @zinaid/str        | String helpers                                            |
-| packages/types      | @zinaid/types      | Type definitions and helpers                              |
-| packages/utils      | @zinaid/utils      | General utility functions                                 |
+| Directory           | Package Name      | Description                                               |
+| ------------------- | ----------------- | --------------------------------------------------------- |
+| packages/all        | @tolki/all        | Meta package that includes all other packages             |
+| packages/arr        | @tolki/arr        | Array helpers                                             |
+| packages/collection | @tolki/collection | Collection class and helpers                              |
+| packages/data       | @tolki/data       | Helpers for working with arrays and objects               |
+| packages/num        | @tolki/num        | Number helpers and formatting                             |
+| packages/obj        | @tolki/obj        | Object helpers                                            |
+| packages/path       | @tolki/path       | Path helpers for working with paths in objects and arrays |
+| packages/str        | @tolki/str        | String helpers                                            |
+| packages/types      | @tolki/types      | Type definitions and helpers                              |
+| packages/utils      | @tolki/utils      | General utility functions                                 |
 
 Folder and root files list and description of each package:
 
@@ -229,28 +229,28 @@ Folder and root files list and description of each package:
 
 More detailed description of the packages to be implemented:
 
-### @zinaid/all
+### @tolki/all
 
 - A meta package that includes all other packages as dependencies for easy installation
 
-### @zinaid/arr
+### @tolki/arr
 
 - Array helpers
 - Functions should be in the same order as in the Laravel `Arr` stub for easier reference
 - We are not doing `isAssoc` or `isList` functions because in JS, arrays are always lists and there are not associative arrays. So these functions are not needed.
-- use `@zinaid/path` for path-based operations. Any function that works with paths to get, set, check or delete values in objects should use the path helpers from that package. If the function currently only works with objects, it should be adapted to work with arrays as well.
-- use `@zinaid/utils` for utility functions
-- use `@zinaid/types` for type definitions
-- use `@zinaid/obj` for any object-specific operations when an object contains objects
+- use `@tolki/path` for path-based operations. Any function that works with paths to get, set, check or delete values in objects should use the path helpers from that package. If the function currently only works with objects, it should be adapted to work with arrays as well.
+- use `@tolki/utils` for utility functions
+- use `@tolki/types` for type definitions
+- use `@tolki/obj` for any object-specific operations when an object contains objects
 
-### @zinaid/collection
+### @tolki/collection
 
 - Collection class and helpers to work the same way as Laravel Collections. However, PHP has associative arrays and JS does not, so the Collection class should be able to handle both array-like collections (with numeric keys) and object-like collections (with string keys) but it should not try to mimic associative arrays exactly.
 - Functions should be in the same order as in the Laravel `Collection.php` stub for easier reference
 - The Items type describes the data structure that the Collection can hold. It can be either an array of values (TValue[]) or a record/object with keys of type TKey and values of type TValue (Record<TKey, TValue>).
 - Keep public methods at the top of the class in the same order as in the Laravel stub for easier reference
-- Use the `@zinaid/data` package to handle operations that can work on both arrays and objects. This package will smartly call the appropriate helper from `@zinaid/arr` or `@zinaid/obj` as needed because the Collection class can hold either arrays or objects.
-- Any functions that are public but there is no equivalent in the `@zinaid/arr` or `@zinaid/obj` packages should be implemented in those packages as well for consistency and reusability and then called from the Collection class. The `@zinaid/data` package should also be updated to handle the new function for both arrays and objects. Then finally the Collection class can call the function from `@zinaid/data` to handle both arrays and objects.
+- Use the `@tolki/data` package to handle operations that can work on both arrays and objects. This package will smartly call the appropriate helper from `@tolki/arr` or `@tolki/obj` as needed because the Collection class can hold either arrays or objects.
+- Any functions that are public but there is no equivalent in the `@tolki/arr` or `@tolki/obj` packages should be implemented in those packages as well for consistency and reusability and then called from the Collection class. The `@tolki/data` package should also be updated to handle the new function for both arrays and objects. Then finally the Collection class can call the function from `@tolki/data` to handle both arrays and objects.
 - Private and protected methods should be at the bottom of the class
 - Use generics to type the collection items, e.g. `Collection<T>` where `T` is the type of the items in the collection
 - Use tuple types for collections with fixed number of items, e.g. `Collection<[number, string]>` for a collection with two items: a number and a string
@@ -275,30 +275,30 @@ More detailed description of the packages to be implemented:
         - `packages/collection/stubs/Jsonable.php` - interface for json serialization toJson method
         - `packages/collection/stubs/JsonSerializable.php` - interface for json serialization jsonSerialize method
   - The test stub is `packages/collection/stubs/CollectionTest.php` which contains the tests for the `Collection` class and its methods from the Laravel codebase to use as inspiration for the JS tests.
-- use `@zinaid/data` for handling whether an operation is on an array or object and the functionality to run on that data structure
-- use `@zinaid/utils` for utility functions
-- use `@zinaid/types` for type definitions
+- use `@tolki/data` for handling whether an operation is on an array or object and the functionality to run on that data structure
+- use `@tolki/utils` for utility functions
+- use `@tolki/types` for type definitions
 
-### @zinaid/data
+### @tolki/data
 
 - A set of helpers for working with arrays and objects, including `dataGet`, `dataSet`, `dataForget`, `dataHas`, `dataPluck`, `dataDot`, `dataUndot`
 - All functions must be prefixed with `data` to avoid name collisions
 - Functions should follow the same order as `arr.ts` and `obj.ts` for easier reference
-- Use `@zinaid/path` for path-based operations. Any function that works with paths to get, set, check or delete values in objects or arrays should use the path helpers from that package.
-- use `@zinaid/utils` for utility functions
-- Each function should receive arrays or objects and then smartly call helpers from the `@zinaid/arr` or `@zinaid/obj` packages as needed
-- use `@zinaid/types` for type definitions
+- Use `@tolki/path` for path-based operations. Any function that works with paths to get, set, check or delete values in objects or arrays should use the path helpers from that package.
+- use `@tolki/utils` for utility functions
+- Each function should receive arrays or objects and then smartly call helpers from the `@tolki/arr` or `@tolki/obj` packages as needed
+- use `@tolki/types` for type definitions
 - Functions should be in the same order as arr.ts and obj.ts for easier reference
-- Functions should be implemented like this to check data type and call the appropriate helper from `@zinaid/arr` or `@zinaid/obj`:
+- Functions should be implemented like this to check data type and call the appropriate helper from `@tolki/arr` or `@tolki/obj`:
 - No need to implement the following functions from Laravel's `Arr` class because they don't make sense in JS:
   - `accessible` - in JS, all objects are accessible
   - `array` - in JS, we have `Array.isArray()`
   - `wrap` - because `arrWrap` should be used directly if needed
 
 ```JavaScript
-import { collapse as arrCollapse, wrap as arrWrap } from "@zinaid/arr";
-import { collapse as objCollapse } from "@zinaid/obj";
-import { isArray, isObject } from "@zinaid/utils";
+import { collapse as arrCollapse, wrap as arrWrap } from "@tolki/arr";
+import { collapse as objCollapse } from "@tolki/obj";
+import { isArray, isObject } from "@tolki/utils";
 
 export function dataCollapse(data: unknown): unknown {
   if (isObject(data)) {
@@ -309,40 +309,40 @@ export function dataCollapse(data: unknown): unknown {
 }
 ```
 
-### @zinaid/num
+### @tolki/num
 
 - Helpers for working with numbers and formatting
 - Functions should be in the same order as in the Laravel `Number.php` stub for easier reference
-- use `@zinaid/types` for type definitions
-- use `@zinaid/utils` for utility functions
+- use `@tolki/types` for type definitions
+- use `@tolki/utils` for utility functions
 
-### @zinaid/obj
+### @tolki/obj
 
 - Object helpers that mimic Laravel's Arr helpers but for objects
 - Functions should be in the same order as in the Laravel `Arr` stub for easier reference
 - We are not doing `isAssoc` or `isList` functions because in JS, arrays are always lists and there are not associative arrays. So these functions are not needed.
-- use `@zinaid/path` for path-based operations. Any function that works with paths to get, set, check or delete values in objects should use the path helpers from that package. If the function currently only works with arrays, it should be adapted to work with objects as well.
-- use `@zinaid/utils` for utility functions
-- use `@zinaid/types` for type definitions
-- use `@zinaid/arr` for any array-specific operations when an object contains arrays
+- use `@tolki/path` for path-based operations. Any function that works with paths to get, set, check or delete values in objects should use the path helpers from that package. If the function currently only works with arrays, it should be adapted to work with objects as well.
+- use `@tolki/utils` for utility functions
+- use `@tolki/types` for type definitions
+- use `@tolki/arr` for any array-specific operations when an object contains arrays
 
-### @zinaid/path
+### @tolki/path
 
 - Path helpers for working with paths in objects and arrays
-- use `@zinaid/types` for type definitions
+- use `@tolki/types` for type definitions
 
-### @zinaid/str
+### @tolki/str
 
 - String helpers
 - Functions should be in the same order as in the Laravel `Str.php` stub for easier reference
-- use `@zinaid/types` for type definitions
-- use `@zinaid/utils` for utility functions
+- use `@tolki/types` for type definitions
+- use `@tolki/utils` for utility functions
 
-### @zinaid/types
+### @tolki/types
 
 - Type definitions and helpers for working with Laravel-specific types
 
-### @zinaid/utils
+### @tolki/utils
 
 - General utility functions that don't fit in other packages
-- use `@zinaid/types` for type definitions
+- use `@tolki/types` for type definitions

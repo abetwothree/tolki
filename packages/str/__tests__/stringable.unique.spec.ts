@@ -1,5 +1,5 @@
-import { Stringable } from "@zinaid/str";
-import * as Str from "@zinaid/str";
+import { Stringable } from "@tolki/str";
+import * as Str from "@tolki/str";
 import { describe, expect, it } from "vitest";
 
 // Helper to compare Stringable result to plain string

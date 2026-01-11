@@ -1,4 +1,4 @@
-import type { DataItems } from "@zinaid/types";
+import type { DataItems } from "@tolki/types";
 
 /**
  * Check if a value is an array.

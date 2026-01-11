@@ -1,7 +1,7 @@
 import {
     flip as arrFlip,
     replaceRecursive as arrReplaceRecursive,
-} from "@zinaid/arr";
+} from "@tolki/arr";
 import {
     dotFlatten,
     forgetKeys,
@@ -10,8 +10,8 @@ import {
     hasObjectKey,
     setObjectValue,
     undotExpandObject,
-} from "@zinaid/path";
-import { finish, randomInt } from "@zinaid/str";
+} from "@tolki/path";
+import { finish, randomInt } from "@tolki/str";
 import {
     isArray,
     isBoolean,
@@ -29,7 +29,7 @@ import {
     isWeakMap,
     looseEqual,
     typeOf,
-} from "@zinaid/utils";
+} from "@tolki/utils";
 import type { PathKey, PathKeys } from "packages/types";
 
 /**

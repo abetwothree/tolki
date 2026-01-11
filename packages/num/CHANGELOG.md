@@ -1,12 +1,12 @@
-# @zinaid/num
+# @tolki/num
 
 ## 0.0.11
 
 ### Patch Changes
 
-- Archive development zinaid proof-of-concept of these packages.
+- Archive development tolki proof-of-concept of these packages.
 - Updated dependencies
-  - @zinaid/utils@0.0.6
+  - @tolki/utils@0.0.6
 
 ## 0.0.10
 
@@ -26,7 +26,7 @@
 
 - Test release package
 - Updated dependencies
-  - @zinaid/utils@0.0.5
+  - @tolki/utils@0.0.5
 
 ## 0.0.7
 
@@ -46,7 +46,7 @@
 
 - Test making dependencies optional properly and only complain about 3rd party packages until used
 - Updated dependencies
-  - @zinaid/utils@0.0.4
+  - @tolki/utils@0.0.4
 
 ## 0.0.3
 

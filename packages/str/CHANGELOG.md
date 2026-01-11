@@ -1,13 +1,13 @@
-# @zinaid/str
+# @tolki/str
 
 ## 0.0.10
 
 ### Patch Changes
 
-- Archive development zinaid proof-of-concept of these packages.
+- Archive development tolki proof-of-concept of these packages.
 - Updated dependencies
-  - @zinaid/utils@0.0.6
-  - @zinaid/num@0.0.11
+  - @tolki/utils@0.0.6
+  - @tolki/num@0.0.11
 
 ## 0.0.9
 
@@ -15,7 +15,7 @@
 
 - Test publishing packages
 - Updated dependencies
-  - @zinaid/num@0.0.10
+  - @tolki/num@0.0.10
 
 ## 0.0.8
 
@@ -23,7 +23,7 @@
 
 - Small fixes to package to modularize packages
 - Updated dependencies
-  - @zinaid/num@0.0.9
+  - @tolki/num@0.0.9
 
 ## 0.0.7
 
@@ -31,8 +31,8 @@
 
 - Test release package
 - Updated dependencies
-  - @zinaid/num@0.0.8
-  - @zinaid/utils@0.0.5
+  - @tolki/num@0.0.8
+  - @tolki/utils@0.0.5
 
 ## 0.0.6
 
@@ -40,14 +40,14 @@
 
 - Test modularization of packages
 - Updated dependencies
-  - @zinaid/num@0.0.7
+  - @tolki/num@0.0.7
 
 ## 0.0.5
 
 ### Patch Changes
 
 - Updated dependencies
-  - @zinaid/num@0.0.6
+  - @tolki/num@0.0.6
 
 ## 0.0.4
 
@@ -55,8 +55,8 @@
 
 - Test making dependencies optional properly and only complain about 3rd party packages until used
 - Updated dependencies
-  - @zinaid/utils@0.0.4
-  - @zinaid/num@0.0.4
+  - @tolki/utils@0.0.4
+  - @tolki/num@0.0.4
 
 ## 0.0.3
 
@@ -64,8 +64,8 @@
 
 - 3f9637d: Test publishing from CI
 - Updated dependencies \[3f9637d\]
-  - @zinaid/num@0.0.3
-  - @zinaid/utils@0.0.3
+  - @tolki/num@0.0.3
+  - @tolki/utils@0.0.3
 
 ## 0.0.2
 
@@ -73,8 +73,8 @@
 
 - Tree shaking implementations to make sure that only used functions and dependencies are bundled by the end user's build file
 - Updated dependencies
-  - @zinaid/utils@0.0.2
-  - @zinaid/num@0.0.2
+  - @tolki/utils@0.0.2
+  - @tolki/num@0.0.2
 
 ## 0.0.1
 
@@ -82,5 +82,5 @@
 
 - c7fcc01: Test initial releasing
 - Updated dependencies \[c7fcc01\]
-  - @zinaid/num@0.0.1
-  - @zinaid/utils@0.0.1
+  - @tolki/num@0.0.1
+  - @tolki/utils@0.0.1

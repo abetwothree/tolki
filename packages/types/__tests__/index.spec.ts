@@ -24,7 +24,7 @@ import type {
     WithMax,
     WithMin,
     WithSum,
-} from "@zinaid/types";
+} from "@tolki/types";
 import { expectTypeOf, test } from "vitest";
 
 declare type Data = Record<string, unknown>[];

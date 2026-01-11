@@ -1,4 +1,4 @@
-import { isFunction } from "@zinaid/utils";
+import { isFunction } from "@tolki/utils";
 
 /**
  * Convert the given string to Base64 encoding.

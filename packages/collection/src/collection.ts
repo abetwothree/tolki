@@ -1,4 +1,4 @@
-import { wrap as arrWrap } from "@zinaid/arr";
+import { wrap as arrWrap } from "@tolki/arr";
 import {
     dataAfter,
     dataBefore,
@@ -49,14 +49,14 @@ import {
     dataUndot,
     dataUnion,
     dataValues,
-} from "@zinaid/data";
+} from "@tolki/data";
 import type {
     Arrayable,
     ArrayItems,
     DataItems,
     PathKey,
     PathKeys,
-} from "@zinaid/types";
+} from "@tolki/types";
 import {
     compareValues,
     entriesKeyValue,
@@ -77,7 +77,7 @@ import {
     toJsonable,
     toJsonSerializable,
     typeOf,
-} from "@zinaid/utils";
+} from "@tolki/utils";
 
 // import { initProxyHandler } from "./proxy";
 

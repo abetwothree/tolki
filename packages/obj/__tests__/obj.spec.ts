@@ -1,4 +1,4 @@
-import * as Obj from "@zinaid/obj";
+import * as Obj from "@tolki/obj";
 import { assertType, describe, expect, it } from "vitest";
 
 describe("Obj", () => {

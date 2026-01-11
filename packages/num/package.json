@@ -1,5 +1,5 @@
 {
-    "name": "@zinaid/num",
+    "name": "@tolki/num",
     "version": "0.0.11",
     "description": "Utilities for working with numbers similar to Laravel's Num class facade.",
     "type": "module",
@@ -14,7 +14,7 @@
     "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
     "dependencies": {
-        "@zinaid/utils": "workspace:^"
+        "@tolki/utils": "workspace:^"
     },
     "devDependencies": {
         "to-words": "catalog:num"

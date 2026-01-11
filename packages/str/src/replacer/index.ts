@@ -1,4 +1,4 @@
-import { isArray } from "@zinaid/utils";
+import { isArray } from "@tolki/utils";
 
 /**
  * Returns the portion of the string specified by the start and length parameters.

@@ -1,4 +1,4 @@
-import { isString } from "@zinaid/utils";
+import { isString } from "@tolki/utils";
 import {
     MAX as UUID_MAX,
     NIL as UUID_NIL,

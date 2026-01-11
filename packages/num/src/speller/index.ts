@@ -1,4 +1,4 @@
-import { format } from "@zinaid/num";
+import { format } from "@tolki/num";
 import { ToWords } from "to-words";
 
 /**

@@ -1,5 +1,5 @@
 {
-    "name": "@zinaid/str",
+    "name": "@tolki/str",
     "version": "0.0.10",
     "description": "Utilities for working with strings similar to Laravel's Str & Stringable classes.",
     "main": "src/index.ts",
@@ -14,8 +14,8 @@
     "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
     "dependencies": {
-        "@zinaid/num": "workspace:^",
-        "@zinaid/utils": "workspace:^"
+        "@tolki/num": "workspace:^",
+        "@tolki/utils": "workspace:^"
     },
     "devDependencies": {
         "@types/markdown-it": "catalog:types",

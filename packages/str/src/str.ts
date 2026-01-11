@@ -7,8 +7,8 @@ import {
     title,
     trim,
     upper,
-} from "@zinaid/str";
-import { isArray, isFunction, isString, toLower } from "@zinaid/utils";
+} from "@tolki/str";
+import { isArray, isFunction, isString, toLower } from "@tolki/utils";
 
 /**
  * The cache of snake-cased words.

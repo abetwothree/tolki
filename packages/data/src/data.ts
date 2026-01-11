@@ -76,7 +76,7 @@ import {
     where as arrWhere,
     whereNotNull as arrWhereNotNull,
     wrap as arrWrap,
-} from "@zinaid/arr";
+} from "@tolki/arr";
 import {
     add as objAdd,
     boolean as objBoolean,
@@ -156,7 +156,7 @@ import {
     values as objValues,
     where as objWhere,
     whereNotNull as objWhereNotNull,
-} from "@zinaid/obj";
+} from "@tolki/obj";
 import type {
     AddToArray,
     AddToObject,
@@ -165,14 +165,14 @@ import type {
     PathKey,
     PathKeys,
     UnwrapFn,
-} from "@zinaid/types";
+} from "@tolki/types";
 import {
     entriesKeyValue,
     isArray,
     isFunction,
     isObject,
     isUndefined,
-} from "@zinaid/utils";
+} from "@tolki/utils";
 
 /**
  * Add an element to data.

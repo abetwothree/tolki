@@ -4,7 +4,7 @@
  * Uses a cryptographically secure RNG when available (Web Crypto / Node crypto).
  */
 
-import { bytesToBase64 } from "@zinaid/str";
+import { bytesToBase64 } from "@tolki/str";
 
 /**
  * Generate a more truly "random" alpha-numeric string (Laravel compatible algorithm).

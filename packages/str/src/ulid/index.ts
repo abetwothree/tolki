@@ -1,4 +1,4 @@
-import { isString } from "@zinaid/utils";
+import { isString } from "@tolki/utils";
 import { ulid as createUlid } from "ulid";
 
 /**

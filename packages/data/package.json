@@ -1,5 +1,5 @@
 {
-    "name": "@zinaid/data",
+    "name": "@tolki/data",
     "version": "0.0.0",
     "description": "Utilities for working with various data structures in JavaScript.",
     "private": true,

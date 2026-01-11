@@ -1,4 +1,4 @@
-import { isArray } from "@zinaid/utils";
+import { isArray } from "@tolki/utils";
 import MarkdownIt, {
     type Options as MarkdownItOptions,
     type PluginSimple,

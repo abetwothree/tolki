@@ -1,5 +1,5 @@
-import { CaseTypes, Stringable } from "@zinaid/str";
-import * as Str from "@zinaid/str";
+import { CaseTypes, Stringable } from "@tolki/str";
+import * as Str from "@tolki/str";
 import { describe, expect, it } from "vitest";
 
 // Helper to compare Stringable method against Str function

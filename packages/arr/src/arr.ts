@@ -1,4 +1,4 @@
-import { replaceRecursive as objReplaceRecursive } from "@zinaid/obj";
+import { replaceRecursive as objReplaceRecursive } from "@tolki/obj";
 import {
     dotFlatten,
     forgetKeys,
@@ -10,14 +10,14 @@ import {
     setMixed,
     setMixedImmutable,
     undotExpandArray,
-} from "@zinaid/path";
-import { finish, randomInt } from "@zinaid/str";
+} from "@tolki/path";
+import { finish, randomInt } from "@tolki/str";
 import type {
     ArrayInnerValue,
     ArrayItems,
     PathKey,
     PathKeys,
-} from "@zinaid/types";
+} from "@tolki/types";
 import {
     castableToArray,
     compareValues,
@@ -38,7 +38,7 @@ import {
     isWeakMap,
     looseEqual,
     typeOf,
-} from "@zinaid/utils";
+} from "@tolki/utils";
 
 /**
  * Determine whether the given value is array accessible.

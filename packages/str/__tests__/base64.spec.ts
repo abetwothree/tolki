@@ -1,4 +1,4 @@
-import { bytesToBase64, fromBase64, toBase64 } from "@zinaid/str";
+import { bytesToBase64, fromBase64, toBase64 } from "@tolki/str";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 // We will temporarily modify globals to simulate different environments

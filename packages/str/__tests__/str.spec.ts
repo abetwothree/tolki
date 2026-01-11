@@ -1,5 +1,5 @@
-import { CaseTypes, Stringable } from "@zinaid/str";
-import * as Str from "@zinaid/str";
+import { CaseTypes, Stringable } from "@tolki/str";
+import * as Str from "@tolki/str";
 import type MarkdownIt from "markdown-it";
 import type { PluginSimple, PluginWithOptions } from "markdown-it";
 import { describe, expect, it } from "vitest";

@@ -1,5 +1,5 @@
 {
-    "name": "@zinaid/obj",
+    "name": "@tolki/obj",
     "version": "0.0.0",
     "description": "Utilities for working with JavaScript objects.",
     "private": true,

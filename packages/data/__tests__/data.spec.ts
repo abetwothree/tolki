@@ -1,4 +1,4 @@
-import * as Data from "@zinaid/data";
+import * as Data from "@tolki/data";
 import { assertType, describe, expect, it } from "vitest";
 
 describe("Data", () => {

@@ -8,11 +8,11 @@
     "baseBranch": "master",
     "updateInternalDependencies": "patch",
     "ignore": [
-        "@zinaid/all",
-        "@zinaid/arr",
-        "@zinaid/collection",
-        "@zinaid/data",
-        "@zinaid/obj",
-        "@zinaid/path"
+        "@tolki/all",
+        "@tolki/arr",
+        "@tolki/collection",
+        "@tolki/data",
+        "@tolki/obj",
+        "@tolki/path"
     ]
 }

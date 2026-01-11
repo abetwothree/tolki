@@ -1,7 +1,7 @@
 {
-    "name": "@zinaid/utils",
+    "name": "@tolki/utils",
     "version": "0.0.6",
-    "description": "A set of utility functions for the @zinaid packages.",
+    "description": "A set of utility functions for the @tolki packages.",
     "type": "module",
     "main": "src/index.ts",
     "scripts": {

@@ -1,5 +1,5 @@
-import * as Arr from "@zinaid/arr";
-import { isArray } from "@zinaid/utils";
+import * as Arr from "@tolki/arr";
+import { isArray } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
 
 describe("Arr", () => {

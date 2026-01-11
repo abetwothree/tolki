@@ -1,4 +1,4 @@
-import { spell, spellOrdinal } from "@zinaid/num";
+import { spell, spellOrdinal } from "@tolki/num";
 import { describe, expect, it } from "vitest";
 
 describe("Num/Speller", () => {

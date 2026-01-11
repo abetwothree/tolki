@@ -2,7 +2,7 @@ import type {
     ConvertCaseMode,
     MarkDownExtensions,
     MarkDownOptions,
-} from "@zinaid/str";
+} from "@tolki/str";
 import {
     after,
     afterLast,
@@ -92,8 +92,8 @@ import {
     words,
     wordWrap,
     wrap,
-} from "@zinaid/str";
-import { isArray, isFunction, isInteger } from "@zinaid/utils";
+} from "@tolki/str";
+import { isArray, isFunction, isInteger } from "@tolki/utils";
 
 export type ConditionableValue =
     | string

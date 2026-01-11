@@ -1,4 +1,4 @@
-import { ltrim, rtrim, trim } from "@zinaid/str";
+import { ltrim, rtrim, trim } from "@tolki/str";
 import { describe, expect, it } from "vitest";
 
 describe("Str/Trimmer", () => {

@@ -1,5 +1,5 @@
 {
-    "name": "@zinaid/all",
+    "name": "@tolki/all",
     "version": "0.0.0",
     "description": "A wrapper package to use all Laravel JS utilities at once.",
     "private": true,
@@ -17,10 +17,10 @@
         "dist"
     ],
     "dependencies": {
-        "@zinaid/num": "workspace:^",
-        "@zinaid/str": "workspace:^",
-        "@zinaid/types": "workspace:^",
-        "@zinaid/utils": "workspace:^"
+        "@tolki/num": "workspace:^",
+        "@tolki/str": "workspace:^",
+        "@tolki/types": "workspace:^",
+        "@tolki/utils": "workspace:^"
     },
     "publishConfig": {
         "main": "dist/index.js",

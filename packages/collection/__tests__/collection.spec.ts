@@ -1,5 +1,5 @@
-import { collect, Collection } from "@zinaid/collection";
-import { Stringable } from "@zinaid/str";
+import { collect, Collection } from "@tolki/collection";
+import { Stringable } from "@tolki/str";
 import { assertType, describe, expect, it } from "vitest";
 
 import {

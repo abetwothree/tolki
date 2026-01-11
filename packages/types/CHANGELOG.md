@@ -1,10 +1,10 @@
-# @zinaid/types
+# @tolki/types
 
 ## 0.0.5
 
 ### Patch Changes
 
-- Archive development zinaid proof-of-concept of these packages.
+- Archive development tolki proof-of-concept of these packages.
 
 ## 0.0.4
 

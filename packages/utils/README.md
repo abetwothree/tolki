@@ -1,6 +1,6 @@
-# Zinaid JS Utils Package
+# Tolki JS Utils Package
 
-This package provides utility functions used by other Zinaid packages.
+This package provides utility functions used by other Tolki packages.
 
 ## Archived
 

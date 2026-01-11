@@ -1,6 +1,6 @@
-# Zinaid JS Types Package
+# Tolki JS Types Package
 
-Utility TypeScript types for @zinaid packages and Laravel HTTP responses.
+Utility TypeScript types for @tolki packages and Laravel HTTP responses.
 
 ## Archived
 

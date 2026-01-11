@@ -1,5 +1,5 @@
 {
-    "name": "@zinaid/collection",
+    "name": "@tolki/collection",
     "version": "0.0.0",
     "description": "A collection utility similar to Laravel's Collection class.",
     "private": true,

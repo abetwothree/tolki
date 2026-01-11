@@ -1,4 +1,4 @@
-import { lowerFirst, toLower, toUpper, upperFirst } from "@zinaid/utils";
+import { lowerFirst, toLower, toUpper, upperFirst } from "@tolki/utils";
 
 export const CaseTypes = {
     upper: "upper",

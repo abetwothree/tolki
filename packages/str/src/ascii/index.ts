@@ -1,4 +1,4 @@
-import { lower } from "@zinaid/str";
+import { lower } from "@tolki/str";
 import { transliterate as transliteration } from "transliteration";
 
 /**

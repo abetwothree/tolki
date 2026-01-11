@@ -1,4 +1,4 @@
-import { wrap as arrWrap } from "@zinaid/arr";
+import { wrap as arrWrap } from "@tolki/arr";
 import {
     castableToArray,
     isArray,
@@ -13,7 +13,7 @@ import {
     isSymbol,
     isUndefined,
     typeOf,
-} from "@zinaid/utils";
+} from "@tolki/utils";
 import type { ArrayItems, PathKey, PathKeys } from "packages/types";
 
 /**

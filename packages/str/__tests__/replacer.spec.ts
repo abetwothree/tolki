@@ -1,4 +1,4 @@
-import { substr, substrCount, substrReplace } from "@zinaid/str";
+import { substr, substrCount, substrReplace } from "@tolki/str";
 import { describe, expect, it } from "vitest";
 
 describe("Str/Replacer", () => {

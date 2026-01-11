@@ -72,34 +72,34 @@ importers:
       "@vitest/ui":
         specifier: ^4.0.16
         version: 4.0.16(vitest@4.0.16)
-      "@zinaid/all":
+      "@tolki/all":
         specifier: workspace:^
         version: link:packages/all
-      "@zinaid/arr":
+      "@tolki/arr":
         specifier: workspace:^
         version: link:packages/arr
-      "@zinaid/collection":
+      "@tolki/collection":
         specifier: workspace:^
         version: link:packages/collection
-      "@zinaid/data":
+      "@tolki/data":
         specifier: workspace:^
         version: link:packages/data
-      "@zinaid/num":
+      "@tolki/num":
         specifier: workspace:^
         version: link:packages/num
-      "@zinaid/obj":
+      "@tolki/obj":
         specifier: workspace:^
         version: link:packages/obj
-      "@zinaid/path":
+      "@tolki/path":
         specifier: workspace:^
         version: link:packages/path
-      "@zinaid/str":
+      "@tolki/str":
         specifier: workspace:^
         version: link:packages/str
-      "@zinaid/types":
+      "@tolki/types":
         specifier: workspace:^
         version: link:packages/types
-      "@zinaid/utils":
+      "@tolki/utils":
         specifier: workspace:^
         version: link:packages/utils
       any-ascii:
@@ -189,16 +189,16 @@ importers:
 
   packages/all:
     dependencies:
-      "@zinaid/num":
+      "@tolki/num":
         specifier: workspace:^
         version: link:../num
-      "@zinaid/str":
+      "@tolki/str":
         specifier: workspace:^
         version: link:../str
-      "@zinaid/types":
+      "@tolki/types":
         specifier: workspace:^
         version: link:../types
-      "@zinaid/utils":
+      "@tolki/utils":
         specifier: workspace:^
         version: link:../utils
 
@@ -210,7 +210,7 @@ importers:
 
   packages/num:
     dependencies:
-      "@zinaid/utils":
+      "@tolki/utils":
         specifier: workspace:^
         version: link:../utils
     devDependencies:
@@ -224,10 +224,10 @@ importers:
 
   packages/str:
     dependencies:
-      "@zinaid/num":
+      "@tolki/num":
         specifier: workspace:^
         version: link:../num
-      "@zinaid/utils":
+      "@tolki/utils":
         specifier: workspace:^
         version: link:../utils
     devDependencies:

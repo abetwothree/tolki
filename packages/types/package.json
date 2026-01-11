@@ -1,7 +1,7 @@
 {
-    "name": "@zinaid/types",
+    "name": "@tolki/types",
     "version": "0.0.5",
-    "description": "Utility TypeScript types for @zinaid packages and Laravel HTTP responses.",
+    "description": "Utility TypeScript types for @tolki packages and Laravel HTTP responses.",
     "type": "module",
     "types": "src/index.d.ts",
     "scripts": {

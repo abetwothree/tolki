@@ -1,4 +1,4 @@
-import * as Path from "@zinaid/path";
+import * as Path from "@tolki/path";
 import { describe, expect, it } from "vitest";
 
 describe("Path Functions", () => {
