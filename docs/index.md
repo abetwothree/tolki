@@ -3,32 +3,24 @@
 layout: home
 
 hero:
-  name: "Larave JavaScript Support Utilities"
+  name: "Tolki JS Utilities"
   text: "Use the PHP Laravel framework support utilities in your JavaScript codebase"
   tagline: "Bringing the power of Laravel's helper functions to JavaScript"
   actions:
     - theme: brand
-      text: Why Laravel JS?
-      link: /why-laravel-js
+      text: Why Tolki JS?
+      link: /why-tolki-js
     - theme: alt
       text: Packages
       link: /packages
-    - theme: brand
-      text: Markdown Examples
-      link: /markdown-examples
-    - theme: alt
-      text: API Examples
-      link: /api-examples
 
 features:
-  - title: Array Utilities
-    details: Utilities for working with arrays, including map, filter, and reduce functions.
-  - title: Collection Utilities
-    details: Utilities for working with collections, including chaining and lazy evaluation.
-  - title: Number Utilities
-    details: Utilities for number manipulation, including formatting and currency display.
   - title: String Utilities
     details: Utilities for string manipulation, including case conversion, truncation, and more.
-  - title: TypeScript Utility Types
-    details: Utilities for working with TypeScript types, such as pagination, models, and http resource responses.
+  - title: Number Utilities
+    details: Utilities for number manipulation, including formatting and currency display.
+  - title: Array & Object Utilities (soon)
+    details: Utilities for working with arrays and objects, similar to Laravel's Arr class.
+  - title: Collection Utilities (soon)
+    details: Port of Laravel's Collection class for data manipulation of arrays and objects.
 ---

@@ -13,40 +13,31 @@ export default defineConfig({
         // https://vitepress.dev/reference/default-theme-config
         nav: [
             { text: "Home", link: "/" },
-            { text: "Examples", link: "/markdown-examples" },
+            { text: "Packages", link: "/packages" },
         ],
 
         sidebar: [
             {
                 text: "Introduction",
                 items: [
-                    { text: "Why Laravel JS?", link: "/why-laravel-js" },
+                    { text: "Why Tolki JS?", link: "/why-tolki-js" },
                     { text: "Packages", link: "/packages" },
                 ],
             },
             {
-                text: "Array Utilities",
+                text: "String Utilities",
                 items: [
                     {
-                        text: "Installation",
-                        link: "/array-utilities/",
+                        text: "Installation & Usage",
+                        link: "/strings/",
                     },
                     {
-                        text: "Documentation",
-                        link: "/array-utilities/documentation",
-                    },
-                ],
-            },
-            {
-                text: "Collection Utilities",
-                items: [
-                    {
-                        text: "Installation",
-                        link: "/collection-utilities/",
+                        text: "String Utilities List",
+                        link: "/strings/string-utilities-list",
                     },
                     {
-                        text: "Documentation",
-                        link: "/collection-utilities/documentation",
+                        text: "Stringable Utilities List",
+                        link: "/strings/stringable-utilities-list",
                     },
                 ],
             },
@@ -54,25 +45,12 @@ export default defineConfig({
                 text: "Number Utilities",
                 items: [
                     {
-                        text: "Installation",
-                        link: "/number-utilities/",
+                        text: "Installation & Usage",
+                        link: "/numbers/",
                     },
                     {
-                        text: "Documentation",
-                        link: "/number-utilities/documentation",
-                    },
-                ],
-            },
-            {
-                text: "String Utilities",
-                items: [
-                    {
-                        text: "Installation",
-                        link: "/string-utilities/",
-                    },
-                    {
-                        text: "Documentation",
-                        link: "/string-utilities/documentation",
+                        text: "Number Utilities List",
+                        link: "/numbers/number-utilities-list",
                     },
                 ],
             },
@@ -80,15 +58,41 @@ export default defineConfig({
                 text: "TypeScript Utilities",
                 items: [
                     {
-                        text: "Installation",
-                        link: "/typescript-utilities/",
+                        text: "Installation & Usage",
+                        link: "/typescript/",
                     },
                     {
-                        text: "Documentation",
-                        link: "/typescript-utilities/documentation",
+                        text: "TypeScript Utilities List",
+                        link: "/typescript/typescript-utilities-list",
                     },
                 ],
             },
+            // {
+            //     text: "Array Utilities",
+            //     items: [
+            //         {
+            //             text: "Installation & Usage",
+            //             link: "/array-utilities/",
+            //         },
+            //         {
+            //             text: "Documentation",
+            //             link: "/arrays/documentation",
+            //         },
+            //     ],
+            // },
+            // {
+            //     text: "Collection Utilities",
+            //     items: [
+            //         {
+            //             text: "Installation & Usage",
+            //             link: "/collections/",
+            //         },
+            //         {
+            //             text: "Documentation",
+            //             link: "/collections/documentation",
+            //         },
+            //     ],
+            // },
             {
                 text: "Examples",
                 items: [
@@ -101,7 +105,7 @@ export default defineConfig({
         socialLinks: [
             {
                 icon: "github",
-                link: "https://github.com/abetwothree/laravel-js",
+                link: "https://github.com/abetwothree/tolki",
             },
         ],
     },

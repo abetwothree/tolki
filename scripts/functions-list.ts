@@ -400,10 +400,13 @@ function main() {
             const packageName = path.basename(
                 path.dirname(path.dirname(filePath)),
             );
+
             const importableFunctions = functions
                 .filter((f) => f.isExported)
                 .map((f) => f.name)
-                .filter((name) => name !== "default");
+                .filter((name) => name !== "default")
+                .sort();
+
             if (importableFunctions.length > 0) {
                 console.log("You can import these functions like this:\n");
                 console.log(
