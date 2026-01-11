@@ -2,15 +2,27 @@
     "name": "@tolki/all",
     "version": "0.0.0",
     "description": "A wrapper package to use all Laravel JS utilities at once.",
+    "author": "Abraham Arango <https://github.com/abetwothree>",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/abetwothree/tolki.git",
+        "directory": "packages/all"
+    },
+    "bugs": {
+        "url": "https://github.com/abetwothree/tolki/issues"
+    },
     "private": true,
     "type": "module",
     "main": "src/index.ts",
     "scripts": {
         "build": "vite build"
     },
-    "keywords": [],
-    "author": "",
-    "license": "MIT",
+    "keywords": [
+        "laravel",
+        "utils",
+        "utilities"
+    ],
     "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
     "files": [

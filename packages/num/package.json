@@ -2,15 +2,30 @@
     "name": "@tolki/num",
     "version": "0.0.0",
     "description": "Utilities for working with numbers similar to Laravel's Num class facade.",
+    "author": "Abraham Arango <https://github.com/abetwothree>",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/abetwothree/tolki.git",
+        "directory": "packages/num"
+    },
+    "bugs": {
+        "url": "https://github.com/abetwothree/tolki/issues"
+    },
     "type": "module",
     "main": "src/index.ts",
     "scripts": {
         "build": "vite build",
         "prepack": "pnpm run build"
     },
-    "keywords": [],
-    "author": "",
-    "license": "MIT",
+    "keywords": [
+        "number",
+        "numbers",
+        "num",
+        "laravel",
+        "utils",
+        "utilities"
+    ],
     "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
     "dependencies": {
