@@ -3,8 +3,8 @@
 layout: home
 
 hero:
-  name: "Tolki JS Utilities"
-  text: "Use the PHP Laravel framework support utilities in your JavaScript codebase"
+  name: "Tolki JS"
+  text: "Use the PHP Laravel framework utilities in your JavaScript codebase"
   tagline: "Bringing the power of Laravel's helper functions to JavaScript"
   actions:
     - theme: brand
