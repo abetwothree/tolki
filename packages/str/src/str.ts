@@ -190,9 +190,7 @@ export function camel(value: string): string {
  * @param index - The index of the character to get
  * @returns The character at the specified index, or false if the index is out of bounds
  *
- * @example
- *
- * charAt('hello', 1); -> 'e'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#charat
  */
 export function charAt(subject: string, index: number): string | false {
     const length = subject.length;
@@ -216,9 +214,7 @@ export function charAt(subject: string, index: number): string | false {
  * @param needle - The string or strings to remove
  * @returns The string with the given string(s) removed from the start
  *
- * @example
- *
- * chopStart('foobar', 'foo'); -> 'bar'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#chopstart
  */
 export function chopStart(subject: string, needle: string | string[]): string {
     for (const n of isArray(needle) ? needle : [needle]) {
@@ -240,9 +236,7 @@ export function chopStart(subject: string, needle: string | string[]): string {
  * @param needle - The string or strings to remove
  * @returns The string with the given string(s) removed from the end
  *
- * @example
- *
- * chopEnd('foobar', 'bar'); -> 'foo'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#chopend
  */
 export function chopEnd(subject: string, needle: string | string[]): string {
     for (const n of isArray(needle) ? needle : [needle]) {
@@ -264,11 +258,7 @@ export function chopEnd(subject: string, needle: string | string[]): string {
  * @param needles - The substring or substrings to search for
  * @param ignoreCase - Whether to ignore case when searching
  *
- * @example
- *
- * contains('Minion', 'ni'); -> true
- * contains('Minion', 'Ni', true); -> true
- * contains('Minion', 'Ni', false); -> false
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#contains
  */
 export function contains(
     haystack: string,
@@ -361,10 +351,7 @@ export function excerpt(
  * @param ignoreCase - Whether to ignore case when searching
  * @returns True if all substrings are found, false otherwise
  *
- * @example
- *
- * containsAll('Taylor Otwell', ['taylor', 'otwell'], false); -> true
- * containsAll('Taylor Otwell', ['taylor', 'xxx'], true); -> false
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#containsall
  */
 export function containsAll(
     haystack: string,
@@ -388,11 +375,7 @@ export function containsAll(
  * @param ignoreCase - Whether to ignore case when searching
  * @returns True if the substring is not found, false otherwise
  *
- * @example
- *
- * doesntContain('Minion', 'ni'); -> false
- * doesntContain('Minion', 'Ni', true); -> false
- * doesntContain('Minion', 'Ni', false); -> true
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#doesntcontain
  */
 export function doesntContain(
     haystack: string,
@@ -409,12 +392,7 @@ export function doesntContain(
  * @param character - The character or characters to deduplicate
  * @returns The string with consecutive instances of the character(s) replaced by a single instance
  *
- * @example
- *
- * deduplicate('hello  world'); -> 'hello world'
- * deduplicate('hello---world', '-'); -> 'hello-world'
- * deduplicate('hello___world', '_'); -> 'hello-world'
- * deduplicate('hello  world', ' '); -> 'hello world'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#deduplicate
  */
 export function deduplicate(value: string, character: string | string[] = " ") {
     if (isArray(character)) {
