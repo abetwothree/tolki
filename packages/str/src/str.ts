@@ -399,7 +399,7 @@ export function deduplicate(value: string, character: string | string[] = " ") {
         character.forEach((char) => {
             value = value.replace(new RegExp(`${char}+`, "g"), char);
         });
-        
+
         return value;
     }
 
