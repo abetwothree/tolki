@@ -83,6 +83,8 @@ export function afterLast(subject: string, search: string | number): string {
  * @param subject - The string to search in
  * @param search - The value to search for
  * @returns The portion of the string before the first occurrence of the search value
+ * 
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#before
  */
 export function before(subject: string, search: string | number): string {
     if (search === "") {
@@ -101,9 +103,7 @@ export function before(subject: string, search: string | number): string {
  * @param search - The value to search for
  * @returns The portion of the string before the last occurrence of the search value
  *
- * @example
- *
- * beforeLast('yvette', 'tte'); -> 'yve'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#beforelast
  */
 export function beforeLast(subject: string, search: string | number): string {
     if (search === "") {
@@ -127,9 +127,7 @@ export function beforeLast(subject: string, search: string | number): string {
  * @param to - The ending value
  * @returns The portion of the string between the two given values
  *
- * @example
- *
- * between('foofoobar', 'foo', 'bar'); -> 'foo'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#between
  */
 export function between(
     subject: string,
@@ -151,9 +149,7 @@ export function between(
  * @param to - The ending value
  * @returns The smallest portion of the string between the two given values
  *
- * @example
- *
- * betweenFirst('foofoobar', 'foo', 'bar'); -> 'foo'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#betweenfirst
  */
 export function betweenFirst(
     subject: string,
@@ -173,9 +169,7 @@ export function betweenFirst(
  * @param value - The string to convert
  * @returns The camel-cased string
  *
- * @example
- *
- * camel('foo_bar'); -> 'fooBar'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#camel
  */
 export function camel(value: string): string {
     if (camelCache.has(value)) {

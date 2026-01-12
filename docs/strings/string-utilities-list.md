@@ -46,7 +46,7 @@ const result = apa("Creating A Project");
 
 Transliterate a UTF-8 value to ASCII.
 
-Requires the [`transliteration`](https://www.npmjs.com/package/transliteration) package.
+Uses the [`transliteration`](https://www.npmjs.com/package/transliteration) package.
 
 ```javascript
 import { ascii } from "@tolki/str";
@@ -70,11 +70,51 @@ const result = before("This is my name", "my");
 
 ### beforeLast
 
+Get the portion of a string before the last occurrence of a given value.
+
+```javascript
+import { beforeLast } from "@tolki/str";
+
+const result = beforeLast('This is my name', 'is');
+
+// result is "This "
+```
+
 ### between
+
+Get the portion of a string between two given values.
+
+```javascript
+import { between } from "@tolki/str";
+
+const result = between("This is my name", "This", "name");
+
+// result is " is my "
+```
 
 ### betweenFirst
 
+Get the smallest possible portion of a string between two given values.
+
+```javascript
+import { betweenFirst } from "@tolki/str";
+
+const result = betweenFirst('[a] bc [d]', '[', ']');
+
+// result is "a"
+```
+
 ### camel
+
+Convert a value to camel case.
+
+```javascript
+import { camel } from "@tolki/str";
+
+const result = camel("foo_bar");
+
+// result is "fooBar"
+```
 
 ### camelCacheSize
 
