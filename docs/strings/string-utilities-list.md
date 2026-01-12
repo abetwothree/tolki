@@ -4,7 +4,7 @@
 
 These are the string utilities that can be used independently as single functions.
 
-[after](#after), [afterLast](#afterlast), [apa](#apa), [before](#before), [beforeLast](#beforelast), [between](#between), [betweenFirst](#betweenfirst), [camel](#camel), [camelCacheSize](#camelcachesize), [charAt](#charat), [chopEnd](#chopend), [chopStart](#chopstart), [contains](#contains), [containsAll](#containsall), [createRandomStringsNormally](#createrandomstringsnormally), [createRandomStringsUsing](#createrandomstringsusing), [createRandomStringsUsingSequence](#createrandomstringsusingsequence), [deduplicate](#deduplicate), [doesntContain](#doesntcontain), [doesntEndWith](#doesntendwith), [doesntStartWith](#doesntstartwith), [endsWith](#endswith), [excerpt](#excerpt), [finish](#finish), [flushCache](#flushcache), [headline](#headline), [is](#is), [isAscii](#isascii), [isJson](#isjson), [isMatch](#ismatch), [isUrl](#isurl), [kebab](#kebab), [lcfirst](#lcfirst), [length](#length), [limit](#limit), [lower](#lower), [makePad](#makepad), [mask](#mask), [match](#match), [matchAll](#matchall), [numbers](#numbers), [padBoth](#padboth), [padLeft](#padleft), [padRight](#padright), [pascal](#pascal), [password](#password), [position](#position), [random](#random), [remove](#remove), [repeat](#repeat), [replace](#replace), [replaceArray](#replacearray), [replaceEnd](#replaceend), [replaceFirst](#replacefirst), [replaceLast](#replacelast), [replaceMatches](#replacematches), [replaceStart](#replacestart), [reverse](#reverse), [snake](#snake), [snakeCacheSize](#snakecachesize), [squish](#squish), [start](#start), [startsWith](#startswith), [stripTags](#striptags), [studly](#studly), [studlyCacheSize](#studlycachesize), [swap](#swap), [take](#take), [toStringOr](#tostringor), [ucfirst](#ucfirst), [ucsplit](#ucsplit), [ucwords](#ucwords), [unwrap](#unwrap), [wordCount](#wordcount), [wordWrap](#wordwrap), [words](#words), [wrap](#wrap)
+[after](#after), [afterLast](#afterlast), [apa](#apa), [ascii](#ascii), [before](#before), [beforeLast](#beforelast), [between](#between), [betweenFirst](#betweenfirst), [camel](#camel), [camelCacheSize](#camelcachesize), [charAt](#charat), [chopEnd](#chopend), [chopStart](#chopstart), [contains](#contains), [containsAll](#containsall), [createRandomStringsNormally](#createrandomstringsnormally), [createRandomStringsUsing](#createrandomstringsusing), [createRandomStringsUsingSequence](#createrandomstringsusingsequence), [deduplicate](#deduplicate), [doesntContain](#doesntcontain), [doesntEndWith](#doesntendwith), [doesntStartWith](#doesntstartwith), [endsWith](#endswith), [excerpt](#excerpt), [finish](#finish), [flushCache](#flushcache), [headline](#headline), [is](#is), [isAscii](#isascii), [isJson](#isjson), [isMatch](#ismatch), [isUrl](#isurl), [kebab](#kebab), [lcfirst](#lcfirst), [length](#length), [limit](#limit), [lower](#lower), [makePad](#makepad), [mask](#mask), [match](#match), [matchAll](#matchall), [numbers](#numbers), [padBoth](#padboth), [padLeft](#padleft), [padRight](#padright), [pascal](#pascal), [password](#password), [position](#position), [random](#random), [remove](#remove), [repeat](#repeat), [replace](#replace), [replaceArray](#replacearray), [replaceEnd](#replaceend), [replaceFirst](#replacefirst), [replaceLast](#replacelast), [replaceMatches](#replacematches), [replaceStart](#replacestart), [reverse](#reverse), [snake](#snake), [snakeCacheSize](#snakecachesize), [squish](#squish), [start](#start), [startsWith](#startswith), [stripTags](#striptags), [studly](#studly), [studlyCacheSize](#studlycachesize), [swap](#swap), [take](#take), [toStringOr](#tostringor), [ucfirst](#ucfirst), [ucsplit](#ucsplit), [ucwords](#ucwords), [unwrap](#unwrap), [wordCount](#wordcount), [wordWrap](#wordwrap), [words](#words), [wrap](#wrap)
 
 ### after
 
@@ -32,7 +32,41 @@ const result = afterLast("App\Http\Controllers\Controller", "\\");
 
 ### apa
 
+Convert the given string to APA-style title case.
+
+```javascript
+import { apa } from "@tolki/str";
+
+const result = apa("Creating A Project");
+
+// result is "Creating a Project"
+```
+
+### ascii
+
+Transliterate a UTF-8 value to ASCII.
+
+Requires the [`transliteration`](https://www.npmjs.com/package/transliteration) package.
+
+```javascript
+import { ascii } from "@tolki/str";
+
+const result = ascii("û");
+
+// result is "u"
+```
+
 ### before
+
+Get the portion of a string before the first occurrence of a given value.
+
+```javascript
+import { before } from "@tolki/str";
+
+const result = before("This is my name", "my");
+
+// result is "This is "
+```
 
 ### beforeLast
 

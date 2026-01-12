@@ -4,6 +4,7 @@
     "description": "Utilities for working with strings similar to Laravel's Str & Stringable classes.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",
+    "homepage": "https://tolki.abe.dev/strings/",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/abetwothree/tolki.git",

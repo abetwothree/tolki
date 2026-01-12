@@ -2,13 +2,21 @@
 
 The [`@tolki/num`](https://www.npmjs.com/package/@tolki/num) package provides a variety of number manipulation utilities inspired by Laravel's Num class. You can install it via npm, yarn, or pnpm:
 
-```bash
+::: code-group
+
+```bash [npm]
 npm install @tolki/num
-# or
+```
+
+```bash [yarn]
 yarn add @tolki/num
-# or
+```
+
+```bash [pnpm]
 pnpm add @tolki/num
 ```
+
+:::
 
 ## Importing the Package
 

@@ -7,11 +7,9 @@ import { transliterate as transliteration } from "transliteration";
  * @param value The value to transliterate.
  * @return The transliterated ASCII string.
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#afterLast
+ *
  * @requires {@link https://www.npmjs.com/package/transliteration transliteration package}
- *
- * @example
- *
- * ascii('Héllo Wörld'); -> 'Hello World'
  */
 export function ascii(value: string): string {
     return transliteration(value);

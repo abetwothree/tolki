@@ -2,13 +2,21 @@
 
 The [`@tolki/str`](https://www.npmjs.com/package/@tolki/str) package provides a variety of string manipulation utilities inspired by Laravel's Str class. You can install it via npm, yarn, or pnpm:
 
-```bash
+::: code-group
+
+```bash [npm]
 npm install @tolki/str
-# or
+```
+
+```bash [yarn]
 yarn add @tolki/str
-# or
+```
+
+```bash [pnpm]
 pnpm add @tolki/str
 ```
+
+:::
 
 ## Importing the Package
 

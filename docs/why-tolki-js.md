@@ -30,4 +30,4 @@ No!
 
 These utilities are designed to be used in any JavaScript or TypeScript project, regardless of whether you're using Laravel on the backend. You can use them in React, Vue, Angular, or any other frontend framework or library. You can even use them in plain JavaScript projects that never touch a backend.
 
-You can even use these utilities in your Node.js backend projects if you want to have a consistent experience between your backend and frontend code. (Though I personally hate using JavaScript on the backend)
+Another option is to use them in your Node.js backend projects if you want to have a consistent experience between your backend and frontend code. (Though I personally hate using JavaScript on the backend)

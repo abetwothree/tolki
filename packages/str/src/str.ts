@@ -38,10 +38,6 @@ let randomStringFactory: ((length: number) => string) | null = null;
  * @returns The portion of the string after the last occurrence of the search value
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#after
- *
- * @example
- *
- * after('A house on a lake', 'house '); -> 'on a lake'
  */
 export function after(subject: string, search: string | number): string {
     if (search === "") {
@@ -2093,12 +2089,8 @@ export function headline(value: string): string {
  * @param value - The string to convert
  * @returns The converted string in APA title case
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#apa
  * @see https://apastyle.apa.org/style-grammar-guidelines/capitalization/title-case
- *
- * @example
- *
- * apa("foo bar baz"); -> "Foo Bar Baz"
- * apa("foO bAr BaZ"); -> "Foo Bar Baz"
  */
 export function apa(value: string): string {
     if (value.trim() === "") {

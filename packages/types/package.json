@@ -4,6 +4,7 @@
     "description": "Utility TypeScript types for @tolki packages and Laravel HTTP responses.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",
+    "homepage": "https://tolki.abe.dev/typescript/",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/abetwothree/tolki.git",

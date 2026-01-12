@@ -4,6 +4,7 @@
     "description": "Utilities for working with numbers similar to Laravel's Num class facade.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",
+    "homepage": "https://tolki.abe.dev/numbers/",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/abetwothree/tolki.git",

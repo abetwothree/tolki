@@ -2,6 +2,7 @@ import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
+    lang: "en-US",
     title: "Tolki JS",
     description:
         "Use the PHP Laravel framework support utilities in your JavaScript codebase",
@@ -26,7 +27,7 @@ export default defineConfig({
                 ],
             },
             {
-                text: "String Utilities",
+                text: "Strings",
                 items: [
                     {
                         text: "Installation & Usage",
@@ -43,7 +44,7 @@ export default defineConfig({
                 ],
             },
             {
-                text: "Number Utilities",
+                text: "Numbers",
                 items: [
                     {
                         text: "Installation & Usage",
@@ -56,7 +57,7 @@ export default defineConfig({
                 ],
             },
             {
-                text: "TypeScript Utilities",
+                text: "TypeScript",
                 items: [
                     {
                         text: "Installation & Usage",
@@ -94,20 +95,22 @@ export default defineConfig({
             //         },
             //     ],
             // },
-            {
-                text: "Examples",
-                items: [
-                    { text: "Markdown Examples", link: "/markdown-examples" },
-                    { text: "Runtime API Examples", link: "/api-examples" },
-                ],
-            },
+            // {
+            //     text: "Examples",
+            //     items: [
+            //         { text: "Markdown Examples", link: "/markdown-examples" },
+            //         { text: "Runtime API Examples", link: "/api-examples" },
+            //     ],
+            // },
         ],
 
-        socialLinks: [
-            {
-                icon: "github",
-                link: "https://github.com/abetwothree/tolki",
-            },
-        ],
+        // socialLinks: [
+        // {
+        //     icon: "github",
+        //     link: "https://github.com/abetwothree/tolki",
+        // },
+        // ],
     },
+
+    // sitemap: { hostname: "https://tolki.abe.dev" },
 });

@@ -4,9 +4,9 @@ Use the PHP Laravel framework utilities in your JavaScript projects.
 
 ## Backstory
 
-I love the Laravel PHP framework utilities. I love frontend frameworks like Vue. I love using Inertia JS to bridge the two. However, I missed the ability to use Laravel-like utilities in my JavaScript code. So, I ported multiple Laravel utilities to TypeScript so that I could use them in my projects.
+I love [Laravel](https://laravel.com/). I love JavaScript [frontend frameworks](https://vuejs.org/). [Inertia](https://inertiajs.com/) bridged the gap between these two worlds. I just wish I could use the incredible helper functions that Laravel provides in my JavaScript code with proper TypeScript support and tree-shaking capabilities.
 
-I thus decided to open-source these utilities so that others could benefit from them as well. Thus, the Tolki JS project was born.
+After making them, I then decided to open-source these utilities so that others could benefit from them as well. Thus, the Tolki JS project was born.
 
 ## Packages
 
