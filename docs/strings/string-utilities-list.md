@@ -123,7 +123,7 @@ Get the character at the specified index.
 ```javascript
 import { charAt } from "@tolki/str";
 
-const result = charAt('This is my name.', 6);
+const result = charAt("This is my name.", 6);
 
 // result is "s"
 ```
@@ -135,7 +135,7 @@ Remove the given string(s) if it exists at the start of the haystack.
 ```javascript
 import { chopStart } from "@tolki/str";
 
-const result = chopStart('https://laravel.com', 'https://');
+const result = chopStart("https://laravel.com", "https://");
 
 // result is "laravel.com"
 ```
@@ -145,7 +145,7 @@ You may also pass an array of string as the second argument:
 ```javascript
 import { chopStart } from "@tolki/str";
 
-const result = chopStart('http://laravel.com', ['https://', 'http://']);
+const result = chopStart("http://laravel.com", ["https://", "http://"]);
 
 // result is "laravel.com"
 ```
@@ -157,7 +157,7 @@ Remove the given string(s) if it exists at the end of the haystack.
 ```javascript
 import { chopEnd } from "@tolki/str";
 
-const result = chopEnd('app/Models/Photograph.php', '.php');
+const result = chopEnd("app/Models/Photograph.php", ".php");
 
 // result is "app/Models/Photograph"
 ```
@@ -167,7 +167,7 @@ You may also pass an array of string as the second argument:
 ```javascript
 import { chopEnd } from "@tolki/str";
 
-const result = chopEnd('laravel.com/index.php', ['/index.html', '/index.php']);
+const result = chopEnd("laravel.com/index.php", ["/index.html", "/index.php"]);
 
 // result is "laravel.com"
 ```
@@ -179,7 +179,7 @@ Determine if a given string contains a given substring.
 ```javascript
 import { contains } from "@tolki/str";
 
-const result = contains('This is my name', 'my');
+const result = contains("This is my name", "my");
 
 // result is true
 ```
@@ -189,7 +189,7 @@ You may also pass an array of strings as the second argument:
 ```javascript
 import { contains } from "@tolki/str";
 
-const result = contains('This is my name', ['my', 'foo']);
+const result = contains("This is my name", ["my", "foo"]);
 
 // result is true
 ```
@@ -199,7 +199,7 @@ You may also disable case sensitivity by passing true as the third argument:
 ```javascript
 import { contains } from "@tolki/str";
 
-const result = contains('This is my name', 'MY', true);
+const result = contains("This is my name", "MY", true);
 
 // result is true
 ```
@@ -211,7 +211,7 @@ Determine if a given string contains all array values.
 ```javascript
 import { containsAll } from "@tolki/str";
 
-const result = containsAll('This is my name', ['my', 'name']);
+const result = containsAll("This is my name", ["my", "name"]);
 
 // result is true
 ```
@@ -221,7 +221,7 @@ You may also disable case sensitivity by passing true as the second argument:
 ```javascript
 import { containsAll } from "@tolki/str";
 
-const result = containsAll('This is my name', ['MY', 'NAME'], true);
+const result = containsAll("This is my name", ["MY", "NAME"], true);
 
 // result is true
 ```
@@ -233,7 +233,7 @@ Determine if a given string doesn't contain a given substring.
 ```javascript
 import { doesntContain } from "@tolki/str";
 
-const result = doesntContain('This is name', 'my');
+const result = doesntContain("This is name", "my");
 
 // result is true
 ```
@@ -243,7 +243,7 @@ You may also pass an array of strings as the second argument:
 ```javascript
 import { doesntContain } from "@tolki/str";
 
-const result = doesntContain('This is name', ['my', 'framework']);
+const result = doesntContain("This is name", ["my", "framework"]);
 
 // result is true
 ```
@@ -253,7 +253,7 @@ You may also disable case sensitivity by passing true as the third argument:
 ```javascript
 import { doesntContain } from "@tolki/str";
 
-const result = doesntContain('This is name', 'MY', true);
+const result = doesntContain("This is name", "MY", true);
 
 // result is true
 ```
@@ -265,7 +265,7 @@ Replace consecutive instances of a given character with a single character in th
 ```javascript
 import { deduplicate } from "@tolki/str";
 
-const result = deduplicate('The   Laravel   Framework');
+const result = deduplicate("The   Laravel   Framework");
 
 // result is "The Laravel Framework"
 ```
@@ -275,7 +275,7 @@ You can specify which character to deduplicate as the second argument (defaults 
 ```javascript
 import { deduplicate } from "@tolki/str";
 
-const result = deduplicate('The---Laravel---Framework', '-');
+const result = deduplicate("The---Laravel---Framework", "-");
 
 // result is "The-Laravel-Framework"
 ```
@@ -285,7 +285,7 @@ You can also specify multiple characters to deduplicate by passing an array as t
 ```javascript
 import { deduplicate } from "@tolki/str";
 
-const result = deduplicate('The---Laravel   Framework', ['-', ' ']);
+const result = deduplicate("The---Laravel   Framework", ["-", " "]);
 
 // result is "The-Laravel Framework"
 ```
