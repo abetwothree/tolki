@@ -83,7 +83,7 @@ export function afterLast(subject: string, search: string | number): string {
  * @param subject - The string to search in
  * @param search - The value to search for
  * @returns The portion of the string before the first occurrence of the search value
- * 
+ *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#before
  */
 export function before(subject: string, search: string | number): string {

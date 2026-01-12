@@ -75,7 +75,7 @@ Get the portion of a string before the last occurrence of a given value.
 ```javascript
 import { beforeLast } from "@tolki/str";
 
-const result = beforeLast('This is my name', 'is');
+const result = beforeLast("This is my name", "is");
 
 // result is "This "
 ```
@@ -99,7 +99,7 @@ Get the smallest possible portion of a string between two given values.
 ```javascript
 import { betweenFirst } from "@tolki/str";
 
-const result = betweenFirst('[a] bc [d]', '[', ']');
+const result = betweenFirst("[a] bc [d]", "[", "]");
 
 // result is "a"
 ```
