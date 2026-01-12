@@ -6,6 +6,23 @@ export default defineConfig({
     title: "Tolki JS",
     description:
         "Use the PHP Laravel framework support utilities in your JavaScript codebase",
+    head: [
+        [
+            'script',
+            {
+                async: '',
+                src: 'https://www.googletagmanager.com/gtag/js?id=G-F63Z0VMJJK',
+            },
+        ],
+        [
+            'script',
+            {},
+            `window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-F63Z0VMJJK');`
+        ],
+    ],
     themeConfig: {
         search: {
             provider: "local",
