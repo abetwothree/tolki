@@ -389,7 +389,7 @@ import { excerpt } from "@tolki/str";
 
 const result = excerpt("This is my name", "name", {
   radius: 3,
-  omission: "(...)",
+  omission: "(...) ",
 });
 
 // result is "(...) my name"
