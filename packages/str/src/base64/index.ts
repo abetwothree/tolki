@@ -76,7 +76,7 @@ export function bytesToBase64(bytes: Uint8Array): string {
  * @param value - The Base64 encoded string to decode.
  * @param strict - Whether to enforce strict Base64 validation.
  * @returns The decoded string or false if decoding fails.
- * 
+ *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#frombase64
  */
 export function fromBase64(

@@ -532,8 +532,18 @@ describe("Str tests", () => {
             "João Antô...",
         );
         expect(Str.excerpt("", "/")).toBe(null);
-        expect(Str.excerpt("This is my name", "my", {radius: 3, omission: "(...) "})).toBe("(...) is my na(...) ");
-        expect(Str.excerpt("This is my name", "name", {radius: 3, omission: "(...) "})).toBe("(...) my name");
+        expect(
+            Str.excerpt("This is my name", "my", {
+                radius: 3,
+                omission: "(...) ",
+            }),
+        ).toBe("(...) is my na(...) ");
+        expect(
+            Str.excerpt("This is my name", "name", {
+                radius: 3,
+                omission: "(...) ",
+            }),
+        ).toBe("(...) my name");
     });
 
     it("finish", () => {

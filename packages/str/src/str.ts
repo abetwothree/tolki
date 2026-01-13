@@ -304,10 +304,7 @@ export function excerpt(
     phrase: string | null = "",
     options: { radius?: number; omission?: string } = {},
 ): string | null {
-    const {
-        radius = 100,
-        omission = "...",
-    } = options;
+    const { radius = 100, omission = "..." } = options;
 
     const subject = String(text ?? "");
     const phraseStr = phrase ?? "";

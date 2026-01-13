@@ -311,7 +311,7 @@ const result = doesntEndWith("This is my name", ["this", "foo"]);
 
 // result is true
 
-const result2 = doesntEndWith("This is my name", ['name', 'foo']);
+const result2 = doesntEndWith("This is my name", ["name", "foo"]);
 
 // result2 is false
 ```
@@ -337,12 +337,10 @@ const result = doesntStartWith("This is my name", ["this", "foo"]);
 
 // result is true
 
-
-const result2 = doesntStartWith("This is my name", ['name', 'foo']);
+const result2 = doesntStartWith("This is my name", ["name", "foo"]);
 
 // result2 is true
 ```
-
 
 ### endsWith
 
@@ -365,8 +363,7 @@ const result = endsWith("This is my name", ["name", "foo"]);
 
 // result is true
 
-
-const result2 = endsWith("This is my name", ['this', 'foo']);
+const result2 = endsWith("This is my name", ["this", "foo"]);
 
 // result2 is false
 ```
@@ -378,7 +375,7 @@ Extracts an excerpt from text that matches the first instance of a phrase.
 ```javascript
 import { excerpt } from "@tolki/str";
 
-const result = excerpt("This is my name", "my", {radius: 3});
+const result = excerpt("This is my name", "my", { radius: 3 });
 
 // result is "... is my na ..."
 ```
@@ -391,8 +388,8 @@ In addition, you may use the omission option to define the string that will be p
 import { excerpt } from "@tolki/str";
 
 const result = excerpt("This is my name", "name", {
-    radius: 3, 
-    omission: "(...)",
+  radius: 3,
+  omission: "(...)",
 });
 
 // result is "(...) my name"
@@ -405,11 +402,11 @@ Cap a string with a single instance of a given value.
 ```javascript
 import { finish } from "@tolki/str";
 
-const result = finish('this/string', '/');
+const result = finish("this/string", "/");
 
 // result is 'this/string/'
 
-const result2 = finish('this/string/', '/');
+const result2 = finish("this/string/", "/");
 
 // result2 is also 'this/string/'
 ```
@@ -421,7 +418,7 @@ Decode the given Base64 encoded string.
 ```javascript
 import { fromBase64 } from "@tolki/str";
 
-const result = fromBase64('TGFyYXZlbA==');
+const result = fromBase64("TGFyYXZlbA==");
 
 // result is 'Laravel'
 ```
@@ -433,11 +430,11 @@ Convert the given string to proper case for each word.
 ```javascript
 import { headline } from "@tolki/str";
 
-const result = headline('steve_jobs');
+const result = headline("steve_jobs");
 
 // result is "Steve Jobs"
 
-const result2 = headline('EmailNotificationSent');
+const result2 = headline("EmailNotificationSent");
 
 // result2 is "Email Notification Sent"
 ```
