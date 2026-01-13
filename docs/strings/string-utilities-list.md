@@ -292,11 +292,108 @@ const result = deduplicate("The---Laravel   Framework", ["-", " "]);
 
 ### doesntEndWith
 
+Determine if a given string doesn't end with a given substring.
+
+```javascript
+import { doesntEndWith } from "@tolki/str";
+
+const result = doesntEndWith("This is my name", "dog");
+
+// result is true
+```
+
+You may also pass an array of strings as the second argument. If the string ends with any of the substrings, the function will return false.
+
+```javascript
+import { doesntEndWith } from "@tolki/str";
+
+const result = doesntEndWith("This is my name", ["this", "foo"]);
+
+// result is true
+
+const result2 = doesntEndWith("This is my name", ['name', 'foo']);
+
+// result2 is false
+```
+
 ### doesntStartWith
+
+Determine if a given string doesn't start with a given substring.
+
+```javascript
+import { doesntStartWith } from "@tolki/str";
+
+const result = doesntStartWith("This is my name", "That");
+
+// result is true
+```
+
+You may also pass an array of strings as the second argument. If the string starts with any of the substrings, the function will return false.
+
+```javascript
+import { doesntStartWith } from "@tolki/str";
+
+const result = doesntStartWith("This is my name", ["this", "foo"]);
+
+// result is true
+
+
+const result2 = doesntStartWith("This is my name", ['name', 'foo']);
+
+// result2 is true
+```
+
 
 ### endsWith
 
+Determine if a given string ends with a given substring.
+
+```javascript
+import { endsWith } from "@tolki/str";
+
+const result = endsWith("This is my name", "name");
+
+// result is true
+```
+
+You may also pass an array of strings as the second argument to determine if the string ends with any of the substrings.
+
+```javascript
+import { endsWith } from "@tolki/str";
+
+const result = endsWith("This is my name", ["name", "foo"]);
+
+// result is true
+
+
+const result2 = endsWith("This is my name", ['this', 'foo']);
+
+// result2 is false
+```
+
 ### excerpt
+
+Extracts an excerpt from text that matches the first instance of a phrase.
+
+```javascript
+import { excerpt } from "@tolki/str";
+
+const result = excerpt("This is my name", "my", {radius: 3});
+
+// result is "... is my na ..."
+```
+
+The radius option, which defaults to 100, allows you to define the number of characters that should appear on each side of the truncated string.
+
+In addition, you may use the omission option to define the string that will be prepended and appended to the truncated string:
+
+```javascript
+import { excerpt } from "@tolki/str";
+
+const result = excerpt("This is my name", "my", {radius: 3, omission: "(...)"});
+
+// result is "(...) is my na"
+```
 
 ### finish
 

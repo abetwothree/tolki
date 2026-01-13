@@ -297,8 +297,7 @@ export function contains(
  * @param options - Additional options for excerpt extraction
  * @returns The extracted excerpt, or null if the phrase is not found
  *
- * @example
- * excerpt('The quick brown fox', 'brown', { radius: 5 });
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#excerpt
  */
 export function excerpt(
     text: string | null,
@@ -413,10 +412,7 @@ export function deduplicate(value: string, character: string | string[] = " ") {
  * @param needles - The substring or substrings to search for
  * @returns True if the string ends with any of the substrings, false otherwise
  *
- * @example
- *
- * endsWith("Jason", "on"); -> true
- * endsWith("Jason", "ON"); -> false
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#endswith
  */
 export function endsWith(
     haystack: string | number | null,
@@ -450,10 +446,7 @@ export function endsWith(
  * @param needles - The substring or substrings to search for
  * @returns True if the string does not end with any of the substrings, false otherwise
  *
- * @example
- *
- * doesntEndWith("Jason", "on"); -> false
- * doesntEndWith("Jason", "ON"); -> true
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#doesntendwith
  */
 export function doesntEndWith(
     haystack: string | number | null,
@@ -2262,9 +2255,7 @@ export function startsWith(
  * @param needles - The substring or substrings to search for
  * @returns True if the haystack doesn't start with any of the needles, false otherwise
  *
- * @example
- *
- * expect(doesntStartWith("jason", ["day"])).toBe(true);
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#doesntstartwith
  */
 export function doesntStartWith(
     haystack: string | number | null,
