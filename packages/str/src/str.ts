@@ -464,9 +464,7 @@ export function doesntEndWith(
  * @param cap - The string to cap with
  * @returns The capped string
  *
- * @example
- *
- * finish('hello', '!'); -> 'hello!'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#finish
  */
 export function finish(value: string, cap: string): string {
     const quoted = cap.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -2024,10 +2022,7 @@ export function start(value: string, prefix: string): string {
  * @param value - The string to convert
  * @returns The converted string in headline case
  *
- * @example
- *
- * headline("foo bar baz"); -> "Foo Bar Baz"
- * headline("foO bAr BaZ"); -> "Foo Bar Baz"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#headline
  */
 export function headline(value: string): string {
     const trimmed = String(value).trim();
