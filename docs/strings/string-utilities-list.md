@@ -390,9 +390,12 @@ In addition, you may use the omission option to define the string that will be p
 ```javascript
 import { excerpt } from "@tolki/str";
 
-const result = excerpt("This is my name", "my", {radius: 3, omission: "(...)"});
+const result = excerpt("This is my name", "name", {
+    radius: 3, 
+    omission: "(...)",
+});
 
-// result is "(...) is my na"
+// result is "(...) my name"
 ```
 
 ### finish
