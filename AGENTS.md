@@ -177,7 +177,7 @@ if (condition) {
  */
 function functionName<PossibleGeneric>(paramName: PossibleGeneric): ReturnType {
   /**
-   * function implementation 
+   * function implementation
    */
 }
 ```

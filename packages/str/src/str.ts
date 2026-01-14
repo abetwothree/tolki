@@ -717,7 +717,7 @@ export function length(value: string): number {
  * @param end - The string to append if the value is truncated
  * @param preserveWords - Whether to preserve whole words when truncating
  * @returns The limited string
- * 
+ *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#limit
  */
 export function limit(
@@ -844,7 +844,7 @@ export function mask(
  * @param pattern - The regex pattern to match
  * @param subject - The string to search within
  * @returns The matched string or an empty string if no match
- * 
+ *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#match
  */
 export function match(pattern: string, subject: string): string {

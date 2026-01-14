@@ -685,7 +685,12 @@ You may also pass a fourth argument to indicate whether to avoid cutting off wor
 ```javascript
 import { limit } from "@tolki/str";
 
-const result = limit("The quick brown fox jumps over the lazy dog", 12, "...", true);
+const result = limit(
+  "The quick brown fox jumps over the lazy dog",
+  12,
+  "...",
+  true,
+);
 
 // result is "The quick..."
 ```
@@ -750,7 +755,7 @@ Masks a portion of a string with a repeated character.
 ```javascript
 import { mask } from "@tolki/str";
 
-const result = mask('taylor@example.com', '*', 3);
+const result = mask("taylor@example.com", "*", 3);
 
 // result is "tay***************"
 ```
@@ -760,7 +765,7 @@ If needed, you provide a negative value for the third argument, which instructs 
 ```javascript
 import { mask } from "@tolki/str";
 
-const result = mask('taylor@example.com', '*', -15, 3);
+const result = mask("taylor@example.com", "*", -15, 3);
 
 // result is "tay***@example.com"
 ```
@@ -772,11 +777,11 @@ Get the string matching the given pattern.
 ```javascript
 import { match } from "@tolki/str";
 
-const result = match('/bar/', 'foo bar');
+const result = match("/bar/", "foo bar");
 
 // result is "bar"
 
-const result2 = match('/foo (.*)/', 'foo bar');
+const result2 = match("/foo (.*)/", "foo bar");
 
 // result2 is "bar"
 ```
@@ -788,7 +793,7 @@ Get the string(s) matching the given pattern.
 ```javascript
 import { matchAll } from "@tolki/str";
 
-const result = matchAll('/bar/', 'bar foo bar');
+const result = matchAll("/bar/", "bar foo bar");
 
 // result is ["bar", "bar"]
 ```
