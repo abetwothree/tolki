@@ -691,9 +691,7 @@ export function isUrl(
  * @param value - The string to convert
  * @returns The kebab-cased string
  *
- * @example
- *
- * kebab("Laravel PHP Framework"); -> "laravel-php-framework"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#kebab
  */
 export function kebab(value: string): string {
     return snake(value, "-");
@@ -2350,9 +2348,7 @@ export function take(value: string, limit: number): string {
  * @param value - The string to process
  * @returns The resulting string with the first character in lowercase
  *
- * @example
- *
- * lcfirst('Hello World'); -> 'hello World'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#lcfirst
  */
 export function lcfirst(value: string): string {
     return lower(substr(value, 0, 1)) + substr(value, 1);

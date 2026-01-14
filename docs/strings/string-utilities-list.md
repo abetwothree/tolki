@@ -1,10 +1,12 @@
 # Tolki String Utilities List
 
-## Available String Utilities
+## String Utilities List
 
 These are the string utilities that can be used independently as single functions.
 
 [after](#after), [afterLast](#afterlast), [apa](#apa), [ascii](#ascii), [before](#before), [beforeLast](#beforelast), [between](#between), [betweenFirst](#betweenfirst), [camel](#camel), [charAt](#charat), [chopEnd](#chopend), [chopStart](#chopstart), [contains](#contains), [containsAll](#containsall), [doesntContain](#doesntcontain), [deduplicate](#deduplicate), [doesntEndWith](#doesntendwith), [doesntStartWith](#doesntstartwith), [endsWith](#endswith), [excerpt](#excerpt), [finish](#finish), [fromBase64](#frombase64), [headline](#headline), [inlineMarkdown](#inlinemarkdown), [is](#is), [isAscii](#isascii), [isJson](#isjson), [isUrl](#isurl), [isUlid](#isulid), [isUuid](#isuuid), [kebab](#kebab), [lcfirst](#lcfirst), [length](#length), [limit](#limit), [lower](#lower), [makePad](#makepad), [mask](#mask), [match](#match), [matchAll](#matchall), [isMatch](#ismatch), [numbers](#numbers), [padBoth](#padboth), [padLeft](#padleft), [padRight](#padright), [pascal](#pascal), [password](#password), [position](#position), [random](#random), [remove](#remove), [repeat](#repeat), [replace](#replace), [replaceArray](#replacearray), [replaceEnd](#replaceend), [replaceFirst](#replacefirst), [replaceLast](#replacelast), [replaceMatches](#replacematches), [replaceStart](#replacestart), [reverse](#reverse), [snake](#snake), [snakeCacheSize](#snakecachesize), [squish](#squish), [start](#start), [startsWith](#startswith), [stripTags](#striptags), [studly](#studly), [studlyCacheSize](#studlycachesize), [swap](#swap), [take](#take), [toStringOr](#tostringor), [ucfirst](#ucfirst), [ucsplit](#ucsplit), [ucwords](#ucwords), [unwrap](#unwrap), [wordCount](#wordcount), [wordWrap](#wordwrap), [words](#words), [wrap](#wrap)
+
+## String Utilities Details
 
 ### after
 
@@ -606,9 +608,43 @@ const result2 = isUuid("tolkijs");
 // result2 is false
 ```
 
+You may also validate that the given UUID matches a UUID specification by version (1, 3, 4, 5, 6, 7, or 8):
+
+```javascript
+import { isUuid } from "@tolki/str";
+
+const result = isUuid("a0a2a2d2-0b87-4a18-83f2-2529882be2de", 4);
+
+// result is true
+
+const result2 = isUuid("a0a2a2d2-0b87-4a18-83f2-2529882be2de", 5);
+
+// result2 is false
+```
+
 ### kebab
 
+Convert a string to kebab case.
+
+```javascript
+import { kebab } from "@tolki/str";
+
+const result = kebab("fooBar");
+
+// result is "foo-bar"
+```
+
 ### lcfirst
+
+Make a string's first character lowercase.
+
+```javascript
+import { lcfirst } from "@tolki/str";
+
+const result = lcfirst("Foo Bar");
+
+// result is "foo Bar"
+```
 
 ### length
 
