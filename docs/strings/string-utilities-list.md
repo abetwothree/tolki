@@ -4,7 +4,7 @@
 
 These are the string utilities that can be used independently as single functions.
 
-[after](#after), [afterLast](#afterlast), [apa](#apa), [ascii](#ascii), [before](#before), [beforeLast](#beforelast), [between](#between), [betweenFirst](#betweenfirst), [camel](#camel), [charAt](#charat), [chopEnd](#chopend), [chopStart](#chopstart), [contains](#contains), [containsAll](#containsall), [doesntContain](#doesntcontain), [deduplicate](#deduplicate), [doesntEndWith](#doesntendwith), [doesntStartWith](#doesntstartwith), [endsWith](#endswith), [excerpt](#excerpt), [finish](#finish), [fromBase64](#frombase64), [headline](#headline), [is](#is), [isAscii](#isascii), [isJson](#isjson), [isMatch](#ismatch), [isUrl](#isurl), [kebab](#kebab), [lcfirst](#lcfirst), [length](#length), [limit](#limit), [lower](#lower), [makePad](#makepad), [mask](#mask), [match](#match), [matchAll](#matchall), [numbers](#numbers), [padBoth](#padboth), [padLeft](#padleft), [padRight](#padright), [pascal](#pascal), [password](#password), [position](#position), [random](#random), [remove](#remove), [repeat](#repeat), [replace](#replace), [replaceArray](#replacearray), [replaceEnd](#replaceend), [replaceFirst](#replacefirst), [replaceLast](#replacelast), [replaceMatches](#replacematches), [replaceStart](#replacestart), [reverse](#reverse), [snake](#snake), [snakeCacheSize](#snakecachesize), [squish](#squish), [start](#start), [startsWith](#startswith), [stripTags](#striptags), [studly](#studly), [studlyCacheSize](#studlycachesize), [swap](#swap), [take](#take), [toStringOr](#tostringor), [ucfirst](#ucfirst), [ucsplit](#ucsplit), [ucwords](#ucwords), [unwrap](#unwrap), [wordCount](#wordcount), [wordWrap](#wordwrap), [words](#words), [wrap](#wrap)
+[after](#after), [afterLast](#afterlast), [apa](#apa), [ascii](#ascii), [before](#before), [beforeLast](#beforelast), [between](#between), [betweenFirst](#betweenfirst), [camel](#camel), [charAt](#charat), [chopEnd](#chopend), [chopStart](#chopstart), [contains](#contains), [containsAll](#containsall), [doesntContain](#doesntcontain), [deduplicate](#deduplicate), [doesntEndWith](#doesntendwith), [doesntStartWith](#doesntstartwith), [endsWith](#endswith), [excerpt](#excerpt), [finish](#finish), [fromBase64](#frombase64), [headline](#headline), [inlineMarkdown](#inlinemarkdown), [is](#is), [isAscii](#isascii), [isJson](#isjson), [isMatch](#ismatch), [isUrl](#isurl), [kebab](#kebab), [lcfirst](#lcfirst), [length](#length), [limit](#limit), [lower](#lower), [makePad](#makepad), [mask](#mask), [match](#match), [matchAll](#matchall), [numbers](#numbers), [padBoth](#padboth), [padLeft](#padleft), [padRight](#padright), [pascal](#pascal), [password](#password), [position](#position), [random](#random), [remove](#remove), [repeat](#repeat), [replace](#replace), [replaceArray](#replacearray), [replaceEnd](#replaceend), [replaceFirst](#replacefirst), [replaceLast](#replacelast), [replaceMatches](#replacematches), [replaceStart](#replacestart), [reverse](#reverse), [snake](#snake), [snakeCacheSize](#snakecachesize), [squish](#squish), [start](#start), [startsWith](#startswith), [stripTags](#striptags), [studly](#studly), [studlyCacheSize](#studlycachesize), [swap](#swap), [take](#take), [toStringOr](#tostringor), [ucfirst](#ucfirst), [ucsplit](#ucsplit), [ucwords](#ucwords), [unwrap](#unwrap), [wordCount](#wordcount), [wordWrap](#wordwrap), [words](#words), [wrap](#wrap)
 
 ### after
 
@@ -439,7 +439,67 @@ const result2 = headline("EmailNotificationSent");
 // result2 is "Email Notification Sent"
 ```
 
+### inlineMarkdown
+
+Converts inline Markdown into HTML.
+
+Uses the [`markdown-it`](https://www.npmjs.com/package/markdown-it) package.
+
+```javascript
+import { inlineMarkdown } from "@tolki/str";
+
+const result = inlineMarkdown("This is **bold** and this is *italic*.");
+
+// result is 'This is <strong>bold</strong> and this is <em>italic</em>.'
+```
+
+#### Markdown Security
+
+By default, the `inlineMarkdown` function disables raw HTML and unsafe links (e.g., `javascript:` URLs) to prevent XSS attacks. You can enable raw HTML by passing `{ html: true }` in the options.
+
+```javascript
+import { inlineMarkdown } from "@tolki/str";
+
+const result = inlineMarkdown("This is <strong>bold</strong> and this is <em>italic</em>.", { html: true });
+
+// result is 'This is <strong>bold</strong> and this is <em>italic</em>.'
+```
+
+You can also enable unsafe links by passing `{ allowUnsafeLinks: true }` in the options.
+
+```javascript
+import { inlineMarkdown } from "@tolki/str";
+
+const result = inlineMarkdown("[click me](javascript:alert(1))", { allowUnsafeLinks: true });
+
+// result is '<a href="javascript:alert(1)">click me</a>'
+```
+
 ### is
+
+Determine if a given string matches a given pattern.
+
+```javascript
+import { is } from "@tolki/str";
+
+const result = is("foo*", "foobar");
+
+// result is true
+
+const result2 = is("baz*", "foobar");
+
+// result2 is false
+```
+
+You can disable case sensitivity by passing true as the third argument:
+
+```javascript
+import { is } from "@tolki/str";
+
+const result = is('*.jpg', 'photo.JPG', true);
+
+// result is true
+```
 
 ### isAscii
 

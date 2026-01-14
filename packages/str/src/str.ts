@@ -338,6 +338,7 @@ export function excerpt(
 
     // Middle phrase (may be empty string when phrase is empty)
     const middle = matches[2] ?? "";
+
     return startOut + middle + endOut;
 }
 
@@ -525,11 +526,7 @@ export function unwrap(
  * @param ignoreCase - Whether to ignore case when matching
  * @return True if the string matches the pattern, false otherwise
  *
- * @example
- *
- * is('hello', 'hello'); -> true
- * is('hello', 'Hello', true); -> true
- * is('hello', 'world'); -> false
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#is
  */
 export function is(
     pattern: string | Iterable<string>,

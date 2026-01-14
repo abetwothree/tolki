@@ -11,6 +11,7 @@ export interface MarkDownOptions extends MarkdownItOptions {
     gfm?: boolean;
     anchors?: object | boolean;
     typographer?: boolean;
+    allowUnsafeLinks?: boolean;
 }
 
 export type MarkDownExtension =
@@ -49,12 +50,10 @@ export function markdown(
  * @param options - Options to customize the markdown rendering. Defaults to GFM enabled.
  * @param extensions - An array of markdown-it extensions to apply during rendering.
  * @returns The resulting HTML string.
+ * 
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#inlinemarkdown
  *
  * @requires {@link https://www.npmjs.com/package/markdown-it markdown-it package}
- *
- * @example
- *
- * inlineMarkdown("Hello *World*"); -> "<p>Hello <em>World</em></p>"
  */
 export function inlineMarkdown(
     value: string,
@@ -83,10 +82,15 @@ export function markDownRenderer(
         breaks = true,
         gfm = true,
         anchors = false,
+        allowUnsafeLinks = false,
         ...rest
     } = options;
 
     const md = new MarkdownIt({ html, linkify, breaks, ...rest });
+
+    if (allowUnsafeLinks) {
+        md.validateLink = () => true;
+    }
 
     if (gfm) {
         md.use(markdownItTaskLists, { label: true, labelAfter: true });

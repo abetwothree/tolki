@@ -987,6 +987,23 @@ describe("Str tests", () => {
             // typographer converts three dots to ellipsis
             expect(out).toContain("Wait…");
         });
+
+        it("allows unsafe links", () => {
+            const html = Str.markdown(
+                "[click me](javascript:alert(1))",
+                { allowUnsafeLinks: true },
+            );
+            expect(html).toBe(
+                '<p><a href="javascript:alert(1)">click me</a></p>\n',
+            );
+        });
+
+        it("disallows unsafe links by default", () => {
+            const html = Str.markdown("[click me](javascript:alert(1))");
+            expect(html).toBe(
+                '<p>[click me](javascript:alert(1))</p>\n',
+            );
+        });
     });
 
     describe("inlineMarkdown", () => {
@@ -1052,6 +1069,22 @@ describe("Str tests", () => {
             };
             const html = Str.inlineMarkdown("*hi*", {}, [plugin]);
             expect(html).toContain('<em data-x="y">');
+        });
+
+        it("allows unsafe links", () => {
+            const html = Str.inlineMarkdown("[click me](javascript:alert(1))", {
+                allowUnsafeLinks: true,
+            });
+            expect(html).toBe(
+                '<a href="javascript:alert(1)">click me</a>',
+            );
+        });
+
+        it("disallows unsafe links by default", () => {
+            const html = Str.inlineMarkdown("[click me](javascript:alert(1))");
+            expect(html).toBe(
+                '[click me](javascript:alert(1))',
+            );
         });
     });
 
