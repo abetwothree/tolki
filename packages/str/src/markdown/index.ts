@@ -50,7 +50,7 @@ export function markdown(
  * @param options - Options to customize the markdown rendering. Defaults to GFM enabled.
  * @param extensions - An array of markdown-it extensions to apply during rendering.
  * @returns The resulting HTML string.
- * 
+ *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#inlinemarkdown
  *
  * @requires {@link https://www.npmjs.com/package/markdown-it markdown-it package}

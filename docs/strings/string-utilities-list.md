@@ -460,7 +460,10 @@ By default, the `inlineMarkdown` function disables raw HTML and unsafe links (e.
 ```javascript
 import { inlineMarkdown } from "@tolki/str";
 
-const result = inlineMarkdown("This is <strong>bold</strong> and this is <em>italic</em>.", { html: true });
+const result = inlineMarkdown(
+  "This is <strong>bold</strong> and this is <em>italic</em>.",
+  { html: true },
+);
 
 // result is 'This is <strong>bold</strong> and this is <em>italic</em>.'
 ```
@@ -470,7 +473,9 @@ You can also enable unsafe links by passing `{ allowUnsafeLinks: true }` in the 
 ```javascript
 import { inlineMarkdown } from "@tolki/str";
 
-const result = inlineMarkdown("[click me](javascript:alert(1))", { allowUnsafeLinks: true });
+const result = inlineMarkdown("[click me](javascript:alert(1))", {
+  allowUnsafeLinks: true,
+});
 
 // result is '<a href="javascript:alert(1)">click me</a>'
 ```
@@ -496,14 +501,46 @@ You can disable case sensitivity by passing true as the third argument:
 ```javascript
 import { is } from "@tolki/str";
 
-const result = is('*.jpg', 'photo.JPG', true);
+const result = is("*.jpg", "photo.JPG", true);
 
 // result is true
 ```
 
 ### isAscii
 
+Determine if a given string is 7 bit ASCII.
+
+```javascript
+import { isAscii } from "@tolki/str";
+
+const result = isAscii("Taylor");
+
+// result is true
+
+const result2 = isAscii("û");
+
+// result2 is false
+```
+
 ### isJson
+
+Determine if a given value is valid JSON.
+
+```javascript
+import { isJson } from "@tolki/str";
+
+const result = isJson("[1,2,3]");
+
+// result is true
+
+const result2 = isJson('{"first": "John", "last": "Doe"}');
+
+// result2 is true
+
+const result3 = isJson('{first: "John", last: "Doe"}');
+
+// result3 is false
+```
 
 ### isMatch
 

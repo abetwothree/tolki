@@ -581,18 +581,15 @@ export function is(
  * @param value - The string to check
  * @returns True if the string is ASCII, false otherwise
  *
- * @example
- *
- * isAscii("Hello World"); -> true
- * isAscii("こんにちは"); -> false
- * isAscii("12345"); -> true
- * isAscii("!@#$%"); -> true
- * isAscii("Hello こんにちは"); -> false
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#isascii
  */
 export function isAscii(value: string): boolean {
     for (let i = 0; i < value.length; i++) {
-        if (value.charCodeAt(i) > 0x7f) return false;
+        if (value.charCodeAt(i) > 0x7f) {
+            return false;
+        }
     }
+
     return true;
 }
 
@@ -602,11 +599,7 @@ export function isAscii(value: string): boolean {
  * @param value - The value to check if it's JSON
  * @returns True if the value is valid JSON, false otherwise
  *
- * @example
- *
- * isJson('{"name": "John", "age": 30}'); -> true
- * isJson('{"name": "John", "age": 30'); -> false
- * isJson('Hello World'); -> false
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#isjson
  */
 export function isJson(value: unknown): boolean {
     if (!isString(value)) {

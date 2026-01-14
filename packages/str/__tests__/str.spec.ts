@@ -989,10 +989,9 @@ describe("Str tests", () => {
         });
 
         it("allows unsafe links", () => {
-            const html = Str.markdown(
-                "[click me](javascript:alert(1))",
-                { allowUnsafeLinks: true },
-            );
+            const html = Str.markdown("[click me](javascript:alert(1))", {
+                allowUnsafeLinks: true,
+            });
             expect(html).toBe(
                 '<p><a href="javascript:alert(1)">click me</a></p>\n',
             );
@@ -1000,9 +999,7 @@ describe("Str tests", () => {
 
         it("disallows unsafe links by default", () => {
             const html = Str.markdown("[click me](javascript:alert(1))");
-            expect(html).toBe(
-                '<p>[click me](javascript:alert(1))</p>\n',
-            );
+            expect(html).toBe("<p>[click me](javascript:alert(1))</p>\n");
         });
     });
 
@@ -1075,16 +1072,12 @@ describe("Str tests", () => {
             const html = Str.inlineMarkdown("[click me](javascript:alert(1))", {
                 allowUnsafeLinks: true,
             });
-            expect(html).toBe(
-                '<a href="javascript:alert(1)">click me</a>',
-            );
+            expect(html).toBe('<a href="javascript:alert(1)">click me</a>');
         });
 
         it("disallows unsafe links by default", () => {
             const html = Str.inlineMarkdown("[click me](javascript:alert(1))");
-            expect(html).toBe(
-                '[click me](javascript:alert(1))',
-            );
+            expect(html).toBe("[click me](javascript:alert(1))");
         });
     });
 
