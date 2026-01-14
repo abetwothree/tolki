@@ -803,12 +803,7 @@ export function words(
  * @param length - The number of characters to mask (if null, mask to the end of the string)
  * @returns The masked string
  *
- * @example
- *
- * mask("taylor@email.com", "*", 3); -> "tay*************"
- * mask("taylor@email.com", "*", 0, 6); -> "******@email.com"
- * mask("taylor@email.com", "*", -13); -> "tay*************"
- * mask("taylor@email.com", "*", -13, 3); -> "tay***@email.com"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#mask
  */
 export function mask(
     value: string,
@@ -849,6 +844,8 @@ export function mask(
  * @param pattern - The regex pattern to match
  * @param subject - The string to search within
  * @returns The matched string or an empty string if no match
+ * 
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#match
  */
 export function match(pattern: string, subject: string): string {
     // Emulate Laravel's Str::match behavior:
@@ -969,15 +966,13 @@ export function isMatch(
 }
 
 /**
- * Get the string matching the given pattern.
+ * Get the string(s) matching the given pattern.
  *
  * @param pattern - The regex pattern to match
  * @param subject - The string to search within
  * @returns An array of all matched strings
  *
- * @example
- *
- * matchAll("/foo (.*)/", "foo bar baz"); -> ["foo bar baz"]
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#matchall
  */
 export function matchAll(pattern: string, subject: string): string[] {
     let flags = "u"; // always unicode

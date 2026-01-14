@@ -166,7 +166,7 @@ if (condition) {
 }
 ```
 
-- Each function or method should have a JSDoc comment explaining its purpose, parameters, return value and examples of how to use it. Example format:
+- Each function or method should have a JSDoc comment explaining its purpose, parameters, and return value. Example format:
 
 ```JavaScript
 /**
@@ -174,14 +174,11 @@ if (condition) {
  *
  * @param paramName - Description of the parameter.
  * @returns Description of the return value.
- *
- * @example
- *
- * Example of how to use the function
- * functionName(param); -> returnValue
  */
 function functionName<PossibleGeneric>(paramName: PossibleGeneric): ReturnType {
-  // function implementation
+  /**
+   * function implementation 
+   */
 }
 ```
 
