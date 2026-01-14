@@ -703,9 +703,7 @@ export function kebab(value: string): string {
  * @param value - The string to measure
  * @returns The length of the string
  *
- * @example
- *
- * length("Hello World"); -> 11
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#length
  */
 export function length(value: string): number {
     return value.length;

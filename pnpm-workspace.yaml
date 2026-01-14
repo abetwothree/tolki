@@ -8,14 +8,14 @@ linkWorkspacePackages: true
 
 catalogs:
   num:
-    to-words: ^4.7.0
+    to-words: ^4.10.0
   str:
     any-ascii: ^0.3.3
     markdown-it: ^14.1.0
     markdown-it-anchor: ^9.2.0
     markdown-it-task-lists: ^2.1.1
     pluralize: ^8.0.0
-    transliteration: ^2.3.5
+    transliteration: ^2.6.0
     ulid: ^2.4.0
     uuid: ^11.1.0
   types:

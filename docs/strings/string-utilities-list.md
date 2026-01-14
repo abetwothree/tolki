@@ -648,6 +648,16 @@ const result = lcfirst("Foo Bar");
 
 ### length
 
+Return the length of the given string.
+
+```javascript
+import { length } from "@tolki/str";
+
+const result = length("Tolki JS");
+
+// result is 8
+```
+
 ### limit
 
 ### lower
