@@ -717,6 +717,8 @@ export function length(value: string): number {
  * @param end - The string to append if the value is truncated
  * @param preserveWords - Whether to preserve whole words when truncating
  * @returns The limited string
+ * 
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#limit
  */
 export function limit(
     value: string,
@@ -751,9 +753,7 @@ export function limit(
  * @param value - The string to convert
  * @returns The lower-cased string
  *
- * @example
- *
- * lower("Hello World"); -> "hello world"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#lower
  */
 export function lower(value: string): string {
     return toLower(value);

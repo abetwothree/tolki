@@ -4,7 +4,7 @@
 
 These are the string utilities that can be used independently as single functions.
 
-[after](#after), [afterLast](#afterlast), [apa](#apa), [ascii](#ascii), [before](#before), [beforeLast](#beforelast), [between](#between), [betweenFirst](#betweenfirst), [camel](#camel), [charAt](#charat), [chopEnd](#chopend), [chopStart](#chopstart), [contains](#contains), [containsAll](#containsall), [doesntContain](#doesntcontain), [deduplicate](#deduplicate), [doesntEndWith](#doesntendwith), [doesntStartWith](#doesntstartwith), [endsWith](#endswith), [excerpt](#excerpt), [finish](#finish), [fromBase64](#frombase64), [headline](#headline), [inlineMarkdown](#inlinemarkdown), [is](#is), [isAscii](#isascii), [isJson](#isjson), [isUrl](#isurl), [isUlid](#isulid), [isUuid](#isuuid), [kebab](#kebab), [lcfirst](#lcfirst), [length](#length), [limit](#limit), [lower](#lower), [makePad](#makepad), [mask](#mask), [match](#match), [matchAll](#matchall), [isMatch](#ismatch), [numbers](#numbers), [padBoth](#padboth), [padLeft](#padleft), [padRight](#padright), [pascal](#pascal), [password](#password), [position](#position), [random](#random), [remove](#remove), [repeat](#repeat), [replace](#replace), [replaceArray](#replacearray), [replaceEnd](#replaceend), [replaceFirst](#replacefirst), [replaceLast](#replacelast), [replaceMatches](#replacematches), [replaceStart](#replacestart), [reverse](#reverse), [snake](#snake), [snakeCacheSize](#snakecachesize), [squish](#squish), [start](#start), [startsWith](#startswith), [stripTags](#striptags), [studly](#studly), [studlyCacheSize](#studlycachesize), [swap](#swap), [take](#take), [toStringOr](#tostringor), [ucfirst](#ucfirst), [ucsplit](#ucsplit), [ucwords](#ucwords), [unwrap](#unwrap), [wordCount](#wordcount), [wordWrap](#wordwrap), [words](#words), [wrap](#wrap)
+[after](#after), [afterLast](#afterlast), [apa](#apa), [ascii](#ascii), [before](#before), [beforeLast](#beforelast), [between](#between), [betweenFirst](#betweenfirst), [camel](#camel), [charAt](#charat), [chopEnd](#chopend), [chopStart](#chopstart), [contains](#contains), [containsAll](#containsall), [doesntContain](#doesntcontain), [deduplicate](#deduplicate), [doesntEndWith](#doesntendwith), [doesntStartWith](#doesntstartwith), [endsWith](#endswith), [excerpt](#excerpt), [finish](#finish), [fromBase64](#frombase64), [headline](#headline), [inlineMarkdown](#inlinemarkdown), [is](#is), [isAscii](#isascii), [isJson](#isjson), [isUrl](#isurl), [isUlid](#isulid), [isUuid](#isuuid), [kebab](#kebab), [lcfirst](#lcfirst), [length](#length), [limit](#limit), [lower](#lower), [markdown](#markdown), [makePad](#makepad), [mask](#mask), [match](#match), [matchAll](#matchall), [isMatch](#ismatch), [numbers](#numbers), [padBoth](#padboth), [padLeft](#padleft), [padRight](#padright), [pascal](#pascal), [password](#password), [position](#position), [random](#random), [remove](#remove), [repeat](#repeat), [replace](#replace), [replaceArray](#replacearray), [replaceEnd](#replaceend), [replaceFirst](#replacefirst), [replaceLast](#replacelast), [replaceMatches](#replacematches), [replaceStart](#replacestart), [reverse](#reverse), [snake](#snake), [snakeCacheSize](#snakecachesize), [squish](#squish), [start](#start), [startsWith](#startswith), [stripTags](#striptags), [studly](#studly), [studlyCacheSize](#studlycachesize), [swap](#swap), [take](#take), [toStringOr](#tostringor), [ucfirst](#ucfirst), [ucsplit](#ucsplit), [ucwords](#ucwords), [unwrap](#unwrap), [wordCount](#wordcount), [wordWrap](#wordwrap), [words](#words), [wrap](#wrap)
 
 ## String Utilities Details
 
@@ -455,7 +455,7 @@ const result = inlineMarkdown("This is **bold** and this is *italic*.");
 // result is 'This is <strong>bold</strong> and this is <em>italic</em>.'
 ```
 
-#### Markdown Security
+#### Inline Markdown Security
 
 By default, the `inlineMarkdown` function disables raw HTML and unsafe links (e.g., `javascript:` URLs) to prevent XSS attacks. You can enable raw HTML by passing `{ html: true }` in the options.
 
@@ -660,7 +660,88 @@ const result = length("Tolki JS");
 
 ### limit
 
+Limit the number of characters in a string.
+
+```javascript
+import { limit } from "@tolki/str";
+
+const result = limit("The quick brown fox jumps over the lazy dog", 20);
+
+// result is "The quick brown fox "
+```
+
+You may pass a third argument to specify the string to append to the truncated string (defaults to an ellipsis):
+
+```javascript
+import { limit } from "@tolki/str";
+
+const result = limit("The quick brown fox jumps over the lazy dog", 20, "...");
+
+// result is "The quick brown fox..."
+```
+
+You may also pass a fourth argument to indicate whether to avoid cutting off words (defaults to false):
+
+```javascript
+import { limit } from "@tolki/str";
+
+const result = limit("The quick brown fox jumps over the lazy dog", 12, "...", true);
+
+// result is "The quick..."
+```
+
 ### lower
+
+Convert the given string to lower-case.
+
+```javascript
+import { lower } from "@tolki/str";
+
+const result = lower("LARAVEL");
+
+// result is "laravel"
+```
+
+### markdown
+
+Converts GitHub flavored Markdown into HTML.
+
+Uses the [`markdown-it`](https://www.npmjs.com/package/markdown-it) package.
+
+```javascript
+import { markdown } from "@tolki/str";
+
+const result = markdown("# Laravel");
+
+// result is "<h1>Laravel</h1>"
+```
+
+#### Markdown Security
+
+By default, the `markdown` function disables raw HTML and unsafe links (e.g., `javascript:` URLs) to prevent XSS attacks. You can enable raw HTML by passing `{ html: true }` in the options.
+
+```javascript
+import { markdown } from "@tolki/str";
+
+const result = markdown(
+  "This is <strong>bold</strong> and this is <em>italic</em>.",
+  { html: true },
+);
+
+// result is '<p>This is <strong>bold</strong> and this is <em>italic</em>.</p>'
+```
+
+You can also enable unsafe links by passing `{ allowUnsafeLinks: true }` in the options.
+
+```javascript
+import { markdown } from "@tolki/str";
+
+const result = markdown("[click me](javascript:alert(1))", {
+  allowUnsafeLinks: true,
+});
+
+// result is '<p><a href="javascript:alert(1)">click me</a></p>'
+```
 
 ### makePad
 

@@ -28,12 +28,10 @@ export type MarkDownExtensions = MarkDownExtension[];
  * @param options - Options to customize the markdown rendering. Defaults to GFM enabled and no anchors.
  * @param extensions - An array of markdown-it extensions to apply during rendering.
  * @returns The resulting HTML string.
+ * 
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#markdown
  *
  * @requires {@link https://www.npmjs.com/package/markdown-it markdown-it package}
- *
- * @example
- *
- * markdown('# Hello World'); -> '<h1>Hello World</h1>\n'
  */
 export function markdown(
     value: string,
