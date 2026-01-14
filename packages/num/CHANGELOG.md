@@ -1,5 +1,11 @@
 # @tolki/num
 
+## 1.0.1
+
+### Patch Changes
+
+- Document links to functions and sync Laravel framework changes
+
 ## 1.0.0
 
 ### Major Changes
