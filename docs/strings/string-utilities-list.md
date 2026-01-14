@@ -4,7 +4,7 @@
 
 These are the string utilities that can be used independently as single functions.
 
-[after](#after), [afterLast](#afterlast), [apa](#apa), [ascii](#ascii), [before](#before), [beforeLast](#beforelast), [between](#between), [betweenFirst](#betweenfirst), [camel](#camel), [charAt](#charat), [chopEnd](#chopend), [chopStart](#chopstart), [contains](#contains), [containsAll](#containsall), [doesntContain](#doesntcontain), [deduplicate](#deduplicate), [doesntEndWith](#doesntendwith), [doesntStartWith](#doesntstartwith), [endsWith](#endswith), [excerpt](#excerpt), [finish](#finish), [fromBase64](#frombase64), [headline](#headline), [inlineMarkdown](#inlinemarkdown), [is](#is), [isAscii](#isascii), [isJson](#isjson), [isMatch](#ismatch), [isUrl](#isurl), [kebab](#kebab), [lcfirst](#lcfirst), [length](#length), [limit](#limit), [lower](#lower), [makePad](#makepad), [mask](#mask), [match](#match), [matchAll](#matchall), [numbers](#numbers), [padBoth](#padboth), [padLeft](#padleft), [padRight](#padright), [pascal](#pascal), [password](#password), [position](#position), [random](#random), [remove](#remove), [repeat](#repeat), [replace](#replace), [replaceArray](#replacearray), [replaceEnd](#replaceend), [replaceFirst](#replacefirst), [replaceLast](#replacelast), [replaceMatches](#replacematches), [replaceStart](#replacestart), [reverse](#reverse), [snake](#snake), [snakeCacheSize](#snakecachesize), [squish](#squish), [start](#start), [startsWith](#startswith), [stripTags](#striptags), [studly](#studly), [studlyCacheSize](#studlycachesize), [swap](#swap), [take](#take), [toStringOr](#tostringor), [ucfirst](#ucfirst), [ucsplit](#ucsplit), [ucwords](#ucwords), [unwrap](#unwrap), [wordCount](#wordcount), [wordWrap](#wordwrap), [words](#words), [wrap](#wrap)
+[after](#after), [afterLast](#afterlast), [apa](#apa), [ascii](#ascii), [before](#before), [beforeLast](#beforelast), [between](#between), [betweenFirst](#betweenfirst), [camel](#camel), [charAt](#charat), [chopEnd](#chopend), [chopStart](#chopstart), [contains](#contains), [containsAll](#containsall), [doesntContain](#doesntcontain), [deduplicate](#deduplicate), [doesntEndWith](#doesntendwith), [doesntStartWith](#doesntstartwith), [endsWith](#endswith), [excerpt](#excerpt), [finish](#finish), [fromBase64](#frombase64), [headline](#headline), [inlineMarkdown](#inlinemarkdown), [is](#is), [isAscii](#isascii), [isJson](#isjson), [isUrl](#isurl), [isUlid](#isulid), [isUuid](#isuuid), [kebab](#kebab), [lcfirst](#lcfirst), [length](#length), [limit](#limit), [lower](#lower), [makePad](#makepad), [mask](#mask), [match](#match), [matchAll](#matchall), [isMatch](#ismatch), [numbers](#numbers), [padBoth](#padboth), [padLeft](#padleft), [padRight](#padright), [pascal](#pascal), [password](#password), [position](#position), [random](#random), [remove](#remove), [repeat](#repeat), [replace](#replace), [replaceArray](#replacearray), [replaceEnd](#replaceend), [replaceFirst](#replacefirst), [replaceLast](#replacelast), [replaceMatches](#replacematches), [replaceStart](#replacestart), [reverse](#reverse), [snake](#snake), [snakeCacheSize](#snakecachesize), [squish](#squish), [start](#start), [startsWith](#startswith), [stripTags](#striptags), [studly](#studly), [studlyCacheSize](#studlycachesize), [swap](#swap), [take](#take), [toStringOr](#tostringor), [ucfirst](#ucfirst), [ucsplit](#ucsplit), [ucwords](#ucwords), [unwrap](#unwrap), [wordCount](#wordcount), [wordWrap](#wordwrap), [words](#words), [wrap](#wrap)
 
 ### after
 
@@ -542,9 +542,69 @@ const result3 = isJson('{first: "John", last: "Doe"}');
 // result3 is false
 ```
 
-### isMatch
-
 ### isUrl
+
+Determine if a given value is a valid URL.
+
+```javascript
+import { isUrl } from "@tolki/str";
+
+const result = isUrl("https://example.com");
+
+// result is true
+
+const result2 = isUrl("tolki js");
+
+// result2 is false
+```
+
+You may also specify an array of allowed protocols as the second argument:
+
+```javascript
+import { isUrl } from "@tolki/str";
+
+const result = isUrl("https://example.com", ["https", "http"]);
+
+// result is true
+
+const result2 = isUrl("http://example.com", ["https"]);
+
+// result2 is false
+```
+
+### isUlid
+
+Determine if a given value is a valid ULID.
+
+```javascript
+import { isUlid } from "@tolki/str";
+
+const result = isUlid("01gd6r360bp37zj17nxb55yv40");
+
+// result is true
+
+const result2 = isUlid("tolkijs");
+
+// result2 is false
+```
+
+### isUuid
+
+Determine if a given value is a valid UUID.
+
+Uses the [`uuid`](https://www.npmjs.com/package/uuid) package.
+
+```javascript
+import { isUuid } from "@tolki/str";
+
+const result = isUuid("a0a2a2d2-0b87-4a18-83f2-2529882be2de");
+
+// result is true
+
+const result2 = isUuid("tolkijs");
+
+// result2 is false
+```
 
 ### kebab
 
@@ -563,6 +623,22 @@ const result3 = isJson('{first: "John", last: "Doe"}');
 ### match
 
 ### matchAll
+
+### isMatch
+
+Determine if a given string matches a given pattern.
+
+```javascript
+import { isMatch } from "@tolki/str";
+
+const result = isMatch("/foo (.*)/", "foo bar");
+
+// result is true
+
+const result2 = isMatch("/foo (.*)/", "laravel");
+
+// result2 is false
+```
 
 ### numbers
 

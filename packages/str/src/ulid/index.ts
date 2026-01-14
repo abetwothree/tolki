@@ -153,11 +153,7 @@ export function freezeUlids(
  * @param value - The value to check.
  * @returns True if the value is a valid ULID, false otherwise.
  *
- * @requires {@link https://www.npmjs.com/package/ulid ulid package}
- *
- * @example
- *
- * isUlid("01F8MECHZX2D7J8F8C8D4B8F8C"); -> true
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#isulid
  */
 export function isUlid(value: unknown): boolean {
     if (!isString(value)) {

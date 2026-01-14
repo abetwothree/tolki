@@ -153,12 +153,9 @@ export function createUuidsNormally(): void {
  * @param version - The UUID version to check against (1-8), "nil", "max", or null for any version.
  * @returns True if the value is a valid UUID of the specified version, false otherwise.
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#isuuid
+ *
  * @requires {@link https://www.npmjs.com/package/uuid uuid package}
- *
- * @example
- *
- * isUuid("550e8400-e29b-41d4-a716-446655440000", 4); -> true
- * isUuid("550e8400-e29b-41d4-a716-446655440000", 5); -> false
  */
 export function isUuid(
     value: string | unknown,

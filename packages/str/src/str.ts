@@ -622,11 +622,7 @@ export function isJson(value: unknown): boolean {
  * @param protocols - An optional array of allowed protocols (e.g., ['http', 'https'])
  * @return True if the value is a valid URL, false otherwise
  *
- * @example
- *
- * isUrl('https://laravel.com'); -> true
- * isUrl('http://localhost'); -> true
- * isUrl('invalid url'); -> false
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#isurl
  */
 export function isUrl(
     value: string | unknown,
@@ -917,10 +913,7 @@ export function match(pattern: string, subject: string): string {
  * @param value - The string to check
  * @return True if the string matches the pattern, false otherwise
  *
- * @example
- *
- * Str::isMatch('/foo/', 'foo bar'); // true
- * Str::isMatch('/bar/', 'foo bar'); // false
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#ismatch
  */
 export function isMatch(
     pattern: string | Iterable<string>,
