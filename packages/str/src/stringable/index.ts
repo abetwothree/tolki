@@ -111,11 +111,9 @@ export type ConditionableClosure =
  * @param value - The string value to wrap in a Stringable instance.
  * @returns A new Stringable instance.
  *
- * @example
- *
- * of('foo').append('bar'); -> 'foobar'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#of
  */
-export function of(value: string): Stringable {
+export function of(value: string = ""): Stringable {
     return new Stringable(value);
 }
 
@@ -125,11 +123,9 @@ export function of(value: string): Stringable {
  * @param value - The string value to wrap in a Stringable instance.
  * @returns A new Stringable instance.
  *
- * @example
- *
- * str('foo').append('bar'); -> 'foobar'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#str
  */
-export function str(value: string): Stringable {
+export function str(value: string = ""): Stringable {
     return new Stringable(value);
 }
 

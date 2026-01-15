@@ -478,9 +478,7 @@ export function finish(value: string, cap: string): string {
  * @param after - The string to append (if null, use the 'before' string)
  * @returns The wrapped string
  *
- * @example
- *
- * wrap('hello', '[', ']'); -> '[hello]'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#wrap
  */
 export function wrap(
     value: string,
@@ -765,10 +763,7 @@ export function lower(value: string): string {
  * @param end - The string to append if the value is truncated
  * @returns The limited string
  *
- * @example
- *
- * words("Laravel PHP Framework", 2); -> "Laravel PHP Framework"
- * words("Laravel PHP Framework", 1); -> "Laravel..."
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#words
  */
 export function words(
     value: string,
@@ -1059,6 +1054,7 @@ export function padBoth(
     pad: string = " ",
 ): string {
     const valueLength = value.length;
+
     if (length <= valueLength || pad === "") {
         return value;
     }
@@ -1086,6 +1082,7 @@ export function padLeft(
     pad: string = " ",
 ): string {
     const valueLength = value.length;
+
     if (length <= valueLength || pad === "") {
         return value;
     }
@@ -1112,6 +1109,7 @@ export function padRight(
     pad: string = " ",
 ): string {
     const valueLength = value.length;
+    
     if (length <= valueLength || pad === "") {
         return value;
     }
@@ -2340,10 +2338,7 @@ export function ucwords(
  * @param characters - Additional characters to consider as part of words
  * @returns The word count in the string
  *
- * @example
- *
- * wordCount('Hello, world!'); -> 2
- * wordCount('мама мыла раму'); -> 3
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#wordcount
  */
 export function wordCount(
     value: string,
@@ -2373,11 +2368,7 @@ export function wordCount(
  * @param cutLongWords - Whether to cut words longer than the limit (default: false)
  * @returns The resulting wrapped string
  *
- * @example
- *
- * wordWrap("Hello World", 3, "<br />"); -> "Hello<br />World"
- * wordWrap("Hello World", 3, "<br />", true); -> "Hel<br />lo<br />Wor<br />ld"
- * wordWrap("❤Multi Byte☆❤☆❤☆❤", 3, "<br />"); -> "❤Multi<br />Byte☆❤☆❤☆❤"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#wordwrap
  */
 export function wordWrap(
     value: string,

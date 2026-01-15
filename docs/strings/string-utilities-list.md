@@ -6,7 +6,7 @@ These are the string utilities that can be used independently as single function
 
 <div class="collection-method-list" markdown="1">
 
-[after](#after) [afterLast](#afterlast) [apa](#apa) [ascii](#ascii) [before](#before) [beforeLast](#beforelast) [between](#between) [betweenFirst](#betweenfirst) [camel](#camel) [charAt](#charat) [chopEnd](#chopend) [chopStart](#chopstart) [contains](#contains) [containsAll](#containsall) [doesntContain](#doesntcontain) [deduplicate](#deduplicate) [doesntEndWith](#doesntendwith) [doesntStartWith](#doesntstartwith) [endsWith](#endswith) [excerpt](#excerpt) [finish](#finish) [fromBase64](#frombase64) [headline](#headline) [inlineMarkdown](#inlinemarkdown) [is](#is) [isAscii](#isascii) [isJson](#isjson) [isUrl](#isurl) [isUlid](#isulid) [isUuid](#isuuid) [kebab](#kebab) [lcfirst](#lcfirst) [length](#length) [limit](#limit) [lower](#lower) [markdown](#markdown) [mask](#mask) [match](#match) [matchAll](#matchall) [isMatch](#ismatch) [numbers](#numbers) [padBoth](#padboth) [padLeft](#padleft) [padRight](#padright) [pascal](#pascal) [pluralPascal](#pluralpascal) [password](#password) [plural](#plural) [pluralStudly](#pluralstudly) [position](#position) [random](#random) [remove](#remove) [repeat](#repeat) [replace](#replace) [replaceArray](#replacearray) [replaceFirst](#replacefirst) [replaceLast](#replacelast) [replaceMatches](#replacematches) [replaceStart](#replacestart) [replaceEnd](#replaceend) [reverse](#reverse) [singular](#singular) [slug](#slug) [snake](#snake) [squish](#squish) [start](#start) [startsWith](#startswith) [stripTags](#striptags) [studly](#studly) [substr](#substr) [substrCount](#substrcount) [substrReplace](#substrreplace) [swap](#swap) [take](#take) [title](#title) [toBase64](#tobase64) [transliterate](#transliterate) [trim](#trim) [ltrim](#ltrim) [rtrim](#rtrim) [ucfirst](#ucfirst) [ucsplit](#ucsplit) [ucwords](#ucwords) [upper](#upper) [ulid](#ulid) [unwrap](#unwrap) [uuid](#uuid) [uuid7](#uuid7) [wordCount](#wordcount) [wordWrap](#wordwrap) [words](#words) [wrap](#wrap) [str](#str)
+[after](#after) [afterLast](#afterlast) [apa](#apa) [ascii](#ascii) [before](#before) [beforeLast](#beforelast) [between](#between) [betweenFirst](#betweenfirst) [camel](#camel) [charAt](#charat) [chopEnd](#chopend) [chopStart](#chopstart) [contains](#contains) [containsAll](#containsall) [doesntContain](#doesntcontain) [deduplicate](#deduplicate) [doesntEndWith](#doesntendwith) [doesntStartWith](#doesntstartwith) [endsWith](#endswith) [excerpt](#excerpt) [finish](#finish) [fromBase64](#frombase64) [headline](#headline) [inlineMarkdown](#inlinemarkdown) [is](#is) [isAscii](#isascii) [isJson](#isjson) [isUrl](#isurl) [isUlid](#isulid) [isUuid](#isuuid) [kebab](#kebab) [lcfirst](#lcfirst) [length](#length) [limit](#limit) [lower](#lower) [markdown](#markdown) [mask](#mask) [match](#match) [matchAll](#matchall) [isMatch](#ismatch) [numbers](#numbers) [padBoth](#padboth) [padLeft](#padleft) [padRight](#padright) [pascal](#pascal) [pluralPascal](#pluralpascal) [password](#password) [plural](#plural) [pluralStudly](#pluralstudly) [position](#position) [random](#random) [remove](#remove) [repeat](#repeat) [replace](#replace) [replaceArray](#replacearray) [replaceFirst](#replacefirst) [replaceLast](#replacelast) [replaceMatches](#replacematches) [replaceStart](#replacestart) [replaceEnd](#replaceend) [reverse](#reverse) [singular](#singular) [slug](#slug) [snake](#snake) [squish](#squish) [start](#start) [startsWith](#startswith) [stripTags](#striptags) [studly](#studly) [substr](#substr) [substrCount](#substrcount) [substrReplace](#substrreplace) [swap](#swap) [take](#take) [title](#title) [toBase64](#tobase64) [transliterate](#transliterate) [trim](#trim) [ltrim](#ltrim) [rtrim](#rtrim) [ucfirst](#ucfirst) [ucsplit](#ucsplit) [ucwords](#ucwords) [upper](#upper) [ulid](#ulid) [unwrap](#unwrap) [uuid](#uuid) [uuid7](#uuid7) [wordCount](#wordcount) [wordWrap](#wordwrap) [words](#words) [wrap](#wrap) [str](#str) [of](#of)
 
 </div>
 
@@ -1576,7 +1576,7 @@ const result = ulid();
 // result is "custom-ulid"
 ```
 
-You can reset to the default random string generator by calling the `createUlidsNormally` function.
+You can reset to the default ULID generator by calling the `createUlidsNormally` function.
 
 ```javascript
 import { createUlidsUsing, createUlidsNormally, ulid } from "@tolki/str";
@@ -1612,14 +1612,153 @@ const result2 = unwrap('{framework: "Laravel"}', "{", "}");
 
 ### uuid
 
+Generate a UUID (version 4).
+
+Uses the [`uuid`](https://www.npmjs.com/package/uuid) package.
+
+```javascript
+import { uuid } from "@tolki/str";
+
+const result = uuid();
+
+// result is a randomly generated UUID (version 4)
+```
+
+During testing, you can use the `createUuidsUsing` function to provide a custom UUID generator for predictable results.
+
+```javascript
+import { createUuidsUsing, uuid } from "@tolki/str";
+
+createUuidsUsing(() => "custom-uuid");
+
+const result = uuid();
+
+// result is "custom-uuid"
+```
+
+You can reset to the default UUID generator by calling the `createUuidsNormally` function.
+
+```javascript
+import { createUuidsUsing, createUuidsNormally, uuid } from "@tolki/str";
+
+createUuidsUsing(() => "custom-uuid");
+
+const result = uuid();
+
+// result is "custom-uuid"
+
+createUuidsNormally();
+
+const result2 = uuid();
+
+// result is a randomly generated UUID
+```
+
 ### uuid7
+
+Generate a UUID (version 7).
+
+Uses the [`uuid`](https://www.npmjs.com/package/uuid) package.
+
+```javascript
+import { uuid7 } from "@tolki/str";
+
+const result = uuid7();
+
+// result is a randomly generated UUID (version 7)
+```
+
+The `uuid7()` function also uses the `createUuidsUsing` and `createUuidsNormally` functions for testing purposes, as described in the `uuid` function above.
 
 ### wordCount
 
+Get the number of words a string contains.
+
+```javascript
+import { wordCount } from "@tolki/str";
+
+const result = wordCount("Hello, world!");
+
+// result is 2
+```
+
 ### wordWrap
+
+Wrap a string to a given number of characters.
+
+```javascript
+import { wordWrap } from "@tolki/str";
+
+const result = wordWrap(
+  "The quick brown fox jumped over the lazy dog.",
+  20,
+  "<br />\n",
+);
+
+// result is:
+/*
+The quick brown fox<br />
+jumped over the lazy<br />
+dog.
+*/
+```
 
 ### words
 
+Limit the number of words in a string.
+
+```javascript
+import { words } from "@tolki/str";
+
+const result = words("Perfectly balanced, as all things should be.", 3, " >>>");
+
+// result is "Perfectly balanced, as >>>"
+```
+
 ### wrap
 
+Wrap the string with the given strings.
+
+```javascript
+import { wrap } from "@tolki/str";
+
+const result = wrap("Laravel", '"');
+
+// result is '"Laravel"'
+
+const result2 = wrap("is", "This ", " Laravel!");
+
+// result2 is 'This is Laravel!'
+```
+
 ### str
+
+::: warning
+Using the `str` or `of` functions is discouraged for frontend projects because it will import the entire `Stringable` class, all of its methods, and all 3rd party dependencies into your final bundle, which may significantly increase its size.
+
+For frontend projects, it is recommended to use the individual string functions instead for better tree-shaking and smaller bundle sizes.
+:::
+
+Get a new Stringable object from the given string.
+
+```javascript
+import { str } from "@tolki/str";
+
+const result = str("Laravel").append(" Otwell");
+
+// result is a Stringable class instance representing "Laravel Otwell"
+```
+
+If no string is provided, a Stringable class instance with an empty string will be returned.
+
+```javascript
+import { str } from "@tolki/str";
+
+const result = str().snake("FooBar");
+
+// result is a Stringable class instance representing "foo_bar"
+```
+
+### of
+
+The `of` function is an alias for the `str` function. See the `str` function documentation for details.

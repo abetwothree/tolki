@@ -18,11 +18,9 @@ let uuidFactory: (() => string) | null = null;
  *
  * @return The generated UUID string.
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#uuid
+ *
  * @requires {@link https://www.npmjs.com/package/uuid uuid package}
- *
- * @example
- *
- * uuid(); -> "550e8400-e29b-41d4-a716-446655440000"
  */
 export function uuid(): string {
     return uuidFactory ? uuidFactory() : uuidv4();
@@ -33,11 +31,9 @@ export function uuid(): string {
  *
  * @return The generated UUID string.
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#uuid7
+ *
  * @requires {@link https://www.npmjs.com/package/uuid uuid package}
- *
- * @example
- *
- * uuid7(); -> "550e8400-e29b-41d4-a716-446655440000"
  */
 export function uuid7(): string {
     return uuidFactory ? uuidFactory() : uuidv7();
@@ -49,11 +45,9 @@ export function uuid7(): string {
  * @param factory - The callable UUID factory.
  * @returns void.
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#uuid
+ *
  * @requires {@link https://www.npmjs.com/package/uuid uuid package}
- *
- * @example
- *
- * createUuidsUsing(() => "custom-uuid");
  */
 export function createUuidsUsing(factory: (() => string) | null = null): void {
     uuidFactory = factory;
@@ -136,11 +130,9 @@ export function freezeUuids(
  *
  * @return void.
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#uuid
+ *
  * @requires {@link https://www.npmjs.com/package/uuid uuid package}
- *
- * @example
- *
- * createUuidsNormally();
  */
 export function createUuidsNormally(): void {
     uuidFactory = null;
