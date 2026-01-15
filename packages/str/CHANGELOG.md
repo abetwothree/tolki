@@ -1,5 +1,11 @@
 # @tolki/str
 
+## 1.0.2
+
+### Patch Changes
+
+- Documentation links to str functions
+
 ## 1.0.1
 
 ### Patch Changes
