@@ -1109,7 +1109,7 @@ export function padRight(
     pad: string = " ",
 ): string {
     const valueLength = value.length;
-    
+
     if (length <= valueLength || pad === "") {
         return value;
     }
