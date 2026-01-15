@@ -3,6 +3,7 @@ import "./style.css";
 
 import type { Theme } from "vitepress";
 import DefaultTheme from "vitepress/theme";
+import CopyOrDownloadAsMarkdownButtons from "vitepress-plugin-llms/vitepress-components/CopyOrDownloadAsMarkdownButtons.vue";
 import { h } from "vue";
 
 export default {
@@ -12,7 +13,10 @@ export default {
             // https://vitepress.dev/guide/extending-default-theme#layout-slots
         });
     },
-    // enhanceApp({ _app, _router, _siteData }) {
-    //     // ...
-    // },
+    enhanceApp({ app }) {
+        app.component(
+            "CopyOrDownloadAsMarkdownButtons",
+            CopyOrDownloadAsMarkdownButtons,
+        );
+    },
 } satisfies Theme;
