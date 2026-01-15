@@ -1308,10 +1308,7 @@ export function password(
  * @param offset - The position to start searching from (can be negative)
  * @returns The position of the first occurrence or false if not found
  *
- * @example
- *
- * position('Hello, World!', 'World!'); -> 7
- * position('Hello, World!', 'world!', 0); -> false
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#position
  */
 export function position(
     haystack: string,
@@ -1358,12 +1355,11 @@ export function position(
  * @param length - The desired length of the random string (default: 16)
  * @returns The generated random string
  *
- * @example
- *
- * random(); -> "a1b2c3d4e5f6g7h8"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#random
  */
 export function random(length: number = 16): string {
     const factory = randomStringFactory ?? ((len: number) => randomString(len));
+
     return factory(length);
 }
 
@@ -1373,9 +1369,7 @@ export function random(length: number = 16): string {
  * @param factory - The factory function to generate random strings
  * @returns void
  *
- * @example
- *
- * createRandomStringsUsing((length) => "x".repeat(length));
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#random
  */
 export function createRandomStringsUsing(
     factory: ((length: number) => string) | null,
@@ -1431,9 +1425,7 @@ export function createRandomStringsUsingSequence(
  *
  * @returns void
  *
- * @example
- *
- * createRandomStringsNormally();
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#random
  */
 export function createRandomStringsNormally(): void {
     randomStringFactory = null;
@@ -1446,9 +1438,7 @@ export function createRandomStringsNormally(): void {
  * @param times - The number of times to repeat the string
  * @returns The repeated string
  *
- * @example
- *
- * repeat("foo", 3); -> "foofoofoo"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#repeat
  */
 export function repeat(string: string, times: number): string {
     if (times <= 0) {
@@ -1466,11 +1456,7 @@ export function repeat(string: string, times: number): string {
  * @param subject - The string to perform replacements on
  * @returns The resulting string after replacements
  *
- * @example
- *
- * replaceArray('?', ['foo', 'bar', 'baz'], '?/?/?'); -> 'foo/bar/baz'
- * replaceArray('?', ['foo', 'bar', 'baz'], '?/?/?/?'); -> 'foo/bar/baz/?'
- * replaceArray('?', {'x' => 'foo', 'y' => 'bar'}, '?/?'); -> 'foo/bar'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#replacearray
  */
 export function replaceArray(
     search: string,
@@ -1535,9 +1521,7 @@ export function toStringOr(value: unknown, fallback: string): string {
  * @param caseSensitive - Whether the search should be case-sensitive (default: true)
  * @returns The resulting string or array of strings after replacements
  *
- * @example
- *
- * replace("foo", "bar", "foo baz"); -> "bar baz"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#replace
  */
 export function replace<T extends string | Iterable<string>>(
     search: string | Iterable<string>,
@@ -1584,9 +1568,7 @@ export function replace<T extends string | Iterable<string>>(
  * @param subject - The string to perform the replacement on
  * @returns The resulting string after replacement
  *
- * @example
- *
- * replaceFirst('bar', 'qux', 'foobar foobar'); -> 'fooqux foobar'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#replacefirst
  */
 export function replaceFirst(
     search: string | number,
@@ -1619,6 +1601,8 @@ export function replaceFirst(
  * @param replace - The value to replace with
  * @param subject - The string to perform the replacement on
  * @returns The resulting string after replacement
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#replacestart
  */
 export function replaceStart(
     search: string | number,
@@ -1646,9 +1630,7 @@ export function replaceStart(
  * @param subject - The string to perform the replacement on
  * @returns The resulting string after replacement
  *
- * @example
- *
- * replaceLast('bar', 'qux', 'foobar foobar'); -> 'foobar foobarqux'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#replacelast
  */
 export function replaceLast(
     search: string | number,
@@ -1682,9 +1664,7 @@ export function replaceLast(
  * @param subject - The string to perform the replacement on
  * @returns The resulting string after replacement
  *
- * @example
- *
- * replaceEnd('bar', 'qux', 'foobar foobar'); -> 'foobar fooqux'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#replaceend
  */
 export function replaceEnd(
     search: string | number,
@@ -1708,16 +1688,12 @@ export function replaceEnd(
  * Replace the patterns matching the given regular expression.
  *
  * @param pattern - The regex pattern or patterns to search for
- * @param replace - The replacement string, array of strings, or function
+ * @param replace - The replacement string, array of strings, or closure
  * @param subject - The string or array of strings to perform replacements on
  * @param limit - The maximum number of replacements per pattern (-1 for no limit)
  * @returns The resulting string, array of strings, or null on error
  *
- * @example
- *
- * replaceMatches(/foo/, 'bar', 'foobar'); -> 'barbar'
- * replaceMatches(/foo/, ['bar', 'baz'], 'foobar'); -> ['barbar', 'foobaz']
- * replaceMatches(/foo/, (match) => match[1]!.toUpperCase(), 'foobar'); -> 'Bar'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#replacematches
  */
 export function replaceMatches(
     pattern: string | string[] | RegExp | RegExp[],
@@ -1905,10 +1881,7 @@ export function stripTags(value: string): string {
  * @param caseSensitive - Whether the search should be case-sensitive (default: true)
  * @returns The resulting string or array of strings after removal
  *
- * @example
- *
- * remove("foo", "foobar"); -> "bar"
- * remove(["foo", "bar"], "foobar"); -> ""
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#remove
  */
 export function remove(
     search: string | Iterable<string>,
@@ -1949,11 +1922,7 @@ export function remove(
  * @param value - The string to reverse
  * @returns The reversed string
  *
- * @example
- *
- * reverse("hello"); -> "olleh"
- * reverse("world"); -> "dlrow"
- * reverse(""); -> ""
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#reverse
  */
 export function reverse(value: string): string {
     return Array.from(value).reverse().join("");

@@ -4,7 +4,11 @@
 
 These are the string utilities that can be used independently as single functions.
 
-[after](#after), [afterLast](#afterlast), [apa](#apa), [ascii](#ascii), [before](#before), [beforeLast](#beforelast), [between](#between), [betweenFirst](#betweenfirst), [camel](#camel), [charAt](#charat), [chopEnd](#chopend), [chopStart](#chopstart), [contains](#contains), [containsAll](#containsall), [doesntContain](#doesntcontain), [deduplicate](#deduplicate), [doesntEndWith](#doesntendwith), [doesntStartWith](#doesntstartwith), [endsWith](#endswith), [excerpt](#excerpt), [finish](#finish), [fromBase64](#frombase64), [headline](#headline), [inlineMarkdown](#inlinemarkdown), [is](#is), [isAscii](#isascii), [isJson](#isjson), [isUrl](#isurl), [isUlid](#isulid), [isUuid](#isuuid), [kebab](#kebab), [lcfirst](#lcfirst), [length](#length), [limit](#limit), [lower](#lower), [markdown](#markdown), [mask](#mask), [match](#match), [matchAll](#matchall), [isMatch](#ismatch), [numbers](#numbers), [padBoth](#padboth), [padLeft](#padleft), [padRight](#padright), [pascal](#pascal), [pluralPascal](#pluralpascal), [password](#password), [plural](#plural), [pluralStudly](#pluralstudly), [position](#position), [random](#random), [remove](#remove), [repeat](#repeat), [replace](#replace), [replaceArray](#replacearray), [replaceEnd](#replaceend), [replaceFirst](#replacefirst), [replaceLast](#replacelast), [replaceMatches](#replacematches), [replaceStart](#replacestart), [reverse](#reverse), [snake](#snake), [snakeCacheSize](#snakecachesize), [squish](#squish), [start](#start), [startsWith](#startswith), [stripTags](#striptags), [studly](#studly), [studlyCacheSize](#studlycachesize), [swap](#swap), [take](#take), [toStringOr](#tostringor), [ucfirst](#ucfirst), [ucsplit](#ucsplit), [ucwords](#ucwords), [unwrap](#unwrap), [wordCount](#wordcount), [wordWrap](#wordwrap), [words](#words), [wrap](#wrap)
+<div class="collection-method-list" markdown="1">
+
+[after](#after) [afterLast](#afterlast) [apa](#apa) [ascii](#ascii) [before](#before) [beforeLast](#beforelast) [between](#between) [betweenFirst](#betweenfirst) [camel](#camel) [charAt](#charat) [chopEnd](#chopend) [chopStart](#chopstart) [contains](#contains) [containsAll](#containsall) [doesntContain](#doesntcontain) [deduplicate](#deduplicate) [doesntEndWith](#doesntendwith) [doesntStartWith](#doesntstartwith) [endsWith](#endswith) [excerpt](#excerpt) [finish](#finish) [fromBase64](#frombase64) [headline](#headline) [inlineMarkdown](#inlinemarkdown) [is](#is) [isAscii](#isascii) [isJson](#isjson) [isUrl](#isurl) [isUlid](#isulid) [isUuid](#isuuid) [kebab](#kebab) [lcfirst](#lcfirst) [length](#length) [limit](#limit) [lower](#lower) [markdown](#markdown) [mask](#mask) [match](#match) [matchAll](#matchall) [isMatch](#ismatch) [numbers](#numbers) [padBoth](#padboth) [padLeft](#padleft) [padRight](#padright) [pascal](#pascal) [pluralPascal](#pluralpascal) [password](#password) [plural](#plural) [pluralStudly](#pluralstudly) [position](#position) [random](#random) [remove](#remove) [repeat](#repeat) [replace](#replace) [replaceArray](#replacearray) [replaceFirst](#replacefirst) [replaceLast](#replacelast) [replaceMatches](#replacematches) [replaceStart](#replacestart) [replaceEnd](#replaceend) [reverse](#reverse) [singular](#singular) [snake](#snake) [snakeCacheSize](#snakecachesize) [squish](#squish) [start](#start) [startsWith](#startswith) [stripTags](#striptags) [studly](#studly) [studlyCacheSize](#studlycachesize) [swap](#swap) [take](#take) [toStringOr](#tostringor) [ucfirst](#ucfirst) [ucsplit](#ucsplit) [ucwords](#ucwords) [unwrap](#unwrap) [wordCount](#wordcount) [wordWrap](#wordwrap) [words](#words) [wrap](#wrap)
+
+</div>
 
 ## String Utilities Details
 
@@ -980,27 +984,266 @@ const result2 = pluralStudly("UserFeedback");
 
 ### position
 
+Find the multi-byte safe position of the first occurrence of a given substring in a string.
+
+```javascript
+import { position } from "@tolki/str";
+
+const result = position("Hello, World!", "Hello");
+
+// result is 0
+
+const result2 = position("Hello, World!", "W");
+
+// result2 is 7
+```
+
 ### random
+
+Generate a more truly "random" alpha-numeric string.
+
+```javascript
+import { random } from "@tolki/str";
+
+const result = random(40);
+
+// result is a random 40-character alpha-numeric string
+```
+
+During testing, you can use the `createRandomStringsUsing` function to provide a custom random string generator for predictable results.
+
+```javascript
+import { createRandomStringsUsing, random } from "@tolki/str";
+
+createRandomStringsUsing((length) => "A".repeat(length));
+
+const result = random(5);
+
+// result is "AAAAA"
+```
+
+You can reset to the default random string generator by calling the `createRandomStringsNormally`.
+
+```javascript
+import {
+  createRandomStringsUsing,
+  createRandomStringsNormally,
+  random,
+} from "@tolki/str";
+
+createRandomStringsUsing((length) => "A".repeat(length));
+
+const result = random(5);
+
+// result is "AAAAA"
+
+createRandomStringsNormally();
+
+const result2 = random(5);
+
+// result is a random 5-character alpha-numeric string
+```
 
 ### remove
 
+Remove any occurrence of the given string in the subject.
+
+```javascript
+import { remove } from "@tolki/str";
+
+const result = remove("e", "Peter Piper picked a peck of pickled peppers.");
+
+// result is "Ptr Pipr pickd a pck of pickld ppprs."
+```
+
+You can pass false as the third argument to disable case sensitivity:
+
+```javascript
+import { remove } from "@tolki/str";
+
+const result = remove(
+  "e",
+  "Peter Piper picked a peck of pickled peppers.",
+  false,
+);
+
+// result is "Ptr Pipr pickd a pck of pickld ppprs."
+```
+
 ### repeat
+
+Repeat the given string.
+
+```javascript
+import { repeat } from "@tolki/str";
+
+const result = repeat("a", 5);
+
+// result is "aaaaa"
+```
 
 ### replace
 
+Replace the given value in the given string.
+
+```javascript
+import { replace } from "@tolki/str";
+
+const result = replace("11.x", "12.x", "Laravel 11.x");
+
+// result is "Laravel 12.x"
+```
+
+The replace function also accepts a fourth argument to disable case sensitivity:
+
+```javascript
+import { replace } from "@tolki/str";
+
+const result = replace(
+  "php",
+  "Laravel",
+  "PHP Framework for Web Artisans",
+  false,
+);
+
+// result is "Laravel Framework for Web Artisans"
+```
+
 ### replaceArray
 
-### replaceEnd
+Replace a given value in the string sequentially with an array.
+
+```javascript
+import { replaceArray } from "@tolki/str";
+
+const result = replaceArray(
+  "?",
+  ["8:30", "9:00"],
+  "The event will take place between ? and ?",
+);
+
+// result is "The event will take place between 8:30 and 9:00"
+```
 
 ### replaceFirst
 
+Replace the first occurrence of a given value in the string.
+
+```javascript
+import { replaceFirst } from "@tolki/str";
+
+const result = replaceFirst(
+  "the",
+  "a",
+  "the quick brown fox jumps over the lazy dog",
+);
+
+// result is "a quick brown fox jumps over the lazy dog"
+```
+
 ### replaceLast
+
+Replace the last occurrence of a given value in the string.
+
+```javascript
+import { replaceLast } from "@tolki/str";
+
+const result = replaceLast(
+  "the",
+  "a",
+  "the quick brown fox jumps over the lazy dog",
+);
+
+// result is "the quick brown fox jumps over a lazy dog"
+```
 
 ### replaceMatches
 
+Replace the patterns matching the given regular expression.
+
+```javascript
+import { replaceMatches } from "@tolki/str";
+
+const result = replaceMatches(/[^A-Za-z0-9]+/g, "", "(+1) 501-555-1000");
+
+// result is "15015551000"
+```
+
+The `replaceMatches` function also accepts a closure as the second argument, allowing you to perform the replacement logic within the closure and return the replaced value.
+
+```javascript
+import { replaceMatches } from "@tolki/str";
+
+const result = replaceMatches(
+  /\d+/g,
+  (matches) => `number ${matches[0]}`,
+  "My numbers are 123 and 456.",
+);
+
+// result is "My numbers are number 123 and number 456."
+```
+
 ### replaceStart
 
+Replace the first occurrence of the given value if it appears at the start of the string.
+
+```javascript
+import { replaceStart } from "@tolki/str";
+
+const result = replaceStart("Hello", "Laravel", "Hello World");
+
+// result is "Laravel World"
+
+const result2 = replaceStart("World", "Laravel", "Hello World");
+
+// result2 is "Hello World"
+```
+
+### replaceEnd
+
+Replace the last occurrence of a given value if it appears at the end of the string.
+
+```javascript
+import { replaceEnd } from "@tolki/str";
+
+const result = replaceEnd("World", "Laravel", "Hello World");
+
+// result is "Hello Laravel"
+
+const result2 = replaceEnd("Hello", "Laravel", "Hello World");
+
+// result2 is "Hello World"
+```
+
 ### reverse
+
+Reverse the given string.
+
+```javascript
+import { reverse } from "@tolki/str";
+
+const result = reverse("Hello World");
+
+// result is "dlroW olleH"
+```
+
+### singular
+
+Get the singular form of an English word.
+
+Uses the [`pluralize`](https://www.npmjs.com/package/pluralize) package.
+
+```javascript
+import { singular } from "@tolki/str";
+
+const result = singular("cars");
+
+// result is "car"
+
+const result2 = singular("children");
+
+// result2 is "child"
+```
 
 ### snake
 

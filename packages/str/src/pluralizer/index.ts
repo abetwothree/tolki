@@ -137,6 +137,8 @@ function pluralValue(value: string, count: number): string {
  * @param value - The word to singularize.
  * @returns The singular form of the word.
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#singular
+ *
  * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  */
 export function singular(value: string): string {
