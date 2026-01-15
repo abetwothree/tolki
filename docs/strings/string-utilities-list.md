@@ -6,7 +6,7 @@ These are the string utilities that can be used independently as single function
 
 <div class="collection-method-list" markdown="1">
 
-[after](#after) [afterLast](#afterlast) [apa](#apa) [ascii](#ascii) [before](#before) [beforeLast](#beforelast) [between](#between) [betweenFirst](#betweenfirst) [camel](#camel) [charAt](#charat) [chopEnd](#chopend) [chopStart](#chopstart) [contains](#contains) [containsAll](#containsall) [doesntContain](#doesntcontain) [deduplicate](#deduplicate) [doesntEndWith](#doesntendwith) [doesntStartWith](#doesntstartwith) [endsWith](#endswith) [excerpt](#excerpt) [finish](#finish) [fromBase64](#frombase64) [headline](#headline) [inlineMarkdown](#inlinemarkdown) [is](#is) [isAscii](#isascii) [isJson](#isjson) [isUrl](#isurl) [isUlid](#isulid) [isUuid](#isuuid) [kebab](#kebab) [lcfirst](#lcfirst) [length](#length) [limit](#limit) [lower](#lower) [markdown](#markdown) [mask](#mask) [match](#match) [matchAll](#matchall) [isMatch](#ismatch) [numbers](#numbers) [padBoth](#padboth) [padLeft](#padleft) [padRight](#padright) [pascal](#pascal) [pluralPascal](#pluralpascal) [password](#password) [plural](#plural) [pluralStudly](#pluralstudly) [position](#position) [random](#random) [remove](#remove) [repeat](#repeat) [replace](#replace) [replaceArray](#replacearray) [replaceFirst](#replacefirst) [replaceLast](#replacelast) [replaceMatches](#replacematches) [replaceStart](#replacestart) [replaceEnd](#replaceend) [reverse](#reverse) [singular](#singular) [snake](#snake) [snakeCacheSize](#snakecachesize) [squish](#squish) [start](#start) [startsWith](#startswith) [stripTags](#striptags) [studly](#studly) [studlyCacheSize](#studlycachesize) [swap](#swap) [take](#take) [toStringOr](#tostringor) [ucfirst](#ucfirst) [ucsplit](#ucsplit) [ucwords](#ucwords) [unwrap](#unwrap) [wordCount](#wordcount) [wordWrap](#wordwrap) [words](#words) [wrap](#wrap)
+[after](#after) [afterLast](#afterlast) [apa](#apa) [ascii](#ascii) [before](#before) [beforeLast](#beforelast) [between](#between) [betweenFirst](#betweenfirst) [camel](#camel) [charAt](#charat) [chopEnd](#chopend) [chopStart](#chopstart) [contains](#contains) [containsAll](#containsall) [doesntContain](#doesntcontain) [deduplicate](#deduplicate) [doesntEndWith](#doesntendwith) [doesntStartWith](#doesntstartwith) [endsWith](#endswith) [excerpt](#excerpt) [finish](#finish) [fromBase64](#frombase64) [headline](#headline) [inlineMarkdown](#inlinemarkdown) [is](#is) [isAscii](#isascii) [isJson](#isjson) [isUrl](#isurl) [isUlid](#isulid) [isUuid](#isuuid) [kebab](#kebab) [lcfirst](#lcfirst) [length](#length) [limit](#limit) [lower](#lower) [markdown](#markdown) [mask](#mask) [match](#match) [matchAll](#matchall) [isMatch](#ismatch) [numbers](#numbers) [padBoth](#padboth) [padLeft](#padleft) [padRight](#padright) [pascal](#pascal) [pluralPascal](#pluralpascal) [password](#password) [plural](#plural) [pluralStudly](#pluralstudly) [position](#position) [random](#random) [remove](#remove) [repeat](#repeat) [replace](#replace) [replaceArray](#replacearray) [replaceFirst](#replacefirst) [replaceLast](#replacelast) [replaceMatches](#replacematches) [replaceStart](#replacestart) [replaceEnd](#replaceend) [reverse](#reverse) [singular](#singular) [slug](#slug) [snake](#snake) [squish](#squish) [start](#start) [startsWith](#startswith) [stripTags](#striptags) [studly](#studly) [substr](#substr) [substrCount](#substrcount) [substrReplace](#substrreplace) [swap](#swap) [take](#take) [title](#title) [toBase64](#tobase64) [transliterate](#transliterate) [trim](#trim) [ltrim](#ltrim) [rtrim](#rtrim) [ucfirst](#ucfirst) [ucsplit](#ucsplit) [ucwords](#ucwords) [upper](#upper) [ulid](#ulid) [unwrap](#unwrap) [uuid](#uuid) [uuid7](#uuid7) [wordCount](#wordcount) [wordWrap](#wordwrap) [words](#words) [wrap](#wrap) [str](#str)
 
 </div>
 
@@ -1245,9 +1245,9 @@ const result2 = singular("children");
 // result2 is "child"
 ```
 
-### snake
+### slug
 
-### snakeCacheSize
+### snake
 
 ### squish
 
@@ -1259,13 +1259,27 @@ const result2 = singular("children");
 
 ### studly
 
-### studlyCacheSize
+### substr
+
+### substrCount
+
+### substrReplace
 
 ### swap
 
 ### take
 
-### toStringOr
+### title
+
+### toBase64
+
+### transliterate
+
+### trim
+
+### ltrim
+
+### rtrim
 
 ### ucfirst
 
@@ -1273,7 +1287,15 @@ const result2 = singular("children");
 
 ### ucwords
 
+### upper
+
+### ulid
+
 ### unwrap
+
+### uuid
+
+### uuid7
 
 ### wordCount
 
@@ -1282,3 +1304,5 @@ const result2 = singular("children");
 ### words
 
 ### wrap
+
+### str
