@@ -1761,4 +1761,12 @@ const result = str().snake("FooBar");
 
 ### of
 
-The `of` function is an alias for the `str` function. See the `str` function documentation for details.
+The `of` function is an alias for the `str` function made for parity with Laravels' `Str::of` method. See the [str](#str) function documentation for details.
+
+```javascript
+import { of } from "@tolki/str";
+
+const result = of("Laravel").upper();
+
+// result is a Stringable class instance representing "LARAVEL"
+```
