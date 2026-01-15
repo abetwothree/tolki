@@ -4,7 +4,7 @@
 
 These are the string utilities that can be used independently as single functions.
 
-[after](#after), [afterLast](#afterlast), [apa](#apa), [ascii](#ascii), [before](#before), [beforeLast](#beforelast), [between](#between), [betweenFirst](#betweenfirst), [camel](#camel), [charAt](#charat), [chopEnd](#chopend), [chopStart](#chopstart), [contains](#contains), [containsAll](#containsall), [doesntContain](#doesntcontain), [deduplicate](#deduplicate), [doesntEndWith](#doesntendwith), [doesntStartWith](#doesntstartwith), [endsWith](#endswith), [excerpt](#excerpt), [finish](#finish), [fromBase64](#frombase64), [headline](#headline), [inlineMarkdown](#inlinemarkdown), [is](#is), [isAscii](#isascii), [isJson](#isjson), [isUrl](#isurl), [isUlid](#isulid), [isUuid](#isuuid), [kebab](#kebab), [lcfirst](#lcfirst), [length](#length), [limit](#limit), [lower](#lower), [markdown](#markdown), [mask](#mask), [match](#match), [matchAll](#matchall), [isMatch](#ismatch), [numbers](#numbers), [padBoth](#padboth), [padLeft](#padleft), [padRight](#padright), [pascal](#pascal), [password](#password), [position](#position), [random](#random), [remove](#remove), [repeat](#repeat), [replace](#replace), [replaceArray](#replacearray), [replaceEnd](#replaceend), [replaceFirst](#replacefirst), [replaceLast](#replacelast), [replaceMatches](#replacematches), [replaceStart](#replacestart), [reverse](#reverse), [snake](#snake), [snakeCacheSize](#snakecachesize), [squish](#squish), [start](#start), [startsWith](#startswith), [stripTags](#striptags), [studly](#studly), [studlyCacheSize](#studlycachesize), [swap](#swap), [take](#take), [toStringOr](#tostringor), [ucfirst](#ucfirst), [ucsplit](#ucsplit), [ucwords](#ucwords), [unwrap](#unwrap), [wordCount](#wordcount), [wordWrap](#wordwrap), [words](#words), [wrap](#wrap)
+[after](#after), [afterLast](#afterlast), [apa](#apa), [ascii](#ascii), [before](#before), [beforeLast](#beforelast), [between](#between), [betweenFirst](#betweenfirst), [camel](#camel), [charAt](#charat), [chopEnd](#chopend), [chopStart](#chopstart), [contains](#contains), [containsAll](#containsall), [doesntContain](#doesntcontain), [deduplicate](#deduplicate), [doesntEndWith](#doesntendwith), [doesntStartWith](#doesntstartwith), [endsWith](#endswith), [excerpt](#excerpt), [finish](#finish), [fromBase64](#frombase64), [headline](#headline), [inlineMarkdown](#inlinemarkdown), [is](#is), [isAscii](#isascii), [isJson](#isjson), [isUrl](#isurl), [isUlid](#isulid), [isUuid](#isuuid), [kebab](#kebab), [lcfirst](#lcfirst), [length](#length), [limit](#limit), [lower](#lower), [markdown](#markdown), [mask](#mask), [match](#match), [matchAll](#matchall), [isMatch](#ismatch), [numbers](#numbers), [padBoth](#padboth), [padLeft](#padleft), [padRight](#padright), [pascal](#pascal), [pluralPascal](#pluralpascal), [password](#password), [plural](#plural), [pluralStudly](#pluralstudly), [position](#position), [random](#random), [remove](#remove), [repeat](#repeat), [replace](#replace), [replaceArray](#replacearray), [replaceEnd](#replaceend), [replaceFirst](#replacefirst), [replaceLast](#replacelast), [replaceMatches](#replacematches), [replaceStart](#replacestart), [reverse](#reverse), [snake](#snake), [snakeCacheSize](#snakecachesize), [squish](#squish), [start](#start), [startsWith](#startswith), [stripTags](#striptags), [studly](#studly), [studlyCacheSize](#studlycachesize), [swap](#swap), [take](#take), [toStringOr](#tostringor), [ucfirst](#ucfirst), [ucsplit](#ucsplit), [ucwords](#ucwords), [unwrap](#unwrap), [wordCount](#wordcount), [wordWrap](#wordwrap), [words](#words), [wrap](#wrap)
 
 ## String Utilities Details
 
@@ -816,17 +816,167 @@ const result2 = isMatch("/foo (.*)/", "laravel");
 // result2 is false
 ```
 
+### orderedUuid
+
+This function is purposely not implemented. Use the `uuid7()` function instead to generate a UUIDv7, which is a time-ordered UUID.
+
+See more details on this [StackOverflow discussion](https://stackoverflow.com/a/79196945).
+
 ### numbers
+
+Remove all non-numeric characters from a string.
+
+```javascript
+import { numbers } from "@tolki/str";
+
+const result = numbers("(555) 123-4567");
+
+// result is "5551234567"
+
+const result2 = numbers("L4r4v3l!");
+
+// result2 is "443"
+```
 
 ### padBoth
 
+Pad both sides of a string with another string to a certain length.
+
+```javascript
+import { padBoth } from "@tolki/str";
+
+const result = padBoth("James", 10, "_");
+
+// result is "__James__"
+
+const result2 = padBoth("James", 10);
+
+// result2 is "  James   "
+```
+
 ### padLeft
+
+Pad the left side of a string with another string to a certain length.
+
+```javascript
+import { padLeft } from "@tolki/str";
+
+const result = padLeft("James", 10, "-=");
+
+// result is "-=-=-James"
+
+const result2 = padLeft("James", 10);
+
+// result2 is "     James"
+```
 
 ### padRight
 
+Pad the right side of a string with another string to a certain length.
+
+```javascript
+import { padRight } from "@tolki/str";
+
+const result = padRight("James", 10, "-");
+
+// result is "James-----"
+
+const result2 = padRight("James", 10);
+
+// result2 is "James     "
+```
+
 ### pascal
 
+Convert a value to Pascal case.
+
+```javascript
+import { pascal } from "@tolki/str";
+
+const result = pascal("hello world");
+
+// result is "HelloWorld"
+```
+
+### pluralPascal
+
+Pluralize the last word of an English, Pascal caps case string.
+
+```javascript
+import { pluralPascal } from "@tolki/str";
+
+const result = pluralPascal("HelloWorld");
+
+// result is "HelloWorlds"
+```
+
 ### password
+
+Generate a random, secure password.
+
+```javascript
+import { password } from "@tolki/str";
+
+const result = password();
+
+// result is a random, secure password
+```
+
+### plural
+
+Get the plural form of an English word.
+
+```javascript
+import { plural } from "@tolki/str";
+
+const result = plural("car");
+
+// result is "cars"
+
+const result2 = plural("child");
+
+// result2 is "children"
+```
+
+You may provide a second argument to specify the count. If the count is 1, the singular form will be returned.
+
+```javascript
+import { plural } from "@tolki/str";
+
+const result = plural("child", 2);
+
+// result is "children"
+
+const result2 = plural("child", 1);
+
+// result2 is "child"
+```
+
+You pass a third argument to prepend the count to the resulting string.
+
+```javascript
+import { plural } from "@tolki/str";
+
+const result = plural("car", 1000, true);
+
+// result is "1,000 cars"
+```
+
+### pluralStudly
+
+Pluralize the last word of an English, studly caps case string.
+
+```javascript
+import { pluralStudly } from "@tolki/str";
+
+const result = pluralStudly("VerifiedHuman");
+
+// result is "VerifiedHumans"
+
+const result2 = pluralStudly("UserFeedback");
+
+// result2 is "UserFeedback"
+```
 
 ### position
 

@@ -63,11 +63,9 @@ const rules: PluralizerRules = {
  * @param count - The count to determine pluralization (default: 2)
  * @returns The pluralized studly caps case string
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#pluralstudly
+ *
  * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
- *
- * @example
- *
- * pluralStudly("These are the school", 4); -> "These are the schools"
  */
 export function pluralStudly(value: string, count: number = 2): string {
     const parts = value.split(/(?=[A-Z])/);
@@ -83,11 +81,9 @@ export function pluralStudly(value: string, count: number = 2): string {
  * @param count - The count to determine pluralization (default: 2)
  * @returns The pluralized Pascal caps case string
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#pluralpascal
+ *
  * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
- *
- * @example
- *
- * pluralPascal("These are the school", 4); -> "These are the schools"
  */
 export function pluralPascal(value: string, count: number = 2): string {
     return pluralStudly(value, count);
@@ -101,13 +97,9 @@ export function pluralPascal(value: string, count: number = 2): string {
  * @param prependCount - Whether to prepend the count to the result (default: false)
  * @returns The pluralized word, optionally with the count prepended.
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#plural
+ *
  * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
- *
- * @example
- *
- * plural("child"); -> "children"
- * plural("apple", 1); -> "apple"
- * plural("apple", 2, true); -> "2 apples"
  */
 export function plural(
     value: string,

@@ -1035,10 +1035,7 @@ export function matchAll(pattern: string, subject: string): string[] {
  * @param value - The string or array of strings to process
  * @returns The numeric-only string or array of strings
  *
- * @example
- *
- * numbers("foo123bar"); -> "123"
- * numbers(["foo123bar", "abc456"]); -> ["123", "456"]
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#numbers
  */
 export function numbers(value: string | string[]): string | string[] {
     if (isArray(value)) {
@@ -1049,12 +1046,14 @@ export function numbers(value: string | string[]): string | string[] {
 }
 
 /**
- * Pad both sides of a string with another.
+ * Pad both sides of a string with another string to a certain length.
  *
  * @param value - The string to pad
  * @param length - The desired total length after padding
  * @param pad - The string to use for padding
  * @returns The padded string
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#padboth
  */
 export function padBoth(
     value: string,
@@ -1074,19 +1073,14 @@ export function padBoth(
 }
 
 /**
- * Pad the left side of a string with another.
+ * Pad the left side of a string with another string to a certain length.
  *
  * @param value - The string to pad
  * @param length - The desired total length after padding
  * @param pad - The string to use for padding
  * @returns The padded string
  *
- * @example
- *
- * padLeft("Alien", 10, "-="); -> "-=-=-Alien"
- * padLeft("Alien", 10); -> "     Alien"
- * padLeft("❤MultiByte☆", 16); -> "     ❤MultiByte☆"
- * padLeft("❤MultiByte☆", 16, "❤☆"); -> "❤☆❤☆❤❤MultiByte☆"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#padleft
  */
 export function padLeft(
     value: string,
@@ -1105,19 +1099,14 @@ export function padLeft(
 }
 
 /**
- * Pad the right side of a string with another.
+ * Pad the right side of a string with another string to a certain length.
  *
  * @param value - The string to pad
  * @param length - The desired total length after padding
  * @param pad - The string to use for padding
  * @returns The padded string
  *
- * @example
- *
- * padRight("Alien", 10, "-="); -> "Alien-=-="
- * padRight("Alien", 10); -> "Alien     "
- * padRight("❤MultiByte☆", 16); -> "❤MultiByte☆     "
- * padRight("❤MultiByte☆", 16, "❤☆"); -> "❤MultiByte☆❤☆❤☆"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#padright
  */
 export function padRight(
     value: string,
@@ -1170,6 +1159,8 @@ export function makePad(padStr: string, needed: number): string {
  * @param symbols Whether to include symbols (default: true)
  * @param spaces Whether to include spaces (default: false)
  * @return The generated password string
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#password
  */
 export function password(
     length: number = 32,
@@ -2274,6 +2265,8 @@ export function studly(value: string): string {
  *
  * @param value - The string to convert
  * @returns The converted string in Pascal case
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#pascal
  */
 export function pascal(value: string): string {
     return studly(value);
