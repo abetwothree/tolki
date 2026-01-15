@@ -70,6 +70,8 @@ function computeIndents(value: string): {
  * @param value - The string to trim.
  * @param charlist - Optional list of characters to trim instead of whitespace.
  * @returns The trimmed string.
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#trim
  */
 export function trim(value: string, charlist: string | null = null): string {
     if (charlist == null || charlist === "") {
@@ -105,6 +107,8 @@ export function trim(value: string, charlist: string | null = null): string {
  * @param value - The string to trim.
  * @param charlist - Optional list of characters to trim instead of whitespace.
  * @returns The left-trimmed string.
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#ltrim
  */
 export function ltrim(value: string, charlist: string | null = null): string {
     if (charlist == null || charlist === "") {
@@ -135,6 +139,8 @@ export function ltrim(value: string, charlist: string | null = null): string {
  * @param value - The string to trim.
  * @param charlist - Optional list of characters to trim instead of whitespace.
  * @returns The right-trimmed string.
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#rtrim
  */
 export function rtrim(value: string, charlist: string | null = null): string {
     if (charlist == null || charlist === "") {

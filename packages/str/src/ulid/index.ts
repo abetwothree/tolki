@@ -7,16 +7,14 @@ import { ulid as createUlid } from "ulid";
 let ulidFactory: (() => string) | null = null;
 
 /**
- * Generate a ULID.
+ * Generate a ULID (Universally Unique Lexicographically Sortable Identifier).
  *
  * @param time - Optional time component as a Date or number of milliseconds since epoch.
  * @returns The generated ULID string.
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#ulid
+ *
  * @requires {@link https://www.npmjs.com/package/ulid ulid package}
- *
- * @example
- *
- * ulid(); -> "01F8MECHZX2D7J8F8C8D4B8F8C"
  */
 export function ulid(time: Date | number | null = null): string {
     if (ulidFactory) {
@@ -49,11 +47,9 @@ export function ulid(time: Date | number | null = null): string {
  *
  * @returns void.
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#ulid
+ *
  * @requires {@link https://www.npmjs.com/package/ulid ulid package}
- *
- * @example
- *
- * createUlidsNormally();
  */
 export function createUlidsNormally(): void {
     ulidFactory = null;
@@ -65,11 +61,9 @@ export function createUlidsNormally(): void {
  * @param factory - The callable ULID factory.
  * @returns void.
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#ulid
+ *
  * @requires {@link https://www.npmjs.com/package/ulid ulid package}
- *
- * @example
- *
- * createUlidsUsing(() => of("1234").toString());
  */
 export function createUlidsUsing(factory: (() => string) | null = null): void {
     ulidFactory = factory;

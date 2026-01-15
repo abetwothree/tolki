@@ -37,10 +37,7 @@ export function convertCase(
  * @param value - The string to convert.
  * @returns The upper-case string.
  *
- * @example
- *
- * upper("foo bar baz"); -> "FOO BAR BAZ"
- * upper("foO bAr BaZ"); -> "FOO BAR BAZ"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#upper
  */
 export function upper(value: string): string {
     return caseConverter(value, CaseTypes.upper);
@@ -52,10 +49,7 @@ export function upper(value: string): string {
  * @param value - The string to convert.
  * @returns The proper-case string.
  *
- * @example
- *
- * title("foo bar baz"); -> "Foo Bar Baz"
- * title("foO bAr BaZ"); -> "Foo Bar Baz"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#title
  */
 export function title(value: string): string {
     return caseConverter(value, CaseTypes.title);

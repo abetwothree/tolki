@@ -8,9 +8,7 @@ import anyAscii from "any-ascii";
  *
  * @requires {@link https://www.npmjs.com/package/any-ascii any-ascii package}
  *
- * @example
- *
- * transliterate('ⓣⓔⓢⓣ@ⓛⓐⓡⓐⓥⓔⓛ.ⓒⓞⓜ'); -> 'test@laravel.com'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#transliterate
  */
 export function transliterate(value: string): string {
     return anyAscii(value);

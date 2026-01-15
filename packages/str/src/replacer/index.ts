@@ -7,6 +7,8 @@ import { isArray } from "@tolki/utils";
  * @param start - The starting position. If negative, it starts that many characters from the end of the string.
  * @param length - The number of characters to return. If omitted or null, returns all characters from start to the end of the string. If negative, omits that many characters from the end.
  * @returns The extracted substring.
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#substr
  */
 export function substr(
     string: string,
@@ -33,6 +35,8 @@ export function substr(
  * @param offset - The starting position for the search. If negative, it starts that many characters from the end of the string.
  * @param length - The length of the segment to search within. If omitted or null, searches to the end of the string. If negative, omits that many characters from the end.
  * @returns The number of occurrences of the substring within the specified segment.
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#substrcount
  */
 export function substrCount(
     haystack: string,
@@ -66,6 +70,8 @@ export function substrCount(
  * @param offset - The starting position for the replacement. If negative, it starts that many characters from the end of the string.
  * @param length - The number of characters to replace. If omitted or null, replaces all characters from offset to the end of the string. If negative, omits that many characters from the end.
  * @returns The modified string or an array of modified strings if multiple replacements are provided.
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#substrreplace
  */
 export function substrReplace(
     value: string,

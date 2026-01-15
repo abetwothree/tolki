@@ -1022,7 +1022,7 @@ const result = random(5);
 // result is "AAAAA"
 ```
 
-You can reset to the default random string generator by calling the `createRandomStringsNormally`.
+You can reset to the default random string generator by calling the `createRandomStringsNormally` function.
 
 ```javascript
 import {
@@ -1247,51 +1247,368 @@ const result2 = singular("children");
 
 ### slug
 
+Generate a URL friendly "slug" from a given string.
+
+```javascript
+import { slug } from "@tolki/str";
+
+const result = slug("Laravel 5 Framework", "-");
+
+// result is "laravel-5-framework"
+```
+
 ### snake
+
+Convert a string to snake case.
+
+```javascript
+import { snake } from "@tolki/str";
+
+const result = snake("fooBar");
+
+// result is "foo_bar"
+
+const result2 = snake("fooBar", "-");
+
+// result2 is "foo-bar"
+```
 
 ### squish
 
+Remove all "extra" blank space from the given string.
+
+```javascript
+import { squish } from "@tolki/str";
+
+const result = squish("    laravel    framework    ");
+
+// result is "laravel framework"
+```
+
 ### start
+
+Begin a string with a single instance of a given value.
+
+```javascript
+import { start } from "@tolki/str";
+
+const result = start("this/string", "/");
+
+// result is "/this/string"
+
+const result2 = start("/this/string", "/");
+
+// result2 is also '/this/string'
+```
 
 ### startsWith
 
+Determine if a given string starts with a given substring.
+
+```javascript
+import { startsWith } from "@tolki/str";
+
+const result = startsWith("This is my name", "This");
+
+// result is true
+```
+
+The second argument may also be an array of strings to check against. If the string starts with any of the substrings, the function will return true.
+
+```javascript
+import { startsWith } from "@tolki/str";
+
+const result = startsWith("This is my name", ["This", "That", "There"]);
+
+// result is true
+```
+
 ### stripTags
+
+Strip HTML tags from a string.
+
+```javascript
+import { stripTags } from "@tolki/str";
+
+const result = stripTags("<p>Hello <strong>World</strong></p>");
+
+// result is "Hello World"
+```
 
 ### studly
 
+Convert a value to studly caps case.
+
+```javascript
+import { studly } from "@tolki/str";
+
+const result = studly("foo_bar");
+
+// result is "FooBar"
+```
+
 ### substr
+
+Returns the portion of the string specified by the start and length parameters.
+
+```javascript
+import { substr } from "@tolki/str";
+
+const result = substr("The Laravel Framework", 4, 7);
+
+// result is "Laravel"
+```
 
 ### substrCount
 
+Returns the number of substring occurrences.
+
+```javascript
+import { substrCount } from "@tolki/str";
+
+const result = substrCount(
+  "If you like ice cream, you will like snow cones.",
+  "like",
+);
+
+// result is 2
+```
+
 ### substrReplace
+
+Replace text within a portion of a string.
+
+```javascript
+import { substrReplace } from "@tolki/str";
+
+const result = substrReplace("1300", ":", 2);
+
+// result is "13"
+
+const result2 = substrReplace("1300", ":", 2, 0);
+
+// result2 is also "13:00"
+```
 
 ### swap
 
+Swap multiple keywords in a string with other keywords.
+
+```javascript
+import { swap } from "@tolki/str";
+
+const result = swap(
+  {
+    Tacos: "Burritos",
+    great: "fantastic",
+  },
+  "Tacos are great!",
+);
+
+// result is "Burritos are fantastic"
+```
+
 ### take
+
+Take the first or last {$limit} characters of a string.
+
+```javascript
+import { take } from "@tolki/str";
+
+const result = take("Build something amazing!", 5);
+
+// result is "Hello"
+
+const result2 = take("Build something amazing!", -5);
+
+// result2 is "zing!"
+```
 
 ### title
 
+Convert the given string to proper case.
+
+```javascript
+import { title } from "@tolki/str";
+
+const result = title("a nice title uses the correct case");
+
+// result is "A Nice Title Uses The Correct Case"
+```
+
 ### toBase64
+
+Convert the given string to Base64 encoding.
+
+```javascript
+import { toBase64 } from "@tolki/str";
+
+const result = toBase64("Laravel");
+
+// result is "TGFyYXZlbA=="
+```
 
 ### transliterate
 
+Transliterate a string to its closest ASCII representation.
+
+Uses the [`any-ascii`](https://www.npmjs.com/package/any-ascii) package.
+
+```javascript
+import { transliterate } from "@tolki/str";
+
+const result = transliterate("Æneid");
+
+// result is "Aeneid"
+
+const result2 = transliterate("ⓣⓔⓢⓣ@ⓛⓐⓡⓐⓥⓔⓛ.ⓒⓞⓜ");
+
+// result2 is "test@laravel.com"
+```
+
 ### trim
+
+Remove all whitespace from both ends of a string.
+
+```javascript
+import { trim } from "@tolki/str";
+
+const result = trim(" foo bar ");
+
+// result is "foo bar"
+```
 
 ### ltrim
 
+Remove all whitespace from the beginning of a string.
+
+```javascript
+import { ltrim } from "@tolki/str";
+
+const result = ltrim("  foo bar  ");
+
+// result is "foo bar   "
+```
+
 ### rtrim
+
+Remove all whitespace from the end of a string.
+
+```javascript
+import { rtrim } from "@tolki/str";
+
+const result = rtrim("  foo bar  ");
+
+// result is "  foo bar"
+```
 
 ### ucfirst
 
+Make a string's first character uppercase.
+
+```javascript
+import { ucfirst } from "@tolki/str";
+
+const result = ucfirst("foo bar");
+
+// result is "Foo bar"
+```
+
 ### ucsplit
+
+Split a string into pieces by uppercase characters.
+
+```javascript
+import { ucsplit } from "@tolki/str";
+
+const result = ucsplit("FooBar");
+
+// result is ["Foo", "Bar"]
+```
 
 ### ucwords
 
+Uppercase the first letter of each word in a string.
+
+```javascript
+import { ucwords } from "@tolki/str";
+
+const result = ucwords("laravel framework");
+
+// result is "Laravel Framework"
+```
+
 ### upper
+
+Convert the given string to upper-case.
+
+```javascript
+import { upper } from "@tolki/str";
+
+const result = upper("laravel");
+
+// result is "LARAVEL"
+```
 
 ### ulid
 
+Generate a ULID (Universally Unique Lexicographically Sortable Identifier).
+
+Uses the [`ulid`](https://www.npmjs.com/package/ulid) package.
+
+```javascript
+import { ulid } from "@tolki/str";
+
+const result = ulid();
+
+// result is "01F8MECHZX2D7J8F8C8D4B8F8C"
+```
+
+During testing, you can use the `createUlidsUsing` function to provide a custom ULID generator for predictable results.
+
+```javascript
+import { createUlidsUsing, ulid } from "@tolki/str";
+
+createUlidsUsing(() => "custom-ulid");
+
+const result = ulid();
+
+// result is "custom-ulid"
+```
+
+You can reset to the default random string generator by calling the `createUlidsNormally` function.
+
+```javascript
+import { createUlidsUsing, createUlidsNormally, ulid } from "@tolki/str";
+
+createUlidsUsing(() => "custom-ulid");
+
+const result = ulid();
+
+// result is "custom-ulid"
+
+createUlidsNormally();
+
+const result2 = ulid();
+
+// result is a randomly generated ULID
+```
+
 ### unwrap
+
+Unwrap the string with the given strings.
+
+```javascript
+import { unwrap } from "@tolki/str";
+
+const result = unwrap("-Laravel-", "-");
+
+// result is "Laravel"
+
+const result2 = unwrap('{framework: "Laravel"}', "{", "}");
+
+// result2 is 'framework: "Laravel"'
+```
 
 ### uuid
 

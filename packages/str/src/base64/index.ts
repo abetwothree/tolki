@@ -5,6 +5,8 @@ import { isFunction } from "@tolki/utils";
  *
  * @param value - The string to encode.
  * @returns The Base64 encoded string.
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#tobase64
  */
 export function toBase64(value: string): string {
     const g = getGlobal() as unknown as {

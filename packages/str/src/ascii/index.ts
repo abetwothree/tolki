@@ -23,6 +23,8 @@ export function ascii(value: string): string {
  * @param dictionary - An optional dictionary of replacements
  * @returns The generated slug string
  *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#slug
+ *
  * @requires {@link https://www.npmjs.com/package/transliteration transliteration package}
  */
 export function slug(

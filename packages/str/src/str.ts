@@ -8,7 +8,7 @@ import {
     trim,
     upper,
 } from "@tolki/str";
-import { isArray, isFunction, isString, toLower } from "@tolki/utils";
+import { isArray, isFunction, isNumber, isString, toLower } from "@tolki/utils";
 
 /**
  * The cache of snake-cased words.
@@ -498,9 +498,7 @@ export function wrap(
  * @param after - The string to remove from the end (if null, use the 'before' string)
  * @returns The unwrapped string
  *
- * @example
- *
- * unwrap('[hello]', '[', ']'); -> 'hello'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#unwrap
  */
 export function unwrap(
     value: string,
@@ -1865,9 +1863,7 @@ export function replaceMatches(
  * @param value - The string to process
  * @returns The string with HTML tags removed
  *
- * @example
- *
- * stripTags("<p>Hello World</p>"); -> "Hello World"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#striptags
  */
 export function stripTags(value: string): string {
     return value.replace(/<\/?[^>]+(>|$)/g, "");
@@ -1935,11 +1931,7 @@ export function reverse(value: string): string {
  * @param prefix - The prefix to ensure at the start
  * @returns The resulting string starting with the prefix
  *
- * @example
- *
- * start("test/string", "/"); -> "/test/string"
- * start("/test/string", "/"); -> "/test/string"
- * start("//test/string", "/"); -> "/test/string"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#start
  */
 export function start(value: string, prefix: string): string {
     const quoted = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -2081,6 +2073,8 @@ export function apa(value: string): string {
  * @param value - The string to convert
  * @param delimiter - The word delimiter to use (default: "_")
  * @returns The converted string in snake case
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#snake
  */
 export function snake(value: string, delimiter: string = "_"): string {
     const key = value;
@@ -2106,17 +2100,12 @@ export function snake(value: string, delimiter: string = "_"): string {
 
 /**
  * Remove all "extra" blank space from the given string.
- * 
+ *
  * @param value - The string to process
  * @returns The resulting string with extra spaces removed
  *
- * @example
- *
- * squish(`   
-    foo 
-    bar
-    `); -> "foo bar"
-*/
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#squish
+ */
 export function squish(value: string): string {
     const trimmed = trim(value);
 
@@ -2131,10 +2120,7 @@ export function squish(value: string): string {
  * @param needles - The substring or substrings to search for
  * @returns True if the haystack starts with any of the needles, false otherwise
  *
- * @example
- *
- * startsWith("hello world", "hello"); -> true
- * startsWith("hello world", "world"); -> false
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#startsWith
  */
 export function startsWith(
     haystack: string | number | null,
@@ -2154,7 +2140,8 @@ export function startsWith(
     let list: Array<string | number | null> = [
         needles as string | number | null,
     ];
-    if (typeof needles === "string" || typeof needles === "number") {
+
+    if (isString(needles) || isNumber(needles)) {
         list = [needles];
     } else if (Symbol.iterator in Object(needles)) {
         list = Array.from(needles as Iterable<string | number | null>);
@@ -2198,11 +2185,7 @@ export function doesntStartWith(
  * @param value - The string to convert
  * @returns The converted string in studly caps case
  *
- * @example
- *
- * studly("fooBar"); -> "FooBar"
- * studly("foo_bar"); -> "FooBar"
- * studly("foo-barBaz"); -> "FooBarBaz"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#studly
  */
 export function studly(value: string): string {
     const key = value;
@@ -2248,15 +2231,7 @@ export function pascal(value: string): string {
  * @param subject - The string to perform replacements on
  * @returns The resulting string after replacements
  *
- * @example
- *
- * swap(
- *     {
- *         'foo': 'bar',
- *         'baz': 'qux',
- *     },
- *     'foo baz'
- * ); -> 'bar qux'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#swap
  */
 export function swap(map: Record<string, string>, subject: string): string {
     if (!map || Object.keys(map).length === 0) {
@@ -2284,10 +2259,7 @@ export function swap(map: Record<string, string>, subject: string): string {
  * @param limit - The number of characters to take (negative for from end)
  * @returns The resulting substring
  *
- * @example
- *
- * take("hello world", 5); -> "hello"
- * take("hello world", -5); -> "world"
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#take
  */
 export function take(value: string, limit: number): string {
     if (limit < 0) {
@@ -2315,9 +2287,7 @@ export function lcfirst(value: string): string {
  * @param value - The string to process
  * @returns The resulting string with the first character in uppercase
  *
- * @example
- *
- * ucfirst('hello world'); -> 'Hello world'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#ucfirst
  */
 export function ucfirst(value: string): string {
     return upper(substr(value, 0, 1)) + substr(value, 1);
@@ -2329,11 +2299,7 @@ export function ucfirst(value: string): string {
  * @param value - The string to split
  * @returns An array of string segments split at uppercase characters
  *
- * @example
- *
- * ucsplit('laravelPHPFramework'); -> ['laravel', 'P', 'H', 'P', 'Framework']
- * ucsplit('Laravel-phP-framework'); -> ['Laravel-ph', 'P-framework']
- * ucsplit('ÖffentlicheÜberraschungen'); -> ['Öffentliche', 'Überraschungen']
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#ucsplit
  */
 export function ucsplit(value: string): string[] {
     return value.split(/(?=\p{Lu})/u).filter(Boolean);
@@ -2346,11 +2312,7 @@ export function ucsplit(value: string): string[] {
  * @param separators - The word separators to use (default: whitespace characters)
  * @returns The resulting string with each word capitalized
  *
- * @example
- *
- * ucwords('hello world'); -> 'Hello World'
- * ucwords('laravel php framework'); -> 'Laravel Php Framework'
- * ucwords('Öffentliche Überraschungen'); -> 'Öffentliche Überraschungen'
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#ucwords
  */
 export function ucwords(
     value: string,
