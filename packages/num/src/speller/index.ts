@@ -92,14 +92,7 @@ function mapToSupportedLocale(locale: string): string {
  *
  * @requires {@link https://www.npmjs.com/package/to-words to-words package}
  *
- * @example
- *
- * spell(123); // "One Hundred Twenty Three"
- * spell(123.45); // "One Hundred Twenty Three Point Forty Five"
- * spell(5, null, 10); // "5" (5 <= 10, so formatted instead of spelled)
- * spell(11, null, 10); // "Eleven" (11 > 10, so spelled out)
- * spell(100, null, null, 50); // "100" (100 >= 50, so formatted instead of spelled)
- * spell(49, null, null, 50); // "Forty Nine" (49 < 50, so spelled out)
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#spell
  */
 export function spell(
     number: number | string,
@@ -135,7 +128,8 @@ export function spell(
 /**
  * Spell out the given number in the given locale in ordinal form.
  *
- * Note: The to-words package doesn't have native ordinal support, so this
+ * TODO - Implement true ordinal conversion for all supported locales.
+ * The to-words package doesn't have native ordinal support, so this
  * function spells out the cardinal number. True ordinal conversion would
  * require locale-specific suffix rules (e.g., "first", "second", "third").
  *
@@ -145,11 +139,7 @@ export function spell(
  *
  * @requires {@link https://www.npmjs.com/package/to-words to-words package}
  *
- * @example
- *
- * spellOrdinal(1); // "One"
- * spellOrdinal(2); // "Two"
- * spellOrdinal(21); // "Twenty One"
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#spellordinal
  */
 export function spellOrdinal(
     value: number,

@@ -2,6 +2,67 @@ import * as Num from "@tolki/num";
 import { describe, expect, it } from "vitest";
 
 describe("Number", () => {
+    describe("abbreviate", () => {
+        it("should abbreviate a number", () => {
+            expect(Num.abbreviate(1)).toBe("1");
+            expect(Num.abbreviate(1, 2)).toBe("1.00");
+            expect(Num.abbreviate(10)).toBe("10");
+            expect(Num.abbreviate(100)).toBe("100");
+            expect(Num.abbreviate(1000)).toBe("1K");
+            expect(Num.abbreviate(1000, 2)).toBe("1.00K");
+            expect(Num.abbreviate(1000, 0, 2)).toBe("1K");
+            expect(Num.abbreviate(1230)).toBe("1.2K");
+            expect(Num.abbreviate(1230, 0, 1)).toBe("1.2K");
+            expect(Num.abbreviate(1000000)).toBe("1M");
+            expect(Num.abbreviate(1000000000)).toBe("1B");
+            expect(Num.abbreviate(1000000000000)).toBe("1T");
+            expect(Num.abbreviate(1000000000000000)).toBe("1Q");
+            expect(Num.abbreviate(1000000000000000000)).toBe("1KQ");
+
+            expect(Num.abbreviate(123)).toBe("123");
+            expect(Num.abbreviate(1234)).toBe("1K");
+            expect(Num.abbreviate(1234, 2)).toBe("1.23K");
+            expect(Num.abbreviate(12345)).toBe("12K");
+            expect(Num.abbreviate(1234567)).toBe("1M");
+            expect(Num.abbreviate(1234567890)).toBe("1B");
+            expect(Num.abbreviate(1234567890123)).toBe("1T");
+            expect(Num.abbreviate(1234567890123, 2)).toBe("1.23T");
+            expect(Num.abbreviate(1234567890123456)).toBe("1Q");
+            // Compose from safe integer literals to avoid precision loss
+            const LARGE_ABBREVIATE_NUMBER =
+                1234 * 1_000_000_000_000_000 + 567_890_123_456_789;
+            expect(Num.abbreviate(LARGE_ABBREVIATE_NUMBER, 2)).toBe("1.23KQ");
+            expect(Num.abbreviate(489939)).toBe("490K");
+            expect(Num.abbreviate(489939, 4)).toBe("489.9390K");
+            expect(Num.abbreviate(500000000, 5)).toBe("500.00000M");
+
+            expect(Num.abbreviate(1000000000000000000000)).toBe("1MQ");
+            expect(Num.abbreviate(1000000000000000000000000)).toBe("1BQ");
+            expect(Num.abbreviate(1000000000000000000000000000)).toBe("1TQ");
+            expect(Num.abbreviate(1000000000000000000000000000000)).toBe("1QQ");
+            expect(Num.abbreviate(1000000000000000000000000000000000)).toBe(
+                "1KQQ",
+            );
+
+            expect(Num.abbreviate(0)).toBe("0");
+            expect(Num.abbreviate(0.0)).toBe("0");
+            expect(Num.abbreviate(0, 2)).toBe("0.00");
+            expect(Num.abbreviate(0.0, 2)).toBe("0.00");
+            expect(Num.abbreviate(-1)).toBe("-1");
+            expect(Num.abbreviate(-1, 2)).toBe("-1.00");
+            expect(Num.abbreviate(-10)).toBe("-10");
+            expect(Num.abbreviate(-100)).toBe("-100");
+            expect(Num.abbreviate(-1000)).toBe("-1K");
+            expect(Num.abbreviate(-1234, 2)).toBe("-1.23K");
+            expect(Num.abbreviate(-1234, 0, 1)).toBe("-1.2K");
+            expect(Num.abbreviate(-1000000)).toBe("-1M");
+            expect(Num.abbreviate(-1000000000)).toBe("-1B");
+            expect(Num.abbreviate(-1000000000000)).toBe("-1T");
+            expect(Num.abbreviate(-1100000000000, 0, 1)).toBe("-1.1T");
+            expect(Num.abbreviate(-1000000000000000)).toBe("-1Q");
+            expect(Num.abbreviate(-1000000000000000000)).toBe("-1KQ");
+        });
+    });
     describe("format", () => {
         it("should format a number", () => {
             expect(Num.format(1234.5678, 2)).toBe("1,234.57");

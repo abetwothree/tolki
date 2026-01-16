@@ -9,6 +9,24 @@ let _locale: string = "en";
 let _currency: string = "USD";
 
 /**
+ * Convert the number to its human-readable equivalent.
+ *
+ * @param number - The number to convert.
+ * @param precision - The number of decimal places to use.
+ * @param maxPrecision - The maximum number of decimal places to use.
+ * @returns The human-readable number string.
+ *
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#abbreviate
+ */
+export function abbreviate(
+    number: number,
+    precision: number = 0,
+    maxPrecision: number | null = null,
+): string | false {
+    return forHumans(number, precision, maxPrecision, true);
+}
+
+/**
  * Format the given number according to the current locale.
  *
  * @param number - The number to format.
@@ -17,11 +35,7 @@ let _currency: string = "USD";
  * @param locale - The locale to use for formatting.
  * @returns The formatted number string.
  *
- * @example
- *
- * format(1234.5678, 2); // "1,234.57"
- * format(1234.5678, 2, 4); // "1,234.5678"
- * format(1234.5678, 2, 4, "de"); // "1.234,5678"
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#format
  */
 export function format(
     number: number,
@@ -128,9 +142,7 @@ export function parse(value: string, locale: string | null = null): number {
  * @param locale - The locale to use for parsing.
  * @returns The parsed integer or false if parsing fails.
  *
- * @example
- *
- * parseInt("1,234", "en"); // 1234
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#parseint
  */
 export function parseInt(
     value: string,
@@ -151,6 +163,8 @@ export function parseInt(
  * @param value - The string to parse.
  * @param locale - The locale to use for parsing.
  * @returns The parsed float or false if parsing fails.
+ *
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#parsefloat
  */
 export function parseFloat(
     value: string,
@@ -166,12 +180,7 @@ export function parseFloat(
  * @param locale - The locale to use for determining ordinal rules.
  * @returns The number in ordinal form.
  *
- * @example
- *
- * ordinal(1); // "1st"
- * ordinal(2); // "2nd"
- * ordinal(3); // "3rd"
- * ordinal(13); // "13th"
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#ordinal
  */
 export function ordinal(value: number, locale: string | null = null): string {
     const loc = locale ?? _locale;
@@ -224,11 +233,7 @@ export function ordinal(value: number, locale: string | null = null): string {
  * @param locale - The locale to use for formatting.
  * @returns The formatted percentage string.
  *
- * @example
- *
- * percentage(1); // "1%"
- * percentage(1.75, 2); // "1.75%"
- * percentage(0.12345, 4); // "0.1235%"
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#percentage
  */
 export function percentage(
     number: number | string,
@@ -267,11 +272,7 @@ export function percentage(
  * @param precision - The number of decimal places to use.
  * @returns The formatted currency string.
  *
- * @example
- *
- * currency(5.00); // "$5.00"
- * currency(-5); // "-$5.00"
- * currency(10, 'EUR'); // "€10.00"
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#currency
  */
 export function currency(
     amount: number | string,
@@ -305,11 +306,7 @@ export function currency(
  * @param maxPrecision - The maximum number of decimal places to use.
  * @returns The formatted file size string.
  *
- * @example
- *
- * fileSize(1024); // "1 KB"
- * fileSize(2048); // "2 KB"
- * fileSize(1264.12345, 3); // "1.234 KB"
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#filesize
  */
 export function fileSize(
     bytes: number | string,
@@ -353,11 +350,7 @@ export function fileSize(
  * @param precision - The number of decimal places to use.
  * @param maxPrecision - The maximum number of decimal places to use.
  *
- * @example
- *
- * forHumans(1234); // "1.234 thousand"
- * forHumans(1234567); // "1.234 million"
- * forHumans(1234567890); // "1.234 billion"
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#forhumans
  */
 export function forHumans(
     value: number,
@@ -487,11 +480,7 @@ export function summarize(
  * @param max - The maximum value.
  * @returns The clamped number.
  *
- * @example
- *
- * clamp(5, 1, 10); // 5
- * clamp(0, 1, 10); // 1
- * clamp(15, 1, 10); // 10
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#clamp
  */
 export function clamp(value: number, min: number, max: number): number {
     return Math.min(Math.max(value, min), max);
@@ -506,9 +495,7 @@ export function clamp(value: number, min: number, max: number): number {
  * @param offset - The offset to apply to the upper bound of each pair.
  * @returns An array of [min, max] pairs.
  *
- * @example
- *
- * pairs(25, 10, 1, 1); // [[1, 11], [11, 21], [21, 25]]
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#pairs
  */
 export function pairs(
     to: number,
@@ -537,10 +524,7 @@ export function pairs(
  * @param value - The number to trim.
  * @returns The trimmed number.
  *
- * @example
- *
- * trim(12.3456789); // 12.3456789
- * trim(12.34567890000); // 12.3456789
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#trim
  */
 export function trim(value: number): number {
     return JSON.parse(JSON.stringify(value));
@@ -553,10 +537,7 @@ export function trim(value: number): number {
  * @param round - Whether to round to the nearest unit.
  * @returns The human-readable duration string.
  *
- * @example
- *
- * minutesToHuman(61); // "1 hour"
- * minutesToHuman(61, false); // "1 hour, 1 minute"
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#minutestohuman
  */
 export function minutesToHuman(
     minutes: number | string,
@@ -574,10 +555,7 @@ export function minutesToHuman(
  * @param round Whether to round to the nearest unit.
  * @returns The human-readable duration string.
  *
- * @example
- *
- * secondsToHuman(3661); // "1 hour"
- * secondsToHuman(3661, false); // "1 hour, 1 minute, 1 second"
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#secondstohuman
  */
 export function secondsToHuman(
     seconds: number | string,
@@ -643,11 +621,7 @@ export function secondsToHuman(
  * @param callback - The callback to execute.
  * @returns The result of the callback.
  *
- * @example
- *
- * withLocale("fr", () => {
- *     return format(1234.56);
- * }); // "1 234,56"
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#withlocale
  */
 export function withLocale<TReturn>(
     locale: string,
@@ -671,11 +645,7 @@ export function withLocale<TReturn>(
  * @param callback - The callback to execute.
  * @returns The result of the callback.
  *
- * @example
- *
- * withCurrency("EUR", () => {
- *     return format(1234.56);
- * }); // "€1,234.56"
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#withcurrency
  */
 export function withCurrency<TReturn>(
     currency: string,
@@ -697,6 +667,8 @@ export function withCurrency<TReturn>(
  *
  * @param locale - The locale to set.
  * @returns void
+ *
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#uselocale
  */
 export function useLocale(locale: string): void {
     _locale = locale;
@@ -707,32 +679,30 @@ export function useLocale(locale: string): void {
  *
  * @param currency - The currency to set.
  * @returns void
+ *
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#usecurrency
  */
 export function useCurrency(currency: string): void {
     _currency = currency;
 }
 
 /**
- * Get the default locale.
+ * Get the configured default locale.
  *
  * @returns The default locale.
  *
- * @example
- *
- * defaultLocale(); // "en"
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#defaultlocale
  */
 export function defaultLocale(): string {
     return _locale;
 }
 
 /**
- * Get the default currency.
+ * Get the configured default currency.
  *
  * @returns The default currency.
  *
- * @example
- *
- * defaultCurrency(); // "USD"
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#defaultcurrency
  */
 export function defaultCurrency(): string {
     return _currency;
