@@ -1,6 +1,6 @@
 {
     "name": "@tolki/num",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Utilities for working with numbers similar to Laravel's Num class facade.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",

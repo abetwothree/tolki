@@ -1,5 +1,11 @@
 # @tolki/num
 
+## 1.0.2
+
+### Patch Changes
+
+- Add documentation links to tolki num methods
+
 ## 1.0.1
 
 ### Patch Changes
