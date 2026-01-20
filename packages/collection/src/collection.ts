@@ -1793,8 +1793,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).merge({a: 3}); -> new Collection([1, 2, {a: 3}])
      * new Collection({a: 1}).merge([2]); -> new Collection({a: 1, 0: 2})
      */
-    merge<T, K extends PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
+    merge<TMergeValue, TMergeKey extends PropertyKey>(
+        items:
+            | TMergeValue[]
+            | Record<TMergeKey, TMergeValue>
+            | Collection<TMergeValue, TMergeKey>
+            | null,
     ) {
         if (isNull(items)) {
             return this;
