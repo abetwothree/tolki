@@ -1,5 +1,5 @@
-export interface Model {
-    id?: string | number;
+export interface Model<TIdType = string | number> {
+    id?: TIdType;
     [key: string]: unknown;
 }
 
@@ -12,9 +12,9 @@ export interface SoftDeletes {
     deleted_at?: string | null;
 }
 
-export interface TimestampModel extends Model, Timestamps {}
-export interface SoftDeleteModel extends Model, SoftDeletes {}
-export interface AllTimestampsModel extends Model, Timestamps, SoftDeletes {}
+export interface TimestampModel<TIdType = string | number> extends Model<TIdType>, Timestamps {}
+export interface SoftDeleteModel<TIdType = string | number> extends Model<TIdType>, SoftDeletes {}
+export interface AllTimestampsModel<TIdType = string | number> extends Model<TIdType>, Timestamps, SoftDeletes {}
 
 export type AsCount<T extends string> = `${T}_count`;
 export type AsMax<T extends string> = `${T}_max`;
