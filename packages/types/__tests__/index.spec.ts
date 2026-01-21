@@ -78,7 +78,7 @@ test("Timestamps", () => {
 
 test("SoftDeletes", () => {
     expectTypeOf<SoftDeletes>().toEqualTypeOf<{
-        deleted_at: string | null;
+        deleted_at?: string | null;
     }>();
 });
 
@@ -293,8 +293,8 @@ test("Timestamps + SoftDeletes shapes", () => {
         updated_at: "2024-01-01T00:00:00Z",
     };
     const sd: SoftDeletes = { deleted_at: null };
-    expectTypeOf(ts.created_at).toEqualTypeOf<string | null>();
-    expectTypeOf(sd.deleted_at).toEqualTypeOf<string | null>();
+    expectTypeOf(ts.created_at).toEqualTypeOf<string | null | undefined>();
+    expectTypeOf(sd.deleted_at).toEqualTypeOf<string | null | undefined>();
 });
 
 test("AllTimestampsModel index signature", () => {
@@ -366,9 +366,9 @@ test("Full Model", () => {
     };
 
     expectTypeOf(model.id).toEqualTypeOf<number | string | undefined>();
-    expectTypeOf(model.created_at).toEqualTypeOf<string | null>();
-    expectTypeOf(model.updated_at).toEqualTypeOf<string | null>();
-    expectTypeOf(model.deleted_at).toEqualTypeOf<string | null>();
+    expectTypeOf(model.created_at).toEqualTypeOf<string | null | undefined>();
+    expectTypeOf(model.updated_at).toEqualTypeOf<string | null | undefined>();
+    expectTypeOf(model.deleted_at).toEqualTypeOf<string | null | undefined>();
     expectTypeOf(model.posts_count).toBeNumber();
     expectTypeOf(model.rating_max).toEqualTypeOf<number | null>();
     expectTypeOf(model.rating_min).toEqualTypeOf<number | null>();
