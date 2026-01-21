@@ -17,7 +17,7 @@ These are the number utilities that can be used independently as single function
 Convert the number to its human-readable equivalent.
 
 ```javascript
-import { abbreviate } from "@tolki/number";
+import { abbreviate } from "@tolki/num";
 
 const result = abbreviate(1000);
 
@@ -37,7 +37,7 @@ const result3 = abbreviate(1230000, 2);
 Clamp the given number between the given minimum and maximum.
 
 ```javascript
-import { clamp } from "@tolki/number";
+import { clamp } from "@tolki/num";
 
 const result = clamp(105, 10, 100);
 
@@ -61,7 +61,7 @@ const result4 = clamp(20, 10, 100);
 Convert the given number to its currency equivalent.
 
 ```javascript
-import { currency } from "@tolki/number";
+import { currency } from "@tolki/num";
 
 const result = currency(1000);
 
@@ -85,7 +85,7 @@ const result4 = currency(1000, "EUR", "de", 0);
 Get the configured default currency.
 
 ```javascript
-import { defaultCurrency } from "@tolki/number";
+import { defaultCurrency } from "@tolki/num";
 
 const result = defaultCurrency();
 
@@ -97,7 +97,7 @@ const result = defaultCurrency();
 Get the configured default locale.
 
 ```javascript
-import { defaultLocale } from "@tolki/number";
+import { defaultLocale } from "@tolki/num";
 
 const result = defaultLocale();
 
@@ -109,7 +109,7 @@ const result = defaultLocale();
 Convert the given number to its file size equivalent.
 
 ```javascript
-import { fileSize } from "@tolki/number";
+import { fileSize } from "@tolki/num";
 
 const result = fileSize(1024);
 
@@ -129,7 +129,7 @@ const result3 = fileSize(1024, 2);
 Convert the number to its human-readable equivalent.
 
 ```javascript
-import { forHumans } from "@tolki/number";
+import { forHumans } from "@tolki/num";
 
 const result = forHumans(1000);
 
@@ -149,7 +149,7 @@ const result3 = forHumans(1230000, 2);
 Format the given number according to the current locale.
 
 ```javascript
-import { format } from "@tolki/number";
+import { format } from "@tolki/num";
 
 const result = format(100000);
 
@@ -173,7 +173,7 @@ const result4 = format(100000, null, null, "de");
 Convert a duration in minutes to a human-readable format.
 
 ```javascript
-import { minutesToHuman } from "@tolki/number";
+import { minutesToHuman } from "@tolki/num";
 
 const result = minutesToHuman(61);
 
@@ -189,7 +189,7 @@ const result2 = minutesToHuman(61, false);
 Convert the given number to ordinal form.
 
 ```javascript
-import { ordinal } from "@tolki/number";
+import { ordinal } from "@tolki/num";
 
 const result = ordinal(1);
 
@@ -213,7 +213,7 @@ const result4 = ordinal(13);
 Split the given number into pairs of min/max values.
 
 ```javascript
-import { pairs } from "@tolki/number";
+import { pairs } from "@tolki/num";
 
 const result = pairs(25, 10);
 
@@ -229,7 +229,7 @@ const result2 = pairs(25, 10, 0, 0);
 Parse a string into an integer according to the specified locale.
 
 ```javascript
-import { parseInt } from "@tolki/number";
+import { parseInt } from "@tolki/num";
 
 const result = parseInt("10.123");
 
@@ -245,7 +245,7 @@ const result2 = parseInt("10,123", "fr");
 Parse a string into a float according to the specified locale.
 
 ```javascript
-import { parseFloat } from "@tolki/number";
+import { parseFloat } from "@tolki/num";
 
 const result = parseFloat("10");
 
@@ -261,7 +261,7 @@ const result2 = parseFloat("10", "fr");
 Convert the given number to its percentage equivalent.
 
 ```javascript
-import { percentage } from "@tolki/number";
+import { percentage } from "@tolki/num";
 
 const result = percentage(10);
 
@@ -287,7 +287,7 @@ Spell out the given number in the given locale.
 Uses the [`to-words`](https://www.npmjs.com/package/to-words) package.
 
 ```javascript
-import { spell } from "@tolki/number";
+import { spell } from "@tolki/num";
 
 const result = spell(102);
 
@@ -301,7 +301,7 @@ const result2 = spell(88, "fr");
 If the `after` argument is provided and the number is less than or equal to `after`, the number will be returned as a formatted string instead of spelled out.
 
 ```javascript
-import { spell } from "@tolki/number";
+import { spell } from "@tolki/num";
 
 const result = spell(5, null, 10);
 
@@ -311,7 +311,7 @@ const result = spell(5, null, 10);
 If the `until` argument is provided and the number is greater than or equal to `until`, the number will be returned as a formatted string instead of spelled out.
 
 ```javascript
-import { spell } from "@tolki/number";
+import { spell } from "@tolki/num";
 
 const result = spell(15, null, null, 10);
 
@@ -323,7 +323,7 @@ const result = spell(15, null, null, 10);
 Spell out the given number in the given locale in ordinal form.
 
 ```javascript
-import { spellOrdinal } from "@tolki/number";
+import { spellOrdinal } from "@tolki/num";
 
 const result = spellOrdinal(1);
 
@@ -343,7 +343,7 @@ const result3 = spellOrdinal(21);
 Convert a duration in seconds to a human-readable format.
 
 ```javascript
-import { secondsToHuman } from "@tolki/number";
+import { secondsToHuman } from "@tolki/num";
 
 const result = secondsToHuman(3661);
 
@@ -355,7 +355,7 @@ const result = secondsToHuman(3661);
 Remove any trailing zero digits after the decimal point of the given number.
 
 ```javascript
-import { trim } from "@tolki/number";
+import { trim } from "@tolki/num";
 
 const result = trim(12.0);
 
@@ -371,7 +371,7 @@ const result2 = trim(12.3);
 Set the default locale. This should be used at the start of your application to set the desired locale globally.
 
 ```javascript
-import { useLocale } from "@tolki/number";
+import { useLocale } from "@tolki/num";
 
 useLocale("fr");
 
@@ -383,7 +383,7 @@ useLocale("fr");
 Execute the given callback using the given locale.
 
 ```javascript
-import { withLocale, format } from "@tolki/number";
+import { withLocale, format } from "@tolki/num";
 
 withLocale("fr", () => {
   return format(1234.56);
@@ -395,7 +395,7 @@ withLocale("fr", () => {
 Set the default currency. This should be used at the start of your application to set the desired currency globally.
 
 ```javascript
-import { useCurrency } from "@tolki/number";
+import { useCurrency } from "@tolki/num";
 
 useCurrency("EUR");
 
@@ -407,7 +407,7 @@ useCurrency("EUR");
 Execute the given callback using the given currency.
 
 ```javascript
-import { withCurrency, format } from "@tolki/number";
+import { withCurrency, format } from "@tolki/num";
 
 withCurrency("EUR", () => {
   return format(1234.56);
