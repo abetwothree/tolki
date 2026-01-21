@@ -1,67 +1,5 @@
 # Tolki TypeScript Utilities List
 
-## Model Utilities Types
-
-Unless you're using a package like [Model Typer](https://github.com/fumeapp/modeltyper) or [Laravel Wayfinder](https://github.com/laravel/wayfinder), you probably find yourself defining models manually on a TypeScript based Laravel project.
-
-The purpose of the following model utility types is to simplify and standardize the way you define these models.
-
-### Model Types
-
-You can use the simplest `Model` type which only defines a possibly undefined id key and any number of string keyed unknown values.
-
-The `Model` type receives a generic parameter to define the type of ID it should be. With that defined, you can now use any number of columns on a `User` type, however, they'll simply register as `unknown`.
-
-```typescript
-import type { Model } from "@tolki/types";
-
-interface User extends Model<number> {
-    title: string;
-}
-
-const user: User = getUser();
-
-user.id // inferred as number
-user.title // inferred as string
-user.created_at // inferred as unknown
-```
-
-If you'd like to auto define time stamp columns, you can use the `TimestampModel` type, the `SoftDeleteModel`, or the `AllTimestampsModel` type to define `created_at`, `updated_at`, and `deleted_at` in one go.
-
-```typescript
-import type { TimestampModel, SoftDeleteModel, AllTimestampsModel } from "@tolki/types";
-
-interface User extends TimestampModel<number> {
-    title: string;
-}
-
-const user: User = getUser();
-
-user.id // inferred as number
-user.title // inferred as string
-user.created_at // inferred as string
-user.updated_at // inferred as string
-
-interface Post extends SoftDeleteModel<string> {}
-
-const post: Post = getPost();
-
-post.id // inferred as string
-post.deleted_at // inferred as string
-
-interface Notification extends AllTimestampsModel<number> {
-    message: string;
-}
-
-const notification: Notification = getNotification();
-
-notification.id // inferred as number
-notification.message // inferred as string
-notification.created_at // inferred as string
-notification.updated_at // inferred as string
-notification.deleted_at // inferred as string
-```
-
 ## Paginator Utilities Types
 
 Laravel provides 3 built in [pagination modes](https://laravel.com/docs/pagination). Each returns a similar but slightly different structured response. When you're working on the front end and using TypeScript, you'd have to write out what each response structure looks like for each pagination mode. These utility types provide you the type-safe representations of these responses, making it easier to define pagination data structures in a type safe manner.
@@ -290,5 +228,68 @@ defineProps<{
   </div>
 </template>
 ```
+
+## Model Utilities Types
+
+Unless you're using a package like [Model Typer](https://github.com/fumeapp/modeltyper) or [Laravel Wayfinder](https://github.com/laravel/wayfinder), you probably find yourself defining models manually on a TypeScript based Laravel project.
+
+The purpose of the following model utility types is to simplify and standardize the way you define these models.
+
+### Model Types
+
+You can use the simplest `Model` type which only defines a possibly undefined id key and any number of string keyed unknown values.
+
+The `Model` type receives a generic parameter to define the type of ID it should be. With that defined, you can now use any number of columns on a `User` type, however, they'll simply register as `unknown`.
+
+```typescript
+import type { Model } from "@tolki/types";
+
+interface User extends Model<number> {
+    title: string;
+}
+
+const user: User = getUser();
+
+user.id // inferred as number
+user.title // inferred as string
+user.created_at // inferred as unknown
+```
+
+If you'd like to auto define time stamp columns, you can use the `TimestampModel` type, the `SoftDeleteModel`, or the `AllTimestampsModel` type to define `created_at`, `updated_at`, and `deleted_at` in one go.
+
+```typescript
+import type { TimestampModel, SoftDeleteModel, AllTimestampsModel } from "@tolki/types";
+
+interface User extends TimestampModel<number> {
+    title: string;
+}
+
+const user: User = getUser();
+
+user.id // inferred as number
+user.title // inferred as string
+user.created_at // inferred as string
+user.updated_at // inferred as string
+
+interface Post extends SoftDeleteModel<string> {}
+
+const post: Post = getPost();
+
+post.id // inferred as string
+post.deleted_at // inferred as string
+
+interface Notification extends AllTimestampsModel<number> {
+    message: string;
+}
+
+const notification: Notification = getNotification();
+
+notification.id // inferred as number
+notification.message // inferred as string
+notification.created_at // inferred as string
+notification.updated_at // inferred as string
+notification.deleted_at // inferred as string
+```
+
 
 ## JsonResource Utilities Types
