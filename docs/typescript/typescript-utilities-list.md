@@ -4,6 +4,12 @@
 
 Laravel provides 3 built in [pagination modes](https://laravel.com/docs/pagination). Each returns a similar but slightly different structured response. When you're working on the front end and using TypeScript, you'd have to write out what each response structure looks like for each pagination mode. These utility types provide you the type-safe representations of these responses, making it easier to define pagination data structures in a type safe manner.
 
+<div class="collection-method-list" markdown="1">
+
+[LengthAwarePaginator](#lengthawarepaginator) [SimplePaginator](#simplepaginator) [CursorPaginator](#cursorpaginator) [Pagination Components](#pagination-components)
+
+</div>
+
 ### LengthAwarePaginator
 
 Imagine you have a Laravel controller with an Inertia response of your users table paginated.
@@ -291,5 +297,136 @@ notification.updated_at // inferred as string
 notification.deleted_at // inferred as string
 ```
 
+### Model Relationship Types
+
+Many times when you load eloquent results, it is common to use [relationship aggregation eloquent methods](https://laravel.com/docs/12.x/eloquent-relationships#aggregating-related-models) like count, max, min, sum, average or if a relationship exists using eloquent methods like `withCount`. Those methods create a dynamic column on an eloquent result.
+
+For example, let's say you queried this:
+
+```PHP
+Post::select(['title', 'body'])
+    ->withCount('comments')
+    ->get();
+```
+
+That creates the following result structure
+
+```TypeScript
+interface Post {
+    title: string;
+    body: string;
+    comments_count: number;
+}
+```
+
+For these type of situations, you can use the following helpers to quickly define one ore more relationships.
+
+<div class="collection-method-list" markdown="1">
+
+[WithCount](#withcount) [WithMax](#withmax) [WithMin](#withmin) [WithSum](#withsum) [WithAvg](#withavg) [WithExists](#withexists)
+
+</div>
+
+### WithCount
+
+```TypeScript
+import type { WithCount } from "@tolki/types";
+
+interface Post extends WithCount<"comments" | "authors">{
+    title: string;
+    body: string;
+}
+
+const post: Post = getPost();
+
+post.title // inferred as string
+post.comments_count // inferred as number | null
+post.authors_count // inferred as number | null
+```
+
+### WithMax
+
+```TypeScript
+import type { WithMax } from "@tolki/types";
+
+interface Post extends WithMax<"comments" | "authors">{
+    title: string;
+    body: string;
+}
+
+const post: Post = getPost();
+
+post.title // inferred as string
+post.comments_max // inferred as number | null
+post.authors_max // inferred as number | null
+```
+
+### WithMin
+
+```TypeScript
+import type { WithMin } from "@tolki/types";
+
+interface Post extends WithMin<"comments" | "authors">{
+    title: string;
+    body: string;
+}
+
+const post: Post = getPost();
+
+post.title // inferred as string
+post.comments_min // inferred as number | null
+post.authors_min // inferred as number | null
+```
+
+### WithSum
+
+```TypeScript
+import type { WithSum } from "@tolki/types";
+
+interface Post extends WithSum<"comments" | "authors">{
+    title: string;
+    body: string;
+}
+
+const post: Post = getPost();
+
+post.title // inferred as string
+post.comments_sum // inferred as number | null
+post.authors_sum // inferred as number | null
+```
+
+### WithAvg
+
+```TypeScript
+import type { WithAvg } from "@tolki/types";
+
+interface Post extends WithAvg<"comments" | "authors">{
+    title: string;
+    body: string;
+}
+
+const post: Post = getPost();
+
+post.title // inferred as string
+post.comments_avg // inferred as number | null
+post.authors_avg // inferred as number | null
+```
+
+### WithExists
+
+```TypeScript
+import type { WithExists } from "@tolki/types";
+
+interface Post extends WithExists<"comments" | "authors">{
+    title: string;
+    body: string;
+}
+
+const post: Post = getPost();
+
+post.title // inferred as string
+post.comments_exists // inferred as boolean
+post.authors_exists // inferred as boolean
+```
 
 ## JsonResource Utilities Types
