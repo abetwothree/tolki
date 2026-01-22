@@ -251,50 +251,54 @@ The `Model` type receives a generic parameter to define the type of ID it should
 import type { Model } from "@tolki/types";
 
 interface User extends Model<number> {
-    title: string;
+  title: string;
 }
 
 const user: User = getUser();
 
-user.id // inferred as number
-user.title // inferred as string
-user.created_at // inferred as unknown
+user.id; // inferred as number
+user.title; // inferred as string
+user.created_at; // inferred as unknown
 ```
 
 If you'd like to auto define time stamp columns, you can use the `TimestampModel` type, the `SoftDeleteModel`, or the `AllTimestampsModel` type to define `created_at`, `updated_at`, and `deleted_at` in one go.
 
 ```typescript
-import type { TimestampModel, SoftDeleteModel, AllTimestampsModel } from "@tolki/types";
+import type {
+  TimestampModel,
+  SoftDeleteModel,
+  AllTimestampsModel,
+} from "@tolki/types";
 
 interface User extends TimestampModel<number> {
-    title: string;
+  title: string;
 }
 
 const user: User = getUser();
 
-user.id // inferred as number
-user.title // inferred as string
-user.created_at // inferred as string
-user.updated_at // inferred as string
+user.id; // inferred as number
+user.title; // inferred as string
+user.created_at; // inferred as string
+user.updated_at; // inferred as string
 
 interface Post extends SoftDeleteModel<string> {}
 
 const post: Post = getPost();
 
-post.id // inferred as string
-post.deleted_at // inferred as string
+post.id; // inferred as string
+post.deleted_at; // inferred as string
 
 interface Notification extends AllTimestampsModel<number> {
-    message: string;
+  message: string;
 }
 
 const notification: Notification = getNotification();
 
-notification.id // inferred as number
-notification.message // inferred as string
-notification.created_at // inferred as string
-notification.updated_at // inferred as string
-notification.deleted_at // inferred as string
+notification.id; // inferred as number
+notification.message; // inferred as string
+notification.created_at; // inferred as string
+notification.updated_at; // inferred as string
+notification.deleted_at; // inferred as string
 ```
 
 ### Model Relationship Types
