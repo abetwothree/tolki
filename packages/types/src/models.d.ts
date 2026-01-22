@@ -12,9 +12,12 @@ export interface SoftDeletes {
     deleted_at?: string | null;
 }
 
-export interface TimestampModel<TId = string | number> extends Model<TId>, Timestamps {}
-export interface SoftDeleteModel<TId = string | number> extends Model<TId>, SoftDeletes {}
-export interface AllTimestampsModel<TId = string | number> extends Model<TId>, Timestamps, SoftDeletes {}
+export interface TimestampModel<TId = string | number>
+    extends Model<TId>, Timestamps {}
+export interface SoftDeleteModel<TId = string | number>
+    extends Model<TId>, SoftDeletes {}
+export interface AllTimestampsModel<TId = string | number>
+    extends Model<TId>, Timestamps, SoftDeletes {}
 
 export type AsCount<T extends string> = `${T}_count`;
 export type AsMax<T extends string> = `${T}_max`;
