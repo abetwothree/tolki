@@ -1,4 +1,4 @@
-# Tolki TypeScript Utilities List
+# Tolki TypeScript Type Utilities List
 
 ## Paginator Utilities Types
 

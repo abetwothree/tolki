@@ -1,4 +1,4 @@
-# TypeScript Utilities Installation
+# TypeScript Type Utilities Installation
 
 The [`@tolki/types`](https://www.npmjs.com/package/@tolki/types) package provides a variety of TypeScript types inspired by Laravel's data structures such as pagination results and models. You can install it via npm, yarn, or pnpm:
 

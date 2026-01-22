@@ -84,14 +84,14 @@ export default defineConfig({
                 ],
             },
             {
-                text: "TypeScript",
+                text: "TypeScript Type Utilities",
                 items: [
                     {
                         text: "Installation & Usage",
                         link: "/typescript/",
                     },
                     {
-                        text: "TypeScript Utilities List",
+                        text: "TypeScript Type Utilities List",
                         link: "/typescript/typescript-utilities-list",
                     },
                 ],
