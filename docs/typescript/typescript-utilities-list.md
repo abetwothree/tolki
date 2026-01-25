@@ -434,3 +434,82 @@ post.authors_exists // inferred as boolean
 ```
 
 ## JsonResource Utilities Types
+
+When working with Laravel's [JsonResource](https://laravel.com/docs/eloquent-resources), you often need to define the structure of the JSON response in your TypeScript front end. By default, JSON resources either return a single resource object or a collection of resource objects, which do not have a different data structure from your models' properties.
+
+However, when you paginate results in JSON sources, the structure changes. The following utility types help you define these structures in a type-safe manner.
+
+For example, given this Laravel controller snippet:
+
+```PHP
+use App\Http\Resources\UserCollection;
+use App\Models\User;
+
+Route::get('/users', function () {
+    return new UserCollection(User::paginate());
+});
+```
+
+The JSON structure returned will look like this:
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Eladio Schroeder Sr.",
+      "email": "therese28@example.com"
+    },
+    {
+      "id": 2,
+      "name": "Liliana Mayert",
+      "email": "evandervort@example.com"
+    }
+  ],
+  "links": {
+    "first": "http://example.com/users?page=1",
+    "last": "http://example.com/users?page=1",
+    "prev": null,
+    "next": null
+  },
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "last_page": 1,
+    "path": "http://example.com/users",
+    "per_page": 15,
+    "to": 10,
+    "total": 10
+  }
+}
+```
+
+To define this structure in TypeScript, you can use the `JsonResourcePaginator` utility type as shown below:
+
+```typescript
+import type { JsonResourcePaginator } from "@tolki/types";
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+defineProps<{
+  users: JsonResourcePaginator<User>;
+}>();
+```
+
+That utility type accepts a single generic parameter which represents the type of the individual items in the paginated data.
+
+The `JsonResourcePaginator` type itself uses two additional utility types: `JsonResourceLinks` and `JsonResourceMeta`, which represent the `links` and `meta` sections of the JSON response respectively.
+
+```typescript
+export interface JsonResourcePaginator<T> {
+  data: T[];
+  meta: JsonResourceMeta;
+  links: JsonResourceLinks;
+}
+```
+
+If needed, you can also use these types individually to define the structure of the `links` and `meta` sections separately. You can also compose your own JSON resource structures if your PHP resources return custom structures.

@@ -18,7 +18,7 @@ export interface JsonResourceLinks {
     next: string | null;
 }
 
-export interface JsonResource<T> {
+export interface JsonResourcePaginator<T> {
     data: T[];
     meta: JsonResourceMeta;
     links: JsonResourceLinks;

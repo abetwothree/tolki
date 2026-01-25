@@ -7,9 +7,9 @@ import type {
     AsMin,
     AsSum,
     CursorPaginator,
-    JsonResource,
     JsonResourceLinks,
     JsonResourceMeta,
+    JsonResourcePaginator,
     LengthAwarePaginator,
     Model,
     PaginatorLink,
@@ -142,8 +142,10 @@ test("WithExists", () => {
     expectTypeOf<WithExists<string>>().toEqualTypeOf<WithExists<string>>();
 });
 
-test("JsonResource", () => {
-    expectTypeOf<JsonResource<Data>>().toEqualTypeOf<JsonResource<Data>>();
+test("JsonResourcePaginator", () => {
+    expectTypeOf<JsonResourcePaginator<Data>>().toEqualTypeOf<
+        JsonResourcePaginator<Data>
+    >();
 });
 
 test("JsonResourceLinks", () => {
@@ -263,8 +265,8 @@ test("CursorPaginator structure + value shapes", () => {
     expectTypeOf(sp.prev_page_url).toEqualTypeOf<string | null>();
 });
 
-test("JsonResource structure + value shapes", () => {
-    const jrOk: JsonResource<{ id: number; name?: string }> = {
+test("JsonResourcePaginator structure + value shapes", () => {
+    const jrOk: JsonResourcePaginator<{ id: number; name?: string }> = {
         data: [{ id: 1 }, { id: 2, name: "X" }],
         meta: {
             current_page: 1,
