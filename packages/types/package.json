@@ -1,6 +1,6 @@
 {
     "name": "@tolki/types",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Utility TypeScript types for @tolki packages and Laravel HTTP responses.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",
