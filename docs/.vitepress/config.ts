@@ -42,6 +42,13 @@ export default defineConfig({
         nav: [
             { text: "Home", link: "/" },
             { text: "Packages", link: "/packages" },
+            { text: "Strings", link: "/strings/" },
+            { text: "Numbers", link: "/numbers/" },
+            { text: "TypeScript", link: "/typescript/" },
+            // { text: "Arrays", link: "/arrays/" },
+            // { text: "Objects", link: "/objects/" },
+            // { text: "Collections", link: "/collections/" },
+            // { text: "Examples", link: "/markdown-examples" },
         ],
 
         sidebar: [
