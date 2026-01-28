@@ -3951,18 +3951,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
             callback as PathKey | ((...args: (TValue | TKey)[]) => number),
         );
 
-        const reduced = this.reduce(
-            (carry, item, key) => {
+        const reduced = this.reduce<number[]>(
+            (carry: TValue | number[], item: TValue, key: TKey): number[] => {
+                const arrCarry = carry as number[];
                 const resolved = callbackValue(item, key);
-                if (resolved !== null && resolved !== undefined) {
+                
+                if (!isNull(resolved) && !isUndefined(resolved)) {
                     const numValue = Number(resolved);
                     if (!isNaN(numValue)) {
-                        carry[0] = (carry[0] ?? 0) + numValue;
-                        carry[1] = (carry[1] ?? 0) + 1;
+                        arrCarry[0] = (arrCarry[0] ?? 0) + numValue;
+                        arrCarry[1] = (arrCarry[1] ?? 0) + 1;
                     }
                 }
 
-                return carry;
+                return arrCarry;
             },
             [0, 0] as number[],
         );

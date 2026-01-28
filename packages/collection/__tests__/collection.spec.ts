@@ -6196,6 +6196,7 @@ describe("Collection", () => {
                 const h = collect([{ foo: "4" }, { foo: "2" }]);
                 expect(typeof h.average("foo")).toBe("number");
                 expect(h.average("foo")).toBe(3);
+
                 const i = collect([{ foo: 1 }, { foo: 2 }]);
                 expect(typeof i.average("foo")).toBe("number");
                 expect(i.average("foo")).toBe(1.5);
@@ -6326,32 +6327,16 @@ describe("Collection", () => {
     describe("eachSpread", () => {
         describe("Laravel Tests", () => {
             it("test each spread", () => {
-                // $c = new $collection([[1, 'a'], [2, 'b']]);
-
                 const c = collect([
                     [1, "a"],
                     [2, "b"],
                 ]);
-
-                // $result = [];
-                // $c->eachSpread(function ($number, $character) use (&$result) {
-                //     $result[] = [$number, $character];
-                // });
-                // $this->assertEquals($c->all(), $result);
 
                 let result: unknown[] = [];
                 c.eachSpread((number, character) => {
                     result.push([number, character]);
                 });
                 expect(result).toEqual(c.all());
-
-                // $result = [];
-                // $c->eachSpread(function ($number, $character) use (&$result) {
-                //     $result[] = [$number, $character];
-
-                //     return false;
-                // });
-                // $this->assertEquals([[1, 'a']], $result);
 
                 result = [];
                 c.eachSpread((number, character, key) => {
@@ -6362,12 +6347,6 @@ describe("Collection", () => {
                     [2, "b", 1],
                 ]);
 
-                // $result = [];
-                // $c->eachSpread(function ($number, $character, $key) use (&$result) {
-                //     $result[] = [$number, $character, $key];
-                // });
-                // $this->assertEquals([[1, 'a', 0], [2, 'b', 1]], $result);
-
                 result = [];
                 const c2 = collect([collect([1, "a"]), collect([2, "b"])]);
                 c2.eachSpread((number, character, key) => {
@@ -6377,13 +6356,6 @@ describe("Collection", () => {
                     [1, "a", 0],
                     [2, "b", 1],
                 ]);
-
-                // $c = new $collection([new Collection([1, 'a']), new Collection([2, 'b'])]);
-                // $result = [];
-                // $c->eachSpread(function ($number, $character, $key) use (&$result) {
-                //     $result[] = [$number, $character, $key];
-                // });
-                // $this->assertEquals([[1, 'a', 0], [2, 'b', 1]], $result);
 
                 const d = new Collection([
                     new Collection([1, "a"]),
