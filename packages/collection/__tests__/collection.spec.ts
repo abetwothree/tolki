@@ -6166,7 +6166,12 @@ describe("Collection", () => {
                     }),
                 ).toBe(15);
 
-                const d = collect([{ foo: 10 }, { foo: 20 }, { foo: null }, {foo: 'house'}]);
+                const d = collect([
+                    { foo: 10 },
+                    { foo: 20 },
+                    { foo: null },
+                    { foo: "house" },
+                ]);
                 expect(
                     d.average((item) => {
                         return item.foo;
