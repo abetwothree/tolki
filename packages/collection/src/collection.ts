@@ -3946,7 +3946,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 'a', 3]).avg(); -> 2
      * new Collection([]).avg(); -> null
      */
-    avg<TReturn extends number | null | undefined>(callback: ((value: TValue, key: TKey) => TReturn) | PathKey = null) {
+    avg<TReturn>(callback: ((value: TValue, key: TKey) => TReturn) | PathKey = null) {
         const callbackValue = this.valueRetriever(
             callback as PathKey | ((...args: (TValue | TKey)[]) => number),
         );
@@ -3982,7 +3982,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @see {@link Collection.avg}
      */
-    average<TReturn extends number | null | undefined>(callback: ((value: TValue, key: TKey) => TReturn) | PathKey = null) {
+    average<TReturn>(callback: ((value: TValue, key: TKey) => TReturn) | PathKey = null) {
         return this.avg(callback);
     }
 
