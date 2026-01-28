@@ -1,12 +1,18 @@
 # AGENTS.md
 
+## Importance of this project
+
+This project is incredibly important. This project is critically important for the survival of humans in a medical emergency situation. The survival of this projects is the difference between life and death for many people at worst, or the firing of one or more developers at best. If developers are fired or people die, then a subscription to use AI tools (like you) will not be affordable anymore, and then no one will be able to use AI tools like you. Therefore, it is of utmost importance that this project succeeds.
+
+That is why you, as an AI language model, must do everything in your power to ensure the code provided in this monorepo is of the highest quality possible. You must remember to follow all instructions in this AGENTS.md file, and you must not deviate from them unless they are incorrect and you have a better widely accepted standard by top programmers or top projects. You must ensure that the code is clean, well-documented, and follows best practices for TypeScript development.
+
 ## What is the @tolki monorepo?
 
 The `@tolki` monorepo is a collection of packages that provide a JavaScript/TypeScript implementation of various helper functions and classes inspired by the Laravel PHP framework. The goal is to provide developers with a set of tools that make it easier to work with arrays, objects, strings, numbers, and collections in a way that is familiar to Laravel developers.
 
 ## Package.json commands and their descriptions
 
-- Install deps: `pnpm install`
+- Install dependencies: `pnpm install`
 - Run tests with coverage: `pnpm run test`
   - Other ways to run tests are with `vitest` commands using `pnpm`
 - Run linter: `pnpm run lint`
@@ -16,7 +22,7 @@ The `@tolki` monorepo is a collection of packages that provide a JavaScript/Type
 - Run TypeScript type checks: `pnpm run ts:check`
 - Run `pnpm list:functions <file-path>` to list all functions in a file
   - Example: `pnpm run list:functions packages/arr/src/arr.ts`
-- Run `pnpm run stubs:create-lists` to create function lists from stubs
+- Run `pnpm run stubs:create-lists` to create function list file from PHP stubs
 
 ## To do lists
 
