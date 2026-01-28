@@ -3955,7 +3955,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             (carry: TValue | number[], item: TValue, key: TKey): number[] => {
                 const arrCarry = carry as number[];
                 const resolved = callbackValue(item, key);
-                
+
                 if (!isNull(resolved) && !isUndefined(resolved)) {
                     const numValue = Number(resolved);
                     if (!isNaN(numValue)) {
