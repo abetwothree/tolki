@@ -5,6 +5,10 @@ on: workflow_call
 jobs:
   unit-test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22, 24]
     env:
       PUPPETEER_SKIP_DOWNLOAD: "true"
     steps:
@@ -13,10 +17,10 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4.1.0
 
-      - name: Install Node.js
+      - name: Install Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version-file: ".node-version"
+          node-version: ${{ matrix.node-version }}
           cache: "pnpm"
 
       - run: pnpm install
@@ -25,11 +29,15 @@ jobs:
         run: pnpm run test
 
       - name: Vitest Report coverage
-        if: always()
+        if: always() && matrix.node-version == 22
         uses: davelosert/vitest-coverage-report-action@v2
 
   unit-test-windows:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22, 24]
     env:
       PUPPETEER_SKIP_DOWNLOAD: "true"
     steps:
@@ -38,10 +46,10 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4.1.0
 
-      - name: Install Node.js
+      - name: Install Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version-file: ".node-version"
+          node-version: ${{ matrix.node-version }}
           cache: "pnpm"
 
       - run: pnpm install
