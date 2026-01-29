@@ -242,7 +242,7 @@ export function collapse<TValue extends ArrayItems<unknown>>(
  */
 export function combine<TValue>(...arrays: ArrayItems<TValue>[]) {
     const length = arrays[0]?.length || 0;
-    const result = [];
+    const result: (TValue | undefined)[][] = [];
 
     for (let i = 0; i < length; i++) {
         result.push(arrays.map((array) => array[i]));
@@ -556,7 +556,7 @@ export function first<TValue, TFirstDefault = null>(
     }
 
     // Convert to array to ensure we can iterate properly with callback
-    const array = from(data);
+    const array = from(data as object);
 
     if (!isArray(array)) {
         // If from() returns an object, iterate over values
@@ -1366,10 +1366,9 @@ export function onlyValues<TValue>(
     values: TValue | TValue[],
     strict: boolean = false,
 ): TValue[] {
-    const array = wrap(data);
     const valueArray = isArray(values) ? values : [values];
 
-    return array.filter((value) => {
+    return (data as TValue[]).filter((value) => {
         return valueArray.some((v) =>
             strict ? value === v : looseEqual(value, v),
         );
@@ -1707,11 +1706,11 @@ export function mapSpread<TMapReturn>(
 
     callback: (...args: unknown[]) => TMapReturn,
 ): TMapReturn[];
-// Implementation (using unknown[] for compatibility with all overloads)
+// Implementation (using any[] for compatibility with all overloads)
 export function mapSpread<TMapReturn>(
     data: unknown,
 
-    callback: (...args: unknown[]) => TMapReturn,
+    callback: (...args: any[]) => TMapReturn,
 ): TMapReturn[] {
     const values = getAccessibleValues(data);
     const result: TMapReturn[] = [];
@@ -2433,7 +2432,7 @@ export function splice<TValue, TReplacements>(
         if (accessible(item)) {
             flatReplacement.push(...(item as unknown as TValue[]));
         } else {
-            flatReplacement.push(item as TValue);
+            flatReplacement.push(item as unknown as TValue);
         }
     }
 

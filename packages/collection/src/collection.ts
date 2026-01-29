@@ -81,9 +81,6 @@ import {
 
 // import { initProxyHandler } from "./proxy";
 
-export function collect<TValue extends Record<PropertyKey, unknown>>(
-    items: TValue,
-): Collection<TValue, string>;
 export function collect<TValue>(
     items: TValue[] | readonly TValue[],
 ): Collection<TValue, number>;
@@ -92,7 +89,7 @@ export function collect<TValue, TKey extends PropertyKey>(
 ): Collection<TValue, TKey>;
 export function collect<TValue>(
     items: Arrayable<TValue>,
-): Collection<ReturnType<Arrayable<TValue>["toArray"]>, number>;
+): Collection<TValue, number>;
 export function collect<TValue, TKey extends PropertyKey>(
     items: Map<TKey, TValue>,
 ): Collection<TValue, TKey>;
@@ -101,6 +98,9 @@ export function collect(items: string): Collection<string[], number>;
 export function collect(items: number): Collection<number[], number>;
 export function collect(items: boolean): Collection<boolean[], number>;
 export function collect(items: symbol): Collection<symbol[], number>;
+export function collect<TValue>(
+    items: Record<string, TValue>,
+): Collection<TValue, string>;
 export function collect<TValue, TKey extends PropertyKey>(
     items?:
         | TValue[]
@@ -116,6 +116,17 @@ export function collect<TValue, TKey extends PropertyKey>(
         | undefined,
 ): Collection<TValue, TKey> {
     return new Collection<TValue, TKey>(items);
+}
+
+/**
+ * A Collection whose items are always array-backed, ensuring all() returns TValue[].
+ * Used as the return type for methods like partition() that always produce arrays.
+ */
+export interface ArrayCollection<
+    TValue,
+    TKey extends PropertyKey,
+> extends Collection<TValue, TKey> {
+    all(): TValue[];
 }
 
 /**
@@ -140,9 +151,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     constructor(items?: null | undefined);
     constructor(items: TValue extends unknown[] ? TValue : never);
     constructor(items: TValue extends readonly unknown[] ? TValue : never);
-    constructor(
-        items: TValue extends Record<PropertyKey, unknown> ? TValue : never,
-    );
+    constructor(items: Record<TKey & string, TValue>);
     constructor(
         items?:
             | TValue[]
@@ -216,14 +225,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Collection.range(1, 5); -> new Collection({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
      * Collection.range(1, 10, 2); -> new Collection({0: 1, 1: 3, 2: 5, 3: 7, 4: 9})
      */
-    static range(from: number, to: number, step: number = 1) {
+    static range(
+        from: number,
+        to: number,
+        step: number = 1,
+    ): Collection<number, number> {
         const rangeArray: number[] = [];
 
         for (let i = from; i <= to; i += step) {
             rangeArray.push(i);
         }
 
-        return new this(rangeArray);
+        return new Collection<number, number>(rangeArray);
     }
 
     /**
@@ -307,15 +320,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const highestCount = counts.max();
 
-        return counts
-            .filter((value) => value === highestCount)
-            .sort()
-            .keys()
-            .all()
-            .map((key) => {
-                const num = Number(key);
-                return !isNaN(num) && String(num) === String(key) ? num : key;
-            }) as number[];
+        return (
+            counts
+                .filter((value) => value === highestCount)
+                .sort()
+                .keys()
+                .all() as PropertyKey[]
+        ).map((key: PropertyKey) => {
+            const num = Number(key);
+            return !isNaN(num) && String(num) === String(key) ? num : key;
+        }) as number[];
     }
 
     /**
@@ -329,7 +343,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{a: 1}, {b: 2}]).collapse(); -> new Collection({a: 1, b: 2})
      */
     collapse() {
-        return new this.constructor(dataCollapse(this.itemsToRawValues()));
+        return this.newInstance(
+            dataCollapse(this.itemsToRawValues() as TValue[]),
+        );
     }
 
     /**
@@ -375,7 +391,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         );
 
         // Merge all arrays/objects with later keys overwriting earlier ones
-        const merged = Object.assign({}, ...validResults);
+        const merged = Object.assign({}, ...Object.values(validResults));
 
         // If all inputs were arrays, convert the result back to an array
         // to match PHP's behavior
@@ -403,8 +419,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).contains(2); -> true
      * new Collection([{id: 1}, {id: 2}]).contains(item => item.id === 2); -> true
      */
+    contains(key: (value: TValue, index: TKey) => boolean): boolean;
+    contains(key: unknown, operator?: unknown, value?: unknown): boolean;
     contains(
-        key: ((value: TValue, index: TKey) => boolean) | TValue | PathKey,
+        key: ((value: TValue, index: TKey) => boolean) | unknown,
         operator?: unknown,
         value?: unknown,
     ): boolean {
@@ -438,9 +456,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).containsStrict(2); -> true
      * new Collection([1, 2, 3]).containsStrict('2'); -> false
      */
+    containsStrict(key: (value: TValue, index: TKey) => unknown): boolean;
+    containsStrict(key: unknown, value?: unknown): boolean;
     containsStrict(
-        key: ((value: TValue, index: TKey) => boolean) | TValue | TKey,
-        value?: TValue | null,
+        key: ((value: TValue, index: TKey) => unknown) | unknown,
+        value?: unknown,
     ): boolean {
         if (!isNull(value) && !isUndefined(value)) {
             return this.contains((item) => {
@@ -476,12 +496,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).doesntContain(2); -> false
      * new Collection([{id: 1}, {id: 2}]).doesntContain(item => item.id === 3); -> true
      */
+    doesntContain(key: (value: TValue, index: TKey) => boolean): boolean;
+    doesntContain(key: unknown, operator?: unknown, value?: unknown): boolean;
     doesntContain(
-        key: ((value: TValue, index: TKey) => boolean) | TValue | string,
+        key: ((value: TValue, index: TKey) => boolean) | unknown,
         operator?: unknown,
         value?: unknown,
-    ) {
-        return !this.contains(key, operator, value);
+    ): boolean {
+        return !this.contains(
+            key as (value: TValue, index: TKey) => boolean,
+            operator,
+            value,
+        );
     }
 
     /**
@@ -498,11 +524,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).doesntContainStrict('2'); -> true
      * new Collection([{id: 1}, {id: 2}]).doesntContainStrict(item => item.id === 3); -> true
      */
+    doesntContainStrict(key: (value: TValue, index: TKey) => boolean): boolean;
+    doesntContainStrict(key: unknown, value?: unknown): boolean;
     doesntContainStrict(
-        key: ((value: TValue, index: TKey) => boolean) | TValue | TKey,
-        value?: TValue | null,
+        key: ((value: TValue, index: TKey) => boolean) | unknown,
+        value?: unknown,
     ): boolean {
-        return !this.containsStrict(key, value);
+        return !this.containsStrict(
+            key as (value: TValue, index: TKey) => unknown,
+            value,
+        );
     }
 
     /**
@@ -516,8 +547,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).crossJoin([3, 4]); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
      * new Collection({a: 1, b: 2}).crossJoin({c: 3, d: 4}); -> new Collection([{a: 1, c: 3}, {a: 1, d: 4}, {b: 2, c: 3}, {b: 2, d: 4}])
      */
+
     crossJoin(
-        ...items: Array<DataItems<TValue, TKey> | Collection<TValue, TKey>>
+        ...items: Array<DataItems<unknown, PropertyKey> | Collection<any, any>>
     ) {
         const results = dataCrossJoin(
             this.items,
@@ -539,7 +571,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * new Collection([1, 2, 3, 4]).diff([2, 4]); -> new Collection({0: 1, 2: 3})
      */
-    diff(items: DataItems<TValue, TKey> | Collection<TValue, TKey>) {
+
+    diff(
+        items:
+            | DataItems<unknown, PropertyKey>
+            | Collection<any, any>
+            | null
+            | undefined,
+    ) {
         return new (this.constructor as new (...args: unknown[]) => this)(
             dataDiff<TValue, TKey>(this.items, this.getRawItems(items)),
         );
@@ -558,7 +597,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection(['apple', 'banana', 'cherry']).diffUsing(['banana'], (a, b) => a === b); -> new Collection({0: 'apple', 2: 'cherry'})
      */
     diffUsing(
-        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+        items:
+            | DataItems<unknown, PropertyKey>
+            | Collection<any, any>
+            | null
+            | undefined,
         callback: (a: TValue, b: TValue) => boolean,
     ) {
         const otherItems = this.getRawItems(items);
@@ -599,7 +642,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).diffAssoc({b: 3}); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection({a: 1, b: 2, c: 3}).diffAssoc({d: 4}); -> new Collection({a: 1, b: 2, c: 3})
      */
-    diffAssoc(items: DataItems<TValue, TKey> | Collection<TValue, TKey>) {
+
+    diffAssoc(items: DataItems<unknown, PropertyKey> | Collection<any, any>) {
         return new (this.constructor as new (...args: unknown[]) => this)(
             dataDiff<TValue, TKey>(this.items, this.getRawItems(items)),
         );
@@ -619,7 +663,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 'green', b: 'brown', c: 'blue', 0: 'red'}).diffAssocUsing({A: 'green', 0: 'yellow', 1: 'red'}, strcasecmp); -> new Collection({b: 'brown', c: 'blue', 0: 'red'})
      */
     diffAssocUsing(
-        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+        items: DataItems<unknown, PropertyKey> | Collection<any, any>,
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
         return new (this.constructor as new (...args: unknown[]) => this)(
@@ -642,7 +686,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).diffKeys({b: 2}); -> new Collection({a: 1, c: 3})
      * new Collection([1, 3, 5, 7, 8]).diffKeys([1, 3, 5]); -> new Collection([7, 8])
      */
-    diffKeys(items: DataItems<TValue, TKey> | Collection<TValue, TKey>) {
+
+    diffKeys(items: DataItems<unknown, PropertyKey> | Collection<any, any>) {
         const otherItems = this.getRawItems(items);
         const results = {} as DataItems<TValue, TKey>;
 
@@ -656,10 +701,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (isArray(this.items)) {
-            return new this.constructor(Object.values(results) as TValue[]);
+            return this.newInstance(Object.values(results) as TValue[]);
         }
 
-        return new this.constructor(results);
+        return this.newInstance(results);
     }
 
     /**
@@ -676,7 +721,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({id: 1, first_word: 'Hello'}).diffKeysUsing({ID: 123, foo_bar: 'Hello'}, strcasecmp); -> new Collection({first_word: 'Hello'})
      */
     diffKeysUsing(
-        items: DataItems<TValue, TKey> | Collection<TValue, TKey>,
+        items: DataItems<unknown, PropertyKey> | Collection<any, any>,
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
         return new (this.constructor as new (...args: unknown[]) => this)(
@@ -818,7 +863,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             keysToExcept = keys as PathKey[];
         }
 
-        return new this.constructor(dataExcept(this.items, keysToExcept));
+        return this.newInstance(dataExcept(this.items, keysToExcept));
     }
 
     /**
@@ -933,7 +978,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{one: 'b', two: {hi: 'hello', skip: 'bye'}}]).flip(); -> new Collection([{b: 'one', {hello: 'hi', bye: 'skip'}}])
      */
     flip() {
-        return new this.constructor(dataFlip(this.items));
+        return this.newInstance(dataFlip(this.items));
     }
 
     /**
@@ -1036,15 +1081,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param preserveKeys - Whether to preserve the original keys in the grouped collections
      * @returns A new collection with grouped items
      */
-    groupBy<TGroupKey extends TKey = TKey>(
+    groupBy<TGroupKey extends PropertyKey = PropertyKey>(
         groupByValue:
-            | ((value: TValue, index: TKey) => TGroupKey)
-            | TGroupKey[]
+            | ((value: TValue, index: TKey) => TGroupKey | TGroupKey[])
+            | Array<
+                  | TGroupKey
+                  | ((value: TValue, index: TKey) => TGroupKey | TGroupKey[])
+              >
             | TGroupKey
             | PathKey,
         preserveKeys: boolean = false,
     ) {
-        let nextGroups: TGroupKey[] | null = null;
+        let nextGroups: Array<
+            | TGroupKey
+            | ((value: TValue, index: TKey) => TGroupKey | TGroupKey[])
+        > | null = null;
 
         if (!isFunction(groupByValue) && isArray(groupByValue)) {
             // Make a copy of the array so we don't mutate the original
@@ -1086,7 +1137,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 return groupKey.toString();
             }
 
-            return groupKey as TGroupKey | string | number;
+            return groupKey as unknown as TGroupKey | string | number;
         };
 
         for (const [key, value] of Object.entries(
@@ -1101,8 +1152,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
                 if (!results[groupKey]) {
                     results[groupKey] = useObjects
-                        ? new Collection({})
-                        : new Collection();
+                        ? (new Collection({}) as unknown as Collection<
+                              TValue,
+                              TKey
+                          >)
+                        : (new Collection() as unknown as Collection<
+                              TValue,
+                              TKey
+                          >);
                 }
 
                 results[groupKey]!.offsetSet(
@@ -1115,11 +1172,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const result = new Collection(results);
 
         if (isArray(nextGroups) && nextGroups.length > 0) {
-            const nestedResult = result.map(
-                (group: Collection<TValue, TKey>) => {
-                    return group.groupBy(nextGroups, preserveKeys);
-                },
-            ) as unknown as Collection<Collection<TValue, TKey>, TGroupKey>;
+            const nestedResult = result.map((group) => {
+                return (group as unknown as Collection<TValue, TKey>).groupBy(
+                    nextGroups,
+                    preserveKeys,
+                );
+            }) as unknown as Collection<Collection<TValue, TKey>, TGroupKey>;
 
             // For nested groupBy, we also need to convert to arrays/objects
             const nestedConvertedResults = {} as Record<
@@ -1144,7 +1202,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             TGroupKey,
             TValue[] | Record<TKey, TValue>
         >;
-        for (const [groupKey, collection] of Object.entries(results)) {
+        for (const [groupKey, collection] of Object.entries(results) as [
+            string,
+            Collection<TValue, TKey>,
+        ][]) {
             convertedResults[groupKey as TGroupKey] = collection.all() as
                 | TValue[]
                 | Record<TKey, TValue>;
@@ -1167,17 +1228,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).keyBy(item => item.name); -> new Collection({'John': {id: 1, name: 'John'}, 'Jane': {id: 2, name: 'Jane'}})
      * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).keyBy(['id', 'name']); -> new Collection({'1.John': {id: 1, name: 'John'}, '2.Jane': {id: 2, name: 'Jane'}})
      */
-    keyBy<TNewKey extends TKey = TKey>(
+    keyBy(
         keyByValue:
-            | ((value: TValue, index: TKey) => TNewKey)
-            | ArrayItems<TNewKey>
+            | ((value: TValue, index: TKey) => unknown)
+            | ArrayItems<PropertyKey>
             | PathKey,
-    ) {
+    ): Collection<TValue, string> {
         const keyByValueCallback = this.valueRetriever(
-            keyByValue as PathKey | ((...args: (TValue | TKey)[]) => TNewKey),
+            keyByValue as PathKey | ((...args: (TValue | TKey)[]) => unknown),
         );
 
-        const results = {} as Record<TNewKey, TValue>;
+        const results = {} as Record<string, TValue>;
 
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
@@ -1195,20 +1256,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             // Convert Collection instances to arrays before JSON stringifying
             if (resolvedKey instanceof Collection) {
-                resolvedKey = JSON.stringify(resolvedKey.all()) as TNewKey;
+                resolvedKey = JSON.stringify(resolvedKey.all());
             } else if (isObject(resolvedKey)) {
-                resolvedKey = JSON.stringify(resolvedKey) as TNewKey;
+                resolvedKey = JSON.stringify(resolvedKey);
             } else if (isArray(resolvedKey)) {
-                resolvedKey = resolvedKey.join(".") as TNewKey;
+                resolvedKey = resolvedKey.join(".");
             }
 
-            (results as Record<TNewKey, TValue>)[resolvedKey as TNewKey] =
+            (results as Record<string, TValue>)[resolvedKey as string] =
                 value as TValue;
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            results,
-        );
+        return new Collection(results) as unknown as Collection<TValue, string>;
     }
 
     /**
@@ -1316,7 +1375,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         // When dealing with simple values (strings, numbers, etc.),
         // the value parameter becomes the glue
-        return joinItems(this.all(), value);
+        return joinItems(this.all(), value as string | null);
     }
 
     /**
@@ -1342,7 +1401,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return new (this.constructor as new (...args: unknown[]) => this)(
             dataIntersect(
                 this.recursivelyConvertCollections(this.items),
-                this.recursivelyConvertCollections(items) as DataItems<T, K>,
+                this.recursivelyConvertCollections(items) as DataItems<
+                    TValue,
+                    TKey
+                >,
             ),
         );
     }
@@ -1372,7 +1434,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return new (this.constructor as new (...args: unknown[]) => this)(
             dataIntersect<TValue, TKey>(
                 this.items,
-                this.recursivelyConvertCollections(items),
+                this.recursivelyConvertCollections(items) as DataItems<
+                    TValue,
+                    TKey
+                >,
                 callback,
             ),
         );
@@ -1402,7 +1467,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return new (this.constructor as new (...args: unknown[]) => this)(
             dataIntersectAssoc<TValue, TKey>(
                 this.items,
-                this.recursivelyConvertCollections(items),
+                this.recursivelyConvertCollections(items) as DataItems<
+                    TValue,
+                    TKey
+                >,
             ),
         );
     }
@@ -1433,7 +1501,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return new (this.constructor as new (...args: unknown[]) => this)(
             dataIntersectAssocUsing<TValue, TKey>(
                 this.items,
-                this.recursivelyConvertCollections(items),
+                this.recursivelyConvertCollections(items) as DataItems<
+                    TValue,
+                    TKey
+                >,
                 callback,
             ),
         );
@@ -1461,7 +1532,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return new (this.constructor as new (...args: unknown[]) => this)(
             dataIntersectByKeys<TValue, TKey>(
                 this.items,
-                this.recursivelyConvertCollections(items),
+                this.recursivelyConvertCollections(items) as DataItems<
+                    TValue,
+                    TKey
+                >,
             ),
         );
     }
@@ -1589,12 +1663,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
     keys(): Collection<TKey, number> {
         // If we have preserved order for numeric keys, use it
         if (this.itemsWithOrder) {
-            return new this.constructor(
+            return new Collection<TKey, number>(
                 this.itemsWithOrder.map(([key]) => key),
             );
         }
 
-        return new this.constructor(dataKeys(this.items));
+        return new Collection<TKey, number>(dataKeys(this.items) as TKey[]);
     }
 
     /**
@@ -1640,7 +1714,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | ((item: TValue, key: TKey) => string | number)
             | null = null,
     ): Collection<TPluckValue, TKey> {
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return new Collection<TPluckValue, TKey>(
             dataPluck(
                 this.items,
                 value as string | ((item: TValue, key: TKey) => TValue),
@@ -1777,7 +1851,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        return new this.constructor(dataMapWithKeys(this.items, callback));
+        return this.newInstance(dataMapWithKeys(this.items, callback));
     }
 
     /**
@@ -1814,10 +1888,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (isObject(this.items) && isObject(rawItems)) {
-            return new this.constructor({ ...this.items, ...rawItems });
+            return this.newInstance({ ...this.items, ...rawItems });
         }
 
-        return new this.constructor({ ...this.items, ...rawItems });
+        return this.newInstance({ ...this.items, ...rawItems });
     }
 
     /**
@@ -1971,7 +2045,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Collection<TCombineValue, TCombineKey>,
     ) {
         return new (this.constructor as new (...args: unknown[]) => this)(
-            dataCombine(this.items, this.getRawItems(values)),
+            dataCombine(
+                this.items as TValue[],
+                this.getRawItems(values) as TValue[],
+            ),
         );
     }
 
@@ -2016,7 +2093,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             throw new Error("Step value must be at least 1.");
         }
 
-        const newItems = [];
+        const newItems: TValue[] = [];
 
         let position = 0;
 
@@ -2033,9 +2110,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             position++;
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            newItems,
-        );
+        return new Collection<TValue[], number>(newItems);
     }
 
     /**
@@ -2115,7 +2190,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     pop(count: number): Collection<TValue[], number>;
     pop(count: number = 1): TValue | null | Collection<TValue[], number> {
         if (count < 1) {
-            return new this.constructor();
+            return new Collection<TValue[], number>();
         }
 
         if (count === 1) {
@@ -2130,7 +2205,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 return null;
             }
 
-            const lastKey = keys[keys.length - 1];
+            const lastKey = keys[keys.length - 1] as TKey;
             const value = (this.items as Record<TKey, TValue>)[lastKey];
             delete (this.items as Record<TKey, TValue>)[lastKey];
 
@@ -2138,7 +2213,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (this.isEmpty()) {
-            return new (this.constructor as new (...args: unknown[]) => this)();
+            return new Collection<TValue[], number>();
         }
 
         const poppedValues = dataPop(this.items, count) as TValue[];
@@ -2152,9 +2227,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             >;
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            poppedValues,
-        );
+        return new Collection<TValue[], number>(poppedValues);
     }
 
     /**
@@ -2173,9 +2246,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     prepend<T, K extends PropertyKey>(value: T, key?: K | null) {
         if (arguments.length > 1) {
-            this.items = dataPrepend(this.items, value, key ?? null);
+            this.items = dataPrepend(
+                this.items,
+                value as unknown as TValue,
+                key ?? null,
+            );
         } else {
-            this.items = dataPrepend(this.items, value);
+            this.items = dataPrepend(this.items, value as unknown as TValue);
         }
 
         return this;
@@ -2197,7 +2274,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         if (isArray(this.items)) {
             // For arrays, simply push each value
             for (const value of values) {
-                (this.items as TValue[]).push(value as TValue);
+                (this.items as TValue[]).push(value as unknown as TValue);
             }
         } else {
             // For objects, add with numeric keys
@@ -2214,7 +2291,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             for (const value of values) {
                 (this.items as Record<TKey, TValue>)[nextIndex as TKey] =
-                    value as TValue;
+                    value as unknown as TValue;
                 nextIndex++;
             }
         }
@@ -2237,7 +2314,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     unshift<T>(...values: T[]) {
         if (isArray(this.items)) {
             // For arrays, use built-in unshift
-            this.items.unshift(...values);
+            (this.items as TValue[]).unshift(
+                ...(values as unknown as TValue[]),
+            );
         } else {
             // For objects, we need to rebuild the entire object with new numeric indices
             const oldItems = { ...this.items };
@@ -2263,7 +2342,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 }
             }
 
-            this.items = newItems as Record<number | string, T>;
+            this.items = newItems as unknown as DataItems<TValue, TKey>;
         }
 
         return this;
@@ -2330,7 +2409,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             const obj: Record<number, TValue> = {};
             for (let i = 0; i < (this.items as TValue[]).length; i++) {
                 if (i !== key) {
-                    obj[i] = (this.items as TValue[])[i];
+                    obj[i] = (this.items as TValue[])[i] as TValue;
                 }
             }
             this.items = obj as unknown as DataItems<TValue, TKey>;
@@ -2355,7 +2434,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 // Nested path - navigate to parent and delete the final segment
                 let current: unknown = items;
                 for (let i = 0; i < segments.length - 1; i++) {
-                    const segment = segments[i];
+                    const segment = segments[i] as string;
                     if (isObject(current) || isArray(current)) {
                         current = (current as Record<PropertyKey, unknown>)[
                             segment
@@ -2366,7 +2445,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 }
 
                 // Delete the final segment
-                const finalSegment = segments[segments.length - 1];
+                const finalSegment = segments[segments.length - 1] as string;
                 if (isObject(current) || isArray(current)) {
                     delete (current as Record<PropertyKey, unknown>)[
                         finalSegment
@@ -2394,7 +2473,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).put(2, 3); -> new Collection([1, 2, 3])
      */
     put<K, V>(key: K, value: V) {
-        this.offsetSet(key, value);
+        this.offsetSet(key as TKey | null, value);
 
         return this;
     }
@@ -2499,7 +2578,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).reverse(); -> new Collection({c: 3, b: 2, a: 1})
      */
     reverse() {
-        return new this.constructor(dataReverse(this.items));
+        return this.newInstance(dataReverse(this.items));
     }
 
     /**
@@ -2596,9 +2675,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (count === 0) {
-            return new (this.constructor as new (...args: unknown[]) => this)(
-                [],
-            );
+            return new Collection<TValue[], number>([]);
         }
 
         if (count === 1) {
@@ -2611,7 +2688,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             // For objects, remove and return the first item
             const keys = Object.keys(this.items) as TKey[];
-            const firstKey = keys[0];
+            const firstKey = keys[0] as TKey;
             const value = (this.items as Record<TKey, TValue>)[firstKey];
             delete (this.items as Record<TKey, TValue>)[firstKey];
 
@@ -2630,7 +2707,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 const keys = Object.keys(this.items) as TKey[];
 
                 if (keys.length > 0) {
-                    const firstKey = keys[0];
+                    const firstKey = keys[0] as TKey;
                     const value = (this.items as Record<TKey, TValue>)[
                         firstKey
                     ];
@@ -2640,9 +2717,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            shiftedValues,
-        );
+        return new Collection<TValue[], number>(shiftedValues);
     }
 
     /**
@@ -2656,7 +2731,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).shuffle(); -> new Collection({b: 2, c: 3, a: 1})
      */
     shuffle() {
-        return new this.constructor(dataShuffle(this.items));
+        return this.newInstance(dataShuffle(this.items));
     }
 
     /**
@@ -2738,12 +2813,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3, d: 4}).split(2); -> new Collection([ new Collection({a: 1, b: 2}), new Collection({c: 3, d: 4}) ])
      * new Collection([1, 2, 3]).split(5); -> new Collection([ new Collection([1]), new Collection([2]), new Collection([3]) ])
      */
-    split(numberOfGroups: number) {
+    split(
+        numberOfGroups: number,
+    ): Collection<Collection<TValue, TKey>, number> {
         if (numberOfGroups < 1) {
             throw new Error("Number of groups must be at least 1.");
         }
 
-        const groups = new Collection();
+        const groups = new Collection<Collection<TValue, TKey>, number>();
 
         if (this.isEmpty()) {
             return groups;
@@ -2763,7 +2840,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
 
             if (size > 0) {
-                groups.push(new Collection(this.slice(start, size).items));
+                groups.push(
+                    new Collection<TValue, TKey>(this.slice(start, size).items),
+                );
 
                 start += size;
             }
@@ -2905,15 +2984,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3, d: 4}).chunk(2, true); -> new Collection([ new Collection({a: 1, b: 2}), new Collection({c: 3, d: 4}) ])
      * new Collection([1, 2, 3]).chunk(5); -> new Collection([ new Collection([1, 2, 3]) ])
      */
-    chunk(size: number, preserveKeys: boolean = true) {
+    chunk(
+        size: number,
+        preserveKeys: boolean = true,
+    ): Collection<Collection<TValue, TKey>, number> {
         if (size < 0) {
-            return new (this.constructor as new (...args: unknown[]) => this)();
+            return new Collection<Collection<TValue, TKey>, number>();
         }
 
-        const chunks = [];
+        const chunks: Collection<TValue, TKey>[] = [];
 
-        const chunkedData = dataChunk<TValue, TKey>(
-            this.items,
+        const chunkedData = dataChunk(
+            this.items as TValue[],
             size,
             preserveKeys,
         );
@@ -2925,9 +3007,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             chunks.push(new Collection(chunk as DataItems<TValue, TKey>));
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            chunks,
-        );
+        return new Collection<Collection<TValue, TKey>, number>(chunks);
     }
 
     /**
@@ -3342,7 +3422,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{a: 1}, {b: {c: 2}}]).dot(); -> new Collection({'0.a': 1, '1.b.c': 2})
      */
     dot() {
-        return new this.constructor(dataDot(this.items));
+        return this.newInstance(dataDot(this.items));
     }
 
     /**
@@ -3356,7 +3436,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({'0.a': 1, '1.b.c': 2}).undot(); -> new Collection([{a: 1}, {b: {c: 2}}])
      */
     undot() {
-        return new this.constructor(dataUndot(this.items));
+        return this.newInstance(dataUndot(this.items));
     }
 
     /**
@@ -3478,11 +3558,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).zip(new Collection(['a', 'b', 'c'])); -> new Collection([[1, 'a'], [2, 'b']])
      * new Collection({a: 1, b: 2}).zip({x: 'a', y: 'b', z: 'c'}); -> new Collection([[1, 'a'], [2, 'b']])
      */
-    zip<TZipValue, TKeyZip extends PropertyKey>(
-        ...list:
-            | DataItems<TZipValue, TKeyZip>[]
-            | Collection<TZipValue, TKeyZip>[]
-    ) {
+    zip<TZipValue>(
+        ...list: Array<DataItems<TZipValue, PropertyKey> | Collection<any, any>>
+    ): Collection<Collection<TValue | TZipValue, number>, number> {
         const arraysToZip = list.map((items) => {
             const rawItems = this.getRawItems(items) as DataItems<TZipValue>;
             return isArray(rawItems) ? rawItems : Object.values(rawItems);
@@ -3493,7 +3571,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             ...arraysToZip.map((arr) => arr.length),
         );
 
-        const zipped: Array<Collection<Array<TValue | TZipValue>, number>> = [];
+        const zipped: Array<Collection<TValue | TZipValue, number>> = [];
 
         for (let i = 0; i < maxLength; i++) {
             const row: Array<TValue | TZipValue> = [];
@@ -3511,10 +3589,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 }
             }
 
-            zipped.push(new Collection(row));
+            zipped.push(new Collection<TValue | TZipValue, number>(row));
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return new Collection<Collection<TValue | TZipValue, number>, number>(
             zipped,
         );
     }
@@ -3667,21 +3745,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
     add<T, K extends PropertyKey>(item: T, key: K | null = null) {
         if (isArray(this.items)) {
             if (!isNull(key)) {
-                this.items[key] = item;
+                (this.items as TValue[])[key as number] =
+                    item as unknown as TValue;
             } else {
-                this.items.push(item);
+                (this.items as TValue[]).push(item as unknown as TValue);
             }
 
             return this;
         }
 
         if (!isNull(key)) {
-            this.items[key] = item;
+            (this.items as Record<TKey, TValue>)[key as unknown as TKey] =
+                item as unknown as TValue;
             return this;
         }
 
         const lengthKey = Object.keys(this.items).length;
-        this.items[lengthKey] = item;
+        (this.items as Record<TKey, TValue>)[lengthKey as unknown as TKey] =
+            item as unknown as TValue;
 
         return this;
     }
@@ -3914,7 +3995,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return Collection.range(1, count);
         }
 
-        return Collection.range(1, count).map(callback);
+        return (
+            Collection.range(1, count) as unknown as Collection<number, number>
+        ).map(callback);
     }
 
     /**
@@ -3957,7 +4040,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             (carry: TValue | number[], item: TValue, key: TKey): number[] => {
                 const arrCarry = carry as number[];
                 const resolved = callbackValue(item, key);
-                
+
                 if (!isNull(resolved) && !isUndefined(resolved)) {
                     const numValue = Number(resolved);
                     if (!isNaN(numValue)) {
@@ -4127,10 +4210,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: ((value: TValue, key: TKey) => boolean) | PathKey = null,
         operator?: unknown,
         value?: unknown,
-    ) {
+    ): TValue | null {
         return this.first(
             this.operatorForWhere(key, operator as string | undefined, value),
-        );
+        ) as TValue | null;
     }
 
     /**
@@ -4268,9 +4351,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: (
             value: TValue,
             key: TKey,
-        ) => [TMapToGroupsKey, TMapToGroupsValue],
+        ) =>
+            | Record<TMapToGroupsKey, TMapToGroupsValue>
+            | [TMapToGroupsKey, TMapToGroupsValue],
     ) {
-        const groups = this.mapToDictionary(callback);
+        const groups = this.mapToDictionary(
+            callback as (
+                value: TValue,
+                key: TKey,
+            ) => Record<TMapToGroupsKey, TMapToGroupsValue>,
+        );
 
         return groups.map(
             (group: unknown) =>
@@ -4303,8 +4393,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     mapInto<TMapIntoValue>(
         className: new (...args: unknown[]) => TMapIntoValue,
-    ) {
-        return this.map((item) => new className(item));
+    ): Collection<TMapIntoValue, TKey> {
+        return this.map((item) => new className(item)) as unknown as Collection<
+            TMapIntoValue,
+            TKey
+        >;
     }
 
     /**
@@ -4313,24 +4406,33 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The key or callback to determine the value to min, or null to min the items directly
      * @returns The min value, or null if no numeric values found
      */
-    min<TMinValue, TMinKey extends PropertyKey = PropertyKey>(
-        callback: ((value: TMinValue, key: TMinKey) => number) | PathKey = null,
+    min(
+        callback:
+            | ((value: TValue, key: TKey) => number | null | undefined)
+            | PathKey = null,
     ) {
         const callbackValue = this.valueRetriever(
-            callback as
-                | PathKey
-                | ((...args: (TMinValue | TMinKey)[]) => number),
+            callback as PathKey | ((...args: (TValue | TKey)[]) => number),
         );
 
-        return this.map((value: TValue) => callbackValue(value))
+        return this.map((value: TValue) =>
+            callbackValue(value as TValue | TKey),
+        )
             .reject((value: TValue) => isNull(value))
-            .reduce((carry: number | null, value: unknown) => {
-                if (isNull(carry) || (value as number) < carry) {
-                    return value as number;
-                }
+            .reduce(
+                ((carry: number | null, value: unknown) => {
+                    if (isNull(carry) || (value as number) < carry) {
+                        return value as number;
+                    }
 
-                return carry;
-            }, null);
+                    return carry;
+                }) as (
+                    carry: number | TValue | null,
+                    value: TValue,
+                    key: TKey,
+                ) => number | null,
+                null,
+            );
     }
 
     /**
@@ -4339,24 +4441,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The key or callback to determine the value to max, or null to max the items directly
      * @returns The max value, or null if no numeric values found
      */
-    max<TMaxValue, TMaxKey extends PropertyKey = PropertyKey>(
-        callback: ((value: TMaxValue, key: TMaxKey) => number) | PathKey = null,
-    ) {
+    max(callback: ((value: TValue, key: TKey) => number) | PathKey = null) {
         const callbackValue = this.valueRetriever(
-            callback as
-                | PathKey
-                | ((...args: (TMaxValue | TMaxKey)[]) => number),
+            callback as PathKey | ((...args: (TValue | TKey)[]) => number),
         );
 
         return this.reject((value: TValue) => isNull(value)).reduce(
-            (carry: number | null, item: TValue) => {
-                const value = callbackValue(item) as number;
+            ((carry: number | null, item: TValue) => {
+                const value = callbackValue(item as TValue | TKey) as number;
                 if (isNull(carry) || value > carry) {
                     return value;
                 }
 
                 return carry;
-            },
+            }) as (
+                carry: number | TValue | null,
+                value: TValue,
+                key: TKey,
+            ) => number | null,
             null,
         );
     }
@@ -4386,7 +4488,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
         operator?: unknown,
         value?: unknown,
-    ) {
+    ): ArrayCollection<Collection<TValue, TKey>, number> {
         let callback;
         if (isUndefined(operator) && isUndefined(value)) {
             callback = this.valueRetriever(
@@ -4404,7 +4506,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             Boolean(callback(item as TValue, key as TKey)),
         );
 
-        return new Collection([new Collection(passed), new Collection(failed)]);
+        return new Collection<Collection<TValue, TKey>, number>([
+            new Collection<TValue, TKey>(passed as DataItems<TValue, TKey>),
+            new Collection<TValue, TKey>(failed as DataItems<TValue, TKey>),
+        ]) as ArrayCollection<Collection<TValue, TKey>, number>;
     }
 
     /**
@@ -4450,7 +4555,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         return this.reduce((carry, value, key) => {
             const result = callbackValue(value, key) as number;
-            return carry + result;
+            return (carry as number) + result;
         }, 0);
     }
 
@@ -4704,9 +4809,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns A new collection with the items that match the given type(s)
      */
     whereInstanceOf<TWhereInstanceOf>(
-        type: new (
-            ...args: unknown[]
-        ) => TWhereInstanceOf | DataItems<TWhereInstanceOf, PropertyKey>,
+        type:
+            | (new (...args: unknown[]) => TWhereInstanceOf)
+            | Array<new (...args: any[]) => unknown>
+            | Record<PropertyKey, new (...args: any[]) => unknown>,
     ) {
         return this.filter((item: TValue) => {
             if (isArray(type) || isObject(type)) {
@@ -4749,7 +4855,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
     pipeThrough(callbacks: Array<(instance: this) => unknown>) {
         return new (this.constructor as new (...args: unknown[]) => this)(
             callbacks,
-        ).reduce<this>((carry, callback) => callback(carry) as this, this);
+        ).reduce<this>(
+            (carry, callback) =>
+                (callback as (instance: this) => unknown)(
+                    carry as this,
+                ) as this,
+            this,
+        );
     }
 
     /**
@@ -4759,7 +4871,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param initial - The initial value to start the reduction with
      * @returns The reduced value
      */
+    reduce(
+        callback: (carry: TValue, value: TValue, key: TKey) => TValue,
+    ): TValue;
     reduce<TReduce>(
+        callback: (carry: TReduce, value: TValue, key: TKey) => TReduce,
+        initial: TReduce,
+    ): TReduce;
+    reduce<TReduce = TValue>(
         callback: (
             carry: TValue | TReduce,
             value: TValue,
@@ -4805,14 +4924,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param initial - The initial values to start the reduction with
      * @returns The reduced values as an array
      */
-    reduceSpread(
-        callback: (...values: unknown[]) => unknown,
-        ...initial: unknown[]
-    ) {
-        let result = initial;
+    reduceSpread<TSpread extends unknown[]>(
+        callback: (...args: [...TSpread, TValue, PropertyKey]) => [...TSpread],
+        ...initial: [...TSpread]
+    ): [...TSpread] {
+        let result = initial as unknown[];
 
         for (const [key, value] of Object.entries(this.items)) {
-            const callbackResult = callback(...result, value, key);
+            const callbackResult = (
+                callback as (...args: unknown[]) => unknown
+            )(...result, value, key);
 
             if (!isArray(callbackResult)) {
                 const resultType = typeOf(callbackResult);
@@ -4825,7 +4946,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             result = callbackResult;
         }
 
-        return result;
+        return result as [...TSpread];
     }
 
     /**
@@ -4835,15 +4956,33 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The callback to execute, receives the carry, value, and key as arguments
      * @returns The reduced value
      */
-    reduceWithKeys<TReduceWithKeysInitial, TReduceWithKeysReturnType>(
+    reduceWithKeys<TReduce>(
+        callback: (carry: TReduce, value: TValue, key: TKey) => TReduce,
+        initial: TReduce,
+    ): TReduce;
+    reduceWithKeys(
         callback: (
-            carry: TReduceWithKeysInitial | TReduceWithKeysReturnType | null,
+            carry: TValue | null,
             value: TValue,
             key: TKey,
-        ) => TReduceWithKeysReturnType,
-        initial: TReduceWithKeysInitial | null = null,
+        ) => TValue | null,
+    ): TValue | null;
+    reduceWithKeys<TReduce = TValue | null>(
+        callback: (
+            carry: TReduce | TValue | null,
+            value: TValue,
+            key: TKey,
+        ) => TReduce,
+        initial?: TReduce | null,
     ) {
-        return this.reduce(callback, initial);
+        return this.reduce(
+            callback as unknown as (
+                carry: TValue | TReduce,
+                value: TValue,
+                key: TKey,
+            ) => TReduce,
+            initial as TReduce,
+        );
     }
 
     /**
@@ -5315,19 +5454,35 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         if (isArray(data)) {
             return data.map((item) =>
-                this.recursivelyConvertCollections(item),
+                this.recursivelyConvertCollections(
+                    item as unknown as T[] | Record<K, T> | Collection<T, K>,
+                ),
             ) as T[];
         }
 
         if (isObject(data)) {
             const result: Record<PropertyKey, unknown> = {};
             for (const [key, value] of Object.entries(data)) {
-                result[key] = this.recursivelyConvertCollections(value);
+                result[key] = this.recursivelyConvertCollections(
+                    value as unknown as T[] | Record<K, T> | Collection<T, K>,
+                );
             }
             return result as Record<K, T>;
         }
 
         return data as T[] | Record<K, T>;
+    }
+
+    /**
+     * Create a new instance of the collection using the runtime constructor.
+     * This preserves subclass behavior (equivalent to PHP's `new static()`).
+     *
+     * @param items - The items for the new collection instance
+     * @returns A new collection instance
+     */
+
+    protected newInstance(items?: any): this {
+        return new (this.constructor as new (items?: any) => this)(items);
     }
 
     /**

@@ -398,6 +398,10 @@ export function dataCombine<TKeys, TValues>(
     itemsB: TValues[],
 ): ReturnType<typeof arrCombine>;
 export function dataCombine<TKeys, TValues>(
+    itemsA: Record<PropertyKey, TKeys>,
+    itemsB: Record<PropertyKey, TValues>,
+): ReturnType<typeof objCombine>;
+export function dataCombine<TKeys, TValues>(
     itemsA: DataItems<TKeys>,
     itemsB: DataItems<TValues>,
 ) {
@@ -409,7 +413,10 @@ export function dataCombine<TKeys, TValues>(
     }
 
     if (isArray(itemsA) && isArray(itemsB)) {
-        return arrCombine(itemsA as TKeys[], itemsB as TValues[]);
+        return arrCombine<TKeys | TValues>(
+            itemsA as (TKeys | TValues)[],
+            itemsB as (TKeys | TValues)[],
+        );
     }
 
     throw new Error(
@@ -521,7 +528,7 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
         return objUndot(data) as DataItems<TValue, TKey>;
     }
 
-    return arrUndot(data) as DataItems<TValue>;
+    return arrUndot(data as Record<TKey, TValue>) as DataItems<TValue>;
 }
 
 /**
@@ -530,15 +537,15 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param items - the data items to union
  * @return A new object or array containing all values
  */
-export function dataUnion<TValue, TKey extends PropertyKey = PropertyKey>(
-    ...items: DataItems<TValue, TKey>[]
+export function dataUnion<TValue>(
+    ...items: (TValue[] | Record<PropertyKey, TValue>)[]
 ) {
     if (items.every(isObject)) {
         return objUnion(...items);
     }
 
     if (items.every(isArray)) {
-        return arrUnion(...items);
+        return arrUnion(...(items as TValue[][]));
     }
 
     throw new Error(
@@ -601,7 +608,7 @@ export function dataExceptValues<
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrExceptValues(arrWrap(data), values, strict) as DataItems<
+    return arrExceptValues(data as TValue[], values, strict) as DataItems<
         TValue,
         TKey
     >;
@@ -1082,7 +1089,7 @@ export function dataOnlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrOnlyValues(arrWrap(data), values, strict) as DataItems<
+    return arrOnlyValues(data as TValue[], values, strict) as DataItems<
         TValue,
         TKey
     >;
@@ -1131,7 +1138,7 @@ export function dataMapWithKeys<
     TKey extends PropertyKey = PropertyKey,
     TMapWithKeysKey extends PropertyKey = PropertyKey,
 >(
-    data: unknown,
+    data: DataItems<TValue, TKey>,
     callback: (
         value: TValue,
         key: TKey,
@@ -1169,9 +1176,10 @@ export function dataMapWithKeys<
  *
  * dataMapSpread([[1, 2], [3, 4]], (a, b) => a + b); -> [3, 7]
  */
+
 export function dataMapSpread<U>(
     data: unknown,
-    callback: (...args: unknown[]) => U,
+    callback: (...args: any[]) => U,
 ): unknown {
     if (isObject(data)) {
         return objMapSpread(data as Record<string, unknown>, callback);
@@ -1308,7 +1316,7 @@ export function dataRandom<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
 ): TKey | false {
     for (const [key, item] of Object.entries(items)) {
@@ -1346,7 +1354,7 @@ export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
 ): TValue | null {
     const key = dataSearch(items, value, strict);
@@ -1375,7 +1383,7 @@ export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
 ): TValue | null {
     const key = dataSearch(items, value, strict);
@@ -1491,19 +1499,19 @@ export function dataPush<TValue, TKey extends PropertyKey, TNewValues>(
  */
 export function dataUnshift<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
-    ...items: Array<[TKey, TValue]> | Array<[TValue]>
+    ...items: (TValue | Record<PropertyKey, TValue>)[]
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objUnshift(
             data,
-            ...(items as Array<[TKey, TValue]>),
+            ...(items as Record<TKey, TValue>[]),
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrUnshift(
-        arrWrap(data),
-        ...(items as Array<[TValue]>),
-    ) as DataItems<TValue, TKey>;
+    return arrUnshift(arrWrap(data), ...(items as TValue[])) as DataItems<
+        TValue,
+        TKey
+    >;
 }
 
 /**
@@ -1821,14 +1829,18 @@ export function dataWhere<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param items - The items to replace with
  * @returns The replaced data
  */
-export function dataReplace<TValue, TKey extends PropertyKey = PropertyKey>(
+export function dataReplace<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TReplacerKey extends PropertyKey = PropertyKey,
+>(
     data: DataItems<TValue, TKey>,
-    replacerData: DataItems<TValue, TKey>,
+    replacerData: DataItems<TValue, TReplacerKey>,
 ) {
     if (isObject(data) && isObject(replacerData)) {
         return objReplace(
             data as Record<TKey, TValue>,
-            replacerData as Record<TKey, TValue>,
+            replacerData as Record<TReplacerKey, TValue>,
         ) as DataItems<TValue, TKey>;
     }
 
@@ -2227,7 +2239,7 @@ export function dataContains<TValue, TKey extends PropertyKey = PropertyKey>(
                 | Record<string, unknown>
                 | ((
                       value: Record<string, unknown>,
-                      key: string | number,
+                      key: PropertyKey,
                   ) => boolean),
             strict,
         );
@@ -2404,9 +2416,13 @@ export function dataPop<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param callable - Optional comparison function
  * @returns The intersected data
  */
-export function dataIntersect<TValue, TKey extends PropertyKey = PropertyKey>(
+export function dataIntersect<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TOtherKey extends PropertyKey = PropertyKey,
+>(
     data: DataItems<TValue, TKey>,
-    other: DataItems<TValue, TKey>,
+    other: DataItems<TValue, TOtherKey>,
     callable: ((a: TValue, b: TValue) => boolean) | null = null,
 ): DataItems<TValue, TKey> {
     if (isObject(data) && isObject(other)) {
@@ -2512,7 +2528,8 @@ export function dataIntersectAssocUsing<
 export function dataIntersectByKeys<
     TValue,
     TKey extends PropertyKey = PropertyKey,
->(data: DataItems<TValue, TKey>, other: DataItems<TValue, TKey>) {
+    TOtherKey extends PropertyKey = PropertyKey,
+>(data: DataItems<TValue, TKey>, other: DataItems<TValue, TOtherKey>) {
     if (isObject(data) && isObject(other)) {
         return objIntersectByKeys(
             data as Record<string, TValue>,
