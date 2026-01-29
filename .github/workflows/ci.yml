@@ -35,7 +35,11 @@ jobs:
     permissions:
       contents: write
   dependency-review:
-    if: ${{ github.event_name == 'pull_request' }}
+    if: >-
+      ${{
+        github.event_name == 'pull_request' ||
+        (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'release:'))
+      }}
     uses: ./.github/workflows/dependency_review.yml
     permissions:
       contents: read
