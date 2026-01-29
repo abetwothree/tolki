@@ -12,7 +12,7 @@ If you discover a security vulnerability in any Tolki package, please report it 
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Instead, please send an email to **[SECURITY_EMAIL]** with the following information:
+Instead, please send an email to **[placeholder@fornow.com]** with the following information:
 
 - A description of the vulnerability
 - Steps to reproduce the issue
