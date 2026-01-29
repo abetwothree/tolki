@@ -1497,6 +1497,14 @@ export function dataPush<TValue, TKey extends PropertyKey, TNewValues>(
  * @param items - The items to prepend
  * @returns Data with prepended items
  */
+export function dataUnshift<TValue>(
+    data: TValue[],
+    ...items: unknown[]
+): unknown[];
+export function dataUnshift<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    ...items: Record<PropertyKey, unknown>[]
+): Record<PropertyKey, unknown>;
 export function dataUnshift<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
     ...items: (TValue | Record<PropertyKey, TValue>)[]

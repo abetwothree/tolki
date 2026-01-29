@@ -3041,6 +3041,16 @@ export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
  * contains({ users: { 1: 'John', 2: 'Jane' } }, 'John'); -> false (nested values)
  */
 export function contains<TValue>(
+    data: Record<PropertyKey, TValue>,
+    value: (value: TValue, key: PropertyKey) => boolean,
+    strict?: boolean,
+): boolean;
+export function contains(
+    data: unknown,
+    value: unknown,
+    strict?: boolean,
+): boolean;
+export function contains<TValue>(
     data: Record<PropertyKey, TValue> | unknown,
     value: TValue | ((value: TValue, key: PropertyKey) => boolean),
     strict = false,

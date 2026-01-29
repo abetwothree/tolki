@@ -145,6 +145,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     protected itemsWithOrder?: Array<[TKey, TValue]>;
 
+    constructor(items: TValue[]);
+    constructor(items: readonly TValue[]);
     constructor(items: Collection<TValue, TKey>);
     constructor(items: Arrayable<TValue>);
     constructor(items: Map<TKey, TValue>);
