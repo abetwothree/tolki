@@ -41,21 +41,21 @@ describe("Collection", () => {
         it("arrays", () => {
             const arrColl = collect([{ foo: 1 }, { try: 5 }]);
 
-            // @ts-expect-error - Collection infers union of element types, not tuple
             assertType<Collection<[{ foo: number }, { try: number }], number>>(
+                // @ts-expect-error - Collection infers union of element types, not tuple
                 arrColl,
             );
 
             const arr = new Collection([{ foo: 1 }, { try: 5 }]);
 
-            // @ts-expect-error - Collection infers union of element types, not tuple
             assertType<Collection<[{ foo: number }, { try: number }], number>>(
+                // @ts-expect-error - Collection infers union of element types, not tuple
                 arr,
             );
 
             const fromCollection = collect(arrColl);
-            // @ts-expect-error - Collection infers union of element types, not tuple
             assertType<Collection<[{ foo: number }, { try: number }], number>>(
+                // @ts-expect-error - Collection infers union of element types, not tuple
                 fromCollection,
             );
         });
@@ -82,8 +82,8 @@ describe("Collection", () => {
             assertType<Collection<{ 1: string; 2: string }, string>>(obj2);
 
             const fromCollection2 = collect(objColl2);
-            // @ts-expect-error - collect(collection) preserves original types
             assertType<Collection<{ 1: string; 2: string }, string>>(
+                // @ts-expect-error - collect(collection) preserves original types
                 fromCollection2,
             );
         });
