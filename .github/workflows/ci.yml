@@ -18,7 +18,7 @@ jobs:
   test:
     if: >-
       ${{
-        (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository) ||
+        github.event_name == 'pull_request' ||
         (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'release:'))
       }}
     uses: ./.github/workflows/test.yml
@@ -28,12 +28,17 @@ jobs:
   lint-and-format:
     if: >-
       ${{
-        (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository) ||
+        github.event_name == 'pull_request' ||
         (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'release:'))
       }}
     uses: ./.github/workflows/lint_and_format_style.yml
     permissions:
       contents: write
+  dependency-review:
+    if: ${{ github.event_name == 'pull_request' }}
+    uses: ./.github/workflows/dependency_review.yml
+    permissions:
+      contents: read
   release:
     if: >-
       ${{
