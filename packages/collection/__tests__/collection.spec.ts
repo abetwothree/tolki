@@ -1126,7 +1126,7 @@ describe("Collection", () => {
             expect(c2.filter().values().toArray()).toEqual(["Hello", "World"]);
 
             const c3 = collect({ id: 1, first: "Hello", second: "World" });
-            expect(c3.filter((item, key) => key !== "id").all()).toEqual({
+            expect(c3.filter((_item, key) => key !== "id").all()).toEqual({
                 first: "Hello",
                 second: "World",
             });
@@ -2400,7 +2400,7 @@ describe("Collection", () => {
                 const c = collect([100, 200, 300]);
                 expect(c.last((value) => value < 250)).toBe(200);
 
-                expect(c.last((value, key) => key < 2)).toBe(200);
+                expect(c.last((_value, key) => key < 2)).toBe(200);
 
                 expect(c.last((value) => value > 300)).toBeNull();
             });
@@ -5538,7 +5538,7 @@ describe("Collection", () => {
 
                 expect(
                     c
-                        .unique((item, key) => {
+                        .unique((_item, key) => {
                             return key % 2;
                         })
                         .all(),
@@ -6857,7 +6857,7 @@ describe("Collection", () => {
                 const data = collect(["zero", "one", "two", "three"]);
 
                 const [even, odd] = data
-                    .partition((item, index) => {
+                    .partition((_item, index) => {
                         return index % 2 === 0;
                     })
                     .all();
