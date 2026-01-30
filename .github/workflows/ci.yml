@@ -16,21 +16,11 @@ concurrency:
 
 jobs:
   test:
-    if: >-
-      ${{
-        github.event_name == 'pull_request' ||
-        (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'release:'))
-      }}
     uses: ./.github/workflows/test.yml
     permissions:
       contents: write
       pull-requests: write
   lint-and-format:
-    if: >-
-      ${{
-        github.event_name == 'pull_request' ||
-        (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'release:'))
-      }}
     uses: ./.github/workflows/lint_and_format_style.yml
     permissions:
       contents: write
@@ -39,14 +29,3 @@ jobs:
     uses: ./.github/workflows/dependency_review.yml
     permissions:
       contents: read
-  release:
-    if: >-
-      ${{
-        github.event_name == 'push' &&
-        github.ref == 'refs/heads/master' &&
-        startsWith(github.event.head_commit.message, 'release:')
-      }}
-    uses: ./.github/workflows/publish.yml
-    permissions:
-      contents: write
-      id-token: write

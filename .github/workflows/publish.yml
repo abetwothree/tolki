@@ -1,9 +1,16 @@
-name: Publish Packages
+name: Release Packages
 
-on: workflow_call
+on:
+  push:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
 
 permissions:
   contents: write
+  pull-requests: write
   id-token: write
 
 jobs:
@@ -28,16 +35,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Version packages
-        run: pnpm document:version
-
-      - name: Publish packages
-        run: pnpm ci:publish
-        env:
-          NPM_CONFIG_PROVENANCE: true
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v6
+      - name: Create release PR or publish packages
+        uses: changesets/action@v1
         with:
-          commit_message: Versions packages via changesets
+          version: pnpm document:version
+          publish: pnpm ci:publish
+          title: "release: version packages"
+          commit: "release: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
