@@ -43,4 +43,5 @@ jobs:
           title: "release: version packages"
           commit: "release: version packages"
         env:
+          NPM_CONFIG_PROVENANCE: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
