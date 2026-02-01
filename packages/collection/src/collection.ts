@@ -1235,7 +1235,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | ((value: TValue, index: TKey) => unknown)
             | ArrayItems<PropertyKey>
             | PathKey,
-    ): Collection<TValue, string> {
+    ) {
         const keyByValueCallback = this.valueRetriever(
             keyByValue as PathKey | ((...args: (TValue | TKey)[]) => unknown),
         );
@@ -1268,8 +1268,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
             (results as Record<string, TValue>)[resolvedKey as string] =
                 value as TValue;
         }
-
-        return new Collection(results) as unknown as Collection<TValue, string>;
+        
+        return this.newInstance(results);
     }
 
     /**
@@ -5479,12 +5479,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Create a new instance of the collection using the runtime constructor.
      * This preserves subclass behavior (equivalent to PHP's `new static()`).
      *
+     * Note: Generic defaults to `unknown` because this method is called with transformed
+     * data (e.g., from collapse, flip, dot, mapWithKeys) that may have different
+     * TValue/TKey types than the original collection.
+     *
      * @param items - The items for the new collection instance
      * @returns A new collection instance
      */
+    protected newInstance<TItems = unknown>(items?: TItems): this {
+        const Ctor = this.constructor as new (items?: TItems) => this;
 
-    protected newInstance(items?: any): this {
-        return new (this.constructor as new (items?: any) => this)(items);
+        return new Ctor(items);
     }
 
     /**
