@@ -1667,6 +1667,10 @@ export function mapWithKeys<
  * mapSpread([[1, 2], [3, 4]], (a, b) => a + b); -> [3, 7]
  * mapSpread([['John', 25], ['Jane', 30]], (name, age) => `${name} is ${age}`); -> ['John is 25', 'Jane is 30']
  */
+export function mapSpread<T1, TMapReturn>(
+    data: [T1][],
+    callback: (arg1: T1, index: number) => TMapReturn,
+): TMapReturn[];
 // Overload: 2-element tuples with proper type inference
 export function mapSpread<T1, T2, TMapReturn>(
     data: [T1, T2][],
@@ -1709,7 +1713,6 @@ export function mapSpread<TMapReturn>(
 // Implementation (using any[] for compatibility with all overloads)
 export function mapSpread<TMapReturn>(
     data: unknown,
-
     callback: (...args: any[]) => TMapReturn,
 ): TMapReturn[] {
     const values = getAccessibleValues(data);

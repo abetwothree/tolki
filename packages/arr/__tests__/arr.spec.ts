@@ -1989,7 +1989,7 @@ describe("Arr", () => {
         ).toEqual([]);
 
         // Single item arrays
-        expect(Arr.mapSpread([[5]], (value) => (value as number) * 2)).toEqual([
+        expect(Arr.mapSpread([[5]], (value) => value * 2)).toEqual([
             10,
         ]);
 
