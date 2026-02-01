@@ -1764,7 +1764,10 @@ export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     const obj = data as Record<TKey, TValue>;
-    const result: Record<TKey, TValue> = { [key]: value } as Record<TKey, TValue>;
+    const result: Record<TKey, TValue> = { [key]: value } as Record<
+        TKey,
+        TValue
+    >;
 
     // Add existing entries after the prepended one
     for (const [existingKey, existingValue] of Object.entries(obj)) {

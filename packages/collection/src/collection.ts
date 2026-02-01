@@ -1276,7 +1276,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             (results as Record<string, TValue>)[resolvedKey as string] =
                 value as TValue;
         }
-        
+
         return this.newInstance(results);
     }
 

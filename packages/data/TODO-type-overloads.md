@@ -11,25 +11,25 @@ Follow the pattern established in `dataAdd`:
 ```typescript
 // 1. Object overload - uses obj* function return type
 export function dataFoo<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
-    ...otherParams
+  data: Record<TKey, TValue>,
+  ...otherParams
 ): ReturnType<typeof objFoo<TValue, TKey>>;
 
-// 2. Array overload - uses arr* function return type  
+// 2. Array overload - uses arr* function return type
 export function dataFoo<TValue>(
-    data: TValue[],
-    ...otherParams
+  data: TValue[],
+  ...otherParams
 ): ReturnType<typeof arrFoo<TValue>>;
 
 // 3. Implementation - uses DataItems union type
 export function dataFoo<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    ...otherParams
+  data: DataItems<TValue, TKey>,
+  ...otherParams
 ) {
-    if (isObject(data)) {
-        return objFoo(data as Record<TKey, TValue>, ...otherParams);
-    }
-    return arrFoo(arrWrap(data), ...otherParams);
+  if (isObject(data)) {
+    return objFoo(data as Record<TKey, TValue>, ...otherParams);
+  }
+  return arrFoo(arrWrap(data), ...otherParams);
 }
 ```
 

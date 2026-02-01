@@ -1989,9 +1989,7 @@ describe("Arr", () => {
         ).toEqual([]);
 
         // Single item arrays
-        expect(Arr.mapSpread([[5]], (value) => value * 2)).toEqual([
-            10,
-        ]);
+        expect(Arr.mapSpread([[5]], (value) => value * 2)).toEqual([10]);
 
         // Mixed chunk sizes
         expect(
