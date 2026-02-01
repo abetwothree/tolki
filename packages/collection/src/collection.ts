@@ -549,8 +549,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).crossJoin([3, 4]); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
      * new Collection({a: 1, b: 2}).crossJoin({c: 3, d: 4}); -> new Collection([{a: 1, c: 3}, {a: 1, d: 4}, {b: 2, c: 3}, {b: 2, d: 4}])
      */
-
     crossJoin(
+        // Note: Collection<any, any> is intentional here due to TypeScript contravariance.
+        // Collection<unknown, PropertyKey> breaks when passing typed collections.
         ...items: Array<DataItems<unknown, PropertyKey> | Collection<any, any>>
     ) {
         const results = dataCrossJoin(
@@ -573,8 +574,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * new Collection([1, 2, 3, 4]).diff([2, 4]); -> new Collection({0: 1, 2: 3})
      */
-
     diff(
+        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items:
             | DataItems<unknown, PropertyKey>
             | Collection<any, any>
@@ -599,6 +600,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection(['apple', 'banana', 'cherry']).diffUsing(['banana'], (a, b) => a === b); -> new Collection({0: 'apple', 2: 'cherry'})
      */
     diffUsing(
+        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items:
             | DataItems<unknown, PropertyKey>
             | Collection<any, any>
@@ -644,8 +646,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).diffAssoc({b: 3}); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection({a: 1, b: 2, c: 3}).diffAssoc({d: 4}); -> new Collection({a: 1, b: 2, c: 3})
      */
-
-    diffAssoc(items: DataItems<unknown, PropertyKey> | Collection<any, any>) {
+    diffAssoc(
+        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
+        items: DataItems<unknown, PropertyKey> | Collection<any, any>,
+    ) {
         return new (this.constructor as new (...args: unknown[]) => this)(
             dataDiff<TValue, TKey>(this.items, this.getRawItems(items)),
         );
@@ -665,6 +669,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 'green', b: 'brown', c: 'blue', 0: 'red'}).diffAssocUsing({A: 'green', 0: 'yellow', 1: 'red'}, strcasecmp); -> new Collection({b: 'brown', c: 'blue', 0: 'red'})
      */
     diffAssocUsing(
+        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items: DataItems<unknown, PropertyKey> | Collection<any, any>,
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
@@ -688,8 +693,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).diffKeys({b: 2}); -> new Collection({a: 1, c: 3})
      * new Collection([1, 3, 5, 7, 8]).diffKeys([1, 3, 5]); -> new Collection([7, 8])
      */
-
-    diffKeys(items: DataItems<unknown, PropertyKey> | Collection<any, any>) {
+    diffKeys(
+        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
+        items: DataItems<unknown, PropertyKey> | Collection<any, any>,
+    ) {
         const otherItems = this.getRawItems(items);
         const results = {} as DataItems<TValue, TKey>;
 
@@ -723,6 +730,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({id: 1, first_word: 'Hello'}).diffKeysUsing({ID: 123, foo_bar: 'Hello'}, strcasecmp); -> new Collection({first_word: 'Hello'})
      */
     diffKeysUsing(
+        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items: DataItems<unknown, PropertyKey> | Collection<any, any>,
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
@@ -3561,6 +3569,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).zip({x: 'a', y: 'b', z: 'c'}); -> new Collection([[1, 'a'], [2, 'b']])
      */
     zip<TZipValue>(
+        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         ...list: Array<DataItems<TZipValue, PropertyKey> | Collection<any, any>>
     ): Collection<Collection<TValue | TZipValue, number>, number> {
         const arraysToZip = list.map((items) => {
