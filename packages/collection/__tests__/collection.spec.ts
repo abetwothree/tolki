@@ -3365,10 +3365,10 @@ describe("Collection", () => {
                 two: 2,
             });
 
-            // Laravel: Test prepend with empty string key (converts to null)
+            // In JavaScript, empty strings are valid object keys (unlike PHP where they convert to null)
             const c4 = collect({ one: 1, two: 2 });
             expect(c4.prepend(0, "").all()).toEqual({
-                null: 0,
+                "": 0,
                 one: 1,
                 two: 2,
             });

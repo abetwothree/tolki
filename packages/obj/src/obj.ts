@@ -1760,15 +1760,11 @@ export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
     key: TKey,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
-        // Convert empty string to null to match PHP behavior
-        const finalKey = key === "" ? (null as unknown as TKey) : key;
-        return { [finalKey]: value } as Record<TKey, TValue>;
+        return { [key]: value } as Record<TKey, TValue>;
     }
 
     const obj = data as Record<TKey, TValue>;
-    // Convert empty string to null to match PHP behavior
-    const finalKey = key === "" ? (null as unknown as TKey) : key;
-    const result: Record<TKey, TValue> = { [finalKey]: value } as Record<
+    const result: Record<TKey, TValue> = { [key]: value } as Record<
         TKey,
         TValue
     >;
