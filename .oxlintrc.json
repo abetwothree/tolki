@@ -120,7 +120,8 @@
                 "no-var": "error",
                 "no-with": "off",
                 "prefer-rest-params": "error",
-                "prefer-spread": "error"
+                "prefer-spread": "error",
+                "@typescript-eslint/no-explicit-any": "off"
             }
         }
     ]

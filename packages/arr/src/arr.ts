@@ -242,7 +242,7 @@ export function collapse<TValue extends ArrayItems<unknown>>(
  */
 export function combine<TValue>(...arrays: ArrayItems<TValue>[]) {
     const length = arrays[0]?.length || 0;
-    const result = [];
+    const result: (TValue | undefined)[][] = [];
 
     for (let i = 0; i < length; i++) {
         result.push(arrays.map((array) => array[i]));
@@ -556,7 +556,7 @@ export function first<TValue, TFirstDefault = null>(
     }
 
     // Convert to array to ensure we can iterate properly with callback
-    const array = from(data);
+    const array = from(data as object);
 
     if (!isArray(array)) {
         // If from() returns an object, iterate over values
@@ -1366,10 +1366,9 @@ export function onlyValues<TValue>(
     values: TValue | TValue[],
     strict: boolean = false,
 ): TValue[] {
-    const array = wrap(data);
     const valueArray = isArray(values) ? values : [values];
 
-    return array.filter((value) => {
+    return (data as TValue[]).filter((value) => {
         return valueArray.some((v) =>
             strict ? value === v : looseEqual(value, v),
         );
@@ -1668,17 +1667,18 @@ export function mapWithKeys<
  * mapSpread([[1, 2], [3, 4]], (a, b) => a + b); -> [3, 7]
  * mapSpread([['John', 25], ['Jane', 30]], (name, age) => `${name} is ${age}`); -> ['John is 25', 'Jane is 30']
  */
-// Overload: 2-element tuples with proper type inference
+export function mapSpread<T1, TMapReturn>(
+    data: [T1][],
+    callback: (arg1: T1, index: number) => TMapReturn,
+): TMapReturn[];
 export function mapSpread<T1, T2, TMapReturn>(
     data: [T1, T2][],
     callback: (arg1: T1, arg2: T2, index: number) => TMapReturn,
 ): TMapReturn[];
-// Overload: 3-element tuples with proper type inference
 export function mapSpread<T1, T2, T3, TMapReturn>(
     data: [T1, T2, T3][],
     callback: (arg1: T1, arg2: T2, arg3: T3, index: number) => TMapReturn,
 ): TMapReturn[];
-// Overload: 4-element tuples with proper type inference
 export function mapSpread<T1, T2, T3, T4, TMapReturn>(
     data: [T1, T2, T3, T4][],
     callback: (
@@ -1689,7 +1689,6 @@ export function mapSpread<T1, T2, T3, T4, TMapReturn>(
         index: number,
     ) => TMapReturn,
 ): TMapReturn[];
-// Overload: 5-element tuples with proper type inference
 export function mapSpread<T1, T2, T3, T4, T5, TMapReturn>(
     data: [T1, T2, T3, T4, T5][],
     callback: (
@@ -1701,17 +1700,13 @@ export function mapSpread<T1, T2, T3, T4, T5, TMapReturn>(
         index: number,
     ) => TMapReturn,
 ): TMapReturn[];
-// Overload: generic fallback for any data
 export function mapSpread<TMapReturn>(
     data: unknown,
-
     callback: (...args: unknown[]) => TMapReturn,
 ): TMapReturn[];
-// Implementation (using unknown[] for compatibility with all overloads)
 export function mapSpread<TMapReturn>(
     data: unknown,
-
-    callback: (...args: unknown[]) => TMapReturn,
+    callback: (...args: any[]) => TMapReturn,
 ): TMapReturn[] {
     const values = getAccessibleValues(data);
     const result: TMapReturn[] = [];
@@ -2433,7 +2428,7 @@ export function splice<TValue, TReplacements>(
         if (accessible(item)) {
             flatReplacement.push(...(item as unknown as TValue[]));
         } else {
-            flatReplacement.push(item as TValue);
+            flatReplacement.push(item as unknown as TValue);
         }
     }
 

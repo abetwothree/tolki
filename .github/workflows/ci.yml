@@ -10,20 +10,29 @@ on:
       - master
       - develop
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    if: ${{ ! startsWith(github.event.head_commit.message, 'release:') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
     uses: ./.github/workflows/test.yml
     permissions:
       contents: write
+      pull-requests: write
   lint-and-format:
-    if: ${{ ! startsWith(github.event.head_commit.message, 'release:') && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
     uses: ./.github/workflows/lint_and_format_style.yml
     permissions:
       contents: write
-  release:
-    if: ${{ startsWith(github.event.head_commit.message, 'release:') && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-    uses: ./.github/workflows/publish.yml
+  # TODO: enable when repo is public (requires GitHub Advanced Security for private repos)
+  # dependency-review:
+  #   if: ${{ github.event_name == 'pull_request' }}
+  #   uses: ./.github/workflows/dependency_review.yml
+  #   permissions:
+  #     contents: read
+  changeset-check:
+    if: ${{ github.event_name == 'pull_request' }}
+    uses: ./.github/workflows/changeset_check.yml
     permissions:
-      contents: write
-      id-token: write
+      contents: read
+      pull-requests: read
