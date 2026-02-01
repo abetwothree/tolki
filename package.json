@@ -36,7 +36,7 @@
         "test": "vitest --run --coverage",
         "test:dev": "vitest --coverage",
         "test:ui": "vitest --ui --coverage",
-        "ts:check": "tsc --incremental --noEmit",
+        "ts:check": "tsc --incremental --noEmit --pretty",
         "docs:dev": "vitepress dev docs",
         "docs:build": "vitepress build docs",
         "docs:preview": "vitepress preview docs",

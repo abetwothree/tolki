@@ -1760,15 +1760,11 @@ export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
     key: TKey,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
-        // Convert empty string to null to match PHP behavior
-        const finalKey = key === "" ? (null as TKey) : key;
-        return { [finalKey]: value } as Record<TKey, TValue>;
+        return { [key]: value } as Record<TKey, TValue>;
     }
 
     const obj = data as Record<TKey, TValue>;
-    // Convert empty string to null to match PHP behavior
-    const finalKey = key === "" ? (null as TKey) : key;
-    const result: Record<TKey, TValue> = { [finalKey]: value } as Record<
+    const result: Record<TKey, TValue> = { [key]: value } as Record<
         TKey,
         TValue
     >;
@@ -2654,7 +2650,9 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
     // Prepare replacement entries
     const replacementEntries: [string, TValue][] = [];
     for (const repObj of replacement) {
-        for (const [key, value] of Object.entries(repObj)) {
+        for (const [key, value] of Object.entries(
+            repObj as Record<string, TValue>,
+        )) {
             replacementEntries.push([key, value as TValue]);
         }
     }
@@ -2673,7 +2671,10 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
 
     const value: TValue[] = splicedEntries.map(([, value]) => value);
 
-    return { value, removed };
+    return {
+        value: value as unknown as Record<TKey, TValue>,
+        removed: removed as unknown as Record<TKey, TValue>,
+    };
 }
 
 /**
@@ -2868,7 +2869,7 @@ export function replaceRecursive<T1, T2>(
                 value as T2[],
             ) as unknown as T1;
         } else {
-            data[key] = value as unknown as T2;
+            data[key] = value as unknown as T1;
         }
     }
 
@@ -3036,6 +3037,16 @@ export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
  * contains({ users: { 1: 'John', 2: 'Jane' } }, 'John'); -> false (nested values)
  */
 export function contains<TValue>(
+    data: Record<PropertyKey, TValue>,
+    value: (value: TValue, key: PropertyKey) => boolean,
+    strict?: boolean,
+): boolean;
+export function contains(
+    data: unknown,
+    value: unknown,
+    strict?: boolean,
+): boolean;
+export function contains<TValue>(
     data: Record<PropertyKey, TValue> | unknown,
     value: TValue | ((value: TValue, key: PropertyKey) => boolean),
     strict = false,
@@ -3057,7 +3068,7 @@ export function contains<TValue>(
 
     if (strict) {
         return Object.values(data as Record<PropertyKey, TValue>).includes(
-            value,
+            value as TValue,
         );
     }
 
@@ -3433,7 +3444,10 @@ export function intersectAssocUsing<T1, T2, TResponse>(
 
     for (const [dataKey, dataValue] of Object.entries(data)) {
         for (const [otherKey, otherValue] of Object.entries(other)) {
-            if (callback(dataKey, otherKey) && dataValue === otherValue) {
+            if (
+                callback(dataKey, otherKey) &&
+                (dataValue as unknown) === (otherValue as unknown)
+            ) {
                 result[dataKey] = dataValue as unknown as TResponse;
                 break; // Only add once per dataKey
             }

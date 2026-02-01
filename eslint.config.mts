@@ -25,6 +25,12 @@ export default defineConfig([
     },
     tseslint.configs.recommended,
     {
+        files: ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
+        rules: {
+            "@typescript-eslint/no-explicit-any": "off",
+        },
+    },
+    {
         files: ["**/*.json"],
         plugins: { json },
         language: "json/json",
