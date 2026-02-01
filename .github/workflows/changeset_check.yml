@@ -1,0 +1,39 @@
+name: Changeset Check
+
+on: workflow_call
+
+jobs:
+  changeset-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check for source changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            source:
+              - 'packages/**/src/**'
+
+      - name: Install pnpm
+        if: steps.filter.outputs.source == 'true'
+        uses: pnpm/action-setup@v4.1.0
+
+      - name: Install Node.js
+        if: steps.filter.outputs.source == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        if: steps.filter.outputs.source == 'true'
+        run: pnpm install
+
+      - name: Require changeset
+        if: steps.filter.outputs.source == 'true'
+        run: pnpm changeset status --since=origin/master

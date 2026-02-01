@@ -19,64 +19,52 @@ Scripts:
       - any-glob-to-any-file: scripts/**
 
 Source:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: "packages/**/src/**/*"
+  - changed-files:
+      - any-glob-to-any-file: "packages/**/src/**/*"
 
 Tests:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: "packages/**/__tests__/**/*"
+  - changed-files:
+      - any-glob-to-any-file: "packages/**/__tests__/**/*"
 
 AllPackage:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: "packages/all/**/*"
+  - changed-files:
+      - any-glob-to-any-file: "packages/all/**/*"
 
 ArrPackage:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: "packages/arr/**/*"
+  - changed-files:
+      - any-glob-to-any-file: "packages/arr/**/*"
 
 CollectionPackage:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: "packages/collection/**/*"
+  - changed-files:
+      - any-glob-to-any-file: "packages/collection/**/*"
 
 DataPackage:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: "packages/data/**/*"
+  - changed-files:
+      - any-glob-to-any-file: "packages/data/**/*"
 
 NumberPackage:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: "packages/num/**/*"
+  - changed-files:
+      - any-glob-to-any-file: "packages/num/**/*"
 
 ObjectPackage:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: "packages/obj/**/*"
+  - changed-files:
+      - any-glob-to-any-file: "packages/obj/**/*"
 
 PathPackage:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: "packages/path/**/*"
+  - changed-files:
+      - any-glob-to-any-file: "packages/path/**/*"
 
 StringPackage:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: "packages/str/**/*"
+  - changed-files:
+      - any-glob-to-any-file: "packages/str/**/*"
 
 TypesPackage:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: "packages/types/**/*"
+  - changed-files:
+      - any-glob-to-any-file: "packages/types/**/*"
 
 UtilsPackage:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: "packages/utils/**/*"
+  - changed-files:
+      - any-glob-to-any-file: "packages/utils/**/*"
 
 # Add 'feature' label to any PR where the head branch name starts with `feature` or has a `feature` section in the name
 Feature:

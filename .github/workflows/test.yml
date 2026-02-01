@@ -3,10 +3,8 @@ name: "test"
 on: workflow_call
 
 jobs:
-  unit-test:
+  build-test:
     runs-on: ubuntu-latest
-    env:
-      PUPPETEER_SKIP_DOWNLOAD: "true"
     steps:
       - uses: actions/checkout@v5
 
@@ -21,15 +19,15 @@ jobs:
 
       - run: pnpm install
 
-      - name: Run unit tests
-        run: pnpm run test
+      - name: Run build
+        run: pnpm run build
 
-      - name: Vitest Report coverage
-        if: always()
-        uses: davelosert/vitest-coverage-report-action@v2
-
-  unit-test-windows:
-    runs-on: windows-latest
+  unit-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22, 24]
     env:
       PUPPETEER_SKIP_DOWNLOAD: "true"
     steps:
@@ -38,10 +36,48 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4.1.0
 
-      - name: Install Node.js
+      - name: Install Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version-file: ".node-version"
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+
+      - run: pnpm install
+
+      - name: Run unit tests
+        run: pnpm run test
+
+      - name: Vitest Report coverage
+        if: always() && matrix.node-version == 22
+        uses: davelosert/vitest-coverage-report-action@v2
+
+      # TODO: enable when repo is public (Codecov is free for public repos)
+      # https://about.codecov.io/
+      # - name: Upload coverage to Codecov
+      #   if: matrix.node-version == 22
+      #   uses: codecov/codecov-action@v5
+      #   with:
+      #     files: ./coverage/coverage-final.json
+      #     fail_ci_if_error: false
+
+  unit-test-windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22, 24]
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4.1.0
+
+      - name: Install Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
           cache: "pnpm"
 
       - run: pnpm install

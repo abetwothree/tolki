@@ -1,7 +1,8 @@
 import css from "@eslint/css";
 import js from "@eslint/js";
 import json from "@eslint/json";
-import markdown from "@eslint/markdown";
+// TODO: re-enable when @eslint/markdown fixes getLoc() compatibility with @eslint/plugin-kit 0.4.x
+// import markdown from "@eslint/markdown";
 import { defineConfig } from "eslint/config";
 import oxlint from "eslint-plugin-oxlint";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
@@ -48,12 +49,13 @@ export default defineConfig([
         language: "json/json5",
         extends: ["json/recommended"],
     },
-    {
-        files: ["**/*.md"],
-        plugins: { markdown },
-        language: "markdown/gfm",
-        extends: ["markdown/recommended"],
-    },
+    // TODO: re-enable when @eslint/markdown fixes getLoc() compatibility with @eslint/plugin-kit 0.4.x
+    // {
+    //     files: ["**/*.md"],
+    //     plugins: { markdown },
+    //     language: "markdown/gfm",
+    //     extends: ["markdown/recommended"],
+    // },
     {
         files: ["**/*.css"],
         plugins: { css },
