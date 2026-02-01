@@ -35,3 +35,4 @@ jobs:
     uses: ./.github/workflows/changeset_check.yml
     permissions:
       contents: read
+      pull-requests: read
