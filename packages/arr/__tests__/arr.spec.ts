@@ -422,7 +422,7 @@ describe("Arr", () => {
             data = [["#foo", ["#bar"]], ["#baz"]];
             expect(Arr.flatten(data)).toEqual(["#foo", "#bar", "#baz"]);
         });
-    
+
         it("should handle depth=1 with objects", () => {
             // Tests depth === 1 branch for object values
             const data = [{ a: 1, b: 2 }];
@@ -1315,13 +1315,9 @@ describe("Arr", () => {
 
             expect(Arr.replace(data, ["d", "e"])).toEqual(["d", "e", "c"]);
 
-            expect(Arr.replace(data, { 1: "d", 2: "e", 3: "f", 4: "g" })).toEqual([
-                "a",
-                "d",
-                "e",
-                "f",
-                "g",
-            ]);
+            expect(
+                Arr.replace(data, { 1: "d", 2: "e", 3: "f", 4: "g" }),
+            ).toEqual(["a", "d", "e", "f", "g"]);
 
             const data2 = ["amir", "otwell"];
             expect(Arr.replace(data2, { 0: "taylor", 2: 26 })).toEqual([
@@ -1341,7 +1337,7 @@ describe("Arr", () => {
                 "end",
             ]);
         });
-    
+
         it("should return values unchanged when replacerData is a primitive", () => {
             // Tests final return when replacerData is not array or object
             expect(Arr.replace(["a", "b"], 123)).toEqual(["a", "b"]);
@@ -1381,19 +1377,15 @@ describe("Arr", () => {
                 "b",
                 ["c", "d"],
             ]);
-            expect(Arr.replaceRecursive(data, ["z", { 2: { 1: "e" } }])).toEqual([
-                "z",
-                "b",
-                ["c", "e"],
-            ]);
+            expect(
+                Arr.replaceRecursive(data, ["z", { 2: { 1: "e" } }]),
+            ).toEqual(["z", "b", ["c", "e"]]);
             expect(
                 Arr.replaceRecursive(data, ["z", { 2: { 1: "e" } }, "f"]),
             ).toEqual(["z", "b", ["c", "e"], "f"]);
-            expect(Arr.replaceRecursive(data, ["z", { 2: { 1: "e" } }])).toEqual([
-                "z",
-                "b",
-                ["c", "e"],
-            ]);
+            expect(
+                Arr.replaceRecursive(data, ["z", { 2: { 1: "e" } }]),
+            ).toEqual(["z", "b", ["c", "e"]]);
             expect(Arr.replaceRecursive(data, { 2: { 1: "e" } })).toEqual([
                 "a",
                 "b",
@@ -1447,17 +1439,22 @@ describe("Arr", () => {
         describe("final return", () => {
             it("should return values unchanged when replacerData is a primitive", () => {
                 // Tests final return when replacerData is not array or numeric keyed object
-                expect(Arr.replaceRecursive(["a", "b"], 123)).toEqual(["a", "b"]);
+                expect(Arr.replaceRecursive(["a", "b"], 123)).toEqual([
+                    "a",
+                    "b",
+                ]);
                 expect(Arr.replaceRecursive(["a", "b"], "string")).toEqual([
                     "a",
                     "b",
                 ]);
-                expect(Arr.replaceRecursive(["a", "b"], true)).toEqual(["a", "b"]);
-                // Non-numeric keyed object should also hit the final return
-                expect(Arr.replaceRecursive(["a", "b"], { foo: "bar" })).toEqual([
+                expect(Arr.replaceRecursive(["a", "b"], true)).toEqual([
                     "a",
                     "b",
                 ]);
+                // Non-numeric keyed object should also hit the final return
+                expect(
+                    Arr.replaceRecursive(["a", "b"], { foo: "bar" }),
+                ).toEqual(["a", "b"]);
             });
         });
 
@@ -1823,7 +1820,10 @@ describe("Arr", () => {
                 { user: { name: "Jane", profile: { city: "LA" } } },
             ];
             expect(Arr.pluck(nested, "user.name")).toEqual(["John", "Jane"]);
-            expect(Arr.pluck(nested, "user.profile.city")).toEqual(["NYC", "LA"]);
+            expect(Arr.pluck(nested, "user.profile.city")).toEqual([
+                "NYC",
+                "LA",
+            ]);
 
             // Plucking with key parameter (creates object)
             expect(Arr.pluck(users, "name", "age")).toEqual({
@@ -1833,12 +1833,12 @@ describe("Arr", () => {
             });
 
             // Plucking with callback functions
-            expect(Arr.pluck(users, (user) => user.name.toUpperCase())).toEqual([
-                "JOHN",
-                "JANE",
-                "BOB",
-            ]);
-            expect(Arr.pluck(users, "name", (user) => `user_${user.age}`)).toEqual({
+            expect(Arr.pluck(users, (user) => user.name.toUpperCase())).toEqual(
+                ["JOHN", "JANE", "BOB"],
+            );
+            expect(
+                Arr.pluck(users, "name", (user) => `user_${user.age}`),
+            ).toEqual({
                 user_30: "John",
                 user_25: "Jane",
                 user_35: "Bob",
@@ -1916,7 +1916,6 @@ describe("Arr", () => {
             expect(Arr.pop(undefined)).toBeNull();
         });
 
-    
         it("should return null when popping from empty array", () => {
             // Tests poppedValues.length === 0 returns null
             expect(Arr.pop([])).toBe(null);
@@ -1975,7 +1974,7 @@ describe("Arr", () => {
                 2: { id: 2, name: "Jane" },
             });
         });
-    
+
         it("should handle callback returning symbol", () => {
             // Tests when keyBy function returns a symbol
             const sym = Symbol("test");
@@ -2248,7 +2247,9 @@ describe("Arr", () => {
     describe("query", () => {
         it("query", () => {
             // Basic object
-            expect(Arr.query({ name: "John", age: 30 })).toBe("name=John&age=30");
+            expect(Arr.query({ name: "John", age: 30 })).toBe(
+                "name=John&age=30",
+            );
 
             // Array
             expect(Arr.query(["a", "b", "c"])).toBe("0=a&1=b&2=c");
@@ -2298,7 +2299,7 @@ describe("Arr", () => {
                 "simple=value&nested[array][0]=1&nested[array][1]=2&nested[deep][value]=test",
             );
         });
-    
+
         it("should skip null and undefined values", () => {
             // Tests null/undefined values not added to parts
             const data = ["a", null, "b", undefined, "c"];
@@ -2418,7 +2419,7 @@ describe("Arr", () => {
             expect(Arr.shift(null)).toBeNull();
             expect(Arr.shift(undefined)).toBeNull();
         });
-    
+
         it("should return empty array when shifting multiple from empty array", () => {
             // Tests empty result with count > 1
             expect(Arr.shift([], 3)).toEqual([]);
@@ -2572,7 +2573,9 @@ describe("Arr", () => {
     describe("toCssClasses", () => {
         it("toCssClasses", () => {
             // Basic array of classes
-            expect(Arr.toCssClasses(["font-bold", "mt-4"])).toBe("font-bold mt-4");
+            expect(Arr.toCssClasses(["font-bold", "mt-4"])).toBe(
+                "font-bold mt-4",
+            );
 
             // Mixed array with conditional classes
             expect(
@@ -2617,7 +2620,7 @@ describe("Arr", () => {
                 }),
             ).toBe("font-bold bg-blue");
         });
-    
+
         it("should handle plain object input", () => {
             // Tests isObject branch
             const obj = { "font-bold": true, "text-red": false };
@@ -2632,17 +2635,16 @@ describe("Arr", () => {
     });
 
     describe("toCssStyles", () => {
-
         it("toCssStyles", () => {
             // Basic array of styles
-            expect(Arr.toCssStyles(["font-weight: bold", "margin-top: 4px"])).toBe(
-                "font-weight: bold; margin-top: 4px;",
-            );
+            expect(
+                Arr.toCssStyles(["font-weight: bold", "margin-top: 4px"]),
+            ).toBe("font-weight: bold; margin-top: 4px;");
 
             // Styles with and without semicolons
-            expect(Arr.toCssStyles(["font-weight: bold;", "margin-top: 4px"])).toBe(
-                "font-weight: bold; margin-top: 4px;",
-            );
+            expect(
+                Arr.toCssStyles(["font-weight: bold;", "margin-top: 4px"]),
+            ).toBe("font-weight: bold; margin-top: 4px;");
 
             // Mixed array with conditional styles
             expect(
@@ -2673,7 +2675,7 @@ describe("Arr", () => {
                 "font-weight: bold;",
             );
         });
-    
+
         it("should handle plain object input", () => {
             // Tests isObject branch
             const obj = {
@@ -2772,7 +2774,7 @@ describe("Arr", () => {
                 a: 1,
             });
         });
-    
+
         it("should return primitive values unchanged", () => {
             // Tests else branch returning data unchanged
             expect(Arr.sortRecursive(42)).toEqual(42);
