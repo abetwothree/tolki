@@ -31,6 +31,11 @@ describe("Str tests", () => {
         expect(Str.afterLast("yv0et0te", 0)).toBe("te");
         expect(Str.afterLast("yv2et2te", 2)).toBe("te");
         expect(Str.afterLast("----foo", "---")).toBe("foo");
+        // Test with multibyte characters in search string
+        expect(Str.afterLast("café au café", "café")).toBe("");
+        expect(Str.afterLast("こんにちは世界こんにちは", "こんにちは")).toBe(
+            "",
+        );
     });
 
     it("ascii", () => {

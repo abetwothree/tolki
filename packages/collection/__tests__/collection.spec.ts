@@ -2371,6 +2371,87 @@ describe("Collection", () => {
         });
     });
 
+    describe("hasSole", () => {
+        it("Laravel tests", () => {
+            const collection = collect([{ age: 2 }, { age: 3 }]);
+
+            expect(collection.hasSole()).toBe(false);
+            expect(collection.where("age", 1).hasSole()).toBe(false);
+            expect(collection.where("age", 2).hasSole()).toBe(true);
+
+            expect(collection.hasSole(() => true)).toBe(false);
+            expect(collection.hasSole(() => false)).toBe(false);
+            expect(collection.hasSole((item) => item.age === 2)).toBe(true);
+
+            expect(collection.hasSole("age", ">", 1)).toBe(false);
+            expect(collection.hasSole("age", "<", 1)).toBe(false);
+            expect(collection.hasSole("age", 2)).toBe(true);
+        });
+
+        it("test hasSole with empty collection", () => {
+            expect(collect([]).hasSole()).toBe(false);
+            expect(collect({}).hasSole()).toBe(false);
+        });
+
+        it("test hasSole with single item", () => {
+            expect(collect([1]).hasSole()).toBe(true);
+            expect(collect({ a: 1 }).hasSole()).toBe(true);
+        });
+
+        it("test hasSole with callback on objects", () => {
+            const collection = collect({ a: { age: 2 }, b: { age: 3 } });
+
+            expect(collection.hasSole()).toBe(false);
+            expect(collection.hasSole((item) => item.age === 2)).toBe(true);
+            expect(collection.hasSole((item) => item.age > 1)).toBe(false);
+        });
+    });
+
+    describe("hasMany", () => {
+        it("Laravel tests", () => {
+            const collection = collect([{ age: 2 }, { age: 3 }]);
+
+            expect(collection.hasMany()).toBe(true);
+            expect(collection.where("age", 1).hasMany()).toBe(false);
+            expect(collection.where("age", 2).hasMany()).toBe(false);
+
+            expect(collection.hasMany(() => true)).toBe(true);
+            expect(collection.hasMany(() => false)).toBe(false);
+            expect(collection.hasMany((item) => item.age === 2)).toBe(false);
+
+            expect(collection.hasMany("age", ">", 1)).toBe(true);
+            expect(collection.hasMany("age", "<", 1)).toBe(false);
+            expect(collection.hasMany("age", 2)).toBe(false);
+        });
+
+        it("test hasMany with empty collection", () => {
+            expect(collect([]).hasMany()).toBe(false);
+            expect(collect({}).hasMany()).toBe(false);
+        });
+
+        it("test hasMany with single item", () => {
+            expect(collect([1]).hasMany()).toBe(false);
+            expect(collect({ a: 1 }).hasMany()).toBe(false);
+        });
+
+        it("test hasMany with callback on objects", () => {
+            const collection = collect({ a: { age: 2 }, b: { age: 3 } });
+
+            expect(collection.hasMany()).toBe(true);
+            expect(collection.hasMany((item) => item.age === 2)).toBe(false);
+            expect(collection.hasMany((item) => item.age > 1)).toBe(true);
+        });
+
+        it("test hasMany with multiple items matching", () => {
+            expect(collect([1, 2, 2]).hasMany((n) => n === 2)).toBe(true);
+            expect(
+                collect(["ant", "bear", "cat"]).hasMany(
+                    (word) => word.length === 3,
+                ),
+            ).toBe(true);
+        });
+    });
+
     describe("join", () => {
         it("Laravel Tests", () => {
             expect(collect(["a", "b", "c"]).join(", ")).toBe("a, b, c");

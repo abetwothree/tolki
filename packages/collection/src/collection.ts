@@ -1321,6 +1321,93 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
+     * Determine if the collection contains multiple items, optionally matching the given criteria.
+     *
+     * @param key - The key, callback, or null to check for multiple items
+     * @param operator - The operator to use for comparison (if using key-value matching)
+     * @param value - The value to compare against (if using key-value matching)
+     * @returns True if multiple items exist or match the condition, false otherwise
+     *
+     * @example
+     *
+     * new Collection([1, 2]).hasMany(); -> true
+     * new Collection([1]).hasMany(); -> false
+     * new Collection([{age: 2}, {age: 3}]).hasMany('age', '>', 1); -> true
+     * new Collection([{age: 2}, {age: 3}]).hasMany(item => item.age > 1); -> true
+     */
+    hasMany(
+        key: ((value: TValue, index: TKey) => boolean) | PathKey | null = null,
+        operator?: unknown,
+        value?: unknown,
+    ): boolean {
+        let filter: ((value: TValue, key: TKey) => boolean) | null;
+
+        if (!isUndefined(operator) || !isUndefined(value)) {
+            filter = this.operatorForWhere(
+                key as ((value: TValue, index: TKey) => boolean) | PathKey,
+                operator as string | undefined,
+                value,
+            );
+        } else {
+            filter = isNull(key)
+                ? null
+                : this.useAsCallable(key)
+                  ? (key as (value: TValue, key: TKey) => boolean)
+                  : this.operatorForWhere(key);
+        }
+
+        return (
+            this.unless(isNull(filter))
+                .filter(filter as (value: TValue, key: TKey) => boolean)
+                .take(2)
+                .count() === 2
+        );
+    }
+
+    /**
+     * Determine if the collection contains a single item, optionally matching the given criteria.
+     *
+     * @param key - The key, callback, or null to check for a single item
+     * @param operator - The operator to use for comparison (if using key-value matching)
+     * @param value - The value to compare against (if using key-value matching)
+     * @returns True if exactly one item exists or matches the condition, false otherwise
+     *
+     * @example
+     *
+     * new Collection([1]).hasSole(); -> true
+     * new Collection([1, 2]).hasSole(); -> false
+     * new Collection([{age: 2}, {age: 3}]).hasSole('age', 2); -> true
+     * new Collection([{age: 2}, {age: 3}]).hasSole(item => item.age === 2); -> true
+     */
+    hasSole(
+        key: ((value: TValue, index: TKey) => boolean) | PathKey | null = null,
+        operator?: unknown,
+        value?: unknown,
+    ): boolean {
+        let filter: ((value: TValue, key: TKey) => boolean) | null;
+
+        if (!isUndefined(operator) || !isUndefined(value)) {
+            filter = this.operatorForWhere(
+                key as ((value: TValue, index: TKey) => boolean) | PathKey,
+                operator as string | undefined,
+                value,
+            );
+        } else {
+            filter = isNull(key)
+                ? null
+                : this.useAsCallable(key)
+                  ? (key as (value: TValue, key: TKey) => boolean)
+                  : this.operatorForWhere(key);
+        }
+
+        return (
+            this.unless(isNull(filter))
+                .filter(filter as (value: TValue, key: TKey) => boolean)
+                .count() === 1
+        );
+    }
+
+    /**
      * Concatenate values of a given key as a string.
      *
      * @param value - The key to pluck values from, or a callback function to generate values
@@ -1572,6 +1659,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The callback function to test with, or null
      * @returns True if exactly one item exists or matches the condition, false otherwise
      *
+     * @deprecated Use the `hasSole()` method instead.
+     *
      * @example
      *
      * new Collection([1]).containsOneItem(); -> true
@@ -1582,11 +1671,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     containsOneItem(
         callback: ((value: TValue, key: TKey) => boolean) | null = null,
     ) {
-        if (isFunction(callback)) {
-            return this.filter(callback).count() === 1;
-        }
-
-        return this.count() === 1;
+        return this.hasSole(callback);
     }
 
     /**
@@ -1594,6 +1679,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param callback - The callback function to test with, or null
      * @returns True if multiple items exist or match the condition, false otherwise
+     *
+     * @deprecated Use the `hasMany()` method instead.
      *
      * @example
      *
@@ -1605,23 +1692,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     containsManyItems(
         callback: ((value: TValue, key: TKey) => boolean) | null = null,
     ): boolean {
-        if (!isFunction(callback)) {
-            return this.count() > 1;
-        }
-
-        let count = 0;
-
-        for (const [key, item] of Object.entries(this.items)) {
-            if (callback(item as TValue, key as TKey)) {
-                count++;
-            }
-
-            if (count > 1) {
-                return true;
-            }
-        }
-
-        return false;
+        return this.hasMany(callback);
     }
 
     /**
