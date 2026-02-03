@@ -2733,6 +2733,7 @@ export function replaceRecursive<TValue, TReplace = TValue>(
     }
 
     // Helper function to check if an object is a numeric keyed object
+    // TODO: move to utils
     const isNumericKeyedObject = (
         obj: unknown,
     ): obj is Record<number, unknown> => {
