@@ -1356,12 +1356,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
                   : this.operatorForWhere(key);
         }
 
-        return (
-            this.unless(isNull(filter))
-                .filter(filter as (value: TValue, key: TKey) => boolean)
-                .take(2)
-                .count() === 2
-        );
+        const collection = isNull(filter)
+            ? this
+            : this.filter(filter as (value: TValue, key: TKey) => boolean);
+
+        return collection.take(2).count() === 2;
     }
 
     /**
@@ -1400,11 +1399,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
                   : this.operatorForWhere(key);
         }
 
-        return (
-            this.unless(isNull(filter))
-                .filter(filter as (value: TValue, key: TKey) => boolean)
-                .count() === 1
-        );
+        if (isNull(filter)) {
+            return this.count() === 1;
+        }
+
+        return this.filter(filter).count() === 1;
     }
 
     /**
