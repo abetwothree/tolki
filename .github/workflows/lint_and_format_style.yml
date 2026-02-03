@@ -36,7 +36,7 @@ jobs:
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v6
         with:
-          commit_message: Fix linting and formatting
+          commit_message: "Fix linting and formatting [skip ci]"
 
       - name: Run prettier
         run: pnpm run format:check

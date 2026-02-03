@@ -46,3 +46,22 @@ jobs:
         env:
           NPM_CONFIG_PROVENANCE: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete empty changesets
+        run: |
+          # Find changeset files with empty frontmatter (no packages listed)
+          for file in .changeset/*.md; do
+            [ -f "$file" ] || continue
+            [ "$(basename "$file")" = "README.md" ] && continue
+            # Check if frontmatter is empty (just "---\n---")
+            if head -2 "$file" | grep -qE '^---$' && [ "$(head -3 "$file" | tail -1)" = "---" ]; then
+              echo "Deleting empty changeset: $file"
+              rm "$file"
+            fi
+          done
+
+      - name: Commit empty changeset deletions
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: "chore: delete empty changesets [skip ci]"
+          file_pattern: ".changeset/*.md"
