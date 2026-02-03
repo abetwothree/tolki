@@ -431,10 +431,9 @@ export function exceptValues<TValue>(
     values: TValue | TValue[],
     strict: boolean = false,
 ): TValue[] {
-    const array = !isArray(data) ? wrap(data) : data;
     const valueArray = isArray(values) ? values : [values];
 
-    return array.filter((value) => {
+    return data.filter((value) => {
         return !valueArray.some((v) =>
             strict ? value === v : looseEqual(value, v),
         );
@@ -2319,10 +2318,8 @@ export function sortRecursive<TValue>(
 
     if (isArray(data)) {
         result = data.slice() as TValue[];
-    } else if (isObject(data) && !isNull(data)) {
-        result = { ...data } as Record<string, unknown>;
     } else {
-        result = data as unknown as TValue[];
+        result = { ...data } as Record<string, unknown>;
     }
 
     // Recursively sort nested arrays/objects
@@ -2340,7 +2337,7 @@ export function sortRecursive<TValue>(
             const comparison = compareValues(a, b);
             return descending ? -comparison : comparison;
         });
-    } else if (isObject(result) && !isNull(result)) {
+    } else {
         // Sort object properties
         const entries = Object.entries(result);
 
@@ -2503,10 +2500,8 @@ export function toCssClasses(
 
     if (isArray(data)) {
         classList = { ...data };
-    } else if (isObject(data) && !isNull(data)) {
-        classList = data as Record<string, unknown>;
     } else {
-        return "";
+        classList = data as Record<string, unknown>;
     }
 
     const classes: string[] = [];
@@ -2553,10 +2548,8 @@ export function toCssStyles(
 
     if (isArray(data)) {
         styleList = { ...data };
-    } else if (isObject(data) && !isNull(data)) {
-        styleList = data as Record<string, unknown>;
     } else {
-        return "";
+        styleList = data as Record<string, unknown>;
     }
 
     const styles: string[] = [];
@@ -2803,12 +2796,10 @@ export function replaceRecursive<TValue, TReplace = TValue>(
                 const numericObj = item as Record<number, unknown>;
                 for (const key of Object.keys(numericObj)) {
                     const index = parseInt(key, 10);
-                    if (!isNaN(index)) {
-                        allReplacements.set(index, numericObj[index]);
-                        // Update currentIndex to be after the highest sparse index
-                        if (index >= currentIndex) {
-                            currentIndex = index + 1;
-                        }
+                    allReplacements.set(index, numericObj[index]);
+                    // Update currentIndex to be after the highest sparse index
+                    if (index >= currentIndex) {
+                        currentIndex = index + 1;
                     }
                 }
             } else {
@@ -2842,19 +2833,17 @@ export function replaceRecursive<TValue, TReplace = TValue>(
         const replacerObj = replacerData as Record<number, TReplace>;
         for (const key of Object.keys(replacerObj)) {
             const index = parseInt(key, 10);
-            if (!isNaN(index)) {
-                if (index < values.length) {
-                    values[index] = processReplacement(
-                        values[index]!,
-                        replacerObj[index],
-                    );
-                } else {
-                    // Fill gaps with undefined if necessary
-                    while (values.length < index) {
-                        values.push(undefined as TValue);
-                    }
-                    values.push(replacerObj[index] as unknown as TValue);
+            if (index < values.length) {
+                values[index] = processReplacement(
+                    values[index]!,
+                    replacerObj[index],
+                );
+            } else {
+                // Fill gaps with undefined if necessary
+                while (values.length < index) {
+                    values.push(undefined as TValue);
                 }
+                values.push(replacerObj[index] as unknown as TValue);
             }
         }
         return values;

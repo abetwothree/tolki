@@ -142,3 +142,8 @@ vite.config.ts.timestamp-*
 .DS_Store
 
 pnpm-publish-summary.json
+
+.agents
+.claude
+.github/skills
+.codex
