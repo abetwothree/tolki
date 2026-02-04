@@ -1,6 +1,9 @@
 import * as Data from "@tolki/data";
 import { assertType, describe, expect, it } from "vitest";
 
+const strcasecmp = (a: unknown, b: unknown) =>
+    String(a).toLowerCase() === String(b).toLowerCase();
+
 describe("Data", () => {
     describe("dataAdd", () => {
         it("is object", () => {
@@ -109,10 +112,25 @@ describe("Data", () => {
         });
     });
 
-    it("dataBoolean", () => {
-        expect(Data.dataBoolean([true, false], 0, false)).toBe(true);
-        expect(Data.dataBoolean({ active: true }, "active", false)).toBe(true);
-        expect(Data.dataBoolean({ active: false }, "missing", true)).toBe(true);
+    describe("dataBoolean", () => {
+        it("is object", () => {
+            expect(Data.dataBoolean({ active: true }, "active", false)).toBe(
+                true,
+            );
+            expect(Data.dataBoolean({ active: false }, "missing", true)).toBe(
+                true,
+            );
+            // Test with default value (false) - not explicitly passed
+            expect(Data.dataBoolean({ active: true }, "active")).toBe(true);
+            expect(Data.dataBoolean({ active: false }, "missing")).toBe(false);
+        });
+
+        it("is array", () => {
+            expect(Data.dataBoolean([true, false], 0, false)).toBe(true);
+            // Test with default value (false) - not explicitly passed
+            expect(Data.dataBoolean([true, false], 0)).toBe(true);
+            expect(Data.dataBoolean([true, false], 5)).toBe(false);
+        });
     });
 
     describe("dataChunk", () => {
@@ -597,11 +615,19 @@ describe("Data", () => {
             expect(result).toBe(42);
 
             expect(Data.dataInteger({}, "missing", 5)).toBe(5);
+
+            // Test with default value (0) - not explicitly passed
+            expect(Data.dataInteger({ count: 42 }, "count")).toBe(42);
+            expect(Data.dataInteger({}, "missing")).toBe(0);
         });
 
         it("is array", () => {
             const result = Data.dataInteger([1, 2, 3], 0, 0);
             expect(result).toBe(1);
+
+            // Test with default value (0) - not explicitly passed
+            expect(Data.dataInteger([10, 20, 30], 1)).toBe(20);
+            expect(Data.dataInteger([], 0)).toBe(0);
         });
     });
 
@@ -873,6 +899,10 @@ describe("Data", () => {
 
             const result4 = Data.dataBefore(obj, (value) => value === 3);
             expect(result4).toBe(2);
+
+            // When searching for the first element, there is no "before"
+            const result5 = Data.dataBefore(obj, 1, true);
+            expect(result5).toBeNull();
         });
         it("is array", () => {
             const arr = [1, 2, 3, 4, 5];
@@ -890,6 +920,10 @@ describe("Data", () => {
 
             const result4 = Data.dataBefore(arr, (value) => value === 4);
             expect(result4).toBe(3);
+
+            // When searching for the first element, there is no "before"
+            const result5 = Data.dataBefore(arr, 1, true);
+            expect(result5).toBeNull();
         });
     });
 
@@ -910,6 +944,10 @@ describe("Data", () => {
 
             const result4 = Data.dataAfter(obj, (value) => value === 1);
             expect(result4).toBe(2);
+
+            // When searching for the last element, there is no "after"
+            const result5 = Data.dataAfter(obj, 3, true);
+            expect(result5).toBeNull();
         });
         it("is array", () => {
             const arr = [1, 2, 3, 4, 5];
@@ -927,6 +965,10 @@ describe("Data", () => {
 
             const result4 = Data.dataAfter(arr, (value) => value === 4);
             expect(result4).toBe(5);
+
+            // When searching for the last element, there is no "after"
+            const result5 = Data.dataAfter(arr, 5, true);
+            expect(result5).toBeNull();
         });
     });
 
@@ -1052,10 +1094,19 @@ describe("Data", () => {
                 -1,
             );
             expect(result).toEqual({ b: 2, c: 3, d: 4 });
+
+            // Test with default length (null) - not explicitly passed
+            expect(Data.dataSlice({ a: 1, b: 2, c: 3 }, 1)).toEqual({
+                b: 2,
+                c: 3,
+            });
         });
         it("is array", () => {
             const result = Data.dataSlice([1, 2, 3, 4, 5, 6, 7, 8], 1, -1);
             expect(result).toEqual([2, 3, 4, 5, 6, 7]);
+
+            // Test with default length (null) - not explicitly passed
+            expect(Data.dataSlice([1, 2, 3, 4, 5], 2)).toEqual([3, 4, 5]);
         });
     });
 
@@ -1183,11 +1234,19 @@ describe("Data", () => {
         it("is object", () => {
             expect(Data.dataString({ name: "John" }, "name", "")).toBe("John");
             expect(Data.dataString({}, "missing", "default")).toBe("default");
+
+            // Test with default value ("") - not explicitly passed
+            expect(Data.dataString({ name: "Jane" }, "name")).toBe("Jane");
+            expect(Data.dataString({}, "missing")).toBe("");
         });
 
         it("is array", () => {
             expect(Data.dataString(["hello", "world"], 0, "")).toBe("hello");
             expect(Data.dataString([], 0, "default")).toBe("default");
+
+            // Test with default value ("") - not explicitly passed
+            expect(Data.dataString(["foo", "bar"], 1)).toBe("bar");
+            expect(Data.dataString([], 0)).toBe("");
         });
     });
 
@@ -1442,6 +1501,10 @@ describe("Data", () => {
                     undefined,
                 ),
             ).toBeNull();
+
+            // Test empty object returns null (no default)
+            expect(Data.dataFirst({})).toBeNull();
+            expect(Data.dataFirst({}, null, 99)).toBe(99);
         });
         it("is array", () => {
             expect(Data.dataFirst([1, 2, 3])).toBe(1);
@@ -1449,9 +1512,17 @@ describe("Data", () => {
             expect(Data.dataFirst([1, 2, 3], (value) => value > 3, 42)).toBe(
                 42,
             );
-            expect(
-                Data.dataFirst([1, 2, 3], (value) => value > 3, undefined),
-            ).toBeNull();
+
+            // Test empty array returns null when no default is provided
+            // (triggers the true branch of isUndefined(result))
+            expect(Data.dataFirst([])).toBeNull();
+            expect(Data.dataFirst([], null)).toBeNull();
+
+            // Test with default value
+            expect(Data.dataFirst([], null, 99)).toBe(99);
+
+            // Test callback that matches nothing without default
+            expect(Data.dataFirst([1, 2, 3], (value) => value > 5)).toBeNull();
         });
     });
 
@@ -1464,11 +1535,27 @@ describe("Data", () => {
             expect(
                 Data.dataLast({ a: 1, b: 2, c: 3 }, (value) => value < 1, 42),
             ).toBe(42);
+
+            // Test with null callback (triggers else branch)
+            expect(Data.dataLast({ a: 1, b: 2, c: 3 }, null)).toBe(3);
+            expect(Data.dataLast({ a: 1, b: 2, c: 3 }, null, 42)).toBe(3);
+
+            // Test empty object returns null
+            expect(Data.dataLast({}, null)).toBeNull();
+            expect(Data.dataLast({}, undefined, 99)).toBe(99);
         });
         it("is array", () => {
             expect(Data.dataLast([1, 2, 3])).toBe(3);
             expect(Data.dataLast([1, 2, 3], (value) => value < 3)).toBe(2);
             expect(Data.dataLast([1, 2, 3], (value) => value < 1, 42)).toBe(42);
+
+            // Test with null callback (triggers else branch)
+            expect(Data.dataLast([1, 2, 3], null)).toBe(3);
+            expect(Data.dataLast([1, 2, 3], null, 42)).toBe(3);
+
+            // Test empty array returns null
+            expect(Data.dataLast([], null)).toBeNull();
+            expect(Data.dataLast([], undefined, 99)).toBe(99);
         });
     });
 
@@ -1542,11 +1629,22 @@ describe("Data", () => {
             const result = Data.dataPop(obj, 2);
             expect(result).toEqual([3, 2]);
             expect(obj).toEqual({ a: 1 });
+
+            // Test with default count (1)
+            const obj2 = { x: 10, y: 20 };
+            const result2 = Data.dataPop(obj2);
+            expect(result2).toBe(20);
+            expect(obj2).toEqual({ x: 10 });
         });
         it("is array", () => {
             const arr = [1, 2, 3];
             const result = Data.dataPop(arr, 2);
             expect(result).toEqual([3, 2]);
+
+            // Test with default count (1)
+            const arr2 = [10, 20, 30];
+            const result2 = Data.dataPop(arr2);
+            expect(result2).toBe(30);
         });
     });
 
@@ -1637,6 +1735,109 @@ describe("Data", () => {
 
             const result7 = Data.dataExceptValues(arr5, [1, 2, 3]);
             expect(result7).toEqual([]);
+        });
+    });
+
+    describe("dataDiffAssocUsing", () => {
+        it("is object", () => {
+            const result = Data.dataDiffAssocUsing(
+                { a: "green", b: "brown" },
+                { A: "green", c: "blue" },
+                strcasecmp,
+            );
+            expect(result).toEqual({ b: "brown" });
+        });
+
+        it("is array (falls back to regular diff)", () => {
+            const result = Data.dataDiffAssocUsing(
+                [1, 2, 3],
+                [2, 3, 4],
+                strcasecmp,
+            );
+            expect(result).toEqual([1]);
+        });
+    });
+
+    describe("dataDiffKeysUsing", () => {
+        it("is object", () => {
+            const result = Data.dataDiffKeysUsing(
+                { id: 1, first_word: "Hello" },
+                { ID: 123, foo_bar: "Hello" },
+                strcasecmp,
+            );
+            expect(result).toEqual({ first_word: "Hello" });
+        });
+
+        it("is array (falls back to regular diff)", () => {
+            const result = Data.dataDiffKeysUsing(
+                [1, 2, 3],
+                [2, 3, 4],
+                strcasecmp,
+            );
+            expect(result).toEqual([1]);
+        });
+    });
+
+    describe("dataIntersectAssoc", () => {
+        it("is object", () => {
+            const result = Data.dataIntersectAssoc(
+                { a: "green", b: "brown" },
+                { a: "green", b: "yellow" },
+            );
+            expect(result).toEqual({ a: "green" });
+        });
+
+        it("is array", () => {
+            const result = Data.dataIntersectAssoc([1, 2, 3], [1, 2, 4]);
+            expect(result).toEqual([1, 2]);
+
+            const result2 = Data.dataIntersectAssoc([1, 2, 3], [2, 3, 4]);
+            expect(result2).toEqual([]);
+        });
+
+        it("throws when values do not match type", () => {
+            expect(() => {
+                Data.dataIntersectAssoc({ a: 1, b: 2 }, [2]);
+            }).toThrowError(
+                "Data to intersect must be of the same type (both array or both object).",
+            );
+        });
+    });
+
+    describe("dataIntersectAssocUsing", () => {
+        it("is object", () => {
+            const strcasecmpKeys = (a: unknown, b: unknown) =>
+                String(a).toLowerCase() === String(b).toLowerCase();
+            const result = Data.dataIntersectAssocUsing(
+                { a: "green", b: "brown" },
+                { A: "GREEN", B: "brown" },
+                strcasecmpKeys,
+            );
+            expect(result).toEqual({ b: "brown" });
+        });
+
+        it("is array", () => {
+            const indexCallback = (a: number, b: number) => a === b;
+            const result = Data.dataIntersectAssocUsing(
+                [1, 2, 3],
+                [1, 2, 4],
+                indexCallback,
+            );
+            expect(result).toEqual([1, 2]);
+        });
+
+        it("throws when values do not match type", () => {
+            const strcasecmpKeys = (a: unknown, b: unknown) =>
+                String(a).toLowerCase() === String(b).toLowerCase();
+            expect(() => {
+                Data.dataIntersectAssocUsing(
+                    { a: 1, b: 2 },
+                    [2],
+                    strcasecmpKeys,
+                );
+            }).toThrowError(
+                "Data to intersect must be of the same type (both array or both object).",
+            );
         });
     });
 
