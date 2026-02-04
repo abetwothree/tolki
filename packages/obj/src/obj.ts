@@ -13,6 +13,7 @@ import {
 } from "@tolki/path";
 import { finish, randomInt } from "@tolki/str";
 import {
+    compareValues,
     isArray,
     isBoolean,
     isFalsy,
@@ -2255,15 +2256,15 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
-    callback?: ((a: TValue, b: TValue) => unknown) | string | null,
+    callback?: ((value: TValue, key: TKey) => unknown) | string | null,
 ): Record<TKey, TValue>;
 export function sort(
     data: unknown,
-    callback?: ((a: unknown, b: unknown) => unknown) | string | null,
+    callback?: ((value: unknown, key: PropertyKey) => unknown) | string | null,
 ): Record<PropertyKey, unknown>;
 export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
+    callback: ((value: TValue, key: TKey) => unknown) | string | null = null,
 ): Record<TKey, TValue> | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
@@ -2344,37 +2345,21 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     if (isFunction(callback)) {
-        // Sort by callback result
-        entries.sort(([, a], [, b]) => {
-            const aValue = callback(a as TValue);
-            const bValue = callback(b as TValue);
+        // Extract sort values using callback, then sort by those values
+        const indexed = entries.map(([key, value]) => ({
+            key,
+            value,
+            sortKey: callback(value as TValue, key as TKey),
+        }));
 
-            if (isNull(aValue) && isNull(bValue)) {
-                return 0;
-            }
+        indexed.sort((a, b) => compareValues(a.sortKey, b.sortKey));
 
-            if (isNull(aValue)) {
-                return -1;
-            }
+        const result: Record<string, TValue> = {};
+        for (const item of indexed) {
+            result[item.key] = item.value as TValue;
+        }
 
-            if (isNull(bValue)) {
-                return 1;
-            }
-
-            // Safe comparison for any comparable types
-            const aComparable = aValue as string | number | boolean;
-            const bComparable = bValue as string | number | boolean;
-
-            if (aComparable < bComparable) {
-                return -1;
-            }
-
-            if (aComparable > bComparable) {
-                return 1;
-            }
-
-            return 0;
-        });
+        return result as Record<TKey, TValue>;
     }
 
     const result: Record<string, TValue> = {};
@@ -2391,7 +2376,7 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
  * TODO: use the sort function with a "descending" parameter defined
  *
  * @param data - The object to sort.
- * @param callback - The sorting callback, field name, or null for natural sorting.
+ * @param callback - The value extractor callback, field name, or null for natural sorting.
  * @returns A new object with sorted entries in descending order.
  *
  * @example
@@ -2402,15 +2387,15 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
-    callback?: ((item: TValue) => unknown) | string | null,
+    callback?: ((value: TValue, key: TKey) => unknown) | string | null,
 ): Record<TKey, TValue>;
 export function sortDesc(
     data: unknown,
-    callback?: ((item: unknown) => unknown) | string | null,
+    callback?: ((value: unknown, key: PropertyKey) => unknown) | string | null,
 ): Record<PropertyKey, unknown>;
 export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback?: ((item: TValue) => unknown) | string | null,
+    callback?: ((value: TValue, key: TKey) => unknown) | string | null,
 ): Record<TKey, TValue> | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
@@ -2421,20 +2406,7 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
 
     if (isUndefined(callback) || isNull(callback)) {
         // Natural sorting by values in descending order
-        entries.sort(([, a], [, b]) => {
-            const aValue = a as TValue;
-            const bValue = b as TValue;
-
-            if (aValue > bValue) {
-                return -1;
-            }
-
-            if (aValue < bValue) {
-                return 1;
-            }
-
-            return 0;
-        });
+        entries.sort(([, a], [, b]) => compareValues(b, a));
     } else if (isString(callback)) {
         // Sort by field name using dot notation in descending order
         entries.sort(([, a], [, b]) => {
@@ -2447,65 +2419,24 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
                 callback,
             );
 
-            if (isNull(aValue) && isNull(bValue)) {
-                return 0;
-            }
-
-            if (isNull(aValue)) {
-                return 1;
-            }
-
-            if (isNull(bValue)) {
-                return -1;
-            }
-
-            // Safe comparison for any comparable types
-            const aComparable = aValue as string | number | boolean;
-            const bComparable = bValue as string | number | boolean;
-
-            if (aComparable > bComparable) {
-                return -1;
-            }
-
-            if (aComparable < bComparable) {
-                return 1;
-            }
-
-            return 0;
+            return compareValues(bValue, aValue);
         });
     } else {
-        // Sort by callback result in descending order (callback is a function)
-        const cb = callback as (item: TValue) => unknown;
-        entries.sort(([, a], [, b]) => {
-            const aValue = cb(a as TValue);
-            const bValue = cb(b as TValue);
+        // Extract sort values using callback, then sort by those values in descending order
+        const indexed = entries.map(([key, value]) => ({
+            key,
+            value,
+            sortKey: callback(value as TValue, key as TKey),
+        }));
 
-            if (isNull(aValue) && isNull(bValue)) {
-                return 0;
-            }
+        indexed.sort((a, b) => compareValues(b.sortKey, a.sortKey));
 
-            if (isNull(aValue)) {
-                return 1;
-            }
+        const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+        for (const item of indexed) {
+            result[item.key as TKey] = item.value as TValue;
+        }
 
-            if (isNull(bValue)) {
-                return -1;
-            }
-
-            // Safe comparison for any comparable types
-            const aComparable = aValue as string | number | boolean;
-            const bComparable = bValue as string | number | boolean;
-
-            if (aComparable > bComparable) {
-                return -1;
-            }
-
-            if (aComparable < bComparable) {
-                return 1;
-            }
-
-            return 0;
-        });
+        return result;
     }
 
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;

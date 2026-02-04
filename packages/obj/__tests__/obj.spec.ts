@@ -2283,13 +2283,14 @@ describe("Obj", () => {
                     user6: { name: "Jane", age: 100 },
                 };
                 const result = Obj.sort(obj, (item) => item.age);
+                // null/undefined values come first (ascending), then numeric values
                 expect(Object.keys(result)).toEqual([
                     "user2",
                     "user4",
+                    "user5",
                     "user3",
                     "user1",
                     "user0",
-                    "user5",
                     "user6",
                 ]);
             });
@@ -2396,7 +2397,8 @@ describe("Obj", () => {
                     obj,
                     (item) => item.age,
                 );
-                expect(Object.keys(result)).toEqual(["user1", "user2"]);
+                // Descending: highest value first, null/undefined last
+                expect(Object.keys(result)).toEqual(["user2", "user1"]);
             });
 
             it("should handle when values are falsy in callback", () => {
@@ -2424,14 +2426,15 @@ describe("Obj", () => {
                     user6: { name: "Jane", age: 100 },
                 };
                 const result = Obj.sortDesc(obj, (item) => item.age);
+                // Descending: highest values first, null/undefined last
                 expect(Object.keys(result)).toEqual([
                     "user0",
+                    "user6",
                     "user1",
                     "user3",
-                    "user5",
-                    "user6",
                     "user2",
                     "user4",
+                    "user5",
                 ]);
             });
 
