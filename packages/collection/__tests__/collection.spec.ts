@@ -3907,6 +3907,14 @@ describe("Collection", () => {
             const c15 = collect({ x: "val", y: "other" });
             expect(c15.pull("y")).toBe("other");
             expect(c15.all()).toEqual({ x: "val" });
+
+            // Test pulling from array with STRING key that is a valid numeric
+            // This covers delete (items as unknown[])[numKey]
+            // When this.items is array BUT key is string (not number type), we enter else branch
+            // but items is still an array
+            const c16 = collect(["a", "b", "c"]);
+            expect(c16.pull("1")).toBe("b"); // String "1", not number 1
+            expect(c16.all()).toEqual(["a", undefined, "c"]); // Array with deleted element
         });
     });
 
@@ -5377,6 +5385,36 @@ describe("Collection", () => {
                 "1": 1,
                 "2": 2,
             });
+
+            // Test continue branch - when first comparison returns 0,
+            // it should continue to next comparison
+            const multiData = collect([
+                { primary: "a", secondary: 3 },
+                { primary: "a", secondary: 1 },
+                { primary: "b", secondary: 2 },
+            ]);
+            // First comparison by "primary" returns 0 for first two items,
+            // then continues to "secondary"
+            const multiSorted = multiData.sortByMany(["primary", "secondary"]);
+            expect(multiSorted.values().all()).toEqual([
+                { primary: "a", secondary: 1 },
+                { primary: "a", secondary: 3 },
+                { primary: "b", secondary: 2 },
+            ]);
+
+            // Test return 0 at end of comparisons - when ALL comparisons return 0
+            // This happens when two items are equal on all comparison criteria
+            const equalData = collect([
+                { primary: "a", secondary: 1 },
+                { primary: "a", secondary: 1 }, // Identical to first item
+                { primary: "b", secondary: 2 },
+            ]);
+            const equalSorted = equalData.sortByMany(["primary", "secondary"]);
+            expect(equalSorted.values().all()).toEqual([
+                { primary: "a", secondary: 1 },
+                { primary: "a", secondary: 1 },
+                { primary: "b", secondary: 2 },
+            ]);
         });
     });
 
@@ -7224,6 +7262,52 @@ describe("Collection", () => {
 
                 expect(result.all()).toEqual(["michael", "tom", "adam"]);
             });
+        });
+    });
+
+    describe("unless", () => {
+        it("calls callback when value is falsy", () => {
+            const data = collect([1, 2, 3]);
+
+            const result = data.unless(false, (col) => {
+                return col.map((x) => x * 2);
+            });
+
+            expect(result.all()).toEqual([2, 4, 6]);
+        });
+
+        it("returns self when value is truthy and no defaultCallback", () => {
+            const data = collect([1, 2, 3]);
+
+            const result = data.unless(true, (col) => {
+                return col.map((x) => x * 2);
+            });
+
+            expect(result.all()).toEqual([1, 2, 3]);
+        });
+
+        it("calls defaultCallback when value is truthy", () => {
+            // This test covers the defaultCallback branch when value is truthy
+            const data = collect([1, 2, 3]);
+
+            const result = data.unless(
+                true, // truthy value
+                (col) => col.map((x) => x * 2), // callback (not called)
+                (col) => col.map((x) => x + 10), // defaultCallback (called)
+            );
+
+            expect(result.all()).toEqual([11, 12, 13]);
+        });
+
+        it("resolves value from function", () => {
+            const data = collect([1, 2, 3]);
+
+            const result = data.unless(
+                () => false,
+                (col) => col.map((x) => x * 2),
+            );
+
+            expect(result.all()).toEqual([2, 4, 6]);
         });
     });
 
