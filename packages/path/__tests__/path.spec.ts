@@ -744,7 +744,7 @@ describe("Path Functions", () => {
 
             it("checks boolean at leaf position in non-array data branch", () => {
                 // Tests boolean check at leaf
-                const result = Path.pushWithPath(null, "0", true as unknown);
+                const result = Path.pushWithPath(null, "0", true);
                 expect(result).toEqual([true]);
             });
         });
@@ -937,9 +937,9 @@ describe("Path Functions", () => {
         });
 
         it("handles non-string keys", () => {
-            const input = { "0": "a" } as Record<string | number, unknown>;
+            const input = { "0": "a" };
             input[1] = "b";
-            expect(Path.undotExpand(input as Record<string, unknown>)).toEqual({
+            expect(Path.undotExpand(input)).toEqual({
                 0: "a",
                 1: "b",
             });
@@ -1842,7 +1842,7 @@ describe("Path Functions", () => {
             const obj = { a: 1 };
             // Path to nested property doesn't exist
             const result = Path.forgetKeysObject(
-                obj as Record<string, unknown>,
+                obj,
                 "a.b.c",
             );
             expect(result).toEqual({ a: 1 });
