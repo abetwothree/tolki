@@ -2226,10 +2226,7 @@ describe("Obj", () => {
                     user1: { name: "John", age: 30 },
                     user2: { name: "Jane", age: 25 },
                 };
-                const result = Obj.sort(
-                    obj,
-                    (item) => (item as Record<string, unknown>)["age"],
-                );
+                const result = Obj.sort(obj, (item) => item.age);
                 expect(Object.keys(result)).toEqual(["user2", "user1"]);
             });
 
@@ -2238,9 +2235,9 @@ describe("Obj", () => {
                     user1: { name: "John" },
                     user2: { name: "Jane", age: 25 },
                 };
-                const result = Obj.sort(
+                const result = Obj.sort<{ name: string; age?: number }>(
                     obj,
-                    (item) => (item as Record<string, unknown>)["age"],
+                    (item) => item.age,
                 );
                 expect(Object.keys(result)).toEqual(["user1", "user2"]);
             });
@@ -2251,10 +2248,7 @@ describe("Obj", () => {
                     user2: { name: "Jane", age: null },
                     user3: { name: "Doe", age: 25 },
                 };
-                const result = Obj.sort(
-                    obj,
-                    (item) => (item as Record<string, unknown>)["age"],
-                );
+                const result = Obj.sort(obj, (item) => item.age);
                 expect(Object.keys(result)).toEqual([
                     "user2",
                     "user1",
@@ -2272,10 +2266,7 @@ describe("Obj", () => {
                     user5: { name: "Jane", age: undefined },
                     user6: { name: "Jane", age: 100 },
                 };
-                const result = Obj.sort(
-                    obj,
-                    (item) => (item as Record<string, unknown>)["age"],
-                );
+                const result = Obj.sort(obj, (item) => item.age);
                 expect(Object.keys(result)).toEqual([
                     "user2",
                     "user4",
@@ -2385,9 +2376,9 @@ describe("Obj", () => {
                     user1: { name: "John" },
                     user2: { name: "Jane", age: 25 },
                 };
-                const result = Obj.sortDesc(
+                const result = Obj.sortDesc<{ name: string; age?: number }>(
                     obj,
-                    (item) => (item as Record<string, unknown>)["age"],
+                    (item) => item.age,
                 );
                 expect(Object.keys(result)).toEqual(["user1", "user2"]);
             });
@@ -2398,10 +2389,7 @@ describe("Obj", () => {
                     user2: { name: "Jane", age: null },
                     user3: { name: "Doe", age: 25 },
                 };
-                const result = Obj.sortDesc(
-                    obj,
-                    (item) => (item as Record<string, unknown>)["age"],
-                );
+                const result = Obj.sortDesc(obj, (item) => item.age);
                 expect(Object.keys(result)).toEqual([
                     "user3",
                     "user1",
@@ -2419,10 +2407,7 @@ describe("Obj", () => {
                     user5: { name: "Jane", age: undefined },
                     user6: { name: "Jane", age: 100 },
                 };
-                const result = Obj.sortDesc(
-                    obj,
-                    (item) => (item as Record<string, unknown>)["age"],
-                );
+                const result = Obj.sortDesc(obj, (item) => item.age);
                 expect(Object.keys(result)).toEqual([
                     "user0",
                     "user1",

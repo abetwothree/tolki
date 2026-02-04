@@ -2254,9 +2254,17 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
  * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name
  */
 export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    callback?: ((a: TValue, b: TValue) => unknown) | string | null,
+): Record<TKey, TValue>;
+export function sort(
+    data: unknown,
+    callback?: ((a: unknown, b: unknown) => unknown) | string | null,
+): Record<PropertyKey, unknown>;
+export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
-): Record<TKey, TValue> {
+): Record<TKey, TValue> | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
     }
@@ -2393,9 +2401,17 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
  * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name desc
  */
 export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    callback?: ((item: TValue) => unknown) | string | null,
+): Record<TKey, TValue>;
+export function sortDesc(
+    data: unknown,
+    callback?: ((item: unknown) => unknown) | string | null,
+): Record<PropertyKey, unknown>;
+export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback?: ((item: TValue) => unknown) | string | null,
-): Record<TKey, TValue> {
+): Record<TKey, TValue> | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
     }
