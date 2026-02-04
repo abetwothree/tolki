@@ -7378,7 +7378,6 @@ describe("Collection", () => {
             // Calling partition without key triggers the default parameter = null
             // which makes valueRetriever return item itself (partition by truthiness)
             const c = collect([1, 0, "", "hello", null, true, false]);
-            // @ts-expect-error - testing default parameter behavior
             const [truthy, falsy] = c.partition();
             expect(truthy.values().all()).toEqual([1, "hello", true]);
             expect(falsy.values().all()).toEqual([0, "", null, false]);
