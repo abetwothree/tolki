@@ -1578,6 +1578,7 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
     if (count === 1) {
         const lastEntry = entries[entries.length - 1];
 
+        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
         if (!lastEntry) {
             return null;
         }
@@ -1593,6 +1594,7 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
     for (let i = 0; i < actualCount; i++) {
         const entry = entries[entries.length - 1 - i];
 
+        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
         if (!entry) {
             continue;
         }
@@ -2000,6 +2002,7 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
 
     if (count === 1) {
         const firstEntry = entries[0];
+        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
         if (!firstEntry) {
             return null;
         }
@@ -2014,6 +2017,7 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
 
     for (let i = 0; i < actualCount; i++) {
         const entry = entries[i];
+        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
         if (!entry) {
             continue;
         }
@@ -2507,51 +2511,40 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
  * sortRecursive({ b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }); -> { a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }
  * sortRecursive({ user1: { name: 'john', age: 30 }, user2: { name: 'jane', age: 25 } }); -> sorted objects with sorted keys
  */
-export function sortRecursive<TValue>(
-    data: Record<PropertyKey, TValue> | unknown,
+export function sortRecursive<T extends Record<PropertyKey, unknown>>(
+    data: T,
+    descending?: boolean,
+): T;
+export function sortRecursive(
+    data: unknown,
+    descending?: boolean,
+): Record<PropertyKey, unknown>;
+export function sortRecursive<T extends Record<PropertyKey, unknown>>(
+    data: T | unknown,
     descending: boolean = false,
-): Record<PropertyKey, TValue> {
+): T | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
-        return {} as Record<PropertyKey, TValue>;
+        return {} as T;
     }
 
-    const obj = data as Record<PropertyKey, TValue>;
-    const entries = Object.entries(obj) as [PropertyKey, TValue][];
+    const obj = data as T;
+    const entries = Object.entries(obj) as [PropertyKey, unknown][];
 
     // Recursively sort nested objects first
-    const processedEntries: [PropertyKey, TValue][] = [];
+    const processedEntries: [PropertyKey, unknown][] = [];
     for (const [key, value] of entries) {
         if (isObject(value)) {
-            processedEntries.push([
-                key,
-                sortRecursive(value, descending) as TValue,
-            ]);
+            processedEntries.push([key, sortRecursive(value, descending)]);
         } else if (isArray(value)) {
             // For arrays, sort them if they contain sortable items
             const sortedArray = [...value].sort((a, b) => {
-                if (descending) {
-                    if (a > b) {
-                        return -1;
-                    }
-
-                    if (a < b) {
-                        return 1;
-                    }
-
-                    return 0;
-                } else {
-                    if (a < b) {
-                        return -1;
-                    }
-
-                    if (a > b) {
-                        return 1;
-                    }
-
-                    return 0;
-                }
+                // Compare as strings for consistent ordering of unknown types
+                const strA = String(a);
+                const strB = String(b);
+                const comparison = strA.localeCompare(strB);
+                return descending ? -comparison : comparison;
             });
-            processedEntries.push([key, sortedArray as TValue]);
+            processedEntries.push([key, sortedArray]);
         } else {
             processedEntries.push([key, value]);
         }
@@ -2561,40 +2554,18 @@ export function sortRecursive<TValue>(
     processedEntries.sort(([keyA], [keyB]) => {
         const strKeyA = String(keyA);
         const strKeyB = String(keyB);
+        const comparison = strKeyA.localeCompare(strKeyB);
 
-        if (descending) {
-            if (strKeyA > strKeyB) {
-                return -1;
-            }
-
-            if (strKeyA < strKeyB) {
-                return 1;
-            }
-
-            return 0;
-        } else {
-            if (strKeyA < strKeyB) {
-                return -1;
-            }
-
-            if (strKeyA > strKeyB) {
-                return 1;
-            }
-
-            return 0;
-        }
+        return descending ? -comparison : comparison;
     });
 
     // Rebuild object with sorted keys
-    const result: Record<PropertyKey, TValue> = {} as Record<
-        PropertyKey,
-        TValue
-    >;
+    const result: Record<PropertyKey, unknown> = {};
     for (const [key, value] of processedEntries) {
         result[key] = value;
     }
 
-    return result;
+    return result as T;
 }
 
 /**
@@ -2608,10 +2579,13 @@ export function sortRecursive<TValue>(
  *
  * sortRecursiveDesc({ a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }); -> { b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }
  */
-export function sortRecursiveDesc<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
->(data: Record<TKey, TValue> | unknown): Record<TKey, TValue> {
+export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
+    data: T,
+): T;
+export function sortRecursiveDesc(data: unknown): Record<PropertyKey, unknown>;
+export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
+    data: T | unknown,
+): T | Record<PropertyKey, unknown> {
     return sortRecursive(data, true);
 }
 

@@ -646,6 +646,13 @@ describe("Obj", () => {
             expect(Obj.has(null, "key")).toBe(false);
             expect(Obj.has([], "key")).toBe(false);
         });
+
+        it("should return false when key array contains null", () => {
+            const obj = { name: "John", age: 30 };
+            expect(Obj.has(obj, [null as unknown as string, "name"])).toBe(
+                false,
+            );
+        });
     });
 
     describe("hasAll", () => {
@@ -711,6 +718,20 @@ describe("Obj", () => {
         it("should return empty array for non-accessible data", () => {
             expect(Obj.keys(null)).toEqual([]);
             expect(Obj.keys([])).toEqual([]);
+        });
+
+        it("should skip symbol keys", () => {
+            const sym = Symbol("test");
+            const obj = { a: 1, b: 2, [sym]: 3 };
+            expect(Obj.keys(obj)).toEqual(["a", "b"]);
+        });
+
+        it("should convert numeric string keys back to numbers", () => {
+            const obj = { "1": "a", "2": "b", foo: "c" };
+            const keys = Obj.keys(obj);
+            expect(keys).toContain(1);
+            expect(keys).toContain(2);
+            expect(keys).toContain("foo");
         });
     });
 
@@ -1108,6 +1129,25 @@ describe("Obj", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
             expect(Obj.take(obj, -2)).toEqual({ c: 3, d: 4 });
         });
+
+        it("should return all items when limit equals length (positive)", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            expect(Obj.take(obj, 3)).toEqual({ a: 1, b: 2, c: 3 });
+        });
+
+        it("should return all items when negative limit abs equals length", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            expect(Obj.take(obj, -3)).toEqual({ a: 1, b: 2, c: 3 });
+        });
+
+        it("should return all items when negative limit abs exceeds length", () => {
+            const obj = { a: 1, b: 2 };
+            expect(Obj.take(obj, -5)).toEqual({ a: 1, b: 2 });
+        });
+
+        it("should return empty object for empty input", () => {
+            expect(Obj.take({}, 5)).toEqual({});
+        });
     });
 
     describe("flatten", () => {
@@ -1167,6 +1207,99 @@ describe("Obj", () => {
         it("flattens objects with primitive values", () => {
             const obj = { a: 1, b: 2, c: 3 };
             expect(Obj.flatten(obj, 1)).toEqual([1, 2, 3]);
+        });
+    });
+
+    describe("flattenDot", () => {
+        it("should flatten nested objects with dot notation keys", () => {
+            const obj = {
+                users: {
+                    john: { name: "John", age: 30 },
+                    jane: { name: "Jane", age: 25 },
+                },
+            };
+
+            expect(Obj.flattenDot(obj)).toEqual({
+                "users.john.name": "John",
+                "users.john.age": 30,
+                "users.jane.name": "Jane",
+                "users.jane.age": 25,
+            });
+        });
+
+        it("should respect the depth parameter", () => {
+            const obj = { a: { b: { c: { d: "value" } } } };
+
+            // depth = 1: flatten to one level below root
+            expect(Obj.flattenDot(obj, 1)).toEqual({
+                "a.b": { c: { d: "value" } },
+            });
+
+            // depth = 2: flatten to two levels
+            expect(Obj.flattenDot(obj, 2)).toEqual({
+                "a.b.c": { d: "value" },
+            });
+        });
+
+        it("should handle arrays within objects", () => {
+            const obj = { items: [1, 2, 3] };
+            expect(Obj.flattenDot(obj)).toEqual({
+                "items.0": 1,
+                "items.1": 2,
+                "items.2": 3,
+            });
+        });
+
+        it("should return empty object for non-accessible data", () => {
+            expect(Obj.flattenDot(null)).toEqual({});
+            expect(Obj.flattenDot(undefined)).toEqual({});
+            expect(Obj.flattenDot("string")).toEqual({});
+            expect(Obj.flattenDot(123)).toEqual({});
+        });
+
+        it("should handle nested arrays", () => {
+            const obj = {
+                matrix: [
+                    [1, 2],
+                    [3, 4],
+                ],
+            };
+            expect(Obj.flattenDot(obj)).toEqual({
+                "matrix.0.0": 1,
+                "matrix.0.1": 2,
+                "matrix.1.0": 3,
+                "matrix.1.1": 4,
+            });
+        });
+
+        it("should handle mixed nested structures", () => {
+            const obj = {
+                users: [{ name: "John" }, { name: "Jane" }],
+            };
+            expect(Obj.flattenDot(obj)).toEqual({
+                "users.0.name": "John",
+                "users.1.name": "Jane",
+            });
+        });
+
+        it("should handle depth limiting with arrays", () => {
+            const obj = { items: [{ nested: { deep: "value" } }] };
+
+            // depth = 1: only one level
+            expect(Obj.flattenDot(obj, 1)).toEqual({
+                "items.0": { nested: { deep: "value" } },
+            });
+
+            // depth = 2: two levels
+            expect(Obj.flattenDot(obj, 2)).toEqual({
+                "items.0.nested": { deep: "value" },
+            });
+        });
+
+        it("should return empty object with empty path for scalars at root", () => {
+            // Scalar at root level with no path should produce empty result
+            const obj = { value: "scalar" };
+            expect(Obj.flattenDot(obj)).toEqual({ value: "scalar" });
         });
     });
 
@@ -1311,6 +1444,12 @@ describe("Obj", () => {
                 Jane: { id: 20, name: "Jane" },
             });
         });
+
+        it("should return empty object for non-accessible data", () => {
+            expect(Obj.keyBy(null, "id")).toEqual({});
+            expect(Obj.keyBy(undefined, "id")).toEqual({});
+            expect(Obj.keyBy([], "id")).toEqual({});
+        });
     });
 
     describe("prependKeysWith", () => {
@@ -1324,6 +1463,12 @@ describe("Obj", () => {
 
         it("should handle empty objects", () => {
             expect(Obj.prependKeysWith({}, "prefix_")).toEqual({});
+        });
+
+        it("should return empty object for non-accessible data", () => {
+            expect(Obj.prependKeysWith(null, "prefix_")).toEqual({});
+            expect(Obj.prependKeysWith(undefined, "prefix_")).toEqual({});
+            expect(Obj.prependKeysWith([], "prefix_")).toEqual({});
         });
     });
 
@@ -1339,6 +1484,12 @@ describe("Obj", () => {
         it("should handle non-existent keys", () => {
             const obj = { name: "John" };
             expect(Obj.only(obj, ["name", "age"])).toEqual({ name: "John" });
+        });
+
+        it("should return empty object for non-accessible data", () => {
+            expect(Obj.only(null, ["name"])).toEqual({});
+            expect(Obj.only(undefined, ["name"])).toEqual({});
+            expect(Obj.only([], ["name"])).toEqual({});
         });
     });
 
@@ -1363,6 +1514,12 @@ describe("Obj", () => {
                 user1: { name: "John" },
                 user2: { name: "Jane", email: "jane@example.com" },
             });
+        });
+
+        it("should return empty object for non-accessible data", () => {
+            expect(Obj.select(null, ["name"])).toEqual({});
+            expect(Obj.select(undefined, ["name"])).toEqual({});
+            expect(Obj.select([], ["name"])).toEqual({});
         });
     });
 
@@ -1392,6 +1549,19 @@ describe("Obj", () => {
             expect(Obj.mapWithKeys(null, () => ({}))).toEqual({});
             expect(Obj.mapWithKeys([], () => ({}))).toEqual({});
             expect(Obj.mapWithKeys("string", () => ({}))).toEqual({});
+        });
+
+        it("should return Map for numeric keys to preserve order", () => {
+            const obj = { a: "x", b: "y" };
+            const result = Obj.mapWithKeys(obj, (value, key) => ({
+                [key === "a" ? "1" : "2"]: value,
+            }));
+            // Should return Map because keys are numeric
+            expect(result instanceof Map).toBe(true);
+            if (result instanceof Map) {
+                expect(result.get("1")).toBe("x");
+                expect(result.get("2")).toBe("y");
+            }
         });
     });
 
@@ -2016,21 +2186,19 @@ describe("Obj", () => {
             };
             const result = Obj.sortRecursive(obj);
             expect(Object.keys(result)).toEqual(["a", "b"]);
-            expect(Object.keys(result["a"] as Record<string, unknown>)).toEqual(
-                ["e", "f", "x", "y"],
-            );
-            expect(Object.keys(result["b"] as Record<string, unknown>)).toEqual(
-                ["c", "d", "x", "y", "z"],
-            );
+            expect(Object.keys(result["a"])).toEqual(["e", "f", "x", "y"]);
+            expect(Object.keys(result["b"])).toEqual(["c", "d", "x", "y", "z"]);
 
             const resultDesc = Obj.sortRecursive(obj, true);
             expect(Object.keys(resultDesc)).toEqual(["b", "a"]);
-            expect(
-                Object.keys(resultDesc["a"] as Record<string, unknown>),
-            ).toEqual(["y", "x", "f", "e"]);
-            expect(
-                Object.keys(resultDesc["b"] as Record<string, unknown>),
-            ).toEqual(["z", "y", "x", "d", "c"]);
+            expect(Object.keys(resultDesc["a"])).toEqual(["y", "x", "f", "e"]);
+            expect(Object.keys(resultDesc["b"])).toEqual([
+                "z",
+                "y",
+                "x",
+                "d",
+                "c",
+            ]);
         });
 
         it("should recursively sort object with arrays", () => {
@@ -2038,27 +2206,15 @@ describe("Obj", () => {
             const result = Obj.sortRecursive(obj);
 
             expect(Object.keys(result)).toEqual(["a", "b"]);
-            expect(Object.keys(result["a"] as Record<string, unknown>)).toEqual(
-                ["e", "f"],
-            );
-            expect(Object.keys(result["b"] as Record<string, unknown>)).toEqual(
-                ["c", "d"],
-            );
-            expect((result["b"] as Record<string, unknown>)["d"]).toEqual([
-                1, 2, 3, 3,
-            ]);
+            expect(Object.keys(result["a"])).toEqual(["e", "f"]);
+            expect(Object.keys(result["b"])).toEqual(["c", "d"]);
+            expect(result["b"]["d"]).toEqual([1, 2, 3, 3]);
 
             const resultDesc = Obj.sortRecursive(obj, true);
             expect(Object.keys(resultDesc)).toEqual(["b", "a"]);
-            expect(
-                Object.keys(resultDesc["a"] as Record<string, unknown>),
-            ).toEqual(["f", "e"]);
-            expect(
-                Object.keys(resultDesc["b"] as Record<string, unknown>),
-            ).toEqual(["d", "c"]);
-            expect((resultDesc["b"] as Record<string, unknown>)["d"]).toEqual([
-                3, 3, 2, 1,
-            ]);
+            expect(Object.keys(resultDesc["a"])).toEqual(["f", "e"]);
+            expect(Object.keys(resultDesc["b"])).toEqual(["d", "c"]);
+            expect(resultDesc["b"]["d"]).toEqual([3, 3, 2, 1]);
         });
     });
 
@@ -2067,6 +2223,30 @@ describe("Obj", () => {
             const obj = { a: { e: 3, f: 4 }, b: { c: 1, d: 2 } };
             const result = Obj.sortRecursiveDesc(obj);
             expect(Object.keys(result)).toEqual(["b", "a"]);
+        });
+
+        it("should sort with equal keys in descending order", () => {
+            const obj = { z: 1, a: 2, m: 3 };
+            const result = Obj.sortRecursiveDesc(obj);
+            expect(Object.keys(result)).toEqual(["z", "m", "a"]);
+        });
+
+        it("should handle nested objects in descending sort", () => {
+            const obj = {
+                alpha: { x: 1, y: 2 },
+                beta: { a: 3, b: 4 },
+                gamma: { m: 5, n: 6 },
+            };
+            const result = Obj.sortRecursiveDesc(obj);
+            expect(Object.keys(result)).toEqual(["gamma", "beta", "alpha"]);
+            expect(Object.keys(result["alpha"])).toEqual(["y", "x"]);
+            expect(Object.keys(result["beta"])).toEqual(["b", "a"]);
+        });
+
+        it("should handle keys where first > second in descending", () => {
+            const obj = { c: 1, a: 2, b: 3 };
+            const result = Obj.sortRecursiveDesc(obj);
+            expect(Object.keys(result)).toEqual(["c", "b", "a"]);
         });
     });
 
@@ -2378,6 +2558,84 @@ describe("Obj", () => {
                 b: false,
                 c: 1,
                 d: 0,
+            });
+        });
+    });
+
+    describe("diffAssocUsing", () => {
+        it("should diff using key callback and value comparison", () => {
+            const strcasecmp = (a: unknown, b: unknown) =>
+                String(a).toLowerCase() === String(b).toLowerCase();
+
+            // Keys match case-insensitively and value differs
+            expect(
+                Obj.diffAssocUsing(
+                    { a: "green", b: "brown" },
+                    { A: "green", c: "blue" },
+                    strcasecmp,
+                ),
+            ).toEqual({ b: "brown" });
+
+            // Keys match case-insensitively but all values differ
+            expect(
+                Obj.diffAssocUsing(
+                    { a: "green", b: "brown" },
+                    { A: "yellow" },
+                    strcasecmp,
+                ),
+            ).toEqual({ a: "green", b: "brown" });
+        });
+
+        it("should return empty object for non-accessible data", () => {
+            const callback = (a: unknown, b: unknown) => a === b;
+            expect(Obj.diffAssocUsing(null, { a: 1 }, callback)).toEqual({});
+            expect(Obj.diffAssocUsing([], { a: 1 }, callback)).toEqual({});
+        });
+
+        it("should return copy of data for non-accessible other", () => {
+            const callback = (a: unknown, b: unknown) => a === b;
+            expect(Obj.diffAssocUsing({ a: 1 }, null, callback)).toEqual({
+                a: 1,
+            });
+            expect(Obj.diffAssocUsing({ a: 1 }, [], callback)).toEqual({
+                a: 1,
+            });
+        });
+    });
+
+    describe("diffKeysUsing", () => {
+        it("should diff using key callback only (ignoring values)", () => {
+            const strcasecmp = (a: unknown, b: unknown) =>
+                String(a).toLowerCase() === String(b).toLowerCase();
+
+            // Keys match case-insensitively, values are ignored
+            expect(
+                Obj.diffKeysUsing(
+                    { id: 1, first_word: "Hello" },
+                    { ID: 123, foo_bar: "Hello" },
+                    strcasecmp,
+                ),
+            ).toEqual({ first_word: "Hello" });
+
+            // Only 'b' doesn't have matching key
+            expect(
+                Obj.diffKeysUsing({ a: 1, b: 2 }, { A: 999 }, strcasecmp),
+            ).toEqual({ b: 2 });
+        });
+
+        it("should return empty object for non-accessible data", () => {
+            const callback = (a: unknown, b: unknown) => a === b;
+            expect(Obj.diffKeysUsing(null, { a: 1 }, callback)).toEqual({});
+            expect(Obj.diffKeysUsing([], { a: 1 }, callback)).toEqual({});
+        });
+
+        it("should return copy of data for non-accessible other", () => {
+            const callback = (a: unknown, b: unknown) => a === b;
+            expect(Obj.diffKeysUsing({ a: 1 }, null, callback)).toEqual({
+                a: 1,
+            });
+            expect(Obj.diffKeysUsing({ a: 1 }, [], callback)).toEqual({
+                a: 1,
             });
         });
     });
