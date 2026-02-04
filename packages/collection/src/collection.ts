@@ -1105,10 +1105,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     groupBy<TGroupKey extends PropertyKey = PropertyKey>(
         groupByValue:
-            | ((value: TValue, index: TKey) => TGroupKey | TGroupKey[])
+            | ((
+                  value: TValue,
+                  index: TKey,
+              ) => TGroupKey | TGroupKey[] | null | undefined)
             | Array<
                   | TGroupKey
-                  | ((value: TValue, index: TKey) => TGroupKey | TGroupKey[])
+                  | ((
+                        value: TValue,
+                        index: TKey,
+                    ) => TGroupKey | TGroupKey[] | null | undefined)
               >
             | TGroupKey
             | PathKey,
@@ -1116,7 +1122,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     ) {
         let nextGroups: Array<
             | TGroupKey
-            | ((value: TValue, index: TKey) => TGroupKey | TGroupKey[])
+            | ((
+                  value: TValue,
+                  index: TKey,
+              ) => TGroupKey | TGroupKey[] | null | undefined)
         > | null = null;
 
         if (!isFunction(groupByValue) && isArray(groupByValue)) {
@@ -1170,6 +1179,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
 
             for (let groupKey of groupKeys) {
+                // Skip null/undefined group keys - items with no valid key are not grouped
+                if (isNull(groupKey) || isUndefined(groupKey)) {
+                    continue;
+                }
+
                 groupKey = normalizeGroupKey(groupKey) as TGroupKey;
 
                 if (!results[groupKey]) {

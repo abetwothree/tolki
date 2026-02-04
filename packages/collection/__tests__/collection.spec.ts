@@ -1859,6 +1859,24 @@ describe("Collection", () => {
             expect(grouped.get("a")).toEqual(["apple", "apricot"]);
             expect(grouped.get("b")).toEqual(["banana"]);
         });
+
+        it("skips items when callback returns null or undefined", () => {
+            // Test that items with null/undefined keys are not grouped
+            const c = collect(["apple", "", "banana"]);
+            // Empty string's first char is undefined
+            const grouped = c.groupBy((item) => item[0]);
+            expect(grouped.all()).toEqual({
+                a: ["apple"],
+                b: ["banana"],
+            });
+
+            // Test with explicit null return
+            const c2 = collect([1, 2, 3, 4, 5]);
+            const grouped2 = c2.groupBy((item) => (item > 3 ? "big" : null));
+            expect(grouped2.all()).toEqual({
+                big: [4, 5],
+            });
+        });
     });
 
     describe("keyBy", () => {
