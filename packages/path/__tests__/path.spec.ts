@@ -1841,10 +1841,7 @@ describe("Path Functions", () => {
         it("handles path where nested object doesn't exist", () => {
             const obj = { a: 1 };
             // Path to nested property doesn't exist
-            const result = Path.forgetKeysObject(
-                obj,
-                "a.b.c",
-            );
+            const result = Path.forgetKeysObject(obj, "a.b.c");
             expect(result).toEqual({ a: 1 });
         });
 
