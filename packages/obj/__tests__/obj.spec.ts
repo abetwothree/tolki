@@ -104,6 +104,13 @@ describe("Obj", () => {
             );
         });
 
+        it("should throw error for non-object scalar values", () => {
+            const obj = { name: "John" };
+            expect(() => Obj.objectItem(obj, "name")).toThrow(
+                "Object value for key [name] must be an object, string found.",
+            );
+        });
+
         it("should return default value if key not found and default is array", () => {
             const obj = { name: "John" };
             expect(Obj.objectItem(obj, "missing", { default: 1 })).toEqual({
@@ -177,6 +184,18 @@ describe("Obj", () => {
                 name: "John",
                 family: "Doe",
                 callback: 58,
+                undefined: undefined,
+            });
+        });
+
+        it("should handle when keys have more entries than values", () => {
+            const keys = { 0: "a", 1: "b", 2: "c" };
+            const values = { 0: 1, 1: 2 };
+            // key 'c' has no corresponding value
+            expect(Obj.combine(keys, values)).toEqual({
+                a: 1,
+                b: 2,
+                c: undefined,
             });
         });
     });
@@ -605,9 +624,19 @@ describe("Obj", () => {
             expect(Obj.get(obj, undefined)).toEqual(obj);
         });
 
+        it("should return default when null key with non-object data", () => {
+            expect(Obj.get("string", null, "default")).toBe("default");
+            expect(Obj.get(null, null, "default")).toBe("default");
+            expect(Obj.get("string", null, () => "fn-default")).toBe("fn-default");
+        });
+
         it("should handle non-object data", () => {
             expect(Obj.get("string", "key", "default")).toBe("default");
             expect(Obj.get(null, "key", "default")).toBe("default");
+        });
+
+        it("should handle non-object data with function default", () => {
+            expect(Obj.get("string", "key", () => "fn-default")).toBe("fn-default");
         });
 
         it("should handle numeric keys", () => {
@@ -615,10 +644,59 @@ describe("Obj", () => {
             expect(Obj.get(obj, 123)).toBe("value");
         });
 
+        it("should handle numeric key with function default when missing", () => {
+            const obj = { "123": "value" };
+            expect(Obj.get(obj, 999, () => "fn-default")).toBe("fn-default");
+        });
+
+        it("should handle numeric key with non-function default when missing", () => {
+            const obj = { "123": "value" };
+            expect(Obj.get(obj, 999, "regular-default")).toBe("regular-default");
+        });
+
         it("should call function defaults", () => {
             expect(Obj.get({}, "missing", () => "function-default")).toBe(
                 "function-default",
             );
+        });
+
+        it("should handle dot notation path with null in chain", () => {
+            const obj = { user: null };
+            expect(Obj.get(obj, "user.name", "default")).toBe("default");
+            expect(Obj.get(obj, "user.name", () => "fn-default")).toBe("fn-default");
+        });
+
+        it("should handle dot notation path with non-object in chain", () => {
+            const obj = { user: "string-value" };
+            expect(Obj.get(obj, "user.name", "default")).toBe("default");
+            expect(Obj.get(obj, "user.name", () => "fn-default")).toBe("fn-default");
+        });
+
+        it("should handle dot notation when segment not in object", () => {
+            const obj = { user: { name: "John" } };
+            expect(Obj.get(obj, "user.age.years", "default")).toBe("default");
+            expect(Obj.get(obj, "user.age.years", () => "fn-default")).toBe("fn-default");
+        });
+
+        it("should return undefined value when key exists but is undefined", () => {
+            const obj = { name: undefined };
+            expect(Obj.get(obj, "name", "default")).toBe("default");
+        });
+
+        it("should handle dot notation when final value is undefined", () => {
+            const obj = { user: { name: undefined } };
+            expect(Obj.get(obj, "user.name", "default")).toBe("default");
+            expect(Obj.get(obj, "user.name", () => "fn-default")).toBe("fn-default");
+        });
+
+        it("should handle simple key when value exists", () => {
+            const obj = { name: "John" };
+            expect(Obj.get(obj, "name", () => "fn-default")).toBe("John");
+        });
+
+        it("should handle simple key when value is undefined with function default", () => {
+            const obj = { name: undefined };
+            expect(Obj.get(obj, "name", () => "fn-default")).toBe("fn-default");
         });
     });
 
@@ -679,6 +757,17 @@ describe("Obj", () => {
             expect(Obj.hasAll(null, ["key"])).toBe(false);
             expect(Obj.hasAll([], ["key"])).toBe(false);
         });
+
+        it("should return false for empty keys array", () => {
+            const obj = { name: "John" };
+            expect(Obj.hasAll(obj, [])).toBe(false);
+        });
+
+        it("should handle single key as string", () => {
+            const obj = { name: "John" };
+            expect(Obj.hasAll(obj, "name")).toBe(true);
+            expect(Obj.hasAll(obj, "missing")).toBe(false);
+        });
     });
 
     describe("hasAny", () => {
@@ -686,6 +775,12 @@ describe("Obj", () => {
             const obj = { name: "John", age: 30 };
             expect(Obj.hasAny(obj, ["name", "email"])).toBe(true);
             expect(Obj.hasAny(obj, ["email", "phone"])).toBe(false);
+        });
+
+        it("should handle single key as string (non-array)", () => {
+            const obj = { name: "John", age: 30 };
+            expect(Obj.hasAny(obj, "name")).toBe(true);
+            expect(Obj.hasAny(obj, "email")).toBe(false);
         });
 
         it("should handle dot notation", () => {
@@ -702,6 +797,11 @@ describe("Obj", () => {
         it("should handle null/empty keys", () => {
             expect(Obj.hasAny({}, null)).toBe(false);
             expect(Obj.hasAny({}, [])).toBe(false);
+        });
+
+        it("should return false for empty keys array on non-empty object", () => {
+            const obj = { name: "John" };
+            expect(Obj.hasAny(obj, [])).toBe(false);
         });
     });
 
@@ -789,6 +889,18 @@ describe("Obj", () => {
             const obj = { name: "John", age: null, city: "NYC", active: false };
             const result = Obj.filter(obj);
             expect(result).toEqual({ name: "John", city: "NYC" });
+        });
+
+        it("should filter empty arrays when no callback (PHP behavior)", () => {
+            const obj = { name: "John", items: [], tags: ["a", "b"] };
+            const result = Obj.filter(obj);
+            expect(result).toEqual({ name: "John", tags: ["a", "b"] });
+        });
+
+        it("should filter empty objects when no callback (PHP behavior)", () => {
+            const obj = { name: "John", metadata: {}, profile: { age: 30 } };
+            const result = Obj.filter(obj);
+            expect(result).toEqual({ name: "John", profile: { age: 30 } });
         });
 
         it("should pass key to callback", () => {
@@ -1002,6 +1114,44 @@ describe("Obj", () => {
         });
     });
 
+    describe("intersectAssoc", () => {
+        it("should return items where both key and value match", () => {
+            const obj1 = { a: 1, b: 2, c: 3 };
+            const obj2 = { a: 1, b: 20, d: 4 };
+            expect(Obj.intersectAssoc(obj1, obj2)).toEqual({ a: 1 });
+        });
+
+        it("should return empty when no matches", () => {
+            const obj1 = { a: 1, b: 2 };
+            const obj2 = { a: 2, b: 3 };
+            expect(Obj.intersectAssoc(obj1, obj2)).toEqual({});
+        });
+
+        it("should handle empty objects", () => {
+            expect(Obj.intersectAssoc({}, {})).toEqual({});
+        });
+    });
+
+    describe("intersectAssocUsing", () => {
+        it("should return items where keys match via callback and values are equal", () => {
+            const obj1 = { a: "green", b: "brown" };
+            const obj2 = { A: "GREEN", B: "brown" };
+            const strcasecmpKeys = (a: PropertyKey, b: PropertyKey) =>
+                String(a).toLowerCase() === String(b).toLowerCase();
+            expect(Obj.intersectAssocUsing(obj1, obj2, strcasecmpKeys)).toEqual({
+                b: "brown",
+            });
+        });
+
+        it("should return empty when no matches", () => {
+            const obj1 = { a: 1, b: 2 };
+            const obj2 = { c: 1, d: 2 };
+            expect(
+                Obj.intersectAssocUsing(obj1, obj2, (a, b) => a === b),
+            ).toEqual({});
+        });
+    });
+
     describe("pluck", () => {
         it("should pluck values with string key", () => {
             const obj = {
@@ -1066,6 +1216,40 @@ describe("Obj", () => {
         it("should handle non-accessible data", () => {
             expect(Obj.pluck(null, "key")).toEqual([]);
             expect(Obj.pluck([], "key")).toEqual([]);
+        });
+
+        it("should handle non-accessible data with key", () => {
+            expect(Obj.pluck(null, "value", "key")).toEqual({});
+        });
+
+        it("should handle stringable itemKey", () => {
+            const obj = {
+                user1: {
+                    name: "John",
+                    id: { toString: () => "custom-id-1" },
+                },
+                user2: {
+                    name: "Jane",
+                    id: { toString: () => "custom-id-2" },
+                },
+            };
+            expect(Obj.pluck(obj, "name", "id")).toEqual({
+                "custom-id-1": "John",
+                "custom-id-2": "Jane",
+            });
+        });
+
+        it("should handle missing key field (itemKey is null/undefined)", () => {
+            const obj = {
+                user1: { name: "John" }, // no 'id' field
+                user2: { name: "Jane", id: null }, // 'id' is null
+            };
+            // When key is missing or null, the itemKey won't be stringable
+            // and will use the original value (null/undefined) as key
+            const result = Obj.pluck(obj, "name", "id");
+            expect(result).toEqual({
+                null: "Jane",
+            });
         });
     });
 
@@ -1208,6 +1392,13 @@ describe("Obj", () => {
             const obj = { a: 1, b: 2, c: 3 };
             expect(Obj.flatten(obj, 1)).toEqual([1, 2, 3]);
         });
+
+        it("returns empty array for scalar values that are not accessible", () => {
+            // Scalar values are not "accessible" (not objects or arrays), so return empty
+            expect(Obj.flatten("scalar")).toEqual([]);
+            expect(Obj.flatten(42)).toEqual([]);
+            expect(Obj.flatten(null)).toEqual([]);
+        });
     });
 
     describe("flattenDot", () => {
@@ -1300,6 +1491,13 @@ describe("Obj", () => {
             // Scalar at root level with no path should produce empty result
             const obj = { value: "scalar" };
             expect(Obj.flattenDot(obj)).toEqual({ value: "scalar" });
+        });
+
+        it("should handle depth=-1 which outputs nothing at root level", () => {
+            const obj = { a: { b: 1 } };
+            // depth=-1 means maxSegments=0, so pathLen (0) >= maxSegments (0) is true
+            // at root level, but pathLen is 0, so nothing is output
+            expect(Obj.flattenDot(obj, -1)).toEqual({});
         });
     });
 
@@ -1521,6 +1719,28 @@ describe("Obj", () => {
             expect(Obj.select(undefined, ["name"])).toEqual({});
             expect(Obj.select([], ["name"])).toEqual({});
         });
+
+        it("should handle items that are not objects", () => {
+            const obj = {
+                user1: "John",
+                user2: { name: "Jane" },
+            };
+            expect(Obj.select(obj, ["name"])).toEqual({
+                user1: {},
+                user2: { name: "Jane" },
+            });
+        });
+
+        it("should handle single key as string (non-array)", () => {
+            const obj = {
+                user1: { name: "John", age: 30 },
+                user2: { name: "Jane", age: 25 },
+            };
+            expect(Obj.select(obj, "name")).toEqual({
+                user1: { name: "John" },
+                user2: { name: "Jane" },
+            });
+        });
     });
 
     describe("mapWithKeys", () => {
@@ -1655,6 +1875,44 @@ describe("Obj", () => {
             expect(Obj.query(42)).toBe("0=42");
             expect(Obj.query("house")).toBe("0=house");
         });
+
+        it("should handle deeply nested objects with scalar values", () => {
+            const obj = {
+                level1: {
+                    level2: {
+                        value: "deep",
+                    },
+                },
+            };
+            expect(Obj.query(obj)).toBe("level1[level2][value]=deep");
+        });
+
+        it("should handle object values with null and undefined mixed", () => {
+            const obj = {
+                valid: "yes",
+                empty: null,
+                missing: undefined,
+                another: "value",
+            };
+            expect(Obj.query(obj)).toBe("valid=yes&another=value");
+        });
+
+        it("should handle nested array containing nested arrays", () => {
+            const obj = {
+                matrix: [
+                    [1, 2],
+                    [3, 4],
+                ],
+            };
+            expect(Obj.query(obj)).toBe(
+                "matrix[0][0]=1&matrix[0][1]=2&matrix[1][0]=3&matrix[1][1]=4",
+            );
+        });
+
+        it("should handle root-level array", () => {
+            // Root array without prefix
+            expect(Obj.query(["a", "b", "c"])).toBe("0=a&1=b&2=c");
+        });
     });
 
     describe("random", () => {
@@ -1692,6 +1950,17 @@ describe("Obj", () => {
         it("should handle non-object values", () => {
             expect(Obj.random(null)).toBeNull();
             expect(Obj.random(undefined)).toBeNull();
+        });
+
+        it("should return empty object when non-object passed with number parameter", () => {
+            expect(Obj.random(null, 2)).toEqual({});
+            expect(Obj.random(undefined, 3)).toEqual({});
+        });
+
+        it("should return null when number is explicitly null", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Obj.random(obj, null);
+            expect([1, 2, 3]).toContain(result);
         });
     });
 
@@ -2164,6 +2433,19 @@ describe("Obj", () => {
                     "user4",
                 ]);
             });
+
+            it("should handle when callback returns both null values", () => {
+                const obj = {
+                    a: { value: null },
+                    b: { value: null },
+                };
+                // Both callback results are null, should return 0 (maintain order)
+                const result = Obj.sortDesc(
+                    obj,
+                    (item) => item["value"],
+                );
+                expect(Object.keys(result)).toEqual(["a", "b"]);
+            });
         });
     });
 
@@ -2254,6 +2536,35 @@ describe("Obj", () => {
         it("should handle non-object data", () => {
             expect(Obj.splice(null, 0, 2)).toEqual({ value: {}, removed: {} });
             expect(Obj.splice([], 0, 2)).toEqual({ value: {}, removed: {} });
+        });
+
+        it("should splice with length 0 (insert only)", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Obj.splice(obj, 1, 0, { x: 10 });
+            // No removal, just insert
+            expect(result.removed).toEqual([]);
+            expect(result.value).toEqual([1, 10, 2, 3]);
+        });
+
+        it("should splice with length > 0 (remove and insert)", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Obj.splice(obj, 1, 1, { x: 10 });
+            expect(result.removed).toEqual([2]);
+            expect(result.value).toEqual([1, 10, 3]);
+        });
+
+        it("should splice without replacement", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Obj.splice(obj, 1, 1);
+            expect(result.removed).toEqual([2]);
+            expect(result.value).toEqual([1, 3]);
+        });
+
+        it("should handle multiple replacement objects", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Obj.splice(obj, 1, 1, { x: 10 }, { y: 20 });
+            expect(result.removed).toEqual([2]);
+            expect(result.value).toEqual([1, 10, 20, 3]);
         });
     });
 
@@ -2356,6 +2667,12 @@ describe("Obj", () => {
             expect(result).toEqual({ a: 1, b: 2, c: 3, d: 4 });
         });
 
+        it("should not pad if size equals current length", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const result = Obj.pad(obj, 3, 0);
+            expect(result).toEqual({ a: 1, b: 2, c: 3 });
+        });
+
         it("should pad with different types of values", () => {
             const obj = { a: "x" };
             const result = Obj.pad(obj, 3, "y");
@@ -2375,6 +2692,12 @@ describe("Obj", () => {
 
             const result2 = Obj.pad(obj, -5, 0);
             expect(result2).toEqual({ "-2": 0, "-1": 0, "0": 0, a: 1, b: 2 });
+        });
+
+        it("should handle negative size that equals current length", () => {
+            const obj = { a: 1, b: 2 };
+            const result = Obj.pad(obj, -2, 0);
+            expect(result).toEqual({ a: 1, b: 2 });
         });
     });
 

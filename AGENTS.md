@@ -24,6 +24,10 @@ The `@tolki` monorepo is a collection of packages that provide a JavaScript/Type
   - Example: `pnpm run list:functions packages/arr/src/arr.ts`
 - Run `pnpm run stubs:create-lists` to create function list file from PHP stubs
 
+## Use AI tools
+
+When working on this project, make sure to use the available MCP servers and skills as reference and helpers to ensure the code is of the highest quality possible. Use the TypeScript Expert skill to help with TypeScript-specific questions and best practices and ensure they meet the project's standards.
+
 ## To do lists
 
 When it makes sense, create a to-do list when working on a feature or bugfix. Use checkboxes so that it's easy to see what is done and what is left to do.
