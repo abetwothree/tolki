@@ -289,6 +289,7 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
         const key = keys[i];
         // Key is always defined because we iterate up to keys.length
         // but TypeScript needs the guard for type narrowing
+        /* istanbul ignore if -- @preserve TypeScript narrowing */
         if (!isUndefined(key)) {
             result[key] = values[i] as TCombineValue;
         }
