@@ -440,7 +440,8 @@ export function forgetKeysArray<TValue>(
     type Group = { path: number[]; indices: Set<number> };
     const groupsMap = new Map<string, Group>();
 
-    for (const k of isArray(keys) ? keys : [keys]) {
+    // At this point, keyList.length > 1, so we iterate over keyList directly
+    for (const k of keyList) {
         if (isNumber(k)) {
             const key = "";
             const entry = groupsMap.get(key) ?? {
@@ -524,11 +525,8 @@ export function setImmutable<TValue>(
         return [];
     }
 
-    const toArr = (value: unknown): unknown[] => {
-        return isArray(value) ? (value as unknown[]).slice() : [];
-    };
-
-    const root = toArr(data);
+    // At this point, data is guaranteed to be an array
+    const root = (data as unknown[]).slice();
 
     // Clamp index to array bounds (allow one past end for appending)
     const clampIndex = (idx: number, length: number): number => {
@@ -668,19 +666,19 @@ export function pushWithPath<TValue>(
         return out as TValue[];
     }
 
-    const isPlainArray = isArray(data);
-    const root: unknown[] = isPlainArray ? (data as unknown[]) : [];
+    // At this point, data is guaranteed to be an array
+    const root: unknown[] = data as unknown[];
 
     const segs = parseSegments(key);
     if (!segs || segs.length === 0) {
-        return isPlainArray ? (data as TValue[]) : (root as TValue[]);
+        return data as TValue[];
     }
 
     // Filter to only numeric segments for array operations
     const numericSegs = segs.filter((s): s is number => isNumber(s));
     if (numericSegs.length !== segs.length) {
         // Mixed paths not supported in this array-only function
-        return isPlainArray ? (data as TValue[]) : (root as TValue[]);
+        return data as TValue[];
     }
 
     const clamp = (idx: number, length: number): number => {
@@ -729,7 +727,7 @@ export function pushWithPath<TValue>(
 
     cursor.push(...(values as unknown[]));
 
-    return isPlainArray ? (data as TValue[]) : (root as TValue[]);
+    return data as TValue[];
 }
 
 /**
@@ -839,14 +837,10 @@ export function dotFlattenArray<TValue>(
     const walk = (node: unknown, path: string): void => {
         const arr = isArray(node) ? (node as unknown[]) : null;
         if (!arr) {
-            const key = prepend
-                ? path
-                    ? `${prepend}.${path}`
-                    : prepend
-                : path;
-            if (key.length > 0) {
-                out[key] = node as TValue;
-            }
+            // path is always non-empty in recursive calls (at least "0", "1", etc.)
+            const key = prepend ? `${prepend}.${path}` : path;
+            // key is always non-empty since path is at least "0"
+            out[key] = node as TValue;
             return;
         }
 
@@ -903,9 +897,9 @@ export function undotExpandObject<
 >(map: Record<TKey, TValue>): Record<TKey, TValue> {
     const results: Record<string, TValue> = {} as Record<TKey, TValue>;
 
-    for (const [key, value] of Object.entries(map) as [TKey, TValue][]) {
-        const keyStr = isSymbol(key) ? key.toString() : String(key);
-        const result = setObjectValue(results, keyStr, value);
+    // Object.entries returns string keys only (symbols are not enumerated)
+    for (const [key, value] of Object.entries(map) as [string, TValue][]) {
+        const result = setObjectValue(results, key, value);
         Object.assign(results, result);
     }
 
@@ -934,8 +928,12 @@ export function undotExpandArray<
         const n = seg.length ? Number(seg) : NaN;
         return isInteger(n) && n >= 0;
     };
-    for (const [rawKey, value] of Object.entries(map ?? {})) {
-        if (!isString(rawKey) || rawKey.length === 0) {
+    // Object.entries returns string keys only
+    for (const [rawKey, value] of Object.entries(map ?? {}) as [
+        string,
+        TValue,
+    ][]) {
+        if (rawKey.length === 0) {
             continue;
         }
 
@@ -1183,22 +1181,23 @@ export function setMixed<TValue>(
     }
 
     const firstIndex = parseInt(firstSegment, 10);
-    if (isArray(current)) {
-        if (!isInteger(firstIndex) || firstIndex < 0) {
-            // If first segment is not a valid array index and array is not empty,
-            // treat this as an invalid path and return unchanged
-            if (current.length > 0) {
-                return arr;
-            }
-            // If array is empty, create object at index 0 for non-numeric first segment
-            current.push({});
-            current = current[0];
+    // At this point, current === arr which is always an array
+    if (!isInteger(firstIndex) || firstIndex < 0) {
+        // If first segment is not a valid array index and array is not empty,
+        // treat this as an invalid path and return unchanged
+        if ((current as unknown[]).length > 0) {
+            return arr;
         }
+        // If array is empty, create object at index 0 for non-numeric first segment
+        (current as unknown[]).push({});
+        current = (current as unknown[])[0];
     }
 
     for (let i = 0; i < segments.length - 1; i++) {
         const segment = segments[i];
-        if (!segment) continue;
+        if (!segment) {
+            continue;
+        }
 
         const index = parseInt(segment, 10);
 
@@ -1221,12 +1220,10 @@ export function setMixed<TValue>(
             }
 
             current = current[index];
-        } else if (
-            !isNull(current) &&
-            isUndefined(current) === false &&
-            isObjectAny(current)
-        ) {
+        } else {
             // Handle non-numeric keys (object properties)
+            // At this point, current is guaranteed to be an object (or array treated as object)
+            // because we always create structure before navigating
             const obj = current as Record<string, unknown>;
             const nextValue = obj[segment];
             if (
