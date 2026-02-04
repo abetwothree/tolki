@@ -130,6 +130,20 @@ export interface ArrayCollection<
 }
 
 /**
+ * A Collection containing exactly two elements, used for partition().
+ * Extends ArrayCollection and adds tuple-like indexing for better type inference.
+ */
+export interface TupleCollection<T1, T2> extends ArrayCollection<
+    T1 | T2,
+    number
+> {
+    all(): [T1, T2];
+    0: T1;
+    1: T2;
+    [Symbol.iterator](): IterableIterator<T1 | T2>;
+}
+
+/**
  * Laravel-style Collection class for JavaScript/TypeScript.
  * Provides a fluent interface for working with arrays and objects.
  */
@@ -1093,10 +1107,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     groupBy<TGroupKey extends PropertyKey = PropertyKey>(
         groupByValue:
-            | ((value: TValue, index: TKey) => TGroupKey | TGroupKey[])
+            | ((
+                  value: TValue,
+                  index: TKey,
+              ) => TGroupKey | TGroupKey[] | null | undefined)
             | Array<
                   | TGroupKey
-                  | ((value: TValue, index: TKey) => TGroupKey | TGroupKey[])
+                  | ((
+                        value: TValue,
+                        index: TKey,
+                    ) => TGroupKey | TGroupKey[] | null | undefined)
               >
             | TGroupKey
             | PathKey,
@@ -1104,7 +1124,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     ) {
         let nextGroups: Array<
             | TGroupKey
-            | ((value: TValue, index: TKey) => TGroupKey | TGroupKey[])
+            | ((
+                  value: TValue,
+                  index: TKey,
+              ) => TGroupKey | TGroupKey[] | null | undefined)
         > | null = null;
 
         if (!isFunction(groupByValue) && isArray(groupByValue)) {
@@ -1158,6 +1181,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
 
             for (let groupKey of groupKeys) {
+                // Skip null/undefined group keys - items with no valid key are not grouped
+                if (isNull(groupKey) || isUndefined(groupKey)) {
+                    continue;
+                }
+
                 groupKey = normalizeGroupKey(groupKey) as TGroupKey;
 
                 if (!results[groupKey]) {
@@ -1423,7 +1451,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     implode<TReturnValue>(
         value:
             | ((item: TValue, key: TKey) => TReturnValue)
-            | string
+            | PropertyKey
             | null = null,
         glue: string | null = null,
     ) {
@@ -2180,7 +2208,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // Use itemsWithOrder when available to preserve numeric key insertion order
         const entries = this.itemsWithOrder
             ? this.itemsWithOrder.slice(offset)
-            : Object.entries(this.slice(offset) as Record<TKey, TValue>);
+            : Object.entries(this.slice(offset).all() as Record<TKey, TValue>);
 
         for (const [, value] of entries) {
             if (position % step === 0) {
@@ -4571,13 +4599,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param key - The key or callback to determine the partitioning, or null to partition the items directly
      * @param operator - The operator to use for comparison, if key is not a callback or null
      * @param value - The value to compare against, if key is not a callback or null
-     * @returns An array with two collections: the first with items that pass the truth test, the second with items that fail
+     * @returns A TupleCollection with two collections: the first with items that pass the truth test, the second with items that fail
      */
     partition(
         key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
         operator?: unknown,
         value?: unknown,
-    ): ArrayCollection<Collection<TValue, TKey>, number> {
+    ): TupleCollection<Collection<TValue, TKey>, Collection<TValue, TKey>> {
         let callback;
         if (isUndefined(operator) && isUndefined(value)) {
             callback = this.valueRetriever(
@@ -4598,7 +4626,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return new Collection<Collection<TValue, TKey>, number>([
             new Collection<TValue, TKey>(passed as DataItems<TValue, TKey>),
             new Collection<TValue, TKey>(failed as DataItems<TValue, TKey>),
-        ]) as ArrayCollection<Collection<TValue, TKey>, number>;
+        ]) as TupleCollection<
+            Collection<TValue, TKey>,
+            Collection<TValue, TKey>
+        >;
     }
 
     /**

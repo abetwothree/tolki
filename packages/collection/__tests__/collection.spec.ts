@@ -410,6 +410,25 @@ describe("Collection", () => {
 
             expect(collect([1, 2, 2, 1]).mode()).toEqual([1, 2]);
         });
+
+        it("handles string keys that are not valid numbers", () => {
+            // Create object collection where keys are strings that aren't numeric
+            const objData = collect({ a: 1, b: 1, c: 2, d: 2, e: 3 });
+            // The mode's keys will be string keys from the object
+            // When we use mode with 'a', 'b', 'c', 'd' values appearing with certain frequencies
+            // The internal collection keys will be strings
+            const result = objData.mode();
+            // Both 1 and 2 appear twice (highest count)
+            expect(result).toEqual([1, 2]);
+        });
+
+        it("handles non-numeric string values in mode", () => {
+            // When values are non-numeric strings, mode should return them as strings
+            const c = collect(["apple", "banana", "apple", "cherry", "apple"]);
+            const result = c.mode();
+            // "apple" appears 3 times (most frequent)
+            expect(result).toEqual(["apple"]);
+        });
     });
 
     describe("collapse", () => {
@@ -1383,6 +1402,21 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("handles non-array/non-object items", () => {
+            // When flattening a collection with primitive items
+            const c = collect([1, [2, 3], "string"]);
+            const result = c.flatten();
+            expect(result.all()).toEqual([1, 2, 3, "string"]);
+        });
+
+        it("handles primitive value wrapped in flattenRecursive", () => {
+            // Create a scenario where flattenRecursive receives a primitive
+            // This happens when an object has a non-array, non-object value at depth
+            const c = collect({ a: { b: 5 }, c: 10 });
+            const result = c.flatten(1);
+            expect(result.all()).toEqual([5, 10]);
+        });
     });
 
     describe("flip", () => {
@@ -1832,6 +1866,33 @@ describe("Collection", () => {
                 tag3: [{ tags: ["tag2", "tag3"] }],
             });
         });
+
+        it("handles isArray(this.items) branch", () => {
+            // Use array-based collection to trigger array branch
+            const c = collect(["apple", "banana", "apricot"]);
+            const grouped = c.groupBy((item) => item[0]);
+            // get returns the raw array value directly
+            expect(grouped.get("a")).toEqual(["apple", "apricot"]);
+            expect(grouped.get("b")).toEqual(["banana"]);
+        });
+
+        it("skips items when callback returns null or undefined", () => {
+            // Test that items with null/undefined keys are not grouped
+            const c = collect(["apple", "", "banana"]);
+            // Empty string's first char is undefined
+            const grouped = c.groupBy((item) => item[0]);
+            expect(grouped.all()).toEqual({
+                a: ["apple"],
+                b: ["banana"],
+            });
+
+            // Test with explicit null return
+            const c2 = collect([1, 2, 3, 4, 5]);
+            const grouped2 = c2.groupBy((item) => (item > 3 ? "big" : null));
+            expect(grouped2.all()).toEqual({
+                big: [4, 5],
+            });
+        });
     });
 
     describe("keyBy", () => {
@@ -1927,6 +1988,21 @@ describe("Collection", () => {
             expect(keyed.all()).toEqual({
                 "1.2": { id: [1, 2] },
                 "3.4": { id: [3, 4] },
+            });
+        });
+
+        it("works with object collection (non-array items)", () => {
+            // Test keyBy with object-based collection
+            const collection = collect({
+                a: { rating: 1, name: "one" },
+                b: { rating: 2, name: "two" },
+                c: { rating: 3, name: "three" },
+            });
+            const result = collection.keyBy("rating");
+            expect(result.all()).toEqual({
+                1: { rating: 1, name: "one" },
+                2: { rating: 2, name: "two" },
+                3: { rating: 3, name: "three" },
             });
         });
     });
@@ -2030,6 +2106,39 @@ describe("Collection", () => {
                     data5.implode((user) => `${user.name}-${user.email}`, ","),
                 ).toBe("taylor-foo,dayle-bar");
             });
+        });
+
+        it("converts non-string items to string", () => {
+            // When items are numbers
+            const c = collect([1, 2, 3]);
+            expect(c.implode(", ")).toBe("1, 2, 3");
+        });
+
+        it("handles isArray check for plucking", () => {
+            // When first item is an array
+            const c = collect([
+                [1, 2],
+                [3, 4],
+            ]);
+            expect(c.implode(0, ", ")).toBe("1, 3");
+        });
+
+        it("handles plain objects for plucking", () => {
+            // When first item is a plain object
+            const c = collect([{ name: "John" }, { name: "Jane" }]);
+            expect(c.implode("name", ", ")).toBe("John, Jane");
+        });
+
+        it("uses default value parameter", () => {
+            // Calling implode without arguments triggers the default parameter
+            const c = collect(["a", "b", "c"]);
+            expect(c.implode()).toBe("abc"); // joins without separator
+        });
+
+        it("handles object-based collection in joinItems", () => {
+            // Test with object-based collection to cover the Object.values branch in joinItems
+            const c = collect({ a: "apple", b: "banana", c: "cherry" });
+            expect(c.implode(", ")).toBe("apple, banana, cherry");
         });
     });
 
@@ -2405,6 +2514,29 @@ describe("Collection", () => {
             expect(collection.hasSole((item) => item.age === 2)).toBe(true);
             expect(collection.hasSole((item) => item.age > 1)).toBe(false);
         });
+
+        it("returns true with null filter on single item", () => {
+            const c = collect([42]);
+            expect(c.hasSole()).toBe(true);
+        });
+
+        it("uses callback filter", () => {
+            const c = collect([1, 2, 3, 4, 5]);
+            // Only one item > 4
+            expect(c.hasSole((v) => v > 4)).toBe(true);
+        });
+
+        it("uses operatorForWhere when key is not callable", () => {
+            const c = collect([{ status: "active" }, { status: "inactive" }]);
+            expect(c.hasSole("status", "=", "active")).toBe(true);
+        });
+
+        it("uses operatorForWhere with non-callable key (path string)", () => {
+            // Test the branch where key is not null and not callable
+            const c = collect([{ active: true }, { active: false }]);
+            // Here "active" is a path key, not a callable - triggers operatorForWhere(key)
+            expect(c.hasSole("active")).toBe(true);
+        });
     });
 
     describe("hasMany", () => {
@@ -2449,6 +2581,32 @@ describe("Collection", () => {
                     (word) => word.length === 3,
                 ),
             ).toBe(true);
+        });
+
+        it("uses callback filter", () => {
+            const c = collect([1, 2, 3, 4, 5]);
+            // Use callback to check if collection has more than one even number
+            expect(c.hasMany((v) => v % 2 === 0)).toBe(true);
+        });
+
+        it("uses operatorForWhere when key is not callable", () => {
+            const c = collect([
+                { status: "active" },
+                { status: "active" },
+                { status: "inactive" },
+            ]);
+            expect(c.hasMany("status", "=", "active")).toBe(true);
+        });
+
+        it("uses operatorForWhere with non-callable key (path string)", () => {
+            // Test the branch where key is not null and not callable (just a string path)
+            const c = collect([
+                { status: "active" },
+                { status: "active" },
+                { status: "inactive" },
+            ]);
+            // Here "status" is a path key, not a callable - triggers operatorForWhere(key)
+            expect(c.hasMany("status")).toBe(true);
         });
     });
 
@@ -2549,6 +2707,11 @@ describe("Collection", () => {
         it("returns default when empty object", () => {
             const collection = collect({});
             expect(collection.last(null, "default")).toBe("default");
+        });
+
+        it("returns undefined converted to null", () => {
+            const c = collect([]);
+            expect(c.last()).toBeNull();
         });
     });
 
@@ -3165,6 +3328,23 @@ describe("Collection", () => {
             expect(() => {
                 collect([1, 2, 3]).nth(-1);
             }).toThrowError("Step value must be at least 1.");
+        });
+
+        it("uses itemsWithOrder when available", () => {
+            // Create collection with numeric keys that needs order preservation
+            const c = collect({ 1: "a", 0: "b", 2: "c" });
+            // sortBy creates itemsWithOrder
+            const sorted = c.sortBy((v) => v);
+            // nth should use itemsWithOrder
+            expect(sorted.nth(1).all()).toEqual(["a", "b", "c"]);
+        });
+
+        it("uses Object.entries when itemsWithOrder is not available", () => {
+            // Create collection with object keys (no Map) - no itemsWithOrder is set
+            const c = collect({ a: 1, b: 2, c: 3, d: 4, e: 5 });
+            // nth should use Object.entries branch
+            expect(c.nth(2).all()).toEqual([1, 3, 5]);
+            expect(c.nth(2, 1).all()).toEqual([2, 4]);
         });
     });
 
@@ -3907,6 +4087,21 @@ describe("Collection", () => {
             const c15 = collect({ x: "val", y: "other" });
             expect(c15.pull("y")).toBe("other");
             expect(c15.all()).toEqual({ x: "val" });
+
+            // Test pulling from array with STRING key that is a valid numeric
+            // This covers delete (items as unknown[])[numKey]
+            // When this.items is array BUT key is string (not number type), we enter else branch
+            // but items is still an array
+            const c16 = collect(["a", "b", "c"]);
+            expect(c16.pull("1")).toBe("b"); // String "1", not number 1
+            expect(c16.all()).toEqual(["a", undefined, "c"]); // Array with deleted element
+        });
+
+        it("handles array with string numeric key", () => {
+            const c = collect(["a", "b", "c"]);
+            // Pass string "1" instead of number 1 to trigger else branch
+            expect(c.pull("1")).toBe("b");
+            expect(c.all()).toEqual(["a", undefined, "c"]);
         });
     });
 
@@ -4535,6 +4730,23 @@ describe("Collection", () => {
             const arrWithUndef = collect([undefined, 1, 2]);
             expect(arrWithUndef.shift()).toBeUndefined();
             expect(arrWithUndef.all()).toEqual([1, 2]);
+        });
+
+        it("handles object with keys branch", () => {
+            const c = collect({ a: 1, b: 2, c: 3 });
+            const shifted = c.shift(2);
+            expect(shifted.all()).toEqual([1, 2]);
+            expect(c.all()).toEqual({ c: 3 });
+        });
+
+        it("handles object shift when count exceeds items (empty keys branch)", () => {
+            // This tests the case where keys.length === 0 during the shift loop
+            // (when we've shifted all items but still have iterations left)
+            const c = collect({ a: 1 });
+            // Request 3 items but only 1 exists - will try to shift from empty object
+            const shifted = c.shift(3);
+            expect(shifted.all()).toEqual([1]); // Only got 1 item
+            expect(c.all()).toEqual({}); // Object is now empty
         });
     });
 
@@ -5252,9 +5464,31 @@ describe("Collection", () => {
                 });
             });
         });
+
+        it("handles null == null comparison", () => {
+            const c = collect([{ val: null }, { val: null }, { val: 1 }]);
+            const sorted = c.sortBy("val");
+            expect(sorted.values().all()).toEqual([
+                { val: null },
+                { val: null },
+                { val: 1 },
+            ]);
+        });
+
+        it("handles a == null comparison", () => {
+            const c = collect([{ val: null }, { val: 1 }]);
+            const sorted = c.sortBy("val");
+            expect(sorted.values().all()).toEqual([{ val: null }, { val: 1 }]);
+        });
+
+        it("handles b == null comparison", () => {
+            const c = collect([{ val: 1 }, { val: null }]);
+            const sorted = c.sortBy("val");
+            expect(sorted.values().all()).toEqual([{ val: null }, { val: 1 }]);
+        });
     });
 
-    describe("sort by many", () => {
+    describe("sortByMany", () => {
         describe("Laravel Tests", () => {
             it("test sort by many", () => {
                 // Test sorting with mixed types - JavaScript compares them all as strings
@@ -5377,6 +5611,43 @@ describe("Collection", () => {
                 "1": 1,
                 "2": 2,
             });
+
+            // Test continue branch - when first comparison returns 0,
+            // it should continue to next comparison
+            const multiData = collect([
+                { primary: "a", secondary: 3 },
+                { primary: "a", secondary: 1 },
+                { primary: "b", secondary: 2 },
+            ]);
+            // First comparison by "primary" returns 0 for first two items,
+            // then continues to "secondary"
+            const multiSorted = multiData.sortByMany(["primary", "secondary"]);
+            expect(multiSorted.values().all()).toEqual([
+                { primary: "a", secondary: 1 },
+                { primary: "a", secondary: 3 },
+                { primary: "b", secondary: 2 },
+            ]);
+
+            // Test return 0 at end of comparisons - when ALL comparisons return 0
+            // This happens when two items are equal on all comparison criteria
+            const equalData = collect([
+                { primary: "a", secondary: 1 },
+                { primary: "a", secondary: 1 }, // Identical to first item
+                { primary: "b", secondary: 2 },
+            ]);
+            const equalSorted = equalData.sortByMany(["primary", "secondary"]);
+            expect(equalSorted.values().all()).toEqual([
+                { primary: "a", secondary: 1 },
+                { primary: "a", secondary: 1 },
+                { primary: "b", secondary: 2 },
+            ]);
+        });
+
+        it("handles hasNumericKeys false branch", () => {
+            // Object with non-numeric keys
+            const c = collect({ a: { val: 2 }, b: { val: 1 } });
+            const sorted = c.sortByMany(["val"]);
+            expect(sorted.keys().all()).toEqual(["b", "a"]);
         });
     });
 
@@ -5712,6 +5983,35 @@ describe("Collection", () => {
                 expect(e.get(2)!.all()).toEqual([3, 6, null]);
             });
         });
+
+        it("handles shorter array in list", () => {
+            const c = collect([1, 2, 3]);
+            const zipped = c.zip([4, 5]);
+            expect(zipped.count()).toBe(3);
+            // Third row: this collection has value, but zipped array is shorter
+            expect(zipped.all()[2]?.all()).toEqual([3, null]);
+        });
+
+        it("handles arrays of different lengths", () => {
+            const c = collect(["a", "b"]);
+            const zipped = c.zip([1, 2, 3]);
+            // maxLength is 3 (from the longer array)
+            expect(zipped.count()).toBe(3);
+            // First two have values from both
+            expect(zipped.all()[0]?.all()).toEqual(["a", 1]);
+            expect(zipped.all()[1]?.all()).toEqual(["b", 2]);
+            // Third: this collection is shorter, only value from zipped array
+            expect(zipped.all()[2]?.all()).toEqual([3]);
+        });
+
+        it("handles object-based items in zip list", () => {
+            // Test with object-based collection to cover Object.values branch
+            const c = collect([1, 2]);
+            const zipped = c.zip({ a: "x", b: "y" });
+            expect(zipped.count()).toBe(2);
+            expect(zipped.all()[0]?.all()).toEqual([1, "x"]);
+            expect(zipped.all()[1]?.all()).toEqual([2, "y"]);
+        });
     });
 
     describe("pad", () => {
@@ -5839,6 +6139,29 @@ describe("Collection", () => {
                     b: 2,
                     c: 1,
                 });
+            });
+        });
+
+        it("handles object/array result as key", () => {
+            const c = collect([{ type: "a" }, { type: "b" }, { type: "a" }]);
+            // When callback returns an object, it should be JSON stringified
+            const result = c.countBy((item) => ({ t: item.type }));
+            expect(result.all()).toEqual({
+                '{"t":"a"}': 2,
+                '{"t":"b"}': 1,
+            });
+        });
+
+        it("handles array result as key", () => {
+            const c = collect([
+                [1, 2],
+                [1, 2],
+                [3, 4],
+            ]);
+            const result = c.countBy((item) => item);
+            expect(result.all()).toEqual({
+                "[1,2]": 2,
+                "[3,4]": 1,
             });
         });
     });
@@ -6247,6 +6570,22 @@ describe("Collection", () => {
                 expect(k.avg()).toBe(0);
             });
         });
+
+        it("ignores NaN values when calculating average", () => {
+            // Test with non-numeric string values that result in NaN
+            const c = collect([
+                { foo: 10 },
+                { foo: "not a number" },
+                { foo: 20 },
+            ]);
+            // NaN values should be skipped, so average of 10 and 20 is 15
+            expect(c.avg("foo")).toBe(15);
+
+            // Test with all NaN values
+            const d = collect([{ foo: "abc" }, { foo: "xyz" }]);
+            // All values result in NaN, so count is 0 and avg returns null
+            expect(d.avg("foo")).toBeNull();
+        });
     });
 
     describe("average", () => {
@@ -6312,6 +6651,22 @@ describe("Collection", () => {
                 expect(k.average()).toBe(0);
             });
         });
+
+        it("handles null/undefined values", () => {
+            const c = collect([
+                { val: 10 },
+                { val: null },
+                { val: 20 },
+                { val: undefined },
+            ]);
+            // Should only average 10 and 20
+            expect(c.average("val")).toBe(15);
+        });
+
+        it("handles non-numeric values", () => {
+            const c = collect([{ val: 10 }, { val: "not a number" }]);
+            expect(c.average("val")).toBe(10);
+        });
     });
 
     describe("some", () => {
@@ -6362,6 +6717,17 @@ describe("Collection", () => {
                     }),
                 ).toBe(true);
             });
+        });
+
+        it("uses default key parameter", () => {
+            // Calling some without key triggers the default parameter = null
+            // which makes contains check if any value loosely equals null (PHP-style)
+            // In PHP loose equality, null == 0 == '' == false == []
+            const withPHPFalsy = collect([1, 2, 0, 4]); // 0 loosely equals null in PHP
+            expect(withPHPFalsy.some()).toBe(true); // 0 loosely equals null
+
+            const withoutPHPFalsy = collect([1, 2, 3, 4]);
+            expect(withoutPHPFalsy.some()).toBe(false); // no PHP-falsy values
         });
     });
 
@@ -6596,6 +6962,27 @@ describe("Collection", () => {
                 ).toBe(false);
             });
         });
+
+        it("uses callback when operator and value are null", () => {
+            const c = collect([1, 2, 3]);
+            expect(c.every((v) => v > 0)).toBe(true);
+            expect(c.every((v) => v > 2)).toBe(false);
+        });
+
+        it("uses default key parameter", () => {
+            // Calling every without key triggers the default parameter = null
+            // which makes valueRetriever return item itself (check truthiness)
+            const truthy = collect([1, 2, "hello", true]);
+            expect(truthy.every()).toBe(true);
+
+            const withFalsy = collect([1, 2, "", true]);
+            expect(withFalsy.every()).toBe(false);
+        });
+
+        it("uses operatorForWhere when operator provided", () => {
+            const c = collect([{ status: "active" }, { status: "active" }]);
+            expect(c.every("status", "=", "active")).toBe(true);
+        });
     });
 
     describe("firstWhere", () => {
@@ -6631,6 +7018,19 @@ describe("Collection", () => {
                     data.firstWhere((value) => value.nonexistent === "key"),
                 ).toBeNull();
             });
+        });
+
+        it("uses operatorForWhere", () => {
+            const c = collect([{ id: 1 }, { id: 2 }, { id: 3 }]);
+            expect(c.firstWhere("id", ">=", 2)).toEqual({ id: 2 });
+        });
+
+        it("uses default key parameter", () => {
+            // Calling firstWhere without key triggers the default parameter = null
+            // which makes operatorForWhere return items based on truthiness
+            const c = collect([0, "", null, "hello", 42]);
+            const first = c.firstWhere();
+            expect(first).toBe("hello");
         });
     });
 
@@ -6753,6 +7153,20 @@ describe("Collection", () => {
                     data2.ensure(["object", "number"]);
                 }).toThrowError();
             });
+        });
+
+        it("handles object type values", () => {
+            const c = collect(["hello", "world"]);
+            // Type as object with type names as values
+            expect(() => c.ensure({ first: "string" })).not.toThrow();
+        });
+
+        it("handles instanceof check", () => {
+            class MyClass {
+                constructor(public value: number) {}
+            }
+            const c = collect([new MyClass(1), new MyClass(2)]);
+            expect(() => c.ensure(MyClass)).not.toThrow();
         });
     });
 
@@ -7046,6 +7460,29 @@ describe("Collection", () => {
                 ).toBe(2);
             });
         });
+
+        it("uses valueRetriever when no operator/value", () => {
+            const c = collect([1, 2, 3, 4, 5]);
+            const [truthy, falsy] = c.partition((v) => v > 3);
+            expect(truthy.all()).toEqual([4, 5]);
+            expect(falsy.all()).toEqual([1, 2, 3]);
+        });
+
+        it("uses operatorForWhere when operator provided", () => {
+            const c = collect([{ status: "active" }, { status: "inactive" }]);
+            const [active, inactive] = c.partition("status", "=", "active");
+            expect(active.all()).toEqual([{ status: "active" }]);
+            expect(inactive.all()).toEqual([{ status: "inactive" }]);
+        });
+
+        it("uses default key parameter", () => {
+            // Calling partition without key triggers the default parameter = null
+            // which makes valueRetriever return item itself (partition by truthiness)
+            const c = collect([1, 0, "", "hello", null, true, false]);
+            const [truthy, falsy] = c.partition();
+            expect(truthy.values().all()).toEqual([1, "hello", true]);
+            expect(falsy.values().all()).toEqual([0, "", null, false]);
+        });
     });
 
     describe("percentage", () => {
@@ -7224,6 +7661,108 @@ describe("Collection", () => {
 
                 expect(result.all()).toEqual(["michael", "tom", "adam"]);
             });
+        });
+    });
+
+    describe("unless", () => {
+        it("calls callback when value is falsy", () => {
+            const data = collect([1, 2, 3]);
+
+            const result = data.unless(false, (col) => {
+                return col.map((x) => x * 2);
+            });
+
+            expect(result.all()).toEqual([2, 4, 6]);
+        });
+
+        it("returns self when value is truthy and no defaultCallback", () => {
+            const data = collect([1, 2, 3]);
+
+            const result = data.unless(true, (col) => {
+                return col.map((x) => x * 2);
+            });
+
+            expect(result.all()).toEqual([1, 2, 3]);
+        });
+
+        it("calls defaultCallback when value is truthy", () => {
+            // This test covers the defaultCallback branch when value is truthy
+            const data = collect([1, 2, 3]);
+
+            const result = data.unless(
+                true, // truthy value
+                (col) => col.map((x) => x * 2), // callback (not called)
+                (col) => col.map((x) => x + 10), // defaultCallback (called)
+            );
+
+            expect(result.all()).toEqual([11, 12, 13]);
+        });
+
+        it("resolves value from function", () => {
+            const data = collect([1, 2, 3]);
+
+            const result = data.unless(
+                () => false,
+                (col) => col.map((x) => x * 2),
+            );
+
+            expect(result.all()).toEqual([2, 4, 6]);
+        });
+
+        it("returns self when callback is null", () => {
+            const c = collect([1, 2, 3]);
+            const result = c.unless(false, null);
+            expect(result.all()).toEqual([1, 2, 3]);
+        });
+
+        it("calls defaultCallback when value is truthy", () => {
+            const c = collect([1, 2, 3]);
+            const result = c.unless(
+                true,
+                (col) => col.map((x) => x * 2),
+                (col) => col.map((x) => x + 10),
+            );
+            expect(result.all()).toEqual([11, 12, 13]);
+        });
+
+        it("returns self when defaultCallback returns null", () => {
+            const c = collect([1, 2, 3]);
+            const result = c.unless(
+                true,
+                (col) => col.map((x) => x * 2),
+                () => null, // defaultCallback returns null, should fall back to this
+            );
+            expect(result.all()).toEqual([1, 2, 3]);
+        });
+
+        it("resolves value from function", () => {
+            const c = collect([1, 2, 3]);
+            const result = c.unless(
+                () => false, // Resolves to false (falsy), so callback is called
+                (col) => col.map((x) => x * 2),
+            );
+            expect(result.all()).toEqual([2, 4, 6]);
+        });
+
+        it("returns self when callback returns null", () => {
+            const c = collect([1, 2, 3]);
+            // callback returns null, so ?? this should be triggered
+            const result = c.unless(false, () => null);
+            expect(result.all()).toEqual([1, 2, 3]);
+        });
+
+        it("returns self when callback returns undefined", () => {
+            const c = collect([1, 2, 3]);
+            // callback returns undefined, so ?? this should be triggered
+            const result = c.unless(false, () => undefined);
+            expect(result.all()).toEqual([1, 2, 3]);
+        });
+
+        it("uses default callback parameter when not provided", () => {
+            const c = collect([1, 2, 3]);
+            // Calling unless with only value (callback defaults to null)
+            const result = c.unless(false);
+            expect(result.all()).toEqual([1, 2, 3]);
         });
     });
 
@@ -7728,6 +8267,24 @@ describe("Collection", () => {
                 ).toBe(1);
             });
         });
+
+        it("handles array of types", () => {
+            class A {}
+            class B {}
+            class C {}
+            const c = collect([new A(), new B(), new C()]);
+            const result = c.whereInstanceOf([A, B]);
+            expect(result.count()).toBe(2);
+        });
+
+        it("handles object of types", () => {
+            class A {}
+            class B {}
+            class C {}
+            const c = collect([new A(), new B(), new C()]);
+            const result = c.whereInstanceOf({ first: A, second: B });
+            expect(result.count()).toBe(2);
+        });
     });
 
     describe("pipe", () => {
@@ -8013,6 +8570,12 @@ describe("Collection", () => {
                     { id: "00", name: "double zero" },
                 ]);
             });
+        });
+
+        it("uses strict comparison", () => {
+            const c = collect([1, "1", 2, "2", 1]);
+            const result = c.uniqueStrict();
+            expect(result.all()).toEqual([1, "1", 2, "2"]);
         });
     });
 
@@ -8318,6 +8881,127 @@ describe("Collection", () => {
             c.set("b", 2);
             const expected = JSON.stringify({ a: 1, b: 2 });
             expect(c.toString()).toBe(expected);
+        });
+    });
+
+    describe("operatorForWhere", () => {
+        it("handles <=> operator", () => {
+            const c = collect([{ val: 1 }, { val: 2 }, { val: 3 }]);
+            // Spaceship operator - should return items where comparison is != 0
+            const result = c.filter(c["operatorForWhere"]("val", "<=>", 2));
+            expect(result.values().all()).toEqual([{ val: 1 }, { val: 3 }]);
+        });
+
+        it("handles <=> with null values", () => {
+            const c = collect([{ val: null }, { val: 2 }]);
+            // Spaceship: when comparing, null <=> null returns 0, and null <=> 2 returns 0
+            // Since both return 0 (falsy), neither passes the filter
+            const result = c.filter(c["operatorForWhere"]("val", "<=>", null));
+            // null <=> null = 0 (falsy, filtered out)
+            // 2 <=> null = 0 (falsy, filtered out)
+            expect(result.values().all()).toEqual([]);
+        });
+    });
+
+    describe("when", () => {
+        it("calls defaultCallback when value is falsy", () => {
+            const c = collect([1, 2, 3]);
+            const result = c.when(
+                false,
+                (col) => col.map((x) => x * 2),
+                (col) => col.map((x) => x + 10),
+            );
+            expect(result.all()).toEqual([11, 12, 13]);
+        });
+
+        it("returns self when callback is null", () => {
+            const c = collect([1, 2, 3]);
+            const result = c.when(true, null);
+            expect(result.all()).toEqual([1, 2, 3]);
+        });
+
+        it("returns self when no callbacks match", () => {
+            const c = collect([1, 2, 3]);
+            const result = c.when(false, (col) => col.map((x) => x * 2));
+            expect(result.all()).toEqual([1, 2, 3]);
+        });
+
+        it("returns self when callback returns null", () => {
+            const c = collect([1, 2, 3]);
+            // callback returns null, so ?? this should be triggered
+            const result = c.when(true, () => null);
+            expect(result.all()).toEqual([1, 2, 3]);
+        });
+
+        it("returns self when callback returns undefined", () => {
+            const c = collect([1, 2, 3]);
+            // callback returns undefined, so ?? this should be triggered
+            const result = c.when(true, () => undefined);
+            expect(result.all()).toEqual([1, 2, 3]);
+        });
+
+        it("resolves value from function and calls callback (isFunction branch)", () => {
+            const c = collect([1, 2, 3]);
+            // value is a function that returns truthy, callback is called
+            const result = c.when(
+                () => true,
+                (col) => col.map((x) => x * 2),
+            );
+            expect(result.all()).toEqual([2, 4, 6]);
+        });
+
+        it("resolves value from function and calls defaultCallback when falsy", () => {
+            const c = collect([1, 2, 3]);
+            // value is a function that returns falsy, defaultCallback is called
+            const result = c.when(
+                () => false,
+                (col) => col.map((x) => x * 2),
+                (col) => col.map((x) => x + 10),
+            );
+            expect(result.all()).toEqual([11, 12, 13]);
+        });
+
+        it("returns self when defaultCallback returns null", () => {
+            const c = collect([1, 2, 3]);
+            // value is falsy, defaultCallback returns null, falls back to this
+            const result = c.when(
+                false,
+                (col) => col.map((x) => x * 2),
+                () => null,
+            );
+            expect(result.all()).toEqual([1, 2, 3]);
+        });
+
+        it("uses default callback parameter when not provided (default branch)", () => {
+            const c = collect([1, 2, 3]);
+            // Calling when with only value (callback defaults to null)
+            const result = c.when(true);
+            expect(result.all()).toEqual([1, 2, 3]);
+        });
+    });
+
+    describe("getArrayableItems", () => {
+        it("handles hasNumericKeys for order preservation", () => {
+            // Create a Map with numeric keys to trigger the hasNumericKeys branch
+            const map = new Map<number, string>();
+            map.set(2, "two");
+            map.set(0, "zero");
+            map.set(1, "one");
+            const c = collect(map);
+            // JavaScript objects auto-sort numeric keys, but values() should preserve insertion order
+            // when itemsWithOrder is set
+            expect(c.values().all()).toEqual(["two", "zero", "one"]);
+        });
+
+        it("handles Map with non-numeric keys (false branch)", () => {
+            // Create a Map with string keys to trigger the hasNumericKeys=false branch
+            const map = new Map<string, number>();
+            map.set("b", 2);
+            map.set("a", 1);
+            map.set("c", 3);
+            const c = collect(map);
+            // String keys don't need order preservation
+            expect(c.all()).toEqual({ b: 2, a: 1, c: 3 });
         });
     });
 });
