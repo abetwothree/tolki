@@ -398,6 +398,10 @@ describe("Path Functions", () => {
             const result = Path.pushWithPath(data2, "0.child", "value");
             // When we can't navigate through null, the array remains unchanged
             expect(result).toEqual([null]);
+
+            // Test empty string key with array data - returns data unchanged
+            const data3 = ["a", "b"];
+            expect(Path.pushWithPath(data3, "", "value")).toEqual(["a", "b"]);
         });
     });
 
@@ -904,7 +908,7 @@ describe("Path Functions", () => {
             );
         });
 
-        it("covers remaining odd uncovered lines for 100% coverage", () => {
+        it("covers remaining odd uncovered lines", () => {
             const result1 = Path.undotExpand({
                 "0.1": "value",
                 "0.1.2": "deeper",
@@ -1007,9 +1011,9 @@ describe("Path Functions", () => {
 
         it("returns default for non-existent simple property", () => {
             const obj = { name: "John" };
-            expect(
-                Path.getObjectValue(obj, "missing", "default"),
-            ).toBe("default");
+            expect(Path.getObjectValue(obj, "missing", "default")).toBe(
+                "default",
+            );
         });
 
         it("gets nested property value with dot notation", () => {
@@ -1026,9 +1030,9 @@ describe("Path Functions", () => {
 
         it("resolves default value function", () => {
             const obj = { name: "John" };
-            expect(
-                Path.getObjectValue(obj, "missing", () => "computed"),
-            ).toBe("computed");
+            expect(Path.getObjectValue(obj, "missing", () => "computed")).toBe(
+                "computed",
+            );
         });
     });
 
@@ -1139,12 +1143,13 @@ describe("Path Functions", () => {
         });
 
         it("handles string segments on object cursors", () => {
-            // hasPath only works with numeric segments for arrays
-            // "0.user.name" has string segments so won't work on array-only hasPath
+            // hasPath now correctly handles mixed array/object paths
             const data = [{ user: { name: "John" } }];
-            // For string segments, the function returns false since arrays don't have string keys
-            expect(Path.hasPath(data, "0.user.name")).toBe(false);
-            // Use hasMixed for mixed array/object paths
+            // String segments work on object cursors after the bug fix
+            expect(Path.hasPath(data, "0.user.name")).toBe(true);
+            // Non-existent paths still return false
+            expect(Path.hasPath(data, "0.user.age")).toBe(false);
+            expect(Path.hasPath(data, "0.admin.name")).toBe(false);
         });
 
         it("returns true when path fully resolves", () => {
@@ -1261,11 +1266,7 @@ describe("Path Functions", () => {
     describe("pushWithPath - additional coverage", () => {
         it("handles non-accessible data with mixed path", () => {
             // Non-array data with mixed (non-numeric) path segments
-            const result = Path.pushWithPath(
-                null,
-                "0.name.items",
-                "value",
-            );
+            const result = Path.pushWithPath(null, "0.name.items", "value");
             expect(result).toEqual([]);
         });
 
@@ -1425,7 +1426,7 @@ describe("Path Functions", () => {
 
         it("handles null in object during navigation", () => {
             // When object property is null, pushMixed doesn't modify it
-            // because the condition `isNull(obj[segment]) || !isObject(obj[segment])` sets [] 
+            // because the condition `isNull(obj[segment]) || !isObject(obj[segment])` sets []
             // but current becomes obj[segment] which is the new [], but the loop continues past it
             const data = [{ nested: null as unknown }];
             Path.pushMixed(data, "0.nested", "value");
@@ -1460,8 +1461,14 @@ describe("Path Functions", () => {
         it("deep copies nested objects correctly", () => {
             // Test the deepCopy function inside setMixedImmutable
             const data = [{ nested: { deep: "value" } }];
-            const result = Path.setMixedImmutable(data, "0.nested.other", "new");
-            expect(result).toEqual([{ nested: { deep: "value", other: "new" } }]);
+            const result = Path.setMixedImmutable(
+                data,
+                "0.nested.other",
+                "new",
+            );
+            expect(result).toEqual([
+                { nested: { deep: "value", other: "new" } },
+            ]);
             // Original unchanged
             expect(data).toEqual([{ nested: { deep: "value" } }]);
         });
@@ -1497,7 +1504,10 @@ describe("Path Functions", () => {
 
     describe("forgetKeysArray - additional coverage 2", () => {
         it("groups removals by path correctly", () => {
-            const arr = [["a", "b", "c"], ["d", "e"]];
+            const arr = [
+                ["a", "b", "c"],
+                ["d", "e"],
+            ];
             // Remove multiple indices from same nested path
             const result = Path.forgetKeysArray(arr, ["0.0", "0.2"]);
             expect(result).toEqual([["b"], ["d", "e"]]);
@@ -1564,7 +1574,9 @@ describe("Path Functions", () => {
             const data = [[false]];
             expect(() => {
                 Path.pushWithPath(data, "0.0", "value");
-            }).toThrow("Array value for key [0.0] must be an array, boolean found.");
+            }).toThrow(
+                "Array value for key [0.0] must be an array, boolean found.",
+            );
         });
 
         it("handles mixed paths on array data", () => {
@@ -1579,15 +1591,12 @@ describe("Path Functions", () => {
     describe("dotFlattenObject - additional coverage 2", () => {
         it("walks through nested arrays within objects", () => {
             const obj = {
-                users: [
-                    { name: "John" },
-                    { name: "Jane" }
-                ]
+                users: [{ name: "John" }, { name: "Jane" }],
             };
             const result = Path.dotFlattenObject(obj);
             expect(result).toEqual({
                 "users.0.name": "John",
-                "users.1.name": "Jane"
+                "users.1.name": "Jane",
             });
         });
     });
@@ -1634,7 +1643,6 @@ describe("Path Functions", () => {
 
     describe("pushMixed - additional coverage 2", () => {
         it("handles object with null property via longer path", () => {
-            // To hit line 1383-1387, we need:
             // - current to be an object during loop iteration
             // - obj[segment] to be null or not an object
             const data = [{ user: null as unknown }];
@@ -1704,23 +1712,25 @@ describe("Path Functions", () => {
         });
 
         it("replaces null at nested position in non-array data branch", () => {
-            // This tests line 679-682 where next is null
+            // This tests where next is null
             const result = Path.pushWithPath(null, "0.0.0", "value");
             expect(result).toEqual([[["value"]]]);
         });
 
         it("throws for non-array element in non-array data branch", () => {
-            // This tests line 686-689 where next is not array
+            // This tests where next is not array
             // Need to create a structure and then try to navigate through non-array
             const data: unknown[] = [];
             data[0] = "string"; // Not an array
             expect(() => {
                 Path.pushWithPath(data, "0.0", "value");
-            }).toThrow("Array value for key [0.0] must be an array, string found.");
+            }).toThrow(
+                "Array value for key [0.0] must be an array, string found.",
+            );
         });
 
         it("checks boolean at leaf position in non-array data branch", () => {
-            // Tests lines 694-696 - boolean check at leaf
+            // Tests boolean check at leaf
             const result = Path.pushWithPath(null, "0", true as unknown);
             expect(result).toEqual([true]);
         });
@@ -1728,7 +1738,7 @@ describe("Path Functions", () => {
 
     describe("pushWithPath - array data branch with existing elements", () => {
         it("replaces null at existing position", () => {
-            // Tests line 738-742 - null replacement in array data branch
+            // Tests null replacement in array data branch
             const data: (null | unknown[])[] = [null];
             Path.pushWithPath(data, "0.0", "value");
             // null at index 0 gets replaced with array
@@ -1736,7 +1746,7 @@ describe("Path Functions", () => {
         });
 
         it("navigates into existing array", () => {
-            // Tests line 746-749 - navigate into existing array
+            // Tests navigate into existing array
             const data = [["existing"]];
             Path.pushWithPath(data, "0.1", "new");
             // Should navigate to data[0] and push "new"
@@ -1744,35 +1754,39 @@ describe("Path Functions", () => {
         });
 
         it("throws for non-array at existing position", () => {
-            // Tests line 751-754 - non-array at position
+            // Tests non-array at position
             const data = ["string"];
             expect(() => {
                 Path.pushWithPath(data, "0.0", "value");
-            }).toThrow("Array value for key [0.0] must be an array, string found.");
+            }).toThrow(
+                "Array value for key [0.0] must be an array, string found.",
+            );
         });
 
         it("throws for boolean at leaf position", () => {
-            // Tests line 758-762 - boolean at leaf
+            // Tests boolean at leaf
             const data = [true];
             expect(() => {
                 Path.pushWithPath(data, "0", "value");
-            }).toThrow("Array value for key [0] must be an array, boolean found.");
+            }).toThrow(
+                "Array value for key [0] must be an array, boolean found.",
+            );
         });
     });
 
     describe("undotExpandArray - cursor navigation coverage", () => {
         it("handles cursor becoming non-array during navigation", () => {
-            // Tests line 989-990 where cursor becomes null
+            // Tests where cursor becomes null
             const input = { "0": "string", "0.1": "nested" };
             const result = Path.undotExpandArray(input);
-            // First sets result[0] = "string", then when trying "0.1", 
+            // First sets result[0] = "string", then when trying "0.1",
             // cursor="string" is not array, so cursor=null, break
             expect(result[0]).toBe("string");
             expect(result[1]).toBeUndefined();
         });
 
         it("skips entries with invalid index segments", () => {
-            // Tests line 980 where segments.some returns true
+            // Tests where segments.some returns true
             const input = { "0.a": "invalid", "1": "valid" };
             const result = Path.undotExpandArray(input);
             expect(result[0]).toBeUndefined();
@@ -1782,7 +1796,7 @@ describe("Path Functions", () => {
 
     describe("setMixed - additional coverage 3", () => {
         it("creates object when next segment is not numeric", () => {
-            // Tests line 1287 - creates {} instead of []
+            // Tests where next segment is not numeric
             const arr: unknown[] = [];
             Path.setMixed(arr, "0.user.name", "John");
             // Creates {user:{name:"John"}} because "user" and "name" are not numeric
@@ -1792,7 +1806,7 @@ describe("Path Functions", () => {
 
     describe("setMixedImmutable - deep copy coverage", () => {
         it("deep copies objects within arrays", () => {
-            // Tests line 1450 - return obj in deepCopy
+            // Tests return obj in deepCopy
             const data = [{ nested: { deep: "value" } }];
             const result = Path.setMixedImmutable(data, "0.other", "new");
             expect(result).toEqual([
@@ -1805,7 +1819,7 @@ describe("Path Functions", () => {
 
     describe("hasPath - string segment on non-object cursor", () => {
         it("returns false when cursor is not object for string segment", () => {
-            // Tests line 136-137 - arrays don't have string keys
+            // Tests where cursor is not object for string segment
             const data = [["nested"]];
             // hasPath returns false for string segments on arrays
             expect(Path.hasPath(data, "0")).toBe(true);
@@ -1814,17 +1828,20 @@ describe("Path Functions", () => {
         it("handles cursor assignment for string segment", () => {
             // getRaw function handles string segments on objects
             const obj = { items: [1, 2, 3] };
-            expect(Path.getRaw(obj, "items.1")).toEqual({ found: true, value: 2 });
+            expect(Path.getRaw(obj, "items.1")).toEqual({
+                found: true,
+                value: 2,
+            });
         });
 
-        // Note: Lines 139-143 in hasPath appear to be unreachable
-        // due to the check at line 121 which returns false for objects
+        // Note: hasPath appear to be unreachable
+        // due to the check which returns false for objects
         // This should be investigated as a potential bug
     });
 
     describe("forgetKeysArray - grouping coverage", () => {
         it("handles multiple paths with same parent", () => {
-            // Tests line 458, 482 - grouping and sorting
+            // Tests grouping and sorting
             const arr = [["a", "b", "c", "d"]];
             const result = Path.forgetKeysArray(arr, ["0.1", "0.3"]);
             // Removes indices 1 and 3, sorted in reverse order
@@ -1832,7 +1849,7 @@ describe("Path Functions", () => {
         });
 
         it("handles empty path after filtering", () => {
-            // Tests line 482 - sorted.length === 0
+            // Tests sorted.length === 0
             // Need keys.length > 1 to enter the grouping loop
             // And indices that filter out (like negative or float)
             const arr = [["a", "b"]];
@@ -1842,7 +1859,7 @@ describe("Path Functions", () => {
         });
 
         it("skips entries with invalid string indices", () => {
-            // Tests line 458 - continue when parts have NaN
+            // Tests continue when parts have NaN
             // Need keys.length > 1 to enter the grouping loop
             const arr = [["a", "b"]];
             const result = Path.forgetKeysArray(arr, ["0.invalid", "0.1"]);
@@ -1853,14 +1870,14 @@ describe("Path Functions", () => {
 
     describe("setImmutable - clampIndex coverage", () => {
         it("handles non-integer index in clampIndex", () => {
-            // Tests line 535 - !isInteger check
+            // Tests !isInteger check
             const data = ["a"];
             const result = Path.setImmutable(data, 1.5, "x");
             expect(result).toEqual(["a"]);
         });
 
         it("handles nested path with invalid intermediate index", () => {
-            // Tests line 580 - idx === -1 return
+            // Tests idx === -1 return
             const data = [["a"]];
             const result = Path.setImmutable(data, "0.-1.0", "x");
             expect(result).toEqual([["a"]]);

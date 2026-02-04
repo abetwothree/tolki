@@ -118,7 +118,7 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
 
     let cursor: unknown = root;
     for (const s of segs) {
-        if (isNull(cursor) || isObject(cursor)) {
+        if (isNull(cursor) || !isObjectAny(cursor)) {
             return false;
         }
 
@@ -136,7 +136,7 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
                 return false; // Arrays don't have string keys
             }
 
-            if (!isObject(cursor) || !(s in cursor)) {
+            if (!(s in (cursor as Record<string, unknown>))) {
                 return false;
             }
 
@@ -530,11 +530,8 @@ export function setImmutable<TValue>(
 
     const root = toArr(data);
 
+    // Clamp index to array bounds (allow one past end for appending)
     const clampIndex = (idx: number, length: number): number => {
-        if (!isInteger(idx) || idx < 0) {
-            return -1;
-        }
-
         return idx > length ? length : idx;
     };
 
@@ -545,10 +542,6 @@ export function setImmutable<TValue>(
         }
 
         const idx = clampIndex(raw, root.length);
-        if (idx === -1) {
-            return root as TValue[];
-        }
-
         const out = root.slice();
         if (idx === out.length) {
             out.push(value as unknown);
@@ -576,9 +569,6 @@ export function setImmutable<TValue>(
         const desired = segments[i]!;
         const atLast = i === segments.length - 1;
         const idx = clampIndex(desired, cursor.length);
-        if (idx === -1) {
-            return root as TValue[];
-        }
 
         if (atLast) {
             if (idx === cursor.length) {
@@ -665,38 +655,12 @@ export function pushWithPath<TValue>(
         }
 
         const parentSegs = numericSegs.slice(0, -1);
-        const leaf = numericSegs[numericSegs.length - 1]!;
         let cursor: unknown[] = out;
-        for (const desired of parentSegs) {
-            const idx = desired > cursor.length ? cursor.length : desired;
-
-            if (idx === cursor.length) {
-                const child: unknown[] = [];
-                cursor.push(child);
-                cursor = child;
-            } else {
-                const next = cursor[idx];
-                if (isNull(next)) {
-                    const child: unknown[] = [];
-                    cursor[idx] = child;
-                    cursor = child;
-                } else if (isArray(next)) {
-                    cursor = next as unknown[];
-                } else {
-                    throw new Error(
-                        `Array value for key [${String(key)}] must be an array, ${typeOf(next)} found.`,
-                    );
-                }
-            }
-        }
-
-        if (leaf < cursor.length) {
-            const existing = cursor[leaf];
-            if (isBoolean(existing)) {
-                throw new Error(
-                    `Array value for key [${String(key)}] must be an array, boolean found.`,
-                );
-            }
+        for (const _desired of parentSegs) {
+            // Always append since we start with empty arrays and traverse immediately
+            const child: unknown[] = [];
+            cursor.push(child);
+            cursor = child;
         }
 
         cursor.push(...(values as unknown[]));
@@ -980,28 +944,23 @@ export function undotExpandArray<
             continue;
         }
 
-        let cursor: unknown = root;
+        let cursor: unknown[] = root;
         for (let i = 0; i < segments.length; i++) {
             const idx = Number(segments[i]!);
             const atEnd = i === segments.length - 1;
-            const arr = isArray(cursor) ? (cursor as unknown[]) : null;
-            if (!arr) {
-                cursor = null;
-                break;
-            }
 
             if (atEnd) {
-                arr[idx] = value as unknown;
+                cursor[idx] = value as unknown;
             } else {
-                const next = arr[idx];
+                const next = cursor[idx];
                 if (isNull(next) || isUndefined(next)) {
                     const child: unknown[] = [];
-                    arr[idx] = child;
+                    cursor[idx] = child;
                     cursor = child;
                 } else if (isArray(next)) {
                     cursor = next as unknown[];
                 } else {
-                    cursor = null;
+                    // Non-array value found at intermediate segment, skip this key
                     break;
                 }
             }
@@ -1256,13 +1215,9 @@ export function setMixed<TValue>(
                 isUndefined(nextValue) ||
                 !isObjectAny(nextValue)
             ) {
-                const nextSegment = segments[i + 1];
-                if (nextSegment) {
-                    const nextIndex = parseInt(nextSegment, 10);
-                    current[index] = (isInteger(nextIndex) ? [] : {}) as TValue;
-                } else {
-                    current[index] = {} as TValue;
-                }
+                const nextSegment = segments[i + 1]!;
+                const nextIndex = parseInt(nextSegment, 10);
+                current[index] = (isInteger(nextIndex) ? [] : {}) as TValue;
             }
 
             current = current[index];
@@ -1279,13 +1234,9 @@ export function setMixed<TValue>(
                 isUndefined(nextValue) ||
                 !isObjectAny(nextValue)
             ) {
-                const nextSegment = segments[i + 1];
-                if (nextSegment) {
-                    const nextIndex = parseInt(nextSegment, 10);
-                    obj[segment] = isInteger(nextIndex) ? [] : {};
-                } else {
-                    obj[segment] = {};
-                }
+                const nextSegment = segments[i + 1]!;
+                const nextIndex = parseInt(nextSegment, 10);
+                obj[segment] = isInteger(nextIndex) ? [] : {};
             }
             current = obj[segment];
         }
@@ -1439,15 +1390,12 @@ export function setMixedImmutable<TValue>(
             return obj.map(deepCopy);
         }
 
-        if (isObject(obj)) {
-            const result: Record<string, unknown> = {};
-            for (const [k, v] of Object.entries(obj)) {
-                result[k] = deepCopy(v);
-            }
-            return result;
+        // Object case - obj is a non-null, non-array object
+        const result: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj)) {
+            result[k] = deepCopy(v);
         }
-
-        return obj;
+        return result;
     };
 
     const arr = deepCopy(data) as unknown[];
