@@ -2564,6 +2564,16 @@ describe("Obj", () => {
             expect(result.removed).toEqual([2]);
             expect(result.value).toEqual([1, 10, 20, 3]);
         });
+
+        it("should use default length of 0 when length is not provided", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            // Calling without length argument uses default of 0 (insert only, no removal)
+            const result = Obj.splice(obj, 1, undefined as unknown as number, {
+                x: 10,
+            });
+            expect(result.removed).toEqual([]);
+            expect(result.value).toEqual([1, 10, 2, 3]);
+        });
     });
 
     describe("toCssClasses", () => {

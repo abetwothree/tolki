@@ -287,6 +287,8 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
 
     for (let i = 0; i < maxLength; i++) {
         const key = keys[i];
+        // Key is always defined because we iterate up to keys.length
+        // but TypeScript needs the guard for type narrowing
         if (!isUndefined(key)) {
             result[key] = values[i] as TCombineValue;
         }
@@ -738,11 +740,8 @@ export function flatten<TValue>(
     const result: unknown[] = [];
 
     const flattenRecursive = (items: unknown, currentDepth: number) => {
-        const values = isArray(items)
-            ? items
-            : isObject(items)
-              ? Object.values(items)
-              : [items];
+        // items is always array or object when called recursively
+        const values = isArray(items) ? items : Object.values(items as object);
 
         for (const item of values) {
             if (!isArray(item) && !isObject(item)) {
@@ -2473,11 +2472,12 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
 
             return 0;
         });
-    } else if (isFunction(callback)) {
-        // Sort by callback result in descending order
+    } else {
+        // Sort by callback result in descending order (callback is a function)
+        const cb = callback as (item: TValue) => unknown;
         entries.sort(([, a], [, b]) => {
-            const aValue = callback(a);
-            const bValue = callback(b);
+            const aValue = cb(a as TValue);
+            const bValue = cb(b as TValue);
 
             if (isNull(aValue) && isNull(bValue)) {
                 return 0;
@@ -2928,18 +2928,16 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     const padCount = Math.abs(size) - currentLength;
     const padEntries: [string, TPadValue][] = [];
 
-    if (padCount > 0) {
-        if (size >= 0) {
-            for (let i = 0; i < padCount; i++) {
-                padEntries.push([i.toString(), value]);
-            }
-        } else {
-            // Negative size: left padding with keys counting up to 0 (including negatives)
-            // Example: currentLength=2, size=-5 => padCount=3 => keys -2, -1, 0
-            const start = -(padCount - 1);
-            for (let k = start; k <= 0; k++) {
-                padEntries.push([k.toString(), value]);
-            }
+    if (size >= 0) {
+        for (let i = 0; i < padCount; i++) {
+            padEntries.push([i.toString(), value]);
+        }
+    } else {
+        // Negative size: left padding with keys counting up to 0 (including negatives)
+        // Example: currentLength=2, size=-5 => padCount=3 => keys -2, -1, 0
+        const start = -(padCount - 1);
+        for (let k = start; k <= 0; k++) {
+            padEntries.push([k.toString(), value]);
         }
     }
 
