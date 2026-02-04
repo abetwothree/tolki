@@ -66,10 +66,10 @@ export default defineConfig({
             ],
             thresholds: {
                 autoUpdate: true,
-                statements: 98.57,
-                branches: 93.91,
+                statements: 98.65,
+                branches: 94.34,
                 functions: 100,
-                lines: 98.79,
+                lines: 98.87,
             },
         },
         projects: ["packages/*"],
