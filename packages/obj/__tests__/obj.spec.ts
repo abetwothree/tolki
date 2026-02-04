@@ -627,7 +627,9 @@ describe("Obj", () => {
         it("should return default when null key with non-object data", () => {
             expect(Obj.get("string", null, "default")).toBe("default");
             expect(Obj.get(null, null, "default")).toBe("default");
-            expect(Obj.get("string", null, () => "fn-default")).toBe("fn-default");
+            expect(Obj.get("string", null, () => "fn-default")).toBe(
+                "fn-default",
+            );
         });
 
         it("should handle non-object data", () => {
@@ -636,7 +638,9 @@ describe("Obj", () => {
         });
 
         it("should handle non-object data with function default", () => {
-            expect(Obj.get("string", "key", () => "fn-default")).toBe("fn-default");
+            expect(Obj.get("string", "key", () => "fn-default")).toBe(
+                "fn-default",
+            );
         });
 
         it("should handle numeric keys", () => {
@@ -651,7 +655,9 @@ describe("Obj", () => {
 
         it("should handle numeric key with non-function default when missing", () => {
             const obj = { "123": "value" };
-            expect(Obj.get(obj, 999, "regular-default")).toBe("regular-default");
+            expect(Obj.get(obj, 999, "regular-default")).toBe(
+                "regular-default",
+            );
         });
 
         it("should call function defaults", () => {
@@ -663,19 +669,25 @@ describe("Obj", () => {
         it("should handle dot notation path with null in chain", () => {
             const obj = { user: null };
             expect(Obj.get(obj, "user.name", "default")).toBe("default");
-            expect(Obj.get(obj, "user.name", () => "fn-default")).toBe("fn-default");
+            expect(Obj.get(obj, "user.name", () => "fn-default")).toBe(
+                "fn-default",
+            );
         });
 
         it("should handle dot notation path with non-object in chain", () => {
             const obj = { user: "string-value" };
             expect(Obj.get(obj, "user.name", "default")).toBe("default");
-            expect(Obj.get(obj, "user.name", () => "fn-default")).toBe("fn-default");
+            expect(Obj.get(obj, "user.name", () => "fn-default")).toBe(
+                "fn-default",
+            );
         });
 
         it("should handle dot notation when segment not in object", () => {
             const obj = { user: { name: "John" } };
             expect(Obj.get(obj, "user.age.years", "default")).toBe("default");
-            expect(Obj.get(obj, "user.age.years", () => "fn-default")).toBe("fn-default");
+            expect(Obj.get(obj, "user.age.years", () => "fn-default")).toBe(
+                "fn-default",
+            );
         });
 
         it("should return undefined value when key exists but is undefined", () => {
@@ -686,7 +698,9 @@ describe("Obj", () => {
         it("should handle dot notation when final value is undefined", () => {
             const obj = { user: { name: undefined } };
             expect(Obj.get(obj, "user.name", "default")).toBe("default");
-            expect(Obj.get(obj, "user.name", () => "fn-default")).toBe("fn-default");
+            expect(Obj.get(obj, "user.name", () => "fn-default")).toBe(
+                "fn-default",
+            );
         });
 
         it("should handle simple key when value exists", () => {
@@ -1138,9 +1152,11 @@ describe("Obj", () => {
             const obj2 = { A: "GREEN", B: "brown" };
             const strcasecmpKeys = (a: PropertyKey, b: PropertyKey) =>
                 String(a).toLowerCase() === String(b).toLowerCase();
-            expect(Obj.intersectAssocUsing(obj1, obj2, strcasecmpKeys)).toEqual({
-                b: "brown",
-            });
+            expect(Obj.intersectAssocUsing(obj1, obj2, strcasecmpKeys)).toEqual(
+                {
+                    b: "brown",
+                },
+            );
         });
 
         it("should return empty when no matches", () => {
@@ -2425,10 +2441,7 @@ describe("Obj", () => {
                     b: { value: null },
                 };
                 // Both callback results are null, should return 0 (maintain order)
-                const result = Obj.sortDesc(
-                    obj,
-                    (item) => item["value"],
-                );
+                const result = Obj.sortDesc(obj, (item) => item["value"]);
                 expect(Object.keys(result)).toEqual(["a", "b"]);
             });
         });
