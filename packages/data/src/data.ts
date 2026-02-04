@@ -166,13 +166,7 @@ import type {
     PathKeys,
     UnwrapFn,
 } from "@tolki/types";
-import {
-    entriesKeyValue,
-    isArray,
-    isFunction,
-    isObject,
-    isUndefined,
-} from "@tolki/utils";
+import { entriesKeyValue, isArray, isFunction, isObject } from "@tolki/utils";
 
 /**
  * Add an element to data.
@@ -2153,18 +2147,14 @@ export function dataFirst<
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
     if (isObject(data)) {
-        const result = objFirst(data, callback, defaultValue);
-
-        return isUndefined(result) ? null : result;
+        return objFirst(data, callback, defaultValue);
     }
 
-    const result = arrFirst(
+    return arrFirst(
         data,
-        callback as (value: TValue, index: number) => boolean,
+        callback as ((value: TValue, index: number) => boolean) | null,
         defaultValue,
     );
-
-    return isUndefined(result) ? null : result;
 }
 
 /**
@@ -2190,46 +2180,14 @@ export function dataLast<
     defaultValue?: TDefault | (() => TDefault),
 ): TValue | TDefault | null {
     if (isObject(data)) {
-        if (isFunction(callback)) {
-            const result = objLast(
-                data,
-                callback as (value: TValue, key: TKey) => boolean,
-                defaultValue,
-            );
-
-            return isUndefined(result) ||
-                (isObject(result) && Object.keys(result).length === 0)
-                ? null
-                : (result as TValue | TDefault | null);
-        } else {
-            const result = objLast(data, undefined, defaultValue);
-
-            return isUndefined(result) ||
-                (isObject(result) && Object.keys(result).length === 0)
-                ? null
-                : (result as TValue | TDefault | null);
-        }
+        return objLast(data, callback, defaultValue);
     }
 
-    if (isFunction(callback)) {
-        const result = arrLast(
-            data,
-            callback as (value: TValue, index: number) => boolean,
-            defaultValue,
-        );
-
-        return isUndefined(result) ||
-            (isObject(result) && Object.keys(result).length === 0)
-            ? null
-            : (result as TValue | TDefault | null);
-    } else {
-        const result = arrLast(data, undefined, defaultValue);
-
-        return isUndefined(result) ||
-            (isObject(result) && Object.keys(result).length === 0)
-            ? null
-            : (result as TValue | TDefault | null);
-    }
+    return arrLast(
+        data,
+        callback as ((value: TValue, index: number) => boolean) | null,
+        defaultValue,
+    );
 }
 
 /**
