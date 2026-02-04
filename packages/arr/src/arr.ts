@@ -2174,19 +2174,19 @@ export function sole<TValue>(
 // Overload: array type with callback for proper type inference
 export function sort<TValue>(
     data: TValue[],
-    callback: ((a: TValue, b: TValue) => unknown) | string | null,
+    callback: ((value: TValue, key: number) => unknown) | string | null,
 ): TValue[];
 // Overload: array type without callback (natural sorting)
 export function sort<TValue>(data: TValue[]): TValue[];
 // Overload: non-array fallback
 export function sort<TValue>(
     data: unknown,
-    callback?: ((a: TValue, b: TValue) => unknown) | string | null,
+    callback?: ((value: TValue, key: number) => unknown) | string | null,
 ): TValue[];
 // Implementation
 export function sort<TValue>(
     data: ArrayItems<TValue> | unknown,
-    callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
+    callback: ((value: TValue, key: number) => unknown) | string | null = null,
 ): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
     const result = values.slice();
@@ -2213,13 +2213,15 @@ export function sort<TValue>(
     }
 
     if (isFunction(callback)) {
-        // Sort by callback result
-        return result.sort((a, b) => {
-            const aValue = callback(a);
-            const bValue = callback(b);
+        // Extract sort values using callback, then sort by those values
+        const indexed = result.map((value, key) => ({
+            value,
+            sortKey: callback(value, key),
+        }));
 
-            return compareValues(aValue, bValue);
-        });
+        indexed.sort((a, b) => compareValues(a.sortKey, b.sortKey));
+
+        return indexed.map((item) => item.value);
     }
 
     return result;

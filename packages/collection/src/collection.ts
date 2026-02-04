@@ -3093,7 +3093,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Sort through each item with a callback.
      *
-     * @param callback - The callback to determine the sort order, a path key to get values from and compare, or null for default sort
+     * @param callback - The value extractor callback, a path key to get values from, or null for default sort
      * @returns A new collection with the sorted items
      *
      * @example
@@ -3102,7 +3102,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 2}, {id: 1}, {id: 3}]).sort('id'); -> new Collection([{id: 1}, {id: 2}, {id: 3}])
      * new Collection([{id: 2}, {id: 1}, {id: 3}]).sort((a, b) => a.id - b.id); -> new Collection([{id: 1}, {id: 2}, {id: 3}])
      */
-    sort(callback: ((a: TValue, b: TValue) => unknown) | string | null = null) {
+    sort(
+        callback:
+            | ((value: TValue, key: PropertyKey) => unknown)
+            | string
+            | null = null,
+    ) {
         return new (this.constructor as new (...args: unknown[]) => this)(
             dataSort(this.items, callback),
         );
@@ -3111,17 +3116,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Sort items in descending order.
      *
-     * @param callback - The callback to determine the sort order, a path key to get values from and compare, or null for default sort
+     * @param callback - The value extractor callback, a path key to get values from, or null for default sort
      * @returns A new collection with the sorted items in descending order
      *
      * @example
      *
      * new Collection([1, 2, 3]).sortDesc(); -> new Collection([3, 2, 1])
      * new Collection([{id: 1}, {id: 2}, {id: 3}]).sortDesc('id'); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
-     * new Collection([{id: 1}, {id: 2}, {id: 3}]).sortDesc((a, b) => b.id - a.id); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
+     * new Collection([{id: 1}, {id: 2}, {id: 3}]).sortDesc((item) => item.id); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
      */
     sortDesc(
-        callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
+        callback:
+            | ((value: TValue, key: PropertyKey) => unknown)
+            | string
+            | null = null,
     ) {
         return new (this.constructor as new (...args: unknown[]) => this)(
             this.sort(callback).reverse().all(),

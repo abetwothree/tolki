@@ -33,6 +33,7 @@ export default defineConfig([
     },
     {
         files: ["**/*.json"],
+        ignores: [".agents/**/*", ".claude/**/*", ".github/**/*"],
         plugins: { json },
         language: "json/json",
         extends: ["json/recommended"],

@@ -13,6 +13,7 @@ import {
 } from "@tolki/path";
 import { finish, randomInt } from "@tolki/str";
 import {
+    compareValues,
     isArray,
     isBoolean,
     isFalsy,
@@ -287,6 +288,9 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
 
     for (let i = 0; i < maxLength; i++) {
         const key = keys[i];
+        // Key is always defined because we iterate up to keys.length
+        // but TypeScript needs the guard for type narrowing
+        /* istanbul ignore if -- @preserve TypeScript narrowing */
         if (!isUndefined(key)) {
             result[key] = values[i] as TCombineValue;
         }
@@ -738,11 +742,8 @@ export function flatten<TValue>(
     const result: unknown[] = [];
 
     const flattenRecursive = (items: unknown, currentDepth: number) => {
-        const values = isArray(items)
-            ? items
-            : isObject(items)
-              ? Object.values(items)
-              : [items];
+        // items is always array or object when called recursively
+        const values = isArray(items) ? items : Object.values(items as object);
 
         for (const item of values) {
             if (!isArray(item) && !isObject(item)) {
@@ -1578,6 +1579,7 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
     if (count === 1) {
         const lastEntry = entries[entries.length - 1];
 
+        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
         if (!lastEntry) {
             return null;
         }
@@ -1593,6 +1595,7 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
     for (let i = 0; i < actualCount; i++) {
         const entry = entries[entries.length - 1 - i];
 
+        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
         if (!entry) {
             continue;
         }
@@ -2000,6 +2003,7 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
 
     if (count === 1) {
         const firstEntry = entries[0];
+        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
         if (!firstEntry) {
             return null;
         }
@@ -2014,6 +2018,7 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
 
     for (let i = 0; i < actualCount; i++) {
         const entry = entries[i];
+        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
         if (!entry) {
             continue;
         }
@@ -2250,9 +2255,17 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
  * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name
  */
 export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    callback?: ((value: TValue, key: TKey) => unknown) | string | null,
+): Record<TKey, TValue>;
+export function sort(
+    data: unknown,
+    callback?: ((value: unknown, key: PropertyKey) => unknown) | string | null,
+): Record<PropertyKey, unknown>;
+export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
-): Record<TKey, TValue> {
+    callback: ((value: TValue, key: TKey) => unknown) | string | null = null,
+): Record<TKey, TValue> | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
     }
@@ -2332,37 +2345,21 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     if (isFunction(callback)) {
-        // Sort by callback result
-        entries.sort(([, a], [, b]) => {
-            const aValue = callback(a as TValue);
-            const bValue = callback(b as TValue);
+        // Extract sort values using callback, then sort by those values
+        const indexed = entries.map(([key, value]) => ({
+            key,
+            value,
+            sortKey: callback(value as TValue, key as TKey),
+        }));
 
-            if (isNull(aValue) && isNull(bValue)) {
-                return 0;
-            }
+        indexed.sort((a, b) => compareValues(a.sortKey, b.sortKey));
 
-            if (isNull(aValue)) {
-                return -1;
-            }
+        const result: Record<string, TValue> = {};
+        for (const item of indexed) {
+            result[item.key] = item.value as TValue;
+        }
 
-            if (isNull(bValue)) {
-                return 1;
-            }
-
-            // Safe comparison for any comparable types
-            const aComparable = aValue as string | number | boolean;
-            const bComparable = bValue as string | number | boolean;
-
-            if (aComparable < bComparable) {
-                return -1;
-            }
-
-            if (aComparable > bComparable) {
-                return 1;
-            }
-
-            return 0;
-        });
+        return result as Record<TKey, TValue>;
     }
 
     const result: Record<string, TValue> = {};
@@ -2379,7 +2376,7 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
  * TODO: use the sort function with a "descending" parameter defined
  *
  * @param data - The object to sort.
- * @param callback - The sorting callback, field name, or null for natural sorting.
+ * @param callback - The value extractor callback, field name, or null for natural sorting.
  * @returns A new object with sorted entries in descending order.
  *
  * @example
@@ -2389,9 +2386,17 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
  * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name desc
  */
 export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    callback?: ((value: TValue, key: TKey) => unknown) | string | null,
+): Record<TKey, TValue>;
+export function sortDesc(
+    data: unknown,
+    callback?: ((value: unknown, key: PropertyKey) => unknown) | string | null,
+): Record<PropertyKey, unknown>;
+export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback?: ((item: TValue) => unknown) | string | null,
-): Record<TKey, TValue> {
+    callback?: ((value: TValue, key: TKey) => unknown) | string | null,
+): Record<TKey, TValue> | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
     }
@@ -2401,20 +2406,7 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
 
     if (isUndefined(callback) || isNull(callback)) {
         // Natural sorting by values in descending order
-        entries.sort(([, a], [, b]) => {
-            const aValue = a as TValue;
-            const bValue = b as TValue;
-
-            if (aValue > bValue) {
-                return -1;
-            }
-
-            if (aValue < bValue) {
-                return 1;
-            }
-
-            return 0;
-        });
+        entries.sort(([, a], [, b]) => compareValues(b, a));
     } else if (isString(callback)) {
         // Sort by field name using dot notation in descending order
         entries.sort(([, a], [, b]) => {
@@ -2427,64 +2419,24 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
                 callback,
             );
 
-            if (isNull(aValue) && isNull(bValue)) {
-                return 0;
-            }
-
-            if (isNull(aValue)) {
-                return 1;
-            }
-
-            if (isNull(bValue)) {
-                return -1;
-            }
-
-            // Safe comparison for any comparable types
-            const aComparable = aValue as string | number | boolean;
-            const bComparable = bValue as string | number | boolean;
-
-            if (aComparable > bComparable) {
-                return -1;
-            }
-
-            if (aComparable < bComparable) {
-                return 1;
-            }
-
-            return 0;
+            return compareValues(bValue, aValue);
         });
-    } else if (isFunction(callback)) {
-        // Sort by callback result in descending order
-        entries.sort(([, a], [, b]) => {
-            const aValue = callback(a);
-            const bValue = callback(b);
+    } else {
+        // Extract sort values using callback, then sort by those values in descending order
+        const indexed = entries.map(([key, value]) => ({
+            key,
+            value,
+            sortKey: callback(value as TValue, key as TKey),
+        }));
 
-            if (isNull(aValue) && isNull(bValue)) {
-                return 0;
-            }
+        indexed.sort((a, b) => compareValues(b.sortKey, a.sortKey));
 
-            if (isNull(aValue)) {
-                return 1;
-            }
+        const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+        for (const item of indexed) {
+            result[item.key as TKey] = item.value as TValue;
+        }
 
-            if (isNull(bValue)) {
-                return -1;
-            }
-
-            // Safe comparison for any comparable types
-            const aComparable = aValue as string | number | boolean;
-            const bComparable = bValue as string | number | boolean;
-
-            if (aComparable > bComparable) {
-                return -1;
-            }
-
-            if (aComparable < bComparable) {
-                return 1;
-            }
-
-            return 0;
-        });
+        return result;
     }
 
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
@@ -2507,51 +2459,40 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
  * sortRecursive({ b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }); -> { a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }
  * sortRecursive({ user1: { name: 'john', age: 30 }, user2: { name: 'jane', age: 25 } }); -> sorted objects with sorted keys
  */
-export function sortRecursive<TValue>(
-    data: Record<PropertyKey, TValue> | unknown,
+export function sortRecursive<T extends Record<PropertyKey, unknown>>(
+    data: T,
+    descending?: boolean,
+): T;
+export function sortRecursive(
+    data: unknown,
+    descending?: boolean,
+): Record<PropertyKey, unknown>;
+export function sortRecursive<T extends Record<PropertyKey, unknown>>(
+    data: T | unknown,
     descending: boolean = false,
-): Record<PropertyKey, TValue> {
+): T | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
-        return {} as Record<PropertyKey, TValue>;
+        return {} as T;
     }
 
-    const obj = data as Record<PropertyKey, TValue>;
-    const entries = Object.entries(obj) as [PropertyKey, TValue][];
+    const obj = data as T;
+    const entries = Object.entries(obj) as [PropertyKey, unknown][];
 
     // Recursively sort nested objects first
-    const processedEntries: [PropertyKey, TValue][] = [];
+    const processedEntries: [PropertyKey, unknown][] = [];
     for (const [key, value] of entries) {
         if (isObject(value)) {
-            processedEntries.push([
-                key,
-                sortRecursive(value, descending) as TValue,
-            ]);
+            processedEntries.push([key, sortRecursive(value, descending)]);
         } else if (isArray(value)) {
             // For arrays, sort them if they contain sortable items
             const sortedArray = [...value].sort((a, b) => {
-                if (descending) {
-                    if (a > b) {
-                        return -1;
-                    }
-
-                    if (a < b) {
-                        return 1;
-                    }
-
-                    return 0;
-                } else {
-                    if (a < b) {
-                        return -1;
-                    }
-
-                    if (a > b) {
-                        return 1;
-                    }
-
-                    return 0;
-                }
+                // Compare as strings for consistent ordering of unknown types
+                const strA = String(a);
+                const strB = String(b);
+                const comparison = strA.localeCompare(strB);
+                return descending ? -comparison : comparison;
             });
-            processedEntries.push([key, sortedArray as TValue]);
+            processedEntries.push([key, sortedArray]);
         } else {
             processedEntries.push([key, value]);
         }
@@ -2561,40 +2502,18 @@ export function sortRecursive<TValue>(
     processedEntries.sort(([keyA], [keyB]) => {
         const strKeyA = String(keyA);
         const strKeyB = String(keyB);
+        const comparison = strKeyA.localeCompare(strKeyB);
 
-        if (descending) {
-            if (strKeyA > strKeyB) {
-                return -1;
-            }
-
-            if (strKeyA < strKeyB) {
-                return 1;
-            }
-
-            return 0;
-        } else {
-            if (strKeyA < strKeyB) {
-                return -1;
-            }
-
-            if (strKeyA > strKeyB) {
-                return 1;
-            }
-
-            return 0;
-        }
+        return descending ? -comparison : comparison;
     });
 
     // Rebuild object with sorted keys
-    const result: Record<PropertyKey, TValue> = {} as Record<
-        PropertyKey,
-        TValue
-    >;
+    const result: Record<PropertyKey, unknown> = {};
     for (const [key, value] of processedEntries) {
         result[key] = value;
     }
 
-    return result;
+    return result as T;
 }
 
 /**
@@ -2608,10 +2527,13 @@ export function sortRecursive<TValue>(
  *
  * sortRecursiveDesc({ a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }); -> { b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }
  */
-export function sortRecursiveDesc<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
->(data: Record<TKey, TValue> | unknown): Record<TKey, TValue> {
+export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
+    data: T,
+): T;
+export function sortRecursiveDesc(data: unknown): Record<PropertyKey, unknown>;
+export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
+    data: T | unknown,
+): T | Record<PropertyKey, unknown> {
     return sortRecursive(data, true);
 }
 
@@ -2938,18 +2860,16 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     const padCount = Math.abs(size) - currentLength;
     const padEntries: [string, TPadValue][] = [];
 
-    if (padCount > 0) {
-        if (size >= 0) {
-            for (let i = 0; i < padCount; i++) {
-                padEntries.push([i.toString(), value]);
-            }
-        } else {
-            // Negative size: left padding with keys counting up to 0 (including negatives)
-            // Example: currentLength=2, size=-5 => padCount=3 => keys -2, -1, 0
-            const start = -(padCount - 1);
-            for (let k = start; k <= 0; k++) {
-                padEntries.push([k.toString(), value]);
-            }
+    if (size >= 0) {
+        for (let i = 0; i < padCount; i++) {
+            padEntries.push([i.toString(), value]);
+        }
+    } else {
+        // Negative size: left padding with keys counting up to 0 (including negatives)
+        // Example: currentLength=2, size=-5 => padCount=3 => keys -2, -1, 0
+        const start = -(padCount - 1);
+        for (let k = start; k <= 0; k++) {
+            padEntries.push([k.toString(), value]);
         }
     }
 

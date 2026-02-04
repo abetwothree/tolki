@@ -1604,7 +1604,7 @@ export function dataSole<TValue, TKey extends PropertyKey = PropertyKey>(
  * Sort data using a callback.
  *
  * @param data - The data to sort
- * @param callback - The comparison callback or key to sort by
+ * @param callback - The value extractor callback or key to sort by
  * @returns Sorted data
  *
  * @example
@@ -1614,16 +1614,25 @@ export function dataSole<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function dataSort<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
-    callback: ((a: TValue, b: TValue) => unknown) | string | null = null,
+    callback:
+        | ((value: TValue, key: PropertyKey) => unknown)
+        | string
+        | null = null,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objSort(data as Record<string, TValue>, callback) as DataItems<
-            TValue,
-            TKey
-        >;
+        return objSort(
+            data as Record<string, TValue>,
+            callback as
+                | ((value: TValue, key: string) => unknown)
+                | string
+                | null,
+        ) as DataItems<TValue, TKey>;
     }
 
-    return arrSort(arrWrap(data), callback) as DataItems<TValue, TKey>;
+    return arrSort(
+        arrWrap(data),
+        callback as ((value: TValue, key: number) => unknown) | string | null,
+    ) as DataItems<TValue, TKey>;
 }
 
 /**
