@@ -102,8 +102,12 @@ describe("Path Functions", () => {
         it("returns false when cursor is not object for string segment", () => {
             // Tests where cursor is not object for string segment
             const data = [["nested"]];
-            // hasPath returns false for string segments on arrays
+
+            // hasPath returns true for string segments on arrays
             expect(Path.hasPath(data, "0")).toBe(true);
+
+            // hasPath returns false when a string segment is applied to a non-object cursor
+            expect(Path.hasPath(data, "0.key")).toBe(false);
         });
 
         it("covers hasPath edge cases", () => {
