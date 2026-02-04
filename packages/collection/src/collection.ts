@@ -133,8 +133,10 @@ export interface ArrayCollection<
  * A Collection containing exactly two elements, used for partition().
  * Extends ArrayCollection and adds tuple-like indexing for better type inference.
  */
-export interface TupleCollection<T1, T2>
-    extends ArrayCollection<T1 | T2, number> {
+export interface TupleCollection<T1, T2> extends ArrayCollection<
+    T1 | T2,
+    number
+> {
     all(): [T1, T2];
     0: T1;
     1: T2;
@@ -2206,7 +2208,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // Use itemsWithOrder when available to preserve numeric key insertion order
         const entries = this.itemsWithOrder
             ? this.itemsWithOrder.slice(offset)
-            : Object.entries(this.slice(offset) as Record<TKey, TValue>);
+            : Object.entries(this.slice(offset).all() as Record<TKey, TValue>);
 
         for (const [, value] of entries) {
             if (position % step === 0) {
@@ -4624,7 +4626,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return new Collection<Collection<TValue, TKey>, number>([
             new Collection<TValue, TKey>(passed as DataItems<TValue, TKey>),
             new Collection<TValue, TKey>(failed as DataItems<TValue, TKey>),
-        ]) as TupleCollection<Collection<TValue, TKey>, Collection<TValue, TKey>>;
+        ]) as TupleCollection<
+            Collection<TValue, TKey>,
+            Collection<TValue, TKey>
+        >;
     }
 
     /**
