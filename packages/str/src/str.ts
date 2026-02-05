@@ -319,8 +319,13 @@ export function excerpt(
         return null;
     }
 
-    // Extract captured groups (guaranteed to exist due to regex structure)
-    const [, beforePhrase = "", matchedPhrase = "", afterPhrase = ""] = matches;
+    // Extract captured groups — each group uses .* / .*? so they always
+    // produce a string, but TypeScript types RegExpExecArray indices as
+    // string | undefined, so we narrow with String() which also satisfies
+    // the branch-coverage tool (unlike ?? or destructuring defaults).
+    const beforePhrase = String(matches[1]);
+    const matchedPhrase = String(matches[2]);
+    const afterPhrase = String(matches[3]);
 
     // Left segment before phrase
     const rawStart = ltrim(beforePhrase);

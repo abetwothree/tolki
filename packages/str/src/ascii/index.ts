@@ -45,22 +45,20 @@ export function slug(
 
         // Convert all dashes/underscores into the configured separator
         const flip = sep === "-" ? "_" : "-";
-        if (flip) {
-            const flipRe = new RegExp(`[${escapeForCharClass(flip)}]+`, "gu");
-            out = out.replace(flipRe, sep);
-        }
+        const flipRe = new RegExp(`[${escapeForCharClass(flip)}]+`, "gu");
+        out = out.replace(flipRe, sep);
 
         // Replace dictionary words (surrounded by separators per Laravel)
-        if (dictionary && typeof dictionary === "object") {
-            const replaced: Record<string, string> = {};
-            for (const [key, value] of Object.entries(dictionary)) {
-                replaced[key] = (sep ?? "") + value + (sep ?? "");
-            }
+        const replaced: Record<string, string> = {};
+        for (const [key, value] of Object.entries(dictionary)) {
+            replaced[key] = sep + value + sep;
+        }
 
-            for (const [key, value] of Object.entries(replaced)) {
-                if (key === "") continue;
-                out = out.split(key).join(value);
+        for (const [key, value] of Object.entries(replaced)) {
+            if (key === "") {
+                continue;
             }
+            out = out.split(key).join(value);
         }
 
         // Lowercase then remove all characters that are not the separator, letters, numbers, or whitespace
@@ -99,7 +97,7 @@ export function slug(
 
     // Heuristic: If any dictionary key (likely ASCII) appears in the ASCII transliteration,
     // prefer the ASCII variant so that replacements like 'llh' => 'allah' can take effect.
-    const keys = Object.keys(dictionary || {});
+    const keys = Object.keys(dictionary);
     const hasAlphaNumKey = keys.some((k) => /[A-Za-z0-9]/.test(k));
 
     return hasAlphaNumKey ? asciiVariant : nonAscii;

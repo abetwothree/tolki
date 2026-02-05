@@ -2994,6 +2994,12 @@ describe("Str tests", () => {
                 "أحمد-في-المدرسة",
             );
         });
+
+        it("slug ignores empty-string dictionary keys", () => {
+            expect(Str.slug("hello world", "-", { "": "ignored" })).toBe(
+                "hello-world",
+            );
+        });
     });
 
     describe("snake", () => {
