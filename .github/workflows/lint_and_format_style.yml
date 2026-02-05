@@ -1,6 +1,12 @@
 name: Lint and format code style issues
 
-on: workflow_call
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Git ref to checkout"
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -14,7 +20,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ inputs.ref || github.head_ref || github.ref }}
       - name: Install pnpm
         uses: pnpm/action-setup@v4.1.0
 

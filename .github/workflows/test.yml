@@ -1,12 +1,20 @@
 name: "test"
 
-on: workflow_call
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Git ref to checkout"
+        required: false
+        type: string
 
 jobs:
   build-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4.1.0
@@ -32,6 +40,8 @@ jobs:
       PUPPETEER_SKIP_DOWNLOAD: "true"
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4.1.0
@@ -70,6 +80,8 @@ jobs:
       PUPPETEER_SKIP_DOWNLOAD: "true"
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4.1.0
