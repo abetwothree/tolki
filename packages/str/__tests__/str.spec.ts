@@ -2266,8 +2266,10 @@ describe("Str tests", () => {
         it("startsWith with non-iterable object", () => {
             // Plain object that's not iterable - hits else branch
             // Object.toString() returns "[object Object]" by default
+            // @ts-expect-error - Testing defensive behavior with invalid input type
             expect(Str.startsWith("hello", {})).toBe(false);
             // Object with custom toString that matches
+            // @ts-expect-error - Testing defensive behavior with invalid input type
             expect(Str.startsWith("hello", { toString: () => "he" })).toBe(
                 true,
             );

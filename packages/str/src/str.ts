@@ -320,7 +320,7 @@ export function excerpt(
     }
 
     // Extract captured groups (guaranteed to exist due to regex structure)
-    const [, beforePhrase, matchedPhrase, afterPhrase] = matches;
+    const [, beforePhrase = "", matchedPhrase = "", afterPhrase = ""] = matches;
 
     // Left segment before phrase
     const rawStart = ltrim(beforePhrase);
