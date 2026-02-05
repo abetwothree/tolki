@@ -767,7 +767,7 @@ describe("Stringable basic delegation", () => {
                 Str.ucwords("hello world"),
                 Str.of("hello world").ucwords(),
             );
-        
+
             expectEqual(
                 Str.ucwords("laravel php framework"),
                 Str.of("laravel php framework").ucwords(),
