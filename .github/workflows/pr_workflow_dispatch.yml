@@ -1,0 +1,24 @@
+name: Manual PR Trigger
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "The Pull Request number to run this workflow on"
+        required: true
+        type: number
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+    with:
+      ref: refs/pull/${{ inputs.pr_number }}/head
+    permissions:
+      contents: write
+      pull-requests: write
+  lint-and-format:
+    uses: ./.github/workflows/lint_and_format_style.yml
+    with:
+      ref: refs/pull/${{ inputs.pr_number }}/head
+    permissions:
+      contents: write

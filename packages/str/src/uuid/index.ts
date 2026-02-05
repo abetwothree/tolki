@@ -49,7 +49,7 @@ export function uuid7(): string {
  *
  * @requires {@link https://www.npmjs.com/package/uuid uuid package}
  */
-export function createUuidsUsing(factory: (() => string) | null = null): void {
+export function createUuidsUsing(factory: (() => string) | null): void {
     uuidFactory = factory;
 }
 

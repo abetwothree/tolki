@@ -75,6 +75,24 @@ export function substrCount(
  */
 export function substrReplace(
     value: string,
+    replace: string,
+    offset?: number | number[],
+    length?: number | number[] | null,
+): string;
+export function substrReplace(
+    value: string,
+    replace: string[],
+    offset?: number | number[],
+    length?: number | number[] | null,
+): string[];
+export function substrReplace(
+    value: string,
+    replace: string | string[],
+    offset?: number | number[],
+    length?: number | number[] | null,
+): string | string[];
+export function substrReplace(
+    value: string,
     replace: string | string[],
     offset: number | number[] = 0,
     length: number | number[] | null = null,

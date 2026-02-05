@@ -93,7 +93,7 @@ import {
     wordWrap,
     wrap,
 } from "@tolki/str";
-import { isArray, isFunction, isInteger } from "@tolki/utils";
+import { isFunction, isInteger } from "@tolki/utils";
 
 export type ConditionableValue =
     | string
@@ -704,9 +704,7 @@ export class Stringable {
      * @returns The pluralized string as a new Stringable instance.
      */
     pluralStudly(count: number = 2): Stringable {
-        const c = isArray(count) ? count.length : Number(count);
-
-        return new Stringable(pluralStudly(this._value, c));
+        return new Stringable(pluralStudly(this._value, count));
     }
 
     /**
@@ -716,9 +714,7 @@ export class Stringable {
      * @returns The pluralized string as a new Stringable instance.
      */
     pluralPascal(count: number = 2): Stringable {
-        const c = isArray(count) ? count.length : Number(count);
-
-        return new Stringable(pluralPascal(this._value, c));
+        return new Stringable(pluralPascal(this._value, count));
     }
 
     /**
@@ -933,16 +929,11 @@ export class Stringable {
             return [];
         }
 
-        // Return captured groups as strings
-        const result: string[] = [];
-        for (let i = 1; i < matches.length; i++) {
-            const match = matches[i];
-            if (match) {
-                result.push(match);
-            }
-        }
-
-        return result;
+        // Return captured groups as strings (groups are guaranteed to exist since all
+        // capture groups use + quantifier requiring at least one match)
+        return matches
+            .slice(1)
+            .filter((match): match is string => match !== undefined);
     }
 
     /**
@@ -1653,7 +1644,7 @@ export class Stringable {
     }
 
     /**
-     * Get the underlying string value as a Carbon instance.
+     * Get the underlying string value as a Date instance.
      *
      * @returns The Date instance or null if parsing fails.
      */
