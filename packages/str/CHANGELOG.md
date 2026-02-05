@@ -1,5 +1,11 @@
 # @tolki/str
 
+## 1.0.3
+
+### Patch Changes
+
+- c4d3afb: Fully tested, some refactoring, and TypeScript function overloads to better infer function reponses when it's either a string or an array of strings that can be returned
+
 ## 1.0.2
 
 ### Patch Changes
