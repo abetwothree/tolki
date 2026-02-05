@@ -7,7 +7,7 @@
     "scripts": {
         "release": "pnpm test && pnpm lint:eslint && pnpm format && pnpm document:version && pnpm ci:publish",
         "clean": "pnpm lint && pnpm format",
-        "ci:publish": "pnpm publish -r --access=public --no-git-checks --report-summary",
+        "ci:publish": "pnpm publish -r --access=public --no-git-checks --report-summary --provenance",
         "ci:publish-arr": "pnpm publish --filter @tolki/arr --access=public",
         "ci:publish-collection": "pnpm publish --filter @tolki/collection --access=public",
         "ci:publish-data": "pnpm publish --filter @tolki/data --access=public",
