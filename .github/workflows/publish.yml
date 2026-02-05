@@ -31,11 +31,6 @@ jobs:
           cache: "pnpm"
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Configure npm for OIDC publishing
-        run: |
-          echo "//registry.npmjs.org/:_authToken=" >> ~/.npmrc
-          echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -48,7 +43,6 @@ jobs:
           commit: "release: version packages"
           createGithubReleases: true
         env:
-          NPM_CONFIG_PROVENANCE: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Delete empty changesets and commit
