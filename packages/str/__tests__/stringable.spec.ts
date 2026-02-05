@@ -110,7 +110,7 @@ describe("Stringable basic delegation", () => {
         });
     });
 
-    describe("", () => {
+    describe("charAt", () => {
         it("Laravel tests", () => {
             const input = "hello";
             expect(Str.charAt(input, 1)).toBe(Str.of(input).charAt(1));
@@ -767,11 +767,7 @@ describe("Stringable basic delegation", () => {
                 Str.ucwords("hello world"),
                 Str.of("hello world").ucwords(),
             );
-        });
-    });
-
-    describe("ucwords", () => {
-        it("Laravel tests", () => {
+        
             expectEqual(
                 Str.ucwords("laravel php framework"),
                 Str.of("laravel php framework").ucwords(),
@@ -1299,7 +1295,7 @@ describe("Stringable basic delegation", () => {
         });
     });
 
-    describe("isEmpty", () => {
+    describe("isNotEmpty", () => {
         it("Laravel tests", () => {
             const empty = Str.of("");
             const nonEmpty = Str.of(" ");
@@ -1636,9 +1632,5 @@ describe("Stringable basic delegation", () => {
             expect(s.toString()).toBe("");
             expect(s.isEmpty()).toBe(true);
         });
-    });
-
-    describe("", () => {
-        it("Laravel tests", () => {});
     });
 });
