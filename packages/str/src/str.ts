@@ -1033,6 +1033,9 @@ export function matchAll(pattern: string, subject: string): string[] {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#numbers
  */
+export function numbers(value: string): string;
+export function numbers(value: string[]): string[];
+export function numbers(value: string | string[]): string | string[];
 export function numbers(value: string | string[]): string | string[] {
     if (isArray(value)) {
         return value.map((item) => item.replace(/[^0-9]/g, ""));
@@ -1885,6 +1888,21 @@ export function stripTags(value: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#remove
  */
+export function remove(
+    search: string | Iterable<string>,
+    subject: string,
+    caseSensitive?: boolean,
+): string;
+export function remove(
+    search: string | Iterable<string>,
+    subject: Iterable<string>,
+    caseSensitive?: boolean,
+): string[];
+export function remove(
+    search: string | Iterable<string>,
+    subject: string | Iterable<string>,
+    caseSensitive?: boolean,
+): string | string[];
 export function remove(
     search: string | Iterable<string>,
     subject: string | Iterable<string>,
