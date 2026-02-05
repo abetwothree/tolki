@@ -410,6 +410,11 @@ describe("Str tests", () => {
                 Str.convertCase("hello-world_test", CaseTypes.fold_simple),
             ).toBe("hello world test");
         });
+
+        it("defaults to fold mode when no mode is specified", () => {
+            expect(Str.convertCase("HeLLo")).toBe("hello");
+            expect(Str.convertCase("WoRLD")).toBe("world");
+        });
     });
 
     describe("deduplicate", () => {
@@ -439,7 +444,6 @@ describe("Str tests", () => {
             expect(Str.endsWith("jason", "jason")).toBe(true);
             expect(Str.endsWith("jason", ["on"])).toBe(true);
             expect(Str.endsWith("jason", ["no", "on"])).toBe(true);
-            // expect(Str.endsWith("jason", collect(["no", "on"]))).toBe(true); // TODO
             expect(Str.endsWith("jason", "no")).toBe(false);
             expect(Str.endsWith("jason", ["no"])).toBe(false);
             expect(Str.endsWith("jason", "")).toBe(false);
@@ -1796,6 +1800,12 @@ describe("Str tests", () => {
     });
 
     describe("pluralStudly", () => {
+        it("defaults to count of 2 when no count is specified", () => {
+            expect(Str.pluralStudly("These are my child")).toBe(
+                "These are my children",
+            );
+        });
+
         it("Laravel tests", () => {
             expect(Str.pluralStudly("These are my child", 5)).toBe(
                 "These are my children",
@@ -1810,6 +1820,12 @@ describe("Str tests", () => {
     });
 
     describe("pluralPascal", () => {
+        it("defaults to count of 2 when no count is specified", () => {
+            expect(Str.pluralPascal("These are my child")).toBe(
+                "These are my children",
+            );
+        });
+
         it("Laravel tests", () => {
             expect(Str.pluralPascal("These are my child", 5)).toBe(
                 "These are my children",

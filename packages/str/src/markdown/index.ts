@@ -71,8 +71,8 @@ export function inlineMarkdown(
  * @requires {@link https://www.npmjs.com/package/markdown-it markdown-it package}
  */
 export function markDownRenderer(
-    options: MarkDownOptions = { gfm: true, anchors: false },
-    extensions: MarkDownExtensions = [],
+    options: MarkDownOptions,
+    extensions: MarkDownExtensions,
 ) {
     const {
         html = false,
@@ -103,8 +103,8 @@ export function markDownRenderer(
         if (isArray(ext)) {
             const [plugin, opts] = ext as [PluginWithOptions<unknown>, unknown];
             md.use(plugin, opts);
-        } else if (ext) {
-            md.use(ext as PluginSimple | PluginWithOptions<unknown>);
+        } else {
+            md.use(ext);
         }
     }
 

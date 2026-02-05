@@ -14,11 +14,14 @@ describe("Stringable basic delegation", () => {
             expectEqual(Str.after(input, "-"), Str.of(input).after("-"));
         });
     });
-    
+
     describe("afterLast", () => {
         it("Laravel tests", () => {
             const input = "a-hello-b-world-c";
-            expectEqual(Str.afterLast(input, "-"), Str.of(input).afterLast("-"));
+            expectEqual(
+                Str.afterLast(input, "-"),
+                Str.of(input).afterLast("-"),
+            );
         });
     });
 
@@ -28,11 +31,14 @@ describe("Stringable basic delegation", () => {
             expectEqual(Str.before(input, "-"), Str.of(input).before("-"));
         });
     });
-    
+
     describe("beforeLast", () => {
         it("Laravel tests", () => {
             const input = "a-hello-b-world-c";
-            expectEqual(Str.beforeLast(input, "-"), Str.of(input).beforeLast("-"));
+            expectEqual(
+                Str.beforeLast(input, "-"),
+                Str.of(input).beforeLast("-"),
+            );
         });
     });
 
@@ -79,7 +85,10 @@ describe("Stringable basic delegation", () => {
 
     describe("transliterate", () => {
         it("Laravel tests", () => {
-            expectEqual(Str.transliterate("fóó"), Str.of("fóó").transliterate());
+            expectEqual(
+                Str.transliterate("fóó"),
+                Str.of("fóó").transliterate(),
+            );
         });
     });
 
@@ -111,7 +120,10 @@ describe("Stringable basic delegation", () => {
     describe("chopStart", () => {
         it("Laravel tests", () => {
             const input = "hello";
-            expectEqual(Str.chopStart(input, "h"), Str.of(input).chopStart("h"));
+            expectEqual(
+                Str.chopStart(input, "h"),
+                Str.of(input).chopStart("h"),
+            );
         });
     });
 
@@ -324,7 +336,7 @@ describe("Stringable basic delegation", () => {
                 "Otwell",
                 "Taylor",
             ]);
-            
+
             expect(Str.of("filename.jpg").scan("%[^.].%s")).toEqual([
                 "filename",
                 "jpg",
@@ -836,7 +848,10 @@ describe("Stringable basic delegation", () => {
     describe("padLeft", () => {
         it("Laravel tests", () => {
             const input = "Alien";
-            expectEqual(Str.padLeft(input, 8, "-"), Str.of(input).padLeft(8, "-"));
+            expectEqual(
+                Str.padLeft(input, 8, "-"),
+                Str.of(input).padLeft(8, "-"),
+            );
         });
 
         it("padLeft with default pad parameter", () => {
@@ -863,7 +878,10 @@ describe("Stringable basic delegation", () => {
     describe("padBoth", () => {
         it("Laravel tests", () => {
             const input = "Alien";
-            expectEqual(Str.padBoth(input, 9, "-"), Str.of(input).padBoth(9, "-"));
+            expectEqual(
+                Str.padBoth(input, 9, "-"),
+                Str.of(input).padBoth(9, "-"),
+            );
         });
 
         it("padBoth with default pad parameter", () => {
@@ -1088,14 +1106,18 @@ describe("Stringable basic delegation", () => {
     describe("endsWith", () => {
         it("Laravel tests", () => {
             const input = "Laravel";
-            expect(Str.of(input).endsWith("vel")).toBe(Str.endsWith(input, "vel"));
+            expect(Str.of(input).endsWith("vel")).toBe(
+                Str.endsWith(input, "vel"),
+            );
         });
     });
 
     describe("contains", () => {
         it("Laravel tests", () => {
             const input = "Laravel";
-            expect(Str.of(input).contains("rav")).toBe(Str.contains(input, "rav"));
+            expect(Str.of(input).contains("rav")).toBe(
+                Str.contains(input, "rav"),
+            );
         });
     });
 
@@ -1231,7 +1253,10 @@ describe("Stringable basic delegation", () => {
 
     describe("append", () => {
         it("Laravel tests", () => {
-            expectEqual("foo123bar", Str.of("foo").append(1, 2, 3).append("bar"));
+            expectEqual(
+                "foo123bar",
+                Str.of("foo").append(1, 2, 3).append("bar"),
+            );
         });
     });
 
@@ -1267,20 +1292,20 @@ describe("Stringable basic delegation", () => {
             const nonEmpty = Str.of(" ");
             expect(empty.isEmpty()).toBe(true);
             expect(nonEmpty.isEmpty()).toBe(false);
-    
+
             const s = Str.of("abc");
             expect(s.toString()).toBe("abc");
             expect(s.value()).toBe("abc");
         });
     });
-    
+
     describe("isEmpty", () => {
         it("Laravel tests", () => {
             const empty = Str.of("");
             const nonEmpty = Str.of(" ");
             expect(empty.isNotEmpty()).toBe(false);
             expect(nonEmpty.isNotEmpty()).toBe(true);
-    
+
             const s = Str.of("abc");
             expect(s.toString()).toBe("abc");
             expect(s.value()).toBe("abc");
@@ -1292,7 +1317,9 @@ describe("Stringable basic delegation", () => {
             expect(Str.of("10").toInteger()).toBe(10);
             expect(Str.of("FF").toInteger(16)).toBe(255);
             // Invalid base falls back to 10
-            expect(Str.of("10").toInteger("oops" as unknown as number)).toBe(10);
+            expect(Str.of("10").toInteger("oops" as unknown as number)).toBe(
+                10,
+            );
         });
     });
 
@@ -1307,7 +1334,7 @@ describe("Stringable basic delegation", () => {
         it("Laravel tests", () => {
             const truthy = ["1", "true", "on", "yes", "  TRUE  "];
             truthy.forEach((v) => expect(Str.of(v).toBoolean()).toBe(true));
-    
+
             const falsy = ["0", "false", "off", "no", "", "random"];
             falsy.forEach((v) => expect(Str.of(v).toBoolean()).toBe(false));
         });
@@ -1318,7 +1345,7 @@ describe("Stringable basic delegation", () => {
             const d = Str.of("2023-01-02T03:04:05Z").toDate();
             expect(d).toBeInstanceOf(Date);
             expect(d?.toISOString()).toBe("2023-01-02T03:04:05.000Z");
-    
+
             const bad = Str.of("not a date").toDate();
             expect(bad).toBeNull();
         });
@@ -1426,7 +1453,10 @@ describe("Stringable basic delegation", () => {
         it("when callback returns undefined returns this", () => {
             // Tests callback?.() ?? this
             const s = Str.of("hello");
-            const result = s.when(true, () => undefined as unknown as Stringable);
+            const result = s.when(
+                true,
+                () => undefined as unknown as Stringable,
+            );
             expect(result).toBe(s);
         });
 
@@ -1441,7 +1471,10 @@ describe("Stringable basic delegation", () => {
         it("unless callback returns undefined returns this", () => {
             // Tests callback?.() ?? this
             const s = Str.of("hello");
-            const result = s.unless(false, () => undefined as unknown as Stringable);
+            const result = s.unless(
+                false,
+                () => undefined as unknown as Stringable,
+            );
             expect(result).toBe(s);
         });
 
@@ -1606,8 +1639,6 @@ describe("Stringable basic delegation", () => {
     });
 
     describe("", () => {
-        it("Laravel tests", () => {
-            
-        });
+        it("Laravel tests", () => {});
     });
 });

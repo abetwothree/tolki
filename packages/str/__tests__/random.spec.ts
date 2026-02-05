@@ -11,6 +11,12 @@ describe("Random utilities", () => {
             vi.unstubAllGlobals();
         });
 
+        it("defaults to 16 characters when no length is specified", () => {
+            const r = randomString();
+            expect(r).toHaveLength(16);
+            expect(/^[A-Za-z0-9]+$/.test(r)).toBe(true);
+        });
+
         it("returns empty string for non-positive or non-finite length", () => {
             expect(randomString(0)).toBe("");
             expect(randomString(-5)).toBe("");

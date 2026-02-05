@@ -65,7 +65,7 @@ export function createUlidsNormally(): void {
  *
  * @requires {@link https://www.npmjs.com/package/ulid ulid package}
  */
-export function createUlidsUsing(factory: (() => string) | null = null): void {
+export function createUlidsUsing(factory: (() => string) | null): void {
     ulidFactory = factory;
 }
 

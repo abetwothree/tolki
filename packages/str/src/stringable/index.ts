@@ -931,7 +931,9 @@ export class Stringable {
 
         // Return captured groups as strings (groups are guaranteed to exist since all
         // capture groups use + quantifier requiring at least one match)
-        return matches.slice(1).filter((match): match is string => match !== undefined);
+        return matches
+            .slice(1)
+            .filter((match): match is string => match !== undefined);
     }
 
     /**
