@@ -27,6 +27,7 @@
         "build:utils": "pnpm -F @tolki/utils build",
         "document:change": "pnpx @changesets/cli add",
         "document:version": "pnpx @changesets/cli version",
+        "document:empty": "npx changeset add --empty",
         "format": "npx prettier --write . --cache",
         "format:check": "npx prettier --check .",
         "lint": "run-s lint:*",
