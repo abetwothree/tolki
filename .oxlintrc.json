@@ -119,6 +119,7 @@
                 "no-unsafe-negation": "off",
                 "no-var": "error",
                 "no-with": "off",
+                "prefer-const": "error",
                 "prefer-rest-params": "error",
                 "prefer-spread": "error",
                 "@typescript-eslint/no-explicit-any": "off"
