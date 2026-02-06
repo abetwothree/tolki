@@ -443,6 +443,11 @@ describe("Arr", () => {
             ];
             expect(Arr.flatten(data, 1)).toEqual([1, 2, 3, 4]);
         });
+
+        it("should handle non-array input", () => {
+            expect(Arr.flatten(null)).toEqual([]);
+            expect(Arr.flatten(undefined)).toEqual([]);
+        });
     });
 
     it("flip", () => {
@@ -1981,6 +1986,7 @@ describe("Arr", () => {
             const data = [{ id: 1, name: "foo" }];
             // @ts-expect-error - testing runtime behavior with symbol return type
             const result = Arr.keyBy(data, () => sym);
+            // @ts-expect-error - symbols cannot index Record<string, TValue>
             expect(result[sym]).toEqual({ id: 1, name: "foo" });
         });
     });
@@ -2364,13 +2370,13 @@ describe("Arr", () => {
         expect(arr).toContain(single);
 
         // Explicitly request single item
-        const singleExplicit = Arr.random(arr, 1) as number[];
+        const singleExplicit = Arr.random(arr, 1);
         expect(isArray(singleExplicit)).toBe(true);
         expect(singleExplicit).toHaveLength(1);
         expect(arr).toContain(singleExplicit[0]);
 
         // Multiple random items
-        const multiple = Arr.random(arr, 3) as number[];
+        const multiple = Arr.random(arr, 3);
         expect(isArray(multiple)).toBe(true);
         expect(multiple).toHaveLength(3);
         multiple.forEach((item: number) => expect(arr).toContain(item));
@@ -2379,9 +2385,7 @@ describe("Arr", () => {
         const withKeys = Arr.random(arr, 2, true);
         expect(typeof withKeys).toBe("object");
         expect(isArray(withKeys)).toBe(false);
-        Object.values(withKeys as Record<number, number>).forEach((item) =>
-            expect(arr).toContain(item),
-        );
+        Object.values(withKeys).forEach((item) => expect(arr).toContain(item));
 
         // Test edge cases
         expect(Arr.random([])).toBe(null);
