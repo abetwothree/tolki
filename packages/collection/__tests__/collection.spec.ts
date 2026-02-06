@@ -2713,6 +2713,11 @@ describe("Collection", () => {
             const c = collect([]);
             expect(c.last()).toBeNull();
         });
+
+        it("converts undefined value to null", () => {
+            const c = collect([1, undefined]);
+            expect(c.last()).toBeNull();
+        });
     });
 
     describe("pluck", () => {
@@ -6049,6 +6054,17 @@ describe("Collection", () => {
                 }
                 expect(items).toEqual(["foo"]);
             });
+        });
+
+        it("iterates over object collection values", () => {
+            const c = collect({ a: 1, b: 2, c: 3 });
+            const iterator = c.getIterator();
+
+            const items: number[] = [];
+            for (const item of iterator) {
+                items.push(item);
+            }
+            expect(items).toEqual([1, 2, 3]);
         });
     });
 
