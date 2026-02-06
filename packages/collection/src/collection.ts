@@ -956,9 +956,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             // Get the values to iterate over
             const values = isArray(items)
                 ? items
-                : isObject(items)
-                  ? Object.values(items)
-                  : [items];
+                : Object.values(items as Record<PropertyKey, unknown>);
 
             for (let item of values) {
                 // Convert Collection instances to their items
@@ -2532,7 +2530,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     delete (items as Record<PropertyKey, unknown>)[
                         key as PropertyKey
                     ];
-                } else if (isArray(items)) {
+                } else {
                     const numKey = Number(key);
                     if (!isNaN(numKey)) {
                         delete (items as unknown[])[numKey];
@@ -2813,15 +2811,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 shiftedValues.push(value as TValue);
             } else {
                 const keys = Object.keys(this.items) as TKey[];
-
-                if (keys.length > 0) {
-                    const firstKey = keys[0] as TKey;
-                    const value = (this.items as Record<TKey, TValue>)[
-                        firstKey
-                    ];
-                    delete (this.items as Record<TKey, TValue>)[firstKey];
-                    shiftedValues.push(value);
-                }
+                const firstKey = keys[0] as TKey;
+                const value = (this.items as Record<TKey, TValue>)[firstKey];
+                delete (this.items as Record<TKey, TValue>)[firstKey];
+                shiftedValues.push(value);
             }
         }
 
@@ -3836,7 +3829,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     ? JSON.stringify(result)
                     : String(result);
             if (resultKey in results) {
-                results[resultKey] = (results[resultKey] ?? 0) + 1;
+                results[resultKey] = (results[resultKey] as number) + 1;
             } else {
                 results[resultKey] = 1;
             }
@@ -4161,8 +4154,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 if (!isNull(resolved) && !isUndefined(resolved)) {
                     const numValue = Number(resolved);
                     if (!isNaN(numValue)) {
-                        arrCarry[0] = (arrCarry[0] ?? 0) + numValue;
-                        arrCarry[1] = (arrCarry[1] ?? 0) + 1;
+                        arrCarry[0] = (arrCarry[0] as number) + numValue;
+                        arrCarry[1] = (arrCarry[1] as number) + 1;
                     }
                 }
 
@@ -5400,12 +5393,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns True if the value is callable, false otherwise
      */
     protected useAsCallable(value: unknown) {
-        return (
-            isFunction(value) ||
-            (isObject(value) &&
-                "call" in value &&
-                isFunction((value as { call: unknown }).call))
-        );
+        return isFunction(value);
     }
 
     /**
