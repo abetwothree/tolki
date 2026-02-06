@@ -190,18 +190,21 @@ export function ordinal(value: number, locale: string | null = null): string {
         const pr = new Intl.PluralRules(loc, { type: "ordinal" });
         const rule = pr.select(value);
         // loc is guaranteed to be a valid locale here (invalid ones throw above)
-        // The || "en" handles the theoretical case where split returns empty string
-        const lang = loc.split("-")[0] || "en";
+        const lang = String(loc.split("-")[0]);
 
+        const enSuffixes: Record<string, string> = {
+            one: "st",
+            two: "nd",
+            few: "rd",
+            other: "th",
+        };
         const suffixes: Record<string, Record<string, string>> = {
-            en: { one: "st", two: "nd", few: "rd", other: "th" },
+            en: enSuffixes,
         };
 
         // Use English suffixes as fallback for unsupported languages
-        // suffixes["en"] is always defined above
-        const map = suffixes[lang] ?? suffixes["en"]!;
+        const map = suffixes[lang] ?? enSuffixes;
         // Fall back to "other" suffix if specific rule not found
-        // (English suffixes always have "other" key so this fallback is safe)
         const suffix = map[rule] ?? map["other"];
 
         return `${value}${suffix}`;

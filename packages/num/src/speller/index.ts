@@ -62,7 +62,7 @@ function mapToSupportedLocale(locale: string): string {
 
     // Extract language code (e.g., "en" from "en-US")
     const parts = locale.split("-");
-    const langCode = (parts[0] || locale).toLowerCase();
+    const langCode = String(parts[0]).toLowerCase();
 
     // Find a locale that starts with the same language code
     for (const supported of SUPPORTED_LOCALES) {
@@ -104,12 +104,12 @@ export function spell(
 
     // If after is provided and number <= after, return formatted number
     if (after !== null && num <= after) {
-        return format(num, null, null, locale) || String(num);
+        return format(num, null, null, locale) as string;
     }
 
     // If until is provided and number >= until, return formatted number
     if (until !== null && num >= until) {
-        return format(num, null, null, locale) || String(num);
+        return format(num, null, null, locale) as string;
     }
 
     const localeCode = mapToSupportedLocale(locale ?? "en-US");
