@@ -106,13 +106,27 @@ export function substrReplace(
         const chars = Array.from(value);
         const size = chars.length;
 
-        // Use size if length not provided
-        const finalLength =
-            lenArg === null || lenArg === undefined ? size : lenArg;
+        // Normalize offset (negative = from end)
+        let start = off >= 0 ? off : size + off;
+        if (start < 0) {
+            start = 0;
+        }
+        if (start > size) {
+            start = size;
+        }
 
-        const { start, end } = computeRange(size, off, finalLength);
         const head = chars.slice(0, start).join("");
-        const tail = chars.slice(end).join("");
+
+        // Compute tail using PHP semantics: mb_substr(mb_substr($string, $offset), $length)
+        // First get the substring from the offset, then apply length to that substring
+        const fromOffset = chars.slice(start);
+        let tail: string;
+        if (lenArg === null || lenArg === undefined) {
+            tail = "";
+        } else {
+            tail = fromOffset.slice(lenArg).join("");
+        }
+
         return head + rep + tail;
     };
 

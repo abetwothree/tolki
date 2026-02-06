@@ -190,6 +190,22 @@ describe("Str/Replacer", () => {
             expect(substrReplace("hello world", "x", 0, -6)).toBe("x world");
         });
 
+        it("handles negative offset with positive length", () => {
+            expect(substrReplace("1234", "567", -3, 3)).toBe("1567");
+        });
+
+        it("handles positive offset with negative length", () => {
+            expect(substrReplace("1234", "567", 2, -1)).toBe("125674");
+        });
+
+        it("handles negative offset with negative length", () => {
+            expect(substrReplace("1234", "567", -2, -1)).toBe("125674");
+        });
+
+        it("clamps very large negative offset to zero", () => {
+            expect(substrReplace("hello", "X", -100, 2)).toBe("Xllo");
+        });
+
         it("handles array of replacements", () => {
             const result = substrReplace("hello", ["a", "b", "c"], 0, 1);
             expect(result).toEqual(["aello", "bello", "cello"]);
