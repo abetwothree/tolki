@@ -63,5 +63,5 @@ METHOD DECLARATIONS:
   public reject($array, $callback) [line 1253]
   public partition($array, $callback) [line 1268]
   public whereNotNull($array) [line 1290]
-  public wrap($value) [line 1303]
+  public wrap($value) [line 1304]
 
