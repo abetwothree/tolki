@@ -52,8 +52,8 @@
         "./pagination": {
             "types": "./src/pagination.d.ts"
         },
-        "./path-type": {
-            "types": "./src/path-type.d.ts"
+        "./path-resolve": {
+            "types": "./src/path-resolve.d.ts"
         },
         "./responses": {
             "types": "./src/responses.d.ts"

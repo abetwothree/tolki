@@ -15,6 +15,9 @@ import { finish, randomInt } from "@tolki/str";
 import type {
     ArrayInnerValue,
     ArrayItems,
+    ArrayResolvePath,
+    ArrayResolvePathOrNull,
+    EnsureArray,
     PathKey,
     PathKeys,
 } from "@tolki/types";
@@ -110,6 +113,23 @@ export function add<TValue, TAddValue>(
  * arrayItem([{items: ['x', 'y']}], '0.items'); -> ['x', 'y']
  * arrayItem([{items: 'not array'}], '0.items'); -> throws Error
  */
+// Overload: typed array + literal path → inferred array element type
+export function arrayItem<TData extends readonly unknown[], TPath extends string | number>(
+    data: TData,
+    key: TPath,
+): EnsureArray<ArrayResolvePath<TData, TPath>>;
+// Overload: typed array + literal path + default → inferred type
+export function arrayItem<TData extends readonly unknown[], TPath extends string | number, TDefault>(
+    data: TData,
+    key: TPath,
+    defaultValue: TDefault | (() => TDefault) | null,
+): EnsureArray<ArrayResolvePath<TData, TPath>>;
+// Overload: generic fallback
+export function arrayItem<TValue, TDefault = null>(
+    data: TValue[] | unknown,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): unknown[];
 export function arrayItem<TValue, TDefault = null>(
     data: TValue[] | unknown,
     key: PathKey,
@@ -971,11 +991,24 @@ export function from(items: unknown): unknown {
  * get(['foo', 'bar', 'baz'], 9, 'default'); -> 'default'
  */
 export function get<TValue>(array: TValue[], key: null | undefined): TValue[];
+// Overload: literal path + default → resolved path type | default
+export function get<TData extends readonly unknown[], TPath extends string | number, TDefault>(
+    array: TData,
+    key: TPath,
+    defaultValue: TDefault | (() => TDefault),
+): ArrayResolvePath<TData, TPath, TData[number]> | TDefault;
 export function get<TValue, TDefault>(
     array: TValue[],
     key: PathKey,
     defaultValue: TDefault | (() => TDefault),
 ): TValue | TDefault;
+// Overload: literal path → resolved path type (no | null when path resolves to
+// a specific type; adds | null when path falls back to element type, matching
+// TS array access conventions where resolved paths are trusted)
+export function get<TData extends readonly unknown[], TPath extends string | number>(
+    array: TData,
+    key: TPath,
+): ArrayResolvePathOrNull<TData, TPath>;
 export function get<TValue>(array: TValue[], key: PathKey): TValue | null;
 export function get<TValue, TDefault = unknown>(
     array: ArrayItems<TValue> | unknown,

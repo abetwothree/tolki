@@ -2050,7 +2050,7 @@ describe("Arr", () => {
         ).toEqual({});
     });
 
-    it("array", () => {
+    it("arrayItem", () => {
         // Valid arrays
         expect(
             Arr.arrayItem(
