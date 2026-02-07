@@ -52,9 +52,7 @@ import {
  * accessible([1, 2]); // true
  * accessible({ a: 1, b: 2 }); // false
  */
-export function accessible<TValue>(
-    value: TValue,
-): value is TValue & unknown[] {
+export function accessible<TValue>(value: TValue): value is TValue & unknown[] {
     return isArray(value);
 }
 
@@ -2522,9 +2520,7 @@ export function sortRecursive<TValue>(
  *
  * sortRecursiveDesc({ a: [1, 2, 3], b: { c: 1, d: 2 } }); -> { b: { d: 2, c: 1 }, a: [3, 2, 1] }
  */
-export function sortRecursiveDesc<TValue>(
-    data: TValue[],
-): TValue[];
+export function sortRecursiveDesc<TValue>(data: TValue[]): TValue[];
 export function sortRecursiveDesc<TValue>(
     data: ArrayItems<TValue> | Record<string, unknown> | unknown,
 ): TValue[] | Record<string, unknown>;
