@@ -112,12 +112,16 @@ export function add<TValue, TAddValue>(
  * arrayItem([{items: 'not array'}], '0.items'); -> throws Error
  */
 // Overload: typed array + literal path → inferred array element type
-export function arrayItem<TData extends readonly unknown[], TPath extends string | number>(
-    data: TData,
-    key: TPath,
-): EnsureArray<ArrayResolvePath<TData, TPath>>;
+export function arrayItem<
+    TData extends readonly unknown[],
+    TPath extends string | number,
+>(data: TData, key: TPath): EnsureArray<ArrayResolvePath<TData, TPath>>;
 // Overload: typed array + literal path + default → inferred type
-export function arrayItem<TData extends readonly unknown[], TPath extends string | number, TDefault>(
+export function arrayItem<
+    TData extends readonly unknown[],
+    TPath extends string | number,
+    TDefault,
+>(
     data: TData,
     key: TPath,
     defaultValue: TDefault | (() => TDefault) | null,
@@ -990,7 +994,11 @@ export function from(items: unknown): unknown {
  */
 export function get<TValue>(array: TValue[], key: null | undefined): TValue[];
 // Overload: literal path + default → resolved path type | default
-export function get<TData extends readonly unknown[], TPath extends string | number, TDefault>(
+export function get<
+    TData extends readonly unknown[],
+    TPath extends string | number,
+    TDefault,
+>(
     array: TData,
     key: TPath,
     defaultValue: TDefault | (() => TDefault),
@@ -1003,10 +1011,10 @@ export function get<TValue, TDefault>(
 // Overload: literal path → resolved path type (no | null when path resolves to
 // a specific type; adds | null when path falls back to element type, matching
 // TS array access conventions where resolved paths are trusted)
-export function get<TData extends readonly unknown[], TPath extends string | number>(
-    array: TData,
-    key: TPath,
-): ArrayResolvePathOrNull<TData, TPath>;
+export function get<
+    TData extends readonly unknown[],
+    TPath extends string | number,
+>(array: TData, key: TPath): ArrayResolvePathOrNull<TData, TPath>;
 export function get<TValue>(array: TValue[], key: PathKey): TValue | null;
 export function get<TValue, TDefault = unknown>(
     array: ArrayItems<TValue> | unknown,

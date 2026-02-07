@@ -586,18 +586,22 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<(number[] | string[])[]>();
             });
         });
-        
+
         describe("Union type arrays", () => {
             it("preserves union TValue and adds to it", () => {
                 const data: (string | number)[] = [1, "two", 3];
                 const result = Arr.add(data, 3, true);
-                expectTypeOf(result).toEqualTypeOf<(string | number | boolean)[]>();
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | number | boolean)[]
+                >();
             });
 
             it("collapses when TAddValue is subset of TValue union", () => {
                 const data: (string | number | boolean)[] = [1, "two", true];
                 const result = Arr.add(data, 3, 42);
-                expectTypeOf(result).toEqualTypeOf<(string | number | boolean)[]>();
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | number | boolean)[]
+                >();
             });
         });
 
@@ -796,7 +800,10 @@ describe("arr type tests", () => {
             });
 
             it("infers string[] via dot notation into object array property", () => {
-                const result = Arr.arrayItem([{ items: ["x", "y"] }], "0.items");
+                const result = Arr.arrayItem(
+                    [{ items: ["x", "y"] }],
+                    "0.items",
+                );
                 expectTypeOf(result).toEqualTypeOf<string[]>();
             });
 
@@ -854,7 +861,10 @@ describe("arr type tests", () => {
                     {
                         department: {
                             employees: [
-                                { name: "Alice", skills: ["TypeScript", "React"] },
+                                {
+                                    name: "Alice",
+                                    skills: ["TypeScript", "React"],
+                                },
                                 { name: "Bob", skills: ["Python", "Django"] },
                             ],
                         },
@@ -874,7 +884,7 @@ describe("arr type tests", () => {
                 expectTypeOf(resultStr).toEqualTypeOf<string[]>();
             });
         });
-        
+
         describe("Infers specific array types even with default value", () => {
             it("infers number[] even when default is empty array", () => {
                 const result = Arr.arrayItem(
@@ -906,7 +916,7 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<string[]>();
             });
         });
-        
+
         describe("Falls back to unknown[] for non-array element types", () => {
             it("returns unknown[] when element type is number (not array)", () => {
                 const result = Arr.arrayItem([1, 2, 3], 0);
@@ -939,15 +949,19 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<unknown[]>();
             });
         });
-        
+
         describe("Falls back to unknown[] for union element types", () => {
             it("returns unknown[] | number[] for union element types (EnsureArray distributes)", () => {
-                const data: (string | number[] | null)[] = ["hello", [1, 2], null];
+                const data: (string | number[] | null)[] = [
+                    "hello",
+                    [1, 2],
+                    null,
+                ];
                 const result = Arr.arrayItem(data, 1);
                 expectTypeOf(result).toEqualTypeOf<unknown[] | number[]>();
             });
         });
-        
+
         describe("Falls back to unknown[] for non-resolvable paths", () => {
             it("returns unknown[] for Map type via dot path (not indexable)", () => {
                 const data = [new Map<string, number[]>([["key", [1, 2]]])];
@@ -955,7 +969,7 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<unknown[]>();
             });
         });
-        
+
         describe("Falls back to unknown[] for null/undefined keys", () => {
             it("returns unknown[] with null key", () => {
                 const result = Arr.arrayItem([[1, 2]], null);
@@ -981,7 +995,7 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<unknown[]>();
             });
         });
-        
+
         describe("Falls back to unknown[] when data is untyped or unknown", () => {
             it("returns unknown[] when data is typed as unknown", () => {
                 const data: unknown = [["a", "b"]];
@@ -989,7 +1003,7 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<unknown[]>();
             });
         });
-        
+
         describe("Edge cases with empty arrays and defaults", () => {
             it("returns unknown[] for empty array literal with default", () => {
                 const result = Arr.arrayItem([], 0, ["default"]);
@@ -1001,7 +1015,7 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<unknown[]>();
             });
         });
-        
+
         describe("models PHP Arr::array: homogeneous array resolves to element type", () => {
             it("models PHP Arr::array: heterogeneous array resolves to union element type", () => {
                 // When data is a regular (non-tuple) array, TypeScript unifies all
@@ -1025,14 +1039,21 @@ describe("arr type tests", () => {
 
             it("resolves per-index types when data is a tuple", () => {
                 // Tuples preserve per-index type information, enabling precise resolution
-                const data: [string[], (string | number)[], number[], { name: string; scores: number[] }[]] = [
+                const data: [
+                    string[],
+                    (string | number)[],
+                    number[],
+                    { name: string; scores: number[] }[],
+                ] = [
                     ["a", "b"],
                     ["e", 1],
                     [1, 2, 3],
                     [{ name: "John", scores: [100, 200] }],
                 ];
                 expectTypeOf(Arr.arrayItem(data, 0)).toEqualTypeOf<string[]>();
-                expectTypeOf(Arr.arrayItem(data, 1)).toEqualTypeOf<(string | number)[]>();
+                expectTypeOf(Arr.arrayItem(data, 1)).toEqualTypeOf<
+                    (string | number)[]
+                >();
                 expectTypeOf(Arr.arrayItem(data, 2)).toEqualTypeOf<number[]>();
                 expectTypeOf(Arr.arrayItem(data, 3)).toEqualTypeOf<
                     { name: string; scores: number[] }[]
@@ -1042,11 +1063,16 @@ describe("arr type tests", () => {
             it("resolves nested properties through homogeneous object arrays", () => {
                 // For dot-path resolution into object properties, use a single-type array
                 const nameData = [{ name: "John", scores: [100, 200] }];
-                expectTypeOf(Arr.arrayItem(nameData, "0.scores")).toEqualTypeOf<number[]>();
+                expectTypeOf(Arr.arrayItem(nameData, "0.scores")).toEqualTypeOf<
+                    number[]
+                >();
             });
 
             it("models PHP Arr::array: dot notation into object property returns specific type", () => {
-                const result = Arr.arrayItem([{ items: ["x", "y"] }], "0.items");
+                const result = Arr.arrayItem(
+                    [{ items: ["x", "y"] }],
+                    "0.items",
+                );
                 expectTypeOf(result).toEqualTypeOf<string[]>();
             });
 
@@ -1055,7 +1081,7 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<unknown[]>();
             });
         });
-        
+
         describe("Compile-check: all PathKey variants accepted for key parameter", () => {
             it("accepts all PathKey types for key parameter", () => {
                 Arr.arrayItem([[1]], 0);
@@ -1291,7 +1317,9 @@ describe("arr type tests", () => {
             });
 
             it("resolves deeply nested property via dot path", () => {
-                const data = [{ user: { profile: { email: "test@test.com" } } }];
+                const data = [
+                    { user: { profile: { email: "test@test.com" } } },
+                ];
                 const result = Arr.get(data, "0.user.profile.email");
                 expectTypeOf(result).toEqualTypeOf<string>();
             });
@@ -1303,7 +1331,10 @@ describe("arr type tests", () => {
             });
 
             it("resolves nested array element via dot path", () => {
-                const data = [[10, 20], [30, 40]];
+                const data = [
+                    [10, 20],
+                    [30, 40],
+                ];
                 const result = Arr.get(data, "0.1");
                 expectTypeOf(result).toEqualTypeOf<number>();
             });

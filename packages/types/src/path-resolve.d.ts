@@ -39,23 +39,23 @@ export type ResolveKey<T, K> =
         ? T[K]
         : // If K is a number and T is an array, resolve element type
           T extends readonly (infer U)[]
-            ? K extends number
+          ? K extends number
+              ? U
+              : // If K is a numeric string like "0", resolve element type
+                K extends `${number}`
                 ? U
-                : // If K is a numeric string like "0", resolve element type
-                  K extends `${number}`
-                    ? U
-                    : undefined
-            : // If K is a numeric string and T is an object with that as key
-              K extends `${infer N extends number}`
-                ? N extends keyof T
-                    ? T[N]
-                    : undefined
-                : // If K is a number and the stringified version is a key
-                  K extends number
-                    ? `${K}` extends keyof T
-                        ? T[`${K}`]
-                        : undefined
-                    : undefined;
+                : undefined
+          : // If K is a numeric string and T is an object with that as key
+            K extends `${infer N extends number}`
+            ? N extends keyof T
+                ? T[N]
+                : undefined
+            : // If K is a number and the stringified version is a key
+              K extends number
+              ? `${K}` extends keyof T
+                  ? T[`${K}`]
+                  : undefined
+              : undefined;
 
 /**
  * Resolves the type at a dot-delimited path within a type.
@@ -112,23 +112,23 @@ export type ArrayResolvePath<
         ? TArray
         : // Literal number → resolve element type
           number extends TPath
-            ? TDefault
-            : // Literal string check — non-literal strings should fallback
-              TPath extends string
-                ? string extends TPath
-                    ? TDefault
-                    : ResolvePath<TArray, TPath> extends infer R
-                        ? [R] extends [undefined]
-                            ? TDefault
-                            : R
-                        : TDefault
-                : TPath extends number
-                    ? ResolvePath<TArray, `${TPath}`> extends infer R
-                        ? [R] extends [undefined]
-                            ? TDefault
-                            : R
-                        : TDefault
-                    : TDefault;
+          ? TDefault
+          : // Literal string check — non-literal strings should fallback
+            TPath extends string
+            ? string extends TPath
+                ? TDefault
+                : ResolvePath<TArray, TPath> extends infer R
+                  ? [R] extends [undefined]
+                      ? TDefault
+                      : R
+                  : TDefault
+            : TPath extends number
+              ? ResolvePath<TArray, `${TPath}`> extends infer R
+                  ? [R] extends [undefined]
+                      ? TDefault
+                      : R
+                  : TDefault
+              : TDefault;
 
 /**
  * Ensures a resolved path type is an array type.
@@ -152,8 +152,8 @@ export type ArrayResolvePath<
 export type EnsureArray<T> = [T] extends [never]
     ? unknown[]
     : T extends readonly unknown[]
-        ? T
-        : unknown[];
+      ? T
+      : unknown[];
 
 /**
  * Checks whether a type is a literal string or number, rather than a
@@ -170,10 +170,10 @@ export type EnsureArray<T> = [T] extends [never]
 export type IsLiteral<T> = string extends T
     ? false
     : number extends T
-        ? false
-        : T extends string | number
-            ? true
-            : false;
+      ? false
+      : T extends string | number
+        ? true
+        : false;
 
 /**
  * Resolves a path within an array and adds `| null` only when the path
@@ -200,14 +200,10 @@ export type IsLiteral<T> = string extends T
  * type C = ArrayResolvePathOrNull<string[], 0>; // string
  * ```
  */
-export type ArrayResolvePathOrNull<
-    TArray extends readonly unknown[],
-    TPath,
-> =
+export type ArrayResolvePathOrNull<TArray extends readonly unknown[], TPath> =
     IsLiteral<TPath> extends true
         ? ArrayResolvePath<TArray, TPath, TArray[number]>
         : ArrayResolvePath<TArray, TPath, TArray[number]> | null;
-
 
 /**
  * Gets the type of a value at a given path in an object or array.
