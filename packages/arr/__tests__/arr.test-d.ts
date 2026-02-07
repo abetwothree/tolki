@@ -437,19 +437,292 @@ describe("arr type tests", () => {
     });
 
     describe("add", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.add([1, 2, 3], 3, 4);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
+        describe("Same-type additions (TValue === TAddValue → T[])", () => {
+
+            it("returns number[] when adding number to number array", () => {
+                const result = Arr.add([1, 2, 3], 3, 4);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns string[] when adding string to string array", () => {
+                const result = Arr.add(["a", "b"], 2, "c");
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("returns boolean[] when adding boolean to boolean array", () => {
+                const result = Arr.add([true, false], 2, true);
+                expectTypeOf(result).toEqualTypeOf<boolean[]>();
+            });
         });
 
-        it("works with string arrays", () => {
-            const result = Arr.add(["a", "b"], 2, "c");
-            expectTypeOf(result).toEqualTypeOf<string[]>();
+        describe("Mixed-type additions (TValue !== TAddValue → (TValue | TAddValue)[])", () => {
+            it("returns (string | number)[] when adding number to string array", () => {
+                const result = Arr.add(["a", "b"], 2, 5);
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+            });
+
+            it("returns (number | string)[] when adding string to number array", () => {
+                const result = Arr.add([1, 2, 3], 3, "four");
+                expectTypeOf(result).toEqualTypeOf<(number | string)[]>();
+            });
+
+            it("returns (string | boolean)[] when adding boolean to string array", () => {
+                const result = Arr.add(["hello"], 1, true);
+                expectTypeOf(result).toEqualTypeOf<(string | boolean)[]>();
+            });
+
+            it("returns (number | null)[] when adding null to number array", () => {
+                const result = Arr.add([1, 2], 2, null);
+                expectTypeOf(result).toEqualTypeOf<(number | null)[]>();
+            });
+
+            it("returns (number | undefined)[] when adding undefined to number array", () => {
+                const result = Arr.add([1, 2], 2, undefined);
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[]>();
+            });
         });
 
-        it("works with string & number arrays", () => {
-            const result = Arr.add(["a", "b"], 2, 5);
-            expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+        describe("Empty array input", () => {
+            it("infers never for TValue with empty array, result is TAddValue[]", () => {
+                const result = Arr.add([], "0", "first");
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("infers never for TValue with empty array, number value returns number[]", () => {
+                const result = Arr.add([], 1, 42);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("infers never for TValue with empty array, object value returns object[]", () => {
+                const result = Arr.add([], "user.name", { first: "John", last: "Doe" });
+                expectTypeOf(result).toEqualTypeOf<{ first: string; last: string }[]>();
+            });
+        });
+        
+        describe("PathKey variations", () => {
+            it("accepts numeric key", () => {
+                const result = Arr.add([10, 20], 0, 30);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("accepts string dot-notation key", () => {
+                const result = Arr.add([{ name: "John" }], "0.age", 30);
+                expectTypeOf(result).toEqualTypeOf<({ name: string } | number)[]>();
+            });
+
+            it("accepts null key", () => {
+                const result = Arr.add([1, 2], null, 3);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("accepts undefined key", () => {
+                const result = Arr.add([1, 2], undefined, 3);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+        });
+        
+        describe("Complex object arrays", () => {
+            it("returns same type when adding matching complex object shape", () => {
+                const data = [{ name: "John", age: 30, active: true }];
+                const result = Arr.add(data, 1, { name: "Jane", age: 25, active: false });
+                expectTypeOf(result).toExtend<{ name: string; age: number; active: boolean }[]>();
+            });
+
+            it("returns union when adding different object shape to object array", () => {
+                const data = [{ id: 1, name: "Item" }];
+                const result = Arr.add(data, 1, { price: 9.99, currency: "USD" });
+                expectTypeOf(result).toEqualTypeOf<
+                    ({ id: number; name: string } | { price: number; currency: string })[]
+                >();
+            });
+
+            it("preserves nested object structure in TValue", () => {
+                const data = [{ user: { profile: { name: "John", scores: [100, 200] } } }];
+                const result = Arr.add(data, 1, { user: { profile: { name: "Jane", scores: [300] } } });
+                expectTypeOf(result).toExtend<
+                    { user: { profile: { name: string; scores: number[] } } }[]
+                >();
+            });
+
+            it("handles adding primitive to deeply nested object array", () => {
+                const data = [{ a: { b: { c: { d: 1 } } } }];
+                const result = Arr.add(data, "0.a.b.c.e", "deep");
+                expectTypeOf(result).toEqualTypeOf<({ a: { b: { c: { d: number } } } } | string)[]>();
+            });
+        });
+
+        describe("Array of arrays", () => {
+            it("returns nested array union when adding array to array of arrays", () => {
+                const data = [[1, 2], [3, 4]];
+                const result = Arr.add(data, 2, [5, 6]);
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+
+            it("returns mixed nested types when adding different array to array of arrays", () => {
+                const data = [[1, 2], [3, 4]];
+                const result = Arr.add(data, 2, ["a", "b"]);
+                expectTypeOf(result).toEqualTypeOf<(number[] | string[])[]>();
+            });
+        });
+
+        // --- Union type arrays ---
+
+        it("preserves union TValue and adds to it", () => {
+            const data: (string | number)[] = [1, "two", 3];
+            const result = Arr.add(data, 3, true);
+            expectTypeOf(result).toEqualTypeOf<(string | number | boolean)[]>();
+        });
+
+        it("collapses when TAddValue is subset of TValue union", () => {
+            const data: (string | number | boolean)[] = [1, "two", true];
+            const result = Arr.add(data, 3, 42);
+            expectTypeOf(result).toEqualTypeOf<(string | number | boolean)[]>();
+        });
+
+        describe("Tuple-like inputs", () => {
+            it("infers union element type from tuple input", () => {
+                const data: [number, string, boolean] = [1, "hello", true];
+                const result = Arr.add(data, 3, null);
+                expectTypeOf(result).toEqualTypeOf<(string | number | boolean | null)[]>();
+            });
+
+            it("collapses tuple when adding same-type element", () => {
+                const data: [number, number, number] = [1, 2, 3];
+                const result = Arr.add(data, 3, 4);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+        });
+
+        describe("Function and special type values", () => {
+            it("handles adding a function as TAddValue", () => {
+                const fn = (x: number) => x * 2;
+                const result = Arr.add([1, 2], 2, fn);
+                expectTypeOf(result).toEqualTypeOf<(number | ((x: number) => number))[]>();
+            });
+
+            it("handles array of functions with function addition", () => {
+                const data: ((x: number) => number)[] = [(x: number) => x + 1, (x: number) => x - 1];
+                const result = Arr.add(data, 2, (x: number) => x * 2);
+                expectTypeOf(result).toExtend<((x: number) => number)[]>();
+            });
+
+            it("handles Map as TAddValue", () => {
+                const result = Arr.add([1, 2], 2, new Map<string, number>());
+                expectTypeOf(result).toEqualTypeOf<(number | Map<string, number>)[]>();
+            });
+
+            it("handles Set as TAddValue", () => {
+                const result = Arr.add(["a", "b"], 2, new Set<string>());
+                expectTypeOf(result).toEqualTypeOf<(string | Set<string>)[]>();
+            });
+
+            it("handles Date as TAddValue", () => {
+                const result = Arr.add([1, 2, 3], 3, new Date());
+                expectTypeOf(result).toEqualTypeOf<(number | Date)[]>();
+            });
+
+            it("handles RegExp as TAddValue", () => {
+                const result = Arr.add(["pattern"], 1, /test/gi);
+                expectTypeOf(result).toEqualTypeOf<(string | RegExp)[]>();
+            });
+        });
+
+        describe("Arrays of Maps/Sets/Dates", () => {
+            it("handles array of Dates with Date addition", () => {
+                const data = [new Date("2024-01-01"), new Date("2024-06-15")];
+                const result = Arr.add(data, 2, new Date("2025-01-01"));
+                expectTypeOf(result).toEqualTypeOf<Date[]>();
+            });
+
+            it("handles array of Maps with primitive addition", () => {
+                const data = [new Map<string, number>([["a", 1]])];
+                const result = Arr.add(data, 1, "fallback");
+                expectTypeOf(result).toEqualTypeOf<(Map<string, number> | string)[]>();
+            });
+        });
+
+        describe("Const and readonly array inputs", () => {
+            it("rejects const array input (readonly not assignable to mutable)", () => {
+                const data = [1, 2, 3] as const;
+                // @ts-expect-error readonly tuple is not assignable to mutable ArrayItems
+                Arr.add(data, 3, 4);
+            });
+
+            it("rejects readonly array input (readonly not assignable to mutable)", () => {
+                const data: readonly string[] = ["a", "b"];
+                // @ts-expect-error readonly array is not assignable to mutable ArrayItems
+                Arr.add(data, 2, "c");
+            });
+        });
+
+        describe("Realistic use-cases mirroring functional tests", () => {
+            it("models PHP testAdd: adding to typed array with dot key", () => {
+                // Arr::add([], 'surname', 'Mövsümov')
+                const result = Arr.add([], "surname", "Mövsümov");
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("models PHP testAdd: nested dot notation with object creation", () => {
+                // Arr::add([], 'developer.name', 'Ferid')
+                const result = Arr.add([], "developer.name", "Ferid");
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("models JS test: adding to array of objects with dot notation", () => {
+                const data = [{ name: "John" }];
+                const result = Arr.add(data, "0.age", 30);
+                expectTypeOf(result).toEqualTypeOf<({ name: string } | number)[]>();
+            });
+
+            it("models JS test: adding to existing key doesn't change type", () => {
+                const data = ["existing"];
+                const result = Arr.add(data, 0, "new");
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+        });
+
+        describe("Complex nested data structures", () => {
+            it("handles array of records with string keys", () => {
+                const data: Record<string, number>[] = [{ a: 1, b: 2 }];
+                const result = Arr.add(data, 1, { c: 3 });
+                expectTypeOf(result).toEqualTypeOf<(Record<string, number> | { c: number })[]>();
+            });
+
+            it("handles mixed array of objects and primitives", () => {
+                const data: ({ id: number } | string)[] = [{ id: 1 }, "hello"];
+                const result = Arr.add(data, 2, 42);
+                expectTypeOf(result).toEqualTypeOf<(string | { id: number } | number)[]>();
+            });
+
+            it("handles array of arrays of objects", () => {
+                const data = [[{ x: 1 }, { x: 2 }], [{ x: 3 }]];
+                const result = Arr.add(data, 2, [{ x: 4 }]);
+                expectTypeOf(result).toExtend<{ x: number }[][]>();
+            });
+
+            it("handles array with optional properties in objects", () => {
+                const data: { name: string; age?: number }[] = [{ name: "Alice" }];
+                const result = Arr.add(data, 1, { name: "Bob", age: 30 });
+                expectTypeOf(result).toExtend<{ name: string; age?: number | undefined }[]>();
+            });
+        });
+
+        describe("Function signature", () => {
+            it("first parameter accepts ArrayItems<TValue>", () => {
+                expectTypeOf(Arr.add).parameter(0).toExtend<unknown[]>();
+            });
+
+            it("second parameter accepts PathKey", () => {
+                expectTypeOf(Arr.add).parameter(1).toEqualTypeOf<string | number | null | undefined>();
+            });
+
+            it("third parameter accepts TAddValue", () => {
+                expectTypeOf(Arr.add).parameter(2).toExtend<unknown>();
+            });
+
+            it("returns an array type", () => {
+                expectTypeOf(Arr.add).returns.toExtend<unknown[]>();
+            });
         });
     });
 
