@@ -2367,6 +2367,7 @@ describe("Arr", () => {
 
         // Single random item (default behavior)
         const single = Arr.random(arr);
+        expect(isArray(single)).toBe(false);
         expect(arr).toContain(single);
 
         // Explicitly request single item
