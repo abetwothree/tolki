@@ -564,19 +564,19 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<(number[] | string[])[]>();
             });
         });
+        
+        describe("Union type arrays", () => {
+            it("preserves union TValue and adds to it", () => {
+                const data: (string | number)[] = [1, "two", 3];
+                const result = Arr.add(data, 3, true);
+                expectTypeOf(result).toEqualTypeOf<(string | number | boolean)[]>();
+            });
 
-        // --- Union type arrays ---
-
-        it("preserves union TValue and adds to it", () => {
-            const data: (string | number)[] = [1, "two", 3];
-            const result = Arr.add(data, 3, true);
-            expectTypeOf(result).toEqualTypeOf<(string | number | boolean)[]>();
-        });
-
-        it("collapses when TAddValue is subset of TValue union", () => {
-            const data: (string | number | boolean)[] = [1, "two", true];
-            const result = Arr.add(data, 3, 42);
-            expectTypeOf(result).toEqualTypeOf<(string | number | boolean)[]>();
+            it("collapses when TAddValue is subset of TValue union", () => {
+                const data: (string | number | boolean)[] = [1, "two", true];
+                const result = Arr.add(data, 3, 42);
+                expectTypeOf(result).toEqualTypeOf<(string | number | boolean)[]>();
+            });
         });
 
         describe("Tuple-like inputs", () => {
