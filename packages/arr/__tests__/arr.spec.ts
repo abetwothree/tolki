@@ -57,6 +57,60 @@ describe("Arr", () => {
         ]);
     });
 
+    it("arrayItem", () => {
+        // Valid arrays
+        expect(
+            Arr.arrayItem(
+                [
+                    ["a", "b"],
+                    ["c", "d"],
+                ],
+                0,
+            ),
+        ).toEqual(["a", "b"]);
+        expect(Arr.arrayItem([{ items: ["x", "y"] }], "0.items")).toEqual([
+            "x",
+            "y",
+        ]);
+
+        // Default value (should be array)
+        expect(Arr.arrayItem([1, 2, 3], 10, [])).toEqual([]);
+
+        // Should throw for non-arrays
+        expect(() => Arr.arrayItem([1, 2, 3], 0)).toThrow(
+            "Array value for key [0] must be an array, number found.",
+        );
+        expect(() =>
+            Arr.arrayItem([{ items: "not array" }], "0.items"),
+        ).toThrow(
+            "Array value for key [0.items] must be an array, string found.",
+        );
+        expect(() => Arr.arrayItem([null, ["valid"]], 0)).toThrow(
+            "Array value for key [0] must be an array, null found.",
+        );
+    });
+
+    it("boolean", () => {
+        // Valid booleans
+        expect(Arr.boolean([true, false], 0)).toBe(true);
+        expect(Arr.boolean([true, false], 1)).toBe(false);
+        expect(Arr.boolean([{ active: true }], "0.active")).toBe(true);
+
+        // Default value (should be boolean)
+        expect(Arr.boolean([1, 2, 3], 10, false)).toBe(false);
+
+        // Should throw for non-booleans
+        expect(() => Arr.boolean([1, 2, 3], 0)).toThrow(
+            "Array value for key [0] must be a boolean, number found.",
+        );
+        expect(() => Arr.boolean([{ active: "yes" }], "0.active")).toThrow(
+            "Array value for key [0.active] must be a boolean, string found.",
+        );
+        expect(() => Arr.boolean([null, true], 0)).toThrow(
+            "Array value for key [0] must be a boolean, object found.",
+        );
+    });
+
     it("collapse", () => {
         type Mixed = string[] | number[] | [] | (string | number)[];
         let data: Mixed[] = [["foo", "bar"], ["baz"]];
@@ -2048,60 +2102,6 @@ describe("Arr", () => {
         expect(
             Arr.mapWithKeys("abc", (value) => ({ [String(value)]: value })),
         ).toEqual({});
-    });
-
-    it("arrayItem", () => {
-        // Valid arrays
-        expect(
-            Arr.arrayItem(
-                [
-                    ["a", "b"],
-                    ["c", "d"],
-                ],
-                0,
-            ),
-        ).toEqual(["a", "b"]);
-        expect(Arr.arrayItem([{ items: ["x", "y"] }], "0.items")).toEqual([
-            "x",
-            "y",
-        ]);
-
-        // Default value (should be array)
-        expect(Arr.arrayItem([1, 2, 3], 10, [])).toEqual([]);
-
-        // Should throw for non-arrays
-        expect(() => Arr.arrayItem([1, 2, 3], 0)).toThrow(
-            "Array value for key [0] must be an array, number found.",
-        );
-        expect(() =>
-            Arr.arrayItem([{ items: "not array" }], "0.items"),
-        ).toThrow(
-            "Array value for key [0.items] must be an array, string found.",
-        );
-        expect(() => Arr.arrayItem([null, ["valid"]], 0)).toThrow(
-            "Array value for key [0] must be an array, null found.",
-        );
-    });
-
-    it("boolean", () => {
-        // Valid booleans
-        expect(Arr.boolean([true, false], 0)).toBe(true);
-        expect(Arr.boolean([true, false], 1)).toBe(false);
-        expect(Arr.boolean([{ active: true }], "0.active")).toBe(true);
-
-        // Default value (should be boolean)
-        expect(Arr.boolean([1, 2, 3], 10, false)).toBe(false);
-
-        // Should throw for non-booleans
-        expect(() => Arr.boolean([1, 2, 3], 0)).toThrow(
-            "Array value for key [0] must be a boolean, number found.",
-        );
-        expect(() => Arr.boolean([{ active: "yes" }], "0.active")).toThrow(
-            "Array value for key [0.active] must be a boolean, string found.",
-        );
-        expect(() => Arr.boolean([null, true], 0)).toThrow(
-            "Array value for key [0] must be a boolean, object found.",
-        );
     });
 
     it("chunk", () => {
