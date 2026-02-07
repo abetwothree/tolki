@@ -3,10 +3,171 @@ import { describe, expectTypeOf, it } from "vitest";
 
 describe("arr type tests", () => {
     describe("accessible", () => {
-        it("narrows to array type", () => {
+        it("returns boolean for any input", () => {
+            expectTypeOf(Arr.accessible([])).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.accessible([1, 2])).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.accessible("abc")).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.accessible(null)).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.accessible(123)).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.accessible(12.34)).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.accessible(true)).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.accessible(new Date())).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.accessible(() => null)).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.accessible(new Object())).toEqualTypeOf<boolean>();
+            expectTypeOf(
+                Arr.accessible({ a: 1, b: 2 } as object),
+            ).toEqualTypeOf<boolean>();
+        });
+
+        it("narrows unknown to unknown[]", () => {
             const value: unknown = [1, 2, 3];
             if (Arr.accessible(value)) {
                 expectTypeOf(value).toEqualTypeOf<unknown[]>();
+            }
+        });
+
+        it("preserves number[] in true branch", () => {
+            const value: number[] = [1, 2, 3];
+            if (Arr.accessible(value)) {
+                expectTypeOf(value).toEqualTypeOf<number[]>();
+            }
+        });
+
+        it("preserves string[] in true branch", () => {
+            const value: string[] = ["a", "b", "c"];
+            if (Arr.accessible(value)) {
+                expectTypeOf(value).toEqualTypeOf<string[]>();
+            }
+        });
+
+        it("preserves nested number[][] in true branch", () => {
+            const value: number[][] = [[1, 2], [3, 4]];
+            if (Arr.accessible(value)) {
+                expectTypeOf(value).toEqualTypeOf<number[][]>();
+            }
+        });
+
+        it("preserves tuple type in true branch", () => {
+            const value: [number, string, boolean] = [1, "a", true];
+            if (Arr.accessible(value)) {
+                expectTypeOf(value).toEqualTypeOf<[number, string, boolean]>();
+            }
+        });
+
+        it("preserves array of objects in true branch", () => {
+            const value: { id: number; name: string }[] = [
+                { id: 1, name: "a" },
+            ];
+            if (Arr.accessible(value)) {
+                expectTypeOf(value).toEqualTypeOf<
+                    { id: number; name: string }[]
+                >();
+            }
+        });
+
+        it("narrows union type to array branch in true branch", () => {
+            const value: string | number[] = [1, 2];
+            if (Arr.accessible(value)) {
+                expectTypeOf(value).toEqualTypeOf<number[]>();
+            }
+        });
+
+        it("narrows union type to non-array branch in false branch", () => {
+            const value: string | number[] = "hello";
+            if (!Arr.accessible(value)) {
+                expectTypeOf(value).toEqualTypeOf<string>();
+            }
+        });
+
+        it("narrows complex union in true branch", () => {
+            const value: null | undefined | string | number[] | boolean =
+                [1, 2];
+            if (Arr.accessible(value)) {
+                expectTypeOf(value).toEqualTypeOf<number[]>();
+            }
+        });
+
+        it("narrows non-array types to include unknown[] in true branch", () => {
+            // TypeScript's structural type system keeps intersections with unknown[]
+            // for non-array types (Record, Date, functions) rather than reducing to never,
+            // because these types are structurally compatible with array-like shapes.
+            const obj: Record<string, number> = { a: 1, b: 2 };
+            if (Arr.accessible(obj)) {
+                expectTypeOf(obj).toExtend<unknown[]>();
+            }
+
+            const date = new Date();
+            if (Arr.accessible(date)) {
+                expectTypeOf(date).toExtend<unknown[]>();
+            }
+
+            const fn = () => null;
+            if (Arr.accessible(fn)) {
+                expectTypeOf(fn).toExtend<unknown[]>();
+            }
+        });
+
+        it("preserves Record in false branch", () => {
+            const obj: Record<string, number> = { a: 1, b: 2 };
+            if (!Arr.accessible(obj)) {
+                expectTypeOf(obj).toEqualTypeOf<Record<string, number>>();
+            }
+        });
+
+        it("preserves Date in false branch", () => {
+            const date = new Date();
+            if (!Arr.accessible(date)) {
+                expectTypeOf(date).toEqualTypeOf<Date>();
+            }
+        });
+
+        it("preserves function in false branch", () => {
+            const fn = () => null;
+            if (!Arr.accessible(fn)) {
+                expectTypeOf(fn).toEqualTypeOf<() => null>();
+            }
+        });
+
+        it("narrows union with multiple array types in true branch", () => {
+            const value: string[] | number[] | boolean = ["a"];
+            if (Arr.accessible(value)) {
+                // TypeScript keeps the intersection; the narrowed type extends unknown[]
+                expectTypeOf(value).toExtend<unknown[]>();
+            }
+        });
+
+        it("narrows union with multiple array types excludes non-array in false branch", () => {
+            const value: string[] | number[] | boolean = false;
+            if (!Arr.accessible(value)) {
+                expectTypeOf(value).toEqualTypeOf<boolean>();
+            }
+        });
+
+        it("preserves array of union elements", () => {
+            const value: (string | number)[] = [1, "a", 2];
+            if (Arr.accessible(value)) {
+                expectTypeOf(value).toEqualTypeOf<(string | number)[]>();
+            }
+        });
+
+        it("narrows deeply nested mixed structures", () => {
+            const value: { nested: number[] } | string[][] = [["a"]];
+            if (Arr.accessible(value)) {
+                expectTypeOf(value).toEqualTypeOf<string[][]>();
+            }
+        });
+
+        it("narrows union with null and array in true branch", () => {
+            const value: number[] | null = [1, 2];
+            if (Arr.accessible(value)) {
+                expectTypeOf(value).toEqualTypeOf<number[]>();
+            }
+        });
+
+        it("narrows union with undefined and array in true branch", () => {
+            const value: string[] | undefined = ["a"];
+            if (Arr.accessible(value)) {
+                expectTypeOf(value).toEqualTypeOf<string[]>();
             }
         });
     });
@@ -515,6 +676,13 @@ describe("arr type tests", () => {
         });
     });
 
+    describe("sortRecursiveDesc", () => {
+        it("returns TValue[]", () => {
+            const result = Arr.sortRecursiveDesc([3, 1, 2]);
+            expectTypeOf(result).toEqualTypeOf<number[]>();
+        });
+    });
+
     describe("splice", () => {
         it("returns object with value and removed arrays", () => {
             const result = Arr.splice(["a", "b", "c"], 1, 1);
@@ -699,6 +867,25 @@ describe("arr type tests", () => {
         it("returns TValue[]", () => {
             const result = Arr.intersectByKeys(["a", "b", "c", "d"], [0, 2]);
             expectTypeOf(result).toEqualTypeOf<string[]>();
+        });
+    });
+
+    describe("intersectAssocUsing", () => {
+        it("returns TValue[]", () => {
+            const result = Arr.intersectAssocUsing(
+                [1, 2, 3],
+                [1, 2, 3],
+                (a, b) => a === b,
+            );
+            expectTypeOf(result).toEqualTypeOf<number[]>();
+        });
+
+        it("callback infers key types", () => {
+            Arr.intersectAssocUsing([1, 2], [3, 4], (keyA, keyB) => {
+                expectTypeOf(keyA).toEqualTypeOf<number>();
+                expectTypeOf(keyB).toEqualTypeOf<number>();
+                return keyA === keyB;
+            });
         });
     });
 });

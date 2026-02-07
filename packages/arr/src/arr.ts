@@ -51,7 +51,7 @@ import {
  */
 export function accessible<TValue>(
     value: TValue,
-): value is TValue & Array<TValue> {
+): value is TValue & unknown[] {
     return isArray(value);
 }
 
@@ -2490,6 +2490,12 @@ export function sortRecursive<TValue>(
  * sortRecursiveDesc({ a: [1, 2, 3], b: { c: 1, d: 2 } }); -> { b: { d: 2, c: 1 }, a: [3, 2, 1] }
  */
 export function sortRecursiveDesc<TValue>(
+    data: TValue[],
+): TValue[];
+export function sortRecursiveDesc<TValue>(
+    data: ArrayItems<TValue> | Record<string, unknown> | unknown,
+): TValue[] | Record<string, unknown>;
+export function sortRecursiveDesc<TValue>(
     data: ArrayItems<TValue> | Record<string, unknown> | unknown,
 ): TValue[] | Record<string, unknown> {
     return sortRecursive(data, true);
@@ -3431,10 +3437,20 @@ export function intersectAssoc<TValue>(
  *
  * @example
  *
- * // Example: treat all indices as equal (not very useful, but demonstrates the concept)
+ * Example: treat all indices as equal (not very useful, but demonstrates the concept)
  * const alwaysEqual = (a: number, b: number) => true;
  * intersectAssocUsing([1, 2, 3], [1, 2, 3], alwaysEqual); -> [1, 2, 3]
  */
+export function intersectAssocUsing<TValue>(
+    data: TValue[],
+    other: TValue[],
+    callback: (keyA: number, keyB: number) => boolean,
+): TValue[];
+export function intersectAssocUsing<TValue>(
+    data: ArrayItems<TValue> | unknown,
+    other: ArrayItems<TValue> | unknown,
+    callback: (keyA: number, keyB: number) => boolean,
+): TValue[];
 export function intersectAssocUsing<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
