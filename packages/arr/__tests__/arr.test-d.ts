@@ -173,11 +173,266 @@ describe("arr type tests", () => {
     });
 
     describe("arrayable", () => {
-        it("narrows to array type", () => {
+        it("returns boolean for any input", () => {
+            expectTypeOf(Arr.arrayable([])).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.arrayable([1, 2])).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.arrayable("abc")).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.arrayable(null)).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.arrayable(123)).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.arrayable(12.34)).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.arrayable(true)).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.arrayable(new Date())).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.arrayable(() => null)).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.arrayable(new Object())).toEqualTypeOf<boolean>();
+            expectTypeOf(
+                Arr.arrayable({ a: 1, b: 2 } as object),
+            ).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.arrayable(undefined)).toEqualTypeOf<boolean>();
+            expectTypeOf(
+                Arr.arrayable(new Map<string, number>()),
+            ).toEqualTypeOf<boolean>();
+            expectTypeOf(
+                Arr.arrayable(new Set<number>()),
+            ).toEqualTypeOf<boolean>();
+        });
+
+        it("narrows unknown to unknown[] in true branch", () => {
             const value: unknown = [1, 2, 3];
             if (Arr.arrayable(value)) {
                 expectTypeOf(value).toEqualTypeOf<unknown[]>();
             }
+        });
+
+        it("preserves number[] in true branch via intersection", () => {
+            // TypeScript narrows by intersecting the original type with the
+            // predicate type (unknown[]). Since number[] extends unknown[],
+            // the intersection simplifies back to number[].
+            const value: number[] = [1, 2, 3];
+            if (Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<number[]>();
+            }
+        });
+
+        it("preserves string[] in true branch via intersection", () => {
+            const value: string[] = ["a", "b", "c"];
+            if (Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<string[]>();
+            }
+        });
+
+        it("preserves tuple type in true branch via intersection", () => {
+            const value: [number, string, boolean] = [1, "a", true];
+            if (Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<[number, string, boolean]>();
+            }
+        });
+
+        it("preserves nested number[][] in true branch via intersection", () => {
+            const value: number[][] = [
+                [1, 2],
+                [3, 4],
+            ];
+            if (Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<number[][]>();
+            }
+        });
+
+        it("preserves array of objects in true branch via intersection", () => {
+            const value: { id: number; name: string }[] = [
+                { id: 1, name: "a" },
+            ];
+            if (Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<
+                    { id: number; name: string }[]
+                >();
+            }
+        });
+
+        it("narrows readonly array to extend unknown[] in true branch", () => {
+            // readonly number[] & unknown[] is complex because ReadonlyArray
+            // and mutable Array are structurally different. TypeScript keeps the
+            // intersection, which still extends unknown[].
+            const value: readonly number[] = [1, 2, 3] as const;
+            if (Arr.arrayable(value)) {
+                expectTypeOf(value).toExtend<unknown[]>();
+            }
+        });
+
+        it("narrows readonly tuple to extend unknown[] in true branch", () => {
+            const value: readonly [1, 2, 3] = [1, 2, 3] as const;
+            if (Arr.arrayable(value)) {
+                expectTypeOf(value).toExtend<unknown[]>();
+            }
+        });
+
+        it("preserves array of union elements in true branch via intersection", () => {
+            const value: (string | number | boolean)[] = [1, "a", true];
+            if (Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<
+                    (string | number | boolean)[]
+                >();
+            }
+        });
+
+        it("preserves deeply nested mixed structures in true branch via intersection", () => {
+            const value: { nested: number[] }[][] = [
+                [{ nested: [1, 2] }],
+            ];
+            if (Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<
+                    { nested: number[] }[][]
+                >();
+            }
+        });
+
+        it("preserves array of functions in true branch via intersection", () => {
+            const value: Array<(x: number) => string> = [
+                (x) => String(x),
+            ];
+            if (Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<
+                    ((x: number) => string)[]
+                >();
+            }
+        });
+
+        it("preserves array with optional elements in true branch via intersection", () => {
+            const value: (string | undefined)[] = ["a", undefined, "b"];
+            if (Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<(string | undefined)[]>();
+            }
+        });
+
+        it("narrows union of array and non-array to array branch in true branch", () => {
+            const value: string | number[] = [1, 2];
+            if (Arr.arrayable(value)) {
+                // string & unknown[] is never; number[] & unknown[] = number[]
+                expectTypeOf(value).toExtend<unknown[]>();
+            }
+        });
+
+        it("narrows complex union to array members in true branch", () => {
+            const value:
+                | null
+                | undefined
+                | string
+                | number[]
+                | boolean
+                | Map<string, number> = [1, 2];
+            if (Arr.arrayable(value)) {
+                // Only number[] survives the intersection with unknown[]
+                expectTypeOf(value).toExtend<unknown[]>();
+            }
+        });
+
+        it("narrows union with multiple array types to extend unknown[] in true branch", () => {
+            const value: string[] | number[] | boolean = ["a"];
+            if (Arr.arrayable(value)) {
+                // string[] | number[] survives the intersection, boolean is excluded
+                expectTypeOf(value).toExtend<unknown[]>();
+            }
+        });
+
+        it("narrows union of tuple and primitive to tuple in true branch", () => {
+            const value: [number, string] | Date = [1, "a"];
+            if (Arr.arrayable(value)) {
+                // [number, string] extends unknown[], Date does not
+                expectTypeOf(value).toEqualTypeOf<[number, string]>();
+            }
+        });
+
+        it("unknown stays unknown in false branch", () => {
+            const value: unknown = "hello";
+            if (!Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+            }
+        });
+
+        it("preserves non-array type in false branch of union", () => {
+            const value: string | number[] = "hello";
+            if (!Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<string>();
+            }
+        });
+
+        it("narrows union to non-array members in false branch", () => {
+            // For a non-generic type predicate (value: unknown): value is unknown[],
+            // TypeScript's false branch narrowing may only preserve string from
+            // the union, as other types may structurally overlap with unknown[].
+            const value:
+                | null
+                | undefined
+                | string
+                | number[]
+                | boolean = "hello";
+            if (!Arr.arrayable(value)) {
+                expectTypeOf(value).not.toExtend<unknown[]>();
+                expectTypeOf(value).toEqualTypeOf<string>();
+            }
+        });
+
+        it("excludes multiple array types in false branch", () => {
+            const value: string[] | number[] | boolean = false;
+            if (!Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<boolean>();
+            }
+        });
+
+        it("preserves Date in false branch of union", () => {
+            const value: Date | number[] = new Date();
+            if (!Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<Date>();
+            }
+        });
+
+        it("preserves Record in false branch of union", () => {
+            const value: Record<string, number> | string[] = { a: 1 };
+            if (!Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<Record<string, number>>();
+            }
+        });
+
+        it("preserves function type in false branch of union", () => {
+            const value: (() => void) | number[] = () => {};
+            if (!Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<() => void>();
+            }
+        });
+
+        it("preserves Map in false branch of union", () => {
+            const value: Map<string, number> | boolean[] = new Map();
+            if (!Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<Map<string, number>>();
+            }
+        });
+
+        it("preserves Set in false branch of union", () => {
+            const value: Set<string> | string[] = new Set<string>();
+            if (!Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<Set<string>>();
+            }
+        });
+
+        it("excludes tuple from union in false branch", () => {
+            const value: [number, string] | Date = new Date();
+            if (!Arr.arrayable(value)) {
+                expectTypeOf(value).toEqualTypeOf<Date>();
+            }
+        });
+
+        it("narrows never when only array types in union (true branch covers all)", () => {
+            const value: number[] | string[] = [1];
+            if (!Arr.arrayable(value)) {
+                expectTypeOf(value).toBeNever();
+            }
+        });
+
+        it("accepts parameter typed as unknown", () => {
+            expectTypeOf(Arr.arrayable).parameter(0).toEqualTypeOf<unknown>();
+        });
+
+        it("has a type guard return type", () => {
+            expectTypeOf(Arr.arrayable).guards.toEqualTypeOf<unknown[]>();
         });
     });
 
