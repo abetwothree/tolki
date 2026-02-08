@@ -111,6 +111,31 @@ describe("Arr", () => {
         );
     });
 
+    it("chunk", () => {
+        const baseData = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+        const chunks = Arr.chunk(baseData, 3);
+
+        expect(chunks.length).toBe(4);
+        expect(chunks[0]).toEqual([1, 2, 3]);
+        expect(chunks[1]).toEqual([4, 5, 6]);
+        expect(chunks[2]).toEqual([7, 8, 9]);
+        expect(chunks[3]).toEqual([10]);
+
+        expect(Arr.chunk(baseData, 0)).toEqual([]);
+        expect(Arr.chunk(baseData, -1)).toEqual([]);
+
+        const chunksNoKeys = Arr.chunk(baseData, 3);
+
+        expect(chunksNoKeys.length).toBe(4);
+        expect(chunksNoKeys[0]).toEqual([1, 2, 3]);
+        expect(chunksNoKeys[1]).toEqual([4, 5, 6]);
+        expect(chunksNoKeys[2]).toEqual([7, 8, 9]);
+        expect(chunksNoKeys[3]).toEqual([10]);
+        expect(Arr.chunk(baseData, 0)).toEqual([]);
+        expect(Arr.chunk(baseData, -1)).toEqual([]);
+    });
+
     it("collapse", () => {
         type Mixed = string[] | number[] | [] | (string | number)[];
         let data: Mixed[] = [["foo", "bar"], ["baz"]];
@@ -2102,31 +2127,6 @@ describe("Arr", () => {
         expect(
             Arr.mapWithKeys("abc", (value) => ({ [String(value)]: value })),
         ).toEqual({});
-    });
-
-    it("chunk", () => {
-        const baseData = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-
-        const chunks = Arr.chunk(baseData, 3);
-
-        expect(chunks.length).toBe(4);
-        expect(chunks[0]).toEqual([1, 2, 3]);
-        expect(chunks[1]).toEqual([4, 5, 6]);
-        expect(chunks[2]).toEqual([7, 8, 9]);
-        expect(chunks[3]).toEqual([10]);
-
-        expect(Arr.chunk(baseData, 0)).toEqual([]);
-        expect(Arr.chunk(baseData, -1)).toEqual([]);
-
-        const chunksNoKeys = Arr.chunk(baseData, 3);
-
-        expect(chunksNoKeys.length).toBe(4);
-        expect(chunksNoKeys[0]).toEqual([1, 2, 3]);
-        expect(chunksNoKeys[1]).toEqual([4, 5, 6]);
-        expect(chunksNoKeys[2]).toEqual([7, 8, 9]);
-        expect(chunksNoKeys[3]).toEqual([10]);
-        expect(Arr.chunk(baseData, 0)).toEqual([]);
-        expect(Arr.chunk(baseData, -1)).toEqual([]);
     });
 
     it("float", () => {

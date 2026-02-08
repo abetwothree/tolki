@@ -1387,9 +1387,293 @@ describe("arr type tests", () => {
     });
 
     describe("chunk", () => {
-        it("returns nested arrays of the same type", () => {
-            const result = Arr.chunk([1, 2, 3, 4], 2);
-            expectTypeOf(result).toEqualTypeOf<number[][]>();
+        describe("basic return type", () => {
+            it("returns number[][] for number array", () => {
+                const result = Arr.chunk([1, 2, 3, 4], 2);
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+
+            it("returns string[][] for string array", () => {
+                const result = Arr.chunk(["a", "b", "c", "d"], 2);
+                expectTypeOf(result).toEqualTypeOf<string[][]>();
+            });
+
+            it("returns boolean[][] for boolean array", () => {
+                const result = Arr.chunk([true, false, true], 2);
+                expectTypeOf(result).toEqualTypeOf<boolean[][]>();
+            });
+
+            it("returns bigint[][] for bigint array", () => {
+                const result = Arr.chunk([1n, 2n, 3n], 2);
+                expectTypeOf(result).toEqualTypeOf<bigint[][]>();
+            });
+        });
+
+        describe("preserves element type for complex data structures", () => {
+            it("returns object[][] for array of flat objects", () => {
+                const data = [
+                    { id: 1, name: "Alice" },
+                    { id: 2, name: "Bob" },
+                    { id: 3, name: "Charlie" },
+                    { id: 4, name: "Diana" },
+                ];
+                const result = Arr.chunk(data, 2);
+                expectTypeOf(result).toEqualTypeOf<
+                    { id: number; name: string }[][]
+                >();
+            });
+
+            it("returns nested object[][] for deeply nested objects", () => {
+                const data = [
+                    {
+                        user: {
+                            profile: {
+                                name: "Alice",
+                                settings: { darkMode: true, lang: "en" },
+                            },
+                        },
+                    },
+                    {
+                        user: {
+                            profile: {
+                                name: "Bob",
+                                settings: { darkMode: false, lang: "fr" },
+                            },
+                        },
+                    },
+                ];
+                const result = Arr.chunk(data, 1);
+                expectTypeOf(result).toEqualTypeOf<
+                    {
+                        user: {
+                            profile: {
+                                name: string;
+                                settings: { darkMode: boolean; lang: string };
+                            };
+                        };
+                    }[][]
+                >();
+            });
+
+            it("returns array[][][] for array of arrays", () => {
+                const data = [
+                    [1, 2],
+                    [3, 4],
+                    [5, 6],
+                    [7, 8],
+                ];
+                const result = Arr.chunk(data, 2);
+                expectTypeOf(result).toEqualTypeOf<number[][][]>();
+            });
+
+            it("preserves optional properties in element type", () => {
+                const data: { name: string; age?: number }[] = [
+                    { name: "Alice", age: 30 },
+                    { name: "Bob" },
+                ];
+                const result = Arr.chunk(data, 1);
+                expectTypeOf(result).toEqualTypeOf<
+                    { name: string; age?: number }[][]
+                >();
+            });
+
+            it("preserves readonly properties in element type", () => {
+                const data: { readonly id: number; name: string }[] = [
+                    { id: 1, name: "Alice" },
+                    { id: 2, name: "Bob" },
+                ];
+                const result = Arr.chunk(data, 1);
+                expectTypeOf(result).toEqualTypeOf<
+                    { readonly id: number; name: string }[][]
+                >();
+            });
+        });
+
+        describe("union and mixed element types", () => {
+            it("returns (string | number)[][] for mixed string/number array", () => {
+                const data = [1, "two", 3, "four", 5];
+                const result = Arr.chunk(data, 2);
+                expectTypeOf(result).toEqualTypeOf<(string | number)[][]>();
+            });
+
+            it("returns wide union[][] for heterogeneous array", () => {
+                const data = [42, "hello", true, null, undefined];
+                const result = Arr.chunk(data, 2);
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | number | boolean | null | undefined)[][]
+                >();
+            });
+
+            it("returns union of object shapes when elements differ", () => {
+                const data: ({ type: "a"; value: number } | { type: "b"; label: string })[] = [
+                    { type: "a", value: 1 },
+                    { type: "b", label: "test" },
+                ];
+                const result = Arr.chunk(data, 1);
+                expectTypeOf(result).toEqualTypeOf<
+                    ({ type: "a"; value: number } | { type: "b"; label: string })[][]
+                >();
+            });
+
+            it("returns (T | null)[][] for nullable element arrays", () => {
+                const data: (number | null)[] = [1, null, 3, null, 5];
+                const result = Arr.chunk(data, 2);
+                expectTypeOf(result).toEqualTypeOf<(number | null)[][]>();
+            });
+        });
+
+        describe("empty and edge-case inputs", () => {
+            it("returns never[][] for empty literal array", () => {
+                const result = Arr.chunk([], 2);
+                expectTypeOf(result).toEqualTypeOf<never[][]>();
+            });
+
+            it("returns typed[][] even with zero size", () => {
+                const result = Arr.chunk([1, 2, 3], 0);
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+
+            it("returns typed[][] even with negative size", () => {
+                const result = Arr.chunk([1, 2, 3], -1);
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+
+            it("returns typed[][] with size of 1", () => {
+                const result = Arr.chunk(["a", "b", "c"], 1);
+                expectTypeOf(result).toEqualTypeOf<string[][]>();
+            });
+
+            it("returns typed[][] when size exceeds array length", () => {
+                const result = Arr.chunk([1, 2], 100);
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+        });
+
+        describe("size parameter types", () => {
+            it("accepts literal number for size", () => {
+                const result = Arr.chunk([1, 2, 3], 2);
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+
+            it("accepts non-literal number for size", () => {
+                const size: number = 3;
+                const result = Arr.chunk([1, 2, 3, 4], size);
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+
+            it("accepts computed size value", () => {
+                const data = [1, 2, 3, 4, 5, 6];
+                const result = Arr.chunk(data, Math.ceil(data.length / 2));
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+        });
+
+        describe("inferred types without manual annotation", () => {
+            it("infers element type from inline array of objects", () => {
+                const result = Arr.chunk(
+                    [
+                        { id: 1, tags: ["a", "b"], active: true },
+                        { id: 2, tags: ["c"], active: false },
+                        { id: 3, tags: ["d", "e", "f"], active: true },
+                    ],
+                    2,
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    { id: number; tags: string[]; active: boolean }[][]
+                >();
+            });
+
+            it("infers element type from array with nested arrays and objects", () => {
+                const result = Arr.chunk(
+                    [
+                        { matrix: [[1, 2], [3, 4]], labels: { x: "a", y: "b" } },
+                        { matrix: [[5, 6], [7, 8]], labels: { x: "c", y: "d" } },
+                    ],
+                    1,
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    {
+                        matrix: number[][];
+                        labels: { x: string; y: string };
+                    }[][]
+                >();
+            });
+
+            it("infers element type from array with functions as values", () => {
+                const data = [
+                    { name: "test", handler: (x: number) => x * 2 },
+                    { name: "other", handler: (x: number) => x + 1 },
+                ];
+                const result = Arr.chunk(data, 1);
+                expectTypeOf(result).toEqualTypeOf<
+                    { name: string; handler: (x: number) => number }[][]
+                >();
+            });
+
+            it("infers tuple element types as unions", () => {
+                const data: [number, string, boolean] = [42, "hello", true];
+                const result = Arr.chunk(data, 2);
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | number | boolean)[][]
+                >();
+            });
+        });
+
+        describe("data parameter variations", () => {
+            it("accepts Array<T> typed input", () => {
+                const data: Array<{ x: number; y: number }> = [
+                    { x: 1, y: 2 },
+                    { x: 3, y: 4 },
+                ];
+                const result = Arr.chunk(data, 1);
+                expectTypeOf(result).toEqualTypeOf<
+                    { x: number; y: number }[][]
+                >();
+            });
+
+            it("accepts typed array variable", () => {
+                const data: string[] = ["a", "b", "c", "d"];
+                const result = Arr.chunk(data, 2);
+                expectTypeOf(result).toEqualTypeOf<string[][]>();
+            });
+
+            it("accepts array from Array.from()", () => {
+                const data = Array.from({ length: 5 }, (_, i) => i);
+                const result = Arr.chunk(data, 2);
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+
+            it("accepts array from map operation", () => {
+                const data = [1, 2, 3].map((n) => ({ value: n, label: `#${n}` }));
+                const result = Arr.chunk(data, 2);
+                expectTypeOf(result).toEqualTypeOf<
+                    { value: number; label: string }[][]
+                >();
+            });
+
+            it("accepts array from filter operation", () => {
+                const data = [1, 2, 3, 4, 5].filter((n) => n > 2);
+                const result = Arr.chunk(data, 2);
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+        });
+
+        describe("function signature", () => {
+            it("has correct parameter types", () => {
+                expectTypeOf(Arr.chunk).parameters.toExtend<[unknown[], number]>();
+            });
+
+            it("first parameter accepts arrays", () => {
+                expectTypeOf(Arr.chunk).parameter(0).toExtend<unknown[]>();
+            });
+
+            it("second parameter is number", () => {
+                expectTypeOf(Arr.chunk).parameter(1).toEqualTypeOf<number>();
+            });
+
+            it("return type extends unknown[][]", () => {
+                expectTypeOf(Arr.chunk).returns.toExtend<unknown[][]>();
+            });
         });
     });
 
