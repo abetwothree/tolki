@@ -1678,12 +1678,278 @@ describe("arr type tests", () => {
     });
 
     describe("collapse", () => {
-        it("flattens one level of nesting", () => {
-            const result = Arr.collapse([
-                [1, 2],
-                [3, 4],
-            ]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
+        describe("array of arrays → flat array (overload 1: TValue[][] → TValue[])", () => {
+            it("flattens number[][] to number[]", () => {
+                const result = Arr.collapse([
+                    [1, 2],
+                    [3, 4],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("flattens string[][] to string[]", () => {
+                const result = Arr.collapse([
+                    ["foo", "bar"],
+                    ["baz"],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("flattens boolean[][] to boolean[]", () => {
+                const result = Arr.collapse([
+                    [true, false],
+                    [true],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<boolean[]>();
+            });
+
+            it("flattens (string | number)[][] to (string | number)[]", () => {
+                const data: (string | number)[][] = [
+                    [1],
+                    [2],
+                    [3],
+                    ["foo", "bar"],
+                ];
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+            });
+
+            it("flattens object[][] to object[]", () => {
+                const result = Arr.collapse([
+                    [{ id: 1, name: "Alice" }],
+                    [{ id: 2, name: "Bob" }],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<
+                    { id: number; name: string }[]
+                >();
+            });
+
+            it("flattens deeply nested element types", () => {
+                const result = Arr.collapse([
+                    [{ user: { profile: { name: "Alice", scores: [90, 95] } } }],
+                    [{ user: { profile: { name: "Bob", scores: [80, 85] } } }],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<
+                    { user: { profile: { name: string; scores: number[] } } }[]
+                >();
+            });
+
+            it("flattens array of arrays of arrays preserving nesting", () => {
+                const result = Arr.collapse([
+                    [[1, 2], [3, 4]],
+                    [[5, 6]],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+
+            it("flattens empty typed arrays", () => {
+                const data: number[][] = [[], [], []];
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("handles arrays with optional-property objects", () => {
+                const result = Arr.collapse([
+                    [{ name: "Alice", age: 30 }],
+                    [{ name: "Bob", age: undefined }],
+                ] as { name: string; age: number | undefined }[][]);
+                expectTypeOf(result).toEqualTypeOf<
+                    { name: string; age: number | undefined }[]
+                >();
+            });
+        });
+
+        describe("array of records → merged record (overload 2: Record<TKey, TValue>[] → Record<TKey, TValue>)", () => {
+            it("merges explicitly typed Record array into single record", () => {
+                const data: Record<string, number>[] = [
+                    { a: 1, b: 2 },
+                    { c: 3, d: 4 },
+                ];
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+
+            it("merges objects with different value types", () => {
+                const data: Record<string, string | number>[] = [
+                    { name: "Alice", age: 30 },
+                    { city: "NYC", zip: 10001 },
+                ];
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, string | number>
+                >();
+            });
+
+            it("merges single explicitly typed Record", () => {
+                const data: Record<string, number>[] = [{ x: 1, y: 2, z: 3 }];
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
+            });
+
+            it("merges objects with nested values", () => {
+                const data: Record<string, { score: number; label: string }>[] = [
+                    { math: { score: 95, label: "A" } },
+                    { science: { score: 88, label: "B" } },
+                ];
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, { score: number; label: string }>
+                >();
+            });
+
+            it("merges inline objects with same-shape keys via broadest overload", () => {
+                const result = Arr.collapse([
+                    { a: 1, b: 2 },
+                    { c: 3, d: 4 },
+                ]);
+                expectTypeOf(result).toExtend<
+                    Record<string, unknown> | unknown[]
+                >();
+            });
+        });
+
+        describe("union type arrays via overload 3", () => {
+            it("collapses typed union of arrays", () => {
+                type Mixed = string[] | number[] | [] | (string | number)[];
+                const data: Mixed[] = [["foo", "bar"], ["baz"]];
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+            });
+
+            it("collapses empty union arrays", () => {
+                type Mixed = string[] | number[] | [] | (string | number)[];
+                const data: Mixed[] = [[], [], []];
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+            });
+
+            it("collapses union with mixed content", () => {
+                type Mixed = string[] | number[] | [] | (string | number)[];
+                const data: Mixed[] = [[], [1, 2], [], ["foo", "bar"]];
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+            });
+        });
+
+        describe("complex data structures", () => {
+            it("flattens array of arrays of complex objects", () => {
+                const result = Arr.collapse([
+                    [
+                        {
+                            id: 1,
+                            tags: ["a", "b"],
+                            meta: { created: new Date(), active: true },
+                        },
+                    ],
+                    [
+                        {
+                            id: 2,
+                            tags: ["c"],
+                            meta: { created: new Date(), active: false },
+                        },
+                    ],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<
+                    {
+                        id: number;
+                        tags: string[];
+                        meta: { created: Date; active: boolean };
+                    }[]
+                >();
+            });
+
+            it("flattens array of arrays containing functions", () => {
+                const result = Arr.collapse([
+                    [(x: number) => x * 2],
+                    [(x: number) => x + 1],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<((x: number) => number)[]>();
+            });
+
+            it("flattens array of arrays with nullable elements", () => {
+                const result = Arr.collapse([
+                    [1, null, 2],
+                    [null, 3],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<(number | null)[]>();
+            });
+
+            it("flattens array of arrays with tuple-like inner arrays", () => {
+                const result = Arr.collapse([
+                    [[1, "a"] as [number, string]],
+                    [[2, "b"] as [number, string]],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<[number, string][]>();
+            });
+
+            it("flattens array of mutable arrays inferred from const-like values", () => {
+                const data: number[][] = [
+                    [1, 2],
+                    [3, 4],
+                ];
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+        });
+
+        describe("empty and edge-case inputs", () => {
+            it("returns typed empty array for typed empty input", () => {
+                const data: number[][] = [];
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("preserves element type from single inner array", () => {
+                const result = Arr.collapse([[42]]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("preserves element type with many empty inner arrays", () => {
+                const data: string[][] = [[], [], [], []];
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+        });
+
+        describe("inferred types from data transformations", () => {
+            it("infers type from mapped data", () => {
+                const users = ["Alice", "Bob", "Charlie"];
+                const data = users.map((name) => [{ name, id: Math.random() }]);
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    { name: string; id: number }[]
+                >();
+            });
+
+            it("infers type from Array.from() result", () => {
+                const data = Array.from({ length: 3 }, (_, i) => [i, i + 1]);
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("infers type from filtered nested arrays", () => {
+                const data = [
+                    [1, 2],
+                    [3, 4],
+                    [5, 6],
+                ].filter((arr) => arr[0]! > 2);
+                const result = Arr.collapse(data);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+        });
+
+        describe("function signature", () => {
+            it("first parameter accepts arrays", () => {
+                expectTypeOf(Arr.collapse).parameter(0).toExtend<unknown[]>();
+            });
+
+            it("return type is array or record", () => {
+                expectTypeOf(Arr.collapse).returns.toExtend<
+                    unknown[] | Record<string, unknown>
+                >();
+            });
         });
     });
 
