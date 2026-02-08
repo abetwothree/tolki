@@ -1954,9 +1954,267 @@ describe("arr type tests", () => {
     });
 
     describe("combine", () => {
-        it("returns combined tuple arrays", () => {
-            const result = Arr.combine([1, 2], [3, 4]);
-            expectTypeOf(result).toEqualTypeOf<(number | undefined)[][]>();
+        // Note: combine returns (T | undefined)[][] because arrays may be of different lengths.
+        // If all arrays are the same length, undefined will not appear in the result, but TypeScript cannot infer this.
+        // See implementation: result uses array[i], which is undefined if i >= array.length.
+        describe("basic return type with same-typed arrays", () => {
+            it("returns (number | undefined)[][] for two number arrays", () => {
+                const result = Arr.combine([1, 2], [3, 4]);
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[][]>();
+            });
+
+            it("returns (string | undefined)[][] for two string arrays", () => {
+                const result = Arr.combine(["a", "b"], ["c", "d"]);
+                expectTypeOf(result).toEqualTypeOf<(string | undefined)[][]>();
+            });
+
+            it("returns (boolean | undefined)[][] for two boolean arrays", () => {
+                const result = Arr.combine([true, false], [false, true]);
+                expectTypeOf(result).toEqualTypeOf<(boolean | undefined)[][]>();
+            });
+
+            it("returns (number | undefined)[][] for three number arrays", () => {
+                const result = Arr.combine([1, 2], [3, 4], [5, 6]);
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[][]>();
+            });
+        });
+
+        describe("equal-length arrays (no undefined in runtime result)", () => {
+            // These tests show that if all arrays are the same length, undefined will not appear in the runtime result,
+            // but the type still includes undefined because TypeScript cannot guarantee length equality.
+            it("runtime result has no undefined for equal-length arrays", () => {
+                const arr1 = [1, 2, 3];
+                const arr2 = [4, 5, 6];
+                const result = Arr.combine(arr1, arr2);
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[][]>();
+                // runtime check
+                for (const row of result) {
+                    for (const value of row) {
+                        if (value === undefined) {
+                            throw new Error("Should not be undefined when arrays are equal length");
+                        }
+                    }
+                }
+            });
+        });
+
+        describe("unequal-length arrays (undefined appears in runtime result)", () => {
+            it("runtime result has undefined for shorter arrays", () => {
+                const arr1 = [1, 2, 3];
+                const arr2 = [4, 5];
+                const result = Arr.combine(arr1, arr2);
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[][]>();
+                // runtime check
+                let foundUndefined = false;
+                for (const row of result) {
+                    for (const value of row) {
+                        if (value === undefined) {
+                            foundUndefined = true;
+                        }
+                    }
+                }
+                if (!foundUndefined) {
+                    throw new Error("Should have undefined when arrays are unequal length");
+                }
+            });
+        });
+
+        describe("single array argument", () => {
+            it("returns (number | undefined)[][] for single number array", () => {
+                const result = Arr.combine([1, 2, 3]);
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[][]>();
+            });
+
+            it("returns (string | undefined)[][] for single string array", () => {
+                const result = Arr.combine(["hello", "world"]);
+                expectTypeOf(result).toEqualTypeOf<(string | undefined)[][]>();
+            });
+
+            it("returns (object | undefined)[][] for single object array", () => {
+                const result = Arr.combine([
+                    { id: 1, name: "Alice" },
+                    { id: 2, name: "Bob" },
+                ]);
+                expectTypeOf(result).toEqualTypeOf<
+                    ({ id: number; name: string } | undefined)[][]
+                >();
+            });
+        });
+
+        describe("no arguments", () => {
+            it("returns (unknown | undefined)[][] for no arguments", () => {
+                const result = Arr.combine();
+                expectTypeOf(result).toEqualTypeOf<(unknown | undefined)[][]>();
+            });
+        });
+
+        describe("complex element types", () => {
+            it("returns (object | undefined)[][] for arrays of objects", () => {
+                const result = Arr.combine(
+                    [
+                        { id: 1, name: "Alice", active: true },
+                        { id: 2, name: "Bob", active: false },
+                    ],
+                    [
+                        { id: 3, name: "Charlie", active: true },
+                        { id: 4, name: "Diana", active: false },
+                    ],
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    ({ id: number; name: string; active: boolean } | undefined)[][]
+                >();
+            });
+
+            it("preserves nested structure in element type", () => {
+                const result = Arr.combine(
+                    [
+                        { user: { profile: { name: "Alice", scores: [90, 95] } } },
+                        { user: { profile: { name: "Bob", scores: [80] } } },
+                    ],
+                    [
+                        { user: { profile: { name: "Charlie", scores: [70, 75] } } },
+                    ],
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    (
+                        | {
+                              user: {
+                                  profile: { name: string; scores: number[] };
+                              };
+                          }
+                        | undefined
+                    )[][]
+                >();
+            });
+
+            it("handles arrays with function elements", () => {
+                const result = Arr.combine(
+                    [(x: number) => x * 2, (x: number) => x + 1],
+                    [(x: number) => x - 1, (x: number) => x / 2],
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    (((x: number) => number) | undefined)[][]
+                >();
+            });
+
+            it("handles arrays with nullable elements", () => {
+                const data1: (number | null)[] = [1, null, 3];
+                const data2: (number | null)[] = [null, 5, 6];
+                const result = Arr.combine(data1, data2);
+                expectTypeOf(result).toEqualTypeOf<
+                    (number | null | undefined)[][]
+                >();
+            });
+        });
+
+        describe("union element types", () => {
+            it("returns union[][] when arrays have union element types", () => {
+                const data1: (string | number)[] = [1, "two", 3];
+                const data2: (string | number)[] = ["four", 5, "six"];
+                const result = Arr.combine(data1, data2);
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | number | undefined)[][]
+                >();
+            });
+
+            it("returns wide union[][] for heterogeneous typed arrays", () => {
+                const data: (string | number | boolean | null)[] = [
+                    1,
+                    "two",
+                    true,
+                    null,
+                ];
+                const result = Arr.combine(data, data);
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | number | boolean | null | undefined)[][]
+                >();
+            });
+        });
+
+        describe("typed array variables", () => {
+            it("accepts Array<T> typed input", () => {
+                const data: Array<{ x: number; y: number }> = [
+                    { x: 1, y: 2 },
+                    { x: 3, y: 4 },
+                ];
+                const result = Arr.combine(data, data);
+                expectTypeOf(result).toEqualTypeOf<
+                    ({ x: number; y: number } | undefined)[][]
+                >();
+            });
+
+            it("accepts result from map operation", () => {
+                const data = [1, 2, 3].map((n) => ({ value: n }));
+                const labels = [1, 2, 3].map((n) => `#${n}`);
+                const result = Arr.combine(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    ({ value: number } | undefined)[][]
+                >();
+
+                const labelResult = Arr.combine(labels);
+                expectTypeOf(labelResult).toEqualTypeOf<
+                    (string | undefined)[][]
+                >();
+            });
+
+            it("accepts result from Array.from()", () => {
+                const data = Array.from({ length: 3 }, (_, i) => i * 10);
+                const result = Arr.combine(data, data);
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[][]>();
+            });
+
+            it("accepts result from filter operation", () => {
+                const data = [1, 2, 3, 4, 5].filter((n) => n > 2);
+                const result = Arr.combine(data);
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[][]>();
+            });
+        });
+
+        describe("many arrays (variadic rest params)", () => {
+            it("accepts four arrays of same type", () => {
+                const result = Arr.combine(
+                    [1, 2],
+                    [3, 4],
+                    [5, 6],
+                    [7, 8],
+                );
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[][]>();
+            });
+
+            it("accepts spread array of arrays", () => {
+                const arrays: number[][] = [
+                    [1, 2],
+                    [3, 4],
+                    [5, 6],
+                ];
+                const result = Arr.combine(...arrays);
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[][]>();
+            });
+        });
+
+        describe("empty arrays", () => {
+            it("returns typed empty result for empty typed arrays", () => {
+                const data: number[] = [];
+                const result = Arr.combine(data, data);
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[][]>();
+            });
+
+            it("returns typed result when mixing empty and non-empty", () => {
+                const empty: string[] = [];
+                const filled: string[] = ["a", "b"];
+                const result = Arr.combine(empty, filled);
+                expectTypeOf(result).toEqualTypeOf<(string | undefined)[][]>();
+            });
+        });
+
+        describe("function signature", () => {
+            it("accepts rest parameter of arrays", () => {
+                expectTypeOf(Arr.combine).parameters.toExtend<unknown[][]>();
+            });
+
+            it("return type extends unknown[][]", () => {
+                expectTypeOf(Arr.combine).returns.toExtend<unknown[][]>();
+            });
         });
     });
 
