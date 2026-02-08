@@ -214,7 +214,23 @@ importers:
         specifier: workspace:^
         version: link:../utils
 
-  packages/arr: {}
+  packages/arr:
+    dependencies:
+      "@tolki/obj":
+        specifier: workspace:^
+        version: link:../obj
+      "@tolki/path":
+        specifier: workspace:^
+        version: link:../path
+      "@tolki/str":
+        specifier: workspace:^
+        version: link:../str
+      "@tolki/types":
+        specifier: workspace:^
+        version: link:../types
+      "@tolki/utils":
+        specifier: workspace:^
+        version: link:../utils
 
   packages/collection: {}
 
