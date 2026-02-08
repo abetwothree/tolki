@@ -1099,9 +1099,290 @@ describe("arr type tests", () => {
     });
 
     describe("boolean", () => {
-        it("returns boolean", () => {
-            const result = Arr.boolean([true, false], 0);
-            expectTypeOf(result).toEqualTypeOf<boolean>();
+        describe("basic return type", () => {
+            it("returns boolean from a boolean array with numeric key", () => {
+                const result = Arr.boolean([true, false], 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from a boolean array with second index", () => {
+                const result = Arr.boolean([true, false, true], 2);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from a mixed-type array with numeric key", () => {
+                const result = Arr.boolean([1, "hello", true, null], 2);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from a string array (would throw at runtime)", () => {
+                const result = Arr.boolean(["yes", "no"], 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from a number array (would throw at runtime)", () => {
+                const result = Arr.boolean([42, 0, -1], 1);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("dot notation paths", () => {
+            it("returns boolean with dot notation string key into nested object", () => {
+                const result = Arr.boolean(
+                    [{ active: true }],
+                    "0.active",
+                );
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with deeply nested dot notation path", () => {
+                const result = Arr.boolean(
+                    [{ user: { settings: { notifications: { email: true } } } }],
+                    "0.user.settings.notifications.email",
+                );
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with multi-level dot path into array of complex objects", () => {
+                const data = [
+                    {
+                        config: {
+                            features: {
+                                darkMode: false,
+                                betaAccess: true,
+                            },
+                        },
+                    },
+                ];
+                const result = Arr.boolean(data, "0.config.features.darkMode");
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with string key on flat object array", () => {
+                const result = Arr.boolean(
+                    [{ enabled: false, visible: true }],
+                    "0.enabled",
+                );
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("default value variations", () => {
+            it("returns boolean with boolean default value", () => {
+                const result = Arr.boolean([1, 2, 3], 10, false);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with true as default value", () => {
+                const result = Arr.boolean([1, 2, 3], 99, true);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with null default value", () => {
+                const result = Arr.boolean([true], 5, null);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with no default value (implicit null)", () => {
+                const result = Arr.boolean([true, false], 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with closure default returning boolean", () => {
+                const result = Arr.boolean([true], 5, () => false);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with closure default returning true", () => {
+                const result = Arr.boolean([], 0, () => true);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with closure default returning null", () => {
+                const result = Arr.boolean([true], 5, () => null);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with number default (would throw at runtime)", () => {
+                const result = Arr.boolean([true], 5, 42);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with string default (would throw at runtime)", () => {
+                const result = Arr.boolean([true], 5, "fallback");
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("PathKey variations", () => {
+            it("returns boolean with number key", () => {
+                const result = Arr.boolean([true, false], 1);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with string key", () => {
+                const result = Arr.boolean([{ active: true }], "0.active");
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with null key", () => {
+                const result = Arr.boolean([true], null);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with undefined key", () => {
+                const result = Arr.boolean([true], undefined);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with non-literal number key", () => {
+                const key: number = 0;
+                const result = Arr.boolean([true, false], key);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with non-literal string key", () => {
+                const key: string = "0.active";
+                const result = Arr.boolean([{ active: true }], key);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean with key from variable typed as PathKey", () => {
+                const key: number | string | null | undefined = "0.active";
+                const result = Arr.boolean([{ active: true }], key);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("complex data structures", () => {
+            it("returns boolean from array of objects with mixed value types", () => {
+                const data = [
+                    { id: 1, name: "Alice", active: true, score: 95.5 },
+                    { id: 2, name: "Bob", active: false, score: 82.0 },
+                ];
+                const result = Arr.boolean(data, "0.active");
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from heterogeneous tuple", () => {
+                const data = [42, "hello", true, null, { nested: false }] as const;
+                const result = Arr.boolean(data, 2);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from array with nested arrays and objects", () => {
+                const data = [
+                    {
+                        users: [
+                            {
+                                profile: {
+                                    verified: true,
+                                    premium: false,
+                                    settings: {
+                                        twoFactor: true,
+                                        marketing: false,
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                ];
+                const result = Arr.boolean(data, "0.users.0.profile.settings.twoFactor");
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from array with optional properties", () => {
+                const data: { enabled?: boolean; label: string }[] = [
+                    { enabled: true, label: "test" },
+                ];
+                const result = Arr.boolean(data, "0.enabled");
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from array with union-typed elements", () => {
+                const data: (string | number | boolean)[] = [true, 42, "hello"];
+                const result = Arr.boolean(data, 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from readonly array", () => {
+                const data: readonly boolean[] = [true, false, true];
+                const result = Arr.boolean(data, 1);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from deeply nested readonly structure", () => {
+                const data = [
+                    {
+                        level1: {
+                            level2: {
+                                level3: {
+                                    level4: {
+                                        flag: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                ] as const;
+                const result = Arr.boolean(data, "0.level1.level2.level3.level4.flag");
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from array with symbol and numeric keys in objects", () => {
+                const data = [{ 0: true, 1: false, name: "test" }];
+                const result = Arr.boolean(data, "0.0");
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from empty array with default", () => {
+                const data: boolean[] = [];
+                const result = Arr.boolean(data, 0, false);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("unknown and untyped data", () => {
+            it("returns boolean from unknown data", () => {
+                const data: unknown = [true, false];
+                const result = Arr.boolean(data, 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from unknown data with default", () => {
+                const data: unknown = [true];
+                const result = Arr.boolean(data, 5, true);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from unknown data with closure default", () => {
+                const data: unknown = [true];
+                const result = Arr.boolean(data, 5, () => false);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean from any-typed data", () => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const data: any = [true];
+                const result = Arr.boolean(data, 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("function signature", () => {
+            it("accepts ArrayItems<TValue> as first parameter", () => {
+                expectTypeOf(Arr.boolean).parameter(0).toMatchTypeOf<unknown>();
+            });
+
+            it("accepts PathKey as second parameter", () => {
+                expectTypeOf(Arr.boolean)
+                    .parameter(1)
+                    .toMatchTypeOf<number | string | null | undefined>();
+            });
+
+            it("returns boolean type", () => {
+                expectTypeOf(Arr.boolean).returns.toEqualTypeOf<boolean>();
+            });
         });
     });
 
