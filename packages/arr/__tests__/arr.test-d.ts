@@ -1128,16 +1128,19 @@ describe("arr type tests", () => {
 
         describe("dot notation paths", () => {
             it("returns boolean with dot notation string key into nested object", () => {
-                const result = Arr.boolean(
-                    [{ active: true }],
-                    "0.active",
-                );
+                const result = Arr.boolean([{ active: true }], "0.active");
                 expectTypeOf(result).toEqualTypeOf<boolean>();
             });
 
             it("returns boolean with deeply nested dot notation path", () => {
                 const result = Arr.boolean(
-                    [{ user: { settings: { notifications: { email: true } } } }],
+                    [
+                        {
+                            user: {
+                                settings: { notifications: { email: true } },
+                            },
+                        },
+                    ],
                     "0.user.settings.notifications.email",
                 );
                 expectTypeOf(result).toEqualTypeOf<boolean>();
@@ -1265,7 +1268,13 @@ describe("arr type tests", () => {
             });
 
             it("returns boolean from heterogeneous tuple", () => {
-                const data = [42, "hello", true, null, { nested: false }] as const;
+                const data = [
+                    42,
+                    "hello",
+                    true,
+                    null,
+                    { nested: false },
+                ] as const;
                 const result = Arr.boolean(data, 2);
                 expectTypeOf(result).toEqualTypeOf<boolean>();
             });
@@ -1287,7 +1296,10 @@ describe("arr type tests", () => {
                         ],
                     },
                 ];
-                const result = Arr.boolean(data, "0.users.0.profile.settings.twoFactor");
+                const result = Arr.boolean(
+                    data,
+                    "0.users.0.profile.settings.twoFactor",
+                );
                 expectTypeOf(result).toEqualTypeOf<boolean>();
             });
 
@@ -1325,7 +1337,10 @@ describe("arr type tests", () => {
                         },
                     },
                 ] as const;
-                const result = Arr.boolean(data, "0.level1.level2.level3.level4.flag");
+                const result = Arr.boolean(
+                    data,
+                    "0.level1.level2.level3.level4.flag",
+                );
                 expectTypeOf(result).toEqualTypeOf<boolean>();
             });
 
@@ -1362,7 +1377,6 @@ describe("arr type tests", () => {
             });
 
             it("returns boolean from any-typed data", () => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const data: any = [true];
                 const result = Arr.boolean(data, 0);
                 expectTypeOf(result).toEqualTypeOf<boolean>();
@@ -1505,13 +1519,19 @@ describe("arr type tests", () => {
             });
 
             it("returns union of object shapes when elements differ", () => {
-                const data: ({ type: "a"; value: number } | { type: "b"; label: string })[] = [
+                const data: (
+                    | { type: "a"; value: number }
+                    | { type: "b"; label: string }
+                )[] = [
                     { type: "a", value: 1 },
                     { type: "b", label: "test" },
                 ];
                 const result = Arr.chunk(data, 1);
                 expectTypeOf(result).toEqualTypeOf<
-                    ({ type: "a"; value: number } | { type: "b"; label: string })[][]
+                    (
+                        | { type: "a"; value: number }
+                        | { type: "b"; label: string }
+                    )[][]
                 >();
             });
 
@@ -1586,8 +1606,20 @@ describe("arr type tests", () => {
             it("infers element type from array with nested arrays and objects", () => {
                 const result = Arr.chunk(
                     [
-                        { matrix: [[1, 2], [3, 4]], labels: { x: "a", y: "b" } },
-                        { matrix: [[5, 6], [7, 8]], labels: { x: "c", y: "d" } },
+                        {
+                            matrix: [
+                                [1, 2],
+                                [3, 4],
+                            ],
+                            labels: { x: "a", y: "b" },
+                        },
+                        {
+                            matrix: [
+                                [5, 6],
+                                [7, 8],
+                            ],
+                            labels: { x: "c", y: "d" },
+                        },
                     ],
                     1,
                 );
@@ -1644,7 +1676,10 @@ describe("arr type tests", () => {
             });
 
             it("accepts array from map operation", () => {
-                const data = [1, 2, 3].map((n) => ({ value: n, label: `#${n}` }));
+                const data = [1, 2, 3].map((n) => ({
+                    value: n,
+                    label: `#${n}`,
+                }));
                 const result = Arr.chunk(data, 2);
                 expectTypeOf(result).toEqualTypeOf<
                     { value: number; label: string }[][]
@@ -1660,7 +1695,9 @@ describe("arr type tests", () => {
 
         describe("function signature", () => {
             it("has correct parameter types", () => {
-                expectTypeOf(Arr.chunk).parameters.toExtend<[unknown[], number]>();
+                expectTypeOf(Arr.chunk).parameters.toExtend<
+                    [unknown[], number]
+                >();
             });
 
             it("first parameter accepts arrays", () => {
@@ -1688,18 +1725,12 @@ describe("arr type tests", () => {
             });
 
             it("flattens string[][] to string[]", () => {
-                const result = Arr.collapse([
-                    ["foo", "bar"],
-                    ["baz"],
-                ]);
+                const result = Arr.collapse([["foo", "bar"], ["baz"]]);
                 expectTypeOf(result).toEqualTypeOf<string[]>();
             });
 
             it("flattens boolean[][] to boolean[]", () => {
-                const result = Arr.collapse([
-                    [true, false],
-                    [true],
-                ]);
+                const result = Arr.collapse([[true, false], [true]]);
                 expectTypeOf(result).toEqualTypeOf<boolean[]>();
             });
 
@@ -1726,7 +1757,13 @@ describe("arr type tests", () => {
 
             it("flattens deeply nested element types", () => {
                 const result = Arr.collapse([
-                    [{ user: { profile: { name: "Alice", scores: [90, 95] } } }],
+                    [
+                        {
+                            user: {
+                                profile: { name: "Alice", scores: [90, 95] },
+                            },
+                        },
+                    ],
                     [{ user: { profile: { name: "Bob", scores: [80, 85] } } }],
                 ]);
                 expectTypeOf(result).toEqualTypeOf<
@@ -1736,7 +1773,10 @@ describe("arr type tests", () => {
 
             it("flattens array of arrays of arrays preserving nesting", () => {
                 const result = Arr.collapse([
-                    [[1, 2], [3, 4]],
+                    [
+                        [1, 2],
+                        [3, 4],
+                    ],
                     [[5, 6]],
                 ]);
                 expectTypeOf(result).toEqualTypeOf<number[][]>();
@@ -1766,9 +1806,7 @@ describe("arr type tests", () => {
                     { c: 3, d: 4 },
                 ];
                 const result = Arr.collapse(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
 
             it("merges objects with different value types", () => {
@@ -1789,10 +1827,11 @@ describe("arr type tests", () => {
             });
 
             it("merges objects with nested values", () => {
-                const data: Record<string, { score: number; label: string }>[] = [
-                    { math: { score: 95, label: "A" } },
-                    { science: { score: 88, label: "B" } },
-                ];
+                const data: Record<string, { score: number; label: string }>[] =
+                    [
+                        { math: { score: 95, label: "A" } },
+                        { science: { score: 88, label: "B" } },
+                    ];
                 const result = Arr.collapse(data);
                 expectTypeOf(result).toEqualTypeOf<
                     Record<string, { score: number; label: string }>
@@ -1991,7 +2030,9 @@ describe("arr type tests", () => {
                 for (const row of result) {
                     for (const value of row) {
                         if (value === undefined) {
-                            throw new Error("Should not be undefined when arrays are equal length");
+                            throw new Error(
+                                "Should not be undefined when arrays are equal length",
+                            );
                         }
                     }
                 }
@@ -2014,7 +2055,9 @@ describe("arr type tests", () => {
                     }
                 }
                 if (!foundUndefined) {
-                    throw new Error("Should have undefined when arrays are unequal length");
+                    throw new Error(
+                        "Should have undefined when arrays are unequal length",
+                    );
                 }
             });
         });
@@ -2061,18 +2104,29 @@ describe("arr type tests", () => {
                     ],
                 );
                 expectTypeOf(result).toEqualTypeOf<
-                    ({ id: number; name: string; active: boolean } | undefined)[][]
+                    (
+                        | { id: number; name: string; active: boolean }
+                        | undefined
+                    )[][]
                 >();
             });
 
             it("preserves nested structure in element type", () => {
                 const result = Arr.combine(
                     [
-                        { user: { profile: { name: "Alice", scores: [90, 95] } } },
+                        {
+                            user: {
+                                profile: { name: "Alice", scores: [90, 95] },
+                            },
+                        },
                         { user: { profile: { name: "Bob", scores: [80] } } },
                     ],
                     [
-                        { user: { profile: { name: "Charlie", scores: [70, 75] } } },
+                        {
+                            user: {
+                                profile: { name: "Charlie", scores: [70, 75] },
+                            },
+                        },
                     ],
                 );
                 expectTypeOf(result).toEqualTypeOf<
@@ -2172,12 +2226,7 @@ describe("arr type tests", () => {
 
         describe("many arrays (variadic rest params)", () => {
             it("accepts four arrays of same type", () => {
-                const result = Arr.combine(
-                    [1, 2],
-                    [3, 4],
-                    [5, 6],
-                    [7, 8],
-                );
+                const result = Arr.combine([1, 2], [3, 4], [5, 6], [7, 8]);
                 expectTypeOf(result).toEqualTypeOf<(number | undefined)[][]>();
             });
 
