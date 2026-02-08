@@ -232,9 +232,35 @@ importers:
         specifier: workspace:^
         version: link:../utils
 
-  packages/collection: {}
+  packages/collection:
+    dependencies:
+      "@tolki/arr":
+        specifier: workspace:^
+        version: link:../arr
+      "@tolki/data":
+        specifier: workspace:^
+        version: link:../data
+      "@tolki/types":
+        specifier: workspace:^
+        version: link:../types
+      "@tolki/utils":
+        specifier: workspace:^
+        version: link:../utils
 
-  packages/data: {}
+  packages/data:
+    dependencies:
+      "@tolki/arr":
+        specifier: workspace:^
+        version: link:../arr
+      "@tolki/obj":
+        specifier: workspace:^
+        version: link:../obj
+      "@tolki/types":
+        specifier: workspace:^
+        version: link:../types
+      "@tolki/utils":
+        specifier: workspace:^
+        version: link:../utils
 
   packages/num:
     dependencies:
@@ -246,9 +272,35 @@ importers:
         specifier: catalog:num
         version: 4.10.0
 
-  packages/obj: {}
+  packages/obj:
+    dependencies:
+      "@tolki/arr":
+        specifier: workspace:^
+        version: link:../arr
+      "@tolki/path":
+        specifier: workspace:^
+        version: link:../path
+      "@tolki/str":
+        specifier: workspace:^
+        version: link:../str
+      "@tolki/types":
+        specifier: workspace:^
+        version: link:../types
+      "@tolki/utils":
+        specifier: workspace:^
+        version: link:../utils
 
-  packages/path: {}
+  packages/path:
+    dependencies:
+      "@tolki/arr":
+        specifier: workspace:^
+        version: link:../arr
+      "@tolki/types":
+        specifier: workspace:^
+        version: link:../types
+      "@tolki/utils":
+        specifier: workspace:^
+        version: link:../utils
 
   packages/str:
     dependencies:
@@ -292,7 +344,11 @@ importers:
 
   packages/types: {}
 
-  packages/utils: {}
+  packages/utils:
+    dependencies:
+      "@tolki/types":
+        specifier: workspace:^
+        version: link:../types
 
 packages:
   "@acemir/cssom@0.9.31":
