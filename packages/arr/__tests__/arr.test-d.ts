@@ -1295,8 +1295,14 @@ describe("arr type tests", () => {
             expectTypeOf(result).toEqualTypeOf<string>();
         });
 
-        it("returns TValue | TDefault when key and default provided", () => {
+        it("returns resolved type when literal key and default provided", () => {
             const result = Arr.get(["a", "b", "c"], 1, 0);
+            expectTypeOf(result).toEqualTypeOf<string>();
+        });
+
+        it("returns TValue | TDefault when non-literal key and default provided", () => {
+            const key: number = 1;
+            const result = Arr.get(["a", "b", "c"], key, 0);
             expectTypeOf(result).toEqualTypeOf<string | number>();
         });
 

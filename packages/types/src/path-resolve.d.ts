@@ -206,6 +206,36 @@ export type ArrayResolvePathOrNull<TArray extends readonly unknown[], TPath> =
         : ArrayResolvePath<TArray, TPath, TArray[number]> | null;
 
 /**
+ * Resolves a path within an array and adds `| TDefault` only when the path
+ * is non-literal (widened `string` or `number`), meaning it cannot be
+ * statically verified at compile time.
+ *
+ * When the path is a literal (e.g., `0`, `"0.name"`), returns just the
+ * resolved type without `| TDefault`, since the path is trusted at compile
+ * time — consistent with {@link ArrayResolvePathOrNull}.
+ *
+ * When the path is non-literal, `| TDefault` is added since the path
+ * cannot be verified and the default value may be returned at runtime.
+ *
+ * @example
+ * ```ts
+ * // Literal path → resolved type, no default in union
+ * type A = ArrayResolvePathOrDefault<string[], 1, number>; // string
+ *
+ * // Non-literal path → element type | default
+ * type B = ArrayResolvePathOrDefault<string[], number, number>; // string | number
+ * ```
+ */
+export type ArrayResolvePathOrDefault<
+    TArray extends readonly unknown[],
+    TPath,
+    TDefault,
+> =
+    IsLiteral<TPath> extends true
+        ? ArrayResolvePath<TArray, TPath, TDefault>
+        : ArrayResolvePath<TArray, TPath, TArray[number]> | TDefault;
+
+/**
  * Gets the type of a value at a given path in an object or array.
  * Supports dot notation (a.b.c) and array indexing (a.0.b).
  *

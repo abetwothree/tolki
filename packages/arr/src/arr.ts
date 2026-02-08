@@ -16,6 +16,7 @@ import type {
     ArrayInnerValue,
     ArrayItems,
     ArrayResolvePath,
+    ArrayResolvePathOrDefault,
     ArrayResolvePathOrNull,
     EnsureArray,
     PathKey,
@@ -993,7 +994,8 @@ export function from(items: unknown): unknown {
  * get(['foo', 'bar', 'baz'], 9, 'default'); -> 'default'
  */
 export function get<TValue>(array: TValue[], key: null | undefined): TValue[];
-// Overload: literal path + default → resolved path type | default
+// Overload: literal path + default → resolved path type (trusts literal paths;
+// adds | TDefault only for non-literal paths that can't be verified)
 export function get<
     TData extends readonly unknown[],
     TPath extends string | number,
@@ -1002,7 +1004,7 @@ export function get<
     array: TData,
     key: TPath,
     defaultValue: TDefault | (() => TDefault),
-): ArrayResolvePath<TData, TPath, TData[number]> | TDefault;
+): ArrayResolvePathOrDefault<TData, TPath, TDefault>;
 export function get<TValue, TDefault>(
     array: TValue[],
     key: PathKey,
