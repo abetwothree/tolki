@@ -2435,7 +2435,6 @@ export function wordWrap(
 
                 if (line.length <= characters) {
                     out.push(line);
-                    line = "";
                     break;
                 }
 

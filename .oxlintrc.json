@@ -69,6 +69,7 @@
                 "no-invalid-regexp": "error",
                 "no-irregular-whitespace": "error",
                 "no-loss-of-precision": "error",
+                "no-misleading-character-class": "error",
                 "no-new-native-nonconstructor": "error",
                 "no-nonoctal-decimal-escape": "error",
                 "no-obj-calls": "error",
@@ -80,6 +81,7 @@
                 "no-shadow-restricted-names": "error",
                 "no-sparse-arrays": "error",
                 "no-this-before-super": "error",
+                "no-unassigned-vars": "error",
                 "no-unexpected-multiline": "error",
                 "no-unsafe-finally": "error",
                 "no-unsafe-negation": "error",
@@ -90,6 +92,7 @@
                 "no-useless-catch": "error",
                 "no-useless-escape": "error",
                 "no-with": "error",
+                "preserve-caught-error": "error",
                 "require-yield": "error",
                 "use-isnan": "error",
                 "valid-typeof": "error"
