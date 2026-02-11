@@ -2740,20 +2740,18 @@ describe("arr type tests", () => {
     describe("set", () => {
         describe("null/undefined key returns the value type (replaces entire array)", () => {
             it("returns string[] when value is string[]", () => {
-                const result = Arr.set(
-                    ["a", "b"],
-                    null,
-                    ["price", 300] as string[],
-                );
+                const result = Arr.set(["a", "b"], null, [
+                    "price",
+                    300,
+                ] as string[]);
                 expectTypeOf(result).toEqualTypeOf<string[]>();
             });
 
             it("returns the value type for undefined key", () => {
-                const result = Arr.set(
-                    ["a", "b"],
-                    undefined,
-                    ["price", 300] as (string | number)[],
-                );
+                const result = Arr.set(["a", "b"], undefined, [
+                    "price",
+                    300,
+                ] as (string | number)[]);
                 expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
             });
 
@@ -2948,9 +2946,7 @@ describe("arr type tests", () => {
                     3: "f",
                     4: "g",
                 });
-                expectTypeOf(result).toEqualTypeOf<
-                    (string | undefined)[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<(string | undefined)[]>();
             });
 
             it("returns (TValue | TReplace | undefined)[] for different-type object replacer", () => {
@@ -2962,9 +2958,7 @@ describe("arr type tests", () => {
 
             it("returns (TValue | undefined)[] for sparse gap-filling case", () => {
                 const result = Arr.replace(["x", "y", "z"], { 5: "end" });
-                expectTypeOf(result).toEqualTypeOf<
-                    (string | undefined)[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<(string | undefined)[]>();
             });
         });
 
@@ -3022,9 +3016,7 @@ describe("arr type tests", () => {
                     0: "x",
                     2: "z",
                 });
-                expectTypeOf(result).toEqualTypeOf<
-                    (string | undefined)[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<(string | undefined)[]>();
             });
 
             it("returns (TValue | TReplace | undefined)[] for different-type object replacer", () => {
@@ -3036,9 +3028,7 @@ describe("arr type tests", () => {
 
             it("returns (TValue | undefined)[] for sparse gap-filling case", () => {
                 const result = Arr.replaceRecursive(["a"], { 5: "f" });
-                expectTypeOf(result).toEqualTypeOf<
-                    (string | undefined)[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<(string | undefined)[]>();
             });
         });
     });
