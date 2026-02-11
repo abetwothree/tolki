@@ -60,15 +60,13 @@ jobs:
       - name: Vitest Report coverage
         if: always() && matrix.node-version == 22
         uses: davelosert/vitest-coverage-report-action@v2
-
-      # TODO: enable when repo is public (Codecov is free for public repos)
+      
       # https://about.codecov.io/
-      # - name: Upload coverage to Codecov
-      #   if: matrix.node-version == 22
-      #   uses: codecov/codecov-action@v5
-      #   with:
-      #     files: ./coverage/coverage-final.json
-      #     fail_ci_if_error: false
+      - name: Upload coverage reports to Codecov
+        if: matrix.node-version == 22
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   unit-test-windows:
     runs-on: windows-latest

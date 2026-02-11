@@ -24,12 +24,11 @@ jobs:
     uses: ./.github/workflows/lint_and_format_style.yml
     permissions:
       contents: write
-  # TODO: enable when repo is public (requires GitHub Advanced Security for private repos)
-  # dependency-review:
-  #   if: ${{ github.event_name == 'pull_request' }}
-  #   uses: ./.github/workflows/dependency_review.yml
-  #   permissions:
-  #     contents: read
+  dependency-review:
+    if: ${{ github.event_name == 'pull_request' }}
+    uses: ./.github/workflows/dependency_review.yml
+    permissions:
+      contents: read
   changeset-check:
     if: ${{ github.event_name == 'pull_request' }}
     uses: ./.github/workflows/changeset_check.yml
