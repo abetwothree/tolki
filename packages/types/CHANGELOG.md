@@ -1,5 +1,11 @@
 # @tolki/types
 
+## 1.0.2
+
+### Patch Changes
+
+- df3cd9a: Small fixes, tests, typings, and make sure proper dependencies are configured
+
 ## 1.0.1
 
 ### Patch Changes
