@@ -57,6 +57,85 @@ describe("Arr", () => {
         ]);
     });
 
+    it("arrayItem", () => {
+        // Valid arrays
+        expect(
+            Arr.arrayItem(
+                [
+                    ["a", "b"],
+                    ["c", "d"],
+                ],
+                0,
+            ),
+        ).toEqual(["a", "b"]);
+        expect(Arr.arrayItem([{ items: ["x", "y"] }], "0.items")).toEqual([
+            "x",
+            "y",
+        ]);
+
+        // Default value (should be array)
+        expect(Arr.arrayItem([1, 2, 3], 10, [])).toEqual([]);
+
+        // Should throw for non-arrays
+        expect(() => Arr.arrayItem([1, 2, 3], 0)).toThrow(
+            "Array value for key [0] must be an array, number found.",
+        );
+        expect(() =>
+            Arr.arrayItem([{ items: "not array" }], "0.items"),
+        ).toThrow(
+            "Array value for key [0.items] must be an array, string found.",
+        );
+        expect(() => Arr.arrayItem([null, ["valid"]], 0)).toThrow(
+            "Array value for key [0] must be an array, null found.",
+        );
+    });
+
+    it("boolean", () => {
+        // Valid booleans
+        expect(Arr.boolean([true, false], 0)).toBe(true);
+        expect(Arr.boolean([true, false], 1)).toBe(false);
+        expect(Arr.boolean([{ active: true }], "0.active")).toBe(true);
+
+        // Default value (should be boolean)
+        expect(Arr.boolean([1, 2, 3], 10, false)).toBe(false);
+
+        // Should throw for non-booleans
+        expect(() => Arr.boolean([1, 2, 3], 0)).toThrow(
+            "Array value for key [0] must be a boolean, number found.",
+        );
+        expect(() => Arr.boolean([{ active: "yes" }], "0.active")).toThrow(
+            "Array value for key [0.active] must be a boolean, string found.",
+        );
+        expect(() => Arr.boolean([null, true], 0)).toThrow(
+            "Array value for key [0] must be a boolean, object found.",
+        );
+    });
+
+    it("chunk", () => {
+        const baseData = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+        const chunks = Arr.chunk(baseData, 3);
+
+        expect(chunks.length).toBe(4);
+        expect(chunks[0]).toEqual([1, 2, 3]);
+        expect(chunks[1]).toEqual([4, 5, 6]);
+        expect(chunks[2]).toEqual([7, 8, 9]);
+        expect(chunks[3]).toEqual([10]);
+
+        expect(Arr.chunk(baseData, 0)).toEqual([]);
+        expect(Arr.chunk(baseData, -1)).toEqual([]);
+
+        const chunksNoKeys = Arr.chunk(baseData, 3);
+
+        expect(chunksNoKeys.length).toBe(4);
+        expect(chunksNoKeys[0]).toEqual([1, 2, 3]);
+        expect(chunksNoKeys[1]).toEqual([4, 5, 6]);
+        expect(chunksNoKeys[2]).toEqual([7, 8, 9]);
+        expect(chunksNoKeys[3]).toEqual([10]);
+        expect(Arr.chunk(baseData, 0)).toEqual([]);
+        expect(Arr.chunk(baseData, -1)).toEqual([]);
+    });
+
     it("collapse", () => {
         type Mixed = string[] | number[] | [] | (string | number)[];
         let data: Mixed[] = [["foo", "bar"], ["baz"]];
@@ -442,6 +521,11 @@ describe("Arr", () => {
                 [3, 4],
             ];
             expect(Arr.flatten(data, 1)).toEqual([1, 2, 3, 4]);
+        });
+
+        it("should handle non-array input", () => {
+            expect(Arr.flatten(null)).toEqual([]);
+            expect(Arr.flatten(undefined)).toEqual([]);
         });
     });
 
@@ -1981,6 +2065,7 @@ describe("Arr", () => {
             const data = [{ id: 1, name: "foo" }];
             // @ts-expect-error - testing runtime behavior with symbol return type
             const result = Arr.keyBy(data, () => sym);
+            // @ts-expect-error - symbols cannot index Record<string, TValue>
             expect(result[sym]).toEqual({ id: 1, name: "foo" });
         });
     });
@@ -2042,85 +2127,6 @@ describe("Arr", () => {
         expect(
             Arr.mapWithKeys("abc", (value) => ({ [String(value)]: value })),
         ).toEqual({});
-    });
-
-    it("array", () => {
-        // Valid arrays
-        expect(
-            Arr.arrayItem(
-                [
-                    ["a", "b"],
-                    ["c", "d"],
-                ],
-                0,
-            ),
-        ).toEqual(["a", "b"]);
-        expect(Arr.arrayItem([{ items: ["x", "y"] }], "0.items")).toEqual([
-            "x",
-            "y",
-        ]);
-
-        // Default value (should be array)
-        expect(Arr.arrayItem([1, 2, 3], 10, [])).toEqual([]);
-
-        // Should throw for non-arrays
-        expect(() => Arr.arrayItem([1, 2, 3], 0)).toThrow(
-            "Array value for key [0] must be an array, number found.",
-        );
-        expect(() =>
-            Arr.arrayItem([{ items: "not array" }], "0.items"),
-        ).toThrow(
-            "Array value for key [0.items] must be an array, string found.",
-        );
-        expect(() => Arr.arrayItem([null, ["valid"]], 0)).toThrow(
-            "Array value for key [0] must be an array, null found.",
-        );
-    });
-
-    it("boolean", () => {
-        // Valid booleans
-        expect(Arr.boolean([true, false], 0)).toBe(true);
-        expect(Arr.boolean([true, false], 1)).toBe(false);
-        expect(Arr.boolean([{ active: true }], "0.active")).toBe(true);
-
-        // Default value (should be boolean)
-        expect(Arr.boolean([1, 2, 3], 10, false)).toBe(false);
-
-        // Should throw for non-booleans
-        expect(() => Arr.boolean([1, 2, 3], 0)).toThrow(
-            "Array value for key [0] must be a boolean, number found.",
-        );
-        expect(() => Arr.boolean([{ active: "yes" }], "0.active")).toThrow(
-            "Array value for key [0.active] must be a boolean, string found.",
-        );
-        expect(() => Arr.boolean([null, true], 0)).toThrow(
-            "Array value for key [0] must be a boolean, object found.",
-        );
-    });
-
-    it("chunk", () => {
-        const baseData = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-
-        const chunks = Arr.chunk(baseData, 3);
-
-        expect(chunks.length).toBe(4);
-        expect(chunks[0]).toEqual([1, 2, 3]);
-        expect(chunks[1]).toEqual([4, 5, 6]);
-        expect(chunks[2]).toEqual([7, 8, 9]);
-        expect(chunks[3]).toEqual([10]);
-
-        expect(Arr.chunk(baseData, 0)).toEqual([]);
-        expect(Arr.chunk(baseData, -1)).toEqual([]);
-
-        const chunksNoKeys = Arr.chunk(baseData, 3);
-
-        expect(chunksNoKeys.length).toBe(4);
-        expect(chunksNoKeys[0]).toEqual([1, 2, 3]);
-        expect(chunksNoKeys[1]).toEqual([4, 5, 6]);
-        expect(chunksNoKeys[2]).toEqual([7, 8, 9]);
-        expect(chunksNoKeys[3]).toEqual([10]);
-        expect(Arr.chunk(baseData, 0)).toEqual([]);
-        expect(Arr.chunk(baseData, -1)).toEqual([]);
     });
 
     it("float", () => {
@@ -2361,16 +2367,17 @@ describe("Arr", () => {
 
         // Single random item (default behavior)
         const single = Arr.random(arr);
+        expect(isArray(single)).toBe(false);
         expect(arr).toContain(single);
 
         // Explicitly request single item
-        const singleExplicit = Arr.random(arr, 1) as number[];
+        const singleExplicit = Arr.random(arr, 1);
         expect(isArray(singleExplicit)).toBe(true);
         expect(singleExplicit).toHaveLength(1);
         expect(arr).toContain(singleExplicit[0]);
 
         // Multiple random items
-        const multiple = Arr.random(arr, 3) as number[];
+        const multiple = Arr.random(arr, 3);
         expect(isArray(multiple)).toBe(true);
         expect(multiple).toHaveLength(3);
         multiple.forEach((item: number) => expect(arr).toContain(item));
@@ -2379,9 +2386,7 @@ describe("Arr", () => {
         const withKeys = Arr.random(arr, 2, true);
         expect(typeof withKeys).toBe("object");
         expect(isArray(withKeys)).toBe(false);
-        Object.values(withKeys as Record<number, number>).forEach((item) =>
-            expect(arr).toContain(item),
-        );
+        Object.values(withKeys).forEach((item) => expect(arr).toContain(item));
 
         // Test edge cases
         expect(Arr.random([])).toBe(null);

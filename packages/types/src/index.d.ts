@@ -4,7 +4,7 @@ export type * from "./data";
 export type * from "./models";
 export type * from "./objects";
 export type * from "./pagination";
-export type * from "./path-type";
+export type * from "./path-resolve";
 export type * from "./resource-responses";
 export type * from "./strings";
 export type * from "./utils";

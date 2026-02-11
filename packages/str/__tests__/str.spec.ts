@@ -479,7 +479,6 @@ describe("Str tests", () => {
             expect(Str.doesntEndWith("jason", "jason")).toBe(false);
             expect(Str.doesntEndWith("jason", ["on"])).toBe(false);
             expect(Str.doesntEndWith("jason", ["no", "on"])).toBe(false);
-            // expect(Str.doesntEndWith("jason", collect(["no", "on"]))).toBe(false); // TODO
             expect(Str.doesntEndWith("jason", "no")).toBe(true);
             expect(Str.doesntEndWith("jason", ["no"])).toBe(true);
             expect(Str.doesntEndWith("jason", "")).toBe(true);
@@ -3125,7 +3124,6 @@ describe("Str tests", () => {
             expect(Str.doesntStartWith("jason", "jason")).toBe(false);
             expect(Str.doesntStartWith("jason", ["jas"])).toBe(false);
             expect(Str.doesntStartWith("jason", ["day", "jas"])).toBe(false);
-            // expect(Str.doesntStartWith("jason", collect(["day", "jas"]))).toBe(false); // TODO
             expect(Str.doesntStartWith("jason", "day")).toBe(true);
             expect(Str.doesntStartWith("jason", ["day"])).toBe(true);
             expect(Str.doesntStartWith("jason", null)).toBe(true);

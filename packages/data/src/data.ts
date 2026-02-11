@@ -797,7 +797,10 @@ export function dataGet<
         );
     }
 
-    return arrGet(arrWrap(data), key as number, defaultValue);
+    return arrGet(arrWrap(data), key as number, defaultValue) as
+        | TValue
+        | TGetDefault
+        | null;
 }
 
 /**

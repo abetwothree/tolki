@@ -49,6 +49,11 @@ export default defineConfig({
     test: {
         environment: "jsdom",
         globals: true,
+        typecheck: {
+            enabled: true,
+            checker: "tsc",
+            include: ["**/*.test-d.ts"],
+        },
         coverage: {
             provider: "istanbul",
             reporter: [

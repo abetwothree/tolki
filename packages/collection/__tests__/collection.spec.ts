@@ -8368,7 +8368,7 @@ describe("Collection", () => {
 
                 expect(
                     data.reduce((carry, element, key) => {
-                        return (carry += element + key);
+                        return carry + element + key;
                     }),
                 ).toBe(9);
 
