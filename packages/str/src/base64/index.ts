@@ -223,7 +223,9 @@ function manualBase64DecodeToBytes(input: string): number[] {
         map.set(alphabet[i]!, i);
     }
 
-    const clean = input.replace(/=+$/g, "");
+    let end = input.length;
+    while (end > 0 && input[end - 1] === "=") end--;
+    const clean = input.slice(0, end);
     const bytes: number[] = [];
 
     for (let i = 0; i < clean.length; i += 4) {
