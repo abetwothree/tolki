@@ -792,7 +792,7 @@ export function words(
         return value;
     }
 
-    return matches[0].replace(/\s+$/, "") + end;
+    return matches[0].trimEnd() + end;
 }
 
 /**
