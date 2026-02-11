@@ -2982,9 +2982,64 @@ describe("arr type tests", () => {
     });
 
     describe("replaceRecursive", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.replaceRecursive([1, 2, 3], [10]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
+        describe("null/undefined replacer — returns original type unchanged", () => {
+            it("returns TValue[] for null replacer", () => {
+                const result = Arr.replaceRecursive(["a", "b"], null);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("returns TValue[] for undefined replacer", () => {
+                const result = Arr.replaceRecursive(["a", "b"], undefined);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+        });
+
+        describe("array replacer — may fill gaps with undefined", () => {
+            it("returns (TValue | undefined)[] for same-type array replacer", () => {
+                const result = Arr.replaceRecursive([1, 2, 3], [10]);
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[]>();
+            });
+
+            it("returns (string | undefined)[] for same-type string array replacer", () => {
+                const result = Arr.replaceRecursive(
+                    ["a", "b", "c"],
+                    ["z", "y"],
+                );
+                expectTypeOf(result).toEqualTypeOf<(string | undefined)[]>();
+            });
+
+            it("returns (TValue | TReplace | undefined)[] for different-type array replacer", () => {
+                const result = Arr.replaceRecursive([1, 2, 3], ["a", "b"]);
+                expectTypeOf(result).toEqualTypeOf<
+                    (number | string | undefined)[]
+                >();
+            });
+        });
+
+        describe("object replacer — sparse indices can introduce undefined", () => {
+            it("returns (TValue | undefined)[] for same-type object replacer", () => {
+                const result = Arr.replaceRecursive(["a", "b"], {
+                    0: "x",
+                    2: "z",
+                });
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | undefined)[]
+                >();
+            });
+
+            it("returns (TValue | TReplace | undefined)[] for different-type object replacer", () => {
+                const result = Arr.replaceRecursive(["a"], { 3: 42 });
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | number | undefined)[]
+                >();
+            });
+
+            it("returns (TValue | undefined)[] for sparse gap-filling case", () => {
+                const result = Arr.replaceRecursive(["a"], { 5: "f" });
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | undefined)[]
+                >();
+            });
         });
     });
 

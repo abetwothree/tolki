@@ -2919,18 +2919,35 @@ export function replace<TValue, TReplace = TValue>(
  * replaceRecursive(['a', 'b', ['c', 'd']], null); -> ['a', 'b', ['c', 'd']]
  * replaceRecursive(['a', 'b', ['c', 'd']], ['z', {2: {1: 'e'}}]); -> ['z', 'b', ['c', 'e']]
  */
+// Overload: null/undefined replacer — returns original type unchanged
 export function replaceRecursive<TValue>(
     data: TValue[],
-    replacerData: TValue[] | Record<number, TValue>,
+    replacerData: null | undefined,
 ): TValue[];
+// Overload: array replacer with same type — sequential replacement, may fill gaps
+export function replaceRecursive<TValue>(
+    data: TValue[],
+    replacerData: TValue[],
+): (TValue | undefined)[];
+// Overload: array replacer with different type — sequential replacement, may fill gaps
+export function replaceRecursive<TValue, TReplace>(
+    data: TValue[],
+    replacerData: TReplace[],
+): (TValue | TReplace | undefined)[];
+// Overload: object replacer — sparse indices can fill gaps with undefined
+export function replaceRecursive<TValue, TReplace = TValue>(
+    data: TValue[],
+    replacerData: Record<number, TReplace>,
+): (TValue | TReplace | undefined)[];
+// Overload: generic fallback
 export function replaceRecursive<TValue, TReplace = TValue>(
     data: ArrayItems<TValue> | unknown,
-    replacerData: ArrayItems<TValue> | Record<number, TReplace> | unknown,
-): TValue[];
+    replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
+): (TValue | TReplace | undefined)[];
 export function replaceRecursive<TValue, TReplace = TValue>(
     data: ArrayItems<TValue> | unknown,
-    replacerData: ArrayItems<TValue> | Record<number, TReplace> | unknown,
-): TValue[] {
+    replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
+): (TValue | TReplace | undefined)[] {
     const values = getAccessibleValues(data) as TValue[];
 
     // Handle null/undefined replacer
