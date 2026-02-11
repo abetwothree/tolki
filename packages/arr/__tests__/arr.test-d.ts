@@ -2923,9 +2923,61 @@ describe("arr type tests", () => {
     });
 
     describe("replace", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.replace([1, 2, 3], [10, 20]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
+        describe("array replacer — no gaps, preserves type", () => {
+            it("returns TValue[] for same-type array replacer", () => {
+                const result = Arr.replace([1, 2, 3], [10, 20]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns string[] for same-type string array replacer", () => {
+                const result = Arr.replace(["a", "b", "c"], ["d", "e"]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("returns (TValue | TReplace)[] for different-type array replacer", () => {
+                const result = Arr.replace([1, 2, 3], ["a", "b"]);
+                expectTypeOf(result).toEqualTypeOf<(number | string)[]>();
+            });
+        });
+
+        describe("object replacer — sparse indices can introduce undefined", () => {
+            it("returns (TValue | undefined)[] for same-type object replacer", () => {
+                const result = Arr.replace(["a", "b", "c"], {
+                    1: "d",
+                    2: "e",
+                    3: "f",
+                    4: "g",
+                });
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | undefined)[]
+                >();
+            });
+
+            it("returns (TValue | TReplace | undefined)[] for different-type object replacer", () => {
+                const result = Arr.replace(["a", "b"], { 5: 42 });
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | number | undefined)[]
+                >();
+            });
+
+            it("returns (TValue | undefined)[] for sparse gap-filling case", () => {
+                const result = Arr.replace(["x", "y", "z"], { 5: "end" });
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | undefined)[]
+                >();
+            });
+        });
+
+        describe("null/undefined replacer — returns original type unchanged", () => {
+            it("returns TValue[] for null replacer", () => {
+                const result = Arr.replace(["a", "b"], null);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("returns TValue[] for undefined replacer", () => {
+                const result = Arr.replace(["a", "b"], undefined);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
         });
     });
 

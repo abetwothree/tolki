@@ -2831,18 +2831,35 @@ export function reject<TValue>(
  * replace(['a', 'b', 'c'], ['d', 'e']); -> ['d', 'e', 'c']
  * replace(['a', 'b', 'c'], { 1: 'd', 2: 'e', 3: 'f' }); -> ['a', 'd', 'e', 'f']
  */
+// Overload: null/undefined replacer — returns original array unchanged
 export function replace<TValue>(
     data: TValue[],
-    replacerData: TValue[] | Record<number, TValue>,
+    replacerData: null | undefined,
 ): TValue[];
+// Overload: array replacer — sequential replacement, no gaps
+export function replace<TValue>(
+    data: TValue[],
+    replacerData: TValue[],
+): TValue[];
+// Overload: array replacer with different type — sequential replacement, no gaps
+export function replace<TValue, TReplace>(
+    data: TValue[],
+    replacerData: TReplace[],
+): (TValue | TReplace)[];
+// Overload: object replacer — sparse indices can fill gaps with undefined
+export function replace<TValue, TReplace = TValue>(
+    data: TValue[],
+    replacerData: Record<number, TReplace>,
+): (TValue | TReplace | undefined)[];
+// Overload: generic fallback
 export function replace<TValue, TReplace = TValue>(
     data: ArrayItems<TValue> | unknown,
     replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
-): TValue[];
+): (TValue | TReplace | undefined)[];
 export function replace<TValue, TReplace = TValue>(
     data: ArrayItems<TValue> | unknown,
     replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
-): TValue[] {
+): (TValue | TReplace | undefined)[] {
     const values = getAccessibleValues(data) as TValue[];
 
     // Handle null/undefined replacer
