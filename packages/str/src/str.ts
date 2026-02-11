@@ -1880,12 +1880,21 @@ export function replaceMatches(
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#striptags
  */
 export function stripTags(value: string): string {
-    let previous: string;
-    do {
-        previous = value;
-        value = value.replace(/<[^>]*>/g, "");
-    } while (value !== previous);
-    return value;
+    let result = "";
+    let inTag = false;
+
+    for (let i = 0; i < value.length; i++) {
+        const ch = value[i];
+        if (ch === "<") {
+            inTag = true;
+        } else if (ch === ">") {
+            inTag = false;
+        } else if (!inTag) {
+            result += ch;
+        }
+    }
+
+    return result;
 }
 
 /**
