@@ -1880,7 +1880,7 @@ export function replaceMatches(
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#striptags
  */
 export function stripTags(value: string): string {
-    return value.replace(/<\/?[^>]+(>|$)/g, "");
+    return value.replace(/<[^>]*>/g, "");
 }
 
 /**
