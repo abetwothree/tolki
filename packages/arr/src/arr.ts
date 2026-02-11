@@ -2109,28 +2109,43 @@ export function shift<TValue>(
  * @param  data - The array to set the item in.
  * @param  key - The key or dot-notated path of the item to set.
  * @param  value - The value to set.
- * @returns - A new array with the item set or the original array if the path is invalid.
+ * @returns - A new array with the item set, or the value itself when key is null/undefined.
  *
  * @example
  * set(['a', 'b', 'c'], 1, 'x'); -> ['a', 'x', 'c']
  * set(['a', ['b', 'c']], '1.0', 'x'); -> ['a', ['x', 'c']]
+ * set(['a', 'b'], null, ['x', 'y']); -> ['x', 'y']
  */
+// Overload: null/undefined key → returns the value (replaces entire array)
+export function set<TSetValue>(
+    array: unknown[] | unknown,
+    key: null | undefined,
+    value: TSetValue,
+): TSetValue;
+// Overload: non-null key with same type → preserves array type
 export function set<TValue>(
     array: TValue[],
-    key: PathKey | null,
-    value: unknown,
+    key: string | number,
+    value: TValue,
 ): TValue[];
+// Overload: non-null key with different type → union array type
+export function set<TValue, TSetValue>(
+    array: TValue[],
+    key: string | number,
+    value: TSetValue,
+): (TValue | TSetValue)[];
+// Overload: generic fallback
 export function set<TValue>(
     array: ArrayItems<TValue> | unknown,
     key: PathKey | null,
     value: unknown,
 ): TValue[];
-export function set<TValue>(
-    array: ArrayItems<TValue> | unknown,
+export function set(
+    array: unknown,
     key: PathKey | null,
     value: unknown,
-): TValue[] {
-    return setMixedImmutable(array, key, value) as TValue[];
+): unknown {
+    return setMixedImmutable(array, key, value);
 }
 
 /**

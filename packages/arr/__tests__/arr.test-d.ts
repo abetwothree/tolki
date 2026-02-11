@@ -2738,9 +2738,63 @@ describe("arr type tests", () => {
     });
 
     describe("set", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.set(["a", "b", "c"], 1, "x");
-            expectTypeOf(result).toEqualTypeOf<string[]>();
+        describe("null/undefined key returns the value type (replaces entire array)", () => {
+            it("returns string[] when value is string[]", () => {
+                const result = Arr.set(
+                    ["a", "b"],
+                    null,
+                    ["price", 300] as string[],
+                );
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("returns the value type for undefined key", () => {
+                const result = Arr.set(
+                    ["a", "b"],
+                    undefined,
+                    ["price", 300] as (string | number)[],
+                );
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+            });
+
+            it("returns number when value is number and key is null", () => {
+                const result = Arr.set(["a", "b"], null, 42);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns string when value is string and key is null", () => {
+                const result = Arr.set([1, 2, 3], null, "replaced");
+                expectTypeOf(result).toEqualTypeOf<string>();
+            });
+        });
+
+        describe("non-null key with same type preserves TValue[]", () => {
+            it("returns string[] when setting string in string[]", () => {
+                const result = Arr.set(["a", "b", "c"], 1, "x");
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("returns number[] when setting number in number[]", () => {
+                const result = Arr.set([1, 2, 3], 1, 99);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns string[] with dot-notation path and same type", () => {
+                const result = Arr.set(["a", ["b", "c"]], "1.0", "x");
+                expectTypeOf(result).toEqualTypeOf<(string | string[])[]>();
+            });
+        });
+
+        describe("non-null key with different type returns union", () => {
+            it("returns (number | string)[] when setting string in number[]", () => {
+                const result = Arr.set([1, 2, 3], 1, "hAz");
+                expectTypeOf(result).toEqualTypeOf<(number | string)[]>();
+            });
+
+            it("returns (string | number)[] when setting number in string[]", () => {
+                const result = Arr.set(["a", "b"], "2", 500);
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+            });
         });
     });
 
