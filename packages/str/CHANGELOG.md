@@ -1,5 +1,14 @@
 # @tolki/str
 
+## 1.0.4
+
+### Patch Changes
+
+- df3cd9a: Small fixes, tests, typings, and make sure proper dependencies are configured
+- Updated dependencies [df3cd9a]
+  - @tolki/utils@1.0.1
+  - @tolki/num@1.0.4
+
 ## 1.0.3
 
 ### Patch Changes
