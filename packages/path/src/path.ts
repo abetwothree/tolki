@@ -1519,15 +1519,25 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
     const result = { ...(obj as Record<TKey, unknown>) };
     const keyStr = String(key);
 
+    const isUnsafeKey = (k: string): boolean =>
+        k === "__proto__" || k === "constructor" || k === "prototype";
+
     // Handle simple property access (no dots)
     if (!keyStr.includes(".")) {
-        result[keyStr as TKey] = value;
+        if (!isUnsafeKey(keyStr)) {
+            result[keyStr as TKey] = value;
+        }
 
         return result as Record<TKey, TValue>;
     }
 
     // Handle nested property access with dot notation
     const segments = keyStr.split(".");
+
+    if (segments.some((s) => isUnsafeKey(s))) {
+        return result as Record<TKey, TValue>;
+    }
+
     let current: Record<string, unknown> = result;
 
     for (let i = 0; i < segments.length - 1; i++) {

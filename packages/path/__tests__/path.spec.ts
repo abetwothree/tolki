@@ -1802,6 +1802,26 @@ describe("Path Functions", () => {
             const result = Path.setObjectValue(obj, "a.", 2);
             expect(result).toHaveProperty("a");
         });
+
+        it("ignores __proto__ as a simple key", () => {
+            const obj = { a: 1 };
+            const result = Path.setObjectValue(obj, "__proto__", { evil: true });
+            expect(result).toEqual({ a: 1 });
+            expect(({} as Record<string, unknown>)["evil"]).toBeUndefined();
+        });
+
+        it("ignores __proto__ in nested dot notation path", () => {
+            const obj = { a: 1 };
+            const result = Path.setObjectValue(obj, "__proto__.polluted", true);
+            expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+            expect(result).toEqual({ a: 1 });
+        });
+
+        it("ignores constructor and prototype as keys", () => {
+            const obj = { a: 1 };
+            expect(Path.setObjectValue(obj, "constructor", "bad")).toEqual({ a: 1 });
+            expect(Path.setObjectValue(obj, "prototype", "bad")).toEqual({ a: 1 });
+        });
     });
 
     describe("hasObjectKey", () => {
