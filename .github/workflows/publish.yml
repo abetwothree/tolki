@@ -5,16 +5,17 @@ on:
     branches:
       - master
 
+permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -30,6 +31,11 @@ jobs:
           node-version-file: ".node-version"
           cache: "pnpm"
           registry-url: 'https://registry.npmjs.org'
+
+      - name: NPM Version && PNPM Version
+        run: |
+          npm --version
+          pnpm --version
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
