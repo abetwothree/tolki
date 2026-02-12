@@ -12,6 +12,7 @@ import {
     isString,
     isSymbol,
     isUndefined,
+    isUnsafeKey,
     typeOf,
 } from "@tolki/utils";
 import type { ArrayItems, PathKey, PathKeys } from "packages/types";
@@ -1224,6 +1225,9 @@ export function setMixed<TValue>(
             // Handle non-numeric keys (object properties)
             // At this point, current is guaranteed to be an object (or array treated as object)
             // because we always create structure before navigating
+            if (isUnsafeKey(segment)) {
+                return arr;
+            }
             const obj = current as Record<string, unknown>;
             const nextValue = obj[segment];
             if (
@@ -1252,7 +1256,11 @@ export function setMixed<TValue>(
             current.push(undefined as TValue);
         }
         current[lastIndex] = value as TValue;
-    } else if (!isNull(current) && isObject(current)) {
+    } else if (
+        !isNull(current) &&
+        isObject(current) &&
+        !isUnsafeKey(lastSegment)
+    ) {
         (current as Record<string, unknown>)[lastSegment] = value;
     }
 
@@ -1328,6 +1336,9 @@ export function pushMixed<TValue>(
             current = current[index];
         } else if (!isNull(current) && isObject(current)) {
             // Handle object properties
+            if (isUnsafeKey(segment)) {
+                return data as TValue[];
+            }
             const obj = current as Record<string, unknown>;
             if (isNull(obj[segment]) || !isObject(obj[segment])) {
                 obj[segment] = [];
@@ -1518,9 +1529,6 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const result = { ...(obj as Record<TKey, unknown>) };
     const keyStr = String(key);
-
-    const isUnsafeKey = (k: string): boolean =>
-        k === "__proto__" || k === "constructor" || k === "prototype";
 
     // Handle simple property access (no dots)
     if (!keyStr.includes(".")) {

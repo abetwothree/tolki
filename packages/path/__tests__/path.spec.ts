@@ -1289,6 +1289,20 @@ describe("Path Functions", () => {
             // So nothing is set
             expect(result).toEqual([[]]);
         });
+
+        it("ignores __proto__ in object property path", () => {
+            const arr: unknown[] = [{}];
+            const result = Path.setMixed(arr, "0.__proto__.polluted", true);
+            expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+            expect(result).toBe(arr);
+        });
+
+        it("ignores __proto__ as last segment for object assignment", () => {
+            const arr: unknown[] = [{}];
+            const result = Path.setMixed(arr, "0.__proto__", { evil: true });
+            expect(({} as Record<string, unknown>)["evil"]).toBeUndefined();
+            expect(result).toBe(arr);
+        });
     });
 
     describe("pushMixed", () => {
@@ -1487,6 +1501,13 @@ describe("Path Functions", () => {
             Path.pushMixed(data, "0.user.items", "value");
             // user is "string", gets replaced with [], value pushed
             expect(data).toEqual([{ user: ["value"] }]);
+        });
+
+        it("ignores __proto__ in object property path", () => {
+            const data: unknown[] = [{}];
+            const result = Path.pushMixed(data, "0.__proto__.0", "evil");
+            expect(({} as Record<string, unknown>)["0"]).toBeUndefined();
+            expect(result).toBe(data);
         });
     });
 
@@ -1805,7 +1826,9 @@ describe("Path Functions", () => {
 
         it("ignores __proto__ as a simple key", () => {
             const obj = { a: 1 };
-            const result = Path.setObjectValue(obj, "__proto__", { evil: true });
+            const result = Path.setObjectValue(obj, "__proto__", {
+                evil: true,
+            });
             expect(result).toEqual({ a: 1 });
             expect(({} as Record<string, unknown>)["evil"]).toBeUndefined();
         });
@@ -1819,8 +1842,12 @@ describe("Path Functions", () => {
 
         it("ignores constructor and prototype as keys", () => {
             const obj = { a: 1 };
-            expect(Path.setObjectValue(obj, "constructor", "bad")).toEqual({ a: 1 });
-            expect(Path.setObjectValue(obj, "prototype", "bad")).toEqual({ a: 1 });
+            expect(Path.setObjectValue(obj, "constructor", "bad")).toEqual({
+                a: 1,
+            });
+            expect(Path.setObjectValue(obj, "prototype", "bad")).toEqual({
+                a: 1,
+            });
         });
     });
 

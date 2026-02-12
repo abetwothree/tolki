@@ -27,6 +27,7 @@ import {
     isString,
     isStringable,
     isUndefined,
+    isUnsafeKey,
     isWeakMap,
     looseEqual,
     typeOf,
@@ -2780,6 +2781,9 @@ export function replaceRecursive<T1, T2>(
     replacerData: Record<PropertyKey, T2>,
 ) {
     for (const [key, value] of Object.entries(replacerData)) {
+        if (isUnsafeKey(key)) {
+            continue;
+        }
         if (isObject(value) && isObject(data[key as PropertyKey])) {
             data[key] = replaceRecursive(
                 data[key as PropertyKey] as Record<PropertyKey, T1>,

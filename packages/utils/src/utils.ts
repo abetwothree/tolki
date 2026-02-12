@@ -937,3 +937,14 @@ export function entriesKeyValue<T extends PropertyKey>(
 
     return value as T extends `${number}` ? number : T;
 }
+
+/**
+ * Check if a key is unsafe for property assignment (prototype pollution).
+ * Returns true for `__proto__`, `constructor`, and `prototype`.
+ *
+ * @param key - The key to check
+ * @returns True if the key could cause prototype pollution
+ */
+export function isUnsafeKey(key: string): boolean {
+    return key === "__proto__" || key === "constructor" || key === "prototype";
+}

@@ -70,6 +70,7 @@ import {
     isString,
     isTruthy,
     isUndefined,
+    isUnsafeKey,
     looseEqual,
     objectToString,
     strictEqual,
@@ -2552,7 +2553,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
                 // Delete the final segment
                 const finalSegment = segments[segments.length - 1] as string;
-                if (isObject(current) || isArray(current)) {
+                if (
+                    (isObject(current) || isArray(current)) &&
+                    !isUnsafeKey(finalSegment)
+                ) {
                     delete (current as Record<PropertyKey, unknown>)[
                         finalSegment
                     ];
