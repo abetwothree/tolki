@@ -651,7 +651,17 @@ export function isUrl(
     try {
         const u = new URL(value);
         const scheme = u.protocol.replace(":", "");
-        if (escapedProtocols.split("|").includes(scheme)) {
+        const host = u.hostname;
+        // Reject dot-only hosts and URLs with empty authority (e.g. http:///path)
+        const afterScheme = value.slice(value.indexOf("://") + 3);
+        const hasEmptyAuthority = afterScheme.startsWith("/");
+        const validHost =
+            host.length > 0 && !/^\.+$/.test(host) && !hasEmptyAuthority;
+        const validFileUrl = scheme === "file" && hasEmptyAuthority;
+        if (
+            escapedProtocols.split("|").includes(scheme) &&
+            (validHost || validFileUrl)
+        ) {
             return true;
         }
     } catch {
@@ -669,7 +679,7 @@ export function isUrl(
         "):\\/\\/",
         "(?:((?:[_.\\p{L}\\p{N}-]|%[0-9A-Fa-f]{2})+:)?((?:[_.\\p{L}\\p{N}-]|%[0-9A-Fa-f]{2})+)@)?",
         "(",
-        "(?:[\\p{L}\\p{N}\\p{S}_\\.-]+(?:\\.?([\\p{L}\\p{N}]|xn--[\\p{L}\\p{N}-]+)+\\.?)",
+        "(?:(?:xn--[a-z0-9-]+\\.)*xn--[a-z0-9-]+|(?:[\\p{L}\\p{N}\\p{S}\\p{M}_-]+\\.)+[\\p{L}\\p{N}\\p{M}]+|[a-z0-9_-]+)\\.?",
         "|",
         "(?:\\d{1,3}\\.){3}\\d{1,3}",
         "|",
@@ -682,11 +692,7 @@ export function isUrl(
         "$",
     ].join("");
 
-    try {
-        return new RegExp(regexSource, "iu").test(value);
-    } catch {
-        return false;
-    }
+    return new RegExp(regexSource, "iu").test(value);
 }
 
 /**

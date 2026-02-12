@@ -158,6 +158,14 @@ describe("Stringable basic delegation", () => {
             const expected = Str.of("foo bar baz foo").deduplicate();
             expectEqual(Str.deduplicate(input), expected);
         });
+
+        it("deduplicates with array of characters", () => {
+            expect(
+                Str.of(" laravell    foreverrr  ")
+                    .deduplicate([" ", "l", "r"])
+                    .toString(),
+            ).toBe(" laravel forever ");
+        });
     });
 
     describe("excerpt", () => {

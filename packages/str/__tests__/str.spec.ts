@@ -826,7 +826,19 @@ describe("Str tests", () => {
                 true,
             );
             expect(Str.isUrl("http://localhost")).toBe(true);
+            expect(Str.isUrl("http://l")).toBe(true);
+            expect(Str.isUrl("http://l:8000")).toBe(true);
+            expect(Str.isUrl("http://l:8000/path")).toBe(true);
+            expect(Str.isUrl("http://a.b")).toBe(true);
+            expect(Str.isUrl("http://sub.domain.com")).toBe(true);
+            expect(Str.isUrl("http://my-site.com")).toBe(true);
+            expect(Str.isUrl("https://example.com:8080/path?q=1#frag")).toBe(
+                true,
+            );
             expect(Str.isUrl("invalid url")).toBe(false);
+            expect(Str.isUrl("http://.")).toBe(false);
+            expect(Str.isUrl("http://...")).toBe(false);
+            expect(Str.isUrl("http:///path")).toBe(false);
         });
 
         it("isUrl with URL parser validation and regex fallback", () => {
