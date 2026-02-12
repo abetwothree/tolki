@@ -8,7 +8,7 @@ linkWorkspacePackages: true
 
 catalogs:
   num:
-    to-words: ^4.10.0
+    to-words: ^5.0.0
   str:
     any-ascii: ^0.3.3
     markdown-it: ^14.1.0

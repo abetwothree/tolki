@@ -7,8 +7,8 @@ settings:
 catalogs:
   num:
     to-words:
-      specifier: ^4.10.0
-      version: 4.10.0
+      specifier: ^5.0.0
+      version: 5.1.0
   str:
     any-ascii:
       specifier: ^0.3.3
@@ -163,8 +163,8 @@ importers:
         specifier: 3.8.1
         version: 3.8.1
       to-words:
-        specifier: ^4.10.0
-        version: 4.10.0
+        specifier: ^5.1.0
+        version: 5.1.0
       transliteration:
         specifier: ^2.6.1
         version: 2.6.1
@@ -267,10 +267,9 @@ importers:
       "@tolki/utils":
         specifier: workspace:^
         version: link:../utils
-    devDependencies:
       to-words:
         specifier: catalog:num
-        version: 4.10.0
+        version: 5.1.0
 
   packages/obj:
     dependencies:
@@ -4953,12 +4952,12 @@ packages:
       }
     engines: { node: ">=8.0" }
 
-  to-words@4.10.0:
+  to-words@5.1.0:
     resolution:
       {
-        integrity: sha512-NlwbkJiPGRpIwSWjFT/p5FhjvTyl5tHysVTvp+iD7FQkicyTtcrX3ikQks6aBJ0QyFgtsI55TejPRrSlJBGxmA==,
+        integrity: sha512-kY+u26g0ViE0udrLxZDbwyIfeJTXPRdT6WFJkLs7yAnKGIM3ZaOAcwIITysvRpyQSLdbhY7O9NDZ5TEQ9/MV4w==,
       }
-    engines: { node: ">=12.0.0" }
+    engines: { node: ">=20.0.0" }
 
   tokenx@1.3.0:
     resolution:
@@ -8365,7 +8364,7 @@ snapshots:
     dependencies:
       is-number: 7.0.0
 
-  to-words@4.10.0: {}
+  to-words@5.1.0: {}
 
   tokenx@1.3.0: {}
 

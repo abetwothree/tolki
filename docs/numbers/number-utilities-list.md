@@ -282,20 +282,22 @@ const result4 = percentage(10, 2, null, "de");
 
 ### spell
 
-Spell out the given number in the given locale.
+Spell out the given number in the given locale. Returns a `Promise<string>`.
 
-Uses the [`to-words`](https://www.npmjs.com/package/to-words) package.
+Uses the [`to-words`](https://www.npmjs.com/package/to-words) package. Locales are loaded dynamically on demand, so only the locale you request is bundled (~3KB gzip per locale instead of ~54KB for all 94 locales).
+
+Supports 94 locales via [`to-words`](https://www.npmjs.com/package/to-words). You can pass a full locale code (e.g., `"fr-FR"`, `"en-IN"`) or a bare language code (e.g., `"fr"`, `"en"`) which will resolve to a sensible default. Unsupported locales fall back to `"en-US"`.
 
 ```javascript
 import { spell } from "@tolki/num";
 
-const result = spell(102);
+const result = await spell(102);
 
-// result is "one hundred and two"
+// result is "One Hundred Two"
 
-const result2 = spell(88, "fr");
+const result2 = await spell(88, "fr");
 
-// result2 is "quatre-vingt-huit"
+// result2 is "Quatre-Vingt-Huit"
 ```
 
 If the `after` argument is provided and the number is less than or equal to `after`, the number will be returned as a formatted string instead of spelled out.
@@ -303,7 +305,7 @@ If the `after` argument is provided and the number is less than or equal to `aft
 ```javascript
 import { spell } from "@tolki/num";
 
-const result = spell(5, null, 10);
+const result = await spell(5, null, 10);
 
 // result is "5"
 ```
@@ -313,29 +315,33 @@ If the `until` argument is provided and the number is greater than or equal to `
 ```javascript
 import { spell } from "@tolki/num";
 
-const result = spell(15, null, null, 10);
+const result = await spell(15, null, null, 10);
 
 // result is "15"
 ```
 
 ### spellOrdinal
 
-Spell out the given number in the given locale in ordinal form.
+Spell out the given number in the given locale in ordinal form. Returns a `Promise<string>`.
+
+Uses [`to-words`](https://www.npmjs.com/package/to-words) v5 native ordinal support. See the [spell](#spell) function for details on locale handling.
+
+Decimal values are floored before conversion.
 
 ```javascript
 import { spellOrdinal } from "@tolki/num";
 
-const result = spellOrdinal(1);
+const result = await spellOrdinal(1);
 
-// result is "first"
+// result is "First"
 
-const result2 = spellOrdinal(2);
+const result2 = await spellOrdinal(2);
 
-// result2 is "second"
+// result2 is "Second"
 
-const result3 = spellOrdinal(21);
+const result3 = await spellOrdinal(21);
 
-// result3 is "twenty-first"
+// result3 is "Twenty First"
 ```
 
 ### secondsToHuman
