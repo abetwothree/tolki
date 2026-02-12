@@ -6,9 +6,9 @@ on:
       - master
 
 permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
+  contents: write
+  pull-requests: write
+  id-token: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -60,10 +60,11 @@ jobs:
             exit 0
           fi
           for tag in $tags; do
-            echo "Tagging: $tag"
-            git tag "$tag"
+            echo "Creating release: $tag"
+            gh release create "$tag" --title "$tag" --generate-notes --target master
           done
-          git push --tags
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Delete empty changesets and commit
         run: |
