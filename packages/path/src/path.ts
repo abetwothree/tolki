@@ -1542,7 +1542,7 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
 
     for (let i = 0; i < segments.length - 1; i++) {
         const segment = segments[i];
-        if (!segment) {
+        if (!segment || isUnsafeKey(segment)) {
             continue;
         }
 
@@ -1559,7 +1559,7 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     const lastSegment = segments[segments.length - 1];
-    if (lastSegment) {
+    if (lastSegment && !isUnsafeKey(lastSegment)) {
         current[lastSegment] = value;
     }
 
