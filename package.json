@@ -6,7 +6,7 @@
     "private": true,
     "scripts": {
         "release": "pnpm test && pnpm lint:eslint && pnpm format && pnpm document:version && pnpm ci:publish",
-        "clean": "pnpm lint && pnpm format",
+        "ci:release": "pnpm test && pnpm lint && pnpm format && pnpm ci:publish",
         "ci:publish": "pnpm publish -r --access=public --no-git-checks --report-summary --provenance",
         "ci:publish-arr": "pnpm publish --filter @tolki/arr --access=public",
         "ci:publish-collection": "pnpm publish --filter @tolki/collection --access=public",
@@ -28,6 +28,7 @@
         "document:change": "pnpx @changesets/cli add",
         "document:version": "pnpx @changesets/cli version",
         "document:empty": "npx changeset add --empty",
+        "clean": "pnpm lint && pnpm format",
         "format": "npx prettier --write . --cache",
         "format:check": "npx prettier --check .",
         "lint": "run-s lint:*",

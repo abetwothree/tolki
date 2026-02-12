@@ -32,11 +32,6 @@ jobs:
           cache: "pnpm"
           registry-url: 'https://registry.npmjs.org'
 
-      - name: NPM Version && PNPM Version
-        run: |
-          npm --version
-          pnpm --version
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -44,7 +39,7 @@ jobs:
         uses: changesets/action@v1
         with:
           version: pnpm document:version
-          publish: pnpm ci:publish
+          publish: pnpm ci:release
           title: "release: version packages"
           commit: "release: version packages"
           createGithubReleases: true
