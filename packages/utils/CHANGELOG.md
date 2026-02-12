@@ -1,5 +1,11 @@
 # @tolki/utils
 
+## 1.0.2
+
+### Patch Changes
+
+- b414314: Fix Prototype-polluting assignment CodeQL warnings
+
 ## 1.0.1
 
 ### Patch Changes
