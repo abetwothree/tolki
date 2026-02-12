@@ -2542,6 +2542,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 let current: unknown = items;
                 for (let i = 0; i < segments.length - 1; i++) {
                     const segment = segments[i] as string;
+                    if (isUnsafeKey(segment)) {
+                        current = undefined;
+                        break;
+                    }
                     if (isObject(current) || isArray(current)) {
                         current = (current as Record<PropertyKey, unknown>)[
                             segment

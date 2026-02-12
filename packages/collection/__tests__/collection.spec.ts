@@ -4109,10 +4109,17 @@ describe("Collection", () => {
             expect(c.all()).toEqual(["a", undefined, "c"]);
         });
 
-        it("ignores __proto__ in nested pull path", () => {
+        it("ignores __proto__ as final segment in nested pull path", () => {
             const c = collect({ a: { b: "value" } });
             c.pull("a.__proto__");
             expect(({} as Record<string, unknown>)["__proto__"]).toBeDefined(); // Object.prototype untouched
+            expect(c.all()).toEqual({ a: { b: "value" } });
+        });
+
+        it("ignores __proto__ as mid-path segment in nested pull path", () => {
+            const c = collect({ a: { b: "value" } });
+            c.pull("__proto__.polluted");
+            expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
             expect(c.all()).toEqual({ a: { b: "value" } });
         });
     });
