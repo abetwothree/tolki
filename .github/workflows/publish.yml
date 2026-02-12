@@ -46,6 +46,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Possibly tag release commit
+        run: |
+          if [ ! -f pnpm-publish-summary.json ]; then
+            echo "No pnpm-publish-summary.json found, skipping tagging"
+            exit 0
+          fi
+          echo "pnpm-publish-summary.json contents:"
+          cat pnpm-publish-summary.json
+          tags=$(jq -r '.publishedPackages[] | "\(.name)@\(.version)"' pnpm-publish-summary.json)
+          if [ -z "$tags" ]; then
+            echo "No published packages found, skipping tagging"
+            exit 0
+          fi
+          for tag in $tags; do
+            echo "Tagging: $tag"
+            git tag "$tag"
+          done
+          git push --tags
+
       - name: Delete empty changesets and commit
         run: |
           deleted=false
