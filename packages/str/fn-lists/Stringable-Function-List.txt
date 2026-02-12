@@ -24,7 +24,7 @@ METHOD DECLARATIONS:
   public containsAll($needles, $ignoreCase) [line 220]
   public doesntContain($needles, $ignoreCase) [line 232]
   public convertCase($mode, ?string $encoding) [line 244]
-  public deduplicate($character) [line 255]
+  public deduplicate(array|string $characters) [line 255]
   public dirname($levels) [line 266]
   public endsWith($needles) [line 277]
   public doesntEndWith($needles) [line 288]
