@@ -30,9 +30,10 @@ jobs:
     uses: ./.github/workflows/dependency_review.yml
     permissions:
       contents: read
+      pull-requests: write
   changeset-check:
     if: ${{ github.event_name == 'pull_request' }}
     uses: ./.github/workflows/changeset_check.yml
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write

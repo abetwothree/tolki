@@ -2731,6 +2731,14 @@ describe("Obj", () => {
                 locations: ["DETROIT", "PORTLAND", "CHI", "SF"],
             });
         });
+
+        it("ignores __proto__ keys in replacer data", () => {
+            const obj = { a: 1 };
+            const replacer = Object.create(null);
+            replacer["__proto__"] = { polluted: true };
+            Obj.replaceRecursive(obj, replacer);
+            expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+        });
     });
 
     describe("reverse", () => {

@@ -4108,6 +4108,13 @@ describe("Collection", () => {
             expect(c.pull("1")).toBe("b");
             expect(c.all()).toEqual(["a", undefined, "c"]);
         });
+
+        it("ignores __proto__ in nested pull path", () => {
+            const c = collect({ a: { b: "value" } });
+            c.pull("a.__proto__");
+            expect(({} as Record<string, unknown>)["__proto__"]).toBeDefined(); // Object.prototype untouched
+            expect(c.all()).toEqual({ a: { b: "value" } });
+        });
     });
 
     describe("put", () => {
