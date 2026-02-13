@@ -1,5 +1,13 @@
 # @tolki/str
 
+## 1.0.6
+
+### Patch Changes
+
+- b108941: Fix circular dependency bugs by importing from relative files rather than the packages index.js entry point
+- Updated dependencies [b108941]
+  - @tolki/num@2.0.1
+
 ## 1.0.5
 
 ### Patch Changes
