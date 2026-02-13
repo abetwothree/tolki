@@ -1,5 +1,6 @@
-import { lower } from "@tolki/str";
 import { transliterate as transliteration } from "transliteration";
+
+import { lower } from "../str";
 
 /**
  * Transliterate a UTF-8 value to ASCII.

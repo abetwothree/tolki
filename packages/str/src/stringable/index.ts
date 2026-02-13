@@ -1,13 +1,17 @@
-import type {
-    ConvertCaseMode,
-    MarkDownExtensions,
-    MarkDownOptions,
-} from "@tolki/str";
+import { isFunction, isInteger } from "@tolki/utils";
+
+import { ascii, slug } from "../ascii";
+import { fromBase64, toBase64 } from "../base64";
+import type { ConvertCaseMode } from "../convertcase";
+import { convertCase, title, upper } from "../convertcase";
+import type { MarkDownExtensions, MarkDownOptions } from "../markdown";
+import { inlineMarkdown, markdown } from "../markdown";
+import { plural, pluralPascal, pluralStudly, singular } from "../pluralizer";
+import { substr, substrCount, substrReplace } from "../replacer";
 import {
     after,
     afterLast,
     apa,
-    ascii,
     before,
     beforeLast,
     between,
@@ -18,7 +22,6 @@ import {
     chopStart,
     contains,
     containsAll,
-    convertCase,
     deduplicate,
     doesntContain,
     doesntEndWith,
@@ -26,23 +29,17 @@ import {
     endsWith,
     excerpt,
     finish,
-    fromBase64,
     headline,
-    inlineMarkdown,
     is,
     isAscii,
     isJson,
     isMatch,
-    isUlid,
     isUrl,
-    isUuid,
     kebab,
     lcfirst,
     length,
     limit,
     lower,
-    ltrim,
-    markdown,
     mask,
     match,
     matchAll,
@@ -51,9 +48,6 @@ import {
     padLeft,
     padRight,
     pascal,
-    plural,
-    pluralPascal,
-    pluralStudly,
     position,
     remove,
     repeat,
@@ -65,35 +59,27 @@ import {
     replaceMatches,
     replaceStart,
     reverse,
-    rtrim,
-    singular,
-    slug,
     snake,
     squish,
     start,
     startsWith,
     stripTags,
     studly,
-    substr,
-    substrCount,
-    substrReplace,
     swap,
     take,
-    title,
-    toBase64,
-    transliterate,
-    trim,
     ucfirst,
     ucsplit,
     ucwords,
     unwrap,
-    upper,
     wordCount,
     words,
     wordWrap,
     wrap,
-} from "@tolki/str";
-import { isFunction, isInteger } from "@tolki/utils";
+} from "../str";
+import { transliterate } from "../transliterate";
+import { ltrim, rtrim, trim } from "../trimmer";
+import { isUlid } from "../ulid";
+import { isUuid } from "../uuid";
 
 export type ConditionableValue =
     | string

@@ -1,5 +1,6 @@
-import { format } from "@tolki/num";
 import { isString, toLower } from "@tolki/utils";
+
+import { format } from "../num";
 
 /**
  * Spell out the given number in the given locale.

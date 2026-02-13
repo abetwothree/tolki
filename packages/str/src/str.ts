@@ -1,14 +1,9 @@
-import {
-    ltrim,
-    randomInt,
-    randomString,
-    rtrim,
-    substr,
-    title,
-    trim,
-    upper,
-} from "@tolki/str";
 import { isArray, isFunction, isNumber, isString, toLower } from "@tolki/utils";
+
+import { title, upper } from "./convertcase";
+import { randomInt, randomString } from "./random";
+import { substr } from "./replacer";
+import { ltrim, rtrim, trim } from "./trimmer";
 
 /**
  * The cache of snake-cased words.

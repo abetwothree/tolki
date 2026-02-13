@@ -1,10 +1,10 @@
+import { bytesToBase64 } from "../base64";
+
 /**
  * Random utilities mirroring Laravel's Str::random and PHP's random_int.
  *
  * Uses a cryptographically secure RNG when available (Web Crypto / Node crypto).
  */
-
-import { bytesToBase64 } from "@tolki/str";
 
 /**
  * Generate a more truly "random" alpha-numeric string (Laravel compatible algorithm).
