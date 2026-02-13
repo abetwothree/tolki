@@ -138,12 +138,12 @@ export default defineConfig({
             // },
         ],
 
-        // socialLinks: [
-        // {
-        //     icon: "github",
-        //     link: "https://github.com/abetwothree/tolki",
-        // },
-        // ],
+        socialLinks: [
+            {
+                icon: "github",
+                link: "https://github.com/abetwothree/tolki",
+            },
+        ],
     },
 
     // sitemap: { hostname: "https://tolki.abe.dev" },

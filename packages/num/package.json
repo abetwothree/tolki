@@ -30,13 +30,8 @@
     "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
     "dependencies": {
-        "@tolki/utils": "workspace:^"
-    },
-    "devDependencies": {
-        "to-words": "catalog:num"
-    },
-    "peerDependencies": {
-        "to-words": "catalog:num"
+        "@tolki/utils": "workspace:^",
+        "to-words": "^5.0.0"
     },
     "files": [
         "dist"
