@@ -773,7 +773,7 @@ export class Stringable {
         caseSensitive = true,
     ): Stringable {
         return new Stringable(
-            replace(search, replacement, this._value, caseSensitive) as string,
+            replace(search, replacement, this._value, caseSensitive),
         );
     }
 
