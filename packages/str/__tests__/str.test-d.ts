@@ -16,7 +16,12 @@ describe("str type tests", () => {
             });
 
             it("returns string with caseSensitive=false", () => {
-                const result = Str.replace("baz", "laravel", "foo bar Baz", false);
+                const result = Str.replace(
+                    "baz",
+                    "laravel",
+                    "foo bar Baz",
+                    false,
+                );
                 expectTypeOf(result).toEqualTypeOf<string>();
             });
 
@@ -34,7 +39,11 @@ describe("str type tests", () => {
 
         describe("Array subject returns string[]", () => {
             it("returns string[] when subject is a string array literal", () => {
-                const result = Str.replace("baz", "laravel", ["baz", "foo", "Baz"]);
+                const result = Str.replace("baz", "laravel", [
+                    "baz",
+                    "foo",
+                    "Baz",
+                ]);
                 expectTypeOf(result).toEqualTypeOf<string[]>();
             });
 
@@ -45,7 +54,12 @@ describe("str type tests", () => {
             });
 
             it("returns string[] with array subject and caseSensitive=false", () => {
-                const result = Str.replace("baz", "laravel", ["baz", "foo", "Baz"], false);
+                const result = Str.replace(
+                    "baz",
+                    "laravel",
+                    ["baz", "foo", "Baz"],
+                    false,
+                );
                 expectTypeOf(result).toEqualTypeOf<string[]>();
             });
 
@@ -63,7 +77,11 @@ describe("str type tests", () => {
             });
 
             it("accepts an array of string searches", () => {
-                const result = Str.replace(["?1", "?2", "?3"], ["foo", "bar", "baz"], "?1 ?2 ?3");
+                const result = Str.replace(
+                    ["?1", "?2", "?3"],
+                    ["foo", "bar", "baz"],
+                    "?1 ?2 ?3",
+                );
                 expectTypeOf(result).toEqualTypeOf<string>();
             });
 
@@ -105,13 +123,15 @@ describe("str type tests", () => {
 
         describe("Union subject type (string | Iterable<string>)", () => {
             it("returns string | string[] when subject is a union type", () => {
-                const subject: string | string[] = Math.random() > 0.5 ? "foo" : ["foo"];
+                const subject: string | string[] =
+                    Math.random() > 0.5 ? "foo" : ["foo"];
                 const result = Str.replace("foo", "bar", subject);
                 expectTypeOf(result).toEqualTypeOf<string | string[]>();
             });
 
             it("returns string | string[] with Iterable<string> union", () => {
-                const subject: string | Iterable<string> = Math.random() > 0.5 ? "foo" : ["foo"];
+                const subject: string | Iterable<string> =
+                    Math.random() > 0.5 ? "foo" : ["foo"];
                 const result = Str.replace("foo", "bar", subject);
                 expectTypeOf(result).toEqualTypeOf<string | string[]>();
             });
@@ -123,7 +143,12 @@ describe("str type tests", () => {
                 const replacement: string = "laravel";
                 const subject: string = "foo bar baz";
                 const caseSensitive: boolean = true;
-                const result = Str.replace(search, replacement, subject, caseSensitive);
+                const result = Str.replace(
+                    search,
+                    replacement,
+                    subject,
+                    caseSensitive,
+                );
                 expectTypeOf(result).toEqualTypeOf<string>();
             });
 
@@ -179,11 +204,10 @@ describe("str type tests", () => {
             });
 
             it("is callable with array subject", () => {
-                expectTypeOf(Str.replace).toBeCallableWith(
-                    "a",
-                    "b",
-                    ["foo", "bar"],
-                );
+                expectTypeOf(Str.replace).toBeCallableWith("a", "b", [
+                    "foo",
+                    "bar",
+                ]);
             });
 
             it("is callable with caseSensitive=false", () => {
@@ -200,7 +224,11 @@ describe("str type tests", () => {
     describe("replaceMatches", () => {
         describe("String subject returns string | null", () => {
             it("returns string | null when subject is a string literal", () => {
-                const result = Str.replaceMatches("/baz/", "bar", "foo baz bar");
+                const result = Str.replaceMatches(
+                    "/baz/",
+                    "bar",
+                    "foo baz bar",
+                );
                 expectTypeOf(result).toEqualTypeOf<string | null>();
             });
 
@@ -230,7 +258,7 @@ describe("str type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<string | null>();
             });
         });
-        
+
         describe("Array subject returns string[] | null", () => {
             it("returns string[] | null when subject is a string array literal", () => {
                 const result = Str.replaceMatches("/bar/", "XXX", [
@@ -265,7 +293,7 @@ describe("str type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<string[] | null>();
             });
         });
-        
+
         describe("Pattern variations", () => {
             it("accepts a single string pattern", () => {
                 const result = Str.replaceMatches("/foo/", "bar", "foo");
@@ -339,8 +367,12 @@ describe("str type tests", () => {
                     (match) => {
                         // match is string[] (full match + capture groups)
                         expectTypeOf(match).toEqualTypeOf<string[]>();
-                        expectTypeOf(match[0]).toEqualTypeOf<string | undefined>();
-                        expectTypeOf(match[1]).toEqualTypeOf<string | undefined>();
+                        expectTypeOf(match[0]).toEqualTypeOf<
+                            string | undefined
+                        >();
+                        expectTypeOf(match[1]).toEqualTypeOf<
+                            string | undefined
+                        >();
                         return match[0]!;
                     },
                     "hello",
@@ -361,7 +393,8 @@ describe("str type tests", () => {
 
         describe("Union subject type (string | string[])", () => {
             it("returns string | string[] | null when subject is a union type", () => {
-                const subject: string | string[] = Math.random() > 0.5 ? "foo" : ["foo"];
+                const subject: string | string[] =
+                    Math.random() > 0.5 ? "foo" : ["foo"];
                 const result = Str.replaceMatches("/foo/", "bar", subject);
                 expectTypeOf(result).toEqualTypeOf<string | string[] | null>();
             });
@@ -372,7 +405,11 @@ describe("str type tests", () => {
                 const pattern: string = "/\\d+/";
                 const replacement: string = "NUM";
                 const subject: string = "abc 123 def";
-                const result = Str.replaceMatches(pattern, replacement, subject);
+                const result = Str.replaceMatches(
+                    pattern,
+                    replacement,
+                    subject,
+                );
                 expectTypeOf(result).toEqualTypeOf<string | null>();
             });
 
@@ -380,14 +417,22 @@ describe("str type tests", () => {
                 const patterns: string[] = ["/foo/", "/bar/"];
                 const replacements: string[] = ["X", "Y"];
                 const subject: string = "foo bar";
-                const result = Str.replaceMatches(patterns, replacements, subject);
+                const result = Str.replaceMatches(
+                    patterns,
+                    replacements,
+                    subject,
+                );
                 expectTypeOf(result).toEqualTypeOf<string | null>();
             });
 
             it("handles RegExp[] patterns with string[] replacements on string subject", () => {
                 const patterns: RegExp[] = [/foo/g, /bar/g];
                 const replacements: string[] = ["X", "Y"];
-                const result = Str.replaceMatches(patterns, replacements, "foo bar");
+                const result = Str.replaceMatches(
+                    patterns,
+                    replacements,
+                    "foo bar",
+                );
                 expectTypeOf(result).toEqualTypeOf<string | null>();
             });
 
@@ -441,7 +486,7 @@ describe("str type tests", () => {
                 expectTypeOf(result).not.toEqualTypeOf<string[]>();
             });
         });
-        
+
         describe("Parameter type inference", () => {
             it("is callable with minimal arguments (no limit)", () => {
                 expectTypeOf(Str.replaceMatches).toBeCallableWith(
