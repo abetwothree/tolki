@@ -12,6 +12,7 @@ dotenv.config({ path: path.join(__dirname, "..", ".env") });
 const packageDocsFiles = {
     helpers: 'helpers.md',
     collections: 'collections.md',
+    strings: 'strings.md',
 } as const;
 
 /**
