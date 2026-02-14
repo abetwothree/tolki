@@ -1708,6 +1708,24 @@ export function replaceEnd(
 export function replaceMatches(
     pattern: string | string[] | RegExp | RegExp[],
     replace: string | string[] | ((match: string[]) => string),
+    subject: string,
+    limit?: number,
+): string | null;
+export function replaceMatches(
+    pattern: string | string[] | RegExp | RegExp[],
+    replace: string | string[] | ((match: string[]) => string),
+    subject: string[],
+    limit?: number,
+): string[] | null;
+export function replaceMatches(
+    pattern: string | string[] | RegExp | RegExp[],
+    replace: string | string[] | ((match: string[]) => string),
+    subject: string | string[],
+    limit?: number,
+): string | string[] | null;
+export function replaceMatches(
+    pattern: string | string[] | RegExp | RegExp[],
+    replace: string | string[] | ((match: string[]) => string),
     subject: string | string[],
     limit = -1,
 ): string | string[] | null {
