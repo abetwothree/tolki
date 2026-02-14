@@ -1,5 +1,11 @@
 # @tolki/str
 
+## 1.0.7
+
+### Patch Changes
+
+- 2bbdea8: Add some type tests and overrides to str functions that can return single strings or array of strings based on input(s)
+
 ## 1.0.6
 
 ### Patch Changes
