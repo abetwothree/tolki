@@ -44,8 +44,9 @@
         "docs:preview": "vitepress preview docs/vitepress",
         "list:functions": "ts-node ./scripts/functions-list.ts",
         "stubs": "run-s stubs:*",
+        "stubs:pull": "ts-node ./scripts/pull-framework-repos.ts",
         "stubs:copy-framework": "ts-node ./scripts/copy-framework-files.ts",
-        "stubs:copy-docs": "ts-node ./scripts/copy-framework-docs-files.ts",
+        "stubs:copy-docs": "ts-node ./scripts/copy-framework-docs-files.ts && npx prettier --write docs/stubs --cache",
         "stubs:create-lists": "ts-node ./scripts/stubs-function-list-create.ts"
     },
     "keywords": [],
