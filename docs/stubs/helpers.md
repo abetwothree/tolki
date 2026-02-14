@@ -3,21 +3,23 @@
 - [Introduction](#introduction)
 - [Available Methods](#available-methods)
 - [Other Utilities](#other-utilities)
-    - [Benchmarking](#benchmarking)
-    - [Dates and Time](#dates)
-    - [Deferred Functions](#deferred-functions)
-    - [Lottery](#lottery)
-    - [Pipeline](#pipeline)
-    - [Sleep](#sleep)
-    - [Timebox](#timebox)
-    - [URI](#uri)
+  - [Benchmarking](#benchmarking)
+  - [Dates and Time](#dates)
+  - [Deferred Functions](#deferred-functions)
+  - [Lottery](#lottery)
+  - [Pipeline](#pipeline)
+  - [Sleep](#sleep)
+  - [Timebox](#timebox)
+  - [URI](#uri)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 Laravel includes a variety of global "helper" PHP functions. Many of these functions are used by the framework itself; however, you are free to use them in your own applications if you find them convenient.
 
 <a name="available-methods"></a>
+
 ## Available Methods
 
 <style>
@@ -34,6 +36,7 @@ Laravel includes a variety of global "helper" PHP functions. Many of these funct
 </style>
 
 <a name="arrays-and-objects-method-list"></a>
+
 ### Arrays & Objects
 
 <div class="collection-method-list" markdown="1">
@@ -101,9 +104,11 @@ Laravel includes a variety of global "helper" PHP functions. Many of these funct
 [data_forget](#method-data-forget)
 [head](#method-head)
 [last](#method-last)
+
 </div>
 
 <a name="numbers-method-list"></a>
+
 ### Numbers
 
 <div class="collection-method-list" markdown="1">
@@ -132,6 +137,7 @@ Laravel includes a variety of global "helper" PHP functions. Many of these funct
 </div>
 
 <a name="paths-method-list"></a>
+
 ### Paths
 
 <div class="collection-method-list" markdown="1">
@@ -148,6 +154,7 @@ Laravel includes a variety of global "helper" PHP functions. Many of these funct
 </div>
 
 <a name="urls-method-list"></a>
+
 ### URLs
 
 <div class="collection-method-list" markdown="1">
@@ -165,6 +172,7 @@ Laravel includes a variety of global "helper" PHP functions. Many of these funct
 </div>
 
 <a name="miscellaneous-method-list"></a>
+
 ### Miscellaneous
 
 <div class="collection-method-list" markdown="1">
@@ -232,9 +240,11 @@ Laravel includes a variety of global "helper" PHP functions. Many of these funct
 </div>
 
 <a name="arrays"></a>
+
 ## Arrays & Objects
 
 <a name="method-array-accessible"></a>
+
 #### `Arr::accessible()` {.collection-method .first-collection-method}
 
 The `Arr::accessible` method determines if the given value is array accessible:
@@ -261,6 +271,7 @@ $isAccessible = Arr::accessible(new stdClass);
 ```
 
 <a name="method-array-add"></a>
+
 #### `Arr::add()` {.collection-method}
 
 The `Arr::add` method adds a given key / value pair to an array if the given key doesn't already exist in the array or is set to `null`:
@@ -278,6 +289,7 @@ $array = Arr::add(['name' => 'Desk', 'price' => null], 'price', 100);
 ```
 
 <a name="method-array-array"></a>
+
 #### `Arr::array()` {.collection-method}
 
 The `Arr::array` method retrieves a value from a deeply nested array using "dot" notation (just as [Arr::get()](#method-array-get) does), but throws an `InvalidArgumentException` if the requested value is not an `array`:
@@ -297,6 +309,7 @@ $value = Arr::array($array, 'name');
 ```
 
 <a name="method-array-boolean"></a>
+
 #### `Arr::boolean()` {.collection-method}
 
 The `Arr::boolean` method retrieves a value from a deeply nested array using "dot" notation (just as [Arr::get()](#method-array-get) does), but throws an `InvalidArgumentException` if the requested value is not a `boolean`:
@@ -315,8 +328,8 @@ $value = Arr::boolean($array, 'name');
 // throws InvalidArgumentException
 ```
 
-
 <a name="method-array-collapse"></a>
+
 #### `Arr::collapse()` {.collection-method}
 
 The `Arr::collapse` method collapses an array of arrays or collections into a single array:
@@ -330,6 +343,7 @@ $array = Arr::collapse([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
 ```
 
 <a name="method-array-crossjoin"></a>
+
 #### `Arr::crossJoin()` {.collection-method}
 
 The `Arr::crossJoin` method cross joins the given arrays, returning a Cartesian product with all possible permutations:
@@ -365,6 +379,7 @@ $matrix = Arr::crossJoin([1, 2], ['a', 'b'], ['I', 'II']);
 ```
 
 <a name="method-array-divide"></a>
+
 #### `Arr::divide()` {.collection-method}
 
 The `Arr::divide` method returns two arrays: one containing the keys and the other containing the values of the given array:
@@ -380,6 +395,7 @@ use Illuminate\Support\Arr;
 ```
 
 <a name="method-array-dot"></a>
+
 #### `Arr::dot()` {.collection-method}
 
 The `Arr::dot` method flattens a multi-dimensional array into a single level array that uses "dot" notation to indicate depth:
@@ -395,6 +411,7 @@ $flattened = Arr::dot($array);
 ```
 
 <a name="method-array-every"></a>
+
 #### `Arr::every()` {.collection-method}
 
 The `Arr::every` method ensures that all values in the array pass a given truth test:
@@ -414,6 +431,7 @@ Arr::every($array, fn ($i) => $i > 2);
 ```
 
 <a name="method-array-except"></a>
+
 #### `Arr::except()` {.collection-method}
 
 The `Arr::except` method removes the given key / value pairs from an array:
@@ -429,6 +447,7 @@ $filtered = Arr::except($array, ['price']);
 ```
 
 <a name="method-array-except-values"></a>
+
 #### `Arr::exceptValues()` {.collection-method}
 
 The `Arr::exceptValues` method removes the specified values from an array:
@@ -456,6 +475,7 @@ $filtered = Arr::exceptValues($array, [1, 2], strict: true);
 ```
 
 <a name="method-array-exists"></a>
+
 #### `Arr::exists()` {.collection-method}
 
 The `Arr::exists` method checks that the given key exists in the provided array:
@@ -475,6 +495,7 @@ $exists = Arr::exists($array, 'salary');
 ```
 
 <a name="method-array-first"></a>
+
 #### `Arr::first()` {.collection-method}
 
 The `Arr::first` method returns the first element of an array passing a given truth test:
@@ -500,6 +521,7 @@ $first = Arr::first($array, $callback, $default);
 ```
 
 <a name="method-array-flatten"></a>
+
 #### `Arr::flatten()` {.collection-method}
 
 The `Arr::flatten` method flattens a multi-dimensional array into a single level array:
@@ -515,6 +537,7 @@ $flattened = Arr::flatten($array);
 ```
 
 <a name="method-array-float"></a>
+
 #### `Arr::float()` {.collection-method}
 
 The `Arr::float` method retrieves a value from a deeply nested array using "dot" notation (just as [Arr::get()](#method-array-get) does), but throws an `InvalidArgumentException` if the requested value is not a `float`:
@@ -534,6 +557,7 @@ $value = Arr::float($array, 'name');
 ```
 
 <a name="method-array-forget"></a>
+
 #### `Arr::forget()` {.collection-method}
 
 The `Arr::forget` method removes a given key / value pairs from a deeply nested array using "dot" notation:
@@ -549,6 +573,7 @@ Arr::forget($array, 'products.desk');
 ```
 
 <a name="method-array-from"></a>
+
 #### `Arr::from()` {.collection-method}
 
 The `Arr::from` method converts various input types into a plain PHP array. It supports a range of input types, including arrays, objects, and several common Laravel interfaces, such as `Arrayable`, `Enumerable`, `Jsonable`, and `JsonSerializable`. Additionally, it handles `Traversable` and `WeakMap` instances:
@@ -570,6 +595,7 @@ Arr::from(new TestJsonableObject); // ['foo' => 'bar']
 ```
 
 <a name="method-array-get"></a>
+
 #### `Arr::get()` {.collection-method}
 
 The `Arr::get` method retrieves a value from a deeply nested array using "dot" notation:
@@ -595,6 +621,7 @@ $discount = Arr::get($array, 'products.desk.discount', 0);
 ```
 
 <a name="method-array-has"></a>
+
 #### `Arr::has()` {.collection-method}
 
 The `Arr::has` method checks whether a given item or items exists in an array using "dot" notation:
@@ -614,6 +641,7 @@ $contains = Arr::has($array, ['product.price', 'product.discount']);
 ```
 
 <a name="method-array-hasall"></a>
+
 #### `Arr::hasAll()` {.collection-method}
 
 The `Arr::hasAll` method determines if all of the specified keys exist in the given array using "dot" notation:
@@ -629,6 +657,7 @@ Arr::hasAll($array, ['name', 'IDE']); // false
 ```
 
 <a name="method-array-hasany"></a>
+
 #### `Arr::hasAny()` {.collection-method}
 
 The `Arr::hasAny` method checks whether any item in a given set exists in an array using "dot" notation:
@@ -652,6 +681,7 @@ $contains = Arr::hasAny($array, ['category', 'product.discount']);
 ```
 
 <a name="method-array-integer"></a>
+
 #### `Arr::integer()` {.collection-method}
 
 The `Arr::integer` method retrieves a value from a deeply nested array using "dot" notation (just as [Arr::get()](#method-array-get) does), but throws an `InvalidArgumentException` if the requested value is not an `int`:
@@ -671,6 +701,7 @@ $value = Arr::integer($array, 'name');
 ```
 
 <a name="method-array-isassoc"></a>
+
 #### `Arr::isAssoc()` {.collection-method}
 
 The `Arr::isAssoc` method returns `true` if the given array is an associative array. An array is considered "associative" if it doesn't have sequential numerical keys beginning with zero:
@@ -688,6 +719,7 @@ $isAssoc = Arr::isAssoc([1, 2, 3]);
 ```
 
 <a name="method-array-islist"></a>
+
 #### `Arr::isList()` {.collection-method}
 
 The `Arr::isList` method returns `true` if the given array's keys are sequential integers beginning from zero:
@@ -705,6 +737,7 @@ $isList = Arr::isList(['product' => ['name' => 'Desk', 'price' => 100]]);
 ```
 
 <a name="method-array-join"></a>
+
 #### `Arr::join()` {.collection-method}
 
 The `Arr::join` method joins array elements with a string. Using this method's third argument, you may also specify the joining string for the final element of the array:
@@ -724,6 +757,7 @@ $joined = Arr::join($array, ', ', ', and ');
 ```
 
 <a name="method-array-keyby"></a>
+
 #### `Arr::keyBy()` {.collection-method}
 
 The `Arr::keyBy` method keys the array by the given key. If multiple items have the same key, only the last one will appear in the new array:
@@ -747,6 +781,7 @@ $keyed = Arr::keyBy($array, 'product_id');
 ```
 
 <a name="method-array-last"></a>
+
 #### `Arr::last()` {.collection-method}
 
 The `Arr::last` method returns the last element of an array passing a given truth test:
@@ -772,6 +807,7 @@ $last = Arr::last($array, $callback, $default);
 ```
 
 <a name="method-array-map"></a>
+
 #### `Arr::map()` {.collection-method}
 
 The `Arr::map` method iterates through the array and passes each value and key to the given callback. The array value is replaced by the value returned by the callback:
@@ -789,6 +825,7 @@ $mapped = Arr::map($array, function (string $value, string $key) {
 ```
 
 <a name="method-array-map-spread"></a>
+
 #### `Arr::mapSpread()` {.collection-method}
 
 The `Arr::mapSpread` method iterates over the array, passing each nested item value into the given closure. The closure is free to modify the item and return it, thus forming a new array of modified items:
@@ -814,6 +851,7 @@ $mapped = Arr::mapSpread($array, function (int $even, int $odd) {
 ```
 
 <a name="method-array-map-with-keys"></a>
+
 #### `Arr::mapWithKeys()` {.collection-method}
 
 The `Arr::mapWithKeys` method iterates through the array and passes each value to the given callback. The callback should return an associative array containing a single key / value pair:
@@ -847,6 +885,7 @@ $mapped = Arr::mapWithKeys($array, function (array $item, int $key) {
 ```
 
 <a name="method-array-only"></a>
+
 #### `Arr::only()` {.collection-method}
 
 The `Arr::only` method returns only the specified key / value pairs from the given array:
@@ -862,6 +901,7 @@ $slice = Arr::only($array, ['name', 'price']);
 ```
 
 <a name="method-array-only-values"></a>
+
 #### `Arr::onlyValues()` {.collection-method}
 
 The `Arr::onlyValues` method returns only the specified values from an array:
@@ -889,6 +929,7 @@ $filtered = Arr::onlyValues($array, [1, 2], strict: true);
 ```
 
 <a name="method-array-partition"></a>
+
 #### `Arr::partition()` {.collection-method}
 
 The `Arr::partition` method may be combined with PHP array destructuring to separate elements that pass a given truth test from those that do not:
@@ -914,6 +955,7 @@ dump($equalOrAboveThree);
 ```
 
 <a name="method-array-pluck"></a>
+
 #### `Arr::pluck()` {.collection-method}
 
 The `Arr::pluck` method retrieves all of the values for a given key from an array:
@@ -942,6 +984,7 @@ $names = Arr::pluck($array, 'developer.name', 'developer.id');
 ```
 
 <a name="method-array-prepend"></a>
+
 #### `Arr::prepend()` {.collection-method}
 
 The `Arr::prepend` method will push an item onto the beginning of an array:
@@ -969,6 +1012,7 @@ $array = Arr::prepend($array, 'Desk', 'name');
 ```
 
 <a name="method-array-prependkeyswith"></a>
+
 #### `Arr::prependKeysWith()` {.collection-method}
 
 The `Arr::prependKeysWith` prepends all key names of an associative array with the given prefix:
@@ -992,6 +1036,7 @@ $keyed = Arr::prependKeysWith($array, 'product.');
 ```
 
 <a name="method-array-pull"></a>
+
 #### `Arr::pull()` {.collection-method}
 
 The `Arr::pull` method returns and removes a key / value pair from an array:
@@ -1017,6 +1062,7 @@ $value = Arr::pull($array, $key, $default);
 ```
 
 <a name="method-array-push"></a>
+
 #### `Arr::push()` {.collection-method}
 
 The `Arr::push` method pushes an item into an array using "dot" notation. If an array does not exist at the given key, it will be created:
@@ -1032,6 +1078,7 @@ Arr::push($array, 'office.furniture', 'Desk');
 ```
 
 <a name="method-array-query"></a>
+
 #### `Arr::query()` {.collection-method}
 
 The `Arr::query` method converts the array into a query string:
@@ -1053,6 +1100,7 @@ Arr::query($array);
 ```
 
 <a name="method-array-random"></a>
+
 #### `Arr::random()` {.collection-method}
 
 The `Arr::random` method returns a random value from an array:
@@ -1078,6 +1126,7 @@ $items = Arr::random($array, 2);
 ```
 
 <a name="method-array-reject"></a>
+
 #### `Arr::reject()` {.collection-method}
 
 The `Arr::reject` method removes items from an array using the given closure:
@@ -1095,6 +1144,7 @@ $filtered = Arr::reject($array, function (string|int $value, int $key) {
 ```
 
 <a name="method-array-select"></a>
+
 #### `Arr::select()` {.collection-method}
 
 The `Arr::select` method selects an array of values from an array:
@@ -1114,6 +1164,7 @@ Arr::select($array, ['name', 'price']);
 ```
 
 <a name="method-array-set"></a>
+
 #### `Arr::set()` {.collection-method}
 
 The `Arr::set` method sets a value within a deeply nested array using "dot" notation:
@@ -1129,6 +1180,7 @@ Arr::set($array, 'products.desk.price', 200);
 ```
 
 <a name="method-array-shuffle"></a>
+
 #### `Arr::shuffle()` {.collection-method}
 
 The `Arr::shuffle` method randomly shuffles the items in the array:
@@ -1142,6 +1194,7 @@ $array = Arr::shuffle([1, 2, 3, 4, 5]);
 ```
 
 <a name="method-array-sole"></a>
+
 #### `Arr::sole()` {.collection-method}
 
 The `Arr::sole` method retrieves a single value from an array using the given closure. If more than one value within the array matches the given truth test, an `Illuminate\Support\MultipleItemsFoundException` exception will be thrown. If no values match the truth test, an `Illuminate\Support\ItemNotFoundException` exception will be thrown:
@@ -1157,6 +1210,7 @@ $value = Arr::sole($array, fn (string $value) => $value === 'Desk');
 ```
 
 <a name="method-array-some"></a>
+
 #### `Arr::some()` {.collection-method}
 
 The `Arr::some` method ensures that at least one of the values in the array passes a given truth test:
@@ -1172,6 +1226,7 @@ Arr::some($array, fn ($i) => $i > 2);
 ```
 
 <a name="method-array-sort"></a>
+
 #### `Arr::sort()` {.collection-method}
 
 The `Arr::sort` method sorts an array by its values:
@@ -1211,6 +1266,7 @@ $sorted = array_values(Arr::sort($array, function (array $value) {
 ```
 
 <a name="method-array-sort-desc"></a>
+
 #### `Arr::sortDesc()` {.collection-method}
 
 The `Arr::sortDesc` method sorts an array in descending order by its values:
@@ -1250,6 +1306,7 @@ $sorted = array_values(Arr::sortDesc($array, function (array $value) {
 ```
 
 <a name="method-array-sort-recursive"></a>
+
 #### `Arr::sortRecursive()` {.collection-method}
 
 The `Arr::sortRecursive` method recursively sorts an array using the `sort` function for numerically indexed sub-arrays and the `ksort` function for associative sub-arrays:
@@ -1281,6 +1338,7 @@ $sorted = Arr::sortRecursiveDesc($array);
 ```
 
 <a name="method-array-string"></a>
+
 #### `Arr::string()` {.collection-method}
 
 The `Arr::string` method retrieves a value from a deeply nested array using "dot" notation (just as [Arr::get()](#method-array-get) does), but throws an `InvalidArgumentException` if the requested value is not a `string`:
@@ -1300,6 +1358,7 @@ $value = Arr::string($array, 'languages');
 ```
 
 <a name="method-array-take"></a>
+
 #### `Arr::take()` {.collection-method}
 
 The `Arr::take` method returns a new array with the specified number of items:
@@ -1325,6 +1384,7 @@ $chunk = Arr::take($array, -2);
 ```
 
 <a name="method-array-to-css-classes"></a>
+
 #### `Arr::toCssClasses()` {.collection-method}
 
 The `Arr::toCssClasses` method conditionally compiles a CSS class string. The method accepts an array of classes where the array key contains the class or classes you wish to add, while the value is a boolean expression. If the array element has a numeric key, it will always be included in the rendered class list:
@@ -1345,6 +1405,7 @@ $classes = Arr::toCssClasses($array);
 ```
 
 <a name="method-array-to-css-styles"></a>
+
 #### `Arr::toCssStyles()` {.collection-method}
 
 The `Arr::toCssStyles` method conditionally compiles a CSS style string. The method accepts an array of CSS declarations where the array key contains the CSS declaration you wish to add, while the value is a boolean expression. If the array element has a numeric key, it will always be included in the compiled CSS style string:
@@ -1366,6 +1427,7 @@ $classes = Arr::toCssStyles($array);
 This method powers Laravel's functionality allowing [merging classes with a Blade component's attribute bag](/docs/{{version}}/blade#conditionally-merge-classes) as well as the `@class` [Blade directive](/docs/{{version}}/blade#conditional-classes).
 
 <a name="method-array-undot"></a>
+
 #### `Arr::undot()` {.collection-method}
 
 The `Arr::undot` method expands a single-dimensional array that uses "dot" notation into a multi-dimensional array:
@@ -1384,6 +1446,7 @@ $array = Arr::undot($array);
 ```
 
 <a name="method-array-where"></a>
+
 #### `Arr::where()` {.collection-method}
 
 The `Arr::where` method filters an array using the given closure:
@@ -1401,6 +1464,7 @@ $filtered = Arr::where($array, function (string|int $value, int $key) {
 ```
 
 <a name="method-array-where-not-null"></a>
+
 #### `Arr::whereNotNull()` {.collection-method}
 
 The `Arr::whereNotNull` method removes all `null` values from the given array:
@@ -1416,6 +1480,7 @@ $filtered = Arr::whereNotNull($array);
 ```
 
 <a name="method-array-wrap"></a>
+
 #### `Arr::wrap()` {.collection-method}
 
 The `Arr::wrap` method wraps the given value in an array. If the given value is already an array it will be returned without modification:
@@ -1441,6 +1506,7 @@ $array = Arr::wrap(null);
 ```
 
 <a name="method-data-fill"></a>
+
 #### `data_fill()` {.collection-method}
 
 The `data_fill` function sets a missing value within a nested array or object using "dot" notation:
@@ -1480,6 +1546,7 @@ data_fill($data, 'products.*.price', 200);
 ```
 
 <a name="method-data-get"></a>
+
 #### `data_get()` {.collection-method}
 
 The `data_get` function retrieves a value from a nested array or object using "dot" notation:
@@ -1529,6 +1596,7 @@ data_get($flight, 'segments.{first}.arrival');
 ```
 
 <a name="method-data-set"></a>
+
 #### `data_set()` {.collection-method}
 
 The `data_set` function sets a value within a nested array or object using "dot" notation:
@@ -1574,6 +1642,7 @@ data_set($data, 'products.desk.price', 200, overwrite: false);
 ```
 
 <a name="method-data-forget"></a>
+
 #### `data_forget()` {.collection-method}
 
 The `data_forget` function removes a value within a nested array or object using "dot" notation:
@@ -1609,6 +1678,7 @@ data_forget($data, 'products.*.price');
 ```
 
 <a name="method-head"></a>
+
 #### `head()` {.collection-method}
 
 The `head` function returns the first element in the given array. If the array is empty, `false` will be returned:
@@ -1622,6 +1692,7 @@ $first = head($array);
 ```
 
 <a name="method-last"></a>
+
 #### `last()` {.collection-method}
 
 The `last` function returns the last element in the given array. If the array is empty, `false` will be returned:
@@ -1635,9 +1706,11 @@ $last = last($array);
 ```
 
 <a name="numbers"></a>
+
 ## Numbers
 
 <a name="method-number-abbreviate"></a>
+
 #### `Number::abbreviate()` {.collection-method}
 
 The `Number::abbreviate` method returns the human-readable format of the provided numerical value, with an abbreviation for the units:
@@ -1659,6 +1732,7 @@ $number = Number::abbreviate(1230000, precision: 2);
 ```
 
 <a name="method-number-clamp"></a>
+
 #### `Number::clamp()` {.collection-method}
 
 The `Number::clamp` method ensures a given number stays within a specified range. If the number is lower than the minimum, the minimum value is returned. If the number is higher than the maximum, the maximum value is returned:
@@ -1684,6 +1758,7 @@ $number = Number::clamp(20, min: 10, max: 100);
 ```
 
 <a name="method-number-currency"></a>
+
 #### `Number::currency()` {.collection-method}
 
 The `Number::currency` method returns the currency representation of the given value as a string:
@@ -1709,6 +1784,7 @@ $currency = Number::currency(1000, in: 'EUR', locale: 'de', precision: 0);
 ```
 
 <a name="method-default-currency"></a>
+
 #### `Number::defaultCurrency()` {.collection-method}
 
 The `Number::defaultCurrency` method returns the default currency being used by the `Number` class:
@@ -1722,6 +1798,7 @@ $currency = Number::defaultCurrency();
 ```
 
 <a name="method-default-locale"></a>
+
 #### `Number::defaultLocale()` {.collection-method}
 
 The `Number::defaultLocale` method returns the default locale being used by the `Number` class:
@@ -1735,6 +1812,7 @@ $locale = Number::defaultLocale();
 ```
 
 <a name="method-number-file-size"></a>
+
 #### `Number::fileSize()` {.collection-method}
 
 The `Number::fileSize` method returns the file size representation of the given byte value as a string:
@@ -1756,6 +1834,7 @@ $size = Number::fileSize(1024, precision: 2);
 ```
 
 <a name="method-number-for-humans"></a>
+
 #### `Number::forHumans()` {.collection-method}
 
 The `Number::forHumans` method returns the human-readable format of the provided numerical value:
@@ -1777,6 +1856,7 @@ $number = Number::forHumans(1230000, precision: 2);
 ```
 
 <a name="method-number-format"></a>
+
 #### `Number::format()` {.collection-method}
 
 The `Number::format` method formats the given number into a locale specific string:
@@ -1802,6 +1882,7 @@ $number = Number::format(100000, locale: 'de');
 ```
 
 <a name="method-number-ordinal"></a>
+
 #### `Number::ordinal()` {.collection-method}
 
 The `Number::ordinal` method returns a number's ordinal representation:
@@ -1823,6 +1904,7 @@ $number = Number::ordinal(21);
 ```
 
 <a name="method-number-pairs"></a>
+
 #### `Number::pairs()` {.collection-method}
 
 The `Number::pairs` method generates an array of number pairs (sub-ranges) based on a specified range and step value. This method can be useful for dividing a larger range of numbers into smaller, manageable sub-ranges for things like pagination or batching tasks. The `pairs` method returns an array of arrays, where each inner array represents a pair (sub-range) of numbers:
@@ -1840,6 +1922,7 @@ $result = Number::pairs(25, 10, offset: 0);
 ```
 
 <a name="method-number-parse-int"></a>
+
 #### `Number::parseInt()` {.collection-method}
 
 The `Number::parseInt` method parse a string into an integer according to the specified locale:
@@ -1857,6 +1940,7 @@ $result = Number::parseInt('10,123', locale: 'fr');
 ```
 
 <a name="method-number-parse-float"></a>
+
 #### `Number::parseFloat()` {.collection-method}
 
 The `Number::parseFloat` method parse a string into a float according to the specified locale:
@@ -1874,6 +1958,7 @@ $result = Number::parseFloat('10', locale: 'fr');
 ```
 
 <a name="method-number-percentage"></a>
+
 #### `Number::percentage()` {.collection-method}
 
 The `Number::percentage` method returns the percentage representation of the given value as a string:
@@ -1899,6 +1984,7 @@ $percentage = Number::percentage(10, precision: 2, locale: 'de');
 ```
 
 <a name="method-number-spell"></a>
+
 #### `Number::spell()` {.collection-method}
 
 The `Number::spell` method transforms the given number into a string of words:
@@ -1940,6 +2026,7 @@ $number = Number::spell(10, until: 10);
 ```
 
 <a name="method-number-spell-ordinal"></a>
+
 #### `Number::spellOrdinal()` {.collection-method}
 
 The `Number::spellOrdinal` method returns the number's ordinal representation as a string of words:
@@ -1961,6 +2048,7 @@ $number = Number::spellOrdinal(21);
 ```
 
 <a name="method-number-trim"></a>
+
 #### `Number::trim()` {.collection-method}
 
 The `Number::trim` method removes any trailing zero digits after the decimal point of the given number:
@@ -1978,6 +2066,7 @@ $number = Number::trim(12.30);
 ```
 
 <a name="method-number-use-locale"></a>
+
 #### `Number::useLocale()` {.collection-method}
 
 The `Number::useLocale` method sets the default number locale globally, which affects how numbers and currency are formatted by subsequent invocations to the `Number` class's methods:
@@ -1995,6 +2084,7 @@ public function boot(): void
 ```
 
 <a name="method-number-with-locale"></a>
+
 #### `Number::withLocale()` {.collection-method}
 
 The `Number::withLocale` method executes the given closure using the specified locale and then restores the original locale after the callback has executed:
@@ -2008,6 +2098,7 @@ $number = Number::withLocale('de', function () {
 ```
 
 <a name="method-number-use-currency"></a>
+
 #### `Number::useCurrency()` {.collection-method}
 
 The `Number::useCurrency` method sets the default number currency globally, which affects how the currency is formatted by subsequent invocations to the `Number` class's methods:
@@ -2025,6 +2116,7 @@ public function boot(): void
 ```
 
 <a name="method-number-with-currency"></a>
+
 #### `Number::withCurrency()` {.collection-method}
 
 The `Number::withCurrency` method executes the given closure using the specified currency and then restores the original currency after the callback has executed:
@@ -2038,9 +2130,11 @@ $number = Number::withCurrency('GBP', function () {
 ```
 
 <a name="paths"></a>
+
 ## Paths
 
 <a name="method-app-path"></a>
+
 #### `app_path()` {.collection-method}
 
 The `app_path` function returns the fully qualified path to your application's `app` directory. You may also use the `app_path` function to generate a fully qualified path to a file relative to the application directory:
@@ -2052,6 +2146,7 @@ $path = app_path('Http/Controllers/Controller.php');
 ```
 
 <a name="method-base-path"></a>
+
 #### `base_path()` {.collection-method}
 
 The `base_path` function returns the fully qualified path to your application's root directory. You may also use the `base_path` function to generate a fully qualified path to a given file relative to the project root directory:
@@ -2063,6 +2158,7 @@ $path = base_path('vendor/bin');
 ```
 
 <a name="method-config-path"></a>
+
 #### `config_path()` {.collection-method}
 
 The `config_path` function returns the fully qualified path to your application's `config` directory. You may also use the `config_path` function to generate a fully qualified path to a given file within the application's configuration directory:
@@ -2074,6 +2170,7 @@ $path = config_path('app.php');
 ```
 
 <a name="method-database-path"></a>
+
 #### `database_path()` {.collection-method}
 
 The `database_path` function returns the fully qualified path to your application's `database` directory. You may also use the `database_path` function to generate a fully qualified path to a given file within the database directory:
@@ -2085,6 +2182,7 @@ $path = database_path('factories/UserFactory.php');
 ```
 
 <a name="method-lang-path"></a>
+
 #### `lang_path()` {.collection-method}
 
 The `lang_path` function returns the fully qualified path to your application's `lang` directory. You may also use the `lang_path` function to generate a fully qualified path to a given file within the directory:
@@ -2099,6 +2197,7 @@ $path = lang_path('en/messages.php');
 > By default, the Laravel application skeleton does not include the `lang` directory. If you would like to customize Laravel's language files, you may publish them via the `lang:publish` Artisan command.
 
 <a name="method-public-path"></a>
+
 #### `public_path()` {.collection-method}
 
 The `public_path` function returns the fully qualified path to your application's `public` directory. You may also use the `public_path` function to generate a fully qualified path to a given file within the public directory:
@@ -2110,6 +2209,7 @@ $path = public_path('css/app.css');
 ```
 
 <a name="method-resource-path"></a>
+
 #### `resource_path()` {.collection-method}
 
 The `resource_path` function returns the fully qualified path to your application's `resources` directory. You may also use the `resource_path` function to generate a fully qualified path to a given file within the resources directory:
@@ -2121,6 +2221,7 @@ $path = resource_path('sass/app.scss');
 ```
 
 <a name="method-storage-path"></a>
+
 #### `storage_path()` {.collection-method}
 
 The `storage_path` function returns the fully qualified path to your application's `storage` directory. You may also use the `storage_path` function to generate a fully qualified path to a given file within the storage directory:
@@ -2132,9 +2233,11 @@ $path = storage_path('app/file.txt');
 ```
 
 <a name="urls"></a>
+
 ## URLs
 
 <a name="method-action"></a>
+
 #### `action()` {.collection-method}
 
 The `action` function generates a URL for the given controller action:
@@ -2152,6 +2255,7 @@ $url = action([UserController::class, 'profile'], ['id' => 1]);
 ```
 
 <a name="method-asset"></a>
+
 #### `asset()` {.collection-method}
 
 The `asset` function generates a URL for an asset using the current scheme of the request (HTTP or HTTPS):
@@ -2169,6 +2273,7 @@ $url = asset('img/photo.jpg'); // http://example.com/assets/img/photo.jpg
 ```
 
 <a name="method-route"></a>
+
 #### `route()` {.collection-method}
 
 The `route` function generates a URL for a given [named route](/docs/{{version}}/routing#named-routes):
@@ -2190,6 +2295,7 @@ $url = route('route.name', ['id' => 1], false);
 ```
 
 <a name="method-secure-asset"></a>
+
 #### `secure_asset()` {.collection-method}
 
 The `secure_asset` function generates a URL for an asset using HTTPS:
@@ -2199,6 +2305,7 @@ $url = secure_asset('img/photo.jpg');
 ```
 
 <a name="method-secure-url"></a>
+
 #### `secure_url()` {.collection-method}
 
 The `secure_url` function generates a fully qualified HTTPS URL to the given path. Additional URL segments may be passed in the function's second argument:
@@ -2210,6 +2317,7 @@ $url = secure_url('user/profile', [1]);
 ```
 
 <a name="method-to-action"></a>
+
 #### `to_action()` {.collection-method}
 
 The `to_action` function generates a [redirect HTTP response](/docs/{{version}}/responses#redirects) for a given controller action:
@@ -2232,6 +2340,7 @@ return to_action(
 ```
 
 <a name="method-to-route"></a>
+
 #### `to_route()` {.collection-method}
 
 The `to_route` function generates a [redirect HTTP response](/docs/{{version}}/responses#redirects) for a given [named route](/docs/{{version}}/routing#named-routes):
@@ -2247,6 +2356,7 @@ return to_route('users.show', ['user' => 1], 302, ['X-Framework' => 'Laravel']);
 ```
 
 <a name="method-uri"></a>
+
 #### `uri()` {.collection-method}
 
 The `uri` function generates a [fluent URI instance](#uri) for the given URI:
@@ -2280,6 +2390,7 @@ $uri = uri('users.show', ['user' => $user]);
 ```
 
 <a name="method-url"></a>
+
 #### `url()` {.collection-method}
 
 The `url` function generates a fully qualified URL to the given path:
@@ -2303,9 +2414,11 @@ $previous = url()->previous();
 For more information on working with the `url` function, consult the [URL generation documentation](/docs/{{version}}/urls#generating-urls).
 
 <a name="miscellaneous"></a>
+
 ## Miscellaneous
 
 <a name="method-abort"></a>
+
 #### `abort()` {.collection-method}
 
 The `abort` function throws [an HTTP exception](/docs/{{version}}/errors#http-exceptions) which will be rendered by the [exception handler](/docs/{{version}}/errors#handling-exceptions):
@@ -2321,6 +2434,7 @@ abort(403, 'Unauthorized.', $headers);
 ```
 
 <a name="method-abort-if"></a>
+
 #### `abort_if()` {.collection-method}
 
 The `abort_if` function throws an HTTP exception if a given boolean expression evaluates to `true`:
@@ -2332,6 +2446,7 @@ abort_if(! Auth::user()->isAdmin(), 403);
 Like the `abort` method, you may also provide the exception's response text as the third argument and an array of custom response headers as the fourth argument to the function.
 
 <a name="method-abort-unless"></a>
+
 #### `abort_unless()` {.collection-method}
 
 The `abort_unless` function throws an HTTP exception if a given boolean expression evaluates to `false`:
@@ -2343,6 +2458,7 @@ abort_unless(Auth::user()->isAdmin(), 403);
 Like the `abort` method, you may also provide the exception's response text as the third argument and an array of custom response headers as the fourth argument to the function.
 
 <a name="method-app"></a>
+
 #### `app()` {.collection-method}
 
 The `app` function returns the [service container](/docs/{{version}}/container) instance:
@@ -2358,6 +2474,7 @@ $api = app('HelpSpot\API');
 ```
 
 <a name="method-auth"></a>
+
 #### `auth()` {.collection-method}
 
 The `auth` function returns an [authenticator](/docs/{{version}}/authentication) instance. You may use it as an alternative to the `Auth` facade:
@@ -2373,6 +2490,7 @@ $user = auth('admin')->user();
 ```
 
 <a name="method-back"></a>
+
 #### `back()` {.collection-method}
 
 The `back` function generates a [redirect HTTP response](/docs/{{version}}/responses#redirects) to the user's previous location:
@@ -2384,6 +2502,7 @@ return back();
 ```
 
 <a name="method-bcrypt"></a>
+
 #### `bcrypt()` {.collection-method}
 
 The `bcrypt` function [hashes](/docs/{{version}}/hashing) the given value using Bcrypt. You may use this function as an alternative to the `Hash` facade:
@@ -2393,6 +2512,7 @@ $password = bcrypt('my-secret-password');
 ```
 
 <a name="method-blank"></a>
+
 #### `blank()` {.collection-method}
 
 The `blank` function determines whether the given value is "blank":
@@ -2415,6 +2535,7 @@ blank(false);
 For the inverse of `blank`, see the [filled](#method-filled) function.
 
 <a name="method-broadcast"></a>
+
 #### `broadcast()` {.collection-method}
 
 The `broadcast` function [broadcasts](/docs/{{version}}/broadcasting) the given [event](/docs/{{version}}/events) to its listeners:
@@ -2426,6 +2547,7 @@ broadcast(new UserRegistered($user))->toOthers();
 ```
 
 <a name="method-broadcast-if"></a>
+
 #### `broadcast_if()` {.collection-method}
 
 The `broadcast_if` function [broadcasts](/docs/{{version}}/broadcasting) the given [event](/docs/{{version}}/events) to its listeners if a given boolean expression evaluates to `true`:
@@ -2437,6 +2559,7 @@ broadcast_if($user->isActive(), new UserRegistered($user))->toOthers();
 ```
 
 <a name="method-broadcast-unless"></a>
+
 #### `broadcast_unless()` {.collection-method}
 
 The `broadcast_unless` function [broadcasts](/docs/{{version}}/broadcasting) the given [event](/docs/{{version}}/events) to its listeners if a given boolean expression evaluates to `false`:
@@ -2448,6 +2571,7 @@ broadcast_unless($user->isBanned(), new UserRegistered($user))->toOthers();
 ```
 
 <a name="method-cache"></a>
+
 #### `cache()` {.collection-method}
 
 The `cache` function may be used to get values from the [cache](/docs/{{version}}/cache). If the given key does not exist in the cache, an optional default value will be returned:
@@ -2467,6 +2591,7 @@ cache(['key' => 'value'], now()->plus(seconds: 10));
 ```
 
 <a name="method-class-uses-recursive"></a>
+
 #### `class_uses_recursive()` {.collection-method}
 
 The `class_uses_recursive` function returns all traits used by a class, including traits used by all of its parent classes:
@@ -2476,6 +2601,7 @@ $traits = class_uses_recursive(App\Models\User::class);
 ```
 
 <a name="method-collect"></a>
+
 #### `collect()` {.collection-method}
 
 The `collect` function creates a [collection](/docs/{{version}}/collections) instance from the given value:
@@ -2485,6 +2611,7 @@ $collection = collect(['Taylor', 'Abigail']);
 ```
 
 <a name="method-config"></a>
+
 #### `config()` {.collection-method}
 
 The `config` function gets the value of a [configuration](/docs/{{version}}/configuration) variable. The configuration values may be accessed using "dot" syntax, which includes the name of the file and the option you wish to access. You may also provide a default value that will be returned if the configuration option does not exist:
@@ -2502,6 +2629,7 @@ config(['app.debug' => true]);
 ```
 
 <a name="method-context"></a>
+
 #### `context()` {.collection-method}
 
 The `context` function gets the value from the current [context](/docs/{{version}}/context). You may also provide a default value that will be returned if the context key does not exist:
@@ -2521,6 +2649,7 @@ context(['trace_id' => Str::uuid()->toString()]);
 ```
 
 <a name="method-cookie"></a>
+
 #### `cookie()` {.collection-method}
 
 The `cookie` function creates a new [cookie](/docs/{{version}}/requests#cookies) instance:
@@ -2530,6 +2659,7 @@ $cookie = cookie('name', 'value', $minutes);
 ```
 
 <a name="method-csrf-field"></a>
+
 #### `csrf_field()` {.collection-method}
 
 The `csrf_field` function generates an HTML `hidden` input field containing the value of the CSRF token. For example, using [Blade syntax](/docs/{{version}}/blade):
@@ -2539,6 +2669,7 @@ The `csrf_field` function generates an HTML `hidden` input field containing the 
 ```
 
 <a name="method-csrf-token"></a>
+
 #### `csrf_token()` {.collection-method}
 
 The `csrf_token` function retrieves the value of the current CSRF token:
@@ -2548,6 +2679,7 @@ $token = csrf_token();
 ```
 
 <a name="method-decrypt"></a>
+
 #### `decrypt()` {.collection-method}
 
 The `decrypt` function [decrypts](/docs/{{version}}/encryption) the given value. You may use this function as an alternative to the `Crypt` facade:
@@ -2559,6 +2691,7 @@ $password = decrypt($value);
 For the inverse of `decrypt`, see the [encrypt](#method-encrypt) function.
 
 <a name="method-dd"></a>
+
 #### `dd()` {.collection-method}
 
 The `dd` function dumps the given variables and ends the execution of the script:
@@ -2572,6 +2705,7 @@ dd($value1, $value2, $value3, ...);
 If you do not want to halt the execution of your script, use the [dump](#method-dump) function instead.
 
 <a name="method-dispatch"></a>
+
 #### `dispatch()` {.collection-method}
 
 The `dispatch` function pushes the given [job](/docs/{{version}}/queues#creating-jobs) onto the Laravel [job queue](/docs/{{version}}/queues):
@@ -2581,6 +2715,7 @@ dispatch(new App\Jobs\SendEmails);
 ```
 
 <a name="method-dispatch-sync"></a>
+
 #### `dispatch_sync()` {.collection-method}
 
 The `dispatch_sync` function pushes the given job to the [sync](/docs/{{version}}/queues#synchronous-dispatching) queue so that it is processed immediately:
@@ -2590,6 +2725,7 @@ dispatch_sync(new App\Jobs\SendEmails);
 ```
 
 <a name="method-dump"></a>
+
 #### `dump()` {.collection-method}
 
 The `dump` function dumps the given variables:
@@ -2603,6 +2739,7 @@ dump($value1, $value2, $value3, ...);
 If you want to stop executing the script after dumping the variables, use the [dd](#method-dd) function instead.
 
 <a name="method-encrypt"></a>
+
 #### `encrypt()` {.collection-method}
 
 The `encrypt` function [encrypts](/docs/{{version}}/encryption) the given value. You may use this function as an alternative to the `Crypt` facade:
@@ -2614,6 +2751,7 @@ $secret = encrypt('my-secret-value');
 For the inverse of `encrypt`, see the [decrypt](#method-decrypt) function.
 
 <a name="method-env"></a>
+
 #### `env()` {.collection-method}
 
 The `env` function retrieves the value of an [environment variable](/docs/{{version}}/configuration#environment-configuration) or returns a default value:
@@ -2628,6 +2766,7 @@ $env = env('APP_ENV', 'production');
 > If you execute the `config:cache` command during your deployment process, you should be sure that you are only calling the `env` function from within your configuration files. Once the configuration has been cached, the `.env` file will not be loaded and all calls to the `env` function will return external environment variables such as server-level or system-level environment variables or `null`.
 
 <a name="method-event"></a>
+
 #### `event()` {.collection-method}
 
 The `event` function dispatches the given [event](/docs/{{version}}/events) to its listeners:
@@ -2637,6 +2776,7 @@ event(new UserRegistered($user));
 ```
 
 <a name="method-fake"></a>
+
 #### `fake()` {.collection-method}
 
 The `fake` function resolves a [Faker](https://github.com/FakerPHP/Faker) singleton from the container, which can be useful when creating fake data in model factories, database seeding, tests, and prototyping views:
@@ -2660,6 +2800,7 @@ fake('nl_NL')->name()
 ```
 
 <a name="method-filled"></a>
+
 #### `filled()` {.collection-method}
 
 The `filled` function determines whether the given value is not "blank":
@@ -2682,6 +2823,7 @@ filled(collect());
 For the inverse of `filled`, see the [blank](#method-blank) function.
 
 <a name="method-info"></a>
+
 #### `info()` {.collection-method}
 
 The `info` function will write information to your application's [log](/docs/{{version}}/logging):
@@ -2697,6 +2839,7 @@ info('User login attempt failed.', ['id' => $user->id]);
 ```
 
 <a name="method-literal"></a>
+
 #### `literal()` {.collection-method}
 
 The `literal` function creates a new [stdClass](https://www.php.net/manual/en/class.stdclass.php) instance with the given named arguments as properties:
@@ -2712,6 +2855,7 @@ $obj->languages; // ['PHP', 'Ruby']
 ```
 
 <a name="method-logger"></a>
+
 #### `logger()` {.collection-method}
 
 The `logger` function can be used to write a `debug` level message to the [log](/docs/{{version}}/logging):
@@ -2733,6 +2877,7 @@ logger()->error('You are not allowed here.');
 ```
 
 <a name="method-method-field"></a>
+
 #### `method_field()` {.collection-method}
 
 The `method_field` function generates an HTML `hidden` input field containing the spoofed value of the form's HTTP verb. For example, using [Blade syntax](/docs/{{version}}/blade):
@@ -2744,6 +2889,7 @@ The `method_field` function generates an HTML `hidden` input field containing th
 ```
 
 <a name="method-now"></a>
+
 #### `now()` {.collection-method}
 
 The `now` function creates a new `Illuminate\Support\Carbon` instance for the current time:
@@ -2753,6 +2899,7 @@ $now = now();
 ```
 
 <a name="method-old"></a>
+
 #### `old()` {.collection-method}
 
 The `old` function [retrieves](/docs/{{version}}/requests#retrieving-input) an [old input](/docs/{{version}}/requests#old-input) value flashed into the session:
@@ -2774,6 +2921,7 @@ Since the "default value" provided as the second argument to the `old` function 
 ```
 
 <a name="method-once"></a>
+
 #### `once()` {.collection-method}
 
 The `once` function executes the given callback and caches the result in memory for the duration of the request. Any subsequent calls to the `once` function with the same callback will return the previously cached result:
@@ -2814,7 +2962,9 @@ $secondService = new NumberService;
 $secondService->all();
 $secondService->all(); // (cached result)
 ```
+
 <a name="method-optional"></a>
+
 #### `optional()` {.collection-method}
 
 The `optional` function accepts any argument and allows you to access properties or call methods on that object. If the given object is `null`, properties and methods will return `null` instead of causing an error:
@@ -2834,6 +2984,7 @@ return optional(User::find($id), function (User $user) {
 ```
 
 <a name="method-policy"></a>
+
 #### `policy()` {.collection-method}
 
 The `policy` method retrieves a [policy](/docs/{{version}}/authorization#creating-policies) instance for a given class:
@@ -2843,6 +2994,7 @@ $policy = policy(App\Models\User::class);
 ```
 
 <a name="method-redirect"></a>
+
 #### `redirect()` {.collection-method}
 
 The `redirect` function returns a [redirect HTTP response](/docs/{{version}}/responses#redirects), or returns the redirector instance if called with no arguments:
@@ -2856,6 +3008,7 @@ return redirect()->route('route.name');
 ```
 
 <a name="method-report"></a>
+
 #### `report()` {.collection-method}
 
 The `report` function will report an exception using your [exception handler](/docs/{{version}}/errors#handling-exceptions):
@@ -2871,6 +3024,7 @@ report('Something went wrong.');
 ```
 
 <a name="method-report-if"></a>
+
 #### `report_if()` {.collection-method}
 
 The `report_if` function will report an exception using your [exception handler](/docs/{{version}}/errors#handling-exceptions) if a given boolean expression evaluates to `true`:
@@ -2882,6 +3036,7 @@ report_if($shouldReport, 'Something went wrong.');
 ```
 
 <a name="method-report-unless"></a>
+
 #### `report_unless()` {.collection-method}
 
 The `report_unless` function will report an exception using your [exception handler](/docs/{{version}}/errors#handling-exceptions) if a given boolean expression evaluates to `false`:
@@ -2893,6 +3048,7 @@ report_unless($reportingDisabled, 'Something went wrong.');
 ```
 
 <a name="method-request"></a>
+
 #### `request()` {.collection-method}
 
 The `request` function returns the current [request](/docs/{{version}}/requests) instance or obtains an input field's value from the current request:
@@ -2904,6 +3060,7 @@ $value = request('key', $default);
 ```
 
 <a name="method-rescue"></a>
+
 #### `rescue()` {.collection-method}
 
 The `rescue` function executes the given closure and catches any exceptions that occur during its execution. All exceptions that are caught will be sent to your [exception handler](/docs/{{version}}/errors#handling-exceptions); however, the request will continue processing:
@@ -2939,6 +3096,7 @@ return rescue(function () {
 ```
 
 <a name="method-resolve"></a>
+
 #### `resolve()` {.collection-method}
 
 The `resolve` function resolves a given class or interface name to an instance using the [service container](/docs/{{version}}/container):
@@ -2948,6 +3106,7 @@ $api = resolve('HelpSpot\API');
 ```
 
 <a name="method-response"></a>
+
 #### `response()` {.collection-method}
 
 The `response` function creates a [response](/docs/{{version}}/responses) instance or obtains an instance of the response factory:
@@ -2959,6 +3118,7 @@ return response()->json(['foo' => 'bar'], 200, $headers);
 ```
 
 <a name="method-retry"></a>
+
 #### `retry()` {.collection-method}
 
 The `retry` function attempts to execute the given callback until the given maximum attempt threshold is met. If the callback does not throw an exception, its return value will be returned. If the callback throws an exception, it will automatically be retried. If the maximum attempt count is exceeded, the exception will be thrown:
@@ -3003,6 +3163,7 @@ return retry(5, function () {
 ```
 
 <a name="method-session"></a>
+
 #### `session()` {.collection-method}
 
 The `session` function may be used to get or set [session](/docs/{{version}}/session) values:
@@ -3026,6 +3187,7 @@ session()->put('key', $value);
 ```
 
 <a name="method-tap"></a>
+
 #### `tap()` {.collection-method}
 
 The `tap` function accepts two arguments: an arbitrary `$value` and a closure. The `$value` will be passed to the closure and then be returned by the `tap` function. The return value of the closure is irrelevant:
@@ -3056,6 +3218,7 @@ return $user->tap(function (User $user) {
 ```
 
 <a name="method-throw-if"></a>
+
 #### `throw_if()` {.collection-method}
 
 The `throw_if` function throws the given exception if a given boolean expression evaluates to `true`:
@@ -3071,6 +3234,7 @@ throw_if(
 ```
 
 <a name="method-throw-unless"></a>
+
 #### `throw_unless()` {.collection-method}
 
 The `throw_unless` function throws the given exception if a given boolean expression evaluates to `false`:
@@ -3086,6 +3250,7 @@ throw_unless(
 ```
 
 <a name="method-today"></a>
+
 #### `today()` {.collection-method}
 
 The `today` function creates a new `Illuminate\Support\Carbon` instance for the current date:
@@ -3095,6 +3260,7 @@ $today = today();
 ```
 
 <a name="method-trait-uses-recursive"></a>
+
 #### `trait_uses_recursive()` {.collection-method}
 
 The `trait_uses_recursive` function returns all traits used by a trait:
@@ -3104,6 +3270,7 @@ $traits = trait_uses_recursive(\Illuminate\Notifications\Notifiable::class);
 ```
 
 <a name="method-transform"></a>
+
 #### `transform()` {.collection-method}
 
 The `transform` function executes a closure on a given value if the value is not [blank](#method-blank) and then returns the return value of the closure:
@@ -3127,6 +3294,7 @@ $result = transform(null, $callback, 'The value is blank');
 ```
 
 <a name="method-validator"></a>
+
 #### `validator()` {.collection-method}
 
 The `validator` function creates a new [validator](/docs/{{version}}/validation) instance with the given arguments. You may use it as an alternative to the `Validator` facade:
@@ -3136,6 +3304,7 @@ $validator = validator($data, $rules, $messages);
 ```
 
 <a name="method-value"></a>
+
 #### `value()` {.collection-method}
 
 The `value` function returns the value it is given. However, if you pass a closure to the function, the closure will be executed and its returned value will be returned:
@@ -3163,6 +3332,7 @@ $result = value(function (string $name) {
 ```
 
 <a name="method-view"></a>
+
 #### `view()` {.collection-method}
 
 The `view` function retrieves a [view](/docs/{{version}}/views) instance:
@@ -3172,6 +3342,7 @@ return view('auth.login');
 ```
 
 <a name="method-with"></a>
+
 #### `with()` {.collection-method}
 
 The `with` function returns the value it is given. If a closure is passed as the second argument to the function, the closure will be executed and its returned value will be returned:
@@ -3195,6 +3366,7 @@ $result = with(5, null);
 ```
 
 <a name="method-when"></a>
+
 #### `when()` {.collection-method}
 
 The `when` function returns the value it is given if a given condition evaluates to `true`. Otherwise, `null` is returned. If a closure is passed as the second argument to the function, the closure will be executed and its returned value will be returned:
@@ -3214,9 +3386,11 @@ The `when` function is primarily useful for conditionally rendering HTML attribu
 ```
 
 <a name="other-utilities"></a>
+
 ## Other Utilities
 
 <a name="benchmarking"></a>
+
 ### Benchmarking
 
 Sometimes you may wish to quickly test the performance of certain parts of your application. On those occasions, you may utilize the `Benchmark` support class to measure the number of milliseconds it takes for the given callbacks to complete:
@@ -3250,6 +3424,7 @@ Sometimes, you may want to benchmark the execution of a callback while still obt
 ```
 
 <a name="dates"></a>
+
 ### Dates and Time
 
 Laravel includes [Carbon](https://carbon.nesbot.com/docs/), a powerful date and time manipulation library. To create a new `Carbon` instance, you may invoke the `now` function. This function is globally available within your Laravel application:
@@ -3281,6 +3456,7 @@ return now()->minus(weeks: 4);
 For a thorough discussion of Carbon and its features, please consult the [official Carbon documentation](https://carbon.nesbot.com/docs/).
 
 <a name="interval-functions"></a>
+
 #### Interval Functions
 
 Laravel also offers `milliseconds`, `seconds`, `minutes`, `hours`, `days`, `weeks`, `months`, and `years` functions that return `CarbonInterval` instances, which extend PHP's [DateInterval](https://www.php.net/manual/en/class.dateinterval.php) class. These functions may be used anywhere that Laravel accepts a `DateInterval` instance:
@@ -3294,6 +3470,7 @@ Cache::put('metrics', $metrics, minutes(10));
 ```
 
 <a name="deferred-functions"></a>
+
 ### Deferred Functions
 
 While Laravel's [queued jobs](/docs/{{version}}/queues) allow you to queue tasks for background processing, sometimes you may have simple tasks you would like to defer without configuring or maintaining a long-running queue worker.
@@ -3325,6 +3502,7 @@ defer(fn () => Metrics::reportOrder($order))->always();
 > If you have the [Swoole PHP extension](https://www.php.net/manual/en/book.swoole.php) installed, Laravel's `defer` function may conflict with Swoole's own global `defer` function, leading to web server errors. Make sure you call Laravel's `defer` helper by explicitly namespacing it: `use function Illuminate\Support\defer;`
 
 <a name="cancelling-deferred-functions"></a>
+
 #### Cancelling Deferred Functions
 
 If you need to cancel a deferred function before it is executed, you can use the `forget` method to cancel the function by its name. To name a deferred function, provide a second argument to the `Illuminate\Support\defer` function:
@@ -3336,6 +3514,7 @@ defer()->forget('reportMetrics');
 ```
 
 <a name="disabling-deferred-functions-in-tests"></a>
+
 #### Disabling Deferred Functions in Tests
 
 When writing tests, it may be useful to disable deferred functions. You may call `withoutDefer` in your test to instruct Laravel to invoke all deferred functions immediately:
@@ -3383,6 +3562,7 @@ abstract class TestCase extends BaseTestCase
 ```
 
 <a name="lottery"></a>
+
 ### Lottery
 
 Laravel's lottery class may be used to execute callbacks based on a set of given odds. This can be particularly useful when you only want to execute code for a percentage of your incoming requests:
@@ -3410,6 +3590,7 @@ DB::whenQueryingForLongerThan(
 ```
 
 <a name="testing-lotteries"></a>
+
 #### Testing Lotteries
 
 Laravel provides some simple methods to allow you to easily test your application's lottery invocations:
@@ -3429,6 +3610,7 @@ Lottery::determineResultsNormally();
 ```
 
 <a name="pipeline"></a>
+
 ### Pipeline
 
 Laravel's `Pipeline` facade provides a convenient way to "pipe" a given input through a series of invokable classes, closures, or callables, giving each class the opportunity to inspect or modify the input and invoke the next callable in the pipeline:
@@ -3484,6 +3666,7 @@ $user = Pipeline::send($user)
 ```
 
 <a name="sleep"></a>
+
 ### Sleep
 
 Laravel's `Sleep` class is a light-weight wrapper around PHP's native `sleep` and `usleep` functions, offering greater testability while also exposing a developer friendly API for working with time:
@@ -3538,6 +3721,7 @@ Sleep::for(1)->second()->and(10)->milliseconds();
 ```
 
 <a name="testing-sleep"></a>
+
 #### Testing Sleep
 
 When testing code that utilizes the `Sleep` class or PHP's native sleep functions, your test will pause execution. As you might expect, this makes your test suite significantly slower. For example, imagine you are testing the following code:
@@ -3657,6 +3841,7 @@ $start->diffForHumans(); // 1 second ago
 Laravel uses the `Sleep` class internally whenever it is pausing execution. For example, the [retry](#method-retry) helper uses the `Sleep` class when sleeping, allowing for improved testability when using that helper.
 
 <a name="timebox"></a>
+
 ### Timebox
 
 Laravel's `Timebox` class ensures that the given callback always takes a fixed amount of time to execute, even if its actual execution completes sooner. This is particularly useful for cryptographic operations and user authentication checks, where attackers might exploit variations in execution time to infer sensitive information.
@@ -3676,6 +3861,7 @@ use Illuminate\Support\Timebox;
 If an exception is thrown within the closure, this class will respect the defined delay and re-throw the exception after the delay.
 
 <a name="uri"></a>
+
 ### URI
 
 Laravel's `Uri` class provides a convenient and fluent interface for creating and manipulating URIs. This class wraps the functionality provided by the underlying League URI package and integrates seamlessly with Laravel's routing system.
@@ -3715,6 +3901,7 @@ $uri = Uri::of('https://example.com')
 ```
 
 <a name="inspecting-uris"></a>
+
 #### Inspecting URIs
 
 The `Uri` class also allows you to easily inspect the various components of the underlying URI:
@@ -3731,6 +3918,7 @@ $fragment = $uri->fragment();
 ```
 
 <a name="manipulating-query-strings"></a>
+
 #### Manipulating Query Strings
 
 The `Uri` class offers several methods that may be used to manipulate a URI's query string. The `withQuery` method may be used to merge additional query string parameters into the existing query string:
@@ -3764,6 +3952,7 @@ $uri = $uri->withoutQuery(['page']);
 ```
 
 <a name="generating-responses-from-uris"></a>
+
 #### Generating Responses From URIs
 
 The `redirect` method may be used to generate a `RedirectResponse` instance to the given URI:

@@ -14,8 +14,8 @@ export default defineConfig([
         ignores: [
             "**/dist/**",
             "coverage/**",
-            "docs/.vitepress/dist/**",
-            "docs/.vitepress/cache/**",
+            "docs/vitepress/vitepress/dist/**",
+            "docs/vitepress/.vitepress/cache/**",
         ],
     },
     {

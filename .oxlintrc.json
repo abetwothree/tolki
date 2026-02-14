@@ -10,8 +10,8 @@
     "ignorePatterns": [
         "**/dist/**",
         "coverage/**",
-        "docs/.vitepress/dist/**",
-        "docs/.vitepress/cache/**"
+        "docs/vitepress/vitepress/dist/**",
+        "docs/vitepress/.vitepress/cache/**"
     ],
     "rules": {
         "@typescript-eslint/ban-ts-comment": "error",

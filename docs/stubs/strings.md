@@ -4,11 +4,13 @@
 - [Available Methods](#available-methods)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 Laravel includes a variety of functions for manipulating string values. Many of these functions are used by the framework itself; however, you are free to use them in your own applications if you find them convenient.
 
 <a name="available-methods"></a>
+
 ## Available Methods
 
 <style>
@@ -25,11 +27,12 @@ Laravel includes a variety of functions for manipulating string values. Many of 
 </style>
 
 <a name="strings-method-list"></a>
+
 ### Strings
 
 <div class="collection-method-list" markdown="1">
 
-[\__](#method-__)
+[\_\_](#method-__)
 [class_basename](#method-class-basename)
 [e](#method-e)
 [preg_replace_array](#method-preg-replace-array)
@@ -129,6 +132,7 @@ Laravel includes a variety of functions for manipulating string values. Many of 
 </div>
 
 <a name="fluent-strings-method-list"></a>
+
 ### Fluent Strings
 
 <div class="collection-method-list" markdown="1">
@@ -253,9 +257,11 @@ Laravel includes a variety of functions for manipulating string values. Many of 
 </div>
 
 <a name="strings"></a>
+
 ## Strings
 
 <a name="method-__"></a>
+
 #### `__()` {.collection-method}
 
 The `__` function translates the given translation string or translation key using your [language files](/docs/{{version}}/localization):
@@ -269,6 +275,7 @@ echo __('messages.welcome');
 If the specified translation string or key does not exist, the `__` function will return the given value. So, using the example above, the `__` function would return `messages.welcome` if that translation key does not exist.
 
 <a name="method-class-basename"></a>
+
 #### `class_basename()` {.collection-method}
 
 The `class_basename` function returns the class name of the given class with the class's namespace removed:
@@ -280,6 +287,7 @@ $class = class_basename('Foo\Bar\Baz');
 ```
 
 <a name="method-e"></a>
+
 #### `e()` {.collection-method}
 
 The `e` function runs PHP's `htmlspecialchars` function with the `double_encode` option set to `true` by default:
@@ -291,6 +299,7 @@ echo e('<html>foo</html>');
 ```
 
 <a name="method-preg-replace-array"></a>
+
 #### `preg_replace_array()` {.collection-method}
 
 The `preg_replace_array` function replaces a given pattern in the string sequentially using an array:
@@ -304,6 +313,7 @@ $replaced = preg_replace_array('/:[a-z_]+/', ['8:30', '9:00'], $string);
 ```
 
 <a name="method-str-after"></a>
+
 #### `Str::after()` {.collection-method}
 
 The `Str::after` method returns everything after the given value in a string. The entire string will be returned if the value does not exist within the string:
@@ -317,6 +327,7 @@ $slice = Str::after('This is my name', 'This is');
 ```
 
 <a name="method-str-after-last"></a>
+
 #### `Str::afterLast()` {.collection-method}
 
 The `Str::afterLast` method returns everything after the last occurrence of the given value in a string. The entire string will be returned if the value does not exist within the string:
@@ -330,6 +341,7 @@ $slice = Str::afterLast('App\Http\Controllers\Controller', '\\');
 ```
 
 <a name="method-str-apa"></a>
+
 #### `Str::apa()` {.collection-method}
 
 The `Str::apa` method converts the given string to title case following the [APA guidelines](https://apastyle.apa.org/style-grammar-guidelines/capitalization/title-case):
@@ -343,6 +355,7 @@ $title = Str::apa('Creating A Project');
 ```
 
 <a name="method-str-ascii"></a>
+
 #### `Str::ascii()` {.collection-method}
 
 The `Str::ascii` method will attempt to transliterate the string into an ASCII value:
@@ -356,6 +369,7 @@ $slice = Str::ascii('û');
 ```
 
 <a name="method-str-before"></a>
+
 #### `Str::before()` {.collection-method}
 
 The `Str::before` method returns everything before the given value in a string:
@@ -369,6 +383,7 @@ $slice = Str::before('This is my name', 'my name');
 ```
 
 <a name="method-str-before-last"></a>
+
 #### `Str::beforeLast()` {.collection-method}
 
 The `Str::beforeLast` method returns everything before the last occurrence of the given value in a string:
@@ -382,6 +397,7 @@ $slice = Str::beforeLast('This is my name', 'is');
 ```
 
 <a name="method-str-between"></a>
+
 #### `Str::between()` {.collection-method}
 
 The `Str::between` method returns the portion of a string between two values:
@@ -395,6 +411,7 @@ $slice = Str::between('This is my name', 'This', 'name');
 ```
 
 <a name="method-str-between-first"></a>
+
 #### `Str::betweenFirst()` {.collection-method}
 
 The `Str::betweenFirst` method returns the smallest possible portion of a string between two values:
@@ -408,6 +425,7 @@ $slice = Str::betweenFirst('[a] bc [d]', '[', ']');
 ```
 
 <a name="method-camel-case"></a>
+
 #### `Str::camel()` {.collection-method}
 
 The `Str::camel` method converts the given string to `camelCase`:
@@ -421,6 +439,7 @@ $converted = Str::camel('foo_bar');
 ```
 
 <a name="method-char-at"></a>
+
 #### `Str::charAt()` {.collection-method}
 
 The `Str::charAt` method returns the character at the specified index. If the index is out of bounds, `false` is returned:
@@ -434,6 +453,7 @@ $character = Str::charAt('This is my name.', 6);
 ```
 
 <a name="method-str-chop-start"></a>
+
 #### `Str::chopStart()` {.collection-method}
 
 The `Str::chopStart` method removes the first occurrence of the given value only if the value appears at the start of the string:
@@ -457,6 +477,7 @@ $url = Str::chopStart('http://laravel.com', ['https://', 'http://']);
 ```
 
 <a name="method-str-chop-end"></a>
+
 #### `Str::chopEnd()` {.collection-method}
 
 The `Str::chopEnd` method removes the last occurrence of the given value only if the value appears at the end of the string:
@@ -480,6 +501,7 @@ $url = Str::chopEnd('laravel.com/index.php', ['/index.html', '/index.php']);
 ```
 
 <a name="method-str-contains"></a>
+
 #### `Str::contains()` {.collection-method}
 
 The `Str::contains` method determines if the given string contains the given value. By default, this method is case sensitive:
@@ -513,6 +535,7 @@ $contains = Str::contains('This is my name', 'MY', ignoreCase: true);
 ```
 
 <a name="method-str-contains-all"></a>
+
 #### `Str::containsAll()` {.collection-method}
 
 The `Str::containsAll` method determines if the given string contains all of the values in a given array:
@@ -536,6 +559,7 @@ $containsAll = Str::containsAll('This is my name', ['MY', 'NAME'], ignoreCase: t
 ```
 
 <a name="method-str-doesnt-contain"></a>
+
 #### `Str::doesntContain()` {.collection-method}
 
 The `Str::doesntContain` method determines if the given string doesn't contain the given value. By default, this method is case sensitive:
@@ -569,6 +593,7 @@ $doesntContain = Str::doesntContain('This is name', 'MY', ignoreCase: true);
 ```
 
 <a name="method-deduplicate"></a>
+
 #### `Str::deduplicate()` {.collection-method}
 
 The `Str::deduplicate` method replaces consecutive instances of a character with a single instance of that character in the given string. By default, the method deduplicates spaces:
@@ -592,6 +617,7 @@ $result = Str::deduplicate('The---Laravel---Framework', '-');
 ```
 
 <a name="method-str-doesnt-end-with"></a>
+
 #### `Str::doesntEndWith()` {.collection-method}
 
 The `Str::doesntEndWith` method determines if the given string doesn't end with the given value:
@@ -619,6 +645,7 @@ $result = Str::doesntEndWith('This is my name', ['name', 'foo']);
 ```
 
 <a name="method-str-doesnt-start-with"></a>
+
 #### `Str::doesntStartWith()` {.collection-method}
 
 The `Str::doesntStartWith` method determines if the given string doesn't begin with the given value:
@@ -640,6 +667,7 @@ $result = Str::doesntStartWith('This is my name', ['What', 'That', 'There']);
 ```
 
 <a name="method-ends-with"></a>
+
 #### `Str::endsWith()` {.collection-method}
 
 The `Str::endsWith` method determines if the given string ends with the given value:
@@ -667,6 +695,7 @@ $result = Str::endsWith('This is my name', ['this', 'foo']);
 ```
 
 <a name="method-excerpt"></a>
+
 #### `Str::excerpt()` {.collection-method}
 
 The `Str::excerpt` method extracts an excerpt from a given string that matches the first instance of a phrase within that string:
@@ -697,6 +726,7 @@ $excerpt = Str::excerpt('This is my name', 'name', [
 ```
 
 <a name="method-str-finish"></a>
+
 #### `Str::finish()` {.collection-method}
 
 The `Str::finish` method adds a single instance of the given value to a string if it does not already end with that value:
@@ -714,6 +744,7 @@ $adjusted = Str::finish('this/string/', '/');
 ```
 
 <a name="method-str-from-base64"></a>
+
 #### `Str::fromBase64()` {.collection-method}
 
 The `Str::fromBase64` method decodes the given Base64 string:
@@ -727,6 +758,7 @@ $decoded = Str::fromBase64('TGFyYXZlbA==');
 ```
 
 <a name="method-str-headline"></a>
+
 #### `Str::headline()` {.collection-method}
 
 The `Str::headline` method will convert strings delimited by casing, hyphens, or underscores into a space delimited string with each word's first letter capitalized:
@@ -744,6 +776,7 @@ $headline = Str::headline('EmailNotificationSent');
 ```
 
 <a name="method-str-inline-markdown"></a>
+
 #### `Str::inlineMarkdown()` {.collection-method}
 
 The `Str::inlineMarkdown` method converts GitHub flavored Markdown into inline HTML using [CommonMark](https://commonmark.thephpleague.com/). However, unlike the `markdown` method, it does not wrap all generated HTML in a block-level element:
@@ -772,6 +805,7 @@ Str::inlineMarkdown('Inject: <script>alert("Hello XSS!");</script>', [
 ```
 
 <a name="method-str-is"></a>
+
 #### `Str::is()` {.collection-method}
 
 The `Str::is` method determines if a given string matches a given pattern. Asterisks may be used as wildcard values:
@@ -799,6 +833,7 @@ $matches = Str::is('*.jpg', 'photo.JPG', ignoreCase: true);
 ```
 
 <a name="method-str-is-ascii"></a>
+
 #### `Str::isAscii()` {.collection-method}
 
 The `Str::isAscii` method determines if a given string is 7 bit ASCII:
@@ -816,6 +851,7 @@ $isAscii = Str::isAscii('ü');
 ```
 
 <a name="method-str-is-json"></a>
+
 #### `Str::isJson()` {.collection-method}
 
 The `Str::isJson` method determines if the given string is valid JSON:
@@ -837,6 +873,7 @@ $result = Str::isJson('{first: "John", last: "Doe"}');
 ```
 
 <a name="method-str-is-url"></a>
+
 #### `Str::isUrl()` {.collection-method}
 
 The `Str::isUrl` method determines if the given string is a valid URL:
@@ -860,6 +897,7 @@ $isUrl = Str::isUrl('http://example.com', ['http', 'https']);
 ```
 
 <a name="method-str-is-ulid"></a>
+
 #### `Str::isUlid()` {.collection-method}
 
 The `Str::isUlid` method determines if the given string is a valid ULID:
@@ -877,6 +915,7 @@ $isUlid = Str::isUlid('laravel');
 ```
 
 <a name="method-str-is-uuid"></a>
+
 #### `Str::isUuid()` {.collection-method}
 
 The `Str::isUuid` method determines if the given string is a valid UUID:
@@ -908,6 +947,7 @@ $isUuid = Str::isUuid('a0a2a2d2-0b87-4a18-83f2-2529882be2de', version: 1);
 ```
 
 <a name="method-kebab-case"></a>
+
 #### `Str::kebab()` {.collection-method}
 
 The `Str::kebab` method converts the given string to `kebab-case`:
@@ -921,6 +961,7 @@ $converted = Str::kebab('fooBar');
 ```
 
 <a name="method-str-lcfirst"></a>
+
 #### `Str::lcfirst()` {.collection-method}
 
 The `Str::lcfirst` method returns the given string with the first character lowercased:
@@ -934,6 +975,7 @@ $string = Str::lcfirst('Foo Bar');
 ```
 
 <a name="method-str-length"></a>
+
 #### `Str::length()` {.collection-method}
 
 The `Str::length` method returns the length of the given string:
@@ -947,6 +989,7 @@ $length = Str::length('Laravel');
 ```
 
 <a name="method-str-limit"></a>
+
 #### `Str::limit()` {.collection-method}
 
 The `Str::limit` method truncates the given string to the specified length:
@@ -976,6 +1019,7 @@ $truncated = Str::limit('The quick brown fox', 12, preserveWords: true);
 ```
 
 <a name="method-str-lower"></a>
+
 #### `Str::lower()` {.collection-method}
 
 The `Str::lower` method converts the given string to lowercase:
@@ -989,6 +1033,7 @@ $converted = Str::lower('LARAVEL');
 ```
 
 <a name="method-str-markdown"></a>
+
 #### `Str::markdown()` {.collection-method}
 
 The `Str::markdown` method converts GitHub flavored Markdown into HTML using [CommonMark](https://commonmark.thephpleague.com/):
@@ -1023,6 +1068,7 @@ Str::markdown('Inject: <script>alert("Hello XSS!");</script>', [
 ```
 
 <a name="method-str-mask"></a>
+
 #### `Str::mask()` {.collection-method}
 
 The `Str::mask` method masks a portion of a string with a repeated character, and may be used to obfuscate segments of strings such as email addresses and phone numbers:
@@ -1044,6 +1090,7 @@ $string = Str::mask('taylor@example.com', '*', -15, 3);
 ```
 
 <a name="method-str-match"></a>
+
 #### `Str::match()` {.collection-method}
 
 The `Str::match` method will return the portion of a string that matches a given regular expression pattern:
@@ -1061,6 +1108,7 @@ $result = Str::match('/foo (.*)/', 'foo bar');
 ```
 
 <a name="method-str-match-all"></a>
+
 #### `Str::matchAll()` {.collection-method}
 
 The `Str::matchAll` method will return a collection containing the portions of a string that match a given regular expression pattern:
@@ -1086,6 +1134,7 @@ $result = Str::matchAll('/f(\w*)/', 'bar fun bar fly');
 If no matches are found, an empty collection will be returned.
 
 <a name="method-str-is-match"></a>
+
 #### `Str::isMatch()` {.collection-method}
 
 The `Str::isMatch` method will return `true` if the string matches a given regular expression:
@@ -1103,6 +1152,7 @@ $result = Str::isMatch('/foo (.*)/', 'laravel');
 ```
 
 <a name="method-str-ordered-uuid"></a>
+
 #### `Str::orderedUuid()` {.collection-method}
 
 The `Str::orderedUuid` method generates a "timestamp first" UUID that may be efficiently stored in an indexed database column. Each UUID that is generated using this method will be sorted after UUIDs previously generated using the method:
@@ -1114,6 +1164,7 @@ return (string) Str::orderedUuid();
 ```
 
 <a name="method-str-padboth"></a>
+
 #### `Str::padBoth()` {.collection-method}
 
 The `Str::padBoth` method wraps PHP's `str_pad` function, padding both sides of a string with another string until the final string reaches a desired length:
@@ -1131,6 +1182,7 @@ $padded = Str::padBoth('James', 10);
 ```
 
 <a name="method-str-padleft"></a>
+
 #### `Str::padLeft()` {.collection-method}
 
 The `Str::padLeft` method wraps PHP's `str_pad` function, padding the left side of a string with another string until the final string reaches a desired length:
@@ -1148,6 +1200,7 @@ $padded = Str::padLeft('James', 10);
 ```
 
 <a name="method-str-padright"></a>
+
 #### `Str::padRight()` {.collection-method}
 
 The `Str::padRight` method wraps PHP's `str_pad` function, padding the right side of a string with another string until the final string reaches a desired length:
@@ -1165,6 +1218,7 @@ $padded = Str::padRight('James', 10);
 ```
 
 <a name="method-str-password"></a>
+
 #### `Str::password()` {.collection-method}
 
 The `Str::password` method may be used to generate a secure, random password of a given length. The password will consist of a combination of letters, numbers, symbols, and spaces. By default, passwords are 32 characters long:
@@ -1182,6 +1236,7 @@ $password = Str::password(12);
 ```
 
 <a name="method-str-plural"></a>
+
 #### `Str::plural()` {.collection-method}
 
 The `Str::plural` method converts a singular word string to its plural form. This function supports [any of the languages supported by Laravel's pluralizer](/docs/{{version}}/localization#pluralization-language):
@@ -1223,6 +1278,7 @@ $label = Str::plural('car', 1000, prependCount: true);
 ```
 
 <a name="method-str-plural-studly"></a>
+
 #### `Str::pluralStudly()` {.collection-method}
 
 The `Str::pluralStudly` method converts a singular word string formatted in studly caps case to its plural form. This function supports [any of the languages supported by Laravel's pluralizer](/docs/{{version}}/localization#pluralization-language):
@@ -1254,6 +1310,7 @@ $singular = Str::pluralStudly('VerifiedHuman', 1);
 ```
 
 <a name="method-str-position"></a>
+
 #### `Str::position()` {.collection-method}
 
 The `Str::position` method returns the position of the first occurrence of a substring in a string. If the substring does not exist in the given string, `false` is returned:
@@ -1271,6 +1328,7 @@ $position = Str::position('Hello, World!', 'W');
 ```
 
 <a name="method-str-random"></a>
+
 #### `Str::random()` {.collection-method}
 
 The `Str::random` method generates a random string of the specified length. This function uses PHP's `random_bytes` function:
@@ -1296,6 +1354,7 @@ Str::createRandomStringsNormally();
 ```
 
 <a name="method-str-remove"></a>
+
 #### `Str::remove()` {.collection-method}
 
 The `Str::remove` method removes the given value or array of values from the string:
@@ -1313,6 +1372,7 @@ $removed = Str::remove('e', $string);
 You may also pass `false` as a third argument to the `remove` method to ignore case when removing strings.
 
 <a name="method-str-repeat"></a>
+
 #### `Str::repeat()` {.collection-method}
 
 The `Str::repeat` method repeats the given string:
@@ -1328,6 +1388,7 @@ $repeat = Str::repeat($string, 5);
 ```
 
 <a name="method-str-replace"></a>
+
 #### `Str::replace()` {.collection-method}
 
 The `Str::replace` method replaces a given string within the string:
@@ -1356,6 +1417,7 @@ $replaced = Str::replace(
 ```
 
 <a name="method-str-replace-array"></a>
+
 #### `Str::replaceArray()` {.collection-method}
 
 The `Str::replaceArray` method replaces a given value in the string sequentially using an array:
@@ -1371,6 +1433,7 @@ $replaced = Str::replaceArray('?', ['8:30', '9:00'], $string);
 ```
 
 <a name="method-str-replace-first"></a>
+
 #### `Str::replaceFirst()` {.collection-method}
 
 The `Str::replaceFirst` method replaces the first occurrence of a given value in a string:
@@ -1384,6 +1447,7 @@ $replaced = Str::replaceFirst('the', 'a', 'the quick brown fox jumps over the la
 ```
 
 <a name="method-str-replace-last"></a>
+
 #### `Str::replaceLast()` {.collection-method}
 
 The `Str::replaceLast` method replaces the last occurrence of a given value in a string:
@@ -1397,6 +1461,7 @@ $replaced = Str::replaceLast('the', 'a', 'the quick brown fox jumps over the laz
 ```
 
 <a name="method-str-replace-matches"></a>
+
 #### `Str::replaceMatches()` {.collection-method}
 
 The `Str::replaceMatches` method replaces all portions of a string matching a pattern with the given replacement string:
@@ -1426,6 +1491,7 @@ $replaced = Str::replaceMatches('/\d/', function (array $matches) {
 ```
 
 <a name="method-str-replace-start"></a>
+
 #### `Str::replaceStart()` {.collection-method}
 
 The `Str::replaceStart` method replaces the first occurrence of the given value only if the value appears at the start of the string:
@@ -1443,6 +1509,7 @@ $replaced = Str::replaceStart('World', 'Laravel', 'Hello World');
 ```
 
 <a name="method-str-replace-end"></a>
+
 #### `Str::replaceEnd()` {.collection-method}
 
 The `Str::replaceEnd` method replaces the last occurrence of the given value only if the value appears at the end of the string:
@@ -1460,6 +1527,7 @@ $replaced = Str::replaceEnd('Hello', 'Laravel', 'Hello World');
 ```
 
 <a name="method-str-reverse"></a>
+
 #### `Str::reverse()` {.collection-method}
 
 The `Str::reverse` method reverses the given string:
@@ -1473,6 +1541,7 @@ $reversed = Str::reverse('Hello World');
 ```
 
 <a name="method-str-singular"></a>
+
 #### `Str::singular()` {.collection-method}
 
 The `Str::singular` method converts a string to its singular form. This function supports [any of the languages supported by Laravel's pluralizer](/docs/{{version}}/localization#pluralization-language):
@@ -1490,6 +1559,7 @@ $singular = Str::singular('children');
 ```
 
 <a name="method-str-slug"></a>
+
 #### `Str::slug()` {.collection-method}
 
 The `Str::slug` method generates a URL friendly "slug" from the given string:
@@ -1503,6 +1573,7 @@ $slug = Str::slug('Laravel 5 Framework', '-');
 ```
 
 <a name="method-snake-case"></a>
+
 #### `Str::snake()` {.collection-method}
 
 The `Str::snake` method converts the given string to `snake_case`:
@@ -1520,6 +1591,7 @@ $converted = Str::snake('fooBar', '-');
 ```
 
 <a name="method-str-squish"></a>
+
 #### `Str::squish()` {.collection-method}
 
 The `Str::squish` method removes all extraneous white space from a string, including extraneous white space between words:
@@ -1533,6 +1605,7 @@ $string = Str::squish('    laravel    framework    ');
 ```
 
 <a name="method-str-start"></a>
+
 #### `Str::start()` {.collection-method}
 
 The `Str::start` method adds a single instance of the given value to a string if it does not already start with that value:
@@ -1550,6 +1623,7 @@ $adjusted = Str::start('/this/string', '/');
 ```
 
 <a name="method-starts-with"></a>
+
 #### `Str::startsWith()` {.collection-method}
 
 The `Str::startsWith` method determines if the given string begins with the given value:
@@ -1571,6 +1645,7 @@ $result = Str::startsWith('This is my name', ['This', 'That', 'There']);
 ```
 
 <a name="method-studly-case"></a>
+
 #### `Str::studly()` {.collection-method}
 
 The `Str::studly` method converts the given string to `StudlyCase`:
@@ -1584,6 +1659,7 @@ $converted = Str::studly('foo_bar');
 ```
 
 <a name="method-str-substr"></a>
+
 #### `Str::substr()` {.collection-method}
 
 The `Str::substr` method returns the portion of string specified by the start and length parameters:
@@ -1597,6 +1673,7 @@ $converted = Str::substr('The Laravel Framework', 4, 7);
 ```
 
 <a name="method-str-substrcount"></a>
+
 #### `Str::substrCount()` {.collection-method}
 
 The `Str::substrCount` method returns the number of occurrences of a given value in the given string:
@@ -1610,6 +1687,7 @@ $count = Str::substrCount('If you like ice cream, you will like snow cones.', 'l
 ```
 
 <a name="method-str-substrreplace"></a>
+
 #### `Str::substrReplace()` {.collection-method}
 
 The `Str::substrReplace` method replaces text within a portion of a string, starting at the position specified by the third argument and replacing the number of characters specified by the fourth argument. Passing `0` to the method's fourth argument will insert the string at the specified position without replacing any of the existing characters in the string:
@@ -1625,6 +1703,7 @@ $result = Str::substrReplace('1300', ':', 2, 0);
 ```
 
 <a name="method-str-swap"></a>
+
 #### `Str::swap()` {.collection-method}
 
 The `Str::swap` method replaces multiple values in the given string using PHP's `strtr` function:
@@ -1641,6 +1720,7 @@ $string = Str::swap([
 ```
 
 <a name="method-take"></a>
+
 #### `Str::take()` {.collection-method}
 
 The `Str::take` method returns a specified number of characters from the beginning of a string:
@@ -1654,6 +1734,7 @@ $taken = Str::take('Build something amazing!', 5);
 ```
 
 <a name="method-title-case"></a>
+
 #### `Str::title()` {.collection-method}
 
 The `Str::title` method converts the given string to `Title Case`:
@@ -1667,6 +1748,7 @@ $converted = Str::title('a nice title uses the correct case');
 ```
 
 <a name="method-str-to-base64"></a>
+
 #### `Str::toBase64()` {.collection-method}
 
 The `Str::toBase64` method converts the given string to Base64:
@@ -1680,6 +1762,7 @@ $base64 = Str::toBase64('Laravel');
 ```
 
 <a name="method-str-transliterate"></a>
+
 #### `Str::transliterate()` {.collection-method}
 
 The `Str::transliterate` method will attempt to convert a given string into its closest ASCII representation:
@@ -1693,6 +1776,7 @@ $email = Str::transliterate('ⓣⓔⓢⓣ@ⓛⓐⓡⓐⓥⓔⓛ.ⓒⓞⓜ');
 ```
 
 <a name="method-str-trim"></a>
+
 #### `Str::trim()` {.collection-method}
 
 The `Str::trim` method strips whitespace (or other characters) from the beginning and end of the given string. Unlike PHP's native `trim` function, the `Str::trim` method also removes unicode whitespace characters:
@@ -1706,6 +1790,7 @@ $string = Str::trim(' foo bar ');
 ```
 
 <a name="method-str-ltrim"></a>
+
 #### `Str::ltrim()` {.collection-method}
 
 The `Str::ltrim` method strips whitespace (or other characters) from the beginning of the given string. Unlike PHP's native `ltrim` function, the `Str::ltrim` method also removes unicode whitespace characters:
@@ -1719,6 +1804,7 @@ $string = Str::ltrim('  foo bar  ');
 ```
 
 <a name="method-str-rtrim"></a>
+
 #### `Str::rtrim()` {.collection-method}
 
 The `Str::rtrim` method strips whitespace (or other characters) from the end of the given string. Unlike PHP's native `rtrim` function, the `Str::rtrim` method also removes unicode whitespace characters:
@@ -1732,6 +1818,7 @@ $string = Str::rtrim('  foo bar  ');
 ```
 
 <a name="method-str-ucfirst"></a>
+
 #### `Str::ucfirst()` {.collection-method}
 
 The `Str::ucfirst` method returns the given string with the first character capitalized:
@@ -1745,6 +1832,7 @@ $string = Str::ucfirst('foo bar');
 ```
 
 <a name="method-str-ucsplit"></a>
+
 #### `Str::ucsplit()` {.collection-method}
 
 The `Str::ucsplit` method splits the given string into an array by uppercase characters:
@@ -1758,6 +1846,7 @@ $segments = Str::ucsplit('FooBar');
 ```
 
 <a name="method-str-ucwords"></a>
+
 #### `Str::ucwords()` {.collection-method}
 
 The `Str::ucwords` method converts the first character of each word in the given string to uppercase:
@@ -1771,6 +1860,7 @@ $string = Str::ucwords('laravel framework');
 ```
 
 <a name="method-str-upper"></a>
+
 #### `Str::upper()` {.collection-method}
 
 The `Str::upper` method converts the given string to uppercase:
@@ -1784,6 +1874,7 @@ $string = Str::upper('laravel');
 ```
 
 <a name="method-str-ulid"></a>
+
 #### `Str::ulid()` {.collection-method}
 
 The `Str::ulid` method generates a ULID, which is a compact, time-ordered unique identifier:
@@ -1822,6 +1913,7 @@ Str::createUlidsNormally();
 ```
 
 <a name="method-str-unwrap"></a>
+
 #### `Str::unwrap()` {.collection-method}
 
 The `Str::unwrap` method removes the specified strings from the beginning and end of a given string:
@@ -1839,6 +1931,7 @@ Str::unwrap('{framework: "Laravel"}', '{', '}');
 ```
 
 <a name="method-str-uuid"></a>
+
 #### `Str::uuid()` {.collection-method}
 
 The `Str::uuid` method generates a UUID (version 4):
@@ -1866,6 +1959,7 @@ Str::createUuidsNormally();
 ```
 
 <a name="method-str-uuid7"></a>
+
 #### `Str::uuid7()` {.collection-method}
 
 The `Str::uuid7` method generates a UUID (version 7):
@@ -1883,6 +1977,7 @@ return (string) Str::uuid7(time: now());
 ```
 
 <a name="method-str-word-count"></a>
+
 #### `Str::wordCount()` {.collection-method}
 
 The `Str::wordCount` method returns the number of words that a string contains:
@@ -1894,6 +1989,7 @@ Str::wordCount('Hello, world!'); // 2
 ```
 
 <a name="method-str-word-wrap"></a>
+
 #### `Str::wordWrap()` {.collection-method}
 
 The `Str::wordWrap` method wraps a string to a given number of characters:
@@ -1913,6 +2009,7 @@ dog.
 ```
 
 <a name="method-str-words"></a>
+
 #### `Str::words()` {.collection-method}
 
 The `Str::words` method limits the number of words in a string. An additional string may be passed to this method via its third argument to specify which string should be appended to the end of the truncated string:
@@ -1926,6 +2023,7 @@ return Str::words('Perfectly balanced, as all things should be.', 3, ' >>>');
 ```
 
 <a name="method-str-wrap"></a>
+
 #### `Str::wrap()` {.collection-method}
 
 The `Str::wrap` method wraps the given string with an additional string or pair of strings:
@@ -1943,6 +2041,7 @@ Str::wrap('is', before: 'This ', after: ' Laravel!');
 ```
 
 <a name="method-str"></a>
+
 #### `str()` {.collection-method}
 
 The `str` function returns a new `Illuminate\Support\Stringable` instance of the given string. This function is equivalent to the `Str::of` method:
@@ -1962,6 +2061,7 @@ $snake = str()->snake('FooBar');
 ```
 
 <a name="method-trans"></a>
+
 #### `trans()` {.collection-method}
 
 The `trans` function translates the given translation key using your [language files](/docs/{{version}}/localization):
@@ -1973,6 +2073,7 @@ echo trans('messages.welcome');
 If the specified translation key does not exist, the `trans` function will return the given key. So, using the example above, the `trans` function would return `messages.welcome` if the translation key does not exist.
 
 <a name="method-trans-choice"></a>
+
 #### `trans_choice()` {.collection-method}
 
 The `trans_choice` function translates the given translation key with inflection:
@@ -1984,11 +2085,13 @@ echo trans_choice('messages.notifications', $unreadCount);
 If the specified translation key does not exist, the `trans_choice` function will return the given key. So, using the example above, the `trans_choice` function would return `messages.notifications` if the translation key does not exist.
 
 <a name="fluent-strings"></a>
+
 ## Fluent Strings
 
 Fluent strings provide a more fluent, object-oriented interface for working with string values, allowing you to chain multiple string operations together using a more readable syntax compared to traditional string operations.
 
 <a name="method-fluent-str-after"></a>
+
 #### `after` {.collection-method}
 
 The `after` method returns everything after the given value in a string. The entire string will be returned if the value does not exist within the string:
@@ -2002,6 +2105,7 @@ $slice = Str::of('This is my name')->after('This is');
 ```
 
 <a name="method-fluent-str-after-last"></a>
+
 #### `afterLast` {.collection-method}
 
 The `afterLast` method returns everything after the last occurrence of the given value in a string. The entire string will be returned if the value does not exist within the string:
@@ -2015,6 +2119,7 @@ $slice = Str::of('App\Http\Controllers\Controller')->afterLast('\\');
 ```
 
 <a name="method-fluent-str-apa"></a>
+
 #### `apa` {.collection-method}
 
 The `apa` method converts the given string to title case following the [APA guidelines](https://apastyle.apa.org/style-grammar-guidelines/capitalization/title-case):
@@ -2028,6 +2133,7 @@ $converted = Str::of('a nice title uses the correct case')->apa();
 ```
 
 <a name="method-fluent-str-append"></a>
+
 #### `append` {.collection-method}
 
 The `append` method appends the given values to the string:
@@ -2041,6 +2147,7 @@ $string = Str::of('Taylor')->append(' Otwell');
 ```
 
 <a name="method-fluent-str-ascii"></a>
+
 #### `ascii` {.collection-method}
 
 The `ascii` method will attempt to transliterate the string into an ASCII value:
@@ -2054,6 +2161,7 @@ $string = Str::of('ü')->ascii();
 ```
 
 <a name="method-fluent-str-basename"></a>
+
 #### `basename` {.collection-method}
 
 The `basename` method will return the trailing name component of the given string:
@@ -2077,6 +2185,7 @@ $string = Str::of('/foo/bar/baz.jpg')->basename('.jpg');
 ```
 
 <a name="method-fluent-str-before"></a>
+
 #### `before` {.collection-method}
 
 The `before` method returns everything before the given value in a string:
@@ -2090,6 +2199,7 @@ $slice = Str::of('This is my name')->before('my name');
 ```
 
 <a name="method-fluent-str-before-last"></a>
+
 #### `beforeLast` {.collection-method}
 
 The `beforeLast` method returns everything before the last occurrence of the given value in a string:
@@ -2103,6 +2213,7 @@ $slice = Str::of('This is my name')->beforeLast('is');
 ```
 
 <a name="method-fluent-str-between"></a>
+
 #### `between` {.collection-method}
 
 The `between` method returns the portion of a string between two values:
@@ -2116,6 +2227,7 @@ $converted = Str::of('This is my name')->between('This', 'name');
 ```
 
 <a name="method-fluent-str-between-first"></a>
+
 #### `betweenFirst` {.collection-method}
 
 The `betweenFirst` method returns the smallest possible portion of a string between two values:
@@ -2129,6 +2241,7 @@ $converted = Str::of('[a] bc [d]')->betweenFirst('[', ']');
 ```
 
 <a name="method-fluent-str-camel"></a>
+
 #### `camel` {.collection-method}
 
 The `camel` method converts the given string to `camelCase`:
@@ -2142,6 +2255,7 @@ $converted = Str::of('foo_bar')->camel();
 ```
 
 <a name="method-fluent-str-char-at"></a>
+
 #### `charAt` {.collection-method}
 
 The `charAt` method returns the character at the specified index. If the index is out of bounds, `false` is returned:
@@ -2155,6 +2269,7 @@ $character = Str::of('This is my name.')->charAt(6);
 ```
 
 <a name="method-fluent-str-class-basename"></a>
+
 #### `classBasename` {.collection-method}
 
 The `classBasename` method returns the class name of the given class with the class's namespace removed:
@@ -2168,6 +2283,7 @@ $class = Str::of('Foo\Bar\Baz')->classBasename();
 ```
 
 <a name="method-fluent-str-chop-start"></a>
+
 #### `chopStart` {.collection-method}
 
 The `chopStart` method removes the first occurrence of the given value only if the value appears at the start of the string:
@@ -2191,6 +2307,7 @@ $url = Str::of('http://laravel.com')->chopStart(['https://', 'http://']);
 ```
 
 <a name="method-fluent-str-chop-end"></a>
+
 #### `chopEnd` {.collection-method}
 
 The `chopEnd` method removes the last occurrence of the given value only if the value appears at the end of the string:
@@ -2214,6 +2331,7 @@ $url = Str::of('http://laravel.com')->chopEnd(['.com', '.io']);
 ```
 
 <a name="method-fluent-str-contains"></a>
+
 #### `contains` {.collection-method}
 
 The `contains` method determines if the given string contains the given value. By default, this method is case sensitive:
@@ -2247,6 +2365,7 @@ $contains = Str::of('This is my name')->contains('MY', ignoreCase: true);
 ```
 
 <a name="method-fluent-str-contains-all"></a>
+
 #### `containsAll` {.collection-method}
 
 The `containsAll` method determines if the given string contains all of the values in the given array:
@@ -2270,6 +2389,7 @@ $containsAll = Str::of('This is my name')->containsAll(['MY', 'NAME'], ignoreCas
 ```
 
 <a name="method-fluent-str-decrypt"></a>
+
 #### `decrypt` {.collection-method}
 
 The `decrypt` method [decrypts](/docs/{{version}}/encryption) the encrypted string:
@@ -2285,6 +2405,7 @@ $decrypted = $encrypted->decrypt();
 For the inverse of `decrypt`, see the [encrypt](#method-fluent-str-encrypt) method.
 
 <a name="method-fluent-str-deduplicate"></a>
+
 #### `deduplicate` {.collection-method}
 
 The `deduplicate` method replaces consecutive instances of a character with a single instance of that character in the given string. By default, the method deduplicates spaces:
@@ -2308,6 +2429,7 @@ $result = Str::of('The---Laravel---Framework')->deduplicate('-');
 ```
 
 <a name="method-fluent-str-dirname"></a>
+
 #### `dirname` {.collection-method}
 
 The `dirname` method returns the parent directory portion of the given string:
@@ -2331,6 +2453,7 @@ $string = Str::of('/foo/bar/baz')->dirname(2);
 ```
 
 <a name="method-fluent-str-doesnt-contain"></a>
+
 #### `doesntContain()` {.collection-method}
 
 The `doesntContain` method determines if the given string does not contain the given value. This method is the inverse of the [contains](#method-fluent-str-contains) method. By default, this method is case sensitive:
@@ -2364,6 +2487,7 @@ $doesntContain = Str::of('This is my name')->doesntContain('MY', ignoreCase: tru
 ```
 
 <a name="method-fluent-str-doesnt-end-with"></a>
+
 #### `doesntEndWith` {.collection-method}
 
 The `doesntEndWith` method determines if the given string doesn't end with the given value:
@@ -2391,6 +2515,7 @@ $result = Str::of('This is my name')->doesntEndWith(['name', 'foo']);
 ```
 
 <a name="method-fluent-str-doesnt-start-with"></a>
+
 #### `doesntStartWith` {.collection-method}
 
 The `doesntStartWith` method determines if the given string doesn't begin with the given value:
@@ -2414,6 +2539,7 @@ $result = Str::of('This is my name')->doesntStartWith(['What', 'That', 'There'])
 ```
 
 <a name="method-fluent-str-encrypt"></a>
+
 #### `encrypt` {.collection-method}
 
 The `encrypt` method [encrypts](/docs/{{version}}/encryption) the string:
@@ -2427,6 +2553,7 @@ $encrypted = Str::of('secret')->encrypt();
 For the inverse of `encrypt`, see the [decrypt](#method-fluent-str-decrypt) method.
 
 <a name="method-fluent-str-ends-with"></a>
+
 #### `endsWith` {.collection-method}
 
 The `endsWith` method determines if the given string ends with the given value:
@@ -2454,6 +2581,7 @@ $result = Str::of('This is my name')->endsWith(['this', 'foo']);
 ```
 
 <a name="method-fluent-str-exactly"></a>
+
 #### `exactly` {.collection-method}
 
 The `exactly` method determines if the given string is an exact match with another string:
@@ -2467,6 +2595,7 @@ $result = Str::of('Laravel')->exactly('Laravel');
 ```
 
 <a name="method-fluent-str-excerpt"></a>
+
 #### `excerpt` {.collection-method}
 
 The `excerpt` method extracts an excerpt from the string that matches the first instance of a phrase within that string:
@@ -2497,6 +2626,7 @@ $excerpt = Str::of('This is my name')->excerpt('name', [
 ```
 
 <a name="method-fluent-str-explode"></a>
+
 #### `explode` {.collection-method}
 
 The `explode` method splits the string by the given delimiter and returns a collection containing each section of the split string:
@@ -2510,6 +2640,7 @@ $collection = Str::of('foo bar baz')->explode(' ');
 ```
 
 <a name="method-fluent-str-finish"></a>
+
 #### `finish` {.collection-method}
 
 The `finish` method adds a single instance of the given value to a string if it does not already end with that value:
@@ -2527,6 +2658,7 @@ $adjusted = Str::of('this/string/')->finish('/');
 ```
 
 <a name="method-fluent-str-from-base64"></a>
+
 #### `fromBase64` {.collection-method}
 
 The `fromBase64` method decodes the given Base64 string:
@@ -2540,6 +2672,7 @@ $decoded = Str::of('TGFyYXZlbA==')->fromBase64();
 ```
 
 <a name="method-fluent-str-hash"></a>
+
 #### `hash` {.collection-method}
 
 The `hash` method hashes the string using the given [algorithm](https://www.php.net/manual/en/function.hash-algos.php):
@@ -2553,6 +2686,7 @@ $hashed = Str::of('secret')->hash(algorithm: 'sha256');
 ```
 
 <a name="method-fluent-str-headline"></a>
+
 #### `headline` {.collection-method}
 
 The `headline` method will convert strings delimited by casing, hyphens, or underscores into a space delimited string with each word's first letter capitalized:
@@ -2570,6 +2704,7 @@ $headline = Str::of('EmailNotificationSent')->headline();
 ```
 
 <a name="method-fluent-str-inline-markdown"></a>
+
 #### `inlineMarkdown` {.collection-method}
 
 The `inlineMarkdown` method converts GitHub flavored Markdown into inline HTML using [CommonMark](https://commonmark.thephpleague.com/). However, unlike the `markdown` method, it does not wrap all generated HTML in a block-level element:
@@ -2598,6 +2733,7 @@ Str::of('Inject: <script>alert("Hello XSS!");</script>')->inlineMarkdown([
 ```
 
 <a name="method-fluent-str-is"></a>
+
 #### `is` {.collection-method}
 
 The `is` method determines if a given string matches a given pattern. Asterisks may be used as wildcard values
@@ -2615,6 +2751,7 @@ $matches = Str::of('foobar')->is('baz*');
 ```
 
 <a name="method-fluent-str-is-ascii"></a>
+
 #### `isAscii` {.collection-method}
 
 The `isAscii` method determines if a given string is an ASCII string:
@@ -2632,6 +2769,7 @@ $result = Str::of('ü')->isAscii();
 ```
 
 <a name="method-fluent-str-is-empty"></a>
+
 #### `isEmpty` {.collection-method}
 
 The `isEmpty` method determines if the given string is empty:
@@ -2649,6 +2787,7 @@ $result = Str::of('Laravel')->trim()->isEmpty();
 ```
 
 <a name="method-fluent-str-is-not-empty"></a>
+
 #### `isNotEmpty` {.collection-method}
 
 The `isNotEmpty` method determines if the given string is not empty:
@@ -2666,6 +2805,7 @@ $result = Str::of('Laravel')->trim()->isNotEmpty();
 ```
 
 <a name="method-fluent-str-is-json"></a>
+
 #### `isJson` {.collection-method}
 
 The `isJson` method determines if a given string is valid JSON:
@@ -2687,6 +2827,7 @@ $result = Str::of('{first: "John", last: "Doe"}')->isJson();
 ```
 
 <a name="method-fluent-str-is-ulid"></a>
+
 #### `isUlid` {.collection-method}
 
 The `isUlid` method determines if a given string is a ULID:
@@ -2704,6 +2845,7 @@ $result = Str::of('Taylor')->isUlid();
 ```
 
 <a name="method-fluent-str-is-url"></a>
+
 #### `isUrl` {.collection-method}
 
 The `isUrl` method determines if a given string is a URL:
@@ -2727,6 +2869,7 @@ $result = Str::of('http://example.com')->isUrl(['http', 'https']);
 ```
 
 <a name="method-fluent-str-is-uuid"></a>
+
 #### `isUuid` {.collection-method}
 
 The `isUuid` method determines if a given string is a UUID:
@@ -2758,6 +2901,7 @@ $isUuid = Str::of('a0a2a2d2-0b87-4a18-83f2-2529882be2de')->isUuid(version: 1);
 ```
 
 <a name="method-fluent-str-kebab"></a>
+
 #### `kebab` {.collection-method}
 
 The `kebab` method converts the given string to `kebab-case`:
@@ -2771,6 +2915,7 @@ $converted = Str::of('fooBar')->kebab();
 ```
 
 <a name="method-fluent-str-lcfirst"></a>
+
 #### `lcfirst` {.collection-method}
 
 The `lcfirst` method returns the given string with the first character lowercased:
@@ -2784,6 +2929,7 @@ $string = Str::of('Foo Bar')->lcfirst();
 ```
 
 <a name="method-fluent-str-length"></a>
+
 #### `length` {.collection-method}
 
 The `length` method returns the length of the given string:
@@ -2797,6 +2943,7 @@ $length = Str::of('Laravel')->length();
 ```
 
 <a name="method-fluent-str-limit"></a>
+
 #### `limit` {.collection-method}
 
 The `limit` method truncates the given string to the specified length:
@@ -2826,6 +2973,7 @@ $truncated = Str::of('The quick brown fox')->limit(12, preserveWords: true);
 ```
 
 <a name="method-fluent-str-lower"></a>
+
 #### `lower` {.collection-method}
 
 The `lower` method converts the given string to lowercase:
@@ -2839,6 +2987,7 @@ $result = Str::of('LARAVEL')->lower();
 ```
 
 <a name="method-fluent-str-markdown"></a>
+
 #### `markdown` {.collection-method}
 
 The `markdown` method converts GitHub flavored Markdown into HTML:
@@ -2873,6 +3022,7 @@ Str::of('Inject: <script>alert("Hello XSS!");</script>')->markdown([
 ```
 
 <a name="method-fluent-str-mask"></a>
+
 #### `mask` {.collection-method}
 
 The `mask` method masks a portion of a string with a repeated character, and may be used to obfuscate segments of strings such as email addresses and phone numbers:
@@ -2898,6 +3048,7 @@ $string = Str::of('taylor@example.com')->mask('*', 4, -4);
 ```
 
 <a name="method-fluent-str-match"></a>
+
 #### `match` {.collection-method}
 
 The `match` method will return the portion of a string that matches a given regular expression pattern:
@@ -2915,6 +3066,7 @@ $result = Str::of('foo bar')->match('/foo (.*)/');
 ```
 
 <a name="method-fluent-str-match-all"></a>
+
 #### `matchAll` {.collection-method}
 
 The `matchAll` method will return a collection containing the portions of a string that match a given regular expression pattern:
@@ -2940,6 +3092,7 @@ $result = Str::of('bar fun bar fly')->matchAll('/f(\w*)/');
 If no matches are found, an empty collection will be returned.
 
 <a name="method-fluent-str-is-match"></a>
+
 #### `isMatch` {.collection-method}
 
 The `isMatch` method will return `true` if the string matches a given regular expression:
@@ -2957,6 +3110,7 @@ $result = Str::of('laravel')->isMatch('/foo (.*)/');
 ```
 
 <a name="method-fluent-str-new-line"></a>
+
 #### `newLine` {.collection-method}
 
 The `newLine` method appends an "end of line" character to a string:
@@ -2971,6 +3125,7 @@ $padded = Str::of('Laravel')->newLine()->append('Framework');
 ```
 
 <a name="method-fluent-str-padboth"></a>
+
 #### `padBoth` {.collection-method}
 
 The `padBoth` method wraps PHP's `str_pad` function, padding both sides of a string with another string until the final string reaches the desired length:
@@ -2988,6 +3143,7 @@ $padded = Str::of('James')->padBoth(10);
 ```
 
 <a name="method-fluent-str-padleft"></a>
+
 #### `padLeft` {.collection-method}
 
 The `padLeft` method wraps PHP's `str_pad` function, padding the left side of a string with another string until the final string reaches the desired length:
@@ -3005,6 +3161,7 @@ $padded = Str::of('James')->padLeft(10);
 ```
 
 <a name="method-fluent-str-padright"></a>
+
 #### `padRight` {.collection-method}
 
 The `padRight` method wraps PHP's `str_pad` function, padding the right side of a string with another string until the final string reaches the desired length:
@@ -3022,6 +3179,7 @@ $padded = Str::of('James')->padRight(10);
 ```
 
 <a name="method-fluent-str-pipe"></a>
+
 #### `pipe` {.collection-method}
 
 The `pipe` method allows you to transform the string by passing its current value to the given callable:
@@ -3042,6 +3200,7 @@ $closure = Str::of('foo')->pipe(function (Stringable $str) {
 ```
 
 <a name="method-fluent-str-plural"></a>
+
 #### `plural` {.collection-method}
 
 The `plural` method converts a singular word string to its plural form. This function supports [any of the languages supported by Laravel's pluralizer](/docs/{{version}}/localization#pluralization-language):
@@ -3083,6 +3242,7 @@ $label = Str::of('car')->plural(1000, prependCount: true);
 ```
 
 <a name="method-fluent-str-position"></a>
+
 #### `position` {.collection-method}
 
 The `position` method returns the position of the first occurrence of a substring in a string. If the substring does not exist within the string, `false` is returned:
@@ -3100,6 +3260,7 @@ $position = Str::of('Hello, World!')->position('W');
 ```
 
 <a name="method-fluent-str-prepend"></a>
+
 #### `prepend` {.collection-method}
 
 The `prepend` method prepends the given values onto the string:
@@ -3113,6 +3274,7 @@ $string = Str::of('Framework')->prepend('Laravel ');
 ```
 
 <a name="method-fluent-str-remove"></a>
+
 #### `remove` {.collection-method}
 
 The `remove` method removes the given value or array of values from the string:
@@ -3128,6 +3290,7 @@ $string = Str::of('Arkansas is quite beautiful!')->remove('quite ');
 You may also pass `false` as a second parameter to ignore case when removing strings.
 
 <a name="method-fluent-str-repeat"></a>
+
 #### `repeat` {.collection-method}
 
 The `repeat` method repeats the given string:
@@ -3141,6 +3304,7 @@ $repeated = Str::of('a')->repeat(5);
 ```
 
 <a name="method-fluent-str-replace"></a>
+
 #### `replace` {.collection-method}
 
 The `replace` method replaces a given string within the string:
@@ -3162,6 +3326,7 @@ $replaced = Str::of('macOS 13.x')->replace(
 ```
 
 <a name="method-fluent-str-replace-array"></a>
+
 #### `replaceArray` {.collection-method}
 
 The `replaceArray` method replaces a given value in the string sequentially using an array:
@@ -3177,6 +3342,7 @@ $replaced = Str::of($string)->replaceArray('?', ['8:30', '9:00']);
 ```
 
 <a name="method-fluent-str-replace-first"></a>
+
 #### `replaceFirst` {.collection-method}
 
 The `replaceFirst` method replaces the first occurrence of a given value in a string:
@@ -3190,6 +3356,7 @@ $replaced = Str::of('the quick brown fox jumps over the lazy dog')->replaceFirst
 ```
 
 <a name="method-fluent-str-replace-last"></a>
+
 #### `replaceLast` {.collection-method}
 
 The `replaceLast` method replaces the last occurrence of a given value in a string:
@@ -3203,6 +3370,7 @@ $replaced = Str::of('the quick brown fox jumps over the lazy dog')->replaceLast(
 ```
 
 <a name="method-fluent-str-replace-matches"></a>
+
 #### `replaceMatches` {.collection-method}
 
 The `replaceMatches` method replaces all portions of a string matching a pattern with the given replacement string:
@@ -3228,6 +3396,7 @@ $replaced = Str::of('123')->replaceMatches('/\d/', function (array $matches) {
 ```
 
 <a name="method-fluent-str-replace-start"></a>
+
 #### `replaceStart` {.collection-method}
 
 The `replaceStart` method replaces the first occurrence of the given value only if the value appears at the start of the string:
@@ -3245,6 +3414,7 @@ $replaced = Str::of('Hello World')->replaceStart('World', 'Laravel');
 ```
 
 <a name="method-fluent-str-replace-end"></a>
+
 #### `replaceEnd` {.collection-method}
 
 The `replaceEnd` method replaces the last occurrence of the given value only if the value appears at the end of the string:
@@ -3262,6 +3432,7 @@ $replaced = Str::of('Hello World')->replaceEnd('Hello', 'Laravel');
 ```
 
 <a name="method-fluent-str-scan"></a>
+
 #### `scan` {.collection-method}
 
 The `scan` method parses input from a string into a collection according to a format supported by the [`sscanf` PHP function](https://www.php.net/manual/en/function.sscanf.php):
@@ -3275,6 +3446,7 @@ $collection = Str::of('filename.jpg')->scan('%[^.].%s');
 ```
 
 <a name="method-fluent-str-singular"></a>
+
 #### `singular` {.collection-method}
 
 The `singular` method converts a string to its singular form. This function supports [any of the languages supported by Laravel's pluralizer](/docs/{{version}}/localization#pluralization-language):
@@ -3292,6 +3464,7 @@ $singular = Str::of('children')->singular();
 ```
 
 <a name="method-fluent-str-slug"></a>
+
 #### `slug` {.collection-method}
 
 The `slug` method generates a URL friendly "slug" from the given string:
@@ -3305,6 +3478,7 @@ $slug = Str::of('Laravel Framework')->slug('-');
 ```
 
 <a name="method-fluent-str-snake"></a>
+
 #### `snake` {.collection-method}
 
 The `snake` method converts the given string to `snake_case`:
@@ -3318,6 +3492,7 @@ $converted = Str::of('fooBar')->snake();
 ```
 
 <a name="method-fluent-str-split"></a>
+
 #### `split` {.collection-method}
 
 The `split` method splits a string into a collection using a regular expression:
@@ -3331,6 +3506,7 @@ $segments = Str::of('one, two, three')->split('/[\s,]+/');
 ```
 
 <a name="method-fluent-str-squish"></a>
+
 #### `squish` {.collection-method}
 
 The `squish` method removes all extraneous white space from a string, including extraneous white space between words:
@@ -3344,6 +3520,7 @@ $string = Str::of('    laravel    framework    ')->squish();
 ```
 
 <a name="method-fluent-str-start"></a>
+
 #### `start` {.collection-method}
 
 The `start` method adds a single instance of the given value to a string if it does not already start with that value:
@@ -3361,6 +3538,7 @@ $adjusted = Str::of('/this/string')->start('/');
 ```
 
 <a name="method-fluent-str-starts-with"></a>
+
 #### `startsWith` {.collection-method}
 
 The `startsWith` method determines if the given string begins with the given value:
@@ -3384,6 +3562,7 @@ $result = Str::of('This is my name')->startsWith(['This', 'That']);
 ```
 
 <a name="method-fluent-str-strip-tags"></a>
+
 #### `stripTags` {.collection-method}
 
 The `stripTags` method removes all HTML and PHP tags from a string:
@@ -3401,6 +3580,7 @@ $result = Str::of('<a href="https://laravel.com">Taylor <b>Otwell</b></a>')->str
 ```
 
 <a name="method-fluent-str-studly"></a>
+
 #### `studly` {.collection-method}
 
 The `studly` method converts the given string to `StudlyCase`:
@@ -3414,6 +3594,7 @@ $converted = Str::of('foo_bar')->studly();
 ```
 
 <a name="method-fluent-str-substr"></a>
+
 #### `substr` {.collection-method}
 
 The `substr` method returns the portion of the string specified by the given start and length parameters:
@@ -3431,6 +3612,7 @@ $string = Str::of('Laravel Framework')->substr(8, 5);
 ```
 
 <a name="method-fluent-str-substrreplace"></a>
+
 #### `substrReplace` {.collection-method}
 
 The `substrReplace` method replaces text within a portion of a string, starting at the position specified by the second argument and replacing the number of characters specified by the third argument. Passing `0` to the method's third argument will insert the string at the specified position without replacing any of the existing characters in the string:
@@ -3448,6 +3630,7 @@ $string = Str::of('The Framework')->substrReplace(' Laravel', 3, 0);
 ```
 
 <a name="method-fluent-str-swap"></a>
+
 #### `swap` {.collection-method}
 
 The `swap` method replaces multiple values in the string using PHP's `strtr` function:
@@ -3465,6 +3648,7 @@ $string = Str::of('Tacos are great!')
 ```
 
 <a name="method-fluent-str-take"></a>
+
 #### `take` {.collection-method}
 
 The `take` method returns a specified number of characters from the beginning of the string:
@@ -3478,6 +3662,7 @@ $taken = Str::of('Build something amazing!')->take(5);
 ```
 
 <a name="method-fluent-str-tap"></a>
+
 #### `tap` {.collection-method}
 
 The `tap` method passes the string to the given closure, allowing you to examine and interact with the string while not affecting the string itself. The original string is returned by the `tap` method regardless of what is returned by the closure:
@@ -3497,6 +3682,7 @@ $string = Str::of('Laravel')
 ```
 
 <a name="method-fluent-str-test"></a>
+
 #### `test` {.collection-method}
 
 The `test` method determines if a string matches the given regular expression pattern:
@@ -3510,6 +3696,7 @@ $result = Str::of('Laravel Framework')->test('/Laravel/');
 ```
 
 <a name="method-fluent-str-title"></a>
+
 #### `title` {.collection-method}
 
 The `title` method converts the given string to `Title Case`:
@@ -3523,6 +3710,7 @@ $converted = Str::of('a nice title uses the correct case')->title();
 ```
 
 <a name="method-fluent-str-to-base64"></a>
+
 #### `toBase64` {.collection-method}
 
 The `toBase64` method converts the given string to Base64:
@@ -3536,6 +3724,7 @@ $base64 = Str::of('Laravel')->toBase64();
 ```
 
 <a name="method-fluent-str-to-html-string"></a>
+
 #### `toHtmlString` {.collection-method}
 
 The `toHtmlString` method converts the given string to an instance of `Illuminate\Support\HtmlString`, which will not be escaped when rendered in Blade templates:
@@ -3547,6 +3736,7 @@ $htmlString = Str::of('Nuno Maduro')->toHtmlString();
 ```
 
 <a name="method-fluent-str-to-uri"></a>
+
 #### `toUri` {.collection-method}
 
 The `toUri` method converts the given string to an instance of [Illuminate\Support\Uri](/docs/{{version}}/helpers#uri):
@@ -3558,6 +3748,7 @@ $uri = Str::of('https://example.com')->toUri();
 ```
 
 <a name="method-fluent-str-transliterate"></a>
+
 #### `transliterate` {.collection-method}
 
 The `transliterate` method will attempt to convert a given string into its closest ASCII representation:
@@ -3571,6 +3762,7 @@ $email = Str::of('ⓣⓔⓢⓣ@ⓛⓐⓡⓐⓥⓔⓛ.ⓒⓞⓜ')->transliterate(
 ```
 
 <a name="method-fluent-str-trim"></a>
+
 #### `trim` {.collection-method}
 
 The `trim` method trims the given string. Unlike PHP's native `trim` function, Laravel's `trim` method also removes unicode whitespace characters:
@@ -3588,6 +3780,7 @@ $string = Str::of('/Laravel/')->trim('/');
 ```
 
 <a name="method-fluent-str-ltrim"></a>
+
 #### `ltrim` {.collection-method}
 
 The `ltrim` method trims the left side of the string. Unlike PHP's native `ltrim` function, Laravel's `ltrim` method also removes unicode whitespace characters:
@@ -3605,6 +3798,7 @@ $string = Str::of('/Laravel/')->ltrim('/');
 ```
 
 <a name="method-fluent-str-rtrim"></a>
+
 #### `rtrim` {.collection-method}
 
 The `rtrim` method trims the right side of the given string. Unlike PHP's native `rtrim` function, Laravel's `rtrim` method also removes unicode whitespace characters:
@@ -3622,6 +3816,7 @@ $string = Str::of('/Laravel/')->rtrim('/');
 ```
 
 <a name="method-fluent-str-ucfirst"></a>
+
 #### `ucfirst` {.collection-method}
 
 The `ucfirst` method returns the given string with the first character capitalized:
@@ -3635,6 +3830,7 @@ $string = Str::of('foo bar')->ucfirst();
 ```
 
 <a name="method-fluent-str-ucsplit"></a>
+
 #### `ucsplit` {.collection-method}
 
 The `ucsplit` method splits the given string into a collection by uppercase characters:
@@ -3648,6 +3844,7 @@ $string = Str::of('Foo Bar')->ucsplit();
 ```
 
 <a name="method-fluent-str-ucwords"></a>
+
 #### `ucwords` {.collection-method}
 
 The `ucwords` method converts the first character of each word in the given string to uppercase:
@@ -3661,6 +3858,7 @@ $string = Str::of('laravel framework')->ucwords();
 ```
 
 <a name="method-fluent-str-unwrap"></a>
+
 #### `unwrap` {.collection-method}
 
 The `unwrap` method removes the specified strings from the beginning and end of a given string:
@@ -3678,6 +3876,7 @@ Str::of('{framework: "Laravel"}')->unwrap('{', '}');
 ```
 
 <a name="method-fluent-str-upper"></a>
+
 #### `upper` {.collection-method}
 
 The `upper` method converts the given string to uppercase:
@@ -3691,6 +3890,7 @@ $adjusted = Str::of('laravel')->upper();
 ```
 
 <a name="method-fluent-str-when"></a>
+
 #### `when` {.collection-method}
 
 The `when` method invokes the given closure if a given condition is `true`. The closure will receive the fluent string instance:
@@ -3710,6 +3910,7 @@ $string = Str::of('Taylor')
 If necessary, you may pass another closure as the third parameter to the `when` method. This closure will execute if the condition parameter evaluates to `false`.
 
 <a name="method-fluent-str-when-contains"></a>
+
 #### `whenContains` {.collection-method}
 
 The `whenContains` method invokes the given closure if the string contains the given value. The closure will receive the fluent string instance:
@@ -3743,6 +3944,7 @@ $string = Str::of('tony stark')
 ```
 
 <a name="method-fluent-str-when-contains-all"></a>
+
 #### `whenContainsAll` {.collection-method}
 
 The `whenContainsAll` method invokes the given closure if the string contains all of the given sub-strings. The closure will receive the fluent string instance:
@@ -3762,6 +3964,7 @@ $string = Str::of('tony stark')
 If necessary, you may pass another closure as the third parameter. The closure will be invoked if the condition parameter evaluates to `false`.
 
 <a name="method-fluent-str-when-doesnt-end-with"></a>
+
 #### `whenDoesntEndWith` {.collection-method}
 
 The `whenDoesntEndWith` method invokes the given closure if the string doesn't end with the given sub-string. The closure will receive the fluent string instance:
@@ -3778,6 +3981,7 @@ $string = Str::of('disney world')->whenDoesntEndWith('land', function (Stringabl
 ```
 
 <a name="method-fluent-str-when-doesnt-start-with"></a>
+
 #### `whenDoesntStartWith` {.collection-method}
 
 The `whenDoesntStartWith` method invokes the given closure if the string doesn't start with the given sub-string. The closure will receive the fluent string instance:
@@ -3794,6 +3998,7 @@ $string = Str::of('disney world')->whenDoesntStartWith('sea', function (Stringab
 ```
 
 <a name="method-fluent-str-when-empty"></a>
+
 #### `whenEmpty` {.collection-method}
 
 The `whenEmpty` method invokes the given closure if the string is empty. If the closure returns a value, that value will also be returned by the `whenEmpty` method. If the closure does not return a value, the fluent string instance will be returned:
@@ -3810,6 +4015,7 @@ $string = Str::of('  ')->trim()->whenEmpty(function (Stringable $string) {
 ```
 
 <a name="method-fluent-str-when-not-empty"></a>
+
 #### `whenNotEmpty` {.collection-method}
 
 The `whenNotEmpty` method invokes the given closure if the string is not empty. If the closure returns a value, that value will also be returned by the `whenNotEmpty` method. If the closure does not return a value, the fluent string instance will be returned:
@@ -3826,6 +4032,7 @@ $string = Str::of('Framework')->whenNotEmpty(function (Stringable $string) {
 ```
 
 <a name="method-fluent-str-when-starts-with"></a>
+
 #### `whenStartsWith` {.collection-method}
 
 The `whenStartsWith` method invokes the given closure if the string starts with the given sub-string. The closure will receive the fluent string instance:
@@ -3842,6 +4049,7 @@ $string = Str::of('disney world')->whenStartsWith('disney', function (Stringable
 ```
 
 <a name="method-fluent-str-when-ends-with"></a>
+
 #### `whenEndsWith` {.collection-method}
 
 The `whenEndsWith` method invokes the given closure if the string ends with the given sub-string. The closure will receive the fluent string instance:
@@ -3858,6 +4066,7 @@ $string = Str::of('disney world')->whenEndsWith('world', function (Stringable $s
 ```
 
 <a name="method-fluent-str-when-exactly"></a>
+
 #### `whenExactly` {.collection-method}
 
 The `whenExactly` method invokes the given closure if the string exactly matches the given string. The closure will receive the fluent string instance:
@@ -3874,6 +4083,7 @@ $string = Str::of('laravel')->whenExactly('laravel', function (Stringable $strin
 ```
 
 <a name="method-fluent-str-when-not-exactly"></a>
+
 #### `whenNotExactly` {.collection-method}
 
 The `whenNotExactly` method invokes the given closure if the string does not exactly match the given string. The closure will receive the fluent string instance:
@@ -3890,6 +4100,7 @@ $string = Str::of('framework')->whenNotExactly('laravel', function (Stringable $
 ```
 
 <a name="method-fluent-str-when-is"></a>
+
 #### `whenIs` {.collection-method}
 
 The `whenIs` method invokes the given closure if the string matches a given pattern. Asterisks may be used as wildcard values. The closure will receive the fluent string instance:
@@ -3906,6 +4117,7 @@ $string = Str::of('foo/bar')->whenIs('foo/*', function (Stringable $string) {
 ```
 
 <a name="method-fluent-str-when-is-ascii"></a>
+
 #### `whenIsAscii` {.collection-method}
 
 The `whenIsAscii` method invokes the given closure if the string is 7 bit ASCII. The closure will receive the fluent string instance:
@@ -3922,6 +4134,7 @@ $string = Str::of('laravel')->whenIsAscii(function (Stringable $string) {
 ```
 
 <a name="method-fluent-str-when-is-ulid"></a>
+
 #### `whenIsUlid` {.collection-method}
 
 The `whenIsUlid` method invokes the given closure if the string is a valid ULID. The closure will receive the fluent string instance:
@@ -3937,6 +4150,7 @@ $string = Str::of('01gd6r360bp37zj17nxb55yv40')->whenIsUlid(function (Stringable
 ```
 
 <a name="method-fluent-str-when-is-uuid"></a>
+
 #### `whenIsUuid` {.collection-method}
 
 The `whenIsUuid` method invokes the given closure if the string is a valid UUID. The closure will receive the fluent string instance:
@@ -3953,6 +4167,7 @@ $string = Str::of('a0a2a2d2-0b87-4a18-83f2-2529882be2de')->whenIsUuid(function (
 ```
 
 <a name="method-fluent-str-when-test"></a>
+
 #### `whenTest` {.collection-method}
 
 The `whenTest` method invokes the given closure if the string matches the given regular expression. The closure will receive the fluent string instance:
@@ -3969,6 +4184,7 @@ $string = Str::of('laravel framework')->whenTest('/laravel/', function (Stringab
 ```
 
 <a name="method-fluent-str-word-count"></a>
+
 #### `wordCount` {.collection-method}
 
 The `wordCount` method returns the number of words that a string contains:
@@ -3980,6 +4196,7 @@ Str::of('Hello, world!')->wordCount(); // 2
 ```
 
 <a name="method-fluent-str-words"></a>
+
 #### `words` {.collection-method}
 
 The `words` method limits the number of words in a string. If necessary, you may specify an additional string that will be appended to the truncated string:
@@ -3993,6 +4210,7 @@ $string = Str::of('Perfectly balanced, as all things should be.')->words(3, ' >>
 ```
 
 <a name="method-fluent-str-wrap"></a>
+
 #### `wrap` {.collection-method}
 
 The `wrap` method wraps the given string with an additional string or pair of strings:
