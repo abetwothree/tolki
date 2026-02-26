@@ -8,7 +8,7 @@ WorkFlows:
 
 Documentation:
   - changed-files:
-      - any-glob-to-any-file: docs/**
+      - any-glob-to-any-file: docs/vitepress/**
 
 Scripts:
   - changed-files:

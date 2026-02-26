@@ -3427,7 +3427,7 @@ Sometimes, you may want to benchmark the execution of a callback while still obt
 
 ### Dates and Time
 
-Laravel includes [Carbon](https://carbon.nesbot.com/docs/), a powerful date and time manipulation library. To create a new `Carbon` instance, you may invoke the `now` function. This function is globally available within your Laravel application:
+Laravel includes [Carbon](https://carbon.nesbot.com/guide/getting-started/introduction.html), a powerful date and time manipulation library. To create a new `Carbon` instance, you may invoke the `now` function. This function is globally available within your Laravel application:
 
 ```php
 $now = now();
@@ -3453,7 +3453,7 @@ return now()->minus(hours: 8);
 return now()->minus(weeks: 4);
 ```
 
-For a thorough discussion of Carbon and its features, please consult the [official Carbon documentation](https://carbon.nesbot.com/docs/).
+For a thorough discussion of Carbon and its features, please consult the [official Carbon documentation](https://carbon.nesbot.com/guide/getting-started/introduction.html).
 
 <a name="interval-functions"></a>
 

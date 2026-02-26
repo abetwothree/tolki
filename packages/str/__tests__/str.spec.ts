@@ -835,6 +835,11 @@ describe("Str tests", () => {
             expect(Str.isUrl("https://example.com:8080/path?q=1#frag")).toBe(
                 true,
             );
+            expect(Str.isUrl("https://xn--e1afmkfd.xn--p1ai")).toBe(true);
+            expect(
+                Str.isUrl("https://xn--e1afmkfd.xn--e1afmkfd.xn--p1ai"),
+            ).toBe(true);
+            expect(Str.isUrl("https://1.xn--e1afmkfd.xn--p1ai")).toBe(true);
             expect(Str.isUrl("invalid url")).toBe(false);
             expect(Str.isUrl("http://.")).toBe(false);
             expect(Str.isUrl("http://...")).toBe(false);
