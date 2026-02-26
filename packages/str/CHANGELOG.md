@@ -1,5 +1,11 @@
 # @tolki/str
 
+## 1.0.8
+
+### Patch Changes
+
+- 298c3cd: isUrl regex update (str.ts:677): Updated the domain matching pattern in the URL validation regex to properly handle punycode TLDs.
+
 ## 1.0.7
 
 ### Patch Changes
