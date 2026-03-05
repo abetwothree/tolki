@@ -1,0 +1,40 @@
+{
+    "name": "@tolki/enum",
+    "version": "1.0.2",
+    "description": "A set of enum utilities for the @tolki packages.",
+    "author": "Abraham Arango <https://github.com/abetwothree>",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/abetwothree/tolki.git",
+        "directory": "packages/enum"
+    },
+    "bugs": {
+        "url": "https://github.com/abetwothree/tolki/issues"
+    },
+    "type": "module",
+    "main": "src/index.ts",
+    "scripts": {
+        "build": "vite build",
+        "prepack": "pnpm run build"
+    },
+    "dependencies": {
+        "@tolki/types": "workspace:^"
+    },
+    "sideEffects": false,
+    "packageManager": "pnpm@10.12.1",
+    "files": [
+        "dist"
+    ],
+    "publishConfig": {
+        "main": "dist/index.js",
+        "types": "dist/index.d.ts",
+        "exports": {
+            ".": {
+                "import": "./dist/index.js",
+                "require": "./dist/index.js",
+                "types": "./dist/index.d.ts"
+            }
+        }
+    }
+}

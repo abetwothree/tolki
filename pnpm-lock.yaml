@@ -37,6 +37,9 @@ importers:
       "@tolki/data":
         specifier: workspace:^
         version: link:packages/data
+      "@tolki/enum":
+        specifier: workspace:^
+        version: link:packages/enum
       "@tolki/num":
         specifier: workspace:^
         version: link:packages/num
@@ -223,6 +226,12 @@ importers:
       "@tolki/utils":
         specifier: workspace:^
         version: link:../utils
+
+  packages/enum:
+    dependencies:
+      "@tolki/types":
+        specifier: workspace:^
+        version: link:../types
 
   packages/num:
     dependencies:
