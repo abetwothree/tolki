@@ -57,8 +57,8 @@ describe("Enum type tests", () => {
         expectTypeOf<DraftResult["color"]>().toEqualTypeOf<"gray">();
     });
 
-    it("toEnum infers correct types for Status Draft", () => {
-        const result = Enum.toEnum(Stubs.Status, 0);
+    it("from infers correct types for Status Draft", () => {
+        const result = Enum.from(Stubs.Status, 0);
 
         expectTypeOf(result.value).toEqualTypeOf<0>();
         expectTypeOf(result.icon).toEqualTypeOf<"pencil">();
@@ -71,24 +71,24 @@ describe("Enum type tests", () => {
         expectTypeOf(result.options).toEqualTypeOf(Stubs.Status.options);
     });
 
-    it("toEnum infers correct types for Status Published", () => {
-        const result = Enum.toEnum(Stubs.Status, 1);
+    it("from infers correct types for Status Published", () => {
+        const result = Enum.from(Stubs.Status, 1);
 
         expectTypeOf(result.value).toEqualTypeOf<1>();
         expectTypeOf(result.icon).toEqualTypeOf<"check">();
         expectTypeOf(result.color).toEqualTypeOf<"green">();
     });
 
-    it("toEnum infers correct types for Visibility", () => {
-        const result = Enum.toEnum(Stubs.Visibility, "Public");
+    it("from infers correct types for Visibility", () => {
+        const result = Enum.from(Stubs.Visibility, "Public");
 
         expectTypeOf(result.value).toEqualTypeOf<"Public">();
         expectTypeOf(result.isPublic).toEqualTypeOf<true>();
         expectTypeOf(result.description).toEqualTypeOf<"Visible to everyone">();
     });
 
-    it("toEnum infers correct types for Priority", () => {
-        const result = Enum.toEnum(Stubs.Priority, 3);
+    it("from infers correct types for Priority", () => {
+        const result = Enum.from(Stubs.Priority, 3);
 
         expectTypeOf(result.value).toEqualTypeOf<3>();
         expectTypeOf(result.label).toEqualTypeOf<"Critical Priority">();
@@ -98,9 +98,9 @@ describe("Enum type tests", () => {
         expectTypeOf(result.icon).toEqualTypeOf<"exclamation-triangle">();
     });
 
-    it("toEnum infers union types when value comes from a variable", () => {
+    it("from infers union types when value comes from a variable", () => {
         const statusValue: Stubs.StatusType = 0 as Stubs.StatusType;
-        const result = Enum.toEnum(Stubs.Status, statusValue);
+        const result = Enum.from(Stubs.Status, statusValue);
 
         expectTypeOf(result.value).toEqualTypeOf<0 | 1>();
         expectTypeOf(result.icon).toEqualTypeOf<"pencil" | "check">();

@@ -1,6 +1,18 @@
 import type { CaseValue, EnumConst, ToEnumResult } from "@tolki/types";
 
-export function toEnum<
+/**
+ * Resolves an enum case from a given value.
+ * 
+ * The enumObj is the published version from the Laravel TypeScript Publish package.
+ * 
+ * @see https://github.com/abetwothree/laravel-ts-publish#enum-metadata--tolki-enum-package
+ * 
+ * @param enumObj - The enum const object to resolve from.
+ * @param value - The case value to resolve. Must be one of the values defined in the enum const's cases.
+ * @returns The resolved enum case with its associated methods and properties for the value provided.
+ * @throws If the value does not match any case in the enum, an error is thrown.
+ */
+export function from<
     TEnum extends EnumConst,
     const TValue extends CaseValue<TEnum>,
 >(enumObj: TEnum, value: TValue): ToEnumResult<TEnum, TValue> {

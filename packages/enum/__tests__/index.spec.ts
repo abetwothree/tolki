@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import * as Stubs from "./stubs";
 
-describe("toEnum", () => {
+describe("from", () => {
     it("resolves a numeric enum case with instance methods", () => {
-        const result = Enum.toEnum(Stubs.Status, 0);
+        const result = Enum.from(Stubs.Status, 0);
 
         expect(result).toEqual({
             value: 0,
@@ -22,7 +22,7 @@ describe("toEnum", () => {
     });
 
     it("resolves a different case of the same enum", () => {
-        const result = Enum.toEnum(Stubs.Status, 1);
+        const result = Enum.from(Stubs.Status, 1);
 
         expect(result).toEqual({
             value: 1,
@@ -39,7 +39,7 @@ describe("toEnum", () => {
     });
 
     it("resolves a string-valued enum case", () => {
-        const result = Enum.toEnum(Stubs.Visibility, "Public");
+        const result = Enum.from(Stubs.Visibility, "Public");
 
         expect(result.value).toBe("Public");
         expect(result.isPublic).toBe(true);
@@ -47,7 +47,7 @@ describe("toEnum", () => {
     });
 
     it("resolves a string-valued enum case with false boolean", () => {
-        const result = Enum.toEnum(Stubs.Visibility, "Private");
+        const result = Enum.from(Stubs.Visibility, "Private");
 
         expect(result.value).toBe("Private");
         expect(result.isPublic).toBe(false);
@@ -55,7 +55,7 @@ describe("toEnum", () => {
     });
 
     it("resolves a priority enum case", () => {
-        const result = Enum.toEnum(Stubs.Priority, 3);
+        const result = Enum.from(Stubs.Priority, 3);
 
         expect(result.value).toBe(3);
         expect(result.label).toBe("Critical Priority");
@@ -65,7 +65,7 @@ describe("toEnum", () => {
 
     it("throws when the value does not match any case", () => {
         expect(() => {
-            Enum.toEnum(Stubs.Status, 999 as never);
+            Enum.from(Stubs.Status, 999 as never);
         }).toThrow(
             'Value "999" does not match any case in the enum. Cases: Draft, Published',
         );
