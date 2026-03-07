@@ -34,6 +34,10 @@ const Status = defineEnum({
   ACTIVE: "active",
   INACTIVE: "inactive",
   PENDING: "pending",
+  // automatically added by the Laravel TypeScript Publisher package
+  _cases: ["ACTIVE", "INACTIVE", "PENDING"],
+  _methods: [],
+  _static: [],
 });
 
 Status.cases(); // result is an array with an enum instance for each case in the Status enum
