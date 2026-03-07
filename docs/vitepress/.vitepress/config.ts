@@ -71,6 +71,10 @@ export default defineConfig({
                         text: "Enum Utilities List",
                         link: "/enums/enum-utilities-list",
                     },
+                    {
+                        text: "Enum Vite Plugin",
+                        link: "/enums/enum-vite-plugin",
+                    },
                 ],
             },
             {

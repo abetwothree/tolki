@@ -61,7 +61,8 @@
     "tolki": {
         "docs": [
             "enums/index.md",
-            "enums/enum-utilities-list.md"
+            "enums/enum-utilities-list.md",
+            "enums/enum-vite-plugin.md"
         ]
     }
 }
