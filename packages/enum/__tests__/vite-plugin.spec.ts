@@ -52,10 +52,8 @@ vi.mock("vite", () => ({
 const MOCK_ROOT = "/project";
 const MOCK_DIRECTORY = "resources/js/types/";
 const MOCK_FILENAME = "laravel-ts-collected-files.json";
-const MOCK_MANIFEST_PATH = path.resolve(
-    MOCK_ROOT,
-    MOCK_DIRECTORY,
-    MOCK_FILENAME,
+const MOCK_MANIFEST_PATH = mockNormalizePath(
+    path.resolve(MOCK_ROOT, MOCK_DIRECTORY, MOCK_FILENAME),
 );
 
 const MANIFEST_FILES = [
@@ -220,10 +218,8 @@ describe("laravelTsPublish", () => {
                 filename: "custom-manifest.json",
             });
 
-            const expectedPath = path.resolve(
-                MOCK_ROOT,
-                "custom/dir/",
-                "custom-manifest.json",
+            const expectedPath = mockNormalizePath(
+                path.resolve(MOCK_ROOT, "custom/dir/", "custom-manifest.json"),
             );
             expect(mockReadFile).toHaveBeenCalledWith(expectedPath, "utf-8");
         });
@@ -461,7 +457,13 @@ describe("laravelTsPublish", () => {
             mockManifestExists(["app/Enums/Status.php"]);
             const { plugin } = await setupPlugin();
 
-            const backslashFile = "\\project\\app\\Enums\\Status.php";
+            // Build a backslash version of the resolved path so the drive
+            // letter (if any, on Windows) is included and the normalised
+            // result matches the stored watched-file entry.
+            const resolved = mockNormalizePath(
+                path.resolve(MOCK_ROOT, "app/Enums/Status.php"),
+            );
+            const backslashFile = resolved.replace(/\//g, "\\");
             const result = await (plugin.handleHotUpdate as HotUpdateHook)({
                 file: backslashFile,
             });
@@ -754,7 +756,9 @@ describe("laravelTsPublish", () => {
 
             expect(mockServer.watcher.add).toHaveBeenCalledTimes(3);
             for (const file of MANIFEST_FILES) {
-                const absolute = path.resolve(MOCK_ROOT, file);
+                const absolute = mockNormalizePath(
+                    path.resolve(MOCK_ROOT, file),
+                );
                 expect(mockServer.watcher.add).toHaveBeenCalledWith(absolute);
             }
         });
