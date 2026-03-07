@@ -232,6 +232,9 @@ importers:
       "@tolki/types":
         specifier: workspace:^
         version: link:../types
+      vite:
+        specifier: ^7.0.0
+        version: 7.3.1(@types/node@25.3.1)(jiti@2.6.1)
 
   packages/num:
     dependencies:

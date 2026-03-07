@@ -13,10 +13,7 @@ export default defineConfig(
                 name: "Enum",
             },
             rollupOptions: {
-                external: [
-                    "vite",
-                    /^node:/,
-                ],
+                external: ["vite", /^node:/],
             },
         },
     }),
