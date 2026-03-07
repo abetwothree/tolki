@@ -41,6 +41,9 @@
         "./collections": {
             "types": "./src/collections.d.ts"
         },
+        "./enums": {
+            "types": "./src/enums.d.ts"
+        },
         "./data": {
             "types": "./src/data.d.ts"
         },
