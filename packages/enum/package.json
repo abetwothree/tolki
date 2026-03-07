@@ -1,9 +1,10 @@
 {
     "name": "@tolki/enum",
-    "version": "1.0.2",
+    "version": "0.0.0",
     "description": "A set of enum utilities for the @tolki packages.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",
+    "homepage": "https://tolki.abe.dev/enums/",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/abetwothree/tolki.git",
@@ -12,13 +13,20 @@
     "bugs": {
         "url": "https://github.com/abetwothree/tolki/issues"
     },
-    "type": "module",
     "main": "src/index.ts",
+    "type": "module",
     "scripts": {
         "build": "vite build",
         "readme:build": "ts-node ../../scripts/readme-build.ts --filter @tolki/enum",
         "prepack": "pnpm run readme:build && pnpm run build"
     },
+    "keywords": [
+        "enum",
+        "enums",
+        "laravel",
+        "utils",
+        "utilities"
+    ],
     "dependencies": {
         "@tolki/types": "workspace:^"
     },
@@ -38,6 +46,14 @@
                 "import": "./dist/index.js",
                 "require": "./dist/index.js",
                 "types": "./dist/index.d.ts"
+            },
+            "./enums": {
+                "import": "./dist/enums/index.js",
+                "types": "./dist/enums/index.d.ts"
+            },
+            "./vite": {
+                "import": "./dist/vite-plugin/index.js",
+                "types": "./dist/vite-plugin/index.d.ts"
             }
         }
     },
