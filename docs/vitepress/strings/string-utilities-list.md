@@ -1417,7 +1417,7 @@ import { take } from "@tolki/str";
 
 const result = take("Build something amazing!", 5);
 
-// result is "Hello"
+// result is "Build"
 
 const result2 = take("Build something amazing!", -5);
 
