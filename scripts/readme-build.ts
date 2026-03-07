@@ -91,11 +91,7 @@ export function discoverPackages(filterName?: string): PackageInfo[] {
     });
 
     for (const dirName of dirs) {
-        const packageJsonPath = path.join(
-            packagesDir,
-            dirName,
-            "package.json",
-        );
+        const packageJsonPath = path.join(packagesDir, dirName, "package.json");
 
         if (!fs.existsSync(packageJsonPath)) {
             continue;
@@ -234,9 +230,7 @@ export function main(): void {
         const packages = discoverPackages(filterName);
 
         if (packages.length === 0) {
-            console.log(
-                '\nNo packages found with "tolki.docs" configuration.',
-            );
+            console.log('\nNo packages found with "tolki.docs" configuration.');
 
             if (filterName) {
                 console.log(
