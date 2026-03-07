@@ -16,5 +16,8 @@ export default defineConfig(
                 external: ["vite", /^node:/],
             },
         },
+        test: {
+            environment: "node",
+        },
     }),
 );

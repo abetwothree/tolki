@@ -1,11 +1,7 @@
 import path from "node:path";
 
+import { laravelTsPublish, type LaravelTsPublishOptions } from "@tolki/enum";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import {
-    laravelTsPublish,
-    type LaravelTsPublishOptions,
-} from "../src/vite-plugin";
 
 type ExecCallback = (
     err: unknown,
