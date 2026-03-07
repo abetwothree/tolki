@@ -16,6 +16,7 @@
         "ci:publish-obj": "pnpm publish --filter @tolki/obj --access=public",
         "ci:publish-path": "pnpm publish --filter @tolki/path --access=public",
         "ci:publish-str": "pnpm publish --filter @tolki/str --access=public",
+        "ci:publish-types": "pnpm publish --filter @tolki/types --access=public",
         "ci:publish-utils": "pnpm publish --filter @tolki/utils --access=public",
         "build": "run-s build:*",
         "build:arr": "pnpm -F @tolki/arr build",
@@ -49,7 +50,8 @@
         "stubs:pull": "ts-node ./scripts/pull-framework-repos.ts",
         "stubs:copy-framework": "ts-node ./scripts/copy-framework-files.ts",
         "stubs:copy-docs": "ts-node ./scripts/copy-framework-docs-files.ts && npx prettier --write docs/stubs --cache",
-        "stubs:create-lists": "ts-node ./scripts/stubs-function-list-create.ts"
+        "stubs:create-lists": "ts-node ./scripts/stubs-function-list-create.ts",
+        "readme:build": "ts-node ./scripts/readme-build.ts"
     },
     "keywords": [],
     "author": "",

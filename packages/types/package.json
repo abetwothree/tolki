@@ -16,7 +16,8 @@
     "type": "module",
     "types": "src/index.d.ts",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "readme:build": "ts-node ../../scripts/readme-build.ts --filter @tolki/types",
+        "prepack": "pnpm run readme:build"
     },
     "keywords": [
         "typescript",
@@ -64,5 +65,11 @@
         "./utils": {
             "types": "./src/utils.d.ts"
         }
+    },
+    "tolki": {
+        "docs": [
+            "typescript/index.md",
+            "typescript/typescript-utilities-list.md"
+        ]
     }
 }

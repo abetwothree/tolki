@@ -16,7 +16,8 @@
     "main": "src/index.ts",
     "scripts": {
         "build": "vite build",
-        "prepack": "pnpm run build"
+        "readme:build": "ts-node ../../scripts/readme-build.ts --filter @tolki/enum",
+        "prepack": "pnpm run readme:build && pnpm run build"
     },
     "dependencies": {
         "@tolki/types": "workspace:^"
@@ -36,5 +37,11 @@
                 "types": "./dist/index.d.ts"
             }
         }
+    },
+    "tolki": {
+        "docs": [
+            "enums/index.md",
+            "enums/enum-utilities-list.md"
+        ]
     }
 }

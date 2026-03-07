@@ -17,7 +17,8 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "prepack": "pnpm run build"
+        "readme:build": "ts-node ../../scripts/readme-build.ts --filter @tolki/str",
+        "prepack": "pnpm run readme:build && pnpm run build"
     },
     "keywords": [
         "string",
@@ -114,5 +115,12 @@
                 "types": "./dist/uuid/index.d.ts"
             }
         }
+    },
+    "tolki": {
+        "docs": [
+            "strings/index.md",
+            "strings/string-utilities-list.md",
+            "strings/stringable-utilities-list.md"
+        ]
     }
 }

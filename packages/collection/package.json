@@ -17,7 +17,8 @@
     "main": "src/index.ts",
     "scripts": {
         "build": "vite build",
-        "prepack": "pnpm run build"
+        "readme:build": "ts-node ../../scripts/readme-build.ts --filter @tolki/collection",
+        "prepack": "pnpm run readme:build && pnpm run build"
     },
     "keywords": [
         "collection",
@@ -55,5 +56,8 @@
                 "types": "./dist/proxy.d.ts"
             }
         }
+    },
+    "tolki": {
+        "docs": []
     }
 }
