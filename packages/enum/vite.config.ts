@@ -12,6 +12,12 @@ export default defineConfig(
                 entry: entries,
                 name: "Enum",
             },
+            rollupOptions: {
+                external: [
+                    "vite",
+                    /^node:/,
+                ],
+            },
         },
     }),
 );
