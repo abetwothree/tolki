@@ -61,19 +61,15 @@ export default defineConfig({
                 ],
             },
             {
-                text: "Strings",
+                text: "Enums",
                 items: [
                     {
                         text: "Installation & Usage",
-                        link: "/strings/",
+                        link: "/enums/",
                     },
                     {
-                        text: "String Utilities List",
-                        link: "/strings/string-utilities-list",
-                    },
-                    {
-                        text: "Stringable Utilities List",
-                        link: "/strings/stringable-utilities-list",
+                        text: "Enum Utilities List",
+                        link: "/enums/enum-utilities-list",
                     },
                 ],
             },
@@ -87,6 +83,23 @@ export default defineConfig({
                     {
                         text: "Number Utilities List",
                         link: "/numbers/number-utilities-list",
+                    },
+                ],
+            },
+            {
+                text: "Strings",
+                items: [
+                    {
+                        text: "Installation & Usage",
+                        link: "/strings/",
+                    },
+                    {
+                        text: "String Utilities List",
+                        link: "/strings/string-utilities-list",
+                    },
+                    {
+                        text: "Stringable Utilities List",
+                        link: "/strings/stringable-utilities-list",
                     },
                 ],
             },
