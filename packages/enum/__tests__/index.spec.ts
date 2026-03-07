@@ -186,7 +186,7 @@ describe("defineEnum", () => {
         expect(result).not.toBeNull();
         expect(result!.value).toBe(1);
         expect(result!.icon).toBe("check");
-        
+
         // @ts-expect-error  - _helpers is undefined
         expect(result!._helpers).toBeUndefined();
         // @ts-expect-error  - _methods is undefined

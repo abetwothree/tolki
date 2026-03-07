@@ -99,7 +99,6 @@ export type ToEnumResult<TEnum extends EnumConst, TValue> =
         ? never
         : ResolvedEnumInstance<TEnum, TValue>;
 
-
 /**
  * Overrides properties in T with properties in U.
  * Equivalent to a spread: `{ ...T, ...U }`.
@@ -117,13 +116,16 @@ type Override<T, U> = Omit<T, keyof U> & U;
  * from the original enum before intersecting, avoiding `never` from conflicting
  * property types (e.g. when the enum has `from: null` as a helper stub).
  */
-export type DefineEnumResult<TEnum extends EnumConst> = Override<TEnum, {
-    readonly _helpers: string[];
-    readonly from: <const TValue extends CaseValue<TEnum>>(
-        value: TValue,
-    ) => ToEnumResult<TEnum, TValue>;
-    readonly tryFrom: <const TValue extends CaseValue<TEnum>>(
-        value: TValue,
-    ) => ToEnumResult<TEnum, TValue> | null;
-    readonly cases: () => Array<ToEnumResult<TEnum, CaseValue<TEnum>>>;
-}>;
+export type DefineEnumResult<TEnum extends EnumConst> = Override<
+    TEnum,
+    {
+        readonly _helpers: string[];
+        readonly from: <const TValue extends CaseValue<TEnum>>(
+            value: TValue,
+        ) => ToEnumResult<TEnum, TValue>;
+        readonly tryFrom: <const TValue extends CaseValue<TEnum>>(
+            value: TValue,
+        ) => ToEnumResult<TEnum, TValue> | null;
+        readonly cases: () => Array<ToEnumResult<TEnum, CaseValue<TEnum>>>;
+    }
+>;

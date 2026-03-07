@@ -47,7 +47,7 @@ describe("from", () => {
             "icon" | "color"
         >();
         expectTypeOf<MethodKeys<PriorityEnum>>().toEqualTypeOf<
-            "label" | "badge_color" | "icon" | 'is_above_threshold'
+            "label" | "badge_color" | "icon" | "is_above_threshold"
         >();
     });
 
@@ -195,7 +195,9 @@ describe("defineEnum", () => {
         expectTypeOf(result.value).toEqualTypeOf<0>();
         expectTypeOf(result.icon).toEqualTypeOf<"pencil">();
         expectTypeOf(result.color).toEqualTypeOf<"gray">();
-        expectTypeOf(result.value_label_pair).toEqualTypeOf(Stubs.Status.value_label_pair);
+        expectTypeOf(result.value_label_pair).toEqualTypeOf(
+            Stubs.Status.value_label_pair,
+        );
     });
 
     it("from infers union types when value is a variable", () => {
