@@ -16,7 +16,9 @@
     "type": "module",
     "main": "src/index.ts",
     "scripts": {
-        "build": "vite build"
+        "build": "vite build",
+        "readme:build": "ts-node ../../scripts/readme-build.ts --filter @tolki/all",
+        "prepack": "pnpm run readme:build && pnpm run build"
     },
     "keywords": [
         "laravel",
@@ -44,5 +46,8 @@
                 "types": "./dist/index.d.ts"
             }
         }
+    },
+    "tolki": {
+        "docs": []
     }
 }

@@ -11,6 +11,7 @@
         "@tolki/all",
         "@tolki/arr",
         "@tolki/collection",
+        "@tolki/enum",
         "@tolki/data",
         "@tolki/obj",
         "@tolki/path"

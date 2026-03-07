@@ -323,7 +323,7 @@ interface Post {
 }
 ```
 
-For these type of situations, you can use the following helpers to quickly define one ore more relationships.
+For these type of situations, you can use the following helpers to quickly define one or more relationships.
 
 <div class="collection-method-list" markdown="1">
 

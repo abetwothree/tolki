@@ -17,7 +17,8 @@
     "main": "src/index.ts",
     "scripts": {
         "build": "vite build",
-        "prepack": "pnpm run build"
+        "readme:build": "ts-node ../../scripts/readme-build.ts --filter @tolki/obj",
+        "prepack": "pnpm run readme:build && pnpm run build"
     },
     "keywords": [
         "object",
@@ -53,5 +54,8 @@
                 "types": "./dist/obj.d.ts"
             }
         }
+    },
+    "tolki": {
+        "docs": []
     }
 }
