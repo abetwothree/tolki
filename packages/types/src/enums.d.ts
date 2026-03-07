@@ -9,16 +9,29 @@ export type CaseKeys<TEnum extends EnumConst> = TEnum["_cases"][number];
 export type MethodKeys<TEnum extends EnumConst> = TEnum["_methods"][number];
 
 /**
+ * Extracts the static helper key names from the `_static` tuple.
+ */
+export type StaticKeys<TEnum extends EnumConst> = TEnum["_static"][number];
+
+/**
+ * Extracts the helper key names from the `_helpers` tuple.
+ */
+export type HelperKeys<TEnum extends EnumConst> = TEnum["_helpers"][number];
+
+/**
  * Constraint for all generated enum const objects.
  *
  * - `_cases` lists the case key names (matches PHP enum cases).
  * - `_methods` lists instance method names whose values are per-case maps.
  *   Only these properties are resolved per-case by `toEnum`; everything else
  *   passes through as-is. Use an empty array when there are no instance methods.
+ * - `_helpers` lists helper method names added to the enum.
+ * - `_static` lists static helper method names added to the enum.
  */
 export type EnumConst = {
     readonly _cases: readonly string[];
     readonly _methods: readonly string[];
+    readonly _static: readonly string[];
     readonly [key: string]: unknown;
 };
 
@@ -65,7 +78,7 @@ export type ResolvedEnumInstance<TEnum extends EnumConst, TValue> = {
 } & {
     readonly [K in Exclude<
         keyof TEnum,
-        CaseKeys<TEnum> | "_cases" | "_methods"
+        CaseKeys<TEnum> | "_cases" | "_methods" | "_helpers" | "_static"
     >]: K extends MethodKeys<TEnum>
         ? ResolveMethodForValue<TEnum, K, TValue>
         : TEnum[K];
@@ -85,3 +98,32 @@ export type ToEnumResult<TEnum extends EnumConst, TValue> =
     MatchedCaseKey<TEnum, TValue> extends never
         ? never
         : ResolvedEnumInstance<TEnum, TValue>;
+
+
+/**
+ * Overrides properties in T with properties in U.
+ * Equivalent to a spread: `{ ...T, ...U }`.
+ * Keys to omit are derived automatically from U — no manual list needed.
+ */
+type Override<T, U> = Omit<T, keyof U> & U;
+
+/**
+ * The return type of `defineEnum`.
+ *
+ * Enriches a raw enum const object with bound `from`, `tryFrom`, and `cases`
+ * methods so callers don't need to pass the enum object every time.
+ *
+ * Uses `Omit` to strip any existing `from`, `tryFrom`, or `cases` properties
+ * from the original enum before intersecting, avoiding `never` from conflicting
+ * property types (e.g. when the enum has `from: null` as a helper stub).
+ */
+export type DefineEnumResult<TEnum extends EnumConst> = Override<TEnum, {
+    readonly _helpers: string[];
+    readonly from: <const TValue extends CaseValue<TEnum>>(
+        value: TValue,
+    ) => ToEnumResult<TEnum, TValue>;
+    readonly tryFrom: <const TValue extends CaseValue<TEnum>>(
+        value: TValue,
+    ) => ToEnumResult<TEnum, TValue> | null;
+    readonly cases: () => Array<ToEnumResult<TEnum, CaseValue<TEnum>>>;
+}>;
