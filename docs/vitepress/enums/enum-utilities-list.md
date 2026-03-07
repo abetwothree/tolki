@@ -31,9 +31,9 @@ This is a factory function that is automatically applied by the Laravel TypeScri
 import { defineEnum } from "@tolki/enum";
 
 const Status = defineEnum({
-    ACTIVE: "active",
-    INACTIVE: "inactive",
-    PENDING: "pending",
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+  PENDING: "pending",
 });
 
 Status.cases(); // result is an array with an enum instance for each case in the Status enum
