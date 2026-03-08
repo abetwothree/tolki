@@ -67,6 +67,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Commit readme updates
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: "docs: update readme with new version [skip ci]"
+
       - name: Delete empty changesets and commit
         run: |
           deleted=false

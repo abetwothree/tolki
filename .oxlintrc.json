@@ -33,8 +33,11 @@
         "@typescript-eslint/no-wrapper-object-types": "error",
         "@typescript-eslint/prefer-as-const": "error",
         "@typescript-eslint/prefer-namespace-keyword": "error",
-        "@typescript-eslint/triple-slash-reference": "error"
+        "@typescript-eslint/triple-slash-reference": "error",
+        "simple-import-sort/imports": "error",
+        "simple-import-sort/exports": "error"
     },
+    "jsPlugins": ["eslint-plugin-simple-import-sort"],
     "overrides": [
         {
             "files": ["**/*.{js,mjs,cjs,ts,mts,cts}"],

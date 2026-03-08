@@ -36,8 +36,9 @@ export function from<
     }
 
     if (!matchedCaseName) {
+        const values = Array.from(caseKeys).map((key) => enumObj[key]);
         throw new Error(
-            `Value "${String(value)}" does not match any case in the enum. Cases: ${[...caseKeys].join(", ")}`,
+            `Value "${String(value)}" does not match any case in the enum. Values: ${values.join(", ")}, Cases: ${[...caseKeys].join(", ")}`,
         );
     }
 

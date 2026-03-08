@@ -67,7 +67,7 @@ describe("from", () => {
         expect(() => {
             Enum.from(Stubs.Status, 999 as never);
         }).toThrow(
-            'Value "999" does not match any case in the enum. Cases: Draft, Published',
+            'Value "999" does not match any case in the enum. Values: 0, 1, Cases: Draft, Published',
         );
     });
 
