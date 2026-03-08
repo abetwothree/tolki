@@ -1,5 +1,13 @@
 # @tolki/str
 
+## 1.0.9
+
+### Patch Changes
+
+- 24ca41d: Heading styling on copied documentation to each package readme.md
+- Updated dependencies [24ca41d]
+  - @tolki/num@2.0.3
+
 ## 1.0.8
 
 ### Patch Changes

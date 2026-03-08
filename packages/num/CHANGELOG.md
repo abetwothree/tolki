@@ -1,5 +1,11 @@
 # @tolki/num
 
+## 2.0.3
+
+### Patch Changes
+
+- 24ca41d: Heading styling on copied documentation to each package readme.md
+
 ## 2.0.2
 
 ### Patch Changes
