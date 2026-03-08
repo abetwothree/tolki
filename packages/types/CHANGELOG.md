@@ -1,5 +1,15 @@
 # @tolki/types
 
+## 1.1.0
+
+### Minor Changes
+
+- 655ed22: Addition of helper enum types to support enum package
+
+### Patch Changes
+
+- c08e209: Auto add documentation from VitePress
+
 ## 1.0.2
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @tolki/str
 
+## 1.0.8
+
+### Patch Changes
+
+- 62adced: Fix documentation for after string function
+- 298c3cd: isUrl regex update (str.ts:677): Updated the domain matching pattern in the URL validation regex to properly handle punycode TLDs.
+- b697aa5: Fix docs for take string function
+- c08e209: Auto add documentation from VitePress
+- Updated dependencies [c08e209]
+  - @tolki/num@2.0.2
+
 ## 1.0.7
 
 ### Patch Changes
