@@ -67,13 +67,16 @@ export function increaseHeadingLevels(content: string): string {
                 return line;
             }
 
-            return line.replace(/^( {0,3})(#{1,6})([ \t]+.*)$/u, (_match, indent: string, hashes: string, rest: string) => {
-                if (hashes.length >= 6) {
-                    return `${indent}######${rest}`;
-                }
+            return line.replace(
+                /^( {0,3})(#{1,6})([ \t]+.*)$/u,
+                (_match, indent: string, hashes: string, rest: string) => {
+                    if (hashes.length >= 6) {
+                        return `${indent}######${rest}`;
+                    }
 
-                return `${indent}${"#".repeat(hashes.length + 1)}${rest}`;
-            });
+                    return `${indent}${"#".repeat(hashes.length + 1)}${rest}`;
+                },
+            );
         })
         .join("\n");
 }

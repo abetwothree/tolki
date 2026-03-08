@@ -16,12 +16,9 @@ describe("increaseHeadingLevels", () => {
 
         const result = increaseHeadingLevels(content);
 
-        expect(result).toBe([
-            "## Title",
-            "### Section",
-            "#### Subsection",
-            "Text",
-        ].join("\n"));
+        expect(result).toBe(
+            ["## Title", "### Section", "#### Subsection", "Text"].join("\n"),
+        );
     });
 
     it("clamps level six headings", () => {
@@ -42,14 +39,16 @@ describe("increaseHeadingLevels", () => {
 
         const result = increaseHeadingLevels(content);
 
-        expect(result).toBe([
-            "## Outside",
-            "```md",
-            "# Inside code",
-            "## Still code",
-            "```",
-            "### After",
-        ].join("\n"));
+        expect(result).toBe(
+            [
+                "## Outside",
+                "```md",
+                "# Inside code",
+                "## Still code",
+                "```",
+                "### After",
+            ].join("\n"),
+        );
     });
 });
 
@@ -74,12 +73,10 @@ describe("stripVitepressSyntax", () => {
 
         const result = stripVitepressSyntax(content);
 
-        expect(result).toBe([
-            "## Title",
-            "",
-            "```ts",
-            "# not a heading in code",
-            "```",
-        ].join("\n"));
+        expect(result).toBe(
+            ["## Title", "", "```ts", "# not a heading in code", "```"].join(
+                "\n",
+            ),
+        );
     });
 });

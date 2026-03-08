@@ -75,7 +75,7 @@ export function from<
  * Similar to the {@linkcode from | from} function but returns null instead of throwing an error for invalid values.
  *
  * Mirrors PHP's `BackedEnum::tryFrom()`.
- * 
+ *
  * @see https://tolki.abe.dev/enums/enum-utilities-list.html#tryfrom
  *
  * @param enumObj - The enum const object to resolve from.
@@ -97,7 +97,7 @@ export function tryFrom<
  * Returns all enum cases as resolved instances by running each case value through the {@linkcode from | from} function.
  *
  * Mirrors PHP's `BackedEnum::cases()`, returning one resolved instance per case defined in the enum const.
- * 
+ *
  * @see https://tolki.abe.dev/enums/enum-utilities-list.html#cases
  *
  * @param enumObj - The enum const object to resolve all cases from.
@@ -119,7 +119,7 @@ export function cases<TEnum extends EnumConst>(
  * This allows your published enum to have PHP-like enum behavior with type safety and autocompletion in TypeScript.
  *
  * The original enum data is preserved and the PHP like enum methods are attached directly to the returned object.
- * 
+ *
  * @see https://tolki.abe.dev/enums/enum-utilities-list.html#defineenum
  *
  * @param enumObj - The raw enum const object to enrich.
