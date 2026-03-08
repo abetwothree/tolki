@@ -15,14 +15,14 @@ const execAsync = promisify(exec);
 export interface LaravelTsPublishOptions {
     /**
      * The command to run when a watched PHP file changes.
-    *
-    * The command is executed with Node's `exec()` using the Vite project root
-    * as the current working directory. Because it runs in a non-interactive
-    * shell, shell aliases such as `sail` are usually not available.
-    *
-    * Common setups:
-    * - Run Vite on the host machine with Laravel Sail: `./vendor/bin/sail artisan ts:publish`
-    * - Run Vite inside the container: `php artisan ts:publish`
+     *
+     * The command is executed with Node's `exec()` using the Vite project root
+     * as the current working directory. Because it runs in a non-interactive
+     * shell, shell aliases such as `sail` are usually not available.
+     *
+     * Common setups:
+     * - Run Vite on the host machine with Laravel Sail: `./vendor/bin/sail artisan ts:publish`
+     * - Run Vite inside the container: `php artisan ts:publish`
      *
      * @default "php artisan ts:publish"
      */

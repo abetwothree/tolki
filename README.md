@@ -10,11 +10,12 @@ After making them, I then decided to open-source these utilities so that others 
 
 ## Published Packages
 
-| Package                            | Description                                                             |
-| ---------------------------------- | ----------------------------------------------------------------------- |
-| [`@tolki/num`](./packages/num)     | Utilities for working with numbers like Laravel's Num class.            |
-| [`@tolki/str`](./packages/str)     | Utilities for working with strings like Laravel's Str class.            |
-| [`@tolki/types`](./packages/types) | Utility TypeScript types for Tolki packages and Laravel HTTP responses. |
+| Package                            | Description                                                             |                                                           |
+| ---------------------------------- | ----------------------------------------------------------------------- |---------------------------------------------------------- |
+| [`@tolki/enum`](./packages/enum)   | Utilities for working with enums like PHP's Enum class.                 | [![npm][npm]](https://www.npmjs.com/package/@tolki/enum)  |
+| [`@tolki/num`](./packages/num)     | Utilities for working with numbers like Laravel's Num class.            | [![npm][npm]](https://www.npmjs.com/package/@tolki/num)   |
+| [`@tolki/str`](./packages/str)     | Utilities for working with strings like Laravel's Str class.            | [![npm][npm]](https://www.npmjs.com/package/@tolki/str)   |
+| [`@tolki/types`](./packages/types) | Utility TypeScript types for Tolki packages and Laravel HTTP responses. | [![npm][npm]](https://www.npmjs.com/package/@tolki/types) |
 
 ## In Progress Packages
 
