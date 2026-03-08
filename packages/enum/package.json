@@ -15,7 +15,6 @@
     },
     "main": "src/index.ts",
     "type": "module",
-    "private": true,
     "scripts": {
         "build": "vite build",
         "readme:build": "ts-node ../../scripts/readme-build.ts --filter @tolki/enum",
