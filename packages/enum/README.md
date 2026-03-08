@@ -1,6 +1,6 @@
 # Tolki JS Enum Package
 
-This package provides enum utility functions similar to Laravel's Enum class facade.
+This package provides enum utility functions similar to a PHP enum class.
 
 ## Documentation
 

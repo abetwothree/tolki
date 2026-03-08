@@ -42,8 +42,9 @@ export default defineConfig({
         nav: [
             { text: "Home", link: "/" },
             { text: "Packages", link: "/packages" },
-            { text: "Strings", link: "/strings/" },
+            { text: "Enums", link: "/enums/" },
             { text: "Numbers", link: "/numbers/" },
+            { text: "Strings", link: "/strings/" },
             { text: "TypeScript", link: "/typescript/" },
             // { text: "Arrays", link: "/arrays/" },
             // { text: "Objects", link: "/objects/" },
