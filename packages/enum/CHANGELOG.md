@@ -1,5 +1,11 @@
 # @tolki/enum
 
+## 0.0.3
+
+### Patch Changes
+
+- Fix command loop when manifest file changes after command runs, document sail command
+
 ## 0.0.2
 
 ### Patch Changes

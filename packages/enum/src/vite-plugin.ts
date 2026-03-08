@@ -15,6 +15,14 @@ const execAsync = promisify(exec);
 export interface LaravelTsPublishOptions {
     /**
      * The command to run when a watched PHP file changes.
+    *
+    * The command is executed with Node's `exec()` using the Vite project root
+    * as the current working directory. Because it runs in a non-interactive
+    * shell, shell aliases such as `sail` are usually not available.
+    *
+    * Common setups:
+    * - Run Vite on the host machine with Laravel Sail: `./vendor/bin/sail artisan ts:publish`
+    * - Run Vite inside the container: `php artisan ts:publish`
      *
      * @default "php artisan ts:publish"
      */
@@ -77,7 +85,12 @@ export interface LaravelTsPublishOptions {
  *   PHP files to the dev-server file watcher, and re-runs the command when any
  *   of them change via HMR. Optionally runs the command once at startup when
  *   `runOnDevStart` is `true`. Sends a full browser reload after every
- *   successful run (disable with `reload: false`).
+ *   successful run (disable with `reload: false`). Manifest updates only
+ *   refresh the watched-file list and do not trigger the command again.
+ * - **Command execution**: the configured command runs through Node's
+ *   `child_process.exec()` from the Vite project root. Shell aliases are not
+ *   resolved, so use a real executable path such as `./vendor/bin/sail` when
+ *   running Vite on the host with Laravel Sail.
  *
  * @param options - Configuration options for the plugin.
  * @returns A Vite plugin object.
@@ -99,7 +112,14 @@ export interface LaravelTsPublishOptions {
  * ```ts
  * // With Laravel Sail
  * laravelTsPublish({
- *     command: "sail artisan ts:publish",
+ *     command: "./vendor/bin/sail artisan ts:publish",
+ * });
+ * ```
+ * @example
+ * ```ts
+ * // When Vite is already running inside the PHP container
+ * laravelTsPublish({
+ *     command: "php artisan ts:publish",
  * });
  * ```
  *
@@ -289,7 +309,6 @@ export function laravelTsPublish(
 
                 await loadWatchedFiles();
                 addFilesToWatcher();
-                await runCommand();
 
                 return [];
             }

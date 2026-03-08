@@ -357,6 +357,7 @@ describe("laravelTsPublish", () => {
 
             // Reset to track new calls
             mockReadFile.mockClear();
+            mockExec.mockClear();
 
             // Update manifest with a new file
             mockManifestExists([...MANIFEST_FILES, "app/Enums/NewEnum.php"]);
@@ -375,6 +376,7 @@ describe("laravelTsPublish", () => {
                 MOCK_MANIFEST_PATH,
                 "utf-8",
             );
+            expect(mockExec).not.toHaveBeenCalled();
         });
 
         it("should log an error when the command fails", async () => {
