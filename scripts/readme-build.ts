@@ -23,6 +23,13 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+/** Absolute path to the monorepo root (one level above scripts/). */
+const MONOREPO_ROOT = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+);
 
 const SENTINEL_START = "<!-- AUTO-GENERATED-DOCS:START -->";
 const SENTINEL_END = "<!-- AUTO-GENERATED-DOCS:END -->";
@@ -78,7 +85,7 @@ export function stripVitepressSyntax(content: string): string {
  * @returns Array of package info objects with doc file lists.
  */
 export function discoverPackages(filterName?: string): PackageInfo[] {
-    const packagesDir = path.join(process.cwd(), "packages");
+    const packagesDir = path.join(MONOREPO_ROOT, "packages");
     const packages: PackageInfo[] = [];
 
     if (!fs.existsSync(packagesDir)) {
@@ -133,7 +140,7 @@ export function discoverPackages(filterName?: string): PackageInfo[] {
  * @returns Assembled and cleaned markdown content.
  */
 export function assembleDocsContent(docFiles: string[]): string {
-    const docsDir = path.join(process.cwd(), "docs", "vitepress");
+    const docsDir = path.join(MONOREPO_ROOT, "docs", "vitepress");
     const sections: string[] = [];
 
     for (const docFile of docFiles) {

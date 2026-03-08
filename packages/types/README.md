@@ -366,7 +366,7 @@ interface Post {
 }
 ```
 
-For these type of situations, you can use the following helpers to quickly define one ore more relationships.
+For these type of situations, you can use the following helpers to quickly define one or more relationships.
 
 [WithCount](#withcount) [WithMax](#withmax) [WithMin](#withmin) [WithSum](#withsum) [WithAvg](#withavg) [WithExists](#withexists)
 
