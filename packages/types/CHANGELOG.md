@@ -1,5 +1,11 @@
 # @tolki/types
 
+## 1.1.1
+
+### Patch Changes
+
+- 24ca41d: Heading styling on copied documentation to each package readme.md
+
 ## 1.1.0
 
 ### Minor Changes
