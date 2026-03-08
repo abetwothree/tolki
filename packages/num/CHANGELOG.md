@@ -1,5 +1,11 @@
 # @tolki/num
 
+## 2.0.2
+
+### Patch Changes
+
+- c08e209: Auto add documentation from VitePress
+
 ## 2.0.1
 
 ### Patch Changes
