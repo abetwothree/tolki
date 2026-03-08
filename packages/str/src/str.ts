@@ -26,11 +26,11 @@ const studlyCache = new Map<string, string>();
 let randomStringFactory: ((length: number) => string) | null = null;
 
 /**
- * Return the remainder of a string after the last occurrence of a given value.
+ * Return the remainder of a string after the first occurrence of a given value.
  *
  * @param subject - The string to search in
  * @param search - The value to search for
- * @returns The portion of the string after the last occurrence of the search value
+ * @returns The portion of the string after the first occurrence of the search value
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#after
  */

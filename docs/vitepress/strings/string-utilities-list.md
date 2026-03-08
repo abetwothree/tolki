@@ -14,7 +14,7 @@ These are the string utilities that can be used independently as single function
 
 ### after
 
-Return the remainder of a string after the last occurrence of a given value.
+Return the remainder of a string after the first occurrence of a given value.
 
 ```javascript
 import { after } from "@tolki/str";
