@@ -23,7 +23,7 @@ export type HelperKeys<TEnum extends EnumConst> = TEnum["_helpers"][number];
  *
  * - `_cases` lists the case key names (matches PHP enum cases).
  * - `_methods` lists instance method names whose values are per-case maps.
- *   Only these properties are resolved per-case by `toEnum`; everything else
+ *   Only these properties are resolved per-case by `from`; everything else
  *   passes through as-is. Use an empty array when there are no instance methods.
  * - `_helpers` lists helper method names added to the enum.
  * - `_static` lists static helper method names added to the enum.
@@ -92,7 +92,7 @@ export type CaseValue<TEnum extends EnumConst> = {
 }[CaseKeys<TEnum>];
 
 /**
- * The fully inferred return type of toEnum.
+ * The fully inferred return type of `from`.
  */
 export type ToEnumResult<TEnum extends EnumConst, TValue> =
     MatchedCaseKey<TEnum, TValue> extends never

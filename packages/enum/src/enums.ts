@@ -15,6 +15,7 @@ import type {
  * The enumObj is the published enum from the Laravel TypeScript Publish package.
  *
  * @see https://github.com/abetwothree/laravel-ts-publish#enum-metadata--tolki-enum-package
+ * @see https://tolki.abe.dev/enums/enum-utilities-list.html#from
  *
  * @param enumObj - The enum const object to resolve from.
  * @param value - The case value to resolve. Must be one of the values defined in the enum const's cases.
@@ -74,6 +75,8 @@ export function from<
  * Similar to the {@linkcode from | from} function but returns null instead of throwing an error for invalid values.
  *
  * Mirrors PHP's `BackedEnum::tryFrom()`.
+ * 
+ * @see https://tolki.abe.dev/enums/enum-utilities-list.html#tryfrom
  *
  * @param enumObj - The enum const object to resolve from.
  * @param value - The case value to resolve.
@@ -94,6 +97,8 @@ export function tryFrom<
  * Returns all enum cases as resolved instances by running each case value through the {@linkcode from | from} function.
  *
  * Mirrors PHP's `BackedEnum::cases()`, returning one resolved instance per case defined in the enum const.
+ * 
+ * @see https://tolki.abe.dev/enums/enum-utilities-list.html#cases
  *
  * @param enumObj - The enum const object to resolve all cases from.
  * @returns An array of resolved enum instances, one for each case.
@@ -114,6 +119,8 @@ export function cases<TEnum extends EnumConst>(
  * This allows your published enum to have PHP-like enum behavior with type safety and autocompletion in TypeScript.
  *
  * The original enum data is preserved and the PHP like enum methods are attached directly to the returned object.
+ * 
+ * @see https://tolki.abe.dev/enums/enum-utilities-list.html#defineenum
  *
  * @param enumObj - The raw enum const object to enrich.
  * @returns The enum object with `from`, `tryFrom`, and `cases` methods bound to it.
