@@ -46,11 +46,13 @@
         },
         "./enums": {
             "types": "./src/enums.ts",
-            "import": "./src/enums.ts"
+            "import": "./src/enums.ts",
+            "default": "./src/enums.ts"
         },
         "./vite": {
             "types": "./src/vite-plugin.ts",
-            "import": "./src/vite-plugin.ts"
+            "import": "./src/vite-plugin.ts",
+            "default": "./src/vite-plugin.ts"
         }
     },
     "publishConfig": {
@@ -63,12 +65,14 @@
                 "require": "./dist/index.js"
             },
             "./enums": {
-                "types": "./dist/enums/index.d.ts",
-                "import": "./dist/enums/index.js"
+                "types": "./dist/enums.d.ts",
+                "import": "./dist/enums.js",
+                "default": "./dist/enums.js"
             },
             "./vite": {
-                "types": "./dist/vite-plugin/index.d.ts",
-                "import": "./dist/vite-plugin/index.js"
+                "types": "./dist/vite-plugin.d.ts",
+                "import": "./dist/vite-plugin.js",
+                "default": "./dist/vite-plugin.js"
             }
         }
     },
