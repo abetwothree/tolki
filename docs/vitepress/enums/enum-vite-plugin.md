@@ -10,7 +10,7 @@ To use the Vite plugin, you need to add it to your Vite configuration file. Belo
 
 ```javascript
 import { defineConfig } from "vite";
-import { laravelTsPublish } from "@tolki/enum";
+import { laravelTsPublish } from "@tolki/enum/vite";
 
 export default defineConfig({
   plugins: [laravelTsPublish()],
@@ -35,7 +35,7 @@ Below are the available options with a description and default values:
 
 ```javascript
 import { defineConfig } from "vite";
-import { laravelTsPublish } from "@tolki/enum";
+import { laravelTsPublish } from "@tolki/enum/vite";
 
 export default defineConfig({
   plugins: [
