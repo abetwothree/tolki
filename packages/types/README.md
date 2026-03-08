@@ -8,7 +8,7 @@ The full documentation for the TypeScript type utilities can be found at [https:
 
 <!-- AUTO-GENERATED-DOCS:START -->
 
-# TypeScript Type Utilities Installation
+## TypeScript Type Utilities Installation
 
 The [`@tolki/types`](https://www.npmjs.com/package/@tolki/types) package provides a variety of TypeScript types inspired by Laravel's data structures such as pagination results and models. You can install it via npm, yarn, or pnpm:
 
@@ -24,7 +24,7 @@ yarn add @tolki/types
 pnpm add @tolki/types
 ```
 
-## Importing the Package
+### Importing the Package
 
 Example usage of types in a Vue SFC setup script section:
 
@@ -45,15 +45,15 @@ const { users } = defineProps<{
 
 See the [TypeScript Types Documentation](/typescript/typescript-utilities-list) for a full list of available types and their descriptions.
 
-# Tolki TypeScript Type Utilities List
+## Tolki TypeScript Type Utilities List
 
-## Paginator Utilities Types
+### Paginator Utilities Types
 
 Laravel provides 3 built in [pagination modes](https://laravel.com/docs/pagination). Each returns a similar but slightly different structured response. When you're working on the front end and using TypeScript, you'd have to write out what each response structure looks like for each pagination mode. These utility types provide you the type-safe representations of these responses, making it easier to define pagination data structures in a type safe manner.
 
 [LengthAwarePaginator](#lengthawarepaginator) [SimplePaginator](#simplepaginator) [CursorPaginator](#cursorpaginator) [Pagination Components](#pagination-components)
 
-### LengthAwarePaginator
+#### LengthAwarePaginator
 
 Imagine you have a Laravel controller with an Inertia response of your users table paginated.
 
@@ -139,7 +139,7 @@ Example in Vue template:
 </template>
 ```
 
-### SimplePaginator
+#### SimplePaginator
 
 If you use the `simplePaginate` response function as show below, you can use the `SimplePaginator` type to define the response structure.
 
@@ -185,7 +185,7 @@ defineProps<{
 </script>
 ```
 
-### CursorPaginator
+#### CursorPaginator
 
 The last pagination result that Laravel provides is the `cursor` pagination. For that response structure you can use the `CursorPaginator` type.
 
@@ -231,7 +231,7 @@ defineProps<{
 </script>
 ```
 
-### Pagination components
+#### Pagination components
 
 You can also use the pagination types to write type safe pagination components for your front end UI. A rough incomplete pagination example that supports all three pagination response types would look something like this.
 
@@ -278,13 +278,13 @@ defineProps<{
 </template>
 ```
 
-## Model Utilities Types
+### Model Utilities Types
 
 Unless you're using a package like [Model Typer](https://github.com/fumeapp/modeltyper) or [Laravel Wayfinder](https://github.com/laravel/wayfinder), you probably find yourself defining models manually on a TypeScript based Laravel project.
 
 The purpose of the following model utility types is to simplify and standardize the way you define these models.
 
-### Model Types
+#### Model Types
 
 You can use the simplest `Model` type which only defines a possibly undefined id key and any number of string keyed unknown values.
 
@@ -344,7 +344,7 @@ notification.updated_at; // inferred as string
 notification.deleted_at; // inferred as string
 ```
 
-### Model Relationship Types
+#### Model Relationship Types
 
 Many times when you load eloquent results, it is common to use [relationship aggregation eloquent methods](https://laravel.com/docs/12.x/eloquent-relationships#aggregating-related-models) like count, max, min, sum, average or if a relationship exists using eloquent methods like `withCount`. Those methods create a dynamic column on an eloquent result.
 
@@ -370,7 +370,7 @@ For these type of situations, you can use the following helpers to quickly defin
 
 [WithCount](#withcount) [WithMax](#withmax) [WithMin](#withmin) [WithSum](#withsum) [WithAvg](#withavg) [WithExists](#withexists)
 
-### WithCount
+#### WithCount
 
 ```TypeScript
 import type { WithCount } from "@tolki/types";
@@ -387,7 +387,7 @@ post.comments_count // inferred as number | null
 post.authors_count // inferred as number | null
 ```
 
-### WithMax
+#### WithMax
 
 ```TypeScript
 import type { WithMax } from "@tolki/types";
@@ -404,7 +404,7 @@ post.comments_max // inferred as number | null
 post.authors_max // inferred as number | null
 ```
 
-### WithMin
+#### WithMin
 
 ```TypeScript
 import type { WithMin } from "@tolki/types";
@@ -421,7 +421,7 @@ post.comments_min // inferred as number | null
 post.authors_min // inferred as number | null
 ```
 
-### WithSum
+#### WithSum
 
 ```TypeScript
 import type { WithSum } from "@tolki/types";
@@ -438,7 +438,7 @@ post.comments_sum // inferred as number | null
 post.authors_sum // inferred as number | null
 ```
 
-### WithAvg
+#### WithAvg
 
 ```TypeScript
 import type { WithAvg } from "@tolki/types";
@@ -455,7 +455,7 @@ post.comments_avg // inferred as number | null
 post.authors_avg // inferred as number | null
 ```
 
-### WithExists
+#### WithExists
 
 ```TypeScript
 import type { WithExists } from "@tolki/types";
@@ -472,7 +472,7 @@ post.comments_exists // inferred as boolean
 post.authors_exists // inferred as boolean
 ```
 
-## JsonResource Utilities Types
+### JsonResource Utilities Types
 
 When working with Laravel's [JsonResource](https://laravel.com/docs/eloquent-resources), you often need to define the structure of the JSON response in your TypeScript front end. By default, JSON resources either return a single resource object or a collection of resource objects, which do not have a different data structure from your models' properties.
 

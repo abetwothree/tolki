@@ -43,12 +43,49 @@ interface PackageInfo {
 }
 
 /**
+ * Increase markdown heading levels by one while preserving fenced code blocks.
+ *
+ * Headings from `#` through `#####` are shifted down one level. Existing
+ * `######` headings are clamped at level 6 so the output stays valid markdown.
+ * Triple-backtick fenced code blocks are left untouched.
+ *
+ * @param content - Markdown content to adjust.
+ * @returns Markdown content with headings shifted down one level.
+ */
+export function increaseHeadingLevels(content: string): string {
+    let inCodeFence = false;
+
+    return content
+        .split(/\r?\n/)
+        .map((line) => {
+            if (/^ {0,3}```/.test(line)) {
+                inCodeFence = !inCodeFence;
+                return line;
+            }
+
+            if (inCodeFence) {
+                return line;
+            }
+
+            return line.replace(/^( {0,3})(#{1,6})([ \t]+.*)$/u, (_match, indent: string, hashes: string, rest: string) => {
+                if (hashes.length >= 6) {
+                    return `${indent}######${rest}`;
+                }
+
+                return `${indent}${"#".repeat(hashes.length + 1)}${rest}`;
+            });
+        })
+        .join("\n");
+}
+
+/**
  * Strip VitePress-specific syntax from markdown content.
  *
  * Removes:
  * - YAML frontmatter (--- ... ---)
  * - ::: code-group / ::: containers (keeps inner content)
  * - Raw HTML wrappers (<div>, </div>, <script setup>, etc.)
+ * - Increases markdown headings by one level for README nesting
  * - Collapses 3+ consecutive blank lines into 2
  *
  * @param content - Raw VitePress markdown content.
@@ -71,6 +108,9 @@ export function stripVitepressSyntax(content: string): string {
 
     // Remove standalone Vue component tags (single-line)
     result = result.replace(/^<[A-Z][a-zA-Z]*[^>]*\/>$/gm, "");
+
+    // Nest imported docs under the package README heading hierarchy.
+    result = increaseHeadingLevels(result);
 
     // Collapse 3+ consecutive blank lines into 2
     result = result.replace(/\n{3,}/g, "\n\n");

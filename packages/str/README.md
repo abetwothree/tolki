@@ -8,7 +8,7 @@ The full documentation for the string utilities can be found at [https://tolki.a
 
 <!-- AUTO-GENERATED-DOCS:START -->
 
-# String Utilities Installation
+## String Utilities Installation
 
 The [`@tolki/str`](https://www.npmjs.com/package/@tolki/str) package provides a variety of string manipulation utilities inspired by Laravel's Str class. You can install it via npm, yarn, or pnpm:
 
@@ -24,7 +24,7 @@ yarn add @tolki/str
 pnpm add @tolki/str
 ```
 
-## Importing the Package
+### Importing the Package
 
 You can import individual functions for better tree-shaking or the entire package (not recommended).:
 
@@ -54,17 +54,17 @@ The reason that importing the entire package is not recommended is that it will 
 
 However, if you are working on a backend project where bundle size is not a concern, importing the entire package can be more convenient.
 
-# Tolki String Utilities List
+## Tolki String Utilities List
 
-## String Utilities List
+### String Utilities List
 
 These are the string utilities that can be used independently as single functions.
 
 [after](#after) [afterLast](#afterlast) [apa](#apa) [ascii](#ascii) [before](#before) [beforeLast](#beforelast) [between](#between) [betweenFirst](#betweenfirst) [camel](#camel) [charAt](#charat) [chopEnd](#chopend) [chopStart](#chopstart) [contains](#contains) [containsAll](#containsall) [doesntContain](#doesntcontain) [deduplicate](#deduplicate) [doesntEndWith](#doesntendwith) [doesntStartWith](#doesntstartwith) [endsWith](#endswith) [excerpt](#excerpt) [finish](#finish) [fromBase64](#frombase64) [headline](#headline) [inlineMarkdown](#inlinemarkdown) [is](#is) [isAscii](#isascii) [isJson](#isjson) [isUrl](#isurl) [isUlid](#isulid) [isUuid](#isuuid) [kebab](#kebab) [lcfirst](#lcfirst) [length](#length) [limit](#limit) [lower](#lower) [markdown](#markdown) [mask](#mask) [match](#match) [matchAll](#matchall) [isMatch](#ismatch) [numbers](#numbers) [padBoth](#padboth) [padLeft](#padleft) [padRight](#padright) [pascal](#pascal) [pluralPascal](#pluralpascal) [password](#password) [plural](#plural) [pluralStudly](#pluralstudly) [position](#position) [random](#random) [remove](#remove) [repeat](#repeat) [replace](#replace) [replaceArray](#replacearray) [replaceFirst](#replacefirst) [replaceLast](#replacelast) [replaceMatches](#replacematches) [replaceStart](#replacestart) [replaceEnd](#replaceend) [reverse](#reverse) [singular](#singular) [slug](#slug) [snake](#snake) [squish](#squish) [start](#start) [startsWith](#startswith) [stripTags](#striptags) [studly](#studly) [substr](#substr) [substrCount](#substrcount) [substrReplace](#substrreplace) [swap](#swap) [take](#take) [title](#title) [toBase64](#tobase64) [transliterate](#transliterate) [trim](#trim) [ltrim](#ltrim) [rtrim](#rtrim) [ucfirst](#ucfirst) [ucsplit](#ucsplit) [ucwords](#ucwords) [upper](#upper) [ulid](#ulid) [unwrap](#unwrap) [uuid](#uuid) [uuid7](#uuid7) [wordCount](#wordcount) [wordWrap](#wordwrap) [words](#words) [wrap](#wrap) [str](#str) [of](#of)
 
-## String Utilities Details
+### String Utilities Details
 
-### after
+#### after
 
 Return the remainder of a string after the first occurrence of a given value.
 
@@ -76,7 +76,7 @@ const result = after("This is my name", "This is");
 // result is " my name"
 ```
 
-### afterLast
+#### afterLast
 
 Return the remainder of a string after the last occurrence of a given value.
 
@@ -88,7 +88,7 @@ const result = afterLast("App\Http\Controllers\Controller", "\\");
 // result is "Controller"
 ```
 
-### apa
+#### apa
 
 Convert the given string to [APA-style](https://apastyle.apa.org/style-grammar-guidelines/capitalization/title-case) title case.
 
@@ -100,7 +100,7 @@ const result = apa("Creating A Project");
 // result is "Creating a Project"
 ```
 
-### ascii
+#### ascii
 
 Transliterate a UTF-8 value to ASCII.
 
@@ -114,7 +114,7 @@ const result = ascii("û");
 // result is "u"
 ```
 
-### before
+#### before
 
 Get the portion of a string before the first occurrence of a given value.
 
@@ -126,7 +126,7 @@ const result = before("This is my name", "my");
 // result is "This is "
 ```
 
-### beforeLast
+#### beforeLast
 
 Get the portion of a string before the last occurrence of a given value.
 
@@ -138,7 +138,7 @@ const result = beforeLast("This is my name", "is");
 // result is "This "
 ```
 
-### between
+#### between
 
 Get the portion of a string between two given values.
 
@@ -150,7 +150,7 @@ const result = between("This is my name", "This", "name");
 // result is " is my "
 ```
 
-### betweenFirst
+#### betweenFirst
 
 Get the smallest possible portion of a string between two given values.
 
@@ -162,7 +162,7 @@ const result = betweenFirst("[a] bc [d]", "[", "]");
 // result is "a"
 ```
 
-### camel
+#### camel
 
 Convert a value to camel case.
 
@@ -174,7 +174,7 @@ const result = camel("foo_bar");
 // result is "fooBar"
 ```
 
-### charAt
+#### charAt
 
 Get the character at the specified index.
 
@@ -186,7 +186,7 @@ const result = charAt("This is my name.", 6);
 // result is "s"
 ```
 
-### chopStart
+#### chopStart
 
 Remove the given string(s) if it exists at the start of the haystack.
 
@@ -208,7 +208,7 @@ const result = chopStart("http://laravel.com", ["https://", "http://"]);
 // result is "laravel.com"
 ```
 
-### chopEnd
+#### chopEnd
 
 Remove the given string(s) if it exists at the end of the haystack.
 
@@ -230,7 +230,7 @@ const result = chopEnd("laravel.com/index.php", ["/index.html", "/index.php"]);
 // result is "laravel.com"
 ```
 
-### contains
+#### contains
 
 Determine if a given string contains a given substring.
 
@@ -262,7 +262,7 @@ const result = contains("This is my name", "MY", true);
 // result is true
 ```
 
-### containsAll
+#### containsAll
 
 Determine if a given string contains all array values.
 
@@ -284,7 +284,7 @@ const result = containsAll("This is my name", ["MY", "NAME"], true);
 // result is true
 ```
 
-### doesntContain
+#### doesntContain
 
 Determine if a given string doesn't contain a given substring.
 
@@ -316,7 +316,7 @@ const result = doesntContain("This is name", "MY", true);
 // result is true
 ```
 
-### deduplicate
+#### deduplicate
 
 Replace consecutive instances of a given character with a single character in the given string.
 
@@ -348,7 +348,7 @@ const result = deduplicate("The---Laravel   Framework", ["-", " "]);
 // result is "The-Laravel Framework"
 ```
 
-### doesntEndWith
+#### doesntEndWith
 
 Determine if a given string doesn't end with a given substring.
 
@@ -374,7 +374,7 @@ const result2 = doesntEndWith("This is my name", ["name", "foo"]);
 // result2 is false
 ```
 
-### doesntStartWith
+#### doesntStartWith
 
 Determine if a given string doesn't start with a given substring.
 
@@ -400,7 +400,7 @@ const result2 = doesntStartWith("This is my name", ["name", "foo"]);
 // result2 is true
 ```
 
-### endsWith
+#### endsWith
 
 Determine if a given string ends with a given substring.
 
@@ -426,7 +426,7 @@ const result2 = endsWith("This is my name", ["this", "foo"]);
 // result2 is false
 ```
 
-### excerpt
+#### excerpt
 
 Extracts an excerpt from text that matches the first instance of a phrase.
 
@@ -453,7 +453,7 @@ const result = excerpt("This is my name", "name", {
 // result is "(...) my name"
 ```
 
-### finish
+#### finish
 
 Cap a string with a single instance of a given value.
 
@@ -469,7 +469,7 @@ const result2 = finish("this/string/", "/");
 // result2 is also 'this/string/'
 ```
 
-### fromBase64
+#### fromBase64
 
 Decode the given Base64 encoded string.
 
@@ -481,7 +481,7 @@ const result = fromBase64("TGFyYXZlbA==");
 // result is 'Laravel'
 ```
 
-### headline
+#### headline
 
 Convert the given string to proper case for each word.
 
@@ -497,7 +497,7 @@ const result2 = headline("EmailNotificationSent");
 // result2 is "Email Notification Sent"
 ```
 
-### inlineMarkdown
+#### inlineMarkdown
 
 Converts inline Markdown into HTML.
 
@@ -511,7 +511,7 @@ const result = inlineMarkdown("This is **bold** and this is *italic*.");
 // result is 'This is <strong>bold</strong> and this is <em>italic</em>.'
 ```
 
-#### Inline Markdown Security
+##### Inline Markdown Security
 
 By default, the `inlineMarkdown` function disables raw HTML and unsafe links (e.g., `javascript:` URLs) to prevent XSS attacks. You can enable raw HTML by passing `{ html: true }` in the options.
 
@@ -538,7 +538,7 @@ const result = inlineMarkdown("[click me](javascript:alert(1))", {
 // result is '<a href="javascript:alert(1)">click me</a>'
 ```
 
-### is
+#### is
 
 Determine if a given string matches a given pattern.
 
@@ -564,7 +564,7 @@ const result = is("*.jpg", "photo.JPG", true);
 // result is true
 ```
 
-### isAscii
+#### isAscii
 
 Determine if a given string is 7 bit ASCII.
 
@@ -580,7 +580,7 @@ const result2 = isAscii("û");
 // result2 is false
 ```
 
-### isJson
+#### isJson
 
 Determine if a given value is valid JSON.
 
@@ -600,7 +600,7 @@ const result3 = isJson('{first: "John", last: "Doe"}');
 // result3 is false
 ```
 
-### isUrl
+#### isUrl
 
 Determine if a given value is a valid URL.
 
@@ -630,7 +630,7 @@ const result2 = isUrl("http://example.com", ["https"]);
 // result2 is false
 ```
 
-### isUlid
+#### isUlid
 
 Determine if a given value is a valid ULID.
 
@@ -646,7 +646,7 @@ const result2 = isUlid("tolkijs");
 // result2 is false
 ```
 
-### isUuid
+#### isUuid
 
 Determine if a given value is a valid UUID.
 
@@ -678,7 +678,7 @@ const result2 = isUuid("a0a2a2d2-0b87-4a18-83f2-2529882be2de", 5);
 // result2 is false
 ```
 
-### kebab
+#### kebab
 
 Convert a string to kebab case.
 
@@ -690,7 +690,7 @@ const result = kebab("fooBar");
 // result is "foo-bar"
 ```
 
-### lcfirst
+#### lcfirst
 
 Make a string's first character lowercase.
 
@@ -702,7 +702,7 @@ const result = lcfirst("Foo Bar");
 // result is "foo Bar"
 ```
 
-### length
+#### length
 
 Return the length of the given string.
 
@@ -714,7 +714,7 @@ const result = length("Tolki JS");
 // result is 8
 ```
 
-### limit
+#### limit
 
 Limit the number of characters in a string.
 
@@ -751,7 +751,7 @@ const result = limit(
 // result is "The quick..."
 ```
 
-### lower
+#### lower
 
 Convert the given string to lower-case.
 
@@ -763,7 +763,7 @@ const result = lower("LARAVEL");
 // result is "laravel"
 ```
 
-### markdown
+#### markdown
 
 Converts GitHub flavored Markdown into HTML.
 
@@ -777,7 +777,7 @@ const result = markdown("# Laravel");
 // result is "<h1>Laravel</h1>"
 ```
 
-#### Markdown Security
+##### Markdown Security
 
 By default, the `markdown` function disables raw HTML and unsafe links (e.g., `javascript:` URLs) to prevent XSS attacks. You can enable raw HTML by passing `{ html: true }` in the options.
 
@@ -804,7 +804,7 @@ const result = markdown("[click me](javascript:alert(1))", {
 // result is '<p><a href="javascript:alert(1)">click me</a></p>'
 ```
 
-### mask
+#### mask
 
 Masks a portion of a string with a repeated character.
 
@@ -826,7 +826,7 @@ const result = mask("taylor@example.com", "*", -15, 3);
 // result is "tay***@example.com"
 ```
 
-### match
+#### match
 
 Get the string matching the given pattern.
 
@@ -842,7 +842,7 @@ const result2 = match("/foo (.*)/", "foo bar");
 // result2 is "bar"
 ```
 
-### matchAll
+#### matchAll
 
 Get the string(s) matching the given pattern.
 
@@ -856,7 +856,7 @@ const result = matchAll("/bar/", "bar foo bar");
 
 If no matches are found, an empty array will be returned.
 
-### isMatch
+#### isMatch
 
 Determine if a given string matches a given pattern.
 
@@ -872,13 +872,13 @@ const result2 = isMatch("/foo (.*)/", "laravel");
 // result2 is false
 ```
 
-### orderedUuid
+#### orderedUuid
 
 This function is purposely not implemented. Use the `uuid7()` function instead to generate a UUIDv7, which is a time-ordered UUID.
 
 See more details on this [StackOverflow discussion](https://stackoverflow.com/a/79196945).
 
-### numbers
+#### numbers
 
 Remove all non-numeric characters from a string.
 
@@ -894,7 +894,7 @@ const result2 = numbers("L4r4v3l!");
 // result2 is "443"
 ```
 
-### padBoth
+#### padBoth
 
 Pad both sides of a string with another string to a certain length.
 
@@ -910,7 +910,7 @@ const result2 = padBoth("James", 10);
 // result2 is "  James   "
 ```
 
-### padLeft
+#### padLeft
 
 Pad the left side of a string with another string to a certain length.
 
@@ -926,7 +926,7 @@ const result2 = padLeft("James", 10);
 // result2 is "     James"
 ```
 
-### padRight
+#### padRight
 
 Pad the right side of a string with another string to a certain length.
 
@@ -942,7 +942,7 @@ const result2 = padRight("James", 10);
 // result2 is "James     "
 ```
 
-### pascal
+#### pascal
 
 Convert a value to Pascal case.
 
@@ -954,7 +954,7 @@ const result = pascal("hello world");
 // result is "HelloWorld"
 ```
 
-### pluralPascal
+#### pluralPascal
 
 Pluralize the last word of an English, Pascal caps case string.
 
@@ -966,7 +966,7 @@ const result = pluralPascal("HelloWorld");
 // result is "HelloWorlds"
 ```
 
-### password
+#### password
 
 Generate a random, secure password.
 
@@ -978,7 +978,7 @@ const result = password();
 // result is a random, secure password
 ```
 
-### plural
+#### plural
 
 Get the plural form of an English word.
 
@@ -1018,7 +1018,7 @@ const result = plural("car", 1000, true);
 // result is "1,000 cars"
 ```
 
-### pluralStudly
+#### pluralStudly
 
 Pluralize the last word of an English, studly caps case string.
 
@@ -1034,7 +1034,7 @@ const result2 = pluralStudly("UserFeedback");
 // result2 is "UserFeedback"
 ```
 
-### position
+#### position
 
 Find the multi-byte safe position of the first occurrence of a given substring in a string.
 
@@ -1050,7 +1050,7 @@ const result2 = position("Hello, World!", "W");
 // result2 is 7
 ```
 
-### random
+#### random
 
 Generate a more truly "random" alpha-numeric string.
 
@@ -1096,7 +1096,7 @@ const result2 = random(5);
 // result is a random 5-character alpha-numeric string
 ```
 
-### remove
+#### remove
 
 Remove any occurrence of the given string in the subject.
 
@@ -1122,7 +1122,7 @@ const result = remove(
 // result is "Ptr Pipr pickd a pck of pickld ppprs."
 ```
 
-### repeat
+#### repeat
 
 Repeat the given string.
 
@@ -1134,7 +1134,7 @@ const result = repeat("a", 5);
 // result is "aaaaa"
 ```
 
-### replace
+#### replace
 
 Replace the given value in the given string.
 
@@ -1161,7 +1161,7 @@ const result = replace(
 // result is "Laravel Framework for Web Artisans"
 ```
 
-### replaceArray
+#### replaceArray
 
 Replace a given value in the string sequentially with an array.
 
@@ -1177,7 +1177,7 @@ const result = replaceArray(
 // result is "The event will take place between 8:30 and 9:00"
 ```
 
-### replaceFirst
+#### replaceFirst
 
 Replace the first occurrence of a given value in the string.
 
@@ -1193,7 +1193,7 @@ const result = replaceFirst(
 // result is "a quick brown fox jumps over the lazy dog"
 ```
 
-### replaceLast
+#### replaceLast
 
 Replace the last occurrence of a given value in the string.
 
@@ -1209,7 +1209,7 @@ const result = replaceLast(
 // result is "the quick brown fox jumps over a lazy dog"
 ```
 
-### replaceMatches
+#### replaceMatches
 
 Replace the patterns matching the given regular expression.
 
@@ -1235,7 +1235,7 @@ const result = replaceMatches(
 // result is "My numbers are number 123 and number 456."
 ```
 
-### replaceStart
+#### replaceStart
 
 Replace the first occurrence of the given value if it appears at the start of the string.
 
@@ -1251,7 +1251,7 @@ const result2 = replaceStart("World", "Laravel", "Hello World");
 // result2 is "Hello World"
 ```
 
-### replaceEnd
+#### replaceEnd
 
 Replace the last occurrence of a given value if it appears at the end of the string.
 
@@ -1267,7 +1267,7 @@ const result2 = replaceEnd("Hello", "Laravel", "Hello World");
 // result2 is "Hello World"
 ```
 
-### reverse
+#### reverse
 
 Reverse the given string.
 
@@ -1279,7 +1279,7 @@ const result = reverse("Hello World");
 // result is "dlroW olleH"
 ```
 
-### singular
+#### singular
 
 Get the singular form of an English word.
 
@@ -1297,7 +1297,7 @@ const result2 = singular("children");
 // result2 is "child"
 ```
 
-### slug
+#### slug
 
 Generate a URL friendly "slug" from a given string.
 
@@ -1309,7 +1309,7 @@ const result = slug("Laravel 5 Framework", "-");
 // result is "laravel-5-framework"
 ```
 
-### snake
+#### snake
 
 Convert a string to snake case.
 
@@ -1325,7 +1325,7 @@ const result2 = snake("fooBar", "-");
 // result2 is "foo-bar"
 ```
 
-### squish
+#### squish
 
 Remove all "extra" blank space from the given string.
 
@@ -1337,7 +1337,7 @@ const result = squish("    laravel    framework    ");
 // result is "laravel framework"
 ```
 
-### start
+#### start
 
 Begin a string with a single instance of a given value.
 
@@ -1353,7 +1353,7 @@ const result2 = start("/this/string", "/");
 // result2 is also '/this/string'
 ```
 
-### startsWith
+#### startsWith
 
 Determine if a given string starts with a given substring.
 
@@ -1375,7 +1375,7 @@ const result = startsWith("This is my name", ["This", "That", "There"]);
 // result is true
 ```
 
-### stripTags
+#### stripTags
 
 Strip HTML tags from a string.
 
@@ -1387,7 +1387,7 @@ const result = stripTags("<p>Hello <strong>World</strong></p>");
 // result is "Hello World"
 ```
 
-### studly
+#### studly
 
 Convert a value to studly caps case.
 
@@ -1399,7 +1399,7 @@ const result = studly("foo_bar");
 // result is "FooBar"
 ```
 
-### substr
+#### substr
 
 Returns the portion of the string specified by the start and length parameters.
 
@@ -1411,7 +1411,7 @@ const result = substr("The Laravel Framework", 4, 7);
 // result is "Laravel"
 ```
 
-### substrCount
+#### substrCount
 
 Returns the number of substring occurrences.
 
@@ -1426,7 +1426,7 @@ const result = substrCount(
 // result is 2
 ```
 
-### substrReplace
+#### substrReplace
 
 Replace text within a portion of a string.
 
@@ -1442,7 +1442,7 @@ const result2 = substrReplace("1300", ":", 2, 0);
 // result2 is also "13:00"
 ```
 
-### swap
+#### swap
 
 Swap multiple keywords in a string with other keywords.
 
@@ -1460,7 +1460,7 @@ const result = swap(
 // result is "Burritos are fantastic"
 ```
 
-### take
+#### take
 
 Take the first or last {$limit} characters of a string.
 
@@ -1476,7 +1476,7 @@ const result2 = take("Build something amazing!", -5);
 // result2 is "zing!"
 ```
 
-### title
+#### title
 
 Convert the given string to proper case.
 
@@ -1488,7 +1488,7 @@ const result = title("a nice title uses the correct case");
 // result is "A Nice Title Uses The Correct Case"
 ```
 
-### toBase64
+#### toBase64
 
 Convert the given string to Base64 encoding.
 
@@ -1500,7 +1500,7 @@ const result = toBase64("Laravel");
 // result is "TGFyYXZlbA=="
 ```
 
-### transliterate
+#### transliterate
 
 Transliterate a string to its closest ASCII representation.
 
@@ -1518,7 +1518,7 @@ const result2 = transliterate("ⓣⓔⓢⓣ@ⓛⓐⓡⓐⓥⓔⓛ.ⓒⓞⓜ");
 // result2 is "test@laravel.com"
 ```
 
-### trim
+#### trim
 
 Remove all whitespace from both ends of a string.
 
@@ -1530,7 +1530,7 @@ const result = trim(" foo bar ");
 // result is "foo bar"
 ```
 
-### ltrim
+#### ltrim
 
 Remove all whitespace from the beginning of a string.
 
@@ -1542,7 +1542,7 @@ const result = ltrim("  foo bar  ");
 // result is "foo bar   "
 ```
 
-### rtrim
+#### rtrim
 
 Remove all whitespace from the end of a string.
 
@@ -1554,7 +1554,7 @@ const result = rtrim("  foo bar  ");
 // result is "  foo bar"
 ```
 
-### ucfirst
+#### ucfirst
 
 Make a string's first character uppercase.
 
@@ -1566,7 +1566,7 @@ const result = ucfirst("foo bar");
 // result is "Foo bar"
 ```
 
-### ucsplit
+#### ucsplit
 
 Split a string into pieces by uppercase characters.
 
@@ -1578,7 +1578,7 @@ const result = ucsplit("FooBar");
 // result is ["Foo", "Bar"]
 ```
 
-### ucwords
+#### ucwords
 
 Uppercase the first letter of each word in a string.
 
@@ -1590,7 +1590,7 @@ const result = ucwords("laravel framework");
 // result is "Laravel Framework"
 ```
 
-### upper
+#### upper
 
 Convert the given string to upper-case.
 
@@ -1602,7 +1602,7 @@ const result = upper("laravel");
 // result is "LARAVEL"
 ```
 
-### ulid
+#### ulid
 
 Generate a ULID (Universally Unique Lexicographically Sortable Identifier).
 
@@ -1646,7 +1646,7 @@ const result2 = ulid();
 // result is a randomly generated ULID
 ```
 
-### unwrap
+#### unwrap
 
 Unwrap the string with the given strings.
 
@@ -1662,7 +1662,7 @@ const result2 = unwrap('{framework: "Laravel"}', "{", "}");
 // result2 is 'framework: "Laravel"'
 ```
 
-### uuid
+#### uuid
 
 Generate a UUID (version 4).
 
@@ -1706,7 +1706,7 @@ const result2 = uuid();
 // result is a randomly generated UUID
 ```
 
-### uuid7
+#### uuid7
 
 Generate a UUID (version 7).
 
@@ -1722,7 +1722,7 @@ const result = uuid7();
 
 The `uuid7()` function also uses the `createUuidsUsing` and `createUuidsNormally` functions for testing purposes, as described in the `uuid` function above.
 
-### wordCount
+#### wordCount
 
 Get the number of words a string contains.
 
@@ -1734,7 +1734,7 @@ const result = wordCount("Hello, world!");
 // result is 2
 ```
 
-### wordWrap
+#### wordWrap
 
 Wrap a string to a given number of characters.
 
@@ -1755,7 +1755,7 @@ dog.
 */
 ```
 
-### words
+#### words
 
 Limit the number of words in a string.
 
@@ -1767,7 +1767,7 @@ const result = words("Perfectly balanced, as all things should be.", 3, " >>>");
 // result is "Perfectly balanced, as >>>"
 ```
 
-### wrap
+#### wrap
 
 Wrap the string with the given strings.
 
@@ -1783,7 +1783,7 @@ const result2 = wrap("is", "This ", " Laravel!");
 // result2 is 'This is Laravel!'
 ```
 
-### str
+#### str
 
 Using the `str` or `of` functions is discouraged for frontend projects because it will import the entire `Stringable` class, all of its methods, and all 3rd party dependencies into your final bundle, which may significantly increase its size.
 
@@ -1809,7 +1809,7 @@ const result = str().snake("FooBar");
 // result is a Stringable class instance representing "foo_bar"
 ```
 
-### of
+#### of
 
 The `of` function is an alias for the `str` function made for parity with Laravels' `Str::of` method. See the [str](#str) function documentation for details.
 
@@ -1821,9 +1821,9 @@ const result = of("Laravel").upper();
 // result is a Stringable class instance representing "LARAVEL"
 ```
 
-# Tolki Stringable Utilities List
+## Tolki Stringable Utilities List
 
-## Stringable utilities list
+### Stringable utilities list
 
 The documentation for fluent string utilities is in the works. In the meantime, I recommend checking out the Laravel documentation for [Fluent strings](https://laravel.com/docs/12.x/strings#fluent-strings-method-list) since the JavaScript utilities are designed to mirror the Laravel ones as closely as possible.
 
