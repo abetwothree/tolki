@@ -15,14 +15,14 @@ const execAsync = promisify(exec);
 export interface LaravelTsPublishOptions {
     /**
      * The command to run when a watched PHP file changes.
-    *
-    * The command is executed with Node's `exec()` using the Vite project root
-    * as the current working directory. Because it runs in a non-interactive
-    * shell, shell aliases such as `sail` are usually not available.
-    *
-    * Common setups:
-    * - Run Vite on the host machine with Laravel Sail: `./vendor/bin/sail artisan ts:publish`
-    * - Run Vite inside the container: `php artisan ts:publish`
+     *
+     * The command is executed with Node's `exec()` using the Vite project root
+     * as the current working directory. Because it runs in a non-interactive
+     * shell, shell aliases such as `sail` are usually not available.
+     *
+     * Common setups:
+     * - Run Vite on the host machine with Laravel Sail: `./vendor/bin/sail artisan ts:publish`
+     * - Run Vite inside the container: `php artisan ts:publish`
      *
      * The command is executed with Node's `exec()` using the Vite project root
      * as the current working directory. Because it runs in a non-interactive
@@ -80,6 +80,22 @@ export interface LaravelTsPublishOptions {
      * during `vite dev`.
      */
     failOnError?: boolean;
+    /**
+     * The command template for single-file republishing during `vite dev`.
+     *
+     * When a watched PHP file changes, this command is used instead of the
+     * full `command` to republish only the changed file. The `{file}`
+     * placeholder is replaced with the relative file path from the manifest.
+     *
+     * When not specified, it is auto-derived by appending
+     * ` --source="{file}"` to `command`.
+     *
+     * Set to `false` to disable single-file republishing and always run
+     * the full command.
+     *
+     * @default `${command} --source="{file}"`
+     */
+    sourceCommand?: string | false;
 }
 
 /**
@@ -150,29 +166,38 @@ export function laravelTsPublish(
         runOnBuildStart = true,
         reload = true,
         failOnError,
+        sourceCommand: sourceCommandOption,
     } = options;
+
+    const resolvedSourceCommand =
+        sourceCommandOption === false
+            ? false
+            : (sourceCommandOption ?? `${command} --source="{file}"`);
 
     let config: ResolvedConfig;
     let server: ViteDevServer | undefined;
-    const watchedFiles = new Set<string>();
+    
+    /** Maps absolute file path → relative manifest path. */
+    const watchedFiles = new Map<string, string>();
     let manifestPath = "";
     let isRunning = false;
     let pendingRun = false;
+    let pendingSourceFile: string | null = null;
     const pluginLabel = "[laravel-ts-publish]";
 
     /**
-     * Read the JSON manifest asynchronously and populate the watched file set.
+     * Read the JSON manifest asynchronously and populate the watched file map.
      */
     const loadWatchedFiles = async (): Promise<void> => {
         watchedFiles.clear();
 
         try {
             const raw = await readFile(manifestPath, "utf-8");
-            const files: string[] = JSON.parse(raw);
+            const parsed: string[] = JSON.parse(raw);
 
-            for (const file of files) {
+            for (const file of parsed) {
                 const absolute = normalizePath(path.resolve(config.root, file));
-                watchedFiles.add(absolute);
+                watchedFiles.set(absolute, file);
             }
         } catch (error) {
             if (
@@ -199,7 +224,7 @@ export function laravelTsPublish(
      */
     const addFilesToWatcher = (): void => {
         if (server) {
-            for (const file of watchedFiles) {
+            for (const file of watchedFiles.keys()) {
                 server.watcher.add(file);
             }
         }
@@ -218,27 +243,34 @@ export function laravelTsPublish(
     };
 
     /**
-     * Execute the configured command with debounce protection.
+     * Execute a command with debounce protection.
      *
-     * If the command is already running, it queues a single re-run for after
-     * the current execution completes. This prevents spawning many concurrent
-     * processes during rapid saves while ensuring the final state is always
-     * published.
+     * If a command is already running, it queues a single re-run for after
+     * the current execution completes. When a source file is provided, the
+     * targeted source command is used instead of the full publish command.
      */
-    const runCommand = async (): Promise<void> => {
+    const runCommand = async (
+        sourceFile: string | null = null,
+    ): Promise<void> => {
         if (isRunning) {
             pendingRun = true;
+            pendingSourceFile = sourceFile;
             return;
         }
 
         isRunning = true;
 
+        const effectiveCommand =
+            sourceFile && resolvedSourceCommand
+                ? resolvedSourceCommand.replace("{file}", sourceFile)
+                : command;
+
         try {
-            config.logger.info(`${pluginLabel} Running: ${command}`, {
+            config.logger.info(`${pluginLabel} Running: ${effectiveCommand}`, {
                 timestamp: true,
             });
 
-            await execAsync(command, { cwd: config.root });
+            await execAsync(effectiveCommand, { cwd: config.root });
 
             config.logger.info(`${pluginLabel} Types published successfully`, {
                 timestamp: true,
@@ -262,7 +294,9 @@ export function laravelTsPublish(
 
             if (pendingRun) {
                 pendingRun = false;
-                await runCommand();
+                const file = pendingSourceFile;
+                pendingSourceFile = null;
+                await runCommand(file);
             }
         }
     };
@@ -322,7 +356,8 @@ export function laravelTsPublish(
             }
 
             if (watchedFiles.has(normalizedFile)) {
-                await runCommand();
+                const file = watchedFiles.get(normalizedFile) ?? null;
+                await runCommand(file);
 
                 return [];
             }

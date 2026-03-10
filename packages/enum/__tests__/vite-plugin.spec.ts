@@ -19,6 +19,7 @@ const { mockExec, mockReadFile, mockNormalizePath } = vi.hoisted(() => ({
     mockExec: vi.fn((_cmd: string, _opts: unknown, cb: ExecCallback) => {
         cb(null, "", "");
     }),
+
     mockReadFile: vi.fn((_path: string, _encoding: string): Promise<string> => {
         const err = new Error("ENOENT") as NodeJS.ErrnoException;
         err.code = "ENOENT";
@@ -309,12 +310,14 @@ describe("laravelTsPublish", () => {
 
             expect(result).toEqual([]);
             expect(mockExec).toHaveBeenCalledWith(
-                "php artisan ts:publish",
+                'php artisan ts:publish --source="app/Enums/Status.php"',
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
             expect(mockConfig.logger.info).toHaveBeenCalledWith(
-                expect.stringContaining("Running: php artisan ts:publish"),
+                expect.stringContaining(
+                    'Running: php artisan ts:publish --source="app/Enums/Status.php"',
+                ),
                 expect.any(Object),
             );
         });
@@ -334,7 +337,7 @@ describe("laravelTsPublish", () => {
             });
 
             expect(mockExec).toHaveBeenCalledWith(
-                "sail artisan ts:publish",
+                'sail artisan ts:publish --source="app/Enums/Status.php"',
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -865,6 +868,177 @@ describe("laravelTsPublish", () => {
             const { mockServer } = await setupPlugin(undefined, "build");
 
             expect(mockServer.ws.send).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("sourceCommand", () => {
+        it("should use the source command with file path from manifest", async () => {
+            mockManifestExists();
+            const { plugin } = await setupPlugin();
+
+            const absoluteFile = path.resolve(
+                MOCK_ROOT,
+                "app/Enums/Status.php",
+            );
+            await (plugin.handleHotUpdate as HotUpdateHook)({
+                file: absoluteFile,
+            });
+
+            expect(mockExec).toHaveBeenCalledWith(
+                'php artisan ts:publish --source="app/Enums/Status.php"',
+                { cwd: MOCK_ROOT },
+                expect.any(Function),
+            );
+        });
+
+        it("should fall back to full command for legacy array manifest", async () => {
+            mockManifestExists();
+            const { plugin } = await setupPlugin();
+
+            const absoluteFile = path.resolve(
+                MOCK_ROOT,
+                "app/Enums/Status.php",
+            );
+            await (plugin.handleHotUpdate as HotUpdateHook)({
+                file: absoluteFile,
+            });
+
+            expect(mockExec).toHaveBeenCalledWith(
+                "php artisan ts:publish",
+                { cwd: MOCK_ROOT },
+                expect.any(Function),
+            );
+        });
+
+        it("should use a custom sourceCommand template", async () => {
+            mockManifestExists();
+            const { plugin } = await setupPlugin({
+                sourceCommand: 'sail artisan ts:publish --source="{file}"',
+            });
+
+            const absoluteFile = path.resolve(
+                MOCK_ROOT,
+                "app/Enums/Status.php",
+            );
+            await (plugin.handleHotUpdate as HotUpdateHook)({
+                file: absoluteFile,
+            });
+
+            expect(mockExec).toHaveBeenCalledWith(
+                'sail artisan ts:publish --source="app/Enums/Status.php"',
+                { cwd: MOCK_ROOT },
+                expect.any(Function),
+            );
+        });
+
+        it("should always run the full command when sourceCommand is false", async () => {
+            mockManifestExists();
+            const { plugin } = await setupPlugin({
+                sourceCommand: false,
+            });
+
+            const absoluteFile = path.resolve(
+                MOCK_ROOT,
+                "app/Enums/Status.php",
+            );
+            await (plugin.handleHotUpdate as HotUpdateHook)({
+                file: absoluteFile,
+            });
+
+            expect(mockExec).toHaveBeenCalledWith(
+                "php artisan ts:publish",
+                { cwd: MOCK_ROOT },
+                expect.any(Function),
+            );
+        });
+
+        it("should auto-derive sourceCommand from custom command", async () => {
+            mockManifestExists();
+            const { plugin } = await setupPlugin({
+                command: "sail artisan ts:publish",
+            });
+
+            const absoluteFile = path.resolve(
+                MOCK_ROOT,
+                "app/Enums/Status.php",
+            );
+            await (plugin.handleHotUpdate as HotUpdateHook)({
+                file: absoluteFile,
+            });
+
+            expect(mockExec).toHaveBeenCalledWith(
+                'sail artisan ts:publish --source="app/Enums/Status.php"',
+                { cwd: MOCK_ROOT },
+                expect.any(Function),
+            );
+        });
+
+        it("should load object manifest and count watched files", async () => {
+            mockManifestExists();
+            const { mockConfig } = await setupPlugin();
+
+            expect(mockConfig.logger.info).toHaveBeenCalledWith(
+                expect.stringContaining("Watching 3 PHP files"),
+                expect.any(Object),
+            );
+        });
+
+        it("should pass file path through debounce queue", async () => {
+            const commands: string[] = [];
+            const resolvers: Array<(v: unknown) => void> = [];
+
+            mockExec.mockImplementation(
+                (cmd: string, _opts: unknown, cb: ExecCallback) => {
+                    commands.push(cmd);
+                    const p = new Promise((resolve) => {
+                        resolvers.push(resolve);
+                    });
+                    p.then(() => cb(null, "", ""));
+                },
+            );
+
+            mockManifestExists();
+            const { plugin } = await setupPlugin();
+
+            const statusFile = path.resolve(MOCK_ROOT, "app/Enums/Status.php");
+            const userFile = path.resolve(MOCK_ROOT, "app/Models/User.php");
+
+            // Fire two hot updates concurrently
+            const first = (plugin.handleHotUpdate as HotUpdateHook)({
+                file: statusFile,
+            });
+            const second = (plugin.handleHotUpdate as HotUpdateHook)({
+                file: userFile,
+            });
+
+            // First command started with Status file path
+            expect(commands).toHaveLength(1);
+            expect(commands[0]).toContain('--source="app/Enums/Status.php"');
+
+            // Resolve first — triggers pending run with User file path
+            resolvers[0]!(undefined);
+
+            await vi.waitFor(() => {
+                expect(commands).toHaveLength(2);
+            });
+
+            expect(commands[1]).toContain('--source="app/Models/User.php"');
+
+            resolvers[1]!(undefined);
+            await first;
+            await second;
+        });
+
+        it("should still use full command on runOnDevStart with object manifest", async () => {
+            mockManifestExists();
+            await setupPlugin({ runOnDevStart: true });
+
+            // runOnDevStart always uses the full command (no source)
+            expect(mockExec).toHaveBeenCalledWith(
+                "php artisan ts:publish",
+                { cwd: MOCK_ROOT },
+                expect.any(Function),
+            );
         });
     });
 });

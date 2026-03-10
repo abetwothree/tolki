@@ -51,6 +51,25 @@ By default, the plugin will work in the following way:
 4. It will reload the page after a successful publish triggered by a watched PHP file change.
 5. It will call the publish command on `vite build` before bundling.
 6. It will throw an error if the publish command fails on `vite build`.
+7. When a single PHP file changes during `vite dev`, it will use `--source` to republish only that file instead of running a full publish.
+
+### Single-File Republishing
+
+The JSON file list manifest uses the `filepath[]` array format (produced by `laravel-ts-publish`), the plugin will automatically use the `--source` flag to republish only the changed file during development:
+
+```bash
+# Instead of running the full command:
+php artisan ts:publish
+
+# The plugin runs a targeted command:
+php artisan ts:publish --source="App\Enums\Status"
+```
+
+This can reduce per-change latency from seconds to near-instant on large projects with hundreds of files.
+
+The plugin derives the source command automatically from the `command` option by appending `--source="{file}"`. You can customize this with the `sourceCommand` option or disable it entirely by setting `sourceCommand: false`.
+
+Full startup commands (`runOnDevStart`, `runOnBuildStart`) always use the full `command` to ensure all files are generated.
 
 ### Manifest Updates
 
@@ -120,6 +139,16 @@ export default defineConfig({
        * When specified, it will apply to both `vite dev` and `vite build`.
        */
       failOnError: undefined,
+      /**
+       * The command template for single-file republishing during `vite dev`.
+       *
+       * When a watched PHP file changes, this command is used instead of the
+       * full `command`. The `{file}` placeholder is replaced with the class
+       * name from the manifest.
+       *
+       * Set to `false` to always run the full command.
+       */
+      sourceCommand: `${command} --source="{file}"`,
     }),
   ],
 });
