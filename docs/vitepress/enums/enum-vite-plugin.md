@@ -143,8 +143,9 @@ export default defineConfig({
        * The command template for single-file republishing during `vite dev`.
        *
        * When a watched PHP file changes, this command is used instead of the
-       * full `command`. The `{file}` placeholder is replaced with the class
-       * name from the manifest.
+       * full `command`. The `{file}` placeholder is replaced with the relative
+       * manifest path string for the changed file (exactly as it appears in
+       * the manifest).
        *
        * Set to `false` to always run the full command.
        */

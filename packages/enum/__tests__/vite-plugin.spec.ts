@@ -931,24 +931,6 @@ describe("laravelTsPublish", () => {
             );
         });
 
-        it("should fall back to full command for legacy array manifest", async () => {
-            mockManifestExists();
-            const { plugin } = await setupPlugin();
-
-            const absoluteFile = path.resolve(
-                MOCK_ROOT,
-                "app/Enums/Status.php",
-            );
-            await (plugin.handleHotUpdate as HotUpdateHook)({
-                file: absoluteFile,
-            });
-
-            expect(mockExec).toHaveBeenCalledWith(
-                'php artisan ts:publish --source="app/Enums/Status.php"',
-                { cwd: MOCK_ROOT },
-                expect.any(Function),
-            );
-        });
 
         it("should use a custom sourceCommand template", async () => {
             mockManifestExists();

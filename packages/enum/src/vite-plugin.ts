@@ -356,8 +356,8 @@ export function laravelTsPublish(
             }
 
             if (watchedFiles.has(normalizedFile)) {
-                const file = watchedFiles.get(normalizedFile) ?? null;
-                await runCommand(file);
+                const sourceFile = watchedFiles.get(normalizedFile) ?? null;
+                await runCommand(sourceFile);
 
                 return [];
             }
