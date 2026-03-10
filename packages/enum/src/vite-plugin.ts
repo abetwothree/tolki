@@ -176,7 +176,7 @@ export function laravelTsPublish(
 
     let config: ResolvedConfig;
     let server: ViteDevServer | undefined;
-    
+
     /** Maps absolute file path → relative manifest path. */
     const watchedFiles = new Map<string, string>();
     let manifestPath = "";
