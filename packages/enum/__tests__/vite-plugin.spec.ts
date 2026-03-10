@@ -296,6 +296,46 @@ describe("laravelTsPublish", () => {
     });
 
     describe("handleHotUpdate", () => {
+        it("should fall back to null when Map.get returns undefined for a watched file", async () => {
+            mockManifestExists();
+            const { plugin } = await setupPlugin({
+                sourceCommand: false,
+            });
+
+            const absoluteFile = path.resolve(
+                MOCK_ROOT,
+                "app/Enums/Status.php",
+            );
+            const normalizedFile = mockNormalizePath(absoluteFile);
+
+            const originalGet = Map.prototype.get;
+            const getSpy = vi
+                .spyOn(Map.prototype, "get")
+                .mockImplementation(function (
+                    this: Map<unknown, unknown>,
+                    key: unknown,
+                ) {
+                    if (key === normalizedFile) {
+                        return undefined;
+                    }
+
+                    return originalGet.call(this, key);
+                });
+
+            await (plugin.handleHotUpdate as HotUpdateHook)({
+                file: absoluteFile,
+            });
+
+            // With null sourceFile, falls back to the full command
+            expect(mockExec).toHaveBeenCalledWith(
+                "php artisan ts:publish",
+                { cwd: MOCK_ROOT },
+                expect.any(Function),
+            );
+
+            getSpy.mockRestore();
+        });
+
         it("should run the command when a watched file changes", async () => {
             mockManifestExists();
             const { plugin, mockConfig } = await setupPlugin();
@@ -904,7 +944,7 @@ describe("laravelTsPublish", () => {
             });
 
             expect(mockExec).toHaveBeenCalledWith(
-                "php artisan ts:publish",
+                'php artisan ts:publish --source="app/Enums/Status.php"',
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );

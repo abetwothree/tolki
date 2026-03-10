@@ -231,3 +231,65 @@ describe("defineEnum", () => {
         expect(result.label).toBe("High Priority");
     });
 });
+
+describe("enums without _cases", () => {
+    it("from throws when _cases is not defined", () => {
+        expect(() => {
+            Enum.from(Stubs.NoCases as never, "active" as never);
+        }).toThrow("does not match any case in the enum");
+    });
+
+    it("cases returns an empty array when _cases is not defined", () => {
+        const result = Enum.cases(Stubs.NoCases as never);
+
+        expect(result).toEqual([]);
+    });
+});
+
+describe("enums without _methods or _static", () => {
+    it("from resolves a case correctly", () => {
+        const result = Enum.from(Stubs.PaymentMethod, "paypal");
+
+        expect(result).toEqual({ value: "paypal" });
+    });
+
+    it("tryFrom resolves a valid case", () => {
+        const result = Enum.tryFrom(Stubs.PaymentMethod, "crypto");
+
+        expect(result).not.toBeNull();
+        expect(result!.value).toBe("crypto");
+    });
+
+    it("tryFrom returns null for invalid value", () => {
+        const result = Enum.tryFrom(Stubs.PaymentMethod, "bitcoin" as never);
+
+        expect(result).toBeNull();
+    });
+
+    it("cases returns all resolved instances", () => {
+        const result = Enum.cases(Stubs.PaymentMethod);
+
+        expect(result).toHaveLength(8);
+        expect(result.map((c) => c.value)).toEqual([
+            "credit_card",
+            "debit_card",
+            "paypal",
+            "bank_transfer",
+            "cash_on_delivery",
+            "crypto",
+            "apple_pay",
+            "google_pay",
+        ]);
+    });
+
+    it("defineEnum works without _methods or _static", () => {
+        const PM = Enum.defineEnum(Stubs.PaymentMethod);
+
+        expect(PM.from).toBeTypeOf("function");
+        expect(PM.tryFrom).toBeTypeOf("function");
+        expect(PM.cases).toBeTypeOf("function");
+
+        const result = PM.from("apple_pay");
+        expect(result.value).toBe("apple_pay");
+    });
+});

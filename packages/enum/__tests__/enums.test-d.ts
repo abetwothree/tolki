@@ -241,3 +241,47 @@ describe("defineEnum", () => {
         expectTypeOf(result.description).toEqualTypeOf<"Visible to everyone">();
     });
 });
+
+describe("enums without _methods or _static", () => {
+    type PaymentMethodEnum = typeof Stubs.PaymentMethod;
+
+    it("CaseKeys extracts case key names", () => {
+        expectTypeOf<CaseKeys<PaymentMethodEnum>>().toEqualTypeOf<
+            | "CreditCard"
+            | "DebitCard"
+            | "PayPal"
+            | "BankTransfer"
+            | "CashOnDelivery"
+            | "Crypto"
+            | "ApplePay"
+            | "GooglePay"
+        >();
+    });
+
+    it("CaseValue extracts case values", () => {
+        expectTypeOf<
+            CaseValue<PaymentMethodEnum>
+        >().toEqualTypeOf<Stubs.PaymentMethodType>();
+    });
+
+    it("from resolves to value-only result", () => {
+        const result = Enum.from(Stubs.PaymentMethod, "paypal");
+
+        expectTypeOf(result.value).toEqualTypeOf<"paypal">();
+    });
+
+    it("defineEnum from infers correct type", () => {
+        const PM = Enum.defineEnum(Stubs.PaymentMethod);
+        const result = PM.from("crypto");
+
+        expectTypeOf(result.value).toEqualTypeOf<"crypto">();
+    });
+
+    it("cases returns correct array type", () => {
+        const result = Enum.cases(Stubs.PaymentMethod);
+        const first = result[0]!;
+
+        expectTypeOf(result).toBeArray();
+        expectTypeOf(first.value).toEqualTypeOf<Stubs.PaymentMethodType>();
+    });
+});
