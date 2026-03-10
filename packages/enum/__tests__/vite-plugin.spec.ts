@@ -931,7 +931,6 @@ describe("laravelTsPublish", () => {
             );
         });
 
-
         it("should use a custom sourceCommand template", async () => {
             mockManifestExists();
             const { plugin } = await setupPlugin({
