@@ -1,5 +1,11 @@
 # @tolki/types
 
+## 1.1.2
+
+### Patch Changes
+
+- db71d46: Make enum \_cases, \_methods, & \_static enum properties optional.
+
 ## 1.1.1
 
 ### Patch Changes
