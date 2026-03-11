@@ -129,3 +129,43 @@ export interface Post {
     featured_image_url: string | null;
     is_pinned: boolean;
 }
+
+export const PaymentMethod = {
+    CreditCard: "credit_card",
+    DebitCard: "debit_card",
+    PayPal: "paypal",
+    BankTransfer: "bank_transfer",
+    CashOnDelivery: "cash_on_delivery",
+    Crypto: "crypto",
+    ApplePay: "apple_pay",
+    GooglePay: "google_pay",
+    _cases: [
+        "CreditCard",
+        "DebitCard",
+        "PayPal",
+        "BankTransfer",
+        "CashOnDelivery",
+        "Crypto",
+        "ApplePay",
+        "GooglePay",
+    ],
+} as const;
+
+export type PaymentMethodType =
+    | "credit_card"
+    | "debit_card"
+    | "paypal"
+    | "bank_transfer"
+    | "cash_on_delivery"
+    | "crypto"
+    | "apple_pay"
+    | "google_pay";
+
+/**
+ * Enum stub with no _cases property.
+ * Used to test the ?? [] fallback branches in from() and cases().
+ */
+export const NoCases = {
+    Active: "active",
+    Inactive: "inactive",
+} as const;

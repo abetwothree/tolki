@@ -1,22 +1,30 @@
 /**
  * Extract the case key names from the _cases tuple.
  */
-export type CaseKeys<TEnum extends EnumConst> = TEnum["_cases"][number];
+export type CaseKeys<TEnum extends EnumConst> = NonNullable<
+    TEnum["_cases"]
+>[number];
 
 /**
  * Extracts the instance method key names from the `_methods` tuple.
  */
-export type MethodKeys<TEnum extends EnumConst> = TEnum["_methods"][number];
+export type MethodKeys<TEnum extends EnumConst> = NonNullable<
+    TEnum["_methods"]
+>[number];
 
 /**
  * Extracts the static helper key names from the `_static` tuple.
  */
-export type StaticKeys<TEnum extends EnumConst> = TEnum["_static"][number];
+export type StaticKeys<TEnum extends EnumConst> = NonNullable<
+    TEnum["_static"]
+>[number];
 
 /**
  * Extracts the helper key names from the `_helpers` tuple.
  */
-export type HelperKeys<TEnum extends EnumConst> = TEnum["_helpers"][number];
+export type HelperKeys<TEnum extends EnumConst> = NonNullable<
+    TEnum["_helpers"]
+>[number];
 
 /**
  * Constraint for all generated enum const objects.
@@ -29,9 +37,9 @@ export type HelperKeys<TEnum extends EnumConst> = TEnum["_helpers"][number];
  * - `_static` lists static helper method names added to the enum.
  */
 export type EnumConst = {
-    readonly _cases: readonly string[];
-    readonly _methods: readonly string[];
-    readonly _static: readonly string[];
+    readonly _cases?: readonly string[];
+    readonly _methods?: readonly string[];
+    readonly _static?: readonly string[];
     readonly [key: string]: unknown;
 };
 

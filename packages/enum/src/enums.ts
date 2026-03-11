@@ -26,7 +26,7 @@ export function from<
     TEnum extends EnumConst,
     const TValue extends CaseValue<TEnum>,
 >(enumObj: TEnum, value: TValue): ToEnumResult<TEnum, TValue> {
-    const caseKeys = new Set<string>(enumObj._cases);
+    const caseKeys = new Set<string>(enumObj._cases ?? []);
 
     let matchedCaseName: string | undefined;
     for (const key of caseKeys) {
@@ -44,7 +44,7 @@ export function from<
     }
 
     const result: Record<string, unknown> = { value };
-    const methodKeys = new Set<string>(enumObj._methods);
+    const methodKeys = new Set<string>(enumObj._methods ?? []);
     const rawHelpers = enumObj["_helpers"];
     const helperKeys = new Set<string>(
         Array.isArray(rawHelpers) ? (rawHelpers as string[]) : [],
@@ -106,7 +106,7 @@ export function tryFrom<
 export function cases<TEnum extends EnumConst>(
     enumObj: TEnum,
 ): Array<ToEnumResult<TEnum, CaseValue<TEnum>>> {
-    return enumObj._cases.map((caseKey) =>
+    return (enumObj._cases ?? []).map((caseKey) =>
         from(enumObj, enumObj[caseKey] as CaseValue<TEnum>),
     );
 }
