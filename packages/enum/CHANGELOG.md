@@ -1,5 +1,13 @@
 # @tolki/enum
 
+## 0.0.4
+
+### Patch Changes
+
+- 2526f7c: Ability to call the `php artisan ts:publish` command for a specific file for Vite plugin file watcher
+- Updated dependencies [db71d46]
+  - @tolki/types@1.1.2
+
 ## 0.0.3
 
 ### Patch Changes
