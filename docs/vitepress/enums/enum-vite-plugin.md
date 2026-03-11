@@ -62,7 +62,7 @@ The JSON file list manifest uses the `filepath[]` array format (produced by `lar
 php artisan ts:publish
 
 # The plugin runs a targeted command:
-php artisan ts:publish --source="App\Enums\Status"
+php artisan ts:publish --source="app/Enums/Status.php"
 ```
 
 This can reduce per-change latency from seconds to near-instant on large projects with hundreds of files.
@@ -144,12 +144,15 @@ export default defineConfig({
        *
        * When a watched PHP file changes, this command is used instead of the
        * full `command`. The `{file}` placeholder is replaced with the relative
-       * manifest path string for the changed file (exactly as it appears in
-       * the manifest).
+       * file path from the manifest for the changed file (exactly as it
+       * appears in the manifest array).
+       *
+       * When not specified, it is auto-derived by appending
+       * ` --source="{file}"` to the `command` option.
        *
        * Set to `false` to always run the full command.
        */
-      sourceCommand: `${command} --source="{file}"`,
+      sourceCommand: 'php artisan ts:publish --source="{file}"',
     }),
   ],
 });

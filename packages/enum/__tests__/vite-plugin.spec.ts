@@ -994,7 +994,7 @@ describe("laravelTsPublish", () => {
             );
         });
 
-        it("should load object manifest and count watched files", async () => {
+        it("should load array manifest and count watched files", async () => {
             mockManifestExists();
             const { mockConfig } = await setupPlugin();
 
@@ -1022,13 +1022,65 @@ describe("laravelTsPublish", () => {
             const { plugin } = await setupPlugin();
 
             const statusFile = path.resolve(MOCK_ROOT, "app/Enums/Status.php");
-            const userFile = path.resolve(MOCK_ROOT, "app/Models/User.php");
 
-            // Fire two hot updates concurrently
+            // Fire two hot updates for the same file concurrently
             const first = (plugin.handleHotUpdate as HotUpdateHook)({
                 file: statusFile,
             });
             const second = (plugin.handleHotUpdate as HotUpdateHook)({
+                file: statusFile,
+            });
+
+            // First command started with Status file path
+            expect(commands).toHaveLength(1);
+            expect(commands[0]).toContain('--source="app/Enums/Status.php"');
+
+            // Resolve first — triggers pending run with the same file path
+            resolvers[0]!(undefined);
+
+            await vi.waitFor(() => {
+                expect(commands).toHaveLength(2);
+            });
+
+            expect(commands[1]).toContain('--source="app/Enums/Status.php"');
+
+            resolvers[1]!(undefined);
+            await first;
+            await second;
+        });
+
+        it("should fall back to full command when distinct files are coalesced", async () => {
+            const commands: string[] = [];
+            const resolvers: Array<(v: unknown) => void> = [];
+
+            mockExec.mockImplementation(
+                (cmd: string, _opts: unknown, cb: ExecCallback) => {
+                    commands.push(cmd);
+                    const p = new Promise((resolve) => {
+                        resolvers.push(resolve);
+                    });
+                    p.then(() => cb(null, "", ""));
+                },
+            );
+
+            mockManifestExists();
+            const { plugin } = await setupPlugin();
+
+            const statusFile = path.resolve(MOCK_ROOT, "app/Enums/Status.php");
+            const priorityFile = path.resolve(
+                MOCK_ROOT,
+                "app/Enums/Priority.php",
+            );
+            const userFile = path.resolve(MOCK_ROOT, "app/Models/User.php");
+
+            // Fire three hot updates for different files concurrently
+            const first = (plugin.handleHotUpdate as HotUpdateHook)({
+                file: statusFile,
+            });
+            const second = (plugin.handleHotUpdate as HotUpdateHook)({
+                file: priorityFile,
+            });
+            const third = (plugin.handleHotUpdate as HotUpdateHook)({
                 file: userFile,
             });
 
@@ -1036,18 +1088,21 @@ describe("laravelTsPublish", () => {
             expect(commands).toHaveLength(1);
             expect(commands[0]).toContain('--source="app/Enums/Status.php"');
 
-            // Resolve first — triggers pending run with User file path
+            // Resolve first — triggers pending run as full command since
+            // two distinct files (Priority + User) were coalesced
             resolvers[0]!(undefined);
 
             await vi.waitFor(() => {
                 expect(commands).toHaveLength(2);
             });
 
-            expect(commands[1]).toContain('--source="app/Models/User.php"');
+            // Second command is a full publish since distinct files were coalesced
+            expect(commands[1]).toBe("php artisan ts:publish");
 
             resolvers[1]!(undefined);
             await first;
             await second;
+            await third;
         });
 
         it("should still use full command on runOnDevStart with object manifest", async () => {

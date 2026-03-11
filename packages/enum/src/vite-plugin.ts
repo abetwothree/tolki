@@ -24,14 +24,6 @@ export interface LaravelTsPublishOptions {
      * - Run Vite on the host machine with Laravel Sail: `./vendor/bin/sail artisan ts:publish`
      * - Run Vite inside the container: `php artisan ts:publish`
      *
-     * The command is executed with Node's `exec()` using the Vite project root
-     * as the current working directory. Because it runs in a non-interactive
-     * shell, shell aliases such as `sail` are usually not available.
-     *
-     * Common setups:
-     * - Run Vite on the host machine with Laravel Sail: `./vendor/bin/sail artisan ts:publish`
-     * - Run Vite inside the container: `php artisan ts:publish`
-     *
      * @default "php artisan ts:publish"
      */
     command?: string;
@@ -88,12 +80,12 @@ export interface LaravelTsPublishOptions {
      * placeholder is replaced with the relative file path from the manifest.
      *
      * When not specified, it is auto-derived by appending
-     * ` --source="{file}"` to `command`.
+     * ` --source="{file}"` to the `command` option.
      *
      * Set to `false` to disable single-file republishing and always run
      * the full command.
      *
-     * @default `${command} --source="{file}"`
+     * @default Derived from the `command` option: `"php artisan ts:publish --source="{file}""`
      */
     sourceCommand?: string | false;
 }
@@ -254,7 +246,18 @@ export function laravelTsPublish(
     ): Promise<void> => {
         if (isRunning) {
             pendingRun = true;
-            pendingSourceFile = sourceFile;
+
+            // When multiple distinct files change during one run, fall back
+            // to a full publish (null) so no intermediate changes are lost.
+            if (
+                pendingSourceFile !== null &&
+                pendingSourceFile !== sourceFile
+            ) {
+                pendingSourceFile = null;
+            } else {
+                pendingSourceFile = sourceFile;
+            }
+
             return;
         }
 
@@ -262,7 +265,7 @@ export function laravelTsPublish(
 
         const effectiveCommand =
             sourceFile && resolvedSourceCommand
-                ? resolvedSourceCommand.replace("{file}", sourceFile)
+                ? resolvedSourceCommand.replaceAll("{file}", sourceFile)
                 : command;
 
         try {
