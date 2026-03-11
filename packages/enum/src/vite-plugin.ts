@@ -173,8 +173,7 @@ export function laravelTsPublish(
     const watchedFiles = new Map<string, string>();
     let manifestPath = "";
     let isRunning = false;
-    let pendingRun = false;
-    let pendingSourceFile: string | null = null;
+    const pendingQueue: Array<string | null> = [];
     const pluginLabel = "[laravel-ts-publish]";
 
     /**
@@ -235,27 +234,20 @@ export function laravelTsPublish(
     };
 
     /**
-     * Execute a command with debounce protection.
+     * Execute a command with queue-based debounce protection.
      *
-     * If a command is already running, it queues a single re-run for after
-     * the current execution completes. When a source file is provided, the
-     * targeted source command is used instead of the full publish command.
+     * If a command is already running, the source file is added to a queue.
+     * After the current execution completes (success or failure), the next
+     * queued file is processed. Duplicate entries are skipped so each
+     * changed file is republished exactly once.
      */
     const runCommand = async (
         sourceFile: string | null = null,
     ): Promise<void> => {
         if (isRunning) {
-            pendingRun = true;
-
-            // When multiple distinct files change during one run, fall back
-            // to a full publish (null) so no intermediate changes are lost.
-            if (
-                pendingSourceFile !== null &&
-                pendingSourceFile !== sourceFile
-            ) {
-                pendingSourceFile = null;
-            } else {
-                pendingSourceFile = sourceFile;
+            // Avoid duplicate queue entries for the same file.
+            if (!pendingQueue.includes(sourceFile)) {
+                pendingQueue.push(sourceFile);
             }
 
             return;
@@ -295,11 +287,9 @@ export function laravelTsPublish(
         } finally {
             isRunning = false;
 
-            if (pendingRun) {
-                pendingRun = false;
-                const file = pendingSourceFile;
-                pendingSourceFile = null;
-                await runCommand(file);
+            if (pendingQueue.length > 0) {
+                const next = pendingQueue.shift();
+                await runCommand(next);
             }
         }
     };

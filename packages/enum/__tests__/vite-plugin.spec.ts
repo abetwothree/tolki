@@ -1004,7 +1004,7 @@ describe("laravelTsPublish", () => {
             );
         });
 
-        it("should pass file path through debounce queue", async () => {
+        it("should deduplicate the same file in the queue", async () => {
             const commands: string[] = [];
             const resolvers: Array<(v: unknown) => void> = [];
 
@@ -1023,11 +1023,14 @@ describe("laravelTsPublish", () => {
 
             const statusFile = path.resolve(MOCK_ROOT, "app/Enums/Status.php");
 
-            // Fire two hot updates for the same file concurrently
+            // Fire three hot updates for the same file concurrently
             const first = (plugin.handleHotUpdate as HotUpdateHook)({
                 file: statusFile,
             });
             const second = (plugin.handleHotUpdate as HotUpdateHook)({
+                file: statusFile,
+            });
+            const third = (plugin.handleHotUpdate as HotUpdateHook)({
                 file: statusFile,
             });
 
@@ -1035,7 +1038,7 @@ describe("laravelTsPublish", () => {
             expect(commands).toHaveLength(1);
             expect(commands[0]).toContain('--source="app/Enums/Status.php"');
 
-            // Resolve first — triggers pending run with the same file path
+            // Resolve first — triggers queued run (deduplicated to one entry)
             resolvers[0]!(undefined);
 
             await vi.waitFor(() => {
@@ -1047,9 +1050,13 @@ describe("laravelTsPublish", () => {
             resolvers[1]!(undefined);
             await first;
             await second;
+            await third;
+
+            // Only two commands total — third was deduplicated
+            expect(commands).toHaveLength(2);
         });
 
-        it("should fall back to full command when distinct files are coalesced", async () => {
+        it("should queue distinct files and process each individually", async () => {
             const commands: string[] = [];
             const resolvers: Array<(v: unknown) => void> = [];
 
@@ -1088,21 +1095,31 @@ describe("laravelTsPublish", () => {
             expect(commands).toHaveLength(1);
             expect(commands[0]).toContain('--source="app/Enums/Status.php"');
 
-            // Resolve first — triggers pending run as full command since
-            // two distinct files (Priority + User) were coalesced
+            // Resolve first — triggers next queued file (Priority)
             resolvers[0]!(undefined);
 
             await vi.waitFor(() => {
                 expect(commands).toHaveLength(2);
             });
 
-            // Second command is a full publish since distinct files were coalesced
-            expect(commands[1]).toBe("php artisan ts:publish");
+            expect(commands[1]).toContain('--source="app/Enums/Priority.php"');
 
+            // Resolve second — triggers next queued file (User)
             resolvers[1]!(undefined);
+
+            await vi.waitFor(() => {
+                expect(commands).toHaveLength(3);
+            });
+
+            expect(commands[2]).toContain('--source="app/Models/User.php"');
+
+            resolvers[2]!(undefined);
             await first;
             await second;
             await third;
+
+            // All three files processed individually
+            expect(commands).toHaveLength(3);
         });
 
         it("should still use full command on runOnDevStart with object manifest", async () => {
