@@ -85,7 +85,7 @@ export interface LaravelTsPublishOptions {
      * Set to `false` to disable single-file republishing and always run
      * the full command.
      *
-     * @default Derived from the `command` option: `"php artisan ts:publish --source="{file}""`
+     * @default Derived from the `command` option: 'php artisan ts:publish --source="{file}"'
      */
     sourceCommand?: string | false;
 }
