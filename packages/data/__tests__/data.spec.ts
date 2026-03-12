@@ -321,6 +321,27 @@ describe("Data", () => {
                 "1.1.0": "c",
             });
         });
+
+        it("dot with depth on object", () => {
+            const result = Data.dataDot(
+                { user: { name: "Taylor", address: { city: "Dallas" } } },
+                "",
+                1,
+            );
+            expect(result).toEqual({
+                "user.name": "Taylor",
+                "user.address": { city: "Dallas" },
+            });
+        });
+
+        it("dot with depth on array", () => {
+            const result = Data.dataDot([1, [2, [3, [4]]]], "", 1);
+            expect(result).toEqual({
+                "0": 1,
+                "1.0": 2,
+                "1.1": [3, [4]],
+            });
+        });
     });
 
     describe("dataUndot", () => {

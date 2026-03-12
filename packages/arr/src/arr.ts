@@ -345,6 +345,7 @@ export function divide<A extends readonly unknown[]>(
  *
  * @param data - The array or to flatten.
  * @param prepend - An optional string to prepend to each key.
+ * @param depth - Maximum depth to flatten. Defaults to Infinity.
  * @returns A new object with dot-notated keys.
  *
  * @example
@@ -354,16 +355,19 @@ export function divide<A extends readonly unknown[]>(
 export function dot<TValue>(
     data: TValue[],
     prepend?: string,
+    depth?: number,
 ): Record<string, TValue>;
 export function dot<TValue>(
     data: ArrayItems<TValue> | unknown,
     prepend?: string,
+    depth?: number,
 ): Record<string, TValue>;
 export function dot<TValue>(
     data: ArrayItems<TValue> | unknown,
     prepend: string = "",
+    depth: number = Infinity,
 ): Record<string, TValue> {
-    return dotFlatten(data, prepend);
+    return dotFlatten(data, prepend, depth);
 }
 
 /**

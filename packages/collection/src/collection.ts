@@ -3531,6 +3531,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Flatten a multi-dimensional associative array with dots.
      *
+     * @param depth - Maximum depth to flatten. Defaults to Infinity.
      * @returns A new collection with the flattened items
      *
      * @example
@@ -3538,8 +3539,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: {b: 1}, c: 2}).dot(); -> new Collection({'a.b': 1, c: 2})
      * new Collection([{a: 1}, {b: {c: 2}}]).dot(); -> new Collection({'0.a': 1, '1.b.c': 2})
      */
-    dot() {
-        return this.newInstance(dataDot(this.items));
+    dot(depth: number = Infinity) {
+        return this.newInstance(dataDot(this.items, "", depth));
     }
 
     /**

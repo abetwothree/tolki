@@ -361,6 +361,7 @@ export function divide<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @param data - The object to flatten.
  * @param prepend - An optional string to prepend to each key.
+ * @param depth - Maximum depth to flatten. Defaults to Infinity.
  * @returns A new object with dot-notated keys.
  *
  * @example
@@ -370,12 +371,13 @@ export function divide<TValue, TKey extends PropertyKey = PropertyKey>(
 export function dot<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     prepend: string = "",
+    depth: number = Infinity,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
     }
 
-    return dotFlatten(data, prepend);
+    return dotFlatten(data, prepend, depth);
 }
 
 /**

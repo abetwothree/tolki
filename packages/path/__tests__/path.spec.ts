@@ -896,6 +896,25 @@ describe("Path Functions", () => {
         it("handles empty arrays", () => {
             expect(Path.dotFlatten([])).toEqual({});
         });
+
+        it("respects depth parameter", () => {
+            // Depth 1 on nested object
+            expect(Path.dotFlatten({ a: { b: { c: 1 } } }, "", 1)).toEqual({
+                "a.b": { c: 1 },
+            });
+
+            // Depth 1 on nested array
+            expect(Path.dotFlatten([1, [2, [3]]], "", 1)).toEqual({
+                "0": 1,
+                "1.0": 2,
+                "1.1": [3],
+            });
+
+            // Depth 0 iterates root but does not recurse
+            expect(Path.dotFlatten({ a: 1 }, "", 0)).toEqual({
+                a: 1,
+            });
+        });
     });
 
     describe("undotExpand", () => {
@@ -1947,6 +1966,25 @@ describe("Path Functions", () => {
                 "users.1.name": "Jane",
             });
         });
+
+        it("respects depth parameter", () => {
+            expect(
+                Path.dotFlattenObject({ a: { b: { c: 1 } } }, "", 1),
+            ).toEqual({ "a.b": { c: 1 } });
+
+            // Depth 0 stops at the first level
+            expect(Path.dotFlattenObject({ a: { b: 1 } }, "", 0)).toEqual({
+                a: { b: 1 },
+            });
+
+            // Depth 1 with nested arrays
+            expect(Path.dotFlattenObject({ items: ["a", "b"] }, "", 1)).toEqual(
+                {
+                    "items.0": "a",
+                    "items.1": "b",
+                },
+            );
+        });
     });
 
     describe("dotFlattenArray", () => {
@@ -1974,6 +2012,28 @@ describe("Path Functions", () => {
             // Tests the branch where prepend exists and path is empty
             const result = Path.dotFlattenArray([42], "data");
             expect(result).toEqual({ "data.0": 42 });
+        });
+
+        it("respects depth parameter", () => {
+            expect(Path.dotFlattenArray([1, [2, [3, [4]]]], "", 1)).toEqual({
+                "0": 1,
+                "1.0": 2,
+                "1.1": [3, [4]],
+            });
+
+            // Depth 0 iterates root only
+            expect(Path.dotFlattenArray(["a", ["b"]], "", 0)).toEqual({
+                "0": "a",
+                "1": ["b"],
+            });
+
+            // Depth 2
+            expect(Path.dotFlattenArray([1, [2, [3, [4]]]], "", 2)).toEqual({
+                "0": 1,
+                "1.0": 2,
+                "1.1.0": 3,
+                "1.1.1": [4],
+            });
         });
     });
 

@@ -309,6 +309,91 @@ describe("Obj", () => {
         it("passes non-object values", () => {
             expect(Obj.dot("")).toEqual({});
         });
+
+        it("should flatten with depth limit", () => {
+            const obj = {
+                user: {
+                    name: "Taylor",
+                    address: { city: "Dallas" },
+                },
+            };
+
+            // Depth 1: flatten one level
+            expect(Obj.dot(obj, "", 1)).toEqual({
+                "user.name": "Taylor",
+                "user.address": { city: "Dallas" },
+            });
+
+            // Depth 2: flatten two levels
+            expect(
+                Obj.dot(
+                    { user: { address: { city: { name: "Dallas" } } } },
+                    "",
+                    2,
+                ),
+            ).toEqual({
+                "user.address.city": { name: "Dallas" },
+            });
+
+            // Depth Infinity: fully flatten (same as default)
+            expect(
+                Obj.dot(
+                    { user: { address: { city: { name: "Dallas" } } } },
+                    "",
+                    Infinity,
+                ),
+            ).toEqual({
+                "user.address.city.name": "Dallas",
+            });
+
+            // Mixed values with depth 1
+            expect(
+                Obj.dot(
+                    {
+                        name: "taylor",
+                        languages: {
+                            php: true,
+                            js: { react: true },
+                        },
+                    },
+                    "",
+                    1,
+                ),
+            ).toEqual({
+                name: "taylor",
+                "languages.php": true,
+                "languages.js": { react: true },
+            });
+
+            // Depth 1 with empty nested objects
+            expect(Obj.dot({ foo: { bar: {} } }, "", 1)).toEqual({
+                "foo.bar": {},
+            });
+
+            // Depth 0: no flattening
+            expect(
+                Obj.dot(
+                    {
+                        user: {
+                            name: "Taylor",
+                            address: { city: "Dallas" },
+                        },
+                    },
+                    "",
+                    0,
+                ),
+            ).toEqual({
+                user: {
+                    name: "Taylor",
+                    address: { city: "Dallas" },
+                },
+            });
+
+            // Depth 1 with prepend
+            expect(Obj.dot({ user: { name: "Taylor" } }, "prefix", 1)).toEqual({
+                "prefix.user.name": "Taylor",
+            });
+        });
     });
 
     describe("undot", () => {
