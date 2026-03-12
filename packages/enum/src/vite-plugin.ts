@@ -88,6 +88,18 @@ export interface LaravelTsPublishOptions {
      * @default Derived from the `command` option: 'php artisan ts:publish --source="{file}"'
      */
     sourceCommand?: string | false;
+    /**
+     * Whether to append `--only-enums` to the command during `vite build`.
+     *
+     * Model interfaces are type-only and erased at compile time, so generating
+     * them during production builds is unnecessary. When `true`, the build
+     * command becomes e.g. `php artisan ts:publish --only-enums`.
+     *
+     * Has no effect during `vite dev`.
+     *
+     * @default true
+     */
+    onBuildOnlyEnums?: boolean;
 }
 
 /**
@@ -159,6 +171,7 @@ export function laravelTsPublish(
         reload = true,
         failOnError,
         sourceCommand: sourceCommandOption,
+        onBuildOnlyEnums = true,
     } = options;
 
     const resolvedSourceCommand =
@@ -243,6 +256,7 @@ export function laravelTsPublish(
      */
     const runCommand = async (
         sourceFile: string | null = null,
+        commandOverride?: string,
     ): Promise<void> => {
         if (isRunning) {
             // Avoid duplicate queue entries for the same file.
@@ -255,10 +269,11 @@ export function laravelTsPublish(
 
         isRunning = true;
 
+        const baseCommand = commandOverride ?? command;
         const effectiveCommand =
             sourceFile && resolvedSourceCommand
                 ? resolvedSourceCommand.replaceAll("{file}", sourceFile)
-                : command;
+                : baseCommand;
 
         try {
             config.logger.info(`${pluginLabel} Running: ${effectiveCommand}`, {
@@ -312,7 +327,10 @@ export function laravelTsPublish(
         async buildStart() {
             if (config.command === "build") {
                 if (runOnBuildStart) {
-                    await runCommand();
+                    const buildCommand = onBuildOnlyEnums && !command.includes("--only-enums")
+                        ? `${command} --only-enums`
+                        : command;
+                    await runCommand(null, buildCommand);
                 }
 
                 return;
