@@ -327,9 +327,10 @@ export function laravelTsPublish(
         async buildStart() {
             if (config.command === "build") {
                 if (runOnBuildStart) {
-                    const buildCommand = onBuildOnlyEnums && !command.includes("--only-enums")
-                        ? `${command} --only-enums`
-                        : command;
+                    const buildCommand =
+                        onBuildOnlyEnums && !command.includes("--only-enums")
+                            ? `${command} --only-enums`
+                            : command;
                     await runCommand(null, buildCommand);
                 }
 
