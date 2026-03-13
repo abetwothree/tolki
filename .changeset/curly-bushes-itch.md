@@ -2,4 +2,4 @@
 "@tolki/enum": patch
 ---
 
-On production, only call to build enums to make production build faster.
+In production builds, append `--only-enums` to `vite build` so that only enums are published, speeding up the build.
