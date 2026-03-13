@@ -584,7 +584,9 @@ describe("laravelTsPublish", () => {
                 expect.any(Function),
             );
             expect(mockConfig.logger.info).toHaveBeenCalledWith(
-                expect.stringContaining("Running: php artisan ts:publish --only-enums"),
+                expect.stringContaining(
+                    "Running: php artisan ts:publish --only-enums",
+                ),
                 expect.any(Object),
             );
             expect(mockConfig.logger.info).toHaveBeenCalledWith(
@@ -650,7 +652,10 @@ describe("laravelTsPublish", () => {
         });
 
         it("should use custom command without --only-enums when onBuildOnlyEnums is false", async () => {
-            await setupPlugin({ command: "sail artisan ts:publish", onBuildOnlyEnums: false }, "build");
+            await setupPlugin(
+                { command: "sail artisan ts:publish", onBuildOnlyEnums: false },
+                "build",
+            );
 
             expect(mockExec).toHaveBeenCalledWith(
                 "sail artisan ts:publish",
