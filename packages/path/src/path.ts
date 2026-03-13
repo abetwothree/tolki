@@ -737,6 +737,7 @@ export function pushWithPath<TValue>(
  *
  * @param data - The data to flatten.
  * @param prepend - Optional string to prepend to all keys.
+ * @param depth - Optional maximum depth to flatten (default is Infinity).
  * @returns A flat object with dot-notated keys.
  *
  * @example
@@ -767,6 +768,7 @@ export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @param data - The object to flatten.
  * @param prepend - Optional string to prepend to all keys.
+ * @param depth - Optional maximum depth to flatten (default is Infinity).
  * @returns A flat object with dot-notated keys.
  *
  * @example
@@ -831,6 +833,7 @@ export function dotFlattenObject<
  *
  * @param data - The array to flatten.
  * @param prepend - Optional string to prepend to all keys.
+ * @param depth - Optional maximum depth to flatten (default is Infinity).
  * @returns A flat object with dot-notated keys.
  *
  * @example
