@@ -100,6 +100,16 @@ export interface LaravelTsPublishOptions {
      * @default true
      */
     onBuildOnlyEnums?: boolean;
+    /**
+     * Whether to append `--quiet` to every artisan command the plugin runs.
+     *
+     * The plugin only needs the exit code to determine success or failure;
+     * all stdout is ignored. Passing `--quiet` suppresses console output
+     * and Laravel Prompts rendering, which speeds up execution.
+     *
+     * @default true
+     */
+    quiet?: boolean;
 }
 
 /**
@@ -172,6 +182,7 @@ export function laravelTsPublish(
         failOnError,
         sourceCommand: sourceCommandOption,
         onBuildOnlyEnums = true,
+        quiet = true,
     } = options;
 
     const resolvedSourceCommand =
@@ -270,10 +281,14 @@ export function laravelTsPublish(
         isRunning = true;
 
         const baseCommand = commandOverride ?? command;
-        const effectiveCommand =
+        let effectiveCommand =
             sourceFile && resolvedSourceCommand
                 ? resolvedSourceCommand.replaceAll("{file}", sourceFile)
                 : baseCommand;
+
+        if (quiet && !effectiveCommand.includes("--quiet")) {
+            effectiveCommand += " --quiet";
+        }
 
         try {
             config.logger.info(`${pluginLabel} Running: ${effectiveCommand}`, {
@@ -327,9 +342,14 @@ export function laravelTsPublish(
         async buildStart() {
             if (config.command === "build") {
                 if (runOnBuildStart) {
-                    const buildCommand = onBuildOnlyEnums && !command.includes("--only-enums")
+                    let buildCommand = onBuildOnlyEnums && !command.includes("--only-enums")
                         ? `${command} --only-enums`
                         : command;
+                    
+                    if (quiet && !buildCommand.includes("--quiet")) {
+                        buildCommand += " --quiet";
+                    }
+
                     await runCommand(null, buildCommand);
                 }
 

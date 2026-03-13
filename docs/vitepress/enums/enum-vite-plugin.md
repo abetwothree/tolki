@@ -52,6 +52,7 @@ By default, the plugin will work in the following way:
 5. It will call the publish command on `vite build` before bundling, with `--only-enums` appended by default (since model interfaces are type-only and erased at compile time).
 6. It will throw an error if the publish command fails on `vite build`.
 7. When a single PHP file changes during `vite dev`, it will use `--source` to republish only that file instead of running a full publish.
+8. It will append `--quiet` to every command by default, suppressing all console output since the plugin only needs the exit code.
 
 ### Single-File Republishing
 
@@ -162,6 +163,14 @@ export default defineConfig({
        * Has no effect during `vite dev`.
        */
       onBuildOnlyEnums: true,
+      /**
+       * Whether to append `--quiet` to every artisan command the plugin runs.
+       *
+       * The plugin only needs the exit code to determine success or failure;
+       * all stdout is ignored. Passing `--quiet` suppresses console output
+       * and Laravel Prompts rendering, which speeds up execution.
+       */
+      quiet: true,
     }),
   ],
 });
