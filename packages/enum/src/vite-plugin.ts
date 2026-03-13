@@ -342,10 +342,11 @@ export function laravelTsPublish(
         async buildStart() {
             if (config.command === "build") {
                 if (runOnBuildStart) {
-                    let buildCommand = onBuildOnlyEnums && !command.includes("--only-enums")
-                        ? `${command} --only-enums`
-                        : command;
-                    
+                    let buildCommand =
+                        onBuildOnlyEnums && !command.includes("--only-enums")
+                            ? `${command} --only-enums`
+                            : command;
+
                     if (quiet && !buildCommand.includes("--quiet")) {
                         buildCommand += " --quiet";
                     }
