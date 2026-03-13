@@ -1,11 +1,12 @@
 import * as Enum from "@tolki/enum";
 import type {
+    AsEnum,
     CaseKeys,
     CaseValue,
     DefineEnumResult,
+    FromResult,
     MatchedCaseKey,
     MethodKeys,
-    ToEnumResult,
 } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
@@ -51,8 +52,8 @@ describe("from", () => {
         >();
     });
 
-    it("ToEnumResult resolves correctly when used directly", () => {
-        type DraftResult = ToEnumResult<StatusEnum, 0>;
+    it("FromResult resolves correctly when used directly", () => {
+        type DraftResult = FromResult<StatusEnum, 0>;
         expectTypeOf<DraftResult["value"]>().toEqualTypeOf<0>();
         expectTypeOf<DraftResult["icon"]>().toEqualTypeOf<"pencil">();
         expectTypeOf<DraftResult["color"]>().toEqualTypeOf<"gray">();
@@ -283,5 +284,138 @@ describe("enums without _methods or _static", () => {
 
         expectTypeOf(result).toBeArray();
         expectTypeOf(first.value).toEqualTypeOf<Stubs.PaymentMethodType>();
+    });
+});
+
+describe("AsEnum", () => {
+    it("resolves a full union for a backed int enum", () => {
+        type StatusResource = AsEnum<StatusEnum>;
+
+        expectTypeOf<StatusResource["name"]>().toEqualTypeOf<
+            "Draft" | "Published"
+        >();
+        expectTypeOf<StatusResource["value"]>().toEqualTypeOf<0 | 1>();
+        expectTypeOf<StatusResource["backed"]>().toEqualTypeOf<boolean>();
+    });
+
+    it("resolves instance methods as union of per-case values", () => {
+        type StatusResource = AsEnum<StatusEnum>;
+
+        expectTypeOf<StatusResource["icon"]>().toEqualTypeOf<
+            "pencil" | "check"
+        >();
+        expectTypeOf<StatusResource["color"]>().toEqualTypeOf<
+            "gray" | "green"
+        >();
+    });
+
+    it("resolves static methods as-is", () => {
+        type StatusResource = AsEnum<StatusEnum>;
+
+        expectTypeOf<StatusResource["value_label_pair"]>().toEqualTypeOf(
+            Stubs.Status.value_label_pair,
+        );
+        expectTypeOf<StatusResource["names"]>().toEqualTypeOf(
+            Stubs.Status.names,
+        );
+        expectTypeOf<StatusResource["values"]>().toEqualTypeOf(
+            Stubs.Status.values,
+        );
+        expectTypeOf<StatusResource["options"]>().toEqualTypeOf(
+            Stubs.Status.options,
+        );
+    });
+
+    it("pre-narrows to a specific case with second type parameter", () => {
+        type DraftResource = AsEnum<StatusEnum, 0>;
+
+        expectTypeOf<DraftResource["name"]>().toEqualTypeOf<"Draft">();
+        expectTypeOf<DraftResource["value"]>().toEqualTypeOf<0>();
+        expectTypeOf<DraftResource["icon"]>().toEqualTypeOf<"pencil">();
+        expectTypeOf<DraftResource["color"]>().toEqualTypeOf<"gray">();
+    });
+
+    it("pre-narrows the Published case", () => {
+        type PublishedResource = AsEnum<StatusEnum, 1>;
+
+        expectTypeOf<PublishedResource["name"]>().toEqualTypeOf<"Published">();
+        expectTypeOf<PublishedResource["value"]>().toEqualTypeOf<1>();
+        expectTypeOf<PublishedResource["icon"]>().toEqualTypeOf<"check">();
+        expectTypeOf<PublishedResource["color"]>().toEqualTypeOf<"green">();
+    });
+
+    it("resolves a string-valued enum", () => {
+        type VisibilityResource = AsEnum<VisibilityEnum>;
+
+        expectTypeOf<
+            VisibilityResource["value"]
+        >().toEqualTypeOf<Stubs.VisibilityType>();
+        expectTypeOf<
+            VisibilityResource["is_public"]
+        >().toEqualTypeOf<boolean>();
+    });
+
+    it("pre-narrows a string-valued enum", () => {
+        type PublicResource = AsEnum<VisibilityEnum, "Public">;
+
+        expectTypeOf<PublicResource["name"]>().toEqualTypeOf<"Public">();
+        expectTypeOf<PublicResource["value"]>().toEqualTypeOf<"Public">();
+        expectTypeOf<PublicResource["is_public"]>().toEqualTypeOf<true>();
+        expectTypeOf<
+            PublicResource["description"]
+        >().toEqualTypeOf<"Visible to everyone">();
+    });
+
+    it("excludes helper keys from defineEnum'd enums", () => {
+        type PriorityDefined = Enum.DefineEnumResult<PriorityEnum>;
+        type PriorityResource = AsEnum<PriorityDefined>;
+
+        expectTypeOf<PriorityResource["value"]>().toEqualTypeOf<
+            0 | 1 | 2 | 3
+        >();
+        expectTypeOf<PriorityResource["label"]>().toEqualTypeOf<
+            | "Low Priority"
+            | "Medium Priority"
+            | "High Priority"
+            | "Critical Priority"
+        >();
+
+        // Helpers should not appear on AsEnum result
+        type ResourceKeys = keyof PriorityResource;
+        expectTypeOf<
+            "from" extends ResourceKeys ? true : false
+        >().toEqualTypeOf<false>();
+        expectTypeOf<
+            "tryFrom" extends ResourceKeys ? true : false
+        >().toEqualTypeOf<false>();
+        expectTypeOf<
+            "cases" extends ResourceKeys ? true : false
+        >().toEqualTypeOf<false>();
+    });
+
+    it("works with enums that have no methods", () => {
+        type PaymentResource = AsEnum<typeof Stubs.PaymentMethod>;
+
+        expectTypeOf<PaymentResource["name"]>().toEqualTypeOf<
+            | "CreditCard"
+            | "DebitCard"
+            | "PayPal"
+            | "BankTransfer"
+            | "CashOnDelivery"
+            | "Crypto"
+            | "ApplePay"
+            | "GooglePay"
+        >();
+        expectTypeOf<
+            PaymentResource["value"]
+        >().toEqualTypeOf<Stubs.PaymentMethodType>();
+        expectTypeOf<PaymentResource["backed"]>().toEqualTypeOf<boolean>();
+    });
+
+    it("pre-narrows an enum with no methods", () => {
+        type PayPalResource = AsEnum<typeof Stubs.PaymentMethod, "paypal">;
+
+        expectTypeOf<PayPalResource["name"]>().toEqualTypeOf<"PayPal">();
+        expectTypeOf<PayPalResource["value"]>().toEqualTypeOf<"paypal">();
     });
 });

@@ -328,7 +328,7 @@ describe("laravelTsPublish", () => {
 
             // With null sourceFile, falls back to the full command
             expect(mockExec).toHaveBeenCalledWith(
-                "php artisan ts:publish",
+                "php artisan ts:publish --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -350,13 +350,13 @@ describe("laravelTsPublish", () => {
 
             expect(result).toEqual([]);
             expect(mockExec).toHaveBeenCalledWith(
-                'php artisan ts:publish --source="app/Enums/Status.php"',
+                'php artisan ts:publish --source="app/Enums/Status.php" --quiet',
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
             expect(mockConfig.logger.info).toHaveBeenCalledWith(
                 expect.stringContaining(
-                    'Running: php artisan ts:publish --source="app/Enums/Status.php"',
+                    'Running: php artisan ts:publish --source="app/Enums/Status.php" --quiet',
                 ),
                 expect.any(Object),
             );
@@ -377,7 +377,7 @@ describe("laravelTsPublish", () => {
             });
 
             expect(mockExec).toHaveBeenCalledWith(
-                'sail artisan ts:publish --source="app/Enums/Status.php"',
+                'sail artisan ts:publish --source="app/Enums/Status.php" --quiet',
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -579,13 +579,13 @@ describe("laravelTsPublish", () => {
             const { mockConfig } = await setupPlugin(undefined, "build");
 
             expect(mockExec).toHaveBeenCalledWith(
-                "php artisan ts:publish --only-enums",
+                "php artisan ts:publish --only-enums --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
             expect(mockConfig.logger.info).toHaveBeenCalledWith(
                 expect.stringContaining(
-                    "Running: php artisan ts:publish --only-enums",
+                    "Running: php artisan ts:publish --only-enums --quiet",
                 ),
                 expect.any(Object),
             );
@@ -635,7 +635,7 @@ describe("laravelTsPublish", () => {
             await setupPlugin({ command: "sail artisan ts:publish" }, "build");
 
             expect(mockExec).toHaveBeenCalledWith(
-                "sail artisan ts:publish --only-enums",
+                "sail artisan ts:publish --only-enums --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -645,7 +645,7 @@ describe("laravelTsPublish", () => {
             await setupPlugin({ onBuildOnlyEnums: false }, "build");
 
             expect(mockExec).toHaveBeenCalledWith(
-                "php artisan ts:publish",
+                "php artisan ts:publish --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -658,7 +658,7 @@ describe("laravelTsPublish", () => {
             );
 
             expect(mockExec).toHaveBeenCalledWith(
-                "sail artisan ts:publish",
+                "sail artisan ts:publish --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -675,6 +675,16 @@ describe("laravelTsPublish", () => {
             await setupPlugin({ runOnBuildStart: false }, "build");
 
             expect(mockReadFile).not.toHaveBeenCalled();
+        });
+
+        it("should not append --quiet in build model if quiet is false", async () => {
+            await setupPlugin({ quiet: false }, "build");
+
+            expect(mockExec).toHaveBeenCalledWith(
+                "php artisan ts:publish --only-enums",
+                { cwd: MOCK_ROOT },
+                expect.any(Function),
+            );
         });
     });
 
@@ -694,7 +704,7 @@ describe("laravelTsPublish", () => {
             });
 
             expect(mockExec).toHaveBeenCalledWith(
-                "php artisan ts:publish",
+                "php artisan ts:publish --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -728,7 +738,7 @@ describe("laravelTsPublish", () => {
             });
 
             expect(mockExec).toHaveBeenCalledWith(
-                "php artisan ts:publish",
+                "php artisan ts:publish --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -964,7 +974,7 @@ describe("laravelTsPublish", () => {
             });
 
             expect(mockExec).toHaveBeenCalledWith(
-                'php artisan ts:publish --source="app/Enums/Status.php"',
+                'php artisan ts:publish --source="app/Enums/Status.php" --quiet',
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -985,7 +995,7 @@ describe("laravelTsPublish", () => {
             });
 
             expect(mockExec).toHaveBeenCalledWith(
-                'sail artisan ts:publish --source="app/Enums/Status.php"',
+                'sail artisan ts:publish --source="app/Enums/Status.php" --quiet',
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -1006,7 +1016,7 @@ describe("laravelTsPublish", () => {
             });
 
             expect(mockExec).toHaveBeenCalledWith(
-                "php artisan ts:publish",
+                "php artisan ts:publish --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -1027,7 +1037,7 @@ describe("laravelTsPublish", () => {
             });
 
             expect(mockExec).toHaveBeenCalledWith(
-                'sail artisan ts:publish --source="app/Enums/Status.php"',
+                'sail artisan ts:publish --source="app/Enums/Status.php" --quiet',
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -1167,7 +1177,7 @@ describe("laravelTsPublish", () => {
 
             // runOnDevStart always uses the full command (no source)
             expect(mockExec).toHaveBeenCalledWith(
-                "php artisan ts:publish",
+                "php artisan ts:publish --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );

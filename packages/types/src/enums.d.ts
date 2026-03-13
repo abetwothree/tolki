@@ -82,6 +82,7 @@ export type ResolveMethodForValue<
  * - Static methods / other values: passed through unchanged.
  */
 export type ResolvedEnumInstance<TEnum extends EnumConst, TValue> = {
+    readonly name: MatchedCaseKey<TEnum, TValue>;
     readonly value: TValue;
 } & {
     readonly [K in Exclude<
@@ -102,7 +103,7 @@ export type CaseValue<TEnum extends EnumConst> = {
 /**
  * The fully inferred return type of `from`.
  */
-export type ToEnumResult<TEnum extends EnumConst, TValue> =
+export type FromResult<TEnum extends EnumConst, TValue> =
     MatchedCaseKey<TEnum, TValue> extends never
         ? never
         : ResolvedEnumInstance<TEnum, TValue>;
@@ -130,10 +131,82 @@ export type DefineEnumResult<TEnum extends EnumConst> = Override<
         readonly _helpers: string[];
         readonly from: <const TValue extends CaseValue<TEnum>>(
             value: TValue,
-        ) => ToEnumResult<TEnum, TValue>;
+        ) => FromResult<TEnum, TValue>;
         readonly tryFrom: <const TValue extends CaseValue<TEnum>>(
             value: TValue,
-        ) => ToEnumResult<TEnum, TValue> | null;
-        readonly cases: () => Array<ToEnumResult<TEnum, CaseValue<TEnum>>>;
+        ) => FromResult<TEnum, TValue> | null;
+        readonly cases: () => Array<FromResult<TEnum, CaseValue<TEnum>>>;
     }
 >;
+
+/**
+ * Keys excluded from the resolved `AsEnum` resource shape.
+ * Strips case keys, metadata tuples, and function-valued keys (e.g. `from`,
+ * `tryFrom`, `cases` added by `defineEnum`).
+ */
+type AsEnumExcludedKeys<TEnum extends EnumConst> =
+    | CaseKeys<TEnum>
+    | "_cases"
+    | "_methods"
+    | "_helpers"
+    | "_static"
+    | {
+          [K in keyof TEnum]: TEnum[K] extends (...args: any[]) => any
+              ? K
+              : never;
+      }[keyof TEnum];
+
+/**
+ * Resolves the `EnumResource` API response shape for a single case key.
+ *
+ * - `name` and `value` come directly from the case key/value.
+ * - Instance methods (listed in `_methods`) are resolved to the value for this
+ *   specific case via `ResolveMethodForValue`.
+ * - Static methods and other properties pass through unchanged.
+ * - `backed` is always `boolean` (cannot be inferred from the const type).
+ */
+type AsEnumCase<TEnum extends EnumConst, K extends CaseKeys<TEnum>> = {
+    readonly name: K;
+    readonly value: TEnum[K];
+    readonly backed: boolean;
+} & {
+    readonly [P in Exclude<
+        keyof TEnum,
+        AsEnumExcludedKeys<TEnum>
+    >]: P extends MethodKeys<TEnum>
+        ? ResolveMethodForValue<TEnum, P, TEnum[K]>
+        : TEnum[P];
+};
+
+/**
+ * Resolves the `EnumResource` JSON API response type for a published enum.
+ *
+ * Produces a **discriminated union** of all possible case shapes, enabling
+ * TypeScript narrowing on `name` or `value`.
+ *
+ * Optionally accepts a second type parameter to pre-narrow to a specific
+ * case value, producing a single resolved shape instead of a union.
+ *
+ * @example
+ * ```ts
+ * // Full union — all cases
+ * type StatusResource = AsEnum<typeof Status>;
+ * // statusResource.value  → 0 | 1
+ * // statusResource.icon   → "pencil" | "check"
+ *
+ * // Pre-narrowed to a specific value
+ * type DraftResource = AsEnum<typeof Status, 0>;
+ * // draftResource.value  → 0
+ * // draftResource.icon   → "pencil"
+ * ```
+ */
+export type AsEnum<
+    TEnum extends EnumConst,
+    TValue extends CaseValue<TEnum> = CaseValue<TEnum>,
+> = {
+    [K in CaseKeys<TEnum>]: TEnum[K] extends TValue
+        ? TValue extends TEnum[K]
+            ? AsEnumCase<TEnum, K>
+            : never
+        : never;
+}[CaseKeys<TEnum>];
