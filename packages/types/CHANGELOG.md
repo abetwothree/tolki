@@ -1,5 +1,11 @@
 # @tolki/types
 
+## 1.1.3
+
+### Patch Changes
+
+- Updated types for enum package
+
 ## 1.1.2
 
 ### Patch Changes
