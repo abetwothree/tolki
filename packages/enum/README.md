@@ -146,9 +146,10 @@ By default, the plugin will work in the following way:
 2. It will look for the list of transformed PHP files here: `resources/js/types/laravel-ts-collected-files.json`.
 3. If that manifest file changes, it will reload the watched file list without calling the publish command again.
 4. It will reload the page after a successful publish triggered by a watched PHP file change.
-5. It will call the publish command on `vite build` before bundling.
+5. It will call the publish command on `vite build` before bundling, with `--only-enums` appended by default (since model interfaces are type-only and erased at compile time).
 6. It will throw an error if the publish command fails on `vite build`.
 7. When a single PHP file changes during `vite dev`, it will use `--source` to republish only that file instead of running a full publish.
+8. It will append `--quiet` to every command by default, suppressing all console output since the plugin only needs the exit code.
 
 #### Single-File Republishing
 
@@ -250,6 +251,23 @@ export default defineConfig({
        * Set to `false` to always run the full command.
        */
       sourceCommand: 'php artisan ts:publish --source="{file}"',
+      /**
+       * Whether to append `--only-enums` to the command during `vite build`.
+       *
+       * Model interfaces are type-only and erased at compile time, so
+       * generating them during production builds is unnecessary.
+       *
+       * Has no effect during `vite dev`.
+       */
+      onBuildOnlyEnums: true,
+      /**
+       * Whether to append `--quiet` to every artisan command the plugin runs.
+       *
+       * The plugin only needs the exit code to determine success or failure;
+       * all stdout is ignored. Passing `--quiet` suppresses console output
+       * and Laravel Prompts rendering, which speeds up execution.
+       */
+      quiet: true,
     }),
   ],
 });
