@@ -744,7 +744,7 @@ export function pushWithPath<TValue>(
  *
  * Flatten mixed structures
  * dotFlatten({a: {b: 1}, c: [2, 3]}); -> {'a.b': 1, 'c.0': 2, 'c.1': 3}
- * dotFlatten(['x', {y: 'z'}], 'prefix'); -> {'prefix.0': 'x', 'prefix.1.y': 'z'}
+ * dotFlatten(['x', {y: 'z'}], 'prefix'); -> {'prefix.0': 'x', 'prefix.1': {y: 'z'}}
  */
 export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | ArrayItems<TValue> | unknown,
@@ -794,6 +794,9 @@ export function dotFlattenObject<
         TValue
     >;
 
+    // Normalize the initial prefix to avoid producing double dots in keys
+     const initialPrefix = prepend.replace(/\.+$/, "");
+
     const walk = (
         obj: Record<TKey, TValue>,
         prefix: string,
@@ -822,7 +825,7 @@ export function dotFlattenObject<
         }
     };
 
-    walk(data as Record<TKey, TValue>, prepend, 0);
+    walk(data as Record<TKey, TValue>, initialPrefix, 0);
 
     return results;
 }

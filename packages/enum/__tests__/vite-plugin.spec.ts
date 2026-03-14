@@ -677,7 +677,7 @@ describe("laravelTsPublish", () => {
             expect(mockReadFile).not.toHaveBeenCalled();
         });
 
-        it("should not append --quiet in build model if quiet is false", async () => {
+        it("should not append --quiet in build mode if quiet is false", async () => {
             await setupPlugin({ quiet: false }, "build");
 
             expect(mockExec).toHaveBeenCalledWith(
