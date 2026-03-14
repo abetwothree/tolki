@@ -795,7 +795,10 @@ export function dotFlattenObject<
     >;
 
     // Normalize the initial prefix to avoid producing double dots in keys
-    const initialPrefix = prepend.replace(/\.+$/, "");
+    let initialPrefix = prepend;
+    while (initialPrefix.endsWith(".")) {
+        initialPrefix = initialPrefix.slice(0, -1);
+    }
 
     const walk = (
         obj: Record<TKey, TValue>,

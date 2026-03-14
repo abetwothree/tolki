@@ -1985,6 +1985,16 @@ describe("Path Functions", () => {
                 },
             );
         });
+
+        it("strips trailing dots from prepend to avoid double dots", () => {
+            expect(Path.dotFlattenObject({ a: 1, b: 2 }, "prefix.")).toEqual({
+                "prefix.a": 1,
+                "prefix.b": 2,
+            });
+            expect(Path.dotFlattenObject({ a: 1 }, "prefix...")).toEqual({
+                "prefix.a": 1,
+            });
+        });
     });
 
     describe("dotFlattenArray", () => {
