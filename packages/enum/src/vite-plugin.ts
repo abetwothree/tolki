@@ -88,6 +88,28 @@ export interface LaravelTsPublishOptions {
      * @default Derived from the `command` option: 'php artisan ts:publish --source="{file}"'
      */
     sourceCommand?: string | false;
+    /**
+     * Whether to append `--only-enums` to the command during `vite build`.
+     *
+     * Model interfaces are type-only and erased at compile time, so generating
+     * them during production builds is unnecessary. When `true`, the build
+     * command becomes e.g. `php artisan ts:publish --only-enums`.
+     *
+     * Has no effect during `vite dev`.
+     *
+     * @default true
+     */
+    onBuildOnlyEnums?: boolean;
+    /**
+     * Whether to append `--quiet` to every artisan command the plugin runs.
+     *
+     * The plugin only needs the exit code to determine success or failure;
+     * all stdout is ignored. Passing `--quiet` suppresses console output
+     * and Laravel Prompts rendering, which speeds up execution.
+     *
+     * @default true
+     */
+    quiet?: boolean;
 }
 
 /**
@@ -159,6 +181,8 @@ export function laravelTsPublish(
         reload = true,
         failOnError,
         sourceCommand: sourceCommandOption,
+        onBuildOnlyEnums = true,
+        quiet = true,
     } = options;
 
     const resolvedSourceCommand =
@@ -243,6 +267,7 @@ export function laravelTsPublish(
      */
     const runCommand = async (
         sourceFile: string | null = null,
+        commandOverride?: string,
     ): Promise<void> => {
         if (isRunning) {
             // Avoid duplicate queue entries for the same file.
@@ -255,10 +280,15 @@ export function laravelTsPublish(
 
         isRunning = true;
 
-        const effectiveCommand =
+        const baseCommand = commandOverride ?? command;
+        let effectiveCommand =
             sourceFile && resolvedSourceCommand
                 ? resolvedSourceCommand.replaceAll("{file}", sourceFile)
-                : command;
+                : baseCommand;
+
+        if (quiet && !effectiveCommand.includes("--quiet")) {
+            effectiveCommand += " --quiet";
+        }
 
         try {
             config.logger.info(`${pluginLabel} Running: ${effectiveCommand}`, {
@@ -312,7 +342,16 @@ export function laravelTsPublish(
         async buildStart() {
             if (config.command === "build") {
                 if (runOnBuildStart) {
-                    await runCommand();
+                    let buildCommand =
+                        onBuildOnlyEnums && !command.includes("--only-enums")
+                            ? `${command} --only-enums`
+                            : command;
+
+                    if (quiet && !buildCommand.includes("--quiet")) {
+                        buildCommand += " --quiet";
+                    }
+
+                    await runCommand(null, buildCommand);
                 }
 
                 return;

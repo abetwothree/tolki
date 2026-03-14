@@ -8,6 +8,7 @@ describe("from", () => {
         const result = Enum.from(Stubs.Status, 0);
 
         expect(result).toEqual({
+            name: "Draft",
             value: 0,
             icon: "pencil",
             color: "gray",
@@ -25,6 +26,7 @@ describe("from", () => {
         const result = Enum.from(Stubs.Status, 1);
 
         expect(result).toEqual({
+            name: "Published",
             value: 1,
             icon: "check",
             color: "green",
@@ -250,7 +252,7 @@ describe("enums without _methods or _static", () => {
     it("from resolves a case correctly", () => {
         const result = Enum.from(Stubs.PaymentMethod, "paypal");
 
-        expect(result).toEqual({ value: "paypal" });
+        expect(result).toEqual({ name: "PayPal", value: "paypal" });
     });
 
     it("tryFrom resolves a valid case", () => {

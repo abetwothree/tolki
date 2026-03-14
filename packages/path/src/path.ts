@@ -737,27 +737,29 @@ export function pushWithPath<TValue>(
  *
  * @param data - The data to flatten.
  * @param prepend - Optional string to prepend to all keys.
+ * @param depth - Optional maximum depth to flatten (default is Infinity).
  * @returns A flat object with dot-notated keys.
  *
  * @example
  *
  * Flatten mixed structures
  * dotFlatten({a: {b: 1}, c: [2, 3]}); -> {'a.b': 1, 'c.0': 2, 'c.1': 3}
- * dotFlatten(['x', {y: 'z'}], 'prefix'); -> {'prefix.0': 'x', 'prefix.1.y': 'z'}
+ * dotFlatten(['x', {y: 'z'}], 'prefix'); -> {'prefix.0': 'x', 'prefix.1': {y: 'z'}}
  */
 export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | ArrayItems<TValue> | unknown,
     prepend: string = "",
+    depth: number = Infinity,
 ): Record<PropertyKey, TValue> {
     if (isObject(data)) {
-        return dotFlattenObject(data, prepend);
+        return dotFlattenObject(data, prepend, depth);
     }
 
     if (isArray(data)) {
-        return dotFlattenArray(data, prepend);
+        return dotFlattenArray(data, prepend, depth);
     }
 
-    return dotFlattenArray(arrWrap(data), prepend);
+    return dotFlattenArray(arrWrap(data), prepend, depth);
 }
 
 /**
@@ -766,6 +768,7 @@ export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @param data - The object to flatten.
  * @param prepend - Optional string to prepend to all keys.
+ * @param depth - Optional maximum depth to flatten (default is Infinity).
  * @returns A flat object with dot-notated keys.
  *
  * @example
@@ -780,6 +783,7 @@ export function dotFlattenObject<
 >(
     data: Record<TKey, TValue> | unknown,
     prepend: string = "",
+    depth: number = Infinity,
 ): Record<PropertyKey, TValue> {
     if (!isObject(data)) {
         return {};
@@ -790,23 +794,41 @@ export function dotFlattenObject<
         TValue
     >;
 
-    const walk = (obj: Record<TKey, TValue>, prefix: string): void => {
+    // Normalize the initial prefix to avoid producing double dots in keys
+    let initialPrefix = prepend;
+    while (initialPrefix.endsWith(".")) {
+        initialPrefix = initialPrefix.slice(0, -1);
+    }
+
+    const walk = (
+        obj: Record<TKey, TValue>,
+        prefix: string,
+        currentDepth: number,
+    ): void => {
         for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
             const keyStr = String(key);
             const newKey = prefix ? prefix + "." + keyStr : keyStr;
 
-            if (isArray(value) && value.length > 0) {
+            if (currentDepth < depth && isArray(value) && value.length > 0) {
                 // Handle arrays within objects by flattening them with numeric indices
-                walk(value as unknown as Record<TKey, TValue>, newKey);
-            } else if (isObject(value) && Object.keys(value).length > 0) {
-                walk(value as Record<TKey, TValue>, newKey);
+                walk(
+                    value as unknown as Record<TKey, TValue>,
+                    newKey,
+                    currentDepth + 1,
+                );
+            } else if (
+                currentDepth < depth &&
+                isObject(value) &&
+                Object.keys(value).length > 0
+            ) {
+                walk(value as Record<TKey, TValue>, newKey, currentDepth + 1);
             } else {
                 results[newKey] = value;
             }
         }
     };
 
-    walk(data as Record<TKey, TValue>, prepend);
+    walk(data as Record<TKey, TValue>, initialPrefix, 0);
 
     return results;
 }
@@ -817,6 +839,7 @@ export function dotFlattenObject<
  *
  * @param data - The array to flatten.
  * @param prepend - Optional string to prepend to all keys.
+ * @param depth - Optional maximum depth to flatten (default is Infinity).
  * @returns A flat object with dot-notated keys.
  *
  * @example
@@ -828,6 +851,7 @@ export function dotFlattenObject<
 export function dotFlattenArray<TValue>(
     data: ArrayItems<TValue> | unknown,
     prepend: string = "",
+    depth: number = Infinity,
 ): Record<PropertyKey, TValue> {
     if (!isArray(data)) {
         return {};
@@ -835,23 +859,24 @@ export function dotFlattenArray<TValue>(
 
     const root = data as TValue[];
     const out: Record<PropertyKey, TValue> = {};
-    const walk = (node: unknown, path: string): void => {
-        const arr = isArray(node) ? (node as unknown[]) : null;
-        if (!arr) {
-            // path is always non-empty in recursive calls (at least "0", "1", etc.)
-            const key = prepend ? `${prepend}.${path}` : path;
-            // key is always non-empty since path is at least "0"
-            out[key] = node as TValue;
-            return;
-        }
-
+    const walk = (arr: unknown[], path: string, currentDepth: number): void => {
         for (let i = 0; i < arr.length; i++) {
             const nextPath = path ? `${path}.${i}` : String(i);
-            walk(arr[i], nextPath);
+
+            if (
+                currentDepth < depth &&
+                isArray(arr[i]) &&
+                (arr[i] as unknown[]).length > 0
+            ) {
+                walk(arr[i] as unknown[], nextPath, currentDepth + 1);
+            } else {
+                const key = prepend ? `${prepend}.${nextPath}` : nextPath;
+                out[key] = arr[i] as TValue;
+            }
         }
     };
 
-    walk(root, "");
+    walk(root, "", 0);
 
     return out;
 }

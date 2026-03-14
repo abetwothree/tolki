@@ -1119,6 +1119,43 @@ describe("Arr", () => {
         });
     });
 
+    it("dot with depth", () => {
+        // Depth 1: recurse one level into nested arrays
+        expect(Arr.dot([1, [2, [3, [4]]]], "", 1)).toEqual({
+            "0": 1,
+            "1.0": 2,
+            "1.1": [3, [4]],
+        });
+
+        // Depth 2: recurse two levels
+        expect(Arr.dot([1, [2, [3, [4]]]], "", 2)).toEqual({
+            "0": 1,
+            "1.0": 2,
+            "1.1.0": 3,
+            "1.1.1": [4],
+        });
+
+        // Depth Infinity: fully flatten (same as default)
+        expect(Arr.dot([1, [2, [3, [4]]]], "", Infinity)).toEqual({
+            "0": 1,
+            "1.0": 2,
+            "1.1.0": 3,
+            "1.1.1.0": 4,
+        });
+
+        // Depth 0: iterate root only, no recursion
+        expect(Arr.dot(["a", ["b"]], "", 0)).toEqual({
+            "0": "a",
+            "1": ["b"],
+        });
+
+        // Depth 1 with prepend
+        expect(Arr.dot(["a", [["b"]]], "prefix", 1)).toEqual({
+            "prefix.0": "a",
+            "prefix.1.0": ["b"],
+        });
+    });
+
     it("undot", () => {
         expect(Arr.undot({})).toEqual([]);
         expect(Arr.undot({ "0": "a" })).toEqual(["a"]);

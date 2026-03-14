@@ -486,6 +486,7 @@ export function dataDivide<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @param data - The data to convert
  * @param prepend - String to prepend to keys
+ * @param depth - Maximum depth to flatten. Defaults to Infinity.
  * @returns Data in dot notation
  *
  * @example
@@ -495,12 +496,13 @@ export function dataDivide<TValue, TKey extends PropertyKey = PropertyKey>(
 export function dataDot<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
     prepend = "",
+    depth: number = Infinity,
 ): Record<string, unknown> {
     if (isObject(data)) {
-        return objDot(data as Record<TKey, TValue>, prepend);
+        return objDot(data as Record<TKey, TValue>, prepend, depth);
     }
 
-    return arrDot(arrWrap(data), prepend);
+    return arrDot(arrWrap(data), prepend, depth);
 }
 
 /**

@@ -5841,6 +5841,28 @@ describe("Collection", () => {
                 });
             });
         });
+
+        describe("Laravel Tests - dotWithDepth", () => {
+            it("test dot with depth", () => {
+                const data = Collection.make({
+                    name: "Taylor",
+                    meta: {
+                        foo: "bar",
+                        bam: {
+                            boom: "bip",
+                        },
+                    },
+                }).dot(1);
+
+                expect(data.all()).toEqual({
+                    name: "Taylor",
+                    "meta.foo": "bar",
+                    "meta.bam": {
+                        boom: "bip",
+                    },
+                });
+            });
+        });
     });
 
     describe("undot", () => {

@@ -1,9 +1,12 @@
 import type {
+    AsEnum,
     CaseValue,
     DefineEnumResult,
     EnumConst,
-    ToEnumResult,
+    FromResult,
 } from "@tolki/types";
+
+export type { AsEnum, CaseValue, DefineEnumResult, EnumConst, FromResult };
 
 /**
  * Creates an enum instance from a case value similar to PHP's `BackedEnum::from()`
@@ -25,7 +28,7 @@ import type {
 export function from<
     TEnum extends EnumConst,
     const TValue extends CaseValue<TEnum>,
->(enumObj: TEnum, value: TValue): ToEnumResult<TEnum, TValue> {
+>(enumObj: TEnum, value: TValue): FromResult<TEnum, TValue> {
     const caseKeys = new Set<string>(enumObj._cases ?? []);
 
     let matchedCaseName: string | undefined;
@@ -68,7 +71,9 @@ export function from<
         }
     }
 
-    return result as ToEnumResult<TEnum, TValue>;
+    result["name"] = matchedCaseName;
+
+    return result as FromResult<TEnum, TValue>;
 }
 
 /**
@@ -85,7 +90,7 @@ export function from<
 export function tryFrom<
     TEnum extends EnumConst,
     const TValue extends CaseValue<TEnum>,
->(enumObj: TEnum, value: TValue): ToEnumResult<TEnum, TValue> | null {
+>(enumObj: TEnum, value: TValue): FromResult<TEnum, TValue> | null {
     try {
         return from(enumObj, value);
     } catch {
@@ -105,7 +110,7 @@ export function tryFrom<
  */
 export function cases<TEnum extends EnumConst>(
     enumObj: TEnum,
-): Array<ToEnumResult<TEnum, CaseValue<TEnum>>> {
+): Array<FromResult<TEnum, CaseValue<TEnum>>> {
     return (enumObj._cases ?? []).map((caseKey) =>
         from(enumObj, enumObj[caseKey] as CaseValue<TEnum>),
     );
@@ -131,15 +136,15 @@ export function defineEnum<const TEnum extends EnumConst>(
     const helpers = {
         from: <const TValue extends CaseValue<TEnum>>(
             value: TValue,
-        ): ToEnumResult<TEnum, TValue> => {
+        ): FromResult<TEnum, TValue> => {
             return from(enumObj, value);
         },
         tryFrom: <const TValue extends CaseValue<TEnum>>(
             value: TValue,
-        ): ToEnumResult<TEnum, TValue> | null => {
+        ): FromResult<TEnum, TValue> | null => {
             return tryFrom(enumObj, value);
         },
-        cases: (): Array<ToEnumResult<TEnum, CaseValue<TEnum>>> => {
+        cases: (): Array<FromResult<TEnum, CaseValue<TEnum>>> => {
             return cases(enumObj);
         },
     };
