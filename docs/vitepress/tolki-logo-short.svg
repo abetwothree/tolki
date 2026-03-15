@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 408" width="512" height="408">
+  <defs>
+    <linearGradient id="lGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF2D20;stop-opacity:1" />
+      <stop offset="40%" style="stop-color:#FF2D20;stop-opacity:1" />
+      <stop offset="60%" style="stop-color:#3178C6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3178C6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- White background with thin, barely rounded gray border -->
+  <rect x="3" y="3" width="506" height="402" rx="16" ry="16" fill="white" />
+  <rect x="3" y="3" width="506" height="402" rx="16" ry="16" fill="none" stroke="#D1D5DB" stroke-width="2" />
+
+  <!-- Shift everything up by 52px (old y=136 becomes y=84) -->
+
+  <!-- Opening brace { in Laravel red -->
+  <g transform="translate(84, 84)">
+    <path d="
+      M 52,0 
+      C 30,0 18,12 18,34 
+      L 18,86 
+      C 18,108 8,118 0,120 
+      C 8,122 18,132 18,154 
+      L 18,206 
+      C 18,228 30,240 52,240
+    " fill="none" stroke="#FF2D20" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Laravel "L" with red-to-blue gradient fill -->
+  <g transform="translate(211, 108) scale(0.62)">
+    <path d="M50.2753 0H0V308.689H144.713V263.27H50.2753V0Z" fill="url(#lGrad)"/>
+  </g>
+
+  <!-- Closing brace } in TypeScript blue -->
+  <g transform="translate(376, 84)">
+    <path d="
+      M 0,0 
+      C 22,0 34,12 34,34 
+      L 34,86 
+      C 34,108 44,118 52,120 
+      C 44,122 34,132 34,154 
+      L 34,206 
+      C 34,228 22,240 0,240
+    " fill="none" stroke="#3178C6" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+</svg>
