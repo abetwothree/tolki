@@ -16,7 +16,7 @@
     "$schema": "https://raw.githubusercontent.com/vitejs/vite-plugin-registry/refs/heads/main/data/schema/extended-package-json.schema.json",
     "compatiblePackages": {
         "schemaVersion": 1,
-            "vite": {
+        "vite": {
             "type": "compatible",
             "versions": "^7.0.0"
         }
