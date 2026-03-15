@@ -2,6 +2,8 @@
 
 Use the PHP Laravel framework utilities in your JavaScript projects.
 
+<p align="center"><img src="./docs/vitepress/public/tolki-logo-short.svg" width="50%" alt="Laravel TypeScript Publisher Logo"></p>
+
 ## Backstory
 
 I love [Laravel](https://laravel.com/). I love JavaScript [frontend frameworks](https://vuejs.org/). I love how [Inertia JS](https://inertiajs.com/) bridged the gap between these two worlds. I just wish I could use the incredible helper functions that Laravel provides in my JavaScript code with proper TypeScript support and tree-shaking capabilities.

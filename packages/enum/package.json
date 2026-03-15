@@ -13,6 +13,14 @@
     "bugs": {
         "url": "https://github.com/abetwothree/tolki/issues"
     },
+    "$schema": "https://raw.githubusercontent.com/vitejs/vite-plugin-registry/refs/heads/main/data/schema/extended-package-json.schema.json",
+    "compatiblePackages": {
+        "schemaVersion": 1,
+            "vite": {
+            "type": "compatible",
+            "versions": "^7.0.0"
+        }
+    },
     "main": "src/index.ts",
     "type": "module",
     "scripts": {
@@ -23,9 +31,15 @@
     "keywords": [
         "enum",
         "enums",
+        "model",
+        "models",
         "laravel",
         "utils",
-        "utilities"
+        "utilities",
+        "typescript",
+        "vite",
+        "tolki",
+        "vite-plugin"
     ],
     "dependencies": {
         "@tolki/types": "workspace:^"
