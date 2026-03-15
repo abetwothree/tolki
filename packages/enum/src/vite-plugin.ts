@@ -36,7 +36,7 @@ export interface LaravelTsPublishOptions {
     /**
      * The directory where the JSON manifest file exists, relative to the Vite root.
      *
-     * @default "resources/js/types/"
+     * @default "resources/js/types/data/"
      */
     directory?: string;
     /**
@@ -175,7 +175,7 @@ export function laravelTsPublish(
     const {
         command = "php artisan ts:publish",
         filename = "laravel-ts-collected-files.json",
-        directory = "resources/js/types/",
+        directory = "resources/js/types/data/",
         runOnDevStart = false,
         runOnBuildStart = true,
         reload = true,

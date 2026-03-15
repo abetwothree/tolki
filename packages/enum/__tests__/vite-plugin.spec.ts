@@ -54,7 +54,7 @@ vi.mock("vite", () => ({
 }));
 
 const MOCK_ROOT = "/project";
-const MOCK_DIRECTORY = "resources/js/types/";
+const MOCK_DIRECTORY = "resources/js/types/data/";
 const MOCK_FILENAME = "laravel-ts-collected-files.json";
 const MOCK_MANIFEST_PATH = mockNormalizePath(
     path.resolve(MOCK_ROOT, MOCK_DIRECTORY, MOCK_FILENAME),
