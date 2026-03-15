@@ -143,7 +143,7 @@ Using just `sail artisan ts:publish` often fails because `sail` is commonly defi
 By default, the plugin will work in the following way:
 
 1. It will call `php artisan ts:publish` as the republish command when a file changes.
-2. It will look for the list of transformed PHP files here: `resources/js/types/laravel-ts-collected-files.json`.
+2. It will look for the list of transformed PHP files here: `resources/js/types/data/laravel-ts-collected-files.json`.
 3. If that manifest file changes, it will reload the watched file list without calling the publish command again.
 4. It will reload the page after a successful publish triggered by a watched PHP file change.
 5. It will call the publish command on `vite build` before bundling, with `--only-enums` appended by default (since model interfaces are type-only and erased at compile time).
@@ -173,7 +173,7 @@ Full startup commands (`runOnDevStart`, `runOnBuildStart`) always use the full `
 
 The collected-files manifest is treated as configuration input for the watcher, not as a publish trigger.
 
-That means when `ts:publish` updates `resources/js/types/laravel-ts-collected-files.json`, the plugin will refresh its internal watched-file list and continue. It will not immediately run `ts:publish` again from that manifest write.
+That means when `ts:publish` updates `resources/js/types/data/laravel-ts-collected-files.json`, the plugin will refresh its internal watched-file list and continue. It will not immediately run `ts:publish` again from that manifest write.
 
 ### Plugin Options
 
@@ -208,7 +208,7 @@ export default defineConfig({
       /**
        * The directory where the JSON manifest file exists, relative to the Vite root.
        */
-      directory: "resources/js/types/",
+      directory: "resources/js/types/data/",
       /**
        * Whether to run the publish command once when `vite dev` starts.
        *
