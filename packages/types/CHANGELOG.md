@@ -1,5 +1,11 @@
 # @tolki/types
 
+## 1.1.4
+
+### Patch Changes
+
+- 53a5a05: Default the folder to be "data" and fix enum types to properly catch when any helper properties are missing
+
 ## 1.1.3
 
 ### Patch Changes
