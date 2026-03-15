@@ -2,37 +2,33 @@
  * Extract the case key names from the _cases tuple.
  * Returns `never` when `_cases` is not declared on the concrete type.
  */
-export type CaseKeys<TEnum extends EnumConst> =
-    "_cases" extends keyof TEnum
-        ? NonNullable<TEnum["_cases"]>[number]
-        : never;
+export type CaseKeys<TEnum extends EnumConst> = "_cases" extends keyof TEnum
+    ? NonNullable<TEnum["_cases"]>[number]
+    : never;
 
 /**
  * Extracts the instance method key names from the `_methods` tuple.
  * Returns `never` when `_methods` is not declared on the concrete type.
  */
-export type MethodKeys<TEnum extends EnumConst> =
-    "_methods" extends keyof TEnum
-        ? NonNullable<TEnum["_methods"]>[number]
-        : never;
+export type MethodKeys<TEnum extends EnumConst> = "_methods" extends keyof TEnum
+    ? NonNullable<TEnum["_methods"]>[number]
+    : never;
 
 /**
  * Extracts the static helper key names from the `_static` tuple.
  * Returns `never` when `_static` is not declared on the concrete type.
  */
-export type StaticKeys<TEnum extends EnumConst> =
-    "_static" extends keyof TEnum
-        ? NonNullable<TEnum["_static"]>[number]
-        : never;
+export type StaticKeys<TEnum extends EnumConst> = "_static" extends keyof TEnum
+    ? NonNullable<TEnum["_static"]>[number]
+    : never;
 
 /**
  * Extracts the helper key names from the `_helpers` tuple.
  * Returns `never` when `_helpers` is not declared on the concrete type.
  */
-export type HelperKeys<TEnum extends EnumConst> =
-    "_helpers" extends keyof TEnum
-        ? NonNullable<TEnum["_helpers"]>[number]
-        : never;
+export type HelperKeys<TEnum extends EnumConst> = "_helpers" extends keyof TEnum
+    ? NonNullable<TEnum["_helpers"]>[number]
+    : never;
 
 /**
  * Constraint for all generated enum const objects.
