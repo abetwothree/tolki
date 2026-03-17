@@ -2893,9 +2893,7 @@ describe("Str tests", () => {
         });
 
         it("should handle multiple words", () => {
-            expect(Str.initials("james bond loves laravel", true)).toBe(
-                "JBLL",
-            );
+            expect(Str.initials("james bond loves laravel", true)).toBe("JBLL");
         });
     });
 
