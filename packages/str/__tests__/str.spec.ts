@@ -3881,4 +3881,26 @@ describe("Str tests", () => {
             expect(Str.makePad("", 10)).toBe("");
         });
     });
+
+    describe("resetFactoryState", () => {
+        it("should reset all factory functions to their default state", () => {
+            // Set custom factories
+            Str.createRandomStringsUsing(() => "custom-random");
+            Str.createUuidsUsing(() => "custom-uuid");
+            Str.createUlidsUsing(() => "custom-ulid");
+
+            // Verify custom factories are in use
+            expect(Str.random()).toBe("custom-random");
+            expect(Str.uuid()).toBe("custom-uuid");
+            expect(Str.ulid()).toBe("custom-ulid");
+
+            // Reset all factories
+            Str.resetFactoryState();
+
+            // Verify factories are back to normal
+            expect(Str.random()).not.toBe("custom-random");
+            expect(Str.uuid()).not.toBe("custom-uuid");
+            expect(Str.ulid()).not.toBe("custom-ulid");
+        });
+    });
 });

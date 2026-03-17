@@ -4,6 +4,8 @@ import { title, upper } from "./convertcase";
 import { randomInt, randomString } from "./random";
 import { substr } from "./replacer";
 import { ltrim, rtrim, trim } from "./trimmer";
+import { createUlidsNormally } from "./ulid";
+import { createUuidsNormally } from "./uuid";
 
 /**
  * The cache of snake-cased words.
@@ -2597,4 +2599,15 @@ export function flushCache(): void {
     snakeCache.clear();
     camelCache.clear();
     studlyCache.clear();
+}
+
+/**
+ * Return all factory functions to their default state.
+ *
+ * @returns void
+ */
+export function resetFactoryState(): void {
+    createRandomStringsNormally();
+    createUlidsNormally();
+    createUuidsNormally();
 }

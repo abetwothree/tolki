@@ -1,7 +1,7 @@
 
 Analyzing file: packages/str/stubs/Str.php
 
-Found 109 function(s):
+Found 110 function(s):
 
 METHOD DECLARATIONS:
   public of($string) [line 82]
@@ -113,4 +113,5 @@ METHOD DECLARATIONS:
   public createUlidsUsingSequence($sequence, $whenMissing) [line 2093]
   public freezeUlids(?Closure $callback) [line 2126]
   public flushCache() [line 2148]
+  public resetFactoryState() [line 2160]
 

@@ -2151,4 +2151,16 @@ class Str
         static::$camelCache = [];
         static::$studlyCache = [];
     }
+
+    /**
+     * Return all factory functions to their default state.
+     *
+     * @return void
+     */
+    public static function resetFactoryState()
+    {
+        static::createRandomStringsNormally();
+        static::createUlidsNormally();
+        static::createUuidsNormally();
+    }
 }
