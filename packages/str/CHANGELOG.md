@@ -1,5 +1,11 @@
 # @tolki/str
 
+## 1.0.11
+
+### Patch Changes
+
+- 8d3d0c7: Sync changes and create `resetFactoryState` str function
+
 ## 1.0.10
 
 ### Patch Changes
