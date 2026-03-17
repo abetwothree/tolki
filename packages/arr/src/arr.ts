@@ -19,6 +19,7 @@ import type {
     ArrayResolvePathOrDefault,
     ArrayResolvePathOrNull,
     EnsureArray,
+    FlatArrayValue,
     PathKey,
     PathKeys,
 } from "@tolki/types";
@@ -287,24 +288,45 @@ export function combine<TValue>(
  *
  * crossJoin([1], ["a"]); -> [[1, 'a']]
  */
-export function crossJoin<TValue extends ArrayItems<ArrayItems<unknown>>>(
-    ...arrays: TValue
-): ArrayInnerValue<TValue[number]>[][] {
-    let results: ArrayInnerValue<TValue[number]>[][] = [[]];
+export function crossJoin(): unknown[][];
+export function crossJoin<A>(a: A[]): [A][];
+export function crossJoin<A, B>(a: A[], b: B[]): [A, B][];
+export function crossJoin<A, B, C>(a: A[], b: B[], c: C[]): [A, B, C][];
+export function crossJoin<A, B, C, D>(
+    a: A[],
+    b: B[],
+    c: C[],
+    d: D[],
+): [A, B, C, D][];
+export function crossJoin<A, B, C, D, E>(
+    a: A[],
+    b: B[],
+    c: C[],
+    d: D[],
+    e: E[],
+): [A, B, C, D, E][];
+export function crossJoin<A, B, C, D, E, F>(
+    a: A[],
+    b: B[],
+    c: C[],
+    d: D[],
+    e: E[],
+    f: F[],
+): [A, B, C, D, E, F][];
+export function crossJoin(...arrays: unknown[][]): unknown[][];
+export function crossJoin(...arrays: unknown[][]): unknown[][] {
+    let results: unknown[][] = [[]];
 
     for (const array of arrays) {
         if (!array.length) {
             return [];
         }
 
-        const next: ArrayInnerValue<TValue[number]>[][] = [];
+        const next: unknown[][] = [];
 
         for (const product of results) {
             for (const item of array) {
-                next.push([
-                    ...product,
-                    item as ArrayInnerValue<TValue[number]>,
-                ] as ArrayInnerValue<TValue[number]>[]);
+                next.push([...product, item]);
             }
         }
 
@@ -325,19 +347,10 @@ export function crossJoin<TValue extends ArrayItems<ArrayItems<unknown>>>(
  * divide(["Desk", 100, true]); -> [[0, 1, 2], ['Desk', 100, true]]
  */
 export function divide(array: readonly []): [number[], unknown[]];
-export function divide<A extends readonly unknown[]>(
-    array: A,
-): [number[], A extends ArrayItems<infer V> ? V[] : unknown[]];
-export function divide<A extends readonly unknown[]>(
-    array: A,
-): [number[], A extends ArrayItems<infer V> ? V[] : unknown[]] {
+export function divide<TValue>(array: readonly TValue[]): [number[], TValue[]];
+export function divide<TValue>(array: readonly TValue[]): [number[], TValue[]] {
     const keys = array.map((_, i) => i);
-    return [
-        keys,
-        array.slice() as unknown as A extends ArrayItems<infer V>
-            ? V[]
-            : unknown[],
-    ];
+    return [keys, array.slice() as TValue[]];
 }
 
 /**
@@ -353,9 +366,13 @@ export function divide<A extends readonly unknown[]>(
  * dot(['a', ['b', 'c']]); -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
  */
 export function dot<TValue>(
-    data: TValue[],
+    data: readonly TValue[],
     prepend?: string,
-    depth?: number,
+): Record<string, FlatArrayValue<TValue>>;
+export function dot<TValue>(
+    data: readonly TValue[],
+    prepend: string,
+    depth: number,
 ): Record<string, TValue>;
 export function dot<TValue>(
     data: ArrayItems<TValue> | unknown,

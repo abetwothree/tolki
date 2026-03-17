@@ -11,6 +11,20 @@ export interface ArrayAccess<TValue> {
 
 export type ArrayInnerValue<X> = X extends ReadonlyArray<infer U> ? U : never;
 
+/**
+ * Recursively extracts the deepest non-array value type.
+ * Useful for inferring the leaf value type after fully flattening nested arrays.
+ *
+ * @example
+ * FlatArrayValue<number> // number
+ * FlatArrayValue<number[]> // number
+ * FlatArrayValue<number[][]> // number
+ * FlatArrayValue<string | number[]> // string | number
+ */
+export type FlatArrayValue<T> = T extends readonly (infer U)[]
+    ? FlatArrayValue<U>
+    : T;
+
 export type ArrayItems<T> = T[] | Array<T>;
 
 /**
