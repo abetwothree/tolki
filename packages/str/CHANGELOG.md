@@ -1,5 +1,11 @@
 # @tolki/str
 
+## 1.0.10
+
+### Patch Changes
+
+- 242bcd8: Sync Laravel changes with new `initials` function
+
 ## 1.0.9
 
 ### Patch Changes
