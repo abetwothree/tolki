@@ -2043,7 +2043,7 @@ export function headline(value: string): string {
 export function initials(value: string, capitalize: boolean = false): string {
     const parts = value.split(/\s+/u).filter((s) => s.length > 0);
 
-    const result = parts.map((part) => part.substring(0, 1)).join("");
+    const result = parts.map((part) => [...part][0] ?? "").join("");
 
     if (capitalize) {
         return upper(result);

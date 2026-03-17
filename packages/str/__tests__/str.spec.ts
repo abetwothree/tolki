@@ -2895,6 +2895,12 @@ describe("Str tests", () => {
         it("should handle multiple words", () => {
             expect(Str.initials("james bond loves laravel", true)).toBe("JBLL");
         });
+
+        it("should handle multibyte characters", () => {
+            expect(Str.initials("über öffnen")).toBe("üö");
+            expect(Str.initials("über öffnen", true)).toBe("ÜÖ");
+            expect(Str.initials("\u{1F600} hello")).toBe("\u{1F600}h");
+        });
     });
 
     describe("apa", () => {
