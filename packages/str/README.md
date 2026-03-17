@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/abetwothree/laravel-ts-publish/refs/heads/main/assets/laravel-typescript-publish-logo-short.svg" width="50%" alt="Laravel Tolki JS Logo"></p>
+
 # Tolki JS Str Package
 
 This package provides string utility functions similar to Laravel's Str class facade.
