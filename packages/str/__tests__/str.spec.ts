@@ -2901,6 +2901,11 @@ describe("Str tests", () => {
             expect(Str.initials("über öffnen", true)).toBe("ÜÖ");
             expect(Str.initials("\u{1F600} hello")).toBe("\u{1F600}h");
         });
+
+        it("should handle empty strings", () => {
+            expect(Str.initials("")).toBe("");
+            expect(Str.initials("", true)).toBe("");
+        });
     });
 
     describe("apa", () => {
