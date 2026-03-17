@@ -1,7 +1,7 @@
 
 Analyzing file: packages/str/stubs/StringableTest.php
 
-Found 129 function(s):
+Found 130 function(s):
 
 METHOD DECLARATIONS:
   protected stringable($string) [line 25]
@@ -121,16 +121,17 @@ METHOD DECLARATIONS:
   public testScan() [line 1460]
   public testGet() [line 1467]
   public testExactly() [line 1473]
-  public testToInteger() [line 1484]
-  public testToFloat() [line 1495]
-  public testBooleanMethod() [line 1507]
-  public testNumbers() [line 1520]
-  public testToDate() [line 1525]
-  public testToDateThrowsException() [line 1537]
-  public testToUri() [line 1544]
-  public testArrayAccess() [line 1555]
-  public testToBase64() [line 1564]
-  public testFromBase64() [line 1571]
-  public testHash() [line 1578]
-  public testEncryptAndDecrypt() [line 1585]
+  public testInitials() [line 1484]
+  public testToInteger() [line 1489]
+  public testToFloat() [line 1500]
+  public testBooleanMethod() [line 1512]
+  public testNumbers() [line 1525]
+  public testToDate() [line 1530]
+  public testToDateThrowsException() [line 1542]
+  public testToUri() [line 1549]
+  public testArrayAccess() [line 1560]
+  public testToBase64() [line 1569]
+  public testFromBase64() [line 1576]
+  public testHash() [line 1583]
+  public testEncryptAndDecrypt() [line 1590]
 

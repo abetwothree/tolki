@@ -2877,6 +2877,37 @@ describe("Str tests", () => {
         });
     });
 
+    describe("initials", () => {
+        it("should return the initials of each word", () => {
+            expect(Str.initials("james bond")).toBe("jb");
+            expect(Str.initials(" james bond")).toBe("jb");
+            expect(Str.initials("james  bond")).toBe("jb");
+        });
+
+        it("should preserve case when capitalize is false", () => {
+            expect(Str.initials("James Bond")).toBe("JB");
+        });
+
+        it("should capitalize the initials when capitalize is true", () => {
+            expect(Str.initials("james bond", true)).toBe("JB");
+        });
+
+        it("should handle multiple words", () => {
+            expect(Str.initials("james bond loves laravel", true)).toBe("JBLL");
+        });
+
+        it("should handle multibyte characters", () => {
+            expect(Str.initials("über öffnen")).toBe("üö");
+            expect(Str.initials("über öffnen", true)).toBe("ÜÖ");
+            expect(Str.initials("\u{1F600} hello")).toBe("\u{1F600}h");
+        });
+
+        it("should handle empty strings", () => {
+            expect(Str.initials("")).toBe("");
+            expect(Str.initials("", true)).toBe("");
+        });
+    });
+
     describe("apa", () => {
         it("Laravel tests", () => {
             expect(Str.apa("tom and jerry")).toBe("Tom and Jerry");

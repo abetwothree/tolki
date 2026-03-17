@@ -1091,6 +1091,12 @@ describe("Stringable basic delegation", () => {
         });
     });
 
+    describe("initials", () => {
+        it("should return initials of the string", () => {
+            expect(Str.of("Taylor Otwell").initials().value()).toBe("TO");
+        });
+    });
+
     describe("apa", () => {
         it("Laravel tests", () => {
             const input = "foo bar baz";
