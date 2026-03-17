@@ -1,5 +1,11 @@
 # @tolki/enum
 
+## 1.0.0
+
+### Major Changes
+
+- v1 release 🎉 to align with laravel-ts-publish's v1 release
+
 ## 0.0.6
 
 ### Patch Changes

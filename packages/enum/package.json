@@ -1,6 +1,6 @@
 {
     "name": "@tolki/enum",
-    "version": "0.0.6",
+    "version": "1.0.0",
     "description": "A set of enum utilities for the @tolki packages.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",
@@ -38,8 +38,8 @@
         "utilities",
         "typescript",
         "vite",
-        "tolki",
-        "vite-plugin"
+        "vite-plugin",
+        "tolki"
     ],
     "dependencies": {
         "@tolki/types": "workspace:^"
