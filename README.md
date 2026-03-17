@@ -2,7 +2,7 @@
 
 Use the PHP Laravel framework utilities in your JavaScript projects.
 
-<p align="center"><img src="./docs/vitepress/public/tolki-logo-short.svg" width="50%" alt="Laravel TypeScript Publisher Logo"></p>
+<p align="center"><img src="./docs/vitepress/public/tolki-logo-short.svg" width="50%" alt="Laravel Tolki JS Logo"></p>
 
 ## Backstory
 
