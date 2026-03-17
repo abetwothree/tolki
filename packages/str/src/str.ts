@@ -2032,6 +2032,27 @@ export function headline(value: string): string {
 }
 
 /**
+ * Get the "initials" representing each word in the provided string, optionally capitalizing.
+ *
+ * @param value - The string to extract initials from
+ * @param capitalize - Whether to capitalize the initials
+ * @returns The initials of the string
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#initials
+ */
+export function initials(value: string, capitalize: boolean = false): string {
+    const parts = value.split(/\s+/u).filter((s) => s.length > 0);
+
+    const result = parts.map((part) => part.substring(0, 1)).join("");
+
+    if (capitalize) {
+        return upper(result);
+    }
+
+    return result;
+}
+
+/**
  * Convert the given string to APA-style title case.
  *
  * @param value - The string to convert

@@ -30,6 +30,7 @@ import {
     excerpt,
     finish,
     headline,
+    initials,
     is,
     isAscii,
     isJson,
@@ -975,6 +976,15 @@ export class Stringable {
      */
     headline(): Stringable {
         return new Stringable(headline(this._value));
+    }
+
+    /**
+     * Convert the given string to only its initials.
+     *
+     * @returns The initials of the string as a new Stringable instance.
+     */
+    initials(): Stringable {
+        return new Stringable(initials(this._value));
     }
 
     /**

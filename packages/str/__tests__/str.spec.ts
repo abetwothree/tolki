@@ -2877,6 +2877,28 @@ describe("Str tests", () => {
         });
     });
 
+    describe("initials", () => {
+        it("should return the initials of each word", () => {
+            expect(Str.initials("james bond")).toBe("jb");
+            expect(Str.initials(" james bond")).toBe("jb");
+            expect(Str.initials("james  bond")).toBe("jb");
+        });
+
+        it("should preserve case when capitalize is false", () => {
+            expect(Str.initials("James Bond")).toBe("JB");
+        });
+
+        it("should capitalize the initials when capitalize is true", () => {
+            expect(Str.initials("james bond", true)).toBe("JB");
+        });
+
+        it("should handle multiple words", () => {
+            expect(Str.initials("james bond loves laravel", true)).toBe(
+                "JBLL",
+            );
+        });
+    });
+
     describe("apa", () => {
         it("Laravel tests", () => {
             expect(Str.apa("tom and jerry")).toBe("Tom and Jerry");
