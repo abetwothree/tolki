@@ -834,7 +834,7 @@ export function last<TValue, TFirstDefault = null>(
  * take([1, 2, 3], 5); -> [1, 2, 3]
  */
 export function take<TValue>(
-    data: ArrayItems<TValue> | null | undefined,
+    data: readonly TValue[] | null | undefined,
     limit: number,
 ): TValue[] {
     if (!data || limit === 0) {
