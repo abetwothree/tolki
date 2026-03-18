@@ -406,12 +406,44 @@ export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Union multiple arrays into a single array
+ * Union multiple arrays into a single array containing only unique values,
+ * preserving insertion order.
+ *
  * @param arrays - The arrays to union.
- * @returns A new array containing all elements from the input arrays.
+ * @returns A new array containing all unique elements from the input arrays.
  */
-export function union<TValue>(...arrays: ArrayItems<TValue>[]): TValue[] {
-    const result: TValue[] = [];
+export function union(): unknown[];
+export function union<A>(a: readonly A[]): A[];
+export function union<A, B>(a: readonly A[], b: readonly B[]): (A | B)[];
+export function union<A, B, C>(
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+): (A | B | C)[];
+export function union<A, B, C, D>(
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+    d: readonly D[],
+): (A | B | C | D)[];
+export function union<A, B, C, D, E>(
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+    d: readonly D[],
+    e: readonly E[],
+): (A | B | C | D | E)[];
+export function union<A, B, C, D, E, F>(
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+    d: readonly D[],
+    e: readonly E[],
+    f: readonly F[],
+): (A | B | C | D | E | F)[];
+export function union(...arrays: (readonly unknown[])[]): unknown[];
+export function union(...arrays: (readonly unknown[])[]): unknown[] {
+    const result: unknown[] = [];
 
     for (const array of arrays) {
         for (const item of array) {

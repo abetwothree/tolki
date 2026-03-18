@@ -3330,9 +3330,350 @@ describe("arr type tests", () => {
     });
 
     describe("union", () => {
-        it("returns union of array types", () => {
-            const result = Arr.union([1, 2], [3, 4]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
+        describe("same-type arrays (from functional tests)", () => {
+            it("returns number[] for two number arrays", () => {
+                const result = Arr.union([1, 2], [2, 3]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns string[] for two string arrays", () => {
+                const result = Arr.union(["a", "b"], ["b", "c", "a"]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("returns boolean[] for two boolean arrays", () => {
+                const result = Arr.union([true], [false, true]);
+                expectTypeOf(result).toEqualTypeOf<boolean[]>();
+            });
+        });
+
+        describe("different-type arrays", () => {
+            it("returns (number | string)[] for number[] + string[]", () => {
+                const result = Arr.union([1, 2], ["a", "b"]);
+                expectTypeOf(result).toEqualTypeOf<(number | string)[]>();
+            });
+
+            it("returns (number | boolean)[] for number[] + boolean[]", () => {
+                const result = Arr.union([1, 2], [true, false]);
+                expectTypeOf(result).toEqualTypeOf<(number | boolean)[]>();
+            });
+
+            it("returns (string | number | boolean)[] for three different types", () => {
+                const result = Arr.union(["a"], [1], [true]);
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | number | boolean)[]
+                >();
+            });
+
+            it("returns (Date | RegExp)[] for Date[] + RegExp[]", () => {
+                const result = Arr.union([new Date()], [/pattern/]);
+                expectTypeOf(result).toEqualTypeOf<(Date | RegExp)[]>();
+            });
+        });
+
+        describe("empty arrays (from functional tests)", () => {
+            it("returns number[] for [] + number[]", () => {
+                const result = Arr.union([], [1, 2]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns number[] for number[] + []", () => {
+                const result = Arr.union([1, 2], []);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns never[] for [] + []", () => {
+                const result = Arr.union([], []);
+                expectTypeOf(result).toEqualTypeOf<never[]>();
+            });
+        });
+
+        describe("single array", () => {
+            it("returns number[] for single number array", () => {
+                const result = Arr.union([1, 2, 3]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns string[] for single string array", () => {
+                const result = Arr.union(["a", "b"]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+        });
+
+        describe("no arguments", () => {
+            it("returns unknown[] with no args", () => {
+                const result = Arr.union();
+                expectTypeOf(result).toEqualTypeOf<unknown[]>();
+            });
+        });
+
+        describe("three or more arrays", () => {
+            it("returns union of three different types", () => {
+                const result = Arr.union([1], ["a"], [true]);
+                expectTypeOf(result).toEqualTypeOf<
+                    (number | string | boolean)[]
+                >();
+            });
+
+            it("returns union of four different types", () => {
+                const result = Arr.union([1], ["a"], [true], [new Date()]);
+                expectTypeOf(result).toEqualTypeOf<
+                    (number | string | boolean | Date)[]
+                >();
+            });
+
+            it("returns union of five different types", () => {
+                const result = Arr.union(
+                    [1],
+                    ["a"],
+                    [true],
+                    [new Date()],
+                    [/pattern/],
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    (number | string | boolean | Date | RegExp)[]
+                >();
+            });
+
+            it("returns union of six different types", () => {
+                const result = Arr.union(
+                    [1],
+                    ["a"],
+                    [true],
+                    [new Date()],
+                    [/pattern/],
+                    [Symbol("x")],
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    (number | string | boolean | Date | RegExp | symbol)[]
+                >();
+            });
+        });
+
+        describe("7+ arrays (variadic fallback)", () => {
+            it("returns unknown[] for more than 6 arrays", () => {
+                const result = Arr.union(
+                    [1],
+                    ["a"],
+                    [true],
+                    [new Date()],
+                    [/pattern/],
+                    [Symbol("x")],
+                    [null],
+                );
+                expectTypeOf(result).toEqualTypeOf<unknown[]>();
+            });
+        });
+
+        describe("object values in arrays", () => {
+            it("returns same object type for matching arrays", () => {
+                type User = { id: number; name: string };
+                const a: User[] = [{ id: 1, name: "Alice" }];
+                const b: User[] = [{ id: 2, name: "Bob" }];
+                const result = Arr.union(a, b);
+                expectTypeOf(result).toEqualTypeOf<User[]>();
+            });
+
+            it("returns union of different object shapes", () => {
+                const result = Arr.union([{ id: 1 }], [{ name: "Alice" }]);
+                expectTypeOf(result).toEqualTypeOf<
+                    ({ id: number } | { name: string })[]
+                >();
+            });
+
+            it("returns union of objects and primitives", () => {
+                const result = Arr.union([{ id: 1 }], [42]);
+                expectTypeOf(result).toEqualTypeOf<
+                    ({ id: number } | number)[]
+                >();
+            });
+        });
+
+        describe("arrays containing unions", () => {
+            it("preserves inner union types", () => {
+                const a: (string | number)[] = [1, "a"];
+                const b: (boolean | null)[] = [true, null];
+                const result = Arr.union(a, b);
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | number | boolean | null)[]
+                >();
+            });
+
+            it("merges overlapping union types", () => {
+                const a: (string | number)[] = [1, "a"];
+                const b: (number | boolean)[] = [2, true];
+                const result = Arr.union(a, b);
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | number | boolean)[]
+                >();
+            });
+        });
+
+        describe("readonly and const arrays", () => {
+            it("accepts readonly arrays", () => {
+                const a: readonly number[] = [1, 2];
+                const b: readonly string[] = ["a"];
+                const result = Arr.union(a, b);
+                expectTypeOf(result).toEqualTypeOf<(number | string)[]>();
+            });
+
+            it("accepts as const arrays", () => {
+                const a = [1, 2, 3] as const;
+                const b = ["x", "y"] as const;
+                const result = Arr.union(a, b);
+                expectTypeOf(result).toEqualTypeOf<(1 | 2 | 3 | "x" | "y")[]>();
+            });
+
+            it("mixes const and mutable arrays", () => {
+                const a = [1, 2] as const;
+                const b: string[] = ["a", "b"];
+                const result = Arr.union(a, b);
+                expectTypeOf(result).toEqualTypeOf<(1 | 2 | string)[]>();
+            });
+        });
+
+        describe("typed variable references", () => {
+            it("infers from number[] variables", () => {
+                const a: number[] = [1, 2];
+                const b: number[] = [3, 4];
+                const result = Arr.union(a, b);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("infers from different typed variables", () => {
+                const a: number[] = [1, 2];
+                const b: string[] = ["a"];
+                const c: boolean[] = [true];
+                const result = Arr.union(a, b, c);
+                expectTypeOf(result).toEqualTypeOf<
+                    (number | string | boolean)[]
+                >();
+            });
+
+            it("infers from Array<T> generic syntax", () => {
+                const a: Array<number> = [1, 2];
+                const b: Array<string> = ["a"];
+                const result = Arr.union(a, b);
+                expectTypeOf(result).toEqualTypeOf<(number | string)[]>();
+            });
+        });
+
+        describe("nested arrays", () => {
+            it("preserves nested array types", () => {
+                const result = Arr.union([[1, 2]], [[3, 4]]);
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+
+            it("returns union of nested array types", () => {
+                const result = Arr.union([[1, 2]], [["a", "b"]]);
+                expectTypeOf(result).toEqualTypeOf<(number[] | string[])[]>();
+            });
+
+            it("handles deeply nested arrays", () => {
+                const result = Arr.union([[[1]]], [[["a"]]]);
+                expectTypeOf(result).toEqualTypeOf<
+                    (number[][] | string[][])[]
+                >();
+            });
+        });
+
+        describe("complex data structures", () => {
+            it("handles Map and Set arrays", () => {
+                const result = Arr.union(
+                    [new Map<string, number>()],
+                    [new Set<string>()],
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    (Map<string, number> | Set<string>)[]
+                >();
+            });
+
+            it("handles Promise arrays", () => {
+                const result = Arr.union(
+                    [Promise.resolve(1)],
+                    [Promise.resolve("a")],
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    (Promise<number> | Promise<string>)[]
+                >();
+            });
+
+            it("handles function arrays", () => {
+                const fns1: (() => number)[] = [() => 1];
+                const fns2: (() => string)[] = [() => "a"];
+                const result = Arr.union(fns1, fns2);
+                expectTypeOf(result).toEqualTypeOf<
+                    ((() => number) | (() => string))[]
+                >();
+            });
+
+            it("handles tuple arrays", () => {
+                const result = Arr.union(
+                    [[1, "a"] as [number, string]],
+                    [[true, 42] as [boolean, number]],
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    ([number, string] | [boolean, number])[]
+                >();
+            });
+        });
+
+        describe("nullable types", () => {
+            it("returns (number | null)[] for arrays with nulls", () => {
+                const a: (number | null)[] = [1, null];
+                const b: (number | null)[] = [2, null];
+                const result = Arr.union(a, b);
+                expectTypeOf(result).toEqualTypeOf<(number | null)[]>();
+            });
+
+            it("returns (string | undefined)[] for arrays with undefined", () => {
+                const a: (string | undefined)[] = ["a", undefined];
+                const b: (string | undefined)[] = ["b"];
+                const result = Arr.union(a, b);
+                expectTypeOf(result).toEqualTypeOf<(string | undefined)[]>();
+            });
+
+            it("distinguishes null and undefined arrays", () => {
+                const a: null[] = [null];
+                const b: undefined[] = [undefined];
+                const result = Arr.union(a, b);
+                expectTypeOf(result).toEqualTypeOf<(null | undefined)[]>();
+            });
+        });
+
+        describe("destructuring", () => {
+            it("infers element type from destructured result", () => {
+                const [first, ...rest] = Arr.union([1, 2], ["a"]);
+                expectTypeOf(first).toEqualTypeOf<
+                    number | string | undefined
+                >();
+                expectTypeOf(rest).toEqualTypeOf<(number | string)[]>();
+            });
+
+            it("infers element type for iteration", () => {
+                const result = Arr.union([1], [true]);
+                for (const item of result) {
+                    expectTypeOf(item).toEqualTypeOf<number | boolean>();
+                }
+            });
+        });
+
+        describe("function signature", () => {
+            it("is callable with no args", () => {
+                expectTypeOf(Arr.union).toBeCallableWith();
+            });
+
+            it("is callable with one array", () => {
+                expectTypeOf(Arr.union).toBeCallableWith([1, 2]);
+            });
+
+            it("is callable with multiple arrays", () => {
+                expectTypeOf(Arr.union).toBeCallableWith([1], ["a"], [true]);
+            });
+
+            it("return type always extends unknown[]", () => {
+                expectTypeOf(Arr.union).returns.toExtend<unknown[]>();
+            });
         });
     });
 
