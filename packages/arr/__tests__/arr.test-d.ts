@@ -4844,19 +4844,404 @@ describe("arr type tests", () => {
     });
 
     describe("first", () => {
-        it("returns TValue or null for array without callback", () => {
-            const result = Arr.first([1, 2, 3]);
-            expectTypeOf(result).toEqualTypeOf<number | null>();
+        describe("array without callback", () => {
+            it("returns TValue | null for number array", () => {
+                const result = Arr.first([1, 2, 3]);
+                expectTypeOf(result).toEqualTypeOf<number | null>();
+            });
+
+            it("returns TValue | null for string array", () => {
+                const result = Arr.first(["a", "b", "c"]);
+                expectTypeOf(result).toEqualTypeOf<string | null>();
+            });
+
+            it("returns TValue | null for boolean array", () => {
+                const result = Arr.first([true, false]);
+                expectTypeOf(result).toEqualTypeOf<boolean | null>();
+            });
+
+            it("returns null for empty array", () => {
+                const result = Arr.first([]);
+                expectTypeOf(result).toEqualTypeOf<never | null>();
+            });
+
+            it("returns TValue | null with explicit null callback", () => {
+                const result = Arr.first([1, 2, 3], null);
+                expectTypeOf(result).toEqualTypeOf<number | null>();
+            });
         });
 
-        it("returns TValue or null with callback", () => {
-            const result = Arr.first([1, 2, 3], (v) => v > 1);
-            expectTypeOf(result).toEqualTypeOf<number | null>();
+        describe("array with callback", () => {
+            it("infers TValue in callback parameter", () => {
+                Arr.first([1, 2, 3], (value) => {
+                    expectTypeOf(value).toEqualTypeOf<number>();
+                    return value >= 150;
+                });
+            });
+
+            it("infers key as number in callback", () => {
+                Arr.first([1, 2, 3], (_, key) => {
+                    expectTypeOf(key).toEqualTypeOf<number>();
+                    return key < 2;
+                });
+            });
+
+            it("returns TValue | null with callback", () => {
+                const result = Arr.first(
+                    [100, 200, 300],
+                    (value) => value >= 150,
+                );
+                expectTypeOf(result).toEqualTypeOf<number | null>();
+            });
+
+            it("returns TValue | null for string array with callback", () => {
+                const result = Arr.first(
+                    ["a", "b", "c"],
+                    (v) => v === "b",
+                );
+                expectTypeOf(result).toEqualTypeOf<string | null>();
+            });
         });
 
-        it("returns TValue or TDefault with default", () => {
-            const result = Arr.first([1, 2, 3], null, "default");
-            expectTypeOf(result).toExtend<number | string | null>();
+        describe("array with default value", () => {
+            it("returns TValue | TDefault | null with string default", () => {
+                const result = Arr.first([1, 2, 3], null, "default");
+                expectTypeOf(result).toEqualTypeOf<
+                    number | string | null
+                >();
+            });
+
+            it("returns TValue | TDefault | null with number default", () => {
+                const result = Arr.first(["a", "b"], null, 0);
+                expectTypeOf(result).toEqualTypeOf<
+                    string | number | null
+                >();
+            });
+
+            it("returns TValue | null | null with null default", () => {
+                const result = Arr.first(["a", "b"], null, null);
+                expectTypeOf(result).toEqualTypeOf<string | null>();
+            });
+
+            it("returns TValue | TDefault | null with boolean default", () => {
+                const result = Arr.first([1, 2, 3], null, false);
+                expectTypeOf(result).toEqualTypeOf<
+                    number | boolean | null
+                >();
+            });
+        });
+
+        describe("array with callback and default", () => {
+            it("returns TValue | TDefault | null with callback + string default", () => {
+                const result = Arr.first(
+                    [100, 200, 300],
+                    (value) => value > 300,
+                    "bar",
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    number | string | null
+                >();
+            });
+
+            it("returns TValue | TDefault | null with callback + function default", () => {
+                const result = Arr.first(
+                    [100, 200, 300],
+                    (value) => value > 300,
+                    () => "baz",
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    number | string | null
+                >();
+            });
+
+            it("infers callback value and key types together", () => {
+                const result = Arr.first(
+                    [100, 200, 300],
+                    (_, key) => key < 2,
+                );
+                expectTypeOf(result).toEqualTypeOf<number | null>();
+            });
+        });
+
+        describe("default value as function", () => {
+            it("unwraps function default to return type", () => {
+                const result = Arr.first([], null, () => "bar");
+                expectTypeOf(result).toEqualTypeOf<
+                    never | string | null
+                >();
+            });
+
+            it("unwraps function default with complex return type", () => {
+                const result = Arr.first(
+                    [] as number[],
+                    null,
+                    () => ({ fallback: true }),
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    number | { fallback: boolean } | null
+                >();
+            });
+        });
+
+        describe("Generator and IterableIterator", () => {
+            it("returns TValue | null for generator without callback", () => {
+                function* gen(): Generator<number> {
+                    yield 1;
+                    yield 2;
+                }
+                const result = Arr.first(gen());
+                expectTypeOf(result).toEqualTypeOf<number | null>();
+            });
+
+            it("returns TValue | null for generator with callback", () => {
+                function* gen(): Generator<string> {
+                    yield "a";
+                    yield "b";
+                }
+                const result = Arr.first(gen(), (v) => v === "b");
+                expectTypeOf(result).toEqualTypeOf<string | null>();
+            });
+
+            it("returns TValue | TDefault | null for generator with default", () => {
+                function* gen(): Generator<number> {
+                    yield 1;
+                }
+                const result = Arr.first(gen(), null, "fallback");
+                expectTypeOf(result).toEqualTypeOf<
+                    number | string | null
+                >();
+            });
+
+            it("returns TValue | null for IterableIterator", () => {
+                const iter: IterableIterator<number> = [1, 2, 3][
+                    Symbol.iterator
+                ]();
+                const result = Arr.first(iter);
+                expectTypeOf(result).toEqualTypeOf<number | null>();
+            });
+        });
+
+        describe("unknown fallback overload", () => {
+            it("returns TValue | null for null input", () => {
+                const result = Arr.first(null);
+                expectTypeOf(result).toEqualTypeOf<unknown | null>();
+            });
+
+            it("returns TValue | TDefault | null for null input with default", () => {
+                const result = Arr.first(null, null, "fallback");
+                expectTypeOf(result).toEqualTypeOf<
+                    unknown | string | null
+                >();
+            });
+        });
+
+        describe("object arrays", () => {
+            it("infers object type for array of objects", () => {
+                interface User {
+                    id: number;
+                    name: string;
+                    active: boolean;
+                }
+                const users: User[] = [
+                    { id: 1, name: "Alice", active: true },
+                    { id: 2, name: "Bob", active: false },
+                ];
+                const result = Arr.first(users);
+                expectTypeOf(result).toEqualTypeOf<User | null>();
+            });
+
+            it("infers object type in callback", () => {
+                interface User {
+                    id: number;
+                    name: string;
+                    active: boolean;
+                }
+                const users: User[] = [
+                    { id: 1, name: "Alice", active: true },
+                    { id: 2, name: "Bob", active: false },
+                ];
+                const result = Arr.first(users, (user) => {
+                    expectTypeOf(user).toEqualTypeOf<User>();
+                    return user.active;
+                });
+                expectTypeOf(result).toEqualTypeOf<User | null>();
+            });
+
+            it("returns object or default", () => {
+                interface Config {
+                    key: string;
+                    value: unknown;
+                }
+                const configs: Config[] = [];
+                const result = Arr.first(
+                    configs,
+                    (c) => c.key === "theme",
+                    { key: "theme", value: "dark" } as Config,
+                );
+                expectTypeOf(result).toEqualTypeOf<Config | null>();
+            });
+        });
+
+        describe("union type arrays", () => {
+            it("returns union type | null", () => {
+                const data: (string | number)[] = ["a", 1, "b", 2];
+                const result = Arr.first(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    string | number | null
+                >();
+            });
+
+            it("infers union in callback parameter", () => {
+                const data: (string | number)[] = ["a", 1, "b", 2];
+                Arr.first(data, (value) => {
+                    expectTypeOf(value).toEqualTypeOf<string | number>();
+                    return typeof value === "string";
+                });
+            });
+
+            it("returns nullable union with default", () => {
+                const data: (string | number)[] = [];
+                const result = Arr.first(data, null, false);
+                expectTypeOf(result).toEqualTypeOf<
+                    string | number | boolean | null
+                >();
+            });
+        });
+
+        describe("nullable type arrays", () => {
+            it("returns (T | null) | null for nullable array", () => {
+                const data: (string | null)[] = ["a", null, "b"];
+                const result = Arr.first(data);
+                expectTypeOf(result).toEqualTypeOf<string | null>();
+            });
+
+            it("returns (T | undefined) | null for optional array", () => {
+                const data: (number | undefined)[] = [1, undefined, 3];
+                const result = Arr.first(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    number | undefined | null
+                >();
+            });
+        });
+
+        describe("nested arrays", () => {
+            it("returns nested array type | null", () => {
+                const data = [
+                    [1, 2],
+                    [3, 4],
+                ];
+                const result = Arr.first(data);
+                expectTypeOf(result).toEqualTypeOf<number[] | null>();
+            });
+
+            it("infers nested array in callback", () => {
+                const data = [
+                    [1, 2],
+                    [3, 4],
+                ];
+                const result = Arr.first(
+                    data,
+                    (arr) => arr.length > 1,
+                );
+                expectTypeOf(result).toEqualTypeOf<number[] | null>();
+            });
+        });
+
+        describe("complex data structures", () => {
+            it("handles array of tuples", () => {
+                const data: [string, number][] = [
+                    ["a", 1],
+                    ["b", 2],
+                ];
+                const result = Arr.first(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    [string, number] | null
+                >();
+            });
+
+            it("handles array of Maps", () => {
+                const data: Map<string, number>[] = [
+                    new Map([["a", 1]]),
+                    new Map([["b", 2]]),
+                ];
+                const result = Arr.first(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    Map<string, number> | null
+                >();
+            });
+
+            it("handles discriminated union with callback", () => {
+                type Shape =
+                    | { kind: "circle"; radius: number }
+                    | { kind: "square"; side: number };
+                const shapes: Shape[] = [
+                    { kind: "circle", radius: 5 },
+                    { kind: "square", side: 10 },
+                ];
+                const result = Arr.first(
+                    shapes,
+                    (s) => s.kind === "circle",
+                );
+                expectTypeOf(result).toEqualTypeOf<Shape | null>();
+            });
+
+            it("handles array of Dates", () => {
+                const dates: Date[] = [
+                    new Date("2024-01-01"),
+                    new Date("2024-06-15"),
+                ];
+                const result = Arr.first(dates);
+                expectTypeOf(result).toEqualTypeOf<Date | null>();
+            });
+
+            it("handles array of Promises", () => {
+                const promises: Promise<string>[] = [
+                    Promise.resolve("a"),
+                    Promise.resolve("b"),
+                ];
+                const result = Arr.first(promises);
+                expectTypeOf(result).toEqualTypeOf<
+                    Promise<string> | null
+                >();
+            });
+
+            it("handles array of Records with callback", () => {
+                const data: Record<string, number>[] = [
+                    { a: 1 },
+                    { b: 2 },
+                ];
+                const result = Arr.first(
+                    data,
+                    (obj) => obj["a"] !== undefined,
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number> | null
+                >();
+            });
+        });
+
+        describe("readonly arrays", () => {
+            it("accepts readonly string array", () => {
+                const data: readonly string[] = ["a", "b", "c"];
+                const result = Arr.first([...data]);
+                expectTypeOf(result).toEqualTypeOf<string | null>();
+            });
+        });
+
+        describe("as const arrays", () => {
+            it("infers literal union from const array", () => {
+                const data = ["a", "b", "c"] as const;
+                const result = Arr.first([...data]);
+                expectTypeOf(result).toEqualTypeOf<
+                    "a" | "b" | "c" | null
+                >();
+            });
+        });
+
+        describe("function signature", () => {
+            it("returns type that extends unknown | null", () => {
+                expectTypeOf(Arr.first).returns.toExtend<unknown | null>();
+            });
         });
     });
 
