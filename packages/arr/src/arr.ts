@@ -459,17 +459,45 @@ export function union(...arrays: (readonly unknown[])[]): unknown[] {
 }
 
 /**
- * Prepend one or more items to the beginning of the array
+ * Prepend one or more items to the beginning of the array.
+ * Undefined items are skipped.
  *
- * @param data - The array to prepend items to
- * @param items - The items to prepend as [key, value] tuples
- * @returns A new array with the items prepended
+ * @param data - The array to prepend items to.
+ * @param items - The items to prepend.
+ * @returns A new array with the items prepended.
  */
-export function unshift<TValue, TNewValue>(
-    data: ArrayItems<TValue>,
-    ...items: TNewValue[]
-): ArrayItems<TValue | TNewValue> {
-    const result: (TValue | TNewValue)[] = [...data];
+export function unshift<TValue>(data: readonly TValue[]): TValue[];
+export function unshift<TValue, A>(
+    data: readonly TValue[],
+    a: A,
+): (TValue | A)[];
+export function unshift<TValue, A, B>(
+    data: readonly TValue[],
+    a: A,
+    b: B,
+): (TValue | A | B)[];
+export function unshift<TValue, A, B, C>(
+    data: readonly TValue[],
+    a: A,
+    b: B,
+    c: C,
+): (TValue | A | B | C)[];
+export function unshift<TValue, A, B, C, D>(
+    data: readonly TValue[],
+    a: A,
+    b: B,
+    c: C,
+    d: D,
+): (TValue | A | B | C | D)[];
+export function unshift<TValue>(
+    data: readonly TValue[],
+    ...items: unknown[]
+): unknown[];
+export function unshift<TValue>(
+    data: readonly TValue[],
+    ...items: unknown[]
+): unknown[] {
+    const result: unknown[] = [...data];
 
     for (let i = items.length - 1; i >= 0; i--) {
         const item = items[i];
