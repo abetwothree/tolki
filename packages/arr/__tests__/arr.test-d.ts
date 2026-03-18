@@ -6539,9 +6539,333 @@ describe("arr type tests", () => {
     });
 
     describe("float", () => {
-        it("returns number", () => {
-            const result = Arr.float([1.5, 2.5], 0);
-            expectTypeOf(result).toEqualTypeOf<number>();
+        describe("basic return type", () => {
+            it("returns number from a number array with numeric key", () => {
+                const result = Arr.float([1.5, 2.3], 0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from a number array with second index", () => {
+                const result = Arr.float([1.1, 2.2, 3.3], 2);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from an integer array with numeric key", () => {
+                const result = Arr.float([42, 100, 0], 0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from a mixed-type array with numeric key", () => {
+                const result = Arr.float([1, "hello", true, null], 0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from a string array (would throw at runtime)", () => {
+                const result = Arr.float(["1.5", "2.3"], 0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from a boolean array (would throw at runtime)", () => {
+                const result = Arr.float([true, false], 0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+        });
+
+        describe("dot notation paths", () => {
+            it("returns number with dot notation string key into nested object", () => {
+                const result = Arr.float([{ price: 19.99 }], "0.price");
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with deeply nested dot notation path", () => {
+                const result = Arr.float(
+                    [
+                        {
+                            order: {
+                                items: {
+                                    shipping: { cost: 5.99 },
+                                },
+                            },
+                        },
+                    ],
+                    "0.order.items.shipping.cost",
+                );
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with multi-level dot path into array of complex objects", () => {
+                const data = [
+                    {
+                        config: {
+                            pricing: {
+                                baseRate: 29.99,
+                                discount: 0.15,
+                            },
+                        },
+                    },
+                ];
+                const result = Arr.float(data, "0.config.pricing.baseRate");
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with string key on flat object array", () => {
+                const result = Arr.float(
+                    [{ weight: 1.5, height: 2.3 }],
+                    "0.weight",
+                );
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+        });
+
+        describe("default value variations", () => {
+            it("returns number with number default value", () => {
+                const result = Arr.float([1, 2, 3], 10, 0.0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with integer default value", () => {
+                const result = Arr.float([1.5, 2.5], 99, 0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with null default value", () => {
+                const result = Arr.float([1.5], 5, null);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with no default value (implicit null)", () => {
+                const result = Arr.float([1.5, 2.5], 0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with closure default returning number", () => {
+                const result = Arr.float([1.5], 5, () => 0.0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with closure default returning null", () => {
+                const result = Arr.float([1.5], 5, () => null);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with string default (would throw at runtime)", () => {
+                const result = Arr.float([1.5], 5, "fallback");
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with boolean default (would throw at runtime)", () => {
+                const result = Arr.float([1.5], 5, true);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+        });
+
+        describe("PathKey variations", () => {
+            it("returns number with number key", () => {
+                const result = Arr.float([1.5, 2.5], 1);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with string key", () => {
+                const result = Arr.float([{ price: 19.99 }], "0.price");
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with null key", () => {
+                const result = Arr.float([1.5], null);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with undefined key", () => {
+                const result = Arr.float([1.5], undefined);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with non-literal number key", () => {
+                const key: number = 0;
+                const result = Arr.float([1.5, 2.5], key);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with non-literal string key", () => {
+                const key: string = "0.price";
+                const result = Arr.float([{ price: 19.99 }], key);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number with key from variable typed as PathKey", () => {
+                const key: number | string | null | undefined = "0.price";
+                const result = Arr.float([{ price: 19.99 }], key);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+        });
+
+        describe("complex data structures", () => {
+            it("returns number from array of objects with mixed value types", () => {
+                const data = [
+                    { id: 1, name: "Alice", active: true, score: 95.5 },
+                    { id: 2, name: "Bob", active: false, score: 82.0 },
+                ];
+                const result = Arr.float(data, "0.score");
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from heterogeneous tuple", () => {
+                const data = [
+                    42.5,
+                    "hello",
+                    true,
+                    null,
+                    { nested: 99.9 },
+                ] as const;
+                const result = Arr.float(data, 0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from array with nested arrays and objects", () => {
+                const data = [
+                    {
+                        products: [
+                            {
+                                details: {
+                                    price: 49.99,
+                                    tax: 4.5,
+                                    shipping: {
+                                        domestic: 5.99,
+                                        international: 19.99,
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                ];
+                const result = Arr.float(
+                    data,
+                    "0.products.0.details.shipping.domestic",
+                );
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from array with optional properties", () => {
+                const data: { price?: number; label: string }[] = [
+                    { price: 9.99, label: "test" },
+                ];
+                const result = Arr.float(data, "0.price");
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from array with union-typed elements", () => {
+                const data: (string | number | boolean)[] = [42.5, "hello", true];
+                const result = Arr.float(data, 0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from readonly array", () => {
+                const data: readonly number[] = [1.1, 2.2, 3.3];
+                const result = Arr.float(data, 1);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from deeply nested readonly structure", () => {
+                const data = [
+                    {
+                        level1: {
+                            level2: {
+                                level3: {
+                                    level4: {
+                                        amount: 123.456,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                ] as const;
+                const result = Arr.float(
+                    data,
+                    "0.level1.level2.level3.level4.amount",
+                );
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from array with numeric string keys in objects", () => {
+                const data = [{ 0: 1.1, 1: 2.2, name: "test" }];
+                const result = Arr.float(data, "0.0");
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from empty array with default", () => {
+                const data: number[] = [];
+                const result = Arr.float(data, 0, 0.0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from array of arrays accessed by dot path", () => {
+                const data = [[10.5, 20.3], [30.1, 40.7]];
+                const result = Arr.float(data, "0.1");
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from array with Map-like nested records", () => {
+                const data: { rates: Record<string, number> }[] = [
+                    { rates: { usd: 1.0, eur: 0.85, gbp: 0.73 } },
+                ];
+                const result = Arr.float(data, "0.rates.usd");
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from array with multiple nesting levels of arrays", () => {
+                const data = [
+                    {
+                        matrix: [
+                            [1.1, 2.2],
+                            [3.3, 4.4],
+                        ],
+                    },
+                ];
+                const result = Arr.float(data, "0.matrix.0.0");
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+        });
+
+        describe("unknown and untyped data", () => {
+            it("returns number from unknown data", () => {
+                const data: unknown = [1.5, 2.5];
+                const result = Arr.float(data, 0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from unknown data with default", () => {
+                const data: unknown = [1.5];
+                const result = Arr.float(data, 5, 0.0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from unknown data with closure default", () => {
+                const data: unknown = [1.5];
+                const result = Arr.float(data, 5, () => 0.0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+
+            it("returns number from any-typed data", () => {
+                const data: any = [1.5];
+                const result = Arr.float(data, 0);
+                expectTypeOf(result).toEqualTypeOf<number>();
+            });
+        });
+
+        describe("function signature", () => {
+            it("accepts ArrayItems<TValue> as first parameter", () => {
+                expectTypeOf(Arr.float).parameter(0).toExtend<unknown>();
+            });
+
+            it("accepts PathKey as second parameter", () => {
+                expectTypeOf(Arr.float)
+                    .parameter(1)
+                    .toExtend<number | string | null | undefined>();
+            });
+
+            it("returns number type", () => {
+                expectTypeOf(Arr.float).returns.toEqualTypeOf<number>();
+            });
         });
     });
 
