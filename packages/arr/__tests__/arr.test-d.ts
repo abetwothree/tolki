@@ -757,7 +757,9 @@ describe("arr type tests", () => {
 
         describe("Function signature", () => {
             it("first parameter accepts ArrayItems<TValue>", () => {
-                expectTypeOf(Arr.add).parameter(0).toExtend<readonly unknown[]>();
+                expectTypeOf(Arr.add)
+                    .parameter(0)
+                    .toExtend<readonly unknown[]>();
             });
 
             it("second parameter accepts PathKey", () => {
@@ -1702,7 +1704,9 @@ describe("arr type tests", () => {
             });
 
             it("first parameter accepts arrays", () => {
-                expectTypeOf(Arr.chunk).parameter(0).toExtend<readonly unknown[]>();
+                expectTypeOf(Arr.chunk)
+                    .parameter(0)
+                    .toExtend<readonly unknown[]>();
             });
 
             it("second parameter is number", () => {
@@ -1982,7 +1986,9 @@ describe("arr type tests", () => {
 
         describe("function signature", () => {
             it("first parameter accepts arrays", () => {
-                expectTypeOf(Arr.collapse).parameter(0).toExtend<readonly unknown[]>();
+                expectTypeOf(Arr.collapse)
+                    .parameter(0)
+                    .toExtend<readonly unknown[]>();
             });
 
             it("return type is array or record", () => {
@@ -2259,7 +2265,9 @@ describe("arr type tests", () => {
 
         describe("function signature", () => {
             it("accepts rest parameter of arrays", () => {
-                expectTypeOf(Arr.combine).parameters.toExtend<(readonly unknown[])[]>();
+                expectTypeOf(Arr.combine).parameters.toExtend<
+                    (readonly unknown[])[]
+                >();
             });
 
             it("return type extends unknown[][]", () => {
@@ -4664,10 +4672,7 @@ describe("arr type tests", () => {
             });
 
             it("returns boolean for array of nested objects", () => {
-                const data = [
-                    { a: { b: { c: 1 } } },
-                    { a: { b: { c: 2 } } },
-                ];
+                const data = [{ a: { b: { c: 1 } } }, { a: { b: { c: 2 } } }];
                 const result = Arr.exists(data, 1);
                 expectTypeOf(result).toEqualTypeOf<boolean>();
             });
@@ -4750,10 +4755,7 @@ describe("arr type tests", () => {
             });
 
             it("returns boolean for array of Sets", () => {
-                const data: Set<number>[] = [
-                    new Set([1, 2]),
-                    new Set([3, 4]),
-                ];
+                const data: Set<number>[] = [new Set([1, 2]), new Set([3, 4])];
                 const result = Arr.exists(data, 1);
                 expectTypeOf(result).toEqualTypeOf<boolean>();
             });
@@ -4789,10 +4791,7 @@ describe("arr type tests", () => {
             });
 
             it("returns boolean for array of Records", () => {
-                const data: Record<string, number>[] = [
-                    { a: 1 },
-                    { b: 2 },
-                ];
+                const data: Record<string, number>[] = [{ a: 1 }, { b: 2 }];
                 const result = Arr.exists(data, 0);
                 expectTypeOf(result).toEqualTypeOf<boolean>();
             });
@@ -4895,10 +4894,7 @@ describe("arr type tests", () => {
             });
 
             it("returns TValue | null for string array with callback", () => {
-                const result = Arr.first(
-                    ["a", "b", "c"],
-                    (v) => v === "b",
-                );
+                const result = Arr.first(["a", "b", "c"], (v) => v === "b");
                 expectTypeOf(result).toEqualTypeOf<string | null>();
             });
         });
@@ -4906,16 +4902,12 @@ describe("arr type tests", () => {
         describe("array with default value", () => {
             it("returns TValue | TDefault | null with string default", () => {
                 const result = Arr.first([1, 2, 3], null, "default");
-                expectTypeOf(result).toEqualTypeOf<
-                    number | string | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<number | string | null>();
             });
 
             it("returns TValue | TDefault | null with number default", () => {
                 const result = Arr.first(["a", "b"], null, 0);
-                expectTypeOf(result).toEqualTypeOf<
-                    string | number | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<string | number | null>();
             });
 
             it("returns TValue | null | null with null default", () => {
@@ -4925,9 +4917,7 @@ describe("arr type tests", () => {
 
             it("returns TValue | TDefault | null with boolean default", () => {
                 const result = Arr.first([1, 2, 3], null, false);
-                expectTypeOf(result).toEqualTypeOf<
-                    number | boolean | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<number | boolean | null>();
             });
         });
 
@@ -4938,9 +4928,7 @@ describe("arr type tests", () => {
                     (value) => value > 300,
                     "bar",
                 );
-                expectTypeOf(result).toEqualTypeOf<
-                    number | string | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<number | string | null>();
             });
 
             it("returns TValue | TDefault | null with callback + function default", () => {
@@ -4949,16 +4937,11 @@ describe("arr type tests", () => {
                     (value) => value > 300,
                     () => "baz",
                 );
-                expectTypeOf(result).toEqualTypeOf<
-                    number | string | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<number | string | null>();
             });
 
             it("infers callback value and key types together", () => {
-                const result = Arr.first(
-                    [100, 200, 300],
-                    (_, key) => key < 2,
-                );
+                const result = Arr.first([100, 200, 300], (_, key) => key < 2);
                 expectTypeOf(result).toEqualTypeOf<number | null>();
             });
         });
@@ -4966,17 +4949,13 @@ describe("arr type tests", () => {
         describe("default value as function", () => {
             it("unwraps function default to return type", () => {
                 const result = Arr.first([], null, () => "bar");
-                expectTypeOf(result).toEqualTypeOf<
-                    never | string | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<never | string | null>();
             });
 
             it("unwraps function default with complex return type", () => {
-                const result = Arr.first(
-                    [] as number[],
-                    null,
-                    () => ({ fallback: true }),
-                );
+                const result = Arr.first([] as number[], null, () => ({
+                    fallback: true,
+                }));
                 expectTypeOf(result).toEqualTypeOf<
                     number | { fallback: boolean } | null
                 >();
@@ -5007,9 +4986,7 @@ describe("arr type tests", () => {
                     yield 1;
                 }
                 const result = Arr.first(gen(), null, "fallback");
-                expectTypeOf(result).toEqualTypeOf<
-                    number | string | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<number | string | null>();
             });
 
             it("returns TValue | null for IterableIterator", () => {
@@ -5029,9 +5006,7 @@ describe("arr type tests", () => {
 
             it("returns TValue | TDefault | null for null input with default", () => {
                 const result = Arr.first(null, null, "fallback");
-                expectTypeOf(result).toEqualTypeOf<
-                    unknown | string | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<unknown | string | null>();
             });
         });
 
@@ -5073,11 +5048,10 @@ describe("arr type tests", () => {
                     value: unknown;
                 }
                 const configs: Config[] = [];
-                const result = Arr.first(
-                    configs,
-                    (c) => c.key === "theme",
-                    { key: "theme", value: "dark" } as Config,
-                );
+                const result = Arr.first(configs, (c) => c.key === "theme", {
+                    key: "theme",
+                    value: "dark",
+                } as Config);
                 expectTypeOf(result).toEqualTypeOf<Config | null>();
             });
         });
@@ -5086,9 +5060,7 @@ describe("arr type tests", () => {
             it("returns union type | null", () => {
                 const data: (string | number)[] = ["a", 1, "b", 2];
                 const result = Arr.first(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    string | number | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<string | number | null>();
             });
 
             it("infers union in callback parameter", () => {
@@ -5118,9 +5090,7 @@ describe("arr type tests", () => {
             it("returns (T | undefined) | null for optional array", () => {
                 const data: (number | undefined)[] = [1, undefined, 3];
                 const result = Arr.first(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    number | undefined | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<number | undefined | null>();
             });
         });
 
@@ -5139,10 +5109,7 @@ describe("arr type tests", () => {
                     [1, 2],
                     [3, 4],
                 ];
-                const result = Arr.first(
-                    data,
-                    (arr) => arr.length > 1,
-                );
+                const result = Arr.first(data, (arr) => arr.length > 1);
                 expectTypeOf(result).toEqualTypeOf<number[] | null>();
             });
         });
@@ -5154,9 +5121,7 @@ describe("arr type tests", () => {
                     ["b", 2],
                 ];
                 const result = Arr.first(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    [string, number] | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<[string, number] | null>();
             });
 
             it("handles array of Maps", () => {
@@ -5165,9 +5130,10 @@ describe("arr type tests", () => {
                     new Map([["b", 2]]),
                 ];
                 const result = Arr.first(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    Map<string, number> | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<Map<
+                    string,
+                    number
+                > | null>();
             });
 
             it("handles discriminated union with callback", () => {
@@ -5178,10 +5144,7 @@ describe("arr type tests", () => {
                     { kind: "circle", radius: 5 },
                     { kind: "square", side: 10 },
                 ];
-                const result = Arr.first(
-                    shapes,
-                    (s) => s.kind === "circle",
-                );
+                const result = Arr.first(shapes, (s) => s.kind === "circle");
                 expectTypeOf(result).toEqualTypeOf<Shape | null>();
             });
 
@@ -5200,23 +5163,16 @@ describe("arr type tests", () => {
                     Promise.resolve("b"),
                 ];
                 const result = Arr.first(promises);
-                expectTypeOf(result).toEqualTypeOf<
-                    Promise<string> | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<Promise<string> | null>();
             });
 
             it("handles array of Records with callback", () => {
-                const data: Record<string, number>[] = [
-                    { a: 1 },
-                    { b: 2 },
-                ];
-                const result = Arr.first(
-                    data,
-                    (obj) => obj["a"] !== undefined,
-                );
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number> | null
-                >();
+                const data: Record<string, number>[] = [{ a: 1 }, { b: 2 }];
+                const result = Arr.first(data, (obj) => obj["a"] !== undefined);
+                expectTypeOf(result).toEqualTypeOf<Record<
+                    string,
+                    number
+                > | null>();
             });
         });
 
@@ -5232,9 +5188,7 @@ describe("arr type tests", () => {
             it("infers literal union from const array", () => {
                 const data = ["a", "b", "c"] as const;
                 const result = Arr.first([...data]);
-                expectTypeOf(result).toEqualTypeOf<
-                    "a" | "b" | "c" | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<"a" | "b" | "c" | null>();
             });
         });
 
@@ -5297,10 +5251,7 @@ describe("arr type tests", () => {
             });
 
             it("returns TValue | null for string array with callback", () => {
-                const result = Arr.last(
-                    ["a", "b", "c"],
-                    (v) => v === "b",
-                );
+                const result = Arr.last(["a", "b", "c"], (v) => v === "b");
                 expectTypeOf(result).toEqualTypeOf<string | null>();
             });
         });
@@ -5308,16 +5259,12 @@ describe("arr type tests", () => {
         describe("array with default value", () => {
             it("returns TValue | TDefault | null with string default", () => {
                 const result = Arr.last([1, 2, 3], null, "foo");
-                expectTypeOf(result).toEqualTypeOf<
-                    number | string | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<number | string | null>();
             });
 
             it("returns TValue | TDefault | null with number default", () => {
                 const result = Arr.last(["a", "b"], null, 0);
-                expectTypeOf(result).toEqualTypeOf<
-                    string | number | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<string | number | null>();
             });
 
             it("returns TValue | null | null with null default", () => {
@@ -5327,9 +5274,7 @@ describe("arr type tests", () => {
 
             it("returns TValue | TDefault | null with boolean default", () => {
                 const result = Arr.last([1, 2, 3], null, false);
-                expectTypeOf(result).toEqualTypeOf<
-                    number | boolean | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<number | boolean | null>();
             });
         });
 
@@ -5340,9 +5285,7 @@ describe("arr type tests", () => {
                     (value) => value > 300,
                     "bar",
                 );
-                expectTypeOf(result).toEqualTypeOf<
-                    number | string | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<number | string | null>();
             });
 
             it("returns TValue | TDefault | null with callback + function default", () => {
@@ -5351,16 +5294,11 @@ describe("arr type tests", () => {
                     (value) => value > 300,
                     () => "baz",
                 );
-                expectTypeOf(result).toEqualTypeOf<
-                    number | string | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<number | string | null>();
             });
 
             it("infers callback value and key types together", () => {
-                const result = Arr.last(
-                    [100, 200, 300],
-                    (_, key) => key < 2,
-                );
+                const result = Arr.last([100, 200, 300], (_, key) => key < 2);
                 expectTypeOf(result).toEqualTypeOf<number | null>();
             });
         });
@@ -5368,17 +5306,13 @@ describe("arr type tests", () => {
         describe("default value as function", () => {
             it("unwraps function default to return type", () => {
                 const result = Arr.last([], null, () => "bar");
-                expectTypeOf(result).toEqualTypeOf<
-                    never | string | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<never | string | null>();
             });
 
             it("unwraps function default with complex return type", () => {
-                const result = Arr.last(
-                    [] as number[],
-                    null,
-                    () => ({ fallback: true }),
-                );
+                const result = Arr.last([] as number[], null, () => ({
+                    fallback: true,
+                }));
                 expectTypeOf(result).toEqualTypeOf<
                     number | { fallback: boolean } | null
                 >();
@@ -5411,9 +5345,7 @@ describe("arr type tests", () => {
                     yield 1;
                 }
                 const result = Arr.last(gen(), null, "fallback");
-                expectTypeOf(result).toEqualTypeOf<
-                    number | string | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<number | string | null>();
             });
 
             it("returns TValue | TDefault | null for generator with callback and default", () => {
@@ -5422,14 +5354,8 @@ describe("arr type tests", () => {
                     yield 2;
                     yield 3;
                 }
-                const result = Arr.last(
-                    gen(),
-                    (v) => v > 5,
-                    "fallback",
-                );
-                expectTypeOf(result).toEqualTypeOf<
-                    number | string | null
-                >();
+                const result = Arr.last(gen(), (v) => v > 5, "fallback");
+                expectTypeOf(result).toEqualTypeOf<number | string | null>();
             });
 
             it("returns TValue | TDefault | null for generator with callback and lazy default", () => {
@@ -5443,9 +5369,7 @@ describe("arr type tests", () => {
                     (v) => v > 5,
                     () => "lazy",
                 );
-                expectTypeOf(result).toEqualTypeOf<
-                    number | string | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<number | string | null>();
             });
 
             it("returns TValue | null for IterableIterator", () => {
@@ -5476,9 +5400,7 @@ describe("arr type tests", () => {
 
             it("returns TValue | TDefault | null for null input with default", () => {
                 const result = Arr.last(null, null, "fallback");
-                expectTypeOf(result).toEqualTypeOf<
-                    unknown | string | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<unknown | string | null>();
             });
         });
 
@@ -5520,11 +5442,10 @@ describe("arr type tests", () => {
                     value: unknown;
                 }
                 const configs: Config[] = [];
-                const result = Arr.last(
-                    configs,
-                    (c) => c.key === "theme",
-                    { key: "theme", value: "dark" } as Config,
-                );
+                const result = Arr.last(configs, (c) => c.key === "theme", {
+                    key: "theme",
+                    value: "dark",
+                } as Config);
                 expectTypeOf(result).toEqualTypeOf<Config | null>();
             });
 
@@ -5546,10 +5467,7 @@ describe("arr type tests", () => {
                         total: 30,
                     },
                 ];
-                const result = Arr.last(
-                    orders,
-                    (order) => order.total > 40,
-                );
+                const result = Arr.last(orders, (order) => order.total > 40);
                 expectTypeOf(result).toEqualTypeOf<Order | null>();
             });
         });
@@ -5558,9 +5476,7 @@ describe("arr type tests", () => {
             it("returns union type | null", () => {
                 const data: (string | number)[] = ["a", 1, "b", 2];
                 const result = Arr.last(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    string | number | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<string | number | null>();
             });
 
             it("infers union in callback parameter", () => {
@@ -5590,9 +5506,7 @@ describe("arr type tests", () => {
             it("returns (T | undefined) | null for optional array", () => {
                 const data: (number | undefined)[] = [1, undefined, 3];
                 const result = Arr.last(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    number | undefined | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<number | undefined | null>();
             });
         });
 
@@ -5611,10 +5525,7 @@ describe("arr type tests", () => {
                     [1, 2],
                     [3, 4],
                 ];
-                const result = Arr.last(
-                    data,
-                    (arr) => arr.length > 1,
-                );
+                const result = Arr.last(data, (arr) => arr.length > 1);
                 expectTypeOf(result).toEqualTypeOf<number[] | null>();
             });
         });
@@ -5626,9 +5537,7 @@ describe("arr type tests", () => {
                     ["b", 2],
                 ];
                 const result = Arr.last(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    [string, number] | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<[string, number] | null>();
             });
 
             it("handles array of Maps", () => {
@@ -5637,9 +5546,10 @@ describe("arr type tests", () => {
                     new Map([["b", 2]]),
                 ];
                 const result = Arr.last(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    Map<string, number> | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<Map<
+                    string,
+                    number
+                > | null>();
             });
 
             it("handles discriminated union with callback", () => {
@@ -5650,10 +5560,7 @@ describe("arr type tests", () => {
                     { kind: "circle", radius: 5 },
                     { kind: "square", side: 10 },
                 ];
-                const result = Arr.last(
-                    shapes,
-                    (s) => s.kind === "square",
-                );
+                const result = Arr.last(shapes, (s) => s.kind === "square");
                 expectTypeOf(result).toEqualTypeOf<Shape | null>();
             });
 
@@ -5672,30 +5579,20 @@ describe("arr type tests", () => {
                     Promise.resolve("b"),
                 ];
                 const result = Arr.last(promises);
-                expectTypeOf(result).toEqualTypeOf<
-                    Promise<string> | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<Promise<string> | null>();
             });
 
             it("handles array of Records with callback", () => {
-                const data: Record<string, number>[] = [
-                    { a: 1 },
-                    { b: 2 },
-                ];
-                const result = Arr.last(
-                    data,
-                    (obj) => obj["b"] !== undefined,
-                );
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number> | null
-                >();
+                const data: Record<string, number>[] = [{ a: 1 }, { b: 2 }];
+                const result = Arr.last(data, (obj) => obj["b"] !== undefined);
+                expectTypeOf(result).toEqualTypeOf<Record<
+                    string,
+                    number
+                > | null>();
             });
 
             it("handles array of Sets", () => {
-                const data: Set<string>[] = [
-                    new Set(["a"]),
-                    new Set(["b"]),
-                ];
+                const data: Set<string>[] = [new Set(["a"]), new Set(["b"])];
                 const result = Arr.last(data);
                 expectTypeOf(result).toEqualTypeOf<Set<string> | null>();
             });
@@ -5721,9 +5618,7 @@ describe("arr type tests", () => {
             it("infers literal union from const array", () => {
                 const data = ["a", "b", "c"] as const;
                 const result = Arr.last([...data]);
-                expectTypeOf(result).toEqualTypeOf<
-                    "a" | "b" | "c" | null
-                >();
+                expectTypeOf(result).toEqualTypeOf<"a" | "b" | "c" | null>();
             });
         });
 
@@ -5815,11 +5710,7 @@ describe("arr type tests", () => {
             });
 
             it("returns (string | number | boolean)[] for triple union", () => {
-                const data: (string | number | boolean)[] = [
-                    "a",
-                    1,
-                    true,
-                ];
+                const data: (string | number | boolean)[] = ["a", 1, true];
                 const result = Arr.take(data, 1);
                 expectTypeOf(result).toEqualTypeOf<
                     (string | number | boolean)[]
@@ -5873,9 +5764,7 @@ describe("arr type tests", () => {
                     { c: 3 },
                 ];
                 const result = Arr.take(data, 2);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>[]>();
             });
         });
 
@@ -5896,16 +5785,11 @@ describe("arr type tests", () => {
                     new Map([["b", 2]]),
                 ];
                 const result = Arr.take(data, 1);
-                expectTypeOf(result).toEqualTypeOf<
-                    Map<string, number>[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<Map<string, number>[]>();
             });
 
             it("returns Set[] for array of Sets", () => {
-                const data: Set<string>[] = [
-                    new Set(["a"]),
-                    new Set(["b"]),
-                ];
+                const data: Set<string>[] = [new Set(["a"]), new Set(["b"])];
                 const result = Arr.take(data, 1);
                 expectTypeOf(result).toEqualTypeOf<Set<string>[]>();
             });
@@ -5984,9 +5868,7 @@ describe("arr type tests", () => {
             it("returns (number | undefined)[] for optional number array", () => {
                 const data: (number | undefined)[] = [1, undefined, 3];
                 const result = Arr.take(data, 2);
-                expectTypeOf(result).toEqualTypeOf<
-                    (number | undefined)[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[]>();
             });
         });
 
@@ -6027,9 +5909,7 @@ describe("arr type tests", () => {
             it("infers string literal union from const array", () => {
                 const data = ["a", "b", "c"] as const;
                 const result = Arr.take(data, 1);
-                expectTypeOf(result).toEqualTypeOf<
-                    ("a" | "b" | "c")[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<("a" | "b" | "c")[]>();
             });
         });
 
@@ -6073,18 +5953,12 @@ describe("arr type tests", () => {
             });
 
             it("returns string[] for string[][]", () => {
-                const result = Arr.flatten([
-                    ["#foo", "#bar"],
-                    ["#baz"],
-                ]);
+                const result = Arr.flatten([["#foo", "#bar"], ["#baz"]]);
                 expectTypeOf(result).toEqualTypeOf<string[]>();
             });
 
             it("returns boolean[] for boolean[][]", () => {
-                const result = Arr.flatten([
-                    [true, false],
-                    [true],
-                ]);
+                const result = Arr.flatten([[true, false], [true]]);
                 expectTypeOf(result).toEqualTypeOf<boolean[]>();
             });
 
@@ -6148,13 +6022,7 @@ describe("arr type tests", () => {
             });
 
             it("accepts Infinity as depth", () => {
-                const result = Arr.flatten(
-                    [
-                        ["a", "b"],
-                        ["c"],
-                    ],
-                    Infinity,
-                );
+                const result = Arr.flatten([["a", "b"], ["c"]], Infinity);
                 expectTypeOf(result).toEqualTypeOf<string[]>();
             });
         });
@@ -6176,13 +6044,9 @@ describe("arr type tests", () => {
             });
 
             it("returns Record[] for array of records", () => {
-                const data: Record<string, number>[][] = [
-                    [{ a: 1 }, { b: 2 }],
-                ];
+                const data: Record<string, number>[][] = [[{ a: 1 }, { b: 2 }]];
                 const result = Arr.flatten(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>[]>();
             });
 
             it("returns deeply nested object types", () => {
@@ -6223,9 +6087,7 @@ describe("arr type tests", () => {
                     [new Map([["b", 2]])],
                 ];
                 const result = Arr.flatten(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    Map<string, number>[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<Map<string, number>[]>();
             });
 
             it("returns Set[] for array of Set arrays", () => {
@@ -6300,23 +6162,15 @@ describe("arr type tests", () => {
 
         describe("mixed element type arrays", () => {
             it("handles nullable element 2D arrays", () => {
-                const data: (string | null)[][] = [
-                    ["a", null],
-                    ["b"],
-                ];
+                const data: (string | null)[][] = [["a", null], ["b"]];
                 const result = Arr.flatten(data);
                 expectTypeOf(result).toEqualTypeOf<(string | null)[]>();
             });
 
             it("handles undefined element 2D arrays", () => {
-                const data: (number | undefined)[][] = [
-                    [1, undefined],
-                    [3],
-                ];
+                const data: (number | undefined)[][] = [[1, undefined], [3]];
                 const result = Arr.flatten(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    (number | undefined)[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[]>();
             });
 
             it("handles union type 1D array", () => {
@@ -6349,9 +6203,9 @@ describe("arr type tests", () => {
 
         describe("function signature", () => {
             it("accepts optional depth parameter", () => {
-                expectTypeOf(Arr.flatten).parameter(1).toEqualTypeOf<
-                    number | undefined
-                >();
+                expectTypeOf(Arr.flatten)
+                    .parameter(1)
+                    .toEqualTypeOf<number | undefined>();
             });
 
             it("returns type that extends unknown[]", () => {
@@ -6364,30 +6218,22 @@ describe("arr type tests", () => {
         describe("basic return type", () => {
             it("returns Record<string, number> for string array", () => {
                 const result = Arr.flip(["a", "b", "c"]);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
 
             it("returns Record<string, number> for number array", () => {
                 const result = Arr.flip([1, 2, 3]);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
 
             it("returns Record<string, number> for boolean array", () => {
                 const result = Arr.flip([true, false]);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
 
             it("returns Record<string, number> for empty array", () => {
                 const result = Arr.flip([]);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
         });
 
@@ -6395,17 +6241,13 @@ describe("arr type tests", () => {
             it("returns Record<string, number> for string | number array", () => {
                 const data: (string | number)[] = ["a", 1, "b", 2];
                 const result = Arr.flip(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
 
             it("returns Record<string, number> for nullable array", () => {
                 const data: (string | null)[] = ["a", null, "b"];
                 const result = Arr.flip(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
         });
 
@@ -6420,20 +6262,13 @@ describe("arr type tests", () => {
                     { id: 2, name: "Bob" },
                 ];
                 const result = Arr.flip(users);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
 
             it("returns Record<string, number> for Record array", () => {
-                const data: Record<string, number>[] = [
-                    { a: 1 },
-                    { b: 2 },
-                ];
+                const data: Record<string, number>[] = [{ a: 1 }, { b: 2 }];
                 const result = Arr.flip(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
         });
 
@@ -6444,9 +6279,7 @@ describe("arr type tests", () => {
                     ["b", 2],
                 ];
                 const result = Arr.flip(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
 
             it("returns Record<string, number> for discriminated union array", () => {
@@ -6458,17 +6291,13 @@ describe("arr type tests", () => {
                     { kind: "square", side: 10 },
                 ];
                 const result = Arr.flip(shapes);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
 
             it("returns Record<string, number> for Date array", () => {
                 const dates: Date[] = [new Date(), new Date()];
                 const result = Arr.flip(dates);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
         });
 
@@ -6479,23 +6308,17 @@ describe("arr type tests", () => {
                     banana: 1,
                     cherry: 2,
                 });
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
 
             it("returns Record<string, number> for null", () => {
                 const result = Arr.flip(null);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
 
             it("returns Record<string, number> for undefined", () => {
                 const result = Arr.flip(undefined);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
         });
 
@@ -6503,17 +6326,13 @@ describe("arr type tests", () => {
             it("accepts readonly array", () => {
                 const data: readonly string[] = ["a", "b", "c"];
                 const result = Arr.flip(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
 
             it("accepts as const array", () => {
                 const data = ["a", "b", "c"] as const;
                 const result = Arr.flip(data);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
         });
 
@@ -6523,9 +6342,7 @@ describe("arr type tests", () => {
                     return Arr.flip(items);
                 }
                 const result = flipItems(["x", "y", "z"]);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
             });
         });
 
@@ -6754,7 +6571,11 @@ describe("arr type tests", () => {
             });
 
             it("returns number from array with union-typed elements", () => {
-                const data: (string | number | boolean)[] = [42.5, "hello", true];
+                const data: (string | number | boolean)[] = [
+                    42.5,
+                    "hello",
+                    true,
+                ];
                 const result = Arr.float(data, 0);
                 expectTypeOf(result).toEqualTypeOf<number>();
             });
@@ -6799,7 +6620,10 @@ describe("arr type tests", () => {
             });
 
             it("returns number from array of arrays accessed by dot path", () => {
-                const data = [[10.5, 20.3], [30.1, 40.7]];
+                const data = [
+                    [10.5, 20.3],
+                    [30.1, 40.7],
+                ];
                 const result = Arr.float(data, "0.1");
                 expectTypeOf(result).toEqualTypeOf<number>();
             });
@@ -6954,9 +6778,7 @@ describe("arr type tests", () => {
             it("accepts non-literal string key", () => {
                 const key: string = "1.0";
                 const result = Arr.forget(["a", ["b", "c"]], key);
-                expectTypeOf(result).toEqualTypeOf<
-                    (string | string[])[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<(string | string[])[]>();
             });
 
             it("accepts key typed as full PathKeys union", () => {
@@ -6993,14 +6815,9 @@ describe("arr type tests", () => {
             });
 
             it("preserves type with multiple dot notation keys in array", () => {
-                const data: (string | number[])[] = [
-                    "prices",
-                    [100, 200, 300],
-                ];
+                const data: (string | number[])[] = ["prices", [100, 200, 300]];
                 const result = Arr.forget(data, ["1.0", "1.2"]);
-                expectTypeOf(result).toEqualTypeOf<
-                    (string | number[])[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<(string | number[])[]>();
             });
         });
 
@@ -7050,13 +6867,7 @@ describe("arr type tests", () => {
                 )[] = [42, "hello", true, null, { nested: 99 }];
                 const result = Arr.forget(data, [0, 3]);
                 expectTypeOf(result).toEqualTypeOf<
-                    (
-                        | string
-                        | number
-                        | boolean
-                        | null
-                        | { nested: number }
-                    )[]
+                    (string | number | boolean | null | { nested: number })[]
                 >();
             });
 
@@ -7136,9 +6947,7 @@ describe("arr type tests", () => {
                     { c: 3, d: 4 },
                 ];
                 const result = Arr.forget(data, 0);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number>[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>[]>();
             });
 
             it("preserves type for array with symbol-keyed objects", () => {
@@ -7257,14 +7066,9 @@ describe("arr type tests", () => {
             });
 
             it("preserves type when forgetting mixed root and nested keys", () => {
-                const data: (string | number[])[] = [
-                    "prices",
-                    [100, 200, 300],
-                ];
+                const data: (string | number[])[] = ["prices", [100, 200, 300]];
                 const result = Arr.forget(data, [0, "1.2"]);
-                expectTypeOf(result).toEqualTypeOf<
-                    (string | number[])[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<(string | number[])[]>();
             });
 
             it("preserves type with duplicate keys in array", () => {
@@ -7300,32 +7104,571 @@ describe("arr type tests", () => {
                         | string
                         | null
                         | undefined
-                        | Array<
-                              number | string | null | undefined
-                          >
+                        | Array<number | string | null | undefined>
                     >();
             });
 
             it("returns TValue[] type", () => {
-                expectTypeOf(
-                    Arr.forget([1, 2, 3], 0),
-                ).toEqualTypeOf<number[]>();
-                expectTypeOf(
-                    Arr.forget(["a", "b"], 0),
-                ).toEqualTypeOf<string[]>();
+                expectTypeOf(Arr.forget([1, 2, 3], 0)).toEqualTypeOf<
+                    number[]
+                >();
+                expectTypeOf(Arr.forget(["a", "b"], 0)).toEqualTypeOf<
+                    string[]
+                >();
             });
         });
     });
 
     describe("from", () => {
-        it("returns TValue[] for array input", () => {
-            const result = Arr.from([1, 2, 3]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
+        describe("array input returns TValue[]", () => {
+            it("returns number[] for number array", () => {
+                const result = Arr.from([1, 2, 3]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns string[] for string array", () => {
+                const result = Arr.from(["a", "b", "c"]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("returns boolean[] for boolean array", () => {
+                const result = Arr.from([true, false, true]);
+                expectTypeOf(result).toEqualTypeOf<boolean[]>();
+            });
+
+            it("returns never[] for empty array literal", () => {
+                const result = Arr.from([]);
+                expectTypeOf(result).toEqualTypeOf<never[]>();
+            });
+
+            it("returns (string | number)[] for union array", () => {
+                const data: (string | number)[] = [1, "a", 2, "b"];
+                const result = Arr.from(data);
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+            });
+
+            it("returns (string | number | boolean)[] for triple union array", () => {
+                const data: (string | number | boolean)[] = [1, "a", true];
+                const result = Arr.from(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | number | boolean)[]
+                >();
+            });
+
+            it("returns number[][] for 2D number array", () => {
+                const result = Arr.from([
+                    [1, 2],
+                    [3, 4],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+
+            it("returns string[][] for 2D string array", () => {
+                const result = Arr.from([
+                    ["a", "b"],
+                    ["c", "d"],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<string[][]>();
+            });
+
+            it("returns number[][][] for 3D number array", () => {
+                const result = Arr.from([[[1, 2], [3]], [[4, 5]]]);
+                expectTypeOf(result).toEqualTypeOf<number[][][]>();
+            });
+
+            it("returns object array type for array of objects", () => {
+                const result = Arr.from([
+                    { name: "Alice", age: 30 },
+                    { name: "Bob", age: 25 },
+                ]);
+                expectTypeOf(result).toEqualTypeOf<
+                    { name: string; age: number }[]
+                >();
+            });
+
+            it("returns (string | number[])[] for heterogeneous nested array", () => {
+                const result = Arr.from([
+                    "products",
+                    [100, 200],
+                    "services",
+                    [300],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<(string | number[])[]>();
+            });
+
+            it("returns null[] for array of nulls", () => {
+                const result = Arr.from([null, null, null]);
+                expectTypeOf(result).toEqualTypeOf<null[]>();
+            });
+
+            it("returns (number | null)[] for nullable number array", () => {
+                const data: (number | null)[] = [1, null, 3];
+                const result = Arr.from(data);
+                expectTypeOf(result).toEqualTypeOf<(number | null)[]>();
+            });
+
+            it("returns unknown[] for unknown array", () => {
+                const data: unknown[] = [1, "a", true];
+                const result = Arr.from(data);
+                expectTypeOf(result).toEqualTypeOf<unknown[]>();
+            });
+
+            it("preserves object array with complex nested structures", () => {
+                const data = [
+                    {
+                        id: 1,
+                        profile: {
+                            name: "Alice",
+                            addresses: [
+                                { city: "NYC", zip: 10001 },
+                                { city: "LA", zip: 90001 },
+                            ],
+                        },
+                    },
+                ];
+                const result = Arr.from(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    {
+                        id: number;
+                        profile: {
+                            name: string;
+                            addresses: { city: string; zip: number }[];
+                        };
+                    }[]
+                >();
+            });
+
+            it("returns object[] for array of plain object instances", () => {
+                const subject: object[] = [new Object(), new Object()];
+                const result = Arr.from(subject);
+                expectTypeOf(result).toEqualTypeOf<object[]>();
+            });
         });
 
-        it("returns Record for Map input", () => {
-            const result = Arr.from(new Map([["a", 1]]));
-            expectTypeOf(result).toEqualTypeOf<Record<PropertyKey, number>>();
+        describe("readonly array input returns TValue[]", () => {
+            it("returns number[] for readonly number array", () => {
+                const data: readonly number[] = [1, 2, 3];
+                const result = Arr.from(data);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns string[] for readonly string array", () => {
+                const data: readonly string[] = ["a", "b", "c"];
+                const result = Arr.from(data);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("returns (1 | 2 | 3)[] for const assertion array", () => {
+                const data = [1, 2, 3] as const;
+                const result = Arr.from(data);
+                expectTypeOf(result).toEqualTypeOf<(1 | 2 | 3)[]>();
+            });
+
+            it("returns literal union[] for const assertion string array", () => {
+                const data = ["foo", "bar", "baz"] as const;
+                const result = Arr.from(data);
+                expectTypeOf(result).toEqualTypeOf<("foo" | "bar" | "baz")[]>();
+            });
+
+            it("returns (string | number | boolean)[] for const mixed tuple", () => {
+                const data = [42, "hello", true] as const;
+                const result = Arr.from(data);
+                expectTypeOf(result).toEqualTypeOf<(42 | "hello" | true)[]>();
+            });
+
+            it("returns readonly items as mutable array", () => {
+                const data: readonly { name: string; active: boolean }[] = [
+                    { name: "Alice", active: true },
+                ];
+                const result = Arr.from(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    { name: string; active: boolean }[]
+                >();
+                // The return type should be mutable, not readonly
+                expectTypeOf(result).not.toEqualTypeOf<
+                    readonly { name: string; active: boolean }[]
+                >();
+            });
+        });
+
+        describe("Map input returns Record", () => {
+            it("returns Record<PropertyKey, number> for Map<string, number>", () => {
+                const result = Arr.from(new Map([["a", 1]]));
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<PropertyKey, number>
+                >();
+            });
+
+            it("returns Record<PropertyKey, string> for Map<string, string>", () => {
+                const result = Arr.from(
+                    new Map([
+                        ["foo", "bar"],
+                        ["baz", "qux"],
+                    ]),
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<PropertyKey, string>
+                >();
+            });
+
+            it("returns Record<PropertyKey, boolean> for Map<string, boolean>", () => {
+                const result = Arr.from(new Map([["active", true]]));
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<PropertyKey, boolean>
+                >();
+            });
+
+            it("returns Record for Map with complex value type", () => {
+                const map = new Map<
+                    string,
+                    { name: string; scores: number[] }
+                >();
+                map.set("alice", { name: "Alice", scores: [95, 88] });
+                const result = Arr.from(map);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<PropertyKey, { name: string; scores: number[] }>
+                >();
+            });
+
+            it("returns Record<PropertyKey, string | number> for union value Map", () => {
+                const map = new Map<string, string | number>();
+                map.set("name", "Alice");
+                map.set("age", 30);
+                const result = Arr.from(map);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<PropertyKey, string | number>
+                >();
+            });
+
+            it("returns Record for empty Map with typed constructor", () => {
+                const map = new Map<string, number>();
+                const result = Arr.from(map);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<PropertyKey, number>
+                >();
+            });
+
+            it("returns Record for untyped Map (infers any)", () => {
+                // new Map() without type params gives Map<any, any>
+                const map = new Map();
+                const result = Arr.from(map);
+                expectTypeOf(result).toBeObject();
+            });
+
+            it("returns Record for Map with number keys", () => {
+                const map = new Map<number, string>();
+                map.set(1, "one");
+                map.set(2, "two");
+                const result = Arr.from(map);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<PropertyKey, string>
+                >();
+            });
+        });
+
+        describe("object input returns Record<string, unknown>", () => {
+            it("returns Record<string, unknown> for plain object literal", () => {
+                const result = Arr.from({ foo: "bar" });
+                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            });
+
+            it("returns Record<string, unknown> for constructed Object", () => {
+                const result = Arr.from(new Object({ foo: "bar" }));
+                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            });
+
+            it("returns Record<string, unknown> for object with mixed value types", () => {
+                const obj = {
+                    name: "Alice",
+                    age: 30,
+                    active: true,
+                    scores: [95, 88],
+                };
+                const result = Arr.from(obj);
+                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            });
+
+            it("returns Record<string, unknown> for deeply nested object", () => {
+                const obj = {
+                    level1: {
+                        level2: {
+                            level3: {
+                                value: "deep",
+                            },
+                        },
+                    },
+                };
+                const result = Arr.from(obj);
+                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            });
+
+            it("returns Record<string, unknown> for class instance", () => {
+                class User {
+                    name = "Alice";
+                    age = 30;
+                }
+                const result = Arr.from(new User());
+                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            });
+
+            it("returns Record<string, unknown> for Date object", () => {
+                const result = Arr.from(new Date());
+                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            });
+
+            it("returns Record<string, unknown> for RegExp object", () => {
+                const result = Arr.from(/test/);
+                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            });
+
+            it("returns Record<string, unknown> for WeakMap", () => {
+                const weakMap = new WeakMap();
+                const result = Arr.from(weakMap);
+                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            });
+
+            it("returns Record<string, unknown> for Set", () => {
+                const set = new Set([1, 2, 3]);
+                const result = Arr.from(set);
+                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            });
+
+            it("returns Record<string, unknown> for empty plain object", () => {
+                const result = Arr.from({});
+                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            });
+
+            it("returns Record<string, unknown> for object typed as Record", () => {
+                const obj: Record<string, number> = { a: 1, b: 2 };
+                const result = Arr.from(obj);
+                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            });
+        });
+
+        describe("scalar input returns never", () => {
+            it("returns never for number", () => {
+                const result = Arr.from(123);
+                expectTypeOf(result).toBeNever();
+            });
+
+            it("returns never for string", () => {
+                const result = Arr.from("string");
+                expectTypeOf(result).toBeNever();
+            });
+
+            it("returns never for boolean true", () => {
+                const result = Arr.from(true);
+                expectTypeOf(result).toBeNever();
+            });
+
+            it("returns never for boolean false", () => {
+                const result = Arr.from(false);
+                expectTypeOf(result).toBeNever();
+            });
+
+            it("returns never for null", () => {
+                const result = Arr.from(null);
+                expectTypeOf(result).toBeNever();
+            });
+
+            it("returns never for undefined", () => {
+                const result = Arr.from(undefined);
+                expectTypeOf(result).toBeNever();
+            });
+
+            it("returns never for symbol", () => {
+                const result = Arr.from(Symbol("sym"));
+                expectTypeOf(result).toBeNever();
+            });
+
+            it("returns never for literal number type", () => {
+                const result = Arr.from(42 as const);
+                expectTypeOf(result).toBeNever();
+            });
+
+            it("returns never for literal string type", () => {
+                const result = Arr.from("hello" as const);
+                expectTypeOf(result).toBeNever();
+            });
+
+            it("returns never for zero", () => {
+                const result = Arr.from(0);
+                expectTypeOf(result).toBeNever();
+            });
+
+            it("returns never for empty string", () => {
+                const result = Arr.from("");
+                expectTypeOf(result).toBeNever();
+            });
+        });
+
+        describe("complex data structures", () => {
+            it("returns union[] for array matching functional test data", () => {
+                const data = [
+                    "products",
+                    ["desk", [100, 200, 400]],
+                    ["table", [200, 300], ["chair", [500, 600]]],
+                ];
+                const result = Arr.from(data);
+                // The result preserves the inferred union element type
+                expectTypeOf(result).toExtend<unknown[]>();
+            });
+
+            it("preserves deeply nested object array types", () => {
+                const data = [
+                    {
+                        company: {
+                            name: "Acme",
+                            departments: [
+                                {
+                                    name: "Engineering",
+                                    teams: [
+                                        {
+                                            lead: "Alice",
+                                            members: ["Bob", "Carol"],
+                                            budget: 100000,
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    },
+                ];
+                const result = Arr.from(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    {
+                        company: {
+                            name: string;
+                            departments: {
+                                name: string;
+                                teams: {
+                                    lead: string;
+                                    members: string[];
+                                    budget: number;
+                                }[];
+                            }[];
+                        };
+                    }[]
+                >();
+            });
+
+            it("returns Map value type for Map with array values", () => {
+                const map = new Map<string, number[]>();
+                map.set("scores", [90, 95, 88]);
+                const result = Arr.from(map);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<PropertyKey, number[]>
+                >();
+            });
+
+            it("returns Map value type for Map with nested object values", () => {
+                const map = new Map<
+                    string,
+                    {
+                        users: { name: string; active: boolean }[];
+                    }
+                >();
+                const result = Arr.from(map);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<
+                        PropertyKey,
+                        {
+                            users: { name: string; active: boolean }[];
+                        }
+                    >
+                >();
+            });
+
+            it("preserves generic array type through wrapper function", () => {
+                function fromWrapper<T>(items: readonly T[]): T[] {
+                    return Arr.from(items);
+                }
+                const result = fromWrapper([1, 2, 3]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("preserves generic array type through generic Map wrapper", () => {
+                function fromMapWrapper<V>(items: Map<string, V>) {
+                    return Arr.from(items);
+                }
+                const result = fromMapWrapper(new Map([["a", 1]]));
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<PropertyKey, number>
+                >();
+            });
+
+            it("returns Record<string, unknown> for generic object wrapper", () => {
+                function fromObjWrapper(items: object) {
+                    return Arr.from(items);
+                }
+                const result = fromObjWrapper({ a: 1 });
+                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            });
+
+            it("handles array of Date objects", () => {
+                const result = Arr.from([new Date(), new Date(), new Date()]);
+                expectTypeOf(result).toEqualTypeOf<Date[]>();
+            });
+
+            it("handles array of Maps", () => {
+                const result = Arr.from([
+                    new Map([["a", 1]]),
+                    new Map([["b", 2]]),
+                ]);
+                expectTypeOf(result).toEqualTypeOf<Map<string, number>[]>();
+            });
+
+            it("handles array of RegExp", () => {
+                const result = Arr.from([/foo/, /bar/i, /baz/g]);
+                expectTypeOf(result).toEqualTypeOf<RegExp[]>();
+            });
+
+            it("handles array with optional property objects", () => {
+                const data: { name: string; email?: string }[] = [
+                    { name: "Alice", email: "a@b.com" },
+                    { name: "Bob" },
+                ];
+                const result = Arr.from(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    { name: string; email?: string }[]
+                >();
+            });
+        });
+
+        describe("function signature", () => {
+            it("returns type that extends readonly unknown[] for array overload", () => {
+                expectTypeOf(Arr.from([1])).toExtend<readonly unknown[]>();
+            });
+
+            it("accepts readonly arrays as input", () => {
+                const data: readonly string[] = ["a", "b"];
+                expectTypeOf(Arr.from(data)).toEqualTypeOf<string[]>();
+            });
+
+            it("returns mutable array even from readonly input", () => {
+                const data: readonly number[] = [1, 2, 3];
+                const result = Arr.from(data);
+                // Result should extend mutable unknown[]
+                expectTypeOf(result).toExtend<unknown[]>();
+            });
+
+            it("Map overload result extends Record<PropertyKey, unknown>", () => {
+                const result = Arr.from(new Map([["a", 1]]));
+                expectTypeOf(result).toExtend<Record<PropertyKey, unknown>>();
+            });
+
+            it("object overload result extends Record<string, unknown>", () => {
+                const result = Arr.from({ a: 1 });
+                expectTypeOf(result).toExtend<Record<string, unknown>>();
+            });
+
+            it("scalar overloads result is assignable to never", () => {
+                expectTypeOf(Arr.from(123)).toBeNever();
+                expectTypeOf(Arr.from("str")).toBeNever();
+                expectTypeOf(Arr.from(true)).toBeNever();
+                expectTypeOf(Arr.from(null)).toBeNever();
+                expectTypeOf(Arr.from(undefined)).toBeNever();
+            });
         });
     });
 
