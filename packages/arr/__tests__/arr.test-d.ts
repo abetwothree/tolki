@@ -1,4 +1,5 @@
 import * as Arr from "@tolki/arr";
+import type { UndotValue } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
 describe("arr type tests", () => {
@@ -3080,9 +3081,251 @@ describe("arr type tests", () => {
     });
 
     describe("undot", () => {
-        it("returns TValue array", () => {
-            const result = Arr.undot({ "0": "a", "1": "b" });
-            expectTypeOf(result).toEqualTypeOf<string[]>();
+        describe("simple numeric keys (no dots)", () => {
+            it("returns string[] for string values", () => {
+                const result = Arr.undot({ "0": "a", "1": "b" });
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("returns number[] for number values", () => {
+                const result = Arr.undot({ "0": 1, "1": 2, "2": 3 });
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns boolean[] for boolean values", () => {
+                const result = Arr.undot({ "0": true, "1": false });
+                expectTypeOf(result).toEqualTypeOf<boolean[]>();
+            });
+
+            it("returns union type for mixed values", () => {
+                const result = Arr.undot({ "0": "hello", "1": 42 });
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+            });
+        });
+
+        describe("empty record", () => {
+            it("returns never[] for empty object", () => {
+                const result = Arr.undot({});
+                expectTypeOf(result).toEqualTypeOf<never[]>();
+            });
+        });
+
+        describe("dot-notated keys (nested result)", () => {
+            it("returns UndotValue<string>[] for single-level dots", () => {
+                const result = Arr.undot({ "0": "a", "1.0": "b" });
+                expectTypeOf(result).toEqualTypeOf<UndotValue<string>[]>();
+            });
+
+            it("returns UndotValue<string>[] for multi-level dots", () => {
+                const result = Arr.undot({
+                    "0": "a",
+                    "1.0": "b",
+                    "1.1.0": "c",
+                });
+                expectTypeOf(result).toEqualTypeOf<UndotValue<string>[]>();
+            });
+
+            it("returns UndotValue<number>[] for number values with dots", () => {
+                const result = Arr.undot({
+                    "0": 1,
+                    "1.0": 2,
+                    "1.1": 3,
+                });
+                expectTypeOf(result).toEqualTypeOf<UndotValue<number>[]>();
+            });
+
+            it("returns UndotValue with union for mixed values with dots", () => {
+                const result = Arr.undot({
+                    "0": "a",
+                    "1.0": 42,
+                });
+                expectTypeOf(result).toEqualTypeOf<
+                    UndotValue<string | number>[]
+                >();
+            });
+
+            it("returns UndotValue for deeply nested dot paths", () => {
+                const result = Arr.undot({
+                    "0.0.0.0": "deep",
+                });
+                expectTypeOf(result).toEqualTypeOf<UndotValue<string>[]>();
+            });
+        });
+
+        describe("mixed keys (some with dots, some without)", () => {
+            it("returns UndotValue when any key has dots", () => {
+                const result = Arr.undot({
+                    "0": "x",
+                    "1": "y",
+                    "2.0": "z",
+                });
+                expectTypeOf(result).toEqualTypeOf<UndotValue<string>[]>();
+            });
+
+            it("non-numeric keys with dots still produce UndotValue", () => {
+                const result = Arr.undot({
+                    foo: "x",
+                    "1.bar": "y",
+                    "2": "z",
+                });
+                expectTypeOf(result).toEqualTypeOf<UndotValue<string>[]>();
+            });
+        });
+
+        describe("generic string keys (typed variables)", () => {
+            it("returns UndotValue for Record<string, string>", () => {
+                const map: Record<string, string> = { "0": "a", "1": "b" };
+                const result = Arr.undot(map);
+                expectTypeOf(result).toEqualTypeOf<UndotValue<string>[]>();
+            });
+
+            it("returns UndotValue for Record<string, number>", () => {
+                const map: Record<string, number> = { "0": 1, "1.0": 2 };
+                const result = Arr.undot(map);
+                expectTypeOf(result).toEqualTypeOf<UndotValue<number>[]>();
+            });
+
+            it("returns UndotValue for Record<PropertyKey, boolean>", () => {
+                const map: Record<PropertyKey, boolean> = { "0": true };
+                const result = Arr.undot(map);
+                expectTypeOf(result).toEqualTypeOf<UndotValue<boolean>[]>();
+            });
+        });
+
+        describe("object values", () => {
+            it("returns array of objects for no-dot keys", () => {
+                const map: Record<"0" | "1", { name: string; age: number }> = {
+                    "0": { name: "Alice", age: 30 },
+                    "1": { name: "Bob", age: 25 },
+                };
+                const result = Arr.undot(map);
+                expectTypeOf(result).toEqualTypeOf<
+                    { name: string; age: number }[]
+                >();
+            });
+
+            it("returns UndotValue of objects for dot keys", () => {
+                const result = Arr.undot({
+                    "0": { id: 1 },
+                    "1.0": { id: 2 },
+                });
+                expectTypeOf(result).toEqualTypeOf<
+                    UndotValue<{ id: number }>[]
+                >();
+            });
+        });
+
+        describe("complex data structures", () => {
+            it("handles Date values without dots", () => {
+                const result = Arr.undot({
+                    "0": new Date(),
+                    "1": new Date(),
+                });
+                expectTypeOf(result).toEqualTypeOf<Date[]>();
+            });
+
+            it("handles Date values with dots", () => {
+                const result = Arr.undot({
+                    "0": new Date(),
+                    "1.0": new Date(),
+                });
+                expectTypeOf(result).toEqualTypeOf<UndotValue<Date>[]>();
+            });
+
+            it("handles RegExp values without dots", () => {
+                const result = Arr.undot({ "0": /abc/, "1": /def/ });
+                expectTypeOf(result).toEqualTypeOf<RegExp[]>();
+            });
+
+            it("handles Map and Set values without dots", () => {
+                const result = Arr.undot({
+                    "0": new Map<string, number>(),
+                    "1": new Set<string>(),
+                });
+                expectTypeOf(result).toEqualTypeOf<
+                    (Map<string, number> | Set<string>)[]
+                >();
+            });
+
+            it("handles function values without dots", () => {
+                type Fn = (() => number) | (() => string);
+                const map: Record<"0" | "1", Fn> = {
+                    "0": () => 1,
+                    "1": () => "hello",
+                };
+                const result = Arr.undot(map);
+                expectTypeOf(result).toEqualTypeOf<Fn[]>();
+            });
+
+            it("handles mixed built-in types with dots", () => {
+                const result = Arr.undot({
+                    "0": new Date(),
+                    "1.0": /pattern/,
+                });
+                expectTypeOf(result).toEqualTypeOf<
+                    UndotValue<Date | RegExp>[]
+                >();
+            });
+        });
+
+        describe("union value types", () => {
+            it("handles string | null values without dots", () => {
+                const map: Record<"0" | "1", string | null> = {
+                    "0": "a",
+                    "1": null,
+                };
+                const result = Arr.undot(map);
+                expectTypeOf(result).toEqualTypeOf<(string | null)[]>();
+            });
+
+            it("handles number | undefined values with dots", () => {
+                const map: Record<"0" | "1.0", number | undefined> = {
+                    "0": 1,
+                    "1.0": undefined,
+                };
+                const result = Arr.undot(map);
+                expectTypeOf(result).toEqualTypeOf<
+                    UndotValue<number | undefined>[]
+                >();
+            });
+        });
+
+        describe("UndotValue recursive type behavior", () => {
+            it("UndotValue<T> includes T itself", () => {
+                expectTypeOf<string>().toExtend<UndotValue<string>>();
+            });
+
+            it("UndotValue<T> includes T[]", () => {
+                expectTypeOf<string[]>().toExtend<UndotValue<string>[]>();
+            });
+
+            it("UndotValue<T> includes T[][] (nested arrays)", () => {
+                expectTypeOf<string[][]>().toExtend<UndotValue<string>[]>();
+            });
+
+            it("nested UndotValue allows arbitrary depth", () => {
+                type Deep = UndotValue<number>;
+                expectTypeOf<number>().toExtend<Deep>();
+                expectTypeOf<number[]>().toExtend<Deep>();
+                expectTypeOf<number[][]>().toExtend<Deep>();
+            });
+        });
+
+        describe("function signature", () => {
+            it("accepts Record<string, TValue>", () => {
+                expectTypeOf(Arr.undot).toBeCallableWith({ "0": "a" });
+            });
+
+            it("accepts Record with dot keys", () => {
+                expectTypeOf(Arr.undot).toBeCallableWith({
+                    "0": "a",
+                    "1.0": "b",
+                });
+            });
+
+            it("return type extends unknown[]", () => {
+                expectTypeOf(Arr.undot).returns.toExtend<unknown[]>();
+            });
         });
     });
 

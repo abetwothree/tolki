@@ -22,6 +22,7 @@ import type {
     FlatArrayValue,
     PathKey,
     PathKeys,
+    UndotResult,
 } from "@tolki/types";
 import {
     castableToArray,
@@ -400,8 +401,8 @@ export function dot<TValue>(
  */
 export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
-): TValue[] {
-    return undotExpandArray(map);
+): UndotResult<TKey, TValue> {
+    return undotExpandArray(map) as UndotResult<TKey, TValue>;
 }
 
 /**
