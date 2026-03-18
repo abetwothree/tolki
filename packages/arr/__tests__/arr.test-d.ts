@@ -6063,12 +6063,300 @@ describe("arr type tests", () => {
     });
 
     describe("flatten", () => {
-        it("returns flattened array", () => {
-            const result = Arr.flatten([
-                [1, 2],
-                [3, 4],
-            ]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
+        describe("2D array overload (TValue[][])", () => {
+            it("returns number[] for number[][]", () => {
+                const result = Arr.flatten([
+                    [1, 2],
+                    [3, 4],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns string[] for string[][]", () => {
+                const result = Arr.flatten([
+                    ["#foo", "#bar"],
+                    ["#baz"],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("returns boolean[] for boolean[][]", () => {
+                const result = Arr.flatten([
+                    [true, false],
+                    [true],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<boolean[]>();
+            });
+
+            it("returns (string | number)[] for (string | number)[][]", () => {
+                const data: (string | number)[][] = [
+                    ["a", 1],
+                    ["b", 2],
+                ];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+            });
+        });
+
+        describe("1D array overload (TValue[])", () => {
+            it("returns string[] for flat string array", () => {
+                const data = ["#foo", "#bar", "#baz"];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("returns number[] for flat number array", () => {
+                const data = [1, 2, 3];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns (string | null)[] for nullable string array", () => {
+                const data: (string | null)[] = ["a", null, "b"];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<(string | null)[]>();
+            });
+        });
+
+        describe("unknown fallback overload", () => {
+            it("returns unknown[] for null input", () => {
+                const result = Arr.flatten(null);
+                expectTypeOf(result).toEqualTypeOf<unknown[]>();
+            });
+
+            it("returns unknown[] for undefined input", () => {
+                const result = Arr.flatten(undefined);
+                expectTypeOf(result).toEqualTypeOf<unknown[]>();
+            });
+        });
+
+        describe("depth parameter", () => {
+            it("accepts optional depth for 2D array", () => {
+                const result = Arr.flatten(
+                    [
+                        [1, 2],
+                        [3, 4],
+                    ],
+                    1,
+                );
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("accepts optional depth for 1D array", () => {
+                const result = Arr.flatten([1, 2, 3], 1);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("accepts Infinity as depth", () => {
+                const result = Arr.flatten(
+                    [
+                        ["a", "b"],
+                        ["c"],
+                    ],
+                    Infinity,
+                );
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+        });
+
+        describe("object arrays", () => {
+            it("returns object type[] for array of objects", () => {
+                interface User {
+                    id: number;
+                    name: string;
+                }
+                const data: User[][] = [
+                    [
+                        { id: 1, name: "Alice" },
+                        { id: 2, name: "Bob" },
+                    ],
+                ];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<User[]>();
+            });
+
+            it("returns Record[] for array of records", () => {
+                const data: Record<string, number>[][] = [
+                    [{ a: 1 }, { b: 2 }],
+                ];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>[]
+                >();
+            });
+
+            it("returns deeply nested object types", () => {
+                interface Order {
+                    id: number;
+                    items: { product: string; qty: number }[];
+                    customer: { name: string };
+                }
+                const data: Order[][] = [
+                    [
+                        {
+                            id: 1,
+                            items: [{ product: "A", qty: 2 }],
+                            customer: { name: "Alice" },
+                        },
+                    ],
+                ];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<Order[]>();
+            });
+        });
+
+        describe("complex data structures", () => {
+            it("returns tuple[] for array of tuple arrays", () => {
+                const data: [string, number][][] = [
+                    [
+                        ["a", 1],
+                        ["b", 2],
+                    ],
+                ];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<[string, number][]>();
+            });
+
+            it("returns Map[] for array of Map arrays", () => {
+                const data: Map<string, number>[][] = [
+                    [new Map([["a", 1]])],
+                    [new Map([["b", 2]])],
+                ];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    Map<string, number>[]
+                >();
+            });
+
+            it("returns Set[] for array of Set arrays", () => {
+                const data: Set<string>[][] = [
+                    [new Set(["a"])],
+                    [new Set(["b"])],
+                ];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<Set<string>[]>();
+            });
+
+            it("returns Date[] for array of Date arrays", () => {
+                const dates: Date[][] = [
+                    [new Date("2024-01-01")],
+                    [new Date("2024-06-15")],
+                ];
+                const result = Arr.flatten(dates);
+                expectTypeOf(result).toEqualTypeOf<Date[]>();
+            });
+
+            it("returns Promise[] for array of Promise arrays", () => {
+                const data: Promise<string>[][] = [
+                    [Promise.resolve("a")],
+                    [Promise.resolve("b")],
+                ];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<Promise<string>[]>();
+            });
+
+            it("handles discriminated union arrays", () => {
+                type Shape =
+                    | { kind: "circle"; radius: number }
+                    | { kind: "square"; side: number };
+                const data: Shape[][] = [
+                    [{ kind: "circle", radius: 5 }],
+                    [{ kind: "square", side: 10 }],
+                ];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<Shape[]>();
+            });
+        });
+
+        describe("nested array depth behavior", () => {
+            it("flattens 2D number arrays to number[]", () => {
+                const data: number[][] = [
+                    [1, 2],
+                    [3, 4],
+                ];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("flattens 2D string arrays to string[]", () => {
+                const data: string[][] = [
+                    ["a", "b"],
+                    ["c", "d"],
+                ];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("from 3D infers as inner-2D type via 2D overload", () => {
+                const data: number[][][] = [
+                    [[1, 2], [3]],
+                    [[4, 5], [6]],
+                ];
+                const result = Arr.flatten(data);
+                // 2D overload matches: TValue = number[], returns number[][]
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+        });
+
+        describe("mixed element type arrays", () => {
+            it("handles nullable element 2D arrays", () => {
+                const data: (string | null)[][] = [
+                    ["a", null],
+                    ["b"],
+                ];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<(string | null)[]>();
+            });
+
+            it("handles undefined element 2D arrays", () => {
+                const data: (number | undefined)[][] = [
+                    [1, undefined],
+                    [3],
+                ];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    (number | undefined)[]
+                >();
+            });
+
+            it("handles union type 1D array", () => {
+                const data: (string | number)[] = ["a", 1, "b", 2];
+                const result = Arr.flatten(data);
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+            });
+        });
+
+        describe("generic type propagation", () => {
+            it("preserves generic type through wrapper function", () => {
+                function flattenItems<T>(items: T[][]): T[] {
+                    return Arr.flatten(items);
+                }
+                const result = flattenItems([
+                    [1, 2],
+                    [3, 4],
+                ]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("works with inferred generic", () => {
+                function flatWrapper<T>(data: T[]): T[] {
+                    return Arr.flatten(data);
+                }
+                const result = flatWrapper(["x", "y", "z"]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+        });
+
+        describe("function signature", () => {
+            it("accepts optional depth parameter", () => {
+                expectTypeOf(Arr.flatten).parameter(1).toEqualTypeOf<
+                    number | undefined
+                >();
+            });
+
+            it("returns type that extends unknown[]", () => {
+                expectTypeOf(Arr.flatten).returns.toExtend<unknown[]>();
+            });
         });
     });
 
