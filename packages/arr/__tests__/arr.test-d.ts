@@ -4586,9 +4586,260 @@ describe("arr type tests", () => {
     });
 
     describe("exists", () => {
-        it("returns boolean", () => {
-            const result = Arr.exists([1, 2, 3], 1);
-            expectTypeOf(result).toEqualTypeOf<boolean>();
+        describe("number arrays", () => {
+            it("returns boolean for number array with number key", () => {
+                const result = Arr.exists([1, 2, 3], 1);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean for number array with string key", () => {
+                const result = Arr.exists([1, 2, 3], "0");
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("string arrays", () => {
+            it("returns boolean for string array with number key", () => {
+                const result = Arr.exists(["a", "b", "c"], 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean for string array with string key", () => {
+                const result = Arr.exists(["a", "b", "c"], "1");
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("boolean arrays", () => {
+            it("returns boolean for boolean array", () => {
+                const result = Arr.exists([true, false], 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("null and undefined keys", () => {
+            it("returns boolean when key is null", () => {
+                const result = Arr.exists([1, 2, 3], null);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean when key is undefined", () => {
+                const result = Arr.exists([1, 2, 3], undefined);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("nullable value arrays", () => {
+            it("returns boolean for array containing null values", () => {
+                const data: (string | null)[] = ["a", null, "b"];
+                const result = Arr.exists(data, 1);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean for array of nulls", () => {
+                const result = Arr.exists([null], 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean for (number | undefined)[] data", () => {
+                const data: (number | undefined)[] = [1, undefined, 3];
+                const result = Arr.exists(data, 1);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("object arrays", () => {
+            it("returns boolean for array of objects", () => {
+                interface User {
+                    id: number;
+                    name: string;
+                    active: boolean;
+                }
+                const users: User[] = [
+                    { id: 1, name: "Alice", active: true },
+                    { id: 2, name: "Bob", active: false },
+                ];
+                const result = Arr.exists(users, 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean for array of nested objects", () => {
+                const data = [
+                    { a: { b: { c: 1 } } },
+                    { a: { b: { c: 2 } } },
+                ];
+                const result = Arr.exists(data, 1);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("union type arrays", () => {
+            it("returns boolean for (string | number)[] data", () => {
+                const data: (string | number)[] = ["a", 1, "b", 2];
+                const result = Arr.exists(data, 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean for (boolean | number)[] data", () => {
+                const data: (boolean | number)[] = [true, false, 1, 0];
+                const result = Arr.exists(data, 2);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("nested arrays", () => {
+            it("returns boolean for nested array", () => {
+                const data = [
+                    [1, 2],
+                    [3, 4],
+                ];
+                const result = Arr.exists(data, 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean for deeply nested array", () => {
+                const data = [[[1]], [[2]], [[3]]];
+                const result = Arr.exists(data, 2);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("readonly arrays", () => {
+            it("accepts readonly array input", () => {
+                const data: readonly string[] = ["a", "b", "c"];
+                const result = Arr.exists(data, 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("accepts readonly number array", () => {
+                const data: readonly number[] = [1, 2, 3];
+                const result = Arr.exists(data, 1);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("as const arrays", () => {
+            it("accepts const array input", () => {
+                const data = ["a", "b", "c"] as const;
+                const result = Arr.exists(data, 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("accepts const numeric array input", () => {
+                const data = [1, 2, 3] as const;
+                const result = Arr.exists(data, 2);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("empty arrays", () => {
+            it("returns boolean for empty array", () => {
+                const result = Arr.exists([], 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("complex data structures", () => {
+            it("returns boolean for array of Maps", () => {
+                const data: Map<string, number>[] = [
+                    new Map([["a", 1]]),
+                    new Map([["b", 2]]),
+                ];
+                const result = Arr.exists(data, 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean for array of Sets", () => {
+                const data: Set<number>[] = [
+                    new Set([1, 2]),
+                    new Set([3, 4]),
+                ];
+                const result = Arr.exists(data, 1);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean for array of tuples", () => {
+                const data: [string, number][] = [
+                    ["a", 1],
+                    ["b", 2],
+                ];
+                const result = Arr.exists(data, 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean for array of Dates", () => {
+                const data: Date[] = [
+                    new Date("2024-01-01"),
+                    new Date("2024-06-15"),
+                ];
+                const result = Arr.exists(data, 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean for discriminated union array", () => {
+                type Shape =
+                    | { kind: "circle"; radius: number }
+                    | { kind: "square"; side: number };
+                const shapes: Shape[] = [
+                    { kind: "circle", radius: 5 },
+                    { kind: "square", side: 10 },
+                ];
+                const result = Arr.exists(shapes, 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean for array of Records", () => {
+                const data: Record<string, number>[] = [
+                    { a: 1 },
+                    { b: 2 },
+                ];
+                const result = Arr.exists(data, 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("returns boolean for array of Promises", () => {
+                const data: Promise<string>[] = [
+                    Promise.resolve("a"),
+                    Promise.resolve("b"),
+                ];
+                const result = Arr.exists(data, 0);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("typed key variables", () => {
+            it("works with number variable key", () => {
+                const data = [1, 2, 3];
+                const key: number = 1;
+                const result = Arr.exists(data, key);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("works with string variable key", () => {
+                const data = ["a", "b", "c"];
+                const key: string = "0";
+                const result = Arr.exists(data, key);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+
+            it("works with PathKey typed variable", () => {
+                const data = [1, 2, 3];
+                const key: number | string | null | undefined = 1;
+                const result = Arr.exists(data, key);
+                expectTypeOf(result).toEqualTypeOf<boolean>();
+            });
+        });
+
+        describe("function signature", () => {
+            it("returns boolean", () => {
+                expectTypeOf(Arr.exists).returns.toEqualTypeOf<boolean>();
+            });
+
+            it("accepts two parameters", () => {
+                expectTypeOf(Arr.exists).parameters.toExtend<
+                    [readonly unknown[], unknown]
+                >();
+            });
         });
     });
 
