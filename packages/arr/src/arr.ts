@@ -522,10 +522,10 @@ export function unshift<TValue>(
  * except(["a", "b", "c"], [0, 2]); -> ['b']
  */
 export function except<TValue>(
-    data: ArrayItems<TValue>,
+    data: readonly TValue[],
     keys: PathKeys,
 ): TValue[] {
-    return forget(data, keys);
+    return forget([...data], keys);
 }
 
 /**
