@@ -4053,9 +4053,7 @@ describe("arr type tests", () => {
             it("returns (number | undefined)[] for optional array", () => {
                 const data: (number | undefined)[] = [1, undefined, 3];
                 const result = Arr.except(data, [1]);
-                expectTypeOf(result).toEqualTypeOf<
-                    (number | undefined)[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[]>();
             });
         });
 
@@ -4238,9 +4236,352 @@ describe("arr type tests", () => {
     });
 
     describe("exceptValues", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.exceptValues([1, 2, 3], [2]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
+        describe("string arrays", () => {
+            it("excludes string values from string array", () => {
+                const array = ["foo", "bar", "baz", "qux"];
+                const result = Arr.exceptValues(array, ["foo", "baz"]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("excludes single string value from string array", () => {
+                const array = ["foo", "bar", "baz", "qux"];
+                const result = Arr.exceptValues(array, "baz");
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+        });
+
+        describe("number arrays", () => {
+            it("excludes number values from number array", () => {
+                const array = [1, 2, 3, 4, 5];
+                const result = Arr.exceptValues(array, [3, 4]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("excludes single number value", () => {
+                const result = Arr.exceptValues([10, 20, 30], 20);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+        });
+
+        describe("boolean arrays", () => {
+            it("excludes boolean values from boolean array", () => {
+                const array = [true, false, true, false];
+                const result = Arr.exceptValues(array, [true]);
+                expectTypeOf(result).toEqualTypeOf<boolean[]>();
+            });
+
+            it("excludes single boolean value", () => {
+                const result = Arr.exceptValues([true, false], false);
+                expectTypeOf(result).toEqualTypeOf<boolean[]>();
+            });
+        });
+
+        describe("mixed type arrays", () => {
+            it("handles mixed string and number array with strict", () => {
+                const array: (string | number)[] = [1, "1", 2, "2", 3];
+                const result = Arr.exceptValues(array, [1, 2, 3], true);
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+            });
+
+            it("handles mixed string and number array without strict", () => {
+                const array: (string | number)[] = [1, "1", 2, "2", 3];
+                const result = Arr.exceptValues(array, [1, 2, 3]);
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+            });
+
+            it("handles mixed boolean and number array with strict", () => {
+                const array: (boolean | number)[] = [true, false, 1, 0];
+                const result = Arr.exceptValues(array, [1, 0], true);
+                expectTypeOf(result).toEqualTypeOf<(boolean | number)[]>();
+            });
+
+            it("handles mixed boolean and number array without strict", () => {
+                const array: (boolean | number)[] = [true, false, 1, 0];
+                const result = Arr.exceptValues(array, [1, 0]);
+                expectTypeOf(result).toEqualTypeOf<(boolean | number)[]>();
+            });
+        });
+
+        describe("empty arrays", () => {
+            it("returns string[] for empty data with string values", () => {
+                const result = Arr.exceptValues([] as string[], "foo");
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("returns string[] with empty values array", () => {
+                const data = ["foo", "bar"];
+                const result = Arr.exceptValues(data, [] as string[]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+        });
+
+        describe("nullable type arrays", () => {
+            it("handles (string | null)[] data", () => {
+                const data: (string | null)[] = ["a", null, "b", null];
+                const result = Arr.exceptValues(data, [null]);
+                expectTypeOf(result).toEqualTypeOf<(string | null)[]>();
+            });
+
+            it("handles (number | undefined)[] data", () => {
+                const data: (number | undefined)[] = [1, undefined, 3];
+                const result = Arr.exceptValues(data, [undefined]);
+                expectTypeOf(result).toEqualTypeOf<(number | undefined)[]>();
+            });
+
+            it("handles (string | null | undefined)[] data", () => {
+                const data: (string | null | undefined)[] = [
+                    "a",
+                    null,
+                    undefined,
+                ];
+                const result = Arr.exceptValues(data, [null, undefined]);
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | null | undefined)[]
+                >();
+            });
+        });
+
+        describe("object arrays", () => {
+            it("excludes objects from array of objects", () => {
+                interface User {
+                    id: number;
+                    name: string;
+                    active: boolean;
+                }
+                const users: User[] = [
+                    { id: 1, name: "Alice", active: true },
+                    { id: 2, name: "Bob", active: false },
+                    { id: 3, name: "Charlie", active: true },
+                ];
+                const toExclude: User[] = [
+                    { id: 2, name: "Bob", active: false },
+                ];
+                const result = Arr.exceptValues(users, toExclude);
+                expectTypeOf(result).toEqualTypeOf<User[]>();
+            });
+
+            it("excludes single object from object array", () => {
+                const data = [
+                    { x: 1, y: 2 },
+                    { x: 3, y: 4 },
+                ];
+                const result = Arr.exceptValues(data, { x: 1, y: 2 });
+                expectTypeOf(result).toEqualTypeOf<
+                    { x: number; y: number }[]
+                >();
+            });
+        });
+
+        describe("nested arrays", () => {
+            it("excludes nested arrays from array of arrays", () => {
+                const data = [
+                    [1, 2],
+                    [3, 4],
+                    [5, 6],
+                ];
+                const result = Arr.exceptValues(data, [[1, 2]]);
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+
+            it("handles deeply nested arrays", () => {
+                const data = [[[1]], [[2]], [[3]]];
+                const result = Arr.exceptValues(data, [[[1]]]);
+                expectTypeOf(result).toEqualTypeOf<number[][][]>();
+            });
+        });
+
+        describe("tuple element arrays", () => {
+            it("excludes tuples from array of tuples", () => {
+                const data: [string, number][] = [
+                    ["a", 1],
+                    ["b", 2],
+                    ["c", 3],
+                ];
+                const toExclude: [string, number][] = [["b", 2]];
+                const result = Arr.exceptValues(data, toExclude);
+                expectTypeOf(result).toEqualTypeOf<[string, number][]>();
+            });
+        });
+
+        describe("Map and Set arrays", () => {
+            it("excludes Maps from array of Maps", () => {
+                const data: Map<string, number>[] = [
+                    new Map([["a", 1]]),
+                    new Map([["b", 2]]),
+                ];
+                const toExclude: Map<string, number>[] = [new Map([["a", 1]])];
+                const result = Arr.exceptValues(data, toExclude);
+                expectTypeOf(result).toEqualTypeOf<Map<string, number>[]>();
+            });
+
+            it("excludes Sets from array of Sets", () => {
+                const data: Set<number>[] = [new Set([1, 2]), new Set([3, 4])];
+                const toExclude: Set<number>[] = [new Set([1, 2])];
+                const result = Arr.exceptValues(data, toExclude);
+                expectTypeOf(result).toEqualTypeOf<Set<number>[]>();
+            });
+        });
+
+        describe("readonly arrays", () => {
+            it("accepts readonly data array", () => {
+                const data: readonly string[] = ["a", "b", "c"];
+                const result = Arr.exceptValues(data, ["a"]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("accepts readonly values array", () => {
+                const data = ["a", "b", "c"];
+                const values: readonly string[] = ["a", "b"];
+                const result = Arr.exceptValues(data, values);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("accepts both readonly data and values", () => {
+                const data: readonly number[] = [1, 2, 3];
+                const values: readonly number[] = [2, 3];
+                const result = Arr.exceptValues(data, values);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns mutable array from readonly input", () => {
+                const data: readonly string[] = ["x", "y", "z"];
+                const result = Arr.exceptValues(data, ["x"]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+                expectTypeOf(result).not.toEqualTypeOf<readonly string[]>();
+            });
+        });
+
+        describe("as const arrays", () => {
+            it("preserves literal types from const data and values", () => {
+                const data = ["foo", "bar", "baz"] as const;
+                const values = ["foo"] as const;
+                const result = Arr.exceptValues(data, values);
+                expectTypeOf(result).toEqualTypeOf<("foo" | "bar" | "baz")[]>();
+            });
+
+            it("preserves numeric literal types with const values", () => {
+                const data = [1, 2, 3] as const;
+                const values = [1] as const;
+                const result = Arr.exceptValues(data, values);
+                expectTypeOf(result).toEqualTypeOf<(1 | 2 | 3)[]>();
+            });
+
+            it("widens to base type when values is not const", () => {
+                const data = ["foo", "bar", "baz"] as const;
+                const result = Arr.exceptValues(data, ["foo"]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("handles const values array", () => {
+                const data = ["a", "b", "c"];
+                const values = ["a", "c"] as const;
+                const result = Arr.exceptValues(data, values);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+        });
+
+        describe("strict parameter", () => {
+            it("accepts explicit true for strict", () => {
+                const result = Arr.exceptValues([1, 2, 3], [1], true);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("accepts explicit false for strict", () => {
+                const result = Arr.exceptValues([1, 2, 3], [1], false);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("works without strict parameter (default)", () => {
+                const result = Arr.exceptValues([1, 2, 3], [1]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("accepts boolean variable for strict", () => {
+                const strict: boolean = true;
+                const result = Arr.exceptValues(["a", "b", "c"], ["a"], strict);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+        });
+
+        describe("complex data structures", () => {
+            it("handles array of functions", () => {
+                type Callback = (x: number) => string;
+                const fns: Callback[] = [(x) => `${x}`, (x) => `value: ${x}`];
+                const toExclude: Callback[] = [(x) => `${x}`];
+                const result = Arr.exceptValues(fns, toExclude);
+                expectTypeOf(result).toEqualTypeOf<Callback[]>();
+            });
+
+            it("handles array of Date objects", () => {
+                const dates: Date[] = [
+                    new Date("2024-01-01"),
+                    new Date("2024-06-15"),
+                ];
+                const result = Arr.exceptValues(dates, [
+                    new Date("2024-01-01"),
+                ]);
+                expectTypeOf(result).toEqualTypeOf<Date[]>();
+            });
+
+            it("handles array of RegExp objects", () => {
+                const patterns: RegExp[] = [/foo/, /bar/, /baz/];
+                const result = Arr.exceptValues(patterns, [/foo/]);
+                expectTypeOf(result).toEqualTypeOf<RegExp[]>();
+            });
+
+            it("handles array of promises", () => {
+                const promises: Promise<string>[] = [
+                    Promise.resolve("a"),
+                    Promise.resolve("b"),
+                ];
+                const toExclude: Promise<string>[] = [Promise.resolve("a")];
+                const result = Arr.exceptValues(promises, toExclude);
+                expectTypeOf(result).toEqualTypeOf<Promise<string>[]>();
+            });
+
+            it("handles discriminated union arrays", () => {
+                type Shape =
+                    | { kind: "circle"; radius: number }
+                    | { kind: "square"; side: number };
+                const shapes: Shape[] = [
+                    { kind: "circle", radius: 5 },
+                    { kind: "square", side: 10 },
+                ];
+                const toExclude: Shape[] = [{ kind: "circle", radius: 5 }];
+                const result = Arr.exceptValues(shapes, toExclude);
+                expectTypeOf(result).toEqualTypeOf<Shape[]>();
+            });
+
+            it("handles generic record arrays", () => {
+                const data: Record<string, number>[] = [
+                    { a: 1 },
+                    { b: 2 },
+                    { c: 3 },
+                ];
+                const toExclude: Record<string, number>[] = [{ a: 1 }];
+                const result = Arr.exceptValues(data, toExclude);
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>[]>();
+            });
+        });
+
+        describe("destructuring", () => {
+            it("destructured element includes undefined due to noUncheckedIndexedAccess", () => {
+                const result = Arr.exceptValues(["a", "b", "c"], ["a"]);
+                const [first] = result;
+                expectTypeOf(first).toEqualTypeOf<string | undefined>();
+            });
+        });
+
+        describe("function signature", () => {
+            it("returns an array type", () => {
+                expectTypeOf(Arr.exceptValues).returns.toExtend<unknown[]>();
+            });
+
+            it("accepts two or three parameters", () => {
+                expectTypeOf(Arr.exceptValues).parameters.toExtend<
+                    [readonly unknown[], unknown, ...unknown[]]
+                >();
+            });
         });
     });
 

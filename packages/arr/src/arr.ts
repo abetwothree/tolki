@@ -543,8 +543,8 @@ export function except<TValue>(
  * exceptValues([1, '1', 2, '2', 3], [1, 2, 3], true); -> [1 => '1', 3 => '2']
  */
 export function exceptValues<TValue>(
-    data: ArrayItems<TValue>,
-    values: TValue | TValue[],
+    data: readonly TValue[],
+    values: TValue | readonly TValue[],
     strict: boolean = false,
 ): TValue[] {
     const valueArray = isArray(values) ? values : [values];
@@ -1518,8 +1518,8 @@ export function only<TValue>(
  * onlyValues([1, '1', 2, '2', 3], [1, 2, 3], true); -> [0 => 1, 2 => 2, 4 => 3]
  */
 export function onlyValues<TValue>(
-    data: ArrayItems<TValue>,
-    values: TValue | TValue[],
+    data: readonly TValue[],
+    values: TValue | readonly TValue[],
     strict: boolean = false,
 ): TValue[] {
     const valueArray = isArray(values) ? values : [values];
