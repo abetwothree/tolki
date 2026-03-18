@@ -6361,9 +6361,180 @@ describe("arr type tests", () => {
     });
 
     describe("flip", () => {
-        it("returns Record<string, number>", () => {
-            const result = Arr.flip(["a", "b", "c"]);
-            expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
+        describe("basic return type", () => {
+            it("returns Record<string, number> for string array", () => {
+                const result = Arr.flip(["a", "b", "c"]);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+
+            it("returns Record<string, number> for number array", () => {
+                const result = Arr.flip([1, 2, 3]);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+
+            it("returns Record<string, number> for boolean array", () => {
+                const result = Arr.flip([true, false]);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+
+            it("returns Record<string, number> for empty array", () => {
+                const result = Arr.flip([]);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+        });
+
+        describe("union type arrays", () => {
+            it("returns Record<string, number> for string | number array", () => {
+                const data: (string | number)[] = ["a", 1, "b", 2];
+                const result = Arr.flip(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+
+            it("returns Record<string, number> for nullable array", () => {
+                const data: (string | null)[] = ["a", null, "b"];
+                const result = Arr.flip(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+        });
+
+        describe("object arrays", () => {
+            it("returns Record<string, number> for object array", () => {
+                interface User {
+                    id: number;
+                    name: string;
+                }
+                const users: User[] = [
+                    { id: 1, name: "Alice" },
+                    { id: 2, name: "Bob" },
+                ];
+                const result = Arr.flip(users);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+
+            it("returns Record<string, number> for Record array", () => {
+                const data: Record<string, number>[] = [
+                    { a: 1 },
+                    { b: 2 },
+                ];
+                const result = Arr.flip(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+        });
+
+        describe("complex data structures", () => {
+            it("returns Record<string, number> for tuple array", () => {
+                const data: [string, number][] = [
+                    ["a", 1],
+                    ["b", 2],
+                ];
+                const result = Arr.flip(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+
+            it("returns Record<string, number> for discriminated union array", () => {
+                type Shape =
+                    | { kind: "circle"; radius: number }
+                    | { kind: "square"; side: number };
+                const shapes: Shape[] = [
+                    { kind: "circle", radius: 5 },
+                    { kind: "square", side: 10 },
+                ];
+                const result = Arr.flip(shapes);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+
+            it("returns Record<string, number> for Date array", () => {
+                const dates: Date[] = [new Date(), new Date()];
+                const result = Arr.flip(dates);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+        });
+
+        describe("unknown and non-array input", () => {
+            it("returns Record<string, number> for non-array object", () => {
+                const result = Arr.flip({
+                    apple: 0,
+                    banana: 1,
+                    cherry: 2,
+                });
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+
+            it("returns Record<string, number> for null", () => {
+                const result = Arr.flip(null);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+
+            it("returns Record<string, number> for undefined", () => {
+                const result = Arr.flip(undefined);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+        });
+
+        describe("readonly and as const arrays", () => {
+            it("accepts readonly array", () => {
+                const data: readonly string[] = ["a", "b", "c"];
+                const result = Arr.flip(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+
+            it("accepts as const array", () => {
+                const data = ["a", "b", "c"] as const;
+                const result = Arr.flip(data);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+        });
+
+        describe("generic type propagation", () => {
+            it("preserves return type through wrapper function", () => {
+                function flipItems<T>(items: T[]): Record<string, number> {
+                    return Arr.flip(items);
+                }
+                const result = flipItems(["x", "y", "z"]);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
+        });
+
+        describe("function signature", () => {
+            it("returns Record<string, number>", () => {
+                expectTypeOf(Arr.flip).returns.toEqualTypeOf<
+                    Record<string, number>
+                >();
+            });
         });
     });
 

@@ -935,7 +935,7 @@ export function flatten<TValue>(
  * flip(['a', 'b', 'c']); -> {a: 0, b: 1, c: 2}
  */
 export function flip<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: readonly TValue[] | unknown,
 ): Record<string, number> {
     if (!accessible(data)) {
         return {};
