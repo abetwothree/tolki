@@ -680,16 +680,16 @@ describe("arr type tests", () => {
         });
 
         describe("Const and readonly array inputs", () => {
-            it("rejects const array input (readonly not assignable to mutable)", () => {
+            it("accepts const array input (readonly is assignable to ArrayItems)", () => {
                 const data = [1, 2, 3] as const;
-                // @ts-expect-error readonly tuple is not assignable to mutable ArrayItems
-                Arr.add(data, 3, 4);
+                const result = Arr.add(data, 3, 4);
+                expectTypeOf(result).toEqualTypeOf<(1 | 2 | 3 | number)[]>();
             });
 
-            it("rejects readonly array input (readonly not assignable to mutable)", () => {
+            it("accepts readonly array input (readonly is assignable to ArrayItems)", () => {
                 const data: readonly string[] = ["a", "b"];
-                // @ts-expect-error readonly array is not assignable to mutable ArrayItems
-                Arr.add(data, 2, "c");
+                const result = Arr.add(data, 2, "c");
+                expectTypeOf(result).toEqualTypeOf<(string | string)[]>();
             });
         });
 
@@ -757,7 +757,7 @@ describe("arr type tests", () => {
 
         describe("Function signature", () => {
             it("first parameter accepts ArrayItems<TValue>", () => {
-                expectTypeOf(Arr.add).parameter(0).toExtend<unknown[]>();
+                expectTypeOf(Arr.add).parameter(0).toExtend<readonly unknown[]>();
             });
 
             it("second parameter accepts PathKey", () => {
@@ -1697,12 +1697,12 @@ describe("arr type tests", () => {
         describe("function signature", () => {
             it("has correct parameter types", () => {
                 expectTypeOf(Arr.chunk).parameters.toExtend<
-                    [unknown[], number]
+                    [readonly unknown[], number]
                 >();
             });
 
             it("first parameter accepts arrays", () => {
-                expectTypeOf(Arr.chunk).parameter(0).toExtend<unknown[]>();
+                expectTypeOf(Arr.chunk).parameter(0).toExtend<readonly unknown[]>();
             });
 
             it("second parameter is number", () => {
@@ -1982,7 +1982,7 @@ describe("arr type tests", () => {
 
         describe("function signature", () => {
             it("first parameter accepts arrays", () => {
-                expectTypeOf(Arr.collapse).parameter(0).toExtend<unknown[]>();
+                expectTypeOf(Arr.collapse).parameter(0).toExtend<readonly unknown[]>();
             });
 
             it("return type is array or record", () => {
@@ -2259,7 +2259,7 @@ describe("arr type tests", () => {
 
         describe("function signature", () => {
             it("accepts rest parameter of arrays", () => {
-                expectTypeOf(Arr.combine).parameters.toExtend<unknown[][]>();
+                expectTypeOf(Arr.combine).parameters.toExtend<(readonly unknown[])[]>();
             });
 
             it("return type extends unknown[][]", () => {
@@ -6870,9 +6870,450 @@ describe("arr type tests", () => {
     });
 
     describe("forget", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.forget([1, 2, 3], [0]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
+        describe("basic return type preserves element type", () => {
+            it("returns number[] for number array", () => {
+                const result = Arr.forget([1, 2, 3], [0]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns string[] for string array", () => {
+                const result = Arr.forget(["a", "b", "c"], 1);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("returns boolean[] for boolean array", () => {
+                const result = Arr.forget([true, false, true], 0);
+                expectTypeOf(result).toEqualTypeOf<boolean[]>();
+            });
+
+            it("returns bigint[] for bigint array", () => {
+                const result = Arr.forget([1n, 2n, 3n], 2);
+                expectTypeOf(result).toEqualTypeOf<bigint[]>();
+            });
+
+            it("returns object[] for array of objects", () => {
+                const data = [
+                    { id: 1, name: "Alice" },
+                    { id: 2, name: "Bob" },
+                ];
+                const result = Arr.forget(data, 0);
+                expectTypeOf(result).toEqualTypeOf<
+                    { id: number; name: string }[]
+                >();
+            });
+
+            it("returns union type array for mixed element types", () => {
+                const data: (string | number)[] = ["hello", 42, "world"];
+                const result = Arr.forget(data, 1);
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
+            });
+        });
+
+        describe("PathKeys variations", () => {
+            it("accepts number key", () => {
+                const result = Arr.forget([1, 2, 3], 1);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("accepts string key", () => {
+                const result = Arr.forget(["a", "b", "c"], "1");
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("accepts null key", () => {
+                const result = Arr.forget([1, 2, 3], null);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("accepts undefined key", () => {
+                const result = Arr.forget([1, 2, 3], undefined);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("accepts array of number keys", () => {
+                const result = Arr.forget([10, 20, 30, 40], [0, 2]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("accepts array of string keys", () => {
+                const result = Arr.forget(["a", "b", "c"], ["0", "2"]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("accepts array of mixed PathKey types", () => {
+                const result = Arr.forget([1, 2, 3], [0, "1", null]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("accepts non-literal number key", () => {
+                const key: number = 1;
+                const result = Arr.forget(["a", "b", "c"], key);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("accepts non-literal string key", () => {
+                const key: string = "1.0";
+                const result = Arr.forget(["a", ["b", "c"]], key);
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | string[])[]
+                >();
+            });
+
+            it("accepts key typed as full PathKeys union", () => {
+                const key:
+                    | number
+                    | string
+                    | null
+                    | undefined
+                    | Array<number | string | null | undefined> = 0;
+                const result = Arr.forget([1, 2, 3], key);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+        });
+
+        describe("dot notation paths", () => {
+            it("preserves type with dot notation string key for nested arrays", () => {
+                const data: (string | string[])[] = [
+                    "products",
+                    ["desk", "chair"],
+                ];
+                const result = Arr.forget(data, "1.0");
+                expectTypeOf(result).toEqualTypeOf<(string | string[])[]>();
+            });
+
+            it("preserves type with deeply nested dot notation path", () => {
+                const data: (string | (string | number[])[])[] = [
+                    "products",
+                    ["desk", [100]],
+                ];
+                const result = Arr.forget(data, "1.1.0");
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | (string | number[])[])[]
+                >();
+            });
+
+            it("preserves type with multiple dot notation keys in array", () => {
+                const data: (string | number[])[] = [
+                    "prices",
+                    [100, 200, 300],
+                ];
+                const result = Arr.forget(data, ["1.0", "1.2"]);
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | number[])[]
+                >();
+            });
+        });
+
+        describe("complex data structures", () => {
+            it("returns typed array for array of complex nested objects", () => {
+                const data = [
+                    {
+                        user: {
+                            profile: {
+                                name: "Alice",
+                                settings: { darkMode: true, lang: "en" },
+                            },
+                        },
+                    },
+                    {
+                        user: {
+                            profile: {
+                                name: "Bob",
+                                settings: { darkMode: false, lang: "fr" },
+                            },
+                        },
+                    },
+                ];
+                const result = Arr.forget(data, 0);
+                expectTypeOf(result).toEqualTypeOf<
+                    {
+                        user: {
+                            profile: {
+                                name: string;
+                                settings: {
+                                    darkMode: boolean;
+                                    lang: string;
+                                };
+                            };
+                        };
+                    }[]
+                >();
+            });
+
+            it("preserves tuple-like union type for heterogeneous array", () => {
+                const data: (
+                    | string
+                    | number
+                    | boolean
+                    | null
+                    | { nested: number }
+                )[] = [42, "hello", true, null, { nested: 99 }];
+                const result = Arr.forget(data, [0, 3]);
+                expectTypeOf(result).toEqualTypeOf<
+                    (
+                        | string
+                        | number
+                        | boolean
+                        | null
+                        | { nested: number }
+                    )[]
+                >();
+            });
+
+            it("preserves type for array with nested arrays and objects", () => {
+                const data = [
+                    {
+                        products: [
+                            {
+                                details: {
+                                    price: 49.99,
+                                    tax: 4.5,
+                                    shipping: {
+                                        domestic: 5.99,
+                                        international: 19.99,
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                ];
+                const result = Arr.forget(data, 0);
+                expectTypeOf(result).toEqualTypeOf<
+                    {
+                        products: {
+                            details: {
+                                price: number;
+                                tax: number;
+                                shipping: {
+                                    domestic: number;
+                                    international: number;
+                                };
+                            };
+                        }[];
+                    }[]
+                >();
+            });
+
+            it("preserves type for array with optional properties", () => {
+                const data: { enabled?: boolean; label: string }[] = [
+                    { enabled: true, label: "test" },
+                    { label: "other" },
+                ];
+                const result = Arr.forget(data, 0);
+                expectTypeOf(result).toEqualTypeOf<
+                    { enabled?: boolean; label: string }[]
+                >();
+            });
+
+            it("preserves type for array of arrays (2D array)", () => {
+                const data = [
+                    [1, 2, 3],
+                    [4, 5, 6],
+                    [7, 8, 9],
+                ];
+                const result = Arr.forget(data, 1);
+                expectTypeOf(result).toEqualTypeOf<number[][]>();
+            });
+
+            it("preserves type for deeply nested 3D array", () => {
+                const data = [
+                    [
+                        [1, 2],
+                        [3, 4],
+                    ],
+                    [
+                        [5, 6],
+                        [7, 8],
+                    ],
+                ];
+                const result = Arr.forget(data, 0);
+                expectTypeOf(result).toEqualTypeOf<number[][][]>();
+            });
+
+            it("preserves Record value type in array of records", () => {
+                const data: Record<string, number>[] = [
+                    { a: 1, b: 2 },
+                    { c: 3, d: 4 },
+                ];
+                const result = Arr.forget(data, 0);
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number>[]
+                >();
+            });
+
+            it("preserves type for array with symbol-keyed objects", () => {
+                const data = [{ 0: true, 1: false, name: "test" }];
+                const result = Arr.forget(data, 0);
+                expectTypeOf(result).toEqualTypeOf<
+                    { 0: boolean; 1: boolean; name: string }[]
+                >();
+            });
+
+            it("returns empty typed array from empty array", () => {
+                const data: number[] = [];
+                const result = Arr.forget(data, 0);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns empty typed array from empty array with array keys", () => {
+                const data: string[] = [];
+                const result = Arr.forget(data, ["0", "1"]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("preserves type for array with deeply nested readonly-like structure", () => {
+                const data: {
+                    level1: {
+                        level2: {
+                            level3: {
+                                level4: { value: number };
+                            };
+                        };
+                    };
+                }[] = [
+                    {
+                        level1: {
+                            level2: {
+                                level3: { level4: { value: 42 } },
+                            },
+                        },
+                    },
+                ];
+                const result = Arr.forget(data, 0);
+                expectTypeOf(result).toEqualTypeOf<
+                    {
+                        level1: {
+                            level2: {
+                                level3: {
+                                    level4: { value: number };
+                                };
+                            };
+                        };
+                    }[]
+                >();
+            });
+
+            it("preserves type for array with function-typed properties", () => {
+                const data: { handler: () => void; name: string }[] = [
+                    { handler: () => {}, name: "click" },
+                    { handler: () => {}, name: "hover" },
+                ];
+                const result = Arr.forget(data, 1);
+                expectTypeOf(result).toEqualTypeOf<
+                    { handler: () => void; name: string }[]
+                >();
+            });
+
+            it("preserves type for array with Date objects", () => {
+                const data: { createdAt: Date; id: number }[] = [
+                    { createdAt: new Date(), id: 1 },
+                    { createdAt: new Date(), id: 2 },
+                ];
+                const result = Arr.forget(data, 0);
+                expectTypeOf(result).toEqualTypeOf<
+                    { createdAt: Date; id: number }[]
+                >();
+            });
+        });
+
+        describe("edge cases from functional tests", () => {
+            it("preserves nested array union type when forgetting nested dot path", () => {
+                const data: (string | (string | number[])[])[] = [
+                    "products",
+                    ["desk", [100]],
+                ];
+                const result = Arr.forget(data, "1.1.2");
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | (string | number[])[])[]
+                >();
+            });
+
+            it("preserves type when forgetting with invalid path", () => {
+                const data = ["products", ["desk", [100]]];
+                const result = Arr.forget(data, "foo");
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | (string | number[])[])[]
+                >();
+            });
+
+            it("preserves type when forgetting with empty string path", () => {
+                const data = ["products", ["desk", [100]]];
+                const result = Arr.forget(data, "");
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | (string | number[])[])[]
+                >();
+            });
+
+            it("preserves type when forgetting with out-of-bounds index", () => {
+                const data = [10, 20, 30, 40];
+                const result = Arr.forget(data, 99);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("preserves type when forgetting multiple indices", () => {
+                const data = [10, 20, 30, 40];
+                const result = Arr.forget(data, [0, 2]);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("preserves type when forgetting mixed root and nested keys", () => {
+                const data: (string | number[])[] = [
+                    "prices",
+                    [100, 200, 300],
+                ];
+                const result = Arr.forget(data, [0, "1.2"]);
+                expectTypeOf(result).toEqualTypeOf<
+                    (string | number[])[]
+                >();
+            });
+
+            it("preserves type with duplicate keys in array", () => {
+                const result = Arr.forget(["a", "b"], ["1", "1"]);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("preserves type for negative index key", () => {
+                const data = ["a", "b", "c"];
+                const result = Arr.forget(data, -1);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("preserves type for float index key", () => {
+                const data = ["a", "b", "c"];
+                const result = Arr.forget(data, 1.5);
+                expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+        });
+
+        describe("function signature", () => {
+            it("accepts ArrayItems<TValue> as first parameter", () => {
+                expectTypeOf(Arr.forget)
+                    .parameter(0)
+                    .toExtend<readonly unknown[]>();
+            });
+
+            it("accepts PathKeys as second parameter", () => {
+                expectTypeOf(Arr.forget)
+                    .parameter(1)
+                    .toExtend<
+                        | number
+                        | string
+                        | null
+                        | undefined
+                        | Array<
+                              number | string | null | undefined
+                          >
+                    >();
+            });
+
+            it("returns TValue[] type", () => {
+                expectTypeOf(
+                    Arr.forget([1, 2, 3], 0),
+                ).toEqualTypeOf<number[]>();
+                expectTypeOf(
+                    Arr.forget(["a", "b"], 0),
+                ).toEqualTypeOf<string[]>();
+            });
         });
     });
 

@@ -25,7 +25,7 @@ export type FlatArrayValue<T> = T extends readonly (infer U)[]
     ? FlatArrayValue<U>
     : T;
 
-export type ArrayItems<T> = T[] | Array<T>;
+export type ArrayItems<T> = readonly T[];
 
 /**
  * Represents a value that may be nested within arrays to any depth.

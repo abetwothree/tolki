@@ -3197,7 +3197,7 @@ export function pad<TPadValue, TValue>(
     data: ArrayItems<TValue>,
     size: number,
     value: TPadValue,
-): ArrayItems<TValue | TPadValue> {
+): (TValue | TPadValue)[] {
     const values = getAccessibleValues(data) as TValue[];
     const currentLength = values.length;
     const absSize = Math.abs(size);
