@@ -1039,7 +1039,7 @@ export function from(items: unknown): unknown {
     // Map -> plain object
     if (isMap(items)) {
         const out: Record<string, unknown> = {};
-        
+
         for (const [k, v] of items as Map<PropertyKey, unknown>) {
             out[String(k)] = v;
         }
