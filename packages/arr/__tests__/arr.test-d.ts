@@ -2552,9 +2552,29 @@ describe("arr type tests", () => {
             });
         });
 
+        describe("readonly and const arrays", () => {
+            it("accepts readonly arrays", () => {
+                const a: readonly number[] = [1, 2];
+                const b: readonly string[] = ["a", "b"];
+                const result = Arr.crossJoin(a, b);
+                expectTypeOf(result).toEqualTypeOf<[number, string][]>();
+            });
+
+            it("accepts as const arrays", () => {
+                const result = Arr.crossJoin(
+                    [1, 2] as const,
+                    ["a", "b"] as const,
+                );
+                expectTypeOf(result).toEqualTypeOf<[1 | 2, "a" | "b"][]>();
+            });
+        });
+
         describe("function signature", () => {
             it("accepts variadic arrays", () => {
-                expectTypeOf(Arr.crossJoin).parameters.toExtend<unknown[][]>();
+                expectTypeOf(Arr.crossJoin).toBeCallableWith(
+                    [1, 2],
+                    ["a", "b"],
+                );
             });
 
             it("return type extends unknown[][]", () => {
@@ -2925,6 +2945,20 @@ describe("arr type tests", () => {
                 const result = Arr.dot(["a", [["b"]]], "prefix", 1);
                 expectTypeOf(result).toEqualTypeOf<
                     Record<string, string | string[][]>
+                >();
+            });
+
+            it("depth with uniform nested array includes flattened leaf type", () => {
+                const result = Arr.dot(
+                    [
+                        [1, 2],
+                        [3, 4],
+                    ],
+                    "",
+                    1,
+                );
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number[] | number>
                 >();
             });
         });

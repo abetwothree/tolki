@@ -290,32 +290,40 @@ export function combine<TValue>(
  * crossJoin([1], ["a"]); -> [[1, 'a']]
  */
 export function crossJoin(): unknown[][];
-export function crossJoin<A>(a: A[]): [A][];
-export function crossJoin<A, B>(a: A[], b: B[]): [A, B][];
-export function crossJoin<A, B, C>(a: A[], b: B[], c: C[]): [A, B, C][];
+export function crossJoin<A>(a: readonly A[]): [A][];
+export function crossJoin<A, B>(a: readonly A[], b: readonly B[]): [A, B][];
+export function crossJoin<A, B, C>(
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+): [A, B, C][];
 export function crossJoin<A, B, C, D>(
-    a: A[],
-    b: B[],
-    c: C[],
-    d: D[],
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+    d: readonly D[],
 ): [A, B, C, D][];
 export function crossJoin<A, B, C, D, E>(
-    a: A[],
-    b: B[],
-    c: C[],
-    d: D[],
-    e: E[],
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+    d: readonly D[],
+    e: readonly E[],
 ): [A, B, C, D, E][];
 export function crossJoin<A, B, C, D, E, F>(
-    a: A[],
-    b: B[],
-    c: C[],
-    d: D[],
-    e: E[],
-    f: F[],
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+    d: readonly D[],
+    e: readonly E[],
+    f: readonly F[],
 ): [A, B, C, D, E, F][];
-export function crossJoin(...arrays: unknown[][]): unknown[][];
-export function crossJoin(...arrays: unknown[][]): unknown[][] {
+export function crossJoin(
+    ...arrays: readonly (readonly unknown[])[]
+): unknown[][];
+export function crossJoin(
+    ...arrays: readonly (readonly unknown[])[]
+): unknown[][] {
     let results: unknown[][] = [[]];
 
     for (const array of arrays) {
@@ -374,7 +382,7 @@ export function dot<TValue>(
     data: readonly TValue[],
     prepend: string,
     depth: number,
-): Record<string, TValue>;
+): Record<string, TValue | FlatArrayValue<TValue>>;
 export function dot<TValue>(
     data: ArrayItems<TValue> | unknown,
     prepend?: string,
@@ -525,7 +533,7 @@ export function except<TValue>(
     data: readonly TValue[],
     keys: PathKeys,
 ): TValue[] {
-    return forget([...data], keys);
+    return forget(data, keys);
 }
 
 /**
