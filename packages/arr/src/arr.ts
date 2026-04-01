@@ -19,8 +19,10 @@ import type {
     ArrayResolvePathOrDefault,
     ArrayResolvePathOrNull,
     EnsureArray,
+    FlatArrayValue,
     PathKey,
     PathKeys,
+    UndotResult,
 } from "@tolki/types";
 import {
     castableToArray,
@@ -287,24 +289,53 @@ export function combine<TValue>(
  *
  * crossJoin([1], ["a"]); -> [[1, 'a']]
  */
-export function crossJoin<TValue extends ArrayItems<ArrayItems<unknown>>>(
-    ...arrays: TValue
-): ArrayInnerValue<TValue[number]>[][] {
-    let results: ArrayInnerValue<TValue[number]>[][] = [[]];
+export function crossJoin(): unknown[][];
+export function crossJoin<A>(a: readonly A[]): [A][];
+export function crossJoin<A, B>(a: readonly A[], b: readonly B[]): [A, B][];
+export function crossJoin<A, B, C>(
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+): [A, B, C][];
+export function crossJoin<A, B, C, D>(
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+    d: readonly D[],
+): [A, B, C, D][];
+export function crossJoin<A, B, C, D, E>(
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+    d: readonly D[],
+    e: readonly E[],
+): [A, B, C, D, E][];
+export function crossJoin<A, B, C, D, E, F>(
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+    d: readonly D[],
+    e: readonly E[],
+    f: readonly F[],
+): [A, B, C, D, E, F][];
+export function crossJoin(
+    ...arrays: readonly (readonly unknown[])[]
+): unknown[][];
+export function crossJoin(
+    ...arrays: readonly (readonly unknown[])[]
+): unknown[][] {
+    let results: unknown[][] = [[]];
 
     for (const array of arrays) {
         if (!array.length) {
             return [];
         }
 
-        const next: ArrayInnerValue<TValue[number]>[][] = [];
+        const next: unknown[][] = [];
 
         for (const product of results) {
             for (const item of array) {
-                next.push([
-                    ...product,
-                    item as ArrayInnerValue<TValue[number]>,
-                ] as ArrayInnerValue<TValue[number]>[]);
+                next.push([...product, item]);
             }
         }
 
@@ -325,19 +356,10 @@ export function crossJoin<TValue extends ArrayItems<ArrayItems<unknown>>>(
  * divide(["Desk", 100, true]); -> [[0, 1, 2], ['Desk', 100, true]]
  */
 export function divide(array: readonly []): [number[], unknown[]];
-export function divide<A extends readonly unknown[]>(
-    array: A,
-): [number[], A extends ArrayItems<infer V> ? V[] : unknown[]];
-export function divide<A extends readonly unknown[]>(
-    array: A,
-): [number[], A extends ArrayItems<infer V> ? V[] : unknown[]] {
+export function divide<TValue>(array: readonly TValue[]): [number[], TValue[]];
+export function divide<TValue>(array: readonly TValue[]): [number[], TValue[]] {
     const keys = array.map((_, i) => i);
-    return [
-        keys,
-        array.slice() as unknown as A extends ArrayItems<infer V>
-            ? V[]
-            : unknown[],
-    ];
+    return [keys, array.slice() as TValue[]];
 }
 
 /**
@@ -353,10 +375,14 @@ export function divide<A extends readonly unknown[]>(
  * dot(['a', ['b', 'c']]); -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
  */
 export function dot<TValue>(
-    data: TValue[],
+    data: readonly TValue[],
     prepend?: string,
-    depth?: number,
-): Record<string, TValue>;
+): Record<string, FlatArrayValue<TValue>>;
+export function dot<TValue>(
+    data: readonly TValue[],
+    prepend: string,
+    depth: number,
+): Record<string, TValue | FlatArrayValue<TValue>>;
 export function dot<TValue>(
     data: ArrayItems<TValue> | unknown,
     prepend?: string,
@@ -383,17 +409,49 @@ export function dot<TValue>(
  */
 export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
-): TValue[] {
-    return undotExpandArray(map);
+): UndotResult<TKey, TValue> {
+    return undotExpandArray(map) as UndotResult<TKey, TValue>;
 }
 
 /**
- * Union multiple arrays into a single array
+ * Union multiple arrays into a single array containing only unique values,
+ * preserving insertion order.
+ *
  * @param arrays - The arrays to union.
- * @returns A new array containing all elements from the input arrays.
+ * @returns A new array containing all unique elements from the input arrays.
  */
-export function union<TValue>(...arrays: ArrayItems<TValue>[]): TValue[] {
-    const result: TValue[] = [];
+export function union(): unknown[];
+export function union<A>(a: readonly A[]): A[];
+export function union<A, B>(a: readonly A[], b: readonly B[]): (A | B)[];
+export function union<A, B, C>(
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+): (A | B | C)[];
+export function union<A, B, C, D>(
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+    d: readonly D[],
+): (A | B | C | D)[];
+export function union<A, B, C, D, E>(
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+    d: readonly D[],
+    e: readonly E[],
+): (A | B | C | D | E)[];
+export function union<A, B, C, D, E, F>(
+    a: readonly A[],
+    b: readonly B[],
+    c: readonly C[],
+    d: readonly D[],
+    e: readonly E[],
+    f: readonly F[],
+): (A | B | C | D | E | F)[];
+export function union(...arrays: (readonly unknown[])[]): unknown[];
+export function union(...arrays: (readonly unknown[])[]): unknown[] {
+    const result: unknown[] = [];
 
     for (const array of arrays) {
         for (const item of array) {
@@ -409,17 +467,45 @@ export function union<TValue>(...arrays: ArrayItems<TValue>[]): TValue[] {
 }
 
 /**
- * Prepend one or more items to the beginning of the array
+ * Prepend one or more items to the beginning of the array.
+ * Undefined items are skipped.
  *
- * @param data - The array to prepend items to
- * @param items - The items to prepend as [key, value] tuples
- * @returns A new array with the items prepended
+ * @param data - The array to prepend items to.
+ * @param items - The items to prepend.
+ * @returns A new array with the items prepended.
  */
-export function unshift<TValue, TNewValue>(
-    data: ArrayItems<TValue>,
-    ...items: TNewValue[]
-): ArrayItems<TValue | TNewValue> {
-    const result: (TValue | TNewValue)[] = [...data];
+export function unshift<TValue>(data: readonly TValue[]): TValue[];
+export function unshift<TValue, A>(
+    data: readonly TValue[],
+    a: A,
+): (TValue | A)[];
+export function unshift<TValue, A, B>(
+    data: readonly TValue[],
+    a: A,
+    b: B,
+): (TValue | A | B)[];
+export function unshift<TValue, A, B, C>(
+    data: readonly TValue[],
+    a: A,
+    b: B,
+    c: C,
+): (TValue | A | B | C)[];
+export function unshift<TValue, A, B, C, D>(
+    data: readonly TValue[],
+    a: A,
+    b: B,
+    c: C,
+    d: D,
+): (TValue | A | B | C | D)[];
+export function unshift<TValue>(
+    data: readonly TValue[],
+    ...items: unknown[]
+): unknown[];
+export function unshift<TValue>(
+    data: readonly TValue[],
+    ...items: unknown[]
+): unknown[] {
+    const result: unknown[] = [...data];
 
     for (let i = items.length - 1; i >= 0; i--) {
         const item = items[i];
@@ -444,7 +530,7 @@ export function unshift<TValue, TNewValue>(
  * except(["a", "b", "c"], [0, 2]); -> ['b']
  */
 export function except<TValue>(
-    data: ArrayItems<TValue>,
+    data: readonly TValue[],
     keys: PathKeys,
 ): TValue[] {
     return forget(data, keys);
@@ -465,8 +551,8 @@ export function except<TValue>(
  * exceptValues([1, '1', 2, '2', 3], [1, 2, 3], true); -> [1 => '1', 3 => '2']
  */
 export function exceptValues<TValue>(
-    data: ArrayItems<TValue>,
-    values: TValue | TValue[],
+    data: readonly TValue[],
+    values: TValue | readonly TValue[],
     strict: boolean = false,
 ): TValue[] {
     const valueArray = isArray(values) ? values : [values];
@@ -756,7 +842,7 @@ export function last<TValue, TFirstDefault = null>(
  * take([1, 2, 3], 5); -> [1, 2, 3]
  */
 export function take<TValue>(
-    data: ArrayItems<TValue> | null | undefined,
+    data: readonly TValue[] | null | undefined,
     limit: number,
 ): TValue[] {
     if (!data || limit === 0) {
@@ -857,7 +943,7 @@ export function flatten<TValue>(
  * flip(['a', 'b', 'c']); -> {a: 0, b: 1, c: 2}
  */
 export function flip<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: readonly TValue[] | unknown,
 ): Record<string, number> {
     if (!accessible(data)) {
         return {};
@@ -961,9 +1047,11 @@ export function from(items: unknown): unknown {
     // Map -> plain object
     if (isMap(items)) {
         const out: Record<string, unknown> = {};
+
         for (const [k, v] of items as Map<PropertyKey, unknown>) {
             out[String(k)] = v;
         }
+
         return out;
     }
 
@@ -1440,8 +1528,8 @@ export function only<TValue>(
  * onlyValues([1, '1', 2, '2', 3], [1, 2, 3], true); -> [0 => 1, 2 => 2, 4 => 3]
  */
 export function onlyValues<TValue>(
-    data: ArrayItems<TValue>,
-    values: TValue | TValue[],
+    data: readonly TValue[],
+    values: TValue | readonly TValue[],
     strict: boolean = false,
 ): TValue[] {
     const valueArray = isArray(values) ? values : [values];
@@ -3119,7 +3207,7 @@ export function pad<TPadValue, TValue>(
     data: ArrayItems<TValue>,
     size: number,
     value: TPadValue,
-): ArrayItems<TValue | TPadValue> {
+): (TValue | TPadValue)[] {
     const values = getAccessibleValues(data) as TValue[];
     const currentLength = values.length;
     const absSize = Math.abs(size);

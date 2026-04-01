@@ -1,7 +1,7 @@
 {
     "name": "@tolki/enum",
     "version": "1.0.0",
-    "description": "A set of enum utilities for the @tolki packages.",
+    "description": "A set of enum utilities for the Laravel TypeScript Publish PHP package.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",
     "homepage": "https://tolki.abe.dev/enums/",
