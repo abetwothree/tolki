@@ -981,10 +981,11 @@ export class Stringable {
     /**
      * Convert the given string to only its initials.
      *
+     * @param capitalize - Whether to capitalize the initials.
      * @returns The initials of the string as a new Stringable instance.
      */
-    initials(): Stringable {
-        return new Stringable(initials(this._value));
+    initials(capitalize: boolean = false): Stringable {
+        return new Stringable(initials(this._value, capitalize));
     }
 
     /**

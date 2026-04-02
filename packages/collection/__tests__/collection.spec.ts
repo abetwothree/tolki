@@ -9056,4 +9056,227 @@ describe("Collection", () => {
             expect(c.all()).toEqual({ b: 2, a: 1, c: 3 });
         });
     });
+
+    describe("newInstance subclass extensibility", () => {
+        class TestCollectionWithExtraState<
+            TValue = unknown,
+            TKey extends PropertyKey = number,
+        > extends Collection<TValue, TKey> {
+            public tag: string;
+
+            constructor(
+                items?:
+                    | TValue[]
+                    | Record<TKey, TValue>
+                    | Collection<TValue, TKey>,
+                tag: string = "",
+            ) {
+                super(items);
+                this.tag = tag;
+            }
+
+            protected override newInstance<TItems = unknown>(
+                items?: TItems,
+            ): this {
+                const Ctor = this.constructor as new (
+                    items?: TItems,
+                    tag?: string,
+                ) => this;
+                return new Ctor(items, this.tag);
+            }
+        }
+
+        it("preserves subclass type and extra state through filter", () => {
+            const collection = new TestCollectionWithExtraState(
+                [1, 2, 3, 4, 5],
+                "my-tag",
+            );
+            const filtered = collection.filter((v) => v > 3);
+            expect(filtered).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(filtered.tag).toBe("my-tag");
+            expect(Object.values(filtered.all())).toEqual([4, 5]);
+        });
+
+        it("preserves subclass type through filter returning empty", () => {
+            const collection = new TestCollectionWithExtraState(
+                [1, 2, 3, 4, 5],
+                "my-tag",
+            );
+            const empty = collection.filter((v) => v > 100);
+            expect(empty).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(empty.tag).toBe("my-tag");
+        });
+
+        it("preserves subclass type through reject", () => {
+            const collection = new TestCollectionWithExtraState(
+                [1, 2, 3, 4, 5],
+                "my-tag",
+            );
+            const rejected = collection.reject((v) => v <= 2);
+            expect(rejected).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(rejected.tag).toBe("my-tag");
+        });
+
+        it("preserves subclass type through map", () => {
+            const collection = new TestCollectionWithExtraState(
+                [1, 2, 3, 4, 5],
+                "my-tag",
+            );
+            const mapped = collection.map((v) => v * 2);
+            expect(mapped).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(mapped.tag).toBe("my-tag");
+            expect(mapped.all()).toEqual([2, 4, 6, 8, 10]);
+        });
+
+        it("preserves subclass type through values", () => {
+            const collection = new TestCollectionWithExtraState(
+                [1, 2, 3, 4, 5],
+                "my-tag",
+            );
+            const filtered = collection.filter((v) => v > 3);
+            const values = filtered.values();
+            expect(values).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(values.tag).toBe("my-tag");
+        });
+
+        it("preserves subclass type through unique", () => {
+            const duped = new TestCollectionWithExtraState(
+                [1, 1, 2, 2, 3],
+                "u-tag",
+            );
+            const unique = duped.unique();
+            expect(unique).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(unique.tag).toBe("u-tag");
+        });
+
+        it("preserves subclass type through keys", () => {
+            const collection = new TestCollectionWithExtraState(
+                [1, 2, 3, 4, 5],
+                "my-tag",
+            );
+            const keys = collection.keys();
+            expect(keys).toBeInstanceOf(TestCollectionWithExtraState);
+            expect((keys as unknown as TestCollectionWithExtraState).tag).toBe(
+                "my-tag",
+            );
+        });
+
+        it("preserves subclass type through sort", () => {
+            const collection = new TestCollectionWithExtraState(
+                [1, 2, 3, 4, 5],
+                "my-tag",
+            );
+            const sorted = collection.sort();
+            expect(sorted).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(sorted.tag).toBe("my-tag");
+        });
+
+        it("preserves subclass type through slice", () => {
+            const collection = new TestCollectionWithExtraState(
+                [1, 2, 3, 4, 5],
+                "my-tag",
+            );
+            const sliced = collection.slice(1, 2);
+            expect(sliced).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(sliced.tag).toBe("my-tag");
+        });
+
+        it("preserves subclass type through chunk (outer and inner)", () => {
+            const collection = new TestCollectionWithExtraState(
+                [1, 2, 3, 4, 5],
+                "my-tag",
+            );
+            const chunks = collection.chunk(2);
+            expect(chunks).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(
+                (chunks as unknown as TestCollectionWithExtraState).tag,
+            ).toBe("my-tag");
+            const first = chunks.first();
+            expect(first).toBeInstanceOf(TestCollectionWithExtraState);
+            expect((first as unknown as TestCollectionWithExtraState).tag).toBe(
+                "my-tag",
+            );
+        });
+
+        it("preserves subclass type through merge", () => {
+            const collection = new TestCollectionWithExtraState(
+                [1, 2, 3, 4, 5],
+                "my-tag",
+            );
+            const merged = collection.merge([6, 7]);
+            expect(merged).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(merged.tag).toBe("my-tag");
+        });
+
+        it("preserves subclass type through diff", () => {
+            const collection = new TestCollectionWithExtraState(
+                [1, 2, 3, 4, 5],
+                "my-tag",
+            );
+            const diff = collection.diff([1, 2]);
+            expect(diff).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(diff.tag).toBe("my-tag");
+        });
+
+        it("preserves subclass type through partition", () => {
+            const collection = new TestCollectionWithExtraState(
+                [1, 2, 3, 4, 5],
+                "my-tag",
+            );
+            const [pass, fail] = collection.partition((v) => v > 3);
+            expect(pass).toBeInstanceOf(TestCollectionWithExtraState);
+            expect((pass as unknown as TestCollectionWithExtraState).tag).toBe(
+                "my-tag",
+            );
+            expect(fail).toBeInstanceOf(TestCollectionWithExtraState);
+            expect((fail as unknown as TestCollectionWithExtraState).tag).toBe(
+                "my-tag",
+            );
+        });
+
+        it("preserves subclass type through pluck", () => {
+            const assoc = new TestCollectionWithExtraState(
+                [{ name: "Taylor" }, { name: "Nuno" }],
+                "p-tag",
+            );
+            const plucked = assoc.pluck("name");
+            expect(plucked).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(
+                (plucked as unknown as TestCollectionWithExtraState).tag,
+            ).toBe("p-tag");
+        });
+
+        it("preserves subclass type through reverse", () => {
+            const collection = new TestCollectionWithExtraState(
+                [1, 2, 3, 4, 5],
+                "my-tag",
+            );
+            const reversed = collection.reverse();
+            expect(reversed).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(reversed.tag).toBe("my-tag");
+        });
+
+        it("preserves subclass type through flatten", () => {
+            const nested = new TestCollectionWithExtraState(
+                [
+                    [1, 2],
+                    [3, 4],
+                ],
+                "f-tag",
+            );
+            const flat = nested.flatten();
+            expect(flat).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(flat.tag).toBe("f-tag");
+        });
+
+        it("preserves subclass type through pad", () => {
+            const collection = new TestCollectionWithExtraState(
+                [1, 2, 3, 4, 5],
+                "my-tag",
+            );
+            const padded = collection.pad(7, 0);
+            expect(padded).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(padded.tag).toBe("my-tag");
+        });
+    });
 });
