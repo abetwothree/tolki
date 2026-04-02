@@ -1,5 +1,11 @@
 # @tolki/types
 
+## 1.1.5
+
+### Patch Changes
+
+- cd2d57e: Minor fixes and improvements
+
 ## 1.1.4
 
 ### Patch Changes
