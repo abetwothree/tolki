@@ -1,5 +1,13 @@
 # @tolki/enum
 
+## 1.0.1
+
+### Patch Changes
+
+- cd2d57e: Minor fixes and improvements
+- Updated dependencies [cd2d57e]
+  - @tolki/types@1.1.5
+
 ## 1.0.0
 
 ### Major Changes

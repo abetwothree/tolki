@@ -1,5 +1,11 @@
 # @tolki/num
 
+## 2.0.4
+
+### Patch Changes
+
+- e8d5904: Framework sync changes
+
 ## 2.0.3
 
 ### Patch Changes
