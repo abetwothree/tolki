@@ -4,12 +4,12 @@ Analyzing file: packages/collection/stubs/EnumeratesValues.php
 Found 71 function(s):
 
 METHOD DECLARATIONS:
-  public make($items) [line 119]
-  public wrap($value) [line 132]
+  public make($items, $args) [line 119]
+  public wrap($value, $args) [line 132]
   public unwrap($value) [line 148]
-  public empty() [line 158]
-  public times($number, ?callable $callback) [line 172]
-  public fromJson($json, $depth, $flags) [line 191]
+  public empty($args) [line 158]
+  public times($number, ?callable $callback, $args) [line 172]
+  public fromJson($json, $depth, $flags, $args) [line 191]
   public avg($callback) [line 202]
   public average($callback) [line 224]
   public some($key, $operator, $value) [line 237]

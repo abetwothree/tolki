@@ -300,7 +300,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return values.get(middle);
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)([
+        return this.newInstance([
             values.get(middle - 1),
             values.get(middle),
         ]).average() as TValue;
@@ -326,7 +326,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const keyList = !isNull(key) ? this.pluck(key) : this;
 
-        const counts = new Collection<number, PropertyKey>({});
+        const counts = this.newInstance({}) as unknown as Collection<
+            number,
+            PropertyKey
+        >;
 
         keyList.each((keyValue) => {
             counts.set(
@@ -377,7 +380,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     collapseWithKeys() {
         if (this.isEmpty()) {
-            return new (this.constructor as new (...args: unknown[]) => this)();
+            return this.newInstance();
         }
 
         // Extract raw items from nested Collections and filter out non-arrays/objects
@@ -399,7 +402,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const validResults = dataFilter(results, (item) => item !== null);
 
         if (Object.values(validResults).length === 0) {
-            return new (this.constructor as new (...args: unknown[]) => this)();
+            return this.newInstance();
         }
 
         // Check if all valid results are arrays
@@ -413,14 +416,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // If all inputs were arrays, convert the result back to an array
         // to match PHP's behavior
         if (allArrays) {
-            return new (this.constructor as new (...args: unknown[]) => this)(
-                Object.values(merged),
-            );
+            return this.newInstance(Object.values(merged));
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            merged,
-        );
+        return this.newInstance(merged);
     }
 
     /**
@@ -574,9 +573,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             ...items.map((item) => this.getRawItems(item)),
         ) as DataItems<TValue, TKey>[];
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            results,
-        );
+        return this.newInstance(results);
     }
 
     /**
@@ -597,7 +594,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | null
             | undefined,
     ) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return this.newInstance(
             dataDiff<TValue, TKey>(this.items, this.getRawItems(items)),
         );
     }
@@ -644,9 +641,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            results,
-        );
+        return this.newInstance(results);
     }
 
     /**
@@ -665,7 +660,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items: DataItems<unknown, PropertyKey> | Collection<any, any>,
     ) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return this.newInstance(
             dataDiff<TValue, TKey>(this.items, this.getRawItems(items)),
         );
     }
@@ -688,7 +683,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: DataItems<unknown, PropertyKey> | Collection<any, any>,
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return this.newInstance(
             dataDiffAssocUsing<TValue, TKey>(
                 this.items,
                 this.getRawItems(items),
@@ -749,7 +744,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: DataItems<unknown, PropertyKey> | Collection<any, any>,
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return this.newInstance(
             dataDiffKeysUsing<TValue, TKey>(
                 this.items,
                 this.getRawItems(items),
@@ -809,9 +804,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         // Laravel preserves keys for both arrays and objects
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            duplicatesItems,
-        );
+        return this.newInstance(duplicatesItems);
     }
 
     /**
@@ -865,9 +858,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     ) {
         // Handle null/undefined - return all items
         if (keys.length === 0 || isNull(keys[0]) || isUndefined(keys[0])) {
-            return new (this.constructor as new (...args: unknown[]) => this)(
-                this.items,
-            );
+            return this.newInstance(this.items);
         }
 
         let keysToExcept: PathKey[];
@@ -903,9 +894,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([0, 1, false, 2, '', 3]).filter(); -> new Collection([1, 2, 3])
      */
     filter(callback: ((value: TValue, key: TKey) => boolean) | null = null) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            dataFilter(this.items, callback),
-        );
+        return this.newInstance(dataFilter(this.items, callback));
     }
 
     /**
@@ -985,9 +974,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         flattenRecursive(this.items, depth);
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            result as DataItems<TValue, TKey>,
-        );
+        return this.newInstance(result as DataItems<TValue, TKey>);
     }
 
     /**
@@ -1189,11 +1176,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
                 if (!results[groupKey]) {
                     results[groupKey] = useObjects
-                        ? (new Collection({}) as unknown as Collection<
+                        ? (this.newInstance({}) as unknown as Collection<
                               TValue,
                               TKey
                           >)
-                        : (new Collection() as unknown as Collection<
+                        : (this.newInstance() as unknown as Collection<
                               TValue,
                               TKey
                           >);
@@ -1206,7 +1193,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
-        const result = new Collection(results);
+        const result = this.newInstance(results);
 
         if (isArray(nextGroups) && nextGroups.length > 0) {
             const nestedResult = result.map((group) => {
@@ -1228,9 +1215,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     collection.all() as TValue[] | Record<TKey, TValue>;
             }
 
-            return new (this.constructor as new (...args: unknown[]) => this)(
-                nestedConvertedResults,
-            );
+            return this.newInstance(nestedConvertedResults);
         }
 
         // Convert inner collections to arrays/objects to match Laravel's toArray() behavior
@@ -1248,9 +1233,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 | Record<TKey, TValue>;
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            convertedResults,
-        );
+        return this.newInstance(convertedResults);
     }
 
     /**
@@ -1516,12 +1499,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
         if (isNull(items)) {
-            return new (this.constructor as new (...args: unknown[]) => this)(
-                isArray(this.items) ? [] : {},
-            );
+            return this.newInstance(isArray(this.items) ? [] : {});
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return this.newInstance(
             dataIntersect(
                 this.recursivelyConvertCollections(this.items),
                 this.recursivelyConvertCollections(items) as DataItems<
@@ -1549,12 +1530,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: (a: TValue, b: TValue) => boolean,
     ) {
         if (isNull(items)) {
-            return new (this.constructor as new (...args: unknown[]) => this)(
-                isArray(this.items) ? [] : {},
-            );
+            return this.newInstance(isArray(this.items) ? [] : {});
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return this.newInstance(
             dataIntersect<TValue, TKey>(
                 this.items,
                 this.recursivelyConvertCollections(items) as DataItems<
@@ -1582,12 +1561,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
         if (isNull(items)) {
-            return new (this.constructor as new (...args: unknown[]) => this)(
-                isArray(this.items) ? [] : {},
-            );
+            return this.newInstance(isArray(this.items) ? [] : {});
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return this.newInstance(
             dataIntersectAssoc<TValue, TKey>(
                 this.items,
                 this.recursivelyConvertCollections(items) as DataItems<
@@ -1616,12 +1593,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
         if (isNull(items)) {
-            return new (this.constructor as new (...args: unknown[]) => this)(
-                isArray(this.items) ? [] : {},
-            );
+            return this.newInstance(isArray(this.items) ? [] : {});
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return this.newInstance(
             dataIntersectAssocUsing<TValue, TKey>(
                 this.items,
                 this.recursivelyConvertCollections(items) as DataItems<
@@ -1648,11 +1623,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
         if (isNull(items)) {
-            return new (this.constructor as new (...args: unknown[]) => this)(
-                isArray(this.items) ? [] : {},
-            );
+            return this.newInstance(isArray(this.items) ? [] : {});
         }
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return this.newInstance(
             dataIntersectByKeys<TValue, TKey>(
                 this.items,
                 this.recursivelyConvertCollections(items) as DataItems<
@@ -1750,7 +1723,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.last();
         }
 
-        const collection = new Collection(this.items);
+        const collection = this.newInstance(this.items);
 
         const finalItem = collection.pop();
 
@@ -1770,12 +1743,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
     keys(): Collection<TKey, number> {
         // If we have preserved order for numeric keys, use it
         if (this.itemsWithOrder) {
-            return new Collection<TKey, number>(
+            return this.newInstance(
                 this.itemsWithOrder.map(([key]) => key),
-            );
+            ) as unknown as Collection<TKey, number>;
         }
 
-        return new Collection<TKey, number>(dataKeys(this.items) as TKey[]);
+        return this.newInstance(
+            dataKeys(this.items) as TKey[],
+        ) as unknown as Collection<TKey, number>;
     }
 
     /**
@@ -1821,13 +1796,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | ((item: TValue, key: TKey) => string | number)
             | null = null,
     ): Collection<TPluckValue, TKey> {
-        return new Collection<TPluckValue, TKey>(
+        return this.newInstance(
             dataPluck(
                 this.items,
                 value as string | ((item: TValue, key: TKey) => TValue),
                 key,
             ) as DataItems<TPluckValue, TKey>,
-        );
+        ) as unknown as Collection<TPluckValue, TKey>;
     }
 
     /**
@@ -1842,9 +1817,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).map((value, key) => value * 2); -> new Collection({a: 2, b: 4, c: 6})
      */
     map<TMapValue>(callback: (value: TValue, key: TKey) => TMapValue) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            dataMap(this.items, callback),
-        );
+        return this.newInstance(dataMap(this.items, callback));
     }
 
     /**
@@ -1911,9 +1884,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            dictionary,
-        );
+        return this.newInstance(dictionary);
     }
 
     /**
@@ -1953,9 +1924,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 }
             }
 
-            return new (this.constructor as new (...args: unknown[]) => this)(
-                map,
-            );
+            return this.newInstance(map);
         }
 
         return this.newInstance(dataMapWithKeys(this.items, callback));
@@ -1988,10 +1957,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const rawItems = this.getRawItems(items);
 
         if (isArray(this.items) && isArray(rawItems)) {
-            return new (this.constructor as new (...args: unknown[]) => this)([
-                ...this.items,
-                ...rawItems,
-            ]);
+            return this.newInstance([...this.items, ...rawItems]);
         }
 
         if (isObject(this.items) && isObject(rawItems)) {
@@ -2088,9 +2054,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 }
             }
 
-            return new (this.constructor as new (...args: unknown[]) => this)(
-                result as TValue[],
-            );
+            return this.newInstance(result as TValue[]);
         }
 
         if (isObject(this.items) && isObject(otherItems)) {
@@ -2099,9 +2063,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 TValue | TMergeRecursiveValue
             >;
 
-            return new (this.constructor as new (...args: unknown[]) => this)(
-                result,
-            );
+            return this.newInstance(result);
         }
 
         return this.merge(items as DataItems<TValue, TKey>) as Collection<
@@ -2124,7 +2086,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).multiply(0); -> new Collection([1, 2])
      */
     multiply(multiplier: number) {
-        const newCollection = new Collection();
+        const newCollection = this.newInstance();
 
         for (let i = 0; i < multiplier; i++) {
             newCollection.push(...this.getItemValues(this.items));
@@ -2151,7 +2113,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Record<TCombineKey, TCombineValue>
             | Collection<TCombineValue, TCombineKey>,
     ) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return this.newInstance(
             dataCombine(
                 this.items as TValue[],
                 this.getRawItems(values) as TValue[],
@@ -2178,9 +2140,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this;
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            dataUnion(this.items, this.getRawItems(items)),
-        );
+        return this.newInstance(dataUnion(this.items, this.getRawItems(items)));
     }
 
     /**
@@ -2217,7 +2177,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             position++;
         }
 
-        return new Collection<TValue[], number>(newItems);
+        return this.newInstance(newItems) as unknown as Collection<
+            TValue[],
+            number
+        >;
     }
 
     /**
@@ -2238,18 +2201,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
         ...keys: PathKey[] | PathKeys[] | Collection<T, K>[]
     ) {
         if (keys.every((key) => isNull(key))) {
-            return new (this.constructor as new (...args: unknown[]) => this)(
-                this.items,
-            );
+            return this.newInstance(this.items);
         }
 
         const keysParam = keys.flatMap((key) =>
             arrWrap(this.getRawItems(key)),
         ) as PathKey[];
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            dataOnly(this.items, keysParam),
-        );
+        return this.newInstance(dataOnly(this.items, keysParam));
     }
 
     /**
@@ -2268,16 +2227,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
         ...keys: PathKey[] | PathKeys[] | Collection<T, K>[]
     ) {
         if (keys.every((key) => isNull(key))) {
-            return new (this.constructor as new (...args: unknown[]) => this)(
-                this.items,
-            );
+            return this.newInstance(this.items);
         }
 
         const keysParam = keys.flatMap((key) =>
             arrWrap(this.getRawItems(key)),
         ) as PathKey[];
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return this.newInstance(
             dataSelect<TValue, TKey>(this.items, keysParam),
         );
     }
@@ -2297,7 +2254,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     pop(count: number): Collection<TValue[], number>;
     pop(count: number = 1): TValue | null | Collection<TValue[], number> {
         if (count < 1) {
-            return new Collection<TValue[], number>();
+            return this.newInstance() as unknown as Collection<
+                TValue[],
+                number
+            >;
         }
 
         if (count === 1) {
@@ -2320,7 +2280,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (this.isEmpty()) {
-            return new Collection<TValue[], number>();
+            return this.newInstance() as unknown as Collection<
+                TValue[],
+                number
+            >;
         }
 
         const poppedValues = dataPop(this.items, count) as TValue[];
@@ -2334,7 +2297,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             >;
         }
 
-        return new Collection<TValue[], number>(poppedValues);
+        return this.newInstance(poppedValues) as unknown as Collection<
+            TValue[],
+            number
+        >;
     }
 
     /**
@@ -2473,7 +2439,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Record<TConcatKey, TConcatValue>
             | Collection<TConcatValue, TConcatKey>,
     ) {
-        const result = new Collection(this.items);
+        const result = this.newInstance(this.items);
         const items = this.getRawItems(source);
 
         for (const [, value] of Object.entries(items)) {
@@ -2626,7 +2592,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         if (isFunction(count)) {
             const countValue = count(this) as number;
-            return new (this.constructor as new (...args: unknown[]) => this)(
+            return this.newInstance(
                 dataRandom(this.items, countValue, preserveKeys) as DataItems<
                     TValue,
                     TKey
@@ -2634,7 +2600,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return this.newInstance(
             dataRandom(this.items, count as number, preserveKeys) as DataItems<
                 TValue,
                 TKey
@@ -2656,7 +2622,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     replace<T, K extends PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return this.newInstance(
             dataReplace(this.items, this.getRawItems(items)),
         );
     }
@@ -2676,7 +2642,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     replaceRecursive<T, K extends PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
+        return this.newInstance(
             dataReplaceRecursive(this.items, this.getRawItems(items)),
         );
     }
@@ -2789,7 +2755,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (count === 0) {
-            return new Collection<TValue[], number>([]);
+            return this.newInstance([]) as unknown as Collection<
+                TValue[],
+                number
+            >;
         }
 
         if (count === 1) {
@@ -2826,7 +2795,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
-        return new Collection<TValue[], number>(shiftedValues);
+        return this.newInstance(shiftedValues) as unknown as Collection<
+            TValue[],
+            number
+        >;
     }
 
     /**
@@ -2904,9 +2876,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).slice(1, 1); -> new Collection({b: 2})
      */
     slice(offset: number, length: number | null = null) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            dataSlice(this.items, offset, length),
-        );
+        return this.newInstance(dataSlice(this.items, offset, length));
     }
 
     /**
@@ -2929,7 +2899,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             throw new Error("Number of groups must be at least 1.");
         }
 
-        const groups = new Collection<Collection<TValue, TKey>, number>();
+        const groups = this.newInstance() as unknown as Collection<
+            Collection<TValue, TKey>,
+            number
+        >;
 
         if (this.isEmpty()) {
             return groups;
@@ -2950,7 +2923,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             if (size > 0) {
                 groups.push(
-                    new Collection<TValue, TKey>(this.slice(start, size).items),
+                    this.newInstance(
+                        this.slice(start, size).items,
+                    ) as unknown as Collection<TValue, TKey>,
                 );
 
                 start += size;
@@ -3098,7 +3073,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         preserveKeys: boolean = true,
     ): Collection<Collection<TValue, TKey>, number> {
         if (size < 0) {
-            return new Collection<Collection<TValue, TKey>, number>();
+            return this.newInstance() as unknown as Collection<
+                Collection<TValue, TKey>,
+                number
+            >;
         }
 
         const chunks: Collection<TValue, TKey>[] = [];
@@ -3113,10 +3091,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
             : Object.values(chunkedData);
 
         for (const chunk of chunkedValues) {
-            chunks.push(new Collection(chunk as DataItems<TValue, TKey>));
+            chunks.push(
+                this.newInstance(
+                    chunk as DataItems<TValue, TKey>,
+                ) as unknown as Collection<TValue, TKey>,
+            );
         }
 
-        return new Collection<Collection<TValue, TKey>, number>(chunks);
+        return this.newInstance(chunks) as unknown as Collection<
+            Collection<TValue, TKey>,
+            number
+        >;
     }
 
     /**
@@ -3137,9 +3122,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | string
             | null = null,
     ) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            dataSort(this.items, callback),
-        );
+        return this.newInstance(dataSort(this.items, callback));
     }
 
     /**
@@ -3160,9 +3143,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | string
             | null = null,
     ) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            this.sort(callback).reverse().all(),
-        );
+        return this.newInstance(this.sort(callback).reverse().all());
     }
 
     /**
@@ -3243,7 +3224,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             orderedPairs.push([key, value]);
         }
 
-        const result = new Collection(sortedItems);
+        const result = this.newInstance(sortedItems);
 
         // Preserve insertion order for numeric keys
         if (hasNumericKeys) {
@@ -3345,7 +3326,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             orderedPairs.push([key as TKey, value as TValue]);
         }
 
-        const result = new Collection(sortedItems);
+        const result = this.newInstance(sortedItems);
         if (hasNumericKeys) {
             result.itemsWithOrder = orderedPairs;
         }
@@ -3408,9 +3389,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             )[key as TKey];
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            sortedItems,
-        );
+        return this.newInstance(sortedItems);
     }
 
     /**
@@ -3449,9 +3428,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             )[key as TKey];
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            sortedItems,
-        );
+        return this.newInstance(sortedItems);
     }
 
     /**
@@ -3485,9 +3462,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 : []),
         );
         this.items = result.value as DataItems<TValue, TKey>;
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            result.removed,
-        );
+        return this.newInstance(result.removed);
     }
 
     /**
@@ -3580,7 +3555,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             // We can't use Set because it uses SameValueZero (strict comparison)
             const seen: unknown[] = [];
 
-            return new (this.constructor as new (...args: unknown[]) => this)(
+            return this.newInstance(
                 dataFilter(this.items, (value) => {
                     // Check if we've seen this value using loose comparison
                     for (const seenValue of seen) {
@@ -3604,7 +3579,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             // This does deep comparison for arrays/objects but strict type checking for primitives
             const seen: unknown[] = [];
 
-            return new (this.constructor as new (...args: unknown[]) => this)(
+            return this.newInstance(
                 dataFilter(this.items, (value, key) => {
                     const result = callback(value, key as TKey);
 
@@ -3623,7 +3598,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             // For non-strict mode with a key/callback, use loose comparison
             const seen: unknown[] = [];
 
-            return new (this.constructor as new (...args: unknown[]) => this)(
+            return this.newInstance(
                 dataFilter(this.items, (value, key) => {
                     const result = callback(value, key as TKey);
 
@@ -3654,14 +3629,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
     values() {
         // Use itemsWithOrder when available to preserve numeric key insertion order
         if (this.itemsWithOrder) {
-            return new (this.constructor as new (...args: unknown[]) => this)(
+            return this.newInstance(
                 this.itemsWithOrder.map(([, value]) => value),
             );
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            dataValues(this.items) as DataItems<TValue>,
-        );
+        return this.newInstance(dataValues(this.items) as DataItems<TValue>);
     }
 
     /**
@@ -3708,12 +3681,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 }
             }
 
-            zipped.push(new Collection<TValue | TZipValue, number>(row));
+            zipped.push(
+                this.newInstance(row) as unknown as Collection<
+                    TValue | TZipValue,
+                    number
+                >,
+            );
         }
 
-        return new Collection<Collection<TValue | TZipValue, number>, number>(
-            zipped,
-        );
+        return this.newInstance(zipped) as unknown as Collection<
+            Collection<TValue | TZipValue, number>,
+            number
+        >;
     }
 
     /**
@@ -3731,9 +3710,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).pad(-4, 0); -> new Collection({'-2': 0, '-1': 0, a: 1, b: 2})
      */
     pad<TPadValue>(size: number, value: TPadValue) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            dataPad(this.items, size, value),
-        );
+        return this.newInstance(dataPad(this.items, size, value));
     }
 
     /**
@@ -3844,9 +3821,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            results,
-        );
+        return this.newInstance(results);
     }
 
     /**
@@ -4483,7 +4458,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         return groups.map(
             (group: unknown) =>
-                new Collection(group as DataItems<TMapToGroupsValue>),
+                this.newInstance(
+                    group as DataItems<TMapToGroupsValue, TMapToGroupsKey>,
+                ) as unknown as Collection<TMapToGroupsValue, TMapToGroupsKey>,
         );
     }
 
@@ -4625,10 +4602,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
             Boolean(callback(item as TValue, key as TKey)),
         );
 
-        return new Collection<Collection<TValue, TKey>, number>([
-            new Collection<TValue, TKey>(passed as DataItems<TValue, TKey>),
-            new Collection<TValue, TKey>(failed as DataItems<TValue, TKey>),
-        ]) as TupleCollection<
+        return this.newInstance([
+            this.newInstance(
+                passed as DataItems<TValue, TKey>,
+            ) as unknown as Collection<TValue, TKey>,
+            this.newInstance(
+                failed as DataItems<TValue, TKey>,
+            ) as unknown as Collection<TValue, TKey>,
+        ]) as unknown as Collection<
+            Collection<TValue, TKey>,
+            number
+        > as TupleCollection<
             Collection<TValue, TKey>,
             Collection<TValue, TKey>
         >;
@@ -4975,9 +4959,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns The result of the final callback in the series
      */
     pipeThrough(callbacks: Array<(instance: this) => unknown>) {
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            callbacks,
-        ).reduce<this>(
+        return this.newInstance(callbacks).reduce<this>(
             (carry, callback) =>
                 (callback as (instance: this) => unknown)(
                     carry as this,
@@ -5169,9 +5151,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns A new collection with the current items
      */
     collect() {
-        return new (this.constructor as new (...args: unknown[]) => this)(
-            this.all(),
-        );
+        return this.newInstance(this.all());
     }
 
     /**

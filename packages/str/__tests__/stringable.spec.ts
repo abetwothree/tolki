@@ -1095,6 +1095,15 @@ describe("Stringable basic delegation", () => {
         it("should return initials of the string", () => {
             expect(Str.of("Taylor Otwell").initials().value()).toBe("TO");
         });
+
+        it("should preserve lowercase initials by default", () => {
+            expect(Str.of("taylor otwell").initials().value()).toBe("to");
+        });
+
+        it("should capitalize initials when capitalize is true", () => {
+            expect(Str.of("taylor otwell").initials(true).value()).toBe("TO");
+            expect(Str.of("james bond").initials(true).value()).toBe("JB");
+        });
     });
 
     describe("apa", () => {
