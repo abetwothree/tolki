@@ -18,29 +18,29 @@ The full documentation for the enum utilities can be found at [https://tolki.abe
 
 ## Enum Utilities Installation
 
-The [`@tolki/enum`](https://www.npmjs.com/package/@tolki/enum) package provides a variety of enum manipulation utilities inspired by PHP's enum utilities like [from](https://www.php.net/manual/en/backedenum.from.php), [tryFrom](https://www.php.net/manual/en/backedenum.tryfrom.php), and [cases](https://www.php.net/manual/en/unitenum.cases.php).
+The [`@tolki/ts`](https://www.npmjs.com/package/@tolki/ts) package provides a variety of enum manipulation utilities inspired by PHP's enum utilities like [from](https://www.php.net/manual/en/backedenum.from.php), [tryFrom](https://www.php.net/manual/en/backedenum.tryfrom.php), and [cases](https://www.php.net/manual/en/unitenum.cases.php).
 
-This package is meant to be used with the Laravel enum package [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish), which transforms PHP enums into TypeScript enums. The `@tolki/enum` package provides utilities to work with these TypeScript enums in a way that is similar to how you would work with PHP enums in Laravel.
+This package is meant to be used with the Laravel enum package [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish), which transforms PHP enums into TypeScript enums. The `@tolki/ts` package provides utilities to work with these TypeScript enums in a way that is similar to how you would work with PHP enums in Laravel.
 
 You can install this package via npm, yarn, or pnpm:
 
 ```bash [npm]
-npm install @tolki/enum
+npm install @tolki/ts
 ```
 
 ```bash [yarn]
-yarn add @tolki/enum
+yarn add @tolki/ts
 ```
 
 ```bash [pnpm]
-pnpm add @tolki/enum
+pnpm add @tolki/ts
 ```
 
 ## Tolki Enum Utilities List
 
 ### Enum Utilities List
 
-As mentioned in the [Enum Utilities Installation](./index.md) page, the `@tolki/enum` package is not meant to be used as standalone package as it works with the [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) package to transform PHP enums into TypeScript enums. The functions below are being listed out for reference, not necessarily for direct use.
+As mentioned in the [Enum Utilities Installation](./index.md) page, the `@tolki/ts` package is not meant to be used as standalone package as it works with the [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) package to transform PHP enums into TypeScript enums. The functions below are being listed out for reference, not necessarily for direct use.
 
 [cases](#cases) [defineEnum](#defineenum) [from](#from) [tryFrom](#tryfrom)
 
@@ -51,7 +51,7 @@ As mentioned in the [Enum Utilities Installation](./index.md) page, the `@tolki/
 Similar to the PHP [cases](https://www.php.net/manual/en/unitenum.cases.php) method, this function returns an array of all the cases of the given enum.
 
 ```javascript
-import { cases } from "@tolki/enum";
+import { cases } from "@tolki/ts";
 import { Status } from "@js/types/enums";
 
 const result = cases(Status); // result is an array with an enum instance for each case in the Status enum
@@ -62,7 +62,7 @@ const result = cases(Status); // result is an array with an enum instance for ea
 This is a factory function that is automatically applied by the Laravel TypeScript Publisher package when it transforms PHP enums into TypeScript enums. It automatically adds the `cases`, `from`, and `tryFrom` methods to the transformed TypeScript enums.
 
 ```javascript
-import { defineEnum } from "@tolki/enum";
+import { defineEnum } from "@tolki/ts";
 
 const Status = defineEnum({
   ACTIVE: "active",
@@ -84,7 +84,7 @@ Status.tryFrom("non-valid-key"); // result null
 Similar to the PHP [from](https://www.php.net/manual/en/backedenum.from.php) method, this function returns the enum instance for the given value. If the value does not exist in the enum, it throws an error.
 
 ```javascript
-import { from } from "@tolki/enum";
+import { from } from "@tolki/ts";
 import { Status } from "@js/types/enums";
 
 const result = from(Status, "active"); // result is the enum instance for the ACTIVE case
@@ -96,7 +96,7 @@ const result2 = from(Status, "non-valid-key"); // throws an error because "non-v
 Similar to the PHP [tryFrom](https://www.php.net/manual/en/backedenum.tryfrom.php) method, this function returns the enum instance for the given value. If the value does not exist in the enum, it returns null instead of throwing an error.
 
 ```javascript
-import { tryFrom } from "@tolki/enum";
+import { tryFrom } from "@tolki/ts";
 import { Status } from "@js/types/enums";
 
 const result = tryFrom(Status, "active"); // result is the enum instance for the ACTIVE case
@@ -105,7 +105,7 @@ const result2 = tryFrom(Status, "non-valid-key"); // result is null because "non
 
 ## Tolki Enum Laravel TypeScript Publisher Vite Plugin
 
-The `@tolki/enum` package provides a Vite plugin to automatically watch for changes of the transformed PHP files by the [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) package.
+The `@tolki/ts` package provides a Vite plugin to automatically watch for changes of the transformed PHP files by the [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) package.
 
 The Laravel TypeScript Publisher package can publish a JSON file list of transformed PHP files. This Vite plugin uses that JSON file list to watch for changes in those PHP files and automatically call the `php artisan ts:publish` command to transform the changed PHP files into TypeScript files.
 
@@ -130,7 +130,7 @@ To use the Vite plugin, you need to add it to your Vite configuration file. Belo
 
 ```javascript
 import { defineConfig } from "vite";
-import { laravelTsPublish } from "@tolki/enum/vite";
+import { laravelTsPublish } from "@tolki/ts/vite";
 
 export default defineConfig({
   plugins: [laravelTsPublish()],
@@ -191,7 +191,7 @@ Below are the available options with a description and default values:
 
 ```javascript
 import { defineConfig } from "vite";
-import { laravelTsPublish } from "@tolki/enum/vite";
+import { laravelTsPublish } from "@tolki/ts/vite";
 
 export default defineConfig({
   plugins: [
@@ -285,7 +285,7 @@ export default defineConfig({
 
 ```javascript
 import { defineConfig } from "vite";
-import { laravelTsPublish } from "@tolki/enum/vite";
+import { laravelTsPublish } from "@tolki/ts/vite";
 
 export default defineConfig({
   plugins: [
@@ -300,7 +300,7 @@ export default defineConfig({
 
 ```javascript
 import { defineConfig } from "vite";
-import { laravelTsPublish } from "@tolki/enum/vite";
+import { laravelTsPublish } from "@tolki/ts/vite";
 
 export default defineConfig({
   plugins: [

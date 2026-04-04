@@ -1,11 +1,11 @@
-import * as Enum from "@tolki/enum";
+import * as Ts from "@tolki/ts";
 import { describe, expect, it } from "vitest";
 
 import * as Stubs from "./stubs";
 
 describe("from", () => {
     it("resolves a numeric enum case with instance methods", () => {
-        const result = Enum.from(Stubs.Status, 0);
+        const result = Ts.from(Stubs.Status, 0);
 
         expect(result).toEqual({
             name: "Draft",
@@ -23,7 +23,7 @@ describe("from", () => {
     });
 
     it("resolves a different case of the same enum", () => {
-        const result = Enum.from(Stubs.Status, 1);
+        const result = Ts.from(Stubs.Status, 1);
 
         expect(result).toEqual({
             name: "Published",
@@ -41,7 +41,7 @@ describe("from", () => {
     });
 
     it("resolves a string-valued enum case", () => {
-        const result = Enum.from(Stubs.Visibility, "Public");
+        const result = Ts.from(Stubs.Visibility, "Public");
 
         expect(result.value).toBe("Public");
         expect(result.is_public).toBe(true);
@@ -49,7 +49,7 @@ describe("from", () => {
     });
 
     it("resolves a string-valued enum case with false boolean", () => {
-        const result = Enum.from(Stubs.Visibility, "Private");
+        const result = Ts.from(Stubs.Visibility, "Private");
 
         expect(result.value).toBe("Private");
         expect(result.is_public).toBe(false);
@@ -57,7 +57,7 @@ describe("from", () => {
     });
 
     it("resolves a priority enum case", () => {
-        const result = Enum.from(Stubs.Priority, 3);
+        const result = Ts.from(Stubs.Priority, 3);
 
         expect(result.value).toBe(3);
         expect(result.label).toBe("Critical Priority");
@@ -67,14 +67,14 @@ describe("from", () => {
 
     it("throws when the value does not match any case", () => {
         expect(() => {
-            Enum.from(Stubs.Status, 999 as never);
+            Ts.from(Stubs.Status, 999 as never);
         }).toThrow(
             'Value "999" does not match any case in the enum. Values: 0, 1, Cases: Draft, Published',
         );
     });
 
     it("excludes helper properties from the resolved result", () => {
-        const result = Enum.from(Stubs.Priority, 0);
+        const result = Ts.from(Stubs.Priority, 0);
 
         expect(result).not.toHaveProperty("from");
         expect(result.value).toBe(0);
@@ -84,7 +84,7 @@ describe("from", () => {
 
 describe("tryFrom", () => {
     it("returns the resolved enum case for a valid value", () => {
-        const result = Enum.tryFrom(Stubs.Status, 0);
+        const result = Ts.tryFrom(Stubs.Status, 0);
 
         expect(result).not.toBeNull();
         expect(result!.value).toBe(0);
@@ -93,13 +93,13 @@ describe("tryFrom", () => {
     });
 
     it("returns null for an invalid value", () => {
-        const result = Enum.tryFrom(Stubs.Status, 999 as never);
+        const result = Ts.tryFrom(Stubs.Status, 999 as never);
 
         expect(result).toBeNull();
     });
 
     it("returns the resolved case for a string-valued enum", () => {
-        const result = Enum.tryFrom(Stubs.Visibility, "Private");
+        const result = Ts.tryFrom(Stubs.Visibility, "Private");
 
         expect(result).not.toBeNull();
         expect(result!.value).toBe("Private");
@@ -110,7 +110,7 @@ describe("tryFrom", () => {
 
 describe("cases", () => {
     it("returns all resolved instances for a numeric enum", () => {
-        const result = Enum.cases(Stubs.Status);
+        const result = Ts.cases(Stubs.Status);
 
         expect(result).toHaveLength(Stubs.Status._cases.length);
         expect(result[0]!.value).toBe(0);
@@ -122,7 +122,7 @@ describe("cases", () => {
     });
 
     it("returns all resolved instances for a string-valued enum", () => {
-        const result = Enum.cases(Stubs.Visibility);
+        const result = Ts.cases(Stubs.Visibility);
 
         expect(result).toHaveLength(Stubs.Visibility._cases.length);
         expect(result[0]!.value).toBe("Public");
@@ -132,7 +132,7 @@ describe("cases", () => {
     });
 
     it("preserves case order from _cases", () => {
-        const result = Enum.cases(Stubs.Priority);
+        const result = Ts.cases(Stubs.Priority);
 
         expect(result).toHaveLength(Stubs.Priority._cases.length);
         expect(result.map((c) => c.value)).toEqual([0, 1, 2, 3]);
@@ -147,7 +147,7 @@ describe("cases", () => {
 
 describe("defineEnum", () => {
     it("returns an object with from, tryFrom, and cases methods", () => {
-        const StatusEnum = Enum.defineEnum(Stubs.Status);
+        const StatusEnum = Ts.defineEnum(Stubs.Status);
 
         expect(StatusEnum.from).toBeTypeOf("function");
         expect(StatusEnum.tryFrom).toBeTypeOf("function");
@@ -155,7 +155,7 @@ describe("defineEnum", () => {
     });
 
     it("preserves the original enum data", () => {
-        const StatusEnum = Enum.defineEnum(Stubs.Status);
+        const StatusEnum = Ts.defineEnum(Stubs.Status);
 
         expect(StatusEnum.Draft).toBe(0);
         expect(StatusEnum.Published).toBe(1);
@@ -165,7 +165,7 @@ describe("defineEnum", () => {
     });
 
     it("from resolves cases correctly", () => {
-        const StatusEnum = Enum.defineEnum(Stubs.Status);
+        const StatusEnum = Ts.defineEnum(Stubs.Status);
         const result = StatusEnum.from(0);
 
         expect(result.value).toBe(0);
@@ -174,7 +174,7 @@ describe("defineEnum", () => {
     });
 
     it("from throws for invalid values", () => {
-        const StatusEnum = Enum.defineEnum(Stubs.Status);
+        const StatusEnum = Ts.defineEnum(Stubs.Status);
 
         expect(() => {
             StatusEnum.from(999 as never);
@@ -182,7 +182,7 @@ describe("defineEnum", () => {
     });
 
     it("tryFrom returns the resolved case for valid values", () => {
-        const StatusEnum = Enum.defineEnum(Stubs.Status);
+        const StatusEnum = Ts.defineEnum(Stubs.Status);
         const result = StatusEnum.tryFrom(1);
 
         expect(result).not.toBeNull();
@@ -200,14 +200,14 @@ describe("defineEnum", () => {
     });
 
     it("tryFrom returns null for invalid values", () => {
-        const StatusEnum = Enum.defineEnum(Stubs.Status);
+        const StatusEnum = Ts.defineEnum(Stubs.Status);
         const result = StatusEnum.tryFrom(999 as never);
 
         expect(result).toBeNull();
     });
 
     it("cases returns all resolved instances", () => {
-        const StatusEnum = Enum.defineEnum(Stubs.Status);
+        const StatusEnum = Ts.defineEnum(Stubs.Status);
         const result = StatusEnum.cases();
 
         expect(result).toHaveLength(2);
@@ -216,7 +216,7 @@ describe("defineEnum", () => {
     });
 
     it("works with string-valued enums", () => {
-        const VisibilityEnum = Enum.defineEnum(Stubs.Visibility);
+        const VisibilityEnum = Ts.defineEnum(Stubs.Visibility);
         const result = VisibilityEnum.from("Private");
 
         expect(result.value).toBe("Private");
@@ -225,7 +225,7 @@ describe("defineEnum", () => {
     });
 
     it("excludes helper properties from resolved results", () => {
-        const PriorityEnum = Enum.defineEnum(Stubs.Priority);
+        const PriorityEnum = Ts.defineEnum(Stubs.Priority);
         const result = PriorityEnum.from(2);
 
         expect(result).not.toHaveProperty("from");
@@ -237,12 +237,12 @@ describe("defineEnum", () => {
 describe("enums without _cases", () => {
     it("from throws when _cases is not defined", () => {
         expect(() => {
-            Enum.from(Stubs.NoCases as never, "active" as never);
+            Ts.from(Stubs.NoCases as never, "active" as never);
         }).toThrow("does not match any case in the enum");
     });
 
     it("cases returns an empty array when _cases is not defined", () => {
-        const result = Enum.cases(Stubs.NoCases as never);
+        const result = Ts.cases(Stubs.NoCases as never);
 
         expect(result).toEqual([]);
     });
@@ -250,26 +250,26 @@ describe("enums without _cases", () => {
 
 describe("enums without _methods or _static", () => {
     it("from resolves a case correctly", () => {
-        const result = Enum.from(Stubs.PaymentMethod, "paypal");
+        const result = Ts.from(Stubs.PaymentMethod, "paypal");
 
         expect(result).toEqual({ name: "PayPal", value: "paypal" });
     });
 
     it("tryFrom resolves a valid case", () => {
-        const result = Enum.tryFrom(Stubs.PaymentMethod, "crypto");
+        const result = Ts.tryFrom(Stubs.PaymentMethod, "crypto");
 
         expect(result).not.toBeNull();
         expect(result!.value).toBe("crypto");
     });
 
     it("tryFrom returns null for invalid value", () => {
-        const result = Enum.tryFrom(Stubs.PaymentMethod, "bitcoin" as never);
+        const result = Ts.tryFrom(Stubs.PaymentMethod, "bitcoin" as never);
 
         expect(result).toBeNull();
     });
 
     it("cases returns all resolved instances", () => {
-        const result = Enum.cases(Stubs.PaymentMethod);
+        const result = Ts.cases(Stubs.PaymentMethod);
 
         expect(result).toHaveLength(8);
         expect(result.map((c) => c.value)).toEqual([
@@ -285,7 +285,7 @@ describe("enums without _methods or _static", () => {
     });
 
     it("defineEnum works without _methods or _static", () => {
-        const PM = Enum.defineEnum(Stubs.PaymentMethod);
+        const PM = Ts.defineEnum(Stubs.PaymentMethod);
 
         expect(PM.from).toBeTypeOf("function");
         expect(PM.tryFrom).toBeTypeOf("function");

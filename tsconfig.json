@@ -1,7 +1,6 @@
 {
     "compilerOptions": {
         "outDir": "dist",
-        "baseUrl": ".",
         "module": "esnext",
         "moduleResolution": "bundler",
         "target": "esnext",
@@ -25,7 +24,7 @@
         "skipLibCheck": true,
         "noImplicitAny": false,
         "paths": {
-            "@tolki/*": ["packages/*/src/index.ts"]
+            "@tolki/*": ["./packages/*/src/index.ts"]
         }
     },
     "include": ["packages/**/src", "packages/**/__tests__"]

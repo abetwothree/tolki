@@ -3,7 +3,7 @@ import path from "node:path";
 import {
     laravelTsPublish,
     type LaravelTsPublishOptions,
-} from "@tolki/enum/vite";
+} from "@tolki/ts/vite";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type ExecCallback = (

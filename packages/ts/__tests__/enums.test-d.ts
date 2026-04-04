@@ -1,4 +1,4 @@
-import * as Enum from "@tolki/enum";
+import * as Ts from "@tolki/ts";
 import type {
     AsEnum,
     CaseKeys,
@@ -60,7 +60,7 @@ describe("from", () => {
     });
 
     it("from infers correct types for Status Draft", () => {
-        const result = Enum.from(Stubs.Status, 0);
+        const result = Ts.from(Stubs.Status, 0);
 
         expectTypeOf(result.value).toEqualTypeOf<0>();
         expectTypeOf(result.icon).toEqualTypeOf<"pencil">();
@@ -74,7 +74,7 @@ describe("from", () => {
     });
 
     it("from infers correct types for Status Published", () => {
-        const result = Enum.from(Stubs.Status, 1);
+        const result = Ts.from(Stubs.Status, 1);
 
         expectTypeOf(result.value).toEqualTypeOf<1>();
         expectTypeOf(result.icon).toEqualTypeOf<"check">();
@@ -82,7 +82,7 @@ describe("from", () => {
     });
 
     it("from infers correct types for Visibility", () => {
-        const result = Enum.from(Stubs.Visibility, "Public");
+        const result = Ts.from(Stubs.Visibility, "Public");
 
         expectTypeOf(result.value).toEqualTypeOf<"Public">();
         expectTypeOf(result.is_public).toEqualTypeOf<true>();
@@ -90,7 +90,7 @@ describe("from", () => {
     });
 
     it("from infers correct types for Priority", () => {
-        const result = Enum.from(Stubs.Priority, 3);
+        const result = Ts.from(Stubs.Priority, 3);
 
         expectTypeOf(result.value).toEqualTypeOf<3>();
         expectTypeOf(result.label).toEqualTypeOf<"Critical Priority">();
@@ -102,7 +102,7 @@ describe("from", () => {
 
     it("from infers union types when value comes from a variable", () => {
         const statusValue: Stubs.StatusType = 0 as Stubs.StatusType;
-        const result = Enum.from(Stubs.Status, statusValue);
+        const result = Ts.from(Stubs.Status, statusValue);
 
         expectTypeOf(result.value).toEqualTypeOf<0 | 1>();
         expectTypeOf(result.icon).toEqualTypeOf<"pencil" | "check">();
@@ -118,7 +118,7 @@ describe("from", () => {
 
 describe("tryFrom", () => {
     it("returns the resolved type or null for a valid value", () => {
-        const result = Enum.tryFrom(Stubs.Status, 0);
+        const result = Ts.tryFrom(Stubs.Status, 0);
 
         if (result) {
             expectTypeOf(result.value).toEqualTypeOf<0>();
@@ -135,7 +135,7 @@ describe("tryFrom", () => {
 
     it("returns union types when value is a variable", () => {
         const statusValue: Stubs.StatusType = 0 as Stubs.StatusType;
-        const result = Enum.tryFrom(Stubs.Status, statusValue);
+        const result = Ts.tryFrom(Stubs.Status, statusValue);
 
         if (result) {
             expectTypeOf(result.value).toEqualTypeOf<0 | 1>();
@@ -147,7 +147,7 @@ describe("tryFrom", () => {
 
 describe("cases", () => {
     it("returns an array of resolved enum instances", () => {
-        const result = Enum.cases(Stubs.Status);
+        const result = Ts.cases(Stubs.Status);
         const first = result[0]!;
 
         expectTypeOf(result).toBeArray();
@@ -157,7 +157,7 @@ describe("cases", () => {
     });
 
     it("returns correct types for a string-valued enum", () => {
-        const result = Enum.cases(Stubs.Visibility);
+        const result = Ts.cases(Stubs.Visibility);
         const first = result[0]!;
 
         expectTypeOf(result).toBeArray();
@@ -175,13 +175,13 @@ describe("cases", () => {
 
 describe("defineEnum", () => {
     it("returns DefineEnumResult type", () => {
-        const StatusEnum = Enum.defineEnum(Stubs.Status);
+        const StatusEnum = Ts.defineEnum(Stubs.Status);
 
         expectTypeOf(StatusEnum).toExtend<DefineEnumResult<StatusEnum>>();
     });
 
     it("preserves original enum data types", () => {
-        const StatusEnum = Enum.defineEnum(Stubs.Status);
+        const StatusEnum = Ts.defineEnum(Stubs.Status);
 
         expectTypeOf(StatusEnum.Draft).toEqualTypeOf<0>();
         expectTypeOf(StatusEnum.Published).toEqualTypeOf<1>();
@@ -190,7 +190,7 @@ describe("defineEnum", () => {
     });
 
     it("from infers literal types for a specific value", () => {
-        const StatusEnum = Enum.defineEnum(Stubs.Status);
+        const StatusEnum = Ts.defineEnum(Stubs.Status);
         const result = StatusEnum.from(0);
 
         expectTypeOf(result.value).toEqualTypeOf<0>();
@@ -202,7 +202,7 @@ describe("defineEnum", () => {
     });
 
     it("from infers union types when value is a variable", () => {
-        const StatusEnum = Enum.defineEnum(Stubs.Status);
+        const StatusEnum = Ts.defineEnum(Stubs.Status);
         const statusValue: Stubs.StatusType = 0 as Stubs.StatusType;
         const result = StatusEnum.from(statusValue);
 
@@ -212,7 +212,7 @@ describe("defineEnum", () => {
     });
 
     it("tryFrom returns nullable type", () => {
-        const StatusEnum = Enum.defineEnum(Stubs.Status);
+        const StatusEnum = Ts.defineEnum(Stubs.Status);
         const result = StatusEnum.tryFrom(0);
 
         if (result) {
@@ -223,7 +223,7 @@ describe("defineEnum", () => {
     });
 
     it("cases returns correct array type", () => {
-        const StatusEnum = Enum.defineEnum(Stubs.Status);
+        const StatusEnum = Ts.defineEnum(Stubs.Status);
         const result = StatusEnum.cases();
         const first = result[0]!;
 
@@ -234,7 +234,7 @@ describe("defineEnum", () => {
     });
 
     it("works with string-valued enums", () => {
-        const VisibilityEnum = Enum.defineEnum(Stubs.Visibility);
+        const VisibilityEnum = Ts.defineEnum(Stubs.Visibility);
         const result = VisibilityEnum.from("Public");
 
         expectTypeOf(result.value).toEqualTypeOf<"Public">();
@@ -266,20 +266,20 @@ describe("enums without _methods or _static", () => {
     });
 
     it("from resolves to value-only result", () => {
-        const result = Enum.from(Stubs.PaymentMethod, "paypal");
+        const result = Ts.from(Stubs.PaymentMethod, "paypal");
 
         expectTypeOf(result.value).toEqualTypeOf<"paypal">();
     });
 
     it("defineEnum from infers correct type", () => {
-        const PM = Enum.defineEnum(Stubs.PaymentMethod);
+        const PM = Ts.defineEnum(Stubs.PaymentMethod);
         const result = PM.from("crypto");
 
         expectTypeOf(result.value).toEqualTypeOf<"crypto">();
     });
 
     it("cases returns correct array type", () => {
-        const result = Enum.cases(Stubs.PaymentMethod);
+        const result = Ts.cases(Stubs.PaymentMethod);
         const first = result[0]!;
 
         expectTypeOf(result).toBeArray();
@@ -367,7 +367,7 @@ describe("AsEnum", () => {
     });
 
     it("excludes helper keys from defineEnum'd enums", () => {
-        type PriorityDefined = Enum.DefineEnumResult<PriorityEnum>;
+        type PriorityDefined = Ts.DefineEnumResult<PriorityEnum>;
         type PriorityResource = AsEnum<PriorityDefined>;
 
         expectTypeOf<PriorityResource["value"]>().toEqualTypeOf<

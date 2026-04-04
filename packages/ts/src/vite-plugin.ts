@@ -137,7 +137,7 @@ export interface LaravelTsPublishOptions {
  * ```ts
  * // vite.config.ts
  * import { defineConfig } from "vite";
- * import { laravelTsPublish } from "@tolki/enum";
+ * import { laravelTsPublish } from "@tolki/ts/vite";
  *
  * export default defineConfig({
  *     plugins: [
