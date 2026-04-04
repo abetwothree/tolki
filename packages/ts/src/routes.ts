@@ -318,13 +318,20 @@ function buildUrl(
     for (const arg of argsMeta) {
         if (arg.where && arg.name in mergedParams) {
             const resolved = resolveParamValue(mergedParams[arg.name], arg);
-            if (
-                resolved !== "" &&
-                !new RegExp(`^${arg.where}$`).test(resolved)
-            ) {
-                throw new Error(
-                    `Route error: '${arg.name}' parameter '${resolved}' does not match required format '${arg.where}'.`,
-                );
+            if (resolved !== "") {
+                let pattern: RegExp;
+                try {
+                    pattern = new RegExp(`^${arg.where}$`);
+                } catch {
+                    throw new Error(
+                        `Route error: '${arg.name}' has invalid 'where' constraint pattern '${arg.where}'.`,
+                    );
+                }
+                if (!pattern.test(resolved)) {
+                    throw new Error(
+                        `Route error: '${arg.name}' parameter '${resolved}' does not match required format '${arg.where}'.`,
+                    );
+                }
             }
         }
     }

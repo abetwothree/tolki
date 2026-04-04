@@ -396,6 +396,14 @@ describe("where constraints", () => {
             "does not match required format",
         );
     });
+
+    it("throws a clean error when where pattern is invalid regex", () => {
+        const route = Ts.defineRoute(Stubs.invalidWhere);
+
+        expect(() => route({ page: "anything" })).toThrow(
+            "invalid 'where' constraint pattern",
+        );
+    });
 });
 
 describe("query string encoding", () => {
