@@ -113,17 +113,6 @@ export type RouteMetadata<
 };
 
 /**
- * Helper type: extract names of all args from a tuple that have `required: false`.
- */
-type OptionalArgNames<TArgs extends readonly RouteArgMeta[]> = {
-    [I in keyof TArgs]: TArgs[I] extends { readonly required: false }
-        ? TArgs[I] extends { readonly name: infer N extends string }
-            ? N
-            : never
-        : never;
-}[number];
-
-/**
  * Helper type: check if all args in a tuple are optional.
  */
 type AllArgsOptional<TArgs extends readonly RouteArgMeta[]> = {
