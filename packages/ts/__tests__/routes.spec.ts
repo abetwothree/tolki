@@ -721,3 +721,54 @@ describe("Routes with domains defined", () => {
         );
     });
 });
+
+describe("mid-path optional parameters (double-slash fix)", () => {
+    it("omitting first optional param does not produce double slashes", () => {
+        const route = Ts.defineRoute(Stubs.optionalMidPath);
+        const result = route({ member: "jane" });
+
+        expect(result.url).toBe("/team/members/jane/profile");
+    });
+
+    it("omitting second optional param does not produce double slashes", () => {
+        const route = Ts.defineRoute(Stubs.optionalMidPath);
+        const result = route({ team: "alpha" });
+
+        expect(result.url).toBe("/team/alpha/members/profile");
+    });
+
+    it("omitting all optional params collapses all internal double slashes", () => {
+        const route = Ts.defineRoute(Stubs.optionalMidPath);
+        const result = route();
+
+        expect(result.url).toBe("/team/members/profile");
+    });
+
+    it("providing all optional params produces the full path", () => {
+        const route = Ts.defineRoute(Stubs.optionalMidPath);
+        const result = route({ team: "alpha", member: "jane" });
+
+        expect(result.url).toBe("/team/alpha/members/jane/profile");
+    });
+
+    it("domain route omitting optional param does not produce double slashes", () => {
+        const route = Ts.defineRoute(Stubs.domainOptional);
+        const result = route();
+
+        expect(result.url).toBe("https://example.com/org/dashboard");
+    });
+
+    it("domain route with optional param provided produces the full URL", () => {
+        const route = Ts.defineRoute(Stubs.domainOptional);
+        const result = route({ org: "acme" });
+
+        expect(result.url).toBe("https://example.com/org/acme/dashboard");
+    });
+
+    it("existing optionalMulti omitting first still works", () => {
+        const route = Ts.defineRoute(Stubs.optionalMulti);
+        const result = route({ two: "b" });
+
+        expect(result.url).toBe("/optional/b");
+    });
+});

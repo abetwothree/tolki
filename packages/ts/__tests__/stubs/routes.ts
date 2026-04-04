@@ -183,3 +183,24 @@ export const surprise = {
     methods: ["delete"] as const,
     args: [{ name: "post", required: true, _routeKey: "id" }] as const,
 };
+
+/** Route with multiple optional params where non-trailing ones can be omitted. */
+export const optionalMidPath = {
+    name: "optional.midpath",
+    url: "/team/{team?}/members/{member?}/profile",
+    domain: null,
+    methods: ["get"] as const,
+    args: [
+        { name: "team", required: false },
+        { name: "member", required: false },
+    ] as const,
+};
+
+/** Route with a domain and an optional param (mid-path double-slash edge case). */
+export const domainOptional = {
+    name: "domain.optional",
+    url: "https://example.com/org/{org?}/dashboard",
+    domain: "https://example.com",
+    methods: ["get"] as const,
+    args: [{ name: "org", required: false }] as const,
+};

@@ -346,7 +346,7 @@ function buildUrl(
         },
     );
 
-    url = url.replace(/\/+$/, "") || "/";
+    url = url.replace(/([^:])\/{2,}/g, "$1/").replace(/\/+$/, "") || "/";
 
     const extraParams: Record<string, unknown> = {};
 
