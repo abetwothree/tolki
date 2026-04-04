@@ -92,6 +92,9 @@ function resolveParamValue(
             if ("value" in value) {
                 return String(value["value"]);
             }
+            throw new Error(
+                `Route error: object passed as '${argMeta.name}' parameter is missing enum '.value' property.`,
+            );
         }
 
         if ("id" in value) {

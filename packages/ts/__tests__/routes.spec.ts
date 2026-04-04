@@ -562,13 +562,22 @@ describe("resolveParamValue edge cases", () => {
         expect(result.url).toBe("/enum/a");
     });
 
-    it("enum object without .value falls through to id check", () => {
+    it("enum object without .value throws instead of silent [object Object]", () => {
         const route = Ts.defineRoute(Stubs.enumOnly);
 
-        // @ts-expect-error testing fallback to id property on enum-bound param
-        const result = route({ val: { id: "b" } });
+        // @ts-expect-error testing object without .value on enum-bound param
+        expect(() => route({ val: { id: "b" } })).toThrow(
+            "missing enum '.value' property",
+        );
+    });
 
-        expect(result.url).toBe("/enum/b");
+    it("enum object without .value or .id also throws", () => {
+        const route = Ts.defineRoute(Stubs.enumOnly);
+
+        // @ts-expect-error testing object with neither .value nor .id on enum-bound param
+        expect(() => route({ val: { foo: "bar" } })).toThrow(
+            "missing enum '.value' property",
+        );
     });
 
     it("plain object without routeKey or enumValues or id is stringified", () => {
@@ -578,6 +587,15 @@ describe("resolveParamValue edge cases", () => {
         const result = route({ thing: { toString: () => "custom" } });
 
         expect(result.url).toBe("/plain/custom");
+    });
+
+    it("plain object with id but no binding extracts id", () => {
+        const route = Ts.defineRoute(Stubs.plainRequired);
+
+        // @ts-expect-error testing object with id on plain scalar param
+        const result = route({ thing: { id: 55 } });
+
+        expect(result.url).toBe("/plain/55");
     });
 
     it("handles null parameter as empty string", () => {
