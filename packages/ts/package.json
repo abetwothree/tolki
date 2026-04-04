@@ -44,7 +44,8 @@
         "tolki"
     ],
     "dependencies": {
-        "@tolki/types": "workspace:^"
+        "@tolki/types": "workspace:^",
+        "@tolki/utils": "workspace:^"
     },
     "peerDependencies": {
         "vite": "^7.0.0"
