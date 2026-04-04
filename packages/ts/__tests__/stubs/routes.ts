@@ -205,6 +205,15 @@ export const domainOptional = {
     args: [{ name: "org", required: false }] as const,
 };
 
+/** Route with an optional param that has a `where` constraint. */
+export const optionalWhere = {
+    name: "optional.where",
+    url: "/filtered/{page?}",
+    domain: null,
+    methods: ["get"] as const,
+    args: [{ name: "page", required: false, where: "[0-9]+" }] as const,
+};
+
 /** Route with an invalid regex `where` constraint (malformed pattern). */
 export const invalidWhere = {
     name: "invalid.where",

@@ -404,6 +404,20 @@ describe("where constraints", () => {
             "invalid 'where' constraint pattern",
         );
     });
+
+    it("skips validation when optional where-constrained param is omitted", () => {
+        const route = Ts.defineRoute(Stubs.optionalWhere);
+        const result = route();
+
+        expect(result.url).toBe("/filtered");
+    });
+
+    it("skips where validation when param resolves to empty string", () => {
+        const route = Ts.defineRoute(Stubs.optionalWhere);
+        const result = route({ page: null });
+
+        expect(result.url).toBe("/filtered");
+    });
 });
 
 describe("query string encoding", () => {
