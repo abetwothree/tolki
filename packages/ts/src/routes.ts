@@ -303,6 +303,15 @@ function buildUrl(
     argsMeta: readonly RouteArgMeta[],
     queryOptions?: RouteQueryOptions,
 ): string {
+    let template = urlTemplate;
+    if (
+        !template.startsWith("/") &&
+        !template.startsWith("//") &&
+        !template.includes("://")
+    ) {
+        template = `//${template}`;
+    }
+
     const argsMap = new Map(argsMeta.map((a) => [a.name, a]));
 
     const mergedParams: Record<string, unknown> = {};
@@ -336,7 +345,7 @@ function buildUrl(
         }
     }
 
-    let url = urlTemplate.replace(
+    let url = template.replace(
         /{([^}?]+)(\??)}/g,
         (_, segment: string, optional: string) => {
             const value = mergedParams[segment];

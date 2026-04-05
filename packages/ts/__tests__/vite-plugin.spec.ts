@@ -650,7 +650,10 @@ describe("laravelTsPublish", () => {
 
         it("should use custom command without --only-functional when onBuildOnlyFunctional is false", async () => {
             await setupPlugin(
-                { command: "sail artisan ts:publish", onBuildOnlyFunctional: false },
+                {
+                    command: "sail artisan ts:publish",
+                    onBuildOnlyFunctional: false,
+                },
                 "build",
             );
 

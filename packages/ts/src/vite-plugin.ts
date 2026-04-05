@@ -343,7 +343,8 @@ export function laravelTsPublish(
             if (config.command === "build") {
                 if (runOnBuildStart) {
                     let buildCommand =
-                        onBuildOnlyFunctional && !command.includes("--only-functional")
+                        onBuildOnlyFunctional &&
+                        !command.includes("--only-functional")
                             ? `${command} --only-functional`
                             : command;
 

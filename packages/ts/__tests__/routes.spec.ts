@@ -812,3 +812,197 @@ describe("mid-path optional parameters (double-slash fix)", () => {
         expect(result.url).toBe("/optional/b");
     });
 });
+
+describe("domain without protocol (domainNoProtocol)", () => {
+    it("prepends protocol-relative // to bare domain URL", () => {
+        const route = Ts.defineRoute(Stubs.domainNoProtocol);
+        const result = route();
+
+        expect(result.url).toBe("//api.example.com/domain");
+        expect(result.method).toBe("get");
+    });
+
+    it(".url() returns protocol-relative URL", () => {
+        const route = Ts.defineRoute(Stubs.domainNoProtocol);
+
+        expect(route.url()).toBe("//api.example.com/domain");
+    });
+
+    it("toString() returns protocol-relative URL", () => {
+        const route = Ts.defineRoute(Stubs.domainNoProtocol);
+
+        expect(route.toString()).toBe("//api.example.com/domain");
+    });
+
+    it("appends query string to protocol-relative domain URL", () => {
+        const route = Ts.defineRoute(Stubs.domainNoProtocol);
+        const result = route({ page: 3 });
+
+        expect(result.url).toBe("//api.example.com/domain?page=3");
+    });
+});
+
+describe("UUID-bound route (uuidRoute)", () => {
+    it("resolves UUID scalar value via named param", () => {
+        const route = Ts.defineRoute(Stubs.uuidRoute);
+        const result = route({
+            uuidPost: "550e8400-e29b-41d4-a716-446655440000",
+        });
+
+        expect(result.url).toBe(
+            "/pk-test/550e8400-e29b-41d4-a716-446655440000",
+        );
+    });
+
+    it("resolves model object with uuid route key", () => {
+        const route = Ts.defineRoute(Stubs.uuidRoute);
+        const result = route({ uuidPost: { uuid: "abc-123" } });
+
+        expect(result.url).toBe("/pk-test/abc-123");
+    });
+
+    it("falls back to id when uuid key is missing from object", () => {
+        const route = Ts.defineRoute(Stubs.uuidRoute);
+        const result = route({ uuidPost: { id: 42 } });
+
+        expect(result.url).toBe("/pk-test/42");
+    });
+
+    it("throws when object has neither uuid nor id", () => {
+        const route = Ts.defineRoute(Stubs.uuidRoute);
+
+        // @ts-expect-error testing object without uuid or id keys
+        expect(() => route({ uuidPost: { slug: "nope" } })).toThrow(
+            "missing route model binding key 'uuid'",
+        );
+    });
+
+    it("resolves via spread scalar", () => {
+        const route = Ts.defineRoute(Stubs.uuidRoute);
+        const result = route("abc-def-123");
+
+        expect(result.url).toBe("/pk-test/abc-def-123");
+    });
+
+    it("resolves via array form", () => {
+        const route = Ts.defineRoute(Stubs.uuidRoute);
+        const result = route(["some-uuid"]);
+
+        expect(result.url).toBe("/pk-test/some-uuid");
+    });
+
+    it("appends query params", () => {
+        const route = Ts.defineRoute(Stubs.uuidRoute);
+        const result = route({ uuidPost: "abc-123", include: "comments" });
+
+        expect(result.url).toBe("/pk-test/abc-123?include=comments");
+    });
+});
+
+describe("integer where-constrained route (showInt)", () => {
+    it("passes with valid integer value", () => {
+        const route = Ts.defineRoute(Stubs.showInt);
+        const result = route({ id: 42 });
+
+        expect(result.url).toBe("/typed/42");
+    });
+
+    it("passes with integer as string", () => {
+        const route = Ts.defineRoute(Stubs.showInt);
+        const result = route({ id: "123" });
+
+        expect(result.url).toBe("/typed/123");
+    });
+
+    it("throws when value is a non-numeric string", () => {
+        const route = Ts.defineRoute(Stubs.showInt);
+
+        expect(() => route({ id: "abc" })).toThrow(
+            "does not match required format",
+        );
+    });
+
+    it("throws when value is a mixed alphanumeric string", () => {
+        const route = Ts.defineRoute(Stubs.showInt);
+
+        expect(() => route({ id: "12abc" })).toThrow(
+            "does not match required format",
+        );
+    });
+
+    it("throws when value is a boolean", () => {
+        const route = Ts.defineRoute(Stubs.showInt);
+
+        // boolean true becomes "true" which doesn't match [0-9]+
+        // @ts-expect-error testing boolean value on integer-constrained route
+        expect(() => route({ id: true })).toThrow(
+            "does not match required format",
+        );
+    });
+
+    it("throws when value is a float string", () => {
+        const route = Ts.defineRoute(Stubs.showInt);
+
+        expect(() => route({ id: "3.14" })).toThrow(
+            "does not match required format",
+        );
+    });
+
+    it("passes with zero", () => {
+        const route = Ts.defineRoute(Stubs.showInt);
+        const result = route({ id: 0 });
+
+        expect(result.url).toBe("/typed/0");
+    });
+
+    it("resolves via spread", () => {
+        const route = Ts.defineRoute(Stubs.showInt);
+        const result = route(99);
+
+        expect(result.url).toBe("/typed/99");
+    });
+});
+
+describe("plain enum parameter route (showRole)", () => {
+    it("resolves a role name as a plain string", () => {
+        const route = Ts.defineRoute(Stubs.showRole);
+        const result = route({ role: "Admin" });
+
+        expect(result.url).toBe("/typed/role/Admin");
+    });
+
+    it("resolves other role values", () => {
+        const route = Ts.defineRoute(Stubs.showRole);
+
+        expect(route({ role: "User" }).url).toBe("/typed/role/User");
+        expect(route({ role: "Guest" }).url).toBe("/typed/role/Guest");
+    });
+
+    it("resolves via spread scalar", () => {
+        const route = Ts.defineRoute(Stubs.showRole);
+        const result = route("Admin");
+
+        expect(result.url).toBe("/typed/role/Admin");
+    });
+
+    it("resolves via array form", () => {
+        const route = Ts.defineRoute(Stubs.showRole);
+        const result = route(["User"]);
+
+        expect(result.url).toBe("/typed/role/User");
+    });
+
+    it("throws when required role parameter is missing", () => {
+        const route = Ts.defineRoute(Stubs.showRole);
+
+        // @ts-expect-error testing missing required param
+        expect(() => route({})).toThrow("'role' parameter is required");
+    });
+
+    it("appends query params alongside role", () => {
+        const route = Ts.defineRoute(Stubs.showRole);
+        const result = route({ role: "Admin", verbose: true });
+
+        expect(result.url).toBe("/typed/role/Admin?verbose=1");
+    });
+});

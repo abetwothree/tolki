@@ -205,6 +205,38 @@ export const domainOptional = {
     args: [{ name: "org", required: false }] as const,
 };
 
+/** Route with a domain and no protocol. */
+export const domainNoProtocol = {
+    name: "domain.index",
+    url: "api.example.com/domain",
+    domain: "api.example.com",
+    methods: ["get"] as const,
+};
+
+/** Route with a UUID-bound parameter. */
+export const uuidRoute = {
+    name: "pk.show",
+    url: "/pk-test/{uuidPost}",
+    methods: ["get"] as const,
+    args: [{ name: "uuidPost", required: true, _routeKey: "uuid" }] as const,
+};
+
+/** Route with a `where` constraint that only allows integers. */
+export const showInt = {
+    name: "typed.show-int",
+    url: "/typed/{id}",
+    methods: ["get"] as const,
+    args: [{ name: "id", required: true, where: "[0-9]+" }] as const,
+};
+
+/** Route with an enum role parameter. */
+export const showRole = {
+    name: "typed.show-role",
+    url: "/typed/role/{role}",
+    methods: ["get"] as const,
+    args: [{ name: "role", required: true }] as const,
+};
+
 /** Route with an optional param that has a `where` constraint. */
 export const optionalWhere = {
     name: "optional.where",
