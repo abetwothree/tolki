@@ -62,19 +62,19 @@ export default defineConfig({
                 ],
             },
             {
-                text: "Enums",
+                text: "Laravel TypeScript",
                 items: [
                     {
                         text: "Installation & Usage",
-                        link: "/enums/",
+                        link: "/ts/",
                     },
                     {
                         text: "Enum Utilities List",
-                        link: "/enums/enum-utilities-list",
+                        link: "/ts/enum-utilities-list",
                     },
                     {
                         text: "Enum Vite Plugin",
-                        link: "/enums/enum-vite-plugin",
+                        link: "/ts/ts-vite-plugin",
                     },
                 ],
             },

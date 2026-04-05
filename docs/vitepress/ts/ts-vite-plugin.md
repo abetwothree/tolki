@@ -1,6 +1,6 @@
 # Tolki Enum Laravel TypeScript Publisher Vite Plugin
 
-The `@tolki/enum` package provides a Vite plugin to automatically watch for changes of the transformed PHP files by the [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) package.
+The `@tolki/ts` package provides a Vite plugin to automatically watch for changes of the transformed PHP files by the [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) package.
 
 The Laravel TypeScript Publisher package can publish a JSON file list of transformed PHP files. This Vite plugin uses that JSON file list to watch for changes in those PHP files and automatically call the `php artisan ts:publish` command to transform the changed PHP files into TypeScript files.
 
@@ -25,7 +25,7 @@ To use the Vite plugin, you need to add it to your Vite configuration file. Belo
 
 ```javascript
 import { defineConfig } from "vite";
-import { laravelTsPublish } from "@tolki/enum/vite";
+import { laravelTsPublish } from "@tolki/ts/vite";
 
 export default defineConfig({
   plugins: [laravelTsPublish()],
@@ -49,7 +49,7 @@ By default, the plugin will work in the following way:
 2. It will look for the list of transformed PHP files here: `resources/js/types/data/laravel-ts-collected-files.json`.
 3. If that manifest file changes, it will reload the watched file list without calling the publish command again.
 4. It will reload the page after a successful publish triggered by a watched PHP file change.
-5. It will call the publish command on `vite build` before bundling, with `--only-enums` appended by default (since model interfaces are type-only and erased at compile time).
+5. It will call the publish command on `vite build` before bundling, with `--only-functional` appended by default (since TypeScript interfaces are type-only and erased at compile time).
 6. It will throw an error if the publish command fails on `vite build`.
 7. When a single PHP file changes during `vite dev`, it will use `--source` to republish only that file instead of running a full publish.
 8. It will append `--quiet` to every command by default, suppressing all console output since the plugin only needs the exit code.
@@ -86,7 +86,7 @@ Below are the available options with a description and default values:
 
 ```javascript
 import { defineConfig } from "vite";
-import { laravelTsPublish } from "@tolki/enum/vite";
+import { laravelTsPublish } from "@tolki/ts/vite";
 
 export default defineConfig({
   plugins: [
@@ -155,14 +155,14 @@ export default defineConfig({
        */
       sourceCommand: 'php artisan ts:publish --source="{file}"',
       /**
-       * Whether to append `--only-enums` to the command during `vite build`.
+       * Whether to append `--only-functional` to the command during `vite build`.
        *
-       * Model interfaces are type-only and erased at compile time, so
+       * TypeScript interfaces are type-only and erased at compile time, so
        * generating them during production builds is unnecessary.
        *
        * Has no effect during `vite dev`.
        */
-      onBuildOnlyEnums: true,
+      onBuildOnlyFunctional: true,
       /**
        * Whether to append `--quiet` to every artisan command the plugin runs.
        *
@@ -180,7 +180,7 @@ export default defineConfig({
 
 ```javascript
 import { defineConfig } from "vite";
-import { laravelTsPublish } from "@tolki/enum/vite";
+import { laravelTsPublish } from "@tolki/ts/vite";
 
 export default defineConfig({
   plugins: [
@@ -195,7 +195,7 @@ export default defineConfig({
 
 ```javascript
 import { defineConfig } from "vite";
-import { laravelTsPublish } from "@tolki/enum/vite";
+import { laravelTsPublish } from "@tolki/ts/vite";
 
 export default defineConfig({
   plugins: [
