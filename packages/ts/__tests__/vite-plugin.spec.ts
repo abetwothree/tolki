@@ -572,17 +572,17 @@ describe("laravelTsPublish", () => {
     });
 
     describe("build mode", () => {
-        it("should run the command with --only-enums by default during buildStart", async () => {
+        it("should run the command with --only-functional by default during buildStart", async () => {
             const { mockConfig } = await setupPlugin(undefined, "build");
 
             expect(mockExec).toHaveBeenCalledWith(
-                "php artisan ts:publish --only-enums --quiet",
+                "php artisan ts:publish --only-functional --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
             expect(mockConfig.logger.info).toHaveBeenCalledWith(
                 expect.stringContaining(
-                    "Running: php artisan ts:publish --only-enums --quiet",
+                    "Running: php artisan ts:publish --only-functional --quiet",
                 ),
                 expect.any(Object),
             );
@@ -628,18 +628,18 @@ describe("laravelTsPublish", () => {
             );
         });
 
-        it("should use a custom command in build mode with --only-enums", async () => {
+        it("should use a custom command in build mode with --only-functional", async () => {
             await setupPlugin({ command: "sail artisan ts:publish" }, "build");
 
             expect(mockExec).toHaveBeenCalledWith(
-                "sail artisan ts:publish --only-enums --quiet",
+                "sail artisan ts:publish --only-functional --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
         });
 
-        it("should not append --only-enums when onBuildOnlyEnums is false", async () => {
-            await setupPlugin({ onBuildOnlyEnums: false }, "build");
+        it("should not append --only-functional when onBuildOnlyFunctional is false", async () => {
+            await setupPlugin({ onBuildOnlyFunctional: false }, "build");
 
             expect(mockExec).toHaveBeenCalledWith(
                 "php artisan ts:publish --quiet",
@@ -648,9 +648,9 @@ describe("laravelTsPublish", () => {
             );
         });
 
-        it("should use custom command without --only-enums when onBuildOnlyEnums is false", async () => {
+        it("should use custom command without --only-functional when onBuildOnlyFunctional is false", async () => {
             await setupPlugin(
-                { command: "sail artisan ts:publish", onBuildOnlyEnums: false },
+                { command: "sail artisan ts:publish", onBuildOnlyFunctional: false },
                 "build",
             );
 
@@ -678,7 +678,7 @@ describe("laravelTsPublish", () => {
             await setupPlugin({ quiet: false }, "build");
 
             expect(mockExec).toHaveBeenCalledWith(
-                "php artisan ts:publish --only-enums",
+                "php artisan ts:publish --only-functional",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -727,11 +727,11 @@ describe("laravelTsPublish", () => {
             );
         });
 
-        it("should not append --only-enums in dev mode even when onBuildOnlyEnums is true", async () => {
+        it("should not append --only-functional in dev mode even when onBuildOnlyFunctional is true", async () => {
             mockManifestExists();
             await setupPlugin({
                 runOnDevStart: true,
-                onBuildOnlyEnums: true,
+                onBuildOnlyFunctional: true,
             });
 
             expect(mockExec).toHaveBeenCalledWith(

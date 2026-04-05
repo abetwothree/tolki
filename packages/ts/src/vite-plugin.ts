@@ -89,17 +89,17 @@ export interface LaravelTsPublishOptions {
      */
     sourceCommand?: string | false;
     /**
-     * Whether to append `--only-enums` to the command during `vite build`.
+     * Whether to append `--only-functional` to the command during `vite build`.
      *
      * Model interfaces are type-only and erased at compile time, so generating
      * them during production builds is unnecessary. When `true`, the build
-     * command becomes e.g. `php artisan ts:publish --only-enums`.
+     * command becomes e.g. `php artisan ts:publish --only-functional`.
      *
      * Has no effect during `vite dev`.
      *
      * @default true
      */
-    onBuildOnlyEnums?: boolean;
+    onBuildOnlyFunctional?: boolean;
     /**
      * Whether to append `--quiet` to every artisan command the plugin runs.
      *
@@ -181,7 +181,7 @@ export function laravelTsPublish(
         reload = true,
         failOnError,
         sourceCommand: sourceCommandOption,
-        onBuildOnlyEnums = true,
+        onBuildOnlyFunctional = true,
         quiet = true,
     } = options;
 
@@ -343,8 +343,8 @@ export function laravelTsPublish(
             if (config.command === "build") {
                 if (runOnBuildStart) {
                     let buildCommand =
-                        onBuildOnlyEnums && !command.includes("--only-enums")
-                            ? `${command} --only-enums`
+                        onBuildOnlyFunctional && !command.includes("--only-functional")
+                            ? `${command} --only-functional`
                             : command;
 
                     if (quiet && !buildCommand.includes("--quiet")) {
