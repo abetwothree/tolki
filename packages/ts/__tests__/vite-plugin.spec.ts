@@ -1,6 +1,10 @@
 import path from "node:path";
 
-import { laravelTsPublish, type LaravelTsPublishOptions } from "@tolki/ts/vite";
+import {
+    escapeShellArg,
+    laravelTsPublish,
+    type LaravelTsPublishOptions,
+} from "@tolki/ts/vite";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type ExecCallback = (
@@ -347,13 +351,13 @@ describe("laravelTsPublish", () => {
 
             expect(result).toEqual([]);
             expect(mockExec).toHaveBeenCalledWith(
-                'php artisan ts:publish --source="app/Enums/Status.php" --quiet',
+                "php artisan ts:publish --source=app/Enums/Status.php --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
             expect(mockConfig.logger.info).toHaveBeenCalledWith(
                 expect.stringContaining(
-                    'Running: php artisan ts:publish --source="app/Enums/Status.php" --quiet',
+                    "Running: php artisan ts:publish --source=app/Enums/Status.php --quiet",
                 ),
                 expect.any(Object),
             );
@@ -374,7 +378,7 @@ describe("laravelTsPublish", () => {
             });
 
             expect(mockExec).toHaveBeenCalledWith(
-                'sail artisan ts:publish --source="app/Enums/Status.php" --quiet',
+                "sail artisan ts:publish --source=app/Enums/Status.php --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -974,7 +978,7 @@ describe("laravelTsPublish", () => {
             });
 
             expect(mockExec).toHaveBeenCalledWith(
-                'php artisan ts:publish --source="app/Enums/Status.php" --quiet',
+                "php artisan ts:publish --source=app/Enums/Status.php --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -983,7 +987,7 @@ describe("laravelTsPublish", () => {
         it("should use a custom sourceCommand template", async () => {
             mockManifestExists();
             const { plugin } = await setupPlugin({
-                sourceCommand: 'sail artisan ts:publish --source="{file}"',
+                sourceCommand: "sail artisan ts:publish --source={file}",
             });
 
             const absoluteFile = path.resolve(
@@ -995,7 +999,7 @@ describe("laravelTsPublish", () => {
             });
 
             expect(mockExec).toHaveBeenCalledWith(
-                'sail artisan ts:publish --source="app/Enums/Status.php" --quiet',
+                "sail artisan ts:publish --source=app/Enums/Status.php --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -1037,7 +1041,7 @@ describe("laravelTsPublish", () => {
             });
 
             expect(mockExec).toHaveBeenCalledWith(
-                'sail artisan ts:publish --source="app/Enums/Status.php" --quiet',
+                "sail artisan ts:publish --source=app/Enums/Status.php --quiet",
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );
@@ -1050,6 +1054,25 @@ describe("laravelTsPublish", () => {
             expect(mockConfig.logger.info).toHaveBeenCalledWith(
                 expect.stringContaining("Watching 3 PHP files"),
                 expect.any(Object),
+            );
+        });
+
+        it("should shell-escape file paths with unsafe characters", async () => {
+            const unsafeFile = "app/Models/My Model's File.php";
+            mockReadFile.mockResolvedValue(JSON.stringify([unsafeFile]));
+            const { plugin } = await setupPlugin();
+
+            const absoluteFile = mockNormalizePath(
+                path.resolve(MOCK_ROOT, unsafeFile),
+            );
+            await (plugin.handleHotUpdate as HotUpdateHook)({
+                file: absoluteFile,
+            });
+
+            expect(mockExec).toHaveBeenCalledWith(
+                "php artisan ts:publish --source='app/Models/My Model'\\''s File.php' --quiet",
+                { cwd: MOCK_ROOT },
+                expect.any(Function),
             );
         });
 
@@ -1085,7 +1108,7 @@ describe("laravelTsPublish", () => {
 
             // First command started with Status file path
             expect(commands).toHaveLength(1);
-            expect(commands[0]).toContain('--source="app/Enums/Status.php"');
+            expect(commands[0]).toContain("--source=app/Enums/Status.php");
 
             // Resolve first — triggers queued run (deduplicated to one entry)
             resolvers[0]!(undefined);
@@ -1094,7 +1117,7 @@ describe("laravelTsPublish", () => {
                 expect(commands).toHaveLength(2);
             });
 
-            expect(commands[1]).toContain('--source="app/Enums/Status.php"');
+            expect(commands[1]).toContain("--source=app/Enums/Status.php");
 
             resolvers[1]!(undefined);
             await first;
@@ -1142,7 +1165,7 @@ describe("laravelTsPublish", () => {
 
             // First command started with Status file path
             expect(commands).toHaveLength(1);
-            expect(commands[0]).toContain('--source="app/Enums/Status.php"');
+            expect(commands[0]).toContain("--source=app/Enums/Status.php");
 
             // Resolve first — triggers next queued file (Priority)
             resolvers[0]!(undefined);
@@ -1151,7 +1174,7 @@ describe("laravelTsPublish", () => {
                 expect(commands).toHaveLength(2);
             });
 
-            expect(commands[1]).toContain('--source="app/Enums/Priority.php"');
+            expect(commands[1]).toContain("--source=app/Enums/Priority.php");
 
             // Resolve second — triggers next queued file (User)
             resolvers[1]!(undefined);
@@ -1160,7 +1183,7 @@ describe("laravelTsPublish", () => {
                 expect(commands).toHaveLength(3);
             });
 
-            expect(commands[2]).toContain('--source="app/Models/User.php"');
+            expect(commands[2]).toContain("--source=app/Models/User.php");
 
             resolvers[2]!(undefined);
             await first;
@@ -1182,5 +1205,25 @@ describe("laravelTsPublish", () => {
                 expect.any(Function),
             );
         });
+    });
+});
+
+describe("escapeShellArg", () => {
+    it("should return empty quoted string for empty input", () => {
+        expect(escapeShellArg("")).toBe("''");
+    });
+
+    it("should pass through safe strings unchanged", () => {
+        expect(escapeShellArg("app/Models/User.php")).toBe(
+            "app/Models/User.php",
+        );
+    });
+
+    it("should single-quote strings with spaces", () => {
+        expect(escapeShellArg("my file.php")).toBe("'my file.php'");
+    });
+
+    it("should escape single quotes within the value", () => {
+        expect(escapeShellArg("it's a file.php")).toBe("'it'\\''s a file.php'");
     });
 });

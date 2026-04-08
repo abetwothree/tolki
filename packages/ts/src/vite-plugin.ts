@@ -12,6 +12,27 @@ import {
 
 const execAsync = promisify(exec);
 
+/**
+ * Escape a value for safe interpolation into a shell command string.
+ *
+ * Uses POSIX single-quote wrapping: the only character that requires
+ * escaping inside single quotes is the single quote itself.
+ *
+ * @param value - The raw string to escape.
+ * @returns A shell-safe string.
+ */
+export function escapeShellArg(value: string): string {
+    if (value === "") {
+        return "''";
+    }
+
+    if (/^[\w@%+=:,./-]+$/.test(value)) {
+        return value;
+    }
+
+    return "'" + value.replace(/'/g, "'\\''") + "'";
+}
+
 export interface LaravelTsPublishOptions {
     /**
      * The command to run when a watched PHP file changes.
@@ -77,15 +98,16 @@ export interface LaravelTsPublishOptions {
      *
      * When a watched PHP file changes, this command is used instead of the
      * full `command` to republish only the changed file. The `{file}`
-     * placeholder is replaced with the relative file path from the manifest.
+     * placeholder is replaced with the shell-escaped relative file path
+     * from the manifest — do not wrap it in additional quotes.
      *
      * When not specified, it is auto-derived by appending
-     * ` --source="{file}"` to the `command` option.
+     * ` --source={file}` to the `command` option.
      *
      * Set to `false` to disable single-file republishing and always run
      * the full command.
      *
-     * @default Derived from the `command` option: 'php artisan ts:publish --source="{file}"'
+     * @default Derived from the `command` option: 'php artisan ts:publish --source={file}'
      */
     sourceCommand?: string | false;
     /**
@@ -188,7 +210,7 @@ export function laravelTsPublish(
     const resolvedSourceCommand =
         sourceCommandOption === false
             ? false
-            : (sourceCommandOption ?? `${command} --source="{file}"`);
+            : (sourceCommandOption ?? `${command} --source={file}`);
 
     let config: ResolvedConfig;
     let server: ViteDevServer | undefined;
@@ -283,7 +305,10 @@ export function laravelTsPublish(
         const baseCommand = commandOverride ?? command;
         let effectiveCommand =
             sourceFile && resolvedSourceCommand
-                ? resolvedSourceCommand.replaceAll("{file}", sourceFile)
+                ? resolvedSourceCommand.replaceAll(
+                      "{file}",
+                      escapeShellArg(sourceFile),
+                  )
                 : baseCommand;
 
         if (quiet && !effectiveCommand.includes("--quiet")) {
