@@ -42,7 +42,7 @@ export default defineConfig({
         nav: [
             { text: "Home", link: "/" },
             { text: "Packages", link: "/packages" },
-            { text: "Enums", link: "/enums/" },
+            { text: "Laravel TypeScript", link: "/ts/" },
             { text: "Numbers", link: "/numbers/" },
             { text: "Strings", link: "/strings/" },
             { text: "TypeScript", link: "/typescript/" },
