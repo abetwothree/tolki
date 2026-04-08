@@ -105,9 +105,9 @@
     },
     "tolki": {
         "docs": [
-            "enums/index.md",
-            "enums/enum-utilities-list.md",
-            "enums/enum-vite-plugin.md"
+            "ts/index.md",
+            "ts/enum-utilities-list.md",
+            "ts/ts-vite-plugin.md"
         ]
     }
 }
