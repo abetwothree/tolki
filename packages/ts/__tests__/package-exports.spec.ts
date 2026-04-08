@@ -52,6 +52,16 @@ describe("package exports", () => {
         });
     });
 
+    it("publishes the routes subpath to the flat dist output", () => {
+        const manifest = readPackageManifest();
+
+        expect(manifest.publishConfig.exports["./routes"]).toEqual({
+            types: "./dist/routes.d.ts",
+            import: "./dist/routes.js",
+            default: "./dist/routes.js",
+        });
+    });
+
     it("publishes the vite subpath to the flat dist output", () => {
         const manifest = readPackageManifest();
 
