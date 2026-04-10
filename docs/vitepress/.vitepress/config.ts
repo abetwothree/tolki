@@ -42,7 +42,7 @@ export default defineConfig({
         nav: [
             { text: "Home", link: "/" },
             { text: "Packages", link: "/packages" },
-            { text: "Enums", link: "/enums/" },
+            { text: "Laravel TypeScript", link: "/ts/" },
             { text: "Numbers", link: "/numbers/" },
             { text: "Strings", link: "/strings/" },
             { text: "TypeScript", link: "/typescript/" },
@@ -62,19 +62,19 @@ export default defineConfig({
                 ],
             },
             {
-                text: "Enums",
+                text: "Laravel TypeScript",
                 items: [
                     {
                         text: "Installation & Usage",
-                        link: "/enums/",
+                        link: "/ts/",
                     },
                     {
                         text: "Enum Utilities List",
-                        link: "/enums/enum-utilities-list",
+                        link: "/ts/enum-utilities-list",
                     },
                     {
                         text: "Enum Vite Plugin",
-                        link: "/enums/enum-vite-plugin",
+                        link: "/ts/ts-vite-plugin",
                     },
                 ],
             },

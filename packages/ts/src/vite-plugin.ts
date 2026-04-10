@@ -1,0 +1,426 @@
+import { exec } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { promisify } from "node:util";
+
+import {
+    normalizePath,
+    type Plugin,
+    type ResolvedConfig,
+    type ViteDevServer,
+} from "vite";
+
+const execAsync = promisify(exec);
+
+/**
+ * Escape a value for safe interpolation into a shell command string.
+ *
+ * Uses POSIX single-quote wrapping: the only character that requires
+ * escaping inside single quotes is the single quote itself.
+ *
+ * @param value - The raw string to escape.
+ * @returns A shell-safe string.
+ */
+export function escapeShellArg(value: string): string {
+    if (value === "") {
+        return "''";
+    }
+
+    if (/^[\w@%+=:,./-]+$/.test(value)) {
+        return value;
+    }
+
+    return "'" + value.replace(/'/g, "'\\''") + "'";
+}
+
+export interface LaravelTsPublishOptions {
+    /**
+     * The command to run when a watched PHP file changes.
+     *
+     * The command is executed with Node's `exec()` using the Vite project root
+     * as the current working directory. Because it runs in a non-interactive
+     * shell, shell aliases such as `sail` are usually not available.
+     *
+     * Common setups:
+     * - Run Vite on the host machine with Laravel Sail: `./vendor/bin/sail artisan ts:publish`
+     * - Run Vite inside the container: `php artisan ts:publish`
+     *
+     * @default "php artisan ts:publish"
+     */
+    command?: string;
+    /**
+     * The filename of the JSON manifest listing collected PHP files.
+     *
+     * @default "laravel-ts-collected-files.json"
+     */
+    filename?: string;
+    /**
+     * The directory where the JSON manifest file exists, relative to the Vite root.
+     *
+     * @default "resources/js/types/data/"
+     */
+    directory?: string;
+    /**
+     * Whether to run the publish command once when `vite dev` starts.
+     *
+     * Has no effect during `vite build`.
+     *
+     * @default false
+     */
+    runOnDevStart?: boolean;
+    /**
+     * Whether to run the publish command once before bundling during
+     * `vite build`.
+     *
+     * Has no effect during `vite dev`.
+     *
+     * @default true
+     */
+    runOnBuildStart?: boolean;
+    /**
+     * Whether to trigger a full browser reload after the command runs
+     * successfully during `vite dev`.
+     *
+     * Has no effect during `vite build`.
+     *
+     * @default true
+     */
+    reload?: boolean;
+    /**
+     * Whether to throw an error (aborting the build) when the command fails.
+     *
+     * When not specified, defaults to `true` during `vite build` and `false`
+     * during `vite dev`.
+     */
+    failOnError?: boolean;
+    /**
+     * The command template for single-file republishing during `vite dev`.
+     *
+     * When a watched PHP file changes, this command is used instead of the
+     * full `command` to republish only the changed file. The `{file}`
+     * placeholder is replaced with the shell-escaped relative file path
+     * from the manifest — do not wrap it in additional quotes.
+     *
+     * When not specified, it is auto-derived by appending
+     * ` --source={file}` to the `command` option.
+     *
+     * Set to `false` to disable single-file republishing and always run
+     * the full command.
+     *
+     * @default Derived from the `command` option: 'php artisan ts:publish --source={file}'
+     */
+    sourceCommand?: string | false;
+    /**
+     * Whether to append `--only-functional` to the command during `vite build`.
+     *
+     * Model interfaces are type-only and erased at compile time, so generating
+     * them during production builds is unnecessary. When `true`, the build
+     * command becomes e.g. `php artisan ts:publish --only-functional`.
+     *
+     * Has no effect during `vite dev`.
+     *
+     * @default true
+     */
+    onBuildOnlyFunctional?: boolean;
+    /**
+     * Whether to append `--quiet` to every artisan command the plugin runs.
+     *
+     * The plugin only needs the exit code to determine success or failure;
+     * all stdout is ignored. Passing `--quiet` suppresses console output
+     * and Laravel Prompts rendering, which speeds up execution.
+     *
+     * @default true
+     */
+    quiet?: boolean;
+}
+
+/**
+ * Vite plugin that watches PHP source files listed in the Laravel TypeScript
+ * Publisher manifest and re-runs the publish command when any of them change.
+ *
+ * - **Build mode** (`vite build`): runs the command once before bundling so
+ *   TypeScript definitions are always up-to-date (disable with
+ *   `runOnBuildStart: false`). Fails the build by default if the command errors.
+ * - **Dev mode** (`vite dev`): loads the manifest, explicitly adds the listed
+ *   PHP files to the dev-server file watcher, and re-runs the command when any
+ *   of them change via HMR. Optionally runs the command once at startup when
+ *   `runOnDevStart` is `true`. Sends a full browser reload after every
+ *   successful run (disable with `reload: false`). Manifest updates only
+ *   refresh the watched-file list and do not trigger the command again.
+ * - **Command execution**: the configured command runs through Node's
+ *   `child_process.exec()` from the Vite project root. Shell aliases are not
+ *   resolved, so use a real executable path such as `./vendor/bin/sail` when
+ *   running Vite on the host with Laravel Sail.
+ *
+ * @param options - Configuration options for the plugin.
+ * @returns A Vite plugin object.
+ *
+ * @example
+ * ```ts
+ * // vite.config.ts
+ * import { defineConfig } from "vite";
+ * import { laravelTsPublish } from "@tolki/ts/vite";
+ *
+ * export default defineConfig({
+ *     plugins: [
+ *         laravelTsPublish(),
+ *     ],
+ * });
+ * ```
+ *
+ * @example
+ * ```ts
+ * // With Laravel Sail
+ * laravelTsPublish({
+ *     command: "./vendor/bin/sail artisan ts:publish",
+ * });
+ * ```
+ * @example
+ * ```ts
+ * // When Vite is already running inside the PHP container
+ * laravelTsPublish({
+ *     command: "php artisan ts:publish",
+ * });
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Also run the command when the dev server starts
+ * laravelTsPublish({
+ *     runOnDevStart: true,
+ * });
+ * ```
+ */
+export function laravelTsPublish(
+    options: LaravelTsPublishOptions = {},
+): Plugin {
+    const {
+        command = "php artisan ts:publish",
+        filename = "laravel-ts-collected-files.json",
+        directory = "resources/js/types/data/",
+        runOnDevStart = false,
+        runOnBuildStart = true,
+        reload = true,
+        failOnError,
+        sourceCommand: sourceCommandOption,
+        onBuildOnlyFunctional = true,
+        quiet = true,
+    } = options;
+
+    const resolvedSourceCommand =
+        sourceCommandOption === false
+            ? false
+            : (sourceCommandOption ?? `${command} --source={file}`);
+
+    let config: ResolvedConfig;
+    let server: ViteDevServer | undefined;
+
+    /** Maps absolute file path → relative manifest path. */
+    const watchedFiles = new Map<string, string>();
+    let manifestPath = "";
+    let isRunning = false;
+    const pendingQueue: Array<string | null> = [];
+    const pluginLabel = "[laravel-ts-publish]";
+
+    /**
+     * Read the JSON manifest asynchronously and populate the watched file map.
+     */
+    const loadWatchedFiles = async (): Promise<void> => {
+        watchedFiles.clear();
+
+        try {
+            const raw = await readFile(manifestPath, "utf-8");
+            const parsed: string[] = JSON.parse(raw);
+
+            for (const file of parsed) {
+                const absolute = normalizePath(path.resolve(config.root, file));
+                watchedFiles.set(absolute, file);
+            }
+        } catch (error) {
+            if (
+                error instanceof Error &&
+                (error as NodeJS.ErrnoException).code === "ENOENT"
+            ) {
+                config.logger.warn(
+                    `${pluginLabel} Manifest not found: ${manifestPath}`,
+                );
+                return;
+            }
+
+            config.logger.error(
+                `${pluginLabel} Failed to read manifest: ${
+                    error instanceof Error ? error.message : String(error)
+                }`,
+            );
+        }
+    };
+
+    /**
+     * Explicitly add all watched files to the dev-server's chokidar instance
+     * so that changes to non-module files (e.g. `.php`) are detected.
+     */
+    const addFilesToWatcher = (): void => {
+        if (server) {
+            for (const file of watchedFiles.keys()) {
+                server.watcher.add(file);
+            }
+        }
+    };
+
+    /**
+     * Resolve whether errors should throw based on the explicit option and
+     * the current Vite command.
+     */
+    const shouldThrowOnError = (): boolean => {
+        if (failOnError !== undefined) {
+            return failOnError;
+        }
+
+        return config.command === "build";
+    };
+
+    /**
+     * Execute a command with queue-based debounce protection.
+     *
+     * If a command is already running, the source file is added to a queue.
+     * After the current execution completes (success or failure), the next
+     * queued file is processed. Duplicate entries are skipped so each
+     * changed file is republished exactly once.
+     */
+    const runCommand = async (
+        sourceFile: string | null = null,
+        commandOverride?: string,
+    ): Promise<void> => {
+        if (isRunning) {
+            // Avoid duplicate queue entries for the same file.
+            if (!pendingQueue.includes(sourceFile)) {
+                pendingQueue.push(sourceFile);
+            }
+
+            return;
+        }
+
+        isRunning = true;
+
+        const baseCommand = commandOverride ?? command;
+        let effectiveCommand =
+            sourceFile && resolvedSourceCommand
+                ? resolvedSourceCommand.replaceAll(
+                      "{file}",
+                      escapeShellArg(sourceFile),
+                  )
+                : baseCommand;
+
+        if (quiet && !effectiveCommand.includes("--quiet")) {
+            effectiveCommand += " --quiet";
+        }
+
+        try {
+            config.logger.info(`${pluginLabel} Running: ${effectiveCommand}`, {
+                timestamp: true,
+            });
+
+            await execAsync(effectiveCommand, { cwd: config.root });
+
+            config.logger.info(`${pluginLabel} Types published successfully`, {
+                timestamp: true,
+            });
+
+            if (reload && server) {
+                server.ws.send({ type: "full-reload" });
+            }
+        } catch (error) {
+            const message = `${pluginLabel} Command failed: ${
+                error instanceof Error ? error.message : String(error)
+            }`;
+
+            if (shouldThrowOnError()) {
+                throw new Error(message, { cause: error });
+            }
+
+            config.logger.error(message);
+        } finally {
+            isRunning = false;
+
+            if (pendingQueue.length > 0) {
+                const next = pendingQueue.shift();
+                await runCommand(next);
+            }
+        }
+    };
+
+    return {
+        name: "@tolki/vite-plugin-laravel-ts-publish",
+        enforce: "pre",
+
+        configResolved(resolvedConfig) {
+            config = resolvedConfig;
+            manifestPath = normalizePath(
+                path.resolve(config.root, directory, filename),
+            );
+        },
+
+        configureServer(devServer) {
+            server = devServer;
+        },
+
+        async buildStart() {
+            if (config.command === "build") {
+                if (runOnBuildStart) {
+                    let buildCommand =
+                        onBuildOnlyFunctional &&
+                        !command.includes("--only-functional")
+                            ? `${command} --only-functional`
+                            : command;
+
+                    if (quiet && !buildCommand.includes("--quiet")) {
+                        buildCommand += " --quiet";
+                    }
+
+                    await runCommand(null, buildCommand);
+                }
+
+                return;
+            }
+
+            await loadWatchedFiles();
+            addFilesToWatcher();
+
+            if (watchedFiles.size > 0) {
+                config.logger.info(
+                    `${pluginLabel} Watching ${watchedFiles.size} PHP file${watchedFiles.size === 1 ? "" : "s"} for changes`,
+                    { timestamp: true },
+                );
+            }
+
+            if (runOnDevStart) {
+                await runCommand();
+            }
+        },
+
+        async handleHotUpdate({ file }) {
+            const normalizedFile = normalizePath(file);
+
+            if (normalizedFile === manifestPath) {
+                config.logger.info(
+                    `${pluginLabel} Manifest changed, reloading watched files`,
+                    { timestamp: true },
+                );
+
+                await loadWatchedFiles();
+                addFilesToWatcher();
+
+                return [];
+            }
+
+            if (watchedFiles.has(normalizedFile)) {
+                const sourceFile = watchedFiles.get(normalizedFile) ?? null;
+                await runCommand(sourceFile);
+
+                return [];
+            }
+
+            return undefined;
+        },
+    };
+}
