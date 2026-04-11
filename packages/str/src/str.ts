@@ -2525,6 +2525,7 @@ export function wordWrap(
 
             if (lastSpace > 0) {
                 out.push(line.slice(0, lastSpace));
+                /* oxlint-disable no-useless-assignment */
                 line = line.slice(lastSpace + 1);
                 continue;
             }
@@ -2533,6 +2534,7 @@ export function wordWrap(
             const nextSpace = line.search(/\s/u);
             if (nextSpace >= 0) {
                 out.push(line.slice(0, nextSpace));
+                /* oxlint-disable no-useless-assignment */
                 line = line.slice(nextSpace + 1);
                 continue;
             }

@@ -19,6 +19,7 @@ let totalErrors = 0;
 for (const [name, repoPath] of Object.entries(repos)) {
     if (!repoPath) {
         console.error(`  ❌ ${name}: path not set in .env`);
+        /* oxlint-disable no-useless-assignment */
         totalErrors++;
         continue;
     }
