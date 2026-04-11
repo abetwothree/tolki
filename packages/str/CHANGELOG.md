@@ -1,5 +1,11 @@
 # @tolki/str
 
+## 1.0.13
+
+### Patch Changes
+
+- 68cb120: Sync framework changes with a few Str functions accepting null values instead of throwing errors
+
 ## 1.0.12
 
 ### Patch Changes

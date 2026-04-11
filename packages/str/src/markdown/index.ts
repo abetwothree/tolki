@@ -34,10 +34,14 @@ export type MarkDownExtensions = MarkDownExtension[];
  * @requires {@link https://www.npmjs.com/package/markdown-it markdown-it package}
  */
 export function markdown(
-    value: string,
+    value: string | null,
     options: MarkDownOptions = { gfm: true, anchors: false },
     extensions: MarkDownExtensions = [],
 ): string {
+    if (value === null) {
+        return "";
+    }
+
     return markDownRenderer(options, extensions).render(value);
 }
 
@@ -54,10 +58,14 @@ export function markdown(
  * @requires {@link https://www.npmjs.com/package/markdown-it markdown-it package}
  */
 export function inlineMarkdown(
-    value: string,
+    value: string | null,
     options: MarkDownOptions = { gfm: true },
     extensions: MarkDownExtensions = [],
 ): string {
+    if (value === null) {
+        return "";
+    }
+
     return markDownRenderer(options, extensions).renderInline(value);
 }
 
