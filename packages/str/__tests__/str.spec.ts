@@ -80,6 +80,10 @@ describe("Str tests", () => {
                 expect(Str.transliterate(input)).toBe(expected);
             });
         });
+
+        it("should return empty string for null input", () => {
+            expect(Str.transliterate(null)).toBe("");
+        });
     });
 
     describe("before", () => {
@@ -1288,6 +1292,10 @@ describe("Str tests", () => {
             const html = Str.markdown("[click me](javascript:alert(1))");
             expect(html).toBe("<p>[click me](javascript:alert(1))</p>\n");
         });
+
+        it("should return empty string for null input", () => {
+            expect(Str.markdown(null)).toBe("");
+        });
     });
 
     describe("inlineMarkdown", () => {
@@ -1365,6 +1373,10 @@ describe("Str tests", () => {
         it("disallows unsafe links by default", () => {
             const html = Str.inlineMarkdown("[click me](javascript:alert(1))");
             expect(html).toBe("[click me](javascript:alert(1))");
+        });
+
+        it("should return empty string for null input", () => {
+            expect(Str.inlineMarkdown(null)).toBe("");
         });
     });
 

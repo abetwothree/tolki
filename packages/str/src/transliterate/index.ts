@@ -10,6 +10,10 @@ import anyAscii from "any-ascii";
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#transliterate
  */
-export function transliterate(value: string): string {
+export function transliterate(value: string | null): string {
+    if (value === null) {
+        return "";
+    }
+
     return anyAscii(value);
 }
