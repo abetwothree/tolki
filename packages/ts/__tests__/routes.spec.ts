@@ -1500,9 +1500,13 @@ describe("multi component (with args)", () => {
 
     it(".withComponent() selects component with args and options", () => {
         const route = Ts.defineRoute(Stubs.multiComponentWithArgs);
-        const result = route.withComponent("Items/Preview", { item: 3 }, {
-            expanded: "true",
-        });
+        const result = route.withComponent(
+            "Items/Preview",
+            { item: 3 },
+            {
+                expanded: "true",
+            },
+        );
 
         expect(result.url).toBe("/multi/3?expanded=true");
         expect(result.component).toBe("Items/Preview");

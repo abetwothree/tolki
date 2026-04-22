@@ -383,7 +383,7 @@ function buildUrl(
         }
     }
 
-    let url = template.replace(
+    const rawUrl = template.replace(
         /{([^}?]+)(\??)}/g,
         (_, segment: string, optional: string) => {
             const value = mergedParams[segment];
@@ -403,7 +403,8 @@ function buildUrl(
         },
     );
 
-    url = url.replace(/([^:])\/{2,}/g, "$1/").replace(/\/+$/, "") || "/";
+    const url =
+        rawUrl.replace(/([^:])\/{2,}/g, "$1/").replace(/\/+$/, "") || "/";
 
     const extraParams: Record<string, unknown> = {};
 
@@ -591,12 +592,7 @@ export function defineRoute<
                 const options = needsSpoofing
                     ? formSafeOptions(verb, rawOptions)
                     : rawOptions;
-                const action = buildUrl(
-                    metadata.url,
-                    named,
-                    argsMeta,
-                    options,
-                );
+                const action = buildUrl(metadata.url, named, argsMeta, options);
                 return makeFormResult(action, verbFormMethod);
             },
         });

@@ -244,8 +244,8 @@ export type DefineRouteResultWithArgs<
     definition: RouteMetadata<TMethods, TArgs, TComponent>;
     form: FormWithArgs<TMethods, TArgs>;
     toString(): string;
-} & VerbMethodsWithArgs<TMethods, TArgs> 
-  & ComponentMixin<TComponent, TMethods, TArgs>;
+} & VerbMethodsWithArgs<TMethods, TArgs> &
+    ComponentMixin<TComponent, TMethods, TArgs>;
 
 /**
  * The full return type of `defineRoute` for routes without args.
@@ -299,10 +299,9 @@ type WithComponentSingleNoArgs<
     TComponent extends string,
     TMethod extends string,
 > = {
-    (options?: RouteQueryOptions): RouteCallResultWithComponent<
-        TComponent,
-        TMethod
-    >;
+    (
+        options?: RouteQueryOptions,
+    ): RouteCallResultWithComponent<TComponent, TMethod>;
 };
 
 /**
@@ -326,10 +325,9 @@ type WithComponentSingleWithArgs<
               (
                   ...args: [...PositionalTuple<TArgs>, RouteQueryOptions]
               ): RouteCallResultWithComponent<TComponent, TMethod>;
-              (...args: PositionalTuple<TArgs>): RouteCallResultWithComponent<
-                  TComponent,
-                  TMethod
-              >;
+              (
+                  ...args: PositionalTuple<TArgs>
+              ): RouteCallResultWithComponent<TComponent, TMethod>;
           }
         : {
               (
@@ -343,10 +341,9 @@ type WithComponentSingleWithArgs<
               (
                   ...args: [...PositionalTuple<TArgs>, RouteQueryOptions]
               ): RouteCallResultWithComponent<TComponent, TMethod>;
-              (...args: PositionalTuple<TArgs>): RouteCallResultWithComponent<
-                  TComponent,
-                  TMethod
-              >;
+              (
+                  ...args: PositionalTuple<TArgs>
+              ): RouteCallResultWithComponent<TComponent, TMethod>;
           };
 
 /**
@@ -395,24 +392,16 @@ type ComponentMixin<
           readonly component: TComponent;
           withComponent: [TArgs] extends [readonly []] | [readonly never[]]
               ? WithComponentSingleNoArgs<TComponent, TMethods[0]>
-              : WithComponentSingleWithArgs<
-                    TComponent,
-                    TMethods[0],
-                    TArgs
-                >;
+              : WithComponentSingleWithArgs<TComponent, TMethods[0], TArgs>;
       }
     : TComponent extends Readonly<Record<string, string>>
       ? {
             readonly component: TComponent;
             withComponent: [TArgs] extends [readonly []] | [readonly never[]]
                 ? WithComponentMultiNoArgs<TComponent, TMethods[0]>
-                : WithComponentMultiWithArgs<
-                      TComponent,
-                      TMethods[0],
-                      TArgs
-                  >;
+                : WithComponentMultiWithArgs<TComponent, TMethods[0], TArgs>;
         }
-      : {};
+      : Record<string, never>;
 
 /**
  * Form callable signatures for routes with args.
@@ -487,5 +476,7 @@ type FormWithArgs<
 /**
  * The `.form` property on a route without args — callable + per-verb sub-methods.
  */
-type FormNoArgs<TMethods extends readonly string[]> =
-    FormCallableNoArgs<TMethods[0]> & FormVerbMethodsNoArgs<TMethods>;
+type FormNoArgs<TMethods extends readonly string[]> = FormCallableNoArgs<
+    TMethods[0]
+> &
+    FormVerbMethodsNoArgs<TMethods>;
