@@ -401,7 +401,7 @@ type ComponentMixin<
                 ? WithComponentMultiNoArgs<TComponent, TMethods[0]>
                 : WithComponentMultiWithArgs<TComponent, TMethods[0], TArgs>;
         }
-      : Record<string, never>;
+      : Record<never, never>;
 
 /**
  * Form callable signatures for routes with args.
