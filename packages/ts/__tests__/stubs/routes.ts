@@ -254,3 +254,47 @@ export const invalidWhere = {
     methods: ["get"] as const,
     args: [{ name: "page", required: true, where: "[abc)" }] as const,
 };
+
+/** Route with a single Inertia component (no args). */
+export const dashboardPage = {
+    name: "dashboard",
+    url: "/dashboard",
+    domain: null,
+    methods: ["get", "head"] as const,
+    component: "Dashboard",
+} as const;
+
+/** Route with a single Inertia component (with args). */
+export const userProfilePage = {
+    name: "user.profile",
+    url: "/users/{user}/profile",
+    domain: null,
+    methods: ["get", "head"] as const,
+    args: [{ name: "user", required: true, _routeKey: "id" }] as const,
+    component: "Users/Profile",
+} as const;
+
+/** Route with multiple Inertia components (no args). */
+export const conditionalPage = {
+    name: "conditional",
+    url: "/conditional",
+    domain: null,
+    methods: ["get"] as const,
+    component: {
+        authenticated: "Conditional/Authenticated",
+        guest: "Conditional/Guest",
+    },
+} as const;
+
+/** Route with multiple Inertia components (with args). */
+export const multiComponentWithArgs = {
+    name: "multi.component",
+    url: "/multi/{item}",
+    domain: null,
+    methods: ["get"] as const,
+    args: [{ name: "item", required: true, _routeKey: "id" }] as const,
+    component: {
+        detail: "Items/Detail",
+        preview: "Items/Preview",
+    },
+} as const;

@@ -2,6 +2,9 @@ import type {
     DefineRouteResult,
     RouteArgMeta,
     RouteCallResult,
+    RouteCallResultWithComponent,
+    RouteComponentType,
+    RouteFormResult,
     RouteMetadata,
     RouteQueryOptions,
 } from "@tolki/types";
@@ -19,43 +22,77 @@ export type {
     DefineRouteResult,
     RouteArgMeta,
     RouteCallResult,
+    RouteCallResultWithComponent,
+    RouteComponentType,
+    RouteFormResult,
     RouteMetadata,
     RouteQueryOptions,
 };
 
 /**
- * Module-level defaults store for global route parameter substitution.
- * Set via `setRouteDefaults()` — values are substituted into URL segments
- * before any caller-provided arguments.
+ * Empty defaults thunk, shared between initial state and reset.
+ *
+ * @returns An empty record.
  */
-let routeDefaults: Record<string, string> = {};
+const emptyDefaults = (): Record<string, string | number | boolean> => ({});
+
+/**
+ * Module-level defaults store for global route parameter substitution.
+ * Uses a thunk (factory function) for lazy evaluation and composability.
+ * Set via `setRouteDefaults()` or incrementally via `addRouteDefault()`.
+ */
+let routeDefaults: () => Record<string, string | number | boolean> =
+    emptyDefaults;
 
 /**
  * Set global default route parameter values.
  *
  * These values are substituted into URL segments automatically when
  * the caller doesn't provide them. Mirrors Laravel's `URL::defaults()`.
+ * Accepts a static object or a factory function for lazy evaluation.
  *
- * @param defaults - A record of parameter names to default values.
+ * @param defaults - A record of parameter names to default values, or a factory function.
  */
-export function setRouteDefaults(defaults: Record<string, string>): void {
-    routeDefaults = { ...defaults };
+export function setRouteDefaults(
+    defaults:
+        | Record<string, string | number | boolean>
+        | (() => Record<string, string | number | boolean>),
+): void {
+    routeDefaults =
+        typeof defaults === "function" ? defaults : () => ({ ...defaults });
 }
 
 /**
- * Get the current route defaults (useful for testing).
+ * Add a single route default without overwriting existing ones.
+ *
+ * @param key - The parameter name.
+ * @param value - The default value.
+ */
+export function addRouteDefault(
+    key: string,
+    value: string | number | boolean,
+): void {
+    const prev = routeDefaults;
+    routeDefaults = () => ({
+        ...prev(),
+        [key]: value,
+    });
+}
+
+/**
+ * Get the current route defaults (evaluates the thunk).
  *
  * @returns The current route defaults record.
  */
-export function getRouteDefaults(): Record<string, string> {
-    return { ...routeDefaults };
+export function getRouteDefaults(): Record<string, string | number | boolean> {
+    return { ...routeDefaults() };
 }
 
 /**
  * Reset route defaults to an empty object (useful for testing).
  */
 export function resetRouteDefaults(): void {
-    routeDefaults = {};
+    routeDefaults = emptyDefaults;
 }
 
 /**
@@ -313,11 +350,12 @@ function buildUrl(
     }
 
     const argsMap = new Map(argsMeta.map((a) => [a.name, a]));
+    const currentDefaults = routeDefaults();
 
     const mergedParams: Record<string, unknown> = {};
     for (const seg of argsMeta) {
-        if (seg.name in routeDefaults && !(seg.name in namedParams)) {
-            mergedParams[seg.name] = routeDefaults[seg.name];
+        if (seg.name in currentDefaults && !(seg.name in namedParams)) {
+            mergedParams[seg.name] = currentDefaults[seg.name];
         }
     }
     for (const [key, val] of Object.entries(namedParams)) {
@@ -370,6 +408,26 @@ function buildUrl(
     const extraParams: Record<string, unknown> = {};
 
     if (queryOptions) {
+        // mergeQuery: seed from current browser URL's query params
+        if (queryOptions.mergeQuery) {
+            const existing =
+                typeof globalThis.window !== "undefined"
+                    ? new URLSearchParams(globalThis.window.location.search)
+                    : new URLSearchParams();
+
+            for (const [k, v] of existing.entries()) {
+                extraParams[k] = v;
+            }
+
+            for (const [k, v] of Object.entries(queryOptions.mergeQuery)) {
+                if (isNull(v) || isUndefined(v)) {
+                    delete extraParams[k];
+                } else {
+                    extraParams[k] = v;
+                }
+            }
+        }
+
         for (const [key, val] of Object.entries(queryOptions)) {
             if (key === "_query" && isObject(val)) {
                 for (const [qk, qv] of Object.entries(
@@ -377,7 +435,7 @@ function buildUrl(
                 )) {
                     extraParams[qk] = qv;
                 }
-            } else if (key !== "_query") {
+            } else if (key !== "_query" && key !== "mergeQuery") {
                 extraParams[key] = val;
             }
         }
@@ -408,6 +466,49 @@ function makeCallResult<TMethod extends string>(
 }
 
 /**
+ * Create a RouteFormResult with action (URL), form-safe method, and toString().
+ *
+ * @param action - The compiled URL string.
+ * @param method - The form-safe HTTP method ('get' or 'post').
+ * @returns A RouteFormResult object.
+ */
+function makeFormResult<TMethod extends string>(
+    action: string,
+    method: TMethod,
+): RouteFormResult<TMethod> {
+    return {
+        action,
+        method: method as RouteFormResult<TMethod>["method"],
+        toString() {
+            return action;
+        },
+    };
+}
+
+/**
+ * Injects `_method` into query options for HTML form method spoofing.
+ *
+ * HTML forms only support GET and POST. For PUT, PATCH, DELETE, and HEAD,
+ * Laravel uses a hidden `_method` field sent via POST (or GET for HEAD).
+ *
+ * @param method - The intended HTTP method.
+ * @param options - Optional query options to merge with.
+ * @returns RouteQueryOptions with `_method` injected.
+ */
+export function formSafeOptions(
+    method: string,
+    options?: RouteQueryOptions,
+): RouteQueryOptions {
+    const key = options?.mergeQuery ? "mergeQuery" : "_query";
+    return {
+        [key]: {
+            _method: method.toUpperCase(),
+            ...(options?._query ?? options?.mergeQuery),
+        },
+    };
+}
+
+/**
  * Define a Laravel route in TypeScript using compact metadata.
  *
  * Returns a callable object with:
@@ -415,6 +516,8 @@ function makeCallResult<TMethod extends string>(
  * - `.url(...)` returning just the URL string
  * - `.definition` — the raw metadata passthrough
  * - Per-verb methods (`.get(...)`, `.post(...)`, etc.)
+ * - `.form(...)` — form submission helper with `{ action, method }`
+ * - `.form.<verb>(...)` — per-verb form methods with method spoofing
  * - `toString()` returning the URL with no params
  *
  * Supports 6 calling conventions:
@@ -426,14 +529,15 @@ function makeCallResult<TMethod extends string>(
  * 6. Trailing query options: `fn(42, { _query: { page: 2 } })`
  *
  * @param metadata - The route metadata object with url, methods, and optional args.
- * @returns A defineRoute result — callable with per-verb methods, .url(), and .definition.
+ * @returns A defineRoute result — callable with per-verb methods, .url(), .form, and .definition.
  */
 export function defineRoute<
     const TMethods extends readonly string[],
     const TArgs extends readonly RouteArgMeta[] = readonly [],
+    const TComponent extends RouteComponentType | undefined = undefined,
 >(
-    metadata: RouteMetadata<TMethods, TArgs>,
-): DefineRouteResult<TMethods, TArgs> {
+    metadata: RouteMetadata<TMethods, TArgs, TComponent>,
+): DefineRouteResult<TMethods, TArgs, TComponent> {
     const argsMeta: readonly RouteArgMeta[] = metadata.args ?? [];
     const primaryMethod = metadata.methods[0] ?? "get";
 
@@ -466,5 +570,68 @@ export function defineRoute<
         });
     }
 
-    return result as DefineRouteResult<TMethods, TArgs>;
+    // Build .form callable + per-verb form methods
+    const isGetRoute = primaryMethod === "get" || primaryMethod === "head";
+    const formMethod = isGetRoute ? "get" : "post";
+
+    const formCallable = (...rawArgs: unknown[]): RouteFormResult => {
+        const [named, options] = normalizeArgs(rawArgs, argsMeta);
+        const action = buildUrl(metadata.url, named, argsMeta, options);
+        return makeFormResult(action, formMethod);
+    };
+
+    for (const verb of metadata.methods) {
+        const isGetLike = verb === "get" || verb === "head";
+        const verbFormMethod = isGetLike ? "get" : "post";
+        const needsSpoofing = verb !== "get" && verb !== "post";
+
+        Object.assign(formCallable, {
+            [verb]: (...rawArgs: unknown[]): RouteFormResult => {
+                const [named, rawOptions] = normalizeArgs(rawArgs, argsMeta);
+                const options = needsSpoofing
+                    ? formSafeOptions(verb, rawOptions)
+                    : rawOptions;
+                const action = buildUrl(
+                    metadata.url,
+                    named,
+                    argsMeta,
+                    options,
+                );
+                return makeFormResult(action, verbFormMethod);
+            },
+        });
+    }
+
+    Object.assign(result, { form: formCallable });
+
+    // Attach component and withComponent when metadata includes a component
+    if (metadata.component !== undefined) {
+        Object.assign(result, { component: metadata.component });
+
+        if (isString(metadata.component)) {
+            // Single component: withComponent mirrors the main callable but adds component
+            const singleComponent = metadata.component;
+            Object.assign(result, {
+                withComponent: (
+                    ...rawArgs: unknown[]
+                ): RouteCallResultWithComponent => {
+                    const callResult = invoke(...rawArgs);
+                    return { ...callResult, component: singleComponent };
+                },
+            });
+        } else {
+            // Multi component: first arg is the component value, rest are route args
+            Object.assign(result, {
+                withComponent: (
+                    component: string,
+                    ...rawArgs: unknown[]
+                ): RouteCallResultWithComponent => {
+                    const callResult = invoke(...rawArgs);
+                    return { ...callResult, component };
+                },
+            });
+        }
+    }
+
+    return result as DefineRouteResult<TMethods, TArgs, TComponent>;
 }

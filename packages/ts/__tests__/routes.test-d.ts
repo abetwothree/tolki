@@ -6,6 +6,8 @@ import type {
     PositionalTuple,
     ResolveArgInputType,
     RouteCallResult,
+    RouteCallResultWithComponent,
+    RouteFormResult,
 } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
@@ -274,5 +276,193 @@ describe("per-verb method type inference", () => {
         const route = Ts.defineRoute(Stubs.postsStore);
         const result = route.post();
         expectTypeOf(result.method).toEqualTypeOf<"post">();
+    });
+});
+
+describe("form type inference", () => {
+    it(".form() on GET route returns RouteFormResult with method: 'get'", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+        const result = route.form();
+        expectTypeOf(result).toExtend<RouteFormResult<"get">>();
+        expectTypeOf(result.method).toEqualTypeOf<"get">();
+        expectTypeOf(result.action).toBeString();
+    });
+
+    it(".form() on POST route returns RouteFormResult with method: 'post'", () => {
+        const route = Ts.defineRoute(Stubs.postsStore);
+        const result = route.form();
+        expectTypeOf(result).toExtend<RouteFormResult<"post">>();
+        expectTypeOf(result.method).toEqualTypeOf<"post">();
+    });
+
+    it(".form() on DELETE route returns method: 'post'", () => {
+        const route = Ts.defineRoute(Stubs.postsDestroy);
+        const result = route.form({ post: 42 });
+        expectTypeOf(result.method).toEqualTypeOf<"post">();
+    });
+
+    it(".form.patch() returns RouteFormResult with method: 'post'", () => {
+        const route = Ts.defineRoute(Stubs.postsUpdate);
+        const result = route.form.patch({ post: 42 });
+        expectTypeOf(result).toExtend<RouteFormResult<"patch">>();
+        expectTypeOf(result.method).toEqualTypeOf<"post">();
+    });
+
+    it(".form.put() returns RouteFormResult with method: 'post'", () => {
+        const route = Ts.defineRoute(Stubs.postsUpdate);
+        const result = route.form.put({ post: 42 });
+        expectTypeOf(result).toExtend<RouteFormResult<"put">>();
+        expectTypeOf(result.method).toEqualTypeOf<"post">();
+    });
+
+    it(".form.get() returns RouteFormResult with method: 'get'", () => {
+        const route = Ts.defineRoute(Stubs.postsShow);
+        const result = route.form.get({ post: 42 });
+        expectTypeOf(result).toExtend<RouteFormResult<"get">>();
+        expectTypeOf(result.method).toEqualTypeOf<"get">();
+    });
+
+    it(".form.delete() returns RouteFormResult with method: 'post'", () => {
+        const route = Ts.defineRoute(Stubs.postsDestroy);
+        const result = route.form.delete({ post: 42 });
+        expectTypeOf(result.method).toEqualTypeOf<"post">();
+    });
+
+    it(".form.head() returns RouteFormResult with method: 'get'", () => {
+        const route = Ts.defineRoute(Stubs.postsShow);
+        const result = route.form.head({ post: 42 });
+        expectTypeOf(result.method).toEqualTypeOf<"get">();
+    });
+
+    it(".form() accepts zero args on no-arg route", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+        const result = route.form();
+        expectTypeOf(result.action).toBeString();
+    });
+
+    it(".form() accepts named args on with-arg route", () => {
+        const route = Ts.defineRoute(Stubs.postsShow);
+        const result = route.form({ post: 42 });
+        expectTypeOf(result.action).toBeString();
+    });
+});
+
+describe("single component type inference (no args)", () => {
+    it(".component is typed as the literal string", () => {
+        const route = Ts.defineRoute(Stubs.dashboardPage);
+        expectTypeOf(route.component).toEqualTypeOf<"Dashboard">();
+    });
+
+    it(".definition.component is typed as the literal string", () => {
+        const route = Ts.defineRoute(Stubs.dashboardPage);
+        expectTypeOf(route.definition.component).toEqualTypeOf<
+            "Dashboard" | undefined
+        >();
+    });
+
+    it(".withComponent() returns RouteCallResultWithComponent", () => {
+        const route = Ts.defineRoute(Stubs.dashboardPage);
+        const result = route.withComponent();
+        expectTypeOf(result).toExtend<
+            RouteCallResultWithComponent<"Dashboard", "get">
+        >();
+        expectTypeOf(result.component).toEqualTypeOf<"Dashboard">();
+        expectTypeOf(result.url).toBeString();
+        expectTypeOf(result.method).toEqualTypeOf<"get">();
+    });
+
+    it(".withComponent() accepts query options", () => {
+        const route = Ts.defineRoute(Stubs.dashboardPage);
+        const result = route.withComponent({ page: 1 });
+        expectTypeOf(result.component).toEqualTypeOf<"Dashboard">();
+    });
+});
+
+describe("single component type inference (with args)", () => {
+    it(".component is typed as the literal string", () => {
+        const route = Ts.defineRoute(Stubs.userProfilePage);
+        expectTypeOf(route.component).toEqualTypeOf<"Users/Profile">();
+    });
+
+    it(".withComponent() accepts named args", () => {
+        const route = Ts.defineRoute(Stubs.userProfilePage);
+        const result = route.withComponent({ user: 42 });
+        expectTypeOf(result).toExtend<
+            RouteCallResultWithComponent<"Users/Profile", "get">
+        >();
+        expectTypeOf(result.component).toEqualTypeOf<"Users/Profile">();
+    });
+
+    it(".withComponent() accepts positional args", () => {
+        const route = Ts.defineRoute(Stubs.userProfilePage);
+        const result = route.withComponent(42);
+        expectTypeOf(result.component).toEqualTypeOf<"Users/Profile">();
+    });
+});
+
+describe("multi component type inference (no args)", () => {
+    it(".component is typed as the component map", () => {
+        const route = Ts.defineRoute(Stubs.conditionalPage);
+        expectTypeOf(route.component).toEqualTypeOf<{
+            readonly authenticated: "Conditional/Authenticated";
+            readonly guest: "Conditional/Guest";
+        }>();
+    });
+
+    it(".withComponent() accepts a component value from the map", () => {
+        const route = Ts.defineRoute(Stubs.conditionalPage);
+        const result = route.withComponent("Conditional/Guest");
+        expectTypeOf(result).toExtend<
+            RouteCallResultWithComponent<
+                "Conditional/Authenticated" | "Conditional/Guest",
+                "get"
+            >
+        >();
+        expectTypeOf(result.component).toEqualTypeOf<
+            "Conditional/Authenticated" | "Conditional/Guest"
+        >();
+    });
+
+    it(".withComponent() accepts query options after component", () => {
+        const route = Ts.defineRoute(Stubs.conditionalPage);
+        const result = route.withComponent("Conditional/Authenticated", {
+            ref: "home",
+        });
+        expectTypeOf(result.component).toEqualTypeOf<
+            "Conditional/Authenticated" | "Conditional/Guest"
+        >();
+    });
+});
+
+describe("multi component type inference (with args)", () => {
+    it(".component is typed as the component map", () => {
+        const route = Ts.defineRoute(Stubs.multiComponentWithArgs);
+        expectTypeOf(route.component).toEqualTypeOf<{
+            readonly detail: "Items/Detail";
+            readonly preview: "Items/Preview";
+        }>();
+    });
+
+    it(".withComponent() accepts component value and args", () => {
+        const route = Ts.defineRoute(Stubs.multiComponentWithArgs);
+        const result = route.withComponent("Items/Detail", { item: 7 });
+        expectTypeOf(result).toExtend<
+            RouteCallResultWithComponent<
+                "Items/Detail" | "Items/Preview",
+                "get"
+            >
+        >();
+    });
+});
+
+describe("no component type inference", () => {
+    it("does not have .component property on routes without component", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+        expectTypeOf(route).not.toHaveProperty("component");
+    });
+
+    it("does not have .withComponent property on routes without component", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+        expectTypeOf(route).not.toHaveProperty("withComponent");
     });
 });
