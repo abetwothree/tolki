@@ -1115,6 +1115,30 @@ describe("formSafeOptions", () => {
 
         expect(options._query).toEqual({ _method: "HEAD" });
     });
+
+    it("preserves extra top-level options alongside _method injection", () => {
+        const options = Ts.formSafeOptions("patch", {
+            _query: { redirect: "back" },
+            someOtherOption: "value",
+        } as RouteQueryOptions & { someOtherOption: string });
+
+        expect(options).toEqual({
+            _query: { _method: "PATCH", redirect: "back" },
+            someOtherOption: "value",
+        });
+    });
+
+    it("preserves mergeQuery keys and extra options when mergeQuery is present", () => {
+        const options = Ts.formSafeOptions("delete", {
+            mergeQuery: { page: 1 },
+            _query: { ref: "x" },
+        });
+
+        expect(options).toEqual({
+            mergeQuery: { _method: "DELETE", page: 1 },
+            _query: { ref: "x" },
+        });
+    });
 });
 
 describe(".form on routes", () => {

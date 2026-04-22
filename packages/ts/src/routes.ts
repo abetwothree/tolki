@@ -63,7 +63,9 @@ export function setRouteDefaults(
 }
 
 /**
- * Add a single route default without overwriting existing ones.
+ * Add or update a single route default.
+ *
+ * If a default already exists for the given parameter name, it is overwritten.
  *
  * @param key - The parameter name.
  * @param value - The default value.
@@ -501,10 +503,13 @@ export function formSafeOptions(
     options?: RouteQueryOptions,
 ): RouteQueryOptions {
     const key = options?.mergeQuery ? "mergeQuery" : "_query";
+    const query = options?.[key] ?? {};
+
     return {
+        ...options,
         [key]: {
+            ...query,
             _method: method.toUpperCase(),
-            ...(options?._query ?? options?.mergeQuery),
         },
     };
 }
