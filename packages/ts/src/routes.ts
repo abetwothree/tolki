@@ -471,17 +471,23 @@ function makeCallResult<TMethod extends string>(
 /**
  * Create a RouteFormResult with action (URL), form-safe method, and toString().
  *
+ * Derives the form-safe method (`'get'` or `'post'`) from the intended verb:
+ * GET and HEAD routes use `'get'`; all others use `'post'` (with method spoofing).
+ *
  * @param action - The compiled URL string.
- * @param method - The form-safe HTTP method ('get' or 'post').
+ * @param method - The intended HTTP verb (e.g. 'patch', 'delete', 'get').
  * @returns A RouteFormResult object.
  */
 function makeFormResult<TMethod extends string>(
     action: string,
     method: TMethod,
 ): RouteFormResult<TMethod> {
+    const formSafeMethod = (
+        method === "get" || method === "head" ? "get" : "post"
+    ) as RouteFormResult<TMethod>["method"];
     return {
         action,
-        method: method as RouteFormResult<TMethod>["method"],
+        method: formSafeMethod,
         toString() {
             return action;
         },
@@ -577,28 +583,25 @@ export function defineRoute<
     }
 
     // Build .form callable + per-verb form methods
-    const isGetRoute = primaryMethod === "get" || primaryMethod === "head";
-    const formMethod = isGetRoute ? "get" : "post";
-
-    const formCallable = (...rawArgs: unknown[]): RouteFormResult => {
+    const formCallable = (
+        ...rawArgs: unknown[]
+    ): RouteFormResult<typeof primaryMethod> => {
         const [named, options] = normalizeArgs(rawArgs, argsMeta);
         const action = buildUrl(metadata.url, named, argsMeta, options);
-        return makeFormResult(action, formMethod);
+        return makeFormResult(action, primaryMethod);
     };
 
     for (const verb of metadata.methods) {
-        const isGetLike = verb === "get" || verb === "head";
-        const verbFormMethod = isGetLike ? "get" : "post";
         const needsSpoofing = verb !== "get" && verb !== "post";
 
         Object.assign(formCallable, {
-            [verb]: (...rawArgs: unknown[]): RouteFormResult => {
+            [verb]: (...rawArgs: unknown[]): RouteFormResult<typeof verb> => {
                 const [named, rawOptions] = normalizeArgs(rawArgs, argsMeta);
                 const options = needsSpoofing
                     ? formSafeOptions(verb, rawOptions)
                     : rawOptions;
                 const action = buildUrl(metadata.url, named, argsMeta, options);
-                return makeFormResult(action, verbFormMethod);
+                return makeFormResult(action, verb);
             },
         });
     }
