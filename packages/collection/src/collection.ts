@@ -1279,7 +1279,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 resolvedKey = JSON.stringify(resolvedKey.all());
             } else if (
                 isObject(resolvedKey) &&
-                "value" in resolvedKey &&
+                Object.prototype.hasOwnProperty.call(resolvedKey, "value") &&
                 (isString(resolvedKey["value"]) ||
                     isNumber(resolvedKey["value"]))
             ) {
