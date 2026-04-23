@@ -1,4 +1,5 @@
 import * as Ts from "@tolki/ts";
+import type { RouteQueryOptions } from "@tolki/types";
 import { afterEach, describe, expect, it } from "vitest";
 
 import * as Stubs from "./stubs";
@@ -1004,5 +1005,549 @@ describe("plain enum parameter route (showRole)", () => {
         const result = route({ role: "Admin", verbose: true });
 
         expect(result.url).toBe("/typed/role/Admin?verbose=1");
+    });
+});
+
+describe("addRouteDefault", () => {
+    it("adds a single default without overwriting existing ones", () => {
+        Ts.setRouteDefaults({ locale: "en" });
+        Ts.addRouteDefault("tenant", "acme");
+
+        const defaults = Ts.getRouteDefaults();
+
+        expect(defaults).toEqual({ locale: "en", tenant: "acme" });
+    });
+
+    it("overwrites an existing key when re-added", () => {
+        Ts.addRouteDefault("locale", "en");
+        Ts.addRouteDefault("locale", "fr");
+
+        const defaults = Ts.getRouteDefaults();
+
+        expect(defaults["locale"]).toBe("fr");
+    });
+
+    it("works with setRouteDefaults replacing all", () => {
+        Ts.addRouteDefault("locale", "en");
+        Ts.addRouteDefault("tenant", "acme");
+        Ts.setRouteDefaults({ locale: "de" });
+
+        const defaults = Ts.getRouteDefaults();
+
+        expect(defaults).toEqual({ locale: "de" });
+    });
+
+    it("thunk is evaluated lazily on each URL build", () => {
+        let counter = 0;
+        Ts.setRouteDefaults(() => {
+            counter++;
+            return { locale: "en" };
+        });
+
+        const route = Ts.defineRoute({
+            name: "test",
+            url: "/{locale}/page",
+            domain: null,
+            methods: ["get"] as const,
+            args: [{ name: "locale", required: false }] as const,
+        });
+
+        route();
+        route();
+
+        expect(counter).toBe(2);
+    });
+
+    it("resetRouteDefaults clears incrementally-added defaults", () => {
+        Ts.addRouteDefault("locale", "en");
+        Ts.addRouteDefault("tenant", "acme");
+        Ts.resetRouteDefaults();
+
+        const defaults = Ts.getRouteDefaults();
+
+        expect(defaults).toEqual({});
+    });
+
+    it("substitutes numeric and boolean values as defaults", () => {
+        Ts.setRouteDefaults({ page: 1 });
+
+        const route = Ts.defineRoute({
+            name: "test",
+            url: "/items/{page}",
+            domain: null,
+            methods: ["get"] as const,
+            args: [{ name: "page", required: false }] as const,
+        });
+        const result = route();
+
+        expect(result.url).toBe("/items/1");
+    });
+});
+
+describe("formSafeOptions", () => {
+    it("injects _method into _query by default", () => {
+        const options = Ts.formSafeOptions("patch");
+
+        expect(options).toEqual({ _query: { _method: "PATCH" } });
+    });
+
+    it("injects _method into mergeQuery when mergeQuery is present", () => {
+        const options = Ts.formSafeOptions("delete", {
+            mergeQuery: { page: 1 },
+        });
+
+        expect(options).toEqual({
+            mergeQuery: { _method: "DELETE", page: 1 },
+        });
+    });
+
+    it("preserves existing _query values alongside _method", () => {
+        const options = Ts.formSafeOptions("put", {
+            _query: { redirect: "back" },
+        });
+
+        expect(options).toEqual({
+            _query: { _method: "PUT", redirect: "back" },
+        });
+    });
+
+    it("uppercases the method", () => {
+        const options = Ts.formSafeOptions("head");
+
+        expect(options._query).toEqual({ _method: "HEAD" });
+    });
+
+    it("preserves extra top-level options alongside _method injection", () => {
+        const options = Ts.formSafeOptions("patch", {
+            _query: { redirect: "back" },
+            someOtherOption: "value",
+        } as RouteQueryOptions & { someOtherOption: string });
+
+        expect(options).toEqual({
+            _query: { _method: "PATCH", redirect: "back" },
+            someOtherOption: "value",
+        });
+    });
+
+    it("preserves mergeQuery keys and extra options when mergeQuery is present", () => {
+        const options = Ts.formSafeOptions("delete", {
+            mergeQuery: { page: 1 },
+            _query: { ref: "x" },
+        });
+
+        expect(options).toEqual({
+            mergeQuery: { _method: "DELETE", page: 1 },
+            _query: { ref: "x" },
+        });
+    });
+});
+
+describe(".form on routes", () => {
+    it("returns a callable form property", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+
+        expect(typeof route.form).toBe("function");
+    });
+
+    it(".form() on a GET route returns { action, method: 'get' }", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+        const result = route.form();
+
+        expect(result.action).toBe("/posts");
+        expect(result.method).toBe("get");
+    });
+
+    it(".form() on a POST route returns { action, method: 'post' }", () => {
+        const route = Ts.defineRoute(Stubs.postsStore);
+        const result = route.form();
+
+        expect(result.action).toBe("/posts");
+        expect(result.method).toBe("post");
+    });
+
+    it(".form() on a DELETE route returns method: 'post'", () => {
+        const route = Ts.defineRoute(Stubs.postsDestroy);
+        const result = route.form({ post: 42 });
+
+        expect(result.action).toBe("/posts/42");
+        expect(result.method).toBe("post");
+    });
+
+    it(".form.patch() injects _method=PATCH into the URL", () => {
+        const route = Ts.defineRoute(Stubs.postsUpdate);
+        const result = route.form.patch({ post: 42 });
+
+        expect(result.action).toBe("/posts/42?_method=PATCH");
+        expect(result.method).toBe("post");
+    });
+
+    it(".form.put() injects _method=PUT into the URL", () => {
+        const route = Ts.defineRoute(Stubs.postsUpdate);
+        const result = route.form.put({ post: 42 });
+
+        expect(result.action).toBe("/posts/42?_method=PUT");
+        expect(result.method).toBe("post");
+    });
+
+    it(".form.delete() injects _method=DELETE into the URL", () => {
+        const route = Ts.defineRoute(Stubs.postsDestroy);
+        const result = route.form.delete({ post: 42 });
+
+        expect(result.action).toBe("/posts/42?_method=DELETE");
+        expect(result.method).toBe("post");
+    });
+
+    it(".form.get() on GET route returns method: 'get' without _method", () => {
+        const route = Ts.defineRoute(Stubs.postsShow);
+        const result = route.form.get({ post: 42 });
+
+        expect(result.action).toBe("/posts/42");
+        expect(result.method).toBe("get");
+    });
+
+    it(".form.post() on POST route returns method: 'post' without _method", () => {
+        const route = Ts.defineRoute(Stubs.postsStore);
+        const result = route.form.post();
+
+        expect(result.action).toBe("/posts");
+        expect(result.method).toBe("post");
+    });
+
+    it(".form() with query options preserves user query params", () => {
+        const route = Ts.defineRoute(Stubs.postsShow);
+        const result = route.form.get({ post: 42 }, { _query: { page: 2 } });
+
+        expect(result.action).toBe("/posts/42?page=2");
+    });
+
+    it(".form.patch() with additional _query merges _method with user params", () => {
+        const route = Ts.defineRoute(Stubs.postsUpdate);
+        const result = route.form.patch(
+            { post: 42 },
+            { _query: { redirect: "back" } },
+        );
+
+        expect(result.action).toContain("_method=PATCH");
+        expect(result.action).toContain("redirect=back");
+    });
+
+    it(".form() toString() returns the action URL", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+        const result = route.form();
+
+        expect(result.toString()).toBe("/posts");
+    });
+
+    it(".form() with args using spread scalars", () => {
+        const route = Ts.defineRoute(Stubs.postsShow);
+        const result = route.form(42);
+
+        expect(result.action).toBe("/posts/42");
+        expect(result.method).toBe("get");
+    });
+
+    it(".form() on zero-arg route with query options", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+        const result = route.form({ _query: { search: "hello" } });
+
+        expect(result.action).toBe("/posts?search=hello");
+        expect(result.method).toBe("get");
+    });
+});
+
+describe("mergeQuery", () => {
+    it("passes through mergeQuery values as query params (no window)", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+        const result = route({ mergeQuery: { search: "hello" } });
+
+        expect(result.url).toBe("/posts?search=hello");
+    });
+
+    it("removes keys with null values in mergeQuery", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+        const result = route({ mergeQuery: { search: null, page: 2 } });
+
+        expect(result.url).toBe("/posts?page=2");
+        expect(result.url).not.toContain("search");
+    });
+
+    it("removes keys with undefined values in mergeQuery", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+        const result = route({ mergeQuery: { search: undefined, page: 3 } });
+
+        expect(result.url).toBe("/posts?page=3");
+    });
+
+    it("mergeQuery works alongside _query", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+        const result = route({
+            mergeQuery: { search: "hello" },
+            _query: { debug: "true" },
+        });
+
+        expect(result.url).toContain("search=hello");
+        expect(result.url).toContain("debug=true");
+    });
+
+    it("works on routes with args", () => {
+        const route = Ts.defineRoute(Stubs.postsShow);
+        const result = route(
+            { post: 42 },
+            { mergeQuery: { highlight: "true" } },
+        );
+
+        expect(result.url).toBe("/posts/42?highlight=true");
+    });
+
+    it("merges with existing window.location.search when available", () => {
+        const originalWindow = globalThis.window;
+
+        // Mock window.location.search
+        Object.defineProperty(globalThis, "window", {
+            value: {
+                location: { search: "?page=2&sort=title" },
+            },
+            writable: true,
+            configurable: true,
+        });
+
+        try {
+            const route = Ts.defineRoute(Stubs.postsIndex);
+            const result = route({ mergeQuery: { search: "hello" } });
+
+            expect(result.url).toContain("page=2");
+            expect(result.url).toContain("sort=title");
+            expect(result.url).toContain("search=hello");
+        } finally {
+            if (originalWindow === undefined) {
+                // @ts-expect-error restoring original undefined
+                delete globalThis.window;
+            } else {
+                Object.defineProperty(globalThis, "window", {
+                    value: originalWindow,
+                    writable: true,
+                    configurable: true,
+                });
+            }
+        }
+    });
+
+    it("mergeQuery overrides existing window query params", () => {
+        const originalWindow = globalThis.window;
+
+        Object.defineProperty(globalThis, "window", {
+            value: {
+                location: { search: "?page=2&sort=title" },
+            },
+            writable: true,
+            configurable: true,
+        });
+
+        try {
+            const route = Ts.defineRoute(Stubs.postsIndex);
+            const result = route({ mergeQuery: { page: 5 } });
+
+            expect(result.url).toContain("page=5");
+            expect(result.url).toContain("sort=title");
+            expect(result.url).not.toContain("page=2");
+        } finally {
+            if (originalWindow === undefined) {
+                // @ts-expect-error restoring original undefined
+                delete globalThis.window;
+            } else {
+                Object.defineProperty(globalThis, "window", {
+                    value: originalWindow,
+                    writable: true,
+                    configurable: true,
+                });
+            }
+        }
+    });
+
+    it("mergeQuery removes existing window query params with null", () => {
+        const originalWindow = globalThis.window;
+
+        Object.defineProperty(globalThis, "window", {
+            value: {
+                location: { search: "?page=2&sort=title" },
+            },
+            writable: true,
+            configurable: true,
+        });
+
+        try {
+            const route = Ts.defineRoute(Stubs.postsIndex);
+            const result = route({ mergeQuery: { sort: null } });
+
+            expect(result.url).toContain("page=2");
+            expect(result.url).not.toContain("sort");
+        } finally {
+            if (originalWindow === undefined) {
+                // @ts-expect-error restoring original undefined
+                delete globalThis.window;
+            } else {
+                Object.defineProperty(globalThis, "window", {
+                    value: originalWindow,
+                    writable: true,
+                    configurable: true,
+                });
+            }
+        }
+    });
+});
+
+describe("single component (no args)", () => {
+    it("exposes .component on the route", () => {
+        const route = Ts.defineRoute(Stubs.dashboardPage);
+
+        expect(route.component).toBe("Dashboard");
+    });
+
+    it("includes component in .definition", () => {
+        const route = Ts.defineRoute(Stubs.dashboardPage);
+
+        expect(route.definition.component).toBe("Dashboard");
+    });
+
+    it(".withComponent() returns call result with component", () => {
+        const route = Ts.defineRoute(Stubs.dashboardPage);
+        const result = route.withComponent();
+
+        expect(result.url).toBe("/dashboard");
+        expect(result.method).toBe("get");
+        expect(result.component).toBe("Dashboard");
+    });
+
+    it(".withComponent() passes query options through", () => {
+        const route = Ts.defineRoute(Stubs.dashboardPage);
+        const result = route.withComponent({ page: 2 });
+
+        expect(result.url).toBe("/dashboard?page=2");
+        expect(result.component).toBe("Dashboard");
+    });
+
+    it(".withComponent() result has toString()", () => {
+        const route = Ts.defineRoute(Stubs.dashboardPage);
+        const result = route.withComponent();
+
+        expect(result.toString()).toBe("/dashboard");
+    });
+});
+
+describe("single component (with args)", () => {
+    it("exposes .component on the route", () => {
+        const route = Ts.defineRoute(Stubs.userProfilePage);
+
+        expect(route.component).toBe("Users/Profile");
+    });
+
+    it(".withComponent() accepts named args", () => {
+        const route = Ts.defineRoute(Stubs.userProfilePage);
+        const result = route.withComponent({ user: 42 });
+
+        expect(result.url).toBe("/users/42/profile");
+        expect(result.component).toBe("Users/Profile");
+    });
+
+    it(".withComponent() accepts named args with options", () => {
+        const route = Ts.defineRoute(Stubs.userProfilePage);
+        const result = route.withComponent({ user: 42 }, { tab: "posts" });
+
+        expect(result.url).toBe("/users/42/profile?tab=posts");
+        expect(result.component).toBe("Users/Profile");
+    });
+
+    it(".withComponent() accepts positional args", () => {
+        const route = Ts.defineRoute(Stubs.userProfilePage);
+        const result = route.withComponent(42);
+
+        expect(result.url).toBe("/users/42/profile");
+        expect(result.component).toBe("Users/Profile");
+    });
+});
+
+describe("multi component (no args)", () => {
+    it("exposes .component as the component map", () => {
+        const route = Ts.defineRoute(Stubs.conditionalPage);
+
+        expect(route.component).toStrictEqual({
+            authenticated: "Conditional/Authenticated",
+            guest: "Conditional/Guest",
+        });
+    });
+
+    it("includes component map in .definition", () => {
+        const route = Ts.defineRoute(Stubs.conditionalPage);
+
+        expect(route.definition.component).toStrictEqual({
+            authenticated: "Conditional/Authenticated",
+            guest: "Conditional/Guest",
+        });
+    });
+
+    it(".withComponent() selects a component by value", () => {
+        const route = Ts.defineRoute(Stubs.conditionalPage);
+        const result = route.withComponent("Conditional/Guest");
+
+        expect(result.url).toBe("/conditional");
+        expect(result.method).toBe("get");
+        expect(result.component).toBe("Conditional/Guest");
+    });
+
+    it(".withComponent() passes query options for multi component", () => {
+        const route = Ts.defineRoute(Stubs.conditionalPage);
+        const result = route.withComponent("Conditional/Authenticated", {
+            ref: "home",
+        });
+
+        expect(result.url).toBe("/conditional?ref=home");
+        expect(result.component).toBe("Conditional/Authenticated");
+    });
+});
+
+describe("multi component (with args)", () => {
+    it("exposes .component as the component map", () => {
+        const route = Ts.defineRoute(Stubs.multiComponentWithArgs);
+
+        expect(route.component).toStrictEqual({
+            detail: "Items/Detail",
+            preview: "Items/Preview",
+        });
+    });
+
+    it(".withComponent() selects component and accepts args", () => {
+        const route = Ts.defineRoute(Stubs.multiComponentWithArgs);
+        const result = route.withComponent("Items/Detail", { item: 7 });
+
+        expect(result.url).toBe("/multi/7");
+        expect(result.component).toBe("Items/Detail");
+    });
+
+    it(".withComponent() selects component with args and options", () => {
+        const route = Ts.defineRoute(Stubs.multiComponentWithArgs);
+        const result = route.withComponent(
+            "Items/Preview",
+            { item: 3 },
+            {
+                expanded: "true",
+            },
+        );
+
+        expect(result.url).toBe("/multi/3?expanded=true");
+        expect(result.component).toBe("Items/Preview");
+    });
+});
+
+describe("no component", () => {
+    it("does not expose .component on routes without component", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+
+        expect("component" in route).toBe(false);
+    });
+
+    it("does not expose .withComponent on routes without component", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+
+        expect("withComponent" in route).toBe(false);
     });
 });
