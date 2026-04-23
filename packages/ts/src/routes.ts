@@ -386,7 +386,7 @@ function buildUrl(
     }
 
     const rawUrl = template.replace(
-        /{([^}?]+)(\??)}/g,
+        /{([^{}?]+)(\??)}/g,
         (_, segment: string, optional: string) => {
             const value = mergedParams[segment];
             const argMeta = argsMap.get(segment);
