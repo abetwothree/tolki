@@ -443,9 +443,31 @@ describe("multi component type inference (with args)", () => {
         }>();
     });
 
-    it(".withComponent() accepts component value and args", () => {
+    it(".withComponent() accepts component value and named args", () => {
         const route = Ts.defineRoute(Stubs.multiComponentWithArgs);
         const result = route.withComponent("Items/Detail", { item: 7 });
+        expectTypeOf(result).toExtend<
+            RouteCallResultWithComponent<
+                "Items/Detail" | "Items/Preview",
+                "get"
+            >
+        >();
+    });
+
+    it(".withComponent() accepts component value and positional scalar", () => {
+        const route = Ts.defineRoute(Stubs.multiComponentWithArgs);
+        const result = route.withComponent("Items/Detail", 7);
+        expectTypeOf(result).toExtend<
+            RouteCallResultWithComponent<
+                "Items/Detail" | "Items/Preview",
+                "get"
+            >
+        >();
+    });
+
+    it(".withComponent() accepts component value and array args", () => {
+        const route = Ts.defineRoute(Stubs.multiComponentWithArgs);
+        const result = route.withComponent("Items/Detail", [7]);
         expectTypeOf(result).toExtend<
             RouteCallResultWithComponent<
                 "Items/Detail" | "Items/Preview",

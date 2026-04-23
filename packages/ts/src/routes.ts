@@ -11,6 +11,7 @@ import type {
 import {
     isArray,
     isBoolean,
+    isFunction,
     isNull,
     isNumber,
     isObject,
@@ -58,8 +59,7 @@ export function setRouteDefaults(
         | Record<string, string | number | boolean>
         | (() => Record<string, string | number | boolean>),
 ): void {
-    routeDefaults =
-        typeof defaults === "function" ? defaults : () => ({ ...defaults });
+    routeDefaults = isFunction(defaults) ? defaults : () => ({ ...defaults });
 }
 
 /**
@@ -413,10 +413,9 @@ function buildUrl(
     if (queryOptions) {
         // mergeQuery: seed from current browser URL's query params
         if (queryOptions.mergeQuery) {
-            const existing =
-                typeof globalThis.window !== "undefined"
-                    ? new URLSearchParams(globalThis.window.location.search)
-                    : new URLSearchParams();
+            const existing = !isUndefined(globalThis.window)
+                ? new URLSearchParams(globalThis.window.location.search)
+                : new URLSearchParams();
 
             for (const [k, v] of existing.entries()) {
                 extraParams[k] = v;

@@ -362,19 +362,55 @@ type WithComponentMultiNoArgs<
 
 /**
  * WithComponent callable for multi-component routes with args.
- * First argument selects which component, second is route args.
+ * First argument selects which component, followed by the same calling
+ * conventions as the route itself (named object, array, positional spread).
  */
 type WithComponentMultiWithArgs<
     TComponent extends Readonly<Record<string, string>>,
     TMethod extends string,
     TArgs extends readonly RouteArgMeta[],
-> = {
-    (
-        component: TComponent[keyof TComponent],
-        args: ArgsObject<TArgs> & Record<string, unknown>,
-        options?: RouteQueryOptions,
-    ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
-};
+> =
+    AllArgsOptional<TArgs> extends true
+        ? {
+              (
+                  component: TComponent[keyof TComponent],
+                  args?: ArgsObject<TArgs> & Record<string, unknown>,
+                  options?: RouteQueryOptions,
+              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+              (
+                  component: TComponent[keyof TComponent],
+                  args: (string | number | Record<string, unknown>)[],
+                  options?: RouteQueryOptions,
+              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+              (
+                  component: TComponent[keyof TComponent],
+                  ...args: [...PositionalTuple<TArgs>, RouteQueryOptions]
+              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+              (
+                  component: TComponent[keyof TComponent],
+                  ...args: PositionalTuple<TArgs>
+              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+          }
+        : {
+              (
+                  component: TComponent[keyof TComponent],
+                  args: ArgsObject<TArgs> & Record<string, unknown>,
+                  options?: RouteQueryOptions,
+              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+              (
+                  component: TComponent[keyof TComponent],
+                  args: (string | number | Record<string, unknown>)[],
+                  options?: RouteQueryOptions,
+              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+              (
+                  component: TComponent[keyof TComponent],
+                  ...args: [...PositionalTuple<TArgs>, RouteQueryOptions]
+              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+              (
+                  component: TComponent[keyof TComponent],
+                  ...args: PositionalTuple<TArgs>
+              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+          };
 
 /**
  * Mixin that conditionally adds `.component` and `.withComponent` to a route result.
