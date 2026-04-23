@@ -1,5 +1,5 @@
 ---
-"@tolki/str": major
+"@tolki/str": patch
 ---
 
 Framework sync changes
