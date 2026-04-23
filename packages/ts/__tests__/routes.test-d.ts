@@ -241,6 +241,38 @@ describe("null on optional params", () => {
     });
 });
 
+describe("positional spread with optional args", () => {
+    it("allows calling with no args when all args are optional", () => {
+        const route = Ts.defineRoute(Stubs.optionalShow);
+        const result = route();
+        expectTypeOf(result).toExtend<RouteCallResult<"get">>();
+    });
+
+    it("allows calling with the optional arg provided positionally", () => {
+        const route = Ts.defineRoute(Stubs.optionalShow);
+        const result = route(42);
+        expectTypeOf(result).toExtend<RouteCallResult<"get">>();
+    });
+
+    it("allows omitting trailing optional args in multi-optional routes", () => {
+        const route = Ts.defineRoute(Stubs.optionalMulti);
+        const result = route();
+        expectTypeOf(result).toExtend<RouteCallResult<"get">>();
+    });
+
+    it("allows providing only the first optional arg in multi-optional routes", () => {
+        const route = Ts.defineRoute(Stubs.optionalMulti);
+        const result = route(1);
+        expectTypeOf(result).toExtend<RouteCallResult<"get">>();
+    });
+
+    it("allows providing all optional args in multi-optional routes", () => {
+        const route = Ts.defineRoute(Stubs.optionalMulti);
+        const result = route(1, 2);
+        expectTypeOf(result).toExtend<RouteCallResult<"get">>();
+    });
+});
+
 describe("per-verb method type inference", () => {
     it(".get() returns RouteCallResult<'get'>", () => {
         const route = Ts.defineRoute(Stubs.postsShow);

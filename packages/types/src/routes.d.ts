@@ -66,13 +66,29 @@ export type ArgsObject<TArgs extends readonly RouteArgMeta[]> =
     RequiredArgsObject<TArgs> & OptionalArgsObject<TArgs>;
 
 /**
- * Positional tuple — each index maps to the resolved type of the arg at that position.
+ * Recursively builds a positional tuple, making args with `required: false`
+ * into optional tuple elements (`[req, opt?]`) via variadic tuple spread.
  */
-export type PositionalTuple<TArgs extends readonly RouteArgMeta[]> = {
-    [I in keyof TArgs]: TArgs[I] extends RouteArgMeta
-        ? ResolveArgInputType<TArgs[I]>
-        : TArgs[I];
-};
+type BuildPositionalTuple<
+    TArgs extends readonly RouteArgMeta[],
+    TAcc extends readonly unknown[] = [],
+> = TArgs extends readonly []
+    ? TAcc
+    : TArgs extends readonly [
+            infer TFirst extends RouteArgMeta,
+            ...infer TRest extends readonly RouteArgMeta[],
+        ]
+      ? TFirst extends { readonly required: false }
+          ? BuildPositionalTuple<TRest, [...TAcc, ResolveArgInputType<TFirst>?]>
+          : BuildPositionalTuple<TRest, [...TAcc, ResolveArgInputType<TFirst>]>
+      : TAcc;
+
+/**
+ * Positional tuple — each index maps to the resolved type of the arg at that position.
+ * Args with `required: false` become optional tuple elements.
+ */
+export type PositionalTuple<TArgs extends readonly RouteArgMeta[]> =
+    BuildPositionalTuple<TArgs>;
 
 /**
  * All valid ways to pass args to a route — named object or positional array.
@@ -376,40 +392,64 @@ type WithComponentMultiWithArgs<
                   component: TComponent[keyof TComponent],
                   args?: ArgsObject<TArgs> & Record<string, unknown>,
                   options?: RouteQueryOptions,
-              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+              ): RouteCallResultWithComponent<
+                  TComponent[keyof TComponent],
+                  TMethod
+              >;
               (
                   component: TComponent[keyof TComponent],
                   args: (string | number | Record<string, unknown>)[],
                   options?: RouteQueryOptions,
-              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+              ): RouteCallResultWithComponent<
+                  TComponent[keyof TComponent],
+                  TMethod
+              >;
               (
                   component: TComponent[keyof TComponent],
                   ...args: [...PositionalTuple<TArgs>, RouteQueryOptions]
-              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+              ): RouteCallResultWithComponent<
+                  TComponent[keyof TComponent],
+                  TMethod
+              >;
               (
                   component: TComponent[keyof TComponent],
                   ...args: PositionalTuple<TArgs>
-              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+              ): RouteCallResultWithComponent<
+                  TComponent[keyof TComponent],
+                  TMethod
+              >;
           }
         : {
               (
                   component: TComponent[keyof TComponent],
                   args: ArgsObject<TArgs> & Record<string, unknown>,
                   options?: RouteQueryOptions,
-              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+              ): RouteCallResultWithComponent<
+                  TComponent[keyof TComponent],
+                  TMethod
+              >;
               (
                   component: TComponent[keyof TComponent],
                   args: (string | number | Record<string, unknown>)[],
                   options?: RouteQueryOptions,
-              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+              ): RouteCallResultWithComponent<
+                  TComponent[keyof TComponent],
+                  TMethod
+              >;
               (
                   component: TComponent[keyof TComponent],
                   ...args: [...PositionalTuple<TArgs>, RouteQueryOptions]
-              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+              ): RouteCallResultWithComponent<
+                  TComponent[keyof TComponent],
+                  TMethod
+              >;
               (
                   component: TComponent[keyof TComponent],
                   ...args: PositionalTuple<TArgs>
-              ): RouteCallResultWithComponent<TComponent[keyof TComponent], TMethod>;
+              ): RouteCallResultWithComponent<
+                  TComponent[keyof TComponent],
+                  TMethod
+              >;
           };
 
 /**
