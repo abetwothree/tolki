@@ -1,5 +1,11 @@
 # @tolki/num
 
+## 3.0.0
+
+### Major Changes
+
+- 3a69d44: Update Num.abbreviate formatting rounds up to >= 1000 (e.g., 999.5 rounds to 1,000), promote to the next unit tie
+
 ## 2.0.4
 
 ### Patch Changes
