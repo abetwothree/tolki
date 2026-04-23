@@ -448,7 +448,7 @@ export function summarize(
 
     // Determine the display exponent (multiple of 3)
     const numberExponent = Math.floor(Math.log10(value));
-    const displayExponent = numberExponent - (numberExponent % 3);
+    let displayExponent = numberExponent - (numberExponent % 3);
     const scaled = value / Math.pow(10, displayExponent);
 
     // Precision behavior: mirror Laravel
@@ -470,6 +470,21 @@ export function summarize(
             ? (format(scaled, null, 1) as string)
             : (format(scaled, 0, null) as string);
     }
+
+    // If formatting rounds up to >= 1000 (e.g., 999.5 rounds to 1,000), promote to the next unit tier
+    if (parse(formatted) >= 1000 && units[displayExponent + 3] !== undefined) {
+        displayExponent += 3;
+        const newScaled = scaled / 1000;
+
+        if (maxPrecision != null) {
+            formatted = format(newScaled, null, maxPrecision) as string;
+        } else if (precision > 0) {
+            formatted = format(newScaled, precision, null) as string;
+        } else {
+            formatted = format(newScaled, 0, null) as string;
+        }
+    }
+
     const suffix = units[displayExponent] ?? "";
 
     return `${formatted}${suffix}`.trim();

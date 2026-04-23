@@ -2005,6 +2005,44 @@ describe("Collection", () => {
                 3: { rating: 3, name: "three" },
             });
         });
+
+        it("uses the value property of backed enum objects as the key", () => {
+            // Simulate Laravel backed enum objects (objects with a primitive `value` property)
+            const enumA = { value: "active" };
+            const enumB = { value: "inactive" };
+            const data = collect([
+                { id: 1, status: enumA },
+                { id: 2, status: enumB },
+            ]);
+            expect(data.keyBy("status").all()).toEqual({
+                active: { id: 1, status: enumA },
+                inactive: { id: 2, status: enumB },
+            });
+        });
+
+        it("uses numeric value property of backed enum objects as the key", () => {
+            // Simulate backed enums with integer values (covers isNumber branch)
+            const enumA = { value: 1 };
+            const enumB = { value: 2 };
+            const data = collect([
+                { id: "a", status: enumA },
+                { id: "b", status: enumB },
+            ]);
+            expect(data.keyBy("status").all()).toEqual({
+                1: { id: "a", status: enumA },
+                2: { id: "b", status: enumB },
+            });
+        });
+
+        it("stringifies objects with a non-primitive value property", () => {
+            // An object with a `value` key whose value is not a string or number
+            // should fall through to JSON.stringify (covers the false branch of the backed-enum check)
+            const keyObj = { value: null };
+            const data = collect([{ id: 1, meta: keyObj }]);
+            expect(data.keyBy("meta").all()).toEqual({
+                '{"value":null}': { id: 1, meta: keyObj },
+            });
+        });
     });
 
     describe("has", () => {

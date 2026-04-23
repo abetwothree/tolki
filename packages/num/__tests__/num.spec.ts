@@ -61,6 +61,24 @@ describe("Number", () => {
             expect(Num.abbreviate(-1100000000000, 0, 1)).toBe("-1.1T");
             expect(Num.abbreviate(-1000000000000000)).toBe("-1Q");
             expect(Num.abbreviate(-1000000000000000000)).toBe("-1KQ");
+
+            expect(Num.abbreviate(999499)).toBe("999K");
+            expect(Num.abbreviate(999500)).toBe("1M");
+            expect(Num.abbreviate(999999)).toBe("1M");
+            expect(Num.abbreviate(999500000)).toBe("1B");
+            expect(Num.abbreviate(999999999)).toBe("1B");
+
+            // Boundary promotion with maxPrecision (covers the maxPrecision branch inside promotion block)
+            expect(Num.abbreviate(999999, 0, 1)).toBe("1M");
+            // Boundary promotion with precision (covers the precision > 0 branch inside promotion block)
+            expect(Num.abbreviate(999999, 2)).toBe("1.00M");
+
+            Num.withLocale("de", () => {
+                expect(Num.abbreviate(999500)).toBe("1M");
+            });
+            Num.withLocale("fr", () => {
+                expect(Num.abbreviate(999500)).toBe("1M");
+            });
         });
     });
     describe("format", () => {
@@ -462,6 +480,10 @@ describe("Number", () => {
             expect(Num.forHumans(123, 0, null, true)).toBe("123");
             expect(Num.forHumans(1234, 0, null, true)).toBe("1K");
             expect(Num.forHumans(1234, 2, null, true)).toBe("1.23K");
+
+            expect(Num.forHumans(999499)).toBe("999 thousand");
+            expect(Num.forHumans(999500)).toBe("1 million");
+            expect(Num.forHumans(999999)).toBe("1 million");
         });
     });
 
