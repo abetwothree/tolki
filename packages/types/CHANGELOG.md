@@ -1,5 +1,11 @@
 # @tolki/types
 
+## 1.2.0
+
+### Minor Changes
+
+- f622d6f: New types for upcoming routing functionality
+
 ## 1.1.5
 
 ### Patch Changes
