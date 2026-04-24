@@ -86,6 +86,13 @@ describe("functionName", () => {
 });
 ```
 
+### Type tests
+
+For type tests, avoid using `toMatchTypeOf` as it is deprecated. See node_modules/.pnpm/expect-type@1.3.0/node_modules/expect-type/dist/index.d.ts for details. Instead, use the following approach:
+
+- Use toMatchObjectType to perform a strict check on a subset of your type's keys
+- Use toExtend to check if your type extends the expected type
+
 ## Parameter types with generics
 
 When using generics in parameter types, make sure to use the correct syntax for arrays and objects.

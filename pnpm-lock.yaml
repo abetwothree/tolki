@@ -314,6 +314,18 @@ importers:
         specifier: ^11.1.0
         version: 11.1.0
 
+  packages/ts:
+    dependencies:
+      "@tolki/types":
+        specifier: workspace:^
+        version: link:../types
+      "@tolki/utils":
+        specifier: workspace:^
+        version: link:../utils
+      vite:
+        specifier: ^7.0.0
+        version: 7.3.2(@types/node@25.6.0)(jiti@2.6.1)
+
   packages/types: {}
 
   packages/utils:

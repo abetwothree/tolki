@@ -12,6 +12,7 @@ import {
     undotExpandObject,
 } from "@tolki/path";
 import { finish, randomInt } from "@tolki/str";
+import type { PathKey, PathKeys } from "@tolki/types";
 import {
     compareValues,
     isArray,
@@ -32,7 +33,6 @@ import {
     looseEqual,
     typeOf,
 } from "@tolki/utils";
-import type { PathKey, PathKeys } from "packages/types";
 
 /**
  * Determine whether the given value is object accessible.

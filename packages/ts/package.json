@@ -1,0 +1,113 @@
+{
+    "name": "@tolki/ts",
+    "version": "0.0.1",
+    "description": "A set of TypeScript utilities for the Laravel TypeScript Publish PHP package.",
+    "author": "Abraham Arango <https://github.com/abetwothree>",
+    "license": "MIT",
+    "homepage": "https://tolki.abe.dev/ts/",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/abetwothree/tolki.git",
+        "directory": "packages/ts"
+    },
+    "bugs": {
+        "url": "https://github.com/abetwothree/tolki/issues"
+    },
+    "$schema": "https://raw.githubusercontent.com/vitejs/vite-plugin-registry/refs/heads/main/data/schema/extended-package-json.schema.json",
+    "compatiblePackages": {
+        "schemaVersion": 1,
+        "vite": {
+            "type": "compatible",
+            "versions": "^7.0.0"
+        }
+    },
+    "main": "src/index.ts",
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "readme:build": "ts-node ../../scripts/readme-build.ts --filter @tolki/ts",
+        "prepack": "pnpm run readme:build && pnpm run build"
+    },
+    "keywords": [
+        "enum",
+        "enums",
+        "route",
+        "routes",
+        "model",
+        "models",
+        "laravel",
+        "utils",
+        "utilities",
+        "typescript",
+        "vite",
+        "vite-plugin",
+        "tolki"
+    ],
+    "dependencies": {
+        "@tolki/types": "workspace:^",
+        "@tolki/utils": "workspace:^"
+    },
+    "peerDependencies": {
+        "vite": "^7.0.0"
+    },
+    "sideEffects": false,
+    "packageManager": "pnpm@10.12.1",
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./src/index.ts",
+            "import": "./src/index.ts",
+            "require": "./src/index.ts"
+        },
+        "./enums": {
+            "types": "./src/enums.ts",
+            "import": "./src/enums.ts",
+            "default": "./src/enums.ts"
+        },
+        "./routes": {
+            "types": "./src/routes.ts",
+            "import": "./src/routes.ts",
+            "default": "./src/routes.ts"
+        },
+        "./vite": {
+            "types": "./src/vite-plugin.ts",
+            "import": "./src/vite-plugin.ts",
+            "default": "./src/vite-plugin.ts"
+        }
+    },
+    "publishConfig": {
+        "types": "dist/index.d.ts",
+        "main": "dist/index.js",
+        "exports": {
+            ".": {
+                "types": "./dist/index.d.ts",
+                "import": "./dist/index.js",
+                "require": "./dist/index.js"
+            },
+            "./enums": {
+                "types": "./dist/enums.d.ts",
+                "import": "./dist/enums.js",
+                "default": "./dist/enums.js"
+            },
+            "./routes": {
+                "types": "./dist/routes.d.ts",
+                "import": "./dist/routes.js",
+                "default": "./dist/routes.js"
+            },
+            "./vite": {
+                "types": "./dist/vite-plugin.d.ts",
+                "import": "./dist/vite-plugin.js",
+                "default": "./dist/vite-plugin.js"
+            }
+        }
+    },
+    "tolki": {
+        "docs": [
+            "ts/index.md",
+            "ts/enum-utilities-list.md",
+            "ts/ts-vite-plugin.md"
+        ]
+    }
+}
