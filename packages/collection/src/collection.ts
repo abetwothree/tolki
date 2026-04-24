@@ -1277,6 +1277,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
             // Convert Collection instances to arrays before JSON stringifying
             if (resolvedKey instanceof Collection) {
                 resolvedKey = JSON.stringify(resolvedKey.all());
+            } else if (
+                isObject(resolvedKey) &&
+                Object.prototype.hasOwnProperty.call(resolvedKey, "value") &&
+                (isString(resolvedKey["value"]) ||
+                    isNumber(resolvedKey["value"]))
+            ) {
+                // Treat objects with a primitive `value` property as backed enums (Laravel UnitEnum pattern)
+                resolvedKey = resolvedKey["value"] as string | number;
             } else if (isObject(resolvedKey)) {
                 resolvedKey = JSON.stringify(resolvedKey);
             } else if (isArray(resolvedKey)) {

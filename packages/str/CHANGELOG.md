@@ -1,5 +1,13 @@
 # @tolki/str
 
+## 1.0.14
+
+### Patch Changes
+
+- 3a69d44: Framework sync changes
+- Updated dependencies [3a69d44]
+  - @tolki/num@2.0.5
+
 ## 1.0.13
 
 ### Patch Changes
