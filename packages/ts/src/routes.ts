@@ -1,5 +1,6 @@
 import type {
     DefineRouteResult,
+    InferPageProps,
     RouteArgMeta,
     RouteCallResult,
     RouteCallResultWithComponent,
@@ -21,6 +22,7 @@ import {
 
 export type {
     DefineRouteResult,
+    InferPageProps,
     RouteArgMeta,
     RouteCallResult,
     RouteCallResultWithComponent,
@@ -29,6 +31,44 @@ export type {
     RouteMetadata,
     RouteQueryOptions,
 };
+
+/**
+ * Attach a phantom page props type to a `defineRoute` result without losing
+ * the inferred TMethods / TArgs / TComponent specificity.
+ *
+ * Use a curried call so TypeScript can infer the route generics while you
+ * supply `TPageProps` explicitly:
+ *
+ * ```typescript
+ * export const dashboard = annotatePageProps<DashboardPageProps>()(defineRoute({ ... }));
+ * type Props = InferPageProps<typeof dashboard>; // DashboardPageProps
+ * ```
+ *
+ * @returns A one-argument function that accepts a `defineRoute` result and returns
+ *   the same value cast to carry `TPageProps`.
+ */
+export function annotatePageProps<TPageProps>(): <
+    TMethods extends readonly string[],
+    TArgs extends readonly RouteArgMeta[],
+    TComponent extends RouteComponentType | undefined,
+>(
+    route: DefineRouteResult<TMethods, TArgs, TComponent>,
+) => DefineRouteResult<TMethods, TArgs, TComponent, TPageProps> {
+    return function <
+        TMethods extends readonly string[],
+        TArgs extends readonly RouteArgMeta[],
+        TComponent extends RouteComponentType | undefined,
+    >(
+        route: DefineRouteResult<TMethods, TArgs, TComponent>,
+    ): DefineRouteResult<TMethods, TArgs, TComponent, TPageProps> {
+        return route as unknown as DefineRouteResult<
+            TMethods,
+            TArgs,
+            TComponent,
+            TPageProps
+        >;
+    };
+}
 
 /**
  * Empty defaults thunk, shared between initial state and reset.

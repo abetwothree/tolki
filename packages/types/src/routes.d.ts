@@ -125,11 +125,15 @@ export type RouteComponentType = string | Readonly<Record<string, string>>;
 
 /**
  * Route metadata shape as passed to `defineRoute`.
+ *
+ * `TPageProps` is a phantom generic — it is not present in the object shape.
+ * It is carried by `DefineRouteResult` and readable via `InferPageProps<T>`.
  */
 export type RouteMetadata<
     TMethods extends readonly string[] = readonly string[],
     TArgs extends readonly RouteArgMeta[] = readonly RouteArgMeta[],
     TComponent extends RouteComponentType | undefined = undefined,
+    TPageProps = never,
 > = {
     readonly name?: string | null;
     readonly url: string;
@@ -255,11 +259,13 @@ export type DefineRouteResultWithArgs<
     TMethods extends readonly string[],
     TArgs extends readonly RouteArgMeta[],
     TComponent extends RouteComponentType | undefined = undefined,
+    TPageProps = never,
 > = RouteCallableWithArgs<TMethods[0], TArgs> & {
     url: RouteUrlWithArgs<TArgs>;
-    definition: RouteMetadata<TMethods, TArgs, TComponent>;
+    definition: RouteMetadata<TMethods, TArgs, TComponent, TPageProps>;
     form: FormWithArgs<TMethods, TArgs>;
     toString(): string;
+    readonly _pageProps?: TPageProps;
 } & VerbMethodsWithArgs<TMethods, TArgs> &
     ComponentMixin<TComponent, TMethods, TArgs>;
 
@@ -269,25 +275,35 @@ export type DefineRouteResultWithArgs<
 export type DefineRouteResultNoArgs<
     TMethods extends readonly string[],
     TComponent extends RouteComponentType | undefined = undefined,
+    TPageProps = never,
 > = RouteCallableNoArgs<TMethods[0]> & {
     url: RouteUrlNoArgs;
-    definition: RouteMetadata<TMethods, readonly [], TComponent>;
+    definition: RouteMetadata<TMethods, readonly [], TComponent, TPageProps>;
     form: FormNoArgs<TMethods>;
     toString(): string;
+    readonly _pageProps?: TPageProps;
 } & VerbMethodsNoArgs<TMethods> &
     ComponentMixin<TComponent, TMethods, readonly []>;
 
 /**
  * The full return type of `defineRoute`.
  * Discriminates on whether `args` is present in metadata.
+ *
+ * `TPageProps` is a phantom generic for Inertia page prop typing.
+ * It defaults to `never` and is populated when a generated route file
+ * emits an explicit type annotation:
+ * ```typescript
+ * export const dashboard: DefineRouteResult<readonly ['get'], readonly [], 'Dashboard', DashboardPageProps> = defineRoute({...})
+ * ```
  */
 export type DefineRouteResult<
     TMethods extends readonly string[] = readonly string[],
     TArgs extends readonly RouteArgMeta[] = readonly RouteArgMeta[],
     TComponent extends RouteComponentType | undefined = undefined,
+    TPageProps = never,
 > = [TArgs] extends [readonly []] | [readonly never[]]
-    ? DefineRouteResultNoArgs<TMethods, TComponent>
-    : DefineRouteResultWithArgs<TMethods, TArgs, TComponent>;
+    ? DefineRouteResultNoArgs<TMethods, TComponent, TPageProps>
+    : DefineRouteResultWithArgs<TMethods, TArgs, TComponent, TPageProps>;
 
 /**
  * The result of calling `.form()` — contains action (URL), method, and toString().
@@ -556,3 +572,28 @@ type FormNoArgs<TMethods extends readonly string[]> = FormCallableNoArgs<
     TMethods[0]
 > &
     FormVerbMethodsNoArgs<TMethods>;
+
+/**
+ * Infer the Inertia page props type from a `DefineRouteResult`.
+ *
+ * Returns the `TPageProps` generic. Returns `never` when the route const was
+ * not annotated with an explicit page props type (i.e., the default).
+ *
+ * Reads the `_pageProps` phantom property directly to avoid TypeScript's
+ * deferred conditional-type inference limitations with `DefineRouteResult`.
+ *
+ * @example
+ * ```typescript
+ * import type { DashboardPageProps } from './inertia-controller';
+ * import type { InferPageProps } from '@tolki/ts';
+ *
+ * type Props = InferPageProps<typeof dashboard>; // DashboardPageProps
+ * ```
+ */
+export type InferPageProps<T> = T extends {
+    readonly _pageProps?: infer TPageProps;
+}
+    ? [TPageProps] extends [never]
+        ? never
+        : TPageProps
+    : never;

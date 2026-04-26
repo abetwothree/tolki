@@ -1551,3 +1551,19 @@ describe("no component", () => {
         expect("withComponent" in route).toBe(false);
     });
 });
+
+describe("annotatePageProps", () => {
+    it("returns the same route object identity (pure cast)", () => {
+        const route = Ts.defineRoute(Stubs.dashboardPage);
+        const annotated = Ts.annotatePageProps<{ title: string }>()(route);
+
+        expect(annotated).toBe(route);
+    });
+
+    it("works with a route that has args", () => {
+        const route = Ts.defineRoute(Stubs.userProfilePage);
+        const annotated = Ts.annotatePageProps<{ user: { id: number } }>()(route);
+
+        expect(annotated).toBe(route);
+    });
+});
