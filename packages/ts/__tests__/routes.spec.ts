@@ -1562,7 +1562,9 @@ describe("annotatePageProps", () => {
 
     it("works with a route that has args", () => {
         const route = Ts.defineRoute(Stubs.userProfilePage);
-        const annotated = Ts.annotatePageProps<{ user: { id: number } }>()(route);
+        const annotated = Ts.annotatePageProps<{ user: { id: number } }>()(
+            route,
+        );
 
         expect(annotated).toBe(route);
     });

@@ -693,7 +693,9 @@ describe("annotatePageProps", () => {
             Ts.defineRoute(Stubs.conditionalPage),
         );
 
-        expectTypeOf(route._pageProps).toEqualTypeOf<ConditionalProps | undefined>();
+        expectTypeOf(route._pageProps).toEqualTypeOf<
+            ConditionalProps | undefined
+        >();
         type Result = InferPageProps<typeof route>;
         expectTypeOf<Result>().toEqualTypeOf<ConditionalProps>();
     });
