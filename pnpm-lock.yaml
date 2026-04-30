@@ -323,7 +323,7 @@ importers:
         specifier: workspace:^
         version: link:../utils
       vite:
-        specifier: ^7.0.0
+        specifier: ^7.0.0||^8.0.0
         version: 7.3.2(@types/node@25.6.0)(jiti@2.6.1)
 
   packages/types: {}
