@@ -30,6 +30,7 @@
     ],
     "dependencies": {
         "@tolki/arr": "workspace:^",
+        "@tolki/enum": "workspace:^",
         "@tolki/path": "workspace:^",
         "@tolki/str": "workspace:^",
         "@tolki/types": "workspace:^",

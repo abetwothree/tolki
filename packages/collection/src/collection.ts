@@ -50,9 +50,11 @@ import {
     dataUnion,
     dataValues,
 } from "@tolki/data";
+import { SortDirection } from "@tolki/enum";
 import type {
     Arrayable,
     ArrayItems,
+    CaseValue,
     DataItems,
     PathKey,
     PathKeys,
@@ -3174,12 +3176,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
                   | ((a: TValue, b: TValue) => TSortValue)
                   | ((item: TValue, key: TKey) => TSortValue)
                   | PathKey
-                  | [PathKey, PathKey]
+                  | [PathKey, CaseValue<typeof SortDirection> | boolean]
               >
             | ((item: TValue, key: TKey) => TSortValue)
             | PathKey,
-        descending: boolean = false,
+        descending: CaseValue<typeof SortDirection> | boolean = false,
     ) {
+        const isDesc =
+            descending === true || descending === SortDirection.Descending;
         if (isArray(callback) && !isFunction(callback)) {
             return this.sortByMany(callback, descending);
         }
@@ -3213,7 +3217,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 comparison = 0;
             }
 
-            return descending ? -comparison : comparison;
+            return isDesc ? -comparison : comparison;
         });
 
         // Rebuild collection maintaining sorted key order
@@ -3260,18 +3264,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | ((a: TValue, b: TValue) => TSortValue)
             | ((item: TValue, key: TKey) => TSortValue)
             | PathKey
-            | [PathKey, PathKey]
+            | [PathKey, CaseValue<typeof SortDirection> | boolean]
         >,
-        descending: boolean = false,
+        descending: CaseValue<typeof SortDirection> | boolean = false,
     ) {
         if (!isArray(comparisons) || comparisons.length === 0) {
             throw new Error("You must provide at least one comparison.");
         }
 
+        const isDescGlobal =
+            descending === true || descending === SortDirection.Descending;
+
         const entries = Object.entries(this.items);
         entries.sort(([, a], [, b]) => {
             for (const comparison of comparisons) {
-                const comparisonArray = arrWrap(comparison);
+                const comparisonArray = arrWrap(comparison) as [
+                    (
+                        | PathKey
+                        | ((a: TValue, b: TValue) => TSortValue)
+                        | ((item: TValue, key: TKey) => TSortValue)
+                    ),
+                    (CaseValue<typeof SortDirection> | boolean)?,
+                ];
                 const prop = comparisonArray[0];
 
                 let result: number;
@@ -3282,6 +3296,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
                         b as TValue,
                     );
                 } else {
+                    // Determine per-comparison direction from second element
+                    const directionValue = comparisonArray[1];
+                    let isDescComparison: boolean;
+                    if (directionValue === undefined) {
+                        // No direction specified; use global descending flag
+                        isDescComparison = isDescGlobal;
+                    } else if (
+                        directionValue === SortDirection.Descending ||
+                        directionValue === false
+                    ) {
+                        isDescComparison = true;
+                    } else {
+                        isDescComparison = false;
+                    }
+
                     let aValue = dataGet(
                         a as DataItems<unknown, PropertyKey>,
                         prop as PathKey,
@@ -3291,7 +3320,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                         prop as PathKey,
                     );
 
-                    if (descending) {
+                    if (isDescComparison) {
                         [aValue, bValue] = [bValue, aValue];
                     }
 
@@ -3360,12 +3389,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
                   | ((a: TValue, b: TValue) => TSortValue)
                   | ((item: TValue, key: TKey) => TSortValue)
                   | PathKey
-                  | [PathKey, PathKey]
+                  | [PathKey, CaseValue<typeof SortDirection> | boolean]
               >
             | ((item: TValue, key: TKey) => TSortValue)
             | PathKey,
     ) {
-        return this.sortBy(callback, true);
+        return this.sortBy(callback, SortDirection.Descending);
     }
 
     /**
@@ -3379,11 +3408,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({b: 2, a: 1, c: 3}).sortKeys(); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection({b: 2, a: 1, c: 3}).sortKeys(true); -> new Collection({c: 3, b: 2, a: 1})
      */
-    sortKeys(descending: boolean = false) {
+    sortKeys(descending: CaseValue<typeof SortDirection> | boolean = false) {
+        const isDesc =
+            descending === true || descending === SortDirection.Descending;
         const keys = Object.keys(this.items);
 
         keys.sort((a, b) => {
-            if (descending) {
+            if (isDesc) {
                 return a < b ? 1 : -1;
             }
 
@@ -3410,7 +3441,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).sortKeysDesc(); -> new Collection({c: 3, b: 2, a: 1})
      */
     sortKeysDesc() {
-        return this.sortKeys(true);
+        return this.sortKeys(SortDirection.Descending);
     }
 
     /**

@@ -147,3 +147,4 @@ pnpm-publish-summary.json
 .claude
 .github/skills
 .codex
+skills-lock.json
