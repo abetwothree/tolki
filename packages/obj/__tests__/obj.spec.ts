@@ -1,3 +1,4 @@
+import { SortDirection } from "@tolki/enum";
 import * as Obj from "@tolki/obj";
 import { assertType, describe, expect, it } from "vitest";
 
@@ -2566,6 +2567,19 @@ describe("Obj", () => {
                 "x",
                 "d",
                 "c",
+            ]);
+
+            // Test SortDirection.Descending
+            const resultSortDir = Obj.sortRecursive(
+                obj,
+                SortDirection.Descending,
+            );
+            expect(Object.keys(resultSortDir)).toEqual(["b", "a"]);
+            expect(Object.keys(resultSortDir["a"])).toEqual([
+                "y",
+                "x",
+                "f",
+                "e",
             ]);
         });
 

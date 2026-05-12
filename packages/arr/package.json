@@ -29,6 +29,7 @@
         "utilities"
     ],
     "dependencies": {
+        "@tolki/enum": "workspace:^",
         "@tolki/obj": "workspace:^",
         "@tolki/path": "workspace:^",
         "@tolki/str": "workspace:^",

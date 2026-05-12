@@ -1,3 +1,4 @@
+import { SortDirection } from "@tolki/enum";
 import { replaceRecursive as objReplaceRecursive } from "@tolki/obj";
 import {
     dotFlatten,
@@ -18,6 +19,7 @@ import type {
     ArrayResolvePath,
     ArrayResolvePathOrDefault,
     ArrayResolvePathOrNull,
+    CaseValue,
     EnsureArray,
     FlatArrayValue,
     PathKey,
@@ -2561,16 +2563,18 @@ export function sortDesc<TValue>(
  */
 export function sortRecursive<TValue>(
     data: TValue[],
-    descending?: boolean,
+    descending?: CaseValue<typeof SortDirection> | boolean,
 ): TValue[];
 export function sortRecursive<TValue>(
     data: ArrayItems<TValue> | Record<string, unknown> | unknown,
-    descending?: boolean,
+    descending?: CaseValue<typeof SortDirection> | boolean,
 ): TValue[] | Record<string, unknown>;
 export function sortRecursive<TValue>(
     data: ArrayItems<TValue> | Record<string, unknown> | unknown,
-    descending: boolean = false,
+    descending: CaseValue<typeof SortDirection> | boolean = false,
 ): TValue[] | Record<string, unknown> {
+    const isDesc =
+        descending === true || descending === SortDirection.Descending;
     if (!accessible(data) && !isObject(data)) {
         return data as unknown as TValue[];
     }
@@ -2589,14 +2593,14 @@ export function sortRecursive<TValue>(
         for (let i = 0; i < result.length; i++) {
             const item = result[i];
             if (isArray(item) || isObject(item)) {
-                result[i] = sortRecursive(item, descending) as TValue;
+                result[i] = sortRecursive(item, isDesc) as TValue;
             }
         }
 
         // Then sort the array values
         result.sort((a, b) => {
             const comparison = compareValues(a, b);
-            return descending ? -comparison : comparison;
+            return isDesc ? -comparison : comparison;
         });
     } else {
         // Sort object properties
@@ -2605,14 +2609,14 @@ export function sortRecursive<TValue>(
         // Recursively sort nested values first
         for (const [key, value] of entries) {
             if (isArray(value) || (isObject(value) && !isNull(value))) {
-                result[key] = sortRecursive(value, descending);
+                result[key] = sortRecursive(value, isDesc);
             }
         }
 
         // Sort object keys
         const sortedEntries = entries.sort(([keyA], [keyB]) => {
             const comparison = compareValues(keyA, keyB);
-            return descending ? -comparison : comparison;
+            return isDesc ? -comparison : comparison;
         });
 
         // Rebuild object with sorted keys
@@ -2644,7 +2648,7 @@ export function sortRecursiveDesc<TValue>(
 export function sortRecursiveDesc<TValue>(
     data: ArrayItems<TValue> | Record<string, unknown> | unknown,
 ): TValue[] | Record<string, unknown> {
-    return sortRecursive(data, true);
+    return sortRecursive(data, SortDirection.Descending);
 }
 
 /**

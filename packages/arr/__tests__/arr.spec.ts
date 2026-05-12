@@ -1,4 +1,5 @@
 import * as Arr from "@tolki/arr";
+import { SortDirection } from "@tolki/enum";
 import { isArray } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
 
@@ -2811,6 +2812,21 @@ describe("Arr", () => {
             // Test descending parameter
             expect(Arr.sortRecursive([3, 1, 2], true)).toEqual([3, 2, 1]);
             expect(Arr.sortRecursive({ c: 3, a: 1, b: 2 }, true)).toEqual({
+                c: 3,
+                b: 2,
+                a: 1,
+            });
+
+            // Test SortDirection.Descending
+            expect(
+                Arr.sortRecursive([3, 1, 2], SortDirection.Descending),
+            ).toEqual([3, 2, 1]);
+            expect(
+                Arr.sortRecursive(
+                    { c: 3, a: 1, b: 2 },
+                    SortDirection.Descending,
+                ),
+            ).toEqual({
                 c: 3,
                 b: 2,
                 a: 1,

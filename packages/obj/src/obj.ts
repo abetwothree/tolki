@@ -2,6 +2,7 @@ import {
     flip as arrFlip,
     replaceRecursive as arrReplaceRecursive,
 } from "@tolki/arr";
+import { SortDirection } from "@tolki/enum";
 import {
     dotFlatten,
     forgetKeys,
@@ -32,7 +33,7 @@ import {
     looseEqual,
     typeOf,
 } from "@tolki/utils";
-import type { PathKey, PathKeys } from "packages/types";
+import type { CaseValue, PathKey, PathKeys } from "packages/types";
 
 /**
  * Determine whether the given value is object accessible.
@@ -2464,16 +2465,18 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function sortRecursive<T extends Record<PropertyKey, unknown>>(
     data: T,
-    descending?: boolean,
+    descending?: CaseValue<typeof SortDirection> | boolean,
 ): T;
 export function sortRecursive(
     data: unknown,
-    descending?: boolean,
+    descending?: CaseValue<typeof SortDirection> | boolean,
 ): Record<PropertyKey, unknown>;
 export function sortRecursive<T extends Record<PropertyKey, unknown>>(
     data: T | unknown,
-    descending: boolean = false,
+    descending: CaseValue<typeof SortDirection> | boolean = false,
 ): T | Record<PropertyKey, unknown> {
+    const isDesc =
+        descending === true || descending === SortDirection.Descending;
     if (!accessible(data)) {
         return {} as T;
     }
@@ -2485,7 +2488,7 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
     const processedEntries: [PropertyKey, unknown][] = [];
     for (const [key, value] of entries) {
         if (isObject(value)) {
-            processedEntries.push([key, sortRecursive(value, descending)]);
+            processedEntries.push([key, sortRecursive(value, isDesc)]);
         } else if (isArray(value)) {
             // For arrays, sort them if they contain sortable items
             const sortedArray = [...value].sort((a, b) => {
@@ -2493,7 +2496,7 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
                 const strA = String(a);
                 const strB = String(b);
                 const comparison = strA.localeCompare(strB);
-                return descending ? -comparison : comparison;
+                return isDesc ? -comparison : comparison;
             });
             processedEntries.push([key, sortedArray]);
         } else {
@@ -2507,7 +2510,7 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
         const strKeyB = String(keyB);
         const comparison = strKeyA.localeCompare(strKeyB);
 
-        return descending ? -comparison : comparison;
+        return isDesc ? -comparison : comparison;
     });
 
     // Rebuild object with sorted keys
@@ -2537,7 +2540,7 @@ export function sortRecursiveDesc(data: unknown): Record<PropertyKey, unknown>;
 export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
     data: T | unknown,
 ): T | Record<PropertyKey, unknown> {
-    return sortRecursive(data, true);
+    return sortRecursive(data, SortDirection.Descending);
 }
 
 /**

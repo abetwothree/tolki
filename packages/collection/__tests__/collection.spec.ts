@@ -1,4 +1,5 @@
 import { collect, Collection } from "@tolki/collection";
+import { SortDirection } from "@tolki/enum";
 import { Stringable } from "@tolki/str";
 import { assertType, describe, expect, it } from "vitest";
 
@@ -5543,6 +5544,18 @@ describe("Collection", () => {
             const sorted = c.sortBy("val");
             expect(sorted.values().all()).toEqual([{ val: null }, { val: 1 }]);
         });
+
+        it("supports SortDirection.Descending", () => {
+            const data = collect(["taylor", "dayle"]);
+            const sorted = data.sortBy((x) => x, SortDirection.Descending);
+            expect(sorted.values().all()).toEqual(["taylor", "dayle"]);
+        });
+
+        it("supports SortDirection.Ascending", () => {
+            const data = collect(["taylor", "dayle"]);
+            const sorted = data.sortBy((x) => x, SortDirection.Ascending);
+            expect(sorted.values().all()).toEqual(["dayle", "taylor"]);
+        });
     });
 
     describe("sortByMany", () => {
@@ -5706,6 +5719,79 @@ describe("Collection", () => {
             const sorted = c.sortByMany(["val"]);
             expect(sorted.keys().all()).toEqual(["b", "a"]);
         });
+
+        it("supports per-comparison SortDirection tuple descending", () => {
+            // [PathKey, SortDirection.Descending] — hits isDescComparison = true
+            const data = collect([
+                { name: "alice", age: 30 },
+                { name: "bob", age: 25 },
+                { name: "carol", age: 35 },
+            ]);
+            const sorted = data.sortByMany([
+                ["name", SortDirection.Descending],
+            ]);
+            expect(sorted.values().pluck("name").all()).toEqual([
+                "carol",
+                "bob",
+                "alice",
+            ]);
+        });
+
+        it("supports per-comparison SortDirection.Descending string value tuple", () => {
+            // [PathKey, SortDirection.Descending] — string value "Descending", hits isDescComparison = true
+            const data = collect([{ val: 10 }, { val: 30 }, { val: 20 }]);
+            const sorted = data.sortByMany([["val", "Descending"]]);
+            expect(sorted.values().pluck("val").all()).toEqual([30, 20, 10]);
+        });
+
+        it("supports per-comparison false tuple (descending)", () => {
+            // [PathKey, false] — hits isDescComparison = true (false = descending in PHP convention)
+            const data = collect([{ val: 1 }, { val: 3 }, { val: 2 }]);
+            const sorted = data.sortByMany([["val", false]]);
+            expect(sorted.values().pluck("val").all()).toEqual([3, 2, 1]);
+        });
+
+        it("supports per-comparison SortDirection.Ascending tuple", () => {
+            // [PathKey, SortDirection.Ascending] — hits else → isDescComparison = false
+            const data = collect([
+                { name: "carol" },
+                { name: "alice" },
+                { name: "bob" },
+            ]);
+            const sorted = data.sortByMany([["name", SortDirection.Ascending]]);
+            expect(sorted.values().pluck("name").all()).toEqual([
+                "alice",
+                "bob",
+                "carol",
+            ]);
+        });
+
+        it("supports per-comparison SortDirection.Ascending string value tuple", () => {
+            // [PathKey, SortDirection.Ascending] — string value "Ascending", hits else → isDescComparison = false
+            const data = collect([{ val: 30 }, { val: 10 }, { val: 20 }]);
+            const sorted = data.sortByMany([["val", "Ascending"]]);
+            expect(sorted.values().pluck("val").all()).toEqual([10, 20, 30]);
+        });
+
+        it("supports mixed per-comparison directions", () => {
+            // First field ascending, second field descending
+            const data = collect([
+                { group: "a", rank: 2 },
+                { group: "a", rank: 1 },
+                { group: "b", rank: 3 },
+                { group: "b", rank: 4 },
+            ]);
+            const sorted = data.sortByMany([
+                ["group", SortDirection.Ascending],
+                ["rank", SortDirection.Descending],
+            ]);
+            expect(sorted.values().all()).toEqual([
+                { group: "a", rank: 2 },
+                { group: "a", rank: 1 },
+                { group: "b", rank: 4 },
+                { group: "b", rank: 3 },
+            ]);
+        });
     });
 
     describe("sortKeys", () => {
@@ -5727,6 +5813,20 @@ describe("Collection", () => {
                 c: 3,
                 b: 2,
                 a: 1,
+            });
+
+            // Test SortDirection.Descending
+            expect(data.sortKeys(SortDirection.Descending).all()).toEqual({
+                c: 3,
+                b: 2,
+                a: 1,
+            });
+
+            // Test SortDirection.Ascending
+            expect(data.sortKeys(SortDirection.Ascending).all()).toEqual({
+                a: 1,
+                b: 2,
+                c: 3,
             });
 
             // Test with numeric string keys
