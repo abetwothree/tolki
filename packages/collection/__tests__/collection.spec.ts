@@ -5737,8 +5737,8 @@ describe("Collection", () => {
             ]);
         });
 
-        it("supports per-comparison string 'desc' tuple", () => {
-            // [PathKey, "desc"] — hits isDescComparison = true
+        it("supports per-comparison SortDirection.Descending string value tuple", () => {
+            // [PathKey, SortDirection.Descending] — string value "Descending", hits isDescComparison = true
             const data = collect([{ val: 10 }, { val: 30 }, { val: 20 }]);
             const sorted = data.sortByMany([["val", "Descending"]]);
             expect(sorted.values().pluck("val").all()).toEqual([30, 20, 10]);
@@ -5766,8 +5766,8 @@ describe("Collection", () => {
             ]);
         });
 
-        it("supports per-comparison 'asc' tuple string", () => {
-            // [PathKey, "asc"] — hits else → isDescComparison = false
+        it("supports per-comparison SortDirection.Ascending string value tuple", () => {
+            // [PathKey, SortDirection.Ascending] — string value "Ascending", hits else → isDescComparison = false
             const data = collect([{ val: 30 }, { val: 10 }, { val: 20 }]);
             const sorted = data.sortByMany([["val", "Ascending"]]);
             expect(sorted.values().pluck("val").all()).toEqual([10, 20, 30]);
