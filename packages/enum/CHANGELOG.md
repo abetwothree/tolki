@@ -1,5 +1,11 @@
 # @tolki/enum
 
+## 1.1.0
+
+### Minor Changes
+
+- d9d43ea: Create new PHP enums files with SortDirection enum to use in collection, arr, and obj packages.
+
 ## 1.0.1
 
 ### Patch Changes
