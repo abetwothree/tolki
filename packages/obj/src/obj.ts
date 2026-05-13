@@ -1,4 +1,3 @@
-import type { CaseValue, PathKey, PathKeys } from "@tolki//types";
 import {
     flip as arrFlip,
     replaceRecursive as arrReplaceRecursive,
@@ -1016,8 +1015,8 @@ export function get<
         return isObject(object)
             ? (object as TDefault)
             : isFunction(defaultValue)
-                ? (defaultValue as () => TDefault)()
-                : defaultValue;
+              ? (defaultValue as () => TDefault)()
+              : defaultValue;
     }
 
     if (!isObject(object)) {
@@ -1032,8 +1031,8 @@ export function get<
         return !isUndefined(value)
             ? (value as TDefault)
             : isFunction(defaultValue)
-                ? (defaultValue as () => TDefault)()
-                : defaultValue;
+              ? (defaultValue as () => TDefault)()
+              : defaultValue;
     }
 
     if (isNumber(key)) {
@@ -1042,8 +1041,8 @@ export function get<
         return !isUndefined(value)
             ? (value as TDefault)
             : isFunction(defaultValue)
-                ? (defaultValue as () => TDefault)()
-                : defaultValue;
+              ? (defaultValue as () => TDefault)()
+              : defaultValue;
     }
 
     // Handle dot notation for nested object access
@@ -1069,8 +1068,8 @@ export function get<
     return !isUndefined(current)
         ? (current as TDefault)
         : isFunction(defaultValue)
-            ? (defaultValue as () => TDefault)()
-            : defaultValue;
+          ? (defaultValue as () => TDefault)()
+          : defaultValue;
 }
 
 /**
@@ -3041,17 +3040,17 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
         const shouldInclude = isFunction(callback)
             ? callback(value, key)
             : (() => {
-                // Empty arrays are falsy in PHP
-                if (isArray(value) && value.length === 0) {
-                    return false;
-                }
-                // Empty objects are falsy in PHP
-                if (isObject(value) && Object.keys(value).length === 0) {
-                    return false;
-                }
-                // Otherwise use standard JavaScript truthiness
-                return Boolean(value);
-            })();
+                  // Empty arrays are falsy in PHP
+                  if (isArray(value) && value.length === 0) {
+                      return false;
+                  }
+                  // Empty objects are falsy in PHP
+                  if (isObject(value) && Object.keys(value).length === 0) {
+                      return false;
+                  }
+                  // Otherwise use standard JavaScript truthiness
+                  return Boolean(value);
+              })();
 
         if (shouldInclude) {
             result[key] = value;
