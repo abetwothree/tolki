@@ -1,3 +1,4 @@
+import type { CaseValue, PathKey, PathKeys } from "@tolki//types";
 import {
     flip as arrFlip,
     replaceRecursive as arrReplaceRecursive,
@@ -33,7 +34,6 @@ import {
     looseEqual,
     typeOf,
 } from "@tolki/utils";
-import type { CaseValue, PathKey, PathKeys } from "packages/types";
 
 /**
  * Determine whether the given value is object accessible.

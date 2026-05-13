@@ -1,3 +1,4 @@
+import type { ArrayItems, PathKey, PathKeys } from "@tolki//types";
 import { wrap as arrWrap } from "@tolki/arr";
 import {
     castableToArray,
@@ -15,7 +16,6 @@ import {
     isUnsafeKey,
     typeOf,
 } from "@tolki/utils";
-import type { ArrayItems, PathKey, PathKeys } from "packages/types";
 
 /**
  * Parse a key into segments for mixed array/object path traversal.
