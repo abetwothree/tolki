@@ -2886,6 +2886,9 @@ describe("Str tests", () => {
             expect(Str.headline(" orwell_- 1984 ")).toBe("Orwell 1984");
 
             expect(Str.headline("  ")).toBe("");
+
+            expect(Str.headline("❤_multiByte-☆")).toBe("❤ Multi Byte ☆");
+            expect(Str.headline("laravel rocks!")).toBe("Laravel Rocks!");
         });
     });
 
@@ -2912,6 +2915,10 @@ describe("Str tests", () => {
             expect(Str.initials("über öffnen")).toBe("üö");
             expect(Str.initials("über öffnen", true)).toBe("ÜÖ");
             expect(Str.initials("\u{1F600} hello")).toBe("\u{1F600}h");
+
+            expect(Str.initials("❤ MULTIByte ☆")).toBe("❤M☆");
+            expect(Str.initials("laravel rocks!")).toBe("lr");
+            expect(Str.initials("laravel rocks!", true)).toBe("LR");
         });
 
         it("should handle empty strings", () => {
@@ -3000,6 +3007,11 @@ describe("Str tests", () => {
 
             expect(Str.apa("")).toBe("");
             expect(Str.apa("   ")).toBe("   ");
+
+            expect(Str.apa("❤ MULTIByte ☆")).toBe("❤ Multibyte ☆");
+            expect(Str.apa("Laravel Rocks!")).toBe("Laravel Rocks!");
+            expect(Str.apa("Laravel rocks!")).toBe("Laravel Rocks!");
+            expect(Str.apa("LARAVEL ROCKS!")).toBe("Laravel Rocks!");
         });
 
         it("apa with hyphenated words", () => {
@@ -3241,6 +3253,9 @@ describe("Str tests", () => {
             expect(Str.studly("öffentliche-überraschungen")).toBe(
                 "ÖffentlicheÜberraschungen",
             );
+
+            expect(Str.studly("❤ multi-byte☆")).toBe("❤MultiByte☆");
+            expect(Str.studly("laravel rocks!")).toBe("LaravelRocks!");
         });
     });
 

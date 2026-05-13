@@ -2,6 +2,7 @@ import {
     flip as arrFlip,
     replaceRecursive as arrReplaceRecursive,
 } from "@tolki/arr";
+import { SortDirection } from "@tolki/enum";
 import {
     dotFlatten,
     forgetKeys,
@@ -12,7 +13,7 @@ import {
     undotExpandObject,
 } from "@tolki/path";
 import { finish, randomInt } from "@tolki/str";
-import type { PathKey, PathKeys } from "@tolki/types";
+import type { CaseValue, PathKey, PathKeys } from "@tolki/types";
 import {
     compareValues,
     isArray,
@@ -1014,8 +1015,8 @@ export function get<
         return isObject(object)
             ? (object as TDefault)
             : isFunction(defaultValue)
-              ? (defaultValue as () => TDefault)()
-              : defaultValue;
+                ? (defaultValue as () => TDefault)()
+                : defaultValue;
     }
 
     if (!isObject(object)) {
@@ -1030,8 +1031,8 @@ export function get<
         return !isUndefined(value)
             ? (value as TDefault)
             : isFunction(defaultValue)
-              ? (defaultValue as () => TDefault)()
-              : defaultValue;
+                ? (defaultValue as () => TDefault)()
+                : defaultValue;
     }
 
     if (isNumber(key)) {
@@ -1040,8 +1041,8 @@ export function get<
         return !isUndefined(value)
             ? (value as TDefault)
             : isFunction(defaultValue)
-              ? (defaultValue as () => TDefault)()
-              : defaultValue;
+                ? (defaultValue as () => TDefault)()
+                : defaultValue;
     }
 
     // Handle dot notation for nested object access
@@ -1067,8 +1068,8 @@ export function get<
     return !isUndefined(current)
         ? (current as TDefault)
         : isFunction(defaultValue)
-          ? (defaultValue as () => TDefault)()
-          : defaultValue;
+            ? (defaultValue as () => TDefault)()
+            : defaultValue;
 }
 
 /**
@@ -2464,16 +2465,18 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function sortRecursive<T extends Record<PropertyKey, unknown>>(
     data: T,
-    descending?: boolean,
+    descending?: CaseValue<typeof SortDirection> | boolean,
 ): T;
 export function sortRecursive(
     data: unknown,
-    descending?: boolean,
+    descending?: CaseValue<typeof SortDirection> | boolean,
 ): Record<PropertyKey, unknown>;
 export function sortRecursive<T extends Record<PropertyKey, unknown>>(
     data: T | unknown,
-    descending: boolean = false,
+    descending: CaseValue<typeof SortDirection> | boolean = false,
 ): T | Record<PropertyKey, unknown> {
+    const isDesc =
+        descending === true || descending === SortDirection.Descending;
     if (!accessible(data)) {
         return {} as T;
     }
@@ -2485,7 +2488,7 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
     const processedEntries: [PropertyKey, unknown][] = [];
     for (const [key, value] of entries) {
         if (isObject(value)) {
-            processedEntries.push([key, sortRecursive(value, descending)]);
+            processedEntries.push([key, sortRecursive(value, isDesc)]);
         } else if (isArray(value)) {
             // For arrays, sort them if they contain sortable items
             const sortedArray = [...value].sort((a, b) => {
@@ -2493,7 +2496,7 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
                 const strA = String(a);
                 const strB = String(b);
                 const comparison = strA.localeCompare(strB);
-                return descending ? -comparison : comparison;
+                return isDesc ? -comparison : comparison;
             });
             processedEntries.push([key, sortedArray]);
         } else {
@@ -2507,7 +2510,7 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
         const strKeyB = String(keyB);
         const comparison = strKeyA.localeCompare(strKeyB);
 
-        return descending ? -comparison : comparison;
+        return isDesc ? -comparison : comparison;
     });
 
     // Rebuild object with sorted keys
@@ -2537,7 +2540,7 @@ export function sortRecursiveDesc(data: unknown): Record<PropertyKey, unknown>;
 export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
     data: T | unknown,
 ): T | Record<PropertyKey, unknown> {
-    return sortRecursive(data, true);
+    return sortRecursive(data, SortDirection.Descending);
 }
 
 /**
@@ -3037,17 +3040,17 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
         const shouldInclude = isFunction(callback)
             ? callback(value, key)
             : (() => {
-                  // Empty arrays are falsy in PHP
-                  if (isArray(value) && value.length === 0) {
-                      return false;
-                  }
-                  // Empty objects are falsy in PHP
-                  if (isObject(value) && Object.keys(value).length === 0) {
-                      return false;
-                  }
-                  // Otherwise use standard JavaScript truthiness
-                  return Boolean(value);
-              })();
+                // Empty arrays are falsy in PHP
+                if (isArray(value) && value.length === 0) {
+                    return false;
+                }
+                // Empty objects are falsy in PHP
+                if (isObject(value) && Object.keys(value).length === 0) {
+                    return false;
+                }
+                // Otherwise use standard JavaScript truthiness
+                return Boolean(value);
+            })();
 
         if (shouldInclude) {
             result[key] = value;
