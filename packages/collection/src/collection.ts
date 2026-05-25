@@ -5032,6 +5032,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const entries = Object.entries(this.items);
 
         if (entries.length === 0) {
+            if (isUndefined(initial)) {
+                throw new TypeError(
+                    "Reduce of empty collection with no initial value",
+                );
+            }
+
             return initial as TReduce;
         }
 
@@ -5124,7 +5130,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 value: TValue,
                 key: TKey,
             ) => TReduce,
-            initial as TReduce,
+            (isUndefined(initial) ? null : initial) as TReduce,
         );
     }
 

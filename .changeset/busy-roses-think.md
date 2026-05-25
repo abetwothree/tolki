@@ -17,4 +17,7 @@ Str.of("CBOR").studly(true).toString()     // → "Cbor"
 Str.of("ALL_CAPS").pascal(true).toString() // → "AllCaps"
 ```
 
-Also updates the `reduce` and `reduceWithKeys` JSDoc in `Collection` to clarify that the initial value type is included in the return type when the collection is empty (aligns with Laravel's `@return TReduceInitial|TReduceReturnType` documentation update).
+Also fixes two type-safety bugs in `Collection.reduce` and `Collection.reduceWithKeys`:
+
+- `reduce(callback)` on an empty collection with no initial value now throws `TypeError: Reduce of empty collection with no initial value`, matching `Array.prototype.reduce` behavior. Previously it silently returned `undefined` while the overload claimed `TValue`.
+- `reduceWithKeys(callback)` with no initial now defaults to `null` (matching PHP's `$initial = null`), returning `null` on empty collections instead of throwing. This aligns with the existing `TValue | null` overload signature.
