@@ -44,6 +44,9 @@ export type {
  * type Props = InferPageProps<typeof dashboard>; // DashboardPageProps
  * ```
  *
+ * Already-annotated routes can be re-annotated — the existing `TPageProps` generic
+ * (`TExistingPageProps`) is accepted and discarded in favour of the new one.
+ *
  * @returns A one-argument function that accepts a `defineRoute` result and returns
  *   the same value cast to carry `TPageProps`.
  */
@@ -51,15 +54,17 @@ export function annotatePageProps<TPageProps>(): <
     TMethods extends readonly string[],
     TArgs extends readonly RouteArgMeta[],
     TComponent extends RouteComponentType | undefined,
+    TExistingPageProps,
 >(
-    route: DefineRouteResult<TMethods, TArgs, TComponent>,
+    route: DefineRouteResult<TMethods, TArgs, TComponent, TExistingPageProps>,
 ) => DefineRouteResult<TMethods, TArgs, TComponent, TPageProps> {
     return function <
         TMethods extends readonly string[],
         TArgs extends readonly RouteArgMeta[],
         TComponent extends RouteComponentType | undefined,
+        TExistingPageProps,
     >(
-        route: DefineRouteResult<TMethods, TArgs, TComponent>,
+        route: DefineRouteResult<TMethods, TArgs, TComponent, TExistingPageProps>,
     ): DefineRouteResult<TMethods, TArgs, TComponent, TPageProps> {
         return route as unknown as DefineRouteResult<
             TMethods,

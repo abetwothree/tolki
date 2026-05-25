@@ -699,4 +699,19 @@ describe("annotatePageProps", () => {
         type Result = InferPageProps<typeof route>;
         expectTypeOf<Result>().toEqualTypeOf<ConditionalProps>();
     });
+
+    it("can re-annotate an already-annotated route without a type error", () => {
+        type FirstProps = { title: string };
+        type SecondProps = { title: string; count: number };
+
+        const first = Ts.annotatePageProps<FirstProps>()(
+            Ts.defineRoute(Stubs.dashboardPage),
+        );
+
+        // Must NOT produce a type error — re-annotation of an already-annotated route
+        const second = Ts.annotatePageProps<SecondProps>()(first);
+
+        type Result = InferPageProps<typeof second>;
+        expectTypeOf<Result>().toEqualTypeOf<SecondProps>();
+    });
 });
