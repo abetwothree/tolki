@@ -5012,7 +5012,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param callback - The callback to execute, receives the carry, value, and key as arguments
      * @param initial - The initial value to start the reduction with
-     * @returns The reduced value
+     * @returns The reduced value, or the initial value if the collection is empty
      */
     reduce(
         callback: (carry: TValue, value: TValue, key: TKey) => TValue,
@@ -5097,7 +5097,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param initial - The initial value to start the reduction with
      * @param callback - The callback to execute, receives the carry, value, and key as arguments
-     * @returns The reduced value
+     * @returns The reduced value, or the initial value if the collection is empty
      */
     reduceWithKeys<TReduce>(
         callback: (carry: TReduce, value: TValue, key: TKey) => TReduce,
