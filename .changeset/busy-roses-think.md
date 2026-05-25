@@ -1,6 +1,5 @@
 ---
 "@tolki/str": minor
-"@tolki/collection": patch
 ---
 
 Add `normalize` option to `studly` and `pascal`
