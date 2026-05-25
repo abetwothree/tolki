@@ -64,7 +64,12 @@ export function annotatePageProps<TPageProps>(): <
         TComponent extends RouteComponentType | undefined,
         TExistingPageProps,
     >(
-        route: DefineRouteResult<TMethods, TArgs, TComponent, TExistingPageProps>,
+        route: DefineRouteResult<
+            TMethods,
+            TArgs,
+            TComponent,
+            TExistingPageProps
+        >,
     ): DefineRouteResult<TMethods, TArgs, TComponent, TPageProps> {
         return route as unknown as DefineRouteResult<
             TMethods,
