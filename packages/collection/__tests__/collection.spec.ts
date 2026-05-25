@@ -8560,7 +8560,9 @@ describe("Collection", () => {
         describe("empty collection behaviour", () => {
             it("throws TypeError when reducing an empty collection with no initial value", () => {
                 expect(() => {
-                    collect([] as number[]).reduce((carry, value) => carry + value);
+                    collect([] as number[]).reduce(
+                        (carry, value) => carry + value,
+                    );
                 }).toThrow(TypeError);
 
                 expect(() => {
