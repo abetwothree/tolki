@@ -1054,12 +1054,22 @@ describe("Stringable basic delegation", () => {
             const input = "foo bar baz";
             expectEqual(Str.studly(input), Str.of(input).studly());
         });
+
+        it("normalize: true lowercases acronyms before conversion", () => {
+            expect(Str.of("CBOR").studly(true).toString()).toBe("Cbor");
+            expect(Str.of("ALL_CAPS").studly(true).toString()).toBe("AllCaps");
+        });
     });
 
     describe("pascal", () => {
         it("Laravel tests", () => {
             const input = "foo bar baz";
             expectEqual(Str.pascal(input), Str.of(input).pascal());
+        });
+
+        it("normalize: true lowercases acronyms before conversion", () => {
+            expect(Str.of("CBOR").pascal(true).toString()).toBe("Cbor");
+            expect(Str.of("ALL_CAPS").pascal(true).toString()).toBe("AllCaps");
         });
     });
 
