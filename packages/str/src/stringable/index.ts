@@ -1066,19 +1066,21 @@ export class Stringable {
     /**
      * Convert a value to studly caps case.
      *
+     * @param normalize - When true, all-uppercase words (e.g. acronyms) are lowercased before conversion so "CBOR" becomes "Cbor" instead of "CBOR". Defaults to false.
      * @returns The studly-cased string as a new Stringable instance.
      */
-    studly(): Stringable {
-        return new Stringable(studly(this._value));
+    studly(normalize: boolean = false): Stringable {
+        return new Stringable(studly(this._value, normalize));
     }
 
     /**
      * Convert the string to Pascal case.
      *
+     * @param normalize - When true, all-uppercase words (e.g. acronyms) are lowercased before conversion so "CBOR" becomes "Cbor" instead of "CBOR". Defaults to false.
      * @returns The pascal-cased string as a new Stringable instance.
      */
-    pascal(): Stringable {
-        return new Stringable(pascal(this._value));
+    pascal(normalize: boolean = false): Stringable {
+        return new Stringable(pascal(this._value, normalize));
     }
 
     /**

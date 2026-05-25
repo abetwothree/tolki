@@ -8556,6 +8556,45 @@ describe("Collection", () => {
                 ).toBe("foobarbazqux");
             });
         });
+
+        describe("empty collection behaviour", () => {
+            it("throws TypeError when reducing an empty collection with no initial value", () => {
+                expect(() => {
+                    collect([] as number[]).reduce(
+                        (carry, value) => carry + value,
+                    );
+                }).toThrow(TypeError);
+
+                expect(() => {
+                    collect({} as Record<string, number>).reduce(
+                        (carry, value) => carry + value,
+                    );
+                }).toThrow(TypeError);
+            });
+
+            it("returns the initial value when reducing an empty collection with an initial value", () => {
+                expect(
+                    collect([] as number[]).reduce(
+                        (carry, value) => carry + value,
+                        0,
+                    ),
+                ).toBe(0);
+
+                expect(
+                    collect([] as string[]).reduce(
+                        (carry, value) => carry + value,
+                        "start",
+                    ),
+                ).toBe("start");
+
+                expect(
+                    collect([] as number[]).reduce<number | null>(
+                        (_carry, value) => value,
+                        null,
+                    ),
+                ).toBeNull();
+            });
+        });
     });
 
     describe("reduceSpread", () => {
@@ -8621,6 +8660,33 @@ describe("Collection", () => {
                         {} as Record<string, number>,
                     ),
                 ).toEqual({ a: 1, b: 2 });
+            });
+        });
+
+        describe("empty collection and null-default behaviour", () => {
+            it("uses null as the initial carry when no initial value is provided", () => {
+                // PHP default: $initial = null, so carry starts as null for the first call
+                const data = collect([1, 2, 3]);
+
+                expect(
+                    data.reduceWithKeys((carry, value) => {
+                        return (carry ?? 0) + value;
+                    }),
+                ).toBe(6);
+            });
+
+            it("returns null when reducing an empty collection with no initial value", () => {
+                expect(
+                    collect([] as number[]).reduceWithKeys(
+                        (carry, value) => (carry ?? 0) + value,
+                    ),
+                ).toBeNull();
+
+                expect(
+                    collect({} as Record<string, number>).reduceWithKeys(
+                        (carry, value) => (carry ?? 0) + value,
+                    ),
+                ).toBeNull();
             });
         });
     });

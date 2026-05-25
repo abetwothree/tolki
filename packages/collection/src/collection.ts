@@ -5012,7 +5012,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param callback - The callback to execute, receives the carry, value, and key as arguments
      * @param initial - The initial value to start the reduction with
-     * @returns The reduced value
+     * @returns The reduced value, or the initial value if the collection is empty
      */
     reduce(
         callback: (carry: TValue, value: TValue, key: TKey) => TValue,
@@ -5032,6 +5032,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const entries = Object.entries(this.items);
 
         if (entries.length === 0) {
+            if (isUndefined(initial)) {
+                throw new TypeError(
+                    "Reduce of empty collection with no initial value",
+                );
+            }
+
             return initial as TReduce;
         }
 
@@ -5097,7 +5103,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param initial - The initial value to start the reduction with
      * @param callback - The callback to execute, receives the carry, value, and key as arguments
-     * @returns The reduced value
+     * @returns The reduced value, or the initial value if the collection is empty
      */
     reduceWithKeys<TReduce>(
         callback: (carry: TReduce, value: TValue, key: TKey) => TReduce,
@@ -5124,7 +5130,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 value: TValue,
                 key: TKey,
             ) => TReduce,
-            initial as TReduce,
+            (isUndefined(initial) ? null : initial) as TReduce,
         );
     }
 

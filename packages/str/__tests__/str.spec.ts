@@ -3257,6 +3257,15 @@ describe("Str tests", () => {
             expect(Str.studly("❤ multi-byte☆")).toBe("❤MultiByte☆");
             expect(Str.studly("laravel rocks!")).toBe("LaravelRocks!");
         });
+
+        it("normalize: true lowercases all-uppercase words (acronyms) before conversion", () => {
+            expect(Str.studly("CBOR", true)).toBe("Cbor");
+            expect(Str.studly("FMLS", true)).toBe("Fmls");
+            expect(Str.studly("ALL_CAPS", true)).toBe("AllCaps");
+            expect(Str.studly("AllJersey", true)).toBe("AllJersey");
+            expect(Str.studly("all_jersey", true)).toBe("AllJersey");
+            expect(Str.studly("foo_bar", true)).toBe("FooBar");
+        });
     });
 
     describe("pascal", () => {
@@ -3280,6 +3289,12 @@ describe("Str tests", () => {
             expect(Str.pascal("öffentliche-überraschungen")).toBe(
                 "ÖffentlicheÜberraschungen",
             );
+        });
+
+        it("normalize: true lowercases all-uppercase words (acronyms) before conversion", () => {
+            expect(Str.pascal("CBOR", true)).toBe("Cbor");
+            expect(Str.pascal("ALL_CAPS", true)).toBe("AllCaps");
+            expect(Str.pascal("foo_bar", true)).toBe("FooBar");
         });
     });
 

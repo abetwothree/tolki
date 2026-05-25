@@ -2269,19 +2269,29 @@ export function doesntStartWith(
  * Convert a value to studly caps case.
  *
  * @param value - The string to convert
+ * @param normalize - When true, all-uppercase words (e.g. acronyms) are lowercased before conversion so "CBOR" becomes "Cbor" instead of "CBOR". Defaults to false.
  * @returns The converted string in studly caps case
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#studly
  */
-export function studly(value: string): string {
-    const key = value;
+export function studly(value: string, normalize: boolean = false): string {
+    let transformed = value;
+
+    if (normalize) {
+        transformed = value.replace(
+            /(^|[-_ \s])([A-Z]+)(?=[-_ \s]|$)/gu,
+            (_, sep: string, word: string) => sep + word.toLowerCase(),
+        );
+    }
+
+    const key = transformed;
 
     if (studlyCache.has(key)) {
         return studlyCache.get(key)!;
     }
 
     // Replace hyphens/underscores with spaces, then split on whitespace
-    const normalized = String(value).replace(/[-_]+/g, " ");
+    const normalized = String(transformed).replace(/[-_]+/g, " ");
     const words = normalized.trim() === "" ? [] : normalized.split(/\s+/u);
 
     const capFirst = (word: string): string => {
@@ -2302,12 +2312,13 @@ export function studly(value: string): string {
  * Convert a value to Pascal case.
  *
  * @param value - The string to convert
+ * @param normalize - When true, all-uppercase words (e.g. acronyms) are lowercased before conversion so "CBOR" becomes "Cbor" instead of "CBOR". Defaults to false.
  * @returns The converted string in Pascal case
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#pascal
  */
-export function pascal(value: string): string {
-    return studly(value);
+export function pascal(value: string, normalize: boolean = false): string {
+    return studly(value, normalize);
 }
 
 /**
