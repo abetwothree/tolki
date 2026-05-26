@@ -18,7 +18,7 @@
         "schemaVersion": 1,
         "vite": {
             "type": "compatible",
-            "versions": "^7.0.0"
+            "versions": "^7.0.0||^8.0.0"
         }
     },
     "main": "src/index.ts",
@@ -48,7 +48,7 @@
         "@tolki/utils": "workspace:^"
     },
     "peerDependencies": {
-        "vite": "^7.0.0"
+        "vite": "^7.0.0||^8.0.0"
     },
     "sideEffects": false,
     "packageManager": "pnpm@10.12.1",

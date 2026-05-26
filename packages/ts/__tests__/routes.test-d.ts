@@ -1,8 +1,10 @@
 import * as Ts from "@tolki/ts";
 import type {
     ArgsObject,
+    DefineRouteResult,
     DefineRouteResultNoArgs,
     DefineRouteResultWithArgs,
+    InferPageProps,
     PositionalTuple,
     ResolveArgInputType,
     RouteCallResult,
@@ -518,5 +520,198 @@ describe("no component type inference", () => {
     it("does not have .withComponent property on routes without component", () => {
         const route = Ts.defineRoute(Stubs.postsIndex);
         expectTypeOf(route).not.toHaveProperty("withComponent");
+    });
+});
+
+describe("TPageProps and InferPageProps", () => {
+    it("_pageProps is undefined by default (TPageProps = never)", () => {
+        const route = Ts.defineRoute(Stubs.dashboardPage);
+        expectTypeOf(route._pageProps).toEqualTypeOf<undefined>();
+    });
+
+    it("InferPageProps returns never when no annotation is provided", () => {
+        const route = Ts.defineRoute(Stubs.dashboardPage);
+        type Result = InferPageProps<typeof route>;
+        expectTypeOf<Result>().toEqualTypeOf<never>();
+    });
+
+    it("explicit DefineRouteResult annotation carries TPageProps", () => {
+        type DashboardPageProps = {
+            stats: { users: number; posts: number };
+            recentActivity: unknown[];
+        };
+
+        const route: DefineRouteResult<
+            readonly ["get", "head"],
+            readonly [],
+            "Dashboard",
+            DashboardPageProps
+        > = Ts.defineRoute(Stubs.dashboardPage);
+
+        expectTypeOf(route._pageProps).toEqualTypeOf<
+            DashboardPageProps | undefined
+        >();
+    });
+
+    it("InferPageProps extracts TPageProps from annotated route", () => {
+        type DashboardPageProps = {
+            stats: { users: number; posts: number };
+            recentActivity: unknown[];
+        };
+
+        const route: DefineRouteResult<
+            readonly ["get", "head"],
+            readonly [],
+            "Dashboard",
+            DashboardPageProps
+        > = Ts.defineRoute(Stubs.dashboardPage);
+
+        type Result = InferPageProps<typeof route>;
+        expectTypeOf<Result>().toEqualTypeOf<DashboardPageProps>();
+    });
+
+    it("annotated route is still callable and returns correct RouteCallResult", () => {
+        type DashboardPageProps = { stats: { users: number } };
+
+        const route: DefineRouteResult<
+            readonly ["get", "head"],
+            readonly [],
+            "Dashboard",
+            DashboardPageProps
+        > = Ts.defineRoute(Stubs.dashboardPage);
+
+        const result = route();
+        expectTypeOf(result).toExtend<RouteCallResult<"get">>();
+    });
+
+    it("annotated route still exposes component property", () => {
+        type DashboardPageProps = { stats: { users: number } };
+
+        const route: DefineRouteResult<
+            readonly ["get", "head"],
+            readonly [],
+            "Dashboard",
+            DashboardPageProps
+        > = Ts.defineRoute(Stubs.dashboardPage);
+
+        expectTypeOf(route.component).toEqualTypeOf<"Dashboard">();
+    });
+
+    it("InferPageProps returns never for non-Inertia routes", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+        type Result = InferPageProps<typeof route>;
+        expectTypeOf<Result>().toEqualTypeOf<never>();
+    });
+});
+
+describe("annotatePageProps", () => {
+    it("attaches TPageProps to a no-args route", () => {
+        type DashboardPageProps = {
+            stats: { users: number; posts: number };
+            recentActivity: unknown[];
+        };
+
+        const route = Ts.annotatePageProps<DashboardPageProps>()(
+            Ts.defineRoute(Stubs.dashboardPage),
+        );
+
+        expectTypeOf(route._pageProps).toEqualTypeOf<
+            DashboardPageProps | undefined
+        >();
+    });
+
+    it("InferPageProps extracts TPageProps from annotatePageProps result", () => {
+        type DashboardPageProps = {
+            stats: { users: number; posts: number };
+        };
+
+        const route = Ts.annotatePageProps<DashboardPageProps>()(
+            Ts.defineRoute(Stubs.dashboardPage),
+        );
+
+        type Result = InferPageProps<typeof route>;
+        expectTypeOf<Result>().toEqualTypeOf<DashboardPageProps>();
+    });
+
+    it("preserves TMethods inference — route stays callable with correct method types", () => {
+        type DashboardPageProps = { title: string };
+
+        const route = Ts.annotatePageProps<DashboardPageProps>()(
+            Ts.defineRoute(Stubs.dashboardPage),
+        );
+
+        const result = route();
+        expectTypeOf(result).toExtend<RouteCallResult<"get">>();
+
+        // Specific method literal is preserved
+        expectTypeOf(route.get()).toExtend<RouteCallResult<"get">>();
+        expectTypeOf(route.head()).toExtend<RouteCallResult<"head">>();
+    });
+
+    it("preserves TComponent inference — component property still typed", () => {
+        type DashboardPageProps = { title: string };
+
+        const route = Ts.annotatePageProps<DashboardPageProps>()(
+            Ts.defineRoute(Stubs.dashboardPage),
+        );
+
+        expectTypeOf(route.component).toEqualTypeOf<"Dashboard">();
+    });
+
+    it("attaches TPageProps to a route with args", () => {
+        type ProfilePageProps = { user: { id: number; name: string } };
+
+        const route = Ts.annotatePageProps<ProfilePageProps>()(
+            Ts.defineRoute(Stubs.userProfilePage),
+        );
+
+        expectTypeOf(route._pageProps).toEqualTypeOf<
+            ProfilePageProps | undefined
+        >();
+        type Result = InferPageProps<typeof route>;
+        expectTypeOf<Result>().toEqualTypeOf<ProfilePageProps>();
+    });
+
+    it("preserves TArgs inference on a route with args — still requires args", () => {
+        type ProfilePageProps = { user: { id: number; name: string } };
+
+        const route = Ts.annotatePageProps<ProfilePageProps>()(
+            Ts.defineRoute(Stubs.userProfilePage),
+        );
+
+        // Must still accept model-bound arg
+        const result = route({ user: 1 });
+        expectTypeOf(result).toExtend<RouteCallResult<"get">>();
+    });
+
+    it("attaches TPageProps to a multi-component route", () => {
+        type AuthPageProps = { user: { id: number } };
+        type GuestPageProps = Record<string, never>;
+        type ConditionalProps = AuthPageProps | GuestPageProps;
+
+        const route = Ts.annotatePageProps<ConditionalProps>()(
+            Ts.defineRoute(Stubs.conditionalPage),
+        );
+
+        expectTypeOf(route._pageProps).toEqualTypeOf<
+            ConditionalProps | undefined
+        >();
+        type Result = InferPageProps<typeof route>;
+        expectTypeOf<Result>().toEqualTypeOf<ConditionalProps>();
+    });
+
+    it("can re-annotate an already-annotated route without a type error", () => {
+        type FirstProps = { title: string };
+        type SecondProps = { title: string; count: number };
+
+        const first = Ts.annotatePageProps<FirstProps>()(
+            Ts.defineRoute(Stubs.dashboardPage),
+        );
+
+        // Must NOT produce a type error — re-annotation of an already-annotated route
+        const second = Ts.annotatePageProps<SecondProps>()(first);
+
+        type Result = InferPageProps<typeof second>;
+        expectTypeOf<Result>().toEqualTypeOf<SecondProps>();
     });
 });

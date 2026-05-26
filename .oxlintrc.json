@@ -12,7 +12,10 @@
         "**/dist/**",
         "coverage/**",
         "docs/vitepress/vitepress/dist/**",
-        "docs/vitepress/.vitepress/cache/**"
+        "docs/vitepress/.vitepress/cache/**",
+        ".agents/**",
+        ".claude/**",
+        ".github/**"
     ],
     "rules": {
         "no-array-constructor": "error",

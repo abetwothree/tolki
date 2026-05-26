@@ -16,6 +16,9 @@ export default defineConfig([
             "coverage/**",
             "docs/vitepress/vitepress/dist/**",
             "docs/vitepress/.vitepress/cache/**",
+            ".agents/**",
+            ".claude/**",
+            ".github/**",
         ],
     },
     {

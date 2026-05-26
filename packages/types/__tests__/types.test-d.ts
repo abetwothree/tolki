@@ -1,5 +1,6 @@
 import type {
     AllTimestampsModel,
+    AnonymousResourceCollection,
     AsAvg,
     AsCount,
     AsExists,
@@ -13,6 +14,7 @@ import type {
     LengthAwarePaginator,
     Model,
     PaginatorLink,
+    ResourcePagination,
     SimplePaginator,
     SoftDeleteModel,
     SoftDeletes,
@@ -148,12 +150,28 @@ test("JsonResourcePaginator", () => {
     >();
 });
 
+test("AnonymousResourceCollection", () => {
+    expectTypeOf<AnonymousResourceCollection<Data>>().toEqualTypeOf<
+        AnonymousResourceCollection<Data>
+    >();
+});
+
 test("JsonResourceLinks", () => {
     expectTypeOf<JsonResourceLinks>().toEqualTypeOf<JsonResourceLinks>();
 });
 
 test("JsonResourceMeta", () => {
     expectTypeOf<JsonResourceMeta>().toEqualTypeOf<JsonResourceMeta>();
+});
+
+test("ResourcePagination", () => {
+    expectTypeOf<ResourcePagination>().toEqualTypeOf<ResourcePagination>();
+    expectTypeOf<
+        ResourcePagination["meta"]
+    >().toEqualTypeOf<JsonResourceMeta>();
+    expectTypeOf<
+        ResourcePagination["links"]
+    >().toEqualTypeOf<JsonResourceLinks>();
 });
 
 // ----------------------------------------------
