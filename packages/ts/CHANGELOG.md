@@ -1,5 +1,16 @@
 # @tolki/ts
 
+## 0.2.0
+
+### Minor Changes
+
+- Add annotations for route form request data
+
+### Patch Changes
+
+- Updated dependencies
+  - @tolki/types@1.4.0
+
 ## 0.1.0
 
 ### Minor Changes
