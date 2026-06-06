@@ -5,6 +5,7 @@ import type {
     DefineRouteResultNoArgs,
     DefineRouteResultWithArgs,
     InferPageProps,
+    InferRequestPayload,
     PositionalTuple,
     ResolveArgInputType,
     RouteCallResult,
@@ -713,5 +714,118 @@ describe("annotatePageProps", () => {
 
         type Result = InferPageProps<typeof second>;
         expectTypeOf<Result>().toEqualTypeOf<SecondProps>();
+    });
+});
+
+describe("TRequestPayload and InferRequestPayload", () => {
+    it("_requestPayload is undefined by default (TRequestPayload = never)", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+        expectTypeOf(route._requestPayload).toEqualTypeOf<undefined>();
+    });
+
+    it("InferRequestPayload returns never when no annotation is provided", () => {
+        const route = Ts.defineRoute(Stubs.postsIndex);
+        type Result = InferRequestPayload<typeof route>;
+        expectTypeOf<Result>().toEqualTypeOf<never>();
+    });
+
+    it("explicit DefineRouteResult annotation carries TRequestPayload", () => {
+        type StorePostPayload = { title: string; body: string };
+
+        const route: DefineRouteResult<
+            readonly ["post"],
+            readonly [],
+            undefined,
+            never,
+            StorePostPayload
+        > = Ts.defineRoute(Stubs.postsStore);
+
+        expectTypeOf(route._requestPayload).toEqualTypeOf<
+            StorePostPayload | undefined
+        >();
+    });
+
+    it("InferRequestPayload extracts TRequestPayload from annotated route", () => {
+        type StorePostPayload = { title: string; body: string };
+
+        const route: DefineRouteResult<
+            readonly ["post"],
+            readonly [],
+            undefined,
+            never,
+            StorePostPayload
+        > = Ts.defineRoute(Stubs.postsStore);
+
+        type Result = InferRequestPayload<typeof route>;
+        expectTypeOf<Result>().toEqualTypeOf<StorePostPayload>();
+    });
+});
+
+describe("annotateRequestPayload", () => {
+    it("attaches TRequestPayload to a no-args route", () => {
+        type StorePostPayload = { title: string; body: string };
+
+        const route = Ts.annotateRequestPayload<StorePostPayload>()(
+            Ts.defineRoute(Stubs.postsStore),
+        );
+
+        expectTypeOf(route._requestPayload).toEqualTypeOf<
+            StorePostPayload | undefined
+        >();
+    });
+
+    it("InferRequestPayload extracts TRequestPayload from annotateRequestPayload result", () => {
+        type StorePostPayload = { title: string; body: string };
+
+        const route = Ts.annotateRequestPayload<StorePostPayload>()(
+            Ts.defineRoute(Stubs.postsStore),
+        );
+
+        type Result = InferRequestPayload<typeof route>;
+        expectTypeOf<Result>().toEqualTypeOf<StorePostPayload>();
+    });
+
+    it("preserves TMethods inference — route stays callable with correct method types", () => {
+        type StorePostPayload = { title: string };
+
+        const route = Ts.annotateRequestPayload<StorePostPayload>()(
+            Ts.defineRoute(Stubs.postsStore),
+        );
+
+        const result = route.post();
+        expectTypeOf(result).toExtend<RouteCallResult<"post">>();
+    });
+
+    it("TPageProps and TRequestPayload can coexist on the same route", () => {
+        type DashboardPageProps = { stats: { users: number } };
+        type StorePostPayload = { title: string; body: string };
+
+        const withPageProps = Ts.annotatePageProps<DashboardPageProps>()(
+            Ts.defineRoute(Stubs.dashboardPage),
+        );
+
+        const withBoth = Ts.annotateRequestPayload<StorePostPayload>()(
+            withPageProps,
+        );
+
+        type PagePropsResult = InferPageProps<typeof withBoth>;
+        type RequestPayloadResult = InferRequestPayload<typeof withBoth>;
+
+        expectTypeOf<PagePropsResult>().toEqualTypeOf<DashboardPageProps>();
+        expectTypeOf<RequestPayloadResult>().toEqualTypeOf<StorePostPayload>();
+    });
+
+    it("attaches TRequestPayload to a route with args", () => {
+        type UpdatePostPayload = { title?: string; status: string };
+
+        const route = Ts.annotateRequestPayload<UpdatePostPayload>()(
+            Ts.defineRoute(Stubs.postsUpdate),
+        );
+
+        expectTypeOf(route._requestPayload).toEqualTypeOf<
+            UpdatePostPayload | undefined
+        >();
+        type Result = InferRequestPayload<typeof route>;
+        expectTypeOf<Result>().toEqualTypeOf<UpdatePostPayload>();
     });
 });

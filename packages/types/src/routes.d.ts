@@ -260,12 +260,14 @@ export type DefineRouteResultWithArgs<
     TArgs extends readonly RouteArgMeta[],
     TComponent extends RouteComponentType | undefined = undefined,
     TPageProps = never,
+    TRequestPayload = never,
 > = RouteCallableWithArgs<TMethods[0], TArgs> & {
     url: RouteUrlWithArgs<TArgs>;
     definition: RouteMetadata<TMethods, TArgs, TComponent, TPageProps>;
     form: FormWithArgs<TMethods, TArgs>;
     toString(): string;
     readonly _pageProps?: TPageProps;
+    readonly _requestPayload?: TRequestPayload;
 } & VerbMethodsWithArgs<TMethods, TArgs> &
     ComponentMixin<TComponent, TMethods, TArgs>;
 
@@ -276,12 +278,14 @@ export type DefineRouteResultNoArgs<
     TMethods extends readonly string[],
     TComponent extends RouteComponentType | undefined = undefined,
     TPageProps = never,
+    TRequestPayload = never,
 > = RouteCallableNoArgs<TMethods[0]> & {
     url: RouteUrlNoArgs;
     definition: RouteMetadata<TMethods, readonly [], TComponent, TPageProps>;
     form: FormNoArgs<TMethods>;
     toString(): string;
     readonly _pageProps?: TPageProps;
+    readonly _requestPayload?: TRequestPayload;
 } & VerbMethodsNoArgs<TMethods> &
     ComponentMixin<TComponent, TMethods, readonly []>;
 
@@ -295,15 +299,23 @@ export type DefineRouteResultNoArgs<
  * ```typescript
  * export const dashboard: DefineRouteResult<readonly ['get'], readonly [], 'Dashboard', DashboardPageProps> = defineRoute({...})
  * ```
+ *
+ * `TRequestPayload` is a phantom generic for FormRequest payload typing.
+ * It defaults to `never` and is populated when a generated route file
+ * emits an explicit type annotation:
+ * ```typescript
+ * export const store: DefineRouteResult<readonly ['post'], readonly [], undefined, never, StorePostRequest> = defineRoute({...})
+ * ```
  */
 export type DefineRouteResult<
     TMethods extends readonly string[] = readonly string[],
     TArgs extends readonly RouteArgMeta[] = readonly RouteArgMeta[],
     TComponent extends RouteComponentType | undefined = undefined,
     TPageProps = never,
+    TRequestPayload = never,
 > = [TArgs] extends [readonly []] | [readonly never[]]
-    ? DefineRouteResultNoArgs<TMethods, TComponent, TPageProps>
-    : DefineRouteResultWithArgs<TMethods, TArgs, TComponent, TPageProps>;
+    ? DefineRouteResultNoArgs<TMethods, TComponent, TPageProps, TRequestPayload>
+    : DefineRouteResultWithArgs<TMethods, TArgs, TComponent, TPageProps, TRequestPayload>;
 
 /**
  * The result of calling `.form()` — contains action (URL), method, and toString().
@@ -596,4 +608,29 @@ export type InferPageProps<T> = T extends {
     ? [TPageProps] extends [never]
         ? never
         : TPageProps
+    : never;
+
+/**
+ * Infer the request payload type from a `DefineRouteResult`.
+ *
+ * Returns the `TRequestPayload` generic. Returns `never` when the route const
+ * was not annotated with an explicit request payload type (i.e., the default).
+ *
+ * Reads the `_requestPayload` phantom property directly to avoid TypeScript's
+ * deferred conditional-type inference limitations with `DefineRouteResult`.
+ *
+ * @example
+ * ```typescript
+ * import type { store } from './post-controller';
+ * import type { InferRequestPayload } from '@tolki/ts';
+ *
+ * type Payload = InferRequestPayload<typeof store>; // StorePostRequest
+ * ```
+ */
+export type InferRequestPayload<T> = T extends {
+    readonly _requestPayload?: infer TRequestPayload;
+}
+    ? [TRequestPayload] extends [never]
+        ? never
+        : TRequestPayload
     : never;

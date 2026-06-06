@@ -1,6 +1,7 @@
 import type {
     DefineRouteResult,
     InferPageProps,
+    InferRequestPayload,
     RouteArgMeta,
     RouteCallResult,
     RouteCallResultWithComponent,
@@ -23,6 +24,7 @@ import {
 export type {
     DefineRouteResult,
     InferPageProps,
+    InferRequestPayload,
     RouteArgMeta,
     RouteCallResult,
     RouteCallResultWithComponent,
@@ -76,6 +78,64 @@ export function annotatePageProps<TPageProps>(): <
             TArgs,
             TComponent,
             TPageProps
+        >;
+    };
+}
+
+/**
+ * Attach a phantom request payload type to a `defineRoute` result without
+ * losing the inferred TMethods / TArgs / TComponent / TPageProps specificity.
+ *
+ * Use a curried call so TypeScript can infer the route generics while you
+ * supply `TRequestPayload` explicitly:
+ *
+ * ```typescript
+ * export const store = annotateRequestPayload<StorePostRequest>()(defineRoute({ ... }));
+ * type Payload = InferRequestPayload<typeof store>; // StorePostRequest
+ * ```
+ *
+ * Already-annotated routes can be re-annotated — the existing `TRequestPayload` generic
+ * (`TExistingRequestPayload`) is accepted and discarded in favour of the new one.
+ *
+ * @returns A one-argument function that accepts a `defineRoute` result and returns
+ *   the same value cast to carry `TRequestPayload`.
+ */
+export function annotateRequestPayload<TRequestPayload>(): <
+    TMethods extends readonly string[],
+    TArgs extends readonly RouteArgMeta[],
+    TComponent extends RouteComponentType | undefined,
+    TPageProps,
+    TExistingRequestPayload,
+>(
+    route: DefineRouteResult<
+        TMethods,
+        TArgs,
+        TComponent,
+        TPageProps,
+        TExistingRequestPayload
+    >,
+) => DefineRouteResult<TMethods, TArgs, TComponent, TPageProps, TRequestPayload> {
+    return function <
+        TMethods extends readonly string[],
+        TArgs extends readonly RouteArgMeta[],
+        TComponent extends RouteComponentType | undefined,
+        TPageProps,
+        TExistingRequestPayload,
+    >(
+        route: DefineRouteResult<
+            TMethods,
+            TArgs,
+            TComponent,
+            TPageProps,
+            TExistingRequestPayload
+        >,
+    ): DefineRouteResult<TMethods, TArgs, TComponent, TPageProps, TRequestPayload> {
+        return route as unknown as DefineRouteResult<
+            TMethods,
+            TArgs,
+            TComponent,
+            TPageProps,
+            TRequestPayload
         >;
     };
 }
