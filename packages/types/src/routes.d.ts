@@ -315,7 +315,13 @@ export type DefineRouteResult<
     TRequestPayload = never,
 > = [TArgs] extends [readonly []] | [readonly never[]]
     ? DefineRouteResultNoArgs<TMethods, TComponent, TPageProps, TRequestPayload>
-    : DefineRouteResultWithArgs<TMethods, TArgs, TComponent, TPageProps, TRequestPayload>;
+    : DefineRouteResultWithArgs<
+          TMethods,
+          TArgs,
+          TComponent,
+          TPageProps,
+          TRequestPayload
+      >;
 
 /**
  * The result of calling `.form()` — contains action (URL), method, and toString().
