@@ -59,8 +59,20 @@ export function annotatePageProps<TPageProps>(): <
     TExistingPageProps,
     TExistingRequestPayload,
 >(
-    route: DefineRouteResult<TMethods, TArgs, TComponent, TExistingPageProps, TExistingRequestPayload>,
-) => DefineRouteResult<TMethods, TArgs, TComponent, TPageProps, TExistingRequestPayload> {
+    route: DefineRouteResult<
+        TMethods,
+        TArgs,
+        TComponent,
+        TExistingPageProps,
+        TExistingRequestPayload
+    >,
+) => DefineRouteResult<
+    TMethods,
+    TArgs,
+    TComponent,
+    TPageProps,
+    TExistingRequestPayload
+> {
     return function <
         TMethods extends readonly string[],
         TArgs extends readonly RouteArgMeta[],
@@ -75,7 +87,13 @@ export function annotatePageProps<TPageProps>(): <
             TExistingPageProps,
             TExistingRequestPayload
         >,
-    ): DefineRouteResult<TMethods, TArgs, TComponent, TPageProps, TExistingRequestPayload> {
+    ): DefineRouteResult<
+        TMethods,
+        TArgs,
+        TComponent,
+        TPageProps,
+        TExistingRequestPayload
+    > {
         return route as unknown as DefineRouteResult<
             TMethods,
             TArgs,
