@@ -1569,3 +1569,21 @@ describe("annotatePageProps", () => {
         expect(annotated).toBe(route);
     });
 });
+
+describe("annotateRequestPayload", () => {
+    it("returns the same route object identity (pure cast)", () => {
+        const route = Ts.defineRoute(Stubs.postsStore);
+        const annotated = Ts.annotateRequestPayload<{ title: string }>()(route);
+
+        expect(annotated).toBe(route);
+    });
+
+    it("works with a route that has args", () => {
+        const route = Ts.defineRoute(Stubs.postsUpdate);
+        const annotated = Ts.annotateRequestPayload<{ title?: string }>()(
+            route,
+        );
+
+        expect(annotated).toBe(route);
+    });
+});
