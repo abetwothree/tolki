@@ -114,7 +114,13 @@ export function annotateRequestPayload<TRequestPayload>(): <
         TPageProps,
         TExistingRequestPayload
     >,
-) => DefineRouteResult<TMethods, TArgs, TComponent, TPageProps, TRequestPayload> {
+) => DefineRouteResult<
+    TMethods,
+    TArgs,
+    TComponent,
+    TPageProps,
+    TRequestPayload
+> {
     return function <
         TMethods extends readonly string[],
         TArgs extends readonly RouteArgMeta[],
@@ -129,7 +135,13 @@ export function annotateRequestPayload<TRequestPayload>(): <
             TPageProps,
             TExistingRequestPayload
         >,
-    ): DefineRouteResult<TMethods, TArgs, TComponent, TPageProps, TRequestPayload> {
+    ): DefineRouteResult<
+        TMethods,
+        TArgs,
+        TComponent,
+        TPageProps,
+        TRequestPayload
+    > {
         return route as unknown as DefineRouteResult<
             TMethods,
             TArgs,

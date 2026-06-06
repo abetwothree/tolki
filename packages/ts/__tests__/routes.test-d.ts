@@ -804,9 +804,8 @@ describe("annotateRequestPayload", () => {
             Ts.defineRoute(Stubs.dashboardPage),
         );
 
-        const withBoth = Ts.annotateRequestPayload<StorePostPayload>()(
-            withPageProps,
-        );
+        const withBoth =
+            Ts.annotateRequestPayload<StorePostPayload>()(withPageProps);
 
         type PagePropsResult = InferPageProps<typeof withBoth>;
         type RequestPayloadResult = InferRequestPayload<typeof withBoth>;
