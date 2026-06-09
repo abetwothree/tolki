@@ -523,7 +523,7 @@ export function pairs(
     offset: number = 1,
 ): [number, number][] {
     if (by === 0) {
-        throw new Error("The $by argument must not be zero.");
+        throw new Error("The 'by' argument must not be zero.");
     }
 
     by = Math.abs(by);
