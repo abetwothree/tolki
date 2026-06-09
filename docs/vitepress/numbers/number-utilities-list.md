@@ -6,7 +6,7 @@ These are the number utilities that can be used independently as single function
 
 <div class="collection-method-list" markdown="1">
 
-[abbreviate](#abbreviate) [clamp](#clamp) [currency](#currency) [defaultCurrency](#defaultcurrency) [defaultLocale](#defaultlocale) [fileSize](#filesize) [forHumans](#forhumans) [format](#format) [minutesToHuman](#minutestohuman) [ordinal](#ordinal) [pairs](#pairs) [parseFloat](#parsefloat) [parseInt](#parseint) [percentage](#percentage) [spell](#spell) [spellOrdinal](#spellordinal) [secondsToHuman](#secondstohuman) [trim](#trim) [useLocale](#uselocale) [withLocale](#withlocale) [useCurrency](#usecurrency) [withCurrency](#withcurrency)
+[abbreviate](#abbreviate) [clamp](#clamp) [currency](#currency) [defaultCurrency](#defaultcurrency) [defaultLocale](#defaultlocale) [fileSize](#filesize) [forHumans](#forhumans) [format](#format) [minutesToHuman](#minutestohuman) [ordinal](#ordinal) [pairs](#pairs) [parse](#parse) [parseFloat](#parsefloat) [parseInt](#parseint) [percentage](#percentage) [spell](#spell) [spellOrdinal](#spellordinal) [secondsToHuman](#secondstohuman) [trim](#trim) [useLocale](#uselocale) [withLocale](#withlocale) [useCurrency](#usecurrency) [withCurrency](#withcurrency)
 
 </div>
 
@@ -222,6 +222,22 @@ const result = pairs(25, 10);
 const result2 = pairs(25, 10, 0, 0);
 
 // result2 is [[0, 10], [10, 20], [20, 25]]
+```
+
+### parse
+
+Parse a localized numeric string into a number.
+
+```javascript
+import { parse } from "@tolki/num";
+
+const result = parse("10,123", "en");
+
+// result is 10123
+
+const result2 = parse("10,123", "fr");
+
+// result2 is 10.123
 ```
 
 ### parseInt

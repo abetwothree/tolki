@@ -1,7 +1,7 @@
 
 Analyzing file: packages/num/stubs/NumberTest.php
 
-Found 22 function(s):
+Found 24 function(s):
 
 METHOD DECLARATIONS:
   public testDefaultLocale() [line 11]
@@ -18,12 +18,14 @@ METHOD DECLARATIONS:
   public testToCurrency() [line 141]
   public testToCurrencyWithDifferentLocale() [line 161]
   public testBytesToHuman() [line 172]
-  public testClamp() [line 191]
-  public testToHuman() [line 200]
-  public testSummarize() [line 260]
-  public testPairs() [line 325]
-  public testTrim() [line 341]
-  public testParse() [line 353]
-  public testParseInt() [line 365]
-  public testParseFloat() [line 376]
+  public testClamp() [line 197]
+  public testToHuman() [line 206]
+  public testSummarize() [line 266]
+  public testPairs() [line 331]
+  public testPairsThrowsWhenByIsZero() [line 347]
+  public testPairsWithNegativeByWorksLikePositive() [line 354]
+  public testTrim() [line 359]
+  public testParse() [line 374]
+  public testParseInt() [line 386]
+  public testParseFloat() [line 397]
 

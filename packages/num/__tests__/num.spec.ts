@@ -384,6 +384,12 @@ describe("Number", () => {
             expect(Num.fileSize(1024 ** 7)).toBe("1 ZB");
             expect(Num.fileSize(1024 ** 8)).toBe("1 YB");
             expect(Num.fileSize(1024 ** 9)).toBe("1,024 YB");
+
+            expect(Num.fileSize(-1)).toBe("-1 B");
+            expect(Num.fileSize(-2048)).toBe("-2 KB");
+            expect(Num.fileSize(-2048, 2)).toBe("-2.00 KB");
+            expect(Num.fileSize(-1264, 2)).toBe("-1.23 KB");
+            expect(Num.fileSize(-1024 * 1024 * 1024 * 5)).toBe("-5 GB");
         });
 
         it("should accept string input", () => {
@@ -599,6 +605,9 @@ describe("Number", () => {
             [10, 19],
             [20, 25],
         ]);
+
+        expect(() => Num.pairs(100, 0)).toThrow();
+        expect(Num.pairs(100, 10)).toEqual(Num.pairs(100, -10));
     });
 
     it("trim", () => {
@@ -609,6 +618,9 @@ describe("Number", () => {
         expect(Num.trim(12.3)).toBe(12.3);
         expect(Num.trim(12.3456789)).toBe(12.3456789);
         expect(Num.trim(12.3456789)).toBe(12.3456789);
+        expect(Num.trim(Infinity)).toBe(Infinity);
+        expect(Num.trim(-Infinity)).toBe(-Infinity);
+        expect(Num.trim(NaN)).toBeNaN();
     });
 
     it("minutesToHuman", () => {

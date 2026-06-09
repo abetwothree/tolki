@@ -9,6 +9,7 @@
         "builtin": true
     },
     "ignorePatterns": [
+        ".agents/**/*",
         "**/dist/**",
         "coverage/**",
         "docs/vitepress/vitepress/dist/**",

@@ -146,5 +146,8 @@ pnpm-publish-summary.json
 .agents
 .claude
 .github/skills
+.github/prompts
+.github/plans
+.github/agents
 .codex
 skills-lock.json
