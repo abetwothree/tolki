@@ -1,5 +1,13 @@
 # @tolki/num
 
+## 2.1.0
+
+### Minor Changes
+
+- 13c8be0: - `fileSize()` now correctly handles negative byte values (e.g. `-2048` → `"-2 KB"`)
+  - `pairs()` now throws an `Error` when `by` is `0`, and treats negative `by` values the same as positive ones
+  - `trim()` now returns `Infinity`, `-Infinity`, and `NaN` as-is instead of converting them to `null`
+
 ## 2.0.5
 
 ### Patch Changes
