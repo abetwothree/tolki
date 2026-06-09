@@ -337,7 +337,8 @@ export function fileSize(
 
     let i = 0;
     // Scale bytes up to the largest appropriate unit, matching Laravel's 0.9 threshold
-    while (value / 1024 > 0.9 && i < unitCount - 1) {
+    // Use Math.abs to support negative byte values (e.g. -2048 -> -2 KB)
+    while (Math.abs(value) / 1024 > 0.9 && i < unitCount - 1) {
         value /= 1024;
         i++;
     }
@@ -521,6 +522,12 @@ export function pairs(
     start: number = 0,
     offset: number = 1,
 ): [number, number][] {
+    if (by === 0) {
+        throw new Error("The 'by' argument must not be zero.");
+    }
+
+    by = Math.abs(by);
+
     const output: [number, number][] = [];
 
     for (let lower = start; lower < to; lower += by) {
@@ -545,6 +552,10 @@ export function pairs(
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#trim
  */
 export function trim(value: number): number {
+    if (!isFinite(value)) {
+        return value;
+    }
+
     return JSON.parse(JSON.stringify(value));
 }
 

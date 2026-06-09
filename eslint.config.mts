@@ -12,6 +12,7 @@ import tseslint from "typescript-eslint";
 export default defineConfig([
     {
         ignores: [
+            ".agents/**/*",
             "**/dist/**",
             "coverage/**",
             "docs/vitepress/vitepress/dist/**",
