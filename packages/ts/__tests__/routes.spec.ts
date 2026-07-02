@@ -1165,11 +1165,11 @@ describe(".form on routes", () => {
         expect(result.method).toBe("post");
     });
 
-    it(".form() on a DELETE route returns method: 'post'", () => {
+    it(".form() on a DELETE route spoofs _method=DELETE (matches Wayfinder)", () => {
         const route = Ts.defineRoute(Stubs.postsDestroy);
         const result = route.form({ post: 42 });
 
-        expect(result.action).toBe("/posts/42");
+        expect(result.action).toBe("/posts/42?_method=DELETE");
         expect(result.method).toBe("post");
     });
 

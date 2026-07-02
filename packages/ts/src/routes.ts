@@ -725,11 +725,19 @@ export function defineRoute<
         });
     }
 
-    // Build .form callable + per-verb form methods
+    // Build .form callable + per-verb form methods.
+    // The bare `.form(...)` call spoofs the primary method exactly like the
+    // per-verb variants below, matching Laravel Wayfinder's behavior: a form
+    // for a non-GET/POST route always gets `_method` injected automatically.
+    const primaryNeedsSpoofing = primaryMethod !== "get" && primaryMethod !== "post";
+
     const formCallable = (
         ...rawArgs: unknown[]
     ): RouteFormResult<typeof primaryMethod> => {
-        const [named, options] = normalizeArgs(rawArgs, argsMeta);
+        const [named, rawOptions] = normalizeArgs(rawArgs, argsMeta);
+        const options = primaryNeedsSpoofing
+            ? formSafeOptions(primaryMethod, rawOptions)
+            : rawOptions;
         const action = buildUrl(metadata.url, named, argsMeta, options);
         return makeFormResult(action, primaryMethod);
     };
