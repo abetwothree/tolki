@@ -46,7 +46,7 @@ export type ColorKind = 'Red' | 'Green' | 'Blue';
 - `backed` records whether the PHP enum is backed (used by [`AsEnum`](#type-reference) to type API responses).
 - `hex` is an **instance method** — [`#[TsEnumMethod]`](#tsenummethod) — resolved to one value per case.
 - `_cases` / `_methods` / `_static` are the metadata arrays the `@tolki/ts` runtime functions read to resolve "instances" — see [Runtime Utilities](#runtime-utilities).
-- `ColorType` / `ColorKind` are always-generated type aliases — see [Value & Key Types](#value-key-types).
+- `ColorType` / `ColorKind` are always-generated type aliases — see [Value & Key Types](#value--key-types).
 
 ## Enum Attributes
 
@@ -284,7 +284,7 @@ Same include/exclude pattern used by models, resources, and every other collecte
 ],
 ```
 
-`#[TsExclude]` on the enum class excludes the whole enum; on a method, it excludes just that method (regardless of whether auto-include or an explicit attribute would otherwise include it). See [Excluding Content](https://tolki.abe.dev/ts/excluding-content) for the full attribute behavior shared across models, resources, and routes.
+`#[TsExclude]` on the enum class excludes the whole enum; on a method, it excludes just that method (regardless of whether auto-include or an explicit attribute would otherwise include it). See [Excluding Content](./excluding-content.md) for the full attribute behavior shared across models, resources, and routes.
 
 ## Casing
 

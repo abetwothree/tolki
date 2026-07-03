@@ -1,8 +1,8 @@
-# Tolki Enum Laravel TypeScript Publisher Vite Plugin
+# Vite Plugin
 
-The `@tolki/ts` package provides a Vite plugin to automatically watch for changes of the transformed PHP files by the [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) package.
+The `@tolki/ts` package provides a Vite plugin that watches for changes to the PHP files collected by the [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) and automatically re-runs `php artisan ts:publish` when they change.
 
-The Laravel TypeScript Publisher package can publish a JSON file list of transformed PHP files. This Vite plugin uses that JSON file list to watch for changes in those PHP files and automatically call the `php artisan ts:publish` command to transform the changed PHP files into TypeScript files.
+The Laravel package publishes a JSON manifest listing every collected PHP file — this plugin watches those exact files and reacts to changes in them, rather than watching your whole project.
 
 ## Command Execution Notes
 

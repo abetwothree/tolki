@@ -446,7 +446,7 @@ Notice how:
 
 ## Resource Attributes
 
-Three attributes are available for configuring resource TypeScript generation. See [Excluding Content](https://tolki.abe.dev/ts/excluding-content) for the full `#[TsExclude]` reference.
+Three attributes are available for configuring resource TypeScript generation. See [Excluding Content](./excluding-content.md) for the full `#[TsExclude]` reference.
 
 | Attribute       | Target                   | Description                                                                   |
 |-----------------|--------------------------|--------------------------------------------------------------------------------|
@@ -611,7 +611,7 @@ You can customize which resources are discovered using the same include/exclude 
 > [!TIP]
 > Like models and enums, include and exclude settings accept both fully-qualified class names and directory paths.
 
-`#[TsExclude]` also works at the class level — see [Resource Attributes](#resource-attributes) above and [Excluding Content](https://tolki.abe.dev/ts/excluding-content).
+`#[TsExclude]` also works at the class level — see [Resource Attributes](#resource-attributes) above and [Excluding Content](./excluding-content.md).
 
 You can disable resource publishing entirely in the config file:
 

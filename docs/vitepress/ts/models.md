@@ -451,7 +451,7 @@ class User extends Model
 }
 ```
 
-See [Excluding Content](https://tolki.abe.dev/ts/excluding-content) for the full attribute behavior shared across models, enums, resources, and routes.
+See [Excluding Content](./excluding-content.md) for the full attribute behavior shared across models, enums, resources, and routes.
 
 ## Casing
 

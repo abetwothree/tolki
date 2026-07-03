@@ -220,7 +220,7 @@ export interface UpdatePostRequest {
 
 ## `#[TsExtends]`
 
-`FormRequest` classes support `#[TsExtends]` and the `ts_extends.form_requests` config array, the same generic interface-extension mechanism used everywhere else in this package. See [Extending Interfaces](https://tolki.abe.dev/ts/extending-interfaces) for the full attribute reference and config syntax.
+`FormRequest` classes support `#[TsExtends]` and the `ts_extends.form_requests` config array, the same generic interface-extension mechanism used everywhere else in this package. See [Extending Interfaces](./extending-interfaces.md) for the full attribute reference and config syntax.
 
 ## Dynamic Requests
 
@@ -278,7 +278,7 @@ class InternalRequest extends FormRequest
 }
 ```
 
-See [Excluding Content](https://tolki.abe.dev/ts/excluding-content) for the full attribute behavior shared across models, enums, resources, and routes. There's no field-level equivalent for form requests — rules live in a single `rules()` array rather than individual methods, so exclusion is class-only.
+See [Excluding Content](./excluding-content.md) for the full attribute behavior shared across models, enums, resources, and routes. There's no field-level equivalent for form requests — rules live in a single `rules()` array rather than individual methods, so exclusion is class-only.
 
 ## Route Integration
 

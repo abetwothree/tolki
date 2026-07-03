@@ -63,7 +63,7 @@ export {};
 
 Each key returned from `share()` resolves to a TypeScript type using this priority order (highest wins):
 
-1. **`#[TsCasts]`** on the middleware class or its `share()` method — the same attribute used by [models](./models.md#tscasts), [resources](https://github.com/abetwothree/laravel-ts-publish#tscasts-override-property-types), and [broadcast events](./broadcast-events.md#tscasts-overriding-property-types).
+1. **`#[TsCasts]`** on the middleware class or its `share()` method — the same attribute used by [models](./models.md#tscasts), [resources](./api-resources.md#tscasts-override-property-types), and [broadcast events](./broadcast-events.md#tscasts-overriding-property-types).
 2. **`@return array{...}` PHPDoc** on `share()` — a manually-written shape annotation, useful when a key's value can't be statically inferred (e.g. it comes from a closure or a method call Surveyor can't resolve).
 3. **Surveyor's static inference** — the default, covering plain values, nested arrays, conditionals, and spreads.
 

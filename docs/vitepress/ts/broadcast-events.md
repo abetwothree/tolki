@@ -249,7 +249,7 @@ class ServerCreated implements ShouldBroadcast
 }
 ```
 
-See [Extending Interfaces](https://tolki.abe.dev/ts/extending-interfaces) for the full attribute and config syntax.
+See [Extending Interfaces](./extending-interfaces.md) for the full attribute and config syntax.
 
 ## The Combined Index File (`broadcast-events.ts`)
 
@@ -354,7 +354,7 @@ class InternalDebugEvent implements ShouldBroadcast
 }
 ```
 
-See [Excluding Content](https://tolki.abe.dev/ts/excluding-content) for the full attribute reference.
+See [Excluding Content](./excluding-content.md) for the full attribute reference.
 
 ## Configuration Reference
 

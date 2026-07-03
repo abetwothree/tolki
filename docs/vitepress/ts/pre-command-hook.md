@@ -28,7 +28,7 @@ public function boot(): void
 | `php artisan ts:publish --preview` | Yes |
 | Automatic post-migration republish | Yes |
 
-There's no way to distinguish which invocation triggered the hook from inside the closure itself — if you need different behavior for `--source` reruns (for example, skipping expensive filesystem scans that the [Vite plugin](https://tolki.abe.dev/ts/vite-plugin) triggers on every file save), check for cheaper conditions inside the closure (e.g. caching the scan result, or reading an environment variable) rather than relying on the command's own options.
+There's no way to distinguish which invocation triggered the hook from inside the closure itself — if you need different behavior for `--source` reruns (for example, skipping expensive filesystem scans that the [Vite plugin](./vite-plugin.md) triggers on every file save), check for cheaper conditions inside the closure (e.g. caching the scan result, or reading an environment variable) rather than relying on the command's own options.
 
 ## Registration Behavior
 
@@ -97,7 +97,7 @@ This way, disabling a module also removes its types from the next publish withou
 
 ### Conditionally Swapping Pipeline Classes
 
-Since the hook runs before the [pipeline](https://tolki.abe.dev/ts/customizing-the-pipeline) is resolved, it's the right place to swap a `*_class` override based on runtime conditions — for example, using a lighter-weight transformer in CI where full analysis isn't needed:
+Since the hook runs before the [pipeline](./customizing-the-pipeline.md) is resolved, it's the right place to swap a `*_class` override based on runtime conditions — for example, using a lighter-weight transformer in CI where full analysis isn't needed:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\LaravelTsPublish;

@@ -30,7 +30,7 @@ As with [enums](./enums.md), this package is not meant to be used standalone —
 
 - Multiple Laravel routes that map to the **same controller method** are de-duplicated into a single export — if one of them is named, the named route wins.
 - `HEAD` is always omitted from `methods` (Laravel adds it implicitly to every `GET` route).
-- A method decorated with `#[TsExclude]` (or a controller class decorated with it) is skipped entirely — see [Filtering & Excluding Routes](#filtering-excluding-routes).
+- A method decorated with `#[TsExclude]` (or a controller class decorated with it) is skipped entirely — see [Filtering & Excluding Routes](#filtering--excluding-routes).
 
 ## Anatomy of `defineRoute`
 
@@ -58,7 +58,7 @@ The value returned by `defineRoute()` is a callable object with:
 | `route.form.put(...)`, `route.form.delete(...)`, … | Per-verb form variants — these add Laravel's `_method` spoofing automatically. |
 | `route.definition` | The raw metadata object passed to `defineRoute()`. |
 | `route.toString()` | Returns the URL with no parameters substituted — lets you drop a route directly into a template literal. |
-| `${route(...)} ` | Using a route directly in a template literal calls the route and inserts the URL string. |
+| `${route(...)}` | Using a route directly in a template literal calls the route and inserts the URL string. |
 
 ## Calling a Route
 

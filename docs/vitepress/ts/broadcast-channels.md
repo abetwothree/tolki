@@ -6,7 +6,7 @@ As mentioned in [Installation & Usage](./index.md), broadcast channels don't nee
 
 ## How Broadcast Channel Types Are Generated
 
-Broadcast channels are architecturally different from [enums](./enums.md), [models](./models.md), [resources](https://tolki.abe.dev/ts/), and [form requests](./form-requests.md): there's no per-class collection, filtering, or attributes involved. Instead:
+Broadcast channels are architecturally different from [enums](./enums.md), [models](./models.md), [resources](./api-resources.md), and [form requests](./form-requests.md): there's no per-class collection, filtering, or attributes involved. Instead:
 
 - The collector reads `Illuminate\Broadcasting\BroadcastManager::getChannels()->keys()` directly — the exact set of channel name strings registered via `Broadcast::channel(...)` in `routes/channels.php`.
 - **Both registration styles collect identically.** Whether a channel is registered with a closure or a channel class (`Broadcast::channel('orders.{orderId}', OrderChannel::class)`), only the channel *name string* drives the TypeScript output — the authorization callback/class is never inspected.

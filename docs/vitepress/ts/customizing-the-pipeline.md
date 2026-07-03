@@ -49,7 +49,7 @@ A few writers aren't tied to a single feature — they combine already-transform
 
 ### Features Without a Swappable Pipeline
 
-Inertia and Vite Env are **not** part of this swappable pipeline — they have their own dedicated analysis logic (reading the `HandleInertiaRequests` middleware, or parsing `.env`) and only expose filename/output-directory config, with no `*_class` override keys. See [Inertia](https://tolki.abe.dev/ts/inertia) and [Vite Env](https://tolki.abe.dev/ts/vite-env) for their configuration options.
+Inertia and Vite Env are **not** part of this swappable pipeline — they have their own dedicated analysis logic (reading the `HandleInertiaRequests` middleware, or parsing `.env`) and only expose filename/output-directory config, with no `*_class` override keys. See [Inertia](./inertia.md) and [Vite Env](./vite-env.md) for their configuration options.
 
 ## Abstract Base Classes
 

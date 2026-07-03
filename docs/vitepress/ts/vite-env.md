@@ -2,7 +2,7 @@
 
 The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) reads the `VITE_`-prefixed variables from your project's `.env` file and generates a `vite-env.d.ts` declaration file that augments Vite's own `ImportMetaEnv` interface — so `import.meta.env.VITE_APP_NAME` is fully typed on the frontend without hand-maintaining a separate declaration file.
 
-This is the simplest generator in the package: no `@tolki/ts` runtime, no attributes, no per-item filtering — just a source file scan and a template render.
+As mentioned in [Installation & Usage](./index.md), this is the simplest generator in the package: no `@tolki/ts` runtime, no attributes, no per-item filtering — just a source file scan and a template render.
 
 ## How the Declaration File Is Generated
 
