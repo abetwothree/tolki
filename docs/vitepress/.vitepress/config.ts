@@ -1,10 +1,10 @@
 import { defineConfig } from "vitepress";
-import llmstxt from "vitepress-plugin-llms";
-import { copyOrDownloadAsMarkdownButtons } from "vitepress-plugin-llms";
 import {
     groupIconMdPlugin,
     groupIconVitePlugin,
 } from "vitepress-plugin-group-icons";
+import llmstxt from "vitepress-plugin-llms";
+import { copyOrDownloadAsMarkdownButtons } from "vitepress-plugin-llms";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
