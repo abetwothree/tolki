@@ -1,58 +1,30 @@
 /**
- * Customize default theme styling by overriding CSS variables:
+ * Tolki JS — VitePress theme
+ * Brand: TypeScript blue #3178C6 (primary) · Laravel red #FF2D20 (accent)
+ * The red→blue gradient mirrors the { L } logo mark.
+ *
  * https://github.com/vuejs/vitepress/blob/main/src/client/theme-default/styles/vars.css
- */
-
-/**
- * Colors
- *
- * Each colors have exact same color scale system with 3 levels of solid
- * colors with different brightness, and 1 soft color.
- *
- * - `XXX-1`: The most solid color used mainly for colored text. It must
- *   satisfy the contrast ratio against when used on top of `XXX-soft`.
- *
- * - `XXX-2`: The color used mainly for hover state of the button.
- *
- * - `XXX-3`: The color for solid background, such as bg color of the button.
- *   It must satisfy the contrast ratio with pure white (#ffffff) text on
- *   top of it.
- *
- * - `XXX-soft`: The color used for subtle background such as custom container
- *   or badges. It must satisfy the contrast ratio when putting `XXX-1` colors
- *   on top of it.
- *
- *   The soft color must be semi transparent alpha channel. This is crucial
- *   because it allows adding multiple "soft" colors on top of each other
- *   to create an accent, such as when having inline code block inside
- *   custom containers.
- *
- * - `default`: The color used purely for subtle indication without any
- *   special meanings attached to it such as bg color for menu hover state.
- *
- * - `brand`: Used for primary brand colors, such as link text, button with
- *   brand theme, etc.
- *
- * - `tip`: Used to indicate useful information. The default theme uses the
- *   brand color for this by default.
- *
- * - `warning`: Used to indicate warning to the users. Used in custom
- *   container, badges, etc.
- *
- * - `danger`: Used to show error, or dangerous message to the users. Used
- *   in custom container, badges, etc.
  * -------------------------------------------------------------------------- */
 
+/* ─────────────────────────────────────────────
+   Brand tokens
+   ───────────────────────────────────────────── */
+
 :root {
+  --tolki-c-red: #ff2d20;
+  --tolki-c-blue: #3178c6;
+  --tolki-gradient: linear-gradient(120deg, #ff2d20 20%, #3178c6 80%);
+
+  /* TypeScript blue scale — AA contrast on white */
+  --vp-c-brand-1: #2c6cb8;   /* text / links   ≥4.5:1 */
+  --vp-c-brand-2: #3178c6;   /* hover          */
+  --vp-c-brand-3: #3178c6;   /* solid bg       white text ≥4.5:1 */
+  --vp-c-brand-soft: rgba(49, 120, 198, 0.14);
+
   --vp-c-default-1: var(--vp-c-gray-1);
   --vp-c-default-2: var(--vp-c-gray-2);
   --vp-c-default-3: var(--vp-c-gray-3);
   --vp-c-default-soft: var(--vp-c-gray-soft);
-
-  --vp-c-brand-1: var(--vp-c-indigo-1);
-  --vp-c-brand-2: var(--vp-c-indigo-2);
-  --vp-c-brand-3: var(--vp-c-indigo-3);
-  --vp-c-brand-soft: var(--vp-c-indigo-soft);
 
   --vp-c-tip-1: var(--vp-c-brand-1);
   --vp-c-tip-2: var(--vp-c-brand-2);
@@ -70,9 +42,16 @@
   --vp-c-danger-soft: var(--vp-c-red-soft);
 }
 
-/**
- * Component: Button
- * -------------------------------------------------------------------------- */
+.dark {
+  --vp-c-brand-1: #6fb2f2;
+  --vp-c-brand-2: #4f96e6;
+  --vp-c-brand-3: #3178c6;
+  --vp-c-brand-soft: rgba(49, 120, 198, 0.18);
+}
+
+/* ─────────────────────────────────────────────
+   Buttons
+   ───────────────────────────────────────────── */
 
 :root {
   --vp-button-brand-border: transparent;
@@ -86,41 +65,167 @@
   --vp-button-brand-active-bg: var(--vp-c-brand-1);
 }
 
-/**
- * Component: Home
- * -------------------------------------------------------------------------- */
+/* ─────────────────────────────────────────────
+   Nav bar
+   ───────────────────────────────────────────── */
+
+/* Thin gradient "active indicator" stripe at the bottom of the nav */
+.VPNav .VPNavBar {
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.VPNavBarTitle .logo {
+  height: 28px;
+}
+
+/* ─────────────────────────────────────────────
+   Home hero
+   ───────────────────────────────────────────── */
 
 :root {
   --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: -webkit-linear-gradient(
-    120deg,
-    #bd34fe 30%,
-    #41d1ff
-  );
+  --vp-home-hero-name-background: var(--tolki-gradient);
 
   --vp-home-hero-image-background-image: linear-gradient(
     -45deg,
-    #bd34fe 50%,
-    #47caff 50%
+    rgba(255, 45, 32, 0.55) 20%,
+    rgba(49, 120, 198, 0.55) 80%
   );
   --vp-home-hero-image-filter: blur(44px);
 }
 
 @media (min-width: 640px) {
-  :root {
-    --vp-home-hero-image-filter: blur(56px);
-  }
+  :root { --vp-home-hero-image-filter: blur(56px); }
 }
-
 @media (min-width: 960px) {
-  :root {
-    --vp-home-hero-image-filter: blur(68px);
+  :root { --vp-home-hero-image-filter: blur(68px); }
+}
+
+.VPHero .VPImage {
+  border-radius: 20px;
+  filter: drop-shadow(0 22px 45px rgba(49, 120, 198, 0.32));
+}
+
+/* ─────────────────────────────────────────────
+   Home feature cards
+   ───────────────────────────────────────────── */
+
+.VPFeatures .VPFeature {
+  border-color: var(--vp-c-divider);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+
+.VPFeatures .VPFeature:hover {
+  border-color: var(--vp-c-brand-1);
+  box-shadow: 0 12px 30px -14px rgba(49, 120, 198, 0.35);
+  transform: translateY(-3px);
+}
+
+.VPFeature .icon {
+  color: var(--vp-c-brand-1);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 45, 32, 0.1),
+    rgba(49, 120, 198, 0.16)
+  ) !important;
+  border: 1px solid var(--vp-c-brand-soft);
+}
+
+.VPFeature .icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .VPFeatures .VPFeature,
+  .VPFeatures .VPFeature:hover {
+    transition: none;
+    transform: none;
   }
 }
 
-/**
- * Component: Custom Block
- * -------------------------------------------------------------------------- */
+/* ─────────────────────────────────────────────
+   Sidebar
+   ───────────────────────────────────────────── */
+
+/* Active item gets a brand-colored left accent bar */
+.VPSidebarItem.is-active > .item .indicator {
+  background: var(--tolki-gradient) !important;
+}
+
+.VPSidebarItem.is-active > .item .text {
+  color: var(--vp-c-brand-1) !important;
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────────
+   Inner page content  (.vp-doc)
+   ───────────────────────────────────────────── */
+
+/* H2: keep default top spacing, remove any custom border */
+.vp-doc h2 {
+  margin-top: 48px;
+}
+
+
+/* ─────────────────────────────────────────────
+   Tables
+   ───────────────────────────────────────────── */
+
+.vp-doc .table-scroll {
+  margin: 16px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--vp-c-divider);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.vp-doc table {
+  display: table !important;
+  border-collapse: collapse;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+.vp-doc thead tr {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 45, 32, 0.07) 0%,
+    rgba(49, 120, 198, 0.12) 100%
+  ) !important;
+}
+
+.vp-doc th {
+  color: var(--vp-c-text-1);
+  font-weight: 600;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--vp-c-brand-soft);
+}
+
+.vp-doc td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--vp-c-divider);
+  vertical-align: top;
+}
+
+.vp-doc tr:last-child td {
+  border-bottom: none;
+}
+
+.vp-doc tbody tr:hover {
+  background: var(--vp-c-brand-soft);
+}
+
+/* ─────────────────────────────────────────────
+   Custom blocks (tip / note / warning / danger)
+   ───────────────────────────────────────────── */
 
 :root {
   --vp-custom-block-tip-border: transparent;
@@ -129,26 +234,141 @@
   --vp-custom-block-tip-code-bg: var(--vp-c-brand-soft);
 }
 
-/**
- * Component: Algolia
- * -------------------------------------------------------------------------- */
-
-.DocSearch {
-  --docsearch-primary-color: var(--vp-c-brand-1);
+/* All custom blocks get a clear left accent */
+.vp-doc .custom-block {
+  border-left: 3px solid;
+  border-radius: 0 8px 8px 0;
 }
 
-/**
- * List of links for method links
- * -------------------------------------------------------------------------- */
+.vp-doc .custom-block.tip {
+  border-left-color: var(--vp-c-brand-1);
+}
+
+.vp-doc .custom-block.info {
+  border-left-color: var(--vp-c-brand-2);
+  background-color: var(--vp-c-brand-soft);
+}
+
+.vp-doc .custom-block.warning {
+  border-left-color: var(--vp-c-warning-1);
+}
+
+.vp-doc .custom-block.danger {
+  border-left-color: var(--vp-c-danger-1);
+}
+
+/* ─────────────────────────────────────────────
+   Code blocks
+   ───────────────────────────────────────────── */
+
+/* Code block container: subtle shadow for depth */
+.vp-doc div[class*='language-'] {
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+}
+
+/* Language label chip: brand-tinted */
+.vp-doc div[class*='language-'] .lang {
+  color: var(--vp-c-brand-2);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+/* Code group tabs */
+.vp-doc .vp-code-group .tabs {
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.vp-doc .vp-code-group .tabs label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  gap: 6px;
+}
+
+.vp-doc .vp-code-group .tabs label:has(input:checked) {
+  color: var(--vp-c-brand-1);
+  border-bottom-color: var(--vp-c-brand-1);
+}
+
+/* ─────────────────────────────────────────────
+   Method / utility link lists  (collection-method-list)
+   ───────────────────────────────────────────── */
+
 .collection-method-list > p {
-  columns: 10.8em 3;
-  -moz-columns: 10.8em 3;
-  -webkit-columns: 10.8em 3;
+  columns: 12em 3;
+  -moz-columns: 12em 3;
+  -webkit-columns: 12em 3;
+  gap: 6px;
 }
 
 .collection-method-list a {
-  display: block;
+  display: inline-block;
+  margin: 2px 0;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--vp-c-brand-1);
+  background: var(--vp-c-brand-soft);
+  border: 1px solid transparent;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 100%;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.collection-method-list a:hover {
+  background: rgba(49, 120, 198, 0.22);
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
+}
+
+/* ─────────────────────────────────────────────
+   Inline code  (`code`)
+   ───────────────────────────────────────────── */
+
+.vp-doc :not(pre) > code {
+  color: var(--tolki-c-blue);
+  background: var(--vp-c-brand-soft);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.875em;
+}
+
+.dark .vp-doc :not(pre) > code {
+  color: var(--vp-c-brand-1);
+}
+
+/* ─────────────────────────────────────────────
+   Blockquote
+   ───────────────────────────────────────────── */
+
+.vp-doc blockquote {
+  border-left: 3px solid var(--vp-c-brand-soft);
+  background: var(--vp-c-bg-soft);
+  border-radius: 0 6px 6px 0;
+  padding: 12px 16px;
+  margin: 16px 0;
+}
+
+/* ─────────────────────────────────────────────
+   Footer & edit link
+   ───────────────────────────────────────────── */
+
+.VPDocFooter {
+  border-top: 1px solid var(--vp-c-divider);
+  padding-top: 20px;
+}
+
+/* ─────────────────────────────────────────────
+   Search
+   ───────────────────────────────────────────── */
+
+.DocSearch {
+  --docsearch-primary-color: var(--vp-c-brand-1);
 }

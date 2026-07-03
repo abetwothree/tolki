@@ -110,6 +110,7 @@
         "vite": "^7.3.2",
         "vite-plugin-dts": "^4.5.4",
         "vitepress": "2.0.0-alpha.16",
+        "vitepress-plugin-group-icons": "^1.7.5",
         "vitepress-plugin-llms": "^1.12.0",
         "vitest": "^4.1.4"
     }

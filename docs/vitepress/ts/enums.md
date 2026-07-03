@@ -284,7 +284,7 @@ Same include/exclude pattern used by models, resources, and every other collecte
 ],
 ```
 
-`#[TsExclude]` on the enum class excludes the whole enum; on a method, it excludes just that method (regardless of whether auto-include or an explicit attribute would otherwise include it). See [Excluding with `#[TsExclude]`](https://github.com/abetwothree/laravel-ts-publish#excluding-with-tsexclude) in the main README for the full attribute behavior shared across models, resources, and routes.
+`#[TsExclude]` on the enum class excludes the whole enum; on a method, it excludes just that method (regardless of whether auto-include or an explicit attribute would otherwise include it). See [Excluding Content](https://tolki.abe.dev/ts/excluding-content) for the full attribute behavior shared across models, resources, and routes.
 
 ## Casing
 
@@ -361,7 +361,7 @@ The `@tolki/ts` package ships a Vite plugin that republishes enums (and routes) 
 
 ## Configuration Reference
 
-The full list of `enums.*` config keys — including pipeline class overrides for advanced customization — lives in the Laravel package's [Configuration Reference](https://github.com/abetwothree/laravel-ts-publish#configuration-reference).
+The full list of `enums.*` config keys — including pipeline class overrides for advanced customization — lives in the [Configuration Reference](./configuration-reference.md).
 
 ## Type Reference
 

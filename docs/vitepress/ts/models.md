@@ -401,7 +401,7 @@ Custom mappings are merged with the built-in map and take precedence. For a *per
 A column, mutator, or relation typed to a `BackedEnum` or `UnitEnum` gets two representations:
 
 - The base interface (`User`) types it as the plain `{Enum}Type` union — matching how Laravel serializes a `BackedEnum` when a model is cast to JSON.
-- A parallel `{Model}Resource` / `{Model}MutatorsResource` / `{Model}AllResource` interface types the same property with [`AsEnum<typeof Enum>`](./enums.md#type-reference) instead — the shape you get once you've resolved the raw value to a full enum instance (e.g. `Status.from(user.status)`, or a Laravel API Resource that already serialized the enum via [`EnumResource`](https://github.com/abetwothree/laravel-ts-publish#json-enum-http-api-resource)).
+- A parallel `{Model}Resource` / `{Model}MutatorsResource` / `{Model}AllResource` interface types the same property with [`AsEnum<typeof Enum>`](./enums.md#type-reference) instead — the shape you get once you've resolved the raw value to a full enum instance (e.g. `Status.from(user.status)`, or a Laravel API Resource that already serialized the enum via [`EnumResource`](./enum-api-resource.md)).
 
 ```typescript
 import { Role } from '@js/types/data/enums';
@@ -451,7 +451,7 @@ class User extends Model
 }
 ```
 
-See [Excluding with `#[TsExclude]`](https://github.com/abetwothree/laravel-ts-publish#excluding-with-tsexclude) in the main README for the full attribute behavior shared across models, enums, resources, and routes.
+See [Excluding Content](https://tolki.abe.dev/ts/excluding-content) for the full attribute behavior shared across models, enums, resources, and routes.
 
 ## Casing
 
@@ -465,4 +465,4 @@ See [Excluding with `#[TsExclude]`](https://github.com/abetwothree/laravel-ts-pu
 
 ## Configuration Reference
 
-The full list of `models.*` config keys — including pipeline class overrides for advanced customization — lives in the Laravel package's [Configuration Reference](https://github.com/abetwothree/laravel-ts-publish#configuration-reference).
+The full list of `models.*` config keys — including pipeline class overrides for advanced customization — lives in the [Configuration Reference](./configuration-reference.md).

@@ -1,21 +1,44 @@
 import { defineConfig } from "vitepress";
 import llmstxt from "vitepress-plugin-llms";
 import { copyOrDownloadAsMarkdownButtons } from "vitepress-plugin-llms";
+import {
+    groupIconMdPlugin,
+    groupIconVitePlugin,
+} from "vitepress-plugin-group-icons";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     vite: {
-        plugins: [llmstxt()],
+        plugins: [llmstxt(), groupIconVitePlugin()],
     },
     markdown: {
         config(md) {
             md.use(copyOrDownloadAsMarkdownButtons);
+            md.use(groupIconMdPlugin);
+
+            // Wrap every table in a scrollable container so wide tables
+            // (e.g. many columns of code spans) scroll horizontally within
+            // their own box instead of overflowing the page layout.
+            const defaultTableOpen =
+                md.renderer.rules.table_open ||
+                ((tokens, idx, options, _env, self) =>
+                    self.renderToken(tokens, idx, options));
+            const defaultTableClose =
+                md.renderer.rules.table_close ||
+                ((tokens, idx, options, _env, self) =>
+                    self.renderToken(tokens, idx, options));
+
+            md.renderer.rules.table_open = (tokens, idx, options, env, self) =>
+                `<div class="table-scroll">${defaultTableOpen(tokens, idx, options, env, self)}`;
+            md.renderer.rules.table_close = (tokens, idx, options, env, self) =>
+                `${defaultTableClose(tokens, idx, options, env, self)}</div>`;
         },
     },
     lang: "en-US",
     title: "Tolki JS",
     description:
         "Use the PHP Laravel framework support utilities in your JavaScript codebase",
+    lastUpdated: true,
     head: [
         [
             "script",
@@ -34,18 +57,25 @@ export default defineConfig({
         ],
     ],
     themeConfig: {
+        logo: "/tolki-logo-mark.svg",
+
         search: {
             provider: "local",
+        },
+
+        outline: {
+            level: [2, 3],
+            label: "On this page",
         },
 
         // https://vitepress.dev/reference/default-theme-config
         nav: [
             { text: "Home", link: "/" },
             { text: "Packages", link: "/packages" },
-            { text: "TypeScript", link: "/ts/" },
+            { text: "TS & Laravel", link: "/ts/" },
             { text: "Numbers", link: "/numbers/" },
             { text: "Strings", link: "/strings/" },
-            { text: "TypeScript", link: "/typescript/" },
+            { text: "TS Types", link: "/typescript/" },
             // { text: "Arrays", link: "/arrays/" },
             // { text: "Objects", link: "/objects/" },
             // { text: "Collections", link: "/collections/" },
@@ -77,8 +107,68 @@ export default defineConfig({
                         link: "/ts/models",
                     },
                     {
+                        text: "API Resources",
+                        link: "/ts/api-resources",
+                    },
+                    {
                         text: "Routing",
                         link: "/ts/routing",
+                    },
+                    {
+                        text: "Form Requests",
+                        link: "/ts/form-requests",
+                    },
+                    {
+                        text: "Broadcast Channels",
+                        link: "/ts/broadcast-channels",
+                    },
+                    {
+                        text: "Broadcast Events",
+                        link: "/ts/broadcast-events",
+                    },
+                    {
+                        text: "Inertia",
+                        link: "/ts/inertia",
+                    },
+                    {
+                        text: "Vite Env",
+                        link: "/ts/vite-env",
+                    },
+                    {
+                        text: "Extending Interfaces",
+                        link: "/ts/extending-interfaces",
+                    },
+                    {
+                        text: "Excluding Content",
+                        link: "/ts/excluding-content",
+                    },
+                    {
+                        text: "Casing Configurations",
+                        link: "/ts/casing-configuration",
+                    },
+                    {
+                        text: "Enum API Resource",
+                        link: "/ts/enum-api-resource",
+                    },
+                    {
+                        text: "Modular Publishing",
+                        link: "/ts/modular-publishing",
+                    },
+                    {
+                        text: "Customizing the Pipeline",
+                        link: "/ts/customizing-the-pipeline",
+                    },
+                    {
+                        text: "Pre-Command Hook",
+                        link: "/ts/pre-command-hook",
+                    },
+                    {
+                        text: "Cache Generation",
+                        link: "/ts/generating-cache",
+                    },
+                    {
+                        text: "Configuration Reference",
+                        link: "/ts/configuration-reference",
                     },
                     {
                         text: "Vite Plugin",
@@ -170,6 +260,17 @@ export default defineConfig({
                 link: "https://github.com/abetwothree/tolki",
             },
         ],
+
+        editLink: {
+            pattern:
+                "https://github.com/abetwothree/tolki/edit/master/docs/vitepress/:path",
+            text: "Edit this page on GitHub",
+        },
+
+        footer: {
+            message: "Released under the MIT License.",
+            copyright: "Copyright © 2024–present Abraham Arango",
+        },
     },
 
     // sitemap: { hostname: "https://tolki.abe.dev" },
