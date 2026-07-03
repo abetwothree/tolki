@@ -70,13 +70,13 @@ Every namespace path is computed by `LaravelTsPublish::namespaceToPath()`, which
 2. Applies the configured `namespace_strip_prefix`, if the namespace starts with it (see [Stripping a Namespace Prefix](#stripping-a-namespace-prefix)).
 3. Kebab-cases **each namespace segment individually**, then joins them with `/`.
 
-| PHP Class                           | Output File                             |
-|--------------------------------------|------------------------------------------|
-| `App\Models\User`                   | `app/models/user.ts`                    |
-| `App\Enums\Role`                    | `app/enums/role.ts`                     |
-| `Accounting\Models\Invoice`         | `accounting/models/invoice.ts`          |
-| `Shipping\Enums\ShipmentStatus`     | `shipping/enums/shipment-status.ts`     |
-| `App\Domain\Billing\Models\Invoice` | `app/domain/billing/models/invoice.ts`  |
+| PHP Class                           | Output File                            |
+| ----------------------------------- | -------------------------------------- |
+| `App\Models\User`                   | `app/models/user.ts`                   |
+| `App\Enums\Role`                    | `app/enums/role.ts`                    |
+| `Accounting\Models\Invoice`         | `accounting/models/invoice.ts`         |
+| `Shipping\Enums\ShipmentStatus`     | `shipping/enums/shipment-status.ts`    |
+| `App\Domain\Billing\Models\Invoice` | `app/domain/billing/models/invoice.ts` |
 
 ### Nested Namespaces
 
@@ -95,37 +95,37 @@ app/models/
 
 Import paths between generated files are computed automatically by `LaravelTsPublish::relativeImportPath()`, based purely on the two namespace paths involved — never hand-written, and never dependent on a path alias being configured:
 
-| From             | To                | Result           |
-|-------------------|--------------------|--------------------|
-| `blog/models`     | `blog/models`     | `.`               |
-| `blog/models`     | `blog/enums`      | `../enums`        |
-| `app/models`      | `blog/enums`      | `../../blog/enums`|
-| `models`          | `models/videos`   | `./videos`        |
+| From          | To              | Result             |
+| ------------- | --------------- | ------------------ |
+| `blog/models` | `blog/models`   | `.`                |
+| `blog/models` | `blog/enums`    | `../enums`         |
+| `app/models`  | `blog/enums`    | `../../blog/enums` |
+| `models`      | `models/videos` | `./videos`         |
 
 Same-or-descendant paths are prefixed with `./` (a bare specifier like `videos` would otherwise be treated as a package import by TypeScript, not a relative path); ancestor paths walk up with one `../` per directory level before descending back down to the target.
 
 ```typescript
 // accounting/models/invoice.ts
 
-import { Payment } from '.';                   // Same namespace (accounting/models)
-import { User } from '../../app/models';       // Cross-module import
-import { InvoiceStatusType } from '../enums';  // Sibling namespace (accounting/enums)
+import { Payment } from "."; // Same namespace (accounting/models)
+import { User } from "../../app/models"; // Cross-module import
+import { InvoiceStatusType } from "../enums"; // Sibling namespace (accounting/enums)
 
 export interface Invoice {
-    id: number;
-    user_id: number;
-    number: string;
-    status: InvoiceStatusType;
-    subtotal: number;
-    tax: number;
-    total: number;
-    // ...
+  id: number;
+  user_id: number;
+  number: string;
+  status: InvoiceStatusType;
+  subtotal: number;
+  tax: number;
+  total: number;
+  // ...
 }
 
 export interface InvoiceRelations {
-    user: User;
-    payments: Payment[];
-    // ...
+  user: User;
+  payments: Payment[];
+  // ...
 }
 
 export interface InvoiceAll extends Invoice, InvoiceRelations {}
@@ -141,10 +141,10 @@ If your modules live under a common namespace prefix (e.g. `Modules\`), strip it
 'namespace_strip_prefix' => 'Modules\\',
 ```
 
-| PHP Class                          | Without Strip Prefix                | With `'Modules\\'` Strip Prefix   |
-|--------------------------------------|-----------------------------------------|---------------------------------------|
-| `Modules\Blog\Models\Article`      | `modules/blog/models/article.ts`      | `blog/models/article.ts`            |
-| `Modules\Shipping\Enums\Carrier`   | `modules/shipping/enums/carrier.ts`   | `shipping/enums/carrier.ts`         |
+| PHP Class                        | Without Strip Prefix                | With `'Modules\\'` Strip Prefix |
+| -------------------------------- | ----------------------------------- | ------------------------------- |
+| `Modules\Blog\Models\Article`    | `modules/blog/models/article.ts`    | `blog/models/article.ts`        |
+| `Modules\Shipping\Enums\Carrier` | `modules/shipping/enums/carrier.ts` | `shipping/enums/carrier.ts`     |
 
 This keeps the output directory structure clean by removing the redundant prefix. The default is an empty string, so no prefix is stripped unless you configure one.
 
@@ -153,25 +153,25 @@ This keeps the output directory structure clean by removing the redundant prefix
 Each namespace directory receives its own barrel `index.ts` file, alphabetically sorted and deduplicated. For example, `accounting/models/index.ts`:
 
 ```typescript
-export * from './invoice';
+export * from "./invoice";
 ```
 
 And `app/models/index.ts`:
 
 ```typescript
-export * from './address';
-export * from './order';
-export * from './product';
-export * from './user';
+export * from "./address";
+export * from "./order";
+export * from "./product";
+export * from "./user";
 // ... all models in this namespace
 ```
 
 This lets you import from a namespace root instead of a specific file:
 
 ```typescript
-import { User, Order } from '@js/types/data/app/models';
-import { Invoice } from '@js/types/data/accounting/models';
-import { InvoiceStatusType } from '@js/types/data/accounting/enums';
+import { User, Order } from "@js/types/data/app/models";
+import { Invoice } from "@js/types/data/accounting/models";
+import { InvoiceStatusType } from "@js/types/data/accounting/enums";
 ```
 
 > [!TIP]

@@ -22,15 +22,15 @@ Every feature this package publishes — models, enums, resources, routes, form 
 
 Not every feature has all four swappable classes — broadcast channels, for example, has no per-class Generator or Transformer stage, since a channel is just a name string, not a PHP class to statically analyze. Each stage is swapped via a `{feature}.{stage}_class` config key (e.g. `models.collector_class`) — the table below shows the resulting default class for each stage.
 
-| Feature | Collector | Generator | Transformer | Writer |
-|---|---|---|---|---|
-| Models | `ModelsCollector` | `ModelGenerator` | `ModelTransformer` | `ModelWriter` |
-| Enums | `EnumsCollector` | `EnumGenerator` | `EnumTransformer` | `EnumWriter` |
-| Resources | `ResourcesCollector` | `ResourceGenerator` | `ResourceTransformer` | `ResourceWriter` |
-| Routes | `RoutesCollector` | `RouteGenerator` | `RouteTransformer` | `RouteWriter` |
-| Form Requests | `FormRequestsCollector` | `FormRequestGenerator` | `FormRequestTransformer` | `FormRequestWriter` |
-| Broadcast Channels | `BroadcastChannelsCollector` | *(none)* | *(none)* | `BroadcastChannelsWriter` |
-| Broadcast Events | `BroadcastEventsCollector` | `BroadcastEventGenerator` | `BroadcastEventTransformer` | `BroadcastEventWriter`¹ |
+| Feature            | Collector                    | Generator                 | Transformer                 | Writer                    |
+| ------------------ | ---------------------------- | ------------------------- | --------------------------- | ------------------------- |
+| Models             | `ModelsCollector`            | `ModelGenerator`          | `ModelTransformer`          | `ModelWriter`             |
+| Enums              | `EnumsCollector`             | `EnumGenerator`           | `EnumTransformer`           | `EnumWriter`              |
+| Resources          | `ResourcesCollector`         | `ResourceGenerator`       | `ResourceTransformer`       | `ResourceWriter`          |
+| Routes             | `RoutesCollector`            | `RouteGenerator`          | `RouteTransformer`          | `RouteWriter`             |
+| Form Requests      | `FormRequestsCollector`      | `FormRequestGenerator`    | `FormRequestTransformer`    | `FormRequestWriter`       |
+| Broadcast Channels | `BroadcastChannelsCollector` | _(none)_                  | _(none)_                    | `BroadcastChannelsWriter` |
+| Broadcast Events   | `BroadcastEventsCollector`   | `BroadcastEventGenerator` | `BroadcastEventTransformer` | `BroadcastEventWriter`¹   |
 
 <sup>1</sup> Broadcast Events also has two additional writer stages beyond the table above: `index_writer_class` (writes the combined index file) and `echo_augmentation.writer_class` (writes the Echo module augmentation).
 
@@ -40,12 +40,12 @@ Each feature also has its own `*.template` config key (`models.template`, `enums
 
 A few writers aren't tied to a single feature — they combine already-transformed data from multiple features, or write a single combined file:
 
-| Writer | Config Key | Responsibility |
-|---|---|---|
-| `BarrelWriter` | `barrel_writer_class` | Writes every namespace directory's barrel `index.ts` file — see [Modular Publishing](./modular-publishing.md#barrel-files) |
-| `GlobalsWriter` | `globals.writer_class` | Writes the global declaration file combining every model/enum interface |
-| `JsonWriter` | `json.writer_class` | Writes the combined JSON definitions file |
-| `WatcherJsonWriter` | `watcher.writer_class` | Writes the collected-file-paths JSON used by file watchers |
+| Writer              | Config Key             | Responsibility                                                                                                             |
+| ------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `BarrelWriter`      | `barrel_writer_class`  | Writes every namespace directory's barrel `index.ts` file — see [Modular Publishing](./modular-publishing.md#barrel-files) |
+| `GlobalsWriter`     | `globals.writer_class` | Writes the global declaration file combining every model/enum interface                                                    |
+| `JsonWriter`        | `json.writer_class`    | Writes the combined JSON definitions file                                                                                  |
+| `WatcherJsonWriter` | `watcher.writer_class` | Writes the collected-file-paths JSON used by file watchers                                                                 |
 
 ### Features Without a Swappable Pipeline
 

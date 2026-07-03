@@ -19,7 +19,7 @@ For each class, the orchestrator (`BaseRunner::cachedGenerate()`) runs through t
 
 1. **Requires `RehydratesFromCache`** — if the resolved `*.generator_class` doesn't use the trait (no `fromCache()` method), the class is always rebuilt from scratch — correct, just never cached. See [Cache-Compatible Generators](./customizing-the-pipeline.md#cache-compatible-generators-rehydratesfromcache).
 2. **Folds in a non-file signature, if the generator provides one** — see [Non-File Signatures](#non-file-signatures-providescachesignature) below.
-3. **Recomputes the fingerprint fresh** from the *previously recorded* dependency file list plus that signature, and compares it to the stored fingerprint — cheap, since it only re-hashes already-known files rather than re-running collection.
+3. **Recomputes the fingerprint fresh** from the _previously recorded_ dependency file list plus that signature, and compares it to the stored fingerprint — cheap, since it only re-hashes already-known files rather than re-running collection.
 4. **Also verifies every previously-written output file still exists on disk** — a manually deleted output file forces a rebuild even if the fingerprint still matches.
 
 Only when all of this matches is the class's transformer snapshot rehydrated and its cached output reused as-is.
@@ -33,7 +33,7 @@ Only when all of this matches is the class's transformer snapshot rehydrated and
 3. An optional non-file `$extra` signature string (see below) is appended as `::extra::{$extra}` when non-empty.
 4. The final fingerprint is `hash('xxh128', ...)` over the joined `path@hash` lines.
 
-xxHash128 is used throughout — it's fast, which matters since fingerprinting runs on every class on every publish (cached or not). It's a non-cryptographic hash: the *integrity/tamper-resistance* of the cache comes from the separate HMAC signing layer (see [Payload Signing & Security](#payload-signing-security)), not from this fingerprint.
+xxHash128 is used throughout — it's fast, which matters since fingerprinting runs on every class on every publish (cached or not). It's a non-cryptographic hash: the _integrity/tamper-resistance_ of the cache comes from the separate HMAC signing layer (see [Payload Signing & Security](#payload-signing-security)), not from this fingerprint.
 
 ## What Gets Recorded as a Dependency
 
@@ -79,7 +79,7 @@ Beyond individual classes, the entire cache is busted whenever your output-affec
 
 `GenerationManifest` is the in-memory index tying it all together:
 
-- **`load()`** — loads stored entries from the repository. If the stored header's package version or config hash no longer matches the current run, the *entire* cache is flushed and generation starts fresh.
+- **`load()`** — loads stored entries from the repository. If the stored header's package version or config hash no longer matches the current run, the _entire_ cache is flushed and generation starts fresh.
 - **`hit()`** — true only when the fingerprint matches AND every one of the class's previously-recorded output files still exists (see [How a Cache Hit Is Detected](#how-a-cache-hit-is-detected) above).
 - **`record()`** — stores a freshly-built class's fingerprint, output filename, dependency paths, output paths, and a base64-encoded transformer snapshot.
 - **`markSeen()`** / **`save()`** — every class touched during a run is marked seen; `save()` **prunes any entry not seen this run**, so a class removed from your source tree has its stale cache entry cleaned up automatically instead of lingering forever.
@@ -96,7 +96,7 @@ Beyond individual classes, the entire cache is busted whenever your output-affec
 
 Setting `cache.store` (e.g. `'redis'`, `'database'`) routes the manifest through any configured Laravel cache store instead of the filesystem:
 
-- The repository maintains its **own in-memory key index** (a `list<string>` stored under `{prefix}:__index__`), since Laravel cache stores have no native "flush only my keys" operation. `flush()` only removes keys *this package itself wrote* — it never touches unrelated entries in a shared store.
+- The repository maintains its **own in-memory key index** (a `list<string>` stored under `{prefix}:__index__`), since Laravel cache stores have no native "flush only my keys" operation. `flush()` only removes keys _this package itself wrote_ — it never touches unrelated entries in a shared store.
 - The index is persisted once via `commit()` after a batch of writes (called once at the end of `GenerationManifest::save()`), not on every individual `put()` — cheap at expected class counts.
 - Entries are stored with `forever()` — no TTL, since the manifest tracks its own staleness via fingerprints and pruning rather than relying on cache expiry.
 
@@ -109,7 +109,7 @@ Both backends share the same signing logic (`SignsCachePayloads` trait):
 - **Deserialization is always `allowed_classes: false`** — even a successfully-signed payload can never instantiate a PHP object during `unserialize()`, closing the object-injection surface entirely on this package's own read path.
 
 > [!WARNING]
-> **Using a cache `store` with an untrusted backend.** When `store` points at a Laravel cache store (`redis`, `database`, `file`, …), that store deserializes its own values on read — and by default (Laravel's `cache.serializable_classes` is unset) it does so with PHP classes allowed, *before* this package's HMAC is checked. The signing still protects payload integrity, but it cannot stop object instantiation at the cache layer. If the store is shared or otherwise not fully trusted, set Laravel's `cache.serializable_classes` to `false` (or an explicit allowlist) and/or use a dedicated, trusted store. The default file backend is unaffected.
+> **Using a cache `store` with an untrusted backend.** When `store` points at a Laravel cache store (`redis`, `database`, `file`, …), that store deserializes its own values on read — and by default (Laravel's `cache.serializable_classes` is unset) it does so with PHP classes allowed, _before_ this package's HMAC is checked. The signing still protects payload integrity, but it cannot stop object instantiation at the cache layer. If the store is shared or otherwise not fully trusted, set Laravel's `cache.serializable_classes` to `false` (or an explicit allowlist) and/or use a dedicated, trusted store. The default file backend is unaffected.
 
 ## Forcing a Full Rebuild
 
@@ -127,12 +127,12 @@ Flushes the cache, regenerates everything, and writes a fresh cache. It's a no-o
 
 ## Configuration
 
-| Config Key | Type | Default | Description |
-|---|---|---|---|
-| `cache.enabled` | `bool` | `true` | Turn the generation cache on or off. |
-| `cache.store` | `?string` | `null` | `null` keeps the cache on disk under `directory`. Set to any Laravel cache store name (`redis`, `database`, …) to keep the manifest there instead. |
-| `cache.directory` | `string` | `storage/framework/cache/ts-publish` | Where the file-based cache lives. |
-| `cache.key` | `?string` | `null` | HMAC signing key. Falls back to `app.key` when unset. Rotating the key triggers a one-time full rebuild — safe. |
+| Config Key        | Type      | Default                              | Description                                                                                                                                        |
+| ----------------- | --------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cache.enabled`   | `bool`    | `true`                               | Turn the generation cache on or off.                                                                                                               |
+| `cache.store`     | `?string` | `null`                               | `null` keeps the cache on disk under `directory`. Set to any Laravel cache store name (`redis`, `database`, …) to keep the manifest there instead. |
+| `cache.directory` | `string`  | `storage/framework/cache/ts-publish` | Where the file-based cache lives.                                                                                                                  |
+| `cache.key`       | `?string` | `null`                               | HMAC signing key. Falls back to `app.key` when unset. Rotating the key triggers a one-time full rebuild — safe.                                    |
 
 > [!NOTE]
 > The cache keys off your PHP source files. If you **manually edit a generated `.ts` file** without changing its source, the cache won't detect the edit and won't overwrite it — run `php artisan ts:publish --fresh` (or delete the generated file) to restore it.

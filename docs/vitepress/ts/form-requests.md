@@ -41,23 +41,23 @@ class StorePostRequest extends FormRequest
 ```typescript
 /** @see Workbench\App\Http\Requests\StorePostRequest */
 export interface StorePostRequest {
-    title: string;
-    body: string;
-    published?: boolean;
-    rating?: number | bigint | null;
-    /** @format email */
-    email: string;
-    tags?: string[];
-    "tags.*"?: string;
+  title: string;
+  body: string;
+  published?: boolean;
+  rating?: number | bigint | null;
+  /** @format email */
+  email: string;
+  tags?: string[];
+  "tags.*"?: string;
 }
 ```
 
 - `title` / `body` are required (the `required` rule), typed `string` (the `string` rule).
 - `published` has no `required`/`sometimes` rule, so it's optional — even though `boolean` alone says nothing about presence.
-- `rating` demonstrates that a [`#[TsCasts]`](#tscasts-overriding-field-types) override only replaces the *type* and *optionality* — the `nullable` rule's `| null` suffix is still appended by the analyzer afterward, giving `number | bigint | null` rather than just `number | bigint`.
+- `rating` demonstrates that a [`#[TsCasts]`](#tscasts-overriding-field-types) override only replaces the _type_ and _optionality_ — the `nullable` rule's `| null` suffix is still appended by the analyzer afterward, giving `number | bigint | null` rather than just `number | bigint`.
 - `email` picks up a [JSDoc metadata annotation](#jsdoc-metadata-annotations) (`@format email`) from the `email` rule.
 - `tags` is upgraded from the bare `array` rule's `unknown[]` to `string[]` — first automatically (from the sibling `tags.*` wildcard rule), then explicitly overridden to the same value by `#[TsCasts]`.
-- `"tags.*"` gets its own (quoted, since `.` isn't valid in a bare identifier) property describing the *element* constraint — see [Array & Nested Rules](#array-nested-rules) for why nested/wildcard paths always appear as their own optional property.
+- `"tags.*"` gets its own (quoted, since `.` isn't valid in a bare identifier) property describing the _element_ constraint — see [Array & Nested Rules](#array-nested-rules) for why nested/wildcard paths always appear as their own optional property.
 - The class docblock (none here) would become the interface's JSDoc comment; individual fields don't support their own docblocks since they come from array keys inside `rules()`, not separate PHP declarations — the [JSDoc metadata annotations](#jsdoc-metadata-annotations) fill that role instead.
 
 ## Rule-to-Type Mapping Reference
@@ -100,12 +100,12 @@ Rules are checked in this order — the first match wins:
 
 ## Presence, Nullability & Exclusion
 
-| Rule | Effect |
-|---|---|
-| `required` (or any rule starting with `required`, including `Rule::requiredIf()`/`requiredUnless()`) | Field is **required** (no `?`) |
-| `sometimes` | Field is optional, even combined with `required` |
-| `nullable` | Adds `\| null` to the field's type |
-| `missing` / `prohibited` | Field is **excluded from the interface entirely** — not just marked optional |
+| Rule                                                                                                 | Effect                                                                       |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `required` (or any rule starting with `required`, including `Rule::requiredIf()`/`requiredUnless()`) | Field is **required** (no `?`)                                               |
+| `sometimes`                                                                                          | Field is optional, even combined with `required`                             |
+| `nullable`                                                                                           | Adds `\| null` to the field's type                                           |
+| `missing` / `prohibited`                                                                             | Field is **excluded from the interface entirely** — not just marked optional |
 
 ```php
 public function rules(): array
@@ -145,10 +145,10 @@ class ArrayRulesRequest extends FormRequest
 
 ```typescript
 export interface ArrayRulesRequest {
-    tags?: string[];
-    "tags.*"?: string;
-    selected_ids: number[];
-    "selected_ids.*"?: number;
+  tags?: string[];
+  "tags.*"?: string;
+  selected_ids: number[];
+  "selected_ids.*"?: number;
 }
 ```
 
@@ -158,17 +158,17 @@ Note that `selected_ids` itself is required (its own `required` rule applies), w
 
 Certain rules attach a JSDoc comment above the field instead of (or in addition to) affecting its type:
 
-| Rule(s) | Annotation |
-|---|---|
-| `email`, `url`, `active_url`, `uuid`, `ulid`, `ip`, `ipv4`, `ipv6`, `mac_address`, `hex_color` | `@format {rule}` |
-| `date`, `date_equals` | `@format date` |
-| `exists:table,column` / `Rule::exists(...)` | `@constraint exists` |
-| `unique:table,column` / `Rule::unique(...)` | `@constraint unique` |
-| `required_if`, `required_unless`, `required_with`, `required_without`, `required_with_all`, `required_without_all` | `@metadata required-conditionally` |
-| `Rule::requiredIf(...)` / `Rule::requiredUnless(...)` | `@metadata required-if conditional` |
-| `Rule::prohibitedIf(...)` / `Rule::prohibitedUnless(...)` | `@metadata prohibited-if conditional` |
-| `Rule::excludeIf(...)` / `Rule::excludeUnless(...)` | `@metadata exclude-if conditional` |
-| `not_in:a,b,c` | `@not a, b, c` |
+| Rule(s)                                                                                                            | Annotation                            |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| `email`, `url`, `active_url`, `uuid`, `ulid`, `ip`, `ipv4`, `ipv6`, `mac_address`, `hex_color`                     | `@format {rule}`                      |
+| `date`, `date_equals`                                                                                              | `@format date`                        |
+| `exists:table,column` / `Rule::exists(...)`                                                                        | `@constraint exists`                  |
+| `unique:table,column` / `Rule::unique(...)`                                                                        | `@constraint unique`                  |
+| `required_if`, `required_unless`, `required_with`, `required_without`, `required_with_all`, `required_without_all` | `@metadata required-conditionally`    |
+| `Rule::requiredIf(...)` / `Rule::requiredUnless(...)`                                                              | `@metadata required-if conditional`   |
+| `Rule::prohibitedIf(...)` / `Rule::prohibitedUnless(...)`                                                          | `@metadata prohibited-if conditional` |
+| `Rule::excludeIf(...)` / `Rule::excludeUnless(...)`                                                                | `@metadata exclude-if conditional`    |
+| `not_in:a,b,c`                                                                                                     | `@not a, b, c`                        |
 
 ```php
 'category_id' => ['required', 'integer', 'exists:categories,id'],
@@ -205,12 +205,12 @@ class UpdatePostRequest extends FormRequest
 ```
 
 ```typescript
-import type { PostAttributes } from '@js/types/posts';
+import type { PostAttributes } from "@js/types/posts";
 
 export interface UpdatePostRequest {
-    title?: string;
-    status: 'draft' | 'published' | 'archived';
-    attributes?: PostAttributes;
+  title?: string;
+  status: "draft" | "published" | "archived";
+  attributes?: PostAttributes;
 }
 ```
 
@@ -250,7 +250,7 @@ export type DynamicRequest = Record<string, unknown>;
 ```
 
 ::: tip
-Method calls like `Auth::user()->isAdmin()` are safe — the analyzer stubs an authenticated user whose methods all return `false`. It's direct property access or anything else that needs *real* request/session data that triggers the fallback.
+Method calls like `Auth::user()->isAdmin()` are safe — the analyzer stubs an authenticated user whose methods all return `false`. It's direct property access or anything else that needs _real_ request/session data that triggers the fallback.
 :::
 
 ## Filtering & Excluding Form Requests

@@ -40,10 +40,10 @@ The package generates `app/events/OrderShipped.ts`:
 ```typescript
 /** @see App\Events\OrderShipped */
 export interface OrderShipped {
-    orderId: number;
-    trackingNumber: `${string}-${string}-${string}`;
-    carrier: string;
-    metadata?: Record<string, unknown>;
+  orderId: number;
+  trackingNumber: `${string}-${string}-${string}`;
+  carrier: string;
+  metadata?: Record<string, unknown>;
 }
 ```
 
@@ -86,8 +86,8 @@ class TeamMessageSent implements ShouldBroadcast
 ```typescript
 /** @see Workbench\App\Events\TeamMessageSent */
 export interface TeamMessageSent {
-    teamId: number;
-    content: string;
+  teamId: number;
+  content: string;
 }
 ```
 
@@ -113,12 +113,12 @@ class MultiModelEvent implements ShouldBroadcast
 ```
 
 ```typescript
-import type { Post, User } from '../models';
+import type { Post, User } from "../models";
 
 /** @see Workbench\App\Events\MultiModelEvent */
 export interface MultiModelEvent {
-    post: Partial<Post>;
-    user: Partial<User>;
+  post: Partial<Post>;
+  user: Partial<User>;
 }
 ```
 
@@ -141,12 +141,12 @@ class EnumBroadcastEvent implements ShouldBroadcast
 ```
 
 ```typescript
-import type { ColorType, StatusType } from '../enums';
+import type { ColorType, StatusType } from "../enums";
 
 /** @see Workbench\App\Events\EnumBroadcastEvent */
 export interface EnumBroadcastEvent {
-    status: StatusType;
-    color: ColorType;
+  status: StatusType;
+  color: ColorType;
 }
 ```
 
@@ -180,8 +180,8 @@ class ServerCreated implements ShouldBroadcast
 ```typescript
 /** @see Workbench\App\Events\ServerCreated */
 export interface ServerCreated extends BroadcastableEvent {
-    serverId: number;
-    serverName: string;
+  serverId: number;
+  serverName: string;
 }
 ```
 
@@ -217,7 +217,7 @@ This is what produces `trackingNumber`'s template-literal type and `metadata`'s 
 
 Every generated event interface can `extends` one or more shared interfaces, using either mechanism (both apply together when present):
 
-**Global config** — applies to *every* generated event, via `ts_extends.broadcast_events` in `config/ts-publish.php`:
+**Global config** — applies to _every_ generated event, via `ts_extends.broadcast_events` in `config/ts-publish.php`:
 
 ```php
 // config/ts-publish.php
@@ -229,13 +229,13 @@ Every generated event interface can `extends` one or more shared interfaces, usi
 ```
 
 ```typescript
-import type { HasTimestamps } from '@/types/common';
+import type { HasTimestamps } from "@/types/common";
 
 /** @see Workbench\App\Events\UserNotification */
 export interface UserNotification extends HasTimestamps {
-    userId: number;
-    title: string;
-    message: string;
+  userId: number;
+  title: string;
+  message: string;
 }
 ```
 
@@ -256,41 +256,41 @@ See [Extending Interfaces](./extending-interfaces.md) for the full attribute and
 After every event file is generated, they're combined into a single index:
 
 ```typescript
-import type { EnumBroadcastEvent } from './app/events/EnumBroadcastEvent';
-import type { MultiModelEvent } from './app/events/MultiModelEvent';
-import type { OrderShipped } from './app/events/OrderShipped';
-import type { ServerCreated } from './app/events/ServerCreated';
-import type { TeamMessageSent } from './app/events/TeamMessageSent';
-import type { UserSynced as CrmUserSynced } from './crm/events/UserSynced';
-import type { UserSynced as AppUserSynced } from './app/events/UserSynced';
+import type { EnumBroadcastEvent } from "./app/events/EnumBroadcastEvent";
+import type { MultiModelEvent } from "./app/events/MultiModelEvent";
+import type { OrderShipped } from "./app/events/OrderShipped";
+import type { ServerCreated } from "./app/events/ServerCreated";
+import type { TeamMessageSent } from "./app/events/TeamMessageSent";
+import type { UserSynced as CrmUserSynced } from "./crm/events/UserSynced";
+import type { UserSynced as AppUserSynced } from "./app/events/UserSynced";
 
 export type BroadcastEvent =
-    | '.Workbench.App.Events.EnumBroadcastEvent'
-    | '.Workbench.App.Events.MultiModelEvent'
-    | '.Workbench.App.Events.OrderShipped'
-    | 'server.created'
-    | '.Workbench.App.Events.TeamMessageSent'
-    | '.Workbench.Crm.Events.UserSynced'
-    | '.Workbench.App.Events.UserSynced';
+  | ".Workbench.App.Events.EnumBroadcastEvent"
+  | ".Workbench.App.Events.MultiModelEvent"
+  | ".Workbench.App.Events.OrderShipped"
+  | "server.created"
+  | ".Workbench.App.Events.TeamMessageSent"
+  | ".Workbench.Crm.Events.UserSynced"
+  | ".Workbench.App.Events.UserSynced";
 
 export const BroadcastEvents = Object.freeze({
-    EnumBroadcastEvent: '.Workbench.App.Events.EnumBroadcastEvent',
-    MultiModelEvent: '.Workbench.App.Events.MultiModelEvent',
-    OrderShipped: '.Workbench.App.Events.OrderShipped',
-    ServerCreated: 'server.created',
-    TeamMessageSent: '.Workbench.App.Events.TeamMessageSent',
-    CrmUserSynced: '.Workbench.Crm.Events.UserSynced',
-    AppUserSynced: '.Workbench.App.Events.UserSynced',
+  EnumBroadcastEvent: ".Workbench.App.Events.EnumBroadcastEvent",
+  MultiModelEvent: ".Workbench.App.Events.MultiModelEvent",
+  OrderShipped: ".Workbench.App.Events.OrderShipped",
+  ServerCreated: "server.created",
+  TeamMessageSent: ".Workbench.App.Events.TeamMessageSent",
+  CrmUserSynced: ".Workbench.Crm.Events.UserSynced",
+  AppUserSynced: ".Workbench.App.Events.UserSynced",
 } as const);
 
 export type {
-    EnumBroadcastEvent,
-    MultiModelEvent,
-    OrderShipped,
-    ServerCreated,
-    TeamMessageSent,
-    CrmUserSynced,
-    AppUserSynced
+  EnumBroadcastEvent,
+  MultiModelEvent,
+  OrderShipped,
+  ServerCreated,
+  TeamMessageSent,
+  CrmUserSynced,
+  AppUserSynced,
 };
 ```
 
@@ -306,16 +306,16 @@ An empty event set (no `ShouldBroadcast` classes found) produces `export {};` in
 When `broadcast_events.echo_augmentation.enabled` is `true` (the default), the package also writes `echo-broadcast-events.d.ts`:
 
 ```typescript
-import type { EnumBroadcastEvent } from './app/events/EnumBroadcastEvent';
-import type { OrderShipped } from './app/events/OrderShipped';
-import type { ServerCreated } from './app/events/ServerCreated';
+import type { EnumBroadcastEvent } from "./app/events/EnumBroadcastEvent";
+import type { OrderShipped } from "./app/events/OrderShipped";
+import type { ServerCreated } from "./app/events/ServerCreated";
 
 declare module "@laravel/echo" {
-    interface Events {
-        ".Workbench.App.Events.EnumBroadcastEvent": EnumBroadcastEvent;
-        ".Workbench.App.Events.OrderShipped": OrderShipped;
-        "server.created": ServerCreated;
-    }
+  interface Events {
+    ".Workbench.App.Events.EnumBroadcastEvent": EnumBroadcastEvent;
+    ".Workbench.App.Events.OrderShipped": OrderShipped;
+    "server.created": ServerCreated;
+  }
 }
 ```
 

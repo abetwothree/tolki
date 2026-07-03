@@ -21,12 +21,12 @@ public function boot(): void
 
 `callCommandWith()` is invoked as the very first line of `TsPublishCommand::handle()` — before `--source` is checked, before the `--only-*` flags are validated, before anything else. This means it runs **unconditionally and identically** for every way the command can be invoked:
 
-| Invocation | Hook runs? |
-|---|---|
-| `php artisan ts:publish` (full publish) | Yes |
-| `php artisan ts:publish --source=App\Models\User` | Yes |
-| `php artisan ts:publish --preview` | Yes |
-| Automatic post-migration republish | Yes |
+| Invocation                                        | Hook runs? |
+| ------------------------------------------------- | ---------- |
+| `php artisan ts:publish` (full publish)           | Yes        |
+| `php artisan ts:publish --source=App\Models\User` | Yes        |
+| `php artisan ts:publish --preview`                | Yes        |
+| Automatic post-migration republish                | Yes        |
 
 There's no way to distinguish which invocation triggered the hook from inside the closure itself — if you need different behavior for `--source` reruns (for example, skipping expensive filesystem scans that the [Vite plugin](./vite-plugin.md) triggers on every file save), check for cheaper conditions inside the closure (e.g. caching the scan result, or reading an environment variable) rather than relying on the command's own options.
 
@@ -68,7 +68,7 @@ public function boot(): void
 
 ### Modular Package Integration (e.g. `nwidart/laravel-modules`)
 
-Rather than scanning the filesystem blindly, react to your module manager's own registry so only currently-*enabled* modules contribute directories:
+Rather than scanning the filesystem blindly, react to your module manager's own registry so only currently-_enabled_ modules contribute directories:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\LaravelTsPublish;

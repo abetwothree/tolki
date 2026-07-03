@@ -12,8 +12,8 @@ As with [enums](./enums.md), this package is not meant to be used standalone —
 
   ```typescript
   // app/http/controllers/index.ts
-  export { default as PostController } from './post-controller';
-  export { default as UserController } from './user-controller';
+  export { default as PostController } from "./post-controller";
+  export { default as UserController } from "./user-controller";
   ```
 
   This avoids collisions between controllers that share method names (`index`, `show`, `store`, ...).
@@ -21,12 +21,12 @@ As with [enums](./enums.md), this package is not meant to be used standalone —
 - **Invokable controllers** (a single `__invoke` method) export their one action directly as the default export, so you call the controller itself:
 
   ```typescript
-  import NamedInvokableController from '@js/types/data/app/http/controllers/named-invokable-controller';
+  import NamedInvokableController from "@js/types/data/app/http/controllers/named-invokable-controller";
 
   NamedInvokableController(); // { url: '/named-invokable', method: 'get' }
   ```
 
-  If an invokable controller has *additional* public actions besides `__invoke`, those are attached to the default export via `Object.assign` so you can still call them as properties (`InvokableModelBoundPlusController.extra(...)`).
+  If an invokable controller has _additional_ public actions besides `__invoke`, those are attached to the default export via `Object.assign` so you can still call them as properties (`InvokableModelBoundPlusController.extra(...)`).
 
 - Multiple Laravel routes that map to the **same controller method** are de-duplicated into a single export — if one of them is named, the named route wins.
 - `HEAD` is always omitted from `methods` (Laravel adds it implicitly to every `GET` route).
@@ -38,27 +38,27 @@ Every generated action looks like this:
 
 ```typescript
 export const show = defineRoute({
-    name: 'posts.show',        // Laravel route name, or omitted if unnamed
-    url: '/posts/{post}',      // URI template (or `{domain}{uri}` for domain routes)
-    domain: 'api.example.com', // only present for domain-restricted routes
-    methods: ['get'] as const,
-    args: [{ name: 'post', required: true, _routeKey: 'id' }] as const,
-    component: 'PostShow',     // only present for Inertia routes, see below
+  name: "posts.show", // Laravel route name, or omitted if unnamed
+  url: "/posts/{post}", // URI template (or `{domain}{uri}` for domain routes)
+  domain: "api.example.com", // only present for domain-restricted routes
+  methods: ["get"] as const,
+  args: [{ name: "post", required: true, _routeKey: "id" }] as const,
+  component: "PostShow", // only present for Inertia routes, see below
 });
 ```
 
 The value returned by `defineRoute()` is a callable object with:
 
-| Member | Description |
-|---|---|
-| `route(...)` | Calling it directly returns `{ url, method }`, using the route's primary (first declared) HTTP method. |
-| `route.url(...)` | Same calling conventions as above, returns just the URL string. |
-| `route.get(...)`, `route.post(...)`, … | One method per declared HTTP verb, returning `{ url, method }` for that specific verb. |
-| `route.form(...)` | Builds `{ action, method }` for an HTML `<form>` — see [Building Forms](#building-forms). |
-| `route.form.put(...)`, `route.form.delete(...)`, … | Per-verb form variants — these add Laravel's `_method` spoofing automatically. |
-| `route.definition` | The raw metadata object passed to `defineRoute()`. |
-| `route.toString()` | Returns the URL with no parameters substituted — lets you drop a route directly into a template literal. |
-| `${route(...)}` | Using a route directly in a template literal calls the route and inserts the URL string. |
+| Member                                             | Description                                                                                              |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `route(...)`                                       | Calling it directly returns `{ url, method }`, using the route's primary (first declared) HTTP method.   |
+| `route.url(...)`                                   | Same calling conventions as above, returns just the URL string.                                          |
+| `route.get(...)`, `route.post(...)`, …             | One method per declared HTTP verb, returning `{ url, method }` for that specific verb.                   |
+| `route.form(...)`                                  | Builds `{ action, method }` for an HTML `<form>` — see [Building Forms](#building-forms).                |
+| `route.form.put(...)`, `route.form.delete(...)`, … | Per-verb form variants — these add Laravel's `_method` spoofing automatically.                           |
+| `route.definition`                                 | The raw metadata object passed to `defineRoute()`.                                                       |
+| `route.toString()`                                 | Returns the URL with no parameters substituted — lets you drop a route directly into a template literal. |
+| `${route(...)}`                                    | Using a route directly in a template literal calls the route and inserts the URL string.                 |
 
 ## Calling a Route
 
@@ -114,7 +114,7 @@ args: [{ name: 'slugPost', required: true, _routeKey: 'slug' }] as const,
 At the call site, you can pass the raw key value or the object itself — `defineRoute` extracts `value[_routeKey]`, falling back to `value.id`:
 
 ```typescript
-CustomRouteKeyController.show({ slugPost: 'hello-world' });
+CustomRouteKeyController.show({ slugPost: "hello-world" });
 CustomRouteKeyController.show(post); // post = { slug: 'hello-world', ... }
 ```
 
@@ -129,9 +129,9 @@ args: [{ name: 'status', required: true, _enumValues: [0, 1] }] as const,
 ```
 
 ```typescript
-EnumBoundController.byStatus({ status: 0 });                  // raw backing value
-EnumBoundController.byStatus({ status: Status.Active });       // enum case value
-EnumBoundController.byStatus({ status: Status.from(0) });      // a defineEnum() instance
+EnumBoundController.byStatus({ status: 0 }); // raw backing value
+EnumBoundController.byStatus({ status: Status.Active }); // enum case value
+EnumBoundController.byStatus({ status: Status.from(0) }); // a defineEnum() instance
 ```
 
 Just like model binding, no enum import is required — TypeScript infers the union of valid backing values directly from `_enumValues`.
@@ -142,21 +142,20 @@ Parameters from `{param?}` segments are marked `required: false` and become opti
 
 ```typescript
 export const show = defineRoute({
-    url: '/optional/{param?}',
-    methods: ['get'] as const,
-    args: [{ name: 'param', required: false }] as const,
+  url: "/optional/{param?}",
+  methods: ["get"] as const,
+  args: [{ name: "param", required: false }] as const,
 });
 
-OptionalParamController.show();                // '/optional'
-OptionalParamController.show({ param: 'x' });  // '/optional/x'
+OptionalParamController.show(); // '/optional'
+OptionalParamController.show({ param: "x" }); // '/optional/x'
 ```
 
 Parameters constrained with `->where(...)` in Laravel include a `where` regex, validated at runtime — an invalid value throws:
 
 ```typescript
-args: [{ name: 'id', required: true, where: '[0-9]+' }] as const,
-
-TypedParamController.showInt({ id: 'abc' });
+args: ([{ name: "id", required: true, where: "[0-9]+" }] as const,
+  TypedParamController.showInt({ id: "abc" }));
 // throws: Route error: 'id' parameter 'abc' does not match required format '[0-9]+'.
 ```
 
@@ -166,9 +165,9 @@ Domain-restricted routes include a `domain` field, and their compiled URL is pro
 
 ```typescript
 export const index = defineRoute({
-    url: 'api.example.com/domain',
-    domain: 'api.example.com',
-    methods: ['get'] as const,
+  url: "api.example.com/domain",
+  domain: "api.example.com",
+  methods: ["get"] as const,
 });
 
 DomainController.index(); // '//api.example.com/domain'
@@ -179,7 +178,7 @@ DomainController.index(); // '//api.example.com/domain'
 Any argument key that doesn't match a declared route parameter becomes a query string parameter:
 
 ```typescript
-PostController.index({ q: 'search', page: 2 }); // '/posts?q=search&page=2'
+PostController.index({ q: "search", page: 2 }); // '/posts?q=search&page=2'
 ```
 
 - **Booleans** are encoded as `0`/`1` (matching how Laravel parses query input).
@@ -187,7 +186,7 @@ PostController.index({ q: 'search', page: 2 }); // '/posts?q=search&page=2'
 - **`_query` escape hatch** — use this when a query key would otherwise collide with a route parameter name:
 
   ```typescript
-  PostController.index({ sort: 'created_at', _query: { sort: 'desc' } });
+  PostController.index({ sort: "created_at", _query: { sort: "desc" } });
   // '/posts/sort/created_at?sort=desc'
   ```
 
@@ -204,17 +203,17 @@ PostController.index({ q: 'search', page: 2 }); // '/posts?q=search&page=2'
 Mirrors Laravel's [`URL::defaults()`](https://laravel.com/docs/urls#default-values) — set values once and they're substituted automatically wherever a matching parameter name is required but not supplied:
 
 ```typescript
-import { setRouteDefaults, addRouteDefault } from '@tolki/ts';
+import { setRouteDefaults, addRouteDefault } from "@tolki/ts";
 
-setRouteDefaults({ locale: 'en' });
-addRouteDefault('locale', 'fr'); // overwrite a single key
+setRouteDefaults({ locale: "en" });
+addRouteDefault("locale", "fr"); // overwrite a single key
 ```
 
 `getRouteDefaults()` reads the current defaults, and `resetRouteDefaults()` clears them (handy in test setup/teardown).
 
 ## Building Forms
 
-`.form(...)` builds `{ action, method, toString() }` for classic HTML `<form>` submissions, where `method` is always `'get'` or `'post'` (the only two methods HTML forms support). This matches [Laravel Wayfinder's](https://github.com/laravel/wayfinder) behavior exactly: the bare call already spoofs the route's primary method for you — there's no need to reach for a per-verb variant unless you want to submit as a *different* verb than the route's first declared method.
+`.form(...)` builds `{ action, method, toString() }` for classic HTML `<form>` submissions, where `method` is always `'get'` or `'post'` (the only two methods HTML forms support). This matches [Laravel Wayfinder's](https://github.com/laravel/wayfinder) behavior exactly: the bare call already spoofs the route's primary method for you — there's no need to reach for a per-verb variant unless you want to submit as a _different_ verb than the route's first declared method.
 
 ```typescript
 const { action, method } = PostController.store.form();
@@ -231,7 +230,7 @@ Per-verb form methods (`.form.put(...)`, `.form.patch(...)`, `.form.delete(...)`
 
 ```typescript
 // A route registered for both PUT and PATCH — primary is 'put'
-PostController.update.form();            // spoofs _method=PUT (primary)
+PostController.update.form(); // spoofs _method=PUT (primary)
 PostController.update.form.patch({ post: 42 }); // explicitly spoofs _method=PATCH instead
 ```
 
@@ -244,20 +243,22 @@ When `inertia.enabled` is on in the Laravel package's config, each action that r
 ```typescript
 export type PostPageProps = Inertia.SharedData & { post: Post };
 
-export const post = annotatePageProps<PostPageProps>()(defineRoute({
-    name: 'inertia.post',
-    url: '/inertia/post/{post}',
-    methods: ['get'] as const,
-    args: [{ name: 'post', required: true, _routeKey: 'id' }] as const,
-    component: 'PostShow',
-}));
+export const post = annotatePageProps<PostPageProps>()(
+  defineRoute({
+    name: "inertia.post",
+    url: "/inertia/post/{post}",
+    methods: ["get"] as const,
+    args: [{ name: "post", required: true, _routeKey: "id" }] as const,
+    component: "PostShow",
+  }),
+);
 ```
 
 Use `InferPageProps<typeof route>` on the frontend to read the page-props type back out — handy for typing a page component's props without a separate import:
 
 ```typescript
-import type { InferPageProps } from '@tolki/ts';
-import { post } from '@js/types/data/app/http/controllers/inertia-controller';
+import type { InferPageProps } from "@tolki/ts";
+import { post } from "@js/types/data/app/http/controllers/inertia-controller";
 
 type Props = InferPageProps<typeof post>; // PostPageProps
 ```
@@ -267,17 +268,28 @@ type Props = InferPageProps<typeof post>; // PostPageProps
 An action that conditionally renders different Inertia components (e.g. based on auth state) generates a `component` object instead of a string, plus a union page-props type:
 
 ```typescript
-export type ConditionalAuthenticatedPageProps = Inertia.SharedData & { user: unknown };
-export type ConditionalGuestPageProps = Inertia.SharedData & { message: string };
+export type ConditionalAuthenticatedPageProps = Inertia.SharedData & {
+  user: unknown;
+};
+export type ConditionalGuestPageProps = Inertia.SharedData & {
+  message: string;
+};
 
-export const conditional = annotatePageProps<ConditionalAuthenticatedPageProps | ConditionalGuestPageProps>()(defineRoute({
-    url: '/inertia/conditional',
-    methods: ['get'] as const,
-    component: { authenticated: 'Conditional/Authenticated', guest: 'Conditional/Guest' } as const,
-}));
+export const conditional = annotatePageProps<
+  ConditionalAuthenticatedPageProps | ConditionalGuestPageProps
+>()(
+  defineRoute({
+    url: "/inertia/conditional",
+    methods: ["get"] as const,
+    component: {
+      authenticated: "Conditional/Authenticated",
+      guest: "Conditional/Guest",
+    } as const,
+  }),
+);
 ```
 
-`route.component` gives you the whole map, and `route.withComponent(componentValue, ...args)` tags a call result with a specific variant (it accepts one of the *values* from the map, e.g. `'Conditional/Authenticated'`, not the key) — useful for logging or for selecting which frontend component to render based on which variant a given call represents.
+`route.component` gives you the whole map, and `route.withComponent(componentValue, ...args)` tags a call result with a specific variant (it accepts one of the _values_ from the map, e.g. `'Conditional/Authenticated'`, not the key) — useful for logging or for selecting which frontend component to render based on which variant a given call represents.
 
 ## Inertia UI Table Props
 
@@ -298,11 +310,11 @@ public function index()
 When the table declares a static resource model, the generated page prop uses `TableResource<TModel>`, imported directly from the Inertia UI Table package you have installed. The package is auto-detected from your `package.json` (`@inertiaui/table-vue` or `@inertiaui/table-react`):
 
 ```typescript
-import type { TableResource } from '@inertiaui/table-vue';
-import type { Merchandise } from '../models';
+import type { TableResource } from "@inertiaui/table-vue";
+import type { Merchandise } from "../models";
 
 export type IndexPageProps = Inertia.SharedData & {
-    merchandise: TableResource<Merchandise>;
+  merchandise: TableResource<Merchandise>;
 };
 ```
 
@@ -326,9 +338,9 @@ Affected routes still get their route helpers, but they receive no auto-generate
 
 This workaround exists because of a bug in [`phpoffice/phpspreadsheet`](https://github.com/PHPOffice/PhpSpreadsheet) — **not** the Inertia UI Table package, and not your code. The dependency chain is:
 
-- The Inertia UI Table package does **not** require any spreadsheet code. It only *optionally* integrates with [`maatwebsite/excel`](https://github.com/SpartnerNL/Laravel-Excel) — a `suggest`/dev dependency ("To export tables to CSV, Excel, etc.") — so tables can export.
+- The Inertia UI Table package does **not** require any spreadsheet code. It only _optionally_ integrates with [`maatwebsite/excel`](https://github.com/SpartnerNL/Laravel-Excel) — a `suggest`/dev dependency ("To export tables to CSV, Excel, etc.") — so tables can export.
 - If your app installs `maatwebsite/excel` to enable those exports, that package requires `phpoffice/phpspreadsheet`.
-- `phpoffice/phpspreadsheet` ships a `SimpleCache1` cache shim whose `get()` signature is incompatible with the typed `Psr\SimpleCache\CacheInterface::get()` it implements under newer `psr/simple-cache` (v2/v3). The moment PHP *loads* that class it raises an uncatchable compile-time (`E_COMPILE_ERROR`) fatal:
+- `phpoffice/phpspreadsheet` ships a `SimpleCache1` cache shim whose `get()` signature is incompatible with the typed `Psr\SimpleCache\CacheInterface::get()` it implements under newer `psr/simple-cache` (v2/v3). The moment PHP _loads_ that class it raises an uncatchable compile-time (`E_COMPILE_ERROR`) fatal:
 
   ```text
   Declaration of PhpOffice\PhpSpreadsheet\Collection\Memory\SimpleCache1::get($key, $default = null)
@@ -358,8 +370,8 @@ This produces:
 
 ```typescript
 export type CreatePageProps = Inertia.SharedData & {
-    tag: Tag;
-    mode: string;
+  tag: Tag;
+  mode: string;
 };
 ```
 
@@ -448,31 +460,40 @@ The trade-off is a small per-table restructure: one extra single-action controll
 When a controller action type-hints a Laravel `FormRequest`, the request's generated TypeScript interface is attached the same way — automatically, via `annotateRequestPayload`:
 
 ```typescript
-export const store = annotateRequestPayload<StorePostRequest>()(defineRoute({
-    name: 'posts.store',
-    url: '/posts',
-    methods: ['post'] as const,
-}));
+export const store = annotateRequestPayload<StorePostRequest>()(
+  defineRoute({
+    name: "posts.store",
+    url: "/posts",
+    methods: ["post"] as const,
+  }),
+);
 ```
 
 Read it back with `InferRequestPayload<typeof route>`, e.g. to type an Inertia `useForm()` call:
 
 ```typescript
-import type { InferRequestPayload } from '@tolki/ts';
-import { store } from '@js/types/data/app/http/controllers/post-controller';
+import type { InferRequestPayload } from "@tolki/ts";
+import { store } from "@js/types/data/app/http/controllers/post-controller";
 
-const form = useForm<InferRequestPayload<typeof store>>({ title: '', body: '' });
+const form = useForm<InferRequestPayload<typeof store>>({
+  title: "",
+  body: "",
+});
 ```
 
 `annotatePageProps` and `annotateRequestPayload` are nested together when a single action needs both — again, generated automatically:
 
 ```typescript
-export const store = annotateRequestPayload<StorePostRequest>()(annotatePageProps<StorePageProps>()(defineRoute({
-    name: 'inertia-form-request.store',
-    url: '/inertia-form-request',
-    methods: ['post'] as const,
-    component: 'InertiaFormRequest/Success',
-})));
+export const store = annotateRequestPayload<StorePostRequest>()(
+  annotatePageProps<StorePageProps>()(
+    defineRoute({
+      name: "inertia-form-request.store",
+      url: "/inertia-form-request",
+      methods: ["post"] as const,
+      component: "InertiaFormRequest/Success",
+    }),
+  ),
+);
 ```
 
 ## Filtering & Excluding Routes
@@ -502,15 +523,14 @@ The full list of `routes.*` and `inertia.*` config keys — including pipeline c
 
 Exported from `@tolki/ts` (runtime) and `@tolki/types` (types only):
 
-| Export | Description |
-|---|---|
-| `defineRoute()` | Builds a route helper from compact metadata. |
-| `annotatePageProps<T>()` | Attaches an Inertia page-props phantom type (auto-applied in generated files). |
-| `annotateRequestPayload<T>()` | Attaches a FormRequest payload phantom type (auto-applied in generated files). |
-| `InferPageProps<T>` | Reads the page-props type back off a route. |
-| `InferRequestPayload<T>` | Reads the request-payload type back off a route. |
-| `setRouteDefaults()`, `addRouteDefault()`, `getRouteDefaults()`, `resetRouteDefaults()` | Manage global route parameter defaults. |
-| `formSafeOptions()` | The `_method`-spoofing helper used internally by `.form.<verb>()` — exposed for advanced manual use. |
-| `RouteArgMeta`, `RouteMetadata`, `RouteQueryOptions` | The metadata shapes accepted by `defineRoute()`. |
-| `DefineRouteResult`, `RouteCallResult`, `RouteFormResult`, `RouteCallResultWithComponent` | The shape of a route helper and its call results. |
-
+| Export                                                                                    | Description                                                                                          |
+| ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `defineRoute()`                                                                           | Builds a route helper from compact metadata.                                                         |
+| `annotatePageProps<T>()`                                                                  | Attaches an Inertia page-props phantom type (auto-applied in generated files).                       |
+| `annotateRequestPayload<T>()`                                                             | Attaches a FormRequest payload phantom type (auto-applied in generated files).                       |
+| `InferPageProps<T>`                                                                       | Reads the page-props type back off a route.                                                          |
+| `InferRequestPayload<T>`                                                                  | Reads the request-payload type back off a route.                                                     |
+| `setRouteDefaults()`, `addRouteDefault()`, `getRouteDefaults()`, `resetRouteDefaults()`   | Manage global route parameter defaults.                                                              |
+| `formSafeOptions()`                                                                       | The `_method`-spoofing helper used internally by `.form.<verb>()` — exposed for advanced manual use. |
+| `RouteArgMeta`, `RouteMetadata`, `RouteQueryOptions`                                      | The metadata shapes accepted by `defineRoute()`.                                                     |
+| `DefineRouteResult`, `RouteCallResult`, `RouteFormResult`, `RouteCallResultWithComponent` | The shape of a route helper and its call results.                                                    |

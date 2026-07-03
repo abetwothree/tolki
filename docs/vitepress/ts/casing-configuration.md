@@ -16,11 +16,11 @@ Controls relationship names in generated model TypeScript interfaces — see [Mo
 ],
 ```
 
-| Config Value | Relationship `hasMany(Post::class)` | Count          | Exists          |
-|--------------|--------------------------------------|----------------|------------------|
-| `'snake'`    | `posts: Post[]`                      | `posts_count`  | `posts_exists`   |
-| `'camel'`    | `posts: Post[]`                      | `postsCount`   | `postsExists`    |
-| `'pascal'`   | `Posts: Post[]`                      | `PostsCount`   | `PostsExists`    |
+| Config Value | Relationship `hasMany(Post::class)` | Count         | Exists         |
+| ------------ | ----------------------------------- | ------------- | -------------- |
+| `'snake'`    | `posts: Post[]`                     | `posts_count` | `posts_exists` |
+| `'camel'`    | `posts: Post[]`                     | `postsCount`  | `postsExists`  |
+| `'pascal'`   | `Posts: Post[]`                     | `PostsCount`  | `PostsExists`  |
 
 > [!NOTE]
 > For each relationship defined on a model, this package automatically generates `_count` and `_exists` properties alongside the relation itself. These correspond to [Laravel's `withCount` and `withExists`](https://laravel.com/docs/eloquent-relationships#counting-related-models) features and are included in every generated model interface.
@@ -38,10 +38,10 @@ Controls the casing of enum method and static method key names in the generated 
 ```
 
 | Config Value | Method `getLabel()` | Static Method `AllLabels()` |
-|--------------|----------------------|-------------------------------|
-| `'snake'`    | `get_label`          | `all_labels`                  |
-| `'camel'`    | `getLabel`           | `allLabels`                   |
-| `'pascal'`   | `GetLabel`           | `AllLabels`                   |
+| ------------ | ------------------- | --------------------------- |
+| `'snake'`    | `get_label`         | `all_labels`                |
+| `'camel'`    | `getLabel`          | `allLabels`                 |
+| `'pascal'`   | `GetLabel`          | `AllLabels`                 |
 
 > [!TIP]
 > This setting applies to all enum methods — both instance methods (via `#[TsEnumMethod]` or `enums.auto_include_methods`) and static methods (via `#[TsEnumStaticMethod]` or `enums.auto_include_static_methods`). You can still override an individual method's name using the `name` parameter on the attribute, regardless of this setting.
@@ -59,20 +59,20 @@ Controls the casing of each generated route action's exported identifier — see
 ```
 
 | Config Value | Controller method `updateProfile()` | Controller method `store()` |
-|--------------|----------------------------------------|--------------------------------|
-| `'snake'`    | `update_profile`                       | `store`                        |
-| `'camel'`    | `updateProfile`                        | `store`                         |
-| `'pascal'`   | `UpdateProfile`                        | `Store`                        |
+| ------------ | ----------------------------------- | --------------------------- |
+| `'snake'`    | `update_profile`                    | `store`                     |
+| `'camel'`    | `updateProfile`                     | `store`                     |
+| `'pascal'`   | `UpdateProfile`                     | `Store`                     |
 
 > [!NOTE]
 > If the casing transformation produces a reserved JavaScript/TypeScript keyword (e.g. a method named `delete`), the export name is automatically suffixed with `Method` (e.g. `deleteMethod`) to stay a valid identifier.
 
 ## Configuration Reference
 
-| Config Key                 | Type     | Default   | Description                                                     |
-|------------------------------|----------|-----------|--------------------------------------------------------------------|
-| `models.relationship_case`   | `string` | `'snake'` | Casing for relation names and their `_count` / `_exists` properties |
-| `enums.method_case`          | `string` | `'camel'` | Casing for enum instance/static method key names                   |
-| `routes.method_casing`       | `string` | `'camel'` | Casing for each route action's exported identifier                 |
+| Config Key                 | Type     | Default   | Description                                                         |
+| -------------------------- | -------- | --------- | ------------------------------------------------------------------- |
+| `models.relationship_case` | `string` | `'snake'` | Casing for relation names and their `_count` / `_exists` properties |
+| `enums.method_case`        | `string` | `'camel'` | Casing for enum instance/static method key names                    |
+| `routes.method_casing`     | `string` | `'camel'` | Casing for each route action's exported identifier                  |
 
 The full list of `models.*`, `enums.*`, and `routes.*` config keys lives in the [Configuration Reference](./configuration-reference.md).

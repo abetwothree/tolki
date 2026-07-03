@@ -67,6 +67,21 @@ export default defineConfig([
         language: "css/css",
         extends: ["css/recommended"],
     },
+    {
+        // VitePress theme overrides intentionally reference VitePress's own
+        // CSS custom properties (--vp-c-*), which this linter can't resolve
+        // since they're defined in VitePress's own bundled theme CSS rather
+        // than this file, and commonly need `!important` to reliably win
+        // against VitePress's default theme styles. `:has()` is safe here
+        // since the docs site is only ever viewed in modern evergreen
+        // browsers.
+        files: ["docs/vitepress/.vitepress/theme/**/*.css"],
+        rules: {
+            "css/no-invalid-properties": "off",
+            "css/no-important": "off",
+            "css/use-baseline": "off",
+        },
+    },
 
     {
         plugins: {

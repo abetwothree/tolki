@@ -36,7 +36,7 @@ Types are resolved from the model's database columns and cast definitions.
 All conditional methods produce **optional** properties (with `?` in TypeScript):
 
 | Method                                      | Description                       | Generated Type           |
-|---------------------------------------------|-----------------------------------|--------------------------|
+| ------------------------------------------- | --------------------------------- | ------------------------ |
 | `$this->when(cond, value)`                  | Include when condition is true    | Inferred from value      |
 | `$this->whenHas('attr')`                    | Include when attribute is present | From model column type   |
 | `$this->whenNotNull($this->attr)`           | Include when not null             | From model column type   |
@@ -119,7 +119,7 @@ $this->mergeWhen($this->paid_at !== null, fn () => [
 ```
 
 | Method                          | Optionality    | Description                       |
-|---------------------------------|----------------|------------------------------------|
+| ------------------------------- | -------------- | --------------------------------- |
 | `$this->merge([...])`           | Required       | Properties are always present     |
 | `$this->mergeWhen(cond, [...])` | Optional (`?`) | Properties included conditionally |
 
@@ -210,9 +210,9 @@ Generates:
 
 ```typescript
 export interface Post {
-    morphValue: string;   // From trait PHPDoc
-    id: number;
-    title: string;
+  morphValue: string; // From trait PHPDoc
+  id: number;
+  title: string;
 }
 ```
 
@@ -342,12 +342,11 @@ class UserCollection extends ResourceCollection
 Generates:
 
 ```typescript
-import type { UserResource } from './';
+import type { UserResource } from "./";
 
-export interface UserCollection
-{
-    data: UserResource[];
-    has_admin: unknown;
+export interface UserCollection {
+  data: UserResource[];
+  has_admin: unknown;
 }
 ```
 
@@ -409,29 +408,28 @@ class UserResource extends JsonResource
 The package generates the following TypeScript interface:
 
 ```typescript
-import { type AsEnum } from '@tolki/ts';
+import { type AsEnum } from "@tolki/ts";
 
-import { Role } from '../../enums';
-import type { Profile } from '../../models';
-import type { PostResource } from '.';
+import { Role } from "../../enums";
+import type { Profile } from "../../models";
+import type { PostResource } from ".";
 
 /**
  * User account resource.
  *
  * @see Workbench\App\Http\Resources\UserResource
  */
-export interface UserResource
-{
-    id: number;
-    name: string;
-    email: string;
-    role: AsEnum<typeof Role> | null;
-    profile?: Profile | null;
-    posts?: PostResource[];
-    phone?: string | null;
-    avatar?: string | null;
-    posts_count?: number;
-    comments_count?: number;
+export interface UserResource {
+  id: number;
+  name: string;
+  email: string;
+  role: AsEnum<typeof Role> | null;
+  profile?: Profile | null;
+  posts?: PostResource[];
+  phone?: string | null;
+  avatar?: string | null;
+  posts_count?: number;
+  comments_count?: number;
 }
 ```
 
@@ -448,11 +446,11 @@ Notice how:
 
 Three attributes are available for configuring resource TypeScript generation. See [Excluding Content](./excluding-content.md) for the full `#[TsExclude]` reference.
 
-| Attribute       | Target                   | Description                                                                   |
-|-----------------|--------------------------|--------------------------------------------------------------------------------|
+| Attribute       | Target                   | Description                                                                  |
+| --------------- | ------------------------ | ---------------------------------------------------------------------------- |
 | `#[TsResource]` | Resource class           | Override the interface name, specify the backing model, or add a description |
 | `#[TsCasts]`    | Resource class or method | Override or add property types with custom TypeScript types                  |
-| `#[TsExclude]`  | Resource class           | Exclude the entire resource from the TypeScript output.                       |
+| `#[TsExclude]`  | Resource class           | Exclude the entire resource from the TypeScript output.                      |
 
 ### `#[TsResource]` — Configure Resource Generation
 
@@ -469,11 +467,11 @@ class UserResource extends JsonResource
 }
 ```
 
-| Parameter     | Type            | Default        | Description                                    |
-|---------------|-----------------|-----------------|--------------------------------------------------|
-| `name`        | `?string`       | Class name      | Override the TypeScript interface name           |
-| `model`       | `?class-string` | Auto-detected   | Explicitly specify the backing Eloquent model    |
-| `description` | `string`        | `''`            | Added as a JSDoc comment above the interface     |
+| Parameter     | Type            | Default       | Description                                   |
+| ------------- | --------------- | ------------- | --------------------------------------------- |
+| `name`        | `?string`       | Class name    | Override the TypeScript interface name        |
+| `model`       | `?class-string` | Auto-detected | Explicitly specify the backing Eloquent model |
+| `description` | `string`        | `''`          | Added as a JSDoc comment above the interface  |
 
 > [!TIP]
 > When `name` is set, it also affects the output filename. For example, `#[TsResource(name: 'Address')]` generates `address.ts` instead of `address-resource.ts`.
@@ -498,29 +496,28 @@ class CommentResource extends JsonResource
 
 Each entry can be:
 
-| Format                | Example                                              | Description                            |
-|-----------------------|-------------------------------------------------------|-----------------------------------------|
-| Plain string          | `'Record<string, unknown>'`                          | Override the type only                 |
-| Array with `import`   | `['type' => 'GeoPoint', 'import' => '@/types/geo']`  | Custom type with an import statement    |
-| Array with `optional` | `['type' => 'string', 'optional' => true]`           | Override the type and mark as optional  |
+| Format                | Example                                             | Description                            |
+| --------------------- | --------------------------------------------------- | -------------------------------------- |
+| Plain string          | `'Record<string, unknown>'`                         | Override the type only                 |
+| Array with `import`   | `['type' => 'GeoPoint', 'import' => '@/types/geo']` | Custom type with an import statement   |
+| Array with `optional` | `['type' => 'string', 'optional' => true]`          | Override the type and mark as optional |
 
 Properties defined in `#[TsCasts]` that don't exist in `toArray()` are appended to the generated interface. Properties that do exist have their types overridden.
 
 Generated TypeScript with the `coordinates` example:
 
 ```typescript
-import type { GeoPoint } from '@/types/geo';
+import type { GeoPoint } from "@/types/geo";
 
-export interface CommentResource
-{
-    id: number;
-    content: string;
-    is_flagged: boolean;
-    flagged_at?: string | null;
-    metadata: Record<string, unknown>;
-    author?: UserResource;
-    post?: PostResource;
-    coordinates: GeoPoint;
+export interface CommentResource {
+  id: number;
+  content: string;
+  is_flagged: boolean;
+  flagged_at?: string | null;
+  metadata: Record<string, unknown>;
+  author?: UserResource;
+  post?: PostResource;
+  coordinates: GeoPoint;
 }
 ```
 
@@ -539,12 +536,12 @@ When `whenLoaded('relation')` resolves a relation type, the package determines w
 
 This is controlled by the `nullable_relations` config option (enabled by default). The strategy for each relation type is:
 
-| Relation Type                         | Strategy    | Description                                          |
-|----------------------------------------|-------------|--------------------------------------------------------|
-| `HasOne`, `MorphOne`, `HasOneThrough` | `nullable`  | Always nullable — the related record may not exist   |
-| `BelongsTo`                            | `fk`        | Checks the foreign key column's DB-level nullability |
-| `MorphTo`                              | `morph`     | Checks both the morph type and FK column nullability |
-| `HasMany`, `BelongsToMany`, etc.       | `never`     | Collection relations — typed as arrays, never null   |
+| Relation Type                         | Strategy   | Description                                          |
+| ------------------------------------- | ---------- | ---------------------------------------------------- |
+| `HasOne`, `MorphOne`, `HasOneThrough` | `nullable` | Always nullable — the related record may not exist   |
+| `BelongsTo`                           | `fk`       | Checks the foreign key column's DB-level nullability |
+| `MorphTo`                             | `morph`    | Checks both the morph type and FK column nullability |
+| `HasMany`, `BelongsToMany`, etc.      | `never`    | Collection relations — typed as arrays, never null   |
 
 For example, a `BelongsTo` relation with a nullable foreign key:
 

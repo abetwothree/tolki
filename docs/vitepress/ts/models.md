@@ -14,85 +14,86 @@ As mentioned in [Installation & Usage](./index.md), models don't need the `@tolk
 ## Anatomy of a Generated Model
 
 ```typescript
-import { type AsEnum } from '@tolki/ts';
+import { type AsEnum } from "@tolki/ts";
 
-import { MembershipLevel, Role } from '../enums';
-import type { DatabaseNotification } from '../../illuminate/notifications';
-import type { MembershipLevelType, RoleType } from '../enums';
-import type { Address, Comment, Image, Order, Post, Profile, Team } from '.';
+import { MembershipLevel, Role } from "../enums";
+import type { DatabaseNotification } from "../../illuminate/notifications";
+import type { MembershipLevelType, RoleType } from "../enums";
+import type { Address, Comment, Image, Order, Post, Profile, Team } from ".";
 
 /**
  * Application user account
  *
  * @see App\Models\User
  */
-export interface User
-{
-    id: number;
-    /** User name formatted with first letter capitalized */
-    name: string;
-    email: string;
-    email_verified_at: string | null;
-    password: string;
-    options: Record<string, unknown> | null;
-    remember_token: string | null;
-    created_at: string | null;
-    updated_at: string | null;
-    role: RoleType | null;
-    membership_level: MembershipLevelType | null;
-    phone: string | null;
-    avatar: string | null;
-    bio: string | null;
-    settings: { theme: "light" | "dark"; notifications: boolean; locale: string } | null;
-    last_login_at: string | null;
-    last_login_ip: string | null;
+export interface User {
+  id: number;
+  /** User name formatted with first letter capitalized */
+  name: string;
+  email: string;
+  email_verified_at: string | null;
+  password: string;
+  options: Record<string, unknown> | null;
+  remember_token: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  role: RoleType | null;
+  membership_level: MembershipLevelType | null;
+  phone: string | null;
+  avatar: string | null;
+  bio: string | null;
+  settings: {
+    theme: "light" | "dark";
+    notifications: boolean;
+    locale: string;
+  } | null;
+  last_login_at: string | null;
+  last_login_ip: string | null;
 }
 
-export interface UserResource extends Omit<User, 'role' | 'membership_level'>
-{
-    role: AsEnum<typeof Role> | null;
-    membership_level: AsEnum<typeof MembershipLevel> | null;
+export interface UserResource extends Omit<User, "role" | "membership_level"> {
+  role: AsEnum<typeof Role> | null;
+  membership_level: AsEnum<typeof MembershipLevel> | null;
 }
 
-export interface UserMutators
-{
-    /** User initials (e.g. "JD" for "John Doe") */
-    initials: string;
-    /** Whether the user is a premium member */
-    is_premium: boolean;
+export interface UserMutators {
+  /** User initials (e.g. "JD" for "John Doe") */
+  initials: string;
+  /** Whether the user is a premium member */
+  is_premium: boolean;
 }
 
-export interface UserRelations
-{
-    // Relations
-    profile: Profile | null;
-    posts: Post[];
-    comments: Comment[];
-    orders: Order[];
-    addresses: Address[];
-    teams: Team[];
-    owned_teams: Team[];
-    /** Polymorphic images (avatar gallery, etc.) */
-    images: Image[];
-    /** Get the entity's notifications. */
-    notifications: DatabaseNotification[];
-    // Counts
-    profile_count: number;
-    posts_count: number;
-    // ...one `_count` per relation
-    // Exists
-    profile_exists: boolean;
-    posts_exists: boolean;
-    // ...one `_exists` per relation
+export interface UserRelations {
+  // Relations
+  profile: Profile | null;
+  posts: Post[];
+  comments: Comment[];
+  orders: Order[];
+  addresses: Address[];
+  teams: Team[];
+  owned_teams: Team[];
+  /** Polymorphic images (avatar gallery, etc.) */
+  images: Image[];
+  /** Get the entity's notifications. */
+  notifications: DatabaseNotification[];
+  // Counts
+  profile_count: number;
+  posts_count: number;
+  // ...one `_count` per relation
+  // Exists
+  profile_exists: boolean;
+  posts_exists: boolean;
+  // ...one `_exists` per relation
 }
 
 export interface UserAll extends User, UserMutators, UserRelations {}
 
-export interface UserAllResource extends UserResource, UserMutators, UserRelations {}
+export interface UserAllResource
+  extends UserResource, UserMutators, UserRelations {}
 ```
 
 - `User` holds the raw columns — enum columns (`role`, `membership_level`) are typed with the plain `{Enum}Type` union, matching how Eloquent serializes a `BackedEnum` to JSON.
-- `UserResource` is the enum-*resolved* variant — see [Enum-Typed Columns](#enum-typed-columns-modelresource).
+- `UserResource` is the enum-_resolved_ variant — see [Enum-Typed Columns](#enum-typed-columns-modelresource).
 - `settings` shows an inline object type — the result of a [`#[TsCasts]`](#tscasts) override.
 - `UserMutators` holds accessor-based properties (new-style `Attribute` or old-style `getXAttribute()`), each with its PHPDoc description carried over as a JSDoc comment — see [PHPDoc Descriptions](#phpdoc-descriptions).
 - `UserRelations` includes every relation plus a generated `_count` and `_exists` property per relation (mirroring Laravel's [`withCount`](https://laravel.com/docs/eloquent-relationships#counting-related-models) / `withExists`) — including polymorphic relations and framework-provided ones (`notifications`, imported from a generated `illuminate/notifications` namespace).
@@ -102,10 +103,10 @@ export interface UserAllResource extends UserResource, UserMutators, UserRelatio
 
 By default, a model is split into up to four interfaces (`{Model}`, `{Model}Mutators`, `{Model}Relations`, `{Model}All`) so a given page only needs to import what it actually uses. Switch to a single combined interface with the `model-full` template:
 
-| Template | Description |
-|---|---|
-| `laravel-ts-publish::model-split` | **(Default)** Separate interfaces for properties, mutators, and relations, plus an `All` interface combining them. |
-| `laravel-ts-publish::model-full` | Combines properties, mutators, and relations into one interface (grouped with `// Columns` / `// Mutators` / `// Relations` comments). |
+| Template                          | Description                                                                                                                            |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `laravel-ts-publish::model-split` | **(Default)** Separate interfaces for properties, mutators, and relations, plus an `All` interface combining them.                     |
+| `laravel-ts-publish::model-full`  | Combines properties, mutators, and relations into one interface (grouped with `// Columns` / `// Mutators` / `// Relations` comments). |
 
 ```php
 // config/ts-publish.php
@@ -125,25 +126,33 @@ Publish the views (`php artisan vendor:publish --tag="laravel-ts-publish-views"`
 The split template lets you compose only the pieces a page needs. For example, an Inertia form that needs the full `User` shape plus just one relation flag:
 
 ```typescript
-import { useForm } from '@inertiajs/vue3';
-import type { User, UserRelations } from '@js/types/data/models';
+import { useForm } from "@inertiajs/vue3";
+import type { User, UserRelations } from "@js/types/data/models";
 
-interface UserForm extends User, Pick<UserRelations, 'profile_exists'> {
-    profile: UserRelations['profile'] | null;
+interface UserForm extends User, Pick<UserRelations, "profile_exists"> {
+  profile: UserRelations["profile"] | null;
 }
 
 const form = useForm<UserForm>({ ...user });
-form.profile;  // Profile | null
-form.posts;    // TS error — `posts` isn't part of UserForm
+form.profile; // Profile | null
+form.posts; // TS error — `posts` isn't part of UserForm
 ```
 
 With `model-full`, the equivalent requires `Omit`-ing every relation property you don't need instead of only picking what you want:
 
 ```typescript
-import type { User } from '@js/types/data/models';
+import type { User } from "@js/types/data/models";
 
-interface UserForm extends Omit<User, 'admin' | 'profile' | 'posts' | 'profile_count' | 'posts_count' | 'posts_exists'> {
-    profile: User['profile'] | null;
+interface UserForm extends Omit<
+  User,
+  | "admin"
+  | "profile"
+  | "posts"
+  | "profile_count"
+  | "posts_count"
+  | "posts_exists"
+> {
+  profile: User["profile"] | null;
 }
 ```
 
@@ -153,24 +162,24 @@ Additionally, when using the `model-full` template, since all relations are incl
 
 Singular relations are automatically typed with `| null` based on the relation type and, where relevant, whether the underlying foreign key column is nullable:
 
-| Relation Type | Strategy | Behavior |
-|---|---|---|
-| `HasOne` | `nullable` | Always add `null` — the related record may not exist. |
-| `MorphOne` | `nullable` | Always add `null`. |
-| `HasOneThrough` | `nullable` | Always add `null`. |
-| `BelongsTo` | `fk` | Add `null` only when the foreign key column is nullable in the database. |
-| `MorphTo` | `morph` | Add `null` when either the morph type or morph id column is nullable. |
-| `HasMany`, `BelongsToMany`, `MorphMany`, `MorphToMany` | `never` | Never nullable (returns an empty array, not null). |
+| Relation Type                                          | Strategy   | Behavior                                                                 |
+| ------------------------------------------------------ | ---------- | ------------------------------------------------------------------------ |
+| `HasOne`                                               | `nullable` | Always add `null` — the related record may not exist.                    |
+| `MorphOne`                                             | `nullable` | Always add `null`.                                                       |
+| `HasOneThrough`                                        | `nullable` | Always add `null`.                                                       |
+| `BelongsTo`                                            | `fk`       | Add `null` only when the foreign key column is nullable in the database. |
+| `MorphTo`                                              | `morph`    | Add `null` when either the morph type or morph id column is nullable.    |
+| `HasMany`, `BelongsToMany`, `MorphMany`, `MorphToMany` | `never`    | Never nullable (returns an empty array, not null).                       |
 
 ```typescript
 export interface UserRelations {
-    profile: Profile | null;  // HasOne — always nullable
-    posts: Post[];             // HasMany — never nullable
+  profile: Profile | null; // HasOne — always nullable
+  posts: Post[]; // HasMany — never nullable
 }
 
 export interface PostRelations {
-    author: User;                    // BelongsTo — user_id is NOT NULL
-    category_rel: Category | null;   // BelongsTo — category_id is nullable
+  author: User; // BelongsTo — user_id is NOT NULL
+  category_rel: Category | null; // BelongsTo — category_id is nullable
 }
 ```
 
@@ -205,11 +214,11 @@ See `AbeTwoThree\LaravelTsPublish\RelationMap` for the full default map.
 
 All attributes live under the `AbeTwoThree\LaravelTsPublish\Attributes` namespace.
 
-| Attribute | Target | Description |
-|---|---|---|
-| `#[TsCasts]` | `casts()` method, `$casts` property, or model class | Override/add TypeScript types for columns, mutators, or relations. |
-| `#[TsType]` | Custom cast class | Set the TypeScript type used wherever this cast class is applied. |
-| `#[TsExclude]` | Model class, accessor method, or relation method | Exclude an entire model, or a specific accessor/relation. |
+| Attribute      | Target                                              | Description                                                        |
+| -------------- | --------------------------------------------------- | ------------------------------------------------------------------ |
+| `#[TsCasts]`   | `casts()` method, `$casts` property, or model class | Override/add TypeScript types for columns, mutators, or relations. |
+| `#[TsType]`    | Custom cast class                                   | Set the TypeScript type used wherever this cast class is applied.  |
+| `#[TsExclude]` | Model class, accessor method, or relation method    | Exclude an entire model, or a specific accessor/relation.          |
 
 ### `#[TsCasts]`
 
@@ -237,12 +246,12 @@ class User extends Model
 ```
 
 ```typescript
-import { ProductDimensions } from '@js/types/product';
+import { ProductDimensions } from "@js/types/product";
 
 export interface User {
-    metadata: {label: string, value: string}[];
-    settings: Record<string, unknown>;
-    dimensions: ProductDimensions;
+  metadata: { label: string; value: string }[];
+  settings: Record<string, unknown>;
+  dimensions: ProductDimensions;
 }
 ```
 
@@ -277,10 +286,10 @@ class Product extends Model
 ```
 
 ```typescript
-import { ProductDimensions } from '@js/types/product';
+import { ProductDimensions } from "@js/types/product";
 
 export interface Product {
-    dimensions: ProductDimensions;
+  dimensions: ProductDimensions;
 }
 ```
 
@@ -290,12 +299,12 @@ export interface Product {
 
 Doc blocks are read automatically and converted to JSDoc comments:
 
-| Location | Source | JSDoc Placement |
-|---|---|---|
-| Model class | Doc block above the class | Above the `export interface` declaration |
-| Columns | Doc block above the column's accessor method | Above the column property |
-| Mutators | Doc block above the mutator's accessor method | Above the mutator property |
-| Relations | Doc block above the relation method | Above the relation property |
+| Location    | Source                                        | JSDoc Placement                          |
+| ----------- | --------------------------------------------- | ---------------------------------------- |
+| Model class | Doc block above the class                     | Above the `export interface` declaration |
+| Columns     | Doc block above the column's accessor method  | Above the column property                |
+| Mutators    | Doc block above the mutator's accessor method | Above the mutator property               |
+| Relations   | Doc block above the relation method           | Above the relation property              |
 
 For columns and mutators, the new-style accessor (`protected function name(): Attribute`) is checked before the old-style one (`public function getNameAttribute()`). `@`-prefixed lines (`@param`, `@return`, `@phpstan-type`, ...) are stripped — only the prose description carries over.
 
@@ -326,10 +335,10 @@ Timestamp columns (`date`, `datetime`, `timestamp`, and their immutable variants
 'timestamps_as_date' => true,
 ```
 
-| Config Value | Generated Type |
-|---|---|
+| Config Value      | Generated Type       |
+| ----------------- | -------------------- |
 | `false` (default) | `created_at: string` |
-| `true` | `created_at: Date` |
+| `true`            | `created_at: Date`   |
 
 ## Custom TypeScript Type Mappings
 
@@ -345,7 +354,7 @@ The default PHP-to-TypeScript mapping is intentionally broad. Override or extend
 ```
 
 ::: tip
-Custom mappings are merged with the built-in map and take precedence. For a *per-property* override instead of a global one, use [`#[TsCasts]`](#tscasts) or [`#[TsType]`](#tstype) instead.
+Custom mappings are merged with the built-in map and take precedence. For a _per-property_ override instead of a global one, use [`#[TsCasts]`](#tscasts) or [`#[TsType]`](#tstype) instead.
 :::
 
 ### Type Mapping Reference
@@ -370,14 +379,14 @@ Custom mappings are merged with the built-in map and take precedence. For a *per
 
 #### Arrays & Objects
 
-| Cast | TypeScript Type |
-|---|---|
-| `array`, `collection` | `unknown[]` |
-| `AsArrayObject`, `AsCollection`, `AsEncryptedArrayObject`, `AsEncryptedCollection`, `AsEnumArrayObject`, `AsEnumCollection` | `unknown[]` |
-| `json`, `jsonb`, `object` | `object` |
-| `Illuminate\Database\Eloquent\Collection` | `Record<string, unknown>` |
-| `Illuminate\Support\Collection` | `unknown[] \| Record<string, unknown>` |
-| `Illuminate\Database\Eloquent\Casts\AsFluent` | `object` |
+| Cast                                                                                                                        | TypeScript Type                        |
+| --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `array`, `collection`                                                                                                       | `unknown[]`                            |
+| `AsArrayObject`, `AsCollection`, `AsEncryptedArrayObject`, `AsEncryptedCollection`, `AsEnumArrayObject`, `AsEnumCollection` | `unknown[]`                            |
+| `json`, `jsonb`, `object`                                                                                                   | `object`                               |
+| `Illuminate\Database\Eloquent\Collection`                                                                                   | `Record<string, unknown>`              |
+| `Illuminate\Support\Collection`                                                                                             | `unknown[] \| Record<string, unknown>` |
+| `Illuminate\Database\Eloquent\Casts\AsFluent`                                                                               | `object`                               |
 
 #### Dates & Times
 
@@ -385,16 +394,16 @@ Custom mappings are merged with the built-in map and take precedence. For a *per
 
 #### Other
 
-| Cast | TypeScript Type |
-|---|---|
-| `AsStringable`, `AsUri`, `AsBinary` | `string` |
-| `null` | `null` |
-| `mixed` | `unknown` |
-| `never` (PHPStan) | `never` |
-| `void` (PHPStan) | `void` |
-| `true` / `false` (PHPStan) | `true` / `false` |
-| `array-key` (PHPStan) | `string \| number` |
-| `scalar` (PHPStan) | `string \| number \| boolean` |
+| Cast                                | TypeScript Type               |
+| ----------------------------------- | ----------------------------- |
+| `AsStringable`, `AsUri`, `AsBinary` | `string`                      |
+| `null`                              | `null`                        |
+| `mixed`                             | `unknown`                     |
+| `never` (PHPStan)                   | `never`                       |
+| `void` (PHPStan)                    | `void`                        |
+| `true` / `false` (PHPStan)          | `true` / `false`              |
+| `array-key` (PHPStan)               | `string \| number`            |
+| `scalar` (PHPStan)                  | `string \| number \| boolean` |
 
 ## Enum-Typed Columns (`{Model}Resource`)
 
@@ -404,12 +413,14 @@ A column, mutator, or relation typed to a `BackedEnum` or `UnitEnum` gets two re
 - A parallel `{Model}Resource` / `{Model}MutatorsResource` / `{Model}AllResource` interface types the same property with [`AsEnum<typeof Enum>`](./enums.md#type-reference) instead — the shape you get once you've resolved the raw value to a full enum instance (e.g. `Status.from(user.status)`, or a Laravel API Resource that already serialized the enum via [`EnumResource`](./enum-api-resource.md)).
 
 ```typescript
-import { Role } from '@js/types/data/enums';
-import type { User, UserResource } from '@js/types/data/models';
+import { Role } from "@js/types/data/enums";
+import type { User, UserResource } from "@js/types/data/models";
 
 function displayRole(user: User) {
-    const resolved: UserResource['role'] = user.role ? Role.from(user.role) : null;
-    // resolved?.label, resolved?.value, etc. — full enum instance, not just the raw value
+  const resolved: UserResource["role"] = user.role
+    ? Role.from(user.role)
+    : null;
+  // resolved?.label, resolved?.value, etc. — full enum instance, not just the raw value
 }
 ```
 
@@ -457,11 +468,11 @@ See [Excluding Content](./excluding-content.md) for the full attribute behavior 
 
 `models.relationship_case` (`'snake'` (default), `'camel'`, or `'pascal'`) controls the casing of relation names and their generated `_count` / `_exists` properties:
 
-| Config Value | Relation (`hasMany(Post::class)`) | Count | Exists |
-|---|---|---|---|
-| `'snake'` | `posts: Post[]` | `posts_count` | `posts_exists` |
-| `'camel'` | `posts: Post[]` | `postsCount` | `postsExists` |
-| `'pascal'` | `Posts: Post[]` | `PostsCount` | `PostsExists` |
+| Config Value | Relation (`hasMany(Post::class)`) | Count         | Exists         |
+| ------------ | --------------------------------- | ------------- | -------------- |
+| `'snake'`    | `posts: Post[]`                   | `posts_count` | `posts_exists` |
+| `'camel'`    | `posts: Post[]`                   | `postsCount`  | `postsExists`  |
+| `'pascal'`   | `Posts: Post[]`                   | `PostsCount`  | `PostsExists`  |
 
 ## Configuration Reference
 

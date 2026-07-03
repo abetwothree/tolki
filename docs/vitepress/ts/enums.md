@@ -14,7 +14,7 @@ As mentioned in [Installation & Usage](./index.md), the `@tolki/ts` package is n
 ## Anatomy of a Generated Enum
 
 ```typescript
-import { defineEnum } from '@tolki/ts';
+import { defineEnum } from "@tolki/ts";
 
 /**
  * String-backed enum with TsCase attribute overrides on individual cases.
@@ -22,24 +22,24 @@ import { defineEnum } from '@tolki/ts';
  * @see App\Enums\Color
  */
 export const Color = defineEnum({
-    /** Primary red color */
-    Red: 'red',
-    /** Primary green color */
-    Green: 'green',
-    Blue: 'blue',
-    backed: true,
-    /** Get the hex code for the color */
-    hex: {
-        Red: '#EF4444',
-        Green: '#22C55E',
-        Blue: '#3B82F6',
-    },
-    _cases: ['Red', 'Green', 'Blue'],
-    _methods: ['hex'],
+  /** Primary red color */
+  Red: "red",
+  /** Primary green color */
+  Green: "green",
+  Blue: "blue",
+  backed: true,
+  /** Get the hex code for the color */
+  hex: {
+    Red: "#EF4444",
+    Green: "#22C55E",
+    Blue: "#3B82F6",
+  },
+  _cases: ["Red", "Green", "Blue"],
+  _methods: ["hex"],
 } as const);
 
-export type ColorType = 'red' | 'green' | 'blue';
-export type ColorKind = 'Red' | 'Green' | 'Blue';
+export type ColorType = "red" | "green" | "blue";
+export type ColorKind = "Red" | "Green" | "Blue";
 ```
 
 - The class (and each case's) PHPDoc description becomes a JSDoc comment — see [PHPDoc Descriptions](#phpdoc-descriptions).
@@ -52,13 +52,13 @@ export type ColorKind = 'Red' | 'Green' | 'Blue';
 
 All attributes live under the `AbeTwoThree\LaravelTsPublish\Attributes` namespace.
 
-| Attribute | Target | Description |
-|---|---|---|
-| `#[TsEnumMethod]` | Method | Include a method's return values in the output. Called per case, producing a key/value pair object. |
-| `#[TsEnumStaticMethod]` | Static Method | Include a static method's return value. Called once, added as a top-level property. |
-| `#[TsEnum]` | Enum Class | Rename the enum or add a description. |
-| `#[TsCase]` | Enum Case | Rename, change the frontend value, or add a description to a case. |
-| `#[TsExclude]` | Class, Method | Exclude an entire enum or a specific method. |
+| Attribute               | Target        | Description                                                                                         |
+| ----------------------- | ------------- | --------------------------------------------------------------------------------------------------- |
+| `#[TsEnumMethod]`       | Method        | Include a method's return values in the output. Called per case, producing a key/value pair object. |
+| `#[TsEnumStaticMethod]` | Static Method | Include a static method's return value. Called once, added as a top-level property.                 |
+| `#[TsEnum]`             | Enum Class    | Rename the enum or add a description.                                                               |
+| `#[TsCase]`             | Enum Case     | Rename, change the frontend value, or add a description to a case.                                  |
+| `#[TsExclude]`          | Class, Method | Exclude an entire enum or a specific method.                                                        |
 
 > [!NOTE]
 > Whether via attributes or the global auto-include config, only **public** methods are ever included — private and protected methods are always excluded.
@@ -86,21 +86,21 @@ enum Status: string
 
 ```typescript
 export const Status = {
-    Active: 'active',
-    Inactive: 'inactive',
-    /** Human-readable label */
-    statusLabel: {
-        Active: 'Active User',
-        Inactive: 'Inactive User',
-    },
+  Active: "active",
+  Inactive: "inactive",
+  /** Human-readable label */
+  statusLabel: {
+    Active: "Active User",
+    Inactive: "Inactive User",
+  },
 } as const;
 ```
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `name` | `string` | Method name | Overrides the key name in the output (also affected by [`enums.method_case`](#casing)). |
-| `description` | `string` | `''` | JSDoc comment above the property. |
-| `params` | `array` | `[]` | Named arguments to invoke the method with (see below). |
+| Parameter     | Type     | Default     | Description                                                                             |
+| ------------- | -------- | ----------- | --------------------------------------------------------------------------------------- |
+| `name`        | `string` | Method name | Overrides the key name in the output (also affected by [`enums.method_case`](#casing)). |
+| `description` | `string` | `''`        | JSDoc comment above the property.                                                       |
+| `params`      | `array`  | `[]`        | Named arguments to invoke the method with (see below).                                  |
 
 #### Methods with required parameters
 
@@ -114,7 +114,7 @@ public function isAboveThreshold(int $threshold): bool
 }
 ```
 
-`params` values must be constant expressions (scalars or arrays of scalars), since they're defined inside a PHP attribute. Methods with only *optional* parameters don't need `params` — they're included automatically.
+`params` values must be constant expressions (scalars or arrays of scalars), since they're defined inside a PHP attribute. Methods with only _optional_ parameters don't need `params` — they're included automatically.
 
 ### `#[TsEnumStaticMethod]`
 
@@ -132,11 +132,11 @@ public static function options(): array
 
 ```typescript
 export const Status = {
-    // ...cases
-    options: [
-        { value: 'active', label: 'Active' },
-        { value: 'inactive', label: 'Inactive' },
-    ],
+  // ...cases
+  options: [
+    { value: "active", label: "Active" },
+    { value: "inactive", label: "Inactive" },
+  ],
 } as const;
 ```
 
@@ -155,13 +155,13 @@ enum Status: string { case Active = 'active'; case Inactive = 'inactive'; }
 
 ```typescript
 /** All possible user account statuses */
-export const UserStatus = { Active: 'active', Inactive: 'inactive' } as const;
+export const UserStatus = { Active: "active", Inactive: "inactive" } as const;
 ```
 
-| Parameter | Type | Description |
-|---|---|---|
-| `name` | `string` | Overrides the TypeScript const name — useful to avoid naming collisions across namespaces. |
-| `description` | `string` | JSDoc comment; takes priority over any PHPDoc description. |
+| Parameter     | Type     | Description                                                                                |
+| ------------- | -------- | ------------------------------------------------------------------------------------------ |
+| `name`        | `string` | Overrides the TypeScript const name — useful to avoid naming collisions across namespaces. |
+| `description` | `string` | JSDoc comment; takes priority over any PHPDoc description.                                 |
 
 ### `#[TsCase]`
 
@@ -182,31 +182,31 @@ enum Status: int
 
 ```typescript
 export const Status = {
-    /** The user is active */
-    active_status: true,
-    inactive_status: false,
+  /** The user is active */
+  active_status: true,
+  inactive_status: false,
 } as const;
 ```
 
-| Parameter | Type | Description |
-|---|---|---|
-| `name` | `string` | Overrides the case key name. |
-| `value` | `string \| int` | Overrides the case value. |
-| `description` | `string` | JSDoc comment above the case. |
+| Parameter     | Type            | Description                   |
+| ------------- | --------------- | ----------------------------- |
+| `name`        | `string`        | Overrides the case key name.  |
+| `value`       | `string \| int` | Overrides the case value.     |
+| `description` | `string`        | JSDoc comment above the case. |
 
 ## Value & Key Types
 
 Every enum gets a `{Name}Type` alias built from its case **values**. Backed enums additionally get a `{Name}Kind` alias built from case **names** (unit enums already use their case name as the value, so no separate `Kind` is needed):
 
 ```typescript
-export type StatusType = 'active' | 'inactive';
-export type StatusKind = 'Active' | 'Inactive'; // backed enums only
+export type StatusType = "active" | "inactive";
+export type StatusKind = "Active" | "Inactive"; // backed enums only
 ```
 
 ```typescript
-import type { StatusType, StatusKind } from '@js/types/data/enums';
+import type { StatusType, StatusKind } from "@js/types/data/enums";
 
-function setStatus(status: StatusType) {}     // only 'active' | 'inactive'
+function setStatus(status: StatusType) {} // only 'active' | 'inactive'
 function setStatusByKey(status: StatusKind) {} // only 'Active' | 'Inactive'
 ```
 
@@ -215,9 +215,9 @@ function setStatusByKey(status: StatusKind) {} // only 'Active' | 'Inactive'
 When `enums.metadata_enabled` is on, every enum carries `_cases`, `_methods`, and `_static` arrays describing its own shape. These aren't meant to be read directly — they're what `defineEnum()` (and the standalone `from` / `tryFrom` / `cases` functions) use to resolve a PHP-like "instance" from a raw case value:
 
 ```typescript
-import { Status } from '@js/types/data/enums';
+import { Status } from "@js/types/data/enums";
 
-const instance = Status.from('active');
+const instance = Status.from("active");
 // { name: 'Active', value: 'active', label: 'Active User', options: [...] }
 //                             ^ per-case method resolved   ^ static method passed through as-is
 ```
@@ -262,12 +262,12 @@ These settings are off by default for a reason — enabling them exposes the ret
 
 Doc blocks are read automatically and converted to JSDoc comments:
 
-| Location | JSDoc placement |
-|---|---|
-| Enum class | Above the `export const` declaration |
-| Enum case | Above the case property |
-| Instance method | Above the method property |
-| Static method | Above the static method property |
+| Location        | JSDoc placement                      |
+| --------------- | ------------------------------------ |
+| Enum class      | Above the `export const` declaration |
+| Enum case       | Above the case property              |
+| Instance method | Above the method property            |
+| Static method   | Above the static method property     |
 
 `@`-prefixed lines (`@param`, `@return`, `@phpstan-type`, ...) are stripped — only the prose description carries over. When both a PHPDoc block **and** an attribute `description` are present, **the attribute always wins**.
 
@@ -367,14 +367,13 @@ The full list of `enums.*` config keys — including pipeline class overrides fo
 
 Exported from `@tolki/ts` (runtime) and `@tolki/types` (types only):
 
-| Export | Description |
-|---|---|
-| `defineEnum()` | Wraps a raw enum const with bound `from`/`tryFrom`/`cases` helpers. |
-| `from()`, `tryFrom()`, `cases()` | Standalone equivalents that take the enum object as their first argument. |
-| `EnumConst` | The base shape every generated enum const satisfies. |
-| `CaseKeys<T>` / `CaseValue<T>` | The union of case key names / case values for an enum const. |
-| `MethodKeys<T>` / `StaticKeys<T>` | The union of instance / static method key names. |
-| `FromResult<T, V>` | The resolved instance type returned by `from(T, V)`. |
-| `DefineEnumResult<T>` | The return type of `defineEnum()` — the const plus bound helpers. |
-| `AsEnum<T, V?>` | A type-level resolved instance (discriminated union across all cases, or narrowed to one with the second parameter) — the type companion to the `EnumResource` JSON API resource. |
-
+| Export                            | Description                                                                                                                                                                       |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defineEnum()`                    | Wraps a raw enum const with bound `from`/`tryFrom`/`cases` helpers.                                                                                                               |
+| `from()`, `tryFrom()`, `cases()`  | Standalone equivalents that take the enum object as their first argument.                                                                                                         |
+| `EnumConst`                       | The base shape every generated enum const satisfies.                                                                                                                              |
+| `CaseKeys<T>` / `CaseValue<T>`    | The union of case key names / case values for an enum const.                                                                                                                      |
+| `MethodKeys<T>` / `StaticKeys<T>` | The union of instance / static method key names.                                                                                                                                  |
+| `FromResult<T, V>`                | The resolved instance type returned by `from(T, V)`.                                                                                                                              |
+| `DefineEnumResult<T>`             | The return type of `defineEnum()` — the const plus bound helpers.                                                                                                                 |
+| `AsEnum<T, V?>`                   | A type-level resolved instance (discriminated union across all cases, or narrowed to one with the second parameter) — the type companion to the `EnumResource` JSON API resource. |

@@ -16,9 +16,9 @@
   --tolki-gradient: linear-gradient(120deg, #ff2d20 20%, #3178c6 80%);
 
   /* TypeScript blue scale — AA contrast on white */
-  --vp-c-brand-1: #2c6cb8;   /* text / links   ≥4.5:1 */
-  --vp-c-brand-2: #3178c6;   /* hover          */
-  --vp-c-brand-3: #3178c6;   /* solid bg       white text ≥4.5:1 */
+  --vp-c-brand-1: #2c6cb8; /* text / links   ≥4.5:1 */
+  --vp-c-brand-2: #3178c6; /* hover          */
+  --vp-c-brand-3: #3178c6; /* solid bg       white text ≥4.5:1 */
   --vp-c-brand-soft: rgba(49, 120, 198, 0.14);
 
   --vp-c-default-1: var(--vp-c-gray-1);
@@ -95,10 +95,14 @@
 }
 
 @media (min-width: 640px) {
-  :root { --vp-home-hero-image-filter: blur(56px); }
+  :root {
+    --vp-home-hero-image-filter: blur(56px);
+  }
 }
 @media (min-width: 960px) {
-  :root { --vp-home-hero-image-filter: blur(68px); }
+  :root {
+    --vp-home-hero-image-filter: blur(68px);
+  }
 }
 
 .VPHero .VPImage {
@@ -169,7 +173,6 @@
 .vp-doc h2 {
   margin-top: 48px;
 }
-
 
 /* ─────────────────────────────────────────────
    Tables
@@ -262,13 +265,13 @@
    ───────────────────────────────────────────── */
 
 /* Code block container: subtle shadow for depth */
-.vp-doc div[class*='language-'] {
+.vp-doc div[class*="language-"] {
   border-radius: 10px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
 }
 
 /* Language label chip: brand-tinted */
-.vp-doc div[class*='language-'] .lang {
+.vp-doc div[class*="language-"] .lang {
   color: var(--vp-c-brand-2);
   font-weight: 600;
   font-size: 0.72rem;
@@ -319,7 +322,10 @@
   text-overflow: ellipsis;
   max-width: 100%;
   text-decoration: none;
-  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
 }
 
 .collection-method-list a:hover {

@@ -49,7 +49,7 @@ Keep in mind that the `@tolki/ts` npm package is required for routing utilities 
 
 By default, generated files are written to `resources/js/types/data`. It's recommended to gitignore this directory — the files are generated on demand (locally, in CI, or before a production build), so committing them just adds noise and merge conflicts:
 
-__Configuration:__
+**Configuration:**
 
 ```php
 // config/ts-publish.php
@@ -57,7 +57,7 @@ __Configuration:__
 'output_directory' => resource_path('/js/types/data'),
 ```
 
-__Git Ignore:__
+**Git Ignore:**
 
 ```gitignore
 # Ignore published TypeScript files
@@ -70,7 +70,7 @@ If you use [ESLint](https://eslint.org/) or [Oxlint](https://oxc.rs/), add the p
 
 Create an import alias for the published files in `tsconfig.json` and `vite.config.ts` to avoid long relative paths and make it clear these are generated files:
 
-__tsconfig.json:__
+**tsconfig.json:**
 
 ```json
 {
@@ -83,7 +83,7 @@ __tsconfig.json:__
 }
 ```
 
-__vite.config.ts:__
+**vite.config.ts:**
 
 ```typescript
 import { defineConfig } from "vite";
@@ -101,8 +101,8 @@ export default defineConfig({
 Output is always organized into namespace-derived directory trees — a single-namespace app (just `App\Models`, `App\Enums`, etc.) produces one `app/` directory tree, so a default installation's imports look like:
 
 ```typescript
-import { Status } from '@data/app/enums';
-import type { User } from '@data/app/models';
+import { Status } from "@data/app/enums";
+import type { User } from "@data/app/models";
 ```
 
 See [Modular Publishing](./modular-publishing.md) for the full namespace-to-path algorithm on larger, multi-namespace applications.
@@ -137,9 +137,7 @@ Add `ts:publish` to the `post-update-cmd` hook in `composer.json` so deployed an
 ```json
 {
   "scripts": {
-    "post-update-cmd": [
-      "@php artisan ts:publish"
-    ]
+    "post-update-cmd": ["@php artisan ts:publish"]
   }
 }
 ```

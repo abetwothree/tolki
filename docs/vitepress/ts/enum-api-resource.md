@@ -50,19 +50,19 @@ class UserResource extends JsonResource
 
 Every response includes these base keys, resolved from the matching case's (possibly `#[TsCase]`-overridden) name and value:
 
-| Key      | Type            | Description                                         |
-|----------|-----------------|------------------------------------------------------|
-| `name`   | `string`        | The enum case name                                    |
-| `value`  | `string \| int` | The backed value, or the case name for unit enums      |
-| `backed` | `bool`          | Whether the enum is a backed enum                      |
+| Key      | Type            | Description                                       |
+| -------- | --------------- | ------------------------------------------------- |
+| `name`   | `string`        | The enum case name                                |
+| `value`  | `string \| int` | The backed value, or the case name for unit enums |
+| `backed` | `bool`          | Whether the enum is a backed enum                 |
 
 ```json
 {
-    "name": "Published",
-    "value": 1,
-    "backed": true,
-    "icon": "check",
-    "color": "green"
+  "name": "Published",
+  "value": 1,
+  "backed": true,
+  "icon": "check",
+  "color": "green"
 }
 ```
 
@@ -80,9 +80,9 @@ return new EnumResource(Role::Admin);
 
 ```json
 {
-    "name": "Admin",
-    "value": "Admin",
-    "backed": false
+  "name": "Admin",
+  "value": "Admin",
+  "backed": false
 }
 ```
 
@@ -102,8 +102,8 @@ This guarantees the JSON response shape is always consistent with the TypeScript
 The `@tolki/ts` package exports an `AsEnum` utility type that resolves the exact `EnumResource` JSON response shape for any published enum, giving you full type safety when consuming enum API responses on the frontend.
 
 ```typescript
-import type { AsEnum } from '@tolki/ts';
-import type { Status } from '@/types/enums';
+import type { AsEnum } from "@tolki/ts";
+import type { Status } from "@/types/enums";
 
 // Full discriminated union of all cases
 type StatusResponse = AsEnum<typeof Status>;
@@ -123,11 +123,12 @@ Use it to type your API responses directly:
 
 ```typescript
 const response = await fetch(`/api/articles/${id}`);
-const article: { id: number; status: AsEnum<typeof Status> } = await response.json();
+const article: { id: number; status: AsEnum<typeof Status> } =
+  await response.json();
 
 if (article.status.value === 0) {
-    // TypeScript knows this is the Draft case
-    console.log(article.status.icon); // 'pencil'
+  // TypeScript knows this is the Draft case
+  console.log(article.status.icon); // 'pencil'
 }
 ```
 
@@ -141,50 +142,52 @@ For a `Post` model that casts the database columns `status`, `visibility`, and `
 
 ```typescript
 export interface Post {
-    id: number;
-    title: string;
-    content: string;
-    status: StatusType;                // Original enum type
-    visibility: VisibilityType | null; // Original enum type
-    priority: PriorityType | null;      // Original enum type
+  id: number;
+  title: string;
+  content: string;
+  status: StatusType; // Original enum type
+  visibility: VisibilityType | null; // Original enum type
+  priority: PriorityType | null; // Original enum type
 }
 
 // Auto-generated — no manual typing needed
-export interface PostResource extends Omit<Post, 'status' | 'visibility' | 'priority'>
-{
-    status: AsEnum<typeof Status>;
-    visibility: AsEnum<typeof Visibility> | null;
-    priority: AsEnum<typeof Priority> | null;
+export interface PostResource extends Omit<
+  Post,
+  "status" | "visibility" | "priority"
+> {
+  status: AsEnum<typeof Status>;
+  visibility: AsEnum<typeof Visibility> | null;
+  priority: AsEnum<typeof Priority> | null;
 }
 ```
 
 ```typescript
-import type { PostResource } from '@js/types/data/models';
+import type { PostResource } from "@js/types/data/models";
 
-const response = await fetch('/api/posts/1');
+const response = await fetch("/api/posts/1");
 const post: PostResource = await response.json();
 
 post.status.value; // 0 | 1
-post.status.icon;  // 'pencil' | 'check'
+post.status.icon; // 'pencil' | 'check'
 ```
 
 The interfaces are generated for both the `model-full` and `model-split` templates. In split mode, a `PostResource` interface is generated alongside the properties interface, and a separate `PostMutatorsResource` interface alongside the mutators interface, since mutators can also be enum-cast:
 
 ```typescript
-export interface PostResource extends Omit<Post, 'status' | 'visibility' | 'priority'>
-{
-    status: AsEnum<typeof Status>;
-    // ...
+export interface PostResource extends Omit<
+  Post,
+  "status" | "visibility" | "priority"
+> {
+  status: AsEnum<typeof Status>;
+  // ...
 }
 
-export interface PostMutators
-{
-    due_notice: DueAtNoticeType;
+export interface PostMutators {
+  due_notice: DueAtNoticeType;
 }
 
-export interface PostMutatorsResource extends Omit<PostMutators, 'due_notice'>
-{
-    due_notice: AsEnum<typeof DueAtNotice>;
+export interface PostMutatorsResource extends Omit<PostMutators, "due_notice"> {
+  due_notice: AsEnum<typeof DueAtNotice>;
 }
 ```
 

@@ -17,18 +17,18 @@ class TsExclude {}
 
 It takes no parameters — applying it to a class or method is enough to exclude that target. It can be placed on:
 
-| Target                 | Effect                                                             |
-|------------------------|-----------------------------------------------------------------------|
-| Enum class             | Entire enum is excluded from collection and publishing                |
-| Enum method            | Method is excluded from the TypeScript output                         |
-| Model class            | Entire model is excluded from collection and publishing               |
-| Model accessor         | Mutator/accessor is excluded from the TypeScript output                |
-| Model relation         | Relation is excluded from the TypeScript output                        |
-| Resource class         | Entire resource is excluded from collection and publishing             |
-| Form Request class     | Entire form request is excluded from collection and publishing         |
-| Broadcast Event class  | Entire broadcast event is excluded from collection and publishing      |
-| Controller class       | Entire controller is excluded from collection and publishing           |
-| Controller action      | The action is excluded from the generated route file                   |
+| Target                | Effect                                                            |
+| --------------------- | ----------------------------------------------------------------- |
+| Enum class            | Entire enum is excluded from collection and publishing            |
+| Enum method           | Method is excluded from the TypeScript output                     |
+| Model class           | Entire model is excluded from collection and publishing           |
+| Model accessor        | Mutator/accessor is excluded from the TypeScript output           |
+| Model relation        | Relation is excluded from the TypeScript output                   |
+| Resource class        | Entire resource is excluded from collection and publishing        |
+| Form Request class    | Entire form request is excluded from collection and publishing    |
+| Broadcast Event class | Entire broadcast event is excluded from collection and publishing |
+| Controller class      | Entire controller is excluded from collection and publishing      |
+| Controller action     | The action is excluded from the generated route file              |
 
 > [!NOTE]
 > `#[TsExclude]` always wins. Even when an explicit inclusion attribute like `#[TsEnumMethod]` or `#[TsEnumStaticMethod]` is also present, or when `enums.auto_include_methods` / `enums.auto_include_static_methods` would otherwise include a method automatically, `#[TsExclude]` takes priority and the member is left out.
@@ -144,20 +144,20 @@ enum ExcludableEnum: string
 Generates (with `enums.auto_include_methods` off, the default):
 
 ```typescript
-import { defineEnum } from '@tolki/ts';
+import { defineEnum } from "@tolki/ts";
 
 export const ExcludableEnum = defineEnum({
-    Alpha: 'alpha',
-    Beta: 'beta',
-    backed: true,
-    _cases: ['Alpha', 'Beta'],
+  Alpha: "alpha",
+  Beta: "beta",
+  backed: true,
+  _cases: ["Alpha", "Beta"],
 } as const);
 
-export type ExcludableEnumType = 'alpha' | 'beta';
-export type ExcludableEnumKind = 'Alpha' | 'Beta';
+export type ExcludableEnumType = "alpha" | "beta";
+export type ExcludableEnumKind = "Alpha" | "Beta";
 ```
 
-`overridden()` and `overriddenStatic()` both carry an explicit `#[TsEnumMethod]` / `#[TsEnumStaticMethod]` attribute — which would normally include them regardless of the `auto_include` config — but since they're *also* decorated with `#[TsExclude]`, neither appears in the output at all. See [Enums](./enums.md) for the full method-inclusion behavior.
+`overridden()` and `overriddenStatic()` both carry an explicit `#[TsEnumMethod]` / `#[TsEnumStaticMethod]` attribute — which would normally include them regardless of the `auto_include` config — but since they're _also_ decorated with `#[TsExclude]`, neither appears in the output at all. See [Enums](./enums.md) for the full method-inclusion behavior.
 
 ## Excluding Model Accessors and Relations
 
@@ -202,28 +202,25 @@ class ExcludableModel extends Model
 Generates:
 
 ```typescript
-export interface ExcludableModel
-{
-    id: number;
-    name: string;
-    // ... remaining database columns
+export interface ExcludableModel {
+  id: number;
+  name: string;
+  // ... remaining database columns
 }
 
-export interface ExcludableModelMutators
-{
-    /** Included mutator — should appear in TS output */
-    display_name: string;
+export interface ExcludableModelMutators {
+  /** Included mutator — should appear in TS output */
+  display_name: string;
 }
 
-export interface ExcludableModelRelations
-{
-    // Relations
-    /** Included relation — should appear in TS output */
-    posts: Post[];
-    // Counts
-    posts_count: number;
-    // Exists
-    posts_exists: boolean;
+export interface ExcludableModelRelations {
+  // Relations
+  /** Included relation — should appear in TS output */
+  posts: Post[];
+  // Counts
+  posts_count: number;
+  // Exists
+  posts_exists: boolean;
 }
 ```
 
@@ -252,19 +249,19 @@ class ExcludableController
 Generates:
 
 ```typescript
-import { defineRoute } from '@tolki/ts';
+import { defineRoute } from "@tolki/ts";
 
 /** This action is included */
 export const show = defineRoute({
-    name: 'excludable.show',
-    url: '/excludable/{id}',
-    methods: ['get'] as const,
-    args: [{ name: 'id', required: true }] as const,
+  name: "excludable.show",
+  url: "/excludable/{id}",
+  methods: ["get"] as const,
+  args: [{ name: "id", required: true }] as const,
 });
 
 /** @see Workbench\App\Http\Controllers\ExcludableController */
 const ExcludableController = {
-    show,
+  show,
 };
 
 export default ExcludableController;
