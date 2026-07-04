@@ -50,6 +50,28 @@ describe("Str/Pluralizer", () => {
             expect(Str.plural("fish", 5)).toBe("fish");
             expect(Str.plural("software", 100)).toBe("software");
         });
+
+        it("counts arrays by length", () => {
+            expect(Str.plural("apple", ["a"])).toBe("apple");
+            expect(Str.plural("apple", ["a", "b"])).toBe("apples");
+            expect(Str.plural("apple", [])).toBe("apples");
+        });
+    });
+
+    describe("counted", () => {
+        it("prepends the formatted count to the pluralized word", () => {
+            expect(Str.counted("order", 1)).toBe("1 order");
+            expect(Str.counted("order", 2)).toBe("2 orders");
+            expect(Str.counted("order", 0)).toBe("0 orders");
+            expect(Str.counted("child", 1)).toBe("1 child");
+            expect(Str.counted("child", 3)).toBe("3 children");
+            expect(Str.counted("order", 1000)).toBe("1,000 orders");
+        });
+
+        it("counts arrays by length", () => {
+            expect(Str.counted("order", ["a"])).toBe("1 order");
+            expect(Str.counted("order", ["a", "b"])).toBe("2 orders");
+        });
     });
 
     describe("singular", () => {

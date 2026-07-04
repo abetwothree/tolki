@@ -873,7 +873,7 @@ interface Enumerable extends Arrayable, Countable, IteratorAggregate, Jsonable, 
      * Get one or a specified number of items randomly from the collection.
      *
      * @param  int|null  $number
-     * @return static<int, TValue>|TValue
+     * @return ($number is null ? TValue : static<int, TValue>)
      *
      * @throws \InvalidArgumentException
      */
@@ -890,6 +890,17 @@ interface Enumerable extends Arrayable, Countable, IteratorAggregate, Jsonable, 
      * @return TReduceInitial|TReduceReturnType
      */
     public function reduce(callable $callback, $initial = null);
+
+    /**
+     * Reduce the collection to a single value by mutating an initial value.
+     *
+     * @template TReduceIntoInitial
+     *
+     * @param  TReduceIntoInitial  $initial
+     * @param  callable(TReduceIntoInitial, TValue, TKey): void  $callback
+     * @return TReduceIntoInitial
+     */
+    public function reduceInto($initial, callable $callback);
 
     /**
      * Reduce the collection to multiple aggregate values.

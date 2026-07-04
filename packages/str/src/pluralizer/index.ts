@@ -1,5 +1,5 @@
 import { format as numberFormat } from "@tolki/num";
-import { isUndefined } from "@tolki/utils";
+import { isNumber, isUndefined } from "@tolki/utils";
 import pluralize from "pluralize";
 
 export interface PluralizerRules {
@@ -103,13 +103,30 @@ export function pluralPascal(value: string, count: number = 2): string {
  */
 export function plural(
     value: string,
-    count: number = 2,
+    count: number | unknown[] = 2,
     prependCount: boolean = false,
 ): string {
+    const total = isNumber(count) ? count : count.length;
+
     return (
-        (prependCount ? numberFormat(count) + " " : "") +
-        pluralValue(value, count)
+        (prependCount ? numberFormat(total) + " " : "") +
+        pluralValue(value, total)
     );
+}
+
+/**
+ * Get the plural form of an English word with the count prepended.
+ *
+ * @param value - The word to pluralize.
+ * @param count - The count to determine pluralization. Arrays are counted by length.
+ * @returns The pluralized word with the formatted count prepended.
+ *
+ * @see https://tolki.abe.dev/strings/string-utilities-list.html#counted
+ *
+ * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
+ */
+export function counted(value: string, count: number | unknown[]): string {
+    return plural(value, count, true);
 }
 
 /**

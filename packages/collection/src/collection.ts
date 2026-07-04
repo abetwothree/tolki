@@ -5067,6 +5067,39 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
+     * Reduce the collection to a single value by mutating an initial value.
+     *
+     * The callback may mutate the accumulator in place (for arrays, objects,
+     * Maps, and Sets). Because JavaScript cannot pass primitives by reference
+     * like PHP, the callback may instead return a new accumulator value;
+     * returning undefined keeps the current accumulator.
+     *
+     * @param initial - The initial value to reduce into
+     * @param callback - The callback to execute, receives the accumulator, value, and key as arguments
+     * @returns The reduced value, or the initial value if the collection is empty
+     */
+    reduceInto<TReduce>(
+        initial: TReduce,
+        callback: (result: TReduce, value: TValue, key: TKey) => TReduce | void,
+    ): TReduce {
+        let result = initial;
+
+        for (const [key, value] of Object.entries(this.items)) {
+            const returned = callback(
+                result,
+                value as TValue,
+                entriesKeyValue(key) as TKey,
+            ) as TReduce | undefined;
+
+            if (!isUndefined(returned)) {
+                result = returned;
+            }
+        }
+
+        return result;
+    }
+
+    /**
      * Reduce the collection to multiple aggregate values.
      *
      * @param callback - The callback to execute, receives the spread carry values, value, and key as arguments

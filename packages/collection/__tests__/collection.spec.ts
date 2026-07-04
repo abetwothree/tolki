@@ -8597,6 +8597,77 @@ describe("Collection", () => {
         });
     });
 
+    describe("reduceInto", () => {
+        describe("Laravel Tests", () => {
+            it("test reduce into", () => {
+                // PHP mutates primitives by reference; in JS the callback
+                // returns the new accumulator value instead
+                const data = collect([1, 2, 3]);
+
+                expect(
+                    data.reduceInto(0, (result, element) => {
+                        return result + element;
+                    }),
+                ).toBe(6);
+
+                const data2 = collect({ foo: "bar", baz: "qux" });
+
+                expect(
+                    data2.reduceInto("", (result, element, key) => {
+                        return result + key + element;
+                    }),
+                ).toBe("foobarbazqux");
+
+                const data3 = collect([1, 2, 3, 4, 5]);
+
+                const result = data3.reduceInto(
+                    [] as number[],
+                    (result, value) => {
+                        if (value % 2 === 0) {
+                            result.push(value);
+                        }
+                    },
+                );
+
+                expect(result).toEqual([2, 4]);
+            });
+        });
+
+        describe("mutating the accumulator in place", () => {
+            it("keeps the accumulator when the callback returns undefined", () => {
+                const grouped = collect([1, 2, 3, 4]).reduceInto(
+                    { even: [] as number[], odd: [] as number[] },
+                    (result, value) => {
+                        if (value % 2 === 0) {
+                            result.even.push(value);
+                        } else {
+                            result.odd.push(value);
+                        }
+                    },
+                );
+
+                expect(grouped).toEqual({ even: [2, 4], odd: [1, 3] });
+            });
+
+            it("returns the initial value for an empty collection", () => {
+                expect(
+                    collect([] as number[]).reduceInto(0, (result, value) => {
+                        return result + value;
+                    }),
+                ).toBe(0);
+
+                expect(
+                    collect({} as Record<string, number>).reduceInto(
+                        [] as number[],
+                        (result, value) => {
+                            result.push(value);
+                        },
+                    ),
+                ).toEqual([]);
+            });
+        });
+    });
+
     describe("reduceSpread", () => {
         describe("Laravel Tests", () => {
             it("test reduce spread", () => {

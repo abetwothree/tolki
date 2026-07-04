@@ -6,7 +6,13 @@ import type { ConvertCaseMode } from "../convertcase";
 import { convertCase, title, upper } from "../convertcase";
 import type { MarkDownExtensions, MarkDownOptions } from "../markdown";
 import { inlineMarkdown, markdown } from "../markdown";
-import { plural, pluralPascal, pluralStudly, singular } from "../pluralizer";
+import {
+    counted,
+    plural,
+    pluralPascal,
+    pluralStudly,
+    singular,
+} from "../pluralizer";
 import { substr, substrCount, substrReplace } from "../replacer";
 import {
     after,
@@ -298,6 +304,16 @@ export class Stringable {
      */
     convertCase(mode: ConvertCaseMode): Stringable {
         return new Stringable(convertCase(this._value, mode));
+    }
+
+    /**
+     * Get the plural form of an English word with the count prepended.
+     *
+     * @param count - The count to determine pluralization. Arrays are counted by length.
+     * @returns The pluralized string with the formatted count prepended, as a new Stringable instance.
+     */
+    counted(count: number | unknown[]): Stringable {
+        return new Stringable(counted(this._value, count));
     }
 
     /**
@@ -676,11 +692,14 @@ export class Stringable {
     /**
      * Get the plural form of an English word.
      *
-     * @param count - The count to determine singular or plural form. Defaults to 2.
+     * @param count - The count to determine singular or plural form. Arrays are counted by length. Defaults to 2.
      * @param prependCount - Whether to prepend the count to the result. Defaults to false.
      * @returns The pluralized string as a new Stringable instance.
      */
-    plural(count: number = 2, prependCount: boolean = false): Stringable {
+    plural(
+        count: number | unknown[] = 2,
+        prependCount: boolean = false,
+    ): Stringable {
         return new Stringable(plural(this._value, count, prependCount));
     }
 

@@ -80,6 +80,12 @@ describe("Number", () => {
                 expect(Num.abbreviate(999500)).toBe("1M");
             });
         });
+
+        it("should handle non-finite values", () => {
+            expect(Num.abbreviate(Infinity)).toBe("∞");
+            expect(Num.abbreviate(-Infinity)).toBe("-∞");
+            expect(Num.abbreviate(NaN)).toBe("NaN");
+        });
     });
     describe("format", () => {
         it("should format a number", () => {
@@ -400,9 +406,10 @@ describe("Number", () => {
 
         it("should handle non-finite values", () => {
             // Test non-finite values to cover the !Number.isFinite branch
-            expect(Num.fileSize(Infinity)).toBe("0 B");
-            expect(Num.fileSize(NaN)).toBe("0 B");
-            expect(Num.fileSize("not a number")).toBe("0 B");
+            expect(Num.fileSize(Infinity)).toBe("∞ B");
+            expect(Num.fileSize(-Infinity)).toBe("-∞ B");
+            expect(Num.fileSize(NaN)).toBe("NaN B");
+            expect(Num.fileSize("not a number")).toBe("NaN B");
         });
     });
 
@@ -490,6 +497,12 @@ describe("Number", () => {
             expect(Num.forHumans(999499)).toBe("999 thousand");
             expect(Num.forHumans(999500)).toBe("1 million");
             expect(Num.forHumans(999999)).toBe("1 million");
+        });
+
+        it("should handle non-finite values", () => {
+            expect(Num.forHumans(Infinity)).toBe("∞");
+            expect(Num.forHumans(-Infinity)).toBe("-∞");
+            expect(Num.forHumans(NaN)).toBe("NaN");
         });
     });
 

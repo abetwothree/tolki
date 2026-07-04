@@ -996,9 +996,31 @@ describe("Stringable basic delegation", () => {
         });
     });
 
+    describe("counted", () => {
+        it("Laravel tests", () => {
+            expect(Str.of("order").counted(1).toString()).toBe("1 order");
+            expect(Str.of("order").counted(2).toString()).toBe("2 orders");
+            expect(Str.of("order").counted(0).toString()).toBe("0 orders");
+            expect(Str.of("order").counted(1000).toString()).toBe(
+                "1,000 orders",
+            );
+            expect(Str.of("order").counted(["a"]).toString()).toBe("1 order");
+            expect(Str.of("order").counted(["a", "b"]).toString()).toBe(
+                "2 orders",
+            );
+        });
+    });
+
     describe("plural", () => {
         it("Laravel tests", () => {
             expectEqual(Str.plural("apple", 2), Str.of("apple").plural(2));
+        });
+
+        it("counts arrays by length", () => {
+            expect(Str.of("apple").plural(["a"]).toString()).toBe("apple");
+            expect(Str.of("apple").plural(["a", "b"]).toString()).toBe(
+                "apples",
+            );
         });
 
         it("plural with prependCount = true", () => {
