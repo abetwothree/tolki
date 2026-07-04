@@ -1806,8 +1806,8 @@ dog.
 ```
 
 ' },
-    { name: 'cutLongWords', type: 'boolean', default: false },
-  ]"
+{ name: 'cutLongWords', type: 'boolean', default: false },
+]"
 />
 
 #### words

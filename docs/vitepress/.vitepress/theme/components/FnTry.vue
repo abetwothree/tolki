@@ -55,7 +55,10 @@ const result = computed(() => {
       return value;
     });
 
-    return { ok: true, value: (props.fn as (...a: unknown[]) => unknown)(...ordered) };
+    return {
+      ok: true,
+      value: (props.fn as (...a: unknown[]) => unknown)(...ordered),
+    };
   } catch (error) {
     return {
       ok: false,
@@ -99,7 +102,11 @@ function formatResult(value: unknown): string {
           v-model="values[arg.name]"
           class="fn-try-input fn-try-select"
         >
-          <option v-for="opt in arg.options" :key="opt.label" :value="opt.value">
+          <option
+            v-for="opt in arg.options"
+            :key="opt.label"
+            :value="opt.value"
+          >
             {{ opt.label }}
           </option>
         </select>
