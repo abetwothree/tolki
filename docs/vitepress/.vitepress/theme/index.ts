@@ -7,6 +7,8 @@ import DefaultTheme from "vitepress/theme";
 import CopyOrDownloadAsMarkdownButtons from "vitepress-plugin-llms/vitepress-components/CopyOrDownloadAsMarkdownButtons.vue";
 import { h } from "vue";
 
+import FnTry from "./components/FnTry.vue";
+
 export default {
     extends: DefaultTheme,
     Layout: () => {
@@ -19,5 +21,6 @@ export default {
             "CopyOrDownloadAsMarkdownButtons",
             CopyOrDownloadAsMarkdownButtons,
         );
+        app.component("FnTry", FnTry);
     },
 } satisfies Theme;

@@ -109,8 +109,8 @@ export function stripVitepressSyntax(content: string): string {
     // Remove Vue <script setup> blocks
     result = result.replace(/<script setup>[\s\S]*?<\/script>/g, "");
 
-    // Remove standalone Vue component tags (single-line)
-    result = result.replace(/^<[A-Z][a-zA-Z]*[^>]*\/>$/gm, "");
+    // Remove standalone Vue component tags (single-line or multi-line, e.g. <FnTry ... />)
+    result = result.replace(/^<[A-Z][a-zA-Z]*[\s\S]*?\/>\n?/gm, "");
 
     // Nest imported docs under the package README heading hierarchy.
     result = increaseHeadingLevels(result);

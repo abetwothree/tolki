@@ -463,7 +463,7 @@ import { excerpt } from "@tolki/str";
 
 const result = excerpt("This is my name", "my", { radius: 3 });
 
-// result is "... is my na ..."
+// result is "...is my na..."
 ```
 
 The radius option, which defaults to 100, allows you to define the number of characters that should appear on each side of the truncated string.
@@ -1012,6 +1012,8 @@ const result = pluralPascal("HelloWorld");
 
 #### password
 
+`password`, `random`, `ulid`, `uuid`, and `uuid7` (along with their `createXUsing`/`createXNormally` testing helpers) generate a new value on every call, so a live playground would just show a different, unverifiable result each time you touch it — there's no live example for these.
+
 Generate a random, secure password.
 
 ```javascript
@@ -1501,7 +1503,7 @@ const result = swap(
   "Tacos are great!",
 );
 
-// result is "Burritos are fantastic"
+// result is "Burritos are fantastic!"
 ```
 
 #### take
@@ -1803,6 +1805,11 @@ dog.
 */
 ```
 
+' },
+    { name: 'cutLongWords', type: 'boolean', default: false },
+  ]"
+/>
+
 #### words
 
 Limit the number of words in a string.
@@ -1836,6 +1843,8 @@ const result2 = wrap("is", "This ", " Laravel!");
 Using the `str` or `of` functions is discouraged for frontend projects because it will import the entire `Stringable` class, all of its methods, and all 3rd party dependencies into your final bundle, which may significantly increase its size.
 
 For frontend projects, it is recommended to use the individual string functions instead for better tree-shaking and smaller bundle sizes.
+
+Also unlike the standalone functions on this page, `str`/`of` return a `Stringable` class instance rather than a plain value, so there's no live playground for them here — try the fluent methods it exposes (like `.append()` or `.snake()`) directly in your own code instead.
 
 Get a new Stringable object from the given string.
 

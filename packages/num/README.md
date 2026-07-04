@@ -136,6 +136,8 @@ const result4 = currency(1000, "EUR", "de", 0);
 
 #### defaultCurrency
 
+`defaultCurrency` and `defaultLocale` read module-wide state that [useLocale](#uselocale) and [useCurrency](#usecurrency) elsewhere on this page can change, so their result would depend on what else you've clicked on this page — there's no live example here for that reason.
+
 Get the configured default currency.
 
 ```javascript
@@ -352,6 +354,8 @@ const result4 = percentage(10, 2, null, "de");
 
 #### spell
 
+`spell` and `spellOrdinal` return a `Promise<string>` and dynamically import a locale bundle on first use. The playground component above doesn't yet support async functions, so these two don't have a live example — see the code samples below instead.
+
 Spell out the given number in the given locale. Returns a `Promise<string>`.
 
 Uses the [`to-words`](https://www.npmjs.com/package/to-words) package. Locales are loaded dynamically on demand, so only the locale you request is bundled (~3KB gzip per locale instead of ~54KB for all 94 locales).
@@ -443,6 +447,8 @@ const result2 = trim(12.3);
 ```
 
 #### useLocale
+
+`useLocale` and `useCurrency` permanently change the module-wide default for every other example on this page, so they don't have a live playground here — trying them would silently change the output of every other widget below. See [withLocale](#withlocale) and [withCurrency](#withcurrency) for a scoped, safe-to-try alternative.
 
 Set the default locale. This should be used at the start of your application to set the desired locale globally.
 
