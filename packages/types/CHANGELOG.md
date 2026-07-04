@@ -1,5 +1,23 @@
 # @tolki/types
 
+## 1.4.0
+
+### Minor Changes
+
+- Add annotations for route form request data
+
+## 1.3.0
+
+### Minor Changes
+
+- Add route type definitions for Inertia.js route handling
+
+  Introduces type definitions supporting the new route handling system in @tolki/ts:
+  - Route definition types for type-safe page prop inference
+  - Type helpers for mapping controller responses to Inertia pages
+  - Support for route-to-component prop type forwarding
+  - Enables full IDE type checking across Laravel controllers and frontend routes
+
 ## 1.2.0
 
 ### Minor Changes

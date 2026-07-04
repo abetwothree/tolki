@@ -1,5 +1,6 @@
 // https://vitepress.dev/guide/custom-theme
 import "./style.css";
+import "virtual:group-icons.css";
 
 import type { Theme } from "vitepress";
 import DefaultTheme from "vitepress/theme";

@@ -58,6 +58,10 @@ StringPackage:
   - changed-files:
       - any-glob-to-any-file: "packages/str/**/*"
 
+TypeScriptPackage:
+  - changed-files:
+      - any-glob-to-any-file: "packages/ts/**/*"
+
 TypesPackage:
   - changed-files:
       - any-glob-to-any-file: "packages/types/**/*"

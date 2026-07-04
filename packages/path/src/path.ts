@@ -1,5 +1,5 @@
-import type { ArrayItems, PathKey, PathKeys } from "@tolki//types";
 import { wrap as arrWrap } from "@tolki/arr";
+import type { ArrayItems, PathKey, PathKeys } from "@tolki/types";
 import {
     castableToArray,
     isArray,

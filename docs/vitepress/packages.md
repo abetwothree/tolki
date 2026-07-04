@@ -6,7 +6,7 @@ Currently, only the string, number, and some TypeScript utilities are available.
 
 | Package                        | Description                                                               |
 | ------------------------------ | ------------------------------------------------------------------------- |
-| [`@tolki/enum`](/enums/)       | Utilities for working with enums like PHP's Enum class.                   |
+| [`@tolki/ts`](/ts/)            | Utilities for working with TypeScript like you might in Laravel or PHP.   |
 | [`@tolki/num`](/numbers/)      | Utilities for working with numbers like Laravel's Num class.              |
 | [`@tolki/str`](/strings/)      | Utilities for working with strings like Laravel's Str class.              |
 | [`@tolki/types`](/typescript/) | TypeScript Utilities for Laravel HTTP responses like pagination & models. |

@@ -1,4 +1,3 @@
-import type { CaseValue, PathKey, PathKeys } from "@tolki//types";
 import {
     flip as arrFlip,
     replaceRecursive as arrReplaceRecursive,
@@ -14,6 +13,7 @@ import {
     undotExpandObject,
 } from "@tolki/path";
 import { finish, randomInt } from "@tolki/str";
+import type { CaseValue, PathKey, PathKeys } from "@tolki/types";
 import {
     compareValues,
     isArray,
