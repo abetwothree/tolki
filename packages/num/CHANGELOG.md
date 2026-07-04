@@ -1,5 +1,11 @@
 # @tolki/num
 
+## 2.2.0
+
+### Minor Changes
+
+- dd82d49: Format non-finite values (`Infinity`, `-Infinity`, `NaN`) in `fileSize`, `forHumans`, and `abbreviate` instead of coercing them to `0`. Matches Laravel's `Number` class, which now renders these as `"∞ B"`, `"-∞ B"`, `"NaN B"`, `"∞"`, `"-∞"`, and `"NaN"` respectively.
+
 ## 2.1.0
 
 ### Minor Changes
