@@ -319,7 +319,7 @@ export function fileSize(
     // Normalize input to a number
     let value = typeof bytes === "string" ? Number(bytes) : bytes;
     if (!Number.isFinite(value)) {
-        value = 0;
+        return `${format(value, precision, maxPrecision) as string} B`;
     }
 
     const units = [
@@ -399,6 +399,11 @@ export function summarize(
     maxPrecision: number | null = null,
     units: Record<number, string> = {},
 ): string | false {
+    // Non-finite values (Infinity, -Infinity, NaN) cannot be scaled to a unit
+    if (!Number.isFinite(value)) {
+        return format(value, precision, maxPrecision);
+    }
+
     // Default units if none provided (abbreviated form)
     if (Object.keys(units).length === 0) {
         units = {
