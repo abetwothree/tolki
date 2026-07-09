@@ -843,6 +843,156 @@ describe("laravelTsPublish", () => {
         });
     });
 
+    describe("command error output", () => {
+        /**
+         * Create an exec-style error with captured stream output attached,
+         * mirroring Node's promisified `exec` rejection shape.
+         */
+        function createExecError(
+            message: string,
+            output: { stdout?: string; stderr?: string } = {},
+        ): Error {
+            return Object.assign(new Error(message), output);
+        }
+
+        it("should include stderr from the failed command in the logged error", async () => {
+            mockExec.mockImplementation(
+                (_cmd: string, _opts: unknown, cb: ExecCallback) => {
+                    cb(
+                        createExecError(
+                            "Command failed: php artisan ts:publish --quiet",
+                            {
+                                stderr: "ts:publish failed: Class does not exist: App\\Enums\\Status\n",
+                            },
+                        ),
+                        null,
+                        null,
+                    );
+                },
+            );
+
+            mockManifestExists();
+            const { plugin, mockConfig } = await setupPlugin();
+
+            await (plugin.handleHotUpdate as HotUpdateHook)({
+                file: path.resolve(MOCK_ROOT, "app/Enums/Status.php"),
+            });
+
+            expect(mockConfig.logger.error).toHaveBeenCalledWith(
+                expect.stringContaining(
+                    "Class does not exist: App\\Enums\\Status",
+                ),
+            );
+        });
+
+        it("should include stdout from the failed command in the logged error", async () => {
+            mockExec.mockImplementation(
+                (_cmd: string, _opts: unknown, cb: ExecCallback) => {
+                    cb(
+                        createExecError(
+                            "Command failed: php artisan ts:publish",
+                            {
+                                stdout: "Cannot use multiple --only-* options together.\n",
+                                stderr: "",
+                            },
+                        ),
+                        null,
+                        null,
+                    );
+                },
+            );
+
+            mockManifestExists();
+            const { plugin, mockConfig } = await setupPlugin({ quiet: false });
+
+            await (plugin.handleHotUpdate as HotUpdateHook)({
+                file: path.resolve(MOCK_ROOT, "app/Enums/Status.php"),
+            });
+
+            expect(mockConfig.logger.error).toHaveBeenCalledWith(
+                expect.stringContaining(
+                    "Cannot use multiple --only-* options together.",
+                ),
+            );
+        });
+
+        it("should append stderr before stdout when both are present", async () => {
+            mockExec.mockImplementation(
+                (_cmd: string, _opts: unknown, cb: ExecCallback) => {
+                    cb(
+                        createExecError(
+                            "Command failed: php artisan ts:publish --quiet",
+                            {
+                                stderr: "stderr detail\n",
+                                stdout: "stdout detail\n",
+                            },
+                        ),
+                        null,
+                        null,
+                    );
+                },
+            );
+
+            mockManifestExists();
+            const { plugin, mockConfig } = await setupPlugin();
+
+            await (plugin.handleHotUpdate as HotUpdateHook)({
+                file: path.resolve(MOCK_ROOT, "app/Enums/Status.php"),
+            });
+
+            expect(mockConfig.logger.error).toHaveBeenCalledWith(
+                expect.stringContaining("stderr detail\nstdout detail"),
+            );
+        });
+
+        it("should not duplicate stderr already embedded in the exec error message", async () => {
+            const stderrText = "PHP Fatal error: something broke";
+            mockExec.mockImplementation(
+                (_cmd: string, _opts: unknown, cb: ExecCallback) => {
+                    cb(
+                        createExecError(
+                            `Command failed: php artisan ts:publish --quiet\n${stderrText}\n`,
+                            { stderr: `${stderrText}\n` },
+                        ),
+                        null,
+                        null,
+                    );
+                },
+            );
+
+            mockManifestExists();
+            const { plugin, mockConfig } = await setupPlugin();
+
+            await (plugin.handleHotUpdate as HotUpdateHook)({
+                file: path.resolve(MOCK_ROOT, "app/Enums/Status.php"),
+            });
+
+            const logged = mockConfig.logger.error.mock.calls[0]![0] as string;
+            expect(logged.split("PHP Fatal error").length - 1).toBe(1);
+        });
+
+        it("should include command output in the thrown build error", async () => {
+            mockExec.mockImplementation(
+                (_cmd: string, _opts: unknown, cb: ExecCallback) => {
+                    cb(
+                        createExecError(
+                            "Command failed: php artisan ts:publish --only-functional --quiet",
+                            {
+                                stdout: "Routes publishing is disabled: App\\Http\\Controllers\\UserController\n",
+                            },
+                        ),
+                        null,
+                        null,
+                    );
+                },
+            );
+
+            await expect(setupPlugin(undefined, "build")).rejects.toThrowError(
+                "Routes publishing is disabled",
+            );
+        });
+    });
+
     describe("configureServer", () => {
         it("should expose a configureServer hook", () => {
             const plugin = laravelTsPublish();

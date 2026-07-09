@@ -4480,7 +4480,7 @@ By default, the plugin will work in the following way:
 5. It will call the publish command on `vite build` before bundling, with `--only-functional` appended by default (since TypeScript interfaces are type-only and erased at compile time).
 6. It will throw an error if the publish command fails on `vite build`.
 7. When a single PHP file changes during `vite dev`, it will use `--source` to republish only that file instead of running a full publish.
-8. It will append `--quiet` to every command by default, suppressing all console output since the plugin only needs the exit code.
+8. It will append `--quiet` to every command by default, suppressing normal console output since the plugin determines success from the exit code. When the command fails, its captured error output is included in the plugin's error message.
 
 #### Single-File Republishing
 
@@ -4594,9 +4594,11 @@ export default defineConfig({
       /**
        * Whether to append `--quiet` to every artisan command the plugin runs.
        *
-       * The plugin only needs the exit code to determine success or failure;
-       * all stdout is ignored. Passing `--quiet` suppresses console output
-       * and Laravel Prompts rendering, which speeds up execution.
+       * The plugin determines success or failure from the exit code, so
+       * passing `--quiet` suppresses normal console output and Laravel
+       * Prompts rendering, which speeds up execution. When the command
+       * fails, its captured error output is still surfaced in the plugin's
+       * failure message.
        */
       quiet: true,
     }),

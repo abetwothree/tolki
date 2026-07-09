@@ -125,9 +125,11 @@ export interface LaravelTsPublishOptions {
     /**
      * Whether to append `--quiet` to every artisan command the plugin runs.
      *
-     * The plugin only needs the exit code to determine success or failure;
-     * all stdout is ignored. Passing `--quiet` suppresses console output
-     * and Laravel Prompts rendering, which speeds up execution.
+     * The plugin determines success or failure from the exit code, so
+     * passing `--quiet` suppresses normal console output and Laravel
+     * Prompts rendering, which speeds up execution. When the command
+     * fails, its captured error output is still surfaced in the plugin's
+     * failure message.
      *
      * @default true
      */
@@ -330,8 +332,25 @@ export function laravelTsPublish(
                 server.ws.send({ type: "full-reload" });
             }
         } catch (error) {
-            const message = `${pluginLabel} Command failed: ${
-                error instanceof Error ? error.message : String(error)
+            const baseMessage =
+                error instanceof Error ? error.message : String(error);
+
+            // Surface the artisan command's own error output. Node embeds
+            // stderr in the exec error message, but artisan reports most
+            // failures on stdout — append whatever is not already included.
+            const { stdout, stderr } = error as {
+                stdout?: string;
+                stderr?: string;
+            };
+            const commandOutput = [stderr?.trim(), stdout?.trim()]
+                .filter(
+                    (part): part is string =>
+                        !!part && !baseMessage.includes(part),
+                )
+                .join("\n");
+
+            const message = `${pluginLabel} Command failed: ${baseMessage}${
+                commandOutput ? `\n${commandOutput}` : ""
             }`;
 
             if (shouldThrowOnError()) {
