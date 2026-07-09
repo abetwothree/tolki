@@ -12,13 +12,13 @@ After making them, I then decided to open-source these utilities so that others 
 
 ## Published Packages
 
-| Package                            | Description                                                             |                                                                                                        |
-| ---------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| [`@tolki/enum`](./packages/enum)   | Utilities for working with enums like PHP's Enum class.                 | [![npm version](https://badge.fury.io/js/@tolki%2Fenum.svg)](https://badge.fury.io/js/@tolki%2Fenum)   |
-| [`@tolki/num`](./packages/num)     | Utilities for working with numbers like Laravel's Num class.            | [![npm version](https://badge.fury.io/js/@tolki%2Fnum.svg)](https://badge.fury.io/js/@tolki%2Fnum)     |
-| [`@tolki/ts`](./packages/ts)       | Utilities for working with TypeScript in Laravel.                       | [![npm version](https://badge.fury.io/js/@tolki%2Fts.svg)](https://badge.fury.io/js/@tolki%2Fts)       |
-| [`@tolki/str`](./packages/str)     | Utilities for working with strings like Laravel's Str class.            | [![npm version](https://badge.fury.io/js/@tolki%2Fstr.svg)](https://badge.fury.io/js/@tolki%2Fstr)     |
-| [`@tolki/types`](./packages/types) | Utility TypeScript types for Tolki packages and Laravel HTTP responses. | [![npm version](https://badge.fury.io/js/@tolki%2Ftypes.svg)](https://badge.fury.io/js/@tolki%2Ftypes) |
+| Package                            | Description                                                             | Version                                                                                                | Downloads                                                                                                      |
+| ---------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| [`@tolki/enum`](./packages/enum)   | Utilities for working with enums like PHP's Enum class.                 | [![npm version](https://badge.fury.io/js/@tolki%2Fenum.svg)](https://badge.fury.io/js/@tolki%2Fenum)   | [![npm downloads](https://img.shields.io/npm/dm/@tolki/enum.svg)](https://www.npmjs.com/package/@tolki/enum)   |
+| [`@tolki/num`](./packages/num)     | Utilities for working with numbers like Laravel's Num class.            | [![npm version](https://badge.fury.io/js/@tolki%2Fnum.svg)](https://badge.fury.io/js/@tolki%2Fnum)     | [![npm downloads](https://img.shields.io/npm/dm/@tolki/num.svg)](https://www.npmjs.com/package/@tolki/num)     |
+| [`@tolki/ts`](./packages/ts)       | Utilities for working with TypeScript in Laravel.                       | [![npm version](https://badge.fury.io/js/@tolki%2Fts.svg)](https://badge.fury.io/js/@tolki%2Fts)       | [![npm downloads](https://img.shields.io/npm/dm/@tolki/ts.svg)](https://www.npmjs.com/package/@tolki/ts)       |
+| [`@tolki/str`](./packages/str)     | Utilities for working with strings like Laravel's Str class.            | [![npm version](https://badge.fury.io/js/@tolki%2Fstr.svg)](https://badge.fury.io/js/@tolki%2Fstr)     | [![npm downloads](https://img.shields.io/npm/dm/@tolki/str.svg)](https://www.npmjs.com/package/@tolki/str)     |
+| [`@tolki/types`](./packages/types) | Utility TypeScript types for Tolki packages and Laravel HTTP responses. | [![npm version](https://badge.fury.io/js/@tolki%2Ftypes.svg)](https://badge.fury.io/js/@tolki%2Ftypes) | [![npm downloads](https://img.shields.io/npm/dm/@tolki/types.svg)](https://www.npmjs.com/package/@tolki/types) |
 
 ## In Progress Packages
 
