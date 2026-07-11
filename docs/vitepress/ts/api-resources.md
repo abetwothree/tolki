@@ -626,7 +626,7 @@ Or publish only resources for a single run using the command flag:
 php artisan ts:publish --only-resources
 ```
 
-The `--only-resources` flag cannot be combined with `--only-enums` or `--only-models`.
+The `--only-resources` flag cannot be combined with any other `--only-*` flag (`--only-enums`, `--only-models`, `--only-routes`, `--only-form-requests`, `--only-broadcast-channels`, `--only-broadcast-events`).
 
 ## Configuration Reference
 
