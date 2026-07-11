@@ -25,7 +25,7 @@ public function boot(): void
 | ------------------------------------------------- | ---------- |
 | `php artisan ts:publish` (full publish)           | Yes        |
 | `php artisan ts:publish --source=App\Models\User` | Yes        |
-| `php artisan ts:publish --preview=true`            | Yes        |
+| `php artisan ts:publish --preview=true`           | Yes        |
 | Automatic post-migration republish                | Yes        |
 
 There's no way to distinguish which invocation triggered the hook from inside the closure itself — if you need different behavior for `--source` reruns (for example, skipping expensive filesystem scans that the [Vite plugin](./vite-plugin.md) triggers on every file save), check for cheaper conditions inside the closure (e.g. caching the scan result, or reading an environment variable) rather than relying on the command's own options.
