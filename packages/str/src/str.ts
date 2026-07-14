@@ -362,13 +362,17 @@ export function containsAll(
     needles: Iterable<string>,
     ignoreCase = false,
 ): boolean {
+    let any = false;
+
     for (const needle of needles) {
+        any = true;
+
         if (!contains(haystack, needle, ignoreCase)) {
             return false;
         }
     }
 
-    return true;
+    return any;
 }
 
 /**

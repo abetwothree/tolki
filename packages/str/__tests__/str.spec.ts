@@ -334,6 +334,7 @@ describe("Str tests", () => {
                 ["Taylor Otwell", ["taylor"], true, true],
                 ["Taylor Otwell", ["taylor", "xxx"], false, false],
                 ["Taylor Otwell", ["taylor", "xxx"], true, false],
+                ["Taylor Otwell", [], false, false],
             ];
 
             data.forEach(([haystack, needles, ignoreCase, expected]) => {
@@ -343,9 +344,9 @@ describe("Str tests", () => {
             });
         });
 
-        it("containsAll with empty iterable returns true", () => {
-            // Empty array - no needles means all (none) are found
-            expect(Str.containsAll("hello", [])).toBe(true);
+        it("containsAll with empty iterable returns false", () => {
+            // Empty array - there are no needles to confirm, so nothing was found
+            expect(Str.containsAll("hello", [])).toBe(false);
         });
     });
 
