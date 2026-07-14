@@ -369,12 +369,12 @@ export function forHumans(
         abbreviate
             ? {}
             : {
-                3: " thousand",
-                6: " million",
-                9: " billion",
-                12: " trillion",
-                15: " quadrillion",
-            },
+                  3: " thousand",
+                  6: " million",
+                  9: " billion",
+                  12: " trillion",
+                  15: " quadrillion",
+              },
     );
 }
 
