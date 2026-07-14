@@ -430,7 +430,16 @@ export function summarize(
             maxPrecision,
             units,
         ) as string;
-        return `-${inner}`;
+
+        // Avoid a spurious "-0" when the magnitude rounds down to zero at the given precision
+        const zeroSummary = summarize(
+            0,
+            precision,
+            maxPrecision,
+            units,
+        ) as string;
+
+        return inner === zeroSummary ? inner : `-${inner}`;
     }
 
     // Extremely large numbers: recurse on quadrillions and append the last unit (Laravel-style)

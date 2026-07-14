@@ -62,6 +62,10 @@ describe("Number", () => {
             expect(Num.abbreviate(-1000000000000000)).toBe("-1Q");
             expect(Num.abbreviate(-1000000000000000000)).toBe("-1KQ");
 
+            // A negative magnitude that rounds down to zero must not keep the sign.
+            expect(Num.abbreviate(-0.4)).toBe("0");
+            expect(Num.abbreviate(-0.05)).toBe("0");
+
             expect(Num.abbreviate(999499)).toBe("999K");
             expect(Num.abbreviate(999500)).toBe("1M");
             expect(Num.abbreviate(999999)).toBe("1M");
@@ -493,6 +497,12 @@ describe("Number", () => {
             expect(Num.forHumans(123, 0, null, true)).toBe("123");
             expect(Num.forHumans(1234, 0, null, true)).toBe("1K");
             expect(Num.forHumans(1234, 2, null, true)).toBe("1.23K");
+
+            // A negative magnitude that rounds down to zero must not keep the sign.
+            expect(Num.forHumans(-0.4)).toBe("0");
+            expect(Num.forHumans(-0.05)).toBe("0");
+            expect(Num.forHumans(-0.4999)).toBe("0");
+            expect(Num.forHumans(-0.4, 2)).toBe("-0.40");
 
             expect(Num.forHumans(999499)).toBe("999 thousand");
             expect(Num.forHumans(999500)).toBe("1 million");
