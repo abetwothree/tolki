@@ -1,5 +1,13 @@
 # @tolki/str
 
+## 1.2.1
+
+### Patch Changes
+
+- ffe4476: Fixed `containsAll()` and `Stringable#containsAll()` incorrectly returning `true` when given an empty list of needles to search for. Since there's nothing to confirm is present, they now correctly return `false`.
+- Updated dependencies [ffe4476]
+  - @tolki/num@2.2.1
+
 ## 1.2.0
 
 ### Minor Changes
