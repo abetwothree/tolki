@@ -610,7 +610,7 @@ const result = is("*.jpg", "photo.JPG", true);
 
 #### isAscii
 
-Determine if a given string is 7 bit ASCII.
+Determine if a given string is 7-bit ASCII.
 
 ```javascript
 import { isAscii } from "@tolki/str";
@@ -860,7 +860,7 @@ const result = mask("taylor@example.com", "*", 3);
 // result is "tay***************"
 ```
 
-If needed, you provide a negative value for the third argument, which instructs the function to begin masking from the end of the string. A fourth argument may also provided to specify the number of masked characters.
+If needed, you may provide a negative value for the third argument, which instructs the function to begin masking from the end of the string. A fourth argument may also be provided to specify the number of masked characters.
 
 ```javascript
 import { mask } from "@tolki/str";
@@ -1345,7 +1345,7 @@ const result2 = singular("children");
 
 #### slug
 
-Generate a URL friendly "slug" from a given string.
+Generate a URL-friendly "slug" from a given string.
 
 ```javascript
 import { slug } from "@tolki/str";
@@ -1806,8 +1806,8 @@ dog.
 ```
 
 ' },
-{ name: 'cutLongWords', type: 'boolean', default: false },
-]"
+    { name: 'cutLongWords', type: 'boolean', default: false },
+  ]"
 />
 
 #### words
