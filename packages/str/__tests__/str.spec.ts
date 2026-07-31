@@ -3541,6 +3541,15 @@ describe("Str tests", () => {
                 "❤Multi<br />Byte☆❤☆❤☆❤",
             );
 
+            expect(Str.wordWrap("žltý kôň", 8, "\n")).toBe("žltý kôň");
+            expect(Str.wordWrap("žltý kôň", 4, "\n", true)).toBe("žltý\nkôň");
+            expect(Str.wordWrap("žltý", 2, "\n", true)).toBe("žl\ntý");
+            expect(Str.wordWrap("😀😀😀😀", 2, "\n", true)).toBe("😀😀\n😀😀");
+            expect(Str.wordWrap("é é", 1, "A\x1AB")).toBe("éA\x1ABé");
+            expect(Str.wordWrap("❤Multi Byte☆❤☆❤☆❤", 3, "<br />", true)).toBe(
+                "❤Mu<br />lti<br />Byt<br />e☆❤<br />☆❤☆<br />❤",
+            );
+
             // Edge cases for coverage
             // Empty string returns empty
             expect(Str.wordWrap("", 10)).toBe("");

@@ -2464,7 +2464,53 @@ export function wordCount(
 }
 
 /**
+ * Determine whether a single character is whitespace.
+ *
+ * @param char - The character to check
+ * @returns True when the character is whitespace
+ */
+function isWhitespaceChar(char: string): boolean {
+    return char.trim() === "";
+}
+
+/**
+ * Remove the leading whitespace characters from a list of characters.
+ *
+ * @param chars - The characters to trim
+ * @returns The characters without any leading whitespace
+ */
+function trimLeadingChars(chars: string[]): string[] {
+    let start = 0;
+
+    while (start < chars.length && isWhitespaceChar(chars[start] as string)) {
+        start++;
+    }
+
+    return chars.slice(start);
+}
+
+/**
+ * Remove the trailing whitespace characters from a list of characters.
+ *
+ * @param chars - The characters to trim
+ * @returns The characters without any trailing whitespace
+ */
+function trimTrailingChars(chars: string[]): string[] {
+    let end = chars.length;
+
+    while (end > 0 && isWhitespaceChar(chars[end - 1] as string)) {
+        end--;
+    }
+
+    return chars.slice(0, end);
+}
+
+/**
  * Wrap a string to a given number of characters.
+ *
+ * The width is measured in Unicode characters rather than UTF-16 code units,
+ * so characters outside the Basic Multilingual Plane such as emoji count as a
+ * single character.
  *
  * @param value - The string to wrap
  * @param characters - The maximum number of characters per line (default: 75)
@@ -2488,7 +2534,8 @@ export function wordWrap(
     const out: string[] = [];
 
     for (const original of lines) {
-        let line = original;
+        // Split into characters so multibyte characters count as one character
+        let line = [...original];
 
         if (line.length === 0) {
             out.push("");
@@ -2499,22 +2546,21 @@ export function wordWrap(
             // Hard wrap strictly at width; trim spaces around chunk boundaries
             while (line.length > 0) {
                 // Trim leading whitespace so chunks don't start with spaces
-                if (/^\s/u.test(line)) {
-                    line = line.replace(/^\s+/u, "");
-                    if (line.length === 0) break;
-                }
-
-                if (line.length <= characters) {
-                    out.push(line);
+                line = trimLeadingChars(line);
+                if (line.length === 0) {
                     break;
                 }
 
-                let chunk = line.slice(0, characters);
+                if (line.length <= characters) {
+                    out.push(line.join(""));
+                    break;
+                }
+
                 // Remove trailing whitespace from the chunk
-                chunk = chunk.replace(/\s+$/u, "");
-                out.push(chunk);
+                const chunk = trimTrailingChars(line.slice(0, characters));
+                out.push(chunk.join(""));
                 // Advance and remove any leading whitespace from the remainder
-                line = line.slice(characters).replace(/^\s+/u, "");
+                line = trimLeadingChars(line.slice(characters));
             }
             continue;
         }
@@ -2522,46 +2568,48 @@ export function wordWrap(
         // Soft wrap: break only at whitespace; do not split words
         while (line.length > characters) {
             // Remove any leading spaces so lines do not start with whitespace
-            const trimmed = line.replace(/^\s+/u, "");
+            const trimmed = trimLeadingChars(line);
             if (trimmed.length !== line.length) {
                 line = trimmed;
-                if (line.length <= characters) break;
+                if (line.length <= characters) {
+                    break;
+                }
             }
 
             // Find last whitespace within the window [0..characters]
-            const window = line.slice(0, characters + 1);
+            const windowEnd = Math.min(line.length, characters + 1);
             let lastSpace = -1;
-            for (let i = window.length - 1; i >= 0; i--) {
-                if (/\s/u.test(window[i]!)) {
+            for (let i = windowEnd - 1; i >= 0; i--) {
+                if (isWhitespaceChar(line[i] as string)) {
                     lastSpace = i;
                     break;
                 }
             }
 
             if (lastSpace > 0) {
-                out.push(line.slice(0, lastSpace));
+                out.push(line.slice(0, lastSpace).join(""));
                 /* oxlint-disable no-useless-assignment */
                 line = line.slice(lastSpace + 1);
                 continue;
             }
 
             // No whitespace within window: break at next whitespace ahead if present, else keep the whole line
-            const nextSpace = line.search(/\s/u);
+            const nextSpace = line.findIndex((char) => isWhitespaceChar(char));
             if (nextSpace >= 0) {
-                out.push(line.slice(0, nextSpace));
+                out.push(line.slice(0, nextSpace).join(""));
                 /* oxlint-disable no-useless-assignment */
                 line = line.slice(nextSpace + 1);
                 continue;
             }
 
             // No whitespace at all; output remainder as a single line
-            out.push(line);
-            line = "";
+            out.push(line.join(""));
+            line = [];
             break;
         }
 
         if (line.length > 0) {
-            out.push(line);
+            out.push(line.join(""));
         }
     }
 

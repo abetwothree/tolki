@@ -461,10 +461,12 @@ export function summarize(
         return `${inner}${lastSuffix}`.trim();
     }
 
-    // Determine the display exponent (multiple of 3)
+    // Determine the display exponent (multiple of 3). Values below 0.001 have a
+    // negative exponent, which would scale them up instead of down, so the
+    // exponent is never allowed to drop below zero.
     const numberExponent = Math.floor(Math.log10(value));
-    let displayExponent = numberExponent - (numberExponent % 3);
-    const scaled = value / Math.pow(10, displayExponent);
+    let displayExponent = Math.max(0, numberExponent - (numberExponent % 3));
+    const scaled = value / 10 ** displayExponent;
 
     // Precision behavior: mirror Laravel
     // - If maxPrecision provided: set only maximumFractionDigits

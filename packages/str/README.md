@@ -1788,6 +1788,10 @@ const result = wordCount("Hello, world!");
 
 Wrap a string to a given number of characters.
 
+The width is counted in characters rather than in UTF-16 code units, so
+characters outside the Basic Multilingual Plane such as emoji each count as a
+single character.
+
 ```javascript
 import { wordWrap } from "@tolki/str";
 
@@ -1803,11 +1807,15 @@ The quick brown fox<br />
 jumped over the lazy<br />
 dog.
 */
+
+const result2 = wordWrap("😀😀😀😀", 2, "\n", true);
+
+// result2 is "😀😀\n😀😀"
 ```
 
 ' },
-    { name: 'cutLongWords', type: 'boolean', default: false },
-  ]"
+{ name: 'cutLongWords', type: 'boolean', default: false },
+]"
 />
 
 #### words

@@ -290,6 +290,36 @@ describe("Utils", () => {
         });
     });
 
+    describe("isIterable", () => {
+        it("returns true for iterable values", () => {
+            expect(Utils.isIterable([1, 2, 3])).toBe(true);
+            expect(Utils.isIterable(new Set([1, 2]))).toBe(true);
+            expect(Utils.isIterable(new Map())).toBe(true);
+            expect(Utils.isIterable([1, 2][Symbol.iterator]())).toBe(true);
+            expect(
+                Utils.isIterable(
+                    (function* () {
+                        yield 1;
+                    })(),
+                ),
+            ).toBe(true);
+        });
+
+        it("returns false for strings so they stay scalar values", () => {
+            expect(Utils.isIterable("hello")).toBe(false);
+            expect(Utils.isIterable("")).toBe(false);
+        });
+
+        it("returns false for non-iterable values", () => {
+            expect(Utils.isIterable({ a: 1 })).toBe(false);
+            expect(Utils.isIterable(123)).toBe(false);
+            expect(Utils.isIterable(true)).toBe(false);
+            expect(Utils.isIterable(null)).toBe(false);
+            expect(Utils.isIterable(undefined)).toBe(false);
+            expect(Utils.isIterable(new WeakMap())).toBe(false);
+        });
+    });
+
     describe("isWeakMap", () => {
         it("returns true for WeakMap instances", () => {
             expect(Utils.isWeakMap(new WeakMap())).toBe(true);

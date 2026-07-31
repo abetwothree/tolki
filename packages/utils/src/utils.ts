@@ -349,6 +349,34 @@ export function isSet<T>(value: unknown): value is Set<T> {
 }
 
 /**
+ * Check if a value is iterable, meaning it implements the iterator protocol.
+ *
+ * Strings are excluded on purpose because they are treated as scalar values
+ * rather than collections, which mirrors how PHP treats strings when a
+ * function accepts an `iterable`.
+ *
+ * @param value - The value to check
+ * @returns True if the value can be iterated over with `for...of`
+ *
+ * @example
+ *
+ * isIterable([1, 2, 3]); -> true
+ * isIterable(new Set([1, 2])); -> true
+ * isIterable(new Map()); -> true
+ * isIterable("abc"); -> false
+ * isIterable({ a: 1 }); -> false
+ */
+export function isIterable<T>(value: unknown): value is Iterable<T> {
+    if (isNull(value) || isUndefined(value) || isString(value)) {
+        return false;
+    }
+
+    return isFunction(
+        (value as { [Symbol.iterator]?: unknown })[Symbol.iterator],
+    );
+}
+
+/**
  * Check if a value is a WeakMap.
  *
  * @param value - The value to check

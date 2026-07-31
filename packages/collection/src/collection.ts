@@ -2224,7 +2224,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Select specific values from the items within the collection.
      *
-     * @param keys - The key or keys to select
+     * Unlike `only`, the keys are looked up inside each item rather than on the
+     * collection itself, so a collection of keys is always a numerically
+     * indexed collection of key paths.
+     *
+     * @param keys - The key or keys to select from each item
      * @returns A new collection with only the selected values
      *
      * @example
@@ -2233,9 +2237,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: {id: 1, name: 'John'}, b: {id: 2, name: 'Jane'}}).select('id'); -> new Collection({a: {id: 1}, b: {id: 2}})
      * new Collection([{id: 1, details: {age: 30, city: 'NY'}}, {id: 2, details: {age: 25, city: 'LA'}}]).select(['id', 'details.age']); -> new Collection([{id: 1, details: {age: 30}}, {id: 2, details: {age: 25}}])
      */
-    select<T, K extends PropertyKey>(
-        ...keys: PathKey[] | PathKeys[] | Collection<T, K>[]
-    ) {
+    select(...keys: PathKey[] | PathKeys[] | Collection<string, number>[]) {
         if (keys.every((key) => isNull(key))) {
             return this.newInstance(this.items);
         }

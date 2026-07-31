@@ -7461,10 +7461,19 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
             });
 
-            it("returns Record<string, unknown> for Set", () => {
+            it("returns the values as an array for Set", () => {
                 const set = new Set([1, 2, 3]);
                 const result = Arr.from(set);
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns the values as an array for a generator", () => {
+                const generator = (function* (): Generator<number> {
+                    yield 1;
+                    yield 2;
+                })();
+                const result = Arr.from(generator);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
             });
 
             it("returns Record<string, unknown> for empty plain object", () => {

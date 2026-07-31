@@ -363,6 +363,27 @@ describe("Arr", () => {
         expect(noMatchResult).toBe("default");
     });
 
+    it("first accepts iterables", () => {
+        const items = () =>
+            (function* () {
+                yield 100;
+                yield 200;
+                yield 300;
+            })();
+
+        expect(Arr.first(items())).toBe(100);
+        expect(Arr.first(items(), (value) => value > 150)).toBe(200);
+        expect(Arr.first(items(), (_value, key) => key === 2)).toBe(300);
+        expect(Arr.first(items(), (value) => value > 500, "default")).toBe(
+            "default",
+        );
+
+        expect(Arr.first(new Set([100, 200]), (value) => value > 150)).toBe(
+            200,
+        );
+        expect(Arr.first(new Set<number>(), null, "default")).toBe("default");
+    });
+
     it("last", () => {
         // Callback is null and array is empty
         expect(Arr.last(null)).toBeNull();
@@ -455,6 +476,20 @@ describe("Arr", () => {
                 () => "lazy",
             ),
         ).toBe("lazy");
+    });
+
+    it("last accepts iterables", () => {
+        const items = () =>
+            (function* () {
+                yield 100;
+                yield 200;
+                yield 300;
+            })();
+
+        expect(Arr.last(items())).toBe(300);
+        expect(Arr.last(items(), (_value, key) => key !== 2)).toBe(200);
+        expect(Arr.last(new Set([100, 200, 300]))).toBe(300);
+        expect(Arr.last(new Set<number>(), null, "default")).toBe("default");
     });
 
     it("take", () => {
@@ -669,6 +704,21 @@ describe("Arr", () => {
         expect(() => Arr.from(null)).toThrow(Error);
         expect(() => Arr.from(undefined)).toThrow(Error);
         expect(() => Arr.from(Symbol("sym"))).toThrow(Error);
+    });
+
+    it("from accepts iterables", () => {
+        expect(Arr.from(new Set([1, 2, 3]))).toEqual([1, 2, 3]);
+
+        expect(
+            Arr.from(
+                (function* () {
+                    yield "a";
+                    yield "b";
+                })(),
+            ),
+        ).toEqual(["a", "b"]);
+
+        expect(Arr.from([1, 2][Symbol.iterator]())).toEqual([1, 2]);
     });
 
     it("get", () => {
@@ -917,6 +967,28 @@ describe("Arr", () => {
         expect(Arr.every(5, () => true)).toBe(false);
     });
 
+    it("every accepts iterables", () => {
+        const items = () =>
+            (function* () {
+                yield 1;
+                yield 2;
+            })();
+
+        expect(Arr.every(items(), (value, key) => key >= 0 && value > 0)).toBe(
+            true,
+        );
+        expect(Arr.every(items(), (value) => value > 1)).toBe(false);
+        expect(Arr.every(new Set([2, 4]), (value) => value % 2 === 0)).toBe(
+            true,
+        );
+        expect(Arr.every(new Set([2, 3]), (value) => value % 2 === 0)).toBe(
+            false,
+        );
+
+        // An empty iterable vacuously passes, like an empty array
+        expect(Arr.every(new Set<number>(), () => false)).toBe(true);
+    });
+
     it("some", () => {
         expect(Arr.some([1, 2], (value) => typeof value === "string")).toBe(
             false,
@@ -936,6 +1008,28 @@ describe("Arr", () => {
         expect(Arr.some([1, 2], (_value, key) => key > 1)).toBe(false);
 
         expect(Arr.some(5, () => true)).toBe(false);
+    });
+
+    it("some accepts iterables", () => {
+        const items = () =>
+            (function* () {
+                yield 1;
+                yield 2;
+            })();
+
+        expect(
+            Arr.some(items(), (value, key) => key === 1 && value === 2),
+        ).toBe(true);
+        expect(Arr.some(items(), (value) => value > 5)).toBe(false);
+        expect(Arr.some(new Set([1, 2]), (value) => value % 2 === 0)).toBe(
+            true,
+        );
+        expect(Arr.some(new Set([1, 3]), (value) => value % 2 === 0)).toBe(
+            false,
+        );
+
+        // An empty iterable never passes, like an empty array
+        expect(Arr.some(new Set<number>(), () => true)).toBe(false);
     });
 
     it("integer", () => {
