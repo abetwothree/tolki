@@ -35,6 +35,7 @@ import {
     isFalsy,
     isFunction,
     isInteger,
+    isIterable,
     isMap,
     isNull,
     isNumber,
@@ -72,6 +73,24 @@ export function accessible<TValue>(value: TValue): value is TValue & unknown[] {
  */
 export function arrayable(value: unknown): value is unknown[] {
     return isArray(value);
+}
+
+/**
+ * Get something that can be walked with `for...of` for the given items.
+ *
+ * Plain objects hold their items as properties rather than behind an iterator,
+ * so they are walked through their values. This mirrors the `Arr::from()` call
+ * Laravel performs before walking the items.
+ *
+ * @param data - The items to walk.
+ * @returns The items themselves when they are already iterable, otherwise their values.
+ */
+function toWalkable<TValue>(data: unknown): Iterable<TValue> {
+    if (isObject(data) && !isIterable(data)) {
+        return Object.values(data as object) as TValue[];
+    }
+
+    return data as Iterable<TValue>;
 }
 
 /**
@@ -618,15 +637,15 @@ export function first<TValue, TFirstDefault = null>(
     callback?: null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
-// Overload: Generator/IterableIterator with callback for proper type inference
+// Overload: iterable with callback for proper type inference
 export function first<TValue, TFirstDefault = null>(
-    data: Generator<TValue> | IterableIterator<TValue>,
+    data: Iterable<TValue>,
     callback: (value: TValue, key: number) => boolean,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
-// Overload: Generator/IterableIterator without callback
+// Overload: iterable without callback
 export function first<TValue, TFirstDefault = null>(
-    data: Generator<TValue> | IterableIterator<TValue>,
+    data: Iterable<TValue>,
     callback?: null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
@@ -652,14 +671,14 @@ export function first<TValue, TFirstDefault = null>(
             : (defaultValue as TFirstDefault);
     };
 
-    if (isNull(data)) {
+    if (isNull(data) || isUndefined(data)) {
         return resolveDefault();
     }
 
     const isArrayable = isArray(data);
     const iterable: Iterable<TValue> = isArrayable
         ? (data as readonly TValue[])
-        : (data as Iterable<TValue>);
+        : toWalkable<TValue>(data);
 
     // No callback: just return first element if it exists.
     if (!callback) {
@@ -734,15 +753,15 @@ export function last<TValue, TFirstDefault = null>(
     callback?: null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
-// Overload: Generator/IterableIterator with callback for proper type inference
+// Overload: iterable with callback for proper type inference
 export function last<TValue, TFirstDefault = null>(
-    data: Generator<TValue> | IterableIterator<TValue>,
+    data: Iterable<TValue>,
     callback: (value: TValue, key: number) => boolean,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
-// Overload: Generator/IterableIterator without callback
+// Overload: iterable without callback
 export function last<TValue, TFirstDefault = null>(
-    data: Generator<TValue> | IterableIterator<TValue>,
+    data: Iterable<TValue>,
     callback?: null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
@@ -768,14 +787,14 @@ export function last<TValue, TFirstDefault = null>(
             : (defaultValue as TFirstDefault);
     };
 
-    if (isNull(data)) {
+    if (isNull(data) || isUndefined(data)) {
         return resolveDefault();
     }
 
     const isArrayable = isArray(data);
     const iterable: Iterable<TValue> = isArrayable
         ? (data as readonly TValue[])
-        : (data as Iterable<TValue>);
+        : toWalkable<TValue>(data);
 
     // No callback case
     if (!callback) {
@@ -1029,6 +1048,7 @@ export function forget<TValue>(
  * from([1, 2, 3]); -> [1, 2, 3]
  * from({ foo: 'bar' }); -> { foo: 'bar' }
  * from(new Map([['foo', 'bar']])); -> { foo: 'bar' }
+ * from(new Set([1, 2])); -> [1, 2]
  *
  * @throws Error if items is a WeakMap or a scalar value.
  */
@@ -1039,6 +1059,7 @@ export function from<TValue, TKey extends PropertyKey = PropertyKey>(
 export function from(
     items: number | string | boolean | symbol | null | undefined,
 ): never;
+export function from<TValue>(items: Iterable<TValue>): TValue[];
 export function from(items: object): Record<string, unknown>;
 export function from(items: unknown): unknown {
     // Arrays
@@ -1062,6 +1083,11 @@ export function from(items: unknown): unknown {
         throw new Error(
             "WeakMap values cannot be enumerated in JavaScript; cannot convert to array of values.",
         );
+    }
+
+    // Any other iterable (generators, Sets, iterators) -> array of values
+    if (isIterable(items)) {
+        return [...items];
     }
 
     // Plain objects (including new Object(...))
@@ -1255,7 +1281,10 @@ export function hasAny<TValue>(
 /**
  * Determine if all items pass the given truth test.
  *
- * @param  data - The array to iterate over.
+ * Accepts arrays as well as any other iterable such as a generator or a Set,
+ * in which case the zero based position of the item is passed as the key.
+ *
+ * @param  data - The array or iterable to iterate over.
  * @param  callback - The function to call for each item.
  * @returns True if all items pass the test, false otherwise.
  *
@@ -1263,10 +1292,16 @@ export function hasAny<TValue>(
  *
  * every([2, 4, 6], n => n % 2 === 0); -> true
  * every([1, 2, 3], n => n % 2 === 0); -> false
+ * every(new Set([2, 4]), n => n % 2 === 0); -> true
  */
 // Overload: array type with callback for proper type inference
 export function every<TValue>(
     data: TValue[],
+    callback: (value: TValue, key: number) => boolean,
+): boolean;
+// Overload: iterable type with callback for proper type inference
+export function every<TValue>(
+    data: Iterable<TValue>,
     callback: (value: TValue, key: number) => boolean,
 ): boolean;
 // Overload: non-array fallback
@@ -1279,13 +1314,26 @@ export function every<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback: (value: TValue, key: number) => boolean,
 ): boolean {
-    if (!accessible(data)) {
+    if (accessible(data)) {
+        const values = getAccessibleValues<TValue>(data);
+        for (let i = 0; i < values.length; i++) {
+            if (!callback(values[i] as TValue, i)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Scalars hold nothing to walk. Everything else is walked positionally,
+    // mirroring the foreach fallback Laravel uses for non-array iterables
+    if (!isIterable<TValue>(data) && !isObject(data)) {
         return false;
     }
 
-    const values = getAccessibleValues(data);
-    for (let i = 0; i < values.length; i++) {
-        if (!callback(values[i] as TValue, i)) {
+    let index = 0;
+    for (const value of toWalkable<TValue>(data)) {
+        if (!callback(value, index++)) {
             return false;
         }
     }
@@ -1296,7 +1344,10 @@ export function every<TValue>(
 /**
  * Determine if some items pass the given truth test.
  *
- * @param  data - The array to iterate over.
+ * Accepts arrays as well as any other iterable such as a generator or a Set,
+ * in which case the zero based position of the item is passed as the key.
+ *
+ * @param  data - The array or iterable to iterate over.
  * @param  callback - The function to call for each item.
  * @returns True if any item passes the test, false otherwise.
  *
@@ -1304,10 +1355,16 @@ export function every<TValue>(
  *
  * some([1, 2, 3], n => n % 2 === 0); -> true
  * some([1, 3, 5], n => n % 2 === 0); -> false
+ * some(new Set([1, 2]), n => n % 2 === 0); -> true
  */
 // Overload: array type with callback for proper type inference
 export function some<TValue>(
     data: TValue[],
+    callback: (value: TValue, key: number) => boolean,
+): boolean;
+// Overload: iterable type with callback for proper type inference
+export function some<TValue>(
+    data: Iterable<TValue>,
     callback: (value: TValue, key: number) => boolean,
 ): boolean;
 // Overload: non-array fallback
@@ -1320,14 +1377,27 @@ export function some<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback: (value: TValue, key: number) => boolean,
 ): boolean {
-    if (!accessible(data)) {
+    if (accessible(data)) {
+        const values = getAccessibleValues<TValue>(data);
+
+        for (let i = 0; i < values.length; i++) {
+            if (callback(values[i] as TValue, i)) {
+                return true;
+            }
+        }
+
         return false;
     }
 
-    const values = getAccessibleValues(data);
+    // Scalars hold nothing to walk. Everything else is walked positionally,
+    // mirroring the foreach fallback Laravel uses for non-array iterables
+    if (!isIterable<TValue>(data) && !isObject(data)) {
+        return false;
+    }
 
-    for (let i = 0; i < values.length; i++) {
-        if (callback(values[i] as TValue, i)) {
+    let index = 0;
+    for (const value of toWalkable<TValue>(data)) {
+        if (callback(value, index++)) {
             return true;
         }
     }

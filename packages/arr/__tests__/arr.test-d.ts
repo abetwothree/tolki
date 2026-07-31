@@ -7461,10 +7461,19 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
             });
 
-            it("returns Record<string, unknown> for Set", () => {
+            it("returns the values as an array for Set", () => {
                 const set = new Set([1, 2, 3]);
                 const result = Arr.from(set);
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("returns the values as an array for a generator", () => {
+                const generator = (function* (): Generator<number> {
+                    yield 1;
+                    yield 2;
+                })();
+                const result = Arr.from(generator);
+                expectTypeOf(result).toEqualTypeOf<number[]>();
             });
 
             it("returns Record<string, unknown> for empty plain object", () => {
@@ -9059,6 +9068,44 @@ describe("arr type tests", () => {
                 expectTypeOf(keyB).toEqualTypeOf<number>();
                 return keyA === keyB;
             });
+        });
+    });
+
+    describe("iterable overloads", () => {
+        it("every infers the value from a Set", () => {
+            Arr.every(new Set([1, 2]), (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+                return value > 0;
+            });
+        });
+
+        it("some infers the value from a generator", () => {
+            const generator = (function* (): Generator<string> {
+                yield "a";
+            })();
+
+            Arr.some(generator, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+                return value === "a";
+            });
+        });
+
+        it("first infers the value and return type from an iterable", () => {
+            const result = Arr.first(new Set([1, 2]), (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+                return value > 1;
+            });
+
+            expectTypeOf(result).toEqualTypeOf<number | null>();
+        });
+
+        it("last infers the value and honours the default type", () => {
+            const result = Arr.last(new Set([1, 2]), null, "fallback");
+
+            expectTypeOf(result).toEqualTypeOf<number | string | null>();
         });
     });
 });

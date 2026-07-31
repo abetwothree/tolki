@@ -53,6 +53,25 @@ export function accessible(value: unknown): value is object {
 }
 
 /**
+ * Get the key/value pairs of an object or a Map.
+ *
+ * A Map is the JavaScript equivalent of a PHP iterable with non numeric keys,
+ * so it is read through its own entries instead of its instance properties.
+ *
+ * @param data - The object or Map to read the entries from.
+ * @returns The key/value pairs in iteration order.
+ */
+function entriesOf<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: object,
+): [TKey, TValue][] {
+    if (isMap<TKey, TValue>(data)) {
+        return [...data.entries()];
+    }
+
+    return Object.entries(data) as [TKey, TValue][];
+}
+
+/**
  * Determine whether the given value is objectifiable.
  *
  * @param value - The value to check.
@@ -548,7 +567,29 @@ export function exists<TValue extends Record<PropertyKey, unknown>>(
  * first({}, null, 'default'); -> 'default'
  * first({ a: 1, b: 2, c: 3 }, x => x > 1); -> 2
  * first({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
+ * first(new Map([['a', 1], ['b', 2]])); -> 1
  */
+// Overload: Map type for proper key and value inference
+export function first<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TFirstDefault = null,
+>(
+    data: Map<TKey, TValue>,
+    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: object and unknown fallback
+export function first<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TFirstDefault = null,
+>(
+    data: Record<TKey, TValue> | unknown,
+    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Implementation
 export function first<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -572,7 +613,7 @@ export function first<
         return resolveDefault();
     }
 
-    const entries = Object.entries(data);
+    const entries = entriesOf<TValue, TKey>(data);
 
     // No callback: just return first value if it exists.
     if (!callback) {
@@ -584,8 +625,8 @@ export function first<
     }
 
     for (const [key, value] of entries) {
-        if (callback(value as TValue, key as TKey)) {
-            return value as TValue;
+        if (callback(value, key)) {
+            return value;
         }
     }
 
@@ -608,7 +649,29 @@ export function first<
  * last({}, null, 'default'); -> 'default'
  * last({ a: 1, b: 2, c: 3 }, x => x < 3); -> 2
  * last({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
+ * last(new Map([['a', 1], ['b', 2]])); -> 2
  */
+// Overload: Map type for proper key and value inference
+export function last<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TDefault = null,
+>(
+    data: Map<TKey, TValue>,
+    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    defaultValue?: TDefault | (() => TDefault),
+): TValue | TDefault | null;
+// Overload: object and unknown fallback
+export function last<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TDefault = null,
+>(
+    data: Record<TKey, TValue> | unknown,
+    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    defaultValue?: TDefault | (() => TDefault),
+): TValue | TDefault | null;
+// Implementation
 export function last<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -632,7 +695,7 @@ export function last<
         return resolveDefault();
     }
 
-    const entries = Object.entries(data);
+    const entries = entriesOf<TValue, TKey>(data);
 
     // No predicate case
     if (!isFunction(callback)) {
@@ -648,7 +711,7 @@ export function last<
     let candidate: TValue | undefined;
 
     for (let i = entries.length - 1; i >= 0; i--) {
-        const [key, value] = entries[i] as [string, TValue];
+        const [key, value] = entries[i] as [TKey, TValue];
         if (callback(value, key)) {
             candidate = value;
             found = true;
@@ -1180,7 +1243,10 @@ export function hasAny<TValue extends Record<PropertyKey, unknown>>(
 /**
  * Determine if all items pass the given truth test.
  *
- * @param  data - The object to iterate over.
+ * Accepts plain objects as well as Maps, which are the JavaScript equivalent
+ * of a PHP iterable with non numeric keys.
+ *
+ * @param  data - The object or Map to iterate over.
  * @param  callback - The function to call for each item.
  * @returns True if all items pass the test, false otherwise.
  *
@@ -1188,7 +1254,19 @@ export function hasAny<TValue extends Record<PropertyKey, unknown>>(
  *
  * every({ a: 2, b: 4, c: 6 }, (n) => n % 2 === 0); -> true
  * every({ a: 1, b: 2, c: 3 }, (n) => n % 2 === 0); -> false
+ * every(new Map([['a', 2], ['b', 4]]), (n) => n % 2 === 0); -> true
  */
+// Overload: Map type for proper key and value inference
+export function every<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Map<TKey, TValue>,
+    callback: (value: TValue, key: TKey) => boolean,
+): boolean;
+// Overload: object and unknown fallback
+export function every<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    callback: (value: TValue, key: TKey) => boolean,
+): boolean;
+// Implementation
 export function every<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => boolean,
@@ -1197,9 +1275,8 @@ export function every<TValue, TKey extends PropertyKey = PropertyKey>(
         return false;
     }
 
-    const obj = data as Record<TKey, TValue>;
-    for (const [key, value] of Object.entries(obj)) {
-        if (!callback(value as TValue, key as TKey)) {
+    for (const [key, value] of entriesOf<TValue, TKey>(data)) {
+        if (!callback(value, key)) {
             return false;
         }
     }
@@ -1210,7 +1287,10 @@ export function every<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Determine if some items pass the given truth test.
  *
- * @param  data - The object to iterate over.
+ * Accepts plain objects as well as Maps, which are the JavaScript equivalent
+ * of a PHP iterable with non numeric keys.
+ *
+ * @param  data - The object or Map to iterate over.
  * @param  callback - The function to call for each item.
  * @returns True if any item passes the test, false otherwise.
  *
@@ -1218,7 +1298,19 @@ export function every<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * some({ a: 1, b: 2, c: 3 }, (n) => n % 2 === 0); -> true
  * some({ a: 1, b: 3, c: 5 }, (n) => n % 2 === 0); -> false
+ * some(new Map([['a', 1], ['b', 2]]), (n) => n % 2 === 0); -> true
  */
+// Overload: Map type for proper key and value inference
+export function some<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Map<TKey, TValue>,
+    callback: (value: TValue, key: TKey) => boolean,
+): boolean;
+// Overload: object and unknown fallback
+export function some<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    callback: (value: TValue, key: TKey) => boolean,
+): boolean;
+// Implementation
 export function some<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => boolean,
@@ -1227,9 +1319,8 @@ export function some<TValue, TKey extends PropertyKey = PropertyKey>(
         return false;
     }
 
-    const obj = data as Record<TKey, TValue>;
-    for (const [key, value] of Object.entries(obj)) {
-        if (callback(value as TValue, key as TKey)) {
+    for (const [key, value] of entriesOf<TValue, TKey>(data)) {
+        if (callback(value, key)) {
             return true;
         }
     }

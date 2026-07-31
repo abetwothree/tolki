@@ -2464,7 +2464,77 @@ export function wordCount(
 }
 
 /**
+ * Determine whether a single character is whitespace.
+ *
+ * @param char - The character to check
+ * @returns True when the character is whitespace
+ */
+function isWhitespaceChar(char: string): boolean {
+    return char.trim() === "";
+}
+
+/**
+ * Find the first non whitespace character at or after the given position.
+ *
+ * @param chars - The characters to scan
+ * @param from - The position to start scanning from
+ * @param end - The position to stop scanning at
+ * @returns The position of the first non whitespace character
+ */
+function skipLeadingWhitespace(
+    chars: string[],
+    from: number,
+    end: number,
+): number {
+    let start = from;
+
+    while (start < end && isWhitespaceChar(chars[start] as string)) {
+        start++;
+    }
+
+    return start;
+}
+
+/**
+ * Find the position just past the last non whitespace character in a range.
+ *
+ * @param chars - The characters to scan
+ * @param start - The position the range starts at
+ * @param from - The position to start scanning backwards from
+ * @returns The position just past the last non whitespace character
+ */
+function skipTrailingWhitespace(
+    chars: string[],
+    start: number,
+    from: number,
+): number {
+    let end = from;
+
+    while (end > start && isWhitespaceChar(chars[end - 1] as string)) {
+        end--;
+    }
+
+    return end;
+}
+
+/**
  * Wrap a string to a given number of characters.
+ *
+ * The width is measured in Unicode characters rather than UTF-16 code units,
+ * so characters outside the Basic Multilingual Plane such as emoji count as a
+ * single character.
+ *
+ * Three long standing differences from Laravel's `Str::wordWrap()` are
+ * deliberate and are pinned by the "known differences from PHP" tests:
+ *
+ * - `cutLongWords` breaks strictly every `characters` characters here, while
+ *   PHP breaks at word boundaries first and only splits words that are longer
+ *   than the width on their own.
+ * - Leading whitespace on a line is dropped here, while PHP keeps it and emits
+ *   it as its own line.
+ * - Line breaks already present in the string are replaced with `breakStr`
+ *   here, while PHP leaves them as they are and only inserts `breakStr` where
+ *   it wraps.
  *
  * @param value - The string to wrap
  * @param characters - The maximum number of characters per line (default: 75)
@@ -2488,80 +2558,96 @@ export function wordWrap(
     const out: string[] = [];
 
     for (const original of lines) {
-        let line = original;
+        // Split into characters so multibyte characters count as one character
+        const line = [...original];
+        const end = line.length;
 
-        if (line.length === 0) {
+        if (end === 0) {
             out.push("");
             continue;
         }
 
+        // The remainder is tracked with a moving cursor rather than by
+        // re-slicing, so wrapping a long string stays linear in its length
+        let start = 0;
+
         if (cutLongWords) {
             // Hard wrap strictly at width; trim spaces around chunk boundaries
-            while (line.length > 0) {
-                // Trim leading whitespace so chunks don't start with spaces
-                if (/^\s/u.test(line)) {
-                    line = line.replace(/^\s+/u, "");
-                    if (line.length === 0) break;
-                }
-
-                if (line.length <= characters) {
-                    out.push(line);
+            while (start < end) {
+                // Skip leading whitespace so chunks don't start with spaces
+                start = skipLeadingWhitespace(line, start, end);
+                if (start === end) {
                     break;
                 }
 
-                let chunk = line.slice(0, characters);
+                if (end - start <= characters) {
+                    out.push(line.slice(start, end).join(""));
+                    break;
+                }
+
                 // Remove trailing whitespace from the chunk
-                chunk = chunk.replace(/\s+$/u, "");
-                out.push(chunk);
-                // Advance and remove any leading whitespace from the remainder
-                line = line.slice(characters).replace(/^\s+/u, "");
+                const chunkEnd = skipTrailingWhitespace(
+                    line,
+                    start,
+                    start + characters,
+                );
+                out.push(line.slice(start, chunkEnd).join(""));
+                // Advance past the full width, whitespace included
+                start += characters;
             }
             continue;
         }
 
         // Soft wrap: break only at whitespace; do not split words
-        while (line.length > characters) {
-            // Remove any leading spaces so lines do not start with whitespace
-            const trimmed = line.replace(/^\s+/u, "");
-            if (trimmed.length !== line.length) {
-                line = trimmed;
-                if (line.length <= characters) break;
+        while (end - start > characters) {
+            // Skip any leading spaces so lines do not start with whitespace
+            const trimmed = skipLeadingWhitespace(line, start, end);
+            if (trimmed !== start) {
+                start = trimmed;
+                if (end - start <= characters) {
+                    break;
+                }
             }
 
-            // Find last whitespace within the window [0..characters]
-            const window = line.slice(0, characters + 1);
+            // Find last whitespace within the window [start..start + characters]
+            const windowEnd = Math.min(end, start + characters + 1);
             let lastSpace = -1;
-            for (let i = window.length - 1; i >= 0; i--) {
-                if (/\s/u.test(window[i]!)) {
+            for (let i = windowEnd - 1; i >= start; i--) {
+                if (isWhitespaceChar(line[i] as string)) {
                     lastSpace = i;
                     break;
                 }
             }
 
-            if (lastSpace > 0) {
-                out.push(line.slice(0, lastSpace));
-                /* oxlint-disable no-useless-assignment */
-                line = line.slice(lastSpace + 1);
+            if (lastSpace > start) {
+                out.push(line.slice(start, lastSpace).join(""));
+                start = lastSpace + 1;
                 continue;
             }
 
             // No whitespace within window: break at next whitespace ahead if present, else keep the whole line
-            const nextSpace = line.search(/\s/u);
+            let nextSpace = -1;
+            for (let i = start; i < end; i++) {
+                if (isWhitespaceChar(line[i] as string)) {
+                    nextSpace = i;
+                    break;
+                }
+            }
+
             if (nextSpace >= 0) {
-                out.push(line.slice(0, nextSpace));
-                /* oxlint-disable no-useless-assignment */
-                line = line.slice(nextSpace + 1);
+                out.push(line.slice(start, nextSpace).join(""));
+                start = nextSpace + 1;
                 continue;
             }
 
             // No whitespace at all; output remainder as a single line
-            out.push(line);
-            line = "";
+            out.push(line.slice(start, end).join(""));
+            start = end;
             break;
         }
 
-        if (line.length > 0) {
-            out.push(line);
+        if (end - start > 0) {
+            out.push(line.slice(start, end).join(""));
         }
     }
 

@@ -66,6 +66,12 @@ describe("Number", () => {
             expect(Num.abbreviate(-0.4)).toBe("0");
             expect(Num.abbreviate(-0.05)).toBe("0");
 
+            // Values below 0.001 must not be scaled up by a negative exponent.
+            expect(Num.abbreviate(0.005)).toBe("0");
+            expect(Num.abbreviate(0.001)).toBe("0");
+            expect(Num.abbreviate(-0.005)).toBe("0");
+            expect(Num.abbreviate(0.005, 3)).toBe("0.005");
+
             expect(Num.abbreviate(999499)).toBe("999K");
             expect(Num.abbreviate(999500)).toBe("1M");
             expect(Num.abbreviate(999999)).toBe("1M");
@@ -503,6 +509,14 @@ describe("Number", () => {
             expect(Num.forHumans(-0.05)).toBe("0");
             expect(Num.forHumans(-0.4999)).toBe("0");
             expect(Num.forHumans(-0.4, 2)).toBe("-0.40");
+
+            // Values below 0.001 must not be scaled up by a negative exponent.
+            expect(Num.forHumans(0.005)).toBe("0");
+            expect(Num.forHumans(0.001)).toBe("0");
+            expect(Num.forHumans(0.009)).toBe("0");
+            expect(Num.forHumans(-0.005)).toBe("0");
+            expect(Num.forHumans(0.005, 3)).toBe("0.005");
+            expect(Num.forHumans(-0.005, 3)).toBe("-0.005");
 
             expect(Num.forHumans(999499)).toBe("999 thousand");
             expect(Num.forHumans(999500)).toBe("1 million");

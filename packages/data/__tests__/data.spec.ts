@@ -547,6 +547,29 @@ describe("Data", () => {
             const result = Data.dataFrom([1, 2, 3]);
             expect(result).toEqual([1, 2, 3]);
         });
+
+        it("is a Map", () => {
+            expect(
+                Data.dataFrom(
+                    new Map([
+                        ["a", 1],
+                        ["b", 2],
+                    ]),
+                ),
+            ).toEqual({ a: 1, b: 2 });
+        });
+
+        it("is an iterable", () => {
+            expect(Data.dataFrom(new Set([1, 2]))).toEqual([1, 2]);
+            expect(
+                Data.dataFrom(
+                    (function* () {
+                        yield 1;
+                        yield 2;
+                    })(),
+                ),
+            ).toEqual([1, 2]);
+        });
     });
 
     describe("dataGet", () => {
@@ -616,6 +639,42 @@ describe("Data", () => {
                 false,
             );
         });
+
+        it("is a Map", () => {
+            const items = new Map([
+                ["first", 2],
+                ["second", 4],
+            ]);
+
+            expect(Data.dataEvery(items, (value) => value % 2 === 0)).toBe(
+                true,
+            );
+            expect(
+                Data.dataEvery(items, (_value, key) => key === "first"),
+            ).toBe(false);
+        });
+
+        it("is an iterable", () => {
+            const items = () =>
+                (function* () {
+                    yield 2;
+                    yield 4;
+                })();
+
+            expect(Data.dataEvery(items(), (value) => value % 2 === 0)).toBe(
+                true,
+            );
+            expect(Data.dataEvery(items(), (value) => value > 2)).toBe(false);
+            expect(
+                Data.dataEvery(new Set([2, 4]), (value) => value % 2 === 0),
+            ).toBe(true);
+        });
+
+        it("is a scalar", () => {
+            expect(Data.dataEvery(5 as unknown as number[], () => true)).toBe(
+                true,
+            );
+        });
     });
 
     describe("dataSome", () => {
@@ -627,6 +686,43 @@ describe("Data", () => {
         it("is array", () => {
             const result = Data.dataSome([1, 2, 3], (value) => value > 2);
             expect(result).toBe(true);
+        });
+
+        it("is a Map", () => {
+            const items = new Map([
+                ["first", 1],
+                ["second", 2],
+            ]);
+
+            expect(
+                Data.dataSome(
+                    items,
+                    (value, key) => key === "second" && value === 2,
+                ),
+            ).toBe(true);
+            expect(Data.dataSome(items, (value) => value > 5)).toBe(false);
+        });
+
+        it("is an iterable", () => {
+            const items = () =>
+                (function* () {
+                    yield 1;
+                    yield 2;
+                })();
+
+            expect(Data.dataSome(items(), (value) => value % 2 === 0)).toBe(
+                true,
+            );
+            expect(Data.dataSome(items(), (value) => value > 5)).toBe(false);
+            expect(Data.dataSome(new Set([1, 2]), (value) => value > 1)).toBe(
+                true,
+            );
+        });
+
+        it("is a scalar", () => {
+            expect(Data.dataSome(5 as unknown as number[], () => true)).toBe(
+                true,
+            );
         });
     });
 
@@ -1545,6 +1641,54 @@ describe("Data", () => {
             // Test callback that matches nothing without default
             expect(Data.dataFirst([1, 2, 3], (value) => value > 5)).toBeNull();
         });
+
+        it("is a Map", () => {
+            const items = new Map([
+                ["first", 100],
+                ["second", 200],
+                ["third", 300],
+            ]);
+
+            expect(Data.dataFirst(items)).toBe(100);
+            expect(
+                Data.dataFirst(items, (_value, key) => key === "second"),
+            ).toBe(200);
+            expect(
+                Data.dataFirst(items, (value) => value > 500, "default"),
+            ).toBe("default");
+            expect(Data.dataFirst(new Map(), null, "default")).toBe("default");
+        });
+
+        it("is an iterable", () => {
+            const items = () =>
+                (function* () {
+                    yield 100;
+                    yield 200;
+                    yield 300;
+                })();
+
+            expect(Data.dataFirst(items())).toBe(100);
+            expect(Data.dataFirst(items(), (value) => value > 150)).toBe(200);
+            expect(Data.dataFirst(new Set([100, 200]))).toBe(100);
+            expect(Data.dataFirst(new Set<number>(), null, "default")).toBe(
+                "default",
+            );
+        });
+
+        it("treats scalars as single positional items", () => {
+            // Strings stay scalar rather than being walked character by
+            // character, matching how PHP treats a string passed as iterable
+            expect(Data.dataFirst("abc" as never)).toBe("abc");
+            expect(Data.dataFirst(5 as never)).toBe(5);
+
+            // Missing data resolves to the default, like null does
+            expect(Data.dataFirst(undefined as never, null, "default")).toBe(
+                "default",
+            );
+            expect(Data.dataFirst(null as never, null, "default")).toBe(
+                "default",
+            );
+        });
     });
 
     describe("dataLast", () => {
@@ -1577,6 +1721,47 @@ describe("Data", () => {
             // Test empty array returns null
             expect(Data.dataLast([], null)).toBeNull();
             expect(Data.dataLast([], undefined, 99)).toBe(99);
+        });
+
+        it("is a Map", () => {
+            const items = new Map([
+                ["first", 100],
+                ["second", 200],
+                ["third", 300],
+            ]);
+
+            expect(Data.dataLast(items)).toBe(300);
+            expect(Data.dataLast(items, (_value, key) => key !== "third")).toBe(
+                200,
+            );
+            expect(Data.dataLast(new Map(), null, "default")).toBe("default");
+        });
+
+        it("is an iterable", () => {
+            const items = () =>
+                (function* () {
+                    yield 100;
+                    yield 200;
+                    yield 300;
+                })();
+
+            expect(Data.dataLast(items())).toBe(300);
+            expect(Data.dataLast(items(), (value) => value < 300)).toBe(200);
+            expect(Data.dataLast(new Set([100, 200]))).toBe(200);
+            expect(Data.dataLast(new Set<number>(), null, "default")).toBe(
+                "default",
+            );
+        });
+
+        it("treats scalars as single positional items", () => {
+            expect(Data.dataLast("abc" as never)).toBe("abc");
+            expect(Data.dataLast(5 as never)).toBe(5);
+            expect(Data.dataLast(undefined as never, null, "default")).toBe(
+                "default",
+            );
+            expect(Data.dataLast(null as never, null, "default")).toBe(
+                "default",
+            );
         });
     });
 

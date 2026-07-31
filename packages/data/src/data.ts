@@ -161,12 +161,59 @@ import type {
     AddToArray,
     AddToObject,
     DataItems,
+    DataIterableItems,
     GetFieldType,
     PathKey,
     PathKeys,
     UnwrapFn,
 } from "@tolki/types";
-import { entriesKeyValue, isArray, isFunction, isObject } from "@tolki/utils";
+import {
+    entriesKeyValue,
+    isArray,
+    isFunction,
+    isIterable,
+    isMap,
+    isObject,
+    isUndefined,
+} from "@tolki/utils";
+
+/**
+ * Determine whether the given data carries its own keys.
+ *
+ * Plain objects and Maps are the JavaScript equivalents of a PHP associative
+ * array and are handled by the object helpers. Arrays, generators, Sets and
+ * scalars are positional and are handled by the array helpers.
+ *
+ * @param data - The data to inspect.
+ * @returns True when the data should be handled as keyed data.
+ */
+function isKeyedData(data: unknown): boolean {
+    if (isMap(data)) {
+        return true;
+    }
+
+    return isObject(data) && !isIterable(data);
+}
+
+/**
+ * Normalize data into something the array helpers can iterate over.
+ *
+ * @param data - The data to normalize.
+ * @returns The data itself when it is already iterable, otherwise it wrapped in an array.
+ */
+function toPositionalData<TValue>(data: unknown): Iterable<TValue> {
+    if (isIterable<TValue>(data)) {
+        return data;
+    }
+
+    // Missing data holds nothing to walk, so it is treated like null rather
+    // than becoming a single undefined item
+    if (isUndefined(data)) {
+        return [];
+    }
+
+    return arrWrap(data as TValue);
+}
 
 /**
  * Add an element to data.
@@ -759,9 +806,11 @@ export function dataForget<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * dataFrom([1, 2, 3]); -> [1, 2, 3]
  * dataFrom({a: 1, b: 2}); -> {a: 1, b: 2}
+ * dataFrom(new Map([['a', 1]])); -> {a: 1}
+ * dataFrom(new Set([1, 2])); -> [1, 2]
  */
 export function dataFrom(items: unknown): unknown[] | Record<string, unknown> {
-    if (isObject(items)) {
+    if (isKeyedData(items)) {
         return objFrom(items as Record<string, unknown>);
     }
 
@@ -885,12 +934,30 @@ export function dataHasAny<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * dataEvery([2, 4, 6], (value) => value % 2 === 0); -> true
  * dataEvery({a: 2, b: 4}, (value) => value % 2 === 0); -> true
+ * dataEvery(new Map([['a', 2]]), (value) => value % 2 === 0); -> true
+ * dataEvery(new Set([2, 4]), (value) => value % 2 === 0); -> true
  */
+// Overload: Map, keyed by its own keys
 export function dataEvery<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
+    data: Map<TKey, TValue>,
+    callback: (value: TValue, key: TKey) => boolean,
+): boolean;
+// Overload: array or any other iterable, keyed by position
+export function dataEvery<TValue>(
+    data: TValue[] | Iterable<TValue>,
+    callback: (value: TValue, key: number) => boolean,
+): boolean;
+// Overload: object and general fallback
+export function dataEvery<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: DataIterableItems<TValue, TKey>,
+    callback: (value: TValue, key: TKey) => boolean,
+): boolean;
+// Implementation
+export function dataEvery<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: DataIterableItems<TValue, TKey>,
     callback: (value: TValue, key: TKey) => boolean,
 ): boolean {
-    if (isObject(data)) {
+    if (isKeyedData(data)) {
         return objEvery(
             data as Record<TKey, TValue>,
             callback as (value: TValue, key: TKey) => boolean,
@@ -898,7 +965,7 @@ export function dataEvery<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     return arrEvery(
-        arrWrap(data),
+        toPositionalData<TValue>(data),
         callback as (value: TValue, index: number) => boolean,
     );
 }
@@ -914,12 +981,30 @@ export function dataEvery<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * dataSome([1, 2, 3], (value) => value > 2); -> true
  * dataSome({a: 1, b: 2}, (value) => value > 2); -> false
+ * dataSome(new Map([['a', 1], ['b', 3]]), (value) => value > 2); -> true
+ * dataSome(new Set([1, 3]), (value) => value > 2); -> true
  */
+// Overload: Map, keyed by its own keys
 export function dataSome<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
+    data: Map<TKey, TValue>,
+    callback: (value: TValue, key: TKey) => boolean,
+): boolean;
+// Overload: array or any other iterable, keyed by position
+export function dataSome<TValue>(
+    data: TValue[] | Iterable<TValue>,
+    callback: (value: TValue, key: number) => boolean,
+): boolean;
+// Overload: object and general fallback
+export function dataSome<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: DataIterableItems<TValue, TKey>,
+    callback: (value: TValue, key: TKey) => boolean,
+): boolean;
+// Implementation
+export function dataSome<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: DataIterableItems<TValue, TKey>,
     callback: (value: TValue, key: TKey) => boolean,
 ): boolean {
-    if (isObject(data)) {
+    if (isKeyedData(data)) {
         return objSome(
             data as Record<TKey, TValue>,
             callback as (value: TValue, key: TKey) => boolean,
@@ -927,7 +1012,7 @@ export function dataSome<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     return arrSome(
-        arrWrap(data),
+        toPositionalData<TValue>(data),
         callback as (value: TValue, index: number) => boolean,
     );
 }
@@ -2141,22 +2226,50 @@ export function dataMap<
  *
  * dataFirst([1, 2, 3, 4], (value) => value > 2); -> 3
  * dataFirst({a: 1, b: 2, c: 3}, (value) => value > 1); -> 2
+ * dataFirst(new Map([['a', 1], ['b', 2]])); -> 1
  */
+// Overload: Map, keyed by its own keys
 export function dataFirst<
     TValue,
     TKey extends PropertyKey = PropertyKey,
     TFirstDefault = null,
 >(
-    data: DataItems<TValue, TKey>,
+    data: Map<TKey, TValue>,
+    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: array or any other iterable, keyed by position
+export function dataFirst<TValue, TFirstDefault = null>(
+    data: TValue[] | Iterable<TValue>,
+    callback?: ((value: TValue, key: number) => boolean) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: object and general fallback
+export function dataFirst<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TFirstDefault = null,
+>(
+    data: DataIterableItems<TValue, TKey>,
+    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Implementation
+export function dataFirst<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TFirstDefault = null,
+>(
+    data: DataIterableItems<TValue, TKey>,
     callback?: ((value: TValue, key: TKey) => boolean) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
-    if (isObject(data)) {
+    if (isKeyedData(data)) {
         return objFirst(data, callback, defaultValue);
     }
 
     return arrFirst(
-        data,
+        toPositionalData<TValue>(data),
         callback as ((value: TValue, index: number) => boolean) | null,
         defaultValue,
     );
@@ -2174,22 +2287,50 @@ export function dataFirst<
  *
  * Data.last([1, 2, 3, 4], (value) => value < 4); -> 3
  * Data.last({a: 1, b: 2, c: 3}, (value) => value > 1); -> 3
+ * Data.last(new Map([['a', 1], ['b', 2]])); -> 2
  */
+// Overload: Map, keyed by its own keys
 export function dataLast<
     TValue,
     TKey extends PropertyKey = PropertyKey,
     TDefault = null,
 >(
-    data: DataItems<TValue, TKey>,
+    data: Map<TKey, TValue>,
+    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    defaultValue?: TDefault | (() => TDefault),
+): TValue | TDefault | null;
+// Overload: array or any other iterable, keyed by position
+export function dataLast<TValue, TDefault = null>(
+    data: TValue[] | Iterable<TValue>,
+    callback?: ((value: TValue, key: number) => boolean) | null,
+    defaultValue?: TDefault | (() => TDefault),
+): TValue | TDefault | null;
+// Overload: object and general fallback
+export function dataLast<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TDefault = null,
+>(
+    data: DataIterableItems<TValue, TKey>,
+    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    defaultValue?: TDefault | (() => TDefault),
+): TValue | TDefault | null;
+// Implementation
+export function dataLast<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TDefault = null,
+>(
+    data: DataIterableItems<TValue, TKey>,
     callback?: ((value: TValue, key: TKey) => boolean) | null,
     defaultValue?: TDefault | (() => TDefault),
 ): TValue | TDefault | null {
-    if (isObject(data)) {
+    if (isKeyedData(data)) {
         return objLast(data, callback, defaultValue);
     }
 
     return arrLast(
-        data,
+        toPositionalData<TValue>(data),
         callback as ((value: TValue, index: number) => boolean) | null,
         defaultValue,
     );

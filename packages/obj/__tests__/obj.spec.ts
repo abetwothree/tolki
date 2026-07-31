@@ -1,5 +1,6 @@
 import { SortDirection } from "@tolki/enum";
 import * as Obj from "@tolki/obj";
+import { isString } from "@tolki/utils";
 import { assertType, describe, expect, it } from "vitest";
 
 describe("Obj", () => {
@@ -647,6 +648,23 @@ describe("Obj", () => {
                 "function-default",
             );
         });
+
+        it("should accept a Map as a keyed iterable", () => {
+            const items = new Map([
+                ["first", 100],
+                ["second", 200],
+                ["third", 300],
+            ]);
+
+            expect(Obj.first(items)).toBe(100);
+            expect(Obj.first(items, (_value, key) => key === "second")).toBe(
+                200,
+            );
+            expect(Obj.first(items, (value) => value > 500, "default")).toBe(
+                "default",
+            );
+            expect(Obj.first(new Map(), null, "default")).toBe("default");
+        });
     });
 
     describe("last", () => {
@@ -682,6 +700,18 @@ describe("Obj", () => {
             expect(Obj.last({}, null, () => "function-default")).toBe(
                 "function-default",
             );
+        });
+
+        it("should accept a Map as a keyed iterable", () => {
+            const items = new Map([
+                ["first", 100],
+                ["second", 200],
+                ["third", 300],
+            ]);
+
+            expect(Obj.last(items)).toBe(300);
+            expect(Obj.last(items, (_value, key) => key !== "third")).toBe(200);
+            expect(Obj.last(new Map(), null, "default")).toBe("default");
         });
     });
 
@@ -1658,6 +1688,21 @@ describe("Obj", () => {
             expect(Obj.every(undefined, () => false)).toBe(false);
             expect(Obj.every(42, () => false)).toBe(false);
         });
+
+        it("should accept a Map as a keyed iterable", () => {
+            const items = new Map([
+                ["first", 1],
+                ["second", 2],
+            ]);
+
+            expect(
+                Obj.every(items, (value, key) => isString(key) && value > 0),
+            ).toBe(true);
+            expect(Obj.every(items, (value) => value > 1)).toBe(false);
+            expect(Obj.every(new Map<string, number>(), () => false)).toBe(
+                true,
+            );
+        });
     });
 
     describe("some", () => {
@@ -1684,6 +1729,22 @@ describe("Obj", () => {
 
         it("should return false for empty objects", () => {
             expect(Obj.some({}, () => true)).toBe(false);
+        });
+
+        it("should accept a Map as a keyed iterable", () => {
+            const items = new Map([
+                ["first", 1],
+                ["second", 2],
+            ]);
+
+            expect(
+                Obj.some(
+                    items,
+                    (value, key) => key === "second" && value === 2,
+                ),
+            ).toBe(true);
+            expect(Obj.some(items, (value) => value > 5)).toBe(false);
+            expect(Obj.some(new Map<string, number>(), () => true)).toBe(false);
         });
     });
 
