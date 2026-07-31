@@ -76,6 +76,24 @@ export function arrayable(value: unknown): value is unknown[] {
 }
 
 /**
+ * Get something that can be walked with `for...of` for the given items.
+ *
+ * Plain objects hold their items as properties rather than behind an iterator,
+ * so they are walked through their values. This mirrors the `Arr::from()` call
+ * Laravel performs before walking the items.
+ *
+ * @param data - The items to walk.
+ * @returns The items themselves when they are already iterable, otherwise their values.
+ */
+function toWalkable<TValue>(data: unknown): Iterable<TValue> {
+    if (isObject(data) && !isIterable(data)) {
+        return Object.values(data as object) as TValue[];
+    }
+
+    return data as Iterable<TValue>;
+}
+
+/**
  * Add an element to an array using "dot" notation if it doesn't exist.
  *
  * @param data - The array to add the element to.
@@ -653,14 +671,14 @@ export function first<TValue, TFirstDefault = null>(
             : (defaultValue as TFirstDefault);
     };
 
-    if (isNull(data)) {
+    if (isNull(data) || isUndefined(data)) {
         return resolveDefault();
     }
 
     const isArrayable = isArray(data);
     const iterable: Iterable<TValue> = isArrayable
         ? (data as readonly TValue[])
-        : (data as Iterable<TValue>);
+        : toWalkable<TValue>(data);
 
     // No callback: just return first element if it exists.
     if (!callback) {
@@ -769,14 +787,14 @@ export function last<TValue, TFirstDefault = null>(
             : (defaultValue as TFirstDefault);
     };
 
-    if (isNull(data)) {
+    if (isNull(data) || isUndefined(data)) {
         return resolveDefault();
     }
 
     const isArrayable = isArray(data);
     const iterable: Iterable<TValue> = isArrayable
         ? (data as readonly TValue[])
-        : (data as Iterable<TValue>);
+        : toWalkable<TValue>(data);
 
     // No callback case
     if (!callback) {
@@ -1307,12 +1325,14 @@ export function every<TValue>(
         return true;
     }
 
-    if (!isIterable<TValue>(data)) {
+    // Scalars hold nothing to walk. Everything else is walked positionally,
+    // mirroring the foreach fallback Laravel uses for non-array iterables
+    if (!isIterable<TValue>(data) && !isObject(data)) {
         return false;
     }
 
     let index = 0;
-    for (const value of data) {
+    for (const value of toWalkable<TValue>(data)) {
         if (!callback(value, index++)) {
             return false;
         }
@@ -1369,12 +1389,14 @@ export function some<TValue>(
         return false;
     }
 
-    if (!isIterable<TValue>(data)) {
+    // Scalars hold nothing to walk. Everything else is walked positionally,
+    // mirroring the foreach fallback Laravel uses for non-array iterables
+    if (!isIterable<TValue>(data) && !isObject(data)) {
         return false;
     }
 
     let index = 0;
-    for (const value of data) {
+    for (const value of toWalkable<TValue>(data)) {
         if (callback(value, index++)) {
             return true;
         }

@@ -384,6 +384,16 @@ describe("Arr", () => {
         expect(Arr.first(new Set<number>(), null, "default")).toBe("default");
     });
 
+    it("first walks plain objects through their values", () => {
+        // Mirrors the Arr::from() normalization Laravel performs, so the
+        // callback and no-callback paths agree instead of one of them throwing
+        expect(Arr.first({ a: 1, b: 2 })).toBe(1);
+        expect(Arr.first({ a: 1, b: 2 }, (value: number) => value > 1)).toBe(2);
+        expect(Arr.first({}, null, "default")).toBe("default");
+        expect(Arr.first(undefined, null, "default")).toBe("default");
+        expect(Arr.first(undefined)).toBeNull();
+    });
+
     it("last", () => {
         // Callback is null and array is empty
         expect(Arr.last(null)).toBeNull();
@@ -490,6 +500,17 @@ describe("Arr", () => {
         expect(Arr.last(items(), (_value, key) => key !== 2)).toBe(200);
         expect(Arr.last(new Set([100, 200, 300]))).toBe(300);
         expect(Arr.last(new Set<number>(), null, "default")).toBe("default");
+    });
+
+    it("last walks plain objects through their values", () => {
+        // Laravel's Arr::last() now normalizes with Arr::from() before walking
+        expect(Arr.last({ a: 1, b: 2 })).toBe(2);
+        expect(
+            Arr.last({ a: 1, b: 2, c: 3 }, (value: number) => value < 3),
+        ).toBe(2);
+        expect(Arr.last({}, null, "default")).toBe("default");
+        expect(Arr.last(undefined, null, "default")).toBe("default");
+        expect(Arr.last(undefined)).toBeNull();
     });
 
     it("take", () => {
@@ -987,6 +1008,14 @@ describe("Arr", () => {
 
         // An empty iterable vacuously passes, like an empty array
         expect(Arr.every(new Set<number>(), () => false)).toBe(true);
+
+        // Plain objects are walked through their values, like PHP's foreach
+        expect(
+            Arr.every({ a: 2, b: 4 }, (value: number) => value % 2 === 0),
+        ).toBe(true);
+        expect(
+            Arr.every({ a: 2, b: 3 }, (value: number) => value % 2 === 0),
+        ).toBe(false);
     });
 
     it("some", () => {
@@ -1030,6 +1059,14 @@ describe("Arr", () => {
 
         // An empty iterable never passes, like an empty array
         expect(Arr.some(new Set<number>(), () => true)).toBe(false);
+
+        // Plain objects are walked through their values, like PHP's foreach
+        expect(
+            Arr.some({ a: 1, b: 2 }, (value: number) => value % 2 === 0),
+        ).toBe(true);
+        expect(
+            Arr.some({ a: 1, b: 3 }, (value: number) => value % 2 === 0),
+        ).toBe(false);
     });
 
     it("integer", () => {

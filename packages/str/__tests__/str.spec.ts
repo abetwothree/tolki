@@ -3399,6 +3399,19 @@ describe("Str tests", () => {
             expect(Str.ucfirst("мама")).toBe("Мама");
             expect(Str.ucfirst("мама мыла раму")).toBe("Мама мыла раму");
         });
+
+        it("known differences from PHP mb_ucfirst", () => {
+            // Verified against PHP 8.4. Laravel uses mb_ucfirst, which applies
+            // the Unicode titlecase mapping. JavaScript has no titlecase
+            // mapping, so uppercase is used and these ~30 code points differ.
+            expect(Str.ucfirst("ǳ")).toBe("Ǳ"); // PHP: "ǲ"
+            expect(Str.ucfirst("ǅ")).toBe("Ǆ"); // PHP: "ǅ" (unchanged)
+            expect(Str.ucfirst("ßar")).toBe("SSar"); // PHP: "Ssar"
+
+            // Everything outside that set agrees with PHP.
+            expect(Str.ucfirst("émile")).toBe("Émile");
+            expect(Str.ucfirst("😀a")).toBe("😀a");
+        });
     });
 
     describe("ucsplit", () => {
@@ -3606,6 +3619,49 @@ describe("Str tests", () => {
             expect(Str.wordWrap("hello world", 5, "")).toBe("hello world");
             // Test with line length exactly at character limit
             expect(Str.wordWrap("hello", 5)).toBe("hello");
+        });
+
+        it("known differences from PHP wordwrap", () => {
+            // Verified against PHP 8.4. These are long standing differences,
+            // not regressions, and are pinned so a future framework sync does
+            // not mistake them for covered behavior.
+
+            // cutLongWords breaks strictly at the width, while PHP breaks at
+            // word boundaries first and only splits over-long words.
+            // PHP: "ab\ncd\nef\ngh"
+            expect(Str.wordWrap("ab cd ef gh", 4, "\n", true)).toBe(
+                "ab c\nd ef\ngh",
+            );
+            // PHP: "A very\nlong\nwooooooo\nooooord."
+            expect(
+                Str.wordWrap("A very long woooooooooooord.", 8, "\n", true),
+            ).toBe("A very l\nong wooo\noooooooo\nord.");
+
+            // Leading whitespace is dropped, while PHP keeps it on its own line.
+            // PHP: "  \nHel\nlo"
+            expect(Str.wordWrap("   Hello", 3, "\n", true)).toBe("Hel\nlo");
+            // PHP: "  \nHello\nWorld"
+            expect(Str.wordWrap("   Hello World", 5)).toBe("Hello\nWorld");
+
+            // Existing line breaks are replaced with breakStr, while PHP keeps
+            // them and only inserts breakStr where it actually wraps.
+            // PHP: "Hello\nWorld"
+            expect(Str.wordWrap("Hello\nWorld", 10, "<br />")).toBe(
+                "Hello<br />World",
+            );
+        });
+
+        it("wraps long input in linear time", () => {
+            // Guards against reintroducing the quadratic remainder copying that
+            // made a 200k character string take hundreds of milliseconds.
+            const input = "lorem ipsum dolor sit amet ".repeat(8000);
+
+            const started = performance.now();
+            Str.wordWrap(input, 75, "\n", false);
+            Str.wordWrap(input, 75, "\n", true);
+            const elapsed = performance.now() - started;
+
+            expect(elapsed).toBeLessThan(250);
         });
 
         it("wordWrap using default characters parameter (75)", () => {

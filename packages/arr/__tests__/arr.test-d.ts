@@ -9070,4 +9070,42 @@ describe("arr type tests", () => {
             });
         });
     });
+
+    describe("iterable overloads", () => {
+        it("every infers the value from a Set", () => {
+            Arr.every(new Set([1, 2]), (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+                return value > 0;
+            });
+        });
+
+        it("some infers the value from a generator", () => {
+            const generator = (function* (): Generator<string> {
+                yield "a";
+            })();
+
+            Arr.some(generator, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+                return value === "a";
+            });
+        });
+
+        it("first infers the value and return type from an iterable", () => {
+            const result = Arr.first(new Set([1, 2]), (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+                return value > 1;
+            });
+
+            expectTypeOf(result).toEqualTypeOf<number | null>();
+        });
+
+        it("last infers the value and honours the default type", () => {
+            const result = Arr.last(new Set([1, 2]), null, "fallback");
+
+            expectTypeOf(result).toEqualTypeOf<number | string | null>();
+        });
+    });
 });

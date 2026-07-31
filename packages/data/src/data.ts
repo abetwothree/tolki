@@ -174,6 +174,7 @@ import {
     isIterable,
     isMap,
     isObject,
+    isUndefined,
 } from "@tolki/utils";
 
 /**
@@ -203,6 +204,12 @@ function isKeyedData(data: unknown): boolean {
 function toPositionalData<TValue>(data: unknown): Iterable<TValue> {
     if (isIterable<TValue>(data)) {
         return data;
+    }
+
+    // Missing data holds nothing to walk, so it is treated like null rather
+    // than becoming a single undefined item
+    if (isUndefined(data)) {
+        return [];
     }
 
     return arrWrap(data as TValue);
@@ -799,9 +806,11 @@ export function dataForget<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * dataFrom([1, 2, 3]); -> [1, 2, 3]
  * dataFrom({a: 1, b: 2}); -> {a: 1, b: 2}
+ * dataFrom(new Map([['a', 1]])); -> {a: 1}
+ * dataFrom(new Set([1, 2])); -> [1, 2]
  */
 export function dataFrom(items: unknown): unknown[] | Record<string, unknown> {
-    if (isObject(items)) {
+    if (isKeyedData(items)) {
         return objFrom(items as Record<string, unknown>);
     }
 
