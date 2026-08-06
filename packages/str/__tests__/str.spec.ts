@@ -2184,6 +2184,32 @@ describe("Str tests", () => {
             ]);
         });
 
+        it("casts null and undefined inside lists to empty strings like PHP", () => {
+            // Null search terms become "" and are skipped, so the literal
+            // text "null" in the subject must not be replaced
+            // @ts-expect-error - testing runtime behavior with a null search term
+            expect(Str.replace(["a", null], ["x", "y"], "a null")).toBe(
+                "x null",
+            );
+            // @ts-expect-error - testing runtime behavior with a null search term
+            expect(Str.replace(["a", null], ["x", "y"], "A null", false)).toBe(
+                "x null",
+            );
+
+            // Null replacements act like empty strings
+            // @ts-expect-error - testing runtime behavior with a null replacement
+            expect(Str.replace(["a"], [null], "abc")).toBe("bc");
+
+            // Nullish subject elements become empty strings
+            // @ts-expect-error - testing runtime behavior with nullish subject elements
+            const subjects: string[] = ["abc", null, undefined];
+            expect(Str.replace("a", "X", subjects)).toStrictEqual([
+                "Xbc",
+                "",
+                "",
+            ]);
+        });
+
         it("replace with array search and array replace", () => {
             // Arrays for both search and replace
             expect(Str.replace(["a", "b"], ["X", "Y"], "a b c")).toBe("X Y c");

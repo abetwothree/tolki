@@ -1,4 +1,12 @@
-import { isArray, isFunction, isNumber, isString, toLower } from "@tolki/utils";
+import {
+    isArray,
+    isFunction,
+    isNull,
+    isNumber,
+    isString,
+    isUndefined,
+    toLower,
+} from "@tolki/utils";
 
 import { title, upper } from "./convertcase";
 import { randomInt, randomString } from "./random";
@@ -1558,7 +1566,7 @@ export function replace<T extends string | Iterable<string>>(
 
     const subjects = isString(subject)
         ? subject
-        : Array.from(subject, (s) => String(s));
+        : Array.from(subject, (s) => stringifyValue(s));
 
     if (!caseSensitive) {
         return replaceWhileIgnoringCase(
@@ -1570,10 +1578,10 @@ export function replace<T extends string | Iterable<string>>(
 
     const searches = isString(search)
         ? [search]
-        : Array.from(search, (s) => String(s));
+        : Array.from(search, (s) => stringifyValue(s));
     const replacements = isString(replacement)
         ? searches.map(() => replacement)
-        : Array.from(replacement, (r) => String(r));
+        : Array.from(replacement, (r) => stringifyValue(r));
 
     const apply = (input: string): string => {
         return searches.reduce((acc, s, i) => {
@@ -1608,10 +1616,10 @@ function replaceWhileIgnoringCase(
 ): string | string[] {
     const searches = isString(search)
         ? [search]
-        : Array.from(search, (s) => String(s));
+        : Array.from(search, (s) => stringifyValue(s));
     const replacements = isString(replacement)
         ? searches.map(() => replacement)
-        : Array.from(replacement, (r) => String(r));
+        : Array.from(replacement, (r) => stringifyValue(r));
 
     const escapeRegExp = (s: string) =>
         s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -1635,6 +1643,21 @@ function replaceWhileIgnoringCase(
     };
 
     return isString(subject) ? apply(subject) : subject.map(apply);
+}
+
+/**
+ * Convert a value inside a search, replacement or subject list to a string,
+ * casting null and undefined to an empty string the way PHP casts them.
+ *
+ * @param value - The value to convert.
+ * @returns The string value.
+ */
+function stringifyValue(value: unknown): string {
+    if (isNull(value) || isUndefined(value)) {
+        return "";
+    }
+
+    return String(value);
 }
 
 /**
@@ -2019,7 +2042,7 @@ export function remove(
 ): string | string[] {
     const subjects = isString(subject)
         ? subject
-        : Array.from(subject, (s) => String(s));
+        : Array.from(subject, (s) => stringifyValue(s));
 
     if (!caseSensitive) {
         return replaceWhileIgnoringCase(search, "", subjects);
@@ -2027,7 +2050,7 @@ export function remove(
 
     const searches: string[] = isString(search)
         ? [search]
-        : Array.from(search, (s) => String(s));
+        : Array.from(search, (s) => stringifyValue(s));
 
     const removeFrom = (value: string): string => {
         let result = value;
