@@ -796,6 +796,30 @@ describe("Data", () => {
                 3: { id: 3, name: "Bob" },
             });
         });
+
+        it("keys array items with a null key value under an empty string key", () => {
+            const users = [
+                { rating: 1, name: "1" },
+                { rating: 2, name: null },
+            ];
+            const result = Data.dataKeyBy(users, "name");
+            expect(result).toEqual({
+                1: { rating: 1, name: "1" },
+                "": { rating: 2, name: null },
+            });
+        });
+
+        it("keys object items with a null key value under an empty string key", () => {
+            const users = {
+                first: { rating: 1, name: "1" },
+                second: { rating: 2, name: null },
+            };
+            const result = Data.dataKeyBy(users, "name");
+            expect(result).toEqual({
+                1: { rating: 1, name: "1" },
+                "": { rating: 2, name: null },
+            });
+        });
     });
 
     describe("dataPrependKeysWith", () => {

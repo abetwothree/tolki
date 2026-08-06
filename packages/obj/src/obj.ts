@@ -1422,7 +1422,7 @@ export function join<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function keyBy<TValue extends Record<PropertyKey, unknown>>(
     data: Record<PropertyKey, TValue> | unknown,
-    keyBy: PathKey | ((item: TValue) => PropertyKey),
+    keyBy: PathKey | ((item: TValue) => PropertyKey | null | undefined),
 ): Record<PropertyKey, TValue> {
     if (!accessible(data)) {
         return {};
@@ -1432,13 +1432,22 @@ export function keyBy<TValue extends Record<PropertyKey, unknown>>(
     const results: Record<PropertyKey, TValue> = {};
 
     for (const item of Object.values(obj)) {
-        let key: PropertyKey;
+        let key: PropertyKey | null | undefined;
 
         if (isFunction(keyBy)) {
-            key = keyBy(item) as PropertyKey;
+            key = keyBy(item) as PropertyKey | null | undefined;
         } else {
             // Use dot notation to get the key value
-            key = getObjectValue(item, keyBy as PathKey) as PropertyKey;
+            key = getObjectValue(item, keyBy as PathKey) as
+                | PropertyKey
+                | null
+                | undefined;
+        }
+
+        // Key null/undefined results under an empty string key,
+        // mirroring PHP's (string) null cast for array keys
+        if (isNull(key) || isUndefined(key)) {
+            key = "";
         }
 
         results[key] = item;

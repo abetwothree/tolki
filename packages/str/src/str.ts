@@ -1531,11 +1531,16 @@ export function toStringOr(value: unknown, fallback: string): string {
 /**
  * Replace the given value in the given string.
  *
+ * When ignoring case, ASCII search terms only match ASCII case variants,
+ * while non-ASCII search terms match case-insensitively across Unicode,
+ * mirroring Laravel's behavior.
+ *
  * @param search - The value or values to search for
  * @param replacement - The value or values to replace with
  * @param subject - The string or array of strings to perform replacements on
  * @param caseSensitive - Whether the search should be case-sensitive (default: true)
  * @returns The resulting string or array of strings after replacements
+ * @throws TypeError when the search term is a string but the replacement is a list, mirroring PHP's str_replace
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#replace
  */
@@ -1543,37 +1548,93 @@ export function replace<T extends string | Iterable<string>>(
     search: string | Iterable<string>,
     replacement: string | Iterable<string>,
     subject: T,
-    caseSensitive = true, // NOTE: behaves as ignoreCase=true (Laravel parity TBD)
+    caseSensitive = true,
 ): T extends string ? string : string[] {
-    const toArray = (v: string | Iterable<string>): string[] =>
-        typeof v === "string" ? [v] : Array.from(v);
+    if (isString(search) && !isString(replacement)) {
+        throw new TypeError(
+            "The replacement must be a string when the search term is a string.",
+        );
+    }
 
-    const searches = toArray(search);
-    const replacements = toArray(replacement);
+    const subjects = isString(subject)
+        ? subject
+        : Array.from(subject, (s) => String(s));
 
-    // Escape a string for use in a RegExp (same char class as earlier implementation)
-    const escapeRegExp = (s: string) =>
-        s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (!caseSensitive) {
+        return replaceWhileIgnoringCase(
+            search,
+            replacement,
+            subjects,
+        ) as T extends string ? string : string[];
+    }
+
+    const searches = isString(search)
+        ? [search]
+        : Array.from(search, (s) => String(s));
+    const replacements = isString(replacement)
+        ? searches.map(() => replacement)
+        : Array.from(replacement, (r) => String(r));
 
     const apply = (input: string): string => {
         return searches.reduce((acc, s, i) => {
-            if (s === "") return acc; // skip empty needles (PHP str_replace behavior)
-            const r = replacements[i] ?? "";
-
-            if (!caseSensitive) {
-                // Case-sensitive path when parameter explicitly false
-                return acc.split(s).join(r);
+            if (s === "") {
+                return acc; // skip empty needles (PHP str_replace behavior)
             }
 
-            // Parameter true => treat as ignore-case (matches current test expectations)
-            const re = new RegExp(escapeRegExp(s), "gi");
-            return acc.replace(re, () => r);
+            return acc.split(s).join(replacements[i] ?? "");
         }, input);
     };
 
     return (
-        isString(subject) ? apply(subject) : Array.from(subject).map(apply)
+        isString(subjects) ? apply(subjects) : subjects.map(apply)
     ) as T extends string ? string : string[];
+}
+
+/**
+ * Replace the given value in the given string regardless of case.
+ *
+ * ASCII search terms only match ASCII case variants, while non-ASCII search
+ * terms use Unicode case-insensitive matching, mirroring Laravel's behavior.
+ *
+ * @param search - The value or values to search for
+ * @param replacement - The value or values to replace with
+ * @param subject - The string or array of strings to perform replacements on
+ * @returns The resulting string or array of strings after replacements
+ */
+function replaceWhileIgnoringCase(
+    search: string | Iterable<string>,
+    replacement: string | Iterable<string>,
+    subject: string | string[],
+): string | string[] {
+    const searches = isString(search)
+        ? [search]
+        : Array.from(search, (s) => String(s));
+    const replacements = isString(replacement)
+        ? searches.map(() => replacement)
+        : Array.from(replacement, (r) => String(r));
+
+    const escapeRegExp = (s: string) =>
+        s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const apply = (input: string): string => {
+        return searches.reduce((acc, term, i) => {
+            if (term === "") {
+                return acc; // skip empty needles (PHP str_ireplace behavior)
+            }
+
+            const r = replacements[i] ?? "";
+            // ASCII terms avoid the "u" flag so Unicode case folding does not
+            // match ASCII letters to lookalikes (e.g. "s" must not match "ſ")
+            const re = new RegExp(
+                escapeRegExp(term),
+                isAscii(term) ? "gi" : "giu",
+            );
+
+            return acc.replace(re, () => r);
+        }, input);
+    };
+
+    return isString(subject) ? apply(subject) : subject.map(apply);
 }
 
 /**
@@ -1925,6 +1986,10 @@ export function stripTags(value: string): string {
 /**
  * Remove any occurrence of the given string in the subject.
  *
+ * When ignoring case, ASCII search terms only match ASCII case variants,
+ * while non-ASCII search terms match case-insensitively across Unicode,
+ * mirroring Laravel's behavior.
+ *
  * @param search - The string or strings to remove
  * @param subject - The string or strings to process
  * @param caseSensitive - Whether the search should be case-sensitive (default: true)
@@ -1952,32 +2017,35 @@ export function remove(
     subject: string | Iterable<string>,
     caseSensitive = true,
 ): string | string[] {
-    const searches: string[] =
-        typeof search === "string" ? [search] : Array.from(search);
+    const subjects = isString(subject)
+        ? subject
+        : Array.from(subject, (s) => String(s));
 
-    const escapeRegExp = (s: string) =>
-        s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (!caseSensitive) {
+        return replaceWhileIgnoringCase(search, "", subjects);
+    }
+
+    const searches: string[] = isString(search)
+        ? [search]
+        : Array.from(search, (s) => String(s));
 
     const removeFrom = (value: string): string => {
         let result = value;
         for (const needle of searches) {
-            if (needle === "") continue; // mimic PHP str_replace behavior for empty needle
-            if (caseSensitive) {
-                // Fast path split/join for literal removal
-                result = result.split(needle).join("");
-            } else {
-                const re = new RegExp(escapeRegExp(needle), "gi");
-                result = result.replace(re, "");
+            if (needle === "") {
+                continue; // mimic PHP str_replace behavior for empty needle
             }
+
+            result = result.split(needle).join("");
         }
         return result;
     };
 
-    if (typeof subject === "string") {
-        return removeFrom(subject);
+    if (isString(subjects)) {
+        return removeFrom(subjects);
     }
 
-    return Array.from(subject, (s) => removeFrom(String(s)));
+    return subjects.map(removeFrom);
 }
 
 /**

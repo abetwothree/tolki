@@ -1081,20 +1081,26 @@ export function dataJoin<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function dataKeyBy(
     data: unknown,
-    keyBy: string | ((item: unknown) => string | number),
+    keyBy: string | ((item: unknown) => string | number | null | undefined),
 ): Record<string | number, unknown> {
     if (isObject(data)) {
         return objKeyBy(
             data as Record<string, unknown>,
             keyBy as
                 | string
-                | ((item: Record<string, unknown>) => string | number),
+                | ((
+                      item: Record<string, unknown>,
+                  ) => string | number | null | undefined),
         );
     }
 
     return arrKeyBy(
         arrWrap(data) as Record<string, unknown>[],
-        keyBy as string | ((item: Record<string, unknown>) => string | number),
+        keyBy as
+            | string
+            | ((
+                  item: Record<string, unknown>,
+              ) => string | number | null | undefined),
     );
 }
 

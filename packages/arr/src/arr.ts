@@ -1492,17 +1492,17 @@ export function join<TValue>(
 // Overload: array type with callback for proper type inference
 export function keyBy<TValue extends Record<string, unknown>>(
     data: TValue[],
-    keyBy: ((item: TValue) => string | number) | string,
+    keyBy: ((item: TValue) => string | number | null | undefined) | string,
 ): Record<string, TValue>;
 // Overload: non-array fallback
 export function keyBy<TValue extends Record<string, unknown>>(
     data: unknown,
-    keyBy: string | ((item: TValue) => string | number),
+    keyBy: string | ((item: TValue) => string | number | null | undefined),
 ): Record<string, TValue>;
 // Implementation
 export function keyBy<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue> | unknown,
-    keyBy: string | ((item: TValue) => string | number),
+    keyBy: string | ((item: TValue) => string | number | null | undefined),
 ): Record<string, TValue> {
     if (!accessible(data)) {
         return {};
@@ -1516,17 +1516,32 @@ export function keyBy<TValue extends Record<string, unknown>>(
 
         if (isFunction(keyBy)) {
             const result = keyBy(item);
-            key = isSymbol(result) ? result : String(result);
+            key = isSymbol(result) ? result : stringifyKey(result);
         } else {
             // Use dot notation to get the key value
             const keyValue = getNestedValue(item, keyBy as string);
-            key = String(keyValue);
+            key = stringifyKey(keyValue);
         }
 
         results[key] = item;
     }
 
     return results;
+}
+
+/**
+ * Convert a resolved key value to a string key, casting null and undefined
+ * to an empty string the way PHP casts null keys.
+ *
+ * @param keyValue - The resolved key value to convert.
+ * @returns The string key.
+ */
+function stringifyKey(keyValue: unknown): string {
+    if (isNull(keyValue) || isUndefined(keyValue)) {
+        return "";
+    }
+
+    return String(keyValue);
 }
 
 /**
