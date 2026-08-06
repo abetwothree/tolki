@@ -2087,13 +2087,13 @@ describe("Str tests", () => {
                 "foo bar laravel",
             );
             expect(Str.replace("baz", "laravel", "foo bar Baz", false)).toBe(
-                "foo bar Baz",
+                "foo bar laravel",
             );
             expect(Str.replace("?", "8.x", "foo bar baz ?")).toBe(
                 "foo bar baz 8.x",
             );
             expect(Str.replace("x", "8.x", "foo bar baz X", false)).toBe(
-                "foo bar baz X",
+                "foo bar baz 8.x",
             );
             expect(Str.replace(" ", "/", "foo bar baz")).toBe("foo/bar/baz");
             expect(
@@ -2105,28 +2105,109 @@ describe("Str tests", () => {
             ).toBe("foo bar baz");
             expect(
                 Str.replace("baz", "laravel", ["baz", "foo", "Baz"]),
-            ).toStrictEqual(["laravel", "foo", "laravel"]);
+            ).toStrictEqual(["laravel", "foo", "Baz"]);
             expect(
                 Str.replace("baz", "laravel", ["baz", "foo", "Baz"], false),
-            ).toStrictEqual(["laravel", "foo", "Baz"]);
+            ).toStrictEqual(["laravel", "foo", "laravel"]);
+
+            // Unicode-aware case-insensitive replacements
+            expect(Str.replace("ž", "X", "Žltý kôň", false)).toBe("Xltý kôň");
+            expect(Str.replace("KÔŇ", "pes", "žltý kôň", false)).toBe(
+                "žltý pes",
+            );
+            expect(
+                Str.replace(["ž", "KÔŇ"], ["X", "pes"], "Žltý kôň", false),
+            ).toBe("Xltý pes");
+            expect(Str.replace("ž", "X", ["Žltý", "kôň"], false)).toStrictEqual(
+                ["Xltý", "kôň"],
+            );
+            // ASCII search terms only match ASCII case variants ("s" must
+            // not match "ſ"), while non-ASCII terms match across cases
+            expect(Str.replace(["s", "ž"], ["X", "Y"], "ſ žito s", false)).toBe(
+                "ſ Yito X",
+            );
+        });
+
+        it("throws a TypeError for a string search with iterable replacements when ignoring case", () => {
+            expect(() => Str.replace("ž", ["X"], "Ž", false)).toThrow(
+                TypeError,
+            );
+        });
+
+        it("throws a TypeError for a string search with iterable replacements when case-sensitive", () => {
+            // PHP's str_replace throws just like str_ireplace does
+            expect(() => Str.replace("a", ["X", "Y"], "a b a")).toThrow(
+                TypeError,
+            );
         });
 
         it("replace with case sensitivity parameter", () => {
-            // Test with caseSensitive=false (case-sensitive replacement)
-            expect(Str.replace("bar", "X", "foo bar BAR", false)).toBe(
+            // Test with caseSensitive=true (case-sensitive replacement, default)
+            expect(Str.replace("bar", "X", "foo bar BAR", true)).toBe(
                 "foo X BAR",
             );
-            // Test with caseSensitive=true (case-insensitive, default)
-            expect(Str.replace("bar", "X", "foo bar BAR", true)).toBe(
+            // Test with caseSensitive=false (case-insensitive replacement)
+            expect(Str.replace("bar", "X", "foo bar BAR", false)).toBe(
                 "foo X X",
             );
             // Test with empty search string
             expect(Str.replace("", "X", "foo bar")).toBe("foo bar");
+            // Empty search strings are also skipped when ignoring case
+            expect(Str.replace("", "X", "foo bar", false)).toBe("foo bar");
         });
 
-        it("replace when replace is an iterable (array-like)", () => {
-            // Iterable replacements
-            expect(Str.replace("a", ["X", "Y"], "a b a")).toBe("X b X");
+        it("applies a single replacement to every search term", () => {
+            expect(Str.replace(["a", "b"], "X", "a b c")).toBe("X X c");
+            expect(Str.replace(["a", "b"], "X", "A b c", false)).toBe("X X c");
+        });
+
+        it("replace with iterable search, replacement and subject", () => {
+            // Mirrors Laravel's all-collection assertion in testReplace
+            expect(
+                Str.replace(
+                    ["?1", "?2", "?3"],
+                    ["foo", "bar", "baz"],
+                    ["?1", "?2", "?3"],
+                ),
+            ).toStrictEqual(["foo", "bar", "baz"]);
+        });
+
+        it("coerces non-string search terms, replacements and subjects like PHP casts", () => {
+            // @ts-expect-error - testing runtime behavior with non-string inputs
+            expect(Str.replace(["a", 2], ["x", "y"], "a2b")).toBe("xyb");
+            // @ts-expect-error - testing runtime behavior with non-string inputs
+            expect(Str.replace(["a", 2], ["x", "y"], "a2b", false)).toBe("xyb");
+            // @ts-expect-error - testing runtime behavior with non-string subject elements
+            expect(Str.replace("1", "X", [1, "1a"], false)).toStrictEqual([
+                "X",
+                "Xa",
+            ]);
+        });
+
+        it("casts null and undefined inside lists to empty strings like PHP", () => {
+            // Null search terms become "" and are skipped, so the literal
+            // text "null" in the subject must not be replaced
+            // @ts-expect-error - testing runtime behavior with a null search term
+            expect(Str.replace(["a", null], ["x", "y"], "a null")).toBe(
+                "x null",
+            );
+            // @ts-expect-error - testing runtime behavior with a null search term
+            expect(Str.replace(["a", null], ["x", "y"], "A null", false)).toBe(
+                "x null",
+            );
+
+            // Null replacements act like empty strings
+            // @ts-expect-error - testing runtime behavior with a null replacement
+            expect(Str.replace(["a"], [null], "abc")).toBe("bc");
+
+            // Nullish subject elements become empty strings
+            // @ts-expect-error - testing runtime behavior with nullish subject elements
+            const subjects: string[] = ["abc", null, undefined];
+            expect(Str.replace("a", "X", subjects)).toStrictEqual([
+                "Xbc",
+                "",
+                "",
+            ]);
         });
 
         it("replace with array search and array replace", () => {
@@ -2138,10 +2219,12 @@ describe("Str tests", () => {
             // More searches than replacements - tests replacements[i] ?? "" fallback
             // "a" → "X", "b" → "", "c" → "" (fallback to empty string)
             expect(Str.replace(["a", "b", "c"], ["X"], "abc")).toBe("X");
+            // The same fallback applies when ignoring case
+            expect(Str.replace(["a", "b", "c"], ["X"], "ABC", false)).toBe("X");
         });
 
         it("replace case-sensitive with array subject", () => {
-            // Array subject with caseSensitive = false (default)
+            // Array subject with caseSensitive = true (default)
             expect(Str.replace("a", "X", ["aaa", "bbb"])).toEqual([
                 "XXX",
                 "bbb",
@@ -2789,6 +2872,17 @@ describe("Str tests", () => {
             expect(Str.remove(["f", "b"], "Foobar")).toBe("Fooar");
             expect(Str.remove(["f", "b"], "Foobar", false)).toBe("ooar");
             expect(Str.remove(["f", "|"], "Foo|bar")).toBe("Foobar");
+
+            // Unicode-aware case-insensitive removal
+            expect(Str.remove("ž", "Žltý", false)).toBe("ltý");
+            expect(Str.remove("KÔŇ", "žltý kôň", false)).toBe("žltý ");
+        });
+
+        it("removes needles case-insensitively from an iterable subject", () => {
+            expect(Str.remove("ž", ["Žltý", "kôň"], false)).toEqual([
+                "ltý",
+                "kôň",
+            ]);
         });
     });
 

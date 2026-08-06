@@ -322,7 +322,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{value: 1}, {value: 1}, {value: 2}, {value: 2}, {value: 3}, {value: 3}]).mode('value'); -> [1, 2, 3]
      */
     mode(key: PropertyKey | null = null): number[] | null {
-        if (this.count() === 0) {
+        if (this.isEmpty()) {
             return null;
         }
 
@@ -1164,14 +1164,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
         )) {
-            const groupKeys = arrWrap(
-                groupByValue(value as TValue, key as TKey),
-            );
+            const rawGroupKeys = groupByValue(value as TValue, key as TKey);
+            const groupKeys = isArray(rawGroupKeys)
+                ? rawGroupKeys
+                : [rawGroupKeys];
 
             for (let groupKey of groupKeys) {
-                // Skip null/undefined group keys - items with no valid key are not grouped
+                // Group null/undefined keys under an empty string key,
+                // mirroring PHP's (string) null cast in Laravel
                 if (isNull(groupKey) || isUndefined(groupKey)) {
-                    continue;
+                    groupKey = "" as TGroupKey;
                 }
 
                 groupKey = normalizeGroupKey(groupKey) as TGroupKey;
@@ -1291,6 +1293,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 resolvedKey = JSON.stringify(resolvedKey);
             } else if (isArray(resolvedKey)) {
                 resolvedKey = resolvedKey.join(".");
+            }
+
+            // Key null/undefined results under an empty string key,
+            // mirroring PHP's (string) null cast in Laravel
+            if (isNull(resolvedKey) || isUndefined(resolvedKey)) {
+                resolvedKey = "";
             }
 
             (results as Record<string, TValue>)[resolvedKey as string] =
@@ -3851,10 +3859,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         for (const [key, value] of Object.entries(this.items)) {
             const result = callback(value as TValue, key as TKey);
-            const resultKey =
-                isObject(result) || isArray(result)
-                    ? JSON.stringify(result)
-                    : String(result);
+
+            let resultKey: string;
+            if (isObject(result) || isArray(result)) {
+                resultKey = JSON.stringify(result);
+            } else if (isNull(result) || isUndefined(result)) {
+                // Count null/undefined keys under an empty string key,
+                // mirroring PHP's (string) null cast in Laravel
+                resultKey = "";
+            } else {
+                resultKey = String(result);
+            }
+
             if (resultKey in results) {
                 results[resultKey] = (results[resultKey] as number) + 1;
             } else {

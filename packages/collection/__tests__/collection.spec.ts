@@ -1820,6 +1820,21 @@ describe("Collection", () => {
 
                 expect(result.all()).toEqual(expected_result);
             });
+
+            it("test group by null", () => {
+                const payload = [
+                    { name: "a", url: "1" },
+                    { name: "b", url: null },
+                    { name: "c", url: null },
+                ];
+                const data = collect(payload);
+
+                const result = data.groupBy("url");
+                expect(result.all()).toEqual({
+                    1: [payload[0]],
+                    "": [payload[1], payload[2]],
+                });
+            });
         });
 
         it("throw error when no groupBy is undefined", () => {
@@ -1843,6 +1858,7 @@ describe("Collection", () => {
             const collection = collect([{ value: null }, { value: 1 }]);
             const grouped = collection.groupBy("value");
             expect(grouped.all()).toEqual({
+                "": [{ value: null }],
                 1: [{ value: 1 }],
             });
         });
@@ -1851,6 +1867,7 @@ describe("Collection", () => {
             const collection = collect([{ value: undefined }, { value: 1 }]);
             const grouped = collection.groupBy("value");
             expect(grouped.all()).toEqual({
+                "": [{ value: undefined }],
                 1: [{ value: 1 }],
             });
         });
@@ -1877,13 +1894,13 @@ describe("Collection", () => {
             expect(grouped.get("b")).toEqual(["banana"]);
         });
 
-        it("skips items when callback returns null or undefined", () => {
-            // Test that items with null/undefined keys are not grouped
+        it("groups items under an empty string key when callback returns null or undefined", () => {
             const c = collect(["apple", "", "banana"]);
             // Empty string's first char is undefined
             const grouped = c.groupBy((item) => item[0]);
             expect(grouped.all()).toEqual({
                 a: ["apple"],
+                "": [""],
                 b: ["banana"],
             });
 
@@ -1892,6 +1909,7 @@ describe("Collection", () => {
             const grouped2 = c2.groupBy((item) => (item > 3 ? "big" : null));
             expect(grouped2.all()).toEqual({
                 big: [4, 5],
+                "": [1, 2, 3],
             });
         });
     });
@@ -1968,6 +1986,29 @@ describe("Collection", () => {
                         locale: "FR",
                     },
                 });
+            });
+
+            it("test key by null", () => {
+                const data = collect([
+                    { rating: 1, name: "1" },
+                    { rating: 2, name: null },
+                ]);
+
+                const result = data.keyBy("name");
+                expect(result.all()).toEqual({
+                    1: { rating: 1, name: "1" },
+                    "": { rating: 2, name: null },
+                });
+            });
+        });
+
+        it("keys items with an undefined key value under an empty string key", () => {
+            const data = collect([{ rating: 1, name: "1" }, { rating: 2 }]);
+
+            const result = data.keyBy("name");
+            expect(result.all()).toEqual({
+                1: { rating: 1, name: "1" },
+                "": { rating: 2 },
             });
         });
 
@@ -6352,6 +6393,14 @@ describe("Collection", () => {
             expect(result.all()).toEqual({
                 "[1,2]": 2,
                 "[3,4]": 1,
+            });
+        });
+
+        it("counts null and undefined keys under an empty string key", () => {
+            const c = collect([{ url: null }, { url: "a" }, {}]);
+            expect(c.countBy("url").all()).toEqual({
+                "": 2,
+                a: 1,
             });
         });
     });

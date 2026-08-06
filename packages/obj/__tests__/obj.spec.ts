@@ -1811,6 +1811,38 @@ describe("Obj", () => {
             expect(Obj.keyBy(undefined, "id")).toEqual({});
             expect(Obj.keyBy([], "id")).toEqual({});
         });
+
+        it("should key items with a null key value under an empty string key", () => {
+            const obj = {
+                first: { rating: 1, name: "1" },
+                second: { rating: 2, name: null },
+            };
+
+            expect(Obj.keyBy(obj, "name")).toEqual({
+                1: { rating: 1, name: "1" },
+                "": { rating: 2, name: null },
+            });
+
+            // Callback returning null behaves the same way
+            expect(
+                Obj.keyBy(obj, (item) => item["name"] as string | null),
+            ).toEqual({
+                1: { rating: 1, name: "1" },
+                "": { rating: 2, name: null },
+            });
+        });
+
+        it("should key items with a missing key under an empty string key", () => {
+            const obj = {
+                first: { rating: 1, name: "1" },
+                second: { rating: 2 },
+            };
+
+            expect(Obj.keyBy(obj, "name")).toEqual({
+                1: { rating: 1, name: "1" },
+                "": { rating: 2 },
+            });
+        });
     });
 
     describe("prependKeysWith", () => {

@@ -2220,11 +2220,30 @@ describe("Arr", () => {
             expect(Arr.keyBy(null, "id")).toEqual({});
             expect(Arr.keyBy("abc", "id")).toEqual({});
 
-            // Missing key defaults to 'undefined' string
+            // Missing key is keyed under an empty string key,
+            // mirroring PHP's (string) null cast
             const incomplete = [{ name: "John" }, { id: 2, name: "Jane" }];
             expect(Arr.keyBy(incomplete, "id")).toEqual({
-                undefined: { name: "John" },
+                "": { name: "John" },
                 2: { id: 2, name: "Jane" },
+            });
+        });
+
+        it("keys items with a null key value under an empty string key", () => {
+            const data = [
+                { rating: 1, name: "1" },
+                { rating: 2, name: null },
+            ];
+
+            expect(Arr.keyBy(data, "name")).toEqual({
+                1: { rating: 1, name: "1" },
+                "": { rating: 2, name: null },
+            });
+
+            // Callback returning null behaves the same way
+            expect(Arr.keyBy(data, (item) => item.name)).toEqual({
+                1: { rating: 1, name: "1" },
+                "": { rating: 2, name: null },
             });
         });
 
