@@ -38,17 +38,33 @@ them, though, accepts a trailing default argument — and passing it explicitly 
 **required**, because the key can no longer be missing. `whenNotNull()`/`whenNull()`'s default argument is
 covered just below the table; the rest of the family is covered right after that.
 
-| Method                                      | Description                       | Generated Type           |
-| ------------------------------------------- | --------------------------------- | ------------------------ |
-| `$this->when(cond, value)`                  | Include when condition is true    | Inferred from value      |
-| `$this->whenHas('attr')`                    | Include when attribute is present | From model column type   |
-| `$this->whenNotNull($this->attr)`           | Include when not null             | From model column type   |
-| `$this->whenLoaded('relation')`             | Include when relation is loaded   | From model relation type |
-| `$this->whenCounted('relation')`            | Include when count is loaded      | `number`                 |
-| `$this->whenAggregated('rel', 'col', 'fn')` | Include when aggregate is loaded  | `number`                 |
-| `$this->whenPivotLoaded('table')`           | Include when pivot is loaded      | `unknown`                |
+| Method                                              | Description                                    | Generated Type            |
+| ---------------------------------------------------- | ----------------------------------------------- | ------------------------- |
+| `$this->when(cond, value)`                          | Include when condition is true                 | Inferred from value       |
+| `$this->unless(cond, value)`                        | Include when condition is false                | Inferred from value       |
+| `$this->whenHas('attr')`                            | Include when attribute is present               | From model column type    |
+| `$this->whenAppended('attr')`                       | Include when accessor has been appended         | From model column type    |
+| `$this->whenNotNull($this->attr)`                   | Include when not null                           | From model column type    |
+| `$this->whenNull($this->attr)`                      | Include when null                               | `null`                    |
+| `$this->whenLoaded('relation')`                     | Include when relation is loaded                 | From model relation type  |
+| `$this->whenCounted('relation')`                    | Include when count is loaded                    | `number`                  |
+| `$this->whenAggregated('rel', 'col', 'fn')`         | Include when aggregate is loaded                | `number`                  |
+| `$this->whenExistsLoaded('relation')`               | Include when existence flag is loaded           | `boolean`                 |
+| `$this->whenPivotLoaded('table')`                   | Include when pivot is loaded                    | `unknown`                 |
+| `$this->whenPivotLoadedAs('accessor', 'table')`     | Include when pivot (custom accessor) is loaded  | `unknown`                 |
+| `$this->transform($value, $callback)`               | Transform `$value` via `$callback` when filled  | Inferred from `$callback` |
 
 See [Nullable Relations](#nullable-relations) for `whenLoaded` nullability handling.
+
+#### `unless()` is `when()` with the condition negated
+
+`unless($condition, $value, $default)` runs `$value` when `$condition` is **false** — everything else about
+how it's typed is identical to `when()`, including the default-argument rule covered below:
+
+```php
+'status' => $this->unless($this->is_draft, $this->status),          // optional
+'status' => $this->unless($this->is_draft, $this->status, 'draft'), // required
+```
 
 #### `whenNotNull()` / `whenNull()` and their optional second argument
 
@@ -136,7 +152,7 @@ Self-referencing resources are also supported:
 
 ### Merge Operations
 
-Use `merge` and `mergeWhen` to spread additional properties into the response:
+Use `merge`, `mergeWhen`, and `mergeUnless` to spread additional properties into the response:
 
 ```php
 // Unconditional merge — properties are required (not optional)
@@ -167,10 +183,11 @@ $this->mergeWhen($this->paid_at !== null, fn () => [
 ]),
 ```
 
-| Method                          | Optionality    | Description                       |
-| ------------------------------- | -------------- | --------------------------------- |
-| `$this->merge([...])`           | Required       | Properties are always present     |
-| `$this->mergeWhen(cond, [...])` | Optional (`?`) | Properties included conditionally |
+| Method                             | Optionality    | Description                                    |
+| ---------------------------------- | -------------- | ----------------------------------------------- |
+| `$this->merge([...])`              | Required       | Properties are always present                  |
+| `$this->mergeWhen(cond, [...])`    | Optional (`?`) | Properties included conditionally              |
+| `$this->mergeUnless(cond, [...])`  | Optional (`?`) | Properties included when `cond` is false        |
 
 ### Closure & Arrow Function Values
 
