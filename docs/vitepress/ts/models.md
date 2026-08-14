@@ -542,7 +542,7 @@ A parameterized docblock generic (`@return`, `@property`, `Attribute<>`) narrows
 | --- | --- |
 | `list<X>`, `array<int, X>`, `Collection<int, X>`, `X[]` | `X[]` |
 | `array<string, X>`, `Collection<string, X>` | `Record<string, X>` |
-| `Collection<array-key, X>`, `Collection<mixed, X>`, bare `Collection` | `X[] \| Record<string, X>` |
+| `array<array-key, X>`, `array<mixed, X>`, `iterable<array-key, X>`, `iterable<mixed, X>`, `Collection<array-key, X>`, `Collection<mixed, X>`, bare `Collection` | `X[] \| Record<string, X>` |
 
 A collection *chain* on a relation (`->sortBy()`, `->pluck($value, $key)`, `->take()`, …) is analyzed separately from its declared type: it keeps the `X[] | Record<string, X>` union unless the chain provably ends with sequential, 0-indexed keys — e.g. a trailing `->values()`, or `->take()` anchored at the front of an already-sequential collection — in which case it narrows to `X[]`.
 
