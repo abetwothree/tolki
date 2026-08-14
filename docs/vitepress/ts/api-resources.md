@@ -465,6 +465,27 @@ Both methods delegate to the backing model's full database schema and filter by 
 > [!NOTE]
 > Currently only `only` and `except` are supported as attribute filter methods. Other collection-style methods are not analyzed. If you find you need additional methods, open an issue, or better yet, submit a PR with the added functionality! See [`FiltersModelAttributes`](https://github.com/abetwothree/laravel-ts-publish/blob/main/src/Analyzers/Concerns/FiltersModelAttributes.php).
 
+### `exclude_hidden` and attribute filters
+
+`ts-publish.models.exclude_hidden` (see [Models § What gets published](./models.md#what-gets-published-hidden-attributes-write-only-accessors)) governs resources too, not just the model's own interface — but asymmetrically:
+
+```php
+$this->only(['password'])   // kept: you named it
+$this->except(['id'])       // password dropped: the set is derived
+```
+
+That split isn't arbitrary — it mirrors what `Model::only()` versus `toArray()`/`except()` already do at runtime. `Model::only()` resolves each key through `getAttribute()`, which returns a `$hidden` attribute regardless of visibility; `toArray()` and `Model::except()` both go through `getArrayableItems()`, which strips `$hidden` attributes before your excluded keys are even considered. This package's analyzer follows the same split:
+
+| Pattern | Property set | A `$hidden` column, with `exclude_hidden` enabled |
+| --- | --- | --- |
+| `$this->only(['id', 'password'])` | exactly the keys you named | **kept** — you named it |
+| `$this->relation->only(['id', 'password'])` | exactly the keys you named | **kept** — you named it |
+| `$this->except(['id'])` | every model attribute minus the named keys | **dropped** — the set is derived |
+| `$this->relation->except(['id'])` | every attribute minus the named keys | **dropped** — the set is derived |
+| `parent::toArray($request)`, or no `toArray()` at all | every model attribute | **dropped** — the set is derived |
+
+If you want a `$hidden` column published through one of the derived paths, name it explicitly — switch that property to `only([...])` and list the column, or drop it from the model's `$hidden` array entirely if it no longer needs to be hidden.
+
 ### Resource Collections
 
 `ResourceCollection` subclasses are supported. The analyzer resolves `$this->collection` to the singular resource type as an array:
