@@ -295,6 +295,25 @@ export interface Product {
 
 `#[TsType]` also accepts a plain string (`#[TsType('{width: number, height: number}')]`) when the type doesn't need an import.
 
+## Laravel 13 Model Attributes
+
+Laravel 13 shipped a set of native class attributes across Eloquent models (`Illuminate\Database\Eloquent\Attributes`) and API resources (`Illuminate\Http\Resources\Attributes`) that replace older property-based conventions (`#[Table]` instead of `protected $table`, and so on). These are **not** attributes from this package — no `use AbeTwoThree\LaravelTsPublish\Attributes\...` needed — and most of them are honored automatically, with no configuration and no code change on your end, because Laravel resolves them into the model's ordinary instance state before this package ever reads the model:
+
+| Attribute                          | Honored? | Notes                                                                                                                                                                     |
+| ----------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#[Table('...')]`                   | Yes      | Changes which table columns are read from, same as `protected $table`.                                                                                                       |
+| `#[Hidden(['col'])]`                | Yes      | Feeds the same `hidden` flag `protected $hidden` does — see [What gets published: hidden attributes](#what-gets-published-hidden-attributes-write-only-accessors).          |
+| `#[Visible(['col'])]`               | Yes      | An **allowlist** — every column *not* listed becomes hidden, same as `protected $visible`. List every column meant to stay published, or most of the model will disappear from the generated interface. |
+| `#[Appends(['accessor'])]`          | Yes      | Adds accessors to the published set, same as `protected $appends`.                                                                                                            |
+| `#[Connection('name')]`             | Yes      | Selects which database connection's schema the columns are read from, same as `protected $connection`.                                                                       |
+| `#[Collects(SomeResource::class)]`  | Yes      | Which resource a collection collects — see [API Resources](./api-resources.md).                                                                                              |
+| `#[UseResource(...)]` / `#[UseResourceCollection(...)]` | Yes | Associates a model with its resource — see [API Resources](./api-resources.md). Available since Laravel 12.29, not just 13.                                    |
+| `#[PreserveKeys]`                   | Not yet  | Would make a resource collection emit a keyed object instead of an array. No effect on generated output currently.                                                           |
+| `#[RouteKey('slug')]`               | **No**   | Looks route-model-binding-relevant, but this package's route-argument inference does not currently call `getRouteKeyName()` for a model that only carries this attribute (as opposed to overriding the method itself), so a route bound by `#[RouteKey]` alone still generates its argument as keyed by `id`. Override `getRouteKeyName()` directly if you need the generated route helper to reflect a custom route key. |
+| Everything else (`#[DateFormat]`, `#[WithoutTimestamps]`, `#[WithoutIncrementing]`, `#[Fillable]`, `#[Guarded]`, `#[Unguarded]`, `#[Scope]`, `#[ScopedBy]`, `#[ObservedBy]`, `#[Boot]`, `#[Initialize]`, `#[Touches]`, `#[CollectedBy]`, `#[UseEloquentBuilder]`, `#[UseFactory]`, `#[UsePolicy]`) | N/A | These affect querying, events, mass assignment, or factories — not the serialized shape — so there's nothing for the TypeScript generator to do either way. |
+
+Most of these attribute classes (`#[Table]`, `#[Hidden]`, `#[Visible]`, `#[Appends]`, `#[Connection]`, `#[Collects]`, `#[PreserveKeys]`) require Laravel 13; `#[UseResource]`/`#[UseResourceCollection]` only require 12.29+. On an older floor, using one isn't a hard error — a `use` import of a nonexistent class doesn't fail until something actually resolves it, and nothing in this package or in Laravel itself does for a class-level attribute on a model that floor doesn't know about. The model loads and instantiates normally; the attribute is just silently ignored, which is a more dangerous failure mode than an error, since nothing tells you `#[Table]` didn't take effect. Stay on the version each attribute actually needs if you rely on it.
+
 ## Typing Attributes Without #[TsCasts]
 
 ### Typing `array` casts with `@property`
