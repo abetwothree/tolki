@@ -31,6 +31,37 @@ The analyzer recognizes the following patterns inside `toArray()`:
 
 Types are resolved from the model's database columns and cast definitions.
 
+### Local Variables
+
+A variable assigned once from a model property and returned directly carries that type into the generated interface — you don't need to inline the property access:
+
+```php
+public function toArray(Request $request): array
+{
+    $slug = $this->slug;
+
+    return [
+        'slug' => $slug,   // string — same as returning `$this->slug` directly
+    ];
+}
+```
+
+This still works even if the same name is reused as a closure or arrow-function parameter elsewhere in the method. The parameter only shadows the variable for its own closure body — it no longer degrades the outer property to `unknown`:
+
+```php
+public function toArray(Request $request): array
+{
+    $member = $this->slug;
+
+    return [
+        'outer_member' => $member, // string
+        'mapped_members' => $this->members->map(fn ($member) => $member), // User[] — this $member is the map's own element
+    ];
+}
+```
+
+If you see a property come out as `unknown` when it looks like it should resolve, check whether the backing variable is reassigned more than once, or reassigned inside a conditional branch — the analyzer can't tell which write is live at return time, so it deliberately falls back to `unknown` rather than guessing.
+
 ### Conditional Methods
 
 All conditional methods produce **optional** properties (with `?` in TypeScript) by default. Every one of
