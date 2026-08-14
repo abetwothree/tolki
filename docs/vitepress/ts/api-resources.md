@@ -478,13 +478,17 @@ That split isn't arbitrary — it mirrors what `Model::only()` versus `toArray()
 
 | Pattern | Property set | A `$hidden` column, with `exclude_hidden` enabled |
 | --- | --- | --- |
+| `'password' => $this->password` | the property you wrote by hand | **kept** — you named it |
 | `$this->only(['id', 'password'])` | exactly the keys you named | **kept** — you named it |
 | `$this->relation->only(['id', 'password'])` | exactly the keys you named | **kept** — you named it |
+| `$this->whenHas('password')` | the attribute you named | **kept** — you named it |
 | `$this->except(['id'])` | every model attribute minus the named keys | **dropped** — the set is derived |
 | `$this->relation->except(['id'])` | every attribute minus the named keys | **dropped** — the set is derived |
-| `parent::toArray($request)`, or no `toArray()` at all | every model attribute | **dropped** — the set is derived |
+| `parent::toArray($request)`, `[...parent::toArray($request)]`, or no `toArray()` at all | every model attribute | **dropped** — the set is derived |
 
-If you want a `$hidden` column published through one of the derived paths, name it explicitly — switch that property to `only([...])` and list the column, or drop it from the model's `$hidden` array entirely if it no longer needs to be hidden.
+`'password' => $this->password` is worth calling out on its own: it's the plainest, most common way to expose a column, and it behaves exactly like a named `only()` key — a `$hidden` column you access directly is never silently dropped.
+
+If you want a `$hidden` column published through one of the derived paths, name it explicitly — switch that property to `only([...])`, access it directly as `$this->column`, or drop it from the model's `$hidden` array entirely if it no longer needs to be hidden.
 
 ### Resource Collections
 
