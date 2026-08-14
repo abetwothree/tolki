@@ -536,6 +536,16 @@ The three `As*ArrayObject` casts hydrate an `ArrayObject`, which serializes as a
 
 The `unknown[]` collection row above is the **bare** form. `AsEnumCollection::of(...)` and `AsCollection::of(...)` / `::using(...)` carry their mapped class in the cast string and resolve to that element's real type instead — see [Typing castable-with-arguments casts](#typing-castable-with-arguments-casts).
 
+A parameterized docblock generic (`@return`, `@property`, `Attribute<>`) narrows further, based on its declared key type:
+
+| Docblock generic | TypeScript |
+| --- | --- |
+| `list<X>`, `array<int, X>`, `Collection<int, X>`, `X[]` | `X[]` |
+| `array<string, X>`, `Collection<string, X>` | `Record<string, X>` |
+| `Collection<array-key, X>`, `Collection<mixed, X>`, bare `Collection` | `X[] \| Record<string, X>` |
+
+A collection *chain* on a relation (`->sortBy()`, `->pluck($value, $key)`, `->take()`, …) is analyzed separately from its declared type: it keeps the `X[] | Record<string, X>` union unless the chain provably ends with sequential, 0-indexed keys — e.g. a trailing `->values()`, or `->take()` anchored at the front of an already-sequential collection — in which case it narrows to `X[]`.
+
 #### Dates & Times
 
 `date`, `immutable_date`, `datetime`, `immutable_datetime`, `immutable_custom_datetime`, `timestamp`, and Carbon/`CarbonImmutable` casts all resolve through [`timestamps_as_date`](#timestamps-as-date-objects) → **`string`** (default) or **`Date`**.
