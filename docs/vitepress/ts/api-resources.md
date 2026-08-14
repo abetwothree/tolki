@@ -33,7 +33,9 @@ Types are resolved from the model's database columns and cast definitions.
 
 ### Conditional Methods
 
-All conditional methods produce **optional** properties (with `?` in TypeScript):
+All conditional methods produce **optional** properties (with `?` in TypeScript) — with one exception:
+`whenNotNull()`/`whenNull()` become **required** when called with their second (default) argument, covered
+just below the table.
 
 | Method                                      | Description                       | Generated Type           |
 | ------------------------------------------- | --------------------------------- | ------------------------ |
