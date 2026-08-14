@@ -545,13 +545,13 @@ Custom mappings are merged with the built-in map and take precedence. For a _per
 | ------------------------------------------------------------------ | -------------------------------------- |
 | `array`, `collection`                                              | `unknown[]`                            |
 | `AsCollection`, `AsEncryptedCollection`, `AsEnumCollection` (bare) | `unknown[]`                            |
-| `AsArrayObject`, `AsEncryptedArrayObject`, `AsEnumArrayObject`     | `Record<string, unknown>`              |
+| `AsArrayObject`, `AsEncryptedArrayObject`, `AsEnumArrayObject`     | `unknown[] \| Record<string, unknown>` |
 | `json`, `jsonb`, `object`                                          | `object`                               |
 | `Illuminate\Database\Eloquent\Collection`                          | `Record<string, unknown>`              |
 | `Illuminate\Support\Collection`                                    | `unknown[] \| Record<string, unknown>` |
 | `Illuminate\Database\Eloquent\Casts\AsFluent`                      | `object`                               |
 
-The three `As*ArrayObject` casts hydrate an `ArrayObject`, which serializes as a JSON object rather than an array — hence `Record<string, unknown>` rather than `unknown[]`.
+The three `As*ArrayObject` casts hydrate an `ArrayObject`, whose `jsonSerialize()` returns the underlying array verbatim — a list payload serializes as a JSON array, not an object, so the type admits both shapes rather than claiming `Record<string, unknown>` alone.
 
 The `unknown[]` collection row above is the **bare** form. `AsEnumCollection::of(...)` and `AsCollection::of(...)` / `::using(...)` carry their mapped class in the cast string and resolve to that element's real type instead — see [Typing castable-with-arguments casts](#typing-castable-with-arguments-casts).
 
