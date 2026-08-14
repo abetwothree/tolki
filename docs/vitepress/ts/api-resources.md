@@ -542,6 +542,42 @@ class OrderCollection extends ResourceCollection
 
 When the singular resource cannot be resolved (e.g., `MiscCollection` with no matching `MiscResource`), `$this->collection` falls back to `unknown`.
 
+#### Key-Preserving Collections
+
+A `ResourceCollection` normally serializes as a JSON array, so the generated type is `R[]`. Laravel
+supports opting a collection out of that and keeping its original keys instead, which makes the
+payload a JSON object — two ways to opt in, both recognized:
+
+```php
+use Illuminate\Http\Resources\Attributes\PreserveKeys;
+use Illuminate\Http\Resources\Json\ResourceCollection;
+
+#[PreserveKeys] // Laravel 13+
+class TeamCollection extends ResourceCollection
+{
+    public $collects = TeamResource::class;
+}
+```
+
+```php
+use Illuminate\Http\Resources\Json\ResourceCollection;
+
+class TeamCollection extends ResourceCollection
+{
+    public $preserveKeys = true; // works on every supported Laravel version
+
+    public $collects = TeamResource::class;
+}
+```
+
+Either form generates:
+
+```typescript
+export interface TeamCollection {
+  data: Record<string, TeamResource>;
+}
+```
+
 Larger support for `ResourceCollection` features (e.g., pagination metadata, `additional()` method, etc.) may be added in a future release.
 
 ## Anatomy of a Generated Resource
