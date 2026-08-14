@@ -326,6 +326,54 @@ trait IncludesExtras
 > [!NOTE]
 > When a trait method has no `@return array{...}` PHPDoc or `#[TsCasts]` attribute, its properties will be typed as `unknown`.
 
+### Bare Method-Call Return
+
+`toArray()` doesn't have to spread a method's return value into an array literal — returning the method call directly is supported too:
+
+```php
+public function toArray(Request $request): array
+{
+    return $this->data();          // now supported
+    // return [...$this->data()];  // already supported
+}
+```
+
+This resolves transitively: if `data()` itself returns another method call, the analyzer keeps following the chain until it reaches an array literal (or an `only()`/`except()` filter — see [Attribute Filters](#attribute-filters-only--except) below):
+
+```php
+class TeamResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return $this->data();
+    }
+
+    protected function data(): array
+    {
+        return $this->nested();
+    }
+
+    protected function nested(): array
+    {
+        return [
+            'id' => $this->id,
+            'slug' => $this->slug,
+        ];
+    }
+}
+```
+
+Generates:
+
+```typescript
+export interface TeamResource {
+  id: number;
+  slug: string;
+}
+```
+
+The chain can pass through trait- and parent-declared methods the same way a `...$this->method()` spread does — see [Trait Method Spread](#trait-method-spread) above.
+
 ### JsonResource Base Delegation
 
 Resources that have **no `toArray()` method** or whose `toArray()` simply returns `parent::toArray($request)` automatically generate properties from the backing model's database schema:
