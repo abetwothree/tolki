@@ -131,17 +131,28 @@ optional, because it can no longer be missing.
 'status' => $this->when($this->is_published, $this->status, 'draft'), // required
 ```
 
-When the method resolves its type from the value expression directly — as `when()` does — the type widens
-too, unioning the default's type in alongside the value's:
+The type widens too: the default's own type is unioned in alongside the value's, so a required property
+never claims a type the runtime can contradict.
 
 ```php
 'discount' => $this->when($this->has_discount, $this->discount_percent),        // discount?: number
 'discount' => $this->when($this->has_discount, $this->discount_percent, 'n/a'), // discount: number | string
+'reviews'  => $this->whenCounted('reviews', null, 'n/a'),                       // reviews: number | string
+'address'  => $this->whenHas('full_address', $this->full_address, 0),           // address: string | number
 ```
 
 An explicit `null` still counts as a default — Laravel distinguishes an omitted argument from a passed-in
-one, not a `null` value from a non-null one — so `$this->whenLoaded('user', fn ($user) => $user, null)`
-is required too, even though the default itself is `null`.
+one, not a `null` value from a non-null one — so
+`$this->whenLoaded('user', fn ($user) => $user, null)` is required, and typed `User | null` rather than a
+bare `User` you could dereference on the not-loaded path.
+
+Two cases can't be widened honestly, and the generator says so rather than guessing:
+
+- **The default's own type can't be resolved** (an unanalyzable expression or closure). Nothing backs a
+  required type, so the property stays optional and you keep the presence check.
+- **The value arm's type can't be resolved** — `whenPivotLoaded()` and `whenPivotLoadedAs()`, whose pivot
+  payload the generator never inspects. The property is required but stays `unknown`, since `unknown`
+  already admits the default.
 
 ### Enum Properties with `EnumResource`
 
