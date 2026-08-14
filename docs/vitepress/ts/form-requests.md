@@ -48,7 +48,6 @@ export interface StorePostRequest {
   /** @format email */
   email: string;
   tags?: string[];
-  "tags.*"?: string;
 }
 ```
 
@@ -57,7 +56,7 @@ export interface StorePostRequest {
 - `rating` demonstrates that a [`#[TsCasts]`](#tscasts-overriding-field-types) override only replaces the _type_ and _optionality_ — the `nullable` rule's `| null` suffix is still appended by the analyzer afterward, giving `number | bigint | null` rather than just `number | bigint`.
 - `email` picks up a [JSDoc metadata annotation](#jsdoc-metadata-annotations) (`@format email`) from the `email` rule.
 - `tags` is upgraded from the bare `array` rule's `unknown[]` to `string[]` — first automatically (from the sibling `tags.*` wildcard rule), then explicitly overridden to the same value by `#[TsCasts]`.
-- `"tags.*"` gets its own (quoted, since `.` isn't valid in a bare identifier) property describing the _element_ constraint — see [Array & Nested Rules](#array-nested-rules) for why nested/wildcard paths always appear as their own optional property.
+- `tags.*` does **not** get a property of its own. A dot-notation or wildcard rule key describes a value _inside_ `tags`, so it composes into `tags` instead of being emitted alongside it as a quoted `"tags.*"` key — see [Array & Nested Rules](#array-nested-rules).
 - The class docblock (none here) would become the interface's JSDoc comment; individual fields don't support their own docblocks since they come from array keys inside `rules()`, not separate PHP declarations — the [JSDoc metadata annotations](#jsdoc-metadata-annotations) fill that role instead.
 
 ## Rule-to-Type Mapping Reference
@@ -105,7 +104,7 @@ Rules are checked in this order — the first match wins:
 | `required` (or any rule starting with `required`, including `Rule::requiredIf()`/`requiredUnless()`) | Field is **required** (no `?`)                                               |
 | `sometimes`                                                                                          | Field is optional, even combined with `required`                             |
 | `nullable`                                                                                           | Adds `\| null` to the field's type                                           |
-| `missing` / `prohibited`                                                                             | Field is **excluded from the interface entirely** — not just marked optional |
+| `missing` / `prohibited`                                                                             | Field is **excluded from the interface entirely** — not just marked optional. A nested key is dropped from its parent's shape instead; see [Array & Nested Rules](#array-nested-rules) |
 
 ```php
 public function rules(): array
@@ -125,7 +124,7 @@ Fields with no `required`/`sometimes` rule at all (e.g. a bare `'published' => [
 
 ## Array & Nested Rules
 
-Dot-notation (`meta.description`) and wildcard (`tags.*`) rule keys describe constraints on **nested values**, not top-level JSON keys you'd set directly — so they're always optional in the generated interface, and they still appear as their own (quoted) property alongside their parent:
+Dot-notation (`meta.description`) and wildcard (`tags.*`) rule keys describe constraints on **nested values**, not top-level JSON keys you'd set directly. They compose into their nearest undotted ancestor and are never emitted as their own quoted property — `"order.id"?: string` would suggest you could send a literal `order.id` key, which Laravel's dot-notation validation never means:
 
 ```php
 class ArrayRulesRequest extends FormRequest
@@ -138,6 +137,11 @@ class ArrayRulesRequest extends FormRequest
 
             'selected_ids' => ['required', 'array', 'between:1,5'],
             'selected_ids.*' => ['required', 'integer'],
+
+            'order' => ['required', 'array'],
+            'order.id' => ['required', 'uuid'],
+            'order.items' => ['required', 'array'],
+            'order.items.*.product_id' => ['required', 'integer'],
         ];
     }
 }
@@ -146,13 +150,27 @@ class ArrayRulesRequest extends FormRequest
 ```typescript
 export interface ArrayRulesRequest {
   tags?: string[];
-  "tags.*"?: string;
   selected_ids: number[];
-  "selected_ids.*"?: number;
+  /** @format uuid order.id */
+  order: { id: string; items: { product_id: number }[] };
 }
 ```
 
-Note that `selected_ids` itself is required (its own `required` rule applies), while `"selected_ids.*"` is still optional — the `.` in the path forces that regardless of the wildcard rule's own `required`.
+Nesting is unbounded — `order.items.*.product_id` composes through every one of its segments the same way `tags.*` composes through its one. The parent's own presence and nullability rules decide the parent's `?` and `| null` (`selected_ids` is required because its own rule says `required`), while each nested key's own rules decide its optionality inside the composed shape.
+
+### Nested edge cases
+
+| Rules                                                                          | Generated type                                     | Why                                                                                                                             |
+| ------------------------------------------------------------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `'choices' => ['nullable','array']`<br>`'choices.*' => ['nullable','string']`   | `choices?: (string \| null)[] \| null`             | The element's `nullable` folds into the element type; the array's own `nullable` stays on the array.                             |
+| `'options' => ['array']`<br>`'options.*' => ['string']`<br>`'options.default' => ['string']` | `options?: { default?: string } & Record<string, string>` | A wildcard beside a named sibling is a map with some pinned keys — emitted as an intersection, which stays valid TypeScript even when the two halves differ. |
+| `'meta' => ['array']`<br>`'meta.secret' => ['prohibited']`                      | `meta?: Record<string, never>`                     | Every named key is prohibited, so no key is allowed — not an empty object you may add keys to.                                   |
+| `'empties' => ['array']`<br>`'empties.*' => ['prohibited']`                     | `empties?: never[]`                                | The element may never appear, so the array may never hold anything.                                                             |
+| `'v1\.0' => ['required','string']`                                              | `"v1.0": string`                                   | An escaped dot is a literal character in the attribute name, so it stays one field — quoted, since `.` isn't a bare identifier.  |
+| `'items' => ['array']`<br>`'items.0.name' => ['required','string']`             | `items?: { name: string }[]`                       | Explicit numeric indices describe a list. `{ "0": … }` is a type no real JSON array is assignable to.                            |
+| `'variants.0.name' => [...]`<br>`'variants.1.email' => [...]`                   | `variants?: ({ name: string } \| { email: string })[]` | Indices with different shapes union, parenthesized so `[]` applies to the whole union rather than the last member.             |
+
+A `prohibited`/`missing` rule on a nested key drops that key from its parent's shape, and drops its own descendants with it: `'order.secret' => ['prohibited']` alongside `'order.secret.token' => ['required','uuid']` leaves nothing of `secret` in `order`.
 
 ## JSDoc Metadata Annotations
 
@@ -178,6 +196,23 @@ Certain rules attach a JSDoc comment above the field instead of (or in addition 
 /** @constraint exists */
 category_id: number;
 ```
+
+An annotation on a nested rule isn't lost when that rule [composes into its parent](#array-nested-rules) — it's hoisted onto the parent's comment block and suffixed with the full rule key it came from, wildcards included, so you can tell which nested key it describes:
+
+```php
+'order.id' => ['required', 'uuid'],
+'products.*.contact_email' => ['required', 'email'],
+```
+
+```typescript
+/** @format uuid order.id */
+order: { id: string /* … */ };
+
+/** @format email products.*.contact_email */
+products: { contact_email: string /* … */ }[];
+```
+
+The one exception is a `prohibited` nested key: since it and its descendants are dropped from the type, their annotations are dropped too.
 
 ## `#[TsCasts]` — Overriding Field Types
 
@@ -216,6 +251,10 @@ export interface UpdatePostRequest {
 
 ::: warning
 `#[TsCasts]` only replaces the field's **type** and **optionality** (via the `optional` key) — it does not clear a `nullable` rule already on that field. If the underlying rule includes `nullable`, the override's type still gets `| null` appended, same as in the [Anatomy](#anatomy-of-a-generated-form-request) example above.
+:::
+
+::: warning
+`#[TsCasts]` keys match **generated field names**, and a dot-notation rule key never becomes one — it [composes into its parent](#array-nested-rules). A key like `'order.id'` or `'tags.*'` matches nothing and is silently ignored; it does not add a field either. Override the parent (`'order'`, `'tags'`) to replace the whole shape, or make the rule itself precise enough not to need an override. The only dotted key that matches is one whose dot was escaped in the rule (`'v1\.0'` generates the field `"v1.0"`, so `'v1.0'` overrides it).
 :::
 
 ## `#[TsExtends]`
