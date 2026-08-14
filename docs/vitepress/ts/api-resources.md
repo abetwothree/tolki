@@ -47,6 +47,30 @@ All conditional methods produce **optional** properties (with `?` in TypeScript)
 
 See [Nullable Relations](#nullable-relations) for `whenLoaded` nullability handling.
 
+#### `whenNotNull()` / `whenNull()` and their optional second argument
+
+`whenNotNull($value, $default)` and `whenNull($value, $default)` read their arguments positionally — the
+second argument is Laravel's fallback value, never a callback bound to the first. `whenNotNull()`'s guard
+proves the value non-null on the success arm, so its `null` possibility is removed from the generated type:
+
+```php
+'line_2' => $this->whenNotNull($this->line_2), // string | null column
+```
+
+generates `line_2?: string`, not `line_2?: string | null`.
+
+Passing a second argument changes both `optional` and the type: Laravel never omits the key once a default
+is supplied, so the property becomes **required**, and its type becomes the union of the value and default
+arms:
+
+```php
+'discount' => $this->whenNotNull($this->discount_percent, 0), // discount_percent: number | null
+```
+
+generates `discount: number` (required) — the default's type merges with, and here fully overlaps, the
+value's own type. A default of a different type (e.g. a string fallback for a numeric column) produces a
+union of both, still required.
+
 ### Enum Properties with `EnumResource`
 
 Use `EnumResource::make()` to expose enum-cast properties as rich enum objects:
@@ -427,7 +451,7 @@ export interface UserResource {
   profile?: Profile | null;
   posts?: PostResource[];
   phone?: string | null;
-  avatar?: string | null;
+  avatar?: string;
   posts_count?: number;
   comments_count?: number;
 }
