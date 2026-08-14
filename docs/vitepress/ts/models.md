@@ -295,6 +295,149 @@ export interface Product {
 
 `#[TsType]` also accepts a plain string (`#[TsType('{width: number, height: number}')]`) when the type doesn't need an import.
 
+## Typing Attributes Without #[TsCasts]
+
+### Typing `array` casts with `@property`
+
+A column cast to `'array'` (or any other cast the accessor → cast → DB waterfall can't type more precisely) generates as `unknown[]`. Rather than reaching for `#[TsCasts]`, add a class-level `@property`/`@property-read` docblock tag naming the real shape — the same convention PHPStan/Larastan already read — and it wins wherever the resolved type would otherwise stay vague:
+
+```php
+/**
+ * @property array<int, string>|null $to
+ * @property array<string, string>|null $headers
+ */
+class Message extends Model { ... }
+```
+
+`$to` and `$headers` now generate as `string[] | null` and `Record<string, string> | null` instead of `unknown[] | null` — and it types the same property for PHPStan/Larastan too. The tag only takes effect when the waterfall's own result is vague, so it never overrides a type already resolved specifically (an accessor's return type, an enum cast, a custom `CastsAttributes` class, etc.), and a subclass's own tag wins over one declared on a parent.
+
+A refinement that's still partly vague is accepted as long as it's more structured than a bare untyped array/collection/object — `@property array<string, mixed>|null $settings` refines a plain `'array'` cast to `Record<string, unknown> | null` even though `Record<string, unknown>` itself still names `unknown`, because it beats the `unknown[]` it replaces. A refinement that's exactly as vague as the original (`unknown`, `unknown[]`, `object`, or the `unknown[] | Record<string, unknown>` Collection fallback) is still rejected.
+
+The `@property` walk also covers every **trait** used by the class or its parents (recursively), so a trait supplying an accessor can carry its own class-level tag — including the non-standard `@property string[] labels` form some packages use without the `$` sigil.
+
+### Typing json columns with `@phpstan-type` aliases
+
+For a shape complex enough to deserve a name, define it once as a `@phpstan-type` on the DTO that owns it, then pull it into the model with `@phpstan-import-type`:
+
+```php
+/** @phpstan-type PresetConfig array{filters?: array<string, mixed>, sorts?: list<string>} */
+final readonly class PresetDto { ... }
+
+/**
+ * @phpstan-import-type PresetConfig from PresetDto
+ * @property PresetConfig|null $config
+ */
+class Preset extends Model { ... }
+```
+
+`$config` generates as `{ filters?: Record<string, unknown>; sorts?: string[] } | null` — the alias expands inline (no import of `PresetDto` itself is emitted, since only its shape is used), optional keys keep their `?`, and PHPStan validates the same alias. `@phpstan-import-type ... as Alias` and `@psalm-type`/`@psalm-import-type` are both recognized, an alias may reference another imported alias, and a cyclical import degrades to `unknown` rather than hanging the publish run. This is the preferred path over `#[TsCasts]` for a shape that's already worth documenting for static analysis.
+
+### Typing castable-with-arguments casts
+
+Laravel's built-in `Castable` classes carry their configuration after a colon — `AsEnumCollection::of(DayOfWeek::class)` and `AsCollection::of(...)`/`::using(...)` all build a `"ClassName:arg1,arg2"` cast string. These are resolved without any extra config:
+
+```php
+protected function casts(): array
+{
+    return [
+        'week_days' => AsEnumCollection::of(DayOfWeek::class),
+        'grid_configs' => AsCollection::of(GridConfigDto::class),
+    ];
+}
+```
+
+- **`AsEnumCollection::of($enum)`** generates as the enum's TypeScript type suffixed `[]` — `DayOfWeekType[]` — with the enum's import wired exactly like a scalar enum-typed column.
+- **`AsCollection::of($map)` / `::using($collection, $map)`** resolves the mapped class's element shape and appends `[]`. An `Arrayable` DTO with a documented `toArray()` shape inlines as an object array (`{ label: string; config: Record<string, unknown> }[]`); a mapped enum resolves the same way `AsEnumCollection` does. Without a resolvable map (or a bare `AsCollection`/`AsCollection::class`), it stays `unknown[]` — the same fallback as today.
+- **Any other `Castable`/`CastsAttributes` class carrying arguments** — a custom cast, `AsEncryptedCollection`, etc. — resolves as if the arguments weren't there, i.e. exactly like the bare class.
+
+::: tip
+Before reaching for `#[TsCasts]`, prefer — in this order — a parameterized `Attribute<>`/`@return`/`@phpstan-return` docblock on an accessor (generics included, e.g. `Attribute<Collection<int, LineItem>, never>`), a class-level `@property`/`@property-read` tag (including a `@phpstan-type`/`@phpstan-import-type` alias, as above), or a `@return MorphTo<A|B, $this>` generic on a `morphTo()` relation. All of these are read by PHPStan/Larastan too, so they're checked by static analysis in a way a package-specific attribute isn't — and every one is honored by the generator with no extra configuration. See the [annotation checklist](#annotation-checklist) below for the full symptom-first list.
+
+`#[TsCasts]` is still the right tool when a shape is genuinely dynamic (keys built at runtime) or the type is owned by the frontend and needs its own import.
+:::
+
+### Typing `morphTo` relations
+
+A `morphTo()` relation's target union is normally inferred in reverse — by scanning every other model for a `morphOne`/`morphMany` pointing back at it — which can only ever find a union, never narrow one. A `@return MorphTo<A|B, $this>` docblock generic on the relation method overrides that scan and types the relation directly, PHPStan-checked, no `#[TsCasts]` needed:
+
+```php
+class Activity extends Model
+{
+    /** @return MorphTo<User, $this> */
+    public function causer(): MorphTo
+    {
+        return $this->morphTo();
+    }
+}
+```
+
+`causer` generates as `User | null` even though no other model declares a reverse relation pointing at `Activity`. The second generic argument (`$this`, Laravel's own convention for the child) carries no target information and is ignored. A generic naming the base `Model` class (`MorphTo<Model, $this>`) isn't narrowing — it's the common, useless case (`@phpstan-return MorphTo<Model, $this>` is what Larastan itself expects when a relation's targets aren't known upfront) — so it falls through to the reverse scan exactly as if no generic were present, rather than emitting a `Model` token nothing can import. Two differently-named `morphTo` relations on the same model resolve independently either way, since both the docblock generic and the reverse scan are read per relation, not per model.
+
+### DTO-typed accessors and casts
+
+An `Arrayable` DTO whose `toArray()` carries no `@return array{...}` shape now infers its shape from its own typed public properties — promoted constructor properties included — instead of falling back to `unknown[]`:
+
+```php
+final readonly class OrderTypeCapabilities implements Arrayable
+{
+    public function __construct(
+        public string $typeName,
+        public bool $tracksSteelDetails,
+        public ?string $warehouseDocsKey = null,
+    ) {}
+
+    /** @return array<string, bool|string|null> */
+    public function toArray(): array
+    {
+        return (array) $this;
+    }
+}
+```
+
+generates as `{ typeName: string; tracksSteelDetails: boolean; warehouseDocsKey: string | null }`. Nullable properties keep their `| null`; private, protected, and static properties are excluded, since they aren't part of `(array) $this`; and a property typed as a class with no import channel (a Model, for example) degrades to `unknown` the same way an unimportable docblock shape value does. Reach for a `@return array{...}` docblock instead only when the properties alone don't tell the whole story — it still wins whenever present.
+
+This is `Arrayable`-only. A `JsonSerializable` DTO's `jsonSerialize()` still only resolves from a `@return array{...}` docblock and otherwise falls through to later resolution steps (e.g. its class basename), rather than inferring from properties — `(array) $this` is a real contract tying `toArray()` to a DTO's own properties, but `jsonSerialize()` can return anything, so inferring its shape from properties could produce a confidently wrong type.
+
+### What gets published: hidden attributes, write-only accessors
+
+Not every attribute Eloquent knows about ends up in the generated interface:
+
+- **`$hidden` attributes are published by default.** Setting `ts-publish.models.exclude_hidden` to `true` excludes them instead, matching Laravel's own `toArray()`/`toJson()` serialization — the rule that would then keep a `password` or `remember_token` column out of the model's own interface. The default is permissive (`false`, hidden attributes shown) so upgrading the package never silently drops a property a consuming app already relies on; opt in once you've confirmed the frontend doesn't need those columns. When the setting is enabled, an app that still needs a hidden column client-side should either drop it from `$hidden` or call `makeVisible()` before returning the model — the generator has no way to see a runtime `makeVisible()` call, so a hidden column drops from the model's own published interface regardless of any particular request.
+- **Write-only mutators** — `Attribute::make(set: ...)` with no `get:` — resolve in this order: (1) the method's own `@return Attribute<Get, Set>` docblock, when the `Get` type is present and isn't itself vague; (2) a same-named database column, if one exists; (3) otherwise the mutator is omitted from the interface entirely, rather than emitted as `unknown`.
+
+```php
+class Order extends Model
+{
+    /** @return Attribute<?string, string> */
+    protected function trackingCode(): Attribute
+    {
+        return Attribute::make(set: fn (string $value): string => strtoupper($value));
+    }
+
+    // No getter, no docblock generic, no backing column — omitted from OrderMutators entirely.
+    protected function searchIndex(): Attribute
+    {
+        return Attribute::make(set: fn (string $value): string => strtolower($value));
+    }
+}
+```
+
+`trackingCode` generates as `tracking_code: string | null` in `OrderMutators`; `searchIndex` doesn't appear there at all. A write-only mutator backed by a real column (e.g. one that normalizes a value on save) resolves through the normal column waterfall instead, and is published as a column rather than a mutator.
+
+### Annotation checklist
+
+A symptom-first index of the annotations above (plus one from [API Resources](./api-resources.md) on the API Resources page) — none of these need `#[TsCasts]`, and every one is read by PHPStan/Larastan too, so the annotation that unlocks the TypeScript type is also checked by static analysis:
+
+| Still generating `unknown`?                                                                                          | Add this                                                                                                                                                                | Unlocks                                                                                                                                                                                     |
+| -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Attribute<Collection, never>` / `Attribute<array, never>` resolving to `unknown[]`                                  | Parameterize the generic: `Attribute<Collection<int, LineItem>, never>` / `Attribute<array<int, string>, never>` (or `array{...}` for a fixed shape)                    | The real element type (`LineItem[]` / `string[]`), imported automatically                                                                                                                   |
+| A bare `'array'`/`'collection'` cast with no shape anywhere else                                                     | A class-level `@property`/`@property-read` tag, e.g. `@property array<string, mixed>\|null $settings`                                                                   | `Record<string, unknown> \| null` (or more specific, if the tag is) instead of `unknown[] \| null` — see [Typing `array` casts with `@property`](#typing-array-casts-with-property)         |
+| A JSON shape worth naming once and reusing                                                                           | `@phpstan-type Name array{...}` on the class that owns it, `@phpstan-import-type Name from ThatClass` + `@property Name $prop` on the model                             | A named, PHPStan-checked object shape expanded inline, no import of the DTO itself — see [Typing json columns with `@phpstan-type` aliases](#typing-json-columns-with-phpstan-type-aliases) |
+| `AsEnumCollection`/`AsCollection` cast with no argument, resolving to `unknown[]`                                    | Pass the mapped class: `AsEnumCollection::of(Status::class)`, `AsCollection::of(LineItemDto::class)`                                                                    | The mapped element's real type (enum or DTO shape), suffixed `[]` — see [Typing castable-with-arguments casts](#typing-castable-with-arguments-casts)                                       |
+| `morphTo()` typed `unknown \| null` even though the app knows the possible targets                                   | `@return MorphTo<A\|B, $this>` on the relation method                                                                                                                   | The narrowed union, every member imported — see [Typing `morphTo` relations](#typing-morphto-relations)                                                                                     |
+| An `Arrayable` DTO accessor/cast generating `unknown[]`                                                              | Nothing extra — typed public properties (promoted constructor properties included) are read automatically once `toArray()` has no `@return array{...}` shape of its own | A property-derived object shape instead of `unknown[]` — see [DTO-typed accessors and casts](#dto-typed-accessors-and-casts)                                                                |
+| `$this->relation->only([...])`/`->except([...])` losing the related model's own `#[TsCasts]`/`@property` refinements | Nothing extra — automatic whenever every filtered key is a real database column                                                                                         | `Pick<Model, 'a' \| 'b'>` / `Omit<Model, ...>` referencing the model's own generated interface — see [API Resources](./api-resources.md)                                                    |
+
 ## PHPDoc Descriptions
 
 Doc blocks are read automatically and converted to JSDoc comments:
@@ -379,14 +522,19 @@ Custom mappings are merged with the built-in map and take precedence. For a _per
 
 #### Arrays & Objects
 
-| Cast                                                                                                                        | TypeScript Type                        |
-| --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `array`, `collection`                                                                                                       | `unknown[]`                            |
-| `AsArrayObject`, `AsCollection`, `AsEncryptedArrayObject`, `AsEncryptedCollection`, `AsEnumArrayObject`, `AsEnumCollection` | `unknown[]`                            |
-| `json`, `jsonb`, `object`                                                                                                   | `object`                               |
-| `Illuminate\Database\Eloquent\Collection`                                                                                   | `Record<string, unknown>`              |
-| `Illuminate\Support\Collection`                                                                                             | `unknown[] \| Record<string, unknown>` |
-| `Illuminate\Database\Eloquent\Casts\AsFluent`                                                                               | `object`                               |
+| Cast                                                               | TypeScript Type                        |
+| ------------------------------------------------------------------ | -------------------------------------- |
+| `array`, `collection`                                              | `unknown[]`                            |
+| `AsCollection`, `AsEncryptedCollection`, `AsEnumCollection` (bare) | `unknown[]`                            |
+| `AsArrayObject`, `AsEncryptedArrayObject`, `AsEnumArrayObject`     | `Record<string, unknown>`              |
+| `json`, `jsonb`, `object`                                          | `object`                               |
+| `Illuminate\Database\Eloquent\Collection`                          | `Record<string, unknown>`              |
+| `Illuminate\Support\Collection`                                    | `unknown[] \| Record<string, unknown>` |
+| `Illuminate\Database\Eloquent\Casts\AsFluent`                      | `object`                               |
+
+The three `As*ArrayObject` casts hydrate an `ArrayObject`, which serializes as a JSON object rather than an array — hence `Record<string, unknown>` rather than `unknown[]`.
+
+The `unknown[]` collection row above is the **bare** form. `AsEnumCollection::of(...)` and `AsCollection::of(...)` / `::using(...)` carry their mapped class in the cast string and resolve to that element's real type instead — see [Typing castable-with-arguments casts](#typing-castable-with-arguments-casts).
 
 #### Dates & Times
 
