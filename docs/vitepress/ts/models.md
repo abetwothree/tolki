@@ -541,7 +541,7 @@ A bare `tinyint` (MySQL/SQL Server `tinyInteger()`) is also **`number`** — onl
 
 `char`, `character`, `enum`, `longtext`, `mediumtext`, `string`, `text`, `varchar`, `encrypted`, `uuid`, `guid`, `hashed`, `time`, `timetz`, `timestamptz`, `numeric-string` → **`string`**
 
-Sized, binary, and legacy DB native types resolve the same way: `tinytext`, `binary`, `varbinary`, `blob`, `bytea`, `tinyblob`, `mediumblob`, `longblob`, `nvarchar`, `nchar`, `ntext`, `image`, `xml`, `interval`, `uniqueidentifier`, `datetimeoffset`, `datetime2`, `smalldatetime` → **`string`**. `set(…)` also resolves to `string`, not an array — MySQL returns a matched `SET` as a comma-joined string.
+Sized, binary, and legacy DB native types resolve the same way: `tinytext`, `binary`, `varbinary`, `blob`, `bytea`, `tinyblob`, `mediumblob`, `longblob`, `nvarchar`, `nchar`, `ntext`, `xml`, `interval`, `uniqueidentifier`, `datetimeoffset` → **`string`**. `set(…)` also resolves to `string`, not an array — MySQL returns a matched `SET` as a comma-joined string. So do Postgres/MySQL's network and full-text types: `inet`, `cidr`, `macaddr`, `macaddr8`, `tsvector`.
 
 #### Arrays & Objects
 
@@ -571,7 +571,7 @@ A collection *chain* on a relation (`->sortBy()`, `->pluck($value, $key)`, `->ta
 
 #### Dates & Times
 
-`date`, `immutable_date`, `datetime`, `immutable_datetime`, `immutable_custom_datetime`, `timestamp`, and Carbon/`CarbonImmutable` casts all resolve through [`timestamps_as_date`](#timestamps-as-date-objects) → **`string`** (default) or **`Date`**.
+`date`, `immutable_date`, `datetime`, `immutable_datetime`, `immutable_custom_datetime`, `timestamp`, `datetime2`, `smalldatetime`, and Carbon/`CarbonImmutable` casts all resolve through [`timestamps_as_date`](#timestamps-as-date-objects) → **`string`** (default) or **`Date`**. `datetime2` is what SQL Server's `dateTime($precision)`/`timestamp($precision)` actually emit once a precision is given — the same logical column as bare `datetime`, so it follows the same toggle; `smalldatetime` is kept consistent with it.
 
 #### Other
 
@@ -591,6 +591,10 @@ A collection *chain* on a relation (`->sortBy()`, `->pluck($value, $key)`, `->ta
 A spatial column's serialized shape depends entirely on how the app reads it — raw WKB is a binary
 string, `ST_AsGeoJSON()` is an object — so `unknown` is the honest type rather than a guess. `vector`
 is a pgvector/MySQL 9 column, which both serialize as a JSON array of floats.
+
+MySQL's `geometry(subtype: '...')` writes the subtype itself as the column's native type instead of
+`geometry` — `point`, `linestring`, `polygon`, `geometrycollection`, `multipoint`, `multilinestring`,
+and `multipolygon` all resolve to **`unknown`** too, for the same reason as `geometry` above.
 
 ## Enum-Typed Columns (`{Model}Resource`)
 
