@@ -559,19 +559,21 @@ The three `As*ArrayObject` casts hydrate an `ArrayObject`, whose `jsonSerialize(
 
 The `unknown[]` collection row above is the **bare** form. `AsEnumCollection::of(...)` and `AsCollection::of(...)` / `::using(...)` carry their mapped class in the cast string and resolve to that element's real type instead — see [Typing castable-with-arguments casts](#typing-castable-with-arguments-casts).
 
-A parameterized docblock generic (`@return`, `@property`, `Attribute<>`) narrows further, based on its declared key type:
+A parameterized docblock generic (`@return`, `@property`, `Attribute<>`) narrows further, based on its declared key type. The container and the key type are resolved independently, so every container behaves identically for a given key type:
 
-| Docblock generic | TypeScript |
-| --- | --- |
-| `list<X>`, `array<int, X>`, `Collection<int, X>`, `X[]` | `X[]` |
-| `array<string, X>`, `Collection<string, X>` | `Record<string, X>` |
-| `array<array-key, X>`, `array<mixed, X>`, `iterable<array-key, X>`, `iterable<mixed, X>`, `Collection<array-key, X>`, `Collection<mixed, X>`, bare `Collection` | `X[] \| Record<string, X>` |
+| Key type | Emitted | Containers |
+| --- | --- | --- |
+| `int`, or omitted | `X[]` | `list<X>`, `array<…>`, `iterable<…>`, `Collection<…>` |
+| `string` | `Record<string, X>` | `array<…>`, `iterable<…>`, `Collection<…>` |
+| `array-key`, `mixed` | `X[] \| Record<string, X>` | `array<…>`, `iterable<…>`, `Collection<…>` |
+
+(`list<X>` has no key-type slot at all — a `list<X>` docblock generic always resolves to the first row, `X[]`.) A container with **no generic at all** — a bare `Collection`, unparameterized — doesn't reach this table: it resolves through the [Arrays & Objects](#arrays-objects) table above, via `TypeScriptMap`, not through the docblock generic resolver.
 
 A collection *chain* on a relation (`->sortBy()`, `->pluck($value, $key)`, `->take()`, …) is analyzed separately from its declared type: it keeps the `X[] | Record<string, X>` union unless the chain provably ends with sequential, 0-indexed keys — e.g. a trailing `->values()`, or `->take()` anchored at the front of an already-sequential collection — in which case it narrows to `X[]`.
 
 #### Dates & Times
 
-`date`, `immutable_date`, `datetime`, `immutable_datetime`, `immutable_custom_datetime`, `timestamp`, `datetime2`, `smalldatetime`, and Carbon/`CarbonImmutable` casts all resolve through [`timestamps_as_date`](#timestamps-as-date-objects) → **`string`** (default) or **`Date`**. `datetime2` is what SQL Server's `dateTime($precision)`/`timestamp($precision)` actually emit once a precision is given — the same logical column as bare `datetime`, so it follows the same toggle; `smalldatetime` is kept consistent with it.
+`date`, `immutable_date`, `datetime`, `immutable_datetime`, `immutable_custom_datetime`, `timestamp`, `datetime2`, `smalldatetime`, and `Carbon`/`CarbonImmutable`/`Illuminate\Support\Carbon` casts all resolve through [`timestamps_as_date`](#timestamps-as-date-objects) → **`string`** (default) or **`Date`**. `datetime2` is what SQL Server's `dateTime($precision)`/`timestamp($precision)` actually emit once a precision is given — the same logical column as bare `datetime`, so it follows the same toggle; `smalldatetime` is kept consistent with it.
 
 #### Other
 
