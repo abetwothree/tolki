@@ -33,9 +33,10 @@ Types are resolved from the model's database columns and cast definitions.
 
 ### Conditional Methods
 
-All conditional methods produce **optional** properties (with `?` in TypeScript) — with one exception:
-`whenNotNull()`/`whenNull()` become **required** when called with their second (default) argument, covered
-just below the table.
+All conditional methods produce **optional** properties (with `?` in TypeScript) by default. Every one of
+them, though, accepts a trailing default argument — and passing it explicitly makes the property
+**required**, because the key can no longer be missing. `whenNotNull()`/`whenNull()`'s default argument is
+covered just below the table; the rest of the family is covered right after that.
 
 | Method                                      | Description                       | Generated Type           |
 | ------------------------------------------- | --------------------------------- | ------------------------ |
@@ -72,6 +73,28 @@ arms:
 generates `discount: number` (required) — the default's type merges with, and here fully overlaps, the
 value's own type. A default of a different type (e.g. a string fallback for a numeric column) produces a
 union of both, still required.
+
+#### The rest of the conditional family and their default argument
+
+The same rule applies to every other conditional method: pass a default and the property stops being
+optional, because it can no longer be missing.
+
+```php
+'status' => $this->when($this->is_published, $this->status),          // optional
+'status' => $this->when($this->is_published, $this->status, 'draft'), // required
+```
+
+When the method resolves its type from the value expression directly — as `when()` does — the type widens
+too, unioning the default's type in alongside the value's:
+
+```php
+'discount' => $this->when($this->has_discount, $this->discount_percent),        // discount?: number
+'discount' => $this->when($this->has_discount, $this->discount_percent, 'n/a'), // discount: number | string
+```
+
+An explicit `null` still counts as a default — Laravel distinguishes an omitted argument from a passed-in
+one, not a `null` value from a non-null one — so `$this->whenLoaded('user', fn ($user) => $user, null)`
+is required too, even though the default itself is `null`.
 
 ### Enum Properties with `EnumResource`
 
