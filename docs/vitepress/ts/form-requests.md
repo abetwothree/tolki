@@ -95,7 +95,7 @@ Rules are checked in this order — the first match wins:
 
 #### Arrays
 
-`array`, `list` → **`unknown[]`** (upgraded to `T[]` automatically when a sibling `field.*` wildcard rule resolves to type `T` — see [Array & Nested Rules](#array-nested-rules))
+`array`, `list` → **`unknown[]`** (upgraded to `T[]` automatically when a sibling `field.*` wildcard rule resolves to type `T` — see [Array & Nested Rules](#array-nested-rules); upgraded to a keyed object instead when `required_array_keys`/`in_array_keys`/`array:` names its keys — see [Key-list rules](#key-list-rules-known-keys-without-a-full-shape))
 
 ## Presence, Nullability & Exclusion
 
@@ -171,6 +171,37 @@ Nesting is unbounded — `order.items.*.product_id` composes through every one o
 | `'variants.0.name' => [...]`<br>`'variants.1.email' => [...]`                   | `variants?: ({ name: string } \| { email: string })[]` | Indices with different shapes union, parenthesized so `[]` applies to the whole union rather than the last member.             |
 
 A `prohibited`/`missing` rule on a nested key drops that key from its parent's shape, and drops its own descendants with it: `'order.secret' => ['prohibited']` alongside `'order.secret.token' => ['required','uuid']` leaves nothing of `secret` in `order`.
+
+### Key-list rules: known keys without a full shape
+
+Three validation rules describe an array's keys without declaring a full nested shape for them.
+Each declared key becomes a synthesized `unknown`-typed property instead of the array collapsing
+to `unknown[]` — this is the fix for a `config` field that used to come out `unknown[]` even though
+`in_array_keys:timezone` tells you exactly which key to expect. The rules differ in whether Laravel's
+validator actually guarantees the key is present, and the emitted `?` follows that:
+
+| Rule | Meaning | PHP | TypeScript |
+| --- | --- | --- | --- |
+| `required_array_keys:a,b` | all listed keys must be present | `'permissions' => ['required','array','required_array_keys:read,write']` | `permissions: { read: unknown; write: unknown };` |
+| `in_array_keys:a,b` | at least one listed key must be present — no single key is guaranteed | `'config' => ['required','array','in_array_keys:timezone']` | `config: { timezone?: unknown };` |
+| `array:a,b` | restricts which keys are allowed; says nothing about presence | `'preferences' => ['nullable','array:theme,locale']` | `preferences?: { theme?: unknown; locale?: unknown } \| null;` |
+
+A field can combine a key-list rule with a real declared child, and the two merge instead of the
+synthesized keys being dropped. A real child wins the type and optionality on a name collision;
+any key with no real child stays synthesized:
+
+```php
+'shipping' => ['required', 'array', 'required_array_keys:method,address'],
+'shipping.method' => ['nullable', 'in:standard,express'],
+```
+
+```typescript
+shipping: { method?: 'standard' | 'express' | null; address: unknown };
+```
+
+`method` keeps its own declared type and optionality from `'shipping.method'` even though
+`required_array_keys` also named it as required; `address` has no declared rule of its own, so it
+stays the synthesized `unknown`, required because `required_array_keys` said so.
 
 ## JSDoc Metadata Annotations
 
