@@ -529,21 +529,25 @@ Custom mappings are merged with the built-in map and take precedence. For a _per
 
 #### Numbers
 
-`bigint`, `decimal`, `double`, `float`, `integer`, `int`, `numeric`, `number`, `mediumint`, `smallint`, `year`, `real` → **`number`**
+`bigint`, `decimal`, `double`, `double precision`, `float`, `integer`, `int`, `numeric`, `number`, `mediumint`, `smallint`, `year`, `real`, `money`, `smallmoney`, `serial`, `bigserial`, `smallserial` → **`number`**
+
+A bare `tinyint` (MySQL/SQL Server `tinyInteger()`) is also **`number`** — only the display-width-1 form (`tinyint(1)`, Laravel's `boolean()` column on MySQL/SQLite) means boolean; see [Booleans](#booleans).
 
 #### Booleans
 
-`bool`, `boolean`, `tinyint` → **`boolean`**
+`bool`, `boolean`, `bit`, `tinyint(1)` → **`boolean`**
 
 #### Strings
 
 `char`, `character`, `enum`, `longtext`, `mediumtext`, `string`, `text`, `varchar`, `encrypted`, `uuid`, `guid`, `hashed`, `time`, `timetz`, `timestamptz`, `numeric-string` → **`string`**
 
+Sized, binary, and legacy DB native types resolve the same way: `tinytext`, `binary`, `varbinary`, `blob`, `bytea`, `tinyblob`, `mediumblob`, `longblob`, `nvarchar`, `nchar`, `ntext`, `image`, `xml`, `interval`, `uniqueidentifier`, `datetimeoffset`, `datetime2`, `smalldatetime` → **`string`**. `set(…)` also resolves to `string`, not an array — MySQL returns a matched `SET` as a comma-joined string.
+
 #### Arrays & Objects
 
 | Cast                                                               | TypeScript Type                        |
 | ------------------------------------------------------------------ | -------------------------------------- |
-| `array`, `collection`                                              | `unknown[]`                            |
+| `array`, `collection`, `iterable`                                  | `unknown[]`                            |
 | `AsCollection`, `AsEncryptedCollection`, `AsEnumCollection` (bare) | `unknown[]`                            |
 | `AsArrayObject`, `AsEncryptedArrayObject`, `AsEnumArrayObject`     | `unknown[] \| Record<string, unknown>` |
 | `json`, `jsonb`, `object`                                          | `object`                               |
@@ -581,6 +585,12 @@ A collection *chain* on a relation (`->sortBy()`, `->pluck($value, $key)`, `->ta
 | `true` / `false` (PHPStan)          | `true` / `false`              |
 | `array-key` (PHPStan)               | `string \| number`            |
 | `scalar` (PHPStan)                  | `string \| number \| boolean` |
+| `geometry`, `geography`             | `unknown`                     |
+| `vector`                            | `number[]`                    |
+
+A spatial column's serialized shape depends entirely on how the app reads it — raw WKB is a binary
+string, `ST_AsGeoJSON()` is an object — so `unknown` is the honest type rather than a guess. `vector`
+is a pgvector/MySQL 9 column, which both serialize as a JSON array of floats.
 
 ## Enum-Typed Columns (`{Model}Resource`)
 
