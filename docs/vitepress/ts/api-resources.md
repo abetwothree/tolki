@@ -131,8 +131,8 @@ optional, because it can no longer be missing.
 'status' => $this->when($this->is_published, $this->status, 'draft'), // required
 ```
 
-The type widens too: the default's own type is unioned in alongside the value's, so a required property
-never claims a type the runtime can contradict.
+The type widens too, whenever the generator can resolve the default: its type is unioned in alongside the
+value's, so the property covers both arms rather than only the one the value expression named.
 
 ```php
 'discount' => $this->when($this->has_discount, $this->discount_percent),        // discount?: number
@@ -146,13 +146,14 @@ one, not a `null` value from a non-null one — so
 `$this->whenLoaded('user', fn ($user) => $user, null)` is required, and typed `User | null` rather than a
 bare `User` you could dereference on the not-loaded path.
 
-Two cases can't be widened honestly, and the generator says so rather than guessing:
+The property is required either way — passing a default means the key is always there. Only the *type*
+depends on what the generator could resolve, and two cases can't be widened:
 
-- **The default's own type can't be resolved** (an unanalyzable expression or closure). Nothing backs a
-  required type, so the property stays optional and you keep the presence check.
-- **The value arm's type can't be resolved** — `whenPivotLoaded()` and `whenPivotLoadedAs()`, whose pivot
-  payload the generator never inspects. The property is required but stays `unknown`, since `unknown`
-  already admits the default.
+- **The default's own type can't be resolved** (an unanalyzable expression or closure). There is nothing to
+  union in, so the value's type stands alone.
+- **The value's type can't be resolved** — `whenPivotLoaded()` and `whenPivotLoadedAs()`, whose pivot
+  payload the generator never inspects. The property stays `unknown`, since `unknown` already admits the
+  default.
 
 ### Enum Properties with `EnumResource`
 
