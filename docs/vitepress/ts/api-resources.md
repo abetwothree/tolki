@@ -100,7 +100,7 @@ how it's typed is identical to `when()`, including the default-argument rule cov
 #### `whenNotNull()` / `whenNull()` and their optional second argument
 
 `whenNotNull($value, $default)` and `whenNull($value, $default)` read their arguments positionally — the
-second argument is Laravel's fallback value, never a callback bound to the first. `whenNotNull()`'s guard
+second argument is Laravel's fallback value, never a callback bound to the first argument. `whenNotNull()`'s guard
 proves the value non-null on the success arm, so its `null` possibility is removed from the generated type:
 
 ```php
@@ -415,7 +415,7 @@ export interface TeamResource {
 }
 ```
 
-The chain can pass through trait- and parent-declared methods the same way a `...$this->method()` spread does — see [Trait Method Spread](#trait-method-spread) above.
+The chain can pass through a trait and parent-declared methods the same way a `...$this->method()` spread does — see [Trait Method Spread](#trait-method-spread) above.
 
 ### JsonResource Base Delegation
 
@@ -479,7 +479,7 @@ Both methods delegate to the backing model's full database schema and filter by 
 
 ### `exclude_hidden` and attribute filters
 
-`ts-publish.models.exclude_hidden` (see [Models § What gets published](./models.md#what-gets-published-hidden-attributes-write-only-accessors)) governs resources too, not just the model's own interface — but asymmetrically:
+`ts-publish.models.exclude_hidden` (see [Models § What gets published](./models.md#what-gets-published-hidden-attributes-write-only-accessors)) governs resources too, not just the model's own interface:
 
 ```php
 $this->only(['password'])   // kept: you named it

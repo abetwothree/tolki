@@ -631,8 +631,8 @@ A column, mutator, or relation typed to a `BackedEnum` or `UnitEnum` gets two re
 - A parallel `{Model}Resource` / `{Model}MutatorsResource` / `{Model}AllResource` interface types the same property with [`AsEnum<typeof Enum>`](./enums.md#type-reference) instead — the shape you get once you've resolved the raw value to a full enum instance (e.g. `Status.from(user.status)`, or a Laravel API Resource that already serialized the enum via [`EnumResource`](./enum-api-resource.md)).
 
 ```typescript
-import { Role } from "@js/types/data/enums";
-import type { User, UserResource } from "@js/types/data/models";
+import { Role } from "@data/enums";
+import type { User, UserResource } from "@data/models";
 
 function displayRole(user: User) {
   const resolved: UserResource["role"] = user.role
