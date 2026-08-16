@@ -29,7 +29,7 @@ As with [enums](./enums.md), this package is not meant to be used standalone —
   If an invokable controller has _additional_ public actions besides `__invoke`, those are attached to the default export via `Object.assign` so you can still call them as properties (`InvokableModelBoundPlusController.extra(...)`).
 
 - Multiple Laravel routes that map to the **same controller method** are de-duplicated into a single export — if one of them is named, the named route wins.
-- `HEAD` is always omitted from `methods` (Laravel adds it implicitly to every `GET` route).
+- Every `GET` route also carries `HEAD` in `methods` (Laravel registers `HEAD` implicitly for every `GET` route), so `.head(...)` and `.form.head(...)` are generated alongside `.get(...)` and `.form.get(...)`.
 - A method decorated with `#[TsExclude]` (or a controller class decorated with it) is skipped entirely — see [Filtering & Excluding Routes](#filtering--excluding-routes).
 
 ## Anatomy of `defineRoute`
@@ -41,7 +41,7 @@ export const show = defineRoute({
   name: "posts.show", // Laravel route name, or omitted if unnamed
   url: "/posts/{post}", // URI template (or `{domain}{uri}` for domain routes)
   domain: "api.example.com", // only present for domain-restricted routes
-  methods: ["get"] as const,
+  methods: ["get", "head"] as const,
   args: [{ name: "post", required: true, _routeKey: "id" }] as const,
   component: "PostShow", // only present for Inertia routes, see below
 });
@@ -143,7 +143,7 @@ Parameters from `{param?}` segments are marked `required: false` and become opti
 ```typescript
 export const show = defineRoute({
   url: "/optional/{param?}",
-  methods: ["get"] as const,
+  methods: ["get", "head"] as const,
   args: [{ name: "param", required: false }] as const,
 });
 
@@ -167,7 +167,7 @@ Domain-restricted routes include a `domain` field, and their compiled URL is pro
 export const index = defineRoute({
   url: "api.example.com/domain",
   domain: "api.example.com",
-  methods: ["get"] as const,
+  methods: ["get", "head"] as const,
 });
 
 DomainController.index(); // '//api.example.com/domain'
@@ -226,7 +226,7 @@ PostController.destroy.form({ post: 42 });
 // { action: '/posts/42?_method=DELETE', method: 'post' } — primary method (DELETE) spoofed automatically
 ```
 
-Per-verb form methods (`.form.put(...)`, `.form.patch(...)`, `.form.delete(...)`, `.form.get(...)`) are only needed when a route supports multiple verbs and you want to submit as one that isn't the primary one:
+Per-verb form methods (`.form.put(...)`, `.form.patch(...)`, `.form.delete(...)`, `.form.get(...)`, `.form.head(...)`) are only needed when a route supports multiple verbs and you want to submit as one that isn't the primary one:
 
 ```typescript
 // A route registered for both PUT and PATCH — primary is 'put'
@@ -234,7 +234,7 @@ PostController.update.form(); // spoofs _method=PUT (primary)
 PostController.update.form.patch({ post: 42 }); // explicitly spoofs _method=PATCH instead
 ```
 
-`GET`/`POST` routes never get a spoof added, since HTML forms natively support both.
+`GET`/`POST` routes never get a spoof added, since HTML forms natively support both. `HEAD` submits as a `'get'` form action with `_method=HEAD` injected, since HTML forms can't submit `HEAD` directly.
 
 ## Inertia Integration
 
@@ -247,7 +247,7 @@ export const post = annotatePageProps<PostPageProps>()(
   defineRoute({
     name: "inertia.post",
     url: "/inertia/post/{post}",
-    methods: ["get"] as const,
+    methods: ["get", "head"] as const,
     args: [{ name: "post", required: true, _routeKey: "id" }] as const,
     component: "PostShow",
   }),
@@ -280,7 +280,7 @@ export const conditional = annotatePageProps<
 >()(
   defineRoute({
     url: "/inertia/conditional",
-    methods: ["get"] as const,
+    methods: ["get", "head"] as const,
     component: {
       authenticated: "Conditional/Authenticated",
       guest: "Conditional/Guest",

@@ -31,21 +31,129 @@ The analyzer recognizes the following patterns inside `toArray()`:
 
 Types are resolved from the model's database columns and cast definitions.
 
+### Local Variables
+
+A variable assigned once from a model property and returned directly carries that type into the generated interface — you don't need to inline the property access:
+
+```php
+public function toArray(Request $request): array
+{
+    $slug = $this->slug;
+
+    return [
+        'slug' => $slug,   // string — same as returning `$this->slug` directly
+    ];
+}
+```
+
+This still works even if the same name is reused as a closure or arrow-function parameter elsewhere in the method. The parameter only shadows the variable for its own closure body — it no longer degrades the outer property to `unknown`:
+
+```php
+public function toArray(Request $request): array
+{
+    $member = $this->slug;
+
+    return [
+        'outer_member' => $member, // string
+        'mapped_members' => $this->members->map(fn ($member) => $member), // User[] — this $member is the map's own element
+    ];
+}
+```
+
+If you see a property come out as `unknown` when it looks like it should resolve, check whether the backing variable is reassigned more than once, or reassigned inside a conditional branch — the analyzer can't tell which write is live at return time, so it deliberately falls back to `unknown` rather than guessing.
+
 ### Conditional Methods
 
-All conditional methods produce **optional** properties (with `?` in TypeScript):
+All conditional methods produce **optional** properties (with `?` in TypeScript) by default. Every one of
+them, though, accepts a trailing default argument — and passing it explicitly makes the property
+**required**, because the key can no longer be missing. `whenNotNull()`/`whenNull()`'s default argument is
+covered just below the table; the rest of the family is covered right after that.
 
-| Method                                      | Description                       | Generated Type           |
-| ------------------------------------------- | --------------------------------- | ------------------------ |
-| `$this->when(cond, value)`                  | Include when condition is true    | Inferred from value      |
-| `$this->whenHas('attr')`                    | Include when attribute is present | From model column type   |
-| `$this->whenNotNull($this->attr)`           | Include when not null             | From model column type   |
-| `$this->whenLoaded('relation')`             | Include when relation is loaded   | From model relation type |
-| `$this->whenCounted('relation')`            | Include when count is loaded      | `number`                 |
-| `$this->whenAggregated('rel', 'col', 'fn')` | Include when aggregate is loaded  | `number`                 |
-| `$this->whenPivotLoaded('table')`           | Include when pivot is loaded      | `unknown`                |
+| Method                                          | Description                                    | Generated Type            |
+| ----------------------------------------------- | ---------------------------------------------- | ------------------------- |
+| `$this->when(cond, value)`                      | Include when condition is true                 | Inferred from value       |
+| `$this->unless(cond, value)`                    | Include when condition is false                | Inferred from value       |
+| `$this->whenHas('attr')`                        | Include when attribute is present              | From model column type    |
+| `$this->whenAppended('attr')`                   | Include when accessor has been appended        | From model column type    |
+| `$this->whenNotNull($this->attr)`               | Include when not null                          | From model column type    |
+| `$this->whenNull($this->attr)`                  | Include when null                              | `null`                    |
+| `$this->whenLoaded('relation')`                 | Include when relation is loaded                | From model relation type  |
+| `$this->whenCounted('relation')`                | Include when count is loaded                   | `number`                  |
+| `$this->whenAggregated('rel', 'col', 'fn')`     | Include when aggregate is loaded               | `number`                  |
+| `$this->whenExistsLoaded('relation')`           | Include when existence flag is loaded          | `boolean`                 |
+| `$this->whenPivotLoaded('table')`               | Include when pivot is loaded                   | `unknown`                 |
+| `$this->whenPivotLoadedAs('accessor', 'table')` | Include when pivot (custom accessor) is loaded | `unknown`                 |
+| `$this->transform($value, $callback)`           | Transform `$value` via `$callback` when filled | Inferred from `$callback` |
 
 See [Nullable Relations](#nullable-relations) for `whenLoaded` nullability handling.
+
+#### `unless()` is `when()` with the condition negated
+
+`unless($condition, $value, $default)` runs `$value` when `$condition` is **false** — everything else about
+how it's typed is identical to `when()`, including the default-argument rule covered below:
+
+```php
+'status' => $this->unless($this->is_draft, $this->status),          // optional
+'status' => $this->unless($this->is_draft, $this->status, 'draft'), // required
+```
+
+#### `whenNotNull()` / `whenNull()` and their optional second argument
+
+`whenNotNull($value, $default)` and `whenNull($value, $default)` read their arguments positionally — the
+second argument is Laravel's fallback value, never a callback bound to the first argument. `whenNotNull()`'s guard
+proves the value non-null on the success arm, so its `null` possibility is removed from the generated type:
+
+```php
+'line_2' => $this->whenNotNull($this->line_2), // string | null column
+```
+
+generates `line_2?: string`, not `line_2?: string | null`.
+
+Passing a second argument changes both `optional` and the type: Laravel never omits the key once a default
+is supplied, so the property becomes **required**, and its type becomes the union of the value and default
+arms:
+
+```php
+'discount' => $this->whenNotNull($this->discount_percent, 0), // discount_percent: number | null
+```
+
+generates `discount: number` (required) — the default's type merges with, and here fully overlaps, the
+value's own type. A default of a different type (e.g. a string fallback for a numeric column) produces a
+union of both, still required.
+
+#### The rest of the conditional family and their default argument
+
+The same rule applies to every other conditional method: pass a default and the property stops being
+optional, because it can no longer be missing.
+
+```php
+'status' => $this->when($this->is_published, $this->status),          // optional
+'status' => $this->when($this->is_published, $this->status, 'draft'), // required
+```
+
+The type widens too, whenever the generator can resolve the default: its type is unioned in alongside the
+value's, so the property covers both arms rather than only the one the value expression named.
+
+```php
+'discount' => $this->when($this->has_discount, $this->discount_percent),        // discount?: number
+'discount' => $this->when($this->has_discount, $this->discount_percent, 'n/a'), // discount: number | string
+'reviews'  => $this->whenCounted('reviews', null, 'n/a'),                       // reviews: number | string
+'address'  => $this->whenHas('full_address', $this->full_address, 0),           // address: string | number
+```
+
+An explicit `null` still counts as a default — Laravel distinguishes an omitted argument from a passed-in
+one, not a `null` value from a non-null one — so
+`$this->whenLoaded('user', fn ($user) => $user, null)` is required, and typed `User | null` rather than a
+bare `User` you could dereference on the not-loaded path.
+
+The property is required either way — passing a default means the key is always there. Only the _type_
+depends on what the generator could resolve, and two cases can't be widened:
+
+- **The default's own type can't be resolved** (an unanalyzable expression or closure). There is nothing to
+  union in, so the value's type stands alone.
+- **The value's type can't be resolved** — `whenPivotLoaded()` and `whenPivotLoadedAs()`, whose pivot
+  payload the generator never inspects. The property stays `unknown`, since `unknown` already admits the
+  default.
 
 ### Enum Properties with `EnumResource`
 
@@ -87,7 +195,7 @@ Self-referencing resources are also supported:
 
 ### Merge Operations
 
-Use `merge` and `mergeWhen` to spread additional properties into the response:
+Use `merge`, `mergeWhen`, and `mergeUnless` to spread additional properties into the response:
 
 ```php
 // Unconditional merge — properties are required (not optional)
@@ -118,10 +226,11 @@ $this->mergeWhen($this->paid_at !== null, fn () => [
 ]),
 ```
 
-| Method                          | Optionality    | Description                       |
-| ------------------------------- | -------------- | --------------------------------- |
-| `$this->merge([...])`           | Required       | Properties are always present     |
-| `$this->mergeWhen(cond, [...])` | Optional (`?`) | Properties included conditionally |
+| Method                            | Optionality    | Description                              |
+| --------------------------------- | -------------- | ---------------------------------------- |
+| `$this->merge([...])`             | Required       | Properties are always present            |
+| `$this->mergeWhen(cond, [...])`   | Optional (`?`) | Properties included conditionally        |
+| `$this->mergeUnless(cond, [...])` | Optional (`?`) | Properties included when `cond` is false |
 
 ### Closure & Arrow Function Values
 
@@ -260,6 +369,54 @@ trait IncludesExtras
 > [!NOTE]
 > When a trait method has no `@return array{...}` PHPDoc or `#[TsCasts]` attribute, its properties will be typed as `unknown`.
 
+### Bare Method-Call Return
+
+`toArray()` doesn't have to spread a method's return value into an array literal — returning the method call directly is supported too:
+
+```php
+public function toArray(Request $request): array
+{
+    return $this->data();          // now supported
+    // return [...$this->data()];  // already supported
+}
+```
+
+This resolves transitively: if `data()` itself returns another method call, the analyzer keeps following the chain until it reaches an array literal (or an `only()`/`except()` filter — see [Attribute Filters](#attribute-filters-only--except) below):
+
+```php
+class TeamResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return $this->data();
+    }
+
+    protected function data(): array
+    {
+        return $this->nested();
+    }
+
+    protected function nested(): array
+    {
+        return [
+            'id' => $this->id,
+            'slug' => $this->slug,
+        ];
+    }
+}
+```
+
+Generates:
+
+```typescript
+export interface TeamResource {
+  id: number;
+  slug: string;
+}
+```
+
+The chain can pass through a trait and parent-declared methods the same way a `...$this->method()` spread does — see [Trait Method Spread](#trait-method-spread) above.
+
 ### JsonResource Base Delegation
 
 Resources that have **no `toArray()` method** or whose `toArray()` simply returns `parent::toArray($request)` automatically generate properties from the backing model's database schema:
@@ -320,6 +477,31 @@ Both methods delegate to the backing model's full database schema and filter by 
 > [!NOTE]
 > Currently only `only` and `except` are supported as attribute filter methods. Other collection-style methods are not analyzed. If you find you need additional methods, open an issue, or better yet, submit a PR with the added functionality! See [`FiltersModelAttributes`](https://github.com/abetwothree/laravel-ts-publish/blob/main/src/Analyzers/Concerns/FiltersModelAttributes.php).
 
+### `exclude_hidden` and attribute filters
+
+`ts-publish.models.exclude_hidden` (see [Models § What gets published](./models.md#what-gets-published-hidden-attributes-write-only-accessors)) governs resources too, not just the model's own interface:
+
+```php
+$this->only(['password'])   // kept: you named it
+$this->except(['id'])       // password dropped: the set is derived
+```
+
+That split isn't arbitrary — it mirrors what `Model::only()` versus `toArray()`/`except()` already do at runtime. `Model::only()` resolves each key through `getAttribute()`, which returns a `$hidden` attribute regardless of visibility; `toArray()` and `Model::except()` both go through `getArrayableItems()`, which strips `$hidden` attributes before your excluded keys are even considered. This package's analyzer follows the same split:
+
+| Pattern                                                                                 | Property set                               | A `$hidden` column, with `exclude_hidden` enabled |
+| --------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------- |
+| `'password' => $this->password`                                                         | the property you wrote by hand             | **kept** — you named it                           |
+| `$this->only(['id', 'password'])`                                                       | exactly the keys you named                 | **kept** — you named it                           |
+| `$this->relation->only(['id', 'password'])`                                             | exactly the keys you named                 | **kept** — you named it                           |
+| `$this->whenHas('password')`                                                            | the attribute you named                    | **kept** — you named it                           |
+| `$this->except(['id'])`                                                                 | every model attribute minus the named keys | **dropped** — the set is derived                  |
+| `$this->relation->except(['id'])`                                                       | every attribute minus the named keys       | **dropped** — the set is derived                  |
+| `parent::toArray($request)`, `[...parent::toArray($request)]`, or no `toArray()` at all | every model attribute                      | **dropped** — the set is derived                  |
+
+`'password' => $this->password` is worth calling out on its own: it's the plainest, most common way to expose a column, and it behaves exactly like a named `only()` key — a `$hidden` column you access directly is never silently dropped.
+
+If you want a `$hidden` column published through one of the derived paths, name it explicitly — switch that property to `only([...])`, access it directly as `$this->column`, or drop it from the model's `$hidden` array entirely if it no longer needs to be hidden.
+
 ### Resource Collections
 
 `ResourceCollection` subclasses are supported. The analyzer resolves `$this->collection` to the singular resource type as an array:
@@ -371,6 +553,42 @@ class OrderCollection extends ResourceCollection
 ```
 
 When the singular resource cannot be resolved (e.g., `MiscCollection` with no matching `MiscResource`), `$this->collection` falls back to `unknown`.
+
+#### Key-Preserving Collections
+
+A `ResourceCollection` normally serializes as a JSON array, so the generated type is `R[]`. Laravel
+supports opting a collection out of that and keeping its original keys instead, which makes the
+payload a JSON object — two ways to opt in, both recognized:
+
+```php
+use Illuminate\Http\Resources\Attributes\PreserveKeys;
+use Illuminate\Http\Resources\Json\ResourceCollection;
+
+#[PreserveKeys] // Laravel 13+
+class TeamCollection extends ResourceCollection
+{
+    public $collects = TeamResource::class;
+}
+```
+
+```php
+use Illuminate\Http\Resources\Json\ResourceCollection;
+
+class TeamCollection extends ResourceCollection
+{
+    public $preserveKeys = true; // works on every supported Laravel version
+
+    public $collects = TeamResource::class;
+}
+```
+
+Either form generates:
+
+```typescript
+export interface TeamCollection {
+  data: Record<string, TeamResource>;
+}
+```
 
 Larger support for `ResourceCollection` features (e.g., pagination metadata, `additional()` method, etc.) may be added in a future release.
 
@@ -427,7 +645,7 @@ export interface UserResource {
   profile?: Profile | null;
   posts?: PostResource[];
   phone?: string | null;
-  avatar?: string | null;
+  avatar?: string;
   posts_count?: number;
   comments_count?: number;
 }
