@@ -234,7 +234,7 @@ PostController.update.form(); // spoofs _method=PUT (primary)
 PostController.update.form.patch({ post: 42 }); // explicitly spoofs _method=PATCH instead
 ```
 
-`GET`/`POST` routes never get a spoof added, since HTML forms natively support both. `HEAD` doesn't either — `.form.head(...)` submits as a plain `'get'` form action, since HTML forms can't submit `HEAD` itself.
+`GET`/`POST` routes never get a spoof added, since HTML forms natively support both. `HEAD` submits as a `'get'` form action with `_method=HEAD` injected, since HTML forms can't submit `HEAD` directly.
 
 ## Inertia Integration
 
