@@ -99,11 +99,11 @@ Rules are checked in this order — the first match wins:
 
 ## Presence, Nullability & Exclusion
 
-| Rule                                                                                                 | Effect                                                                       |
-| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `required` (or any rule starting with `required`, including `Rule::requiredIf()`/`requiredUnless()`) | Field is **required** (no `?`)                                               |
-| `sometimes`                                                                                          | Field is optional, even combined with `required`                             |
-| `nullable`                                                                                           | Adds `\| null` to the field's type                                           |
+| Rule                                                                                                 | Effect                                                                                                                                                                                 |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `required` (or any rule starting with `required`, including `Rule::requiredIf()`/`requiredUnless()`) | Field is **required** (no `?`)                                                                                                                                                         |
+| `sometimes`                                                                                          | Field is optional, even combined with `required`                                                                                                                                       |
+| `nullable`                                                                                           | Adds `\| null` to the field's type                                                                                                                                                     |
 | `missing` / `prohibited`                                                                             | Field is **excluded from the interface entirely** — not just marked optional. A nested key is dropped from its parent's shape instead; see [Array & Nested Rules](#array-nested-rules) |
 
 ```php
@@ -160,15 +160,15 @@ Nesting is unbounded — `order.items.*.product_id` composes through every one o
 
 ### Nested edge cases
 
-| Rules                                                                          | Generated type                                     | Why                                                                                                                             |
-| ------------------------------------------------------------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `'choices' => ['nullable','array']`<br>`'choices.*' => ['nullable','string']`   | `choices?: (string \| null)[] \| null`             | The element's `nullable` folds into the element type; the array's own `nullable` stays on the array.                             |
+| Rules                                                                                        | Generated type                                            | Why                                                                                                                                                          |
+| -------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `'choices' => ['nullable','array']`<br>`'choices.*' => ['nullable','string']`                | `choices?: (string \| null)[] \| null`                    | The element's `nullable` folds into the element type; the array's own `nullable` stays on the array.                                                         |
 | `'options' => ['array']`<br>`'options.*' => ['string']`<br>`'options.default' => ['string']` | `options?: { default?: string } & Record<string, string>` | A wildcard beside a named sibling is a map with some pinned keys — emitted as an intersection, which stays valid TypeScript even when the two halves differ. |
-| `'meta' => ['array']`<br>`'meta.secret' => ['prohibited']`                      | `meta?: Record<string, never>`                     | Every named key is prohibited, so no key is allowed — not an empty object you may add keys to.                                   |
-| `'empties' => ['array']`<br>`'empties.*' => ['prohibited']`                     | `empties?: never[]`                                | The element may never appear, so the array may never hold anything.                                                             |
-| `'v1\.0' => ['required','string']`                                              | `"v1.0": string`                                   | An escaped dot is a literal character in the attribute name, so it stays one field — quoted, since `.` isn't a bare identifier.  |
-| `'items' => ['array']`<br>`'items.0.name' => ['required','string']`             | `items?: { name: string }[]`                       | Explicit numeric indices describe a list. `{ "0": … }` is a type no real JSON array is assignable to.                            |
-| `'variants.0.name' => [...]`<br>`'variants.1.email' => [...]`                   | `variants?: ({ name: string } \| { email: string })[]` | Indices with different shapes union, parenthesized so `[]` applies to the whole union rather than the last member.             |
+| `'meta' => ['array']`<br>`'meta.secret' => ['prohibited']`                                   | `meta?: Record<string, never>`                            | Every named key is prohibited, so no key is allowed — not an empty object you may add keys to.                                                               |
+| `'empties' => ['array']`<br>`'empties.*' => ['prohibited']`                                  | `empties?: never[]`                                       | The element may never appear, so the array may never hold anything.                                                                                          |
+| `'v1\.0' => ['required','string']`                                                           | `"v1.0": string`                                          | An escaped dot is a literal character in the attribute name, so it stays one field — quoted, since `.` isn't a bare identifier.                              |
+| `'items' => ['array']`<br>`'items.0.name' => ['required','string']`                          | `items?: { name: string }[]`                              | Explicit numeric indices describe a list. `{ "0": … }` is a type no real JSON array is assignable to.                                                        |
+| `'variants.0.name' => [...]`<br>`'variants.1.email' => [...]`                                | `variants?: ({ name: string } \| { email: string })[]`    | Indices with different shapes union, parenthesized so `[]` applies to the whole union rather than the last member.                                           |
 
 A `prohibited`/`missing` rule on a nested key drops that key from its parent's shape, and drops its own descendants with it: `'order.secret' => ['prohibited']` alongside `'order.secret.token' => ['required','uuid']` leaves nothing of `secret` in `order`.
 
@@ -180,11 +180,11 @@ to `unknown[]` — this is the fix for a `config` field that used to come out `u
 `in_array_keys:timezone` tells you exactly which key to expect. The rules differ in whether Laravel's
 validator actually guarantees the key is present, and the emitted `?` follows that:
 
-| Rule | Meaning | PHP | TypeScript |
-| --- | --- | --- | --- |
-| `required_array_keys:a,b` | all listed keys must be present | `'permissions' => ['required','array','required_array_keys:read,write']` | `permissions: { read: unknown; write: unknown };` |
-| `in_array_keys:a,b` | at least one listed key must be present — no single key is guaranteed | `'config' => ['required','array','in_array_keys:timezone']` | `config: { timezone?: unknown };` |
-| `array:a,b` | restricts which keys are allowed; says nothing about presence | `'preferences' => ['nullable','array:theme,locale']` | `preferences?: { theme?: unknown; locale?: unknown } \| null;` |
+| Rule                      | Meaning                                                               | PHP                                                                      | TypeScript                                                     |
+| ------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| `required_array_keys:a,b` | all listed keys must be present                                       | `'permissions' => ['required','array','required_array_keys:read,write']` | `permissions: { read: unknown; write: unknown };`              |
+| `in_array_keys:a,b`       | at least one listed key must be present — no single key is guaranteed | `'config' => ['required','array','in_array_keys:timezone']`              | `config: { timezone?: unknown };`                              |
+| `array:a,b`               | restricts which keys are allowed; says nothing about presence         | `'preferences' => ['nullable','array:theme,locale']`                     | `preferences?: { theme?: unknown; locale?: unknown } \| null;` |
 
 A field can combine a key-list rule with a real declared child, and the two merge instead of the
 synthesized keys being dropped. A real child wins the type and optionality on a name collision;
@@ -237,10 +237,15 @@ An annotation on a nested rule isn't lost when that rule [composes into its pare
 
 ```typescript
 /** @format uuid order.id */
-order: { id: string /* … */ };
+order: {
+  id: string; /* … */
+}
 
 /** @format email products.*.contact_email */
-products: { contact_email: string /* … */ }[];
+products: {
+  contact_email: string; /* … */
+}
+[];
 ```
 
 The one exception is a `prohibited` nested key: since it and its descendants are dropped from the type, their annotations are dropped too.

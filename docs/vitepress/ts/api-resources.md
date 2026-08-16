@@ -69,21 +69,21 @@ them, though, accepts a trailing default argument — and passing it explicitly 
 **required**, because the key can no longer be missing. `whenNotNull()`/`whenNull()`'s default argument is
 covered just below the table; the rest of the family is covered right after that.
 
-| Method                                              | Description                                    | Generated Type            |
-| ---------------------------------------------------- | ----------------------------------------------- | ------------------------- |
-| `$this->when(cond, value)`                          | Include when condition is true                 | Inferred from value       |
-| `$this->unless(cond, value)`                        | Include when condition is false                | Inferred from value       |
-| `$this->whenHas('attr')`                            | Include when attribute is present               | From model column type    |
-| `$this->whenAppended('attr')`                       | Include when accessor has been appended         | From model column type    |
-| `$this->whenNotNull($this->attr)`                   | Include when not null                           | From model column type    |
-| `$this->whenNull($this->attr)`                      | Include when null                               | `null`                    |
-| `$this->whenLoaded('relation')`                     | Include when relation is loaded                 | From model relation type  |
-| `$this->whenCounted('relation')`                    | Include when count is loaded                    | `number`                  |
-| `$this->whenAggregated('rel', 'col', 'fn')`         | Include when aggregate is loaded                | `number`                  |
-| `$this->whenExistsLoaded('relation')`               | Include when existence flag is loaded           | `boolean`                 |
-| `$this->whenPivotLoaded('table')`                   | Include when pivot is loaded                    | `unknown`                 |
-| `$this->whenPivotLoadedAs('accessor', 'table')`     | Include when pivot (custom accessor) is loaded  | `unknown`                 |
-| `$this->transform($value, $callback)`               | Transform `$value` via `$callback` when filled  | Inferred from `$callback` |
+| Method                                          | Description                                    | Generated Type            |
+| ----------------------------------------------- | ---------------------------------------------- | ------------------------- |
+| `$this->when(cond, value)`                      | Include when condition is true                 | Inferred from value       |
+| `$this->unless(cond, value)`                    | Include when condition is false                | Inferred from value       |
+| `$this->whenHas('attr')`                        | Include when attribute is present              | From model column type    |
+| `$this->whenAppended('attr')`                   | Include when accessor has been appended        | From model column type    |
+| `$this->whenNotNull($this->attr)`               | Include when not null                          | From model column type    |
+| `$this->whenNull($this->attr)`                  | Include when null                              | `null`                    |
+| `$this->whenLoaded('relation')`                 | Include when relation is loaded                | From model relation type  |
+| `$this->whenCounted('relation')`                | Include when count is loaded                   | `number`                  |
+| `$this->whenAggregated('rel', 'col', 'fn')`     | Include when aggregate is loaded               | `number`                  |
+| `$this->whenExistsLoaded('relation')`           | Include when existence flag is loaded          | `boolean`                 |
+| `$this->whenPivotLoaded('table')`               | Include when pivot is loaded                   | `unknown`                 |
+| `$this->whenPivotLoadedAs('accessor', 'table')` | Include when pivot (custom accessor) is loaded | `unknown`                 |
+| `$this->transform($value, $callback)`           | Transform `$value` via `$callback` when filled | Inferred from `$callback` |
 
 See [Nullable Relations](#nullable-relations) for `whenLoaded` nullability handling.
 
@@ -146,7 +146,7 @@ one, not a `null` value from a non-null one — so
 `$this->whenLoaded('user', fn ($user) => $user, null)` is required, and typed `User | null` rather than a
 bare `User` you could dereference on the not-loaded path.
 
-The property is required either way — passing a default means the key is always there. Only the *type*
+The property is required either way — passing a default means the key is always there. Only the _type_
 depends on what the generator could resolve, and two cases can't be widened:
 
 - **The default's own type can't be resolved** (an unanalyzable expression or closure). There is nothing to
@@ -226,11 +226,11 @@ $this->mergeWhen($this->paid_at !== null, fn () => [
 ]),
 ```
 
-| Method                             | Optionality    | Description                                    |
-| ---------------------------------- | -------------- | ----------------------------------------------- |
-| `$this->merge([...])`              | Required       | Properties are always present                  |
-| `$this->mergeWhen(cond, [...])`    | Optional (`?`) | Properties included conditionally              |
-| `$this->mergeUnless(cond, [...])`  | Optional (`?`) | Properties included when `cond` is false        |
+| Method                            | Optionality    | Description                              |
+| --------------------------------- | -------------- | ---------------------------------------- |
+| `$this->merge([...])`             | Required       | Properties are always present            |
+| `$this->mergeWhen(cond, [...])`   | Optional (`?`) | Properties included conditionally        |
+| `$this->mergeUnless(cond, [...])` | Optional (`?`) | Properties included when `cond` is false |
 
 ### Closure & Arrow Function Values
 
@@ -488,15 +488,15 @@ $this->except(['id'])       // password dropped: the set is derived
 
 That split isn't arbitrary — it mirrors what `Model::only()` versus `toArray()`/`except()` already do at runtime. `Model::only()` resolves each key through `getAttribute()`, which returns a `$hidden` attribute regardless of visibility; `toArray()` and `Model::except()` both go through `getArrayableItems()`, which strips `$hidden` attributes before your excluded keys are even considered. This package's analyzer follows the same split:
 
-| Pattern | Property set | A `$hidden` column, with `exclude_hidden` enabled |
-| --- | --- | --- |
-| `'password' => $this->password` | the property you wrote by hand | **kept** — you named it |
-| `$this->only(['id', 'password'])` | exactly the keys you named | **kept** — you named it |
-| `$this->relation->only(['id', 'password'])` | exactly the keys you named | **kept** — you named it |
-| `$this->whenHas('password')` | the attribute you named | **kept** — you named it |
-| `$this->except(['id'])` | every model attribute minus the named keys | **dropped** — the set is derived |
-| `$this->relation->except(['id'])` | every attribute minus the named keys | **dropped** — the set is derived |
-| `parent::toArray($request)`, `[...parent::toArray($request)]`, or no `toArray()` at all | every model attribute | **dropped** — the set is derived |
+| Pattern                                                                                 | Property set                               | A `$hidden` column, with `exclude_hidden` enabled |
+| --------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------- |
+| `'password' => $this->password`                                                         | the property you wrote by hand             | **kept** — you named it                           |
+| `$this->only(['id', 'password'])`                                                       | exactly the keys you named                 | **kept** — you named it                           |
+| `$this->relation->only(['id', 'password'])`                                             | exactly the keys you named                 | **kept** — you named it                           |
+| `$this->whenHas('password')`                                                            | the attribute you named                    | **kept** — you named it                           |
+| `$this->except(['id'])`                                                                 | every model attribute minus the named keys | **dropped** — the set is derived                  |
+| `$this->relation->except(['id'])`                                                       | every attribute minus the named keys       | **dropped** — the set is derived                  |
+| `parent::toArray($request)`, `[...parent::toArray($request)]`, or no `toArray()` at all | every model attribute                      | **dropped** — the set is derived                  |
 
 `'password' => $this->password` is worth calling out on its own: it's the plainest, most common way to expose a column, and it behaves exactly like a named `only()` key — a `$hidden` column you access directly is never silently dropped.
 
