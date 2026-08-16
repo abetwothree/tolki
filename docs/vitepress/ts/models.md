@@ -519,6 +519,36 @@ The default PHP-to-TypeScript mapping is intentionally broad. Override or extend
 Custom mappings are merged with the built-in map and take precedence. For a _per-property_ override instead of a global one, use [`#[TsCasts]`](#tscasts) or [`#[TsType]`](#tstype) instead.
 :::
 
+### Breaking changes to the default map
+
+Two default mappings changed, and both can break a frontend that compiled against an earlier version.
+Neither is opt-in — they apply as soon as you regenerate.
+
+::: warning A bare `tinyint` is now `number`
+Only the display-width-1 form stays boolean. `tinyint(1)` is what Laravel's `boolean()` emits on
+MySQL and SQLite, so genuine boolean columns are unaffected — but a column declared with
+`tinyInteger()` was previously typed [`boolean`](#booleans) and is now [`number`](#numbers).
+
+Previously, a sized native type never matched the map at all and fell through to a substring scan,
+which matched `int` inside `tinyint(1)` before reaching `tinyint`. That is why some genuinely boolean
+columns were also mistyped before this change.
+
+**What to do:** anywhere you compared a `tinyInteger()` column with `===  true` or used it directly in
+a conditional, compare against the number instead. TypeScript will point at every site.
+:::
+
+::: warning The `As*ArrayObject` casts gained an array arm
+`AsArrayObject`, `AsEncryptedArrayObject` and `AsEnumArrayObject` now emit
+[`unknown[] | Record<string, unknown>`](#arrays-objects) rather than `Record<string, unknown>` alone.
+
+An `ArrayObject` hydrated from a list serializes as a JSON **array**, so the old type rejected a
+payload the API genuinely returns.
+
+**What to do:** narrow before treating the value as an object. `Object.keys(x.meta)` no longer
+compiles on its own; guard with `Array.isArray(x.meta)` first, or use
+[`#[TsCasts]`](#tscasts) to pin the property to whichever half your column actually produces.
+:::
+
 ### Type Mapping Reference
 
 <div class="collection-method-list" markdown="1">
