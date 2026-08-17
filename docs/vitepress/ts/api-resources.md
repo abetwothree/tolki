@@ -155,6 +155,18 @@ depends on what the generator could resolve, and two cases can't be widened:
   payload the generator never inspects. The property stays `unknown`, since `unknown` already admits the
   default.
 
+A closure default that declares a required parameter goes a step further than merely unresolvable: Laravel
+invokes every conditional default via `value($default)`, calling it with zero arguments, so a closure
+requiring a parameter would throw if it ever ran. The generator treats that arm as unreachable and never
+lets it widen the type:
+
+```php
+'notes' => $this->whenNotNull($this->notes, fn ($notes) => strlen($notes)), // notes: string, not string | number
+```
+
+A parameter with its own default (`fn ($notes = '') => strlen($notes)`) still runs cleanly with zero
+arguments, so that arm keeps widening the type as usual.
+
 ### Enum Properties with `EnumResource`
 
 Use `EnumResource::make()` to expose enum-cast properties as rich enum objects:
