@@ -467,13 +467,14 @@ members?: (Omit<User, "flag"> & { flag: boolean })[];
 The `Omit<>` is not cosmetic. PHP lets the later assignment win, so `'flag'` overwrites anything the spread contributed; TypeScript's `&` would instead intersect both and collapse a conflicting key to `never`. Subtracting the overridden keys from the earlier arm is what makes the emitted type mean what the PHP means. Several spreads in one literal are each `Omit<>`'d against every key a later arm or an explicit sibling key will overwrite, in source order.
 
 > [!NOTE]
-> The arm emits a **reference** to the `{Model}` interface rather than a re-derived shape, which is the honest floor rather than an exact match for `toArray()`'s runtime output. Three known gaps:
+> The arm emits a **reference** to the `{Model}` interface rather than a re-derived shape, which is the honest floor rather than an exact match for `toArray()`'s runtime output. `Model::toArray()` is `attributesToArray()` merged with `relationsToArray()`, and bare `{Model}` covers only the first of those two — so two gaps, one in each direction:
 >
-> - `Model::toArray()` also appends `relationsToArray()`, so a relation loaded before the spread is in the JSON payload but not in the type. That isn't knowable statically.
-> - A model with `$appends` surfaces those at runtime, but under the [`model-split` template](./models.md#model-templates) they live in `{Model}Mutators`, not in bare `{Model}`.
-> - `$hidden` columns are stripped at runtime but remain in `{Model}` unless [`models.exclude_hidden`](./models.md#what-gets-published-hidden-attributes-write-only-accessors) is enabled.
+> - **Relations are missing.** A relation loaded on the model before the spread is in the JSON payload but not in the type. That isn't knowable statically, and under the [`model-split` template](./models.md#model-templates) relations live in `{Model}Relations`, which the arm doesn't reference.
+> - **`$hidden` columns are extra.** They're stripped at runtime but remain in `{Model}` unless [`models.exclude_hidden`](./models.md#what-gets-published-hidden-attributes-write-only-accessors) is enabled.
 >
-> Spreading a **resource** (`...UserResource::make($m)->resolve($request)`) works the same way and has none of these caveats, since the resource interface is the response shape.
+> `$appends` are **not** a gap: an appended accessor is part of `attributesToArray()` at runtime and is generated into bare `{Model}` alongside the columns, so the two agree. (`{Model}Mutators` holds the accessors a model did _not_ append.)
+>
+> Spreading a **resource** (`...UserResource::make($m)->resolve($request)`) works the same way and has neither gap, since the resource interface is the response shape.
 
 ### Bare Method-Call Return
 
