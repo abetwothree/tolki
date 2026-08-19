@@ -115,6 +115,45 @@ export type TeamsPageProps = Inertia.SharedData & {
 
 A **named**, non-flat collection (`new TeamCollection($paginator)`, wrapped in a `data` key) doesn't need this rewrite at all: its page prop already references the collection's own generated interface (`TeamCollection & ResourcePagination`), and that interface's `data` member is generated as `Record<string, T>` directly whenever the collection preserves keys — paginated or not. Only the two shapes that would otherwise degrade to a paginator utility type with an array-typed `data` — the flat collection and the anonymous `Resource::collection()` case — need the `Omit<...> & { data: Record<...> }` rewrite.
 
+### Paginating Inline in the Render Call
+
+A paginator does **not** have to be assigned to a variable first. Both of these produce the same page-prop type:
+
+```php
+// Via an intermediate variable
+$teams = Team::query()->paginate(10);
+
+return Inertia::render('Teams/Index', [
+    'teams' => new TeamCollection($teams),
+]);
+
+// Inline, with no intermediate variable
+return Inertia::render('Teams/Index', [
+    'teams' => new TeamCollection(Team::query()->paginate(10)),
+]);
+```
+
+```typescript
+export type IndexPageProps = Inertia.SharedData & {
+  teams: TeamCollection & ResourcePagination;
+};
+```
+
+`paginate()`, `simplePaginate()`, and `cursorPaginate()` are all recognized, in both the `new SomeCollection(...)` and `SomeResource::collection(...)` forms.
+
+> [!WARNING]
+> An unrecognized paginator does not produce a _missing_ type — it produces a **wrong** one. The analyzer defaults an unresolved prop to "not paginated", so the prop still gets a type from the ordinary resource/collection analysis, just without the pagination wrapper. Before inline detection, the second form above typed as a bare `TeamCollection`, silently omitting `ResourcePagination`.
+
+One form is still not followed: a query builder assigned to a variable _before_ the paginator call. The chain has to reach a static call on the model directly.
+
+```php
+$q = Post::query();
+
+return Inertia::render('Posts/Index', [
+    'posts' => new PostCollection($q->paginate(10)), // not detected
+]);
+```
+
 ## Spread Support (`...parent::share($request)`)
 
 The base `Inertia\Middleware::share()` method's own return type (Laravel's default `errors`/`errors_bag` keys, plus anything your parent middleware layers add) is included automatically when your override spreads it in — same as trait/parent spreading elsewhere in the package.

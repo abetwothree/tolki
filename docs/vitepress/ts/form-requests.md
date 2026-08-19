@@ -66,7 +66,7 @@ Rules are checked in this order — the first match wins:
 1. `Rule::file()` / `Rule::dimensions()` (`File`/`Dimensions` objects) → **`File`**
 2. `Rule::anyOf([...])` → union of each inner rule set's own resolved type
 3. `Rule::enum(...)` → union of the enum's backing values (respects `.only()`/`.except()`)
-4. `Rule::in(...)` / string `in:a,b,c` → union of literal values
+4. `Rule::in(...)` / string `in:a,b,c` → union of literal values (quoted or unquoted — see [Numeric `in:` literals](#numeric-in-literals))
 5. Fluent rule objects: `Rule::date()`, `Email`, `Password`, `StringRule` → `string`; `Numeric` → `number`; `Rule::array()`/`Contains`/`DoesntContain` → `unknown[]`; `Rule::notIn(...)` → `string`
 6. String rule names (see table below)
 7. Anything unrecognized → **`unknown`**
@@ -96,6 +96,32 @@ Rules are checked in this order — the first match wins:
 #### Arrays
 
 `array`, `list` → **`unknown[]`** (upgraded to `T[]` automatically when a sibling `field.*` wildcard rule resolves to type `T` — see [Array & Nested Rules](#array-nested-rules); upgraded to a keyed object instead when `required_array_keys`/`in_array_keys`/`array:`/`array_keys:` names its keys — see [Key-list rules](#key-list-rules-known-keys-without-a-full-shape))
+
+### Numeric `in:` literals
+
+`Rule::in([1, 2, 3])` carries real integers, so it emits `1 | 2 | 3`. The string form can't: Laravel's own `ValidationRuleParser::parse()` hands `in:1,2,3` over as strings, so `'legacy_code' => ['string', 'in:1,2,3']` emits the quoted `'1' | '2' | '3'`.
+
+A sibling rule declaring the field numeric is the signal that flips it to unquoted, and that list is exactly the [Numbers](#numbers) list above — `integer`, `int`, `numeric`, `decimal`, `digits`, `digits_between`:
+
+```php
+'priority_level' => ['required', 'integer', 'in:1,2,3'],      // 1 | 2 | 3
+'digit_grade' => ['digits:1', 'in:1,2,3'],                    // 1 | 2 | 3
+'decimal_tier' => ['decimal:1', 'in:1.5,2.5'],                // 1.5 | 2.5
+'legacy_code' => ['required', 'string', 'in:1,2,3'],          // '1' | '2' | '3'
+```
+
+::: warning `decimal`, `digits` and `digits_between` now count as numeric
+Previously only `integer`, `int` and `numeric` triggered the unquoted form, so `['digits:1', 'in:1,2,3']` typed as `number` from its own rule while still emitting `'1' | '2' | '3'` for the union — a field that could never satisfy both. One list now backs both checks.
+
+**What to do:** nothing, unless you were comparing one of these fields against a quoted string literal. TypeScript will point at every site that needs `=== 1` instead of `=== '1'`.
+:::
+
+Coercion is deliberately conservative even on a numeric field: a value only loses its quotes when it round-trips back to identical text. Laravel's `validateIn()` compares the raw string against the literal param, so a padded or reformatted value has to stay a string — emitting the normalized number would describe a value Laravel itself rejects.
+
+```php
+'padded_numeric_code' => ['required', 'numeric', 'in:007,2.50'],  // '007' | '2.50'
+'padded_decimal_tier' => ['decimal:2', 'in:1.50,2.50'],           // '1.50' | '2.50'
+```
 
 ## Presence, Nullability & Exclusion
 
