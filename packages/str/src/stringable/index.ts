@@ -1132,18 +1132,18 @@ export class Stringable {
     /**
      * Replace text within a portion of a string.
      *
-     * @param replace - The replacement string.
-     * @param offset - The starting position to begin replacing.
-     * @param length - The number of characters to replace. If null, replaces to the end of the string.
+     * @param replace - The replacement string, or an array of replacements from which the first value is used.
+     * @param offset - The starting position to begin replacing. If negative, it starts that many characters from the end of the string.
+     * @param length - The number of characters to replace. If null, replaces to the end of the string. If negative, omits that many characters from the end.
      * @returns The updated Stringable instance.
      */
     substrReplace(
-        replace: string,
-        offset: number | number[] = 0,
-        length: number | number[] | null = null,
+        replace: string | string[],
+        offset: number = 0,
+        length: number | null = null,
     ): Stringable {
         return new Stringable(
-            substrReplace(this._value, replace, offset, length) as string,
+            substrReplace(this._value, replace, offset, length),
         );
     }
 

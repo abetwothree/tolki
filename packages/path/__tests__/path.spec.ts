@@ -1926,6 +1926,103 @@ describe("Path Functions", () => {
             const result = Path.forgetKeysObject(obj, "user.nonexistent");
             expect(result).toEqual({ user: { name: "John" } });
         });
+
+        it("removes a literal top-level key containing dots", () => {
+            const obj = { "products.desk": { price: 100 } };
+            const result = Path.forgetKeysObject(obj, "products.desk");
+            expect(result).toEqual({});
+        });
+
+        it("prefers a literal top-level dot key over traversal", () => {
+            const obj = { "e.d": "literal", e: { d: 3 } };
+            const result = Path.forgetKeysObject(obj, "e.d");
+            expect(result).toEqual({ e: { d: 3 } });
+        });
+
+        it("deletes nothing when an intermediate segment is missing", () => {
+            const obj = { a: { c: 5 } };
+            const result = Path.forgetKeysObject(obj, "a.b.c");
+            expect(result).toEqual({ a: { c: 5 } });
+        });
+
+        it("descends into nested arrays and removes by index", () => {
+            const obj = { products: { desk: ["a", "b"] } };
+            const result = Path.forgetKeysObject(obj, "products.desk.0");
+            expect(result).toEqual({ products: { desk: ["b"] } });
+        });
+
+        it("ignores a non-integer leaf on a nested array", () => {
+            const obj = { products: { desk: ["a"] } };
+            const result = Path.forgetKeysObject(obj, "products.desk.x");
+            expect(result).toEqual({ products: { desk: ["a"] } });
+        });
+
+        it("traverses through array elements that are objects", () => {
+            const obj = { users: [{ name: "Joe", id: 1 }] };
+            const result = Path.forgetKeysObject(obj, "users.0.name");
+            expect(result).toEqual({ users: [{ id: 1 }] });
+        });
+
+        it("leaves class instances and built-ins on the path untouched", () => {
+            // PHP's accessible() is false for objects, so the key is skipped
+            // entirely instead of replacing the value with a plain object
+            const date = new Date(0);
+            expect(Path.forgetKeysObject({ a: date }, "a.b")).toEqual({
+                a: date,
+            });
+
+            const map = new Map([["b", 1]]);
+            expect(Path.forgetKeysObject({ a: map }, "a.b")).toEqual({
+                a: map,
+            });
+
+            class Thing {
+                name = "x";
+            }
+            const thing = new Thing();
+            expect(Path.forgetKeysObject({ a: thing }, "a.name")).toEqual({
+                a: thing,
+            });
+        });
+
+        it("traverses objects created without a prototype", () => {
+            const nested = Object.create(null) as Record<string, unknown>;
+            nested["b"] = 1;
+            nested["c"] = 2;
+
+            const result = Path.forgetKeysObject({ a: nested }, "a.b");
+            expect(result).toEqual({ a: { c: 2 } });
+        });
+
+        it("leaves a class instance nested inside an array untouched", () => {
+            const date = new Date(0);
+            const result = Path.forgetKeysObject({ a: [date] }, "a.0.b");
+            expect(result).toEqual({ a: [date] });
+        });
+
+        it("traverses through array elements that are arrays", () => {
+            const obj = { users: [["a", "b"]] };
+            const result = Path.forgetKeysObject(obj, "users.0.1");
+            expect(result).toEqual({ users: [["a"]] });
+        });
+
+        it("deletes nothing when an intermediate array index is out of bounds", () => {
+            const obj = { users: ["a"] };
+            const result = Path.forgetKeysObject(obj, "users.5.name");
+            expect(result).toEqual({ users: ["a"] });
+        });
+
+        it("deletes nothing when an intermediate array element is not traversable", () => {
+            const obj = { users: ["a"] };
+            const result = Path.forgetKeysObject(obj, "users.0.name");
+            expect(result).toEqual({ users: ["a"] });
+        });
+
+        it("ignores an empty leaf segment on a nested array", () => {
+            const obj = { users: ["a"] };
+            const result = Path.forgetKeysObject(obj, "users.");
+            expect(result).toEqual({ users: ["a"] });
+        });
     });
 
     describe("dotFlattenObject", () => {

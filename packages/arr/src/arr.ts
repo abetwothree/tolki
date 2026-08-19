@@ -955,13 +955,62 @@ export function flatten<TValue>(
 }
 
 /**
- * Flip the keys and values of an array or array of objects.
+ * The first magnitude beyond PHP_INT_MAX (2^63 - 1). Numbers at or above it
+ * are floats in PHP rather than integers, so they are not valid array keys.
+ */
+const PHP_INT_BOUND = 2 ** 63;
+
+/**
+ * Check whether a value can be used as a PHP array key. PHP accepts strings
+ * and integers; numbers outside PHP's 64-bit integer range are floats there,
+ * so they are rejected rather than producing a key PHP could never generate.
+ *
+ * @param value - The value to check.
+ * @returns True if the value can be used as a PHP array key.
+ */
+function isPhpArrayKey(value: unknown): value is string | number {
+    return (
+        isString(value) || (isInteger(value) && Math.abs(value) < PHP_INT_BOUND)
+    );
+}
+
+/**
+ * Store a flipped key on the result without going through the `__proto__`
+ * setter, so a value of "__proto__" becomes a real own key the way PHP's
+ * array_flip produces it, and no assignment can reach Object.prototype.
+ *
+ * @param target - The object to define the key on.
+ * @param key - The key to define.
+ * @param value - The value to store under the key.
+ */
+function defineKey<TValue>(
+    target: Record<string, TValue>,
+    key: string,
+    value: TValue,
+): void {
+    Object.defineProperty(target, key, {
+        value,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+    });
+}
+
+/**
+ * Flip the indices and values of an array.
+ *
+ * Only values that are valid PHP array keys (strings and integers within
+ * PHP's 64-bit integer range) are flipped into keys; every other value
+ * (null, undefined, booleans, floats, arrays, objects, functions) is
+ * skipped. When duplicate values exist, the later index overwrites the
+ * earlier one.
  *
  * @param data - The array of items to flip
  * @return - the data items flipped
  *
  * @example
  * flip(['a', 'b', 'c']); -> {a: 0, b: 1, c: 2}
+ * flip(['a', 1, null, false, true, 1.5, [], {}]); -> {a: 0, 1: 1}
  */
 export function flip<TValue>(
     data: readonly TValue[] | unknown,
@@ -970,13 +1019,17 @@ export function flip<TValue>(
         return {};
     }
 
-    // flip the array indices as values and values as keys
+    // flip the array indices as values and values as keys,
+    // skipping values that are not valid PHP array keys
     // e.g ['apple', 'banana', 'cherry'] -> {apple: 0, banana: 1, cherry: 2}
     const result: Record<string, number> = {};
 
     for (let i = 0; i < data.length; i++) {
         const item = data[i];
-        result[String(item)] = i;
+
+        if (isPhpArrayKey(item)) {
+            defineKey(result, String(item), i);
+        }
     }
 
     return result;

@@ -1058,10 +1058,10 @@ export function numbers(value: string[]): string[];
 export function numbers(value: string | string[]): string | string[];
 export function numbers(value: string | string[]): string | string[] {
     if (isArray(value)) {
-        return value.map((item) => item.replace(/[^0-9]/g, ""));
+        return value.map((item) => item.replace(/\D/g, ""));
     }
 
-    return value.replace(/[^0-9]/g, "");
+    return value.replace(/\D/g, "");
 }
 
 /**

@@ -982,12 +982,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Flip the items in the collection.
      *
+     * Only values that are valid PHP array keys (strings and integers) are
+     * flipped into keys; every other value is skipped.
+     *
      * @returns A new collection with flipped items
      *
      * @example
      *
-     * new Collection([1, 2, 3]).flip(); -> new Collection([{1: 0}, {2: 1}, {3: 2}])
-     * new Collection([{one: 'b', two: {hi: 'hello', skip: 'bye'}}]).flip(); -> new Collection([{b: 'one', {hello: 'hi', bye: 'skip'}}])
+     * new Collection(['a', 'b', 'c']).flip(); -> new Collection({a: 0, b: 1, c: 2})
+     * new Collection({name: 'taylor'}).flip(); -> new Collection({taylor: 'name'})
      */
     flip() {
         return this.newInstance(dataFlip(this.items));

@@ -1434,6 +1434,28 @@ describe("Collection", () => {
                 banana: 1,
                 orange: 2,
             });
+
+            expect(collect([]).flip().all()).toEqual({});
+            expect(collect({ name: "taylor" }).flip().all()).toEqual({
+                taylor: "name",
+            });
+        });
+
+        it("skips unsupported values", () => {
+            const data = collect({
+                string: "taylor",
+                integer: 1,
+                null: null,
+                false: false,
+                true: true,
+                float: 1.5,
+                array: [],
+                object: {},
+            });
+            expect(data.flip().all()).toEqual({
+                taylor: "string",
+                1: "integer",
+            });
         });
     });
 

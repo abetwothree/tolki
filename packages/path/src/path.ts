@@ -261,6 +261,17 @@ export function forgetKeys<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Remove properties from an object using dot notation keys (immutable).
  * Creates a new object with specified properties removed, supporting nested paths.
+ * Mirrors Laravel's fixed Arr::forget behavior:
+ * - Each key is resolved from the top level of the object.
+ * - A key that exists literally at the top level (even if it contains dots)
+ *   is removed literally instead of being dot-traversed.
+ * - If an intermediate path segment is missing or not traversable, the key
+ *   is skipped entirely and nothing is removed for that key.
+ * - Traversal descends into both plain objects and arrays, the two shapes
+ *   that stand in for a PHP array. Class instances and built-ins such as
+ *   Date or Map are not traversable and are left untouched. When the final
+ *   container is an array, a valid in-bounds integer leaf removes the item
+ *   (via splice); otherwise the key is a no-op.
  *
  * @param data - The object to remove properties from.
  * @param keys - The key(s) to remove (string or array of strings).
@@ -272,6 +283,9 @@ export function forgetKeys<TValue, TKey extends PropertyKey = PropertyKey>(
  * forgetKeysObject({a: 1, b: {c: 2, d: 3}}, 'a'); -> {b: {c: 2, d: 3}}
  * forgetKeysObject({user: {name: 'John', age: 30}}, 'user.age'); -> {user: {name: 'John'}}
  * forgetKeysObject({a: 1, b: 2, c: 3}, ['a', 'c']); -> {b: 2}
+ * forgetKeysObject({'products.desk': {price: 100}}, 'products.desk'); -> {}
+ * forgetKeysObject({a: {c: 5}}, 'a.b.c'); -> {a: {c: 5}}
+ * forgetKeysObject({products: {desk: ['a', 'b']}}, 'products.desk.0'); -> {products: {desk: ['b']}}
  */
 export function forgetKeysObject<
     TValue,
@@ -280,44 +294,130 @@ export function forgetKeysObject<
     const keyList = isArray(keys) ? keys : [keys];
     const result = { ...data };
 
+    /**
+     * Check whether a path segment is a valid array index for the given array.
+     * Segments are parsed with Number(), the same convention used by
+     * parseSegments and forgetKeysArray in this package.
+     *
+     * @param segment - The path segment to validate.
+     * @param arr - The array the segment would index into.
+     * @returns The integer index, or null if the segment is not a valid index.
+     */
+    const toArrayIndex = (segment: string, arr: unknown[]): number | null => {
+        const index = segment.length > 0 ? Number(segment) : NaN;
+        if (!isInteger(index) || index < 0 || index >= arr.length) {
+            return null;
+        }
+
+        return index;
+    };
+
+    /**
+     * Clone a container that a dot path may descend into, mirroring PHP's
+     * accessible() check. Only arrays and plain objects stand in for PHP
+     * arrays; class instances and built-ins such as Date or Map are not
+     * traversable, so they are left untouched rather than being replaced by
+     * a plain object that drops their contents.
+     *
+     * @param child - The value the path would descend into.
+     * @returns A shallow clone of the container, or null if it is not traversable.
+     */
+    const cloneTraversable = (
+        child: unknown,
+    ): Record<string, unknown> | unknown[] | null => {
+        if (isArray(child)) {
+            return child.slice();
+        }
+
+        if (isObject(child)) {
+            const prototype = Object.getPrototypeOf(child);
+
+            if (prototype === Object.prototype || isNull(prototype)) {
+                return { ...(child as Record<string, unknown>) };
+            }
+        }
+
+        return null;
+    };
+
+    /**
+     * Remove a single dot-notation key from the result, resolving from the
+     * top level. Clones each container along the descended path (objects via
+     * spread, arrays via slice) to maintain immutability.
+     *
+     * @param keyStr - The dot-notation key to remove.
+     * @returns Nothing; mutates only cloned containers inside the new result.
+     */
+    const forgetOne = (keyStr: string): void => {
+        // A literal top-level key wins, even if it contains dots
+        if (Object.hasOwn(result, keyStr)) {
+            delete (result as Record<string, TValue>)[keyStr];
+
+            return;
+        }
+
+        const parts = keyStr.split(".");
+        let current: Record<string, unknown> | unknown[] = result as Record<
+            string,
+            unknown
+        >;
+
+        // Navigate to the parent of the property to be removed, cloning each
+        // container along the way. If the path is broken, skip the key.
+        while (parts.length > 1) {
+            const part = parts.shift()!;
+
+            if (isArray(current)) {
+                const index = toArrayIndex(part, current);
+                if (isNull(index)) {
+                    return;
+                }
+
+                const clone = cloneTraversable(current[index]);
+                if (isNull(clone)) {
+                    return;
+                }
+
+                current[index] = clone;
+                current = clone;
+
+                continue;
+            }
+
+            if (!Object.hasOwn(current, part)) {
+                return;
+            }
+
+            const clone = cloneTraversable(current[part]);
+            if (isNull(clone)) {
+                return;
+            }
+
+            current[part] = clone;
+            current = clone;
+        }
+
+        // Remove the final property or array item
+        const leaf = parts.shift()!;
+
+        if (isArray(current)) {
+            const index = toArrayIndex(leaf, current);
+            if (!isNull(index)) {
+                current.splice(index, 1);
+            }
+
+            return;
+        }
+
+        delete current[leaf];
+    };
+
     for (const key of keyList) {
         if (isNull(key)) {
             continue;
         }
 
-        const keyStr = String(key);
-
-        // Handle simple property removal (no dots)
-        if (!keyStr.includes(".")) {
-            delete (result as Record<string, TValue>)[keyStr];
-            continue;
-        }
-
-        // Handle nested property removal with dot notation
-        const segments = keyStr.split(".");
-        let current: Record<string, unknown> = result;
-
-        // Navigate to the parent of the property to be removed
-        for (let i = 0; i < segments.length - 1; i++) {
-            const segment = segments[i];
-            if (!segment || !current[segment] || !isObject(current[segment])) {
-                break; // Path doesn't exist, nothing to remove
-            }
-
-            // Clone the nested object to maintain immutability
-            current[segment] = {
-                ...(current[segment] as Record<string, unknown>),
-            };
-
-            current = current[segment] as Record<string, unknown>;
-        }
-
-        // Remove the final property
-        const lastSegment = segments[segments.length - 1];
-
-        if (lastSegment && !isUndefined(current[lastSegment])) {
-            delete current[lastSegment];
-        }
+        forgetOne(String(key));
     }
 
     return result;

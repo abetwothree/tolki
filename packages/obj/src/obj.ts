@@ -1,7 +1,4 @@
-import {
-    flip as arrFlip,
-    replaceRecursive as arrReplaceRecursive,
-} from "@tolki/arr";
+import { replaceRecursive as arrReplaceRecursive } from "@tolki/arr";
 import { SortDirection } from "@tolki/enum";
 import {
     dotFlatten,
@@ -899,45 +896,80 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Flip the keys and values of an object recursively
+ * The first magnitude beyond PHP_INT_MAX (2^63 - 1). Numbers at or above it
+ * are floats in PHP rather than integers, so they are not valid array keys.
+ */
+const PHP_INT_BOUND = 2 ** 63;
+
+/**
+ * Check whether a value can be used as a PHP array key. PHP accepts strings
+ * and integers; numbers outside PHP's 64-bit integer range are floats there,
+ * so they are rejected rather than producing a key PHP could never generate.
+ *
+ * @param value - The value to check.
+ * @returns True if the value can be used as a PHP array key.
+ */
+function isPhpArrayKey(value: unknown): value is string | number {
+    return (
+        isString(value) || (isInteger(value) && Math.abs(value) < PHP_INT_BOUND)
+    );
+}
+
+/**
+ * Store a flipped key on the result without going through the `__proto__`
+ * setter, so a value of "__proto__" becomes a real own key the way PHP's
+ * array_flip produces it, and no assignment can reach Object.prototype.
+ *
+ * @param target - The object to define the key on.
+ * @param key - The key to define.
+ * @param value - The value to store under the key.
+ */
+function defineKey<TValue>(
+    target: Record<string, TValue>,
+    key: string,
+    value: TValue,
+): void {
+    Object.defineProperty(target, key, {
+        value,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+    });
+}
+
+/**
+ * Flip the keys and values of an object.
+ *
+ * Only values that are valid PHP array keys (strings and integers within
+ * PHP's 64-bit integer range) are flipped into keys; every other value
+ * (null, undefined, booleans, floats, arrays, objects, functions) is
+ * skipped. When duplicate values exist, the later key overwrites the
+ * earlier one.
  *
  * @param data - The object of items to flip
  * @return - the data items flipped
  *
  * @example
- * flip({one: 'b', two: {hi: 'hello', skip: 'bye'}}); -> {b: 'one', {hello: 'hi', bye: 'skip'}}
+ * flip({name: 'taylor'}); -> {taylor: 'name'}
+ * flip({string: 'taylor', integer: 1, null: null, float: 1.5}); -> {taylor: 'string', 1: 'integer'}
  */
 export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-) {
+): Record<string, string> {
     if (!accessible(data)) {
         return {};
     }
 
-    // flip the object keys as values and values as keys
-    // for values that are nested, the keys should be flipped recursively
-    // e.g {one: 'b', two: {hi: 'hello', skip: 'bye'}} -> {b: 'one', {hello: 'hi', bye: 'skip'}}
-    // if the value is an array, call arrFlip
-    const result: Record<string, unknown> = {};
+    // flip the object keys as values and values as keys,
+    // skipping values that are not valid PHP array keys
+    // e.g {name: 'taylor'} -> {taylor: 'name'}
+    const result: Record<string, string> = {};
 
-    const flipRecursive = (
-        obj: Record<string, unknown>,
-        prefix: string = "",
-    ) => {
-        for (const [key, value] of Object.entries(obj)) {
-            const newKey = prefix ? `${prefix}.${key}` : key;
-
-            if (isObject(value)) {
-                flipRecursive(value as Record<string, unknown>, newKey);
-            } else if (isArray(value)) {
-                result[key as string] = arrFlip(value);
-            } else {
-                result[value as string] = newKey;
-            }
+    for (const [key, value] of Object.entries(data)) {
+        if (isPhpArrayKey(value)) {
+            defineKey(result, String(value), key);
         }
-    };
-
-    flipRecursive(data as Record<string, unknown>);
+    }
 
     return result;
 }

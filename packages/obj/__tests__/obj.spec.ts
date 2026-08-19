@@ -519,6 +519,38 @@ describe("Obj", () => {
             const obj = { name: "John" };
             expect(Obj.forget(obj, "age")).toEqual({ name: "John" });
         });
+
+        it("should resolve a top-level key following a dot key against the top level", () => {
+            const obj = { users: { name: "Joe", id: 1 }, id: 99 };
+            expect(Obj.forget(obj, ["users.name", "id"])).toEqual({
+                users: { id: 1 },
+            });
+        });
+
+        it("should resolve a top-level key following a deeper dot key against the top level", () => {
+            const obj = {
+                products: { desk: { price: 100 } },
+                desk: "top-level",
+            };
+            expect(Obj.forget(obj, ["products.desk.price", "desk"])).toEqual({
+                products: { desk: {} },
+            });
+        });
+
+        it("should resolve a dot key following a deeper dot key from the top level", () => {
+            const obj = { a: { b: { c: 1, "e.d": "literal" } }, e: { d: 3 } };
+            expect(Obj.forget(obj, ["a.b.c", "e.d"])).toEqual({
+                a: { b: { "e.d": "literal" } },
+                e: {},
+            });
+        });
+
+        it("should not replace a non-traversable value on the path", () => {
+            // PHP's accessible() is false for objects, so nothing is removed
+            // and the value is returned intact rather than emptied
+            const date = new Date(0);
+            expect(Obj.forget({ a: date }, "a.b")).toEqual({ a: date });
+        });
     });
 
     describe("from", () => {
@@ -1652,14 +1684,37 @@ describe("Obj", () => {
             expect(Obj.flip(null)).toEqual({});
         });
 
-        it("should handle recursively flip values with child objects and child arrays", () => {
-            const obj = { a: 1, b: { x: 10, y: 20 }, c: ["p", "q"] };
-            expect(Obj.flip(obj)).toEqual({
-                1: "a",
-                10: "b.x",
-                20: "b.y",
-                c: { p: 0, q: 1 },
+        it("should skip values that are not valid PHP array keys", () => {
+            const obj = {
+                string: "taylor",
+                integer: 1,
+                null: null,
+                false: false,
+                true: true,
+                float: 1.5,
+                array: [],
+                object: {},
+            };
+            expect(Obj.flip(obj)).toEqual({ taylor: "string", 1: "integer" });
+        });
+
+        it("should skip numbers beyond PHP's integer range", () => {
+            // these are floats in PHP, so array_flip skips them rather than
+            // producing an exponent-notation key
+            expect(Obj.flip({ huge: 1e21, negative: -1e21 })).toEqual({});
+            expect(Obj.flip({ large: 1e16 })).toEqual({
+                10000000000000000: "large",
             });
+        });
+
+        it("should keep __proto__ as an own key without polluting the prototype", () => {
+            const result = Obj.flip({ a: "__proto__", b: "constructor" });
+
+            expect(Object.hasOwn(result, "__proto__")).toBe(true);
+            expect(result["__proto__"]).toBe("a");
+            expect(result["constructor"]).toBe("b");
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(({} as Record<string, unknown>)["a"]).toBeUndefined();
         });
     });
 
