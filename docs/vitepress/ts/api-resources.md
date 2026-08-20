@@ -588,7 +588,7 @@ Both methods delegate to the backing model's full database schema and filter by 
 
 The same two methods work on a **related** model — `$this->author->only([...])`, `$this->post?->except([...])` — and are typed one of two ways.
 
-When every filtered key is a real database column, the property references the related model's own generated interface:
+Two conditions have to hold for that reference form, not one: the relation must resolve to a **single** model, _and_ every filtered key must be a real database column. When both hold, the property references the related model's own generated interface:
 
 ```php
 'author' => $this->author->only(['id', 'name']),
@@ -607,31 +607,46 @@ When the reference can't be used — a filter key that isn't a column, or an acc
 - **`only([...])`** expands exactly the keys you named. `HasAttributes::only()` calls `getAttribute()` per key, which resolves accessors and relations alike, so naming either one works: `$this->author->only(['name', 'initials', 'posts'])` emits `{ name: string; initials: string; posts: Post[] }`.
 - **`except([...])`** expands the related model's **database columns** minus the named keys — never an accessor, never a relation. `HasAttributes::except()` iterates `getAttributes()`, which holds stored column values only; a get-only `Attribute` accessor is never merged back into it, and relations live in a separate bag entirely.
 
-> [!WARNING]
-> **Behavior change: an inline `except()` on a relation now expands to database columns only.**
->
-> It previously expanded to every attribute **and** every relation on the related model, minus the excluded keys — a shape `Model::except()` never actually returns at runtime. Accessors and relations that used to appear in an `except()`-filtered type are now **gone**, and frontend code reading them will stop compiling.
->
-> For `'author' => $this->author?->except(['id', 'name'])`, where `User` declares the accessors `initials`/`is_premium` and the relations `profile`/`posts`:
->
-> ```typescript
-> // Before — every attribute and every relation, minus the named keys
-> author: {
->   email: string;
->   phone: string | null;
->   initials: string; // accessor
->   is_premium: boolean; // accessor
->   profile: Profile | null; // relation
->   posts: Post[]; // relation
-> } | null;
->
-> // After — database columns only
-> author: { email: string; phone: string | null } | null;
-> ```
->
-> A related consequence: naming a relation or an accessor in the exclusion list is now a no-op, since that key was never in the set being subtracted from. `only()` is unchanged — the two branches now diverge exactly the way Eloquent's own `only()` and `except()` do.
->
-> **What to do:** if you were relying on an accessor or relation arriving through an `except()`-filtered relation, name it explicitly instead. Switch that property to `only([...])`, or add the key as its own entry in `toArray()`. TypeScript will point at every site that reads a now-missing key.
+An accessor that union-types two or more models — `@return Attribute<Image|User|null, never>` — never reaches the reference form at all, so every arm is expanded inline even when every key you named is a real column.
+
+> [!NOTE]
+> The split mirrors Eloquent rather than inventing a rule. `HasAttributes::except()` iterates `getAttributes()`, the raw stored-attribute bag, and reads `getAttribute()` only for keys already in it, so a get-only `Attribute` accessor is never merged back in and relations live in a separate bag entirely. `HasAttributes::only()` iterates the names _you_ passed and calls `getAttribute()` on each, which does resolve accessors and relations. Typing the two the same way would promise members the JSON payload never carries.
+
+So for `'author' => $this->author?->except(['id', 'name'])`, where `User` declares the accessors
+`initials`/`is_premium` and the relations `profile`/`posts`, the emitted type is columns only:
+
+```typescript
+author: { email: string; phone: string | null } | null;
+```
+
+Naming a relation or an accessor in the exclusion list is a no-op, since that key was never in the
+set being subtracted from. Reach for `only([...])` when you want one, or give it its own entry in
+`toArray()`.
+
+::: details Upgrading from an earlier version
+`except()` used to expand to every attribute **and** every relation on the related model, minus the
+excluded keys, which is a shape `Model::except()` never returns at runtime. Accessors and relations
+that appeared in an `except()`-filtered type are gone:
+
+```typescript
+// Before: every attribute and every relation, minus the named keys
+author: {
+  email: string;
+  phone: string | null;
+  initials: string; // accessor
+  is_premium: boolean; // accessor
+  profile: Profile | null; // relation
+  posts: Post[]; // relation
+} | null;
+
+// After: database columns only
+author: { email: string; phone: string | null } | null;
+```
+
+If you relied on one of those arriving through an `except()`-filtered relation, name it explicitly.
+Switch the property to `only([...])`, or add the key as its own entry in `toArray()`. TypeScript
+will point at every site that reads a now-missing key.
+:::
 
 ### `exclude_hidden` and attribute filters
 
