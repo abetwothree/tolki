@@ -588,7 +588,7 @@ Both methods delegate to the backing model's full database schema and filter by 
 
 The same two methods work on a **related** model — `$this->author->only([...])`, `$this->post?->except([...])` — and are typed one of two ways.
 
-Two conditions have to hold for that reference form, not one: the relation must resolve to a **single** model, _and_ every filtered key must be a real database column. When both hold, the property references the related model's own generated interface:
+Two conditions have to hold for that reference form, not one: the relation must resolve to a **single** model, _and_ every filtered key must be a real database column. When both hold, the property references the related model's own generated interface with `Pick<>` — `only()` picks the keys you named, `except()` picks their **complement**, every other column on the model:
 
 ```php
 'author' => $this->author->only(['id', 'name']),
@@ -597,10 +597,13 @@ Two conditions have to hold for that reference form, not one: the relation must 
 
 ```typescript
 author: Pick<User, "id" | "name">;
-post: Omit<Post, "created_at" | "updated_at"> | null;
+post: Pick<Post, "id" | "title" | "content" | "user_id"> | null;
 ```
 
-That is the preferred shape: it keeps the model's own `#[TsCasts]` and `@property` refinements authoritative instead of re-deriving them into a detached inline object.
+That is the preferred shape: it keeps the model's own `#[TsCasts]` and `@property` refinements authoritative instead of re-deriving them into a detached inline object. Both branches emit `Pick<>`, never `Omit<>` — naming the surviving columns instead of the excluded ones keeps the reference accurate regardless of how many other members (mutators, relations, counts) the model's generated interface happens to carry beyond its columns.
+
+> [!TIP]
+> `except()`'s complement is always your model's columns minus the named keys — so this reference form is exactly as wide as `only()` naming every other column by hand, and no wider. If your model gains a column, an existing `except([...])` picks it up automatically; nothing needs regenerating by hand.
 
 When the reference can't be used — a filter key that isn't a column, or an accessor typed as a union of two or more models — the shape is expanded inline instead, and the two methods deliberately produce **different** property sets:
 
@@ -622,6 +625,22 @@ author: { email: string; phone: string | null } | null;
 Naming a relation or an accessor in the exclusion list is a no-op, since that key was never in the
 set being subtracted from. Reach for `only([...])` when you want one, or give it its own entry in
 `toArray()`.
+
+::: details Upgrading from an earlier version
+`except()`'s reference form used to name the excluded keys with `Omit<>` — `Omit<Post, "created_at" | "updated_at">` — rather than picking the survivors. That was accurate under the default model template, but re-widened under a template where the model's bare interface carries mutators, relations, counts, and exists alongside its columns, since `Omit<>` only ever subtracts from whatever `keyof Model` happens to be:
+
+```typescript
+// Before: Omit<> — width depends on the model template
+post: Omit<Post, "created_at" | "updated_at"> | null;
+
+// After: Pick<> of the complement — the same columns regardless of template
+post: Pick<Post, "id" | "title" | "content" | "user_id"> | null;
+```
+
+No action needed — the two forms carry the same columns under the default template, and the picked
+member list is now visible directly in the type instead of needing to be worked out from what the
+model interface excludes.
+:::
 
 ::: details Upgrading from an earlier version
 `except()` used to expand to every attribute **and** every relation on the related model, minus the
