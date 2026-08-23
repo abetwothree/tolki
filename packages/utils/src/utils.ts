@@ -976,3 +976,35 @@ export function entriesKeyValue<T extends PropertyKey>(
 export function isUnsafeKey(key: string): boolean {
     return key === "__proto__" || key === "constructor" || key === "prototype";
 }
+
+/**
+ * The first magnitude beyond PHP's 64-bit integer range. `PHP_INT_MAX`
+ * (2^63 - 1) is not representable as a JavaScript double, so this bound serves
+ * as the exclusive upper limit and, negated, as the inclusive lower limit
+ * (`PHP_INT_MIN`, which is exactly -2^63).
+ */
+const PHP_INT_BOUND = 2 ** 63;
+
+/**
+ * Check whether a value can be used as a PHP array key. PHP accepts strings
+ * and integers in the inclusive range [-2^63, 2^63 - 1]; numbers outside that
+ * range are floats there, so they are rejected rather than producing a key PHP
+ * could never generate.
+ *
+ * @param value - The value to check
+ * @returns True if the value can be used as a PHP array key
+ */
+export function isPhpArrayKey(value: unknown): value is string | number {
+    if (isString(value)) {
+        return true;
+    }
+
+    if (!isInteger(value)) {
+        return false;
+    }
+
+    // The upper bound stays exclusive because 2^63 - 1 rounds to 2^63 as a
+    // double, making the largest representable candidate below the bound a
+    // valid key already. The lower bound is inclusive: PHP_INT_MIN is -2^63.
+    return value >= -PHP_INT_BOUND && value < PHP_INT_BOUND;
+}

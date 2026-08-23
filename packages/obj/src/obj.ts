@@ -22,6 +22,7 @@ import {
     isNull,
     isNumber,
     isObject,
+    isPhpArrayKey,
     isPositiveNumber,
     isString,
     isStringable,
@@ -893,26 +894,6 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
     walk(data as Record<string, unknown>, [], maxSegments);
 
     return out as Record<PropertyKey, TValue>;
-}
-
-/**
- * The first magnitude beyond PHP_INT_MAX (2^63 - 1). Numbers at or above it
- * are floats in PHP rather than integers, so they are not valid array keys.
- */
-const PHP_INT_BOUND = 2 ** 63;
-
-/**
- * Check whether a value can be used as a PHP array key. PHP accepts strings
- * and integers; numbers outside PHP's 64-bit integer range are floats there,
- * so they are rejected rather than producing a key PHP could never generate.
- *
- * @param value - The value to check.
- * @returns True if the value can be used as a PHP array key.
- */
-function isPhpArrayKey(value: unknown): value is string | number {
-    return (
-        isString(value) || (isInteger(value) && Math.abs(value) < PHP_INT_BOUND)
-    );
 }
 
 /**
