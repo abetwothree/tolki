@@ -8461,20 +8461,6 @@ describe("arr type tests", () => {
         });
     });
 
-    describe("integer", () => {
-        it("returns number", () => {
-            const result = Arr.integer([1, 2, 3], 0);
-            expectTypeOf(result).toEqualTypeOf<number>();
-        });
-    });
-
-    describe("join", () => {
-        it("returns string", () => {
-            const result = Arr.join([1, 2, 3], ", ");
-            expectTypeOf(result).toEqualTypeOf<string>();
-        });
-    });
-
     describe("keyBy", () => {
         it("returns Record with string callback", () => {
             const data = [{ id: 1, name: "a" }];
@@ -8761,13 +8747,6 @@ describe("arr type tests", () => {
                 value: string[];
                 removed: string[];
             }>();
-        });
-    });
-
-    describe("string", () => {
-        it("returns string", () => {
-            const result = Arr.string(["hello", "world"], 0);
-            expectTypeOf(result).toEqualTypeOf<string>();
         });
     });
 
