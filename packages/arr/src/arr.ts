@@ -192,6 +192,19 @@ export function arrayItem<TValue, TDefault = null>(
  * boolean([{active: true}], '0.active'); -> true
  * boolean([{active: 'yes'}], '0.active'); -> throws Error
  */
+// Overload: typed array → boolean value
+export function boolean<TValue, TDefault = null>(
+    data: ArrayItems<TValue>,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): boolean;
+// Overload: unknown fallback
+export function boolean<TDefault = null>(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): boolean;
+// Implementation
 export function boolean<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -213,7 +226,6 @@ export function boolean<TValue, TDefault = null>(
  *
  * @param data - The array to chunk
  * @param size - The size of each chunk
- * @param preserveKeys - Whether to preserve the original keys, defaults to false
  * @returns Chunked array
  */
 export function chunk<TValue>(
@@ -966,6 +978,11 @@ export function flatten<TValue>(
  * flip(['a', 'b', 'c']); -> {a: 0, b: 1, c: 2}
  * flip(['a', 1, null, false, true, 1.5, [], {}]); -> {a: 0, 1: 1}
  */
+// Overload: typed array → flipped record
+export function flip<TValue>(data: readonly TValue[]): Record<string, number>;
+// Overload: unknown fallback
+export function flip(data: unknown): Record<string, number>;
+// Implementation
 export function flip<TValue>(
     data: readonly TValue[] | unknown,
 ): Record<string, number> {
@@ -1005,6 +1022,19 @@ export function flip<TValue>(
  * float([{price: 19.99}], '0.price'); -> 19.99
  * float([{price: 'free'}], '0.price'); -> throws Error
  */
+// Overload: typed array → float value
+export function float<TValue, TDefault = null>(
+    data: ArrayItems<TValue>,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): number;
+// Overload: unknown fallback
+export function float<TDefault = null>(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): number;
+// Implementation
 export function float<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -1194,6 +1224,11 @@ export function get<TValue, TDefault = unknown>(
  * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.1']); -> true
  * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); -> false
  */
+// Overload: typed array → existence check
+export function has<TValue>(data: ArrayItems<TValue>, keys: PathKeys): boolean;
+// Overload: unknown fallback
+export function has(data: unknown, keys: PathKeys): boolean;
+// Implementation
 export function has<TValue>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
@@ -1228,6 +1263,14 @@ export function has<TValue>(
  * hasAll(['foo', 'bar', ['baz', 'qux']], ['0', '2.1']); -> true
  * hasAll(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); -> false
  */
+// Overload: typed array → existence check for all keys
+export function hasAll<TValue>(
+    data: ArrayItems<TValue>,
+    keys: PathKeys,
+): boolean;
+// Overload: unknown fallback
+export function hasAll(data: unknown, keys: PathKeys): boolean;
+// Implementation
 export function hasAll<TValue>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
@@ -1259,6 +1302,14 @@ export function hasAll<TValue>(
  * hasAny(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); -> true
  * hasAny(['foo', 'bar', ['baz', 'qux']], ['3', '4']); -> false
  */
+// Overload: typed array → existence check for any key
+export function hasAny<TValue>(
+    data: ArrayItems<TValue>,
+    keys: PathKeys,
+): boolean;
+// Overload: unknown fallback
+export function hasAny(data: unknown, keys: PathKeys): boolean;
+// Implementation
 export function hasAny<TValue>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
@@ -1429,6 +1480,19 @@ export function some<TValue>(
  * integer([10, 20, 30], 5, 100); -> 100
  * integer(["house"], 0); -> Error: The value is not an integer.
  */
+// Overload: typed array → integer value
+export function integer<TValue, TDefault = null>(
+    data: ArrayItems<TValue>,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): number;
+// Overload: unknown fallback
+export function integer<TDefault = null>(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): number;
+// Implementation
 export function integer<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -1457,6 +1521,15 @@ export function integer<TValue, TDefault = null>(
  * join(['a', 'b', 'c'], ', ') => 'a, b, c'
  * join(['a', 'b', 'c'], ', ', ' and ') => 'a, b and c'
  */
+// Overload: typed array → joined string
+export function join<TValue>(
+    data: ArrayItems<TValue>,
+    glue: string,
+    finalGlue?: string,
+): string;
+// Overload: unknown fallback
+export function join(data: unknown, glue: string, finalGlue?: string): string;
+// Implementation
 export function join<TValue>(
     data: ArrayItems<TValue> | unknown,
     glue: string,
@@ -1563,6 +1636,17 @@ function stringifyKey(keyValue: unknown): string {
  *
  * prependKeysWith(['a', 'b', 'c'], 'item_'); -> Creates array with keys: item_0, item_1, item_2
  */
+// Overload: typed array → keys prefixed, element type preserved
+export function prependKeysWith<TValue>(
+    data: ArrayItems<TValue>,
+    prependWith: string,
+): Record<string, TValue>;
+// Overload: unknown fallback
+export function prependKeysWith(
+    data: unknown,
+    prependWith: string,
+): Record<string, unknown>;
+// Implementation
 export function prependKeysWith<TValue>(
     data: ArrayItems<TValue> | unknown,
     prependWith: string,
@@ -1647,6 +1731,17 @@ export function onlyValues<TValue>(
  * select([{a: 1, b: 2, c: 3}, {a: 4, b: 5, c: 6}], 'a'); -> [{a: 1}, {a: 4}]
  * select([{a: 1, b: 2}, {a: 3, b: 4}], ['a', 'b']); -> [{a: 1, b: 2}, {a: 3, b: 4}]
  */
+// Overload: typed array → selected keys (Task 6 narrows this to Pick<TValue, K>[])
+export function select<TValue extends Record<string, unknown>>(
+    data: ArrayItems<TValue>,
+    keys: PathKeys,
+): Record<string, unknown>[];
+// Overload: unknown fallback
+export function select(
+    data: unknown,
+    keys: PathKeys,
+): Record<string, unknown>[];
+// Implementation
 export function select<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
@@ -2009,6 +2104,19 @@ export function mapSpread<TMapReturn>(
  * prepend(['b', 'c'], 'a'); -> ['a', 'b', 'c']
  * prepend([1, 2, 3], 0); -> [0, 1, 2, 3]
  */
+// Overload: typed array → array with the value prepended, element type preserved
+export function prepend<TValue>(
+    data: ArrayItems<TValue>,
+    value: TValue,
+    key?: number,
+): TValue[];
+// Overload: unknown fallback
+export function prepend<TValue>(
+    data: unknown,
+    value: TValue,
+    key?: number,
+): TValue[];
+// Implementation
 export function prepend<TValue>(
     data: ArrayItems<TValue> | unknown,
     value: TValue,
@@ -2106,6 +2214,11 @@ export function pull<TValue, TDefault = null>(
  * query({tags: ['php', 'js']}); -> 'tags[0]=php&tags[1]=js'
  * query({user: {name: 'John', age: 30}}); -> 'user[name]=John&user[age]=30'
  */
+// Overload: typed array → query string
+export function query<TValue>(data: ArrayItems<TValue>): string;
+// Overload: unknown fallback
+export function query(data: unknown): string;
+// Implementation
 export function query(data: unknown): string {
     if (isNull(data) || isUndefined(data)) {
         return "";
@@ -2768,8 +2881,23 @@ export function sortRecursiveDesc<TValue>(
  * splice(['foo', 'baz'], 1, 0, 'bar'); -> { value: ['foo', 'bar', 'baz'], removed: [] }
  * splice(['foo', 'baz'], 1, 0, ['bar']); -> { value: ['foo', 'bar', 'baz'], removed: [] } // flattened
  */
+// Overload: typed array → typed splice result
 export function splice<TValue, TReplacements>(
     data: ArrayItems<TValue>,
+    offset: number,
+    length?: number,
+    ...replacement: TReplacements[]
+): { value: TValue[]; removed: TValue[] };
+// Overload: unknown fallback
+export function splice<TValue, TReplacements>(
+    data: unknown,
+    offset: number,
+    length?: number,
+    ...replacement: TReplacements[]
+): { value: TValue[]; removed: TValue[] };
+// Implementation
+export function splice<TValue, TReplacements>(
+    data: ArrayItems<TValue> | unknown,
     offset: number,
     length?: number,
     ...replacement: TReplacements[]
@@ -2821,6 +2949,19 @@ export function splice<TValue, TReplacements>(
  * string([{name: 'John'}], '0.name'); -> 'John'
  * string([{name: 123}], '0.name'); -> throws Error
  */
+// Overload: typed array → string value
+export function string<TValue, TDefault = null>(
+    data: ArrayItems<TValue>,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): string;
+// Overload: unknown fallback
+export function string<TDefault = null>(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): string;
+// Implementation
 export function string<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -2849,6 +2990,15 @@ export function string<TValue, TDefault = null>(
  * toCssClasses(['font-bold', 'mt-4', { 'ml-2': true, 'mr-2': false }]); -> 'font-bold mt-4 ml-2'
  * toCssClasses({ 'font-bold': true, 'text-red': false }); -> 'font-bold'
  */
+// Overload: typed array or record → CSS class string
+export function toCssClasses<TValue>(
+    data: ArrayItems<TValue> | Record<string, TValue>,
+): string;
+// Overload: unknown fallback
+export function toCssClasses(
+    data: ArrayItems<unknown> | Record<string, unknown> | unknown,
+): string;
+// Implementation
 export function toCssClasses(
     data: ArrayItems<unknown> | Record<string, unknown> | unknown,
 ): string {
@@ -2897,6 +3047,15 @@ export function toCssClasses(
  * toCssStyles(['font-weight: bold', 'margin-top: 4px']); -> 'font-weight: bold; margin-top: 4px;'
  * toCssStyles(['font-weight: bold', { 'margin-left: 2px': true, 'margin-right: 2px': false }]); -> 'font-weight: bold; margin-left: 2px;'
  */
+// Overload: typed array or record → CSS style string
+export function toCssStyles<TValue>(
+    data: ArrayItems<TValue> | Record<string, TValue>,
+): string;
+// Overload: unknown fallback
+export function toCssStyles(
+    data: ArrayItems<unknown> | Record<string, unknown> | unknown,
+): string;
+// Implementation
 export function toCssStyles(
     data: ArrayItems<unknown> | Record<string, unknown> | unknown,
 ): string {
@@ -3534,6 +3693,11 @@ export function wrap<TValue>(value: TValue | null): TValue[] | [] {
  * keys(['name', 'age', 'city']); -> [0, 1, 2]
  * keys([]); -> []
  */
+// Overload: typed array → numeric index list
+export function keys<TValue>(data: ArrayItems<TValue>): number[];
+// Overload: unknown fallback
+export function keys(data: unknown): number[];
+// Implementation
 export function keys<TValue>(data: ArrayItems<TValue> | unknown): number[] {
     if (!accessible(data)) {
         return [];
@@ -3678,6 +3842,14 @@ export function intersect<TValue, TOther = TValue>(
  * intersectAssoc(['a', 'b', 'c'], ['a', 'b', 'd']); -> ['a', 'b']
  * intersectAssoc([1, 2, 3, 4], [5, 2, 3]); -> [2, 3]
  */
+// Overload: typed arrays → element type preserved
+export function intersectAssoc<TValue>(
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TValue>,
+): TValue[];
+// Overload: unknown fallback
+export function intersectAssoc(data: unknown, other: unknown): unknown[];
+// Implementation
 export function intersectAssoc<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,

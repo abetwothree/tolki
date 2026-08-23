@@ -83,3 +83,26 @@ export type AddToArray<T extends unknown[], V> =
             ? Array<U | V>
             : never
         : never;
+
+/**
+ * Removes `null` from an array's element type.
+ * Used by helpers that filter null values out of an array.
+ *
+ * @example
+ * NonNullableArray<(string | null)[]> // string[]
+ * NonNullableArray<string[]>          // string[]
+ */
+export type NonNullableArray<T extends readonly unknown[]> =
+    T extends readonly (infer U)[] ? Exclude<U, null>[] : never;
+
+/**
+ * Removes the values PHP treats as falsy from an array's element type.
+ *
+ * @example
+ * TruthyArray<(string | null | undefined)[]> // string[]
+ * TruthyArray<(number | false)[]>            // number[]
+ */
+export type TruthyArray<T extends readonly unknown[]> =
+    T extends readonly (infer U)[]
+        ? Exclude<U, null | undefined | false | 0 | "">[]
+        : never;
