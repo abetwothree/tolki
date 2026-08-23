@@ -12,9 +12,6 @@ export default defineConfig({
             staticImport: true,
             tsconfigPath: path.resolve(__dirname, "tsconfig.json"),
             exclude: ["**/*.spec.ts", "**/__tests__/**"],
-            // The root tsconfig aliases @tolki/* to ./packages/*/src/index.ts. Left alone, the plugin
-            // resolves that alias into a dist-relative path that resolves nowhere. Excluding it emits
-            // the bare specifier instead, which consumers resolve through node_modules.
             aliasesExclude: [/^@tolki\//],
         }),
     ],
