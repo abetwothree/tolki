@@ -982,9 +982,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Flip the items in the collection.
      *
-     * Only values that are valid PHP array keys (strings and integers) are
-     * flipped into keys; every other value is skipped.
-     *
      * @returns A new collection with flipped items
      *
      * @example

@@ -65,15 +65,6 @@ export function substrCount(
  * Replace text within a portion of a string, an array of strings, or an object of strings.
  * Properly handles multibyte characters.
  *
- * When the subject is a string, the replacement must resolve to a single value: a
- * string, or the first value of an array/object of replacements. Array offsets or
- * lengths with a string subject throw a TypeError, matching PHP's substr_replace.
- *
- * When the subject is an array or object, each entry is replaced positionally:
- * the Nth entry uses the Nth replacement/offset/length value (keys of the
- * replace/offset/length arrays or objects are ignored), falling back to an empty
- * string, 0, and null respectively when a positional value is missing.
- *
  * @param string - The subject string, array of strings, or object of strings.
  * @param replace - The replacement string, or an array/object of replacement strings applied positionally.
  * @param offset - The starting position for the replacement, or an array of positions applied positionally. If negative, it starts that many characters from the end of the string.

@@ -13,6 +13,7 @@ import { finish, randomInt } from "@tolki/str";
 import type { CaseValue, PathKey, PathKeys } from "@tolki/types";
 import {
     compareValues,
+    defineKey,
     isArray,
     isBoolean,
     isFalsy,
@@ -897,35 +898,7 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Store a flipped key on the result without going through the `__proto__`
- * setter, so a value of "__proto__" becomes a real own key the way PHP's
- * array_flip produces it, and no assignment can reach Object.prototype.
- *
- * @param target - The object to define the key on.
- * @param key - The key to define.
- * @param value - The value to store under the key.
- */
-function defineKey<TValue>(
-    target: Record<string, TValue>,
-    key: string,
-    value: TValue,
-): void {
-    Object.defineProperty(target, key, {
-        value,
-        enumerable: true,
-        writable: true,
-        configurable: true,
-    });
-}
-
-/**
  * Flip the keys and values of an object.
- *
- * Only values that are valid PHP array keys (strings and integers within
- * PHP's 64-bit integer range) are flipped into keys; every other value
- * (null, undefined, booleans, floats, arrays, objects, functions) is
- * skipped. When duplicate values exist, the later key overwrites the
- * earlier one.
  *
  * @param data - The object of items to flip
  * @return - the data items flipped

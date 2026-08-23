@@ -732,9 +732,6 @@ export function dataFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Flip the keys and values of an object or array.
  *
- * Only values that are valid PHP array keys (strings and integers) are
- * flipped into keys; every other value is skipped.
- *
  * @param data - The data of items to flip
  * @return - the data items flipped
  */

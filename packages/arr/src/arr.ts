@@ -29,6 +29,7 @@ import type {
 import {
     castableToArray,
     compareValues,
+    defineKey,
     getAccessibleValues,
     isArray,
     isBoolean,
@@ -953,28 +954,6 @@ export function flatten<TValue>(
     }
 
     return result;
-}
-
-/**
- * Store a flipped key on the result without going through the `__proto__`
- * setter, so a value of "__proto__" becomes a real own key the way PHP's
- * array_flip produces it, and no assignment can reach Object.prototype.
- *
- * @param target - The object to define the key on.
- * @param key - The key to define.
- * @param value - The value to store under the key.
- */
-function defineKey<TValue>(
-    target: Record<string, TValue>,
-    key: string,
-    value: TValue,
-): void {
-    Object.defineProperty(target, key, {
-        value,
-        enumerable: true,
-        writable: true,
-        configurable: true,
-    });
 }
 
 /**

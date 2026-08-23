@@ -1008,3 +1008,25 @@ export function isPhpArrayKey(value: unknown): value is string | number {
     // valid key already. The lower bound is inclusive: PHP_INT_MIN is -2^63.
     return value >= -PHP_INT_BOUND && value < PHP_INT_BOUND;
 }
+
+/**
+ * Define an own enumerable property on the target without going through a
+ * setter, so a key such as `__proto__` becomes a real own key rather than
+ * reaching `Object.prototype` through the inherited setter.
+ *
+ * @param target - The object to define the key on
+ * @param key - The key to define
+ * @param value - The value to store under the key
+ */
+export function defineKey<TValue>(
+    target: Record<string, TValue>,
+    key: string,
+    value: TValue,
+): void {
+    Object.defineProperty(target, key, {
+        value,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+    });
+}

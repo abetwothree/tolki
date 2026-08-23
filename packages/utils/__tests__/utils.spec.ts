@@ -910,4 +910,56 @@ describe("Utils", () => {
             expect(Utils.isPhpArrayKey(Symbol("k"))).toBe(false);
         });
     });
+
+    describe("defineKey", () => {
+        it("defines an own enumerable key", () => {
+            const target: Record<string, number> = {};
+            Utils.defineKey(target, "a", 1);
+
+            expect(target["a"]).toBe(1);
+            expect(Object.keys(target)).toEqual(["a"]);
+            expect(Object.hasOwn(target, "a")).toBe(true);
+        });
+
+        it("defines a writable and configurable property", () => {
+            const target: Record<string, number> = {};
+            Utils.defineKey(target, "a", 1);
+
+            expect(Object.getOwnPropertyDescriptor(target, "a")).toStrictEqual({
+                value: 1,
+                enumerable: true,
+                writable: true,
+                configurable: true,
+            });
+        });
+
+        it("overwrites a key that was already defined", () => {
+            const target: Record<string, number> = {};
+            Utils.defineKey(target, "a", 1);
+            Utils.defineKey(target, "a", 2);
+
+            expect(target["a"]).toBe(2);
+            expect(Object.keys(target)).toEqual(["a"]);
+        });
+
+        it("stores __proto__ as a real own key without polluting the prototype", () => {
+            const target: Record<string, string> = {};
+            Utils.defineKey(target, "__proto__", "safe");
+
+            expect(Object.hasOwn(target, "__proto__")).toBe(true);
+            expect(target["__proto__"]).toBe("safe");
+            expect(Object.getPrototypeOf(target)).toBe(Object.prototype);
+            expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+        });
+
+        it("stores other prototype-sensitive keys as own keys", () => {
+            const target: Record<string, string> = {};
+            Utils.defineKey(target, "constructor", "a");
+            Utils.defineKey(target, "prototype", "b");
+
+            expect(target["constructor"]).toBe("a");
+            expect(target["prototype"]).toBe("b");
+            expect(Object.keys(target)).toEqual(["constructor", "prototype"]);
+        });
+    });
 });
