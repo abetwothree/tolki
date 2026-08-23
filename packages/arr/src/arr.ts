@@ -979,7 +979,7 @@ export function flatten<TValue>(
  * flip(['a', 1, null, false, true, 1.5, [], {}]); -> {a: 0, 1: 1}
  */
 // Overload: typed array → flipped record
-export function flip<TValue>(data: readonly TValue[]): Record<string, number>;
+export function flip<TValue>(data: ArrayItems<TValue>): Record<string, number>;
 // Overload: unknown fallback
 export function flip(data: unknown): Record<string, number>;
 // Implementation
@@ -2881,23 +2881,8 @@ export function sortRecursiveDesc<TValue>(
  * splice(['foo', 'baz'], 1, 0, 'bar'); -> { value: ['foo', 'bar', 'baz'], removed: [] }
  * splice(['foo', 'baz'], 1, 0, ['bar']); -> { value: ['foo', 'bar', 'baz'], removed: [] } // flattened
  */
-// Overload: typed array → typed splice result
 export function splice<TValue, TReplacements>(
     data: ArrayItems<TValue>,
-    offset: number,
-    length?: number,
-    ...replacement: TReplacements[]
-): { value: TValue[]; removed: TValue[] };
-// Overload: unknown fallback
-export function splice<TValue, TReplacements>(
-    data: unknown,
-    offset: number,
-    length?: number,
-    ...replacement: TReplacements[]
-): { value: TValue[]; removed: TValue[] };
-// Implementation
-export function splice<TValue, TReplacements>(
-    data: ArrayItems<TValue> | unknown,
     offset: number,
     length?: number,
     ...replacement: TReplacements[]
