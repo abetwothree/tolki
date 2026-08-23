@@ -77,8 +77,8 @@ All six packages that share this build config (`@tolki/ts`, `@tolki/enum`, `@tol
 Before drawing any conclusion from what's in a package's `dist/`, clear it first:
 
 Bash:
-  rm -rf packages/*/dist
-  pnpm --filter @tolki/ts --filter @tolki/enum --filter @tolki/utils --filter @tolki/arr --filter @tolki/collection --filter @tolki/data run build
+rm -rf packages/_/dist
+pnpm --filter @tolki/ts --filter @tolki/enum --filter @tolki/utils --filter @tolki/arr --filter @tolki/collection --filter @tolki/data run build
 PowerShell:
-  Remove-Item -Recurse -Force packages/*/dist
-  pnpm --filter @tolki/ts --filter @tolki/enum --filter @tolki/utils --filter @tolki/arr --filter @tolki/collection --filter @tolki/data run build
+Remove-Item -Recurse -Force packages/_/dist
+pnpm --filter @tolki/ts --filter @tolki/enum --filter @tolki/utils --filter @tolki/arr --filter @tolki/collection --filter @tolki/data run build
