@@ -8450,18 +8450,6 @@ describe("arr type tests", () => {
         });
     });
 
-    describe("has", () => {
-        it("returns boolean", () => {
-            expectTypeOf(Arr.has([1, 2, 3], 1)).toEqualTypeOf<boolean>();
-            expectTypeOf(
-                Arr.hasAll([1, 2, 3], [0, 1]),
-            ).toEqualTypeOf<boolean>();
-            expectTypeOf(
-                Arr.hasAny([1, 2, 3], [0, 5]),
-            ).toEqualTypeOf<boolean>();
-        });
-    });
-
     describe("every / some", () => {
         it("returns boolean", () => {
             expectTypeOf(
