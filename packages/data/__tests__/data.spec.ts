@@ -502,6 +502,56 @@ describe("Data", () => {
                 cherry: 2,
             });
         });
+
+        it("is object with unsupported values skipped", () => {
+            const result = Data.dataFlip({
+                string: "taylor",
+                integer: 1,
+                null: null,
+                false: false,
+                true: true,
+                float: 1.5,
+                array: [],
+                object: {},
+            });
+            expect(result).toEqual({ taylor: "string", 1: "integer" });
+        });
+
+        it("is array with unsupported values skipped", () => {
+            const result = Data.dataFlip([
+                "a",
+                1,
+                null,
+                false,
+                true,
+                1.5,
+                [],
+                {},
+            ]);
+            expect(result).toEqual({ a: 0, 1: 1 });
+        });
+
+        it("is object with numbers beyond PHP's integer range skipped", () => {
+            expect(Data.dataFlip({ huge: 1e21 })).toEqual({});
+        });
+
+        it("is array with numbers beyond PHP's integer range skipped", () => {
+            expect(Data.dataFlip([1e21])).toEqual({});
+        });
+
+        it("is object keeping __proto__ as an own key", () => {
+            const result = Data.dataFlip({ a: "__proto__" });
+
+            expect(Object.hasOwn(result, "__proto__")).toBe(true);
+            expect(result["__proto__"]).toBe("a");
+        });
+
+        it("is array keeping __proto__ as an own key", () => {
+            const result = Data.dataFlip(["__proto__"]);
+
+            expect(Object.hasOwn(result, "__proto__")).toBe(true);
+            expect(result["__proto__"]).toBe(0);
+        });
     });
 
     describe("dataFloat", () => {
@@ -534,6 +584,38 @@ describe("Data", () => {
                 "1.1",
             );
             expect(result).toEqual(["products", ["desk"]]);
+        });
+
+        it("resolves a top-level key following a dot key against the top level", () => {
+            const result = Data.dataForget(
+                { users: { name: "Joe", id: 1 }, id: 99 },
+                ["users.name", "id"],
+            );
+            expect(result).toEqual({ users: { id: 1 } });
+        });
+
+        it("resolves a top-level key following a deeper dot key against the top level", () => {
+            const result = Data.dataForget(
+                { products: { desk: { price: 100 } }, desk: "top-level" },
+                ["products.desk.price", "desk"],
+            );
+            expect(result).toEqual({ products: { desk: {} } });
+        });
+
+        it("resolves a dot key following a deeper dot key from the top level", () => {
+            const result = Data.dataForget(
+                { a: { b: { c: 1, "e.d": "literal" } }, e: { d: 3 } },
+                ["a.b.c", "e.d"],
+            );
+            expect(result).toEqual({
+                a: { b: { "e.d": "literal" } },
+                e: {},
+            });
+        });
+
+        it("resolves a top-level index following a dot key against the top-level array", () => {
+            const result = Data.dataForget([["x", "y"], "z"], ["0.1", 1]);
+            expect(result).toEqual([["x"]]);
         });
     });
 

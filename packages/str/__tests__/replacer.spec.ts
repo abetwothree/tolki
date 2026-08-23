@@ -153,10 +153,9 @@ describe("Str/Replacer", () => {
                     8,
                 ),
             ).toBe("Laravel – The PHP Framework for Web Artisans");
-            expect(substrReplace("hello world", ["hi", "there"], 6)).toEqual([
+            expect(substrReplace("hello world", ["hi", "there"], 6)).toBe(
                 "hello hi",
-                "hello there",
-            ]);
+            );
         });
 
         it("substrReplace with multibyte", () => {
@@ -206,17 +205,74 @@ describe("Str/Replacer", () => {
             expect(substrReplace("hello", "X", -100, 2)).toBe("Xllo");
         });
 
-        it("handles array of replacements", () => {
-            const result = substrReplace("hello", ["a", "b", "c"], 0, 1);
-            expect(result).toEqual(["aello", "bello", "cello"]);
+        it("uses first replacement when subject is a string and replace is an array", () => {
+            expect(substrReplace("hello", ["a", "b", "c"], 0, 1)).toBe("aello");
+            expect(substrReplace("kenkä", ["ng"], -3, 2)).toBe("kengä");
         });
 
-        it("handles array offset (uses first element)", () => {
-            expect(substrReplace("hello", "x", [2], 1)).toBe("hexlo");
+        it("uses empty string when subject is a string and replace is an empty array", () => {
+            expect(substrReplace("abc", [], 1, 1)).toBe("ac");
         });
 
-        it("handles array length (uses first element)", () => {
-            expect(substrReplace("hello", "x", 0, [2])).toBe("xllo");
+        it("uses first value when subject is a string and replace is an object", () => {
+            expect(substrReplace("abc", { only: "X" }, 1, 1)).toBe("aXc");
+        });
+
+        it("throws TypeError for array offset with string subject", () => {
+            expect(() => substrReplace("abc", "X", [1], 1)).toThrow(TypeError);
+            expect(() => substrReplace("hello", "x", [], 1)).toThrow(TypeError);
+        });
+
+        it("throws TypeError for array length with string subject", () => {
+            expect(() => substrReplace("abc", "X", 1, [1])).toThrow(TypeError);
+            expect(() => substrReplace("hello", "x", 0, [])).toThrow(TypeError);
+        });
+
+        it("replaces array subject entries positionally", () => {
+            expect(
+                substrReplace(
+                    ["INV-1234", "INV-5678"],
+                    ["****", "****"],
+                    [4, 4],
+                    [4, 4],
+                ),
+            ).toEqual(["INV-****", "INV-****"]);
+            expect(
+                substrReplace(["kenkä", "БГДЖ"], ["ng", "X"], [-3, 1], [2, 1]),
+            ).toEqual(["kengä", "БXДЖ"]);
+        });
+
+        it("applies scalar replace, offset, and length to every array entry", () => {
+            expect(substrReplace(["kenkä", "БГДЖ"], "X", 1, 1)).toEqual([
+                "kXnkä",
+                "БXДЖ",
+            ]);
+            expect(substrReplace(["kenkä", "БГДЖ"], "X", 2)).toEqual([
+                "keX",
+                "БГX",
+            ]);
+        });
+
+        it("replaces object subject values preserving keys with positional fallbacks", () => {
+            expect(
+                substrReplace(
+                    { first: "abc", second: "def", third: "ghi" },
+                    ["X", "Y"],
+                    [1],
+                    [1, 1],
+                ),
+            ).toEqual({ first: "aXc", second: "Yef", third: "" });
+        });
+
+        it("ignores keys of replace/offset/length and matches purely by position", () => {
+            expect(
+                substrReplace(
+                    { first: "abc", second: "def" },
+                    { second: "X", first: "Y" },
+                    [1, 2],
+                    [1, 1],
+                ),
+            ).toEqual({ first: "aXc", second: "deY" });
         });
 
         it("handles null length (replaces to end)", () => {
@@ -237,14 +293,6 @@ describe("Str/Replacer", () => {
 
         it("handles offset beyond string length", () => {
             expect(substrReplace("hello", "x", 10)).toBe("hellox");
-        });
-
-        it("handles empty array offset (defaults to 0)", () => {
-            expect(substrReplace("hello", "x", [], 1)).toBe("xello");
-        });
-
-        it("handles empty array length (defaults to null/size)", () => {
-            expect(substrReplace("hello", "x", 0, [])).toBe("x");
         });
     });
 });

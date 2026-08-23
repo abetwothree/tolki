@@ -595,6 +595,39 @@ describe("Arr", () => {
         });
 
         expect(Arr.flip({ apple: 0, banana: 1, cherry: 2 })).toEqual({});
+
+        // values that are not valid PHP array keys are skipped
+        expect(Arr.flip(["a", 1, null, false, true, 1.5, [], {}])).toEqual({
+            a: 0,
+            1: 1,
+        });
+
+        // numbers beyond PHP's integer range are floats in PHP, so they are
+        // skipped rather than producing an exponent-notation key
+        expect(Arr.flip([1e21])).toEqual({});
+        expect(Arr.flip([-1e21])).toEqual({});
+        expect(Arr.flip([1e16])).toEqual({ 10000000000000000: 0 });
+    });
+
+    it("flip keeps PHP_INT_MIN, whose integer bound is inclusive", () => {
+        // PHP_INT_MIN is exactly -2^63 and is a valid PHP array key, so
+        // array_flip keeps it rather than skipping it as an out-of-range float
+        expect(Arr.flip([-(2 ** 63)])).toEqual({
+            [String(-(2 ** 63))]: 0,
+        });
+
+        // 2^63 is PHP_INT_MAX + 1, which is a float in PHP, so it is skipped
+        expect(Arr.flip([2 ** 63])).toEqual({});
+    });
+
+    it("flip keeps __proto__ as an own key without polluting the prototype", () => {
+        const result = Arr.flip(["__proto__", "constructor"]);
+
+        expect(Object.hasOwn(result, "__proto__")).toBe(true);
+        expect(result["__proto__"]).toBe(0);
+        expect(result["constructor"]).toBe(1);
+        expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+        expect(({} as Record<string, unknown>)["0"]).toBeUndefined();
     });
 
     it("forget", () => {
@@ -628,6 +661,10 @@ describe("Arr", () => {
         expect(Arr.forget(data2, [0, "1.2"])).toEqual([[100, 200]]);
         expect(Arr.forget(data2, 0)).toEqual([[100, 200, 300]]);
         expect(Arr.forget(data2, 1)).toEqual(["prices"]);
+
+        // A top-level index following a "dot" key resolves against the
+        // top-level array
+        expect(Arr.forget([["x", "y"], "z"], ["0.1", 1])).toEqual([["x"]]);
     });
 
     it("forget - edge cases and robustness", () => {

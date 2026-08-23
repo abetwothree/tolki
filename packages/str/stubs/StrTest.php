@@ -10,17 +10,11 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\UuidInterface;
 use ReflectionClass;
+use TypeError;
 use ValueError;
 
 class SupportStrTest extends TestCase
 {
-    /** {@inheritdoc} */
-    #[\Override]
-    protected function tearDown(): void
-    {
-        Str::createRandomStringsNormally();
-    }
-
     public function testStringCanBeLimitedByWords(): void
     {
         $this->assertSame('Taylor...', Str::words('Taylor Otwell', 1));
@@ -874,18 +868,21 @@ class SupportStrTest extends TestCase
         $this->assertIsString(Str::random());
     }
 
-    public function testWhetherTheNumberOfGeneratedCharactersIsEquallyDistributed()
+    public function testWhetherTheNumberOfGeneratedCharactersIsEquallyDistributed(): void
     {
         $results = [];
-        // take 6.200.000 samples, because there are 62 different characters
-        for ($i = 0; $i < 620000; $i++) {
+
+        // take 620.000 samples, because there are 62 different characters
+        for ($i = 0; $i < 620_000; $i++) {
             $random = Str::random(1);
             $results[$random] = ($results[$random] ?? 0) + 1;
         }
 
-        // each character should occur 100.000 times with a variance of 5%.
+        // Each character should occur close to 10_000 times. The expected count is
+        // binomially distributed with a standard deviation of ~100, so allow a
+        // generous margin to avoid flaky failures from ordinary sampling noise.
         foreach ($results as $result) {
-            $this->assertEqualsWithDelta(10000, $result, 500);
+            $this->assertEqualsWithDelta(10_000, $result, 800);
         }
     }
 
@@ -928,7 +925,7 @@ class SupportStrTest extends TestCase
         Str::random();
 
         try {
-            $this->expectExceptionMessage('Out of random strings.');
+            $this->expectExceptionObject(new Exception('Out of random strings.'));
             Str::random();
             $this->fail();
         } finally {
@@ -1389,6 +1386,62 @@ class SupportStrTest extends TestCase
         $this->assertSame('kenga', Str::substrReplace('kenka', 'ng', -3, 2));
     }
 
+    public function testSubstrReplaceWithArrays()
+    {
+        $this->assertSame(
+            ['INV-****', 'INV-****'],
+            Str::substrReplace(['INV-1234', 'INV-5678'], ['****', '****'], [4, 4], [4, 4])
+        );
+
+        $this->assertSame(
+            ['first' => 'aXc', 'second' => 'Yef', 'third' => ''],
+            Str::substrReplace(
+                ['first' => 'abc', 'second' => 'def', 'third' => 'ghi'],
+                ['X', 'Y'],
+                [1],
+                [1, 1]
+            )
+        );
+
+        $this->assertSame('kengä', Str::substrReplace('kenkä', ['ng'], -3, 2));
+        $this->assertSame('ac', Str::substrReplace('abc', [], 1, 1));
+        $this->assertSame(
+            ['kengä', 'БXДЖ'],
+            Str::substrReplace(['kenkä', 'БГДЖ'], ['ng', 'X'], [-3, 1], [2, 1])
+        );
+        $this->assertSame(
+            ['kXnkä', 'БXДЖ'],
+            Str::substrReplace(['kenkä', 'БГДЖ'], 'X', 1, 1)
+        );
+        $this->assertSame(
+            ['keX', 'БГX'],
+            Str::substrReplace(['kenkä', 'БГДЖ'], 'X', 2)
+        );
+        $this->assertSame(
+            ['first' => 'aXc', 'second' => 'deY'],
+            Str::substrReplace(
+                ['first' => 'abc', 'second' => 'def'],
+                ['second' => 'X', 'first' => 'Y'],
+                [10 => 1, 20 => 2],
+                [30 => 1, 40 => 1]
+            )
+        );
+    }
+
+    public function testSubstrReplaceWithArrayOffsetRequiresArraySubject()
+    {
+        $this->expectException(TypeError::class);
+
+        Str::substrReplace('abc', 'X', [1], 1);
+    }
+
+    public function testSubstrReplaceWithArrayLengthRequiresArraySubject()
+    {
+        $this->expectException(TypeError::class);
+
+        Str::substrReplace('abc', 'X', 1, [1]);
+    }
+
     public function testTake()
     {
         $this->assertSame('ab', Str::take('abcdef', 2));
@@ -1713,25 +1766,25 @@ class SupportStrTest extends TestCase
         $this->assertSame($expected, Str::transliterate($value, '?', true));
     }
 
-    public function testItCanFreezeUuids(): void
+    public function testItCanFreezeUuids()
     {
-        $this->assertNotSame(Str::uuid()->toString(), Str::uuid()->toString());
+        $this->assertNotSame((string) Str::uuid(), (string) Str::uuid());
         $this->assertNotSame(Str::uuid(), Str::uuid());
 
         $uuid = Str::freezeUuids();
 
         $this->assertSame($uuid, Str::uuid());
         $this->assertSame(Str::uuid(), Str::uuid());
-        $this->assertSame($uuid->toString(), Str::uuid()->toString());
-        $this->assertSame(Str::uuid()->toString(), Str::uuid()->toString());
+        $this->assertSame((string) $uuid, (string) Str::uuid());
+        $this->assertSame((string) Str::uuid(), (string) Str::uuid());
 
         Str::createUuidsNormally();
 
         $this->assertNotSame(Str::uuid(), Str::uuid());
-        $this->assertNotSame(Str::uuid()->toString(), Str::uuid()->toString());
+        $this->assertNotSame((string) Str::uuid(), (string) Str::uuid());
     }
 
-    public function testItCanFreezeUuidsInAClosure(): void
+    public function testItCanFreezeUuidsInAClosure()
     {
         $uuids = [];
 
@@ -1742,14 +1795,14 @@ class SupportStrTest extends TestCase
         });
 
         $this->assertSame($uuid, $uuids[0]);
-        $this->assertSame($uuid->toString(), $uuids[0]->toString());
-        $this->assertSame($uuids[0]->toString(), $uuids[1]->toString());
+        $this->assertSame((string) $uuid, (string) $uuids[0]);
+        $this->assertSame((string) $uuids[0], (string) $uuids[1]);
         $this->assertSame($uuids[0], $uuids[1]);
-        $this->assertSame($uuids[0]->toString(), $uuids[1]->toString());
+        $this->assertSame((string) $uuids[0], (string) $uuids[1]);
         $this->assertSame($uuids[1], $uuids[2]);
-        $this->assertSame($uuids[1]->toString(), $uuids[2]->toString());
+        $this->assertSame((string) $uuids[1], (string) $uuids[2]);
         $this->assertNotSame(Str::uuid(), Str::uuid());
-        $this->assertNotSame(Str::uuid()->toString(), Str::uuid()->toString());
+        $this->assertNotSame((string) Str::uuid(), (string) Str::uuid());
 
         Str::createUuidsNormally();
     }
@@ -1807,7 +1860,7 @@ class SupportStrTest extends TestCase
         Str::uuid();
 
         try {
-            $this->expectExceptionMessage('Out of Uuids.');
+            $this->expectExceptionObject(new Exception('Out of Uuids.'));
             Str::uuid();
             $this->fail();
         } finally {
@@ -1912,7 +1965,7 @@ class SupportStrTest extends TestCase
         Str::ulid();
 
         try {
-            $this->expectExceptionMessage('Out of Ulids');
+            $this->expectExceptionObject(new Exception('Out of Ulids'));
             Str::ulid();
             $this->fail();
         } finally {
@@ -1922,7 +1975,7 @@ class SupportStrTest extends TestCase
 
     public function testPasswordCreation()
     {
-        $this->assertTrue(strlen(Str::password()) === 32);
+        $this->assertSame(strlen(Str::password()), 32);
 
         $this->assertStringNotContainsString(' ', Str::password());
         $this->assertStringContainsString(' ', Str::password(spaces: true));

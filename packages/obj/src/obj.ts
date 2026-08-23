@@ -1,7 +1,4 @@
-import {
-    flip as arrFlip,
-    replaceRecursive as arrReplaceRecursive,
-} from "@tolki/arr";
+import { replaceRecursive as arrReplaceRecursive } from "@tolki/arr";
 import { SortDirection } from "@tolki/enum";
 import {
     dotFlatten,
@@ -16,6 +13,7 @@ import { finish, randomInt } from "@tolki/str";
 import type { CaseValue, PathKey, PathKeys } from "@tolki/types";
 import {
     compareValues,
+    defineKey,
     isArray,
     isBoolean,
     isFalsy,
@@ -25,6 +23,7 @@ import {
     isNull,
     isNumber,
     isObject,
+    isPhpArrayKey,
     isPositiveNumber,
     isString,
     isStringable,
@@ -899,45 +898,32 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Flip the keys and values of an object recursively
+ * Flip the keys and values of an object.
  *
  * @param data - The object of items to flip
  * @return - the data items flipped
  *
  * @example
- * flip({one: 'b', two: {hi: 'hello', skip: 'bye'}}); -> {b: 'one', {hello: 'hi', bye: 'skip'}}
+ * flip({name: 'taylor'}); -> {taylor: 'name'}
+ * flip({string: 'taylor', integer: 1, null: null, float: 1.5}); -> {taylor: 'string', 1: 'integer'}
  */
 export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-) {
+): Record<string, string> {
     if (!accessible(data)) {
         return {};
     }
 
-    // flip the object keys as values and values as keys
-    // for values that are nested, the keys should be flipped recursively
-    // e.g {one: 'b', two: {hi: 'hello', skip: 'bye'}} -> {b: 'one', {hello: 'hi', bye: 'skip'}}
-    // if the value is an array, call arrFlip
-    const result: Record<string, unknown> = {};
+    // flip the object keys as values and values as keys,
+    // skipping values that are not valid PHP array keys
+    // e.g {name: 'taylor'} -> {taylor: 'name'}
+    const result: Record<string, string> = {};
 
-    const flipRecursive = (
-        obj: Record<string, unknown>,
-        prefix: string = "",
-    ) => {
-        for (const [key, value] of Object.entries(obj)) {
-            const newKey = prefix ? `${prefix}.${key}` : key;
-
-            if (isObject(value)) {
-                flipRecursive(value as Record<string, unknown>, newKey);
-            } else if (isArray(value)) {
-                result[key as string] = arrFlip(value);
-            } else {
-                result[value as string] = newKey;
-            }
+    for (const [key, value] of Object.entries(data)) {
+        if (isPhpArrayKey(value)) {
+            defineKey(result, String(value), key);
         }
-    };
-
-    flipRecursive(data as Record<string, unknown>);
+    }
 
     return result;
 }

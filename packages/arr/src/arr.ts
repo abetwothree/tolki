@@ -29,6 +29,7 @@ import type {
 import {
     castableToArray,
     compareValues,
+    defineKey,
     getAccessibleValues,
     isArray,
     isBoolean,
@@ -40,6 +41,7 @@ import {
     isNull,
     isNumber,
     isObject,
+    isPhpArrayKey,
     isString,
     isStringable,
     isSymbol,
@@ -955,13 +957,14 @@ export function flatten<TValue>(
 }
 
 /**
- * Flip the keys and values of an array or array of objects.
+ * Flip the indices and values of an array.
  *
  * @param data - The array of items to flip
  * @return - the data items flipped
  *
  * @example
  * flip(['a', 'b', 'c']); -> {a: 0, b: 1, c: 2}
+ * flip(['a', 1, null, false, true, 1.5, [], {}]); -> {a: 0, 1: 1}
  */
 export function flip<TValue>(
     data: readonly TValue[] | unknown,
@@ -970,13 +973,17 @@ export function flip<TValue>(
         return {};
     }
 
-    // flip the array indices as values and values as keys
+    // flip the array indices as values and values as keys,
+    // skipping values that are not valid PHP array keys
     // e.g ['apple', 'banana', 'cherry'] -> {apple: 0, banana: 1, cherry: 2}
     const result: Record<string, number> = {};
 
     for (let i = 0; i < data.length; i++) {
         const item = data[i];
-        result[String(item)] = i;
+
+        if (isPhpArrayKey(item)) {
+            defineKey(result, String(item), i);
+        }
     }
 
     return result;

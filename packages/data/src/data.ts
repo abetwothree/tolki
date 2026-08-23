@@ -730,7 +730,7 @@ export function dataFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Flip the keys and values of an object or array, or array of objects recursively
+ * Flip the keys and values of an object or array.
  *
  * @param data - The data of items to flip
  * @return - the data items flipped

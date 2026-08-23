@@ -538,4 +538,44 @@ describe("str type tests", () => {
             });
         });
     });
+
+    describe("substrReplace", () => {
+        it("returns string when subject is a string", () => {
+            const result = Str.substrReplace("hello world", "there", 6);
+            expectTypeOf(result).toEqualTypeOf<string>();
+        });
+
+        it("returns string when subject is a string and replace is an array", () => {
+            const result = Str.substrReplace("hello world", ["hi"], 6);
+            expectTypeOf(result).toEqualTypeOf<string>();
+        });
+
+        it("returns string[] when subject is a string array", () => {
+            const result = Str.substrReplace(["kenkä", "БГДЖ"], "X", 1, 1);
+            expectTypeOf(result).toEqualTypeOf<string[]>();
+        });
+
+        it("returns string[] with array replace, offset, and length", () => {
+            const result = Str.substrReplace(
+                ["INV-1234", "INV-5678"],
+                ["****", "****"],
+                [4, 4],
+                [4, 4],
+            );
+            expectTypeOf(result).toEqualTypeOf<string[]>();
+        });
+
+        it("returns an object preserving the subject keys when subject is an object", () => {
+            const result = Str.substrReplace(
+                { first: "abc", second: "def" },
+                ["X", "Y"],
+                [1, 2],
+                [1, 1],
+            );
+            expectTypeOf(result).toExtend<Record<string, string>>();
+            expectTypeOf(result).toEqualTypeOf<
+                Record<"first" | "second", string>
+            >();
+        });
+    });
 });
