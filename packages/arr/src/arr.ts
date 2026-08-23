@@ -959,12 +959,6 @@ export function flatten<TValue>(
 /**
  * Flip the indices and values of an array.
  *
- * Only values that are valid PHP array keys (strings and integers within
- * PHP's 64-bit integer range) are flipped into keys; every other value
- * (null, undefined, booleans, floats, arrays, objects, functions) is
- * skipped. When duplicate values exist, the later index overwrites the
- * earlier one.
- *
  * @param data - The array of items to flip
  * @return - the data items flipped
  *

@@ -175,6 +175,20 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `isSet(variable)` - checks if the variable is a Set
   - `isWeakMap(variable)` - checks if the variable is a WeakMap
   - `isWeakSet(variable)` - checks if the variable is a WeakSet
+  - `isIterable(variable)` - checks if the variable is iterable
+  - `isPositiveNumber(variable)` - checks if the variable is a number greater than zero
+  - `isNegativeNumber(variable)` - checks if the variable is a number less than zero
+  - `isFiniteNumber(variable)` - checks if the variable is a finite number
+  - `isPrimitive(variable)` - checks if the variable is a primitive value
+  - `isNonPrimitive(variable)` - checks if the variable is not a primitive value
+  - `isFalsy(variable)` - checks if the variable is falsy the way PHP treats falsy values
+  - `isTruthy(variable)` - checks if the variable is truthy the way PHP treats truthy values
+  - `isAccessibleData(variable)` - checks if the variable is an array or object whose values can be walked
+  - `typeOf(variable)` - returns the PHP-style type name of the variable
+  - `strictEqual(value1, value2)` - checks if two values are strictly equal the way that PHP does it with `===`
+  - `isUnsafeKey(key)` - checks if a key could cause prototype pollution (`__proto__`, `constructor`, `prototype`)
+  - `isPhpArrayKey(value)` - checks if a value is one PHP would accept as an array key
+  - `defineKey(target, key, value)` - defines an own enumerable key without going through a setter
   - `looseEqual(value1, value2)` - checks if two values are loosely equal the way that PHP does it with `==`
   - `entriesKeyValue(variable)` - converts a key of an array or object to number if it should be a number, otherwise, returns the key as is. This is useful when iterating over arrays or objects and getting the keys from `Object.entries()` or similar methods.
 - For better code coverage results, use full return statements with curly braces, even for single statements, no implicit returns:
@@ -366,3 +380,17 @@ export function dataCollapse(data: unknown): unknown {
 
 - General utility functions that don't fit in other packages
 - use `@tolki/types` for type definitions
+- Only add a helper here when more than one package needs it. A helper used by a
+  single package belongs in that package, and a helper that exists to implement a
+  specific Laravel or PHP function belongs with that function.
+- The source is split by concern so no single file grows unbounded. Add new
+  helpers to the file that matches their concern, never to the barrel:
+  - `src/guards.ts` - `is*` type guards
+  - `src/cast.ts` - conversion and coercion helpers
+  - `src/equality.ts` - comparison and equality helpers
+  - `src/keys.ts` - object key helpers
+  - `src/string.ts` - string helpers shared across packages
+  - `src/reflect.ts` - runtime type reflection helpers
+  - `src/utils.ts` - barrel that re-exports the files above, keeping the
+    `@tolki/utils` and `@tolki/utils/utils` entry points unchanged
+- Tests mirror the source layout: `__tests__/<module>.spec.ts` per source file
