@@ -936,6 +936,10 @@ const result = numbers("(555) 123-4567");
 const result2 = numbers("L4r4v3l!");
 
 // result2 is "443"
+
+const result3 = numbers(["(555) 123-4567", "L4r4v3l!"]);
+
+// result3 is ["5551234567", "443"]
 ```
 
 #### padBoth
@@ -1481,12 +1485,22 @@ import { substrReplace } from "@tolki/str";
 
 const result = substrReplace("1300", ":", 2);
 
-// result is "13"
+// result is "13:"
 
 const result2 = substrReplace("1300", ":", 2, 0);
 
-// result2 is also "13:00"
+// result2 is "13:00"
 ```
+
+You may also pass an array or plain object of strings as the first argument to replace text in each of them at once, keeping the keys intact:
+
+```javascript
+const results = substrReplace(["INV-1234", "INV-5678"], "****", 4, 4);
+
+// results is ["INV-****", "INV-****"]
+```
+
+The `replace`, `offset`, and `length` arguments may each be given as an array to apply a different value to each string by position. When the first argument is a single string, an array of replacements uses only the first replacement, and an array `offset` or `length` throws a `TypeError`.
 
 #### swap
 
@@ -1814,8 +1828,8 @@ const result2 = wordWrap("😀😀😀😀", 2, "\n", true);
 ```
 
 ' },
-{ name: 'cutLongWords', type: 'boolean', default: false },
-]"
+    { name: 'cutLongWords', type: 'boolean', default: false },
+  ]"
 />
 
 #### words
