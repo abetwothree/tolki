@@ -1,5 +1,20 @@
 # @tolki/ts
 
+## 1.0.2
+
+### Patch Changes
+
+- 77323d4: Fix built declaration files emitting a dist-relative specifier for cross-package type imports (e.g. `../../../types/src/index` instead of `@tolki/types`), which resolved nowhere once installed from npm.
+
+  The dts plugin now excludes `@tolki/*` aliases from resolution, so these imports emit as bare package specifiers that consumers resolve through `node_modules`, matching the corresponding runtime `dependencies` entry.
+
+  No API changed — this only corrects the emitted type specifier.
+
+- Updated dependencies [77323d4]
+- Updated dependencies [5174f99]
+- Updated dependencies [35fb407]
+  - @tolki/utils@1.2.0
+
 ## 1.0.1
 
 ### Patch Changes
