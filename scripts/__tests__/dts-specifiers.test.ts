@@ -55,5 +55,5 @@ describe("built declarations", () => {
         );
 
         expect(offenders).toEqual([]);
-    })
+    });
 });
