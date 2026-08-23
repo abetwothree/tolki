@@ -8,15 +8,16 @@ An import from a built `@tolki/*` package (`@tolki/ts`, `@tolki/enum`, `@tolki/u
 
 This stays invisible because `skipLibCheck: true` — the default in most starter `tsconfig.json` files — skips type-checking inside `.d.ts` files entirely, including the one line that fails to resolve. The import silently degrades to `any` instead of raising `TS2307: Cannot find module`.
 
-Paste this into your project against any `@tolki/*` export you already use, replacing `defineEnum` and the package with your own import:
+Paste this into your project against any `@tolki/*` type you already use, replacing `EnumConst` and the package with your own import:
 
 ```typescript
-import { defineEnum } from "@tolki/ts";
-type ShouldBeAFunction = "not-a-function";
-const probe: ShouldBeAFunction = defineEnum;
+import type { EnumConst } from "@tolki/ts";
+
+type ShouldBeAType = "not-a-function";
+const probe: ShouldBeAType = {} as EnumConst;
 ```
 
-If this compiles without error, the import is `any` and you're hitting this defect. If `tsc` reports that a function isn't assignable to `"not-a-function"`, the type is resolving correctly.
+If this compiles without error, the type resolved to `any` and you're hitting this defect — `any` is assignable to anything, including a type it clearly isn't. If `tsc` reports `TS2322` (`EnumConst` is not assignable to `"not-a-function"`), the type is resolving correctly.
 
 ## Cause
 
@@ -69,9 +70,9 @@ The guard only means something against a **freshly built** tree. It inspects wha
 
 ## The stale `dist/` trap
 
-`dist/` is gitignored, so nothing keeps it in sync with your source or your build config. A partial or out-of-date build leaves stale output sitting on disk indistinguishable from a fresh one — and reading it produces confident, wrong conclusions about which packages are affected.
+`dist/` is gitignored, so nothing keeps it in sync with your source or your build config. A partial or out-of-date build leaves stale output sitting on disk indistinguishable from a fresh one, and reading it produces confident, wrong conclusions about which packages are affected: a package can appear to already emit correct output while `dist/` only reflects stale contents that were never rebuilt against current source.
 
-That happened during the investigation behind this fix: three packages (`@tolki/arr`, `@tolki/collection`, `@tolki/data`) appeared to already emit working, if differently-shaped, relative specifiers. That was leftover output from an earlier build that had never been touched. A genuinely clean rebuild — `rm -rf packages/*/dist` followed by building all six packages fresh — showed every one of them emitting the same broken specifier.
+All six packages that share this build config (`@tolki/ts`, `@tolki/enum`, `@tolki/utils`, `@tolki/arr`, `@tolki/collection`, `@tolki/data`) are equally exposed to this defect — a genuinely clean rebuild of every one of them shows the same broken specifier pattern, not just a subset that happens to still have current output on disk.
 
 Before drawing any conclusion from what's in a package's `dist/`, clear it first:
 
