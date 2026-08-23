@@ -22,8 +22,10 @@ import type {
     CaseValue,
     EnsureArray,
     FlatArrayValue,
+    NonNullableArray,
     PathKey,
     PathKeys,
+    TruthyArray,
     UndotResult,
 } from "@tolki/types";
 import {
@@ -3092,7 +3094,7 @@ export function toCssStyles(
  */
 // Overload: array type with callback for proper type inference
 export function where<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => boolean,
 ): TValue[];
 // Overload: non-array fallback
@@ -3132,7 +3134,7 @@ export function where<TValue>(
  */
 // Overload: array type with callback for proper type inference
 export function reject<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => boolean,
 ): TValue[];
 // Overload: non-array fallback
@@ -3483,7 +3485,7 @@ export function pad<TPadValue, TValue>(
  */
 // Overload: array type with callback for proper type inference
 export function partition<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => boolean,
 ): [TValue[], TValue[]];
 // Overload: non-array fallback
@@ -3523,8 +3525,13 @@ export function partition<TValue>(
  * whereNotNull([1, null, 2, undefined, 3]); -> [1, 2, undefined, 3]
  * whereNotNull(['a', null, 'b', null]); -> ['a', 'b']
  */
-export function whereNotNull<TValue>(data: TValue[]): TValue[];
+// Overload: typed array → null removed from the element type
+export function whereNotNull<TData extends readonly unknown[]>(
+    data: TData,
+): NonNullableArray<TData>;
+// Overload: unknown fallback
 export function whereNotNull(data: unknown): unknown[];
+// Implementation
 export function whereNotNull<TValue>(
     data: ArrayItems<TValue> | unknown,
 ): TValue[] {
@@ -3602,14 +3609,16 @@ export function contains<TValue>(
  * filter([1, 2, 3, 4], (x) => x > 2); -> [3, 4]
  * filter([1, null, 2, undefined, 3]); -> [1, 2, 3]
  */
-// Overload: with callback - infers TValue from array type
+// Overload: no callback → PHP-falsy values removed from the element type
+export function filter<TData extends readonly unknown[]>(
+    data: TData,
+): TruthyArray<TData>;
+// Overload: with callback → element type preserved
 export function filter<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => boolean,
 ): TValue[];
-// Overload: without callback (filters falsy values) - infers TValue from array type
-export function filter<TValue>(data: TValue[]): TValue[];
-// Overload: non-array fallback
+// Overload: unknown fallback
 export function filter<TValue>(
     data: unknown,
     callback?: (value: TValue, index: number) => boolean,

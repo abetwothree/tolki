@@ -37,6 +37,18 @@ export const unionElements: (string | number)[] = ["a", 1, "b", 2];
 /** An array whose element type includes `null`, for null-filtering helpers. */
 export const nullableElements: (string | null)[] = ["a", null, "b"];
 
+/**
+ * A numeric array whose element type includes both `null` and `undefined`,
+ * for helpers that narrow `null`/`undefined`/falsy values out of the element
+ * type independently of each other.
+ */
+export const nullishNumbers: (number | null | undefined)[] = [
+    1,
+    null,
+    2,
+    undefined,
+];
+
 /** A two-dimensional numeric array, for flatten/collapse-style helpers. */
 export const numberGrid: number[][] = [
     [1, 2],
@@ -45,6 +57,9 @@ export const numberGrid: number[][] = [
 
 /** A `readonly string[]`, to confirm readonly arrays are accepted without casts. */
 export const readonlyStrings: readonly string[] = ["a", "b"];
+
+/** A `readonly number[]`, to confirm readonly numeric arrays are accepted without casts. */
+export const readonlyNumbers: readonly number[] = [1, 2];
 
 /** An `as const` string tuple, to confirm literal element types are preserved. */
 export const stringTuple = ["a", "b"] as const;

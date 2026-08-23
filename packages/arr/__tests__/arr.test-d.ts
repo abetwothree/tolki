@@ -8450,17 +8450,6 @@ describe("arr type tests", () => {
         });
     });
 
-    describe("every / some", () => {
-        it("returns boolean", () => {
-            expectTypeOf(
-                Arr.every([1, 2, 3], (v) => v > 0),
-            ).toEqualTypeOf<boolean>();
-            expectTypeOf(
-                Arr.some([1, 2, 3], (v) => v > 2),
-            ).toEqualTypeOf<boolean>();
-        });
-    });
-
     describe("keyBy", () => {
         it("returns Record with string callback", () => {
             const data = [{ id: 1, name: "a" }];
@@ -8764,35 +8753,6 @@ describe("arr type tests", () => {
         });
     });
 
-    describe("where", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.where(
-                [
-                    { name: "a", age: 10 },
-                    { name: "b", age: 20 },
-                ],
-                (item) => item.age > 15,
-            );
-            expectTypeOf(result).toEqualTypeOf<
-                { name: string; age: number }[]
-            >();
-        });
-    });
-
-    describe("reject", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.reject([1, 2, 3, 4], (v) => v > 2);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-
-        it("callback infers value type", () => {
-            Arr.reject(["a", "b", "c"], (value) => {
-                expectTypeOf(value).toEqualTypeOf<string>();
-                return value === "b";
-            });
-        });
-    });
-
     describe("replace", () => {
         describe("array replacer — no gaps, preserves type", () => {
             it("returns TValue[] for same-type array replacer", () => {
@@ -8917,48 +8877,6 @@ describe("arr type tests", () => {
         it("returns TValue[]", () => {
             const result = Arr.pad([1, 2], 5, 0);
             expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-    });
-
-    describe("partition", () => {
-        it("returns tuple of two TValue arrays", () => {
-            const result = Arr.partition([1, 2, 3, 4], (v) => v > 2);
-            expectTypeOf(result).toEqualTypeOf<[number[], number[]]>();
-        });
-
-        it("callback infers value type", () => {
-            Arr.partition(["a", "b", "c"], (value) => {
-                expectTypeOf(value).toEqualTypeOf<string>();
-                return value === "b";
-            });
-        });
-    });
-
-    describe("whereNotNull", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.whereNotNull([1, null, 2, null, 3]);
-            expectTypeOf(result).toEqualTypeOf<(number | null)[]>();
-        });
-    });
-
-    describe("contains", () => {
-        it("returns boolean", () => {
-            const result = Arr.contains([1, 2, 3], 2);
-            expectTypeOf(result).toEqualTypeOf<boolean>();
-        });
-    });
-
-    describe("filter", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.filter([1, 2, 3, 4], (v) => v > 2);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-
-        it("callback infers value type", () => {
-            Arr.filter(["a", "b", "c"], (value) => {
-                expectTypeOf(value).toEqualTypeOf<string>();
-                return value === "b";
-            });
         });
     });
 
