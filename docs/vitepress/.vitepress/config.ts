@@ -174,6 +174,10 @@ export default defineConfig({
                         text: "Vite Plugin",
                         link: "/ts/vite-plugin",
                     },
+                    {
+                        text: "Troubleshooting Types",
+                        link: "/ts/troubleshooting-types",
+                    },
                 ],
             },
             {

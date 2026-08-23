@@ -12,6 +12,7 @@ export default defineConfig({
             staticImport: true,
             tsconfigPath: path.resolve(__dirname, "tsconfig.json"),
             exclude: ["**/*.spec.ts", "**/__tests__/**"],
+            aliasesExclude: [/^@tolki\//],
         }),
     ],
     build: {
@@ -77,6 +78,17 @@ export default defineConfig({
                 lines: 100,
             },
         },
-        projects: ["packages/*"],
+        projects: [
+            "packages/*",
+            // scripts/ sits outside packages/*; without this project entry `pnpm test` never collects it.
+            {
+                extends: true,
+                test: {
+                    name: "scripts",
+                    root: "./scripts",
+                    environment: "node",
+                },
+            },
+        ],
     },
 });
