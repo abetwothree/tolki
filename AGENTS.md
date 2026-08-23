@@ -68,6 +68,12 @@ pop(count: number = 1): TValue | null | Collection<TValue[], number> {
 }
 ```
 
+## Utility functions
+
+If you need to create utility functions that are not specific to implement a Laravel helper function, then they should be added to the `@tolki/utils` package. This package is for general utility functions that don't fit in other packages.
+
+Once added to the `@tolki/utils` package, they can be used in any other package in the monorepo.
+
 ## Test structure
 
 Test should be structured with `describe` blocks for each function being tested, and `it` blocks for each test case.
