@@ -1,7 +1,22 @@
 import * as Arr from "@tolki/arr";
 import { describe, expectTypeOf, it } from "vitest";
 
-describe("arr key-guard type tests", () => {
+import {
+    nullableElements,
+    numberGrid,
+    readonlyStrings,
+    stringTuple,
+    unionElements,
+} from "./fixtures";
+
+/**
+ * Shared `unknown`-typed input for the "unknown fallback overload accepts
+ * this data without a cast" assertions repeated across this file's
+ * describe blocks.
+ */
+const unknownArray: unknown = ["a"];
+
+describe("arr key-guard and typed-getter type tests", () => {
     describe("has", () => {
         it("returns boolean for a numeric key", () => {
             expectTypeOf(Arr.has([1, 2, 3], 1)).toEqualTypeOf<boolean>();
@@ -50,8 +65,7 @@ describe("arr key-guard type tests", () => {
         });
 
         it("accepts a union element array without a cast", () => {
-            const data: (string | number)[] = [1, "a"];
-            expectTypeOf(Arr.has(data, 1)).toEqualTypeOf<boolean>();
+            expectTypeOf(Arr.has(unionElements, 1)).toEqualTypeOf<boolean>();
         });
 
         it("accepts an empty array without a cast", () => {
@@ -83,13 +97,15 @@ describe("arr key-guard type tests", () => {
         });
 
         it("accepts a readonly array without a cast", () => {
-            const data: readonly string[] = ["a"];
-            expectTypeOf(Arr.hasAll(data, [0])).toEqualTypeOf<boolean>();
+            expectTypeOf(
+                Arr.hasAll(readonlyStrings, [0]),
+            ).toEqualTypeOf<boolean>();
         });
 
         it("accepts unknown data without a cast", () => {
-            const data: unknown = ["a"];
-            expectTypeOf(Arr.hasAll(data, [0])).toEqualTypeOf<boolean>();
+            expectTypeOf(
+                Arr.hasAll(unknownArray, [0]),
+            ).toEqualTypeOf<boolean>();
         });
     });
 
@@ -117,13 +133,15 @@ describe("arr key-guard type tests", () => {
         });
 
         it("accepts an as const array without a cast", () => {
-            const data = ["a", "b"] as const;
-            expectTypeOf(Arr.hasAny(data, [0, 1])).toEqualTypeOf<boolean>();
+            expectTypeOf(
+                Arr.hasAny(stringTuple, [0, 1]),
+            ).toEqualTypeOf<boolean>();
         });
 
         it("accepts unknown data without a cast", () => {
-            const data: unknown = ["a"];
-            expectTypeOf(Arr.hasAny(data, [0])).toEqualTypeOf<boolean>();
+            expectTypeOf(
+                Arr.hasAny(unknownArray, [0]),
+            ).toEqualTypeOf<boolean>();
         });
     });
 
@@ -163,11 +181,9 @@ describe("arr key-guard type tests", () => {
             });
 
             it("returns number for a nested array path", () => {
-                const data = [
-                    [1, 2],
-                    [3, 4],
-                ];
-                expectTypeOf(Arr.integer(data, "1.0")).toEqualTypeOf<number>();
+                expectTypeOf(
+                    Arr.integer(numberGrid, "1.0"),
+                ).toEqualTypeOf<number>();
             });
         });
 
@@ -315,18 +331,21 @@ describe("arr key-guard type tests", () => {
 
         describe("complex and untyped data", () => {
             it("accepts a readonly array", () => {
-                const data: readonly string[] = ["a"];
-                expectTypeOf(Arr.string(data, 0)).toEqualTypeOf<string>();
+                expectTypeOf(
+                    Arr.string(readonlyStrings, 0),
+                ).toEqualTypeOf<string>();
             });
 
             it("accepts an as const array", () => {
-                const data = ["a", "b"] as const;
-                expectTypeOf(Arr.string(data, 0)).toEqualTypeOf<string>();
+                expectTypeOf(
+                    Arr.string(stringTuple, 0),
+                ).toEqualTypeOf<string>();
             });
 
             it("accepts unknown data", () => {
-                const data: unknown = ["a"];
-                expectTypeOf(Arr.string(data, 0)).toEqualTypeOf<string>();
+                expectTypeOf(
+                    Arr.string(unknownArray, 0),
+                ).toEqualTypeOf<string>();
             });
         });
 
@@ -367,28 +386,33 @@ describe("arr key-guard type tests", () => {
             });
 
             it("accepts a union element array", () => {
-                const data: (string | number)[] = ["a", 1];
-                expectTypeOf(Arr.join(data, ", ")).toEqualTypeOf<string>();
+                expectTypeOf(
+                    Arr.join(unionElements, ", "),
+                ).toEqualTypeOf<string>();
             });
 
             it("accepts a readonly array", () => {
-                const data: readonly string[] = ["a"];
-                expectTypeOf(Arr.join(data, ", ")).toEqualTypeOf<string>();
+                expectTypeOf(
+                    Arr.join(readonlyStrings, ", "),
+                ).toEqualTypeOf<string>();
             });
 
             it("accepts an as const array", () => {
-                const data = ["a", "b"] as const;
-                expectTypeOf(Arr.join(data, ", ")).toEqualTypeOf<string>();
+                expectTypeOf(
+                    Arr.join(stringTuple, ", "),
+                ).toEqualTypeOf<string>();
             });
 
             it("accepts unknown data", () => {
-                const data: unknown = ["a"];
-                expectTypeOf(Arr.join(data, ", ")).toEqualTypeOf<string>();
+                expectTypeOf(
+                    Arr.join(unknownArray, ", "),
+                ).toEqualTypeOf<string>();
             });
 
             it("accepts a nullable element array", () => {
-                const data: (string | null)[] = ["a", null];
-                expectTypeOf(Arr.join(data, ", ")).toEqualTypeOf<string>();
+                expectTypeOf(
+                    Arr.join(nullableElements, ", "),
+                ).toEqualTypeOf<string>();
             });
         });
 
