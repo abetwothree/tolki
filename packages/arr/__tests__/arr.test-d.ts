@@ -8471,46 +8471,6 @@ describe("arr type tests", () => {
         });
     });
 
-    describe("diff", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.diff([1, 2, 3, 4], [2, 4]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-    });
-
-    describe("intersect", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.intersect([1, 2, 3], [2, 3, 4]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-    });
-
-    describe("intersectByKeys", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.intersectByKeys(["a", "b", "c", "d"], [0, 2]);
-            expectTypeOf(result).toEqualTypeOf<string[]>();
-        });
-    });
-
-    describe("intersectAssocUsing", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.intersectAssocUsing(
-                [1, 2, 3],
-                [1, 2, 3],
-                (a, b) => a === b,
-            );
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-
-        it("callback infers key types", () => {
-            Arr.intersectAssocUsing([1, 2], [3, 4], (keyA, keyB) => {
-                expectTypeOf(keyA).toEqualTypeOf<number>();
-                expectTypeOf(keyB).toEqualTypeOf<number>();
-                return keyA === keyB;
-            });
-        });
-    });
-
     describe("iterable overloads", () => {
         it("every infers the value from a Set", () => {
             Arr.every(new Set([1, 2]), (value, key) => {

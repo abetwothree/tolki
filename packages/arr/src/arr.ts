@@ -3997,7 +3997,10 @@ export function values<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
  * diff([1, 2, 3], [2, 3, 4]); -> [1]
  * diff(['a', 'b', 'c'], ['b', 'c', 'd']); -> ['a']
  */
-export function diff<TValue>(data: TValue[], other: TValue[]): TValue[];
+export function diff<TValue>(
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TValue>,
+): TValue[];
 export function diff<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
@@ -4047,8 +4050,8 @@ export function intersect<TValue, TOther>(
 ): TValue[];
 // Overload: without callback - same type comparison
 export function intersect<TValue>(
-    data: TValue[],
-    other: TValue[],
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TValue>,
     callable?: null,
 ): TValue[];
 // Overload: non-array fallback
@@ -4148,8 +4151,8 @@ export function intersectAssoc<TValue>(
  * intersectAssocUsing([1, 2, 3], [1, 2, 3], alwaysEqual); -> [1, 2, 3]
  */
 export function intersectAssocUsing<TValue>(
-    data: TValue[],
-    other: TValue[],
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TValue>,
     callback: (keyA: number, keyB: number) => boolean,
 ): TValue[];
 export function intersectAssocUsing<TValue>(
@@ -4196,9 +4199,10 @@ export function intersectAssocUsing<TValue>(
  * @param other - The array to intersect with
  * @returns A new array containing items with keys present in both arrays
  */
+// Overload: typed array → element type preserved, other array read for indices only
 export function intersectByKeys<TValue>(
-    data: TValue[],
-    other: TValue[] | number[],
+    data: ArrayItems<TValue>,
+    other: ArrayItems<unknown>,
 ): TValue[];
 export function intersectByKeys<TValue>(
     data: ArrayItems<TValue> | unknown,
