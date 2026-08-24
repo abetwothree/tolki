@@ -2612,7 +2612,7 @@ export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
  * slice([1, 2, 3, 4], 2); -> [3, 4]
  */
 export function slice<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     offset: number,
     length?: number | null,
 ): TValue[];
@@ -3270,8 +3270,8 @@ export function replace<TValue>(
 ): TValue[];
 // Overload: array replacer — sequential replacement, no gaps
 export function replace<TValue>(
-    data: TValue[],
-    replacerData: TValue[],
+    data: ArrayItems<TValue>,
+    replacerData: ArrayItems<TValue>,
 ): TValue[];
 // Overload: array replacer with different type — sequential replacement, no gaps
 export function replace<TValue, TReplace>(
@@ -3358,8 +3358,8 @@ export function replaceRecursive<TValue>(
 ): TValue[];
 // Overload: array replacer with same type — sequential replacement, may fill gaps
 export function replaceRecursive<TValue>(
-    data: TValue[],
-    replacerData: TValue[],
+    data: ArrayItems<TValue>,
+    replacerData: ArrayItems<TValue>,
 ): (TValue | undefined)[];
 // Overload: array replacer with different type — sequential replacement, may fill gaps
 export function replaceRecursive<TValue, TReplace>(
