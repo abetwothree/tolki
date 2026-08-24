@@ -1966,7 +1966,7 @@ export function pluck<TValue extends Record<string, unknown>>(
  * @returns The popped item, items, or null if none found
  */
 export function pop<TValue>(data: ArrayItems<TValue>): TValue | null;
-export function pop<TValue>(data: TValue[], count: number): TValue[];
+export function pop<TValue>(data: ArrayItems<TValue>, count: number): TValue[];
 export function pop<TValue>(
     data: ArrayItems<TValue> | unknown,
     count?: number,
@@ -2234,20 +2234,24 @@ export function prepend<TValue>(
  * pull(['a', 'b', 'c'], 5, 'x'); -> { value: 'x', data: ['a', 'b', 'c'] }
  * pull(['a', ['b', 'c']], '1.2', 'x'); -> { value: 'x', data: ['a', ['b', 'c']] }
  */
+// Overload: typed array without a default
 export function pull<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     key: PathKey,
 ): { value: TValue | null; data: TValue[] };
+// Overload: typed array with a default
 export function pull<TValue, TDefault>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault),
 ): { value: TValue | TDefault; data: TValue[] };
+// Overload: unknown fallback
 export function pull<TValue, TDefault = null>(
-    data: ArrayItems<TValue> | unknown,
+    data: unknown,
     key: PathKey,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): { value: TValue | TDefault | null; data: TValue[] };
+// Implementation
 export function pull<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -2382,12 +2386,12 @@ export function query(data: unknown): string {
  */
 export function random<TValue>(data: ArrayItems<TValue>): TValue | null;
 export function random<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     number: number,
     preserveKeys: true,
 ): Record<number, TValue>;
 export function random<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     number: number,
     preserveKeys?: false,
 ): TValue[];
@@ -2451,7 +2455,10 @@ export function random<TValue>(
  * @returns The shifted item(s) or null/empty array if none.
  */
 export function shift<TValue>(data: ArrayItems<TValue>): TValue | null;
-export function shift<TValue>(data: TValue[], count: number): TValue[];
+export function shift<TValue>(
+    data: ArrayItems<TValue>,
+    count: number,
+): TValue[];
 export function shift<TValue>(
     data: ArrayItems<TValue> | unknown,
     count?: number,
@@ -2511,7 +2518,18 @@ export function set<TValue, TPath extends `${string}.${string}`>(
     key: TPath,
     value: unknown,
 ): TValue[];
-// Overload: top-level key → element type widens to the union
+// Overload: top-level key with a same-type value → preserves array type
+// `NoInfer<TValue>` keeps `value` from driving `TValue` on its own, so a
+// same-shaped write (e.g. an object matching the element shape) still
+// resolves TValue purely from `array` instead of colliding with a second,
+// structurally-identical-but-distinct inferred type in the union overload
+// below.
+export function set<TValue>(
+    array: ArrayItems<TValue>,
+    key: string | number,
+    value: NoInfer<TValue>,
+): TValue[];
+// Overload: top-level key with a different-type value → union array type
 export function set<TValue, TSetValue>(
     array: ArrayItems<TValue>,
     key: string | number,
@@ -2519,7 +2537,7 @@ export function set<TValue, TSetValue>(
 ): (TValue | TSetValue)[];
 // Overload: generic fallback
 export function set<TValue>(
-    array: ArrayItems<TValue> | unknown,
+    array: unknown,
     key: PathKey | null,
     value: unknown,
 ): TValue[];

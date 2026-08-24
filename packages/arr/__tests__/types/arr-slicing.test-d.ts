@@ -123,12 +123,17 @@ describe("arr slicing type tests", () => {
             // generically-inferred object-array union like this instead
             // of a real mismatch (same root cause as the documented
             // partition/tuple limitation elsewhere in this package's type
-            // tests). `toExtend` sidesteps the bug; it's still exact here
-            // since `(TValue | TPadValue)[]` is structurally `{ id: number }[]`
-            // either way.
-            expectTypeOf(Arr.pad(idObjects, 2, { id: 0 })).toExtend<
-                { id: number }[]
-            >();
+            // tests). `toExtend` alone only proves assignability, not
+            // exactness — arrays are covariant, so it would also pass for
+            // a looser `{ id: number; extra: string }[]` result. Pairing
+            // it with `.items.toEqualTypeOf` (which checks the element
+            // type exactly) and an indexed-access check restores the
+            // exactness `toEqualTypeOf` on the whole array would have
+            // given, without touching the matcher that trips the bug.
+            const result = Arr.pad(idObjects, 2, { id: 0 });
+            expectTypeOf(result).toExtend<{ id: number }[]>();
+            expectTypeOf(result).items.toEqualTypeOf<{ id: number }>();
+            expectTypeOf(result[0]).toEqualTypeOf<{ id: number } | undefined>();
         });
 
         it("accepts a readonly array", () => {

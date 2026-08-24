@@ -52,6 +52,33 @@ describe("arr mutations type tests", () => {
             // point of the assertion.
             expectTypeOf(Arr.set([], 0, "a")).toEqualTypeOf<string[]>();
         });
+
+        it("does not duplicate a same-shaped object value into a union", () => {
+            // Regression coverage: dropping the same-type overload (and
+            // then reinstating it without `NoInfer`) let `TValue` and a
+            // second, independently-inferred type parameter both resolve
+            // to the structurally identical `{ id: number }`, producing
+            // `({ id: number } | { id: number })[]` instead of the plain
+            // `{ id: number }[]` a same-shaped write should produce.
+            expectTypeOf(Arr.set(idObjects, 0, { id: 3 })).toEqualTypeOf<
+                { id: number }[]
+            >();
+        });
+
+        it("gives the value callback a contextual type instead of implicit any", () => {
+            // Regression coverage: without `NoInfer` blocking `value`
+            // from driving `TValue` on its own, `value`'s position loses
+            // its contextual type from the array's element type — silent
+            // here because this repo sets `noImplicitAny: false`, so the
+            // callback parameter would otherwise become `any` rather than
+            // erroring.
+            const fns: ((n: number) => number)[] = [(n) => n];
+            const result = Arr.set(fns, 0, (x) => {
+                expectTypeOf(x).toEqualTypeOf<number>();
+                return x + 1;
+            });
+            expectTypeOf(result).toEqualTypeOf<((n: number) => number)[]>();
+        });
     });
 
     describe("push", () => {
@@ -118,6 +145,19 @@ describe("arr mutations type tests", () => {
         it("unions a different-type default with the element type", () => {
             expectTypeOf(Arr.pull([1, 2], 0, "x")).toEqualTypeOf<{
                 value: number | string;
+                data: number[];
+            }>();
+        });
+
+        it("accepts a readonly array", () => {
+            // Regression coverage: pull's typed overloads previously
+            // declared `TValue[]` (mutable-only), so a readonly array
+            // fell through to a merged `ArrayItems<TValue> | unknown`
+            // overload that silently dropped inference, resolving to
+            // `{ value: unknown; data: unknown[] }` instead of the typed
+            // shape below — the same defect class fixed in `push`.
+            expectTypeOf(Arr.pull(readonlyNumbers, 1)).toEqualTypeOf<{
+                value: number | null;
                 data: number[];
             }>();
         });

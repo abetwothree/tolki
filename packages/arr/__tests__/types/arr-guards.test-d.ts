@@ -7,14 +7,8 @@ import {
     readonlyStrings,
     stringTuple,
     unionElements,
+    unknownArray,
 } from "./fixtures";
-
-/**
- * Shared `unknown`-typed input for the "unknown fallback overload accepts
- * this data without a cast" assertions repeated across this file's
- * describe blocks.
- */
-const unknownArray: unknown = ["a"];
 
 describe("arr key-guard and typed-getter type tests", () => {
     describe("has", () => {
