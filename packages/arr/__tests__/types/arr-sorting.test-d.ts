@@ -4,7 +4,12 @@ import { SortDirection } from "@tolki/enum";
 import type { SortSpec } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { readonlyNumbers, readonlyStrings, unknownArray } from "./fixtures";
+import {
+    ageItems,
+    readonlyNumbers,
+    readonlyStrings,
+    unknownArray,
+} from "./fixtures";
 
 /**
  * Extracts the second slot of `SortSpec`'s `[key, direction]` tuple form.
@@ -28,15 +33,15 @@ describe("arr sorting type tests", () => {
         });
 
         it("preserves object element type when sorting by dot-notated key", () => {
-            expectTypeOf(Arr.sort([{ age: 2 }], "age")).toEqualTypeOf<
+            expectTypeOf(Arr.sort(ageItems, "age")).toEqualTypeOf<
                 { age: number }[]
             >();
         });
 
         it("preserves object element type when sorting by callback", () => {
-            expectTypeOf(
-                Arr.sort([{ age: 2 }], (item) => item.age),
-            ).toEqualTypeOf<{ age: number }[]>();
+            expectTypeOf(Arr.sort(ageItems, (item) => item.age)).toEqualTypeOf<
+                { age: number }[]
+            >();
         });
 
         it("preserves object element type for a multi-key descriptor of plain keys", () => {
@@ -56,7 +61,7 @@ describe("arr sorting type tests", () => {
         });
 
         it("infers callback value and key params from an object array", () => {
-            Arr.sort([{ age: 1 }], (value, key) => {
+            Arr.sort(ageItems, (value, key) => {
                 expectTypeOf(value).toEqualTypeOf<{ age: number }>();
                 expectTypeOf(key).toEqualTypeOf<number>();
                 return value.age;
@@ -78,14 +83,14 @@ describe("arr sorting type tests", () => {
         });
 
         it("preserves object element type when sorting by dot-notated key", () => {
-            expectTypeOf(Arr.sortDesc([{ age: 2 }], "age")).toEqualTypeOf<
+            expectTypeOf(Arr.sortDesc(ageItems, "age")).toEqualTypeOf<
                 { age: number }[]
             >();
         });
 
         it("preserves object element type when sorting by callback", () => {
             expectTypeOf(
-                Arr.sortDesc([{ age: 2 }], (item) => item.age),
+                Arr.sortDesc(ageItems, (item) => item.age),
             ).toEqualTypeOf<{ age: number }[]>();
         });
 

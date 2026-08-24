@@ -1,7 +1,12 @@
 import * as Arr from "@tolki/arr";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { readonlyNumbers, readonlyStrings, unknownArray } from "./fixtures";
+import {
+    idObjects,
+    readonlyNumbers,
+    readonlyStrings,
+    unknownArray,
+} from "./fixtures";
 
 describe("arr set operation type tests", () => {
     describe("diff", () => {
@@ -16,11 +21,7 @@ describe("arr set operation type tests", () => {
         });
 
         it("preserves object element type", () => {
-            // Kept inline rather than the shared `idObjects` fixture: the
-            // expected type here is exactly `{ id: number }[]`, and
-            // `idObjects` carries an extra `name` field that would make
-            // that expectation wrong.
-            expectTypeOf(Arr.diff([{ id: 1 }], [{ id: 2 }])).toEqualTypeOf<
+            expectTypeOf(Arr.diff(idObjects, idObjects)).toEqualTypeOf<
                 { id: number }[]
             >();
         });
@@ -80,9 +81,7 @@ describe("arr set operation type tests", () => {
         });
 
         it("preserves object element type", () => {
-            // Kept inline rather than the shared `idObjects` fixture, for
-            // the same reason as `diff`'s object-element case above.
-            expectTypeOf(Arr.intersect([{ id: 1 }], [{ id: 1 }])).toEqualTypeOf<
+            expectTypeOf(Arr.intersect(idObjects, idObjects)).toEqualTypeOf<
                 { id: number }[]
             >();
         });
@@ -108,10 +107,8 @@ describe("arr set operation type tests", () => {
         });
 
         it("preserves object element type", () => {
-            // Kept inline rather than the shared `idObjects` fixture, for
-            // the same reason as `diff`'s object-element case above.
             expectTypeOf(
-                Arr.intersectAssoc([{ id: 1 }], [{ id: 1 }]),
+                Arr.intersectAssoc(idObjects, idObjects),
             ).toEqualTypeOf<{ id: number }[]>();
         });
 
@@ -174,9 +171,7 @@ describe("arr set operation type tests", () => {
         });
 
         it("preserves object element type", () => {
-            // Kept inline rather than the shared `idObjects` fixture, for
-            // the same reason as `diff`'s object-element case above.
-            expectTypeOf(Arr.intersectByKeys([{ id: 1 }], [0])).toEqualTypeOf<
+            expectTypeOf(Arr.intersectByKeys(idObjects, [0])).toEqualTypeOf<
                 { id: number }[]
             >();
         });
