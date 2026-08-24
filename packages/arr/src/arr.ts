@@ -1965,7 +1965,7 @@ export function pluck<TValue extends Record<string, unknown>>(
  * @param count - The number of items to pop. Defaults to 1.
  * @returns The popped item, items, or null if none found
  */
-export function pop<TValue>(data: TValue[]): TValue | null;
+export function pop<TValue>(data: ArrayItems<TValue>): TValue | null;
 export function pop<TValue>(data: TValue[], count: number): TValue[];
 export function pop<TValue>(
     data: ArrayItems<TValue> | unknown,
@@ -2450,7 +2450,7 @@ export function random<TValue>(
  * @param count - The number of items to shift. Defaults to 1.
  * @returns The shifted item(s) or null/empty array if none.
  */
-export function shift<TValue>(data: TValue[]): TValue | null;
+export function shift<TValue>(data: ArrayItems<TValue>): TValue | null;
 export function shift<TValue>(data: TValue[], count: number): TValue[];
 export function shift<TValue>(
     data: ArrayItems<TValue> | unknown,
@@ -2545,8 +2545,21 @@ export function set(
  * push(['a', ['b']], '1', 'c', 'd'); -> ['a', ['b', 'c', 'd']]
  * push(['a', ['b']], '1.1', 'c'); -> ['a', ['b', 'c']]
  */
+// Overload: typed array → element type preserved (including unions)
 export function push<TValue>(
-    data: TValue[] | unknown,
+    data: ArrayItems<TValue>,
+    key: PathKey,
+    ...values: TValue[]
+): TValue[];
+// Overload: unknown fallback
+export function push<TValue>(
+    data: unknown,
+    key: PathKey,
+    ...values: TValue[]
+): TValue[];
+// Implementation
+export function push<TValue>(
+    data: ArrayItems<TValue> | unknown,
     key: PathKey,
     ...values: TValue[]
 ): TValue[] {
