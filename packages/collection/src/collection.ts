@@ -2614,7 +2614,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).random(2); -> new Collection([1, 3])
      * new Collection({a: 1, b: 2, c: 3}).random(2, true); -> new Collection({a: 1, c: 3})
      * new Collection([1, 2, 3]).random(collection => Math.floor(collection.count() / 2)); -> new Collection([2])
-     * new Collection([]).random(); -> undefined
+     * new Collection([]).random(); -> throws Error (no items available)
      */
     random(count?: null, preserveKeys?: boolean): TValue;
     random(

@@ -2371,18 +2371,19 @@ export function query(data: unknown): string {
 /**
  * Get one or a specified number of random values from an array.
  *
- * @param data - The array to get random values from.
+ * @param data - The array to get random values from. Non-array-like input is treated as absent, not as an empty array.
  * @param number - The number of items to return. If null, returns a single item.
  * @param preserveKeys - Whether to preserve the original keys when returning multiple items.
- * @returns A single random item, an array of random items, or null if array is empty.
- * @throws Error if more items are requested than available.
+ * @returns A single random item, an array of random items, an empty array when zero or fewer items are requested, or null when no count is given and the input isn't array-like.
+ * @throws Error if more items are requested than are available, including requesting a single item (or any positive count) from an empty array.
  *
  * @example
  *
  * random([1, 2, 3]); -> 2 (single random item)
  * random([1, 2, 3], 2); -> [3, 1] (two random items)
  * random(['a', 'b', 'c'], 2, true); -> {1: 'b', 2: 'c'} (with original keys)
- * random([], 1); -> null
+ * random([], 0); -> [] (explicitly requesting zero items)
+ * random([]); -> throws Error (no items available)
  * random([1, 2], 5); -> throws Error
  */
 export function random<TValue>(data: ArrayItems<TValue>): TValue | null;
@@ -2406,18 +2407,27 @@ export function random<TValue>(
     number?: number | null,
     preserveKeys: boolean = false,
 ): TValue | TValue[] | Record<number, TValue> | null {
-    const values = getAccessibleValues(data) as TValue[];
-    const count = values.length;
-    const requested = isNull(number) || isUndefined(number) ? 1 : number;
+    const numberProvided = !isNull(number) && !isUndefined(number);
 
-    if (count === 0 || requested <= 0) {
-        return isNull(number) || isUndefined(number) ? null : [];
+    // Non-array-like input has no Laravel equivalent (PHP's count() would
+    // error on it), so it degrades gracefully instead of entering the
+    // ported throw/empty logic below, which only applies to real arrays.
+    if (!isArray(data)) {
+        return numberProvided ? [] : null;
     }
+
+    const values = data as TValue[];
+    const count = values.length;
+    const requested = numberProvided ? (number as number) : 1;
 
     if (requested > count) {
         throw new Error(
             `You requested ${requested} items, but there are only ${count} items available.`,
         );
+    }
+
+    if (numberProvided && requested <= 0) {
+        return [];
     }
 
     // Generate random indices
@@ -2431,7 +2441,7 @@ export function random<TValue>(
     }
 
     // If only one item requested, return it directly
-    if (isNull(number) || isUndefined(number)) {
+    if (!numberProvided) {
         return values[selectedIndices[0] as number] as TValue;
     }
 

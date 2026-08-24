@@ -3200,8 +3200,12 @@ describe("Arr", () => {
             );
 
             // Test edge cases
-            expect(Arr.random([])).toBe(null);
-            expect(Arr.random([], 1)).toEqual([]);
+            expect(() => Arr.random([])).toThrow(
+                "You requested 1 items, but there are only 0 items available.",
+            );
+            expect(() => Arr.random([], 1)).toThrow(
+                "You requested 1 items, but there are only 0 items available.",
+            );
             expect(Arr.random(null)).toBe(null);
             expect(Arr.random(undefined)).toBe(null);
 
@@ -3222,6 +3226,19 @@ describe("Arr", () => {
 
         it("returns an empty array when explicitly requesting zero items from an empty array", () => {
             expect(Arr.random([], 0)).toEqual([]);
+        });
+
+        it("throws when requesting more items than are available, even from an empty array", () => {
+            // Ported from Laravel's testRandomThrowsAnErrorWhenRequestingMoreItemsThanAreAvailable
+            expect(() => Arr.random([])).toThrow(
+                "You requested 1 items, but there are only 0 items available.",
+            );
+            expect(() => Arr.random([], 1)).toThrow(
+                "You requested 1 items, but there are only 0 items available.",
+            );
+            expect(() => Arr.random([], 2)).toThrow(
+                "You requested 2 items, but there are only 0 items available.",
+            );
         });
     });
 
