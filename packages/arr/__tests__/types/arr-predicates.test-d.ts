@@ -129,9 +129,9 @@ describe("arr predicate type tests", () => {
         });
 
         it("accepts a readonly array", () => {
-            expectTypeOf(
-                Arr.where(readonlyNumbers, () => true),
-            ).toEqualTypeOf<number[]>();
+            expectTypeOf(Arr.where(readonlyNumbers, () => true)).toEqualTypeOf<
+                number[]
+            >();
         });
     });
 
@@ -229,7 +229,9 @@ describe("arr predicate type tests", () => {
         });
 
         it("returns boolean for a strict value search", () => {
-            expectTypeOf(Arr.contains([1, 2], 1, true)).toEqualTypeOf<boolean>();
+            expectTypeOf(
+                Arr.contains([1, 2], 1, true),
+            ).toEqualTypeOf<boolean>();
         });
 
         it("returns boolean and infers callback params", () => {
@@ -248,15 +250,15 @@ describe("arr predicate type tests", () => {
         });
 
         it("returns boolean for a union element array", () => {
-            expectTypeOf(Arr.contains(unionElements, "a")).toEqualTypeOf<
-                boolean
-            >();
+            expectTypeOf(
+                Arr.contains(unionElements, "a"),
+            ).toEqualTypeOf<boolean>();
         });
 
         it("accepts a readonly array", () => {
-            expectTypeOf(Arr.contains(readonlyNumbers, 1)).toEqualTypeOf<
-                boolean
-            >();
+            expectTypeOf(
+                Arr.contains(readonlyNumbers, 1),
+            ).toEqualTypeOf<boolean>();
         });
     });
 
