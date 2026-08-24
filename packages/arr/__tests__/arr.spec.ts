@@ -2833,6 +2833,77 @@ describe("Arr", () => {
         expect(sorted).toEqual([1, 2, 3]);
     });
 
+    describe("sort by many", () => {
+        const unsorted = [
+            { name: "John", age: 8, meta: { key: 3 } },
+            { name: "John", age: 10, meta: { key: 5 } },
+            { name: "Dave", age: 10, meta: { key: 3 } },
+            { name: "John", age: 8, meta: { key: 2 } },
+        ];
+
+        it("sorts using an array of keys", () => {
+            expect(Arr.sort(unsorted, ["name", "age", "meta.key"])).toEqual([
+                { name: "Dave", age: 10, meta: { key: 3 } },
+                { name: "John", age: 8, meta: { key: 2 } },
+                { name: "John", age: 8, meta: { key: 3 } },
+                { name: "John", age: 10, meta: { key: 5 } },
+            ]);
+        });
+
+        it("sorts using per-key directions", () => {
+            expect(
+                Arr.sort(unsorted, [
+                    "name",
+                    ["age", false],
+                    ["meta.key", true],
+                ]),
+            ).toEqual([
+                { name: "Dave", age: 10, meta: { key: 3 } },
+                { name: "John", age: 10, meta: { key: 5 } },
+                { name: "John", age: 8, meta: { key: 2 } },
+                { name: "John", age: 8, meta: { key: 3 } },
+            ]);
+        });
+
+        it("sorts using SortDirection enum values", () => {
+            expect(
+                Arr.sort(unsorted, [
+                    ["name", SortDirection.Ascending],
+                    ["age", SortDirection.Descending],
+                ]),
+            ).toEqual([
+                { name: "Dave", age: 10, meta: { key: 3 } },
+                { name: "John", age: 10, meta: { key: 5 } },
+                { name: "John", age: 8, meta: { key: 3 } },
+                { name: "John", age: 8, meta: { key: 2 } },
+            ]);
+        });
+
+        it("sorts using an array of comparator callbacks", () => {
+            expect(
+                Arr.sort(unsorted, [
+                    (a, b) => a.name.localeCompare(b.name),
+                    (a, b) => a.age - b.age,
+                ]),
+            ).toEqual([
+                { name: "Dave", age: 10, meta: { key: 3 } },
+                { name: "John", age: 8, meta: { key: 3 } },
+                { name: "John", age: 8, meta: { key: 2 } },
+                { name: "John", age: 10, meta: { key: 5 } },
+            ]);
+        });
+
+        it("returns the input unchanged for an empty spec array", () => {
+            expect(Arr.sort([3, 1, 2], [])).toEqual([1, 2, 3]);
+        });
+
+        it("leaves the source array untouched", () => {
+            const source = [{ name: "b" }, { name: "a" }];
+            Arr.sort(source, ["name"]);
+            expect(source).toEqual([{ name: "b" }, { name: "a" }]);
+        });
+    });
+
     it("sortDesc", () => {
         // Natural sorting in descending order
         expect(Arr.sortDesc([3, 1, 4, 1, 5])).toEqual([5, 4, 3, 1, 1]);
@@ -2901,6 +2972,63 @@ describe("Arr", () => {
         const sorted = Arr.sortDesc(original);
         expect(original).toEqual([1, 3, 2]);
         expect(sorted).toEqual([3, 2, 1]);
+    });
+
+    describe("sortDesc by many", () => {
+        const unsorted = [
+            { name: "John", age: 8, meta: { key: 3 } },
+            { name: "John", age: 10, meta: { key: 5 } },
+            { name: "Dave", age: 10, meta: { key: 3 } },
+            { name: "John", age: 8, meta: { key: 2 } },
+        ];
+
+        it("sorts descending using an array of keys", () => {
+            expect(
+                Arr.sortDesc(unsorted, ["name", "age", "meta.key"]),
+            ).toEqual([
+                { name: "John", age: 10, meta: { key: 5 } },
+                { name: "John", age: 8, meta: { key: 3 } },
+                { name: "John", age: 8, meta: { key: 2 } },
+                { name: "Dave", age: 10, meta: { key: 3 } },
+            ]);
+        });
+
+        it("sorts descending using per-key directions", () => {
+            expect(
+                Arr.sortDesc(unsorted, [
+                    "name",
+                    ["age", false],
+                    ["meta.key", true],
+                ]),
+            ).toEqual([
+                { name: "John", age: 8, meta: { key: 3 } },
+                { name: "John", age: 8, meta: { key: 2 } },
+                { name: "John", age: 10, meta: { key: 5 } },
+                { name: "Dave", age: 10, meta: { key: 3 } },
+            ]);
+        });
+
+        it("returns the input naturally sorted descending for an empty spec array", () => {
+            expect(Arr.sortDesc([3, 1, 2], [])).toEqual([3, 2, 1]);
+        });
+
+        it("falls through to the next descriptor and preserves stable order once every descriptor ties", () => {
+            // Only two descriptors here (unlike the other cases in this
+            // block), so John/8/3 and John/8/2 tie on both `name` and
+            // `age`, forcing the comparator loop all the way through and
+            // exercising its final `return 0` fallback.
+            expect(
+                Arr.sortDesc(unsorted, [
+                    ["name", SortDirection.Ascending],
+                    ["age", SortDirection.Descending],
+                ]),
+            ).toEqual([
+                { name: "John", age: 8, meta: { key: 3 } },
+                { name: "John", age: 8, meta: { key: 2 } },
+                { name: "John", age: 10, meta: { key: 5 } },
+                { name: "Dave", age: 10, meta: { key: 3 } },
+            ]);
+        });
     });
 
     describe("toCssClasses", () => {

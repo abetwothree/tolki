@@ -26,6 +26,7 @@ import type {
     PathKey,
     PathKeys,
     PluckValue,
+    SortSpec,
     TruthyArray,
     UndotResult,
 } from "@tolki/types";
@@ -2734,10 +2735,55 @@ export function sole<TValue>(
 }
 
 /**
- * Sort the array using the given callback or "dot" notation.
+ * Build a comparator from a single sort descriptor.
+ *
+ * A tuple's direction follows Laravel's array-form multi-sort semantics
+ * (`Collection::sortByMany` in the stub): `true`/`"Ascending"` sorts
+ * ascending, `false`/`"Descending"` sorts descending — see the `SortSpec`
+ * JSDoc for why this is the opposite of a plain `descending` flag.
+ *
+ * @param spec - The key path, `[key, direction]` tuple, or comparator.
+ * @returns A comparator for the descriptor.
+ */
+function sortSpecComparator<TValue>(
+    spec: SortSpec<TValue>,
+): (a: TValue, b: TValue) => number {
+    if (isFunction(spec)) {
+        return spec as (a: TValue, b: TValue) => number;
+    }
+
+    if (isArray(spec)) {
+        const [key, direction] = spec as readonly [
+            string,
+            boolean | "Ascending" | "Descending",
+        ];
+        const isDescending =
+            direction === false || direction === SortDirection.Descending;
+
+        return (a, b) => {
+            const comparison = compareValues(
+                getNestedValue(a as Record<string, unknown>, key),
+                getNestedValue(b as Record<string, unknown>, key),
+            );
+
+            return isDescending ? -comparison : comparison;
+        };
+    }
+
+    return (a, b) => {
+        return compareValues(
+            getNestedValue(a as Record<string, unknown>, spec as string),
+            getNestedValue(b as Record<string, unknown>, spec as string),
+        );
+    };
+}
+
+/**
+ * Sort the array using the given callback, "dot" notation, or an array of
+ * sort descriptors for multi-key sorting.
  *
  * @param data - The array to sort.
- * @param callback - The sorting callback, field name, or null for natural sorting.
+ * @param callback - The sorting callback, field name, an array of sort descriptors, or null for natural sorting.
  * @returns A new sorted array.
  *
  * @example
@@ -2746,23 +2792,41 @@ export function sole<TValue>(
  * sort(['banana', 'apple', 'cherry']); -> ['apple', 'banana', 'cherry']
  * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], 'age'); -> sorted by age
  * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); -> sorted by name
+ * sort([{name: 'John', age: 25}, {name: 'John', age: 30}], ['name', ['age', false]]); -> sorted by name asc, then age desc
  */
+// Overload: array of sort descriptors → element type preserved
+export function sort<TValue>(
+    data: ArrayItems<TValue>,
+    callback: readonly SortSpec<TValue>[],
+): TValue[];
 // Overload: array type with callback for proper type inference
 export function sort<TValue>(
     data: TValue[],
-    callback: ((value: TValue, key: number) => unknown) | string | null,
+    callback:
+        | ((value: TValue, key: number) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
 ): TValue[];
 // Overload: array type without callback (natural sorting)
 export function sort<TValue>(data: TValue[]): TValue[];
 // Overload: non-array fallback
 export function sort<TValue>(
     data: unknown,
-    callback?: ((value: TValue, key: number) => unknown) | string | null,
+    callback?:
+        | ((value: TValue, key: number) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
 ): TValue[];
 // Implementation
 export function sort<TValue>(
     data: ArrayItems<TValue> | unknown,
-    callback: ((value: TValue, key: number) => unknown) | string | null = null,
+    callback:
+        | ((value: TValue, key: number) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null = null,
 ): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
     const result = values.slice();
@@ -2770,6 +2834,26 @@ export function sort<TValue>(
     if (isFalsy(callback)) {
         // Natural sorting - use compareValues for proper numeric/string comparison
         return result.sort((a, b) => compareValues(a, b));
+    }
+
+    if (isArray(callback)) {
+        // Multi-key sorting - build one comparator per descriptor and fall
+        // through to the next descriptor whenever the current one ties.
+        const comparators = (callback as readonly SortSpec<TValue>[]).map(
+            (spec) => sortSpecComparator<TValue>(spec),
+        );
+
+        return result.sort((a, b) => {
+            for (const comparator of comparators) {
+                const comparison = comparator(a, b);
+
+                if (comparison !== 0) {
+                    return comparison;
+                }
+            }
+
+            return 0;
+        });
     }
 
     if (isString(callback)) {
@@ -2804,10 +2888,11 @@ export function sort<TValue>(
 }
 
 /**
- * Sort the array in descending order using the given callback or "dot" notation.
+ * Sort the array in descending order using the given callback, "dot"
+ * notation, or an array of sort descriptors for multi-key sorting.
  *
  * @param data - The array to sort.
- * @param callback - The sorting callback, field name, or null for natural sorting.
+ * @param callback - The sorting callback, field name, an array of sort descriptors, or null for natural sorting.
  * @returns A new sorted array in descending order.
  *
  * @example
@@ -2816,30 +2901,68 @@ export function sort<TValue>(
  * sortDesc(['banana', 'apple', 'cherry']); -> ['cherry', 'banana', 'apple']
  * sortDesc([{name: 'John', age: 25}, {name: 'Jane', age: 30}], 'age'); -> sorted by age desc
  * sortDesc([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); -> sorted by name desc
+ * sortDesc([{name: 'John', age: 25}, {name: 'John', age: 30}], ['name', ['age', false]]); -> each descriptor's comparison is reversed
  */
+// Overload: array of sort descriptors → element type preserved
+export function sortDesc<TValue>(
+    data: ArrayItems<TValue>,
+    callback: readonly SortSpec<TValue>[],
+): TValue[];
 // Overload: array type with callback for proper type inference
 export function sortDesc<TValue>(
     data: TValue[],
-    callback: ((item: TValue) => unknown) | string | null,
+    callback:
+        | ((item: TValue) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
 ): TValue[];
 // Overload: array type without callback (natural sorting)
 export function sortDesc<TValue>(data: TValue[]): TValue[];
 // Overload: non-array fallback
 export function sortDesc<TValue>(
     data: unknown,
-    callback?: ((item: TValue) => unknown) | string | null,
+    callback?:
+        | ((item: TValue) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
 ): TValue[];
 // Implementation
 export function sortDesc<TValue>(
     data: ArrayItems<TValue> | unknown,
-    callback?: ((item: TValue) => unknown) | string | null,
+    callback?:
+        | ((item: TValue) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
 ): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
     const result = values.slice();
 
-    if (!callback) {
+    if (!callback || (isArray(callback) && callback.length === 0)) {
         // Natural sorting in descending order
         return result.sort().reverse();
+    }
+
+    if (isArray(callback)) {
+        // Multi-key sorting - reuse the same per-descriptor comparators as
+        // `sort`, negating whichever descriptor breaks the tie.
+        const comparators = (callback as readonly SortSpec<TValue>[]).map(
+            (spec) => sortSpecComparator<TValue>(spec),
+        );
+
+        return result.sort((a, b) => {
+            for (const comparator of comparators) {
+                const comparison = comparator(a, b);
+
+                if (comparison !== 0) {
+                    return -comparison;
+                }
+            }
+
+            return 0;
+        });
     }
 
     if (isString(callback)) {
