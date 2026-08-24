@@ -2847,7 +2847,7 @@ export function sort<TValue>(
 ): TValue[];
 // Overload: array type with callback for proper type inference
 export function sort<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback:
         | ((value: TValue, key: number) => unknown)
         | string
@@ -2855,7 +2855,7 @@ export function sort<TValue>(
         | null,
 ): TValue[];
 // Overload: array type without callback (natural sorting)
-export function sort<TValue>(data: TValue[]): TValue[];
+export function sort<TValue>(data: ArrayItems<TValue>): TValue[];
 // Overload: non-array fallback
 export function sort<TValue>(
     data: unknown,
@@ -2944,7 +2944,7 @@ export function sortDesc<TValue>(
 ): TValue[];
 // Overload: array type with callback for proper type inference
 export function sortDesc<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback:
         | ((item: TValue) => unknown)
         | string
@@ -2952,7 +2952,7 @@ export function sortDesc<TValue>(
         | null,
 ): TValue[];
 // Overload: array type without callback (natural sorting)
-export function sortDesc<TValue>(data: TValue[]): TValue[];
+export function sortDesc<TValue>(data: ArrayItems<TValue>): TValue[];
 // Overload: non-array fallback
 export function sortDesc<TValue>(
     data: unknown,
@@ -3033,7 +3033,7 @@ export function sortDesc<TValue>(
  * sortRecursive([{ name: 'john', age: 30 }, { name: 'jane', age: 25 }]); -> sorted objects with sorted keys
  */
 export function sortRecursive<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     descending?: CaseValue<typeof SortDirection> | boolean,
 ): TValue[];
 export function sortRecursive<TValue>(
@@ -3112,7 +3112,7 @@ export function sortRecursive<TValue>(
  *
  * sortRecursiveDesc({ a: [1, 2, 3], b: { c: 1, d: 2 } }); -> { b: { d: 2, c: 1 }, a: [3, 2, 1] }
  */
-export function sortRecursiveDesc<TValue>(data: TValue[]): TValue[];
+export function sortRecursiveDesc<TValue>(data: ArrayItems<TValue>): TValue[];
 export function sortRecursiveDesc<TValue>(
     data: ArrayItems<TValue> | Record<string, unknown> | unknown,
 ): TValue[] | Record<string, unknown>;

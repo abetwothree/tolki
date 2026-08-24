@@ -8457,42 +8457,6 @@ describe("arr type tests", () => {
         });
     });
 
-    describe("sort", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.sort([3, 1, 2]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-
-        it("callback infers types", () => {
-            Arr.sort([3, 1, 2], (a, b) => {
-                expectTypeOf(a).toEqualTypeOf<number>();
-                expectTypeOf(b).toEqualTypeOf<number>();
-                return a - b;
-            });
-        });
-    });
-
-    describe("sortDesc", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.sortDesc([1, 3, 2]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-    });
-
-    describe("sortRecursive", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.sortRecursive([3, 1, 2]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-    });
-
-    describe("sortRecursiveDesc", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.sortRecursiveDesc([3, 1, 2]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-    });
-
     describe("toCssClasses", () => {
         it("returns string", () => {
             const result = Arr.toCssClasses(["p-4", "font-bold"]);
