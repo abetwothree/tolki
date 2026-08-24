@@ -1,6 +1,13 @@
 import * as Arr from "@tolki/arr";
 import { describe, expectTypeOf, it } from "vitest";
 
+import {
+    readonlyNumbers,
+    readonlyStrings,
+    unionElements,
+    users,
+} from "./fixtures";
+
 describe("arr mapping type tests", () => {
     describe("map", () => {
         it("returns the callback return type as an array", () => {
@@ -18,8 +25,7 @@ describe("arr mapping type tests", () => {
         });
 
         it("infers callback params for object element arrays", () => {
-            const data = [{ id: 1, name: "a" }];
-            const result = Arr.map(data, (item) => {
+            const result = Arr.map(users, (item) => {
                 expectTypeOf(item).toEqualTypeOf<{
                     id: number;
                     name: string;
@@ -30,8 +36,7 @@ describe("arr mapping type tests", () => {
         });
 
         it("infers callback params for union element arrays", () => {
-            const data: (string | number)[] = ["a", 1];
-            Arr.map(data, (value) => {
+            Arr.map(unionElements, (value) => {
                 expectTypeOf(value).toEqualTypeOf<string | number>();
                 return value;
             });
@@ -48,8 +53,9 @@ describe("arr mapping type tests", () => {
         });
 
         it("accepts a readonly array", () => {
-            const data: readonly number[] = [1];
-            expectTypeOf(Arr.map(data, (v) => v)).toEqualTypeOf<number[]>();
+            expectTypeOf(Arr.map(readonlyNumbers, (v) => v)).toEqualTypeOf<
+                number[]
+            >();
         });
 
         it("returns never[] for an empty array literal", () => {
@@ -84,8 +90,7 @@ describe("arr mapping type tests", () => {
         });
 
         it("carries object value types through to the Record", () => {
-            const data = [{ id: 1, name: "a" }];
-            const result = Arr.mapWithKeys(data, (item) => ({
+            const result = Arr.mapWithKeys(users, (item) => ({
                 [item.name]: item,
             }));
             expectTypeOf(result).toEqualTypeOf<
@@ -94,8 +99,9 @@ describe("arr mapping type tests", () => {
         });
 
         it("accepts a readonly array", () => {
-            const data: readonly string[] = ["a"];
-            const result = Arr.mapWithKeys(data, (v, i) => ({ [v]: i }));
+            const result = Arr.mapWithKeys(readonlyStrings, (v, i) => ({
+                [v]: i,
+            }));
             expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
         });
     });

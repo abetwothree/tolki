@@ -1935,12 +1935,25 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // semantics. `@tolki/arr`'s own `mapWithKeys` intentionally doesn't
         // do this (it returns a plain JS-ordered Record), so this can't be
         // delegated to it.
+        //
+        // The key handed to the callback must match what the old
+        // dataMapWithKeys-delegating code gave it: a numeric index for
+        // array-backed items (matching arrMapWithKeys's `i as TKey`), but the
+        // *raw* string key for object-backed items (matching
+        // objMapWithKeys's `key as TKey`) — `entriesKeyValue` is too eager
+        // for that case (e.g. it turns `"0x10"` into `16`), so it's only
+        // applied to the array branch, where every key is already a plain
+        // digit string.
         const entries: Array<[TKey, TValue]> = this.itemsWithOrder
             ? this.itemsWithOrder
-            : Object.entries(this.items).map(
-                  ([key, value]) =>
-                      [entriesKeyValue(key), value] as [TKey, TValue],
-              );
+            : isArray(this.items)
+              ? Object.entries(this.items).map(
+                    ([key, value]) =>
+                        [entriesKeyValue(key), value] as [TKey, TValue],
+                )
+              : (Object.entries(this.items) as unknown as Array<
+                    [TKey, TValue]
+                >);
 
         const map = new Map<TMapWithKeysKey, TMapWithKeysValue>();
 
