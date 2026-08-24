@@ -3074,6 +3074,25 @@ describe("Arr", () => {
             expect(queryResult).toContain("1=simpleString");
             expect(queryResult).toContain("2[nested][deep]=value");
         });
+
+        it("casts booleans, drops null, and keeps empty strings like Laravel's http_build_query", () => {
+            // Ported from Laravel's testQuery
+            expect(Arr.query([])).toBe("");
+            expect(Arr.query({ foo: "bar" })).toBe("foo=bar");
+            expect(Arr.query({ foo: "bar", bar: "baz" })).toBe(
+                "foo=bar&bar=baz",
+            );
+
+            // PHP's http_build_query casts true to "1" and false to ""
+            expect(Arr.query({ foo: "bar", bar: true })).toBe("foo=bar&bar=1");
+            expect(Arr.query({ foo: "bar", bar: false })).toBe("foo=bar&bar=");
+
+            // null values are dropped entirely, not rendered as "bar="
+            expect(Arr.query({ foo: "bar", bar: null })).toBe("foo=bar");
+
+            // empty strings are retained as an empty value
+            expect(Arr.query({ foo: "bar", bar: "" })).toBe("foo=bar&bar=");
+        });
     });
 
     describe("shuffle", () => {
@@ -3208,6 +3227,10 @@ describe("Arr", () => {
             );
             expect(Arr.random(null)).toBe(null);
             expect(Arr.random(undefined)).toBe(null);
+
+            // Non-array-like input degrades gracefully even when a count is given
+            expect(Arr.random(null, 2)).toEqual([]);
+            expect(Arr.random(undefined, 3)).toEqual([]);
 
             // Test requesting more items than available
             expect(() => Arr.random([1, 2], 5)).toThrow(

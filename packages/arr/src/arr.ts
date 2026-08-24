@@ -2302,6 +2302,8 @@ export function pull<TValue, TDefault = null>(
  * query(['a', 'b', 'c']); -> '0=a&1=b&2=c'
  * query({tags: ['php', 'js']}); -> 'tags[0]=php&tags[1]=js'
  * query({user: {name: 'John', age: 30}}); -> 'user[name]=John&user[age]=30'
+ * query({foo: 'bar', bar: true}); -> 'foo=bar&bar=1' (booleans cast like PHP's http_build_query)
+ * query({foo: 'bar', bar: false}); -> 'foo=bar&bar='
  */
 // Overload: typed array → query string
 export function query<TValue>(data: ArrayItems<TValue>): string;
@@ -2319,6 +2321,16 @@ export function query(data: unknown): string {
             .replace(/%5D/g, "]");
     };
 
+    // Mirrors PHP's http_build_query scalar casting: booleans become "1"
+    // or "" rather than JavaScript's "true"/"false".
+    const stringifyQueryValue = (value: unknown): string => {
+        if (isBoolean(value)) {
+            return value ? "1" : "";
+        }
+
+        return String(value);
+    };
+
     const buildQuery = (obj: unknown, prefix: string = ""): string[] => {
         const parts: string[] = [];
 
@@ -2334,7 +2346,7 @@ export function query(data: unknown): string {
                         // Use a custom encoder that doesn't encode [ and ] to match PHP behavior
                         const encodedKey = encodeKeyComponent(key);
                         parts.push(
-                            `${encodedKey}=${encodeURIComponent(String(value))}`,
+                            `${encodedKey}=${encodeURIComponent(stringifyQueryValue(value))}`,
                         );
                     }
                 }
@@ -2350,7 +2362,7 @@ export function query(data: unknown): string {
                         // Use a custom encoder that doesn't encode [ and ] to match PHP behavior
                         const encodedKey = encodeKeyComponent(key);
                         parts.push(
-                            `${encodedKey}=${encodeURIComponent(String(value))}`,
+                            `${encodedKey}=${encodeURIComponent(stringifyQueryValue(value))}`,
                         );
                     }
                 }
@@ -2359,7 +2371,9 @@ export function query(data: unknown): string {
             // Scalar value
             const key = prefix || "0";
             const encodedKey = encodeKeyComponent(key);
-            parts.push(`${encodedKey}=${encodeURIComponent(String(obj))}`);
+            parts.push(
+                `${encodedKey}=${encodeURIComponent(stringifyQueryValue(obj))}`,
+            );
         }
 
         return parts;
