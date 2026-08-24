@@ -8450,20 +8450,6 @@ describe("arr type tests", () => {
         });
     });
 
-    describe("only", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.only(["a", "b", "c", "d"], [1, 3]);
-            expectTypeOf(result).toEqualTypeOf<string[]>();
-        });
-    });
-
-    describe("onlyValues", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.onlyValues([1, 2, 3, 4, 5], [2, 4]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-    });
-
     describe("pop", () => {
         it("returns TValue | null without count", () => {
             const result = Arr.pop([1, 2, 3]);
@@ -8497,23 +8483,6 @@ describe("arr type tests", () => {
         it("returns string", () => {
             const result = Arr.query([["key", "value"]]);
             expectTypeOf(result).toEqualTypeOf<string>();
-        });
-    });
-
-    describe("random", () => {
-        it("returns TValue | null without count", () => {
-            const result = Arr.random([1, 2, 3]);
-            expectTypeOf(result).toEqualTypeOf<number | null>();
-        });
-
-        it("returns TValue[] with count", () => {
-            const result = Arr.random([1, 2, 3], 2);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-
-        it("returns Record with preserveKeys=true", () => {
-            const result = Arr.random([1, 2, 3], 2, true);
-            expectTypeOf(result).toEqualTypeOf<Record<number, number>>();
         });
     });
 
@@ -8595,24 +8564,10 @@ describe("arr type tests", () => {
         });
     });
 
-    describe("shuffle", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.shuffle([1, 2, 3]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-    });
-
     describe("slice", () => {
         it("returns TValue[]", () => {
             const result = Arr.slice([1, 2, 3, 4, 5], 1, 3);
             expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-    });
-
-    describe("sole", () => {
-        it("returns TValue", () => {
-            const result = Arr.sole([42]);
-            expectTypeOf(result).toEqualTypeOf<number>();
         });
     });
 
@@ -8789,52 +8744,9 @@ describe("arr type tests", () => {
         });
     });
 
-    describe("reverse", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.reverse([1, 2, 3]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-    });
-
     describe("pad", () => {
         it("returns TValue[]", () => {
             const result = Arr.pad([1, 2], 5, 0);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-    });
-
-    describe("wrap", () => {
-        it("wraps null into empty array", () => {
-            const result = Arr.wrap(null);
-            expectTypeOf(result).toEqualTypeOf<[]>();
-        });
-
-        it("passes through arrays", () => {
-            const result = Arr.wrap([1, 2, 3]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-
-        it("wraps non-array value into tuple", () => {
-            const result = Arr.wrap("hello");
-            expectTypeOf(result).toEqualTypeOf<[string]>();
-        });
-
-        it("wraps number into tuple", () => {
-            const result = Arr.wrap(42);
-            expectTypeOf(result).toEqualTypeOf<[number]>();
-        });
-    });
-
-    describe("keys", () => {
-        it("returns number[]", () => {
-            const result = Arr.keys([10, 20, 30]);
-            expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-    });
-
-    describe("values", () => {
-        it("returns TValue[]", () => {
-            const result = Arr.values([10, 20, 30]);
             expectTypeOf(result).toEqualTypeOf<number[]>();
         });
     });

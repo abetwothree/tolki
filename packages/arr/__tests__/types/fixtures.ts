@@ -72,6 +72,12 @@ export const readonlyNumbers: readonly number[] = [1, 2];
 export const stringTuple = ["a", "b"] as const;
 
 /**
+ * An array-shaped value typed as `unknown`, for the untyped-fallback overload
+ * rows shared across the subset, mutation, and slicing type-test families.
+ */
+export const unknownArray: unknown = ["a"];
+
+/**
  * A minimal `{ id: number; meta: { tag: string } }[]` object array, for
  * functions that must preserve a nested object property's declared type.
  */

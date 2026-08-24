@@ -1676,7 +1676,10 @@ export function prependKeysWith<TValue>(
  * only(['a', 'b', 'c', 'd'], [0, 2]); -> ['a', 'c']
  * only(['a', 'b', 'c'], [1]); -> ['b']
  */
-export function only<TValue>(data: TValue[], keys: number[]): TValue[];
+export function only<TValue>(
+    data: ArrayItems<TValue>,
+    keys: number[],
+): TValue[];
 export function only(data: unknown, keys: number[]): unknown[];
 export function only<TValue>(
     data: ArrayItems<TValue> | unknown,
@@ -2377,7 +2380,7 @@ export function query(data: unknown): string {
  * random([], 1); -> null
  * random([1, 2], 5); -> throws Error
  */
-export function random<TValue>(data: TValue[]): TValue | null;
+export function random<TValue>(data: ArrayItems<TValue>): TValue | null;
 export function random<TValue>(
     data: TValue[],
     number: number,
@@ -2561,7 +2564,7 @@ export function push<TValue>(
  * shuffle([1, 2, 3, 4, 5]); -> [3, 1, 5, 2, 4] (random order)
  * shuffle(['a', 'b', 'c']); -> ['c', 'a', 'b'] (random order)
  */
-export function shuffle<TValue>(data: TValue[]): TValue[];
+export function shuffle<TValue>(data: ArrayItems<TValue>): TValue[];
 export function shuffle(data: unknown): unknown[];
 export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
@@ -2650,7 +2653,10 @@ export function sole<TValue>(
     callback: (value: TValue, index: number) => boolean,
 ): TValue;
 // Overload: array type without callback
-export function sole<TValue>(data: TValue[], callback?: undefined): TValue;
+export function sole<TValue>(
+    data: ArrayItems<TValue>,
+    callback?: undefined,
+): TValue;
 // Overload: non-array fallback
 export function sole<TValue>(
     data: unknown,
@@ -3500,7 +3506,7 @@ export function replaceRecursive<TValue, TReplace = TValue>(
  * reverse([1, 2, 3]); -> [3, 2, 1]
  * reverse(['a', 'b', 'c']); -> ['c', 'b', 'a']
  */
-export function reverse<TValue>(data: TValue[]): TValue[];
+export function reverse<TValue>(data: ArrayItems<TValue>): TValue[];
 export function reverse(data: unknown): unknown[];
 export function reverse<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
@@ -3790,7 +3796,7 @@ export function keys<TValue>(data: ArrayItems<TValue> | unknown): number[] {
  * values(['name', 'age', 'city']); -> ['name', 'age', 'city']
  * values([]); -> []
  */
-export function values<TValue>(data: TValue[]): TValue[];
+export function values<TValue>(data: ArrayItems<TValue>): TValue[];
 export function values(data: unknown): unknown[];
 export function values<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
     if (!accessible(data)) {
