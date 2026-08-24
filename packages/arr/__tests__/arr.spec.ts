@@ -2269,6 +2269,12 @@ describe("Arr", () => {
             ]);
         });
 
+        it("returns null for an item missing an optional property", () => {
+            const data: { a?: string }[] = [{ a: "x" }, {}];
+
+            expect(Arr.pluck(data, "a")).toEqual(["x", null]);
+        });
+
         it("plucks nested keys with a dot path", () => {
             const data = [
                 { user: { name: "John", id: 1 } },

@@ -1,16 +1,25 @@
 import * as Arr from "@tolki/arr";
 import { describe, expectTypeOf, it } from "vitest";
 
+import {
+    ageItems,
+    metaTagItems,
+    nameItems,
+    nestedUsers,
+    tagItems,
+    users,
+} from "./fixtures";
+
 describe("arr pluck type tests", () => {
     describe("literal string path without a key", () => {
         it("resolves a top-level property type", () => {
-            const data = [{ name: "John" }, { name: "Jane" }];
-            expectTypeOf(Arr.pluck(data, "name")).toEqualTypeOf<string[]>();
+            expectTypeOf(Arr.pluck(nameItems, "name")).toEqualTypeOf<
+                string[]
+            >();
         });
 
         it("resolves a numeric property type", () => {
-            const data = [{ age: 30 }, { age: 25 }];
-            expectTypeOf(Arr.pluck(data, "age")).toEqualTypeOf<number[]>();
+            expectTypeOf(Arr.pluck(ageItems, "age")).toEqualTypeOf<number[]>();
         });
 
         it("resolves a nested dot path", () => {
@@ -26,15 +35,18 @@ describe("arr pluck type tests", () => {
         });
 
         it("resolves an object-valued property", () => {
-            const data = [{ meta: { tag: "x" } }];
-            expectTypeOf(Arr.pluck(data, "meta")).toEqualTypeOf<
+            // `metaTagItems` carries an extra `id` field the assertion
+            // doesn't care about — plucking "meta" only depends on the
+            // `meta` property's own type, so the extra field is harmless.
+            expectTypeOf(Arr.pluck(metaTagItems, "meta")).toEqualTypeOf<
                 { tag: string }[]
             >();
         });
 
         it("resolves an array-valued property", () => {
-            const data = [{ tags: ["a", "b"] }];
-            expectTypeOf(Arr.pluck(data, "tags")).toEqualTypeOf<string[][]>();
+            expectTypeOf(Arr.pluck(tagItems, "tags")).toEqualTypeOf<
+                string[][]
+            >();
         });
 
         it("resolves a union-valued property", () => {
@@ -44,41 +56,54 @@ describe("arr pluck type tests", () => {
             >();
         });
 
+        it("maps an optional property's undefined to null", () => {
+            // `resolvePluckPath` substitutes `null` for any segment that
+            // resolves to `undefined` (arr.ts), so an optional property
+            // must type as `T | null`, not `T | undefined` — the runtime
+            // never actually produces `undefined` in the result.
+            const data: { a?: string }[] = [{ a: "x" }, {}];
+            expectTypeOf(Arr.pluck(data, "a")).toEqualTypeOf<
+                (string | null)[]
+            >();
+        });
+
         it("falls back to unknown[] for a non-existent property", () => {
-            const data = [{ name: "John" }];
-            expectTypeOf(Arr.pluck(data, "missing")).toEqualTypeOf<unknown[]>();
+            expectTypeOf(Arr.pluck(nameItems, "missing")).toEqualTypeOf<
+                unknown[]
+            >();
         });
 
         it("falls back to unknown[] for a widened path", () => {
-            const data = [{ name: "John" }];
             const path: string = "name";
-            expectTypeOf(Arr.pluck(data, path)).toEqualTypeOf<unknown[]>();
+            expectTypeOf(Arr.pluck(nameItems, path)).toEqualTypeOf<unknown[]>();
         });
     });
 
     describe("wildcard paths", () => {
         it("resolves a wildcard segment to a nested array", () => {
-            const data = [{ users: [{ first: "taylor" }] }];
-            expectTypeOf(Arr.pluck(data, "users.*.first")).toEqualTypeOf<
-                string[][]
-            >();
+            expectTypeOf(
+                Arr.pluck(nestedUsers, "friends.*.name"),
+            ).toEqualTypeOf<string[][]>();
         });
 
         it("resolves a wildcard over numeric values", () => {
-            const data = [{ scores: [{ value: 1 }] }];
-            expectTypeOf(Arr.pluck(data, "scores.*.value")).toEqualTypeOf<
+            expectTypeOf(Arr.pluck(nestedUsers, "friends.*.id")).toEqualTypeOf<
                 number[][]
             >();
         });
 
         it("resolves a trailing wildcard to the element array", () => {
-            const data = [{ tags: ["a", "b"] }];
-            expectTypeOf(Arr.pluck(data, "tags.*")).toEqualTypeOf<string[][]>();
+            expectTypeOf(Arr.pluck(tagItems, "tags.*")).toEqualTypeOf<
+                string[][]
+            >();
         });
     });
 
     describe("array paths", () => {
         it("resolves an array path like a dot path", () => {
+            // Kept inline: "developer"/"Taylor" mirrors Laravel's own
+            // `testPluckWithArrayValue` fixture in ArrTest.php, and no
+            // shared fixture carries that exact shape.
             const data = [{ developer: { name: "Taylor" } }];
             expectTypeOf(Arr.pluck(data, ["developer", "name"])).toEqualTypeOf<
                 unknown[]
@@ -88,6 +113,9 @@ describe("arr pluck type tests", () => {
 
     describe("closure values", () => {
         it("resolves to the closure return type", () => {
+            // Kept inline: needs `name` and `age` together on one element
+            // to prove the closure's inferred item type, which no single
+            // fixture combines.
             const data = [{ name: "John", age: 30 }];
             const result = Arr.pluck(data, (item) => {
                 expectTypeOf(item).toEqualTypeOf<{
@@ -100,8 +128,7 @@ describe("arr pluck type tests", () => {
         });
 
         it("resolves to a numeric closure return type", () => {
-            const data = [{ age: 30 }];
-            expectTypeOf(Arr.pluck(data, (i) => i.age * 2)).toEqualTypeOf<
+            expectTypeOf(Arr.pluck(ageItems, (i) => i.age * 2)).toEqualTypeOf<
                 number[]
             >();
         });
@@ -109,16 +136,14 @@ describe("arr pluck type tests", () => {
 
     describe("with a key argument", () => {
         it("returns a keyed record of the resolved value type", () => {
-            const data = [
-                { id: 1, name: "John" },
-                { id: 2, name: "Jane" },
-            ];
-            expectTypeOf(Arr.pluck(data, "name", "id")).toEqualTypeOf<
+            expectTypeOf(Arr.pluck(users, "name", "id")).toEqualTypeOf<
                 Record<string | number, string>
             >();
         });
 
         it("returns a keyed record for nested paths", () => {
+            // Kept inline: the `user.name`/`user.id` dot-path pair needs a
+            // wrapping `user` object no shared fixture has.
             const data = [{ user: { name: "John", id: 1 } }];
             expectTypeOf(Arr.pluck(data, "user.name", "user.id")).toEqualTypeOf<
                 Record<string | number, string>
@@ -126,16 +151,15 @@ describe("arr pluck type tests", () => {
         });
 
         it("returns a keyed record for a closure key", () => {
-            const data = [{ id: 1, name: "John" }];
             expectTypeOf(
-                Arr.pluck(data, "name", (item) => item.id),
+                Arr.pluck(users, "name", (item) => item.id),
             ).toEqualTypeOf<Record<string | number, string>>();
         });
     });
 
     describe("input variations", () => {
         it("accepts a readonly array", () => {
-            const data: readonly { name: string }[] = [{ name: "a" }];
+            const data: readonly { name: string }[] = nameItems;
             expectTypeOf(Arr.pluck(data, "name")).toEqualTypeOf<string[]>();
         });
 
@@ -148,7 +172,7 @@ describe("arr pluck type tests", () => {
             // `unknown[] | Record<string | number, unknown>` rather than
             // a bare `unknown[]` — there is no way to know statically
             // which shape a caller intends when `data` itself is unknown.
-            const data: unknown = [{ name: "a" }];
+            const data: unknown = nameItems;
             expectTypeOf(Arr.pluck(data, "name")).toEqualTypeOf<
                 unknown[] | Record<string | number, unknown>
             >();

@@ -82,3 +82,15 @@ export const metaTagItems = [{ id: 1, meta: { tag: "x" } }];
  * key or pick items by literal string keys.
  */
 export const abPairs = [{ a: 1, b: 2 }];
+
+/** A flat array of `{ name: string }` objects, for functions that resolve a single string property. */
+export const nameItems: { name: string }[] = [
+    { name: "John" },
+    { name: "Jane" },
+];
+
+/** A flat array of `{ age: number }` objects, for functions that resolve a single numeric property. */
+export const ageItems: { age: number }[] = [{ age: 30 }, { age: 25 }];
+
+/** A flat array of `{ tags: string[] }` objects, for functions that resolve an array-valued property. */
+export const tagItems: { tags: string[] }[] = [{ tags: ["a", "b"] }];

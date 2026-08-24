@@ -267,11 +267,18 @@ export type GetFieldType<
  * an array. A `*` segment produces an array of the values found at that level.
  * Non-literal paths resolve to `unknown`.
  *
+ * The terminal (non-wildcard) arm maps `undefined` to `null`: at runtime,
+ * `resolvePluckPath` (arr.ts) substitutes `null` for any segment that
+ * resolves to `undefined` — including an absent optional property — so an
+ * optional property's type must be `T | null`, never `T | undefined`, to
+ * match what `pluck` actually returns.
+ *
  * @example
  * PluckValue<{ name: string }, "name">                    // string
  * PluckValue<{ user: { name: string } }, "user.name">     // string
  * PluckValue<{ users: { first: string }[] }, "users.*.first"> // string[]
  * PluckValue<{ name: string }, string>                    // unknown
+ * PluckValue<{ name?: string }, "name">                   // string | null
  */
 export type PluckValue<TItem, TPath> =
     TPath extends `${infer Head}.${infer Rest}`
@@ -287,5 +294,9 @@ export type PluckValue<TItem, TPath> =
               ? TElement[]
               : unknown
           : TPath extends keyof TItem
-            ? TItem[TPath]
+            ? TItem[TPath] extends infer TResolved
+                ? TResolved extends undefined
+                    ? null
+                    : TResolved
+                : never
             : unknown;
