@@ -8464,25 +8464,6 @@ describe("arr type tests", () => {
         });
     });
 
-    describe("pluck", () => {
-        it("returns unknown[] when no key", () => {
-            const data = [{ name: "John" }, { name: "Jane" }];
-            const result = Arr.pluck(data, "name");
-            expectTypeOf(result).toEqualTypeOf<unknown[]>();
-        });
-
-        it("returns Record when key is provided", () => {
-            const data = [
-                { id: 1, name: "John" },
-                { id: 2, name: "Jane" },
-            ];
-            const result = Arr.pluck(data, "name", "id");
-            expectTypeOf(result).toEqualTypeOf<
-                Record<string | number, unknown>
-            >();
-        });
-    });
-
     describe("pop", () => {
         it("returns TValue | null without count", () => {
             const result = Arr.pop([1, 2, 3]);

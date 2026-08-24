@@ -2257,6 +2257,18 @@ describe("Arr", () => {
             ]);
         });
 
+        it("returns null when an intermediate segment resolves to null", () => {
+            const data = [
+                { developer: null },
+                { developer: { name: "Abigail" } },
+            ];
+
+            expect(Arr.pluck(data, "developer.name")).toEqual([
+                null,
+                "Abigail",
+            ]);
+        });
+
         it("plucks nested keys with a dot path", () => {
             const data = [
                 { user: { name: "John", id: 1 } },

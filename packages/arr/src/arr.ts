@@ -25,6 +25,7 @@ import type {
     NonNullableArray,
     PathKey,
     PathKeys,
+    PluckValue,
     TruthyArray,
     UndotResult,
 } from "@tolki/types";
@@ -1839,6 +1840,31 @@ function explodePluckPath(path: string | readonly string[]): string[] {
  * pluck([{user: {name: 'John'}}, {user: {name: 'Jane'}}], 'user.name'); -> ['John', 'Jane']
  * pluck([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'name', 'id'); -> {1: 'John', 2: 'Jane'}
  */
+// Overload: literal path + key → record keyed by the key, resolved value type
+export function pluck<
+    TValue extends Record<string, unknown>,
+    const TPath extends string,
+>(
+    data: ArrayItems<TValue>,
+    value: TPath,
+    key: string | readonly string[] | ((item: TValue) => string | number),
+): Record<string | number, PluckValue<TValue, TPath>>;
+// Overload: literal path, no key → array of the resolved value type
+export function pluck<
+    TValue extends Record<string, unknown>,
+    const TPath extends string,
+>(data: ArrayItems<TValue>, value: TPath): PluckValue<TValue, TPath>[];
+// Overload: closure value + key → record keyed by the key
+export function pluck<TValue extends Record<string, unknown>, TResult>(
+    data: ArrayItems<TValue>,
+    value: (item: TValue) => TResult,
+    key: string | readonly string[] | ((item: TValue) => string | number),
+): Record<string | number, TResult>;
+// Overload: closure value, no key → array of the closure return type
+export function pluck<TValue extends Record<string, unknown>, TResult>(
+    data: ArrayItems<TValue>,
+    value: (item: TValue) => TResult,
+): TResult[];
 // Overload: with key → returns Record (keyed result)
 export function pluck<TValue extends Record<string, unknown>>(
     data: TValue[],
@@ -1854,7 +1880,11 @@ export function pluck<TValue extends Record<string, unknown>>(
 export function pluck<TValue extends Record<string, unknown>>(
     data: unknown,
     value: string | readonly string[] | ((item: TValue) => unknown),
-    key?: string | readonly string[] | ((item: TValue) => string | number) | null,
+    key?:
+        | string
+        | readonly string[]
+        | ((item: TValue) => string | number)
+        | null,
 ): unknown[] | Record<string | number, unknown>;
 // Implementation
 export function pluck<TValue extends Record<string, unknown>>(

@@ -261,3 +261,31 @@ export type GetFieldType<
                 : R
             : TDefault
         : TDefault;
+
+/**
+ * Resolves the value type produced by plucking `TPath` out of each element of
+ * an array. A `*` segment produces an array of the values found at that level.
+ * Non-literal paths resolve to `unknown`.
+ *
+ * @example
+ * PluckValue<{ name: string }, "name">                    // string
+ * PluckValue<{ user: { name: string } }, "user.name">     // string
+ * PluckValue<{ users: { first: string }[] }, "users.*.first"> // string[]
+ * PluckValue<{ name: string }, string>                    // unknown
+ */
+export type PluckValue<TItem, TPath> =
+    TPath extends `${infer Head}.${infer Rest}`
+        ? Head extends "*"
+            ? TItem extends readonly (infer TElement)[]
+                ? PluckValue<TElement, Rest>[]
+                : unknown
+            : Head extends keyof TItem
+              ? PluckValue<TItem[Head], Rest>
+              : unknown
+        : TPath extends "*"
+          ? TItem extends readonly (infer TElement)[]
+              ? TElement[]
+              : unknown
+          : TPath extends keyof TItem
+            ? TItem[TPath]
+            : unknown;
