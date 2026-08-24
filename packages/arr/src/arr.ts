@@ -2742,11 +2742,21 @@ export function sole<TValue>(
  * ascending, `false`/`"Descending"` sorts descending — see the `SortSpec`
  * JSDoc for why this is the opposite of a plain `descending` flag.
  *
+ * `forceDescending` mirrors `Collection::sortByDesc` (`Collection.php`
+ * lines 1683-1693): for a key path or `[key, direction]` tuple it
+ * overrides the direction to descending regardless of what was specified,
+ * but it has no effect on a comparator function, which always runs
+ * exactly as authored — `sortByDesc`'s force-to-descending rewrite only
+ * ever touches a comparison's `[1]` slot, and `sortByMany`'s callable
+ * branch never reads that slot.
+ *
  * @param spec - The key path, `[key, direction]` tuple, or comparator.
+ * @param forceDescending - When true, key paths and tuples ignore their own direction and sort descending; comparator functions are unaffected. Always passed explicitly by {@linkcode sortByComparators}, the only caller.
  * @returns A comparator for the descriptor.
  */
 function sortSpecComparator<TValue>(
     spec: SortSpec<TValue>,
+    forceDescending: boolean,
 ): (a: TValue, b: TValue) => number {
     if (isFunction(spec)) {
         return spec as (a: TValue, b: TValue) => number;
@@ -2758,7 +2768,9 @@ function sortSpecComparator<TValue>(
             boolean | "Ascending" | "Descending",
         ];
         const isDescending =
-            direction === false || direction === SortDirection.Descending;
+            forceDescending ||
+            direction === false ||
+            direction === SortDirection.Descending;
 
         return (a, b) => {
             const comparison = compareValues(
@@ -2771,11 +2783,45 @@ function sortSpecComparator<TValue>(
     }
 
     return (a, b) => {
-        return compareValues(
+        const comparison = compareValues(
             getNestedValue(a as Record<string, unknown>, spec as string),
             getNestedValue(b as Record<string, unknown>, spec as string),
         );
+
+        return forceDescending ? -comparison : comparison;
     };
+}
+
+/**
+ * Sort by a list of descriptors, falling through to the next descriptor
+ * whenever the current one ties. Shared by `sort` and `sortDesc`'s
+ * multi-key branches; only `forceDescending` differs between them.
+ *
+ * @param result - The array to sort in place.
+ * @param specs - The sort descriptors to apply in order.
+ * @param forceDescending - Forwarded to {@linkcode sortSpecComparator} for every descriptor.
+ * @returns The sorted array (same reference as `result`).
+ */
+function sortByComparators<TValue>(
+    result: TValue[],
+    specs: readonly SortSpec<TValue>[],
+    forceDescending = false,
+): TValue[] {
+    const comparators = specs.map((spec) =>
+        sortSpecComparator<TValue>(spec, forceDescending),
+    );
+
+    return result.sort((a, b) => {
+        for (const comparator of comparators) {
+            const comparison = comparator(a, b);
+
+            if (comparison !== 0) {
+                return comparison;
+            }
+        }
+
+        return 0;
+    });
 }
 
 /**
@@ -2837,23 +2883,11 @@ export function sort<TValue>(
     }
 
     if (isArray(callback)) {
-        // Multi-key sorting - build one comparator per descriptor and fall
-        // through to the next descriptor whenever the current one ties.
-        const comparators = (callback as readonly SortSpec<TValue>[]).map(
-            (spec) => sortSpecComparator<TValue>(spec),
+        // Multi-key sorting - each descriptor keeps its own direction.
+        return sortByComparators(
+            result,
+            callback as readonly SortSpec<TValue>[],
         );
-
-        return result.sort((a, b) => {
-            for (const comparator of comparators) {
-                const comparison = comparator(a, b);
-
-                if (comparison !== 0) {
-                    return comparison;
-                }
-            }
-
-            return 0;
-        });
     }
 
     if (isString(callback)) {
@@ -2946,23 +2980,14 @@ export function sortDesc<TValue>(
     }
 
     if (isArray(callback)) {
-        // Multi-key sorting - reuse the same per-descriptor comparators as
-        // `sort`, negating whichever descriptor breaks the tie.
-        const comparators = (callback as readonly SortSpec<TValue>[]).map(
-            (spec) => sortSpecComparator<TValue>(spec),
+        // Multi-key sorting - mirrors `Collection::sortByDesc`: every
+        // descriptor's own direction is overridden to descending (a
+        // comparator function is unaffected - see `sortSpecComparator`).
+        return sortByComparators(
+            result,
+            callback as readonly SortSpec<TValue>[],
+            true,
         );
-
-        return result.sort((a, b) => {
-            for (const comparator of comparators) {
-                const comparison = comparator(a, b);
-
-                if (comparison !== 0) {
-                    return -comparison;
-                }
-            }
-
-            return 0;
-        });
     }
 
     if (isString(callback)) {

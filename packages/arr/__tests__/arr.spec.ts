@@ -2893,7 +2893,22 @@ describe("Arr", () => {
             ]);
         });
 
-        it("returns the input unchanged for an empty spec array", () => {
+        it("sorts using a mix of comparator callbacks and a key tuple", () => {
+            expect(
+                Arr.sort(unsorted, [
+                    (a, b) => a.name.localeCompare(b.name),
+                    (a, b) => b.age - a.age,
+                    ["meta.key", true],
+                ]),
+            ).toEqual([
+                { name: "Dave", age: 10, meta: { key: 3 } },
+                { name: "John", age: 10, meta: { key: 5 } },
+                { name: "John", age: 8, meta: { key: 2 } },
+                { name: "John", age: 8, meta: { key: 3 } },
+            ]);
+        });
+
+        it("falls back to natural ascending sort for an empty spec array", () => {
             expect(Arr.sort([3, 1, 2], [])).toEqual([1, 2, 3]);
         });
 
@@ -2983,17 +2998,22 @@ describe("Arr", () => {
         ];
 
         it("sorts descending using an array of keys", () => {
-            expect(
-                Arr.sortDesc(unsorted, ["name", "age", "meta.key"]),
-            ).toEqual([
-                { name: "John", age: 10, meta: { key: 5 } },
-                { name: "John", age: 8, meta: { key: 3 } },
-                { name: "John", age: 8, meta: { key: 2 } },
-                { name: "Dave", age: 10, meta: { key: 3 } },
-            ]);
+            expect(Arr.sortDesc(unsorted, ["name", "age", "meta.key"])).toEqual(
+                [
+                    { name: "John", age: 10, meta: { key: 5 } },
+                    { name: "John", age: 8, meta: { key: 3 } },
+                    { name: "John", age: 8, meta: { key: 2 } },
+                    { name: "Dave", age: 10, meta: { key: 3 } },
+                ],
+            );
         });
 
         it("sorts descending using per-key directions", () => {
+            // Mirrors Collection::sortByDesc (Collection.php:1683-1693): every
+            // descriptor's direction is forced to descending, overriding
+            // whatever was specified — `["meta.key", true]`'s "ascending" is
+            // discarded, not negated. With every key forced descending this
+            // collapses to the same order as the plain array-of-keys case.
             expect(
                 Arr.sortDesc(unsorted, [
                     "name",
@@ -3001,9 +3021,9 @@ describe("Arr", () => {
                     ["meta.key", true],
                 ]),
             ).toEqual([
+                { name: "John", age: 10, meta: { key: 5 } },
                 { name: "John", age: 8, meta: { key: 3 } },
                 { name: "John", age: 8, meta: { key: 2 } },
-                { name: "John", age: 10, meta: { key: 5 } },
                 { name: "Dave", age: 10, meta: { key: 3 } },
             ]);
         });
@@ -3015,17 +3035,18 @@ describe("Arr", () => {
         it("falls through to the next descriptor and preserves stable order once every descriptor ties", () => {
             // Only two descriptors here (unlike the other cases in this
             // block), so John/8/3 and John/8/2 tie on both `name` and
-            // `age`, forcing the comparator loop all the way through and
-            // exercising its final `return 0` fallback.
+            // `age` even after `name`'s direction is forced from Ascending
+            // to descending, forcing the comparator loop all the way
+            // through and exercising its final `return 0` fallback.
             expect(
                 Arr.sortDesc(unsorted, [
                     ["name", SortDirection.Ascending],
                     ["age", SortDirection.Descending],
                 ]),
             ).toEqual([
+                { name: "John", age: 10, meta: { key: 5 } },
                 { name: "John", age: 8, meta: { key: 3 } },
                 { name: "John", age: 8, meta: { key: 2 } },
-                { name: "John", age: 10, meta: { key: 5 } },
                 { name: "Dave", age: 10, meta: { key: 3 } },
             ]);
         });
