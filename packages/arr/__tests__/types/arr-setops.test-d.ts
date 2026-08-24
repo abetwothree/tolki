@@ -91,6 +91,21 @@ describe("arr set operation type tests", () => {
                 Arr.intersect(readonlyStrings, readonlyStrings),
             ).toEqualTypeOf<string[]>();
         });
+
+        it("accepts readonly arrays for both parameters with a callback, without widening to unknown[]", () => {
+            // Regression: the callback overload used to declare `data:
+            // TValue[]` and `other: TOther[]` (mutable-only), so passing
+            // readonly arrays fell through to the `unknown` fallback
+            // overload and the result resolved to `unknown[]` instead of
+            // `string[]`.
+            expectTypeOf(
+                Arr.intersect(
+                    readonlyStrings,
+                    readonlyNumbers,
+                    (a, b) => a === String(b),
+                ),
+            ).toEqualTypeOf<string[]>();
+        });
     });
 
     describe("intersectAssoc", () => {

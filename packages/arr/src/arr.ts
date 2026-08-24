@@ -924,6 +924,15 @@ export function take<TValue>(
  * flatten([1, [2, [3, 4]], 5], 1); -> [1, 2, [3, 4], 5]
  */
 export function flatten<TValue>(data: TValue[][], depth?: number): TValue[];
+// Overload: readonly-of-readonly 2D array → flattened one level, matching
+// the mutable `TValue[][]` overload above. Must sit above the single-level
+// `TValue[]` overload below, which would otherwise catch it by inferring
+// TValue as the inner (readonly) array type itself, leaving the result
+// un-flattened at the type level.
+export function flatten<TValue>(
+    data: ArrayItems<ArrayItems<TValue>>,
+    depth?: number,
+): TValue[];
 export function flatten<TValue>(data: TValue[], depth?: number): TValue[];
 export function flatten(data: unknown, depth?: number): unknown[];
 export function flatten<TValue>(
@@ -1143,9 +1152,9 @@ export function from(items: unknown): unknown {
 /**
  * Get an item from an array using numeric-only dot notation.
  *
- * @param  data - The array to get the item from.
+ * @param  array - The array to get the item from.
  * @param  key - The key or dot-notated path of the item to get.
- * @param  default - The default value if key is not found
+ * @param  defaultValue - The default value if key is not found
  * @returns The value or the default
  *
  * @example
@@ -1472,7 +1481,7 @@ export function some<TValue>(
  *
  * @param  data - The array to get the item from.
  * @param  key - The key or dot-notated path of the item to get.
- * @param  default - The default value if key is not found
+ * @param  defaultValue - The default value if key is not found
  *
  * @returns The integer value.
  *
@@ -1833,8 +1842,16 @@ function explodePluckPath(path: string | readonly string[]): string[] {
 /**
  * Pluck an array of values from an array.
  *
+ * A path segment of `*` is a wildcard: it plucks from every element at
+ * that level and produces an array of results at that position instead of
+ * a single value. Any path — dot-notated string or array form — that
+ * doesn't resolve for a given item yields `null` for that item (or that
+ * wildcard position), matching Laravel's `data_get()` default rather than
+ * returning `undefined`.
+ *
  * @param data - The array to pluck from.
- * @param value - The key path to pluck, or a callback function.
+ * @param value - The key path to pluck (a dot-notated string, an array of
+ *   segments, or a path containing a `*` wildcard segment), or a callback function.
  * @param key - Optional key path to use as keys in result, or callback function.
  * @returns A new array with plucked values.
  *
@@ -1843,6 +1860,9 @@ function explodePluckPath(path: string | readonly string[]): string[] {
  * pluck([{name: 'John', age: 30}, {name: 'Jane', age: 25}], 'name'); -> ['John', 'Jane']
  * pluck([{user: {name: 'John'}}, {user: {name: 'Jane'}}], 'user.name'); -> ['John', 'Jane']
  * pluck([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'name', 'id'); -> {1: 'John', 2: 'Jane'}
+ * pluck([{developer: {name: 'Taylor'}}], ['developer', 'name']); -> ['Taylor']
+ * pluck([{users: [{first: 'taylor'}, {first: 'dayle'}]}], 'users.*.first'); -> [['taylor', 'dayle']]
+ * pluck([{name: 'John'}, {name: 'Jane'}], 'missing'); -> [null, null]
  */
 // Overload: literal path + key → record keyed by the key, resolved value type
 export function pluck<
@@ -1871,13 +1891,13 @@ export function pluck<TValue extends Record<string, unknown>, TResult>(
 ): TResult[];
 // Overload: with key → returns Record (keyed result)
 export function pluck<TValue extends Record<string, unknown>>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     value: string | readonly string[] | ((item: TValue) => unknown),
     key: string | readonly string[] | ((item: TValue) => string | number),
 ): Record<string | number, unknown>;
 // Overload: without key → returns array
 export function pluck<TValue extends Record<string, unknown>>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     value: string | readonly string[] | ((item: TValue) => unknown),
 ): unknown[];
 // Overload: non-array fallback
@@ -2521,7 +2541,7 @@ export function shift<TValue>(
  *
  * If no key is given to the method, the entire array will be replaced.
  *
- * @param  data - The array to set the item in.
+ * @param  array - The array to set the item in.
  * @param  key - The key or dot-notated path of the item to set.
  * @param  value - The value to set.
  * @returns - A new array with the item set, or the value itself when key is null/undefined.
@@ -2705,7 +2725,7 @@ export function slice<TValue>(
  */
 // Overload: array type with callback for proper type inference
 export function sole<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => boolean,
 ): TValue;
 // Overload: array type without callback
@@ -2999,8 +3019,13 @@ export function sortDesc<TValue>(
     const result = values.slice();
 
     if (!callback || (isArray(callback) && callback.length === 0)) {
-        // Natural sorting in descending order
-        return result.sort().reverse();
+        // Natural sorting in descending order - use compareValues (reversed)
+        // for proper numeric/string comparison, matching `sort`'s ascending
+        // branch. A bare `.sort().reverse()` coerces every element to a
+        // string and compares by UTF-16 code unit, which is wrong for
+        // multi-digit numbers (e.g. "10" sorts before "9" lexicographically)
+        // and unstable for ties.
+        return result.sort((a, b) => compareValues(b, a));
     }
 
     if (isArray(callback)) {
@@ -3455,7 +3480,7 @@ export function reject<TValue>(
  */
 // Overload: null/undefined replacer — returns original array unchanged
 export function replace<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     replacerData: null | undefined,
 ): TValue[];
 // Overload: array replacer — sequential replacement, no gaps
@@ -3465,12 +3490,12 @@ export function replace<TValue>(
 ): TValue[];
 // Overload: array replacer with different type — sequential replacement, no gaps
 export function replace<TValue, TReplace>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     replacerData: TReplace[],
 ): (TValue | TReplace)[];
 // Overload: object replacer — sparse indices can fill gaps with undefined
 export function replace<TValue, TReplace = TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     replacerData: Record<number, TReplace>,
 ): (TValue | TReplace | undefined)[];
 // Overload: generic fallback
@@ -3543,7 +3568,7 @@ export function replace<TValue, TReplace = TValue>(
  */
 // Overload: null/undefined replacer — returns original type unchanged
 export function replaceRecursive<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     replacerData: null | undefined,
 ): TValue[];
 // Overload: array replacer with same type — sequential replacement, may fill gaps
@@ -3553,12 +3578,12 @@ export function replaceRecursive<TValue>(
 ): (TValue | undefined)[];
 // Overload: array replacer with different type — sequential replacement, may fill gaps
 export function replaceRecursive<TValue, TReplace>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     replacerData: TReplace[],
 ): (TValue | TReplace | undefined)[];
 // Overload: object replacer — sparse indices can fill gaps with undefined
 export function replaceRecursive<TValue, TReplace = TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     replacerData: Record<number, TReplace>,
 ): (TValue | TReplace | undefined)[];
 // Overload: generic fallback
@@ -3842,13 +3867,13 @@ export function whereNotNull<TValue>(
  */
 // Overload: callback function - infers TValue from array type
 export function contains<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     value: (value: TValue, key: number) => boolean,
     strict?: boolean,
 ): boolean;
 // Overload: value comparison - infers TValue from array type
 export function contains<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     value: TValue,
     strict?: boolean,
 ): boolean;
@@ -3955,6 +3980,10 @@ export function filter<TValue>(
  */
 export function wrap(value: null): [];
 export function wrap<TValue>(value: TValue[]): TValue[];
+// Overload: readonly array → passed through unchanged (must sit above the
+// scalar overload below, which would otherwise match any readonly array as
+// a single value to wrap in a one-tuple).
+export function wrap<TValue>(value: readonly TValue[]): TValue[];
 export function wrap<TValue>(value: TValue): [TValue];
 export function wrap<TValue>(value: TValue | null): TValue[] | [] {
     if (isNull(value)) {
@@ -4068,8 +4097,8 @@ export function diff<TValue>(
  */
 // Overload: with callback - infers TValue and TOther from array types
 export function intersect<TValue, TOther>(
-    data: TValue[],
-    other: TOther[],
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TOther>,
     callable: (a: TValue, b: TOther) => boolean,
 ): TValue[];
 // Overload: without callback - same type comparison

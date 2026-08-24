@@ -260,6 +260,18 @@ describe("arr predicate type tests", () => {
                 Arr.contains(readonlyNumbers, 1),
             ).toEqualTypeOf<boolean>();
         });
+
+        it("accepts a readonly array with a callback, without widening the callback parameter to unknown", () => {
+            // Regression: the callback overload used to declare `data:
+            // TValue[]` (mutable-only), so a readonly array fell through
+            // to the `unknown` fallback overload and `v` below resolved to
+            // `unknown` instead of `string`.
+            const result = Arr.contains(readonlyStrings, (v) => {
+                expectTypeOf(v).toEqualTypeOf<string>();
+                return v.length > 0;
+            });
+            expectTypeOf(result).toEqualTypeOf<boolean>();
+        });
     });
 
     describe("partition", () => {

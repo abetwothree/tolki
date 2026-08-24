@@ -3433,6 +3433,20 @@ describe("Arr", () => {
             const sortedWithObject = Arr.sort(sortData, { key: "value" });
             expect(sortedWithObject).toEqual([3, 1, 4, 1, 5]);
         });
+
+        it("sorts a multi-digit numeric array numerically rather than lexicographically", () => {
+            // Single-digit fixtures can't distinguish numeric from string
+            // sort order, so this uses values whose digit counts differ.
+            expect(Arr.sort([1, 5, 10, 50, 100])).toEqual([1, 5, 10, 50, 100]);
+            expect(Arr.sort([10, 9, 1])).toEqual([1, 9, 10]);
+        });
+
+        it("orders null before numbers, matching compareValues' ascending semantics", () => {
+            // compareValues treats null as less than any non-null value
+            // (`a == null` short-circuits to -1 before the numeric branch
+            // runs), so ascending natural sort puts null first.
+            expect(Arr.sort([null, 3, 1])).toEqual([null, 1, 3]);
+        });
     });
 
     describe("sort by many", () => {
@@ -3666,6 +3680,24 @@ describe("Arr", () => {
                 key: "value",
             } as unknown as (item: unknown) => unknown);
             expect(sortedDescWithObject).toEqual([3, 1, 4, 1, 5]);
+        });
+
+        it("sorts a multi-digit numeric array numerically rather than lexicographically", () => {
+            // Bare `Array.prototype.sort()` coerces to strings and compares
+            // by UTF-16 code unit, so multi-digit numbers would come back
+            // lexicographically (e.g. "10" before "9") if the natural-sort
+            // branch ever regresses to it. Single-digit fixtures can't
+            // catch that, so this uses values whose digit counts differ.
+            expect(Arr.sortDesc([10, 9, 1])).toEqual([10, 9, 1]);
+            expect(Arr.sortDesc([1, 5, 10, 50, 100])).toEqual([
+                100, 50, 10, 5, 1,
+            ]);
+        });
+
+        it("orders null after numbers, matching compareValues' descending semantics", () => {
+            // compareValues treats null as less than any non-null value, so
+            // descending order (compareValues(b, a)) puts null last.
+            expect(Arr.sortDesc([null, 3, 1])).toEqual([3, 1, null]);
         });
     });
 

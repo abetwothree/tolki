@@ -195,6 +195,16 @@ describe("arr slicing type tests", () => {
                 const result = Arr.replace(["a", "b"], undefined);
                 expectTypeOf(result).toEqualTypeOf<string[]>();
             });
+
+            it("accepts a readonly array with a null replacer, without widening to unknown[]", () => {
+                // Regression: this overload used to declare `data:
+                // TValue[]` (mutable-only), so a readonly array fell
+                // through to the `unknown` fallback overload and the
+                // result resolved to `unknown[]` instead of `string[]`.
+                expectTypeOf(
+                    Arr.replace(readonlyStrings, null),
+                ).toEqualTypeOf<string[]>();
+            });
         });
 
         describe("additional coverage", () => {
@@ -268,6 +278,17 @@ describe("arr slicing type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<
                     (number | string | undefined)[]
                 >();
+            });
+
+            it("accepts a readonly array with a different-type array replacer, without widening to unknown[]", () => {
+                // Regression: this overload used to declare `data:
+                // TValue[]` (mutable-only), so a readonly array fell
+                // through to the `unknown` fallback overload and the
+                // result resolved to `unknown[]` instead of
+                // `(string | number | undefined)[]`.
+                expectTypeOf(
+                    Arr.replaceRecursive(readonlyStrings, [1, 2]),
+                ).toEqualTypeOf<(string | number | undefined)[]>();
             });
         });
 

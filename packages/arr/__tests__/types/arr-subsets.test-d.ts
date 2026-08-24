@@ -172,6 +172,35 @@ describe("arr subsets type tests", () => {
         it("passes a nested array through unchanged", () => {
             expectTypeOf(Arr.wrap(numberGrid)).toEqualTypeOf<number[][]>();
         });
+
+        it("passes a readonly array through unchanged, rather than wrapping it as a single value", () => {
+            // Regression: without a `readonly TValue[]` overload above the
+            // scalar `TValue` overload, a readonly array only matched the
+            // scalar case and resolved to `[readonly string[]]` (the whole
+            // array wrapped as one element) instead of `string[]`.
+            expectTypeOf(Arr.wrap(readonlyStrings)).toEqualTypeOf<string[]>();
+        });
+    });
+
+    describe("flatten", () => {
+        it("flattens a mutable 2D array by one level", () => {
+            expectTypeOf(Arr.flatten(numberGrid)).toEqualTypeOf<number[]>();
+        });
+
+        it("flattens an array of readonly arrays, rather than leaving it un-flattened", () => {
+            // Regression: without an `ArrayItems<ArrayItems<TValue>>`
+            // overload, `[readonlyNumbers, readonlyNumbers]` only matched
+            // the single-level `TValue[]` overload (with TValue inferred as
+            // the inner `readonly number[]` itself), resolving to
+            // `(readonly number[])[]` instead of the flattened `number[]`.
+            expectTypeOf(
+                Arr.flatten([readonlyNumbers, readonlyNumbers]),
+            ).toEqualTypeOf<number[]>();
+        });
+
+        it("falls back to unknown[] for unknown data", () => {
+            expectTypeOf(Arr.flatten(unknownArray)).toEqualTypeOf<unknown[]>();
+        });
     });
 
     describe("reverse", () => {
@@ -287,6 +316,16 @@ describe("arr subsets type tests", () => {
 
         it("accepts a readonly array", () => {
             expectTypeOf(Arr.sole(readonlyStrings)).toEqualTypeOf<string>();
+        });
+
+        it("accepts a readonly array with a callback, without widening the callback parameter to unknown", () => {
+            // Regression: the callback overload used to declare `data:
+            // TValue[]` (mutable-only), so a readonly array fell through
+            // to the `unknown` fallback overload and `v` below resolved to
+            // `unknown` instead of `number`.
+            expectTypeOf(
+                Arr.sole(readonlyNumbers, (v) => v > 0),
+            ).toEqualTypeOf<number>();
         });
 
         it("infers the callback's value and index parameter types", () => {
