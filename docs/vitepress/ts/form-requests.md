@@ -206,11 +206,11 @@ to `unknown[]` — this is the fix for a `config` field that used to come out `u
 `in_array_keys:timezone` tells you exactly which key to expect. The rules differ in whether Laravel's
 validator actually guarantees the key is present, and the emitted `?` follows that:
 
-| Rule                      | Meaning                                                               | PHP                                                                      | TypeScript                                                     |
-| ------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------- |
-| `required_array_keys:a,b` | all listed keys must be present                                       | `'permissions' => ['required','array','required_array_keys:read,write']` | `permissions: { read: unknown; write: unknown };`              |
-| `in_array_keys:a,b`       | at least one listed key must be present — no single key is guaranteed | `'config' => ['required','array','in_array_keys:timezone']`              | `config: { timezone?: unknown };`                              |
-| `array:a,b`               | restricts which keys are allowed; says nothing about presence         | `'preferences' => ['nullable','array:theme,locale']`                     | `preferences?: { theme?: unknown; locale?: unknown } \| null;` |
+| Rule                      | Meaning                                                                                        | PHP                                                                      | TypeScript                                                     |
+| ------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| `required_array_keys:a,b` | all listed keys must be present                                                                | `'permissions' => ['required','array','required_array_keys:read,write']` | `permissions: { read: unknown; write: unknown };`              |
+| `in_array_keys:a,b`       | at least one listed key must be present — no single key is guaranteed                          | `'config' => ['required','array','in_array_keys:timezone']`              | `config: { timezone?: unknown };`                              |
+| `array:a,b`               | restricts which keys are allowed; says nothing about presence                                  | `'preferences' => ['nullable','array:theme,locale']`                     | `preferences?: { theme?: unknown; locale?: unknown } \| null;` |
 | `array_keys:a,b`          | restricts which keys are allowed; requires ≥1 listed key; presence of any given key unenforced | `'attributes_map' => ['required','array_keys:color,size']`               | `attributes_map: { color?: unknown; size?: unknown };`         |
 
 A field can combine a key-list rule with a real declared child, and the two merge instead of the
