@@ -2134,12 +2134,8 @@ describe("Arr", () => {
                 user_35: "Bob",
             });
 
-            // Missing keys return undefined
-            expect(Arr.pluck(users, "missing")).toEqual([
-                undefined,
-                undefined,
-                undefined,
-            ]);
+            // Missing keys return null, matching Laravel's data_get() default
+            expect(Arr.pluck(users, "missing")).toEqual([null, null, null]);
 
             // Empty array
             expect(Arr.pluck([], "name")).toEqual([]);
@@ -2193,6 +2189,84 @@ describe("Arr", () => {
             ];
             const result = Arr.pluck(data, "value", "key");
             expect(result).toEqual({ stringKey: "a", 123: "b" });
+        });
+
+        it("plucks using an array path", () => {
+            const data = [
+                { developer: { name: "Taylor" } },
+                { developer: { name: "Abigail" } },
+            ];
+
+            expect(Arr.pluck(data, ["developer", "name"])).toEqual([
+                "Taylor",
+                "Abigail",
+            ]);
+        });
+
+        it("plucks using a wildcard path", () => {
+            const data = [
+                {
+                    account: "a",
+                    users: [
+                        {
+                            first: "taylor",
+                            last: "otwell",
+                            email: "taylorotwell@gmail.com",
+                        },
+                    ],
+                },
+                {
+                    account: "b",
+                    users: [
+                        { first: "abigail", last: "otwell" },
+                        { first: "dayle", last: "rees" },
+                    ],
+                },
+            ];
+
+            expect(Arr.pluck(data, "users.*.first")).toEqual([
+                ["taylor"],
+                ["abigail", "dayle"],
+            ]);
+        });
+
+        it("plucks using a wildcard path with a key", () => {
+            const data = [
+                { account: "a", users: [{ first: "taylor" }] },
+                {
+                    account: "b",
+                    users: [{ first: "abigail" }, { first: "dayle" }],
+                },
+            ];
+
+            expect(Arr.pluck(data, "users.*.first", "account")).toEqual({
+                a: ["taylor"],
+                b: ["abigail", "dayle"],
+            });
+        });
+
+        it("returns null placeholders for missing wildcard values", () => {
+            const data = [
+                { users: [{ email: "taylorotwell@gmail.com" }] },
+                { users: [{ first: "abigail" }, { first: "dayle" }] },
+            ];
+
+            expect(Arr.pluck(data, "users.*.email")).toEqual([
+                ["taylorotwell@gmail.com"],
+                [null, null],
+            ]);
+        });
+
+        it("plucks nested keys with a dot path", () => {
+            const data = [
+                { user: { name: "John", id: 1 } },
+                { user: { name: "Jane", id: 2 } },
+            ];
+
+            expect(Arr.pluck(data, "user.name", "user.id")).toEqual({
+                1: "John",
+                2: "Jane",
+            });
         });
     });
 

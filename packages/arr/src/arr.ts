@@ -1776,6 +1776,56 @@ export function select<TValue extends Record<string, unknown>>(
 }
 
 /**
+ * Resolve a pluck path against a single item, expanding `*` segments into an
+ * array of the values found at that level. Mirrors Laravel's `data_get()`
+ * wildcard handling used by `Arr::pluck`.
+ *
+ * @param item - The item to resolve the path against.
+ * @param segments - The already-split path segments.
+ * @returns The resolved value, an array of values for a wildcard, or null.
+ */
+function resolvePluckPath(item: unknown, segments: readonly string[]): unknown {
+    if (segments.length === 0) {
+        return item;
+    }
+
+    const [segment, ...rest] = segments;
+
+    if (segment === "*") {
+        const values = getAccessibleValues(item);
+
+        return values.map((value) => resolvePluckPath(value, rest));
+    }
+
+    if (isNull(item) || isUndefined(item)) {
+        return null;
+    }
+
+    const next = getNestedValue(item, segment as string);
+
+    if (isUndefined(next)) {
+        return null;
+    }
+
+    return resolvePluckPath(next, rest);
+}
+
+/**
+ * Split a pluck value or key argument into path segments the way Laravel's
+ * `explodePluckParameters` does: strings split on dots, arrays pass through.
+ *
+ * @param path - The path to split.
+ * @returns The path segments.
+ */
+function explodePluckPath(path: string | readonly string[]): string[] {
+    if (isArray(path)) {
+        return [...path];
+    }
+
+    return String(path).split(".");
+}
+
+/**
  * Pluck an array of values from an array.
  *
  * @param data - The array to pluck from.
@@ -1792,25 +1842,29 @@ export function select<TValue extends Record<string, unknown>>(
 // Overload: with key → returns Record (keyed result)
 export function pluck<TValue extends Record<string, unknown>>(
     data: TValue[],
-    value: string | ((item: TValue) => unknown),
-    key: string | ((item: TValue) => string | number),
+    value: string | readonly string[] | ((item: TValue) => unknown),
+    key: string | readonly string[] | ((item: TValue) => string | number),
 ): Record<string | number, unknown>;
 // Overload: without key → returns array
 export function pluck<TValue extends Record<string, unknown>>(
     data: TValue[],
-    value: string | ((item: TValue) => unknown),
+    value: string | readonly string[] | ((item: TValue) => unknown),
 ): unknown[];
 // Overload: non-array fallback
 export function pluck<TValue extends Record<string, unknown>>(
     data: unknown,
-    value: string | ((item: TValue) => unknown),
-    key?: string | ((item: TValue) => string | number) | null,
+    value: string | readonly string[] | ((item: TValue) => unknown),
+    key?: string | readonly string[] | ((item: TValue) => string | number) | null,
 ): unknown[] | Record<string | number, unknown>;
 // Implementation
 export function pluck<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue> | unknown,
-    value: string | ((item: TValue) => unknown),
-    key: string | ((item: TValue) => string | number) | null = null,
+    value: string | readonly string[] | ((item: TValue) => unknown),
+    key:
+        | string
+        | readonly string[]
+        | ((item: TValue) => string | number)
+        | null = null,
 ): unknown[] | Record<string | number, unknown> {
     if (!accessible(data)) {
         return [];
@@ -1827,8 +1881,10 @@ export function pluck<TValue extends Record<string, unknown>>(
         if (isFunction(value)) {
             itemValue = value(item);
         } else {
-            // Use dot notation to get nested value
-            itemValue = getNestedValue(item, value as string);
+            itemValue = resolvePluckPath(
+                item,
+                explodePluckPath(value as string | readonly string[]),
+            );
         }
 
         // Get the key if specified
@@ -1836,7 +1892,10 @@ export function pluck<TValue extends Record<string, unknown>>(
             if (isFunction(key)) {
                 itemKey = (key as (item: TValue) => string | number)(item);
             } else {
-                const nestedKey = getNestedValue(item, key as string);
+                const nestedKey = resolvePluckPath(
+                    item,
+                    explodePluckPath(key as string | readonly string[]),
+                );
                 if (
                     typeof nestedKey === "string" ||
                     typeof nestedKey === "number"
