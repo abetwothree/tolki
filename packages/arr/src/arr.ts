@@ -1573,7 +1573,7 @@ export function join<TValue>(
  */
 // Overload: array type with callback for proper type inference
 export function keyBy<TValue extends Record<string, unknown>>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     keyBy: ((item: TValue) => string | number | null | undefined) | string,
 ): Record<string, TValue>;
 // Overload: non-array fallback
@@ -1733,14 +1733,19 @@ export function onlyValues<TValue>(
  * select([{a: 1, b: 2, c: 3}, {a: 4, b: 5, c: 6}], 'a'); -> [{a: 1}, {a: 4}]
  * select([{a: 1, b: 2}, {a: 3, b: 4}], ['a', 'b']); -> [{a: 1, b: 2}, {a: 3, b: 4}]
  */
-// Overload: typed array → selected keys (Task 6 narrows this to Pick<TValue, K>[])
+// Overload: literal key array → picked element type
+export function select<
+    TValue extends Record<string, unknown>,
+    const TKeys extends readonly (keyof TValue & string)[],
+>(data: ArrayItems<TValue>, keys: TKeys): Pick<TValue, TKeys[number]>[];
+// Overload: single literal key → picked element type
+export function select<
+    TValue extends Record<string, unknown>,
+    const TKey extends keyof TValue & string,
+>(data: ArrayItems<TValue>, keys: TKey): Pick<TValue, TKey>[];
+// Overload: non-literal keys or untyped data → opaque records
 export function select<TValue extends Record<string, unknown>>(
-    data: ArrayItems<TValue>,
-    keys: PathKeys,
-): Record<string, unknown>[];
-// Overload: unknown fallback
-export function select(
-    data: unknown,
+    data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
 ): Record<string, unknown>[];
 // Implementation

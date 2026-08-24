@@ -8450,16 +8450,6 @@ describe("arr type tests", () => {
         });
     });
 
-    describe("keyBy", () => {
-        it("returns Record with string callback", () => {
-            const data = [{ id: 1, name: "a" }];
-            const result = Arr.keyBy(data, "id");
-            expectTypeOf(result).toEqualTypeOf<
-                Record<string, { id: number; name: string }>
-            >();
-        });
-    });
-
     describe("only", () => {
         it("returns TValue[]", () => {
             const result = Arr.only(["a", "b", "c", "d"], [1, 3]);
@@ -8471,14 +8461,6 @@ describe("arr type tests", () => {
         it("returns TValue[]", () => {
             const result = Arr.onlyValues([1, 2, 3, 4, 5], [2, 4]);
             expectTypeOf(result).toEqualTypeOf<number[]>();
-        });
-    });
-
-    describe("select", () => {
-        it("returns Record array", () => {
-            const data = [{ id: 1, name: "a", age: 30 }];
-            const result = Arr.select(data, ["id", "name"]);
-            expectTypeOf(result).toEqualTypeOf<Record<string, unknown>[]>();
         });
     });
 

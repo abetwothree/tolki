@@ -70,3 +70,15 @@ export const readonlyNumbers: readonly number[] = [1, 2];
 
 /** An `as const` string tuple, to confirm literal element types are preserved. */
 export const stringTuple = ["a", "b"] as const;
+
+/**
+ * A minimal `{ id: number; meta: { tag: string } }[]` object array, for
+ * functions that must preserve a nested object property's declared type.
+ */
+export const metaTagItems = [{ id: 1, meta: { tag: "x" } }];
+
+/**
+ * A minimal `{ a: number; b: number }[]` object array, for functions that
+ * key or pick items by literal string keys.
+ */
+export const abPairs = [{ a: 1, b: 2 }];
