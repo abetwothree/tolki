@@ -31,6 +31,13 @@ export const nestedUsers = [
     },
 ];
 
+/**
+ * A minimal `{ id: number }[]` object array, for predicate-style helpers that
+ * only need to prove object element types survive — smaller than `users` so
+ * assertions don't have to account for a `name` field they don't care about.
+ */
+export const idObjects: { id: number }[] = [{ id: 1 }, { id: 2 }];
+
 /** An array whose element type is a union, for testing type-preserving overloads. */
 export const unionElements: (string | number)[] = ["a", 1, "b", 2];
 

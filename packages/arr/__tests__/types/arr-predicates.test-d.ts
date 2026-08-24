@@ -2,6 +2,7 @@ import * as Arr from "@tolki/arr";
 import { describe, expectTypeOf, it } from "vitest";
 
 import {
+    idObjects,
     nullableElements,
     nullishNumbers,
     numberGrid,
@@ -29,7 +30,7 @@ describe("arr predicate type tests", () => {
         });
 
         it("infers callback params for an object array", () => {
-            Arr.every([{ id: 1 }], (value) => {
+            Arr.every(idObjects, (value) => {
                 expectTypeOf(value).toEqualTypeOf<{ id: number }>();
                 return true;
             });
@@ -145,8 +146,7 @@ describe("arr predicate type tests", () => {
         });
 
         it("preserves object element types", () => {
-            const data = [{ id: 1 }];
-            expectTypeOf(Arr.reject(data, () => false)).toEqualTypeOf<
+            expectTypeOf(Arr.reject(idObjects, () => false)).toEqualTypeOf<
                 { id: number }[]
             >();
         });
@@ -182,8 +182,9 @@ describe("arr predicate type tests", () => {
         });
 
         it("preserves object element types without a callback", () => {
-            const data = [{ id: 1 }];
-            expectTypeOf(Arr.filter(data)).toEqualTypeOf<{ id: number }[]>();
+            expectTypeOf(Arr.filter(idObjects)).toEqualTypeOf<
+                { id: number }[]
+            >();
         });
     });
 
@@ -241,10 +242,9 @@ describe("arr predicate type tests", () => {
         });
 
         it("returns boolean for object element searches", () => {
-            const data = [{ id: 1 }];
-            expectTypeOf(Arr.contains(data, (v) => v.id === 1)).toEqualTypeOf<
-                boolean
-            >();
+            expectTypeOf(
+                Arr.contains(idObjects, (v) => v.id === 1),
+            ).toEqualTypeOf<boolean>();
         });
 
         it("returns boolean for a union element array", () => {
@@ -271,17 +271,26 @@ describe("arr predicate type tests", () => {
         });
 
         it("preserves object element types", () => {
-            // Checked via destructuring rather than a single toEqualTypeOf<[...]>()
-            // assertion on the whole tuple: expect-type's tuple-equality branding
-            // can't resolve a generically-inferred [T[], T[]] against a literal
-            // tuple type when T is an object type, and reports a misleading
-            // "Expected 1 arguments, but got 0" instead of a real mismatch.
-            // Verified independently of this implementation with a minimal
-            // `function identity<T>(a: T[], b: T[]): [T[], T[]]` reproduction.
-            // Destructuring each half sidesteps the tuple-level check while
-            // keeping the same strict per-array equality assertions.
-            const data = [{ id: 1 }];
-            const [passed, failed] = Arr.partition(data, () => true);
+            // expect-type's tuple-equality branding can't resolve a
+            // generically-inferred [T[], T[]] tuple against a literal tuple
+            // type when T is an object type: toEqualTypeOf<[...]>() on the
+            // whole tuple throws a misleading "Expected 1 arguments, but got
+            // 0" (TS2554) instead of a real mismatch. Reproduced independently
+            // of this implementation with a minimal
+            // `function identity<T>(a: T[], b: T[]): [T[], T[]]`, and confirmed
+            // against expect-type@1.4.0 in review. toExtend<[...]>() on the
+            // whole tuple sidesteps that bug — it still fails if partition
+            // regresses to a loose `{ id: number }[][]` return — but toExtend
+            // alone is weaker than toEqualTypeOf on excess properties (TS
+            // array assignability is covariant), so it's paired with the
+            // per-half toEqualTypeOf checks below: toExtend proves the strict
+            // 2-tuple shape, toEqualTypeOf proves each half is exactly
+            // `{ id: number }[]`.
+            const result = Arr.partition(idObjects, () => true);
+            expectTypeOf(result).toExtend<
+                [{ id: number }[], { id: number }[]]
+            >();
+            const [passed, failed] = result;
             expectTypeOf(passed).toEqualTypeOf<{ id: number }[]>();
             expectTypeOf(failed).toEqualTypeOf<{ id: number }[]>();
         });
