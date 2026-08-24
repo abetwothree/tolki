@@ -34,28 +34,24 @@ describe("arr mutations type tests", () => {
             >();
         });
 
-        // BLOCKED — three brief rows intentionally omitted here:
-        //   - `Arr.set([["a"], ["b"]], "1.0", "x")` → brief expects
-        //     `string[][]`; actual is `(string | string[])[]`.
-        //   - `Arr.set([{ id: 1 }], "0.id", 2)` → brief expects
-        //     `{ id: number }[]`; actual is `(number | { id: number })[]`.
-        //   - `Arr.set([], 0, "a")` → brief expects `string[]`; actual is
-        //     the unwidened literal `"a"[]`.
-        // `set`'s typed overloads compare `value`'s type against the
-        // *top-level* element type only — they have no dot-path
-        // resolution, so a value meant for a nested position (`"1.0"`,
-        // `"0.id"`) is compared against the whole element type and always
-        // "wins" the different-type overload, unioning in the raw value
-        // type instead of preserving the array's original shape. The
-        // empty-array case fails for an unrelated reason: TypeScript
-        // keeps `value`'s literal type unwidened while trial-matching the
-        // "different type" overload against `array: never[]`. None of
-        // this is the `TValue[]` → `ArrayItems<TValue>` readonly-widening
-        // pattern this task's other fixes use, and fixing it for real
-        // needs `set` to gain dot-path-aware typed overloads (comparable
-        // to what `get`/`pluck` already do) — a signature redesign this
-        // task does not own. Reported as a BLOCKED finding rather than
-        // silently weakened or invented here.
+        it("preserves nested array element type via a dot path", () => {
+            expectTypeOf(Arr.set([["a"], ["b"]], "1.0", "x")).toEqualTypeOf<
+                string[][]
+            >();
+        });
+
+        it("preserves object element type via a dot path", () => {
+            expectTypeOf(Arr.set(idObjects, "0.id", 2)).toEqualTypeOf<
+                { id: number }[]
+            >();
+        });
+
+        it("returns string[] for an empty array", () => {
+            // Kept inline: the empty array is the value under test — no
+            // fixture can stand in for "no elements" without losing the
+            // point of the assertion.
+            expectTypeOf(Arr.set([], 0, "a")).toEqualTypeOf<string[]>();
+        });
     });
 
     describe("push", () => {

@@ -2501,19 +2501,19 @@ export function shift<TValue>(
  */
 // Overload: null/undefined key → returns the value (replaces entire array)
 export function set<TSetValue>(
-    array: unknown[] | unknown,
+    array: unknown,
     key: null | undefined,
     value: TSetValue,
 ): TSetValue;
-// Overload: non-null key with same type → preserves array type
-export function set<TValue>(
-    array: TValue[],
-    key: string | number,
-    value: TValue,
+// Overload: dot-notated path key → nested write, outer element type unchanged
+export function set<TValue, TPath extends `${string}.${string}`>(
+    array: ArrayItems<TValue>,
+    key: TPath,
+    value: unknown,
 ): TValue[];
-// Overload: non-null key with different type → union array type
+// Overload: top-level key → element type widens to the union
 export function set<TValue, TSetValue>(
-    array: TValue[],
+    array: ArrayItems<TValue>,
     key: string | number,
     value: TSetValue,
 ): (TValue | TSetValue)[];
