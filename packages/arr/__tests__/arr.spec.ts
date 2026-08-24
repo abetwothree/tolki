@@ -641,6 +641,22 @@ describe("Arr", () => {
             expect(Arr.flatten(null)).toEqual([]);
             expect(Arr.flatten(undefined)).toEqual([]);
         });
+
+        it("stops flattening at the specified depth, leaving deeper structure intact", () => {
+            const data = [["#foo", ["#bar", ["#baz"]]], "#zap"];
+
+            expect(Arr.flatten(data, 1)).toEqual([
+                "#foo",
+                ["#bar", ["#baz"]],
+                "#zap",
+            ]);
+            expect(Arr.flatten(data, 2)).toEqual([
+                "#foo",
+                "#bar",
+                ["#baz"],
+                "#zap",
+            ]);
+        });
     });
 
     describe("flip", () => {
@@ -835,6 +851,12 @@ describe("Arr", () => {
             expect(() => Arr.from(null)).toThrow(Error);
             expect(() => Arr.from(undefined)).toThrow(Error);
             expect(() => Arr.from(Symbol("sym"))).toThrow(Error);
+        });
+
+        it("throws the exact scalar message Laravel's Arr::from raises for a non-representable subject", () => {
+            expect(() => Arr.from(123)).toThrow(
+                "Items cannot be represented by a scalar value.",
+            );
         });
 
         it("from accepts iterables", () => {
@@ -2142,6 +2164,14 @@ describe("Arr", () => {
                 { b: 5 },
             ]);
         });
+
+        it("returns an empty object per item when the key is null", () => {
+            const objects = [
+                { a: 1, b: 2 },
+                { a: 4, b: 5 },
+            ];
+            expect(Arr.select(objects, null)).toEqual([{}, {}]);
+        });
     });
 
     describe("wrap", () => {
@@ -2161,6 +2191,17 @@ describe("Arr", () => {
 
             // Undefined should be wrapped
             expect(Arr.wrap(undefined)).toEqual([undefined]);
+        });
+
+        it("wraps a non-array object in an array", () => {
+            const object = { value: "a" };
+            expect(Arr.wrap(object)).toEqual([object]);
+            expect(Arr.wrap(object)[0]).toBe(object);
+        });
+
+        it("does not further wrap an array that already contains null values", () => {
+            expect(Arr.wrap([null])).toEqual([null]);
+            expect(Arr.wrap([null, null])).toEqual([null, null]);
         });
     });
 
@@ -2312,6 +2353,14 @@ describe("Arr", () => {
             expect(Arr.prepend(null, "first")).toEqual(["first"]);
             expect(Arr.prepend("abc", "first")).toEqual(["first"]);
         });
+
+        it("treats an array value as a single opaque element", () => {
+            expect(Arr.prepend(["one", "two"], ["zero"])).toEqual([
+                ["zero"],
+                "one",
+                "two",
+            ]);
+        });
     });
 
     describe("prependKeysWith", () => {
@@ -2370,6 +2419,10 @@ describe("Arr", () => {
             // Complex transformation
             const objects = [{ a: 1 }, { a: 2 }, { a: 3 }];
             expect(Arr.map(objects, (obj) => obj.a)).toEqual([1, 2, 3]);
+        });
+
+        it("returns an empty array for empty input", () => {
+            expect(Arr.map([], (value, key) => `${key}-${value}`)).toEqual([]);
         });
     });
 
@@ -2581,6 +2634,24 @@ describe("Arr", () => {
                 "John",
                 "Jane",
             ]);
+        });
+
+        it("plucks a numeric index from a nested array path for both the value and the key", () => {
+            const data = [
+                { user: ["taylor", "otwell"] },
+                { user: ["dayle", "rees"] },
+            ];
+
+            expect(Arr.pluck(data, "user.0")).toEqual(["taylor", "dayle"]);
+            expect(Arr.pluck(data, ["user", "0"])).toEqual(["taylor", "dayle"]);
+            expect(Arr.pluck(data, "user.1", "user.0")).toEqual({
+                taylor: "otwell",
+                dayle: "rees",
+            });
+            expect(Arr.pluck(data, ["user", "1"], ["user", "0"])).toEqual({
+                taylor: "otwell",
+                dayle: "rees",
+            });
         });
 
         it("converts a stringable key returned via a nested object to its key string", () => {
@@ -3038,6 +3109,48 @@ describe("Arr", () => {
             expect(shuffledStr).toHaveLength(3);
             expect(shuffledStr.sort()).toEqual(["a", "b", "c"]);
         });
+
+        it("keeps the same values after shuffling", () => {
+            const input = ["a", "b", "c", "d", "e", "f", "g"];
+            const shuffled = Arr.shuffle(input);
+
+            expect([...shuffled].sort()).toEqual([...input].sort());
+            expect(shuffled).toHaveLength(input.length);
+        });
+
+        it("produces different orderings across runs", () => {
+            // A single pair of 100-element shuffles landing on the same
+            // order is already a ~1-in-100! coincidence. Comparing two
+            // independent pairs -- mirroring Laravel's own
+            // testShuffleProducesDifferentShuffles, which checks
+            // `shuffle() === shuffle() && shuffle() === shuffle()` rather
+            // than a single comparison -- squares that probability away
+            // from anything a real run could ever hit, while still failing
+            // if shuffle() stops actually shuffling.
+            const input = Array.from({ length: 100 }, (_, i) => i);
+            const sameOrder = (a: number[], b: number[]) =>
+                JSON.stringify(a) === JSON.stringify(b);
+
+            const bothPairsCollided =
+                sameOrder(Arr.shuffle(input), Arr.shuffle(input)) &&
+                sameOrder(Arr.shuffle(input), Arr.shuffle(input));
+
+            expect(bothPairsCollided).toBe(false);
+        });
+
+        it("changes the order relative to the input", () => {
+            // Same double-pair defense as above, mirroring Laravel's
+            // testShuffleActuallyShuffles: `shuffle() === $input && shuffle() === $input`.
+            const input = Array.from({ length: 100 }, (_, i) => i);
+            const sameOrder = (a: number[], b: number[]) =>
+                JSON.stringify(a) === JSON.stringify(b);
+
+            const bothUnshuffled =
+                sameOrder(Arr.shuffle(input), input) &&
+                sameOrder(Arr.shuffle(input), input);
+
+            expect(bothUnshuffled).toBe(false);
+        });
     });
 
     describe("slice", () => {
@@ -3105,6 +3218,10 @@ describe("Arr", () => {
             expect(Arr.random([42])).toBe(42);
             expect(Arr.random([42], 1)).toEqual([42]);
             expect(Arr.random([42], 1, true)).toEqual({ 0: 42 });
+        });
+
+        it("returns an empty array when explicitly requesting zero items from an empty array", () => {
+            expect(Arr.random([], 0)).toEqual([]);
         });
     });
 
