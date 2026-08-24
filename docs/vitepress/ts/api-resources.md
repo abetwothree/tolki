@@ -11,11 +11,15 @@ By default, the package looks for resources in the `app/Http/Resources` director
 The analyzer resolves property types by inspecting the backing Eloquent model's database schema and cast definitions. The backing model is determined from, in priority order:
 
 1. The `#[TsResource(model:)]` attribute
-2. The `@mixin` PHPDoc tag (resolved via use statements)
-3. Convention-based guess — reverses Laravel's naming convention (`App\Http\Resources\UserResource` → `App\Models\User`)
-4. `#[UseResource]` attribute scan — checks all collected models for a `#[UseResource(ResourceClass::class)]` attribute pointing to this resource (Laravel 12+ only)
+2. The resource's own `@mixin` / `@extends` PHPDoc tag (resolved via use statements)
+3. The nearest ancestor's `@mixin` / `@extends` — climbs the parent chain until one resolves
+4. A typed `$resource` property
+5. Convention-based guess — reverses Laravel's naming convention (`App\Http\Resources\UserResource` → `App\Models\User`)
+6. `#[UseResource]` attribute scan — checks all collected models for a `#[UseResource(ResourceClass::class)]` attribute pointing to this resource (Laravel 12+ only)
 
 Most resources only need `@mixin` or the naming convention. The `#[TsResource(model:)]` attribute is useful when the resource name doesn't match the model, and `#[UseResource]` handles cases where the resource lives outside the standard `Http\Resources` namespace.
+
+Step 3 is what lets a subclass inherit its parent's model without repeating the docblock — see [Inheriting a Parent `toArray()`](#inheriting-a-parent-toarray). It applies to every resource missing its own tag, not only to body-less ones.
 
 ## Supported `toArray()` Patterns
 
@@ -155,6 +159,18 @@ depends on what the generator could resolve, and two cases can't be widened:
   payload the generator never inspects. The property stays `unknown`, since `unknown` already admits the
   default.
 
+A closure default that declares a required parameter goes a step further than merely unresolvable: Laravel
+invokes every conditional default via `value($default)`, calling it with zero arguments, so a closure
+requiring a parameter would throw if it ever ran. The generator treats that arm as unreachable and never
+lets it widen the type:
+
+```php
+'notes' => $this->whenNotNull($this->notes, fn ($notes) => strlen($notes)), // notes: string, not string | number
+```
+
+A parameter with its own default (`fn ($notes = '') => strlen($notes)`) still runs cleanly with zero
+arguments, so that arm keeps widening the type as usual.
+
 ### Enum Properties with `EnumResource`
 
 Use `EnumResource::make()` to expose enum-cast properties as rich enum objects:
@@ -192,6 +208,32 @@ Self-referencing resources are also supported:
 'parent' => CategoryResource::make($this->whenLoaded('parent')),
 'children' => CategoryResource::collection($this->whenLoaded('children')),
 ```
+
+### `toResource()` and `toResourceCollection()`
+
+Laravel's `Model::toResource()` and `Collection::toResourceCollection()` are resolved too, three ways:
+
+```php
+// 1. Explicit class argument
+'owner' => $this->owner->toResource(UserResource::class),
+
+// 2. #[UseResource] / #[UseResourceCollection] on the model
+'owner' => $this->owner->toResource(),
+
+// 3. Laravel's naming convention — tries {Model}Resource, then bare {Model}
+'owner_guessed' => $this->whenLoaded('owner', fn ($m) => $m->toResource()),
+'attachment' => $this->whenLoaded('attachment', fn ($m) => $m->toResource()),
+```
+
+Only the third route _invents_ a class name, and it is accepted only when this package will actually emit that resource. If the guessed class is third-party, carries [`#[TsExclude]`](./excluding-content.md), or lives outside the scanned directories, the property falls back to `unknown` rather than referencing a module that is never written:
+
+```typescript
+owner_guessed?: UserResource; // guessed UserResource is published
+attachment?: unknown; // AttachmentResource exists, but is #[TsExclude]d
+```
+
+> [!NOTE]
+> This gate applies to the naming-convention guess only. A resource you named explicitly — as a class argument, via `#[UseResource]`/`#[UseResourceCollection]`, or through a collection's `#[Collects]`/`$collects` — is a declaration rather than a guess and is always honored, even if this package doesn't publish it. Previously a guessed-but-unpublished resource produced an import of a file that did not exist, which surfaced as a `TS2307 Cannot find module` in the consuming app.
 
 ### Merge Operations
 
@@ -284,6 +326,45 @@ The child `ApiPostResource` inherits all parent properties (`id`, `title`, `stat
 
 If the parent itself extends `JsonResource` (the base class), the spread automatically delegates to the model's database attributes — see [JsonResource Base Delegation](#jsonresource-base-delegation).
 
+Writing the spread out by hand remains the idiomatic form, and both spellings — `...parent::toArray($request)` inside an array literal, and a bare `return parent::toArray($request);` — are fully supported. A child that declares **no** `toArray()` at all now inherits the parent's as well; see [Inheriting a Parent `toArray()`](#inheriting-a-parent-toarray).
+
+### Inheriting a Parent `toArray()`
+
+A resource that extends another resource and declares no `toArray()` of its own inherits the parent's shape:
+
+```php
+/**
+ * @mixin Order
+ */
+class OrderResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'status' => EnumResource::make($this->status),
+        ];
+    }
+}
+
+// No toArray(), no @mixin — both are inherited from OrderResource
+class BodylessOrderResource extends OrderResource {}
+```
+
+```typescript
+export interface BodylessOrderResource {
+  id: number;
+  status: AsEnum<typeof OrderStatus>;
+}
+```
+
+The lookup walks up the parent chain and stops at the nearest ancestor that actually declares a `toArray()` body, so multi-level inheritance works too. The backing model is inherited alongside it — a resource with no `@mixin`/`@extends` of its own falls back to the nearest ancestor that has one (step 3 of [How the Backing Model Is Resolved](#how-the-backing-model-is-resolved)). Without that, the inherited shape would resolve no model and every column would degrade to `unknown`.
+
+If **no** class in the chain declares a `toArray()`, nothing changes: the resource still falls back to [JsonResource Base Delegation](#jsonresource-base-delegation), or to `#[TsExtends]`-only output when no model resolves either. Body-less `ResourceCollection` subclasses are likewise unaffected and still resolve their element type through `$collects` or the naming convention.
+
+> [!NOTE]
+> Previously, a child resource with no `toArray()` of its own produced an empty interface whenever no model could be resolved for it either. If you added a pass-through `toArray()` purely to work around that, you can now delete it.
+
 ### Trait Method Spread
 
 Spread trait method return values into `toArray()` with `...$this->traitMethod()`. The analyzer reads `@return array{key: type}` PHPDoc annotations to resolve property types:
@@ -368,6 +449,32 @@ trait IncludesExtras
 
 > [!NOTE]
 > When a trait method has no `@return array{...}` PHPDoc or `#[TsCasts]` attribute, its properties will be typed as `unknown`.
+
+### Model `toArray()` Spread
+
+Spreading a **model's** own `toArray()` inside an array literal — alongside the literal's other keys — intersects the model's generated interface with those keys instead of collapsing to `unknown[]`:
+
+```php
+'members' => $this->whenLoaded('members', fn ($members) => $members->map(
+    fn (User $member) => [...$member->toArray(), 'flag' => true]
+)),
+```
+
+```typescript
+members?: (Omit<User, "flag"> & { flag: boolean })[];
+```
+
+The `Omit<>` is not cosmetic. PHP lets the later assignment win, so `'flag'` overwrites anything the spread contributed; TypeScript's `&` would instead intersect both and collapse a conflicting key to `never`. Subtracting the overridden keys from the earlier arm is what makes the emitted type mean what the PHP means. Several spreads in one literal are each `Omit<>`'d against every key a later arm or an explicit sibling key will overwrite, in source order.
+
+> [!NOTE]
+> The arm emits a **reference** to the `{Model}` interface rather than a re-derived shape, which is the honest floor rather than an exact match for `toArray()`'s runtime output. `Model::toArray()` is `attributesToArray()` merged with `relationsToArray()`, and bare `{Model}` covers only the first of those two — so two gaps, one in each direction:
+>
+> - **Relations are missing.** A relation loaded on the model before the spread is in the JSON payload but not in the type. That isn't knowable statically, and under the [`model-split` template](./models.md#model-templates) relations live in `{Model}Relations`, which the arm doesn't reference.
+> - **`$hidden` columns are extra.** They're stripped at runtime but remain in `{Model}` unless [`models.exclude_hidden`](./models.md#what-gets-published-hidden-attributes-write-only-accessors) is enabled.
+>
+> `$appends` are **not** a gap: an appended accessor is part of `attributesToArray()` at runtime and is generated into bare `{Model}` alongside the columns, so the two agree. (`{Model}Mutators` holds the accessors a model did _not_ append.)
+>
+> Spreading a **resource** (`...UserResource::make($m)->resolve($request)`) works the same way and has neither gap, since the resource interface is the response shape.
 
 ### Bare Method-Call Return
 
@@ -477,6 +584,89 @@ Both methods delegate to the backing model's full database schema and filter by 
 > [!NOTE]
 > Currently only `only` and `except` are supported as attribute filter methods. Other collection-style methods are not analyzed. If you find you need additional methods, open an issue, or better yet, submit a PR with the added functionality! See [`FiltersModelAttributes`](https://github.com/abetwothree/laravel-ts-publish/blob/main/src/Analyzers/Concerns/FiltersModelAttributes.php).
 
+### Relation Filters
+
+The same two methods work on a **related** model — `$this->author->only([...])`, `$this->post?->except([...])` — and are typed one of two ways.
+
+Two conditions have to hold for that reference form, not one: the relation must resolve to a **single** model, _and_ every filtered key must be a real database column. When both hold, the property references the related model's own generated interface with `Pick<>` — `only()` picks the keys you named, `except()` picks their **complement**, every other column on the model:
+
+```php
+'author' => $this->author->only(['id', 'name']),
+'post' => $this->post?->except(['created_at', 'updated_at']),
+```
+
+```typescript
+author: Pick<User, "id" | "name">;
+post: Pick<Post, "id" | "title" | "content" | "user_id"> | null;
+```
+
+That is the preferred shape: it keeps the model's own `#[TsCasts]` and `@property` refinements authoritative instead of re-deriving them into a detached inline object. Both branches emit `Pick<>`, never `Omit<>` — naming the surviving columns instead of the excluded ones keeps the reference accurate regardless of how many other members (mutators, relations, counts) the model's generated interface happens to carry beyond its columns.
+
+> [!TIP]
+> `except()`'s complement is always your model's columns minus the named keys — so this reference form is exactly as wide as `only()` naming every other column by hand, and no wider. If your model gains a column, an existing `except([...])` picks it up automatically; nothing needs regenerating by hand.
+
+When the reference can't be used — a filter key that isn't a column, or an accessor typed as a union of two or more models — the shape is expanded inline instead, and the two methods deliberately produce **different** property sets:
+
+- **`only([...])`** expands exactly the keys you named. `HasAttributes::only()` calls `getAttribute()` per key, which resolves accessors and relations alike, so naming either one works: `$this->author->only(['name', 'initials', 'posts'])` emits `{ name: string; initials: string; posts: Post[] }`.
+- **`except([...])`** expands the related model's **database columns** minus the named keys — never an accessor, never a relation. `HasAttributes::except()` iterates `getAttributes()`, which holds stored column values only; a get-only `Attribute` accessor is never merged back into it, and relations live in a separate bag entirely.
+
+An accessor that union-types two or more models — `@return Attribute<Image|User|null, never>` — never reaches the reference form at all, so every arm is expanded inline even when every key you named is a real column.
+
+> [!NOTE]
+> The split mirrors Eloquent rather than inventing a rule. `HasAttributes::except()` iterates `getAttributes()`, the raw stored-attribute bag, and reads `getAttribute()` only for keys already in it, so a get-only `Attribute` accessor is never merged back in and relations live in a separate bag entirely. `HasAttributes::only()` iterates the names _you_ passed and calls `getAttribute()` on each, which does resolve accessors and relations. Typing the two the same way would promise members the JSON payload never carries.
+
+So for `'author' => $this->author?->except(['id', 'name'])`, where `User` declares the accessors
+`initials`/`is_premium` and the relations `profile`/`posts`, the emitted type is columns only:
+
+```typescript
+author: { email: string; phone: string | null } | null;
+```
+
+Naming a relation or an accessor in the exclusion list is a no-op, since that key was never in the
+set being subtracted from. Reach for `only([...])` when you want one, or give it its own entry in
+`toArray()`.
+
+::: details Upgrading from an earlier version
+`except()`'s reference form used to name the excluded keys with `Omit<>` — `Omit<Post, "created_at" | "updated_at">` — rather than picking the survivors. That was accurate under the default model template, but re-widened under a template where the model's bare interface carries mutators, relations, counts, and exists alongside its columns, since `Omit<>` only ever subtracts from whatever `keyof Model` happens to be:
+
+```typescript
+// Before: Omit<> — width depends on the model template
+post: Omit<Post, "created_at" | "updated_at"> | null;
+
+// After: Pick<> of the complement — the same columns regardless of template
+post: Pick<Post, "id" | "title" | "content" | "user_id"> | null;
+```
+
+No action needed — the two forms carry the same columns under the default template, and the picked
+member list is now visible directly in the type instead of needing to be worked out from what the
+model interface excludes.
+:::
+
+::: details Upgrading from an earlier version
+`except()` used to expand to every attribute **and** every relation on the related model, minus the
+excluded keys, which is a shape `Model::except()` never returns at runtime. Accessors and relations
+that appeared in an `except()`-filtered type are gone:
+
+```typescript
+// Before: every attribute and every relation, minus the named keys
+author: {
+  email: string;
+  phone: string | null;
+  initials: string; // accessor
+  is_premium: boolean; // accessor
+  profile: Profile | null; // relation
+  posts: Post[]; // relation
+} | null;
+
+// After: database columns only
+author: { email: string; phone: string | null } | null;
+```
+
+If you relied on one of those arriving through an `except()`-filtered relation, name it explicitly.
+Switch the property to `only([...])`, or add the key as its own entry in `toArray()`. TypeScript
+will point at every site that reads a now-missing key.
+:::
+
 ### `exclude_hidden` and attribute filters
 
 `ts-publish.models.exclude_hidden` (see [Models § What gets published](./models.md#what-gets-published-hidden-attributes-write-only-accessors)) governs resources too, not just the model's own interface:
@@ -495,7 +685,7 @@ That split isn't arbitrary — it mirrors what `Model::only()` versus `toArray()
 | `$this->relation->only(['id', 'password'])`                                             | exactly the keys you named                 | **kept** — you named it                           |
 | `$this->whenHas('password')`                                                            | the attribute you named                    | **kept** — you named it                           |
 | `$this->except(['id'])`                                                                 | every model attribute minus the named keys | **dropped** — the set is derived                  |
-| `$this->relation->except(['id'])`                                                       | every attribute minus the named keys       | **dropped** — the set is derived                  |
+| `$this->relation->except(['id'])`                                                       | every database column minus the named keys | **dropped** — the set is derived                  |
 | `parent::toArray($request)`, `[...parent::toArray($request)]`, or no `toArray()` at all | every model attribute                      | **dropped** — the set is derived                  |
 
 `'password' => $this->password` is worth calling out on its own: it's the plainest, most common way to expose a column, and it behaves exactly like a named `only()` key — a `$hidden` column you access directly is never silently dropped.
@@ -659,6 +849,26 @@ Notice how:
 - `PostResource::collection()` is typed as `PostResource[]`, imported from the same directory's barrel
 - Bare `whenLoaded('profile')` resolves to the model relation type (`Profile | null`)
 - PHPDoc class descriptions are preserved as JSDoc comments, alongside an auto-added `@see` back-reference to the PHP class
+
+### Classes Sharing a Name Across Namespaces
+
+When two classes in different namespaces share a class name — `App\Models\User` and `Crm\Models\User` — the generated file imports both under distinct aliases, and each occurrence of the name inside a property's type resolves to its own alias, in source order:
+
+```typescript
+import type { User as CrmUser } from "../../../crm/models";
+import type { User as ModelsUser } from "../../models";
+
+export interface WarehouseResource {
+  regional_hub_contacts: {
+    primaryContact: CrmUser | null;
+    manager: ModelsUser | null;
+    secondaryContact: CrmUser | null;
+  } | null;
+}
+```
+
+> [!NOTE]
+> Previously, a property naming the same class name more times than it had **distinct** classes could alias an arm to the wrong class, or leave the final occurrence as a bare `User` that matched no import — a `TS2304 Cannot find name`. Both are fixed; the interleaved case above (`Crm`, `App`, `Crm`) is the shape that pins it.
 
 ## Resource Attributes
 

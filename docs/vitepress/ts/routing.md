@@ -120,6 +120,11 @@ CustomRouteKeyController.show(post); // post = { slug: 'hello-world', ... }
 
 Because the binding is resolved structurally (via the `_routeKey` string), **the generated route file never imports the PHP model's TypeScript type** — you get full type inference (`string | number | { slug: string | number }`) without a single model import.
 
+The column named by `_routeKey` comes from whatever `getRouteKeyName()` returns for that model,
+whether that's the method itself overridden, `getKeyName()`/`$primaryKey` overridden, or (Laravel 13+)
+a model carrying only the `#[RouteKey('slug')]` class attribute with no method override at all — see
+[Models § Laravel 13 Model Attributes](./models.md#laravel-13-model-attributes).
+
 ## Enum Binding
 
 Route parameters type-hinted to a [backed enum](https://www.php.net/manual/en/language.enumerations.backed.php) resolve the same way, using the enum's backing values instead of a route key:
