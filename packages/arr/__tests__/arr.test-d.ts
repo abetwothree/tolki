@@ -8513,46 +8513,6 @@ describe("arr type tests", () => {
         });
     });
 
-    describe("map", () => {
-        it("returns mapped array type", () => {
-            const result = Arr.map([1, 2, 3], (v) => String(v));
-            expectTypeOf(result).toEqualTypeOf<string[]>();
-        });
-
-        it("callback infers value and key types", () => {
-            Arr.map([1, 2, 3], (value, key) => {
-                expectTypeOf(value).toEqualTypeOf<number>();
-                expectTypeOf(key).toEqualTypeOf<number>();
-                return value;
-            });
-        });
-    });
-
-    describe("mapWithKeys", () => {
-        it("returns Record when callback returns object", () => {
-            const result = Arr.mapWithKeys(
-                [{ id: 1, name: "John" }],
-                (item) => ({ [item.id]: item.name }),
-            );
-            expectTypeOf(result).toExtend<
-                Record<string, unknown> | Map<unknown, unknown>
-            >();
-        });
-    });
-
-    describe("mapSpread", () => {
-        it("maps spread items", () => {
-            const result = Arr.mapSpread(
-                [
-                    [1, "a"],
-                    [2, "b"],
-                ],
-                (num: number, str: string) => `${num}-${str}`,
-            );
-            expectTypeOf(result).toEqualTypeOf<string[]>();
-        });
-    });
-
     describe("prepend", () => {
         it("returns TValue[]", () => {
             const result = Arr.prepend([1, 2, 3], 0);

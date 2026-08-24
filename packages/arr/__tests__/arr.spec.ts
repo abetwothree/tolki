@@ -2340,6 +2340,17 @@ describe("Arr", () => {
             item_3: 6,
         });
 
+        // Numeric-like keys always return a plain object now, never a Map:
+        // insertion order (3, 1, 2) is not preserved, JS's ascending
+        // integer-key ordering wins instead.
+        const numericResult = Arr.mapWithKeys(
+            [{ id: 3 }, { id: 1 }, { id: 2 }],
+            (item) => ({ [item.id]: item.id * 10 }),
+        );
+        expect(numericResult).not.toBeInstanceOf(Map);
+        expect(Object.keys(numericResult)).toEqual(["1", "2", "3"]);
+        expect(numericResult).toEqual({ 1: 10, 2: 20, 3: 30 });
+
         // Empty array
         expect(
             Arr.mapWithKeys([], (value) => ({ [String(value)]: value })),

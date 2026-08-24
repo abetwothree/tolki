@@ -987,6 +987,14 @@ describe("Data", () => {
                 Jane: 2,
             });
         });
+
+        it("is array with a [key, value] tuple callback", () => {
+            const result = Data.dataMapWithKeys([1, 2], (value, index) => [
+                `key_${String(index)}`,
+                value * 2,
+            ]);
+            expect(result).toEqual({ key_0: 2, key_1: 4 });
+        });
     });
 
     describe("dataMapSpread", () => {

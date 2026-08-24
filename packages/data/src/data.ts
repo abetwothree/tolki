@@ -1219,7 +1219,7 @@ export function dataSelect<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @example
  *
- * dataMapWithKeys([1, 2], (value, index) => [`key_${index}`, value * 2]);
+ * dataMapWithKeys([1, 2], (value, index) => [`key_${String(index)}`, value * 2]);
  * -> {key_0: 2, key_1: 4}
  */
 export function dataMapWithKeys<
@@ -1246,12 +1246,25 @@ export function dataMapWithKeys<
         ) as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
 
+    const typedCallback = callback as (
+        value: TValue,
+        key: TKey,
+    ) =>
+        | [TMapWithKeysKey, TMapWithKeysValue]
+        | Record<TMapWithKeysKey, TMapWithKeysValue>;
+
     return arrMapWithKeys(
         arrWrap(data) as TValue[],
-        callback as (
-            value: TValue,
-            index: number,
-        ) => [TMapWithKeysKey, TMapWithKeysValue],
+        (value: TValue, index: number) => {
+            const mapped = typedCallback(value, index as unknown as TKey);
+
+            return isArray(mapped)
+                ? ({ [mapped[0]]: mapped[1] } as Record<
+                      TMapWithKeysKey,
+                      TMapWithKeysValue
+                  >)
+                : mapped;
+        },
     ) as Record<TMapWithKeysKey, TMapWithKeysValue>;
 }
 

@@ -1914,7 +1914,7 @@ export function pop<TValue>(
  */
 // Overload: array type with callback for proper type inference
 export function map<TValue, TMapReturn>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => TMapReturn,
 ): TMapReturn[];
 // Overload: non-array fallback
@@ -1955,9 +1955,9 @@ export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
     TKey extends number = number,
-    TMapWithKeysKey extends PropertyKey = PropertyKey,
+    TMapWithKeysKey extends string = string,
 >(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback: (
         value: TValue,
         index: TKey,
@@ -1968,7 +1968,7 @@ export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
     TKey extends number = number,
-    TMapWithKeysKey extends PropertyKey = PropertyKey,
+    TMapWithKeysKey extends string = string,
 >(
     data: unknown,
     callback: (
@@ -1981,46 +1981,31 @@ export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
     TKey extends number = number,
-    TMapWithKeysKey extends PropertyKey = PropertyKey,
+    TMapWithKeysKey extends string = string,
 >(
     data: ArrayItems<TValue> | unknown,
     callback: (
         value: TValue,
         index: TKey,
     ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
-):
-    | Record<TMapWithKeysKey, TMapWithKeysValue>
-    | Map<TMapWithKeysKey, TMapWithKeysValue> {
+): Record<TMapWithKeysKey, TMapWithKeysValue> {
     if (!accessible(data)) {
         return {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
 
     const values = data as ArrayItems<TValue>;
     const result = {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
-    const resultMap = new Map<TMapWithKeysKey, TMapWithKeysValue>();
-    let hasNumericKeys = false;
 
     for (let i = 0; i < values.length; i++) {
         const mappedObject = callback(values[i] as TValue, i as TKey);
 
         // Merge all key/value pairs from the returned object
         for (const [mapKey, mapValue] of Object.entries(mappedObject)) {
-            // Check if this is a numeric key
-            const numKey = Number(mapKey);
-            if (!Number.isNaN(numKey) && String(numKey) === mapKey) {
-                hasNumericKeys = true;
-            }
-
             result[mapKey as TMapWithKeysKey] = mapValue as TMapWithKeysValue;
-            resultMap.set(
-                mapKey as TMapWithKeysKey,
-                mapValue as TMapWithKeysValue,
-            );
         }
     }
 
-    // Return Map if we have numeric keys to preserve insertion order
-    return hasNumericKeys ? resultMap : result;
+    return result;
 }
 
 /**

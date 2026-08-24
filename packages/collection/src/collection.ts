@@ -28,7 +28,6 @@ import {
     dataKeys,
     dataLast,
     dataMap,
-    dataMapWithKeys,
     dataOnly,
     dataPad,
     dataPartition,
@@ -1927,25 +1926,36 @@ export class Collection<TValue, TKey extends PropertyKey> {
             key: TKey,
         ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
     ) {
-        // If we have preserved insertion order, use it for iteration
-        if (this.itemsWithOrder) {
-            const map = new Map<TMapWithKeysKey, TMapWithKeysValue>();
+        // Use the preserved insertion order when we have it, otherwise walk
+        // `this.items` directly. Either way the pairs are always folded into
+        // a local Map (rather than delegating to `dataMapWithKeys`) so that
+        // numeric-looking keys the callback produces keep the order they
+        // were mapped in — `newInstance` detects the Map and preserves that
+        // order via `itemsWithOrder`, mirroring PHP associative array
+        // semantics. `@tolki/arr`'s own `mapWithKeys` intentionally doesn't
+        // do this (it returns a plain JS-ordered Record), so this can't be
+        // delegated to it.
+        const entries: Array<[TKey, TValue]> = this.itemsWithOrder
+            ? this.itemsWithOrder
+            : Object.entries(this.items).map(
+                  ([key, value]) =>
+                      [entriesKeyValue(key), value] as [TKey, TValue],
+              );
 
-            for (const [key, value] of this.itemsWithOrder) {
-                const result = callback(value, key);
-                // Spread the result object to get the key-value pairs
-                for (const [newKey, newValue] of Object.entries(result)) {
-                    map.set(
-                        newKey as TMapWithKeysKey,
-                        newValue as TMapWithKeysValue,
-                    );
-                }
+        const map = new Map<TMapWithKeysKey, TMapWithKeysValue>();
+
+        for (const [key, value] of entries) {
+            const result = callback(value, key);
+            // Spread the result object to get the key-value pairs
+            for (const [newKey, newValue] of Object.entries(result)) {
+                map.set(
+                    newKey as TMapWithKeysKey,
+                    newValue as TMapWithKeysValue,
+                );
             }
-
-            return this.newInstance(map);
         }
 
-        return this.newInstance(dataMapWithKeys(this.items, callback));
+        return this.newInstance(map);
     }
 
     /**
