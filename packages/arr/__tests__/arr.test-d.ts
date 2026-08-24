@@ -8450,27 +8450,6 @@ describe("arr type tests", () => {
         });
     });
 
-    describe("query", () => {
-        it("returns string", () => {
-            const result = Arr.query([["key", "value"]]);
-            expectTypeOf(result).toEqualTypeOf<string>();
-        });
-    });
-
-    describe("toCssClasses", () => {
-        it("returns string", () => {
-            const result = Arr.toCssClasses(["p-4", "font-bold"]);
-            expectTypeOf(result).toEqualTypeOf<string>();
-        });
-    });
-
-    describe("toCssStyles", () => {
-        it("returns string", () => {
-            const result = Arr.toCssStyles(["color: red", "font-size: 14px"]);
-            expectTypeOf(result).toEqualTypeOf<string>();
-        });
-    });
-
     describe("iterable overloads", () => {
         it("every infers the value from a Set", () => {
             Arr.every(new Set([1, 2]), (value, key) => {

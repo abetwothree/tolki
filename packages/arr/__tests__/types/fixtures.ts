@@ -100,3 +100,9 @@ export const ageItems: { age: number }[] = [{ age: 30 }, { age: 25 }];
 
 /** A flat array of `{ tags: string[] }` objects, for functions that resolve an array-valued property. */
 export const tagItems: { tags: string[] }[] = [{ tags: ["a", "b"] }];
+
+/** A `Record<string, boolean>`, for the CSS-class/style output helpers' conditional-map overload. */
+export const booleanFlags: Record<string, boolean> = {
+    "font-bold": true,
+    "text-red": false,
+};
