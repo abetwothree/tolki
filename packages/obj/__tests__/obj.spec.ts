@@ -175,23 +175,51 @@ describe("Obj", () => {
 
     describe("combine", () => {
         it("should combine two objects into an object", () => {
-            // Four keys, four values — equal counts, so the entries below
-            // exercise function-key resolution and an `undefined`-valued
-            // key without tripping the new count-mismatch guard (Task 4,
-            // X19).
+            // Four keys, four values — equal counts, so this exercises an
+            // `undefined`-valued key without tripping the count-mismatch
+            // guard (Task 4, X19). Function-key resolution moved to its
+            // own test below (Minor 6 review fix).
             const keys = {
                 1: "name",
                 2: "family",
-                3: () => "callback",
+                3: "role",
                 4: undefined,
             };
-            const values = { 0: "John", 1: "Doe", 2: 58, 3: "N/A" };
+            const values = { 0: "John", 1: "Doe", 2: "admin", 3: "N/A" };
             expect(Obj.combine(keys, values)).toEqual({
                 name: "John",
                 family: "Doe",
-                callback: 58,
+                role: "admin",
                 undefined: "N/A",
             });
+        });
+
+        // Review fix (Minor 6): obj.combine used to resolve a
+        // function-typed key by *calling* it (`isFunction(k) ?
+        // String(k())`); arr.combine always used plain `String(k)`.
+        // Neither matches PHP, which has no function-typed array keys —
+        // ruled to make both agree on plain String(), since the unison
+        // rule binds combine as this task's function. Pinning the agreed
+        // behaviour here (see the matching arr.spec.ts test).
+        it("stringifies a function key instead of calling it", () => {
+            const fn = () => "callback";
+            const result = Obj.combine({ a: fn }, { a: 1 });
+            expect(result).toEqual({ [String(fn)]: 1 });
+            expect(Object.keys(result)).not.toContain("callback");
+        });
+
+        // Review fix (Important 2): defineKey hardening in combine had no
+        // test — reverting to plain `result[key] = value` failed nothing.
+        // keysObject's own keys don't need JSON.parse (only its resolved
+        // *values* become combine's keys, and a plain value "__proto__"
+        // needs no special construction); the risk is entirely on the
+        // write side.
+        it("does not reparent the result via a __proto__ key resolved from keysObject", () => {
+            const keys = { a: "x", b: "__proto__", c: "y" };
+            const values = { a: 1, b: { polluted: true }, c: 3 };
+            const result = Obj.combine(keys, values);
+            expect((result as { polluted?: boolean }).polluted).toBeUndefined();
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
         });
 
         // Task 4 (X19): mismatched counts used to silently produce
@@ -1145,6 +1173,43 @@ describe("Obj", () => {
                 a: NaN,
                 c: 1,
             });
+        });
+
+        // Review fix (Minor 4): the full 9-value probe set, pinned once —
+        // PHP-verified (docs/php-parity/task-04-shared.json,
+        // "Collection::filter() falsy set"):
+        // (new Collection(['a'=>'0','b'=>'','c'=>0,'d'=>[],'e'=>false,
+        // 'f'=>null,'g'=>'x','h'=>'00','i'=>'0.0']))->filter()->all()
+        // -> {g:'x', h:'00', i:'0.0'}.
+        it("matches the full probed falsy set", () => {
+            expect(
+                Obj.filter({
+                    a: "0",
+                    b: "",
+                    c: 0,
+                    d: [],
+                    e: false,
+                    f: null,
+                    g: "x",
+                    h: "00",
+                    i: "0.0",
+                }),
+            ).toEqual({ g: "x", h: "00", i: "0.0" });
+        });
+
+        // Review fix (Important 2): defineKey hardening in filter had no
+        // test — reverting to plain `result[key] = value` failed nothing.
+        // JSON.parse produces a real own enumerable "__proto__" key (a
+        // literal `{ __proto__: ... }` would set the prototype instead
+        // and never reach this code path) — see obj.spec.ts's splice
+        // tests for the same pattern.
+        it("does not reparent the result via a __proto__ entry", () => {
+            const src = JSON.parse(
+                '{"a":1,"__proto__":{"polluted":true},"c":3}',
+            ) as Record<string, unknown>;
+            const result = Obj.filter(src) as Record<string, unknown>;
+            expect((result as { polluted?: boolean }).polluted).toBeUndefined();
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
         });
     });
 
@@ -2456,6 +2521,39 @@ describe("Obj", () => {
         it("returns an empty object for a zero length", () => {
             // PHP-verified: array_slice(['a'=>1,'b'=>2,'c'=>3], 1, 0, true) -> []
             expect(Obj.slice({ a: 1, b: 2, c: 3 }, 1, 0)).toEqual({});
+        });
+
+        // Review fix (Important 3): no test exercised an offset more
+        // negative than the container, so dropping the
+        // `Math.max(len + offset, 0)` clamp would have silently regressed
+        // to `{}` without failing anything. PHP-verified:
+        // array_slice(['a'=>1,'b'=>2,'c'=>3], -10, 2, true) -> {a:1,b:2}
+        // (clamps to 0); array_slice(['a'=>1,'b'=>2,'c'=>3], 10, 2, true)
+        // -> [] (offset beyond length).
+        it("clamps an offset more negative than the container to the start", () => {
+            expect(Obj.slice({ a: 1, b: 2, c: 3 }, -10, 2)).toEqual({
+                a: 1,
+                b: 2,
+            });
+        });
+
+        it("returns an empty object for an offset larger than the container", () => {
+            expect(Obj.slice({ a: 1, b: 2, c: 3 }, 10, 2)).toEqual({});
+        });
+
+        // Review fix (Important 2): defineKey hardening in slice had no
+        // test — reverting to plain `result[key] = value` failed nothing.
+        // JSON.parse produces a real own enumerable "__proto__" key (a
+        // literal `{ __proto__: ... }` would set the prototype instead
+        // and never reach this code path) — see obj.spec.ts's splice
+        // tests for the same pattern.
+        it("does not reparent the result via a __proto__ entry", () => {
+            const src = JSON.parse(
+                '{"a":1,"__proto__":{"polluted":true},"c":3}',
+            ) as Record<string, unknown>;
+            const result = Obj.slice(src, 0, 3) as Record<string, unknown>;
+            expect((result as { polluted?: boolean }).polluted).toBeUndefined();
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
         });
     });
 

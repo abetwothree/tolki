@@ -24,6 +24,7 @@ import {
     isNumber,
     isObject,
     isPhpArrayKey,
+    isPhpFalsy,
     isString,
     isStringable,
     isUndefined,
@@ -318,9 +319,12 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
     valuesObject: Record<PropertyKey, TValues>,
 ): Record<PropertyKey, TCombineValue> {
     const maxLength = Object.keys(keysObject).length;
-    const keys = Object.values(keysObject).map((k) =>
-        isFunction(k) ? String(k()) : String(k),
-    );
+    // Plain String() coercion, not `isFunction(k) ? String(k()) :
+    // String(k)` — review fix (Minor 6): this used to call a
+    // function-typed key to resolve it, diverging from arr.combine's
+    // plain String(). Neither matches PHP (no function-typed array keys),
+    // so both packages now agree on plain String().
+    const keys = Object.values(keysObject).map((k) => String(k));
     const values = Object.values(valuesObject);
 
     if (maxLength !== values.length) {
@@ -3254,50 +3258,6 @@ export function contains<TValue>(
         if (looseEqual(val, value)) {
             return true;
         }
-    }
-
-    return false;
-}
-
-/**
- * Determine whether a value is falsy the way PHP's `array_filter()` (no
- * callback) treats it (`Collection.php:430`).
- *
- * `@tolki/utils`'s `isFalsy` cannot be reused here — PHP-verified
- * (`docs/php-parity/task-04-shared.json`, "Collection::filter() falsy
- * set"): `array_filter` drops exactly `"0"`, `""`, `0`, `[]`, `false`,
- * `null`, but keeps `"00"` and `"0.0"`, and `NAN` is truthy. `isFalsy`
- * gets both of those wrong today — it treats `NaN` as falsy (via an
- * unconditional `Number.isNaN` check) and does NOT treat the exact string
- * `"0"` as falsy (its string branch is `value.trim() === ""`, which is
- * false for `"0"` and, separately, wrongly true for whitespace-only
- * strings PHP treats as truthy). Fixing `isFalsy` itself would ripple to
- * every other caller in `@tolki/utils`, so `filter` keeps this narrowly
- * scoped check local instead of widening the shared helper.
- *
- * An empty object (`{}`) counting as falsy is correct here — a PHP empty
- * array maps to `{}` in this package.
- */
-function isPhpFalsy(value: unknown): boolean {
-    if (
-        value === false ||
-        value === null ||
-        isUndefined(value) ||
-        value === 0 ||
-        value === "" ||
-        value === "0"
-    ) {
-        return true;
-    }
-
-    // Empty arrays are falsy in PHP
-    if (isArray(value)) {
-        return value.length === 0;
-    }
-
-    // Empty objects are falsy in PHP
-    if (isObject(value)) {
-        return Object.keys(value).length === 0;
     }
 
     return false;
