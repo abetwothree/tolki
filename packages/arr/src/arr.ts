@@ -315,19 +315,46 @@ export function collapse<TValue extends ArrayItems<unknown>>(
 }
 
 /**
- * Combine multiple arrays into a single array.
+ * Combine an array of keys with an array of values into an object,
+ * mirroring PHP's `array_combine()` / `Collection::combine()`
+ * (`Collection.php:935`).
  *
- * @param arrays - The arrays to combine.
- * @returns A new array containing all elements from the input arrays.
+ * The previous implementation zipped an arbitrary number of arrays into an
+ * array of tuples — that never corresponded to `array_combine`, whose
+ * *only* two-argument shape produces a keyed map (confirmed against the
+ * real `CollectionTest::testCombineWithArray`, and already how
+ * `Obj.combine` behaved). It was silently mislabeled: X19's fix requires
+ * `combine` to throw on a count mismatch, and that only makes sense once
+ * `combine` actually implements `array_combine` semantics.
+ *
+ * Each key is coerced with `String()` (same as `flip`/`keyBy`/
+ * `mapWithKeys`), so `keys`' element type is intentionally unconstrained
+ * rather than `PropertyKey` — the result's key type is always `string`,
+ * matching those functions' `Record<string, TValue>` convention.
+ *
+ * @param keys - The keys.
+ * @param values - The values, matched to `keys` by position.
+ * @returns A new object mapping each key to its corresponding value.
+ * @throws Error if `keys` and `values` do not have the same length.
+ *
+ * @example
+ *
+ * combine(["a", "b"], [1, 2]); -> { a: 1, b: 2 }
  */
-export function combine<TValue>(
-    ...arrays: ArrayItems<TValue>[]
-): (TValue | undefined)[][] {
-    const length = arrays[0]?.length || 0;
-    const result: (TValue | undefined)[][] = [];
+export function combine<TKey, TValue>(
+    keys: ArrayItems<TKey>,
+    values: ArrayItems<TValue>,
+): Record<string, TValue> {
+    if (keys.length !== values.length) {
+        throw new Error(
+            "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
+        );
+    }
 
-    for (let i = 0; i < length; i++) {
-        result.push(arrays.map((array) => array[i]));
+    const result: Record<string, TValue> = {};
+
+    for (let i = 0; i < keys.length; i++) {
+        defineKey(result, String(keys[i]), values[i] as TValue);
     }
 
     return result;
@@ -2703,14 +2730,18 @@ export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
  * slice([1, 2, 3, 4], 1, 2); -> [2, 3]
  * slice([1, 2, 3, 4], 1, -1); -> [2, 3]
  * slice([1, 2, 3, 4], 2); -> [3, 4]
+ * slice([1, 2, 3, 4, 5, 6, 7, 8], -2, 5); -> [7, 8]
  */
 export function slice<TValue>(
     data: ArrayItems<TValue>,
     offset: number,
     length?: number | null,
 ): TValue[];
+// Overload: unknown fallback — genuinely `unknown`, not `ArrayItems<TValue>
+// | unknown` (which collapses to the same thing but implies TValue narrows
+// when it never does).
 export function slice<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: unknown,
     offset: number,
     length?: number | null,
 ): TValue[];
@@ -2725,16 +2756,21 @@ export function slice<TValue>(
 
     const values = (data as ArrayItems<TValue>).slice();
 
-    if (isNull(length)) {
-        return values.slice(offset);
-    }
+    // Normalise a negative offset against the array length BEFORE combining
+    // it with length — `array_slice($items, $offset, $length, true)`
+    // (Collection.php:1371). The old code fed a raw negative offset
+    // straight into `Array.prototype.slice(offset, length)`, so
+    // `slice(data, -2, 5)` became `values.slice(-2, 5)` and returned `[]`
+    // instead of the last two items — PHP-verified in
+    // docs/php-parity/task-04-shared.json.
+    const start = offset < 0 ? Math.max(values.length + offset, 0) : offset;
+    const end = isNull(length)
+        ? undefined
+        : length >= 0
+          ? start + length
+          : values.length + length;
 
-    // If length is negative, calculate the end index from the end of the array
-    if (length < 0) {
-        return values.slice(offset, length);
-    }
-
-    return values.slice(offset, offset + length);
+    return values.slice(start, end);
 }
 
 /**
@@ -3938,6 +3974,47 @@ export function contains<TValue>(
 }
 
 /**
+ * Determine whether a value is falsy the way PHP's `array_filter()` (no
+ * callback) treats it (`Collection.php:430`).
+ *
+ * `@tolki/utils`'s `isFalsy` cannot be reused here — PHP-verified
+ * (`docs/php-parity/task-04-shared.json`, "Collection::filter() falsy
+ * set"): `array_filter` drops exactly `"0"`, `""`, `0`, `[]`, `false`,
+ * `null`, but keeps `"00"` and `"0.0"`, and `NAN` is truthy. `isFalsy`
+ * gets both of those wrong today — it treats `NaN` as falsy (via an
+ * unconditional `Number.isNaN` check) and does NOT treat the exact string
+ * `"0"` as falsy (its string branch is `value.trim() === ""`, which is
+ * false for `"0"` and, separately, wrongly true for whitespace-only
+ * strings PHP treats as truthy). Fixing `isFalsy` itself would ripple to
+ * every other caller in `@tolki/utils`, so `filter` keeps this narrowly
+ * scoped check local instead of widening the shared helper.
+ */
+function isPhpFalsy(value: unknown): boolean {
+    if (
+        value === false ||
+        value === null ||
+        isUndefined(value) ||
+        value === 0 ||
+        value === "" ||
+        value === "0"
+    ) {
+        return true;
+    }
+
+    // Empty arrays are falsy in PHP
+    if (isArray(value)) {
+        return value.length === 0;
+    }
+
+    // Empty objects are falsy in PHP
+    if (isObject(value)) {
+        return Object.keys(value).length === 0;
+    }
+
+    return false;
+}
+
+/**
  * Filter the array using a callback function.
  *
  * @param data - The array to filter.
@@ -3948,6 +4025,8 @@ export function contains<TValue>(
  *
  * filter([1, 2, 3, 4], (x) => x > 2); -> [3, 4]
  * filter([1, null, 2, undefined, 3]); -> [1, 2, 3]
+ * filter(["0", "", 0, "x"]); -> ["x"]
+ * filter(["00", "0.0"]); -> ["00", "0.0"]
  */
 // Overload: no callback → PHP-falsy values removed from the element type
 export function filter<TData extends readonly unknown[]>(
@@ -3973,20 +4052,8 @@ export function filter<TValue>(
     }
 
     if (!isFunction(callback)) {
-        // Filter out falsy values by default
-        // In PHP, empty arrays and empty objects are falsy, so we need to check for them
-        return data.filter((value): value is TValue => {
-            // Empty arrays are falsy in PHP
-            if (isArray(value) && value.length === 0) {
-                return false;
-            }
-            // Empty objects are falsy in PHP
-            if (isObject(value) && Object.keys(value).length === 0) {
-                return false;
-            }
-            // Otherwise use standard JavaScript truthiness
-            return Boolean(value);
-        });
+        // Filter out PHP-falsy values by default
+        return data.filter((value): value is TValue => !isPhpFalsy(value));
     }
 
     return (data as TValue[]).filter(callback);

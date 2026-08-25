@@ -189,17 +189,38 @@ describe("Arr", () => {
     });
 
     describe("combine", () => {
-        it("combine", () => {
-            const baseData = [1, 2, 3];
-            expect(Arr.combine(baseData, [4, 5, 6])).toEqual([
-                [1, 4],
-                [2, 5],
-                [3, 6],
-            ]);
+        // Task 4 (X19): the previous implementation zipped an arbitrary
+        // number of arrays into an array of `[a[i], b[i]]` tuples, which
+        // never corresponded to `array_combine()` — that test was pinning
+        // a bug. `array_combine(keys, values)` produces a keyed map
+        // instead, PHP-verified against the real
+        // `CollectionTest::testCombineWithArray`:
+        // `array_combine([1,2,3],[4,5,6])` -> `[1=>4, 2=>5, 3=>6]`.
+        it("combines keys and values into an object", () => {
+            expect(Arr.combine([1, 2, 3], [4, 5, 6])).toEqual({
+                1: 4,
+                2: 5,
+                3: 6,
+            });
 
-            expect(Arr.combine(baseData)).toEqual([[1], [2], [3]]);
+            expect(
+                Arr.combine(["name", "family"], ["taylor", "otwell"]),
+            ).toEqual({
+                name: "taylor",
+                family: "otwell",
+            });
+        });
 
-            expect(Arr.combine()).toEqual([]);
+        it("returns an empty object for two empty arrays", () => {
+            expect(Arr.combine([], [])).toEqual({});
+        });
+
+        it("throws when the key and value counts differ", () => {
+            // PHP-verified message (docs/php-parity/task-04-shared.json,
+            // "array_combine mismatch").
+            expect(() => Arr.combine(["a", "b"], [1])).toThrow(
+                "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
+            );
         });
     });
 
@@ -1843,6 +1864,22 @@ describe("Arr", () => {
             expect(Arr.filter(undefined, () => true)).toEqual([]);
             expect(Arr.filter({}, () => true)).toEqual([]);
         });
+
+        // Task 4 (X16): array_filter()'s falsy set is narrower than
+        // Boolean() — PHP-verified (docs/php-parity/task-04-shared.json,
+        // "Collection::filter() falsy set"): it drops "0", "", 0, [],
+        // false, null, but keeps "00" and "0.0", and NaN is truthy.
+        it("drops PHP-falsy values including the string zero", () => {
+            expect(Arr.filter(["0", "", 0, "x"])).toEqual(["x"]);
+        });
+
+        it("keeps strings that merely look like zero", () => {
+            expect(Arr.filter(["00", "0.0", "0"])).toEqual(["00", "0.0"]);
+        });
+
+        it("keeps NaN, which is truthy in PHP", () => {
+            expect(Arr.filter([NaN, 0, 1])).toEqual([NaN, 1]);
+        });
     });
 
     describe("reject", () => {
@@ -3243,6 +3280,23 @@ describe("Arr", () => {
             expect(Arr.slice({}, -6, -2)).toEqual([]);
             expect(Arr.slice(null, -6, -2)).toEqual([]);
             expect(Arr.slice(undefined, -6, -2)).toEqual([]);
+        });
+
+        // Task 4 (X15): a negative offset combined with a length beyond the
+        // array's remaining tail used to return `[]` instead of the last N
+        // items — PHP-verified (docs/php-parity/task-04-shared.json,
+        // "slice(-2,5) preserve_keys" / "slice(-2,2) preserve_keys"):
+        // array_slice($a, -2, 5, true) and array_slice($a, -2, 2, true)
+        // both leave only the last two entries.
+        it("slices from the end for a negative offset with a length", () => {
+            const data = [1, 2, 3, 4, 5, 6, 7, 8];
+            expect(Arr.slice(data, -2, 5)).toEqual([7, 8]);
+            expect(Arr.slice(data, -2, 2)).toEqual([7, 8]);
+        });
+
+        it("returns an empty array for a zero length", () => {
+            // PHP-verified: array_slice(['a'=>1,'b'=>2,'c'=>3], 1, 0, true) -> []
+            expect(Arr.slice([1, 2, 3], 1, 0)).toEqual([]);
         });
     });
 

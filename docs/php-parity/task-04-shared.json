@@ -1,0 +1,38 @@
+[
+    {
+        "label": "slice(-2,5) preserve_keys",
+        "php": "array_slice($a,-2,5,true)",
+        "value": {
+            "g": 7,
+            "h": 8
+        }
+    },
+    {
+        "label": "slice(-2,2) preserve_keys",
+        "php": "array_slice($a,-2,2,true)",
+        "value": {
+            "g": 7,
+            "h": 8
+        }
+    },
+    {
+        "label": "slice(1,0)",
+        "php": "array_slice($a,1,0,true)",
+        "value": []
+    },
+    {
+        "label": "Collection::filter() falsy set",
+        "php": "(new Collection([...]))->filter()",
+        "value": {
+            "g": "x",
+            "h": "00",
+            "i": "0.0"
+        }
+    },
+    {
+        "label": "array_combine mismatch",
+        "php": "array_combine([\"a\",\"b\"],[1])",
+        "threw": "ValueError",
+        "message": "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements"
+    }
+]
