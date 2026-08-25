@@ -454,10 +454,7 @@ export function dataCombine<TKeys, TValues>(
     }
 
     if (isArray(itemsA) && isArray(itemsB)) {
-        return arrCombine<TKeys | TValues>(
-            itemsA as (TKeys | TValues)[],
-            itemsB as (TKeys | TValues)[],
-        );
+        return arrCombine(itemsA as TKeys[], itemsB as TValues[]);
     }
 
     throw new Error(

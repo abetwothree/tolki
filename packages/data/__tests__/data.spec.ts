@@ -224,31 +224,37 @@ describe("Data", () => {
 
     describe("dataCombine", () => {
         it("is object", () => {
+            // Four keys, four values — equal counts (see Task 4 / X19 note
+            // on "is array" below for why this matters now).
             const keys = {
                 1: "name",
                 2: "family",
                 3: () => "callback",
                 4: undefined,
             };
-            const values = { 0: "John", 1: "Doe", 2: 58 };
+            const values = { 0: "John", 1: "Doe", 2: 58, 3: "N/A" };
             const result = Data.dataCombine(keys, values);
 
             expect(result).toEqual({
                 name: "John",
                 family: "Doe",
                 callback: 58,
+                undefined: "N/A",
             });
         });
 
+        // Task 4 (X19): `Arr.combine` used to zip arrays into tuples
+        // (`[[1,4],[2,5],[3,6]]`), diverging in *shape* from the object
+        // branch above, which already produced a keyed map — a unison-rule
+        // violation this test was pinning. `array_combine(keys, values)`
+        // produces a keyed map for both shapes, PHP-verified against the
+        // real `CollectionTest::testCombineWithArray`:
+        // `array_combine([1,2,3],[4,5,6])` -> `[1=>4, 2=>5, 3=>6]`.
         it("is array", () => {
             const baseData = [1, 2, 3];
             const result = Data.dataCombine(baseData, [4, 5, 6]);
 
-            expect(result).toEqual([
-                [1, 4],
-                [2, 5],
-                [3, 6],
-            ]);
+            expect(result).toEqual({ 1: 4, 2: 5, 3: 6 });
         });
 
         it("throws error on mismatched types", () => {
@@ -256,6 +262,21 @@ describe("Data", () => {
             expect(() => Data.dataCombine([1, 2, 3], { a: 1 })).toThrowError();
             // @ts-expect-error Testing runtime error for mismatched types
             expect(() => Data.dataCombine({ a: 1 }, [1, 2, 3])).toThrowError();
+        });
+
+        // PHP raises a ValueError on a key/value count mismatch;
+        // PHP-verified message (docs/php-parity/task-04-shared.json,
+        // "array_combine mismatch"). Asserted for both shapes, per the
+        // unison rule.
+        it("throws when the key and value counts differ — both shapes agree", () => {
+            expect(() => Data.dataCombine(["a", "b"], [1])).toThrow(
+                "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
+            );
+            expect(() =>
+                Data.dataCombine({ x: "a", y: "b" }, { p: 1 }),
+            ).toThrow(
+                "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
+            );
         });
     });
 
@@ -1369,6 +1390,19 @@ describe("Data", () => {
             // Test with default length (null) - not explicitly passed
             expect(Data.dataSlice([1, 2, 3, 4, 5], 2)).toEqual([3, 4, 5]);
         });
+
+        // Task 4 (X15): a negative offset combined with a length beyond the
+        // remaining tail used to return an empty result instead of the last
+        // N items — PHP-verified (docs/php-parity/task-04-shared.json,
+        // "slice(-2,5) preserve_keys"). Asserted for both shapes, per the
+        // unison rule.
+        it("slices from the end for a negative offset with a length — both shapes agree", () => {
+            const arr = [1, 2, 3, 4, 5, 6, 7, 8];
+            const obj = { a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8 };
+
+            expect(Data.dataSlice(arr, -2, 5)).toEqual([7, 8]);
+            expect(Data.dataSlice(obj, -2, 5)).toEqual({ g: 7, h: 8 });
+        });
     });
 
     describe("dataSole", () => {
@@ -1740,6 +1774,26 @@ describe("Data", () => {
             expect(Data.dataFilter([1, 2, 3, 4], (value) => value > 2)).toEqual(
                 [3, 4],
             );
+        });
+
+        // Task 4 (X16): array_filter()'s falsy set is narrower than
+        // Boolean() — PHP-verified (docs/php-parity/task-04-shared.json,
+        // "Collection::filter() falsy set"): it drops "0", "", 0, [],
+        // false, null, but keeps "00" and "0.0". Asserted for both shapes,
+        // per the unison rule.
+        it("drops PHP-falsy values including the string zero — both shapes agree", () => {
+            expect(Data.dataFilter(["0", "", 0, "x"])).toEqual(["x"]);
+            expect(Data.dataFilter({ a: "0", b: "", c: 0, d: "x" })).toEqual({
+                d: "x",
+            });
+        });
+
+        it("keeps strings that merely look like zero — both shapes agree", () => {
+            expect(Data.dataFilter(["00", "0.0", "0"])).toEqual(["00", "0.0"]);
+            expect(Data.dataFilter({ a: "00", b: "0.0", c: "0" })).toEqual({
+                a: "00",
+                b: "0.0",
+            });
         });
     });
 
