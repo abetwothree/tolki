@@ -225,20 +225,23 @@ describe("Data", () => {
     describe("dataCombine", () => {
         it("is object", () => {
             // Four keys, four values — equal counts (see Task 4 / X19 note
-            // on "is array" below for why this matters now).
+            // on "is array" below for why this matters now). Plain
+            // String() coercion, not function-calling (Minor 6 review
+            // fix) — see obj.spec.ts's combine tests for the dedicated
+            // function-key case.
             const keys = {
                 1: "name",
                 2: "family",
-                3: () => "callback",
+                3: "role",
                 4: undefined,
             };
-            const values = { 0: "John", 1: "Doe", 2: 58, 3: "N/A" };
+            const values = { 0: "John", 1: "Doe", 2: "admin", 3: "N/A" };
             const result = Data.dataCombine(keys, values);
 
             expect(result).toEqual({
                 name: "John",
                 family: "Doe",
-                callback: 58,
+                role: "admin",
                 undefined: "N/A",
             });
         });
@@ -1402,6 +1405,22 @@ describe("Data", () => {
 
             expect(Data.dataSlice(arr, -2, 5)).toEqual([7, 8]);
             expect(Data.dataSlice(obj, -2, 5)).toEqual({ g: 7, h: 8 });
+
+            // Review fix (Minor 8): the arr/obj layers also pin
+            // slice(-2,2) — PHP-verified
+            // (docs/php-parity/task-04-shared.json, "slice(-2,2)
+            // preserve_keys") — add it here too, both shapes.
+            expect(Data.dataSlice(arr, -2, 2)).toEqual([7, 8]);
+            expect(Data.dataSlice(obj, -2, 2)).toEqual({ g: 7, h: 8 });
+        });
+
+        // Review fix (Minor 8): the arr/obj layers pin a zero length —
+        // PHP-verified (docs/php-parity/task-04-shared.json, "slice(1,0)"):
+        // array_slice(['a'=>1,'b'=>2,'c'=>3], 1, 0, true) -> []. Both
+        // shapes.
+        it("returns an empty result for a zero length — both shapes agree", () => {
+            expect(Data.dataSlice([1, 2, 3], 1, 0)).toEqual([]);
+            expect(Data.dataSlice({ a: 1, b: 2, c: 3 }, 1, 0)).toEqual({});
         });
     });
 
@@ -1793,6 +1812,16 @@ describe("Data", () => {
             expect(Data.dataFilter({ a: "00", b: "0.0", c: "0" })).toEqual({
                 a: "00",
                 b: "0.0",
+            });
+        });
+
+        // Review fix (Minor 8): the arr/obj layers pin NaN's truthiness —
+        // add it here too, both shapes.
+        it("keeps NaN, which is truthy in PHP — both shapes agree", () => {
+            expect(Data.dataFilter([NaN, 0, 1])).toEqual([NaN, 1]);
+            expect(Data.dataFilter({ a: NaN, b: 0, c: 1 })).toEqual({
+                a: NaN,
+                c: 1,
             });
         });
     });
