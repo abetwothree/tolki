@@ -2119,7 +2119,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Create a collection by using this collection for keys and another for its values.
+     * Create a collection by using this collection's own VALUES as keys
+     * and another's values as values (`array_combine($this->all(),
+     * ...)`, `Collection.php:935`) — not this collection's own keys.
      *
      * @param values - The values to combine with the keys from this collection
      * @returns A new collection with the combined keys and values
@@ -2127,8 +2129,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection([1, 2]).combine([3, 4]); -> new Collection({1: 3, 2: 4})
-     * new Collection({a: 1, b: 2}).combine({c: 3, d: 4}); -> new Collection({a: 3, b: 4})
-     * new Collection([1, 2]).combine({a: 3, b: 4}); -> new Collection({0: 3, 1: 4})
+     * new Collection({a: 1, b: 2}).combine({c: 3, d: 4}); -> new Collection({1: 3, 2: 4})
+     * new Collection([1, 2]).combine({a: 3, b: 4}); -> throws (both sides
+     * must be the same shape — array with array, object with object)
      */
     combine<TCombineValue, TCombineKey extends PropertyKey>(
         values:
