@@ -2008,6 +2008,20 @@ describe("Arr", () => {
                 ]);
             });
         });
+
+        // X9/X11 pair pins — arr already matches Collection.php:1172
+        // (newInstance(array_replace(...))) and getArrayableItems(null) ->
+        // [] (EnumeratesValues.php:1106). obj was fixed to match in this
+        // task; these lock arr's side of the pair so it cannot drift back.
+        it("does not mutate its argument", () => {
+            const data = [1];
+            Arr.replace(data, [2, 3]);
+            expect(data).toEqual([1]);
+        });
+
+        it("treats a null replacer as a no-op", () => {
+            expect(Arr.replace([1], null)).toEqual([1]);
+        });
     });
 
     describe("replaceRecursive - edge cases", () => {
@@ -2076,6 +2090,29 @@ describe("Arr", () => {
             expect(result[2]).toBe("c");
             expect(result[4]).toBe("e");
             expect(result[5]).toBe("z");
+        });
+
+        // X10/X11 pair pins — same rationale as the "replace" pins above.
+        it("does not mutate its argument", () => {
+            const nested = ["a", "b", ["c", "d"]];
+            Arr.replaceRecursive(nested, ["z", { 2: { 1: "e" } }]);
+            expect(nested).toEqual(["a", "b", ["c", "d"]]);
+        });
+
+        it("treats a null replacer as a no-op", () => {
+            expect(Arr.replaceRecursive([1], null)).toEqual([1]);
+        });
+
+        it("does not mutate a nested object embedded in an array", () => {
+            // arr.replaceRecursive delegates nested-object merges to
+            // obj.replaceRecursive (see the objReplaceRecursive import at
+            // the top of this file). Before this task's obj-side fix, that
+            // delegation mutated the nested object in place even though
+            // arr's own top-level array was already a fresh copy — the
+            // array reference changed but the object inside it did not.
+            const nested = [{ x: 1 }];
+            Arr.replaceRecursive(nested, [{ y: 2 }]);
+            expect(nested).toEqual([{ x: 1 }]);
         });
 
         describe("final return", () => {

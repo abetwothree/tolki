@@ -3008,54 +3008,140 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Replace the data items with the given replacer items.
+ * Replace the data items with the given replacer items, like PHP's
+ * `array_replace()` / `Collection::replace()`.
  *
- * @param data - The original object to replace items in.
- * @param replacerData - The object containing items to replace.
- * @returns The modified original object with replaced items.
+ * `Collection.php:1172` ends in `$this->newInstance(array_replace(...))`,
+ * so this builds and returns a new object rather than writing into `data`
+ * — matching this package's mutation contract (see the block comment near
+ * the top of this file: `replace`/`replaceRecursive` are in the "does not
+ * mutate" half of the split, alongside `filter`, `slice`, `combine`, etc.).
+ *
+ * A `null`/`undefined` replacer is a no-op: PHP's `getArrayableItems(null)`
+ * returns `[]` (`EnumeratesValues.php:1106`), pinned by
+ * `CollectionTest.php:1482`, so `data`'s values come back unchanged (in a
+ * new object, still never the original reference).
+ *
+ * Writes go through `defineKey` rather than plain assignment so a
+ * `__proto__` key on `replacerData` becomes a real own key on the result
+ * instead of reparenting it through the `__proto__` setter (see `splice`'s
+ * doc comment and `AGENTS.md`'s prototype-pollution guidance).
+ *
+ * @param data - The original object to replace items in. Never mutated.
+ * @param replacerData - The object containing items to replace. `null`/`undefined` is a no-op.
+ * @returns A new object with the replaced items.
+ *
+ * @example
+ *
+ * replace({ a: 1 }, { b: 2 }); -> { a: 1, b: 2 }
+ * replace({ a: 1, b: 2, c: 3 }, null); -> { a: 1, b: 2, c: 3 }
  */
+export function replace<T1>(
+    data: Record<PropertyKey, T1>,
+    replacerData: null | undefined,
+): Record<PropertyKey, T1>;
 export function replace<T1, T2>(
     data: Record<PropertyKey, T1>,
     replacerData: Record<PropertyKey, T2>,
-) {
-    for (const [key, value] of Object.entries(replacerData)) {
-        data[key as PropertyKey] = value as unknown as T1;
+): Record<PropertyKey, T1 | T2>;
+export function replace<T1, T2>(
+    data: Record<PropertyKey, T1>,
+    replacerData: Record<PropertyKey, T2> | null | undefined,
+): Record<PropertyKey, T1 | T2> {
+    const result: Record<PropertyKey, T1 | T2> = { ...data };
+
+    if (!accessible(replacerData)) {
+        return result;
     }
 
-    return data;
+    for (const [key, value] of Object.entries(replacerData)) {
+        defineKey(result as Record<string, T1 | T2>, key, value as T1 | T2);
+    }
+
+    return result;
 }
 
 /**
- * Recursively replace the data items with the given items.
+ * Recursively replace the data items with the given items, like PHP's
+ * `array_replace_recursive()` / `Collection::replaceRecursive()`.
  *
- * @param data - The original object to replace items in.
- * @param replacerData - The object containing items to replace.
- * @returns The modified original object with replaced items.
+ * `Collection.php:1183` ends in the same `$this->newInstance(...)` pattern
+ * as `replace` above, so this builds and returns a new object at every
+ * level of the recursion rather than writing into `data` or any nested
+ * object — a shallow top-level copy alone would not be enough, since the
+ * old code's mutation happened one recursion level down. Because the
+ * recursive calls are themselves pure, an untouched nested value is simply
+ * carried over by reference (nothing ever writes through it later), which
+ * is the JS-side equivalent of PHP's per-array value-copy semantics.
+ *
+ * A `null`/`undefined` replacer is a no-op, for the same reason as
+ * `replace` above (`EnumeratesValues.php:1106`, `CollectionTest.php:1524`).
+ *
+ * `isUnsafeKey` skips `__proto__`/`constructor`/`prototype` keys on
+ * `replacerData` entirely, rather than writing them via `defineKey` the
+ * way `replace` and `splice` do. This is a deliberate JS-only divergence
+ * with **no PHP counterpart** — PHP arrays have no accessor-key hazard for
+ * `array_replace_recursive` to guard against, so there is nothing in the
+ * framework this choice needs to match. Skipping (rather than writing a
+ * literal `__proto__` own key) keeps the merged shape closer to what a
+ * reader would expect from a "replace" operation: the hazardous key never
+ * appears in the result at all.
+ *
+ * @param data - The original object to replace items in. Never mutated.
+ * @param replacerData - The object containing items to replace. `null`/`undefined` is a no-op.
+ * @returns A new, recursively merged object.
+ *
+ * @example
+ *
+ * replaceRecursive({ a: { x: 1 } }, { a: { y: 2 } }); -> { a: { x: 1, y: 2 } }
+ * replaceRecursive({ a: 1 }, null); -> { a: 1 }
  */
+export function replaceRecursive<T1>(
+    data: Record<PropertyKey, T1>,
+    replacerData: null | undefined,
+): Record<PropertyKey, T1>;
 export function replaceRecursive<T1, T2>(
     data: Record<PropertyKey, T1>,
     replacerData: Record<PropertyKey, T2>,
-) {
+): Record<PropertyKey, T1 | T2>;
+export function replaceRecursive<T1, T2>(
+    data: Record<PropertyKey, T1>,
+    replacerData: Record<PropertyKey, T2> | null | undefined,
+): Record<PropertyKey, T1 | T2> {
+    const result: Record<PropertyKey, T1 | T2> = { ...data };
+
+    if (!accessible(replacerData)) {
+        return result;
+    }
+
     for (const [key, value] of Object.entries(replacerData)) {
         if (isUnsafeKey(key)) {
             continue;
         }
-        if (isObject(value) && isObject(data[key as PropertyKey])) {
-            data[key] = replaceRecursive(
-                data[key as PropertyKey] as Record<PropertyKey, T1>,
-                value as Record<PropertyKey, T2>,
-            ) as T1;
-        } else if (isArray(value) && isArray(data[key as PropertyKey])) {
-            data[key] = arrReplaceRecursive(
-                data[key] as T1[],
-                value as T2[],
-            ) as unknown as T1;
+
+        const existing = data[key as PropertyKey];
+
+        if (isObject(value) && isObject(existing)) {
+            defineKey(
+                result as Record<string, T1 | T2>,
+                key,
+                replaceRecursive(
+                    existing as Record<PropertyKey, T1>,
+                    value as Record<PropertyKey, T2>,
+                ) as T1 | T2,
+            );
+        } else if (isArray(value) && isArray(existing)) {
+            defineKey(
+                result as Record<string, T1 | T2>,
+                key,
+                arrReplaceRecursive(existing as T1[], value as T2[]) as T1 | T2,
+            );
         } else {
-            data[key] = value as unknown as T1;
+            defineKey(result as Record<string, T1 | T2>, key, value as T1 | T2);
         }
     }
 
-    return data;
+    return result;
 }
 
 /**

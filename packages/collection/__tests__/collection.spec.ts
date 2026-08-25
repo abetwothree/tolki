@@ -4513,6 +4513,18 @@ describe("Collection", () => {
                 ).toEqual({ name: "taylor", family: "otwell", age: 26 });
             });
         });
+
+        it("replaces without mutating, either backing", () => {
+            // X9/X10 — Collection.php:1172 ends in newInstance(...), so
+            // neither the array-backed nor the object-backed source
+            // collection's items may change.
+            const fromArray = new Collection([1, 2]);
+            const fromObject = new Collection({ a: 1, b: 2 });
+            fromArray.replace([9]);
+            fromObject.replace({ a: 9 });
+            expect(fromArray.all()).toEqual([1, 2]);
+            expect(fromObject.all()).toEqual({ a: 1, b: 2 });
+        });
     });
 
     describe("replaceRecursive", () => {
@@ -4551,6 +4563,16 @@ describe("Collection", () => {
                         .all(),
                 ).toEqual(["z", "b", ["c", "e"], "f"]);
             });
+        });
+
+        it("replaces without mutating, either backing", () => {
+            // X10 — same rationale as replace's "either backing" test above.
+            const fromArray = new Collection([{ x: 1 }, 2]);
+            const fromObject = new Collection({ a: { x: 1 }, b: 2 });
+            fromArray.replaceRecursive([{ y: 2 }]);
+            fromObject.replaceRecursive({ a: { y: 2 } });
+            expect(fromArray.all()).toEqual([{ x: 1 }, 2]);
+            expect(fromObject.all()).toEqual({ a: { x: 1 }, b: 2 });
         });
     });
 

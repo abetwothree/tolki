@@ -3225,6 +3225,37 @@ describe("Obj", () => {
             const result = Obj.replace(obj, replacements);
             expect(result).toEqual({ a: 1, b: 20, c: 30, d: 40 });
         });
+
+        it("does not mutate its argument", () => {
+            // X9/X10 — PHP is newInstance(array_replace(...)), Collection.php:1172.
+            const data = { a: 1 };
+            Obj.replace(data, { b: 2 });
+            expect(data).toEqual({ a: 1 });
+
+            const nested = { a: { x: 1 } };
+            Obj.replaceRecursive(nested, { a: { y: 2 } });
+            expect(nested).toEqual({ a: { x: 1 } });
+        });
+
+        it("treats a null replacer as a no-op", () => {
+            // X11 — getArrayableItems(null) -> [] (EnumeratesValues.php:1106);
+            // pinned by CollectionTest.php:1482 and :1524.
+            expect(Obj.replace({ a: 1 }, null)).toEqual({ a: 1 });
+            expect(Obj.replaceRecursive({ a: 1 }, null)).toEqual({ a: 1 });
+        });
+
+        it("does not reparent the object via a __proto__ key in the replacer", () => {
+            const obj: Record<string, unknown> = { a: 1 };
+            const replacer = JSON.parse(
+                '{"__proto__":{"polluted":true}}',
+            ) as Record<string, unknown>;
+            const result = Obj.replace(obj, replacer) as Record<
+                string,
+                unknown
+            >;
+            expect(result["polluted"]).toBeUndefined();
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+        });
     });
 
     describe("pad", () => {
@@ -3299,12 +3330,25 @@ describe("Obj", () => {
             });
         });
 
-        it("ignores __proto__ keys in replacer data", () => {
+        it("ignores __proto__ keys in replacer data, leaving the result's own prototype untouched", () => {
+            // isUnsafeKey skip is a deliberate JS-only divergence — PHP has
+            // no accessor-key hazard for array_replace_recursive to guard
+            // against. `{ __proto__: ... }` as a literal would set the
+            // prototype at object-creation time rather than reproducing the
+            // hazard, so this is built via Object.create(null) instead.
             const obj = { a: 1 };
-            const replacer = Object.create(null);
+            const replacer = Object.create(null) as Record<string, unknown>;
             replacer["__proto__"] = { polluted: true };
-            Obj.replaceRecursive(obj, replacer);
-            expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+
+            const result = Obj.replaceRecursive(obj, replacer) as Record<
+                string,
+                unknown
+            >;
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(
+                Object.prototype.hasOwnProperty.call(result, "__proto__"),
+            ).toBe(false);
         });
     });
 

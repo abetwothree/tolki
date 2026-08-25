@@ -1,0 +1,48 @@
+[
+    {
+        "label": "replace does not mutate",
+        "php": "$c->replace([\"b\"=>2])",
+        "value": {
+            "result": {
+                "a": 1,
+                "b": 2
+            },
+            "source": {
+                "a": 1
+            }
+        }
+    },
+    {
+        "label": "replace(null)",
+        "php": "$c->replace(null)",
+        "value": {
+            "a": 1,
+            "b": 2,
+            "c": 3
+        }
+    },
+    {
+        "label": "replaceRecursive nested",
+        "php": "$c->replaceRecursive([\"a\"=>[\"y\"=>2]])",
+        "value": {
+            "result": {
+                "a": {
+                    "x": 1,
+                    "y": 2
+                }
+            },
+            "source": {
+                "a": {
+                    "x": 1
+                }
+            }
+        }
+    },
+    {
+        "label": "replaceRecursive(null)",
+        "php": "$c->replaceRecursive(null)",
+        "value": {
+            "a": 1
+        }
+    }
+]
