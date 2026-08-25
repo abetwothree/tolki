@@ -4517,13 +4517,30 @@ describe("Collection", () => {
         it("replaces without mutating, either backing", () => {
             // X9/X10 — Collection.php:1172 ends in newInstance(...), so
             // neither the array-backed nor the object-backed source
-            // collection's items may change.
+            // collection's items may change. Array-backed values pinned by
+            // docs/php-parity/task-05-replace.json "replace array does not
+            // mutate"; object-backed by "replace does not mutate".
             const fromArray = new Collection([1, 2]);
             const fromObject = new Collection({ a: 1, b: 2 });
             fromArray.replace([9]);
             fromObject.replace({ a: 9 });
             expect(fromArray.all()).toEqual([1, 2]);
             expect(fromObject.all()).toEqual({ a: 1, b: 2 });
+        });
+
+        it("treats a null replacer as a no-op, either backing", () => {
+            // X11 — review round 2, Important 1: getRawItems(null) always
+            // returns [], so an object-backed collection was being asked
+            // to replace against an array and dataReplace's same-type
+            // guard threw. Fixed by passing null straight through to
+            // dataReplace instead of normalizing it first. Pinned by
+            // docs/php-parity/task-05-replace.json "replace array (null)"
+            // and "replace does not mutate" (obj-backed values match the
+            // source since a null replacer changes nothing).
+            const fromArray = new Collection([1, 2, 3]);
+            const fromObject = new Collection({ a: 1, b: 2 });
+            expect(fromArray.replace(null).all()).toEqual([1, 2, 3]);
+            expect(fromObject.replace(null).all()).toEqual({ a: 1, b: 2 });
         });
     });
 
@@ -4566,13 +4583,27 @@ describe("Collection", () => {
         });
 
         it("replaces without mutating, either backing", () => {
-            // X10 — same rationale as replace's "either backing" test above.
+            // X10 — same rationale as replace's "either backing" test
+            // above. Array-backed values pinned by
+            // docs/php-parity/task-05-replace.json "replaceRecursive array
+            // nested"; object-backed by "replaceRecursive nested".
             const fromArray = new Collection([{ x: 1 }, 2]);
             const fromObject = new Collection({ a: { x: 1 }, b: 2 });
             fromArray.replaceRecursive([{ y: 2 }]);
             fromObject.replaceRecursive({ a: { y: 2 } });
             expect(fromArray.all()).toEqual([{ x: 1 }, 2]);
             expect(fromObject.all()).toEqual({ a: { x: 1 }, b: 2 });
+        });
+
+        it("treats a null replacer as a no-op, either backing", () => {
+            // X11 — same rationale as replace's null pin above. Pinned by
+            // docs/php-parity/task-05-replace.json "replaceRecursive array
+            // (null)" and "replaceRecursive nested" (obj-backed values
+            // match the source since a null replacer changes nothing).
+            const fromArray = new Collection([1]);
+            const fromObject = new Collection({ a: 1 });
+            expect(fromArray.replaceRecursive(null).all()).toEqual([1]);
+            expect(fromObject.replaceRecursive(null).all()).toEqual({ a: 1 });
         });
     });
 

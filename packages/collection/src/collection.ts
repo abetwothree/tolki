@@ -2629,6 +2629,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * Replace the collection items with the given items.
+     *
+     * A `null` `items` is a no-op regardless of whether this collection is
+     * array- or object-backed (X11). `getRawItems(null)` always returns
+     * `[]` — correct for `merge`/`diff`-style callers, but wrong here: an
+     * object-backed collection would then be asked to replace against an
+     * array, which `dataReplace`'s same-type guard rejects. So `null` is
+     * passed straight through to `dataReplace` instead of going through
+     * `getRawItems`, letting it dispatch on `this.items`'s own shape.
+     *
      * @param items - The items to replace with
      * @returns A new collection with the replaced items
      *
@@ -2642,12 +2651,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
         return this.newInstance(
-            dataReplace(this.items, this.getRawItems(items)),
+            dataReplace(
+                this.items,
+                isNull(items) || isUndefined(items)
+                    ? items
+                    : this.getRawItems(items),
+            ),
         );
     }
 
     /**
      * Recursively replace the collection items with the given items.
+     *
+     * A `null` `items` is a no-op regardless of backing, for the same
+     * reason as `replace` above.
      *
      * @param items - The items to replace with
      * @returns A new collection with the recursively replaced items
@@ -2662,7 +2679,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
         return this.newInstance(
-            dataReplaceRecursive(this.items, this.getRawItems(items)),
+            dataReplaceRecursive(
+                this.items,
+                isNull(items) || isUndefined(items)
+                    ? items
+                    : this.getRawItems(items),
+            ),
         );
     }
 
