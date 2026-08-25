@@ -201,9 +201,9 @@ describe("arr slicing type tests", () => {
                 // TValue[]` (mutable-only), so a readonly array fell
                 // through to the `unknown` fallback overload and the
                 // result resolved to `unknown[]` instead of `string[]`.
-                expectTypeOf(
-                    Arr.replace(readonlyStrings, null),
-                ).toEqualTypeOf<string[]>();
+                expectTypeOf(Arr.replace(readonlyStrings, null)).toEqualTypeOf<
+                    string[]
+                >();
             });
         });
 
