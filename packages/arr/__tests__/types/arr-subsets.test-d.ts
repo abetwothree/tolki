@@ -174,11 +174,15 @@ describe("arr subsets type tests", () => {
         });
 
         it("passes a readonly array through unchanged, rather than wrapping it as a single value", () => {
-            // Regression: without a `readonly TValue[]` overload above the
-            // scalar `TValue` overload, a readonly array only matched the
-            // scalar case and resolved to `[readonly string[]]` (the whole
-            // array wrapped as one element) instead of `string[]`.
-            expectTypeOf(Arr.wrap(readonlyStrings)).toEqualTypeOf<string[]>();
+            // The readonly overload must sit above the scalar overload (which
+            // would otherwise match any readonly array as a single value to
+            // wrap in a one-tuple) — and it must return `readonly string[]`,
+            // not `string[]`: wrap is the one Arr function that returns its
+            // input array by reference, so a mutable return type would let
+            // callers mutate a readonly array through the alias.
+            expectTypeOf(Arr.wrap(readonlyStrings)).toEqualTypeOf<
+                readonly string[]
+            >();
         });
     });
 

@@ -3982,8 +3982,10 @@ export function wrap(value: null): [];
 export function wrap<TValue>(value: TValue[]): TValue[];
 // Overload: readonly array → passed through unchanged (must sit above the
 // scalar overload below, which would otherwise match any readonly array as
-// a single value to wrap in a one-tuple).
-export function wrap<TValue>(value: readonly TValue[]): TValue[];
+// a single value to wrap in a one-tuple). Returns `readonly TValue[]`
+// because wrap aliases its input array rather than copying it — a mutable
+// return type here would allow writes through to the readonly source.
+export function wrap<TValue>(value: readonly TValue[]): readonly TValue[];
 export function wrap<TValue>(value: TValue): [TValue];
 export function wrap<TValue>(value: TValue | null): TValue[] | [] {
     if (isNull(value)) {
