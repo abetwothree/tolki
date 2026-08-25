@@ -1791,8 +1791,16 @@ export function select<TValue extends Record<string, unknown>>(
 
 /**
  * Resolve a pluck path against a single item, expanding `*` segments into an
- * array of the values found at that level. Mirrors Laravel's `data_get()`
- * wildcard handling used by `Arr::pluck`.
+ * array of the values found at that level. Covers the `data_get()` wildcard
+ * behaviour that Laravel's `Arr::pluck` tests exercise, with two known
+ * divergences on inputs `ArrTest.php` never reaches:
+ *
+ * - a wildcard over a non-iterable yields `[]` (via `getAccessibleValues`)
+ *   where `data_get` bails out with its default (`null`);
+ * - multiple wildcards nest (`[[..], [..]]`) where `data_get` collapses the
+ *   tail one level (`Arr::collapse`).
+ *
+ * Align these before building `data_get`-equivalent helpers on top of it.
  *
  * @param item - The item to resolve the path against.
  * @param segments - The already-split path segments.
