@@ -222,6 +222,32 @@ describe("Arr", () => {
                 "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
             );
         });
+
+        // Review fix (Important 2): defineKey hardening in combine had no
+        // test — reverting to plain `result[key] = value` failed nothing.
+        // A plain array literal already contains "__proto__" as a normal
+        // element (no JSON.parse trick needed on the keys side, unlike an
+        // object's own keys); the risk is entirely on the write side.
+        it("does not reparent the result via a __proto__ key", () => {
+            const result = Arr.combine(
+                ["a", "__proto__", "c"],
+                [1, { polluted: true }, 3],
+            );
+            expect((result as { polluted?: boolean }).polluted).toBeUndefined();
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+        });
+
+        // Review fix (Minor 6): obj.combine used to resolve function keys
+        // by *calling* them; arr.combine always used plain String(). Ruled
+        // to make both agree on plain String() (neither matches PHP, which
+        // has no function-typed array keys) — pinning the agreed
+        // behaviour here.
+        it("stringifies a function key instead of calling it", () => {
+            const fn = () => "callback";
+            const result = Arr.combine([fn], [1]);
+            expect(result).toEqual({ [String(fn)]: 1 });
+            expect(Object.keys(result)).not.toContain("callback");
+        });
     });
 
     describe("crossJoin", () => {
@@ -1880,6 +1906,19 @@ describe("Arr", () => {
         it("keeps NaN, which is truthy in PHP", () => {
             expect(Arr.filter([NaN, 0, 1])).toEqual([NaN, 1]);
         });
+
+        // Review fix (Minor 4): the full 9-value probe set, pinned once —
+        // PHP-verified (docs/php-parity/task-04-shared.json,
+        // "Collection::filter() falsy set"):
+        // (new Collection(['a'=>'0','b'=>'','c'=>0,'d'=>[],'e'=>false,
+        // 'f'=>null,'g'=>'x','h'=>'00','i'=>'0.0']))->filter()->all()
+        // -> {g:'x', h:'00', i:'0.0'}. Array-shaped here (positional,
+        // same value order).
+        it("matches the full probed falsy set", () => {
+            expect(
+                Arr.filter(["0", "", 0, [], false, null, "x", "00", "0.0"]),
+            ).toEqual(["x", "00", "0.0"]);
+        });
     });
 
     describe("reject", () => {
@@ -3297,6 +3336,20 @@ describe("Arr", () => {
         it("returns an empty array for a zero length", () => {
             // PHP-verified: array_slice(['a'=>1,'b'=>2,'c'=>3], 1, 0, true) -> []
             expect(Arr.slice([1, 2, 3], 1, 0)).toEqual([]);
+        });
+
+        // Review fix (Important 3): no test exercised an offset more
+        // negative than the container, so dropping the
+        // `Math.max(len + offset, 0)` clamp would have silently regressed
+        // to `[]` without failing anything. PHP-verified:
+        // array_slice([1,2,3], -10, 2, true) -> [1,2] (clamps to 0);
+        // array_slice([1,2,3], 10, 2, true) -> [] (offset beyond length).
+        it("clamps an offset more negative than the container to the start", () => {
+            expect(Arr.slice([1, 2, 3], -10, 2)).toEqual([1, 2]);
+        });
+
+        it("returns an empty array for an offset larger than the container", () => {
+            expect(Arr.slice([1, 2, 3], 10, 2)).toEqual([]);
         });
     });
 

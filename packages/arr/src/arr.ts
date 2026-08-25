@@ -46,6 +46,7 @@ import {
     isNumber,
     isObject,
     isPhpArrayKey,
+    isPhpFalsy,
     isString,
     isStringable,
     isSymbol,
@@ -3971,47 +3972,6 @@ export function contains<TValue>(
 
     // Use PHP-like loose comparison
     return data.some((item) => looseEqual(item, value));
-}
-
-/**
- * Determine whether a value is falsy the way PHP's `array_filter()` (no
- * callback) treats it (`Collection.php:430`).
- *
- * `@tolki/utils`'s `isFalsy` cannot be reused here — PHP-verified
- * (`docs/php-parity/task-04-shared.json`, "Collection::filter() falsy
- * set"): `array_filter` drops exactly `"0"`, `""`, `0`, `[]`, `false`,
- * `null`, but keeps `"00"` and `"0.0"`, and `NAN` is truthy. `isFalsy`
- * gets both of those wrong today — it treats `NaN` as falsy (via an
- * unconditional `Number.isNaN` check) and does NOT treat the exact string
- * `"0"` as falsy (its string branch is `value.trim() === ""`, which is
- * false for `"0"` and, separately, wrongly true for whitespace-only
- * strings PHP treats as truthy). Fixing `isFalsy` itself would ripple to
- * every other caller in `@tolki/utils`, so `filter` keeps this narrowly
- * scoped check local instead of widening the shared helper.
- */
-function isPhpFalsy(value: unknown): boolean {
-    if (
-        value === false ||
-        value === null ||
-        isUndefined(value) ||
-        value === 0 ||
-        value === "" ||
-        value === "0"
-    ) {
-        return true;
-    }
-
-    // Empty arrays are falsy in PHP
-    if (isArray(value)) {
-        return value.length === 0;
-    }
-
-    // Empty objects are falsy in PHP
-    if (isObject(value)) {
-        return Object.keys(value).length === 0;
-    }
-
-    return false;
 }
 
 /**
