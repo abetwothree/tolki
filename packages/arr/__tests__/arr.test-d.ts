@@ -3861,21 +3861,16 @@ describe("arr type tests", () => {
         });
 
         describe("readonly and const arrays", () => {
-            it("accepts readonly input arrays", () => {
+            it("rejects readonly input arrays — unshift mutates, so the source must be mutable", () => {
                 const data: readonly number[] = [1, 2, 3];
-                const result = Arr.unshift(data, 0);
-                expectTypeOf(result).toEqualTypeOf<number[]>();
+                // @ts-expect-error -- readonly arrays cannot be mutated by unshift
+                Arr.unshift(data, 0);
             });
 
-            it("accepts as const input arrays", () => {
+            it("rejects as const input arrays for the same reason", () => {
                 const data = [1, 2, 3] as const;
-                const result = Arr.unshift(data, 0);
-                expectTypeOf(result).toEqualTypeOf<(1 | 2 | 3 | number)[]>();
-            });
-
-            it("preserves const literal item types", () => {
-                const result = Arr.unshift([1, 2] as const, "hello" as const);
-                expectTypeOf(result).toEqualTypeOf<(1 | 2 | "hello")[]>();
+                // @ts-expect-error -- const tuples are readonly and cannot be mutated by unshift
+                Arr.unshift(data, 0);
             });
         });
 

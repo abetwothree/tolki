@@ -210,10 +210,8 @@ describe("arr mutations type tests", () => {
             } | null>();
         });
 
-        it("accepts a readonly array", () => {
-            expectTypeOf(Arr.pop(readonlyNumbers)).toEqualTypeOf<
-                number | null
-            >();
+        it("collapses to unknown for a readonly array — pop mutates, so a readonly source no longer matches the mutable overloads and falls through to the untyped fallback", () => {
+            expectTypeOf(Arr.pop(readonlyNumbers)).toEqualTypeOf<unknown>();
         });
 
         it("collapses to unknown for unknown data", () => {
@@ -244,10 +242,8 @@ describe("arr mutations type tests", () => {
             } | null>();
         });
 
-        it("accepts a readonly array", () => {
-            expectTypeOf(Arr.shift(readonlyStrings)).toEqualTypeOf<
-                string | null
-            >();
+        it("collapses to unknown for a readonly array — shift mutates, so a readonly source no longer matches the mutable overloads and falls through to the untyped fallback", () => {
+            expectTypeOf(Arr.shift(readonlyStrings)).toEqualTypeOf<unknown>();
         });
     });
 });

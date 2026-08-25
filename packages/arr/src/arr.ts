@@ -56,6 +56,21 @@ import {
 } from "@tolki/utils";
 
 /**
+ * Mutation contract (decided 2026-08-25, Phase 1 Task 1)
+ *
+ * Laravel's Collection splits cleanly: a method either ends in
+ * array_pop/array_shift/array_splice/array_unshift on $this->items and
+ * MUTATES, or ends in $this->newInstance(...) and does NOT.
+ *
+ * This package follows that split exactly. pop, shift, splice and unshift
+ * mutate their first argument. replace, replaceRecursive, filter, slice,
+ * chunk, reverse, union, combine, diff* and intersect* do not.
+ *
+ * @tolki/arr and @tolki/obj agree on this. Do not "align" one to the other
+ * without re-reading Collection.php.
+ */
+
+/**
  * Determine whether the given value is array accessible.
  *
  * @example
@@ -506,54 +521,47 @@ export function union(...arrays: (readonly unknown[])[]): unknown[] {
 }
 
 /**
- * Prepend one or more items to the beginning of the array.
+ * Prepend one or more items to the beginning of the array, mutating it in
+ * place, like PHP's array_unshift.
  * Undefined items are skipped.
  *
- * @param data - The array to prepend items to.
+ * @param data - The array to prepend items to. Mutated in place.
  * @param items - The items to prepend.
- * @returns A new array with the items prepended.
+ * @returns The same array reference, mutated.
  */
-export function unshift<TValue>(data: readonly TValue[]): TValue[];
-export function unshift<TValue, A>(
-    data: readonly TValue[],
-    a: A,
-): (TValue | A)[];
+export function unshift<TValue>(data: TValue[]): TValue[];
+export function unshift<TValue, A>(data: TValue[], a: A): (TValue | A)[];
 export function unshift<TValue, A, B>(
-    data: readonly TValue[],
+    data: TValue[],
     a: A,
     b: B,
 ): (TValue | A | B)[];
 export function unshift<TValue, A, B, C>(
-    data: readonly TValue[],
+    data: TValue[],
     a: A,
     b: B,
     c: C,
 ): (TValue | A | B | C)[];
 export function unshift<TValue, A, B, C, D>(
-    data: readonly TValue[],
+    data: TValue[],
     a: A,
     b: B,
     c: C,
     d: D,
 ): (TValue | A | B | C | D)[];
+export function unshift<TValue>(data: TValue[], ...items: unknown[]): unknown[];
 export function unshift<TValue>(
-    data: readonly TValue[],
-    ...items: unknown[]
-): unknown[];
-export function unshift<TValue>(
-    data: readonly TValue[],
+    data: TValue[],
     ...items: unknown[]
 ): unknown[] {
-    const result: unknown[] = [...data];
-
     for (let i = items.length - 1; i >= 0; i--) {
         const item = items[i];
         if (!isUndefined(item)) {
-            result.unshift(item);
+            data.unshift(item as TValue);
         }
     }
 
-    return result;
+    return data;
 }
 
 /**
@@ -1987,30 +1995,43 @@ export function pluck<TValue extends Record<string, unknown>>(
 }
 
 /**
- * Get and remove the last N items from the collection.
+ * Get and remove the last N items from the array, mutating it in place,
+ * like PHP's array_pop.
  *
- * @param data - The array to pop items from.
+ * @param data - The array to pop items from. Mutated in place.
  * @param count - The number of items to pop. Defaults to 1.
- * @returns The popped item, items, or null if none found
+ * @returns The popped item when count is 1, an array of popped items
+ * (reverse order) otherwise, or null if the array had nothing to pop.
  */
-export function pop<TValue>(data: ArrayItems<TValue>): TValue | null;
-export function pop<TValue>(data: ArrayItems<TValue>, count: number): TValue[];
+export function pop<TValue>(data: TValue[]): TValue | null;
+export function pop<TValue>(data: TValue[], count: number): TValue[];
 export function pop<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: TValue[] | unknown,
     count?: number,
 ): TValue | TValue[] | null;
 export function pop<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: TValue[] | unknown,
     count: number = 1,
 ): TValue | TValue[] | null {
     if (!accessible(data)) {
-        return null;
+        return count === 1 ? null : [];
     }
 
-    const values = (data as ArrayItems<TValue>).slice();
-    const poppedValues: TValue[] = [];
+    const values = data as TValue[];
 
-    for (let i = 0; i < count; i++) {
+    if (values.length === 0) {
+        return count === 1 ? null : [];
+    }
+
+    if (count === 1) {
+        const value = values.pop();
+        return isUndefined(value) ? null : (value as TValue);
+    }
+
+    const poppedValues: TValue[] = [];
+    const actualCount = Math.min(count, values.length);
+
+    for (let i = 0; i < actualCount; i++) {
         const value = values.pop();
 
         if (!isUndefined(value)) {
@@ -2018,11 +2039,7 @@ export function pop<TValue>(
         }
     }
 
-    return poppedValues.length === 0
-        ? null
-        : poppedValues.length === 1
-          ? (poppedValues[0] as TValue)
-          : poppedValues;
+    return poppedValues;
 }
 
 /**
@@ -2500,33 +2517,55 @@ export function random<TValue>(
 }
 
 /**
- * Get and remove the first N items from the array
+ * Get and remove the first N items from the array, mutating it in place,
+ * like PHP's array_shift.
  *
- * @param data - The array to shift items from.
+ * Guard order matters and is PHP-verified against Collection::shift():
+ * negative count throws, an empty array returns null for any count, a
+ * count of zero returns an empty array, then items are shifted off.
+ *
+ * @param data - The array to shift items from. Mutated in place.
  * @param count - The number of items to shift. Defaults to 1.
- * @returns The shifted item(s) or null/empty array if none.
+ * @returns The shifted item(s), or null if the array had nothing to shift.
+ * @throws Error if count is negative.
  */
-export function shift<TValue>(data: ArrayItems<TValue>): TValue | null;
+export function shift<TValue>(data: TValue[]): TValue | null;
+export function shift<TValue>(data: TValue[], count: number): TValue[];
 export function shift<TValue>(
-    data: ArrayItems<TValue>,
-    count: number,
-): TValue[];
-export function shift<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: TValue[] | unknown,
     count?: number,
 ): TValue | TValue[] | null;
 export function shift<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: TValue[] | unknown,
     count: number = 1,
 ): TValue | TValue[] | null {
-    if (!accessible(data)) {
-        return count === 1 ? null : ([] as TValue[]);
+    if (count < 0) {
+        throw new Error("Number of shifted items may not be less than zero.");
     }
 
-    const values = (data as ArrayItems<TValue>).slice();
-    const shiftedValues: TValue[] = [];
+    if (!accessible(data)) {
+        return count === 1 ? null : [];
+    }
 
-    for (let i = 0; i < count; i++) {
+    const values = data as TValue[];
+
+    if (values.length === 0) {
+        return null;
+    }
+
+    if (count === 0) {
+        return [];
+    }
+
+    if (count === 1) {
+        const value = values.shift();
+        return isUndefined(value) ? null : (value as TValue);
+    }
+
+    const shiftedValues: TValue[] = [];
+    const actualCount = Math.min(count, values.length);
+
+    for (let i = 0; i < actualCount; i++) {
         const value = values.shift();
 
         if (!isUndefined(value)) {
@@ -2534,13 +2573,7 @@ export function shift<TValue>(
         }
     }
 
-    return shiftedValues.length === 0
-        ? count === 1
-            ? null
-            : ([] as TValue[])
-        : shiftedValues.length === 1 && count === 1
-          ? (shiftedValues[0] as TValue)
-          : shiftedValues;
+    return shiftedValues;
 }
 
 /**

@@ -1611,6 +1611,12 @@ describe("Arr", () => {
     });
 
     describe("unshift", () => {
+        it("prepends onto the source, like array_unshift", () => {
+            const data = [2];
+            Arr.unshift(data, 1);
+            expect(data).toEqual([1, 2]);
+        });
+
         it("unshift", () => {
             const expected = [
                 "Jonny from Laroe",
@@ -2700,19 +2706,51 @@ describe("Arr", () => {
     });
 
     describe("pop", () => {
+        it("removes the last item from the source, like array_pop", () => {
+            const data = [1, 2, 3];
+            expect(Arr.pop(data)).toBe(3);
+            expect(data).toEqual([1, 2]);
+        });
+
         it("pop", () => {
             const data = [undefined, "foo", "bar"];
 
             expect(Arr.pop(data)).toBe("bar");
+            expect(data).toEqual([undefined, "foo"]);
 
             expect(Arr.pop(null)).toBeNull();
             expect(Arr.pop(undefined)).toBeNull();
+            expect(Arr.pop(null, 3)).toEqual([]);
+        });
+
+        it("returns null for a single pop whose last element is an undefined hole", () => {
+            const data = [1, undefined];
+            expect(Arr.pop(data)).toBeNull();
+            expect(data).toEqual([1]);
+        });
+
+        it("pops multiple items in reverse order, mutating the source", () => {
+            const data = [1, 2, 3];
+            expect(Arr.pop(data, 2)).toEqual([3, 2]);
+            expect(data).toEqual([1]);
+        });
+
+        it("skips an undefined hole encountered mid multi-item pop", () => {
+            const data = [1, undefined, 2];
+            expect(Arr.pop(data, 2)).toEqual([2]);
+            expect(data).toEqual([1]);
         });
 
         it("should return null when popping from empty array", () => {
-            // Tests poppedValues.length === 0 returns null
             expect(Arr.pop([])).toBe(null);
-            expect(Arr.pop([], 5)).toBe(null);
+        });
+
+        it("returns an empty array when popping more than one item from an empty array", () => {
+            // Collection::pop($count) returns newInstance() (empty) once
+            // isEmpty() is true and count !== 1 — not null. Matches
+            // Arr.pop([], 5) against the captured Collection::pop ground
+            // truth: an empty source with a multi-item count pops nothing.
+            expect(Arr.pop([], 5)).toEqual([]);
         });
     });
 
@@ -3285,14 +3323,23 @@ describe("Arr", () => {
     });
 
     describe("shift", () => {
+        it("removes the first item from the source, like array_shift", () => {
+            const data = [1, 2, 3];
+            expect(Arr.shift(data)).toBe(1);
+            expect(data).toEqual([2, 3]);
+        });
+
         it("shift", () => {
             const data = ["Taylor", "Otwell"];
 
             expect(Arr.shift(data)).toBe("Taylor");
+            expect(data).toEqual(["Otwell"]);
 
+            // A leading `undefined` hole is treated as "nothing shifted",
+            // not as a real value — it is still removed from the source.
             data.unshift(undefined!);
             expect(Arr.shift(data)).toBeNull();
-            expect(Arr.shift(data, 2)).toEqual(["Taylor"]);
+            expect(data).toEqual(["Otwell"]);
 
             expect(Arr.shift({}, 2)).toEqual([]);
 
@@ -3300,13 +3347,31 @@ describe("Arr", () => {
             expect(Arr.shift(undefined)).toBeNull();
         });
 
-        it("should return empty array when shifting multiple from empty array", () => {
-            // Tests empty result with count > 1
-            expect(Arr.shift([], 3)).toEqual([]);
+        it("shifts multiple items in order, mutating the source", () => {
+            const data = [1, 2, 3, 4];
+            expect(Arr.shift(data, 2)).toEqual([1, 2]);
+            expect(data).toEqual([3, 4]);
         });
 
-        it("should return null when shifting single from empty array", () => {
-            expect(Arr.shift([], 1)).toBe(null);
+        it("skips an undefined hole encountered mid multi-item shift", () => {
+            const data = [undefined, 1, 2];
+            expect(Arr.shift(data, 2)).toEqual([1]);
+            expect(data).toEqual([2]);
+        });
+
+        it("throws when the shift count is negative", () => {
+            expect(() => Arr.shift([1], -1)).toThrow(
+                "Number of shifted items may not be less than zero.",
+            );
+        });
+
+        it("returns null when shifting an empty array, for any count", () => {
+            expect(Arr.shift([], 3)).toBeNull();
+            expect(Arr.shift([])).toBeNull();
+        });
+
+        it("returns an empty array when the requested count is zero", () => {
+            expect(Arr.shift([1, 2, 3], 0)).toEqual([]);
         });
     });
 
