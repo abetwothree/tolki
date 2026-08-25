@@ -2432,6 +2432,10 @@ export function dataContains<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get the differences between data collections.
  *
+ * A `null`/`undefined` `other` is treated as empty (X14), so every item of
+ * `data` is kept unchanged, regardless of whether `data` is array- or
+ * object-backed.
+ *
  * @param data - The source data
  * @param other - The data to compare against
  * @returns Data with differences, preserving structure
@@ -2440,19 +2444,32 @@ export function dataContains<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * Data.diff([1, 2, 3, 4], [2, 4]); -> [1, 3]
  * Data.diff({a: 1, b: 2, c: 3}, {b: 2, d: 4}); -> {a: 1, c: 3}
+ * Data.diff({a: 1}, null); -> {a: 1}
  */
-export function dataDiff<TValue, TKey extends PropertyKey = PropertyKey>(
+export function dataDiff<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TOtherKey extends PropertyKey = PropertyKey,
+>(
     data: DataItems<TValue, TKey>,
-    other: DataItems<TValue, TKey>,
+    other: DataItems<TValue, TOtherKey> | null | undefined,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objDiff(
             data as Record<TKey, TValue>,
-            other as Record<TKey, TValue>,
+            other as Record<TOtherKey, TValue>,
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrDiff(arrWrap(data), arrWrap(other)) as DataItems<TValue>;
+    // `arrWrap(undefined)` returns `[undefined]` (it hits `wrap`'s scalar
+    // overload, not its `null`-only one), so `undefined` is normalized to
+    // `[]` explicitly here rather than passed through `arrWrap` — otherwise
+    // a `null`/`undefined` `other` would diff differently depending on
+    // which one was passed, breaking the X14 "null other is empty" rule.
+    const otherArray =
+        isNull(other) || isUndefined(other) ? [] : arrWrap(other);
+
+    return arrDiff(arrWrap(data), otherArray) as DataItems<TValue>;
 }
 
 /**
@@ -2590,6 +2607,12 @@ export function dataPop<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Intersect the data with the given items.
  *
+ * A `null`/`undefined` `other` is treated as empty (X14) rather than
+ * throwing the same-type error below, matching how PHP's
+ * `EnumeratesValues::getArrayableItems()` turns `null` into `[]` for every
+ * `Collection::intersect*` method — so the result is empty regardless of
+ * `data`'s own backing.
+ *
  * @param data - The original data
  * @param items - The items to intersect with
  * @param callable - Optional comparison function
@@ -2601,19 +2624,25 @@ export function dataIntersect<
     TOtherKey extends PropertyKey = PropertyKey,
 >(
     data: DataItems<TValue, TKey>,
-    other: DataItems<TValue, TOtherKey>,
+    other: DataItems<TValue, TOtherKey> | null | undefined,
     callable: ((a: TValue, b: TValue) => boolean) | null = null,
 ): DataItems<TValue, TKey> {
-    if (isObject(data) && isObject(other)) {
+    const otherIsNullish = isNull(other) || isUndefined(other);
+
+    if (isObject(data) && (otherIsNullish || isObject(other))) {
         return objIntersect(
             data as Record<string, TValue>,
-            other as Record<string, TValue>,
+            other as Record<string, TValue> | null | undefined,
             callable,
         ) as DataItems<TValue, TKey>;
     }
 
-    if (isArray(data) && isArray(other)) {
-        return arrIntersect(data, other, callable) as DataItems<TValue>;
+    if (isArray(data) && (otherIsNullish || isArray(other))) {
+        return arrIntersect(
+            data,
+            other as TValue[] | null | undefined,
+            callable,
+        ) as DataItems<TValue>;
     }
 
     throw new Error(
@@ -2624,6 +2653,9 @@ export function dataIntersect<
 /**
  * Intersect the data with the given items with additional key check.
  * Returns items where both the key AND value match.
+ *
+ * A `null`/`undefined` `other` is treated as empty (X14) rather than
+ * throwing the same-type error below.
  *
  * @param data - The original data
  * @param items - The items to intersect with
@@ -2637,16 +2669,21 @@ export function dataIntersect<
 export function dataIntersectAssoc<
     TValue,
     TKey extends PropertyKey = PropertyKey,
->(data: DataItems<TValue, TKey>, other: DataItems<TValue, TKey>) {
-    if (isObject(data) && isObject(other)) {
+>(data: DataItems<TValue, TKey>, other: DataItems<TValue, TKey> | null | undefined) {
+    const otherIsNullish = isNull(other) || isUndefined(other);
+
+    if (isObject(data) && (otherIsNullish || isObject(other))) {
         return objIntersectAssoc(
             data as Record<string, TValue>,
-            other as Record<string, TValue>,
+            other as Record<string, TValue> | null | undefined,
         ) as DataItems<TValue, TKey>;
     }
 
-    if (isArray(data) && isArray(other)) {
-        return arrIntersectAssoc(data, other) as DataItems<TValue>;
+    if (isArray(data) && (otherIsNullish || isArray(other))) {
+        return arrIntersectAssoc(
+            data,
+            other as TValue[] | null | undefined,
+        ) as DataItems<TValue>;
     }
 
     throw new Error(
@@ -2673,21 +2710,23 @@ export function dataIntersectAssocUsing<
     TKey extends PropertyKey = PropertyKey,
 >(
     data: DataItems<TValue, TKey>,
-    other: DataItems<TValue, TKey>,
+    other: DataItems<TValue, TKey> | null | undefined,
     callback: (keyA: TKey, keyB: TKey) => boolean,
 ) {
-    if (isObject(data) && isObject(other)) {
+    const otherIsNullish = isNull(other) || isUndefined(other);
+
+    if (isObject(data) && (otherIsNullish || isObject(other))) {
         return objIntersectAssocUsing(
             data as Record<string, TValue>,
-            other as Record<string, TValue>,
+            other as Record<string, TValue> | null | undefined,
             callback as (keyA: PropertyKey, keyB: PropertyKey) => boolean,
         ) as DataItems<TValue, TKey>;
     }
 
-    if (isArray(data) && isArray(other)) {
+    if (isArray(data) && (otherIsNullish || isArray(other))) {
         return arrIntersectAssocUsing(
             data,
-            other,
+            other as TValue[] | null | undefined,
             callback as (keyA: number, keyB: number) => boolean,
         ) as DataItems<TValue>;
     }
@@ -2708,16 +2747,24 @@ export function dataIntersectByKeys<
     TValue,
     TKey extends PropertyKey = PropertyKey,
     TOtherKey extends PropertyKey = PropertyKey,
->(data: DataItems<TValue, TKey>, other: DataItems<TValue, TOtherKey>) {
-    if (isObject(data) && isObject(other)) {
+>(
+    data: DataItems<TValue, TKey>,
+    other: DataItems<TValue, TOtherKey> | null | undefined,
+) {
+    const otherIsNullish = isNull(other) || isUndefined(other);
+
+    if (isObject(data) && (otherIsNullish || isObject(other))) {
         return objIntersectByKeys(
             data as Record<string, TValue>,
-            other as Record<string, TValue>,
+            other as Record<string, TValue> | null | undefined,
         ) as DataItems<TValue, TKey>;
     }
 
-    if (isArray(data) && isArray(other)) {
-        return arrIntersectByKeys(data, other) as DataItems<TValue>;
+    if (isArray(data) && (otherIsNullish || isArray(other))) {
+        return arrIntersectByKeys(
+            data,
+            other as TValue[] | null | undefined,
+        ) as DataItems<TValue>;
     }
 
     throw new Error(

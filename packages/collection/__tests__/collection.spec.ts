@@ -854,6 +854,18 @@ describe("Collection", () => {
             expect(e.diff(null).all()).toEqual({ id: 1, first_word: "Hello" });
         });
 
+        it("diffs on values only, ignoring which key held the value on other", () => {
+            // X13 — pinned so `diff` can't silently regress into
+            // `array_diff_assoc` (`diffAssoc`'s semantics). Neither key on
+            // the left ("id", "first_word") exists on the right, so an
+            // assoc-style diff would keep both; a value-only diff drops
+            // "first_word" because "Hello" appears among other's values.
+            // Captured via docs/php-parity/task-06-setops.json
+            // ("diff — values only").
+            const c = collect({ id: 1, first_word: "Hello" });
+            expect(c.diff({ x: "Hello" }).all()).toEqual({ id: 1 });
+        });
+
         it("returns items not in given array collection", () => {
             const collection = collect([1, 2, 3, 4]);
             const diff = collection.diff([2, 4]);
@@ -933,6 +945,22 @@ describe("Collection", () => {
                 c: "blue",
                 0: "red",
             });
+        });
+
+        it("returns a reindexed list for an array-backed collection", () => {
+            // `diffAssoc` reimplemented itself inline for Task 6 (see the
+            // source doc comment) rather than delegating to the now
+            // value-only `dataDiff`, mirroring `diffKeys`'s existing
+            // array-backed reindexing above. Real Laravel actually
+            // PRESERVES the original index here — captured via
+            // docs/php-parity/task-06-setops.json ("diffAssoc on
+            // array-backed collection"): `(new Collection([1,2,3]))
+            // ->diffAssoc([1,9,3])->all()` returns `{"1": 2}`, not `[2]`.
+            // This test pins the existing (pre-Task-6, out-of-scope)
+            // reindexing convention shared by every array-backed
+            // diff*/intersect* method in this package — see the X11 note
+            // on `Collection.replace`'s doc comment — not true parity.
+            expect(collect([1, 2, 3]).diffAssoc([1, 9, 3]).all()).toEqual([2]);
         });
     });
 
@@ -2277,12 +2305,20 @@ describe("Collection", () => {
             });
 
             it("test intersect collection", () => {
+                // Uses `first_world` (not `first_word`) on the other side —
+                // matching Laravel's actual CollectionTest.php:1767. The
+                // previous version of this test used `first_word` on both
+                // sides, which happens to produce the same result whether
+                // `intersect` matches on value only or on key-and-value, so
+                // it didn't actually pin X12. Captured via
+                // docs/php-parity/task-06-setops.json ("intersect — values
+                // only, left keys").
                 const c = collect({ id: 1, first_word: "Hello" });
                 expect(
                     c
                         .intersect(
                             collect({
-                                first_word: "Hello",
+                                first_world: "Hello",
                                 last_word: "World",
                             }),
                         )

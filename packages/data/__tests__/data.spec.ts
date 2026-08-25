@@ -2075,6 +2075,33 @@ describe("Data", () => {
         it("is array", () => {
             expect(Data.dataDiff([1, 2, 3], [2, 3, 4])).toEqual([1]);
         });
+
+        it("diffs on values only regardless of backing (X13, both backings)", () => {
+            // Captured via docs/php-parity/task-06-setops.json
+            // ("diff — values only"): neither "id" nor "first_word" exists
+            // as a key on `other`, so an assoc-style diff would keep both.
+            // Value-only diff drops "first_word" because "Hello" appears
+            // among other's values — and the array-backed equivalent
+            // (index 1's value 20 appears in other's values) drops the same
+            // way, showing both backings agree on the value-only rule.
+            expect(
+                Data.dataDiff({ id: 1, first_word: "Hello" }, { x: "Hello" }),
+            ).toEqual({ id: 1 });
+            expect(Data.dataDiff([1, 20], [99, 20])).toEqual([1]);
+        });
+
+        it("treats a null other as an unchanged copy rather than throwing", () => {
+            // X14
+            expect(Data.dataDiff({ id: 1 }, null)).toEqual({ id: 1 });
+        });
+
+        it("treats a null/undefined other as empty for array-backed data too", () => {
+            // X14 — exercises the array branch's explicit nullish check
+            // (arrWrap(undefined) would otherwise wrap it to [undefined]
+            // instead of [], see the source doc comment).
+            expect(Data.dataDiff([1, 2], null)).toEqual([1, 2]);
+            expect(Data.dataDiff([1, 2], undefined)).toEqual([1, 2]);
+        });
     });
 
     describe("dataPluck", () => {
@@ -2149,6 +2176,27 @@ describe("Data", () => {
                 Data.dataIntersect({ a: 1, b: 2 }, [2]);
             }).toThrowError();
         });
+
+        it("intersects on values only regardless of backing (X12, both backings)", () => {
+            // Captured via docs/php-parity/task-06-setops.json
+            // ("intersect — values only, left keys"): the keys differ
+            // ("first_word" vs "first_world") and the value still matches,
+            // keeping the left key. The array-backed equivalent (value 20
+            // at a different index on each side) shows the same rule.
+            expect(
+                Data.dataIntersect(
+                    { id: 1, first_word: "Hello" },
+                    { first_world: "Hello", last_word: "World" },
+                ),
+            ).toEqual({ first_word: "Hello" });
+            expect(Data.dataIntersect([1, 20], [99, 20])).toEqual([20]);
+        });
+
+        it("treats a null/undefined other as empty rather than throwing (X14)", () => {
+            expect(Data.dataIntersect({ a: 1 }, null)).toEqual({});
+            expect(Data.dataIntersect([1, 2], null)).toEqual([]);
+            expect(Data.dataIntersect({ a: 1 }, undefined)).toEqual({});
+        });
     });
 
     describe("dataIntersectByKeys", () => {
@@ -2168,6 +2216,11 @@ describe("Data", () => {
             expect(() => {
                 Data.dataIntersectByKeys({ a: 1, b: 2 }, [2, 3]);
             }).toThrowError();
+        });
+
+        it("treats a null other as empty rather than throwing (X14)", () => {
+            expect(Data.dataIntersectByKeys({ name: "M" }, null)).toEqual({});
+            expect(Data.dataIntersectByKeys([1, 2], null)).toEqual([]);
         });
     });
 
@@ -2285,6 +2338,11 @@ describe("Data", () => {
                 "Data to intersect must be of the same type (both array or both object).",
             );
         });
+
+        it("treats a null other as empty rather than throwing (X14)", () => {
+            expect(Data.dataIntersectAssoc({ a: "green" }, null)).toEqual({});
+            expect(Data.dataIntersectAssoc([1, 2], null)).toEqual([]);
+        });
     });
 
     describe("dataIntersectAssocUsing", () => {
@@ -2321,6 +2379,25 @@ describe("Data", () => {
             }).toThrowError(
                 "Data to intersect must be of the same type (both array or both object).",
             );
+        });
+
+        it("treats a null other as empty rather than throwing (X14)", () => {
+            const strcasecmpKeys = (a: unknown, b: unknown) =>
+                String(a).toLowerCase() === String(b).toLowerCase();
+            expect(
+                Data.dataIntersectAssocUsing(
+                    { a: "green" },
+                    null,
+                    strcasecmpKeys,
+                ),
+            ).toEqual({});
+            expect(
+                Data.dataIntersectAssocUsing(
+                    [1, 2],
+                    null,
+                    (a: number, b: number) => a === b,
+                ),
+            ).toEqual([]);
         });
     });
 

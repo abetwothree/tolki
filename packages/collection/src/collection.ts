@@ -648,6 +648,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get the items in the collection whose keys and values are not present in the given items.
      *
+     * This is `array_diff_assoc` (key AND value must both fail to match to
+     * be excluded) and is deliberately implemented inline here rather than
+     * delegating to `dataDiff` — `dataDiff` backs plain `diff()`, which
+     * Task 6 fixed to be `array_diff`'s value-only semantics. Reusing it
+     * here would silently collapse `diffAssoc` back into `diff` (they'd
+     * agree on everything except cases exactly like the ones below).
+     *
      * @param items - The items to diff against
      * @returns A new collection with the difference
      *
@@ -661,9 +668,26 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items: DataItems<unknown, PropertyKey> | Collection<any, any>,
     ) {
-        return this.newInstance(
-            dataDiff<TValue, TKey>(this.items, this.getRawItems(items)),
-        );
+        const otherItems = this.getRawItems(items) as Record<
+            PropertyKey,
+            unknown
+        >;
+        const results = {} as DataItems<TValue, TKey>;
+
+        for (const [key, value] of Object.entries(
+            this.items as Record<TKey, TValue>,
+        )) {
+            if (!(key in otherItems) || otherItems[key] !== value) {
+                (results as Record<TKey, TValue>)[key as TKey] =
+                    value as TValue;
+            }
+        }
+
+        if (isArray(this.items)) {
+            return this.newInstance(Object.values(results) as TValue[]);
+        }
+
+        return this.newInstance(results);
     }
 
     /**

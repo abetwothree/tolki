@@ -1369,6 +1369,31 @@ describe("Obj", () => {
             expect(Obj.diff(obj, null)).toEqual({ a: 1, b: 2 });
             expect(Obj.diff(null, obj)).toEqual({});
         });
+
+        it("diffs on values only, ignoring which key held the value on other", () => {
+            // X13 — the pre-fix implementation matched array_diff_assoc
+            // (key present in other AND same value excludes the item), so it
+            // would have returned { id: 1, first_word: "Hello" } here since
+            // neither key exists on `other`. Captured via
+            // docs/php-parity/task-06-setops.json ("diff — values only").
+            expect(
+                Obj.diff({ id: 1, first_word: "Hello" }, { x: "Hello" }),
+            ).toEqual({ id: 1 });
+        });
+
+        it("is case-sensitive", () => {
+            // Captured via docs/php-parity/task-06-setops.json ("diff is
+            // case-sensitive"). CollectionTest.php:1582.
+            expect(
+                Obj.diff({ 0: "en_GB", 1: "fr", 2: "HR" }, { 0: "en_gb", 1: "hr" }),
+            ).toEqual({ 0: "en_GB", 1: "fr", 2: "HR" });
+        });
+
+        it("treats a null other as empty rather than throwing", () => {
+            // X14 — captured via docs/php-parity/task-06-setops.json
+            // ("diff(null) returns items unchanged").
+            expect(Obj.diff({ id: 1 }, null)).toEqual({ id: 1 });
+        });
     });
 
     describe("intersect", () => {
@@ -1391,6 +1416,28 @@ describe("Obj", () => {
                 b: 2,
             });
         });
+
+        it("compares values only, keeping the left keys", () => {
+            // X12 — pre-fix this returned {}, since the pre-fix
+            // implementation required `key in other` (array_intersect_assoc
+            // semantics). Laravel's own CollectionTest.php:1767 is decisive
+            // here: the keys DIFFER ("first_word" vs "first_world") and PHP
+            // still matches on value alone. Captured via
+            // docs/php-parity/task-06-setops.json ("intersect — values
+            // only, left keys").
+            expect(
+                Obj.intersect(
+                    { id: 1, first_word: "Hello" },
+                    { first_world: "Hello", last_word: "World" },
+                ),
+            ).toEqual({ first_word: "Hello" });
+        });
+
+        it("treats a null other as empty rather than throwing", () => {
+            // X14 — captured via docs/php-parity/task-06-setops.json
+            // ("intersect(null)").
+            expect(Obj.intersect({ id: 1 }, null)).toEqual({});
+        });
     });
 
     describe("intersectByKeys", () => {
@@ -1402,6 +1449,12 @@ describe("Obj", () => {
 
         it("should handle empty objects", () => {
             expect(Obj.intersectByKeys({}, {})).toEqual({});
+        });
+
+        it("treats a null other as empty rather than throwing", () => {
+            // X14 — captured via docs/php-parity/task-06-setops.json
+            // ("intersectByKeys(null)").
+            expect(Obj.intersectByKeys({ name: "M" }, null)).toEqual({});
         });
     });
 
@@ -1420,6 +1473,26 @@ describe("Obj", () => {
 
         it("should handle empty objects", () => {
             expect(Obj.intersectAssoc({}, {})).toEqual({});
+        });
+
+        it("still matches on key AND value together (must not collapse into intersect)", () => {
+            // intersectAssoc must NOT change by this task — pinned so a
+            // future edit can't silently collapse it back into `intersect`'s
+            // value-only semantics. CollectionTest.php:1800. Captured via
+            // docs/php-parity/task-06-setops.json ("intersectAssoc — key AND
+            // value").
+            expect(
+                Obj.intersectAssoc(
+                    { a: "green", b: "brown", c: "blue", 0: "red" },
+                    { a: "green", b: "yellow", 0: "blue", 1: "red" },
+                ),
+            ).toEqual({ a: "green" });
+        });
+
+        it("treats a null other as empty rather than throwing", () => {
+            // X14 — captured via docs/php-parity/task-06-setops.json
+            // ("intersectAssoc(null)").
+            expect(Obj.intersectAssoc({ a: "green" }, null)).toEqual({});
         });
     });
 
@@ -1441,6 +1514,13 @@ describe("Obj", () => {
             const obj2 = { c: 1, d: 2 };
             expect(
                 Obj.intersectAssocUsing(obj1, obj2, (a, b) => a === b),
+            ).toEqual({});
+        });
+
+        it("treats a null other as empty rather than throwing", () => {
+            // X14
+            expect(
+                Obj.intersectAssocUsing({ a: "green" }, null, () => true),
             ).toEqual({});
         });
     });

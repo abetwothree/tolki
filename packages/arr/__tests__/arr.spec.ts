@@ -2378,6 +2378,15 @@ describe("Arr", () => {
             expect(Arr.diff(null, [1, 2])).toEqual([1, 2]);
             expect(Arr.diff(null, null)).toEqual([]);
         });
+
+        it("compares values only — the position holding the value on other is irrelevant", () => {
+            // arr.diff was already correct going into Task 6 (unlike obj's,
+            // which implemented array_diff_assoc). Pinned here so it can't
+            // drift from obj.diff's now-fixed value-only semantics — the
+            // value 20 lives at index 0 on the left and index 1 on `other`,
+            // and still counts as a match.
+            expect(Arr.diff([20, 1], [99, 20])).toEqual([1]);
+        });
     });
 
     describe("intersect", () => {
@@ -2399,6 +2408,15 @@ describe("Arr", () => {
                     (a, b) => a.first_word === b.first_word,
                 ),
             ).toEqual([{ id: 1, first_word: "Hello" }]);
+        });
+
+        it("compares values only — the position holding the value on other is irrelevant", () => {
+            // arr.intersect was already correct going into Task 6 (unlike
+            // obj's, which implemented array_intersect_assoc). Pinned here
+            // so it can't drift from obj.intersect's now-fixed value-only
+            // semantics — the value 20 lives at index 1 on the left and
+            // index 0 on `other`, and still counts as a match.
+            expect(Arr.intersect([1, 20], [20, 99])).toEqual([20]);
         });
     });
 

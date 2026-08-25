@@ -3520,14 +3520,28 @@ export function values<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get the items that are not present in the given object.
  *
+ * Mirrors PHP's `array_diff()` (what Laravel's `Collection::diff()` calls
+ * under the hood): comparison is by VALUE only, and the left operand's keys
+ * are kept regardless of what key (if any) held a matching value on
+ * `other`. This is deliberately NOT `array_diff_assoc` — a key that exists
+ * on `other` with a *different* value does not save the item; only whether
+ * the value itself appears somewhere in `other`'s values matters. See
+ * `diffAssocUsing`/`diffKeysUsing` above for the assoc-style (key-aware)
+ * variants that still exist in this port.
+ *
+ * A non-accessible `other` (e.g. `null`) is treated the same way PHP's
+ * `EnumeratesValues::getArrayableItems()` treats `null` — as an empty
+ * array — so every item of `data` is kept unchanged.
+ *
  * @param data - The original object.
  * @param other - The object to compare against.
- * @returns A new object containing items from data that are not in other.
+ * @returns A new object containing items from data whose value is not present in other.
  *
  * @example
  *
  * diff({ a: 1, b: 2, c: 3 }, { b: 2, d: 4 }); -> { a: 1, c: 3 }
- * diff({ name: 'John', age: 30 }, { age: 30, city: 'NYC' }); -> { name: 'John' }
+ * diff({ id: 1, first_word: 'Hello' }, { x: 'Hello' }); -> { id: 1 } (value-only: 'first_word' drops even though 'x' !== 'first_word')
+ * diff({ id: 1 }, null); -> { id: 1 } (non-accessible other is treated as empty)
  */
 export function diff<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -3542,11 +3556,11 @@ export function diff<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     const obj = data as Record<TKey, TValue>;
-    const otherObj = other as Record<TKey, TValue>;
+    const otherValues = Object.values(other as Record<TKey, TValue>);
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
-        if (!(key in otherObj) || otherObj[key] !== value) {
+        if (!otherValues.includes(value)) {
             result[key] = value;
         }
     }
@@ -3651,34 +3665,82 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Intersect the data object with the given other object
+ * Intersect the data object with the given other object.
+ *
+ * Mirrors PHP's `array_intersect()` (what Laravel's `Collection::intersect()`
+ * calls under the hood): comparison is by VALUE only, and the left
+ * operand's keys are kept for every value that also appears somewhere in
+ * `other`'s values — `key in other` is NOT required. This is deliberately
+ * NOT `array_intersect_assoc`; see `intersectAssoc`/`intersectAssocUsing`
+ * below for the assoc-style (key-aware) variants.
+ *
+ * `callable`, when given, replaces strict equality with a custom value
+ * comparator and is checked against every value of `other` (not just the
+ * one under the same key) — this approximates PHP's `array_uintersect()`.
+ * Laravel exposes this as a separate `intersectUsing()` method on
+ * `Collection`; this port folds it into `intersect`'s optional third
+ * parameter instead of adding a standalone `intersectUsing` at this layer
+ * (the `@tolki/collection` package's `intersectUsing()` forwards here).
+ *
+ * A non-accessible `other` (e.g. `null`) is treated as empty, matching how
+ * PHP's `EnumeratesValues::getArrayableItems()` treats `null`, so the
+ * result is `{}`.
  *
  * @param data - The original object
  * @param other - The object to intersect with
- * @param callable - Optional function to compare values
- * @returns A new object containing items present in both objects
+ * @param callable - Optional function to compare values (array_uintersect-style)
+ * @returns A new object containing data's items whose value is also present in other
+ *
+ * @example
+ *
+ * intersect({ id: 1, first_word: 'Hello' }, { first_world: 'Hello', last_word: 'World' }); -> { first_word: 'Hello' } (keys differ, value matches)
+ * intersect({ id: 1 }, null); -> {} (non-accessible other is treated as empty)
  */
-export function intersect<T1, T2, TResponse>(
+// Overload: with callback — T1 and T2 inferred independently
+export function intersect<T1, T2>(
     data: Record<PropertyKey, T1>,
-    other: Record<PropertyKey, T2>,
+    other: Record<PropertyKey, T2> | null | undefined,
+    callable: (a: T1, b: T2) => boolean,
+): Record<PropertyKey, T1>;
+// Overload: without callback — same value type on both sides
+export function intersect<T1>(
+    data: Record<PropertyKey, T1>,
+    other: Record<PropertyKey, T1> | null | undefined,
+    callable?: null,
+): Record<PropertyKey, T1>;
+// Overload: unknown fallback
+export function intersect<T1, T2 = T1>(
+    data: unknown,
+    other: unknown,
+    callable?: ((a: T1, b: T2) => boolean) | null,
+): Record<PropertyKey, T1>;
+// Implementation
+export function intersect<T1, T2 = T1>(
+    data: Record<PropertyKey, T1> | unknown,
+    other: Record<PropertyKey, T2> | unknown,
     callable: ((a: T1, b: T2) => boolean) | null = null,
-) {
-    const result: Record<PropertyKey, TResponse> = {} as Record<
-        PropertyKey,
-        TResponse
-    >;
+): Record<PropertyKey, T1> {
+    const result: Record<PropertyKey, T1> = {};
 
-    for (const [key, value] of Object.entries(data)) {
-        if (key in other) {
-            const otherValue = other[key as PropertyKey];
+    if (!accessible(other)) {
+        return result;
+    }
 
-            const isEqual = isFunction(callable)
-                ? callable(value as T1, otherValue as T2)
-                : value === otherValue;
+    const otherValues = Object.values(other as Record<PropertyKey, T2>);
 
-            if (isEqual) {
-                result[key as PropertyKey] = value as unknown as TResponse;
-            }
+    for (const [key, value] of Object.entries(
+        data as Record<PropertyKey, T1>,
+    )) {
+        const matches = isFunction(callable)
+            ? otherValues.some((otherValue) =>
+                  callable(value as T1, otherValue as T2),
+              )
+            : otherValues.some(
+                  (otherValue) => (otherValue as unknown) === (value as unknown),
+              );
+
+        if (matches) {
+            result[key] = value as T1;
         }
     }
 
@@ -3689,6 +3751,13 @@ export function intersect<T1, T2, TResponse>(
  * Intersect the object with the given items with additional key check.
  * Returns items where both the key AND value match.
  *
+ * This is `array_intersect_assoc` — unlike `intersect` above, `key in other`
+ * IS required. Do not merge this back into `intersect`; the two must stay
+ * distinct (see `intersect`'s doc comment).
+ *
+ * A non-accessible `other` (e.g. `null`) is treated as empty, so the result
+ * is `{}`.
+ *
  * @param data - The original object
  * @param other - The object to intersect with
  * @returns A new object containing items where both key and value match
@@ -3697,19 +3766,26 @@ export function intersect<T1, T2, TResponse>(
  *
  * intersectAssoc({a: 'green', b: 'brown', c: 'blue'}, {a: 'green', b: 'yellow', c: 'blue'}); -> {a: 'green', c: 'blue'}
  * intersectAssoc({a: 1, b: 2}, {a: 1, c: 3}); -> {a: 1}
+ * intersectAssoc({a: 1}, null); -> {}
  */
-export function intersectAssoc<T1, T2, TResponse>(
+export function intersectAssoc<T1, T2 = T1>(
     data: Record<PropertyKey, T1>,
-    other: Record<PropertyKey, T2>,
-) {
-    const result: Record<PropertyKey, TResponse> = {} as Record<
-        PropertyKey,
-        TResponse
-    >;
+    other: Record<PropertyKey, T2> | null | undefined,
+): Record<PropertyKey, T1> {
+    const result: Record<PropertyKey, T1> = {};
+
+    if (!accessible(other)) {
+        return result;
+    }
+
+    const otherObj = other as Record<PropertyKey, T2>;
 
     for (const [key, value] of Object.entries(data)) {
-        if (key in other && value === other[key as PropertyKey]) {
-            result[key] = value as unknown as TResponse;
+        if (
+            key in otherObj &&
+            (value as unknown) === (otherObj[key as PropertyKey] as unknown)
+        ) {
+            result[key] = value as T1;
         }
     }
 
@@ -3720,6 +3796,9 @@ export function intersectAssoc<T1, T2, TResponse>(
  * Intersect the object with the given items with additional key check, using the callback.
  * The callback is used to compare keys, while values are compared strictly.
  *
+ * A non-accessible `other` (e.g. `null`) is treated as empty, so the result
+ * is `{}`.
+ *
  * @param data - The original object
  * @param other - The object to intersect with
  * @param callback - The callback function to compare keys (returns true if keys match)
@@ -3729,16 +3808,18 @@ export function intersectAssoc<T1, T2, TResponse>(
  *
  * const strcasecmpKeys = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
  * intersectAssocUsing({a: 'green', b: 'brown'}, {A: 'GREEN', B: 'brown'}, strcasecmpKeys); -> {b: 'brown'}
+ * intersectAssocUsing({a: 'green'}, null, strcasecmpKeys); -> {}
  */
-export function intersectAssocUsing<T1, T2, TResponse>(
+export function intersectAssocUsing<T1, T2 = T1>(
     data: Record<PropertyKey, T1>,
-    other: Record<PropertyKey, T2>,
+    other: Record<PropertyKey, T2> | null | undefined,
     callback: (keyA: PropertyKey, keyB: PropertyKey) => boolean,
-) {
-    const result: Record<PropertyKey, TResponse> = {} as Record<
-        PropertyKey,
-        TResponse
-    >;
+): Record<PropertyKey, T1> {
+    const result: Record<PropertyKey, T1> = {};
+
+    if (!accessible(other)) {
+        return result;
+    }
 
     for (const [dataKey, dataValue] of Object.entries(data)) {
         for (const [otherKey, otherValue] of Object.entries(other)) {
@@ -3746,7 +3827,7 @@ export function intersectAssocUsing<T1, T2, TResponse>(
                 callback(dataKey, otherKey) &&
                 (dataValue as unknown) === (otherValue as unknown)
             ) {
-                result[dataKey] = dataValue as unknown as TResponse;
+                result[dataKey] = dataValue as T1;
                 break; // Only add once per dataKey
             }
         }
@@ -3758,22 +3839,33 @@ export function intersectAssocUsing<T1, T2, TResponse>(
 /**
  * Intersect the object with the given items by key.
  *
+ * A non-accessible `other` (e.g. `null`) is treated as empty, so the result
+ * is `{}`.
+ *
  * @param data - The original object
  * @param other - The object to intersect with
  * @returns A new object containing items with keys present in both objects
+ *
+ * @example
+ *
+ * intersectByKeys({a: 1, b: 2}, {a: 20, c: 30}); -> {a: 1}
+ * intersectByKeys({name: 'M'}, null); -> {}
  */
-export function intersectByKeys<T1, T2, TResponse>(
+export function intersectByKeys<T1, T2 = T1>(
     data: Record<PropertyKey, T1>,
-    other: Record<PropertyKey, T2>,
-) {
-    const result: Record<PropertyKey, TResponse> = {} as Record<
-        PropertyKey,
-        TResponse
-    >;
+    other: Record<PropertyKey, T2> | null | undefined,
+): Record<PropertyKey, T1> {
+    const result: Record<PropertyKey, T1> = {};
+
+    if (!accessible(other)) {
+        return result;
+    }
+
+    const otherObj = other as Record<PropertyKey, T2>;
 
     for (const [key, value] of Object.entries(data)) {
-        if (key in other) {
-            result[key] = value as unknown as TResponse;
+        if (key in otherObj) {
+            result[key] = value as T1;
         }
     }
 
