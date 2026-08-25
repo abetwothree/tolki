@@ -3227,21 +3227,16 @@ describe("Obj", () => {
         });
 
         it("does not mutate its argument", () => {
-            // X9/X10 — PHP is newInstance(array_replace(...)), Collection.php:1172.
+            // X9 — PHP is newInstance(array_replace(...)), Collection.php:1172.
             const data = { a: 1 };
             Obj.replace(data, { b: 2 });
             expect(data).toEqual({ a: 1 });
-
-            const nested = { a: { x: 1 } };
-            Obj.replaceRecursive(nested, { a: { y: 2 } });
-            expect(nested).toEqual({ a: { x: 1 } });
         });
 
         it("treats a null replacer as a no-op", () => {
             // X11 — getArrayableItems(null) -> [] (EnumeratesValues.php:1106);
-            // pinned by CollectionTest.php:1482 and :1524.
+            // pinned by CollectionTest.php:1482.
             expect(Obj.replace({ a: 1 }, null)).toEqual({ a: 1 });
-            expect(Obj.replaceRecursive({ a: 1 }, null)).toEqual({ a: 1 });
         });
 
         it("does not reparent the object via a __proto__ key in the replacer", () => {
@@ -3255,6 +3250,39 @@ describe("Obj", () => {
             >;
             expect(result["polluted"]).toBeUndefined();
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+        });
+
+        it("keeps constructor/prototype keys from the replacer — only __proto__ is hazardous", () => {
+            // Review round 2, Important 2: constructor/prototype are
+            // ordinary PHP array keys with no accessor hazard, unlike
+            // __proto__. `replace` never special-cased them (every key
+            // goes through `defineKey`), so this pins that they survive.
+            const result = Obj.replace(
+                { a: 1 },
+                { constructor: "Acme", prototype: "P", normal: 1 },
+            );
+            expect(result).toEqual({
+                a: 1,
+                constructor: "Acme",
+                prototype: "P",
+                normal: 1,
+            });
+        });
+
+        it("silently ignores an array-shaped replacer forced past the type guard", () => {
+            // Review round 2, Minor 6, pinned as deliberate rather than
+            // handled: array_replace(['a'=>1], ['x']) merges by numeric
+            // key in PHP (['a'=>1, 0=>'x']), but Obj.replace's type
+            // surface only accepts Record<PropertyKey,T2> | null |
+            // undefined for replacerData. `accessible()` (which gates
+            // replacerData the same way it gates null) excludes arrays,
+            // so an array forced past the type guard takes the same
+            // no-op path as null instead of merging by index. Reaching
+            // this requires an unsafe cast; @tolki/data's dataReplace
+            // never does this itself (it only calls this once both sides
+            // are already object-shaped).
+            const replacer = ["x"] as unknown as Record<PropertyKey, string>;
+            expect(Obj.replace({ a: 1 }, replacer)).toEqual({ a: 1 });
         });
     });
 
@@ -3330,8 +3358,25 @@ describe("Obj", () => {
             });
         });
 
+        it("does not mutate its argument, including nested objects", () => {
+            // X10 — PHP is newInstance(array_replace_recursive(...)),
+            // Collection.php:1183. The nested-object case is the one that
+            // matters: the old code's mutation happened one recursion
+            // level down, so a merely shallow top-level copy would not
+            // have caught it.
+            const nested = { a: { x: 1 } };
+            Obj.replaceRecursive(nested, { a: { y: 2 } });
+            expect(nested).toEqual({ a: { x: 1 } });
+        });
+
+        it("treats a null replacer as a no-op", () => {
+            // X11 — getArrayableItems(null) -> [] (EnumeratesValues.php:1106);
+            // pinned by CollectionTest.php:1524.
+            expect(Obj.replaceRecursive({ a: 1 }, null)).toEqual({ a: 1 });
+        });
+
         it("ignores __proto__ keys in replacer data, leaving the result's own prototype untouched", () => {
-            // isUnsafeKey skip is a deliberate JS-only divergence — PHP has
+            // __proto__ skip is a deliberate JS-only divergence — PHP has
             // no accessor-key hazard for array_replace_recursive to guard
             // against. `{ __proto__: ... }` as a literal would set the
             // prototype at object-creation time rather than reproducing the
@@ -3349,6 +3394,26 @@ describe("Obj", () => {
             expect(
                 Object.prototype.hasOwnProperty.call(result, "__proto__"),
             ).toBe(false);
+        });
+
+        it("keeps constructor/prototype keys from the replacer — only __proto__ is hazardous", () => {
+            // Review round 2, Important 2: the old code skipped all three
+            // of __proto__/constructor/prototype uniformly (isUnsafeKey),
+            // silently discarding legitimate replacer data for the latter
+            // two — neither has an accessor hazard, unlike __proto__.
+            // Narrowed to skip only __proto__; constructor/prototype now
+            // flow through defineKey like every other key, matching
+            // `replace`'s equivalent pin above.
+            const result = Obj.replaceRecursive(
+                { a: 1 },
+                { constructor: "Acme", prototype: "P", normal: 1 },
+            );
+            expect(result).toEqual({
+                a: 1,
+                constructor: "Acme",
+                prototype: "P",
+                normal: 1,
+            });
         });
     });
 

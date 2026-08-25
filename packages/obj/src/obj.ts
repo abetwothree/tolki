@@ -28,7 +28,6 @@ import {
     isString,
     isStringable,
     isUndefined,
-    isUnsafeKey,
     isWeakMap,
     looseEqual,
     typeOf,
@@ -2779,8 +2778,8 @@ function reindexIntegerKeys<TValue>(
  * `__proto__` entry — whether already present in `data` or introduced by
  * a replacement object — becomes a real own key instead of reparenting
  * the target through the `__proto__` setter (see `AGENTS.md`'s
- * prototype-pollution guidance and `isUnsafeKey`'s usage elsewhere in
- * this file).
+ * prototype-pollution guidance, and `replace`/`replaceRecursive` below
+ * for the same pattern applied to a non-mutating rebuild).
  *
  * @param data - The object to splice. Mutated in place.
  * @param offset - The starting index, by entry order (not by key)
@@ -3027,6 +3026,15 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
  * instead of reparenting it through the `__proto__` setter (see `splice`'s
  * doc comment and `AGENTS.md`'s prototype-pollution guidance).
  *
+ * `accessible()` gates `replacerData` the same way it gates `null`, and
+ * `accessible()` excludes arrays — so an array forced past the type
+ * surface (e.g. `as unknown as Record<PropertyKey, T2>`) is a deliberate
+ * no-op here too, not a merge by numeric index the way
+ * `array_replace(['a' => 1], ['x'])` (-> `['a' => 1, 0 => 'x']`) would
+ * behave in PHP. This is intentionally out of scope: the declared type
+ * surface never accepts an array for `replacerData`, and `@tolki/data`'s
+ * `dataReplace` only calls this once both sides are already object-shaped.
+ *
  * @param data - The original object to replace items in. Never mutated.
  * @param replacerData - The object containing items to replace. `null`/`undefined` is a no-op.
  * @returns A new object with the replaced items.
@@ -3043,6 +3051,19 @@ export function replace<T1>(
 export function replace<T1, T2>(
     data: Record<PropertyKey, T1>,
     replacerData: Record<PropertyKey, T2>,
+): Record<PropertyKey, T1 | T2>;
+// A caller holding a `Record<PropertyKey, T2> | null` — the realistic
+// shape of "a replacer that might be absent", and exactly the case X11
+// exists for — matches neither overload above on its own: TypeScript
+// resolves an overloaded call against the *declared* overload signatures
+// only, never the implementation signature below, so such a call fails
+// with TS2769 without this third, still-concrete overload. This is the
+// mirror image of the `X | unknown` collapse that has bitten this branch
+// before: over-narrow overloads instead of an over-wide `unknown`
+// catch-all, but the same net effect of rejecting a valid caller.
+export function replace<T1, T2>(
+    data: Record<PropertyKey, T1>,
+    replacerData: Record<PropertyKey, T2> | null | undefined,
 ): Record<PropertyKey, T1 | T2>;
 export function replace<T1, T2>(
     data: Record<PropertyKey, T1>,
@@ -3071,21 +3092,28 @@ export function replace<T1, T2>(
  * object — a shallow top-level copy alone would not be enough, since the
  * old code's mutation happened one recursion level down. Because the
  * recursive calls are themselves pure, an untouched nested value is simply
- * carried over by reference (nothing ever writes through it later), which
- * is the JS-side equivalent of PHP's per-array value-copy semantics.
+ * carried over **by reference**, not copied — nothing writes through it
+ * during this call, but that is not PHP's per-array value-copy semantics:
+ * a JS array/object is aliased, so a caller who later mutates
+ * `result.untouchedKey` mutates the same value reachable from `data`.
+ * PHP's arrays copy on write and would not show that mutation at all.
  *
  * A `null`/`undefined` replacer is a no-op, for the same reason as
  * `replace` above (`EnumeratesValues.php:1106`, `CollectionTest.php:1524`).
  *
- * `isUnsafeKey` skips `__proto__`/`constructor`/`prototype` keys on
- * `replacerData` entirely, rather than writing them via `defineKey` the
- * way `replace` and `splice` do. This is a deliberate JS-only divergence
- * with **no PHP counterpart** — PHP arrays have no accessor-key hazard for
- * `array_replace_recursive` to guard against, so there is nothing in the
- * framework this choice needs to match. Skipping (rather than writing a
- * literal `__proto__` own key) keeps the merged shape closer to what a
- * reader would expect from a "replace" operation: the hazardous key never
- * appears in the result at all.
+ * `isUnsafeKey` would skip `__proto__`/`constructor`/`prototype` keys on
+ * `replacerData` uniformly, but only `__proto__` is actually hazardous —
+ * it is the sole key with an inherited accessor setter on
+ * `Object.prototype` that can reparent an object on plain assignment;
+ * `constructor` and `prototype` are ordinary writable data properties, and
+ * dropping them would silently discard legitimate replacer data with no
+ * PHP array key ever behaving that way. So only `__proto__` is skipped
+ * here — entirely, rather than written via `defineKey` the way `replace`
+ * and `splice` write it — a deliberate JS-only divergence with **no PHP
+ * counterpart** (PHP arrays have no accessor-key hazard for
+ * `array_replace_recursive` to guard against). `constructor` and
+ * `prototype` fall through to the same `defineKey` write as every other
+ * key below.
  *
  * @param data - The original object to replace items in. Never mutated.
  * @param replacerData - The object containing items to replace. `null`/`undefined` is a no-op.
@@ -3104,6 +3132,14 @@ export function replaceRecursive<T1, T2>(
     data: Record<PropertyKey, T1>,
     replacerData: Record<PropertyKey, T2>,
 ): Record<PropertyKey, T1 | T2>;
+// See the matching overload on `replace` above for why this third,
+// concrete overload is required rather than relying on the implementation
+// signature below (TS2769 otherwise, for any caller holding
+// `Record<PropertyKey, T2> | null`).
+export function replaceRecursive<T1, T2>(
+    data: Record<PropertyKey, T1>,
+    replacerData: Record<PropertyKey, T2> | null | undefined,
+): Record<PropertyKey, T1 | T2>;
 export function replaceRecursive<T1, T2>(
     data: Record<PropertyKey, T1>,
     replacerData: Record<PropertyKey, T2> | null | undefined,
@@ -3115,7 +3151,7 @@ export function replaceRecursive<T1, T2>(
     }
 
     for (const [key, value] of Object.entries(replacerData)) {
-        if (isUnsafeKey(key)) {
+        if (key === "__proto__") {
             continue;
         }
 
