@@ -1468,6 +1468,22 @@ describe("Collection", () => {
             const result = c.flatten(1);
             expect(result.all()).toEqual([5, 10]);
         });
+
+        // X29 — Arr.php:368 defaults $depth to INF. Array- and
+        // object-backed Collections must agree, per the unison rule.
+        it("flattens fully by default, either backing", () => {
+            expect(
+                collect([["#foo", ["#bar", ["#baz"]]], "#zap"])
+                    .flatten()
+                    .all(),
+            ).toEqual(["#foo", "#bar", "#baz", "#zap"]);
+
+            expect(
+                collect({ a: { b: { c: { d: 1 } } } })
+                    .flatten()
+                    .all(),
+            ).toEqual([1]);
+        });
     });
 
     describe("flip", () => {
@@ -3673,6 +3689,23 @@ describe("Collection", () => {
                 email: "taylorotwell@gmail.com",
             });
         });
+
+        // X25 — Arr.php:744 casts via (array) $keys, so a bare key and a
+        // null key both work directly, not just spread via varargs. Array-
+        // and object-backed Collections must agree, per the unison rule.
+        it("accepts a single key and a null key, either backing", () => {
+            expect(collect(["a", "b", "c"]).only(1).all()).toEqual(["b"]);
+            expect(collect(["a", "b", "c"]).only(null).all()).toEqual([
+                "a",
+                "b",
+                "c",
+            ]);
+
+            expect(collect({ foo: 1, bar: "baz" }).only("bar").all()).toEqual({
+                bar: "baz",
+            });
+            expect(collect({ a: 1 }).only(null).all()).toEqual({ a: 1 });
+        });
     });
 
     describe("select", () => {
@@ -4583,6 +4616,24 @@ describe("Collection", () => {
                     data.random(4);
                 }).toThrowError();
             });
+        });
+
+        // X24 — Arr.php:971 defaults $preserveKeys = false. Array- and
+        // object-backed Collections must agree, per the unison rule.
+        it("reindexes from zero by default, either backing", () => {
+            const fromArray: Collection<number, number> = collect([
+                10, 20, 30,
+            ]).random(2);
+            expect(fromArray).toBeInstanceOf(Collection);
+            expect(Object.keys(fromArray.all())).toEqual(["0", "1"]);
+
+            const fromObject: Collection<number, string> = collect({
+                one: 10,
+                two: 20,
+                three: 30,
+            }).random(2);
+            expect(fromObject).toBeInstanceOf(Collection);
+            expect(Object.keys(fromObject.all())).toEqual(["0", "1"]);
         });
     });
 

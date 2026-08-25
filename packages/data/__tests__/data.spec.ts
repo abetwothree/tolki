@@ -1039,6 +1039,24 @@ describe("Data", () => {
             ]);
             expect(result).toEqual({ key_a: 2, key_b: 4 });
         });
+
+        // X30 / D2 — Arr::mapWithKeys (Arr.php:880) builds one plain array;
+        // there is no Map in PHP. Array- and object-backed data must agree,
+        // per the unison rule.
+        it("returns a plain object even for numeric-like mapped keys, either backing", () => {
+            const fromArray = Data.dataMapWithKeys([1, 2], (value) => ({
+                [value]: value,
+            }));
+            expect(fromArray instanceof Map).toBe(false);
+            expect(fromArray).toEqual({ 1: 1, 2: 2 });
+
+            const fromObject = Data.dataMapWithKeys(
+                { a: 1, b: 2 },
+                (value) => ({ [value]: value }),
+            );
+            expect(fromObject instanceof Map).toBe(false);
+            expect(fromObject).toEqual({ 1: 1, 2: 2 });
+        });
     });
 
     describe("dataMapSpread", () => {
@@ -1103,6 +1121,18 @@ describe("Data", () => {
         it("is array", () => {
             expect(Data.dataQuery([1, 2, 3])).toBe("0=1&1=2&2=3");
         });
+
+        // X21 — both backings must cast booleans like PHP's
+        // http_build_query: true -> "1", false -> "0".
+        it("casts booleans like PHP's http_build_query, either backing", () => {
+            expect(Data.dataQuery({ foo: "bar", bar: true })).toBe(
+                "foo=bar&bar=1",
+            );
+            expect(Data.dataQuery({ foo: "bar", bar: false })).toBe(
+                "foo=bar&bar=0",
+            );
+            expect(Data.dataQuery([true, false])).toBe("0=1&1=0");
+        });
     });
 
     describe("dataRandom", () => {
@@ -1117,6 +1147,29 @@ describe("Data", () => {
             const result = Data.dataRandom(arr);
             // dataRandom with no count returns a single value
             expect(arr).toContain(result);
+        });
+
+        // X23/X24 — Arr.php:977 throws above the empty guard, and
+        // Arr.php:971 defaults preserveKeys to false. Both backings agree.
+        it("throws on an empty source and reindexes by default, either backing", () => {
+            expect(() => Data.dataRandom([])).toThrow(
+                "You requested 1 items, but there are only 0 items available.",
+            );
+            expect(() => Data.dataRandom({})).toThrow(
+                "You requested 1 items, but there are only 0 items available.",
+            );
+
+            const fromArray = Data.dataRandom([10, 20, 30], 2) as unknown[];
+            expect(Array.isArray(fromArray)).toBe(true);
+
+            const fromObject = Data.dataRandom(
+                { one: 10, two: 20, three: 30 },
+                2,
+            );
+            expect(Object.keys(fromObject as Record<string, unknown>)).toEqual([
+                "0",
+                "1",
+            ]);
         });
     });
 
@@ -1601,6 +1654,22 @@ describe("Data", () => {
                 "btn btn-primary",
             );
         });
+
+        // X22 — Arr.php:1214, is_numeric($class) pushes the VALUE. Both
+        // backings must agree, per the unison rule.
+        it("emits the value for numeric keys, either backing", () => {
+            expect(
+                Data.dataToCssClasses({
+                    0: "font-bold",
+                    1: "mt-4",
+                    "ml-2": true,
+                    "mr-2": false,
+                }),
+            ).toBe("font-bold mt-4 ml-2");
+            expect(Data.dataToCssClasses(["font-bold", "mt-4", "ml-2"])).toBe(
+                "font-bold mt-4 ml-2",
+            );
+        });
     });
 
     describe("dataToCssStyles", () => {
@@ -1617,6 +1686,20 @@ describe("Data", () => {
             expect(
                 Data.dataToCssStyles(["font-weight: bold", "margin-top: 4px"]),
             ).toBe("font-weight: bold; margin-top: 4px;");
+        });
+
+        // X22 — Arr.php:1237, is_numeric($class) pushes the VALUE, finished
+        // with a semicolon. Both backings must agree, per the unison rule.
+        it("emits the value for numeric keys, either backing", () => {
+            expect(
+                Data.dataToCssStyles({
+                    0: "font-weight: bold",
+                    "margin-left: 2px;": true,
+                }),
+            ).toBe("font-weight: bold; margin-left: 2px;");
+            expect(
+                Data.dataToCssStyles(["font-weight: bold", "margin-left: 2px"]),
+            ).toBe("font-weight: bold; margin-left: 2px;");
         });
     });
 

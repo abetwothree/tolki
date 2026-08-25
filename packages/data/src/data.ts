@@ -1261,7 +1261,7 @@ export function dataMapWithKeys<
                 value: TValue,
                 key: string,
             ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
-        ) as Record<TMapWithKeysKey, TMapWithKeysValue>;
+        );
     }
 
     return arrMapWithKeys(

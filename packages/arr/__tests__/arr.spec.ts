@@ -3271,9 +3271,14 @@ describe("Arr", () => {
                 "foo=bar&bar=baz",
             );
 
-            // PHP's http_build_query casts true to "1" and false to ""
+            // PHP's http_build_query casts true to "1" and false to "0"
+            // (verified directly against http_build_query, not just
+            // Arr::query, and captured at
+            // docs/php-parity/task-08-arr-parity.json — this commit
+            // corrects a wrong PHP-equivalence claim from 33b2197, which
+            // asserted "" for false without ever probing it).
             expect(Arr.query({ foo: "bar", bar: true })).toBe("foo=bar&bar=1");
-            expect(Arr.query({ foo: "bar", bar: false })).toBe("foo=bar&bar=");
+            expect(Arr.query({ foo: "bar", bar: false })).toBe("foo=bar&bar=0");
 
             // null values are dropped entirely, not rendered as "bar="
             expect(Arr.query({ foo: "bar", bar: null })).toBe("foo=bar");
@@ -4107,6 +4112,22 @@ describe("Arr", () => {
             expect(Arr.toCssClasses([123, null, undefined, true])).toBe("");
             expect(Arr.toCssClasses(["valid-class", 123])).toBe("valid-class");
         });
+
+        it("emits the value for numeric keys and the key for truthy string keys in one mixed array (Task 8 pin)", () => {
+            // arr was already correct here; pinned against
+            // docs/php-parity/task-08-arr-parity.json
+            // ("Arr::toCssClasses mixed keys") so obj's Task 8 fix can't
+            // drift from it. Array with both positional and named string
+            // props, matching Arr::toCssClasses(['font-bold', 'mt-4',
+            // 'ml-2' => true, 'mr-2' => false]).
+            const mixed: unknown[] & { "ml-2"?: boolean; "mr-2"?: boolean } = [
+                "font-bold",
+                "mt-4",
+            ];
+            mixed["ml-2"] = true;
+            mixed["mr-2"] = false;
+            expect(Arr.toCssClasses(mixed)).toBe("font-bold mt-4 ml-2");
+        });
     });
 
     describe("toCssStyles", () => {
@@ -4164,6 +4185,22 @@ describe("Arr", () => {
             // Tests branch where numeric key value is not a string
             expect(Arr.toCssStyles([123, null, undefined, true])).toBe("");
             expect(Arr.toCssStyles(["color: red", 123])).toBe("color: red;");
+        });
+
+        it("emits the value for numeric keys and the key for truthy string keys in one mixed array (Task 8 pin)", () => {
+            // arr was already correct here; pinned against
+            // docs/php-parity/task-08-arr-parity.json
+            // ("Arr::toCssStyles mixed keys") so obj's Task 8 fix can't
+            // drift from it.
+            const mixed: unknown[] & {
+                "margin-left: 2px;"?: boolean;
+                "margin-right: 2px"?: boolean;
+            } = ["font-weight: bold", "margin-top: 4px;"];
+            mixed["margin-left: 2px;"] = true;
+            mixed["margin-right: 2px"] = false;
+            expect(Arr.toCssStyles(mixed)).toBe(
+                "font-weight: bold; margin-top: 4px; margin-left: 2px;",
+            );
         });
     });
 

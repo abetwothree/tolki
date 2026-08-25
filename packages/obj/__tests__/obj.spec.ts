@@ -1753,7 +1753,9 @@ describe("Obj", () => {
     });
 
     describe("flatten", () => {
-        it("flattens nested object values into a single array", () => {
+        it("flattens fully by default, matching Arr::flatten's INF default (Arr.php:368)", () => {
+            // X29 — flatten used to default to depth 2, pinning a divergence
+            // from Arr::flatten, whose $depth defaults to INF.
             const obj = {
                 users: { john: { name: "John" }, jane: { name: "Jane" } },
                 posts: { "1": { title: "Hello" } },
@@ -1761,7 +1763,16 @@ describe("Obj", () => {
 
             const result = Obj.flatten(obj);
 
-            expect(result).toEqual([
+            expect(result).toEqual(["John", "Jane", "Hello"]);
+        });
+
+        it("stops at an explicit depth instead of flattening fully", () => {
+            const obj = {
+                users: { john: { name: "John" }, jane: { name: "Jane" } },
+                posts: { "1": { title: "Hello" } },
+            };
+
+            expect(Obj.flatten(obj, 2)).toEqual([
                 { name: "John" },
                 { name: "Jane" },
                 { title: "Hello" },
@@ -1780,9 +1791,9 @@ describe("Obj", () => {
 
         it("handles arrays within object values at boundary depth", () => {
             const obj = { items: [{ v: 1 }, { v: 2 }] };
-            // Default depth should gather array elements
-            expect(Obj.flatten(obj)).toEqual([{ v: 1 }, { v: 2 }]);
-            // Explicit depth=2 should behave the same
+            // Default depth is Infinity, so nested objects flatten fully.
+            expect(Obj.flatten(obj)).toEqual([1, 2]);
+            // Explicit depth=2 stops at the object boundary.
             expect(Obj.flatten(obj, 2)).toEqual([{ v: 1 }, { v: 2 }]);
         });
 
@@ -2206,6 +2217,18 @@ describe("Obj", () => {
             expect(Obj.only(undefined, ["name"])).toEqual({});
             expect(Obj.only([], ["name"])).toEqual({});
         });
+
+        it("accepts a bare string key and a null key, like PHP's (array) cast", () => {
+            // X25 — Arr.php:744 casts via (array) $keys: null -> [], a bare
+            // string -> [key]. obj used to iterate a bare string's
+            // characters and throw on null.
+            // Captured: docs/php-parity/task-08-arr-parity.json
+            // ("Arr::only with a bare string key") -> { bar: "baz" }.
+            expect(Obj.only({ foo: 1, bar: "baz" }, "bar")).toEqual({
+                bar: "baz",
+            });
+            expect(Obj.only({ a: 1 }, null)).toEqual({});
+        });
     });
 
     describe("select", () => {
@@ -2288,17 +2311,16 @@ describe("Obj", () => {
             expect(Obj.mapWithKeys("string", () => ({}))).toEqual({});
         });
 
-        it("should return Map for numeric keys to preserve order", () => {
+        it("returns a plain object even for numeric-like mapped keys", () => {
+            // X30 / D2 — Arr::mapWithKeys (Arr.php:880) builds one plain
+            // array; there is no Map in PHP, so obj must not special-case
+            // numeric-like keys by returning a Map either.
             const obj = { a: "x", b: "y" };
             const result = Obj.mapWithKeys(obj, (value, key) => ({
                 [key === "a" ? "1" : "2"]: value,
             }));
-            // Should return Map because keys are numeric
-            expect(result instanceof Map).toBe(true);
-            if (result instanceof Map) {
-                expect(result.get("1")).toBe("x");
-                expect(result.get("2")).toBe("y");
-            }
+            expect(result instanceof Map).toBe(false);
+            expect(result).toEqual({ 1: "x", 2: "y" });
         });
     });
 
@@ -2430,6 +2452,16 @@ describe("Obj", () => {
             // Root array without prefix
             expect(Obj.query(["a", "b", "c"])).toBe("0=a&1=b&2=c");
         });
+
+        it("casts booleans like PHP's http_build_query", () => {
+            // X21 — captured via docs/php-parity/task-08-arr-parity.json:
+            // Arr::query casts true -> "1" and false -> "0" (http_build_query
+            // scalar casting), not JS's "true"/"false" string coercion.
+            expect(Obj.query({ foo: "bar", bar: true })).toBe("foo=bar&bar=1");
+            expect(Obj.query({ foo: "bar", bar: false })).toBe("foo=bar&bar=0");
+            expect(Obj.query({ foo: "bar", bar: "" })).toBe("foo=bar&bar=");
+            expect(Obj.query({})).toBe("");
+        });
     });
 
     describe("random", () => {
@@ -2439,9 +2471,17 @@ describe("Obj", () => {
             expect([1, 2, 3]).toContain(result);
         });
 
-        it("handle a single item object", () => {
+        it("throws when more items are requested than exist, even against an empty object", () => {
+            // X23 — Arr.php:977 checks `$requested > $count` ABOVE the
+            // empty guard, so an empty object throws rather than returning
+            // null; a request of 0 or fewer still short-circuits to {}.
             const obj = {};
-            expect(Obj.random(obj)).toBeNull();
+            expect(() => Obj.random(obj)).toThrow(
+                "You requested 1 items, but there are only 0 items available.",
+            );
+            expect(() => Obj.random(obj, 1)).toThrow(
+                "You requested 1 items, but there are only 0 items available.",
+            );
             expect(Obj.random(obj, 0)).toEqual({});
         });
 
@@ -2449,6 +2489,24 @@ describe("Obj", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
             const result = Obj.random(obj, 2) as Record<string, unknown>;
             expect(Object.keys(result)).toHaveLength(2);
+        });
+
+        it("reindexes from zero by default", () => {
+            // X24 — Arr.php:971 defaults $preserveKeys = false.
+            const result = Obj.random(
+                { one: "foo", two: "bar", three: "baz" },
+                2,
+            ) as Record<string, unknown>;
+            expect(Object.keys(result)).toEqual(["0", "1"]);
+        });
+
+        it("preserves original keys when preserveKeys is explicitly true", () => {
+            const obj = { one: "foo", two: "bar", three: "baz" };
+            const result = Obj.random(obj, 2, true) as Record<string, unknown>;
+            expect(Object.keys(result)).toHaveLength(2);
+            for (const key of Object.keys(result)) {
+                expect(obj).toHaveProperty(key);
+            }
         });
 
         it("should return multiple random values while not preserving keys", () => {
@@ -3285,6 +3343,31 @@ describe("Obj", () => {
         it("should handle empty objects", () => {
             expect(Obj.toCssClasses({})).toBe("");
         });
+
+        it("emits the value for numeric keys and the key for truthy string keys", () => {
+            // X22 — Arr.php:1214, is_numeric($class) pushes the VALUE.
+            // Captured: docs/php-parity/task-08-arr-parity.json
+            // ("Arr::toCssClasses mixed keys") -> "font-bold mt-4 ml-2".
+            expect(
+                Obj.toCssClasses({
+                    0: "font-bold",
+                    1: "mt-4",
+                    "ml-2": true,
+                    "mr-2": false,
+                }),
+            ).toBe("font-bold mt-4 ml-2");
+        });
+
+        it("drops non-string values at numeric keys", () => {
+            expect(
+                Obj.toCssClasses({
+                    0: 123,
+                    1: null,
+                    2: undefined,
+                    3: true,
+                }),
+            ).toBe("");
+        });
     });
 
     describe("toCssStyles", () => {
@@ -3313,6 +3396,30 @@ describe("Obj", () => {
             expect(Obj.toCssStyles(obj)).toBe(
                 "font-weight: bold; margin: 10px;",
             );
+        });
+
+        it("emits the value for numeric keys and the key for truthy string keys", () => {
+            // X22 — Arr.php:1237, is_numeric($class) pushes the VALUE
+            // (finished with a semicolon), not the key.
+            // Captured: docs/php-parity/task-08-arr-parity.json
+            // ("Arr::toCssStyles mixed keys").
+            expect(
+                Obj.toCssStyles({
+                    0: "font-weight: bold",
+                    "margin-left: 2px;": true,
+                }),
+            ).toBe("font-weight: bold; margin-left: 2px;");
+        });
+
+        it("drops non-string values at numeric keys", () => {
+            expect(
+                Obj.toCssStyles({
+                    0: 123,
+                    1: null,
+                    2: undefined,
+                    3: true,
+                }),
+            ).toBe("");
         });
     });
 

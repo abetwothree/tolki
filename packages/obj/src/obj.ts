@@ -870,18 +870,20 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
  * array of values, discarding keys.
  *
  * @param data - The object (or value) to flatten.
- * @param depth - Maximum depth to flatten. Use Infinity for full flattening.
+ * @param depth - Maximum depth to flatten. Defaults to Infinity (full flattening),
+ * matching Arr.php's `Arr::flatten` default (Arr.php:368).
  * @returns A new flattened array of values.
  *
  * @example
  *
  * flatten({ a: [1, 2], b: [3, 4] }); -> [1, 2, 3, 4]
  * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }); -> [1, 2, 3]
+ * flatten({ a: { b: { c: { d: 1 } } } }); -> [1]
  * flatten({ a: [1, [2, 3]], b: [4] }, 1); -> [1, [2, 3], 4]
  */
 export function flatten<TValue>(
     data: Record<PropertyKey, TValue> | TValue,
-    depth: number = 2,
+    depth: number = Infinity,
 ): unknown[] {
     if (!accessible(data)) {
         return [];
@@ -1555,18 +1557,24 @@ export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get a subset of the items from the given object.
  *
+ * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:744): `null`
+ * becomes no keys at all, and a bare string becomes a single-key selection,
+ * rather than being iterated character by character.
+ *
  * @param data - The object to get items from.
- * @param keys - The keys to select.
+ * @param keys - The key, keys, or null to select.
  * @returns A new object with only the specified keys.
  *
  * @example
  *
  * only({ a: 1, b: 2, c: 3, d: 4 }, ['a', 'c']); -> { a: 1, c: 3 }
  * only({ name: 'John', age: 30, city: 'NYC' }, ['name']); -> { name: 'John' }
+ * only({ foo: 1, bar: 'baz' }, 'bar'); -> { bar: 'baz' }
+ * only({ a: 1 }, null); -> {}
  */
 export function only<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    keys: string[],
+    keys: string | string[] | null,
 ): Record<PropertyKey, TValue> {
     if (!accessible(data)) {
         return {};
@@ -1574,8 +1582,9 @@ export function only<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const obj = data as Record<PropertyKey, TValue>;
     const result: Record<PropertyKey, TValue> = {};
+    const keyList = isNull(keys) ? [] : isArray(keys) ? keys : [keys];
 
-    for (const key of keys) {
+    for (const key of keyList) {
         if (key in obj) {
             result[key] = obj[key] as TValue;
         }
@@ -1819,6 +1828,11 @@ export function map<
  * Run an associative map over each of the items.
  * The callback should return an object with key/value pairs.
  *
+ * Always returns a plain object, even when every mapped key is
+ * numeric-like. `Arr::mapWithKeys` (Arr.php:880) builds a single PHP array
+ * — there is no `Map` type in PHP, and PHP arrays preserve insertion order
+ * for both int and string keys, so there is nothing for a `Map` to buy here.
+ *
  * @param data - The object to map.
  * @param callback - Function that returns an object with key/value pairs.
  * @returns A new object with all mapped key/value pairs.
@@ -1839,9 +1853,7 @@ export function mapWithKeys<
         value: TValue,
         key: TKey,
     ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
-):
-    | Record<TMapWithKeysKey, TMapWithKeysValue>
-    | Map<TMapWithKeysKey, TMapWithKeysValue> {
+): Record<TMapWithKeysKey, TMapWithKeysValue> {
     if (!accessible(data)) {
         return {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
@@ -1851,29 +1863,16 @@ export function mapWithKeys<
         TMapWithKeysKey,
         TMapWithKeysValue
     >;
-    const resultMap = new Map<TMapWithKeysKey, TMapWithKeysValue>();
-    let hasNumericKeys = false;
 
     for (const [key, value] of Object.entries(obj)) {
         const mappedObject = callback(value, key as TKey);
 
         for (const [mapKey, mapValue] of Object.entries(mappedObject)) {
-            // Check if this is a numeric key
-            const numKey = Number(mapKey);
-            if (!Number.isNaN(numKey) && String(numKey) === mapKey) {
-                hasNumericKeys = true;
-            }
-
             result[mapKey as TMapWithKeysKey] = mapValue as TMapWithKeysValue;
-            resultMap.set(
-                mapKey as TMapWithKeysKey,
-                mapValue as TMapWithKeysValue,
-            );
         }
     }
 
-    // Return Map if we have numeric keys to preserve insertion order
-    return hasNumericKeys ? resultMap : result;
+    return result;
 }
 
 /**
@@ -2012,6 +2011,8 @@ export function pull<
  * query({ name: 'John', age: 30 }); -> 'name=John&age=30'
  * query({ user: { name: 'John', age: 30 } }); -> 'user[name]=John&user[age]=30'
  * query({ tags: ['php', 'js'] }); -> 'tags[0]=php&tags[1]=js'
+ * query({ foo: 'bar', bar: true }); -> 'foo=bar&bar=1' (booleans cast like PHP's http_build_query)
+ * query({ foo: 'bar', bar: false }); -> 'foo=bar&bar=0'
  */
 export function query(data: unknown): string {
     if (isNull(data) || isUndefined(data)) {
@@ -2022,6 +2023,16 @@ export function query(data: unknown): string {
         return encodeURIComponent(key)
             .replace(/%5B/g, "[")
             .replace(/%5D/g, "]");
+    };
+
+    // Mirrors PHP's http_build_query scalar casting: booleans become "1"
+    // or "0" rather than JavaScript's "true"/"false".
+    const stringifyQueryValue = (value: unknown): string => {
+        if (isBoolean(value)) {
+            return value ? "1" : "0";
+        }
+
+        return String(value);
     };
 
     const buildQuery = (obj: unknown, prefix: string = ""): string[] => {
@@ -2038,7 +2049,7 @@ export function query(data: unknown): string {
                     } else {
                         const encodedKey = encodeKeyComponent(key);
                         parts.push(
-                            `${encodedKey}=${encodeURIComponent(String(value))}`,
+                            `${encodedKey}=${encodeURIComponent(stringifyQueryValue(value))}`,
                         );
                     }
                 }
@@ -2053,7 +2064,7 @@ export function query(data: unknown): string {
                     } else {
                         const encodedKey = encodeKeyComponent(key);
                         parts.push(
-                            `${encodedKey}=${encodeURIComponent(String(value))}`,
+                            `${encodedKey}=${encodeURIComponent(stringifyQueryValue(value))}`,
                         );
                     }
                 }
@@ -2062,7 +2073,9 @@ export function query(data: unknown): string {
             // Scalar value
             const key = prefix || "0";
             const encodedKey = encodeKeyComponent(key);
-            parts.push(`${encodedKey}=${encodeURIComponent(String(obj))}`);
+            parts.push(
+                `${encodedKey}=${encodeURIComponent(stringifyQueryValue(obj))}`,
+            );
         }
 
         return parts;
@@ -2077,21 +2090,24 @@ export function query(data: unknown): string {
  * @param data - The object to get random values from.
  * @param number - The number of items to return. If null, returns a single item.
  * @param preserveKeys - Whether to preserve the original keys when returning multiple items.
+ * Defaults to `false`, matching `Arr::random`'s `$preserveKeys = false` default (Arr.php:971).
  * @returns A single random item, an object of random items, or null if object is empty.
- * @throws Error if more items are requested than available.
+ * @throws Error if more items are requested than available — including against an
+ * empty object, since `Arr.php:977` checks `$requested > $count` above the empty guard.
  *
  * @example
  *
  * random({ a: 1, b: 2, c: 3 }); -> 2 (single random value)
- * random({ a: 1, b: 2, c: 3 }, 2); -> { b: 2, c: 3 } (two random items)
- * random({ a: 1, b: 2, c: 3 }, 2, false); -> { 0: 2, 1: 3 } (without original keys)
- * random({}, 1); -> null
+ * random({ a: 1, b: 2, c: 3 }, 2); -> { 0: 2, 1: 3 } (two random items, reindexed)
+ * random({ a: 1, b: 2, c: 3 }, 2, true); -> { b: 2, c: 3 } (with original keys)
+ * random({}, 0); -> {}
+ * random({}, 1); -> throws Error
  * random({ a: 1, b: 2 }, 5); -> throws Error
  */
 export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     number?: number | null,
-    preserveKeys: boolean = true,
+    preserveKeys: boolean = false,
 ): TValue | Record<TKey, TValue> | null {
     if (!accessible(data)) {
         return isNull(number) || isUndefined(number)
@@ -2104,16 +2120,18 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     const count = entries.length;
     const requested = isNull(number) || isUndefined(number) ? 1 : number;
 
-    if (count === 0 || requested <= 0) {
-        return isNull(number) || isUndefined(number)
-            ? null
-            : ({} as Record<TKey, TValue>);
-    }
-
     if (requested > count) {
         throw new Error(
             `You requested ${requested} items, but there are only ${count} items available.`,
         );
+    }
+
+    // Reaching this point with `number` null/undefined would mean
+    // requested === 1 survived the throw guard above, which requires
+    // count >= 1 — so `number` is always explicitly provided here, and
+    // Arr.php:983's empty-or-non-positive short-circuit always yields [].
+    if (requested <= 0) {
+        return {} as Record<TKey, TValue>;
     }
 
     // Generate random indices
@@ -2910,6 +2928,7 @@ export function string<
  * toCssClasses({ 'font-bold': true, 'mt-4': true }); -> 'font-bold mt-4'
  * toCssClasses({ 'font-bold': true, 'text-red': false, 'ml-2': true }); -> 'font-bold ml-2'
  * toCssClasses({ primary: true, secondary: false }); -> 'primary'
+ * toCssClasses({ 0: 'font-bold', 1: 'mt-4', 'ml-2': true, 'mr-2': false }); -> 'font-bold mt-4 ml-2'
  */
 export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -2922,8 +2941,13 @@ export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
     const classes: string[] = [];
 
     for (const [key, value] of Object.entries(obj)) {
-        // Use key as class name if value is truthy
-        if (value) {
+        // Numeric-like keys (Arr.php:1214's is_numeric($class)) push the
+        // VALUE as the class name; other keys push the key when truthy.
+        if (!isNaN(Number(key))) {
+            if (isString(value)) {
+                classes.push(value);
+            }
+        } else if (value) {
             classes.push(key);
         }
     }
@@ -2941,6 +2965,7 @@ export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * toCssStyles({ 'font-weight: bold': true, 'margin-top: 4px': true }); -> 'font-weight: bold; margin-top: 4px;'
  * toCssStyles({ 'font-weight: bold': true, 'color: red': false, 'margin-left: 2px': true }); -> 'font-weight: bold; margin-left: 2px;'
+ * toCssStyles({ 0: 'font-weight: bold', 'margin-left: 2px;': true }); -> 'font-weight: bold; margin-left: 2px;'
  */
 export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -2953,10 +2978,14 @@ export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
     const styles: string[] = [];
 
     for (const [key, value] of Object.entries(obj)) {
-        // Use key as style if value is truthy
-        if (value) {
-            const style = finish(key, ";");
-            styles.push(style);
+        // Numeric-like keys (Arr.php:1237's is_numeric($class)) push the
+        // VALUE as the style; other keys push the key when truthy.
+        if (!isNaN(Number(key))) {
+            if (isString(value)) {
+                styles.push(finish(value, ";"));
+            }
+        } else if (value) {
+            styles.push(finish(key, ";"));
         }
     }
 
