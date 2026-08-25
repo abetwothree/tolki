@@ -1217,11 +1217,25 @@ describe("Data", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const result = Data.dataShift(obj);
             expect(result).toBe(1);
+            expect(obj).toEqual({ b: 2, c: 3 });
         });
         it("is array", () => {
             const arr = [1, 2, 3, 4, 5];
             const result = Data.dataShift(arr);
             expect(result).toBe(1);
+            expect(arr).toEqual([2, 3, 4, 5]);
+        });
+        it("throws when the shift count is negative, for either backing", () => {
+            expect(() => Data.dataShift([1], -1)).toThrow(
+                "Number of shifted items may not be less than zero.",
+            );
+            expect(() => Data.dataShift({ a: 1 }, -1)).toThrow(
+                "Number of shifted items may not be less than zero.",
+            );
+        });
+        it("returns null when shifting an empty source, for any count and either backing", () => {
+            expect(Data.dataShift([], 3)).toBeNull();
+            expect(Data.dataShift({}, 3)).toBeNull();
         });
     });
 
@@ -1265,12 +1279,19 @@ describe("Data", () => {
 
     describe("dataUnshift", () => {
         it("is object", () => {
-            const result = Data.dataUnshift({ b: 2 }, { a: 1 }, { d: "house" });
+            const source = { b: 2 };
+            const result = Data.dataUnshift(source, { a: 1 }, { d: "house" });
             expect(result).toEqual({
                 a: 1,
                 d: "house",
                 b: 2,
             });
+            expect(source).toEqual({ a: 1, d: "house", b: 2 });
+        });
+        it("mutates the source array in place, like array_unshift", () => {
+            const data = [2];
+            Data.dataUnshift(data, 1);
+            expect(data).toEqual([1, 2]);
         });
         it("is array", () => {
             const expected = [
@@ -1969,11 +1990,13 @@ describe("Data", () => {
             const arr = [1, 2, 3];
             const result = Data.dataPop(arr, 2);
             expect(result).toEqual([3, 2]);
+            expect(arr).toEqual([1]);
 
             // Test with default count (1)
             const arr2 = [10, 20, 30];
             const result2 = Data.dataPop(arr2);
             expect(result2).toBe(30);
+            expect(arr2).toEqual([10, 20]);
         });
     });
 

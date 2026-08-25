@@ -1511,11 +1511,15 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Get and remove the first N items from the data.
+ * Get and remove the first N items from the data, mutating it in place.
+ * Delegates to arrShift/objShift, which agree on the mutation contract:
+ * negative count throws, an empty source returns null for any count, a
+ * count of zero returns an empty array, then items are shifted off.
  *
- * @param items - The data to shift from
+ * @param items - The data to shift from. Mutated in place.
  * @param count - Number of items to shift
- * @returns The shifted items
+ * @returns The shifted item(s), or null if the source had nothing to shift.
+ * @throws Error if count is negative.
  */
 export function dataShift<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
@@ -1599,11 +1603,12 @@ export function dataPush<TValue, TKey extends PropertyKey, TNewValues>(
 }
 
 /**
- * Prepend one or more items to the beginning of the data items
+ * Prepend one or more items to the beginning of the data items, mutating
+ * it in place. Delegates to arrUnshift/objUnshift, which both mutate.
  *
- * @param data - The data to unshift to
+ * @param data - The data to unshift to. Mutated in place.
  * @param items - The items to prepend
- * @returns Data with prepended items
+ * @returns The same data reference, mutated.
  */
 export function dataUnshift<TValue>(
     data: TValue[],
@@ -2536,11 +2541,13 @@ export function dataPluck<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Get and remove the last N items from the data
+ * Get and remove the last N items from the data, mutating it in place.
+ * Delegates to arrPop/objPop, which both mutate and agree on returning the
+ * popped item(s) in reverse order for a count greater than one.
  *
- * @param data - The data to pop from
+ * @param data - The data to pop from. Mutated in place.
  * @param count - The number of items to pop
- * @returns Data with the last N items removed
+ * @returns The popped item(s), or null if the source had nothing to pop.
  */
 export function dataPop<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
