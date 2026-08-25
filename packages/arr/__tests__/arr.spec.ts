@@ -3788,6 +3788,21 @@ describe("Arr", () => {
                 { name: "Dave", age: 10, meta: { key: 3 } },
             ]);
         });
+
+        it("runs a comparator descriptor exactly as authored, without negation", () => {
+            // Mirrors Collection::sortByDesc + sortByMany's callable branch:
+            // the force-to-descending rewrite only touches key and tuple
+            // descriptors — a comparator inside the descriptor array is never
+            // reversed, so an ascending-by-age comparator yields ascending
+            // ages even under sortDesc (ties keep their original order;
+            // Array.prototype.sort is stable).
+            expect(Arr.sortDesc(unsorted, [(a, b) => a.age - b.age])).toEqual([
+                { name: "John", age: 8, meta: { key: 3 } },
+                { name: "John", age: 8, meta: { key: 2 } },
+                { name: "John", age: 10, meta: { key: 5 } },
+                { name: "Dave", age: 10, meta: { key: 3 } },
+            ]);
+        });
     });
 
     describe("toCssClasses", () => {
