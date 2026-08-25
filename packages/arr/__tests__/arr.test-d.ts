@@ -2983,13 +2983,20 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<UndotValue<string>[]>();
             });
 
-            it("non-numeric keys with dots still produce UndotValue", () => {
-                const result = Arr.undot({
+            it("rejects a key whose first segment is not numeric (Task 9 review, Important 2)", () => {
+                // Arr.undot's TKey is constrained to UndotArrayKey: a bare
+                // numeric index, or a dot-path whose first segment is
+                // numeric. undotExpandArray drops any key that fails this
+                // at runtime with no diagnostic (it used to silently
+                // return [] for an object keyed like this), so the type
+                // now rejects it at the call site instead. Use Obj.undot
+                // for a map with genuinely string-first keys.
+                Arr.undot({
+                    // @ts-expect-error -- "foo" is not a UndotArrayKey
                     foo: "x",
                     "1.bar": "y",
                     "2": "z",
                 });
-                expectTypeOf(result).toEqualTypeOf<UndotValue<string>[]>();
             });
         });
 

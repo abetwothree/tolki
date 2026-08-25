@@ -28,6 +28,7 @@ import type {
     PluckValue,
     SortSpec,
     TruthyArray,
+    UndotArrayKey,
     UndotResult,
 } from "@tolki/types";
 import {
@@ -482,32 +483,48 @@ export function dot<TValue>(
 /**
  * Convert a flatten "dot" notation object into an expanded array.
  *
- * Every key here must resolve to purely numeric dot segments (see
- * `undotExpandArray` in `@tolki/path`) — any key with a non-numeric segment
- * (e.g. `"item.0"`) is dropped entirely, since it cannot be represented by
- * an array. Because of that, every container this builds is a genuine
- * array from the moment it is created; there is no intermediate
- * plain-object stage the way `Obj.undot` has. Decision D3 — "a container
- * whose own keys are the consecutive integer sequence `0..n-1` is a real
- * list" — therefore already holds here by construction, with nothing extra
- * to implement; `Obj.undot` in `@tolki/obj` applies the identical rule at
- * the point where it *does* need to promote an object into a list, so the
- * two cannot drift. PHP-verified reasoning: running `Arr::set`'s algorithm
- * over dotted keys auto-vivifies plain PHP arrays as it descends, and a PHP
- * array whose keys land on `0..n-1` is exactly what `array_is_list` (and
- * therefore `json_encode`) renders as a JSON array
- * (docs/php-parity/task-09-paths.json, "Arr::undot — integer segments
- * rebuild a list").
+ * **Correction (Task 9 review):** an earlier version of this JSDoc claimed
+ * decision D3 "already holds here by construction, with nothing extra to
+ * implement." That was wrong. `undotExpandArray` (in `@tolki/path`) drops
+ * any key whose segments aren't *all* numeric — so
+ * `Arr.undot({"user.languages.0": "PHP", "user.languages.1": "C#",
+ * "user.name": "Taylor"})` used to silently return `[]`, discarding every
+ * entry with no diagnostic, where real `Arr::undot` (and this package's own
+ * `Obj.undot`) correctly returns
+ * `{"user":{"languages":["PHP","C#"],"name":"Taylor"}}`.
  *
- * @param map - The flat object with dot-notated keys.
+ * The fix is at the type level: `TKey` is now constrained to
+ * {@link UndotArrayKey} (a bare numeric index, or a dot-path whose *first*
+ * segment is numeric), so a map like the one above no longer compiles —
+ * silent data loss becomes a compile error. Rationale: `Arr.undot` is the
+ * inverse of `Arr.dot` over lists specifically; `Obj.undot` already covers
+ * PHP's general associative case (including decision D3's list-rebuilding
+ * rule) correctly; between the two, PHP's `Arr::undot` is fully covered.
+ * Use `Obj.undot` for any map whose keys aren't numeric-first.
+ *
+ * For the inputs this function *does* accept, every container it builds is
+ * a genuine array from the moment it's created (`undotExpandArray`
+ * requires every segment to be numeric before it will build anything), so
+ * decision D3 ("a container whose own keys are the consecutive integer
+ * sequence `0..n-1` is a real list") holds trivially for them — there is no
+ * intermediate plain-object stage to promote the way `Obj.undot`'s
+ * `promoteConsecutiveIntegerContainers` needs. PHP-verified reasoning for
+ * D3 itself: running `Arr::set`'s algorithm over dotted keys auto-vivifies
+ * plain PHP arrays as it descends, and a PHP array whose keys land on
+ * `0..n-1` is exactly what `array_is_list` (and therefore `json_encode`)
+ * renders as a JSON array (docs/php-parity/task-09-paths.json, "Arr::undot
+ * — integer segments rebuild a list").
+ *
+ * @param map - The flat object with numeric-first dot-notated keys.
  * @returns A new multi-dimensional array.
  *
  * @example
  *
  * undot({ '0': 'a', '1.0': 'b', '1.1': 'c' }); -> ['a', ['b', 'c']]
  * undot({ '0.0': 'PHP', '0.1': 'C#', '1': 'Taylor' }); -> [['PHP', 'C#'], 'Taylor']
+ * // undot({ "user.languages.0": "PHP" }); -> does not compile; use Obj.undot
  */
-export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
+export function undot<TValue, TKey extends UndotArrayKey = number>(
     map: Record<TKey, TValue>,
 ): UndotResult<TKey, TValue> {
     return undotExpandArray(map) as UndotResult<TKey, TValue>;

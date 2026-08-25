@@ -1826,6 +1826,19 @@ describe("Path Functions", () => {
         it("returns false for a dot-free string key that is not literally present", () => {
             expect(Path.hasMixed({ foo: 1 }, "bar")).toBe(false);
         });
+
+        it("does not leak Array.prototype through the literal-key fast path on arrays (X26 regression)", () => {
+            // The literal-key-first check must only apply to plain objects.
+            // `in` climbs the prototype chain, and Array.prototype owns/
+            // inherits "length" and "toString" -- keys no PHP array could
+            // ever have. Arrays must fall straight through to the existing
+            // bounds-checked getNestedValue traversal instead.
+            expect(Path.hasMixed([1, 2], "length")).toBe(false);
+            expect(Path.hasMixed([1, 2], "toString")).toBe(false);
+            // A plain object is unaffected -- it still gets the literal-key
+            // fast path.
+            expect(Path.hasMixed({ length: "x" }, "length")).toBe(true);
+        });
     });
 
     describe("getObjectValue", () => {
@@ -1885,6 +1898,17 @@ describe("Path Functions", () => {
                     "products.desk",
                 ),
             ).toEqual({ price: 100 });
+        });
+
+        it("agrees with hasObjectKey on an undefined-valued literal dotted key (Task 9 review, Important 3)", () => {
+            // Presence, not definedness, decides: the literal "a.b" key
+            // must be treated as found even though its stored value is
+            // undefined, resolving to the default rather than falling
+            // through to traverse a -> b (which would incorrectly return
+            // 2).
+            const data = { "a.b": undefined, a: { b: 2 } };
+            expect(Path.getObjectValue(data, "a.b", "default")).toBe("default");
+            expect(Path.hasObjectKey(data, "a.b")).toBe(true);
         });
     });
 

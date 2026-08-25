@@ -454,8 +454,31 @@ export function dot<TValue, TKey extends PropertyKey = PropertyKey>(
  * rebuild a list"). The root of the result always stays a plain object,
  * matching this function's `Record` return type, even when its own
  * top-level keys happen to be `0..n-1` — see `undotExpandObject` in
- * `@tolki/path`, which `Arr.undot` shares this exact rule with so the two
- * cannot drift.
+ * `@tolki/path`, where the promotion logic (`promoteConsecutiveIntegerContainers`)
+ * actually lives.
+ *
+ * **Correction (Task 9 review, Important 2):** an earlier version of this
+ * JSDoc claimed `Arr.undot` "shares this exact rule with" `Obj.undot`. It
+ * does not, and cannot: `Arr.undot`'s `undotExpandArray` only ever builds
+ * arrays, so a mixed key like `"user.languages.0"` (string-first segment)
+ * silently discarded the entire input rather than falling back to an
+ * object. `Arr.undot`'s parameter type is now constrained to
+ * `UndotArrayKey` so that shape of input no longer compiles at all — use
+ * `Obj.undot` for it, as this JSDoc's own example does.
+ *
+ * **Caveat (JS vs. PHP array key order):** `array_is_list` in PHP is
+ * insertion-order-sensitive — `['1'=>'x','0'=>'y']` (key `1` inserted
+ * before key `0`) is *not* a list, since iterating it visits `1` before
+ * `0`. JS objects do not preserve that: `Object.keys` always enumerates
+ * integer-like keys in ascending numeric order regardless of insertion
+ * order. So `Obj.undot({"a.1":"x","a.0":"y"})` promotes to
+ * `{a: ["y", "x"]}` (list, keys read back out in `0,1` order) where real
+ * PHP's `Arr::undot` on the equivalent input gives
+ * `{"a":{"1":"x","0":"y"}}` (not a list — insertion order was `1` then
+ * `0`). This is a genuine, unrepresentable-in-JS divergence from PHP for
+ * out-of-order numeric insertion, not a bug: JS has no ordinary object
+ * shape that preserves "these look like array indices, but were inserted
+ * out of order" the way a PHP array can.
  *
  * @param map - The flat object with dot-notated keys.
  * @returns A new multi-dimensional object.
@@ -1146,7 +1169,12 @@ export function from(items: unknown): Record<string, unknown> {
  * Mirrors `Arr::get`, which calls `Arr::exists` **before** splitting the
  * key on "." (`Arr.php:497`) — a literal key wins over path traversal even
  * when it contains dots (PHP-verified: docs/php-parity/task-09-paths.json,
- * "Arr::get — literal dotted key wins").
+ * "Arr::get — literal dotted key wins"). `Arr::exists` is a *presence*
+ * check (`array_key_exists`, not `isset`), so a literal key whose value is
+ * `undefined` still counts as found and does not fall through to dot-path
+ * traversal — it resolves through this function's existing "found but
+ * undefined -> default" convention instead, keeping `get` and `has` in
+ * agreement about which key is found (Task 9 review, Important 3).
  *
  * @param  data - The object to get the item from.
  * @param  key - The key or dot-notated path of the item to get.
@@ -1159,6 +1187,7 @@ export function from(items: unknown): Record<string, unknown> {
  * get({ user: { name: 'John' } }, 'user.name'); -> 'John'
  * get({ name: 'John' }, 'email', 'default'); -> 'default'
  * get({ "products.desk": { price: 100 } }, 'products.desk'); -> { price: 100 } (literal key wins over traversal)
+ * get({ "a.b": undefined, a: { b: 2 } }, 'a.b', 'default'); -> 'default' (literal "a.b" is found but undefined; does not fall through to a.b traversal)
  */
 export function get<
     TValue,
@@ -1183,10 +1212,23 @@ export function get<
             : defaultValue;
     }
 
-    // The literal key wins even when it contains dots.
-    const literalValue = (object as Record<string, unknown>)[String(key)];
-    if (!isUndefined(literalValue)) {
-        return literalValue as TDefault;
+    // The literal key wins even when it contains dots. Presence -- not
+    // definedness -- decides: a literal key whose stored value is
+    // `undefined` is still "found" (via `in`, matching `has`'s check) and
+    // falls straight to the "found but undefined -> default" convention
+    // below, rather than falling through to dot-path traversal. Before
+    // this fix, `get({"a.b": undefined, a: {b: 2}}, "a.b")` returned `2`
+    // (it fell through and traversed "a" -> "b") while `has` on the same
+    // input correctly said the literal key existed -- the two disagreed
+    // (Task 9 review, Important 3).
+    const keyStr = String(key);
+    if (keyStr in (object as Record<string, unknown>)) {
+        const literalValue = (object as Record<string, unknown>)[keyStr];
+        return !isUndefined(literalValue)
+            ? (literalValue as TDefault)
+            : isFunction(defaultValue)
+              ? (defaultValue as () => TDefault)()
+              : defaultValue;
     }
 
     // A simple (dot-free) or numeric key that isn't present literally can't

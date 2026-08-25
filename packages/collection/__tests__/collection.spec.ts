@@ -1611,7 +1611,7 @@ describe("Collection", () => {
             expect(collection.get(5, "default")).toBe("default");
         });
 
-        it("resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+        it("get() resolves a literal dotted key before traversing, through the object backing (X26)", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::get
             // — literal dotted key wins".
             const collection = collect({ "products.desk": { price: 100 } });
@@ -2216,7 +2216,7 @@ describe("Collection", () => {
             expect(collection.has([0, 5])).toBe(false);
         });
 
-        it("resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+        it("has() resolves a literal dotted key before traversing, through the object backing (X26)", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
             // — literal dotted key".
             const collection = collect({ "products.desk": { price: 100 } });
@@ -2228,6 +2228,12 @@ describe("Collection", () => {
             // — numeric key".
             const collection = collect({ 123: "x" });
             expect(collection.has(123)).toBe(true);
+        });
+
+        it("does not leak Array.prototype through the array backing (X26 regression)", () => {
+            const collection = collect([1, 2]);
+            expect(collection.has("length")).toBe(false);
+            expect(collection.has("toString")).toBe(false);
         });
     });
 

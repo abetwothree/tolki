@@ -1,5 +1,6 @@
 import * as Arr from "@tolki/arr";
 import { SortDirection } from "@tolki/enum";
+import type { UndotArrayKey } from "@tolki/types";
 import { isArray } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
 
@@ -63,6 +64,15 @@ describe("Arr", () => {
             expect(Arr.add([], "user.name", "John")).toEqual([
                 { user: { name: "John" } },
             ]);
+        });
+
+        it("leaves the array unchanged for an Array.prototype key (X26 regression)", () => {
+            // hasMixed correctly reports "length" as absent (not leaked via
+            // the prototype chain), so add() attempts setMixed(..., "length",
+            // ...) — which itself refuses to add a non-numeric first segment
+            // to a non-empty array (a separate, pre-existing guard), so the
+            // net result is still a no-op, but reached for the right reason.
+            expect(Arr.add(["a", "b"], "length", "X")).toEqual(["a", "b"]);
         });
     });
 
@@ -1011,6 +1021,15 @@ describe("Arr", () => {
             expect(Arr.get(["a"], 9)).toBeNull();
             expect(Arr.get(null as unknown as unknown[], 1)).toBeNull();
         });
+
+        it("agrees with has() on Array.prototype keys (X26 regression)", () => {
+            // Arr.get never leaked Array.prototype (it routes through
+            // getMixedValue, unaffected by hasMixed's bug), but Arr.has did
+            // until fixed. Pin both together so a future change can't make
+            // them disagree again.
+            expect(Arr.get([1, 2], "length")).toBeNull();
+            expect(Arr.has([1, 2], "length")).toBe(false);
+        });
     });
 
     describe("has", () => {
@@ -1076,6 +1095,18 @@ describe("Arr", () => {
             expect(Arr.has(["", "some"], [""])).toBe(false);
             expect(Arr.has([], "")).toBe(false);
             expect(Arr.has([], [""])).toBe(false);
+        });
+
+        it("does not leak Array.prototype through the literal-key fast path (X26 regression)", () => {
+            // hasMixed's literal-key-first check (`keyStr in data`) must not
+            // apply to arrays: `in` climbs the prototype chain, and
+            // Array.prototype owns/inherits "length" and "toString" — keys
+            // no PHP array could ever have. Both must stay false, matching
+            // real PHP (no such Arr::has probe needed: PHP arrays simply
+            // cannot have these keys) and matching Arr.get's null for the
+            // same lookups (see the "get" describe block below).
+            expect(Arr.has([1, 2], "length")).toBe(false);
+            expect(Arr.has([1, 2], "toString")).toBe(false);
         });
     });
 
@@ -1616,8 +1647,16 @@ describe("Arr", () => {
                 ["b", ["c"]],
             ]);
 
-            // Ignore non-numeric segments
-            const undotted = Arr.undot({ foo: "x", "1.bar": "y", "2": "z" });
+            // Ignore non-numeric segments. "foo" no longer satisfies
+            // UndotArrayKey (Task 9 review, Important 2) -- cast through
+            // `unknown` to deliberately exercise the runtime defensive
+            // behavior against a key shape the type system now rejects at
+            // the call site (e.g. data arriving from an untyped source).
+            const undotted = Arr.undot({
+                foo: "x",
+                "1.bar": "y",
+                "2": "z",
+            } as unknown as Record<UndotArrayKey, string>);
             expect(undotted.length).toBe(3);
             expect(undotted[0]).toBeUndefined();
             expect(undotted[1]).toBeUndefined();
@@ -1642,14 +1681,23 @@ describe("Arr", () => {
             expect(expanded).toEqual([["deep"], "shallow"]);
         });
 
-        it("rebuilds a list from consecutive integer segments starting at 0 (decision D3)", () => {
-            // Arr.undot's paths are already numeric-only end to end, so
-            // every container it ever builds is a real array by
-            // construction — there is no plain-object intermediate stage
-            // to "promote" the way Obj.undot needs. This pins that the
-            // rule already holds here, verified against
-            // docs/php-parity/task-09-paths.json ("Arr::undot — integer
-            // segments rebuild a list") adapted to array-only paths.
+        it("builds real arrays for numeric-only paths (not a decision-D3 pin — see note)", () => {
+            // Correction (Task 9 review, Important 2): this does NOT pin
+            // decision D3. undotExpandArray never calls
+            // promoteConsecutiveIntegerContainers -- it drops any key
+            // whose segments aren't all numeric and otherwise builds real
+            // arrays directly, for every input, regardless of whether the
+            // keys happen to be consecutive from 0. Deleting
+            // promoteConsecutiveIntegerContainers does not fail this test.
+            // It only pins that Arr.undot's numeric-only construction
+            // already yields real nested arrays for this shape of input --
+            // an invariant independent of D3. The actual D3 pin (a
+            // container's own keys being promoted to a list specifically
+            // *because* they are 0..n-1) lives in obj.spec.ts ("Obj >
+            // undot > rebuilds a list...") and path.spec.ts
+            // ("undotExpandObject > rebuilds a list..."), both verified by
+            // reverting promoteConsecutiveIntegerContainers and confirming
+            // they fail.
             expect(
                 Arr.undot({
                     "0.0": "PHP",

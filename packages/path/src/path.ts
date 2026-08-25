@@ -1033,6 +1033,19 @@ export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
  * the caller supplied directly — so this only touches containers the
  * expansion itself created, walked deepest-first so a child is promoted
  * before its parent is inspected.
+ *
+ * Caveat (JS vs. PHP key order): PHP's `array_is_list` is
+ * insertion-order-sensitive, but this check uses `Object.keys`, which
+ * always enumerates integer-like keys in ascending numeric order
+ * regardless of insertion order. So a container built from
+ * `{"a.1":"x","a.0":"y"}` (key `1` inserted before key `0`) promotes to
+ * `["y","x"]` here, where real PHP -- whose iteration order is insertion
+ * order -- would *not* treat the equivalent array as a list at all
+ * (`array_is_list` requires the keys to be visited as `0,1,...` in
+ * iteration order). This is an unrepresentable-in-JS divergence for
+ * out-of-order numeric insertion specifically, not a bug to fix: no plain
+ * JS object shape preserves "these look like array indices, but arrived
+ * out of order" the way a PHP array can.
  */
 function promoteConsecutiveIntegerContainers(
     results: Record<string, unknown>,
@@ -1633,7 +1646,10 @@ export function setMixedImmutable<TValue>(
  * when it contains dots, and a numeric key is checked against a plain
  * object the same way a string key is, not only against arrays
  * (PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has — numeric
- * key").
+ * key"). The literal-key fast path only applies to plain objects: a JS
+ * array's `in` operator climbs `Array.prototype` ("length", "toString",
+ * ...), which no PHP array could ever have as a key, so arrays always fall
+ * through to the existing bounds-checked traversal below instead.
  *
  * @param data - The data to check.
  * @param key - The path to check.
@@ -1682,13 +1698,21 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
 
     const keyStr = key.toString();
 
-    // The literal key wins even when it contains dots.
-    if (keyStr in (data as Record<string, unknown>)) {
-        return true;
-    }
+    // The literal key wins even when it contains dots — but only for plain
+    // objects. Arrays only ever have numeric keys in this data model, and
+    // `in` climbs the prototype chain (Array.prototype's "length",
+    // "toString", etc.), which would wrongly report existence for keys no
+    // PHP array could ever have. Arrays fall straight through to the
+    // bounds-checked getNestedValue below, exactly as they did before this
+    // literal-key fast path was added.
+    if (isObject(data)) {
+        if (keyStr in (data as Record<string, unknown>)) {
+            return true;
+        }
 
-    if (!keyStr.includes(".")) {
-        return false;
+        if (!keyStr.includes(".")) {
+            return false;
+        }
     }
 
     // Use getNestedValue to check existence
@@ -1704,7 +1728,11 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
  * Mirrors `Arr::get`, which calls `Arr::exists` **before** splitting the
  * key on "." (`Arr.php:497`) — a literal key wins over path traversal even
  * when it contains dots (PHP-verified: docs/php-parity/task-09-paths.json,
- * "Arr::get — literal dotted key wins").
+ * "Arr::get — literal dotted key wins"). `Arr::exists` is a *presence*
+ * check, not `isset` -- a literal key whose value is `undefined` still
+ * counts as found and resolves to `defaultValue` rather than falling
+ * through to dot-path traversal, keeping this in agreement with
+ * `hasObjectKey` about which key is found (Task 9 review, Important 3).
  *
  * @param obj - The object to get the value from.
  * @param key - The key or dot-notated path.
@@ -1737,10 +1765,19 @@ export function getObjectValue<
 
     const keyStr = String(key);
 
-    // The literal key wins even when it contains dots.
-    const literalValue = (obj as Record<string, unknown>)[keyStr];
-    if (!isUndefined(literalValue)) {
-        return literalValue as TReturn;
+    // The literal key wins even when it contains dots. Presence -- not
+    // definedness -- decides, matching hasObjectKey's `in`-based check: a
+    // literal key whose value is `undefined` is still "found" and resolves
+    // to the default here rather than falling through to try dot-path
+    // traversal (Task 9 review, Important 3 -- the same fix applied to
+    // Obj.get, extended to this shared helper for consistency with
+    // hasObjectKey).
+    if (keyStr in (obj as Record<string, unknown>)) {
+        const literalValue = (obj as Record<string, unknown>)[keyStr];
+
+        return !isUndefined(literalValue)
+            ? (literalValue as TReturn)
+            : resolveDefault();
     }
 
     if (!keyStr.includes(".")) {

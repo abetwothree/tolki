@@ -65,6 +65,27 @@ export type UndotResult<
       : TValue[];
 
 /**
+ * Key shape accepted by `Arr.undot`: either a bare numeric index (`0`,
+ * `"0"`) or a dot-path whose first segment is numeric (`"0.1"`,
+ * `"12.foo"`). `Arr.undot` only ever builds real arrays
+ * (`undotExpandArray` requires every segment to be numeric, or the whole
+ * key is dropped) -- there is no object fallback the way `Obj.undot` has.
+ * A key like `"user.languages.0"`, whose first segment is a string, cannot
+ * be represented by an array at all, so it used to be silently discarded
+ * at runtime with no diagnostic. Constraining the parameter type to this
+ * shape turns that into a compile error instead: pass a genuinely
+ * string-keyed map and TypeScript rejects it before the data is ever lost.
+ * `Obj.undot` (which does support string segments) is the correct choice
+ * for that shape of data; the two functions together cover PHP's
+ * `Arr::undot`.
+ *
+ * @example
+ * UndotArrayKey // matches: 0, "0", "1.2", "3.foo.bar"
+ * UndotArrayKey // rejects: "foo", "user.languages.0"
+ */
+export type UndotArrayKey = number | `${number}` | `${number}.${string}`;
+
+/**
  * Helper type to check if an array is mutable (not readonly)
  */
 type IsMutableArray<T> = T extends readonly unknown[]

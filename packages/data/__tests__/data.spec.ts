@@ -463,7 +463,7 @@ describe("Data", () => {
             expect(Data.dataExists([1, 2, 3], 5)).toBe(false);
         });
 
-        it("resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+        it("dataExists resolves a literal dotted key before traversing, through the object backing (X26)", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::exists
             // — literal dotted key".
             expect(
@@ -721,7 +721,7 @@ describe("Data", () => {
             expect(result).toBe(2);
         });
 
-        it("resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+        it("dataGet resolves a literal dotted key before traversing, through the object backing (X26)", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::get
             // — literal dotted key wins".
             const result = Data.dataGet(
@@ -743,7 +743,7 @@ describe("Data", () => {
             expect(result).toBe(true);
         });
 
-        it("resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+        it("dataHas resolves a literal dotted key before traversing, through the object backing (X26)", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
             // — literal dotted key".
             expect(
@@ -758,6 +758,11 @@ describe("Data", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
             // — numeric key".
             expect(Data.dataHas({ 123: "x" }, 123)).toBe(true);
+        });
+
+        it("does not leak Array.prototype through the array backing (X26 regression)", () => {
+            expect(Data.dataHas([1, 2], "length")).toBe(false);
+            expect(Data.dataHas([1, 2], "toString")).toBe(false);
         });
     });
 

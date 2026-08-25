@@ -1002,6 +1002,18 @@ describe("Obj", () => {
                 price: 100,
             });
         });
+
+        it("agrees with has() on an undefined-valued literal dotted key (Task 9 review, Important 3)", () => {
+            // Arr::exists uses array_key_exists (presence), not isset --
+            // the literal "a.b" key must be treated as found even though
+            // its stored value is undefined, so this must NOT fall through
+            // to traversing a -> b (which would incorrectly return 2).
+            // Before this fix, get returned 2 here while has correctly
+            // said the literal key existed -- the two disagreed.
+            const data = { "a.b": undefined, a: { b: 2 } };
+            expect(Obj.get(data, "a.b", "default")).toBe("default");
+            expect(Obj.has(data, "a.b")).toBe(true);
+        });
     });
 
     describe("has", () => {
