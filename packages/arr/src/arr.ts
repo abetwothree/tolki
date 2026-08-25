@@ -2139,19 +2139,19 @@ export function mapWithKeys<
  * mapSpread([['John', 25], ['Jane', 30]], (name, age) => `${name} is ${age}`); -> ['John is 25', 'Jane is 30']
  */
 export function mapSpread<T1, TMapReturn>(
-    data: [T1][],
+    data: ArrayItems<readonly [T1]>,
     callback: (arg1: T1, index: number) => TMapReturn,
 ): TMapReturn[];
 export function mapSpread<T1, T2, TMapReturn>(
-    data: [T1, T2][],
+    data: ArrayItems<readonly [T1, T2]>,
     callback: (arg1: T1, arg2: T2, index: number) => TMapReturn,
 ): TMapReturn[];
 export function mapSpread<T1, T2, T3, TMapReturn>(
-    data: [T1, T2, T3][],
+    data: ArrayItems<readonly [T1, T2, T3]>,
     callback: (arg1: T1, arg2: T2, arg3: T3, index: number) => TMapReturn,
 ): TMapReturn[];
 export function mapSpread<T1, T2, T3, T4, TMapReturn>(
-    data: [T1, T2, T3, T4][],
+    data: ArrayItems<readonly [T1, T2, T3, T4]>,
     callback: (
         arg1: T1,
         arg2: T2,
@@ -2161,7 +2161,7 @@ export function mapSpread<T1, T2, T3, T4, TMapReturn>(
     ) => TMapReturn,
 ): TMapReturn[];
 export function mapSpread<T1, T2, T3, T4, T5, TMapReturn>(
-    data: [T1, T2, T3, T4, T5][],
+    data: ArrayItems<readonly [T1, T2, T3, T4, T5]>,
     callback: (
         arg1: T1,
         arg2: T2,

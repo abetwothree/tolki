@@ -190,5 +190,29 @@ describe("arr mapping type tests", () => {
             );
             expectTypeOf(result).toEqualTypeOf<number[]>();
         });
+
+        it("spreads readonly tuples from an as const array", () => {
+            const data = [
+                [1, "a"],
+                [2, "b"],
+            ] as const;
+            const result = Arr.mapSpread(data, (num, str, index) => {
+                expectTypeOf(num).toEqualTypeOf<1 | 2>();
+                expectTypeOf(str).toEqualTypeOf<"a" | "b">();
+                expectTypeOf(index).toEqualTypeOf<number>();
+                return `${num}-${str}`;
+            });
+            expectTypeOf(result).toEqualTypeOf<string[]>();
+        });
+
+        it("spreads a readonly array of readonly 2-tuples", () => {
+            const data: readonly (readonly [number, string])[] = [[1, "a"]];
+            const result = Arr.mapSpread(data, (num, str) => {
+                expectTypeOf(num).toEqualTypeOf<number>();
+                expectTypeOf(str).toEqualTypeOf<string>();
+                return num;
+            });
+            expectTypeOf(result).toEqualTypeOf<number[]>();
+        });
     });
 });
