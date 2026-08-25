@@ -2692,14 +2692,58 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
 }
 
 /**
+ * Whether `key` is a canonical non-negative integer string ("0", "1",
+ * "23", but not "01", "-1", "1.5"). This is both the class of key the JS
+ * engine itself always sorts ahead of string keys (in ascending numeric
+ * order, regardless of insertion order) and the class of key PHP treats
+ * as an integer array key — the one `array_splice` renumbers. String keys
+ * are left untouched by both.
+ */
+function isIntegerLikeKey(key: string): boolean {
+    return /^(0|[1-9]\d*)$/.test(key);
+}
+
+/**
+ * Renumber the integer-like keys in `entries` to a fresh 0-based sequence,
+ * in the order they appear in `entries`; string keys pass through
+ * unchanged. Mirrors `array_splice`'s "keys in input are not preserved for
+ * numeric keys" rule, applied independently to the remainder and to the
+ * removed portion (each starts its own count at 0), matching the
+ * `array_splice([10=>a,20=>b,30=>c], 1, 1)` probe: remaining `["a","c"]`,
+ * cut `["b"]` — both reindexed from 0, not from the original keys.
+ */
+function reindexIntegerKeys<TValue>(
+    entries: [string, TValue][],
+): [string, TValue][] {
+    let nextIndex = 0;
+
+    return entries.map(([key, value]) => {
+        if (isIntegerLikeKey(key)) {
+            return [String(nextIndex++), value] as [string, TValue];
+        }
+
+        return [key, value] as [string, TValue];
+    });
+}
+
+/**
  * Splice a portion of the underlying object, mutating it in place, like
  * PHP's array_splice.
  *
- * Unlike `arr.splice` (whose backing array_splice reindexes purely numeric
- * keys), this operates on a plain object: every surviving key — on both the
- * remainder and the removed portion — keeps the exact key it had before the
- * splice. PHP-verified: `array_splice(["x"=>1,"y"=>2,"z"=>3], 1, 1)` leaves
- * `{"x":1,"z":3}` and returns `{"y":2}`.
+ * String keys keep the exact key they had before the splice, on both the
+ * remainder and the removed portion — PHP-verified:
+ * `array_splice(["x"=>1,"y"=>2,"z"=>3], 1, 1)` leaves `{"x":1,"z":3}` and
+ * returns `{"y":2}`. Integer-like keys reindex from 0 instead, same as
+ * `arr.splice` (whose backing `array_splice` never preserves numeric
+ * keys) — PHP-verified: `array_splice([10=>a,20=>b,30=>c], 1, 1)` leaves
+ * `["a","c"]` (keys 0,1) and returns `["b"]` (key 0).
+ *
+ * Writes go through `defineKey` rather than plain assignment so a
+ * `__proto__` entry — whether already present in `data` or introduced by
+ * a replacement object — becomes a real own key instead of reparenting
+ * the target through the `__proto__` setter (see `AGENTS.md`'s
+ * prototype-pollution guidance and `isUnsafeKey`'s usage elsewhere in
+ * this file).
  *
  * @param data - The object to splice. Mutated in place.
  * @param offset - The starting index, by entry order (not by key)
@@ -2712,9 +2756,10 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
  *
  * splice({ x: 1, y: 2, z: 3 }, 1, 1); -> { y: 2 }, data is now { x: 1, z: 3 }
  * splice({ foo: 'f', baz: 'z' }, 1); -> { baz: 'z' }, data is now { foo: 'f' }
+ * splice({ 10: 'a', 20: 'b', 30: 'c' }, 1, 1); -> { 0: 'b' }, data is now { 0: 'a', 1: 'c' }
  */
 export function splice<TValue, TKey extends PropertyKey, TReplacements>(
-    data: Record<TKey, TValue> | unknown,
+    data: Record<TKey, TValue> | null | undefined,
     offset: number,
     length?: number,
     ...replacement: TReplacements[]
@@ -2729,6 +2774,11 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
 
     const start =
         offset < 0 ? Math.max(len + offset, 0) : Math.min(offset, len);
+    // Negative length clamping to "no removal" is JS Array.prototype.splice
+    // semantics, not PHP's — array_splice's negative length counts that
+    // many elements back from the end instead. This is a pre-existing,
+    // deliberate divergence (unchanged by this fix; no probe backs
+    // negative-length parity), kept rather than guessed at.
     const deleteCount = isUndefined(length)
         ? len - start
         : Math.max(0, Math.min(length, len - start));
@@ -2751,20 +2801,22 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
         delete obj[key];
     }
 
-    for (const [key, value] of [
+    const remainderEntries = reindexIntegerKeys([
         ...beforeEntries,
         ...replacementEntries,
         ...afterEntries,
-    ]) {
-        obj[key] = value;
+    ]);
+
+    for (const [key, value] of remainderEntries) {
+        defineKey(obj, key, value);
     }
 
-    const removed = {} as Record<TKey, TValue>;
-    for (const [key, value] of removedEntries) {
-        removed[key as TKey] = value;
+    const removed: Record<string, TValue> = {};
+    for (const [key, value] of reindexIntegerKeys(removedEntries)) {
+        defineKey(removed, key, value);
     }
 
-    return removed;
+    return removed as Record<TKey, TValue>;
 }
 
 /**

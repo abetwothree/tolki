@@ -2905,7 +2905,13 @@ describe("Obj", () => {
             expect(obj).toEqual({ a: 1, x: 10, y: 20, c: 3 });
         });
 
-        it("clamps a negative length to no removal", () => {
+        it("clamps a negative length to no removal (known divergence from PHP)", () => {
+            // Deliberate, pre-existing divergence: array_splice's negative
+            // length counts that many elements back from the end, but
+            // this clamps to "remove nothing" (JS Array.prototype.splice
+            // semantics, same as arr.splice's direct delegation to
+            // native splice). No probe backs PHP parity here — do not
+            // read this as verified parity.
             const obj = { a: 1, b: 2, c: 3 };
             const removed = Obj.splice(obj, 1, -1);
             expect(removed).toEqual({});
@@ -2924,6 +2930,74 @@ describe("Obj", () => {
             const removed = Obj.splice(obj, -1, 1);
             expect(removed).toEqual({ c: 3 });
             expect(obj).toEqual({ a: 1, b: 2 });
+        });
+
+        it("reindexes integer-like keys from 0, independently on the remainder and removed portion", () => {
+            // Important 2, PHP-verified (task-03-splice.json, probe 4):
+            // array_splice([10=>a,20=>b,30=>c], 1, 1) leaves ["a","c"]
+            // (keys 0,1) and returns ["b"] (key 0) — array_splice never
+            // preserves integer keys, only string keys. JS itself always
+            // sorts integer-like object keys ascending regardless of
+            // insertion order, so this is required for soundness, not
+            // just PHP parity: rebuilding with a positional insert would
+            // otherwise scramble against that automatic reordering.
+            const obj: Record<string, string> = { 10: "a", 20: "b", 30: "c" };
+            const removed = Obj.splice(obj, 1, 1);
+            expect(removed).toEqual({ 0: "b" });
+            expect(obj).toEqual({ 0: "a", 1: "c" });
+        });
+
+        it("leaves string keys alone while reindexing integer-like keys in the same splice", () => {
+            const obj: Record<string, string> = { 0: "n", x: "s", 1: "n2" };
+            // Object.entries already reorders this to n, n2, s (JS sorts
+            // integer-like keys ascending ahead of string keys) — offset
+            // 0 removes the first entry by that order, not by literal
+            // source order.
+            const removed = Obj.splice(obj, 0, 1);
+            expect(removed).toEqual({ 0: "n" });
+            expect(obj).toEqual({ 0: "n2", x: "s" });
+        });
+
+        it("does not reparent the object via a __proto__ entry (offset 0, the case that reproduces without the fix)", () => {
+            // Critical 1. JSON.parse produces a real own enumerable
+            // "__proto__" key (a literal `{ __proto__: ... }` would set
+            // the prototype instead and never reach this code path).
+            // offset 0 includes the __proto__ entry in the rebuild loop,
+            // which is exactly the case a plain `obj[key] = value`
+            // assignment reparents through the __proto__ setter.
+            const src = JSON.parse(
+                '{"a":1,"__proto__":{"polluted":true},"c":3}',
+            ) as Record<string, unknown>;
+            Obj.splice(src, 0, 1);
+            expect((src as { polluted?: boolean }).polluted).toBeUndefined();
+            expect(Object.getPrototypeOf(src)).toBe(Object.prototype);
+        });
+
+        it("does not reparent the object via a __proto__ entry (offset 1, the case that looked clean without the fix)", () => {
+            // offset 1 removes the __proto__ entry into `removed` instead
+            // of writing it back to `src` — this looked safe before the
+            // fix (src itself was untouched) but the *removed* object
+            // was still built with plain assignment, so it would have
+            // reparented `removed` instead. Assert both sides.
+            const src = JSON.parse(
+                '{"a":1,"__proto__":{"polluted":true},"c":3}',
+            ) as Record<string, unknown>;
+            const removed = Obj.splice(src, 1, 1) as Record<string, unknown>;
+            expect(Object.getPrototypeOf(src)).toBe(Object.prototype);
+            expect(
+                (removed as { polluted?: boolean }).polluted,
+            ).toBeUndefined();
+            expect(Object.getPrototypeOf(removed)).toBe(Object.prototype);
+        });
+
+        it("does not reparent the object via a __proto__ key on a replacement object", () => {
+            const src: Record<string, unknown> = { a: 1, b: 2 };
+            const replacement = JSON.parse(
+                '{"__proto__":{"polluted":true}}',
+            ) as Record<string, unknown>;
+            Obj.splice(src, 0, 0, replacement);
+            expect((src as { polluted?: boolean }).polluted).toBeUndefined();
+            expect(Object.getPrototypeOf(src)).toBe(Object.prototype);
         });
     });
 

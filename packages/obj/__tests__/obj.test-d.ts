@@ -53,4 +53,16 @@ describe("obj type tests", () => {
             expectTypeOf(result).toEqualTypeOf<unknown>();
         });
     });
+
+    describe("splice", () => {
+        it("infers the value type instead of collapsing to unknown", () => {
+            // Important 3 regression: splice's `data` parameter used to
+            // be `Record<TKey, TValue> | unknown`, which collapses to
+            // plain `unknown` — every argument matches it, so `TValue`
+            // never infers. Narrowed to `Record<TKey, TValue> | null |
+            // undefined`, matching what Task 2 did for `Obj.pop`.
+            const result = Obj.splice({ a: 1, b: 2, c: 3 }, 1, 1);
+            expectTypeOf(result.b).toEqualTypeOf<number>();
+        });
+    });
 });
