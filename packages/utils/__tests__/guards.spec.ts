@@ -472,6 +472,78 @@ describe("Utils", () => {
         });
     });
 
+    describe("isPhpNumeric", () => {
+        // Task 8 review round 1 (@tolki/arr, @tolki/obj): toCssClasses/
+        // toCssStyles used `!isNaN(Number(key))` to detect PHP's
+        // is_numeric($class), which disagreed with real PHP on four of
+        // five probed edge cases — PHP-verified
+        // (docs/php-parity/task-08-arr-parity.json, "is_numeric matrix
+        // for CSS-helper keys" and "Arr::toCssClasses with is_numeric
+        // edge-case keys").
+        it("returns true for real PHP-numeric strings", () => {
+            expect(Utils.isPhpNumeric("1e3")).toBe(true);
+            expect(Utils.isPhpNumeric(" 42")).toBe(true);
+            expect(Utils.isPhpNumeric("42 ")).toBe(true);
+            expect(Utils.isPhpNumeric(" 42 ")).toBe(true);
+            expect(Utils.isPhpNumeric("+42")).toBe(true);
+            expect(Utils.isPhpNumeric("-42")).toBe(true);
+            expect(Utils.isPhpNumeric("3.14")).toBe(true);
+            expect(Utils.isPhpNumeric("-3.14")).toBe(true);
+            expect(Utils.isPhpNumeric("1e-3")).toBe(true);
+            expect(Utils.isPhpNumeric("1E3")).toBe(true);
+            expect(Utils.isPhpNumeric("007")).toBe(true);
+            expect(Utils.isPhpNumeric("0")).toBe(true);
+            expect(Utils.isPhpNumeric("00")).toBe(true);
+            expect(Utils.isPhpNumeric(".5")).toBe(true);
+            expect(Utils.isPhpNumeric("5.")).toBe(true);
+            expect(Utils.isPhpNumeric("5.5e2")).toBe(true);
+            expect(Utils.isPhpNumeric("\t5")).toBe(true);
+            expect(Utils.isPhpNumeric("5\n")).toBe(true);
+            expect(Utils.isPhpNumeric("\n5\n")).toBe(true);
+            expect(Utils.isPhpNumeric("5\t")).toBe(true);
+        });
+
+        it("returns false for strings that only look numeric to JS's Number()", () => {
+            // Number("") === 0, Number(" ") === 0, Number("0x10") === 16,
+            // Number("Infinity") === Infinity — all "numeric" to
+            // `!isNaN(Number(x))`, none numeric to PHP's is_numeric.
+            expect(Utils.isPhpNumeric("")).toBe(false);
+            expect(Utils.isPhpNumeric(" ")).toBe(false);
+            expect(Utils.isPhpNumeric("  ")).toBe(false);
+            expect(Utils.isPhpNumeric("0x10")).toBe(false);
+            expect(Utils.isPhpNumeric("Infinity")).toBe(false);
+            expect(Utils.isPhpNumeric("NAN")).toBe(false);
+            expect(Utils.isPhpNumeric("INF")).toBe(false);
+        });
+
+        it("returns false for non-numeric strings, including near-misses", () => {
+            expect(Utils.isPhpNumeric("abc")).toBe(false);
+            expect(Utils.isPhpNumeric("1abc")).toBe(false);
+            expect(Utils.isPhpNumeric("abc1")).toBe(false);
+            expect(Utils.isPhpNumeric("1_000")).toBe(false);
+            expect(Utils.isPhpNumeric("0b101")).toBe(false);
+            expect(Utils.isPhpNumeric("0o17")).toBe(false);
+            expect(Utils.isPhpNumeric("5,5")).toBe(false);
+        });
+
+        it("treats any JS number as numeric, matching PHP's int|float", () => {
+            expect(Utils.isPhpNumeric(42)).toBe(true);
+            expect(Utils.isPhpNumeric(-3.14)).toBe(true);
+            expect(Utils.isPhpNumeric(0)).toBe(true);
+            expect(Utils.isPhpNumeric(NaN)).toBe(true);
+            expect(Utils.isPhpNumeric(Infinity)).toBe(true);
+        });
+
+        it("returns false for non-string, non-number values", () => {
+            expect(Utils.isPhpNumeric(null)).toBe(false);
+            expect(Utils.isPhpNumeric(undefined)).toBe(false);
+            expect(Utils.isPhpNumeric(true)).toBe(false);
+            expect(Utils.isPhpNumeric(false)).toBe(false);
+            expect(Utils.isPhpNumeric([])).toBe(false);
+            expect(Utils.isPhpNumeric({})).toBe(false);
+        });
+    });
+
     describe("isPrimitive", () => {
         it("returns true for primitive values", () => {
             expect(Utils.isPrimitive("hello")).toBe(true);

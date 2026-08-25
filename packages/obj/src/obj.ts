@@ -25,6 +25,7 @@ import {
     isObject,
     isPhpArrayKey,
     isPhpFalsy,
+    isPhpNumeric,
     isString,
     isStringable,
     isUndefined,
@@ -2918,6 +2919,29 @@ export function string<
 }
 
 /**
+ * Cast a CSS-list value the way PHP casts it when pushed raw into
+ * `implode()`/`Str::finish()` at a numeric key in `toCssClasses`/
+ * `toCssStyles` (Arr.php:1215/1238): `null` becomes `""` (implode's
+ * silent cast; `Str::finish` also settles on `""` for it despite a
+ * PHP 8.1+ deprecation notice on the internal `preg_replace` call, which
+ * is non-fatal and does not change the return value), a boolean becomes
+ * `"1"`/`""`, and everything else goes through `String()`. Verified
+ * against docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses/
+ * toCssStyles non-string value at numeric key").
+ */
+function cssListItemToString(value: unknown): string {
+    if (isNull(value) || isUndefined(value)) {
+        return "";
+    }
+
+    if (isBoolean(value)) {
+        return value ? "1" : "";
+    }
+
+    return String(value);
+}
+
+/**
  * Conditionally compile CSS classes from an object into a CSS class list.
  *
  * @param data - The object to convert to CSS classes.
@@ -2943,10 +2967,12 @@ export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
     for (const [key, value] of Object.entries(obj)) {
         // Numeric-like keys (Arr.php:1214's is_numeric($class)) push the
         // VALUE as the class name; other keys push the key when truthy.
-        if (!isNaN(Number(key))) {
-            if (isString(value)) {
-                classes.push(value);
-            }
+        // isPhpNumeric, not Number()/isNaN: hex, "", " ", and "Infinity"
+        // all parse under Number() but aren't PHP-numeric.
+        if (isPhpNumeric(key)) {
+            // Numeric key: push the value as-is (PHP-cast), like PHP
+            // pushing $constraint straight into the array before implode().
+            classes.push(cssListItemToString(value));
         } else if (value) {
             classes.push(key);
         }
@@ -2980,10 +3006,12 @@ export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
     for (const [key, value] of Object.entries(obj)) {
         // Numeric-like keys (Arr.php:1237's is_numeric($class)) push the
         // VALUE as the style; other keys push the key when truthy.
-        if (!isNaN(Number(key))) {
-            if (isString(value)) {
-                styles.push(finish(value, ";"));
-            }
+        // isPhpNumeric, not Number()/isNaN: hex, "", " ", and "Infinity"
+        // all parse under Number() but aren't PHP-numeric.
+        if (isPhpNumeric(key)) {
+            // Numeric key: push the value as-is (PHP-cast, then finished),
+            // like PHP's Str::finish($constraint, ';').
+            styles.push(finish(cssListItemToString(value), ";"));
         } else if (value) {
             styles.push(finish(key, ";"));
         }

@@ -1161,6 +1161,7 @@ describe("Data", () => {
 
             const fromArray = Data.dataRandom([10, 20, 30], 2) as unknown[];
             expect(Array.isArray(fromArray)).toBe(true);
+            expect(Object.keys(fromArray)).toEqual(["0", "1"]);
 
             const fromObject = Data.dataRandom(
                 { one: 10, two: 20, three: 30 },

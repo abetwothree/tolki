@@ -500,6 +500,72 @@ export function isPhpFalsy(value: unknown): boolean {
 }
 
 /**
+ * A precompiled matcher for PHP's numeric-string grammar: optional
+ * surrounding whitespace (PHP's own set -- space, tab, newline, CR,
+ * vertical tab, form feed, matching `_is_numeric_string`'s scan, not JS's
+ * broader `\s`), an optional sign, digits with an optional decimal point
+ * (either side may supply the digits, so both ".5" and "5." qualify), and
+ * an optional exponent. No nested/overlapping quantifiers, so this cannot
+ * backtrack catastrophically (CodeQL ReDoS).
+ */
+const PHP_NUMERIC_STRING_PATTERN =
+    /^[ \t\n\r\v\f]*[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?[ \t\n\r\v\f]*$/;
+
+/**
+ * Determine whether a value is numeric the way PHP's `is_numeric()` treats
+ * it, i.e. PHP's own numeric-string grammar rather than JS's `Number()`
+ * coercion.
+ *
+ * Any actual JS `number` is numeric, matching PHP: once a value is already
+ * an `int`/`float`, `is_numeric()` always returns `true` for it, including
+ * `NaN` and `Infinity` (both are floats in PHP terms). For strings, PHP
+ * accepts optional leading/trailing whitespace, an optional `+`/`-` sign,
+ * digits with an optional decimal point, and an optional exponent
+ * (`e`/`E` with an optional sign and digits) -- verified directly against
+ * a real PHP 8 checkout (`docs/php-parity/task-08-arr-parity.json`, "is_numeric
+ * matrix for CSS-helper keys"), not assumed.
+ *
+ * `Number(value)` cannot be reused for this: `Number("")`, `Number(" ")`,
+ * and `Number("0x10")` are all `0`/`16` (numeric to JS) but PHP's
+ * `is_numeric` says `false` for all three -- hex strings stopped being
+ * numeric in PHP 7. Conversely `Number("Infinity")` is `Infinity` (numeric
+ * to JS) but PHP's `is_numeric("Infinity")` is `false`, since PHP has no
+ * numeric-string spelling for infinity. All five are pinned by the same
+ * capture.
+ *
+ * @param value - The value to check
+ * @returns True if the value is numeric under PHP's rules
+ *
+ * @example
+ *
+ * isPhpNumeric(42); -> true
+ * isPhpNumeric("42"); -> true
+ * isPhpNumeric(" 42 "); -> true
+ * isPhpNumeric("-3.14"); -> true
+ * isPhpNumeric("1e3"); -> true
+ * isPhpNumeric(".5"); -> true
+ * isPhpNumeric(""); -> false
+ * isPhpNumeric(" "); -> false
+ * isPhpNumeric("0x10"); -> false
+ * isPhpNumeric("Infinity"); -> false
+ * isPhpNumeric("1_000"); -> false
+ * isPhpNumeric(null); -> false
+ */
+export function isPhpNumeric(value: unknown): boolean {
+    // typeof, not isNumber: PHP's is_numeric(NAN) and is_numeric(INF) are
+    // both true (NAN/INF are still floats), but isNumber excludes NaN.
+    if (typeof value === "number") {
+        return true;
+    }
+
+    if (!isString(value)) {
+        return false;
+    }
+
+    return PHP_NUMERIC_STRING_PATTERN.test(value);
+}
+
+/**
  * Check if a value is a primitive type (null, boolean, number, string, symbol, undefined).
  *
  * @param value - The value to check

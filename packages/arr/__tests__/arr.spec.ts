@@ -4107,10 +4107,23 @@ describe("Arr", () => {
             expect(Arr.toCssClasses(obj)).toBe("font-bold");
         });
 
-        it("should handle non-string values in numeric keys", () => {
-            // Tests branch where numeric key value is not a string
-            expect(Arr.toCssClasses([123, null, undefined, true])).toBe("");
-            expect(Arr.toCssClasses(["valid-class", 123])).toBe("valid-class");
+        it("PHP-casts non-string values at numeric keys instead of dropping them", () => {
+            // Task 8 review round 1 — Arr::toCssClasses pushes $constraint
+            // raw into the array before implode(), which casts null -> "",
+            // true -> "1", numbers via their decimal string. Captured:
+            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses
+            // non-string value at numeric key") -> "123  1".
+            expect(Arr.toCssClasses([123, null, undefined, true])).toBe(
+                "123   1",
+            );
+            expect(Arr.toCssClasses(["valid-class", 123])).toBe(
+                "valid-class 123",
+            );
+
+            // false -> "" too, not "0" (implode's bool cast, not
+            // http_build_query's). Captured: docs/php-parity/task-08-arr-
+            // parity.json ("Arr::toCssClasses false value at numeric key").
+            expect(Arr.toCssClasses([false, "x"])).toBe(" x");
         });
 
         it("emits the value for numeric keys and the key for truthy string keys in one mixed array (Task 8 pin)", () => {
@@ -4127,6 +4140,19 @@ describe("Arr", () => {
             mixed["ml-2"] = true;
             mixed["mr-2"] = false;
             expect(Arr.toCssClasses(mixed)).toBe("font-bold mt-4 ml-2");
+        });
+
+        it("uses PHP's is_numeric for the key check, not Number()/isNaN", () => {
+            // Task 8 review round 1 (escalated to Important) — a prior
+            // round used `!isNaN(Number(key))`, which disagrees with PHP
+            // on hex, blank, and "Infinity"-style keys. Captured:
+            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses
+            // with is_numeric edge-case keys").
+            expect(Arr.toCssClasses({ "": "foo" })).toBe("");
+            expect(Arr.toCssClasses({ " ": "foo" })).toBe(" ");
+            expect(Arr.toCssClasses({ "0x10": "foo" })).toBe("0x10");
+            expect(Arr.toCssClasses({ "1e3": "foo" })).toBe("foo");
+            expect(Arr.toCssClasses({ Infinity: "foo" })).toBe("Infinity");
         });
     });
 
@@ -4181,10 +4207,21 @@ describe("Arr", () => {
             expect(Arr.toCssStyles(obj)).toBe("font-weight: bold;");
         });
 
-        it("should handle non-string values in numeric keys", () => {
-            // Tests branch where numeric key value is not a string
-            expect(Arr.toCssStyles([123, null, undefined, true])).toBe("");
-            expect(Arr.toCssStyles(["color: red", 123])).toBe("color: red;");
+        it("PHP-casts non-string values at numeric keys instead of dropping them", () => {
+            // Task 8 review round 1 — same PHP-cast as toCssClasses, then
+            // each pushed value is finished with a semicolon. Captured:
+            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssStyles
+            // non-string value at numeric key") -> "123; ; ; 1;".
+            expect(Arr.toCssStyles([123, null, undefined, true])).toBe(
+                "123; ; ; 1;",
+            );
+            expect(Arr.toCssStyles(["color: red", 123])).toBe(
+                "color: red; 123;",
+            );
+
+            // false -> "" too, not "0". Captured: docs/php-parity/task-08-
+            // arr-parity.json ("Arr::toCssStyles false value at numeric key").
+            expect(Arr.toCssStyles([false, "x"])).toBe("; x;");
         });
 
         it("emits the value for numeric keys and the key for truthy string keys in one mixed array (Task 8 pin)", () => {
@@ -4201,6 +4238,17 @@ describe("Arr", () => {
             expect(Arr.toCssStyles(mixed)).toBe(
                 "font-weight: bold; margin-top: 4px; margin-left: 2px;",
             );
+        });
+
+        it("uses PHP's is_numeric for the key check, not Number()/isNaN", () => {
+            // Task 8 review round 1 (escalated to Important). Captured:
+            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssStyles
+            // with is_numeric edge-case keys").
+            expect(Arr.toCssStyles({ "": "foo" })).toBe(";");
+            expect(Arr.toCssStyles({ " ": "foo" })).toBe(" ;");
+            expect(Arr.toCssStyles({ "0x10": "foo" })).toBe("0x10;");
+            expect(Arr.toCssStyles({ "1e3": "foo" })).toBe("foo;");
+            expect(Arr.toCssStyles({ Infinity: "foo" })).toBe("Infinity;");
         });
     });
 

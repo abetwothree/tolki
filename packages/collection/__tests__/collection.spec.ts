@@ -3288,6 +3288,26 @@ describe("Collection", () => {
             });
             expect(objectSeenKeys).toEqual(["0x10", "1e3"]);
         });
+
+        // X30 / D2 — Collection.mapWithKeys builds its own internal Map to
+        // preserve PHP-array-like insertion order for numeric-like keys
+        // (see "test map with keys integer keys" above), but that Map must
+        // never leak out through .all() — it's an implementation detail,
+        // not the public shape. Array- and object-backed Collections must
+        // agree, per the unison rule.
+        it("never exposes the internal Map through .all(), either backing", () => {
+            const fromArray = collect([1, 2]).mapWithKeys((value) => ({
+                [value]: value,
+            }));
+            expect(fromArray.all()).not.toBeInstanceOf(Map);
+            expect(fromArray.all()).toEqual({ 1: 1, 2: 2 });
+
+            const fromObject = collect({ a: 1, b: 2 }).mapWithKeys((value) => ({
+                [value]: value,
+            }));
+            expect(fromObject.all()).not.toBeInstanceOf(Map);
+            expect(fromObject.all()).toEqual({ 1: 1, 2: 2 });
+        });
     });
 
     describe("merge", () => {

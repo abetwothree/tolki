@@ -3358,7 +3358,25 @@ describe("Obj", () => {
             ).toBe("font-bold mt-4 ml-2");
         });
 
-        it("drops non-string values at numeric keys", () => {
+        it("uses PHP's is_numeric for the key check, not Number()/isNaN", () => {
+            // Task 8 review round 1 (escalated to Important) — a prior
+            // round used `!isNaN(Number(key))`, which disagrees with PHP
+            // on hex, blank, and "Infinity"-style keys. Captured:
+            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses
+            // with is_numeric edge-case keys").
+            expect(Obj.toCssClasses({ "": "foo" })).toBe("");
+            expect(Obj.toCssClasses({ " ": "foo" })).toBe(" ");
+            expect(Obj.toCssClasses({ "0x10": "foo" })).toBe("0x10");
+            expect(Obj.toCssClasses({ "1e3": "foo" })).toBe("foo");
+            expect(Obj.toCssClasses({ Infinity: "foo" })).toBe("Infinity");
+        });
+
+        it("PHP-casts non-string values at numeric keys instead of dropping them", () => {
+            // Task 8 review round 1 — Arr::toCssClasses pushes $constraint
+            // raw into the array before implode(), which casts null -> "",
+            // true -> "1", numbers via their decimal string. Captured:
+            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses
+            // non-string value at numeric key") -> "123  1".
             expect(
                 Obj.toCssClasses({
                     0: 123,
@@ -3366,7 +3384,12 @@ describe("Obj", () => {
                     2: undefined,
                     3: true,
                 }),
-            ).toBe("");
+            ).toBe("123   1");
+
+            // false -> "" too, not "0" (implode's bool cast, not
+            // http_build_query's). Captured: docs/php-parity/task-08-arr-
+            // parity.json ("Arr::toCssClasses false value at numeric key").
+            expect(Obj.toCssClasses({ 0: false, 1: "x" })).toBe(" x");
         });
     });
 
@@ -3400,18 +3423,39 @@ describe("Obj", () => {
 
         it("emits the value for numeric keys and the key for truthy string keys", () => {
             // X22 — Arr.php:1237, is_numeric($class) pushes the VALUE
-            // (finished with a semicolon), not the key.
+            // (finished with a semicolon), not the key. Uses the full
+            // captured input (not the brief's two-element subset) so the
+            // "a value already ending in ';' isn't double-finished at a
+            // numeric key" nuance — index 1's "margin-top: 4px;" — is
+            // pinned here too, not only in arr.spec.ts.
             // Captured: docs/php-parity/task-08-arr-parity.json
             // ("Arr::toCssStyles mixed keys").
             expect(
                 Obj.toCssStyles({
                     0: "font-weight: bold",
+                    1: "margin-top: 4px;",
                     "margin-left: 2px;": true,
+                    "margin-right: 2px": false,
                 }),
-            ).toBe("font-weight: bold; margin-left: 2px;");
+            ).toBe("font-weight: bold; margin-top: 4px; margin-left: 2px;");
         });
 
-        it("drops non-string values at numeric keys", () => {
+        it("uses PHP's is_numeric for the key check, not Number()/isNaN", () => {
+            // Task 8 review round 1 (escalated to Important). Captured:
+            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssStyles
+            // with is_numeric edge-case keys").
+            expect(Obj.toCssStyles({ "": "foo" })).toBe(";");
+            expect(Obj.toCssStyles({ " ": "foo" })).toBe(" ;");
+            expect(Obj.toCssStyles({ "0x10": "foo" })).toBe("0x10;");
+            expect(Obj.toCssStyles({ "1e3": "foo" })).toBe("foo;");
+            expect(Obj.toCssStyles({ Infinity: "foo" })).toBe("Infinity;");
+        });
+
+        it("PHP-casts non-string values at numeric keys instead of dropping them", () => {
+            // Task 8 review round 1 — same PHP-cast as toCssClasses, then
+            // each pushed value is finished with a semicolon. Captured:
+            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssStyles
+            // non-string value at numeric key") -> "123; ; ; 1;".
             expect(
                 Obj.toCssStyles({
                     0: 123,
@@ -3419,7 +3463,11 @@ describe("Obj", () => {
                     2: undefined,
                     3: true,
                 }),
-            ).toBe("");
+            ).toBe("123; ; ; 1;");
+
+            // false -> "" too, not "0". Captured: docs/php-parity/task-08-
+            // arr-parity.json ("Arr::toCssStyles false value at numeric key").
+            expect(Obj.toCssStyles({ 0: false, 1: "x" })).toBe("; x;");
         });
     });
 
