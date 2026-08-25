@@ -3237,13 +3237,17 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
  * them backwards from `-1`. For `pad({a:1,b:2}, -5, 0)` PHP's real result
  * is `{0:0, 1:0, 2:0, a:1, b:2}`, not `{-2:0, -1:0, 0:0, a:1, b:2}`.
  *
- * Not a bug: because of that, and because JS spec-orders integer-like own
- * keys ascending ahead of string keys regardless of insertion order
- * (ECMA-262 OrdinaryOwnPropertyKeys), the appended `0, 1, ...` pad keys
- * always iterate before `a, b` — even when `size` is negative and PHP
- * would place the padding first positionally. A plain JS object cannot
- * reproduce PHP's positional/insertion-order guarantee for integer keys.
- * Do not re-file this as a bug.
+ * Not a bug: for a *positive* `size`, this is a genuine, unfixable
+ * divergence from PHP. PHP appends the padding after the original keys
+ * (`array_pad(['a'=>1,'b'=>2], 4, 0)` -> `{a:1, b:2, 0:0, 1:0}`, verified
+ * in docs/php-parity/task-07-pad-union.json), but JS spec-orders
+ * integer-like own keys ascending, ahead of string keys, regardless of
+ * insertion order (ECMA-262 OrdinaryOwnPropertyKeys) — so the appended
+ * `0, 1, ...` pad keys iterate *before* `a, b` here, not after. A plain
+ * JS object cannot reproduce PHP's append-at-the-end positional guarantee
+ * for integer keys. (For a *negative* `size` there is no divergence: PHP
+ * already places the padding first positionally, and JS's key-hoisting
+ * lands the same keys in the same place.) Do not re-file this as a bug.
  *
  * @param data - The object to pad.
  * @param size - The desired size of the object after padding. Positive to pad at the end, negative to pad at the beginning.

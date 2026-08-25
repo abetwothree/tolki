@@ -3574,10 +3574,12 @@ describe("Collection", () => {
             // X20 through the Collection layer — PHP-verified: ["a"=>null] +
             // ["a"=>1] -> {"a":null} (docs/php-parity/task-07-pad-union.json).
             const c = collect({ a: undefined });
-            expect(c.union({ a: 1, b: 2 }).all()).toEqual({
-                a: undefined,
-                b: 2,
-            });
+            const result = c.union({ a: 1, b: 2 }).all();
+            expect(result).toEqual({ a: undefined, b: 2 });
+            // toEqual alone would also pass if "a" were dropped entirely
+            // (Vitest 4 treats an undefined-valued key as equal to an
+            // absent one); assert the key actually exists too.
+            expect(result).toHaveProperty("a");
         });
     });
 

@@ -414,6 +414,10 @@ describe("Data", () => {
             // ["a"=>1] -> {"a":null} (docs/php-parity/task-07-pad-union.json).
             const result = Data.dataUnion({ a: undefined }, { a: 1 });
             expect(result).toEqual({ a: undefined });
+            // toEqual({ a: undefined }) alone would also pass against {}
+            // (Vitest 4 treats an undefined-valued key as equal to an
+            // absent one); assert the key actually exists too.
+            expect(result).toHaveProperty("a");
         });
     });
 

@@ -479,9 +479,12 @@ describe("Obj", () => {
             // isUndefined(acc[key]), which let an undefined left value be
             // overwritten by the right operand; it must be presence
             // (Object.hasOwn), not definedness.
-            expect(Obj.union({ a: undefined }, { a: 1 })).toEqual({
-                a: undefined,
-            });
+            const result = Obj.union({ a: undefined }, { a: 1 });
+            expect(result).toEqual({ a: undefined });
+            // toEqual({ a: undefined }) alone would also pass against {}
+            // (Vitest 4 treats an undefined-valued key as equal to an
+            // absent one); assert the key actually exists too.
+            expect(result).toHaveProperty("a");
         });
 
         it("does not walk the prototype chain when checking for an existing key", () => {

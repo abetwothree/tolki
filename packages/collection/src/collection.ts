@@ -3794,11 +3794,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * For an object-backed collection, pad slots are numbered `0, 1, 2, ...`
      * regardless of direction — matching PHP's `array_pad()`, PHP-verified
-     * in docs/php-parity/task-07-pad-union.json — and, because JS
-     * spec-orders integer-like keys ascending ahead of string keys, those
-     * pad keys always iterate before the original string keys even when
-     * `size` is negative and PHP would place them first positionally. Not
-     * a bug; see `pad`'s JSDoc in `@tolki/obj` for the full explanation.
+     * in docs/php-parity/task-07-pad-union.json. For a *positive* `size`
+     * this is a genuine, unfixable divergence from PHP: PHP appends the
+     * padding after the original keys, but JS spec-orders integer-like
+     * keys ascending, ahead of string keys, regardless of insertion order,
+     * so the appended pad keys iterate before the original string keys
+     * instead of after. (For a *negative* `size` there is no divergence —
+     * PHP already places the padding first positionally, and JS's
+     * key-hoisting lands the same keys in the same place.) Not a bug; see
+     * `pad`'s JSDoc in `@tolki/obj` for the full explanation.
      *
      * @param size - The size to pad to, positive to pad at the end, negative to pad at the beginning
      * @param value - The value to pad with
@@ -3808,7 +3812,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * new Collection([1, 2, 3]).pad(5, 0); -> new Collection([1, 2, 3, 0, 0])
      * new Collection([1, 2, 3]).pad(-5, 0); -> new Collection([0, 0, 1, 2, 3])
-     * new Collection({a: 1, b: 2}).pad(4, 0); -> new Collection({a: 1, b: 2, '2': 0, '3': 0})
+     * new Collection({a: 1, b: 2}).pad(4, 0); -> new Collection({'0': 0, '1': 0, a: 1, b: 2}) // PHP: {a:1, b:2, 0:0, 1:0} — padding keys iterate first in JS, last in PHP
      * new Collection({a: 1, b: 2}).pad(-4, 0); -> new Collection({'0': 0, '1': 0, a: 1, b: 2})
      */
     pad<TPadValue>(size: number, value: TPadValue) {
