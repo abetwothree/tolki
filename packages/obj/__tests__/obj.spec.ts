@@ -476,6 +476,34 @@ describe("Obj", () => {
                 b: 2,
             });
         });
+
+        it("assigns a scalar prepend item the next integer key, like array_unshift", () => {
+            expect(Obj.unshift({ x: 1, y: 2 }, 9)).toEqual({
+                0: 9,
+                x: 1,
+                y: 2,
+            });
+        });
+
+        it("skips an already-used integer key when assigning scalar prepend items", () => {
+            // The merged object item already claims key "0"; the scalar
+            // item that follows must not collide with it.
+            expect(Obj.unshift({ z: 3 }, { 0: "zero" }, 9)).toEqual({
+                0: "zero",
+                1: 9,
+                z: 3,
+            });
+        });
+
+        it("does not walk the prototype chain when checking for an existing key", () => {
+            // Object.hasOwn, not `in` — a plain object's inherited
+            // `toString` must not be treated as an already-used key.
+            expect(Obj.unshift({ toString: 1, b: 2 }, { a: 9 })).toEqual({
+                a: 9,
+                toString: 1,
+                b: 2,
+            });
+        });
     });
 
     describe("except", () => {

@@ -462,6 +462,14 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
  * Prepend one or more items to the beginning of the object, mutating it in
  * place, like PHP's array_unshift.
  *
+ * Prepended items that are themselves object-accessible are merged in by
+ * their own keys. A non-object, non-nullish item (e.g. a bare number or
+ * string) is assigned the next available non-negative integer key instead
+ * of being dropped, matching array_unshift's "prepend a scalar, it gets
+ * key 0 (or the next free integer key)" behaviour. `null`/`undefined`
+ * items are skipped, matching this package's existing "undefined items
+ * are skipped" convention.
+ *
  * @param items - The items to prepend. The first item is the target
  * object, mutated in place when it is itself object-accessible.
  * @returns The same object reference, mutated (or a new object when the
@@ -476,6 +484,7 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const data = items[0] as Record<TKey, TValue>;
     const itemsObject = {} as Record<TKey, TValue>;
+    let nextIndex = 0;
 
     const itemsToPrepend = items.slice(1);
 
@@ -484,6 +493,13 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
             for (const [key, value] of Object.entries(item)) {
                 itemsObject[key as TKey] = value as TValue;
             }
+        } else if (!isNull(item) && !isUndefined(item)) {
+            while (Object.hasOwn(itemsObject, nextIndex)) {
+                nextIndex++;
+            }
+
+            itemsObject[nextIndex as TKey] = item as TValue;
+            nextIndex++;
         }
     }
 
@@ -500,7 +516,7 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
     Object.assign(data, itemsObject);
 
     for (const [key, value] of originalEntries) {
-        if (!(key in itemsObject)) {
+        if (!Object.hasOwn(itemsObject, key)) {
             data[key as TKey] = value as TValue;
         }
     }
