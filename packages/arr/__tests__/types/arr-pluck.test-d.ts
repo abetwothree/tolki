@@ -67,6 +67,29 @@ describe("arr pluck type tests", () => {
             >();
         });
 
+        it("resolves through an optional intermediate as a nullable result", () => {
+            // `resolvePluckPath` returns null for the whole item when an
+            // intermediate segment is undefined, so the value type is the
+            // leaf type unioned with null — not unknown.
+            const data: { user?: { name: string } }[] = [
+                { user: { name: "Taylor" } },
+                {},
+            ];
+            expectTypeOf(Arr.pluck(data, "user.name")).toEqualTypeOf<
+                (string | null)[]
+            >();
+        });
+
+        it("resolves through a nullable intermediate as a nullable result", () => {
+            const data: { user: { name: string } | null }[] = [
+                { user: { name: "Abigail" } },
+                { user: null },
+            ];
+            expectTypeOf(Arr.pluck(data, "user.name")).toEqualTypeOf<
+                (string | null)[]
+            >();
+        });
+
         it("falls back to unknown[] for a non-existent property", () => {
             expectTypeOf(Arr.pluck(nameItems, "missing")).toEqualTypeOf<
                 unknown[]

@@ -2678,6 +2678,14 @@ describe("Arr", () => {
             const pluckResult = Arr.pluck(dataForPluck, "value", "keyObj");
             expect(pluckResult).toEqual({ key1: "item1", key2: "item2" });
         });
+
+        it("returns null for items whose optional intermediate is absent", () => {
+            const data: { user?: { name: string } }[] = [
+                { user: { name: "Taylor" } },
+                {},
+            ];
+            expect(Arr.pluck(data, "user.name")).toEqual(["Taylor", null]);
+        });
     });
 
     describe("pop", () => {

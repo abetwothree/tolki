@@ -273,12 +273,18 @@ export type GetFieldType<
  * optional property's type must be `T | null`, never `T | undefined`, to
  * match what `pluck` actually returns.
  *
+ * The same mapping applies to intermediate segments: an optional or
+ * nullable intermediate makes the whole resolved type nullable, because
+ * `resolvePluckPath` short-circuits to `null` the moment any segment is
+ * null or undefined.
+ *
  * @example
  * PluckValue<{ name: string }, "name">                    // string
  * PluckValue<{ user: { name: string } }, "user.name">     // string
  * PluckValue<{ users: { first: string }[] }, "users.*.first"> // string[]
  * PluckValue<{ name: string }, string>                    // unknown
  * PluckValue<{ name?: string }, "name">                   // string | null
+ * PluckValue<{ user?: { name: string } }, "user.name">    // string | null
  */
 export type PluckValue<TItem, TPath> =
     TPath extends `${infer Head}.${infer Rest}`
@@ -287,7 +293,11 @@ export type PluckValue<TItem, TPath> =
                 ? PluckValue<TElement, Rest>[]
                 : unknown
             : Head extends keyof TItem
-              ? PluckValue<TItem[Head], Rest>
+              ? null extends TItem[Head]
+                  ? PluckValue<NonNullable<TItem[Head]>, Rest> | null
+                  : undefined extends TItem[Head]
+                    ? PluckValue<NonNullable<TItem[Head]>, Rest> | null
+                    : PluckValue<TItem[Head], Rest>
               : unknown
         : TPath extends "*"
           ? TItem extends readonly (infer TElement)[]
