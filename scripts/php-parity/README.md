@@ -66,6 +66,12 @@ is upgraded, re-running `pnpm php:parity` regenerates every file, and any
 behavioural drift shows up as an ordinary diff in `docs/php-parity/` for
 review — the same way a schema migration shows up as a diff.
 
+`docs/php-parity/` is listed in `.prettierignore` on purpose: these files
+are PHP's own `JSON_PRETTY_PRINT` output, left exactly as `emit()` wrote it.
+If Prettier were allowed to reformat them, every regeneration would carry a
+cosmetic whitespace diff on top of (or instead of) any real behavioural
+change, burying the signal this file exists to surface.
+
 ## The rule
 
 **No behaviour may be ported into TypeScript without a captured probe
