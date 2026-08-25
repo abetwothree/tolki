@@ -441,6 +441,12 @@ describe("Obj", () => {
     });
 
     describe("unshift", () => {
+        it("prepends onto the source, like array_unshift", () => {
+            const data = { b: 2 };
+            Obj.unshift(data, { a: 1 });
+            expect(data).toEqual({ a: 1, b: 2 });
+        });
+
         it("unshift objects", () => {
             expect(Obj.unshift({ b: 2 }, { a: 1 }, { d: "house" })).toEqual({
                 a: 1,
@@ -2262,9 +2268,28 @@ describe("Obj", () => {
             expect(result).toBeNull();
             expect(obj).toEqual({});
 
+            // Collection::shift($count) returns null once isEmpty() is
+            // true, for any count — not an empty array. Matches the
+            // captured Collection::shift(3) ground truth on an empty
+            // source.
             const resultMultiple = Obj.shift(obj, 3);
-            expect(resultMultiple).toEqual([]);
+            expect(resultMultiple).toBeNull();
             expect(obj).toEqual({});
+        });
+
+        it("throws when the shift count is negative", () => {
+            expect(() => Obj.shift({ a: 1 }, -1)).toThrow(
+                "Number of shifted items may not be less than zero.",
+            );
+        });
+
+        it("returns null when shifting an empty object, for any count", () => {
+            expect(Obj.shift({}, 3)).toBeNull();
+            expect(Obj.shift({})).toBeNull();
+        });
+
+        it("returns an empty array when the requested count is zero", () => {
+            expect(Obj.shift({ a: 1, b: 2 }, 0)).toEqual([]);
         });
     });
 

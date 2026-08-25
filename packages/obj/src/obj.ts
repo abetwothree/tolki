@@ -35,6 +35,21 @@ import {
 } from "@tolki/utils";
 
 /**
+ * Mutation contract (decided 2026-08-25, Phase 1 Task 1)
+ *
+ * Laravel's Collection splits cleanly: a method either ends in
+ * array_pop/array_shift/array_splice/array_unshift on $this->items and
+ * MUTATES, or ends in $this->newInstance(...) and does NOT.
+ *
+ * This package follows that split exactly. pop, shift, splice and unshift
+ * mutate their first argument. replace, replaceRecursive, filter, slice,
+ * chunk, reverse, union, combine, diff* and intersect* do not.
+ *
+ * @tolki/arr and @tolki/obj agree on this. Do not "align" one to the other
+ * without re-reading Collection.php.
+ */
+
+/**
  * Determine whether the given value is object accessible.
  *
  * @param value - The value to check.
@@ -444,10 +459,13 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Prepend one or more items to the beginning of the object
+ * Prepend one or more items to the beginning of the object, mutating it in
+ * place, like PHP's array_unshift.
  *
- * @param items - The items to prepend. The first item is the target object.
- * @returns A new object with the items prepended
+ * @param items - The items to prepend. The first item is the target
+ * object, mutated in place when it is itself object-accessible.
+ * @returns The same object reference, mutated (or a new object when the
+ * first item is not object-accessible, since there is nothing to mutate).
  */
 export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
     ...items: Record<TKey, TValue>[] | unknown[]
@@ -469,7 +487,25 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
         }
     }
 
-    return union(itemsObject, data);
+    if (!accessible(data)) {
+        return union(itemsObject, data);
+    }
+
+    const originalEntries = Object.entries(data);
+
+    for (const key of Object.keys(data)) {
+        delete data[key as TKey];
+    }
+
+    Object.assign(data, itemsObject);
+
+    for (const [key, value] of originalEntries) {
+        if (!(key in itemsObject)) {
+            data[key as TKey] = value as TValue;
+        }
+    }
+
+    return data;
 }
 
 /**
@@ -2070,16 +2106,26 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Get and remove the first N items from the object
+ * Get and remove the first N items from the object, mutating it in place,
+ * like PHP's array_shift.
  *
- * @param data - The object to shift items from.
+ * Guard order matters and is PHP-verified against Collection::shift():
+ * negative count throws, an empty object returns null for any count, a
+ * count of zero returns an empty array, then items are shifted off.
+ *
+ * @param data - The object to shift items from. Mutated in place.
  * @param count - The number of items to shift. Defaults to 1.
- * @returns The shifted item(s) or null/empty array if none.
+ * @returns The shifted item(s), or null if the object had nothing to shift.
+ * @throws Error if count is negative.
  */
 export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     count: number = 1,
 ): TValue | TValue[] | null {
+    if (count < 0) {
+        throw new Error("Number of shifted items may not be less than zero.");
+    }
+
     if (!accessible(data)) {
         return count === 1 ? null : [];
     }
@@ -2088,7 +2134,7 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     const entries = Object.entries(obj);
 
     if (entries.length === 0) {
-        return count === 1 ? null : [];
+        return null;
     }
 
     if (count === 1) {
