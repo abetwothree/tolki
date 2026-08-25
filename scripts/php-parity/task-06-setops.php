@@ -46,6 +46,12 @@ probe('intersectAssoc(null)', '$c->intersectAssoc(null)', function () {
     return (new Collection(['a' => 'green']))->intersectAssoc(null)->all();
 });
 
+probe('intersectAssocUsing(null)', '$c->intersectAssocUsing(null, $cb)', function () {
+    $strcasecmp = fn ($a, $b) => strtolower((string) $a) === strtolower((string) $b);
+
+    return (new Collection(['a' => 'green']))->intersectAssocUsing(null, $strcasecmp)->all();
+});
+
 probe('diffAssoc — key AND value (must stay unchanged)', '$c->diffAssoc([...])', function () {
     return (new Collection(['id' => 1, 'first_word' => 'Hello', 'not_affected' => 'value']))
         ->diffAssoc(['id' => 123, 'foo_bar' => 'Hello', 'not_affected' => 'value'])->all();

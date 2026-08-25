@@ -45,6 +45,11 @@
         "value": []
     },
     {
+        "label": "intersectAssocUsing(null)",
+        "php": "$c->intersectAssocUsing(null, $cb)",
+        "value": []
+    },
+    {
         "label": "diffAssoc \u2014 key AND value (must stay unchanged)",
         "php": "$c->diffAssoc([...])",
         "value": {

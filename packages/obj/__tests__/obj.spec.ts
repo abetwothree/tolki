@@ -1385,7 +1385,10 @@ describe("Obj", () => {
             // Captured via docs/php-parity/task-06-setops.json ("diff is
             // case-sensitive"). CollectionTest.php:1582.
             expect(
-                Obj.diff({ 0: "en_GB", 1: "fr", 2: "HR" }, { 0: "en_gb", 1: "hr" }),
+                Obj.diff(
+                    { 0: "en_GB", 1: "fr", 2: "HR" },
+                    { 0: "en_gb", 1: "hr" },
+                ),
             ).toEqual({ 0: "en_GB", 1: "fr", 2: "HR" });
         });
 
@@ -1518,7 +1521,10 @@ describe("Obj", () => {
         });
 
         it("treats a null other as empty rather than throwing", () => {
-            // X14
+            // X14 — review round 1, Minor 3: this value previously had no
+            // captured probe row backing it. Captured via
+            // docs/php-parity/task-06-setops.json
+            // ("intersectAssocUsing(null)").
             expect(
                 Obj.intersectAssocUsing({ a: "green" }, null, () => true),
             ).toEqual({});

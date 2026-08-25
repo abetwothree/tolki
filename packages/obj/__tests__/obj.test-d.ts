@@ -13,6 +13,7 @@ declare const nullableOrUndefinedReplacer:
     | Record<PropertyKey, number>
     | null
     | undefined;
+declare const nullableOther: Record<string, number> | null;
 
 describe("obj type tests", () => {
     describe("Map overloads", () => {
@@ -122,6 +123,55 @@ describe("obj type tests", () => {
                 { a: 1 },
                 nullableOrUndefinedReplacer,
             );
+            expectTypeOf(result).toEqualTypeOf<Record<PropertyKey, number>>();
+        });
+    });
+
+    describe("diff", () => {
+        it("preserves data's literal key type instead of collapsing to unknown", () => {
+            // Task 6 review round 1, Minor 2: `data: Record<TKey, TValue> |
+            // unknown` collapsed inference to `unknown` for every caller,
+            // so `Obj.diff({id, first_word}, ...)` typed its result as
+            // `Record<PropertyKey, unknown>` — no key or value information
+            // survived. Now uses the same two-overload shape (typed +
+            // unknown fallback) as `intersect` below, with a separate
+            // `TOtherKey` so `other`'s key set need not match `data`'s
+            // (they're allowed to differ, per X12/X13's whole premise).
+            const result = Obj.diff(
+                { id: 1, first_word: "Hello" },
+                { x: "Hello" },
+            );
+            expectTypeOf(result).toEqualTypeOf<
+                Record<"id" | "first_word", string | number>
+            >();
+        });
+
+        it("accepts an other typed as Record<string, T> | null", () => {
+            // Same "legitimately-typed nullable argument" regression Task 5
+            // hit on `replace` (see above) — a concrete `null`-only overload
+            // and a concrete `Record<...>`-only overload can still fail to
+            // match a variable typed as their union, via TS2769.
+            const result = Obj.diff({ a: 1 }, nullableOther);
+            expectTypeOf(result).toEqualTypeOf<Record<"a", number>>();
+        });
+    });
+
+    describe("intersect", () => {
+        it("preserves data's value type instead of the phantom TResponse collapsing to unknown", () => {
+            // Confirms the fix already landed for intersect (the
+            // phantom-generic removal), pinned here so it can't regress
+            // silently alongside diff's fix above.
+            const result = Obj.intersect(
+                { id: 1, first_word: "Hello" },
+                { first_world: "Hello", last_word: "World" },
+            );
+            expectTypeOf(result).toEqualTypeOf<
+                Record<PropertyKey, string | number>
+            >();
+        });
+
+        it("accepts an other typed as Record<string, T> | null", () => {
+            const result = Obj.intersect({ a: 1 }, nullableOther);
             expectTypeOf(result).toEqualTypeOf<Record<PropertyKey, number>>();
         });
     });

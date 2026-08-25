@@ -2327,6 +2327,68 @@ describe("Collection", () => {
                     first_word: "Hello",
                 });
             });
+
+            it("test intersect array-backed collection", () => {
+                // Review round 1, Minor 4: there was no array-backed
+                // positive assertion for `intersect`, only the null case
+                // above. Real Laravel preserves original indices here
+                // (captured via docs/php-parity/task-06-setops.json
+                // ("intersect on array-backed collection"):
+                // (new Collection([1,2,3,4]))->intersect([2,4,6])->all()
+                // -> {"1":2,"3":4}) but this codebase reindexes
+                // array-backed results to a dense list, same pre-existing,
+                // out-of-scope convention documented on the diffAssoc
+                // array-backed test above (X11).
+                expect(
+                    collect([1, 2, 3, 4]).intersect([2, 4, 6]).all(),
+                ).toEqual([2, 4]);
+            });
+        });
+
+        it("intersect deep-clones this.items before comparing, unlike intersectUsing", () => {
+            // Review round 1, Minor 4: `intersect` calls
+            // `recursivelyConvertCollections` on BOTH `this.items` and
+            // `items`, while `intersectUsing` calls it only on `items`
+            // (see both methods' source below). Investigated whether this
+            // asymmetry matters:
+            //
+            // `recursivelyConvertCollections` unconditionally rebuilds every
+            // array/object it walks — even with zero Collection instances
+            // present, `[obj].map(...)` and the object-branch's `result = {}`
+            // always produce NEW references, never the original ones.
+            //
+            // For plain `intersect` (no callback), matching is by `===`. If
+            // `this.items` holds non-primitive (object/array) values, this
+            // clone makes it *impossible* to match by reference: the SAME
+            // object present in both `this.items` and `other` no longer
+            // `===`-equals itself after both sides are independently cloned.
+            // Reproduced below with the exact same object reference on both
+            // sides.
+            //
+            // For `intersectUsing`, this doesn't matter: it requires a
+            // callback, and a callback comparing objects meaningfully always
+            // compares their VALUES/properties (e.g. `a.id === b.id`), never
+            // relies on `this.items`' values keeping their original
+            // reference — so leaving `this.items` unconverted while `items`
+            // gets cloned has no observable effect on intersectUsing's
+            // result, confirmed below with the same shared reference.
+            const shared = { id: 1 };
+            const other = [shared];
+
+            expect(
+                collect([shared, { id: 2 }])
+                    .intersect(other)
+                    .all(),
+            ).toEqual([]);
+
+            expect(
+                collect([shared, { id: 2 }])
+                    .intersectUsing(
+                        other,
+                        (a: { id: number }, b: { id: number }) => a.id === b.id,
+                    )
+                    .all(),
+            ).toEqual([{ id: 1 }]);
         });
     });
 

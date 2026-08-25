@@ -2669,7 +2669,10 @@ export function dataIntersect<
 export function dataIntersectAssoc<
     TValue,
     TKey extends PropertyKey = PropertyKey,
->(data: DataItems<TValue, TKey>, other: DataItems<TValue, TKey> | null | undefined) {
+>(
+    data: DataItems<TValue, TKey>,
+    other: DataItems<TValue, TKey> | null | undefined,
+) {
     const otherIsNullish = isNull(other) || isUndefined(other);
 
     if (isObject(data) && (otherIsNullish || isObject(other))) {

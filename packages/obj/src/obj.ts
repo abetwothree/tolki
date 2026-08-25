@@ -3543,9 +3543,33 @@ export function values<TValue, TKey extends PropertyKey = PropertyKey>(
  * diff({ id: 1, first_word: 'Hello' }, { x: 'Hello' }); -> { id: 1 } (value-only: 'first_word' drops even though 'x' !== 'first_word')
  * diff({ id: 1 }, null); -> { id: 1 } (non-accessible other is treated as empty)
  */
-export function diff<TValue, TKey extends PropertyKey = PropertyKey>(
+// Overload: typed — data and other's key sets are independent (TOtherKey),
+// so a differently-shaped `other` (e.g. { x: 'Hello' } against a data of
+// { id, first_word }) doesn't fail to unify. `other` may be null/undefined
+// (X14: already treated as empty before this fix; kept here so a
+// legitimately-typed nullable argument still matches this overload instead
+// of falling through to the unknown fallback below).
+export function diff<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TOtherKey extends PropertyKey = PropertyKey,
+>(
+    data: Record<TKey, TValue>,
+    other: Record<TOtherKey, TValue> | null | undefined,
+): Record<TKey, TValue>;
+// Overload: unknown fallback
+export function diff(
+    data: unknown,
+    other: unknown,
+): Record<PropertyKey, unknown>;
+// Implementation
+export function diff<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TOtherKey extends PropertyKey = PropertyKey,
+>(
     data: Record<TKey, TValue> | unknown,
-    other: Record<TKey, TValue> | unknown,
+    other: Record<TOtherKey, TValue> | unknown,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
@@ -3556,7 +3580,7 @@ export function diff<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     const obj = data as Record<TKey, TValue>;
-    const otherValues = Object.values(other as Record<TKey, TValue>);
+    const otherValues = Object.values(other as Record<TOtherKey, TValue>);
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
@@ -3736,7 +3760,8 @@ export function intersect<T1, T2 = T1>(
                   callable(value as T1, otherValue as T2),
               )
             : otherValues.some(
-                  (otherValue) => (otherValue as unknown) === (value as unknown),
+                  (otherValue) =>
+                      (otherValue as unknown) === (value as unknown),
               );
 
         if (matches) {
