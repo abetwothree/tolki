@@ -412,6 +412,66 @@ describe("Utils", () => {
         });
     });
 
+    describe("isPhpFalsy", () => {
+        // Task 4 (@tolki/arr, @tolki/obj): array_filter()'s falsy set is
+        // narrower than isFalsy's — PHP-verified
+        // (docs/php-parity/task-04-shared.json, "Collection::filter()
+        // falsy set"): drops "0", "", 0, [], false, null, but keeps "00"
+        // and "0.0", and NaN is truthy.
+        it("returns true for the exact PHP-falsy set", () => {
+            expect(Utils.isPhpFalsy(false)).toBe(true);
+            expect(Utils.isPhpFalsy(null)).toBe(true);
+            expect(Utils.isPhpFalsy(undefined)).toBe(true);
+            expect(Utils.isPhpFalsy(0)).toBe(true);
+            expect(Utils.isPhpFalsy("")).toBe(true);
+            expect(Utils.isPhpFalsy("0")).toBe(true);
+            expect(Utils.isPhpFalsy([])).toBe(true);
+            expect(Utils.isPhpFalsy({})).toBe(true);
+        });
+
+        it("keeps strings that merely look like zero", () => {
+            expect(Utils.isPhpFalsy("00")).toBe(false);
+            expect(Utils.isPhpFalsy("0.0")).toBe(false);
+        });
+
+        it("keeps NaN, unlike isFalsy", () => {
+            expect(Utils.isPhpFalsy(NaN)).toBe(false);
+            expect(Utils.isFalsy(NaN)).toBe(true);
+        });
+
+        it('keeps the exact string "0" falsy, unlike isFalsy', () => {
+            expect(Utils.isPhpFalsy("0")).toBe(true);
+            expect(Utils.isFalsy("0")).toBe(false);
+        });
+
+        it("keeps whitespace-only strings truthy, unlike isFalsy", () => {
+            // PHP only treats the exact empty string as falsy, not
+            // whitespace — isFalsy's `.trim() === ""` branch gets this
+            // wrong (documented, not fixed, by this task).
+            expect(Utils.isPhpFalsy(" ")).toBe(false);
+            expect(Utils.isFalsy(" ")).toBe(true);
+        });
+
+        it("returns false for other truthy values", () => {
+            expect(Utils.isPhpFalsy(1)).toBe(false);
+            expect(Utils.isPhpFalsy(-1)).toBe(false);
+            expect(Utils.isPhpFalsy("x")).toBe(false);
+            expect(Utils.isPhpFalsy([1, 2, 3])).toBe(false);
+            expect(Utils.isPhpFalsy({ a: 1 })).toBe(false);
+            expect(Utils.isPhpFalsy(true)).toBe(false);
+        });
+
+        it("treats any own-key-less object as falsy, a documented non-PHP limitation", () => {
+            // PHP has no equivalent of Date/Map/RegExp; these are
+            // objects with no own enumerable keys, so isPhpFalsy treats
+            // them the same as an empty plain object. Documented in the
+            // function's doc comment as a known limit, not fixed here.
+            expect(Utils.isPhpFalsy(new Date())).toBe(true);
+            expect(Utils.isPhpFalsy(new Map())).toBe(true);
+            expect(Utils.isPhpFalsy(/re/)).toBe(true);
+        });
+    });
+
     describe("isPrimitive", () => {
         it("returns true for primitive values", () => {
             expect(Utils.isPrimitive("hello")).toBe(true);

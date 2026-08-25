@@ -437,6 +437,69 @@ export function isTruthy(value: unknown): boolean {
 }
 
 /**
+ * Determine whether a value is falsy the way PHP's `array_filter()` (no
+ * callback) treats it, i.e. PHP's own truthiness rules rather than JS's.
+ *
+ * Drops exactly `false`, `null`/`undefined`, the number `0`, the empty
+ * string `""`, and the string `"0"` — but, unlike `isFalsy`, keeps `"00"`
+ * and `"0.0"` (truthy in PHP) and `NaN` (PHP's `NAN` is truthy). An empty
+ * array or empty plain object is also falsy, matching PHP's empty array.
+ *
+ * This is not a full PHP-exactness check: PHP has no equivalent of a
+ * `Date`, `Map`, or `RegExp` instance, and any object with no own
+ * enumerable keys (e.g. `new Date()`) is treated as falsy here purely
+ * because it looks like an empty object — that's a pre-existing,
+ * documented limitation, not a claim that this mirrors PHP for every JS
+ * value.
+ *
+ * `isFalsy` cannot be reused for this: it treats `NaN` as falsy
+ * (unconditional `Number.isNaN` check) and does NOT treat the exact
+ * string `"0"` as falsy (its string branch is `value.trim() === ""`,
+ * false for `"0"`), while also wrongly treating whitespace-only strings
+ * as falsy (PHP only treats the empty string as falsy, not whitespace).
+ *
+ * @param value - The value to check
+ * @returns True if the value is falsy under PHP's rules
+ *
+ * @example
+ *
+ * isPhpFalsy("0"); -> true
+ * isPhpFalsy(""); -> true
+ * isPhpFalsy(0); -> true
+ * isPhpFalsy([]); -> true
+ * isPhpFalsy({}); -> true
+ * isPhpFalsy(false); -> true
+ * isPhpFalsy(null); -> true
+ * isPhpFalsy("00"); -> false
+ * isPhpFalsy("0.0"); -> false
+ * isPhpFalsy(NaN); -> false
+ */
+export function isPhpFalsy(value: unknown): boolean {
+    if (
+        value === false ||
+        value === null ||
+        isUndefined(value) ||
+        value === 0 ||
+        value === "" ||
+        value === "0"
+    ) {
+        return true;
+    }
+
+    // Empty arrays are falsy in PHP
+    if (isArray(value)) {
+        return value.length === 0;
+    }
+
+    // Empty objects are falsy in PHP
+    if (isObject(value)) {
+        return Object.keys(value).length === 0;
+    }
+
+    return false;
+}
+
+/**
  * Check if a value is a primitive type (null, boolean, number, string, symbol, undefined).
  *
  * @param value - The value to check
