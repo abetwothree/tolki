@@ -3726,6 +3726,15 @@ describe("Collection", () => {
             expect(c2.pop(5).all()).toEqual([20, 10]);
             expect(c2.all()).toEqual({});
         });
+
+        it("pops identically whether array- or object-backed", () => {
+            const fromArray = new Collection([1, 2, 3]);
+            const fromObject = new Collection({ a: 1, b: 2, c: 3 });
+            expect(fromArray.pop()).toBe(3);
+            expect(fromObject.pop()).toBe(3);
+            expect(fromArray.count()).toBe(2);
+            expect(fromObject.count()).toBe(2);
+        });
     });
 
     describe("prepend", () => {
@@ -4897,6 +4906,15 @@ describe("Collection", () => {
             const shifted = c.shift(3);
             expect(shifted.all()).toEqual([1]); // Only got 1 item
             expect(c.all()).toEqual({}); // Object is now empty
+        });
+
+        it("throws from shift on a negative count, either backing", () => {
+            expect(() => new Collection([1]).shift(-1)).toThrow(
+                "Number of shifted items may not be less than zero.",
+            );
+            expect(() => new Collection({ a: 1 }).shift(-1)).toThrow(
+                "Number of shifted items may not be less than zero.",
+            );
         });
     });
 

@@ -2313,15 +2313,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const poppedValues = dataPop(this.items, count) as TValue[];
 
-        // Remove the popped items from this.items
-        // Note: dataPop mutates objects but not arrays
-        if (isArray(this.items)) {
-            this.items = (this.items as TValue[]).slice(0, -count) as DataItems<
-                TValue,
-                TKey
-            >;
-        }
-
         return this.newInstance(poppedValues) as unknown as Collection<
             TValue[],
             number
