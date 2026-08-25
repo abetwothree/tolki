@@ -2723,9 +2723,9 @@ describe("Arr", () => {
             expect(Arr.pop(null, 3)).toEqual([]);
         });
 
-        it("returns null for a single pop whose last element is an undefined hole", () => {
+        it("returns the value directly for a single pop, even an explicit undefined hole — matches obj.pop, which never special-cases undefined", () => {
             const data = [1, undefined];
-            expect(Arr.pop(data)).toBeNull();
+            expect(Arr.pop(data)).toBeUndefined();
             expect(data).toEqual([1]);
         });
 
@@ -2735,9 +2735,9 @@ describe("Arr", () => {
             expect(data).toEqual([1]);
         });
 
-        it("skips an undefined hole encountered mid multi-item pop", () => {
+        it("collects an undefined hole encountered mid multi-item pop, like array_pop — PHP has no concept of a hole, so it's collected like any other value", () => {
             const data = [1, undefined, 2];
-            expect(Arr.pop(data, 2)).toEqual([2]);
+            expect(Arr.pop(data, 2)).toEqual([2, undefined]);
             expect(data).toEqual([1]);
         });
 
@@ -3335,10 +3335,12 @@ describe("Arr", () => {
             expect(Arr.shift(data)).toBe("Taylor");
             expect(data).toEqual(["Otwell"]);
 
-            // A leading `undefined` hole is treated as "nothing shifted",
-            // not as a real value — it is still removed from the source.
+            // An explicit `undefined` hole is returned directly, like any
+            // other value — PHP has no concept of a hole, so array_shift
+            // wouldn't skip it either. Matches obj.shift, which never
+            // special-cases undefined.
             data.unshift(undefined!);
-            expect(Arr.shift(data)).toBeNull();
+            expect(Arr.shift(data)).toBeUndefined();
             expect(data).toEqual(["Otwell"]);
 
             expect(Arr.shift({}, 2)).toEqual([]);
@@ -3353,9 +3355,9 @@ describe("Arr", () => {
             expect(data).toEqual([3, 4]);
         });
 
-        it("skips an undefined hole encountered mid multi-item shift", () => {
+        it("collects an undefined hole encountered mid multi-item shift, like array_shift", () => {
             const data = [undefined, 1, 2];
-            expect(Arr.shift(data, 2)).toEqual([1]);
+            expect(Arr.shift(data, 2)).toEqual([undefined, 1]);
             expect(data).toEqual([2]);
         });
 

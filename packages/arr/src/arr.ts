@@ -2006,11 +2006,11 @@ export function pluck<TValue extends Record<string, unknown>>(
 export function pop<TValue>(data: TValue[]): TValue | null;
 export function pop<TValue>(data: TValue[], count: number): TValue[];
 export function pop<TValue>(
-    data: TValue[] | unknown,
+    data: TValue[] | Record<PropertyKey, unknown> | null | undefined,
     count?: number,
 ): TValue | TValue[] | null;
 export function pop<TValue>(
-    data: TValue[] | unknown,
+    data: TValue[] | Record<PropertyKey, unknown> | null | undefined,
     count: number = 1,
 ): TValue | TValue[] | null {
     if (!accessible(data)) {
@@ -2024,19 +2024,14 @@ export function pop<TValue>(
     }
 
     if (count === 1) {
-        const value = values.pop();
-        return isUndefined(value) ? null : (value as TValue);
+        return values.pop() as TValue;
     }
 
     const poppedValues: TValue[] = [];
     const actualCount = Math.min(count, values.length);
 
     for (let i = 0; i < actualCount; i++) {
-        const value = values.pop();
-
-        if (!isUndefined(value)) {
-            poppedValues.push(value);
-        }
+        poppedValues.push(values.pop() as TValue);
     }
 
     return poppedValues;
@@ -2532,11 +2527,11 @@ export function random<TValue>(
 export function shift<TValue>(data: TValue[]): TValue | null;
 export function shift<TValue>(data: TValue[], count: number): TValue[];
 export function shift<TValue>(
-    data: TValue[] | unknown,
+    data: TValue[] | Record<PropertyKey, unknown> | null | undefined,
     count?: number,
 ): TValue | TValue[] | null;
 export function shift<TValue>(
-    data: TValue[] | unknown,
+    data: TValue[] | Record<PropertyKey, unknown> | null | undefined,
     count: number = 1,
 ): TValue | TValue[] | null {
     if (count < 0) {
@@ -2558,19 +2553,14 @@ export function shift<TValue>(
     }
 
     if (count === 1) {
-        const value = values.shift();
-        return isUndefined(value) ? null : (value as TValue);
+        return values.shift() as TValue;
     }
 
     const shiftedValues: TValue[] = [];
     const actualCount = Math.min(count, values.length);
 
     for (let i = 0; i < actualCount; i++) {
-        const value = values.shift();
-
-        if (!isUndefined(value)) {
-            shiftedValues.push(value);
-        }
+        shiftedValues.push(values.shift() as TValue);
     }
 
     return shiftedValues;

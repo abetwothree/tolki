@@ -210,16 +210,16 @@ describe("arr mutations type tests", () => {
             } | null>();
         });
 
-        it("collapses to unknown for a readonly array — pop mutates, so a readonly source no longer matches the mutable overloads and falls through to the untyped fallback", () => {
-            expectTypeOf(Arr.pop(readonlyNumbers)).toEqualTypeOf<unknown>();
+        it("rejects a readonly array — pop mutates, so the source must be a known-mutable array", () => {
+            // @ts-expect-error -- readonly arrays cannot be mutated by pop
+            Arr.pop(readonlyNumbers);
         });
 
-        it("collapses to unknown for unknown data", () => {
-            // TypeScript collapses `unknown | X` to `unknown`, so the
-            // fallback overload's `TValue | TValue[] | null` return type
-            // (with TValue defaulting to `unknown`) is unwritable as
-            // anything but a bare `unknown`.
-            expectTypeOf(Arr.pop(unknownArray)).toEqualTypeOf<unknown>();
+        it("rejects unknown-typed data — the fallback overload only serves TValue[] | Record<PropertyKey, unknown> | null | undefined, not a blanket `unknown`, so mutation safety isn't silently bypassed", () => {
+            // @ts-expect-error -- a value whose static type is `unknown`
+            // provides no proof it's actually a mutable array; narrow it
+            // before calling a mutating function
+            Arr.pop(unknownArray);
         });
     });
 
@@ -242,8 +242,9 @@ describe("arr mutations type tests", () => {
             } | null>();
         });
 
-        it("collapses to unknown for a readonly array — shift mutates, so a readonly source no longer matches the mutable overloads and falls through to the untyped fallback", () => {
-            expectTypeOf(Arr.shift(readonlyStrings)).toEqualTypeOf<unknown>();
+        it("rejects a readonly array — shift mutates, so the source must be a known-mutable array", () => {
+            // @ts-expect-error -- readonly arrays cannot be mutated by shift
+            Arr.shift(readonlyStrings);
         });
     });
 });

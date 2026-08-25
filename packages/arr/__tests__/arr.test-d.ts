@@ -3872,6 +3872,19 @@ describe("arr type tests", () => {
                 // @ts-expect-error -- const tuples are readonly and cannot be mutated by unshift
                 Arr.unshift(data, 0);
             });
+
+            it("preserves const literal item types", () => {
+                // An inline `as const` tuple literal passed directly as an
+                // argument (not through a named variable) still resolves
+                // through the second overload here — TValue infers from the
+                // tuple's element types even though the tuple itself is
+                // readonly. This is a genuine TypeScript inference quirk for
+                // fresh literal arguments, not a hole in unshift's own
+                // overloads (a named readonly/const variable, as above, is
+                // correctly rejected), so it's pinned rather than "fixed".
+                const result = Arr.unshift([1, 2] as const, "hello" as const);
+                expectTypeOf(result).toEqualTypeOf<(1 | 2 | "hello")[]>();
+            });
         });
 
         describe("typed variable references", () => {
