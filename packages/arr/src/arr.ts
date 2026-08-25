@@ -2782,8 +2782,8 @@ export function sole<TValue>(
  * Build a comparator from a single sort descriptor.
  *
  * A tuple's direction follows Laravel's array-form multi-sort semantics
- * (`Collection::sortByMany` in the stub): `true`/`"Ascending"` sorts
- * ascending, `false`/`"Descending"` sorts descending — see the `SortSpec`
+ * (`Collection::sortByMany` in the stub): `true`/`'asc'`/`"Ascending"` sorts
+ * ascending and every other direction value sorts descending — see the `SortSpec`
  * JSDoc for why this is the opposite of a plain `descending` flag.
  *
  * `forceDescending` mirrors `Collection::sortByDesc` (`Collection.php`
@@ -2809,12 +2809,16 @@ function sortSpecComparator<TValue>(
     if (isArray(spec)) {
         const [key, direction] = spec as readonly [
             string,
-            boolean | "Ascending" | "Descending",
+            boolean | "Ascending" | "Descending" | "asc" | "desc",
         ];
-        const isDescending =
-            forceDescending ||
-            direction === false ||
-            direction === SortDirection.Descending;
+        // Laravel's sortByMany match-arm: only `true`, `'asc'`, and
+        // Ascending sort ascending — every other value (including anything
+        // an untyped JS caller passes) falls through to descending.
+        const isAscending =
+            direction === true ||
+            direction === "asc" ||
+            direction === SortDirection.Ascending;
+        const isDescending = forceDescending || !isAscending;
 
         return (a, b) => {
             const comparison = compareValues(

@@ -3495,6 +3495,24 @@ describe("Arr", () => {
             ]);
         });
 
+        it("sorts using lowercase asc and desc direction strings", () => {
+            // Laravel's sortByMany accepts 'asc'/'desc' interchangeably with
+            // booleans and enum values; any direction that isn't one of the
+            // ascending forms sorts descending. Same expected order as the
+            // SortDirection enum case above: name ascending, age descending.
+            expect(
+                Arr.sort(unsorted, [
+                    ["name", "asc"],
+                    ["age", "desc"],
+                ]),
+            ).toEqual([
+                { name: "Dave", age: 10, meta: { key: 3 } },
+                { name: "John", age: 10, meta: { key: 5 } },
+                { name: "John", age: 8, meta: { key: 3 } },
+                { name: "John", age: 8, meta: { key: 2 } },
+            ]);
+        });
+
         it("sorts using an array of comparator callbacks", () => {
             expect(
                 Arr.sort(unsorted, [

@@ -112,15 +112,16 @@ export type TruthyArray<T extends readonly unknown[]> =
  *
  * - a dot-notated key path, sorted ascending
  * - a `[key, direction]` tuple. Mirrors Laravel's `Collection::sortByMany`,
- *   where the tuple's second element behaves like the `'asc'`/`'desc'`
- *   string form rather than a `descending` boolean flag: `true` (or the
- *   `"Ascending"` case of `@tolki/enum`'s `SortDirection`) sorts ascending,
- *   `false` (or `"Descending"`) sorts descending. The literal case names are
- *   inlined here rather than imported from `@tolki/enum`, which depends on
- *   this package — importing it back would create a circular dependency.
+ *   where `true`, `'asc'`, and the `"Ascending"` case of `@tolki/enum`'s
+ *   `SortDirection` sort ascending, and every other direction value —
+ *   `false`, `'desc'`, `"Descending"`, or anything unrecognized from an
+ *   untyped caller — sorts descending, exactly like Laravel's default arm.
+ *   The literal case names are inlined here rather than imported from
+ *   `@tolki/enum`, which depends on this package — importing it back would
+ *   create a circular dependency.
  * - a comparator returning a negative, zero, or positive number
  */
 export type SortSpec<TValue> =
     | string
-    | readonly [string, boolean | "Ascending" | "Descending"]
+    | readonly [string, boolean | "Ascending" | "Descending" | "asc" | "desc"]
     | ((a: TValue, b: TValue) => number);

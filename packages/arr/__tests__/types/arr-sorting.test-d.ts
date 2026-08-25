@@ -56,6 +56,18 @@ describe("arr sorting type tests", () => {
             ).toEqualTypeOf<{ name: string; age: number }[]>();
         });
 
+        it("accepts lowercase asc and desc direction literals in a tuple", () => {
+            expectTypeOf(
+                Arr.sort(
+                    [{ name: "a", age: 1 }],
+                    [
+                        ["name", "asc"],
+                        ["age", "desc"],
+                    ],
+                ),
+            ).toEqualTypeOf<{ name: string; age: number }[]>();
+        });
+
         it("preserves number element type with a null callback (natural sort)", () => {
             expectTypeOf(Arr.sort([1, 2], null)).toEqualTypeOf<number[]>();
         });
