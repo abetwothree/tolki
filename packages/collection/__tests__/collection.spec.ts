@@ -4394,6 +4394,15 @@ describe("Collection", () => {
                 expect(randomStringZero.count()).toBe(0);
             });
 
+            it("test random on empty collection with no count throws", () => {
+                // Documented at Collection.random's JSDoc: with no count,
+                // one item is requested, and an empty collection cannot
+                // supply it — same error Arr.random raises.
+                expect(() => collect([]).random()).toThrowError(
+                    "You requested 1 items, but there are only 0 items available.",
+                );
+            });
+
             it("test random throws an exception using amount bigger than collection size", () => {
                 const data = collect([1, 2, 3]);
                 expect(() => {
