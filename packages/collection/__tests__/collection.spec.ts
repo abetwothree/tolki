@@ -1215,6 +1215,28 @@ describe("Collection", () => {
             const filtered = collection.filter();
             expect(filtered.all()).toEqual({ b: 1, d: 2, f: 3 });
         });
+
+        // Task 4 (X16): array_filter()'s falsy set is narrower than
+        // Boolean() — PHP-verified (docs/php-parity/task-04-shared.json,
+        // "Collection::filter() falsy set"): it drops "0", "", 0, [],
+        // false, null, but keeps "00" and "0.0". Array- and object-backed
+        // Collections must agree, per the unison rule.
+        it("drops PHP-falsy values including the string zero — both shapes agree", () => {
+            expect(collect(["0", "", 0, "x"]).filter().all()).toEqual(["x"]);
+            expect(
+                collect({ a: "0", b: "", c: 0, d: "x" }).filter().all(),
+            ).toEqual({ d: "x" });
+        });
+
+        it("keeps strings that merely look like zero — both shapes agree", () => {
+            expect(collect(["00", "0.0", "0"]).filter().all()).toEqual([
+                "00",
+                "0.0",
+            ]);
+            expect(
+                collect({ a: "00", b: "0.0", c: "0" }).filter().all(),
+            ).toEqual({ a: "00", b: "0.0" });
+        });
     });
 
     describe("first", () => {
@@ -3348,19 +3370,29 @@ describe("Collection", () => {
 
     describe("combine", () => {
         describe("Laravel Tests", () => {
+            // Task 4 (X19): `Arr.combine` used to zip arrays into tuples,
+            // so `c.combine([4,5,6])` here returned
+            // `[[1,4],[2,5],[3,6]]` — this test was pinning that bug.
+            // `Collection::combine` is `array_combine($this->all(), ...)`,
+            // which uses the collection's own VALUES as keys, matching
+            // the object cases below and this method's own doc example
+            // (`new Collection([1, 2]).combine([3, 4]) ->
+            // new Collection({1: 3, 2: 4})`). PHP-verified against the
+            // real `CollectionTest::testCombineWithArray`:
+            // `array_combine([1,2,3],[4,5,6])` -> `[1=>4, 2=>5, 3=>6]`.
             it("test combine with array", () => {
                 const c = collect([1, 2, 3]);
-                expect(c.combine([4, 5, 6]).all()).toEqual([
-                    [1, 4],
-                    [2, 5],
-                    [3, 6],
-                ]);
+                expect(c.combine([4, 5, 6]).all()).toEqual({
+                    1: 4,
+                    2: 5,
+                    3: 6,
+                });
 
                 const d = collect(["name", "family"]);
-                expect(d.combine(["taylor", "otwell"]).all()).toEqual([
-                    ["name", "taylor"],
-                    ["family", "otwell"],
-                ]);
+                expect(d.combine(["taylor", "otwell"]).all()).toEqual({
+                    name: "taylor",
+                    family: "otwell",
+                });
 
                 const e = collect({ 1: "name", 2: "family" });
                 expect(e.combine({ 2: "taylor", 3: "otwell" }).all()).toEqual({
@@ -3377,11 +3409,11 @@ describe("Collection", () => {
 
             it("test combine with collection", () => {
                 const c = collect([1, 2, 3]);
-                expect(c.combine(collect([4, 5, 6])).all()).toEqual([
-                    [1, 4],
-                    [2, 5],
-                    [3, 6],
-                ]);
+                expect(c.combine(collect([4, 5, 6])).all()).toEqual({
+                    1: 4,
+                    2: 5,
+                    3: 6,
+                });
 
                 const f = collect({ 1: "name", 2: "family" });
                 expect(
@@ -3391,6 +3423,20 @@ describe("Collection", () => {
                     family: "otwell",
                 });
             });
+        });
+
+        // Task 4 (X19): a key/value count mismatch used to silently
+        // produce `undefined` values or truncate instead of throwing.
+        // PHP-verified message (docs/php-parity/task-04-shared.json,
+        // "array_combine mismatch"). Array- and object-backed Collections
+        // must agree, per the unison rule.
+        it("throws when the key and value counts differ — both shapes agree", () => {
+            expect(() => collect(["a", "b"]).combine([1])).toThrow(
+                "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
+            );
+            expect(() => collect({ x: "a", y: "b" }).combine({ p: 1 })).toThrow(
+                "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
+            );
         });
     });
 
@@ -5093,6 +5139,29 @@ describe("Collection", () => {
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
                 expect(data.slice(-6, -2).values().all()).toEqual([3, 4, 5, 6]);
             });
+        });
+
+        // Task 4 (X15): a negative offset combined with a length beyond
+        // the remaining tail used to return an empty result instead of
+        // the last N items — PHP-verified
+        // (docs/php-parity/task-04-shared.json, "slice(-2,5)
+        // preserve_keys"). Array- and object-backed Collections must
+        // agree, per the unison rule.
+        it("slices from the end for a negative offset with a length — both shapes agree", () => {
+            const arr = collect([1, 2, 3, 4, 5, 6, 7, 8]);
+            expect(arr.slice(-2, 5).all()).toEqual([7, 8]);
+
+            const obj = collect({
+                a: 1,
+                b: 2,
+                c: 3,
+                d: 4,
+                e: 5,
+                f: 6,
+                g: 7,
+                h: 8,
+            });
+            expect(obj.slice(-2, 5).all()).toEqual({ g: 7, h: 8 });
         });
     });
 
