@@ -173,6 +173,7 @@ import {
     isFunction,
     isIterable,
     isMap,
+    isNull,
     isObject,
     isUndefined,
 } from "@tolki/utils";
@@ -1957,8 +1958,16 @@ export function dataWhere<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Replace the data items with the given items.
  *
+ * A `null`/`undefined` `replacerData` is a no-op regardless of `data`'s
+ * backing (X11 — PHP's `getArrayableItems(null)` returns `[]`,
+ * `EnumeratesValues.php:1106`), dispatched by `data`'s own shape rather
+ * than requiring `replacerData` to already agree with it — otherwise an
+ * object-backed `data` could never accept a `null` replacer, since there
+ * is no object-shaped spelling of "null" to satisfy the same-type check
+ * below.
+ *
  * @param data - The original data
- * @param items - The items to replace with
+ * @param items - The items to replace with. `null`/`undefined` is a no-op.
  * @returns The replaced data
  */
 export function dataReplace<
@@ -1967,17 +1976,22 @@ export function dataReplace<
     TReplacerKey extends PropertyKey = PropertyKey,
 >(
     data: DataItems<TValue, TKey>,
-    replacerData: DataItems<TValue, TReplacerKey>,
+    replacerData: DataItems<TValue, TReplacerKey> | null | undefined,
 ) {
-    if (isObject(data) && isObject(replacerData)) {
+    const replacerIsNullish = isNull(replacerData) || isUndefined(replacerData);
+
+    if (isObject(data) && (replacerIsNullish || isObject(replacerData))) {
         return objReplace(
             data as Record<TKey, TValue>,
-            replacerData as Record<TReplacerKey, TValue>,
+            replacerData as Record<TReplacerKey, TValue> | null | undefined,
         ) as DataItems<TValue, TKey>;
     }
 
-    if (isArray(data) && isArray(replacerData)) {
-        return arrReplace(data, replacerData) as DataItems<TValue>;
+    if (isArray(data) && (replacerIsNullish || isArray(replacerData))) {
+        return arrReplace(
+            data,
+            replacerData as TValue[] | null | undefined,
+        ) as DataItems<TValue>;
     }
 
     throw new Error(
@@ -1988,23 +2002,34 @@ export function dataReplace<
 /**
  * Recursively replace the data items with the given items recursively.
  *
+ * A `null`/`undefined` `replacerData` is a no-op regardless of `data`'s
+ * backing, for the same reason as `dataReplace` above.
+ *
  * @param data - The original data
- * @param items - The items to replace with
+ * @param items - The items to replace with. `null`/`undefined` is a no-op.
  * @returns The replaced data
  */
 export function dataReplaceRecursive<
     TValue,
     TKey extends PropertyKey = PropertyKey,
->(data: DataItems<TValue, TKey>, replacerData: DataItems<TValue, TKey>) {
-    if (isObject(data) && isObject(replacerData)) {
+>(
+    data: DataItems<TValue, TKey>,
+    replacerData: DataItems<TValue, TKey> | null | undefined,
+) {
+    const replacerIsNullish = isNull(replacerData) || isUndefined(replacerData);
+
+    if (isObject(data) && (replacerIsNullish || isObject(replacerData))) {
         return objReplaceRecursive(
             data as Record<TKey, TValue>,
-            replacerData as Record<TKey, TValue>,
+            replacerData as Record<TKey, TValue> | null | undefined,
         ) as DataItems<TValue, TKey>;
     }
 
-    if (isArray(data) && isArray(replacerData)) {
-        return arrReplaceRecursive(data, replacerData) as DataItems<TValue>;
+    if (isArray(data) && (replacerIsNullish || isArray(replacerData))) {
+        return arrReplaceRecursive(
+            data,
+            replacerData as TValue[] | null | undefined,
+        ) as DataItems<TValue>;
     }
 
     throw new Error(

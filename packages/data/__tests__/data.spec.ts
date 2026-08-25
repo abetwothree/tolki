@@ -1643,6 +1643,25 @@ describe("Data", () => {
                 "Data to replace and items must be of the same type (both array or both object).",
             );
         });
+
+        it("treats a null/undefined replacer as a no-op, for either backing", () => {
+            // X11, review round 2 Important 1: dataReplace's same-type
+            // guard used to reject `null` outright for an object-backed
+            // `data` (there is no object-shaped spelling of "null"), so
+            // Collection.replace(null) threw for an object-backed source.
+            // Dispatch now happens on `data`'s own shape whenever
+            // `replacerData` is nullish, matching arr/obj's null no-op.
+            expect(Data.dataReplace({ a: 1, b: 2 }, null)).toEqual({
+                a: 1,
+                b: 2,
+            });
+            expect(Data.dataReplace({ a: 1, b: 2 }, undefined)).toEqual({
+                a: 1,
+                b: 2,
+            });
+            expect(Data.dataReplace(["a", "b"], null)).toEqual(["a", "b"]);
+            expect(Data.dataReplace(["a", "b"], undefined)).toEqual(["a", "b"]);
+        });
     });
 
     describe("dataReplaceRecursive", () => {
@@ -1677,6 +1696,24 @@ describe("Data", () => {
             }).toThrowError(
                 "Data to replace and items must be of the same type (both array or both object).",
             );
+        });
+
+        it("treats a null/undefined replacer as a no-op, for either backing", () => {
+            // X11 — same rationale as dataReplace's null pin above.
+            expect(Data.dataReplaceRecursive({ a: 1 }, null)).toEqual({
+                a: 1,
+            });
+            expect(Data.dataReplaceRecursive({ a: 1 }, undefined)).toEqual({
+                a: 1,
+            });
+            expect(Data.dataReplaceRecursive(["a", "b"], null)).toEqual([
+                "a",
+                "b",
+            ]);
+            expect(Data.dataReplaceRecursive(["a", "b"], undefined)).toEqual([
+                "a",
+                "b",
+            ]);
         });
     });
 
