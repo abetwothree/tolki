@@ -1857,11 +1857,17 @@ function explodePluckPath(path: string | readonly string[]): string[] {
  * wildcard position), matching Laravel's `data_get()` default rather than
  * returning `undefined`.
  *
+ * The key side mirrors PHP as well: passing any non-null `key` — even an
+ * empty string — always yields a record, and a key path that resolves to
+ * `null` or `undefined` files its value under the property `""`, matching
+ * PHP's cast of a `null` array key.
+ *
  * @param data - The array to pluck from.
  * @param value - The key path to pluck (a dot-notated string, an array of
  *   segments, or a path containing a `*` wildcard segment), or a callback function.
  * @param key - Optional key path to use as keys in result, or callback function.
- * @returns A new array with plucked values.
+ * @returns A new array of plucked values, or a record keyed by the
+ *   resolved `key` values when a key is given.
  *
  * @example
  *
