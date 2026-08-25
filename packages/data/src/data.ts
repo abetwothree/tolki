@@ -1826,33 +1826,38 @@ export function dataSortRecursiveDesc<
 }
 
 /**
- * Splice a portion of the underlying data items.
+ * Splice a portion of the data items, mutating it in place. Delegates to
+ * arrSplice/objSplice, which both mutate and return only what was removed —
+ * obj keeps the removed entries' own keys, arr reindexes positionally.
  *
- * @param data - The data to splice
+ * @param data - The data to splice. Mutated in place.
  * @param offset - The starting index
- * @param length - The number of items to remove
+ * @param length - The number of items to remove. Defaults to everything
+ * from offset to the end.
  * @param replacement - The items to insert
- * @returns Object with modified data and removed elements
+ * @returns The removed items.
  */
 export function dataSplice<TValue, TKey extends PropertyKey, TReplacements>(
     data: DataItems<TValue, TKey>,
     offset: number,
     length?: number,
     ...replacement: TReplacements[]
-): { value: DataItems<TValue, TKey>; removed: TValue[] } {
+): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objSplice(
             data as Record<TKey, TValue>,
             offset,
             length,
             ...replacement,
-        ) as { value: DataItems<TValue, TKey>; removed: TValue[] };
+        ) as DataItems<TValue, TKey>;
     }
 
-    return arrSplice(arrWrap(data), offset, length, ...replacement) as {
-        value: DataItems<TValue, TKey>;
-        removed: TValue[];
-    };
+    return arrSplice(
+        arrWrap(data),
+        offset,
+        length,
+        ...replacement,
+    ) as DataItems<TValue, TKey>;
 }
 
 /**

@@ -3498,16 +3498,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | DataItems<TReplace, TKeyReplace>
             | Collection<TReplace, TKeyReplace>,
     ) {
-        const result = dataSplice(
-            this.items,
-            offset,
-            length,
-            ...(replacement !== undefined
-                ? [this.getRawItems(replacement)]
-                : []),
+        return this.newInstance(
+            dataSplice(
+                this.items,
+                offset,
+                length,
+                ...(replacement !== undefined
+                    ? [this.getRawItems(replacement)]
+                    : []),
+            ),
         );
-        this.items = result.value as DataItems<TValue, TKey>;
-        return this.newInstance(result.removed);
     }
 
     /**

@@ -1,0 +1,43 @@
+<?php
+
+/**
+ * Task 3 ground truth — splice's container type, one-arg form, and return contract.
+ *
+ * Run: php scripts/php-parity/task-03-splice.php > docs/php-parity/task-03-splice.json
+ */
+
+declare(strict_types=1);
+
+require __DIR__ . '/bootstrap.php';
+
+use Illuminate\Support\Collection;
+
+probe('splice(1,1) on assoc — keys preserved on BOTH halves', '$c->splice(1,1)', function () {
+    $c = new Collection(['x' => 1, 'y' => 2, 'z' => 3]);
+    $cut = $c->splice(1, 1);
+
+    return ['remaining' => $c->all(), 'cut' => $cut->all()];
+});
+
+probe('splice(1) — one-arg form removes to the end', '$c->splice(1)', function () {
+    $c = new Collection(['foo' => 'f', 'baz' => 'z']);
+    $cut = $c->splice(1);
+
+    return ['remaining' => $c->all(), 'cut' => $cut->all()];
+});
+
+probe('splice with replacement', '$c->splice(1,1,"bar")', function () {
+    $c = new Collection(['foo', 'baz']);
+    $cut = $c->splice(1, 1, 'bar');
+
+    return ['remaining' => $c->all(), 'cut' => $cut->all()];
+});
+
+probe('splice on numeric keys — reindexes', 'array_splice([10=>a,20=>b,30=>c],1,1)', function () {
+    $a = [10 => 'a', 20 => 'b', 30 => 'c'];
+    $cut = array_splice($a, 1, 1);
+
+    return ['remaining' => $a, 'cut' => $cut];
+});
+
+emit();

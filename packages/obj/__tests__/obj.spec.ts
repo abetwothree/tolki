@@ -2848,47 +2848,82 @@ describe("Obj", () => {
 
     describe("splice", () => {
         it("should handle non-object data", () => {
-            expect(Obj.splice(null, 0, 2)).toEqual({ value: {}, removed: {} });
-            expect(Obj.splice([], 0, 2)).toEqual({ value: {}, removed: {} });
+            expect(Obj.splice(null, 0, 2)).toEqual({});
+            expect(Obj.splice([], 0, 2)).toEqual({});
         });
 
-        it("should splice with length 0 (insert only)", () => {
-            const obj = { a: 1, b: 2, c: 3 };
-            const result = Obj.splice(obj, 1, 0, { x: 10 });
-            // No removal, just insert
-            expect(result.removed).toEqual([]);
-            expect(result.value).toEqual([1, 10, 2, 3]);
+        it("keeps the container an object and preserves keys on both halves", () => {
+            // X8, PHP-verified (task-03-splice.json): array_splice(["x"=>1,
+            // "y"=>2,"z"=>3], 1, 1) leaves {"x":1,"z":3} and returns
+            // {"y":2} — string keys survive on the remainder AND the
+            // removed portion, not just the remainder.
+            const data = { a: 1, b: 2, c: 3 };
+            const removed = Obj.splice(data, 1, 1);
+            expect(Array.isArray(data)).toBe(false);
+            expect(Array.isArray(removed)).toBe(false);
+            expect(data).toEqual({ a: 1, c: 3 });
+            expect(removed).toEqual({ b: 2 });
         });
 
-        it("should splice with length > 0 (remove and insert)", () => {
-            const obj = { a: 1, b: 2, c: 3 };
-            const result = Obj.splice(obj, 1, 1, { x: 10 });
-            expect(result.removed).toEqual([2]);
-            expect(result.value).toEqual([1, 10, 3]);
+        it("removes through to the end when no length is given", () => {
+            // X7. PHP branches on func_num_args() === 1
+            // (Collection.php:1757); the one-arg form must remove
+            // everything from offset to the end, not nothing.
+            const data = { foo: "f", baz: "z" };
+            const removed = Obj.splice(data, 1);
+            expect(removed).toEqual({ baz: "z" });
+            expect(data).toEqual({ foo: "f" });
         });
 
-        it("should splice without replacement", () => {
+        it("splice with length 0 (insert only)", () => {
             const obj = { a: 1, b: 2, c: 3 };
-            const result = Obj.splice(obj, 1, 1);
-            expect(result.removed).toEqual([2]);
-            expect(result.value).toEqual([1, 3]);
+            const removed = Obj.splice(obj, 1, 0, { x: 10 });
+            // No removal, just insert — the inserted keys land between
+            // the untouched surrounding keys.
+            expect(removed).toEqual({});
+            expect(obj).toEqual({ a: 1, x: 10, b: 2, c: 3 });
         });
 
-        it("should handle multiple replacement objects", () => {
+        it("splice with length > 0 (remove and insert)", () => {
             const obj = { a: 1, b: 2, c: 3 };
-            const result = Obj.splice(obj, 1, 1, { x: 10 }, { y: 20 });
-            expect(result.removed).toEqual([2]);
-            expect(result.value).toEqual([1, 10, 20, 3]);
+            const removed = Obj.splice(obj, 1, 1, { x: 10 });
+            expect(removed).toEqual({ b: 2 });
+            expect(obj).toEqual({ a: 1, x: 10, c: 3 });
         });
 
-        it("should use default length of 0 when length is not provided", () => {
+        it("splice without replacement", () => {
             const obj = { a: 1, b: 2, c: 3 };
-            // Calling without length argument uses default of 0 (insert only, no removal)
-            const result = Obj.splice(obj, 1, undefined as unknown as number, {
-                x: 10,
-            });
-            expect(result.removed).toEqual([]);
-            expect(result.value).toEqual([1, 10, 2, 3]);
+            const removed = Obj.splice(obj, 1, 1);
+            expect(removed).toEqual({ b: 2 });
+            expect(obj).toEqual({ a: 1, c: 3 });
+        });
+
+        it("handles multiple replacement objects", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const removed = Obj.splice(obj, 1, 1, { x: 10 }, { y: 20 });
+            expect(removed).toEqual({ b: 2 });
+            expect(obj).toEqual({ a: 1, x: 10, y: 20, c: 3 });
+        });
+
+        it("clamps a negative length to no removal", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const removed = Obj.splice(obj, 1, -1);
+            expect(removed).toEqual({});
+            expect(obj).toEqual({ a: 1, b: 2, c: 3 });
+        });
+
+        it("clamps an offset beyond the end to the end", () => {
+            const obj = { a: 1, b: 2 };
+            const removed = Obj.splice(obj, 5, 1);
+            expect(removed).toEqual({});
+            expect(obj).toEqual({ a: 1, b: 2 });
+        });
+
+        it("supports a negative offset, counting back from the end", () => {
+            const obj = { a: 1, b: 2, c: 3 };
+            const removed = Obj.splice(obj, -1, 1);
+            expect(removed).toEqual({ c: 3 });
+            expect(obj).toEqual({ a: 1, b: 2 });
         });
     });
 

@@ -247,4 +247,33 @@ describe("arr mutations type tests", () => {
             Arr.shift(readonlyStrings);
         });
     });
+
+    describe("splice", () => {
+        it("preserves string element type", () => {
+            expectTypeOf(Arr.splice(["foo", "baz"], 1, 1)).toEqualTypeOf<
+                string[]
+            >();
+        });
+
+        it("preserves string element type with a replacement", () => {
+            expectTypeOf(Arr.splice(["foo", "baz"], 1, 1, "bar")).toEqualTypeOf<
+                string[]
+            >();
+        });
+
+        it("preserves number element type without a length", () => {
+            expectTypeOf(Arr.splice([1, 2, 3], 1)).toEqualTypeOf<number[]>();
+        });
+
+        it("preserves object element type", () => {
+            expectTypeOf(Arr.splice(idObjects, 0, 1)).toEqualTypeOf<
+                { id: number }[]
+            >();
+        });
+
+        it("rejects a readonly array — splice mutates, so the source must be a known-mutable array", () => {
+            // @ts-expect-error -- readonly arrays cannot be mutated by splice
+            Arr.splice(readonlyStrings, 0, 1);
+        });
+    });
 });

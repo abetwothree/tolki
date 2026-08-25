@@ -4197,59 +4197,58 @@ describe("Arr", () => {
     });
 
     describe("splice", () => {
-        it("splice", () => {
+        it("mutates the array in place and returns the removed elements", () => {
+            // X6/X7: splice mutates and returns only what was removed;
+            // omitting length removes everything from offset to the end.
             let data = ["foo", "baz"];
-            expect(Arr.splice(data, 1).removed).toEqual(["baz"]);
-            expect(Arr.splice(data, 0).removed).toEqual(["foo", "baz"]);
-            expect(Arr.splice(data, 2).removed).toEqual([]);
+            expect(Arr.splice(data, 1)).toEqual(["baz"]);
+            expect(data).toEqual(["foo"]);
+
+            data = ["foo", "baz"];
+            expect(Arr.splice(data, 0)).toEqual(["foo", "baz"]);
+            expect(data).toEqual([]);
+
+            data = ["foo", "baz"];
+            expect(Arr.splice(data, 2)).toEqual([]);
+            expect(data).toEqual(["foo", "baz"]);
 
             // Remove 1 element at index 1
             data = ["foo", "baz"];
-            let result = Arr.splice(data, 1, 1);
-            expect(result.value).toEqual(["foo"]);
-            expect(result.removed).toEqual(["baz"]);
+            expect(Arr.splice(data, 1, 1)).toEqual(["baz"]);
+            expect(data).toEqual(["foo"]);
 
             // Remove 1 element at index 1 and insert 'bar'
             data = ["foo", "baz"];
-            result = Arr.splice(data, 1, 1, "bar");
-            expect(result.value).toEqual(["foo", "bar"]);
-            expect(result.removed).toEqual(["baz"]);
+            expect(Arr.splice(data, 1, 1, "bar")).toEqual(["baz"]);
+            expect(data).toEqual(["foo", "bar"]);
 
             // Insert 'bar' at index 1 without removing anything
             data = ["foo", "baz"];
-            result = Arr.splice(data, 1, 0, "bar");
-            expect(result.value).toEqual(["foo", "bar", "baz"]);
-            expect(result.removed).toEqual([]);
+            expect(Arr.splice(data, 1, 0, "bar")).toEqual([]);
+            expect(data).toEqual(["foo", "bar", "baz"]);
 
             // Insert array ['bar'] at index 1 - should flatten it
             data = ["foo", "baz"];
-            const result4 = Arr.splice(data, 1, 0, [
-                "bar",
-            ] as unknown as string);
-            expect(result4.value).toEqual(["foo", "bar", "baz"]);
-            expect(result4.removed).toEqual([]);
+            expect(
+                Arr.splice(data, 1, 0, ["bar"] as unknown as string),
+            ).toEqual([]);
+            expect(data).toEqual(["foo", "bar", "baz"]);
 
             // Edge cases
             data = ["foo", "baz"];
-            result = Arr.splice(data, 0, 0, "start");
-            expect(result.value).toEqual(["start", "foo", "baz"]);
-            expect(result.removed).toEqual([]);
+            expect(Arr.splice(data, 0, 0, "start")).toEqual([]);
+            expect(data).toEqual(["start", "foo", "baz"]);
 
             // Remove multiple elements
             data = ["foo", "bar", "baz"];
-            result = Arr.splice(data, 0, 2);
-            expect(result.value).toEqual(["baz"]);
-            expect(result.removed).toEqual(["foo", "bar"]);
+            expect(Arr.splice(data, 0, 2)).toEqual(["foo", "bar"]);
+            expect(data).toEqual(["baz"]);
 
             // Non-accessible data
-            expect(Arr.splice(null as unknown as string[], 0, 1)).toEqual({
-                value: [],
-                removed: [],
-            });
-            expect(Arr.splice(undefined as unknown as string[], 0, 1)).toEqual({
-                value: [],
-                removed: [],
-            });
+            expect(Arr.splice(null as unknown as string[], 0, 1)).toEqual([]);
+            expect(Arr.splice(undefined as unknown as string[], 0, 1)).toEqual(
+                [],
+            );
         });
     });
 

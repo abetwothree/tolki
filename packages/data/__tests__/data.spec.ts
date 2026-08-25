@@ -1473,21 +1473,32 @@ describe("Data", () => {
 
     describe("dataSplice", () => {
         it("is object", () => {
-            const result = Data.dataSplice({ a: 1, b: 2, c: 3, d: 4 }, 1, 2, {
+            // X8: an object-backed source stays object-backed and keeps
+            // its keys on both the remainder and the removed portion.
+            const obj = { a: 1, b: 2, c: 3, d: 4 };
+            const result = Data.dataSplice(obj, 1, 2, {
                 x: 99,
                 y: 100,
             });
-            expect(result).toEqual({
-                value: [1, 99, 100, 4],
-                removed: [2, 3],
-            });
+            expect(Array.isArray(obj)).toBe(false);
+            expect(result).toEqual({ b: 2, c: 3 });
+            expect(obj).toEqual({ a: 1, x: 99, y: 100, d: 4 });
         });
         it("is array", () => {
-            const result = Data.dataSplice([1, 2, 3, 4], 1, 2, [99, 100]);
-            expect(result).toEqual({
-                value: [1, 99, 100, 4],
-                removed: [2, 3],
-            });
+            const arr = [1, 2, 3, 4];
+            const result = Data.dataSplice(arr, 1, 2, [99, 100]);
+            expect(result).toEqual([2, 3]);
+            expect(arr).toEqual([1, 99, 100, 4]);
+        });
+        it("removes through to the end when no length is given, for either backing", () => {
+            // X7: the one-arg form removes offset -> end, not nothing.
+            const obj = { foo: "f", baz: "z" };
+            expect(Data.dataSplice(obj, 1)).toEqual({ baz: "z" });
+            expect(obj).toEqual({ foo: "f" });
+
+            const arr = ["foo", "baz"];
+            expect(Data.dataSplice(arr, 1)).toEqual(["baz"]);
+            expect(arr).toEqual(["foo"]);
         });
     });
 

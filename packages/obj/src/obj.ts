@@ -2692,36 +2692,50 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
 }
 
 /**
- * Splice a portion of the underlying object
+ * Splice a portion of the underlying object, mutating it in place, like
+ * PHP's array_splice.
  *
- * TODO: update return to be this: { value: TValue[]; removed: TValue[] }
+ * Unlike `arr.splice` (whose backing array_splice reindexes purely numeric
+ * keys), this operates on a plain object: every surviving key — on both the
+ * remainder and the removed portion — keeps the exact key it had before the
+ * splice. PHP-verified: `array_splice(["x"=>1,"y"=>2,"z"=>3], 1, 1)` leaves
+ * `{"x":1,"z":3}` and returns `{"y":2}`.
  *
- * @param data - The object to splice
- * @param offset - The starting index
- * @param length - The number of items to remove
- * @param replacement - The replacement object
- * @returns Spliced object
+ * @param data - The object to splice. Mutated in place.
+ * @param offset - The starting index, by entry order (not by key)
+ * @param length - The number of entries to remove. Defaults to everything
+ * from offset to the end.
+ * @param replacement - Object(s) whose own entries are spliced in at offset
+ * @returns The removed entries, keyed the same way they were in `data`.
+ *
+ * @example
+ *
+ * splice({ x: 1, y: 2, z: 3 }, 1, 1); -> { y: 2 }, data is now { x: 1, z: 3 }
+ * splice({ foo: 'f', baz: 'z' }, 1); -> { baz: 'z' }, data is now { foo: 'f' }
  */
 export function splice<TValue, TKey extends PropertyKey, TReplacements>(
     data: Record<TKey, TValue> | unknown,
     offset: number,
-    length: number = 0,
+    length?: number,
     ...replacement: TReplacements[]
-): { value: Record<TKey, TValue>; removed: Record<TKey, TValue> } {
+): Record<TKey, TValue> {
     if (!accessible(data)) {
-        return {
-            value: {} as Record<TKey, TValue>,
-            removed: {} as Record<TKey, TValue>,
-        };
+        return {} as Record<TKey, TValue>;
     }
 
     const obj = data as Record<string, TValue>;
     const entries = Object.entries(obj);
+    const len = entries.length;
 
-    // Get removed entries
-    const removedEntries =
-        length > 0 ? entries.slice(offset, offset + length) : [];
-    const removed: TValue[] = removedEntries.map(([, value]) => value);
+    const start =
+        offset < 0 ? Math.max(len + offset, 0) : Math.min(offset, len);
+    const deleteCount = isUndefined(length)
+        ? len - start
+        : Math.max(0, Math.min(length, len - start));
+
+    const beforeEntries = entries.slice(0, start);
+    const removedEntries = entries.slice(start, start + deleteCount);
+    const afterEntries = entries.slice(start + deleteCount);
 
     // Prepare replacement entries
     const replacementEntries: [string, TValue][] = [];
@@ -2733,24 +2747,24 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
         }
     }
 
-    // Build new array
-    const beforeEntries = entries.slice(0, offset);
+    for (const key of Object.keys(obj)) {
+        delete obj[key];
+    }
 
-    const afterEntries =
-        length > 0 ? entries.slice(offset + length) : entries.slice(offset);
-
-    const splicedEntries = [
+    for (const [key, value] of [
         ...beforeEntries,
         ...replacementEntries,
         ...afterEntries,
-    ];
+    ]) {
+        obj[key] = value;
+    }
 
-    const value: TValue[] = splicedEntries.map(([, value]) => value);
+    const removed = {} as Record<TKey, TValue>;
+    for (const [key, value] of removedEntries) {
+        removed[key as TKey] = value;
+    }
 
-    return {
-        value: value as unknown as Record<TKey, TValue>,
-        removed: removed as unknown as Record<TKey, TValue>,
-    };
+    return removed;
 }
 
 /**

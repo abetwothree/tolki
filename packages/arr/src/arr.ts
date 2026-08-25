@@ -3206,41 +3206,41 @@ export function sortRecursiveDesc<TValue>(
 }
 
 /**
- * Splice a portion of the underlying array.
+ * Splice a portion of the underlying array, mutating it in place, like
+ * PHP's array_splice.
  *
- * This is a WRITE operation that removes and/or replaces elements, tracking what was removed.
- * Similar to PHP's array_splice(), it returns both the modified array and removed elements.
- * Unlike JavaScript's Array.splice() (which mutates and returns only removed elements),
- * this function is immutable and returns both values for tracking changes.
+ * This is a WRITE operation that removes and/or replaces elements and
+ * returns what was removed, exactly like JavaScript's own Array.splice().
  *
- * For a READ operation that just extracts a subset, use `slice()` instead.
+ * For a READ operation that just extracts a subset without mutating, use
+ * `slice()` instead.
  *
  * Replacement values that are arrays will be flattened into the result.
  *
- * @param data - The array to splice
+ * @param data - The array to splice. Mutated in place.
  * @param offset - The starting index
- * @param length - The number of items to remove (undefined removes all from offset to end)
+ * @param length - The number of items to remove. Defaults to everything
+ * from offset to the end of the array.
  * @param replacement - The replacement items (arrays will be flattened)
- * @returns Object with `value` (modified array) and `removed` (removed elements)
+ * @returns The removed elements.
  *
  * @example
  *
- * splice(['foo', 'baz'], 1, 1); -> { value: ['foo'], removed: ['baz'] }
- * splice(['foo', 'baz'], 1, 1, 'bar'); -> { value: ['foo', 'bar'], removed: ['baz'] }
- * splice(['foo', 'baz'], 1, 0, 'bar'); -> { value: ['foo', 'bar', 'baz'], removed: [] }
- * splice(['foo', 'baz'], 1, 0, ['bar']); -> { value: ['foo', 'bar', 'baz'], removed: [] } // flattened
+ * splice(['foo', 'baz'], 1, 1); -> ['baz'], data is now ['foo']
+ * splice(['foo', 'baz'], 1, 1, 'bar'); -> ['baz'], data is now ['foo', 'bar']
+ * splice(['foo', 'baz'], 1, 0, 'bar'); -> [], data is now ['foo', 'bar', 'baz']
+ * splice(['foo', 'baz'], 1, 0, ['bar']); -> [], data is now ['foo', 'bar', 'baz'] // flattened
+ * splice(['foo', 'baz'], 1); -> ['baz'], data is now ['foo']
  */
 export function splice<TValue, TReplacements>(
-    data: ArrayItems<TValue>,
+    data: TValue[],
     offset: number,
     length?: number,
     ...replacement: TReplacements[]
-): { value: TValue[]; removed: TValue[] } {
+): TValue[] {
     if (!accessible(data)) {
-        return { value: [] as TValue[], removed: [] as TValue[] };
+        return [] as TValue[];
     }
-
-    const values = (data as ArrayItems<TValue>).slice();
 
     // Flatten replacement if it's an array within an array
     const flatReplacement: TValue[] = [];
@@ -3252,19 +3252,12 @@ export function splice<TValue, TReplacements>(
         }
     }
 
-    let removed: TValue[];
     if (isUndefined(length)) {
         // If length is not provided, remove all elements from offset to end
-        removed = values.splice(
-            offset,
-            values.length - offset,
-            ...flatReplacement,
-        );
-    } else {
-        removed = values.splice(offset, length, ...flatReplacement);
+        return data.splice(offset, data.length - offset, ...flatReplacement);
     }
 
-    return { value: values, removed };
+    return data.splice(offset, length, ...flatReplacement);
 }
 
 /**

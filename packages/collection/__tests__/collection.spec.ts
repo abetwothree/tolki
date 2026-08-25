@@ -6012,6 +6012,28 @@ describe("Collection", () => {
                 expect(data6.all()).toEqual(["foo", "bar", "baz"]);
             });
         });
+
+        it("keeps an object-backed collection object-backed after splice", () => {
+            // X8: Collection.splice used to assign `this.items =
+            // result.value`, and obj.splice's `value` was an array —
+            // silently converting an object-backed Collection to
+            // array-backed and destroying its keys.
+            const collection = new Collection({ a: 1, b: 2, c: 3 });
+            const removed = collection.splice(1, 1);
+            expect(Array.isArray(collection.all())).toBe(false);
+            expect(collection.all()).toEqual({ a: 1, c: 3 });
+            expect(removed.all()).toEqual({ b: 2 });
+        });
+
+        it("splices to the end with a single argument, either backing", () => {
+            // X7: PHP branches on func_num_args() === 1
+            // (Collection.php:1757) — the one-arg form removes offset ->
+            // end for both backings, not nothing.
+            const fromArray = new Collection(["f", "z"]);
+            const fromObject = new Collection({ foo: "f", baz: "z" });
+            expect(fromArray.splice(1).all()).toEqual(["z"]);
+            expect(fromObject.splice(1).all()).toEqual({ baz: "z" });
+        });
     });
 
     describe("take", () => {
