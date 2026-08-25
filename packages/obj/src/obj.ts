@@ -455,6 +455,14 @@ export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Union multiple objects into one.
  *
+ * Mirrors PHP's `+` array union operator (`["a"=>null] + ["a"=>1]` ->
+ * `["a"=>null]`, PHP-verified in docs/php-parity/task-07-pad-union.json):
+ * the left-most object to already hold a key wins that key's value
+ * unconditionally, even when that value is `null` or `undefined`. The
+ * guard is therefore presence (`Object.hasOwn`), not truthiness/definedness
+ * of the existing value — the same fix as `unshift`'s equivalent
+ * prototype-chain guard above.
+ *
  * @param objects - The objects to union.
  * @return A new object containing all key-value pairs from the input objects.
  */
@@ -468,7 +476,7 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
         ) => {
             if (accessible(obj)) {
                 for (const [key, value] of Object.entries(obj)) {
-                    if (isUndefined(acc[key])) {
+                    if (!Object.hasOwn(acc, key)) {
                         acc[key as TKey] = value as TValue;
                     }
                 }
@@ -3183,6 +3191,14 @@ export function replaceRecursive<T1, T2>(
 /**
  * Reverse the order of the object's entries.
  *
+ * Not a bug: JS spec-orders integer-like own keys ascending, ahead of
+ * string keys, regardless of insertion order (ECMA-262
+ * OrdinaryOwnPropertyKeys). `reverse({0: 'a', 1: 'b'})` therefore still
+ * iterates `0, 1` — the reversed insertion order is lost the moment those
+ * keys are written back onto a plain object. PHP's array preserves
+ * positional/insertion order for integer keys, a guarantee a plain JS
+ * object cannot reproduce. Do not re-file this as a bug.
+ *
  * @param data - The object to reverse.
  * @returns A new object with reversed entries.
  *
@@ -3215,7 +3231,19 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Pad object to the specified length with a value.
  *
- * TODO: implement proper padding and negative numbers
+ * Mirrors PHP's `array_pad()` (Collection.php:1906, PHP-verified in
+ * docs/php-parity/task-07-pad-union.json): pad slots are numbered `0,
+ * 1, 2, ...` regardless of direction — a negative `size` does NOT number
+ * them backwards from `-1`. For `pad({a:1,b:2}, -5, 0)` PHP's real result
+ * is `{0:0, 1:0, 2:0, a:1, b:2}`, not `{-2:0, -1:0, 0:0, a:1, b:2}`.
+ *
+ * Not a bug: because of that, and because JS spec-orders integer-like own
+ * keys ascending ahead of string keys regardless of insertion order
+ * (ECMA-262 OrdinaryOwnPropertyKeys), the appended `0, 1, ...` pad keys
+ * always iterate before `a, b` — even when `size` is negative and PHP
+ * would place the padding first positionally. A plain JS object cannot
+ * reproduce PHP's positional/insertion-order guarantee for integer keys.
+ * Do not re-file this as a bug.
  *
  * @param data - The object to pad.
  * @param size - The desired size of the object after padding. Positive to pad at the end, negative to pad at the beginning.
@@ -3236,23 +3264,14 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     const currentLength = entries.length;
 
     if (Math.abs(size) <= currentLength) {
-        return data as Record<TKey, TValue | TPadValue>;
+        return { ...obj } as Record<TKey, TValue | TPadValue>;
     }
 
     const padCount = Math.abs(size) - currentLength;
     const padEntries: [string, TPadValue][] = [];
 
-    if (size >= 0) {
-        for (let i = 0; i < padCount; i++) {
-            padEntries.push([i.toString(), value]);
-        }
-    } else {
-        // Negative size: left padding with keys counting up to 0 (including negatives)
-        // Example: currentLength=2, size=-5 => padCount=3 => keys -2, -1, 0
-        const start = -(padCount - 1);
-        for (let k = start; k <= 0; k++) {
-            padEntries.push([k.toString(), value]);
-        }
+    for (let i = 0; i < padCount; i++) {
+        padEntries.push([i.toString(), value]);
     }
 
     let resultEntries: [string, TValue | TPadValue][];
@@ -3457,6 +3476,18 @@ export function wrap<TValue>(
 /**
  * Get all keys from an object.
  *
+ * Uses `Object.keys()` — own ENUMERABLE string keys only — so its result
+ * always has the same length as `values()`'s (which uses `Object.values()`,
+ * the same enumerable-own-string-keys walk). They used to disagree:
+ * `keys()` walked `Reflect.ownKeys()` (every own key, enumerable or not,
+ * symbols included before filtering) while `values()` walked
+ * `Object.values()` (enumerable only), so an object with a non-enumerable
+ * own property produced a `keys()`/`values()` length mismatch and desynced
+ * `combine(keys(o), values(o))`. One consequence of aligning them: symbol
+ * keys are omitted, same as before, but now because `Object.keys()` never
+ * returns them rather than via an explicit filter — there is no PHP array
+ * concept for a symbol key to port.
+ *
  * @param data - The object to get keys from.
  * @returns An array of all keys.
  *
@@ -3472,18 +3503,11 @@ export function keys<TValue, TKey extends PropertyKey = PropertyKey>(
         return [];
     }
 
-    // Use Reflect.ownKeys() to preserve insertion order for all key types
-    // Then convert numeric string keys back to numbers
+    // Convert numeric string keys back to numbers, matching PHP's array
+    // keys being ints when they look like ints.
     const result: (string | number)[] = [];
-    const allKeys = Reflect.ownKeys(data as Record<TKey, TValue>);
 
-    for (const key of allKeys) {
-        // Skip symbol keys
-        if (typeof key === "symbol") {
-            continue;
-        }
-
-        // Convert numeric string keys back to numbers
+    for (const key of Object.keys(data as Record<TKey, TValue>)) {
         const numericKey = Number(key);
 
         if (!Number.isNaN(numericKey) && String(numericKey) === key) {

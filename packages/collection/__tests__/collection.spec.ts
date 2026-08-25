@@ -2862,6 +2862,15 @@ describe("Collection", () => {
             const collection = collect([1, 2, 3]);
             expect(collection.keys().all()).toEqual([0, 1, 2]);
         });
+
+        it("reports the same number of keys as values, even with a non-enumerable own property", () => {
+            const items = Object.defineProperty({ a: 1 }, "hidden", {
+                value: 2,
+                enumerable: false,
+            });
+            const collection = collect(items);
+            expect(collection.keys().count()).toBe(collection.values().count());
+        });
     });
 
     describe("last", () => {
@@ -3558,6 +3567,16 @@ describe("Collection", () => {
                 expect(
                     c.union(collect({ name: "World", id: 1 })).all(),
                 ).toEqual({ name: "Hello", id: 1 });
+            });
+        });
+
+        it("lets the left operand win even when its value is undefined", () => {
+            // X20 through the Collection layer — PHP-verified: ["a"=>null] +
+            // ["a"=>1] -> {"a":null} (docs/php-parity/task-07-pad-union.json).
+            const c = collect({ a: undefined });
+            expect(c.union({ a: 1, b: 2 }).all()).toEqual({
+                a: undefined,
+                b: 2,
             });
         });
     });
@@ -6564,6 +6583,28 @@ describe("Collection", () => {
                 f = f.pad(-4, 0);
                 expect(f.all()).toEqual([1, 2, 3, 4, 5]);
             });
+        });
+
+        it("numbers negative pad slots from zero for object-backed collections", () => {
+            // X17 through the Collection layer — PHP-verified:
+            // array_pad(["a"=>1,"b"=>2], -5, 0) ->
+            // {"0":0,"1":0,"2":0,"a":1,"b":2}
+            // (docs/php-parity/task-07-pad-union.json).
+            const c = collect({ a: 1, b: 2 });
+            expect(c.pad(-5, 0).all()).toEqual({
+                0: 0,
+                1: 0,
+                2: 0,
+                a: 1,
+                b: 2,
+            });
+        });
+
+        it("returns a copy even when no padding is needed for object-backed collections", () => {
+            // X18 through the Collection layer.
+            const items = { a: 1, b: 2 };
+            const c = collect(items);
+            expect(c.pad(2, 0).all()).not.toBe(items);
         });
     });
 

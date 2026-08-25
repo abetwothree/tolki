@@ -408,6 +408,13 @@ describe("Data", () => {
             expect(() => Data.dataUnion({ a: 1 }, [1, 2])).toThrowError();
             expect(() => Data.dataUnion([1, 2], { a: 1 })).toThrowError();
         });
+
+        it("lets the left operand win even when its value is undefined", () => {
+            // X20 through the data layer — PHP-verified: ["a"=>null] +
+            // ["a"=>1] -> {"a":null} (docs/php-parity/task-07-pad-union.json).
+            const result = Data.dataUnion({ a: undefined }, { a: 1 });
+            expect(result).toEqual({ a: undefined });
+        });
     });
 
     describe("dataExcept", () => {
@@ -1760,6 +1767,21 @@ describe("Data", () => {
             const result = Data.dataPad([1, 2, 3, 4, 5], 7, 0);
             expect(result).toEqual([1, 2, 3, 4, 5, 0, 0]);
         });
+
+        it("numbers negative pad slots from zero for object-backed data", () => {
+            // X17 through the data layer — PHP-verified:
+            // array_pad(["a"=>1,"b"=>2], -5, 0) ->
+            // {"0":0,"1":0,"2":0,"a":1,"b":2}
+            // (docs/php-parity/task-07-pad-union.json).
+            const result = Data.dataPad({ a: 1, b: 2 }, -5, 0);
+            expect(result).toEqual({ 0: 0, 1: 0, 2: 0, a: 1, b: 2 });
+        });
+
+        it("returns a copy even when no padding is needed for object-backed data", () => {
+            // X18 through the data layer.
+            const data = { a: 1, b: 2 };
+            expect(Data.dataPad(data, 2, 0)).not.toBe(data);
+        });
     });
 
     describe("dataPartition", () => {
@@ -1814,6 +1836,16 @@ describe("Data", () => {
         });
         it("is array", () => {
             expect(Data.dataKeys([1, 2, 3])).toEqual([0, 1, 2]);
+        });
+
+        it("reports the same number of keys as dataValues for object-backed data", () => {
+            const data = Object.defineProperty({ a: 1 }, "hidden", {
+                value: 2,
+                enumerable: false,
+            });
+            expect(Data.dataKeys(data).length).toBe(
+                Data.dataValues(data).length,
+            );
         });
     });
 

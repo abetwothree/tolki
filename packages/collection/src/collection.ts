@@ -3792,6 +3792,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Pad collection to the specified length with a value.
      *
+     * For an object-backed collection, pad slots are numbered `0, 1, 2, ...`
+     * regardless of direction — matching PHP's `array_pad()`, PHP-verified
+     * in docs/php-parity/task-07-pad-union.json — and, because JS
+     * spec-orders integer-like keys ascending ahead of string keys, those
+     * pad keys always iterate before the original string keys even when
+     * `size` is negative and PHP would place them first positionally. Not
+     * a bug; see `pad`'s JSDoc in `@tolki/obj` for the full explanation.
+     *
      * @param size - The size to pad to, positive to pad at the end, negative to pad at the beginning
      * @param value - The value to pad with
      * @returns A new collection padded to the specified length
@@ -3801,7 +3809,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).pad(5, 0); -> new Collection([1, 2, 3, 0, 0])
      * new Collection([1, 2, 3]).pad(-5, 0); -> new Collection([0, 0, 1, 2, 3])
      * new Collection({a: 1, b: 2}).pad(4, 0); -> new Collection({a: 1, b: 2, '2': 0, '3': 0})
-     * new Collection({a: 1, b: 2}).pad(-4, 0); -> new Collection({'-2': 0, '-1': 0, a: 1, b: 2})
+     * new Collection({a: 1, b: 2}).pad(-4, 0); -> new Collection({'0': 0, '1': 0, a: 1, b: 2})
      */
     pad<TPadValue>(size: number, value: TPadValue) {
         return this.newInstance(dataPad(this.items, size, value));

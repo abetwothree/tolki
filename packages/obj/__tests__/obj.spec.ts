@@ -472,6 +472,27 @@ describe("Obj", () => {
                 ),
             ).toEqual({ a: "house", b: 3, c: 4, d: 5 });
         });
+
+        it("lets the left operand win even when its value is undefined", () => {
+            // X20 — PHP-verified: ["a"=>null] + ["a"=>1] -> {"a":null}
+            // (docs/php-parity/task-07-pad-union.json). The old guard was
+            // isUndefined(acc[key]), which let an undefined left value be
+            // overwritten by the right operand; it must be presence
+            // (Object.hasOwn), not definedness.
+            expect(Obj.union({ a: undefined }, { a: 1 })).toEqual({
+                a: undefined,
+            });
+        });
+
+        it("does not walk the prototype chain when checking for an existing key", () => {
+            // Twin of unshift's equivalent pin: `in` would treat an
+            // inherited property (like a plain object's toString) as
+            // already-claimed and skip a legitimate right-operand value.
+            expect(Obj.union({ toString: 1 }, { a: 9 })).toEqual({
+                toString: 1,
+                a: 9,
+            });
+        });
     });
 
     describe("unshift", () => {
@@ -1062,6 +1083,21 @@ describe("Obj", () => {
             expect(keys).toContain(1);
             expect(keys).toContain(2);
             expect(keys).toContain("foo");
+        });
+
+        it("reports the same number of keys as values, even with a non-enumerable own property", () => {
+            // keys() used to walk Reflect.ownKeys() (every own key) while
+            // values() walked Object.values() (enumerable only), so they
+            // desynced on a non-enumerable own property and
+            // combine(keys(o), values(o)) broke. Both now walk
+            // Object.keys()/Object.values(), which agree by construction.
+            const data = Object.defineProperty({ a: 1 }, "hidden", {
+                value: 2,
+                enumerable: false,
+            });
+            expect(Obj.keys(data).length).toBe(Obj.values(data).length);
+            expect(Obj.keys(data)).toEqual(["a"]);
+            expect(Obj.values(data)).toEqual([1]);
         });
     });
 
@@ -3414,13 +3450,43 @@ describe("Obj", () => {
             expect(result).toEqual({ "0": 0, a: 1, b: 2 });
 
             const result2 = Obj.pad(obj, -5, 0);
-            expect(result2).toEqual({ "-2": 0, "-1": 0, "0": 0, a: 1, b: 2 });
+            expect(result2).toEqual({ "0": 0, "1": 0, "2": 0, a: 1, b: 2 });
         });
 
         it("should handle negative size that equals current length", () => {
             const obj = { a: 1, b: 2 };
             const result = Obj.pad(obj, -2, 0);
             expect(result).toEqual({ a: 1, b: 2 });
+        });
+
+        it("numbers negative pad slots from zero, not backwards from -1", () => {
+            // X17 — PHP-verified: array_pad(["a"=>1,"b"=>2], -5, 0) ->
+            // {"0":0,"1":0,"2":0,"a":1,"b":2} (Collection.php:1906, captured
+            // in docs/php-parity/task-07-pad-union.json). The old code
+            // numbered negative pad slots -2, -1, 0 — that was the bug this
+            // test used to pin.
+            expect(Obj.pad({ a: 1, b: 2 }, -5, 0)).toEqual({
+                0: 0,
+                1: 0,
+                2: 0,
+                a: 1,
+                b: 2,
+            });
+        });
+
+        it("returns a copy even when no padding is needed", () => {
+            // X18 — the old code returned `data` itself on the no-pad
+            // path, an aliasing hazard: mutating the result mutated the
+            // caller's object too.
+            const data = { a: 1, b: 2 };
+            const result = Obj.pad(data, 2, 0);
+            expect(result).not.toBe(data);
+            expect(result).toEqual(data);
+        });
+
+        it("returns a copy even when size is zero", () => {
+            const data = { a: 1, b: 2 };
+            expect(Obj.pad(data, 0, 0)).not.toBe(data);
         });
     });
 
@@ -3517,6 +3583,18 @@ describe("Obj", () => {
         it("should handle non-object values", () => {
             expect(Obj.reverse(null)).toEqual({});
             expect(Obj.reverse([])).toEqual({});
+        });
+
+        it("cannot reproduce PHP's positional order for integer-like keys — not a bug", () => {
+            // JS spec-orders integer-like own keys ascending, ahead of
+            // string keys, regardless of insertion order. reverse()
+            // reverses insertion order internally, but writing "0"/"1"
+            // back onto a plain object snaps them back to ascending
+            // position. PHP's array_reverse would give {1: "b", 0: "a"}.
+            expect(Object.keys(Obj.reverse({ 0: "a", 1: "b" }))).toEqual([
+                "0",
+                "1",
+            ]);
         });
     });
 
