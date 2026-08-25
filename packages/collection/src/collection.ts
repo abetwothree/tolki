@@ -1926,24 +1926,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
             key: TKey,
         ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
     ) {
-        // Use the preserved insertion order when we have it, otherwise walk
-        // `this.items` directly. Either way the pairs are always folded into
-        // a local Map (rather than delegating to `dataMapWithKeys`) so that
-        // numeric-looking keys the callback produces keep the order they
-        // were mapped in — `newInstance` detects the Map and preserves that
-        // order via `itemsWithOrder`, mirroring PHP associative array
-        // semantics. `@tolki/arr`'s own `mapWithKeys` intentionally doesn't
-        // do this (it returns a plain JS-ordered Record), so this can't be
-        // delegated to it.
-        //
-        // The key handed to the callback must match what the old
-        // dataMapWithKeys-delegating code gave it: a numeric index for
-        // array-backed items (matching arrMapWithKeys's `i as TKey`), but the
-        // *raw* string key for object-backed items (matching
-        // objMapWithKeys's `key as TKey`) — `entriesKeyValue` is too eager
-        // for that case (e.g. it turns `"0x10"` into `16`), so it's only
-        // applied to the array branch, where every key is already a plain
-        // digit string.
         const entries: Array<[TKey, TValue]> = this.itemsWithOrder
             ? this.itemsWithOrder
             : isArray(this.items)
