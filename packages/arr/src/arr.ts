@@ -1933,7 +1933,10 @@ export function pluck<TValue extends Record<string, unknown>>(
     }
 
     const values = data as ArrayItems<TValue>;
-    const results: unknown[] | Record<string | number, unknown> = key ? {} : [];
+    // Same predicate as the write branch below — JS truthiness would send
+    // key = "" down the array path while the write branch does keyed writes.
+    const results: unknown[] | Record<string | number, unknown> =
+        isNull(key) || isUndefined(key) ? [] : {};
 
     for (const item of values) {
         let itemValue: unknown;
@@ -1978,8 +1981,10 @@ export function pluck<TValue extends Record<string, unknown>>(
         if (isNull(key) || isUndefined(key)) {
             (results as unknown[]).push(itemValue);
         } else {
+            // PHP casts a null array key to "" — a key path that resolves
+            // to null/undefined files the value under "", not "undefined".
             (results as Record<string | number, unknown>)[
-                itemKey as string | number
+                isUndefined(itemKey) ? "" : itemKey
             ] = itemValue;
         }
     }

@@ -2504,14 +2504,25 @@ describe("Arr", () => {
         });
 
         it("should handle null key value", () => {
-            // Tests isNull(nestedKey) is true (false branch)
+            // Tests isNull(nestedKey) is true (false branch). PHP casts a
+            // null array key to "" ($results[null] = $v lands under ''), so
+            // an unresolvable key path files the value under "" — not under
+            // the string "undefined".
             const data = [
                 { value: "a", key: null },
                 { value: "b", key: "normalKey" },
             ];
             const result = Arr.pluck(data, "value", "key");
-            // When key is null, itemKey stays undefined
-            expect(result).toEqual({ normalKey: "b", undefined: "a" });
+            expect(result).toEqual({ normalKey: "b", "": "a" });
+        });
+
+        it("returns a record keyed by the empty string for an empty-string key path", () => {
+            // key = "" is not null/undefined, so the result is a record —
+            // never a named property written onto an array. Each item's ""
+            // path resolves to null, PHP-cast to the "" key, so the last
+            // value wins, matching Arr::pluck($data, 'value', '').
+            const data = [{ value: "a" }, { value: "b" }];
+            expect(Arr.pluck(data, "value", "")).toEqual({ "": "b" });
         });
 
         it("should handle string and number key values", () => {
