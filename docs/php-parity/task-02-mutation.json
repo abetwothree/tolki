@@ -1,0 +1,72 @@
+[
+    {
+        "label": "pop() on an assoc collection",
+        "php": "(new Collection([\"x\"=>1,\"y\"=>2,\"z\"=>3]))->pop()",
+        "value": {
+            "returned": 3,
+            "remaining": {
+                "x": 1,
+                "y": 2
+            }
+        }
+    },
+    {
+        "label": "pop(2) \u2014 reverse order, source keys kept",
+        "php": "(new Collection([...]))->pop(2)",
+        "value": {
+            "returned": [
+                3,
+                2
+            ],
+            "remaining": {
+                "x": 1
+            }
+        }
+    },
+    {
+        "label": "pop(0) \u2014 count < 1",
+        "php": "(new Collection([\"x\"=>1]))->pop(0)",
+        "value": {
+            "returned": [],
+            "remaining": {
+                "x": 1
+            }
+        }
+    },
+    {
+        "label": "shift() on an assoc collection",
+        "php": "(new Collection([...]))->shift()",
+        "value": {
+            "returned": 1,
+            "remaining": {
+                "y": 2,
+                "z": 3
+            }
+        }
+    },
+    {
+        "label": "shift(-1) \u2014 negative count",
+        "php": "(new Collection([\"x\"=>1]))->shift(-1)",
+        "threw": "InvalidArgumentException",
+        "message": "Number of shifted items may not be less than zero."
+    },
+    {
+        "label": "shift(3) on empty",
+        "php": "(new Collection([]))->shift(3)",
+        "value": null
+    },
+    {
+        "label": "shift(0) on non-empty",
+        "php": "(new Collection([\"x\"=>1]))->shift(0)",
+        "value": []
+    },
+    {
+        "label": "push/prepend equivalent of array_unshift",
+        "php": "array_unshift on assoc",
+        "value": {
+            "0": 9,
+            "x": 1,
+            "y": 2
+        }
+    }
+]
