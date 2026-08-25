@@ -453,6 +453,20 @@ describe("Obj", () => {
         it("should handle empty objects", () => {
             expect(Obj.undot({})).toEqual({});
         });
+
+        it("rebuilds a list from consecutive integer segments starting at 0 (decision D3)", () => {
+            // PHP-verified: running Arr::set's algorithm over this exact
+            // input yields {"user":{"languages":["PHP","C#"],"name":"Taylor"}}
+            // (docs/php-parity/task-09-paths.json, "Arr::undot — integer
+            // segments rebuild a list").
+            expect(
+                Obj.undot({
+                    "user.languages.0": "PHP",
+                    "user.languages.1": "C#",
+                    "user.name": "Taylor",
+                }),
+            ).toEqual({ user: { languages: ["PHP", "C#"], name: "Taylor" } });
+        });
     });
 
     describe("union", () => {
@@ -643,6 +657,20 @@ describe("Obj", () => {
             const date = new Date(0);
             expect(Obj.forget({ a: date }, "a.b")).toEqual({ a: date });
         });
+
+        it("removes a literal dotted first-level key without traversing it (pin)", () => {
+            // Arr::forget also calls Arr::exists first (Arr.php's fixed
+            // forget()) — this already worked before this task's fix to
+            // hasObjectKey/hasMixed/getObjectValue (forgetKeysObject checks
+            // Object.hasOwn on the literal key up front). Pinned here so a
+            // future refactor of the shared path helpers cannot regress it.
+            expect(
+                Obj.forget(
+                    { "products.desk": { price: 100 } },
+                    "products.desk",
+                ),
+            ).toEqual({});
+        });
     });
 
     describe("from", () => {
@@ -735,6 +763,16 @@ describe("Obj", () => {
         it("should return false for non-accessible data", () => {
             expect(Obj.exists(null as unknown, "name")).toBe(false);
             expect(Obj.exists([] as unknown, "name")).toBe(false);
+        });
+
+        it("resolves a literal dotted key before traversing", () => {
+            // Arr::exists is a literal array_key_exists check (Arr.php:497,
+            // :534) — it must win over dot-path traversal. PHP-verified:
+            // docs/php-parity/task-09-paths.json, "Arr::exists — literal
+            // dotted key".
+            expect(Obj.exists({ "products.desk": {} }, "products.desk")).toBe(
+                true,
+            );
         });
     });
 
@@ -952,6 +990,18 @@ describe("Obj", () => {
             const obj = { name: undefined };
             expect(Obj.get(obj, "name", () => "fn-default")).toBe("fn-default");
         });
+
+        it("resolves a literal dotted key before traversing", () => {
+            // Arr::get calls Arr::exists first (Arr.php:497) — a literal
+            // key wins over path traversal even when it contains dots.
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::get
+            // — literal dotted key wins".
+            expect(
+                Obj.get({ "products.desk": { price: 100 } }, "products.desk"),
+            ).toEqual({
+                price: 100,
+            });
+        });
     });
 
     describe("has", () => {
@@ -984,6 +1034,22 @@ describe("Obj", () => {
             expect(Obj.has(obj, [null as unknown as string, "name"])).toBe(
                 false,
             );
+        });
+
+        it("resolves a literal dotted key before traversing", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
+            // — literal dotted key".
+            expect(
+                Obj.has({ "products.desk": { price: 100 } }, "products.desk"),
+            ).toBe(true);
+        });
+
+        it("finds a numeric key on a plain object, not only on arrays", () => {
+            // hasMixed previously returned `isArray(data) && ...` for
+            // numeric keys, so a numeric key on a plain object was always
+            // false. PHP-verified: docs/php-parity/task-09-paths.json,
+            // "Arr::has — numeric key".
+            expect(Obj.has({ 123: "x" }, 123)).toBe(true);
         });
     });
 
@@ -2382,6 +2448,17 @@ describe("Obj", () => {
             const result = Obj.pull(obj, null, () => "default");
             expect(result.value).toBe("default");
             expect(result.data).toEqual({ name: "John", age: 30 });
+        });
+
+        it("pulls a first-level key that contains dots", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::pull
+            // — first-level key containing dots".
+            const result = Obj.pull(
+                { "joe@example.com": "Joe", "jane@localhost": "Jane" },
+                "joe@example.com",
+            );
+            expect(result.value).toBe("Joe");
+            expect(result.data).toEqual({ "jane@localhost": "Jane" });
         });
     });
 

@@ -391,6 +391,19 @@ describe("Data", () => {
             );
             expect(result).toEqual(["a", ["b", ["c"]]]);
         });
+
+        it("rebuilds a list from consecutive integer segments starting at 0, through the object backing (decision D3, X26)", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::undot
+            // — integer segments rebuild a list".
+            const result = Data.dataUndot({
+                "user.languages.0": "PHP",
+                "user.languages.1": "C#",
+                "user.name": "Taylor",
+            });
+            expect(result).toEqual({
+                user: { languages: ["PHP", "C#"], name: "Taylor" },
+            });
+        });
     });
 
     describe("dataUnion", () => {
@@ -448,6 +461,14 @@ describe("Data", () => {
         it("is array", () => {
             expect(Data.dataExists([1, 2, 3], 1)).toBe(true);
             expect(Data.dataExists([1, 2, 3], 5)).toBe(false);
+        });
+
+        it("resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::exists
+            // — literal dotted key".
+            expect(
+                Data.dataExists({ "products.desk": {} }, "products.desk"),
+            ).toBe(true);
         });
     });
 
@@ -699,6 +720,16 @@ describe("Data", () => {
             const result = Data.dataGet([1, 2, 3], 1, "default");
             expect(result).toBe(2);
         });
+
+        it("resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::get
+            // — literal dotted key wins".
+            const result = Data.dataGet(
+                { "products.desk": { price: 100 } },
+                "products.desk",
+            );
+            expect(result).toEqual({ price: 100 });
+        });
     });
 
     describe("dataHas", () => {
@@ -710,6 +741,23 @@ describe("Data", () => {
         it("is array", () => {
             const result = Data.dataHas([1, 2, 3], [0, 1]);
             expect(result).toBe(true);
+        });
+
+        it("resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
+            // — literal dotted key".
+            expect(
+                Data.dataHas(
+                    { "products.desk": { price: 100 } },
+                    "products.desk",
+                ),
+            ).toBe(true);
+        });
+
+        it("finds a numeric key on a plain object, not only on arrays (X26)", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
+            // — numeric key".
+            expect(Data.dataHas({ 123: "x" }, 123)).toBe(true);
         });
     });
 
@@ -1109,6 +1157,17 @@ describe("Data", () => {
             const result1 = Data.dataPull([1, 2, 3], 1, "default");
             expect(result1.value).toBe(2);
             expect(result1.data).toEqual([1, 3]);
+        });
+
+        it("pulls a first-level key that contains dots, through the object backing (X26)", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::pull
+            // — first-level key containing dots".
+            const result = Data.dataPull(
+                { "joe@example.com": "Joe", "jane@localhost": "Jane" },
+                "joe@example.com",
+            );
+            expect(result.value).toBe("Joe");
+            expect(result.data).toEqual({ "jane@localhost": "Jane" });
         });
     });
 

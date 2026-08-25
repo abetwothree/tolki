@@ -482,13 +482,30 @@ export function dot<TValue>(
 /**
  * Convert a flatten "dot" notation object into an expanded array.
  *
+ * Every key here must resolve to purely numeric dot segments (see
+ * `undotExpandArray` in `@tolki/path`) — any key with a non-numeric segment
+ * (e.g. `"item.0"`) is dropped entirely, since it cannot be represented by
+ * an array. Because of that, every container this builds is a genuine
+ * array from the moment it is created; there is no intermediate
+ * plain-object stage the way `Obj.undot` has. Decision D3 — "a container
+ * whose own keys are the consecutive integer sequence `0..n-1` is a real
+ * list" — therefore already holds here by construction, with nothing extra
+ * to implement; `Obj.undot` in `@tolki/obj` applies the identical rule at
+ * the point where it *does* need to promote an object into a list, so the
+ * two cannot drift. PHP-verified reasoning: running `Arr::set`'s algorithm
+ * over dotted keys auto-vivifies plain PHP arrays as it descends, and a PHP
+ * array whose keys land on `0..n-1` is exactly what `array_is_list` (and
+ * therefore `json_encode`) renders as a JSON array
+ * (docs/php-parity/task-09-paths.json, "Arr::undot — integer segments
+ * rebuild a list").
+ *
  * @param map - The flat object with dot-notated keys.
  * @returns A new multi-dimensional array.
  *
  * @example
  *
  * undot({ '0': 'a', '1.0': 'b', '1.1': 'c' }); -> ['a', ['b', 'c']]
- * undot({ 'item.0': 'a', 'item.1.0': 'b', 'item.1.1': 'c' }); -> [['b', 'c']]
+ * undot({ '0.0': 'PHP', '0.1': 'C#', '1': 'Taylor' }); -> [['PHP', 'C#'], 'Taylor']
  */
 export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,

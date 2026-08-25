@@ -984,6 +984,14 @@ export function dotFlattenArray<TValue>(
  * Expand a flat object with dot notation keys into a nested structure.
  * Converts a flattened object back into its original nested form, supporting both arrays and objects.
  *
+ * The input `map` is itself always a plain object (a `Record` of dotted
+ * keys), so this dispatches to {@link undotExpandObject} in practice — the
+ * `undotExpandArray` branch only matters for non-object input such as
+ * `null`. Nested containers built from consecutive integer segments
+ * (`0..n-1`) become real arrays (decision D3); the root stays an object
+ * even when its own top-level keys happen to be `0..n-1` — see
+ * {@link undotExpandObject}.
+ *
  * @param map - The flat object with dot-notated keys.
  * @returns A nested structure (array or object).
  *
@@ -991,7 +999,8 @@ export function dotFlattenArray<TValue>(
  *
  * Expand flat objects to nested structures
  * undotExpand({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
- * undotExpand({'0': 'x', '1.name': 'John'}); -> ['x', {name: 'John'}]
+ * undotExpand({'0': 'x', '1.name': 'John'}); -> {0: 'x', 1: {name: 'John'}} (root stays an object)
+ * undotExpand({'0': 'x', '1.0': 'a', '1.1': 'b'}); -> {0: 'x', 1: ['a', 'b']} (nested "1" rebuilds a list)
  */
 export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
@@ -1004,8 +1013,76 @@ export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
+ * Replace a nested container with a real array when its own keys are
+ * exactly the consecutive integer sequence "0", "1", ..., "n-1".
+ *
+ * This mirrors what `Arr::set` + PHP's `array_is_list` do together: each
+ * dotted key auto-vivifies plain PHP arrays as it walks (`Arr.php`'s
+ * `set()`), and a PHP array whose keys happen to be `0..n-1` in that order
+ * is indistinguishable from a "list" — `json_encode` (and this port) render
+ * it as `[...]` rather than `{...}}`. PHP-verified: running `Arr::set`'s
+ * algorithm over
+ * `["user.languages.0"=>"PHP","user.languages.1"=>"C#","user.name"=>"Taylor"]`
+ * yields `{"user":{"languages":["PHP","C#"],"name":"Taylor"}}` — `languages`
+ * (keys `0`, `1`) becomes a list, `user` (keys `languages`, `name`) does not
+ * (docs/php-parity/task-09-paths.json, "Arr::undot — integer segments
+ * rebuild a list").
+ *
+ * `containerPaths` holds only paths that were themselves built by splitting
+ * a dotted input key (see `undotExpandObject` below) — never a leaf value
+ * the caller supplied directly — so this only touches containers the
+ * expansion itself created, walked deepest-first so a child is promoted
+ * before its parent is inspected.
+ */
+function promoteConsecutiveIntegerContainers(
+    results: Record<string, unknown>,
+    containerPaths: Set<string>,
+): void {
+    const sortedPaths = [...containerPaths].sort(
+        (a, b) => b.split(".").length - a.split(".").length,
+    );
+
+    for (const path of sortedPaths) {
+        const segments = path.split(".");
+        const lastSegment = segments[segments.length - 1] as string;
+        const parentSegments = segments.slice(0, -1);
+
+        const parent: unknown =
+            parentSegments.length === 0
+                ? results
+                : getNestedValue(results, parentSegments.join("."));
+
+        if (!isObject(parent)) {
+            continue;
+        }
+
+        const container = (parent as Record<string, unknown>)[lastSegment];
+
+        if (!isObject(container)) {
+            continue;
+        }
+
+        const keys = Object.keys(container);
+        const isConsecutiveList =
+            keys.length > 0 && keys.every((k, i) => k === String(i));
+
+        if (isConsecutiveList) {
+            (parent as Record<string, unknown>)[lastSegment] = keys.map(
+                (k) => (container as Record<string, unknown>)[k],
+            );
+        }
+    }
+}
+
+/**
  * Expand a flat object with dot notation keys into a nested object structure.
  * Converts a flattened object back into its original nested object form.
+ *
+ * Nested containers whose own keys are the consecutive integer sequence
+ * `0..n-1` are rebuilt as real arrays (decision D3, PHP-verified — see
+ * {@link promoteConsecutiveIntegerContainers}). The root always stays a
+ * plain object, matching `Obj.undot`'s `Record` contract, even when its own
+ * top-level keys happen to be `0..n-1`.
  *
  * @param map - The flat object with dot-notated keys.
  * @returns A nested object structure.
@@ -1015,18 +1092,30 @@ export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
  * Expand flat object to nested object
  * undotExpandObject({'user.name': 'John', 'user.age': 30}); -> {user: {name: 'John', age: 30}}
  * undotExpandObject({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
+ * undotExpandObject({'user.languages.0': 'PHP', 'user.languages.1': 'C#'}); -> {user: {languages: ['PHP', 'C#']}}
  */
 export function undotExpandObject<
     TValue,
     TKey extends PropertyKey = PropertyKey,
 >(map: Record<TKey, TValue>): Record<TKey, TValue> {
     const results: Record<string, TValue> = {} as Record<TKey, TValue>;
+    const containerPaths = new Set<string>();
 
     // Object.entries returns string keys only (symbols are not enumerated)
     for (const [key, value] of Object.entries(map) as [string, TValue][]) {
         const result = setObjectValue(results, key, value);
         Object.assign(results, result);
+
+        const segments = key.split(".");
+        for (let i = 1; i < segments.length; i++) {
+            containerPaths.add(segments.slice(0, i).join("."));
+        }
     }
+
+    promoteConsecutiveIntegerContainers(
+        results as Record<string, unknown>,
+        containerPaths,
+    );
 
     return results as Record<TKey, TValue>;
 }
@@ -1539,6 +1628,13 @@ export function setMixedImmutable<TValue>(
  * Check if a key exists using mixed array/object dot notation.
  * Supports both numeric array indices and object property names in paths.
  *
+ * Mirrors `Arr::has`, which calls `Arr::exists` **before** splitting the
+ * key on "." (`Arr.php:534`) — a literal key wins over path traversal even
+ * when it contains dots, and a numeric key is checked against a plain
+ * object the same way a string key is, not only against arrays
+ * (PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has — numeric
+ * key").
+ *
  * @param data - The data to check.
  * @param key - The path to check.
  * @returns True if the path exists, false otherwise.
@@ -1571,11 +1667,32 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
     }
 
     if (isNumber(key)) {
-        return isArray(data) && key >= 0 && key < data.length;
+        if (isArray(data)) {
+            return key >= 0 && key < data.length;
+        }
+
+        return (
+            isObject(data) && String(key) in (data as Record<string, unknown>)
+        );
+    }
+
+    if (!isArray(data) && !isObject(data)) {
+        return false;
+    }
+
+    const keyStr = key.toString();
+
+    // The literal key wins even when it contains dots.
+    if (keyStr in (data as Record<string, unknown>)) {
+        return true;
+    }
+
+    if (!keyStr.includes(".")) {
+        return false;
     }
 
     // Use getNestedValue to check existence
-    const result = getNestedValue(data, key.toString());
+    const result = getNestedValue(data, keyStr);
 
     return !isUndefined(result);
 }
@@ -1583,6 +1700,11 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
 /**
  * Get a value from an object using dot notation.
  * This is an object-specific version that handles object property access.
+ *
+ * Mirrors `Arr::get`, which calls `Arr::exists` **before** splitting the
+ * key on "." (`Arr.php:497`) — a literal key wins over path traversal even
+ * when it contains dots (PHP-verified: docs/php-parity/task-09-paths.json,
+ * "Arr::get — literal dotted key wins").
  *
  * @param obj - The object to get the value from.
  * @param key - The key or dot-notated path.
@@ -1615,11 +1737,14 @@ export function getObjectValue<
 
     const keyStr = String(key);
 
-    // Handle simple property access (no dots)
-    if (!keyStr.includes(".")) {
-        const value = (obj as Record<string, unknown>)[keyStr];
+    // The literal key wins even when it contains dots.
+    const literalValue = (obj as Record<string, unknown>)[keyStr];
+    if (!isUndefined(literalValue)) {
+        return literalValue as TReturn;
+    }
 
-        return !isUndefined(value) ? (value as TReturn) : resolveDefault();
+    if (!keyStr.includes(".")) {
+        return resolveDefault();
     }
 
     // Handle nested property access with dot notation
@@ -1700,6 +1825,14 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Check if a key exists in an object using dot notation.
  *
+ * Mirrors `Arr::has`, which calls `Arr::exists` **before** splitting the
+ * key on "." (`Arr.php:534`) — so a literal key that itself contains dots
+ * wins over path traversal. `{ "products.desk": {} }` has the literal key
+ * `"products.desk"`, so `hasObjectKey(obj, "products.desk")` must be `true`
+ * without ever treating it as `products` -> `desk`
+ * (PHP-verified: docs/php-parity/task-09-paths.json, "Arr::exists — literal
+ * dotted key").
+ *
  * @param obj - The object to check.
  * @param key - The key or dot-notated path.
  * @returns True if the key exists, false otherwise.
@@ -1714,9 +1847,13 @@ export function hasObjectKey<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const keyStr = String(key);
 
-    // Handle simple property access (no dots)
+    // The literal key wins even when it contains dots.
+    if (keyStr in (obj as Record<string, unknown>)) {
+        return true;
+    }
+
     if (!keyStr.includes(".")) {
-        return keyStr in (obj as Record<string, unknown>);
+        return false;
     }
 
     // Handle nested property access with dot notation

@@ -2530,8 +2530,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
             this.items = obj as unknown as DataItems<TValue, TKey>;
         } else {
-            // For objects or path-based keys, manually remove the path
+            // For objects or path-based keys, manually remove the path.
+            // Arr::pull's removal goes through Arr::forget, which calls
+            // Arr::exists first (Arr.php) — a literal key wins over
+            // dot-path traversal even when it contains dots. PHP-verified:
+            // docs/php-parity/task-09-paths.json, "Arr::pull — first-level
+            // key containing dots".
             const keyStr = String(key);
+
+            if (isObject(items) && Object.hasOwn(items, keyStr)) {
+                delete (items as Record<PropertyKey, unknown>)[keyStr];
+                this.items = items as DataItems<TValue, TKey>;
+
+                return value;
+            }
+
             const segments = keyStr.split(".");
 
             if (segments.length === 1) {

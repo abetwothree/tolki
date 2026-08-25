@@ -440,12 +440,30 @@ export function dot<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Convert a flatten "dot" notation object into an expanded object.
  *
+ * Decision D3: a nested container whose own keys are the consecutive
+ * integer sequence `0..n-1` is rebuilt as a real array, not left as a
+ * `{0: ..., 1: ...}` object. This mirrors PHP: `Arr::undot` walks each
+ * dotted key through `Arr::set`, which auto-vivifies plain PHP arrays as it
+ * descends, and a PHP array whose keys happen to be `0..n-1` in that order
+ * is exactly what `array_is_list` (and therefore `json_encode`) renders as
+ * a JSON array rather than an object. PHP-verified: running `Arr::set`'s
+ * algorithm over
+ * `["user.languages.0"=>"PHP","user.languages.1"=>"C#","user.name"=>"Taylor"]`
+ * yields `{"user":{"languages":["PHP","C#"],"name":"Taylor"}}`
+ * (docs/php-parity/task-09-paths.json, "Arr::undot — integer segments
+ * rebuild a list"). The root of the result always stays a plain object,
+ * matching this function's `Record` return type, even when its own
+ * top-level keys happen to be `0..n-1` — see `undotExpandObject` in
+ * `@tolki/path`, which `Arr.undot` shares this exact rule with so the two
+ * cannot drift.
+ *
  * @param map - The flat object with dot-notated keys.
  * @returns A new multi-dimensional object.
  *
  * @example
  *
  * undot({ name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }); -> { name: 'John', address: { city: 'NYC', zip: '10001' } }
+ * undot({ 'user.languages.0': 'PHP', 'user.languages.1': 'C#', 'user.name': 'Taylor' }); -> { user: { languages: ['PHP', 'C#'], name: 'Taylor' } }
  */
 export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
@@ -1125,6 +1143,11 @@ export function from(items: unknown): Record<string, unknown> {
 /**
  * Get an item from an object using "dot" notation.
  *
+ * Mirrors `Arr::get`, which calls `Arr::exists` **before** splitting the
+ * key on "." (`Arr.php:497`) — a literal key wins over path traversal even
+ * when it contains dots (PHP-verified: docs/php-parity/task-09-paths.json,
+ * "Arr::get — literal dotted key wins").
+ *
  * @param  data - The object to get the item from.
  * @param  key - The key or dot-notated path of the item to get.
  * @param  defaultValue - The default value if key is not found
@@ -1135,6 +1158,7 @@ export function from(items: unknown): Record<string, unknown> {
  * get({ name: 'John', age: 30 }, 'name'); -> 'John'
  * get({ user: { name: 'John' } }, 'user.name'); -> 'John'
  * get({ name: 'John' }, 'email', 'default'); -> 'default'
+ * get({ "products.desk": { price: 100 } }, 'products.desk'); -> { price: 100 } (literal key wins over traversal)
  */
 export function get<
     TValue,
@@ -1159,24 +1183,18 @@ export function get<
             : defaultValue;
     }
 
-    // Handle simple key access
-    if (isString(key) && !key.includes(".")) {
-        const value = (object as Record<string, unknown>)[key];
-        return !isUndefined(value)
-            ? (value as TDefault)
-            : isFunction(defaultValue)
-              ? (defaultValue as () => TDefault)()
-              : defaultValue;
+    // The literal key wins even when it contains dots.
+    const literalValue = (object as Record<string, unknown>)[String(key)];
+    if (!isUndefined(literalValue)) {
+        return literalValue as TDefault;
     }
 
-    if (isNumber(key)) {
-        const stringKey = String(key);
-        const value = (object as Record<string, unknown>)[stringKey];
-        return !isUndefined(value)
-            ? (value as TDefault)
-            : isFunction(defaultValue)
-              ? (defaultValue as () => TDefault)()
-              : defaultValue;
+    // A simple (dot-free) or numeric key that isn't present literally can't
+    // resolve via further traversal either.
+    if (isNumber(key) || !key.includes(".")) {
+        return isFunction(defaultValue)
+            ? (defaultValue as () => TDefault)()
+            : defaultValue;
     }
 
     // Handle dot notation for nested object access

@@ -1641,6 +1641,23 @@ describe("Arr", () => {
             const expanded = Arr.undot(flattened);
             expect(expanded).toEqual([["deep"], "shallow"]);
         });
+
+        it("rebuilds a list from consecutive integer segments starting at 0 (decision D3)", () => {
+            // Arr.undot's paths are already numeric-only end to end, so
+            // every container it ever builds is a real array by
+            // construction — there is no plain-object intermediate stage
+            // to "promote" the way Obj.undot needs. This pins that the
+            // rule already holds here, verified against
+            // docs/php-parity/task-09-paths.json ("Arr::undot — integer
+            // segments rebuild a list") adapted to array-only paths.
+            expect(
+                Arr.undot({
+                    "0.0": "PHP",
+                    "0.1": "C#",
+                    "1": "Taylor",
+                }),
+            ).toEqual([["PHP", "C#"], "Taylor"]);
+        });
     });
 
     describe("union", () => {

@@ -1610,6 +1610,13 @@ describe("Collection", () => {
             const collection = collect([1, 2, 3]);
             expect(collection.get(5, "default")).toBe("default");
         });
+
+        it("resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::get
+            // — literal dotted key wins".
+            const collection = collect({ "products.desk": { price: 100 } });
+            expect(collection.get("products.desk")).toEqual({ price: 100 });
+        });
     });
 
     describe("getOrPut", () => {
@@ -2207,6 +2214,20 @@ describe("Collection", () => {
             const collection = collect([1, 2, 3]);
             expect(collection.has([0, 1])).toBe(true);
             expect(collection.has([0, 5])).toBe(false);
+        });
+
+        it("resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
+            // — literal dotted key".
+            const collection = collect({ "products.desk": { price: 100 } });
+            expect(collection.has("products.desk")).toBe(true);
+        });
+
+        it("finds a numeric key on a plain object, not only on arrays (X26)", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
+            // — numeric key".
+            const collection = collect({ 123: "x" });
+            expect(collection.has(123)).toBe(true);
         });
     });
 
@@ -4395,6 +4416,19 @@ describe("Collection", () => {
                 nested: { valid: "data" },
             });
 
+            // Test pulling a first-level key that contains dots — the
+            // literal key must be both retrieved AND removed, not just
+            // retrieved (dataGet already resolved the literal key; pull's
+            // removal step used to re-split on "." and miss it). PHP-verified:
+            // docs/php-parity/task-09-paths.json, "Arr::pull — first-level
+            // key containing dots".
+            const c8b = collect({
+                "joe@example.com": "Joe",
+                "jane@localhost": "Jane",
+            });
+            expect(c8b.pull("joe@example.com")).toBe("Joe");
+            expect(c8b.all()).toEqual({ "jane@localhost": "Jane" });
+
             // Test pulling from array with simple numeric index (already covered but ensuring)
             const c9 = collect([10, 20, 30]);
             expect(c9.pull(1)).toBe(20);
@@ -6481,6 +6515,20 @@ describe("Collection", () => {
                         baz: "boom",
                     },
                 });
+            });
+        });
+
+        it("rebuilds a list from consecutive integer segments starting at 0, through the object backing (decision D3, X26)", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::undot
+            // — integer segments rebuild a list".
+            const data = collect({
+                "user.languages.0": "PHP",
+                "user.languages.1": "C#",
+                "user.name": "Taylor",
+            }).undot();
+
+            expect(data.all()).toEqual({
+                user: { languages: ["PHP", "C#"], name: "Taylor" },
             });
         });
     });

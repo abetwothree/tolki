@@ -9,6 +9,45 @@ describe("Path Functions", () => {
             const result = Path.undotExpandObject(map);
             expect(result).toEqual({ a: { b: 1 }, c: { d: 2 } });
         });
+
+        it("rebuilds a list from consecutive integer segments starting at 0 (decision D3)", () => {
+            // PHP-verified: running Arr::set's algorithm over this exact
+            // input yields {"user":{"languages":["PHP","C#"],"name":"Taylor"}}
+            // (docs/php-parity/task-09-paths.json, "Arr::undot — integer
+            // segments rebuild a list"). "languages" has keys 0, 1 and
+            // rebuilds as an array; "user" has keys "languages", "name" and
+            // stays an object, and the root stays an object regardless.
+            expect(
+                Path.undotExpandObject({
+                    "user.languages.0": "PHP",
+                    "user.languages.1": "C#",
+                    "user.name": "Taylor",
+                }),
+            ).toEqual({ user: { languages: ["PHP", "C#"], name: "Taylor" } });
+        });
+
+        it("does not rebuild a list when integer segments are not consecutive from 0", () => {
+            expect(
+                Path.undotExpandObject({
+                    "item.0": "a",
+                    "item.2": "c",
+                }),
+            ).toEqual({ item: { 0: "a", 2: "c" } });
+        });
+
+        it("skips promotion when a tracked container path was later overwritten by a scalar", () => {
+            // "a.b" is tracked as a container path while processing
+            // "a.b.c", but the later "a" key (no dots) overwrites the
+            // entire nested object with a scalar. The promotion pass must
+            // not throw when a tracked path's parent or container is no
+            // longer an object.
+            expect(
+                Path.undotExpandObject({
+                    "a.b.c": 1,
+                    a: 2,
+                }),
+            ).toEqual({ a: 2 });
+        });
     });
 
     describe("parseSegments", () => {
@@ -919,21 +958,29 @@ describe("Path Functions", () => {
 
     describe("undotExpand", () => {
         it("expands flat object to nested arrays", () => {
+            // The root stays an object (its own keys "0"/"1" are not
+            // promoted), but the nested "1" container's keys "0"/"1" are a
+            // consecutive integer sequence starting at 0, so it rebuilds a
+            // real array (decision D3, PHP-verified:
+            // docs/php-parity/task-09-paths.json).
             expect(
                 Path.undotExpand({
                     "0": "a",
                     "1.0": "b",
                     "1.1": "c",
                 }),
-            ).toEqual({ 0: "a", 1: { 0: "b", 1: "c" } });
+            ).toEqual({ 0: "a", 1: ["b", "c"] });
         });
 
         it("handles deeply nested expansion", () => {
+            // Each non-root container built along the path ("0" and "0.0")
+            // has the single key "0", a one-element consecutive sequence,
+            // so both levels rebuild as arrays.
             expect(
                 Path.undotExpand({
                     "0.0.0": "deep",
                 }),
-            ).toEqual({ 0: { 0: { 0: "deep" } } });
+            ).toEqual({ 0: [["deep"]] });
         });
 
         it("handles empty or null input", () => {
@@ -969,11 +1016,13 @@ describe("Path Functions", () => {
         });
 
         it("handles existing nested structure conflicts", () => {
+            // Nested "0" container's keys "0"/"1" are consecutive from 0,
+            // so it rebuilds as a real array.
             const result = Path.undotExpand({
                 "0.0": "first",
                 "0.1": "second",
             });
-            expect(result).toEqual({ 0: { 0: "first", 1: "second" } });
+            expect(result).toEqual({ 0: ["first", "second"] });
         });
 
         it("covers undotExpand edge cases", () => {
@@ -981,13 +1030,18 @@ describe("Path Functions", () => {
                 "0": "string",
                 "0.child": "should-be-ignored",
             });
+            // Nested "0" container's only key is "child" (not "0"), so it
+            // stays an object.
             expect(result1).toEqual({ 0: { child: "should-be-ignored" } });
 
+            // Nested "0" container's only key is "0" — a one-element
+            // consecutive sequence — so it rebuilds as a single-element
+            // array, even though that element is itself an object.
             const result2 = Path.undotExpand({
                 "0.0": "first",
                 "0.0.child": "ignored",
             });
-            expect(result2).toEqual({ 0: { 0: { child: "ignored" } } });
+            expect(result2).toEqual({ 0: [{ child: "ignored" }] });
         });
     });
 
@@ -1743,6 +1797,35 @@ describe("Path Functions", () => {
             const data = [{ user: { name: "John" } }];
             expect(Path.hasMixed(data, "0.user.name")).toBe(true);
         });
+
+        it("resolves a literal key containing dots before traversing it as a path", () => {
+            // Arr::has calls Arr::exists first (Arr.php:534) — the literal
+            // key wins even though it contains dots (PHP-verified:
+            // docs/php-parity/task-09-paths.json, "Arr::has — literal
+            // dotted key").
+            expect(
+                Path.hasMixed(
+                    { "products.desk": { price: 100 } },
+                    "products.desk",
+                ),
+            ).toBe(true);
+        });
+
+        it("finds a numeric key on a plain object, not only on arrays", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json,
+            // "Arr::has — numeric key".
+            expect(Path.hasMixed({ 123: "x" }, 123)).toBe(true);
+            expect(Path.hasMixed({ 123: "x" }, 456)).toBe(false);
+        });
+
+        it("returns false for a string key when data is neither array nor object", () => {
+            expect(Path.hasMixed(42, "key")).toBe(false);
+            expect(Path.hasMixed("primitive", "key")).toBe(false);
+        });
+
+        it("returns false for a dot-free string key that is not literally present", () => {
+            expect(Path.hasMixed({ foo: 1 }, "bar")).toBe(false);
+        });
     });
 
     describe("getObjectValue", () => {
@@ -1789,6 +1872,19 @@ describe("Path Functions", () => {
             expect(Path.getObjectValue(obj, "missing", () => "computed")).toBe(
                 "computed",
             );
+        });
+
+        it("resolves a literal key containing dots before traversing it as a path", () => {
+            // Arr::get calls Arr::exists first (Arr.php:497) — the literal
+            // key wins even though it contains dots (PHP-verified:
+            // docs/php-parity/task-09-paths.json, "Arr::get — literal
+            // dotted key wins").
+            expect(
+                Path.getObjectValue(
+                    { "products.desk": { price: 100 } },
+                    "products.desk",
+                ),
+            ).toEqual({ price: 100 });
         });
     });
 
@@ -1891,6 +1987,16 @@ describe("Path Functions", () => {
             const obj = { user: { profile: { name: "John" } } };
             expect(Path.hasObjectKey(obj, "user.profile.name")).toBe(true);
             expect(Path.hasObjectKey(obj, "user.missing.path")).toBe(false);
+        });
+
+        it("resolves a literal key containing dots before traversing it as a path", () => {
+            // Arr::exists is a literal array_key_exists check (Arr.php:497,
+            // :534) — it must win over dot-path traversal (PHP-verified:
+            // docs/php-parity/task-09-paths.json, "Arr::exists — literal
+            // dotted key").
+            expect(
+                Path.hasObjectKey({ "products.desk": {} }, "products.desk"),
+            ).toBe(true);
         });
     });
 

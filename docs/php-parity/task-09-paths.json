@@ -1,0 +1,47 @@
+[
+    {
+        "label": "Arr::get \u2014 literal dotted key wins",
+        "php": "Arr::get([\"products.desk\"=>[...]], \"products.desk\")",
+        "value": {
+            "price": 100
+        }
+    },
+    {
+        "label": "Arr::has \u2014 literal dotted key",
+        "php": "Arr::has([\"products.desk\"=>[...]], \"products.desk\")",
+        "value": true
+    },
+    {
+        "label": "Arr::exists \u2014 literal dotted key",
+        "php": "Arr::exists([...], \"products.desk\")",
+        "value": true
+    },
+    {
+        "label": "Arr::pull \u2014 first-level key containing dots",
+        "php": "Arr::pull($a, \"joe@example.com\")",
+        "value": {
+            "pulled": "Joe",
+            "remaining": {
+                "jane@localhost": "Jane"
+            }
+        }
+    },
+    {
+        "label": "Arr::has \u2014 numeric key",
+        "php": "Arr::has([123=>\"x\"], 123)",
+        "value": true
+    },
+    {
+        "label": "Arr::undot \u2014 integer segments rebuild a list",
+        "php": "Arr::undot([...])",
+        "value": {
+            "user": {
+                "languages": [
+                    "PHP",
+                    "C#"
+                ],
+                "name": "Taylor"
+            }
+        }
+    }
+]
