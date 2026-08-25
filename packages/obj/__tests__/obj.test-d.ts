@@ -65,4 +65,24 @@ describe("obj type tests", () => {
             expectTypeOf(result.b).toEqualTypeOf<number>();
         });
     });
+
+    describe("slice", () => {
+        it("infers the value type instead of collapsing to unknown", () => {
+            // Task 4: slice's `data` parameter used to be `Record<TKey,
+            // TValue> | unknown`, the same collapse-to-unknown trap fixed
+            // for splice/pop. Narrowed to `Record<TKey, TValue> | null |
+            // undefined`.
+            const result = Obj.slice({ a: 1, b: 2, c: 3 }, 1);
+            expectTypeOf(result.b).toEqualTypeOf<number>();
+        });
+    });
+
+    describe("filter", () => {
+        it("infers the value type instead of collapsing to unknown", () => {
+            // Task 4: filter's `data` parameter had the same
+            // collapse-to-unknown trap as splice/slice/pop.
+            const result = Obj.filter({ a: 1, b: 2, c: 3 });
+            expectTypeOf(result.b).toEqualTypeOf<number>();
+        });
+    });
 });

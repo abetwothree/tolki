@@ -175,30 +175,36 @@ describe("Obj", () => {
 
     describe("combine", () => {
         it("should combine two objects into an object", () => {
+            // Four keys, four values — equal counts, so the entries below
+            // exercise function-key resolution and an `undefined`-valued
+            // key without tripping the new count-mismatch guard (Task 4,
+            // X19).
             const keys = {
                 1: "name",
                 2: "family",
                 3: () => "callback",
                 4: undefined,
             };
-            const values = { 0: "John", 1: "Doe", 2: 58 };
+            const values = { 0: "John", 1: "Doe", 2: 58, 3: "N/A" };
             expect(Obj.combine(keys, values)).toEqual({
                 name: "John",
                 family: "Doe",
                 callback: 58,
-                undefined: undefined,
+                undefined: "N/A",
             });
         });
 
-        it("should handle when keys have more entries than values", () => {
+        // Task 4 (X19): mismatched counts used to silently produce
+        // `undefined` values instead of throwing — this test previously
+        // pinned that bug ("key 'c' has no corresponding value"). PHP
+        // raises a `ValueError`; PHP-verified message
+        // (docs/php-parity/task-04-shared.json, "array_combine mismatch").
+        it("throws when keys have more entries than values", () => {
             const keys = { 0: "a", 1: "b", 2: "c" };
             const values = { 0: 1, 1: 2 };
-            // key 'c' has no corresponding value
-            expect(Obj.combine(keys, values)).toEqual({
-                a: 1,
-                b: 2,
-                c: undefined,
-            });
+            expect(() => Obj.combine(keys, values)).toThrow(
+                "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
+            );
         });
     });
 
@@ -1115,6 +1121,30 @@ describe("Obj", () => {
         it("should handle non-accessible data", () => {
             expect(Obj.filter(null)).toEqual({});
             expect(Obj.filter([])).toEqual({});
+        });
+
+        // Task 4 (X16): array_filter()'s falsy set is narrower than
+        // Boolean() — PHP-verified (docs/php-parity/task-04-shared.json,
+        // "Collection::filter() falsy set"): it drops "0", "", 0, [],
+        // false, null, but keeps "00" and "0.0", and NaN is truthy.
+        it("drops PHP-falsy values including the string zero", () => {
+            expect(
+                Obj.filter({ a: "0", b: "", c: 0, d: [], e: {}, f: "x" }),
+            ).toEqual({ f: "x" });
+        });
+
+        it("keeps strings that merely look like zero", () => {
+            expect(Obj.filter({ a: "00", b: "0.0", c: "0" })).toEqual({
+                a: "00",
+                b: "0.0",
+            });
+        });
+
+        it("keeps NaN, which is truthy in PHP", () => {
+            expect(Obj.filter({ a: NaN, b: 0, c: 1 })).toEqual({
+                a: NaN,
+                c: 1,
+            });
         });
     });
 
@@ -2409,6 +2439,23 @@ describe("Obj", () => {
             expect(Obj.slice(obj, 3, -2)).toEqual({});
             expect(Obj.slice(obj, 0, -2)).toEqual({ a: 1, b: 2, c: 3 });
             expect(Obj.slice(obj, 1, -1)).toEqual({ b: 2, c: 3, d: 4 });
+        });
+
+        // Task 4 (X15): a negative offset combined with a length beyond the
+        // object's remaining tail used to return `{}` instead of the last
+        // N entries — PHP-verified (docs/php-parity/task-04-shared.json,
+        // "slice(-2,5) preserve_keys" / "slice(-2,2) preserve_keys"):
+        // array_slice($a, -2, 5, true) and array_slice($a, -2, 2, true)
+        // both leave only the last two entries, keys preserved.
+        it("slices from the end for a negative offset with a length", () => {
+            const data = { a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8 };
+            expect(Obj.slice(data, -2, 5)).toEqual({ g: 7, h: 8 });
+            expect(Obj.slice(data, -2, 2)).toEqual({ g: 7, h: 8 });
+        });
+
+        it("returns an empty object for a zero length", () => {
+            // PHP-verified: array_slice(['a'=>1,'b'=>2,'c'=>3], 1, 0, true) -> []
+            expect(Obj.slice({ a: 1, b: 2, c: 3 }, 1, 0)).toEqual({});
         });
     });
 

@@ -24,7 +24,6 @@ import {
     isNumber,
     isObject,
     isPhpArrayKey,
-    isPositiveNumber,
     isString,
     isStringable,
     isUndefined,
@@ -304,22 +303,33 @@ export function collapse<
 }
 
 /**
- * Combine two objects into one, using the values from the first object as keys
+ * Combine two objects into one, using the values from the first object as
+ * keys, mirroring PHP's `array_combine()` / `Collection::combine()`
+ * (`Collection.php:935`).
  *
  * @param keysObject - The object containing keys.
  * @param valuesObject - The object containing values.
  * @return A new object containing combined key-value pairs.
+ * @throws Error if `keysObject` and `valuesObject` do not have the same
+ * number of entries.
  */
 export function combine<TKeys, TValues, TCombineValue = TValues>(
     keysObject: Record<PropertyKey, TKeys>,
     valuesObject: Record<PropertyKey, TValues>,
 ): Record<PropertyKey, TCombineValue> {
-    const result: Record<PropertyKey, TCombineValue> = {};
     const maxLength = Object.keys(keysObject).length;
     const keys = Object.values(keysObject).map((k) =>
         isFunction(k) ? String(k()) : String(k),
     );
     const values = Object.values(valuesObject);
+
+    if (maxLength !== values.length) {
+        throw new Error(
+            "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
+        );
+    }
+
+    const result: Record<PropertyKey, TCombineValue> = {};
 
     for (let i = 0; i < maxLength; i++) {
         const key = keys[i];
@@ -327,7 +337,16 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
         // but TypeScript needs the guard for type narrowing
         /* istanbul ignore if -- @preserve TypeScript narrowing */
         if (!isUndefined(key)) {
-            result[key] = values[i] as TCombineValue;
+            // Writes go through `defineKey` rather than plain assignment so
+            // a `__proto__` key resolved from `keysObject` becomes a real
+            // own key instead of reparenting `result` through the
+            // `__proto__` setter (see `splice`'s doc comment and
+            // `AGENTS.md`'s prototype-pollution guidance).
+            defineKey(
+                result as Record<string, TCombineValue>,
+                key,
+                values[i] as TCombineValue,
+            );
         }
     }
 
@@ -2297,18 +2316,23 @@ export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Slice the underlying object items
+ * Slice the underlying object items, preserving keys — `array_slice($items,
+ * $offset, $length, true)` (`Collection.php:1371`).
  *
  * @param data - The object to slice
  * @param offset - The starting index
  * @param length - The number of items to include
  * @returns Sliced object
+ *
+ * @example
+ *
+ * slice({ a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8 }, -2, 5); -> { g: 7, h: 8 }
  */
 export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | unknown,
+    data: Record<TKey, TValue> | null | undefined,
     offset: number,
     length: number | null = null,
-) {
+): Record<TKey, TValue> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
     }
@@ -2316,19 +2340,28 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
     const obj = data as Record<string, TValue>;
     const entries = Object.entries(obj);
 
-    let slicedEntries;
-    if (isNull(length)) {
-        slicedEntries = entries.slice(offset);
-    } else if (isPositiveNumber(length)) {
-        slicedEntries = entries.slice(offset, offset + length);
-    } else {
-        slicedEntries = entries.slice(offset, length);
-    }
+    // Normalise a negative offset against the entry count BEFORE combining
+    // it with length. The old code fed a raw negative offset straight into
+    // `Array.prototype.slice(offset, length)`, so `slice(data, -2, 5)`
+    // became `entries.slice(-2, 5)` and returned `{}` instead of the last
+    // two entries — PHP-verified in docs/php-parity/task-04-shared.json.
+    const start = offset < 0 ? Math.max(entries.length + offset, 0) : offset;
+    const end = isNull(length)
+        ? undefined
+        : length >= 0
+          ? start + length
+          : entries.length + length;
+
+    const slicedEntries = entries.slice(start, end);
 
     const result: Record<string, TValue> = {};
 
     for (const [key, value] of slicedEntries) {
-        result[key] = value;
+        // Writes go through `defineKey` rather than plain assignment so a
+        // `__proto__` entry becomes a real own key instead of reparenting
+        // `result` through the `__proto__` setter (see `splice`'s doc
+        // comment and `AGENTS.md`'s prototype-pollution guidance).
+        defineKey(result, key, value);
     }
 
     return result as Record<TKey, TValue>;
@@ -3227,6 +3260,50 @@ export function contains<TValue>(
 }
 
 /**
+ * Determine whether a value is falsy the way PHP's `array_filter()` (no
+ * callback) treats it (`Collection.php:430`).
+ *
+ * `@tolki/utils`'s `isFalsy` cannot be reused here — PHP-verified
+ * (`docs/php-parity/task-04-shared.json`, "Collection::filter() falsy
+ * set"): `array_filter` drops exactly `"0"`, `""`, `0`, `[]`, `false`,
+ * `null`, but keeps `"00"` and `"0.0"`, and `NAN` is truthy. `isFalsy`
+ * gets both of those wrong today — it treats `NaN` as falsy (via an
+ * unconditional `Number.isNaN` check) and does NOT treat the exact string
+ * `"0"` as falsy (its string branch is `value.trim() === ""`, which is
+ * false for `"0"` and, separately, wrongly true for whitespace-only
+ * strings PHP treats as truthy). Fixing `isFalsy` itself would ripple to
+ * every other caller in `@tolki/utils`, so `filter` keeps this narrowly
+ * scoped check local instead of widening the shared helper.
+ *
+ * An empty object (`{}`) counting as falsy is correct here — a PHP empty
+ * array maps to `{}` in this package.
+ */
+function isPhpFalsy(value: unknown): boolean {
+    if (
+        value === false ||
+        value === null ||
+        isUndefined(value) ||
+        value === 0 ||
+        value === "" ||
+        value === "0"
+    ) {
+        return true;
+    }
+
+    // Empty arrays are falsy in PHP
+    if (isArray(value)) {
+        return value.length === 0;
+    }
+
+    // Empty objects are falsy in PHP
+    if (isObject(value)) {
+        return Object.keys(value).length === 0;
+    }
+
+    return false;
+}
+
+/**
  * Filter the object using the given callback.
  *
  * @param data - The object to filter.
@@ -3237,9 +3314,11 @@ export function contains<TValue>(
  *
  * filter({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { c: 3, d: 4 }
  * filter({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> { name: 'John', city: 'NYC' }
+ * filter({ a: "0", b: "", c: 0, d: "x" }); -> { d: "x" }
+ * filter({ a: "00", b: "0.0" }); -> { a: "00", b: "0.0" }
  */
 export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | unknown,
+    data: Record<TKey, TValue> | null | undefined,
     callback?: (value: TValue, key: TKey) => boolean | null,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
@@ -3250,24 +3329,18 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
-        // If no callback, filter out falsy values (including empty arrays and empty objects)
+        // If no callback, filter out PHP-falsy values by default
         const shouldInclude = isFunction(callback)
             ? callback(value, key)
-            : (() => {
-                  // Empty arrays are falsy in PHP
-                  if (isArray(value) && value.length === 0) {
-                      return false;
-                  }
-                  // Empty objects are falsy in PHP
-                  if (isObject(value) && Object.keys(value).length === 0) {
-                      return false;
-                  }
-                  // Otherwise use standard JavaScript truthiness
-                  return Boolean(value);
-              })();
+            : !isPhpFalsy(value);
 
         if (shouldInclude) {
-            result[key] = value;
+            // Writes go through `defineKey` rather than plain assignment so
+            // a `__proto__` key in `data` becomes a real own key instead of
+            // reparenting `result` through the `__proto__` setter (see
+            // `splice`'s doc comment and `AGENTS.md`'s prototype-pollution
+            // guidance).
+            defineKey(result as Record<string, TValue>, String(key), value);
         }
     }
 
