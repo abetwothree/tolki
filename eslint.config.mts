@@ -20,6 +20,13 @@ export default defineConfig([
             ".agents/**",
             ".claude/**",
             ".github/**",
+            // PHP's own JSON_PRETTY_PRINT transcripts (see
+            // scripts/php-parity/README.md) — left byte-for-byte as
+            // emit() wrote them, same reasoning as .prettierignore. A
+            // captured value can legitimately be an empty string key
+            // (e.g. task-10-pluck-sort.json's null-array-key probe),
+            // which json/no-empty-keys otherwise flags.
+            "docs/php-parity/**",
         ],
     },
     {

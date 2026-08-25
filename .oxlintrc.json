@@ -16,7 +16,8 @@
         "docs/vitepress/.vitepress/cache/**",
         ".agents/**",
         ".claude/**",
-        ".github/**"
+        ".github/**",
+        "docs/php-parity/**"
     ],
     "rules": {
         "no-array-constructor": "error",

@@ -3095,6 +3095,17 @@ describe("Collection", () => {
             const idedNames = collection.pluck("name", "id");
             expect(idedNames.all()).toEqual({ 1: "John", 2: "Jane" });
         });
+
+        it("plucks wildcard paths the same way for array and object backing", () => {
+            // dataPluck routes object input to Obj.pluck and array input to
+            // Arr.pluck; Task 10 added wildcard support to Obj.pluck, so
+            // this pins that the two backings now agree instead of
+            // silently diverging on a wildcard path.
+            const shape = { users: [{ first: "t" }] };
+            expect(
+                new Collection({ a: shape }).pluck("users.*.first").all(),
+            ).toEqual(new Collection([shape]).pluck("users.*.first").all());
+        });
     });
 
     describe("map", () => {

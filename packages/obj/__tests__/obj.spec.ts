@@ -1740,12 +1740,90 @@ describe("Obj", () => {
                 user1: { name: "John" }, // no 'id' field
                 user2: { name: "Jane", id: null }, // 'id' is null
             };
-            // When key is missing or null, the itemKey won't be stringable
-            // and will use the original value (null/undefined) as key
+            // PHP casts a null array key to "" (PHP-verified:
+            // docs/php-parity/task-10-pluck-sort.json, "Arr::pluck —
+            // missing key field vs explicit null key"). Both user1 (no
+            // 'id') and user2 ('id' explicitly null) resolve the key path
+            // to null, so both write under "" and the last one wins.
             const result = Obj.pluck(obj, "name", "id");
             expect(result).toEqual({
-                null: "Jane",
+                "": "Jane",
             });
+        });
+
+        it("plucks values through a wildcard path", () => {
+            const data = {
+                a: { account: "a", users: [{ first: "taylor" }] },
+                b: {
+                    account: "b",
+                    users: [{ first: "abigail" }, { first: "dayle" }],
+                },
+            };
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+            // "Arr::pluck wildcard path" / "Arr::pluck wildcard + key".
+            expect(Obj.pluck(data, "users.*.first")).toEqual([
+                ["taylor"],
+                ["abigail", "dayle"],
+            ]);
+            expect(Obj.pluck(data, "users.*.first", "account")).toEqual({
+                a: ["taylor"],
+                b: ["abigail", "dayle"],
+            });
+        });
+
+        it("plucks values through an array path", () => {
+            const data = {
+                a: { developer: { name: "Taylor" } },
+                b: { developer: { name: "Abigail" } },
+            };
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+            // "Arr::pluck array path".
+            expect(Obj.pluck(data, ["developer", "name"])).toEqual([
+                "Taylor",
+                "Abigail",
+            ]);
+        });
+
+        it("keeps the whole item when the value path is null", () => {
+            const data = { a: { name: "Taylor", role: "dev" } };
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+            // "Arr::pluck null value keeps the item".
+            expect(Obj.pluck(data, null, "name")).toEqual({
+                Taylor: { name: "Taylor", role: "dev" },
+            });
+        });
+
+        it("yields null placeholders for a missing path", () => {
+            const data = { a: { name: "x" }, b: { name: "y" } };
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+            // "Arr::pluck missing path".
+            expect(Obj.pluck(data, "foo")).toEqual([null, null]);
+        });
+
+        it("yields null when an intermediate segment is null", () => {
+            // Distinct from a *missing* segment (which getNestedValue
+            // reports as undefined): here "mid" exists and is explicitly
+            // null, so there's nothing further to traverse for ".deeper".
+            const data = { a: { mid: null } };
+            expect(Obj.pluck(data, "mid.deeper")).toEqual([null]);
+        });
+
+        it("expands a wildcard over a plain object, unlike arr.pluck", () => {
+            // Divergence from @tolki/arr: arr's resolvePluckPath uses
+            // getAccessibleValues, which only expands JS arrays, so a
+            // wildcard target that's a plain object silently resolves to
+            // []. obj's resolvePluckPath treats both arrays and plain
+            // objects as iterable, matching data_get()'s is_iterable()
+            // check (helpers.php:90-94), which doesn't distinguish either.
+            const data = {
+                a: { meta: { x: { value: 1 }, y: { value: 2 } } },
+            };
+            expect(Obj.pluck(data, "meta.*.value")).toEqual([[1, 2]]);
+        });
+
+        it("yields an empty array for a wildcard over a non-iterable target", () => {
+            const data = { a: { meta: "not-iterable" } };
+            expect(Obj.pluck(data, "meta.*.value")).toEqual([[]]);
         });
     });
 
@@ -3017,6 +3095,130 @@ describe("Obj", () => {
             expect(Obj.sort(null)).toEqual({});
             expect(Obj.sort([])).toEqual({});
         });
+
+        describe("multi-key descriptors", () => {
+            it("sorts by multiple keys in order", () => {
+                const unsorted = {
+                    d: { name: "Item", age: 10, meta: { key: 3 } },
+                    a: { name: "Item", age: 2, meta: { key: 1 } },
+                    c: { name: "Apple", age: 10, meta: { key: 2 } },
+                };
+                // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+                // "Arr::sort multi-key". Assert on Object.values, not key
+                // order - Arr::sort/Obj.sort preserve original keys.
+                expect(
+                    Object.values(
+                        Obj.sort(unsorted, ["name", "age", "meta.key"]),
+                    ),
+                ).toEqual([
+                    { name: "Apple", age: 10, meta: { key: 2 } },
+                    { name: "Item", age: 2, meta: { key: 1 } },
+                    { name: "Item", age: 10, meta: { key: 3 } },
+                ]);
+            });
+
+            it("honours per-key direction tuples", () => {
+                // Laravel: `true` and 'asc' sort ASCENDING (Collection.php:1638).
+                const unsorted = {
+                    a: { name: "Item", age: 2 },
+                    b: { name: "Item", age: 10 },
+                };
+                // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+                // "direction tuple [age,false] — descending".
+                expect(
+                    Object.values(Obj.sort(unsorted, ["name", ["age", false]])),
+                ).toEqual([
+                    { name: "Item", age: 10 },
+                    { name: "Item", age: 2 },
+                ]);
+            });
+
+            it("honours [key, true] and [key, 'asc'] as ascending", () => {
+                const unsorted = {
+                    a: { name: "Item", age: 10 },
+                    b: { name: "Item", age: 2 },
+                };
+                // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+                // "direction tuple [age,true] — ascending".
+                expect(
+                    Object.values(Obj.sort(unsorted, ["name", ["age", true]])),
+                ).toEqual([
+                    { name: "Item", age: 2 },
+                    { name: "Item", age: 10 },
+                ]);
+
+                // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+                // "direction tuple [age,"desc"] — string form".
+                expect(
+                    Object.values(
+                        Obj.sort({ a: { age: 2 }, b: { age: 10 } }, [
+                            ["age", "desc"],
+                        ]),
+                    ),
+                ).toEqual([{ age: 10 }, { age: 2 }]);
+            });
+
+            it("defaults an omitted direction to ascending", () => {
+                const unsorted = {
+                    a: { age: 10 },
+                    b: { age: 2 },
+                };
+                // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+                // "direction tuple [age] — omitted defaults to ascending".
+                // A single-element tuple has no explicit direction at all -
+                // Collection::sortByMany defaults the missing slot to
+                // `true` via Arr::get($comparison, 1, true).
+                expect(Object.values(Obj.sort(unsorted, [["age"]]))).toEqual([
+                    { age: 2 },
+                    { age: 10 },
+                ]);
+            });
+
+            it("falls through an unrecognized direction to descending", () => {
+                const unsorted = {
+                    a: { age: 2 },
+                    b: { age: 10 },
+                };
+                // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+                // "direction tuple [age,"BOGUS"] — default arm is
+                // DESCENDING". Anything the match-arm doesn't recognize
+                // falls through to Laravel's "for backwards compatibility"
+                // default arm, which is descending, not ascending.
+                expect(
+                    Object.values(
+                        Obj.sort(unsorted, [
+                            ["age", "BOGUS" as unknown as "asc"],
+                        ]),
+                    ),
+                ).toEqual([{ age: 10 }, { age: 2 }]);
+            });
+
+            it("uses a comparator descriptor as-authored", () => {
+                const unsorted = {
+                    a: { age: 30 },
+                    b: { age: 10 },
+                    c: { age: 20 },
+                };
+                const byAgeDesc = (x: { age: number }, y: { age: number }) =>
+                    y.age - x.age;
+                expect(Object.values(Obj.sort(unsorted, [byAgeDesc]))).toEqual([
+                    { age: 30 },
+                    { age: 20 },
+                    { age: 10 },
+                ]);
+            });
+
+            it("falls through to a stable no-op when every descriptor ties", () => {
+                const unsorted = { a: { name: "Item" }, b: { name: "Item" } };
+                // Exercises the "no comparator produced a decision"
+                // fallback: Array.prototype.sort is stable, so a tie on
+                // every descriptor preserves insertion order.
+                expect(Object.keys(Obj.sort(unsorted, ["name"]))).toEqual([
+                    "a",
+                    "b",
+                ]);
+            });
+        });
     });
 
     describe("sortDesc", () => {
@@ -3030,6 +3232,18 @@ describe("Obj", () => {
                 const obj = { y: 100, a: 1, c: 3, b: 2, x: 100 };
                 const result = Obj.sortDesc(obj);
                 expect(Object.values(result)).toEqual([100, 100, 3, 2, 1]);
+            });
+
+            it("compares numbers numerically, not lexicographically", () => {
+                // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+                // "Arr::sortDesc numeric comparison". A single-digit-only
+                // fixture would hide a lexicographic ("10" < "9" as
+                // strings) bug that bit the arr package across sixteen
+                // task reviews - this fixture mixes single and
+                // multi-digit numbers on purpose.
+                expect(
+                    Object.values(Obj.sortDesc({ a: 1, b: 10, c: 9 })),
+                ).toEqual([10, 9, 1]);
             });
         });
 
@@ -3163,6 +3377,57 @@ describe("Obj", () => {
                 // Both callback results are null, should return 0 (maintain order)
                 const result = Obj.sortDesc(obj, (item) => item["value"]);
                 expect(Object.keys(result)).toEqual(["a", "b"]);
+            });
+        });
+
+        describe("multi-key descriptors", () => {
+            it("reverses every descriptor's own direction", () => {
+                // Mirrors Collection::sortByDesc (Collection.php:1683-1693):
+                // every key/tuple descriptor's direction is overridden to
+                // descending, regardless of what it specified. Insertion
+                // order (p, q, r) is deliberately NOT already
+                // descending-by-name-then-age, so a no-op fallback would
+                // produce a different (wrong) order than a real descending
+                // sort - unlike an earlier version of this fixture, whose
+                // expected order coincidentally matched the unsorted input.
+                const unsorted = {
+                    p: { name: "Apple", age: 5, meta: { key: 9 } },
+                    q: { name: "Item", age: 2, meta: { key: 1 } },
+                    r: { name: "Item", age: 9, meta: { key: 2 } },
+                };
+                expect(
+                    Object.values(
+                        Obj.sortDesc(unsorted, ["name", "age", "meta.key"]),
+                    ),
+                ).toEqual([
+                    { name: "Item", age: 9, meta: { key: 2 } },
+                    { name: "Item", age: 2, meta: { key: 1 } },
+                    { name: "Apple", age: 5, meta: { key: 9 } },
+                ]);
+            });
+
+            it("does not override a comparator descriptor's own direction", () => {
+                const unsorted = {
+                    a: { age: 30 },
+                    b: { age: 10 },
+                    c: { age: 20 },
+                };
+                const byAgeAsc = (x: { age: number }, y: { age: number }) =>
+                    x.age - y.age;
+                // The comparator is authored ascending; sortDesc must not
+                // flip it, matching sortByDesc's rewrite only ever
+                // touching a comparison's [1] slot (never a callable).
+                expect(
+                    Object.values(Obj.sortDesc(unsorted, [byAgeAsc])),
+                ).toEqual([{ age: 10 }, { age: 20 }, { age: 30 }]);
+            });
+
+            it("falls through to a stable no-op when every descriptor ties", () => {
+                const unsorted = { a: { name: "Item" }, b: { name: "Item" } };
+                expect(Object.keys(Obj.sortDesc(unsorted, ["name"]))).toEqual([
+                    "a",
+                    "b",
+                ]);
             });
         });
     });

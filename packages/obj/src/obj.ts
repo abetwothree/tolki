@@ -3,6 +3,7 @@ import { SortDirection } from "@tolki/enum";
 import {
     dotFlatten,
     forgetKeys,
+    getNestedValue,
     getObjectValue,
     hasMixed,
     hasObjectKey,
@@ -1731,29 +1732,131 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
 }
 
 /**
+ * Get the values a pluck wildcard segment iterates over, mirroring
+ * `data_get()`'s `is_iterable()` check (`helpers.php:90-94`): a PHP
+ * `foreach` walks both arrays and (associative) objects, so both a JS
+ * array and a plain object count here. This is intentionally broader than
+ * `@tolki/arr`'s `getAccessibleValues` (used by `resolvePluckPath` in
+ * arr.ts), which only expands actual JS arrays — a wildcard whose target
+ * is a plain object silently resolves to `[]` there. `data_get` doesn't
+ * distinguish; neither does this.
+ *
+ * @param target - The value a `*` segment is expanding.
+ * @returns The values to recurse into, or `[]` for a non-iterable target.
+ */
+function getPluckWildcardValues(target: unknown): unknown[] {
+    if (isArray(target)) {
+        return target;
+    }
+
+    if (isObject(target)) {
+        return Object.values(target);
+    }
+
+    return [];
+}
+
+/**
+ * Resolve a pluck path against a single item, expanding `*` segments into an
+ * array of the values found at that level. Ports arr.ts's `resolvePluckPath`
+ * (same two documented divergences from `data_get()` apply here):
+ *
+ * - a wildcard over a non-iterable yields `[]` (via
+ *   {@linkcode getPluckWildcardValues}) where `data_get` bails out with its
+ *   default (`null`);
+ * - multiple wildcards nest (`[[..], [..]]`) where `data_get` collapses the
+ *   tail one level (`Arr::collapse`).
+ *
+ * @param item - The item to resolve the path against.
+ * @param segments - The already-split path segments.
+ * @returns The resolved value, an array of values for a wildcard, or null.
+ */
+function resolvePluckPath(item: unknown, segments: readonly string[]): unknown {
+    if (segments.length === 0) {
+        return item;
+    }
+
+    const [segment, ...rest] = segments;
+
+    if (segment === "*") {
+        const values = getPluckWildcardValues(item);
+
+        return values.map((value) => resolvePluckPath(value, rest));
+    }
+
+    if (isNull(item) || isUndefined(item)) {
+        return null;
+    }
+
+    const next = getNestedValue(item, segment as string);
+
+    if (isUndefined(next)) {
+        return null;
+    }
+
+    return resolvePluckPath(next, rest);
+}
+
+/**
+ * Split a pluck value or key argument into path segments the way Laravel's
+ * `explodePluckParameters` does: strings split on dots, arrays pass
+ * through, and `null` (the "keep the whole item" value form) yields no
+ * segments at all so {@linkcode resolvePluckPath} returns the item itself —
+ * `data_get($item, null)` short-circuits to `$target` before ever touching
+ * a segment loop, and zero segments has the same effect here.
+ *
+ * @param path - The path to split.
+ * @returns The path segments.
+ */
+function explodePluckPath(path: string | readonly string[] | null): string[] {
+    if (isNull(path)) {
+        return [];
+    }
+
+    if (isArray(path)) {
+        return [...path];
+    }
+
+    return String(path).split(".");
+}
+
+/**
  * Pluck an array of values from an object.
  *
  * @param data - The object to pluck from.
- * @param value - The key path to pluck, or a callback function.
- * @param key - Optional key path to use as keys in result, or callback function.
+ * @param value - The key path to pluck (a dot-notated string, an array of
+ *   segments, or a path containing a `*` wildcard segment), a callback
+ *   function, or `null` to keep each whole item as the value.
+ * @param key - Optional key path (string, array of segments, or callback)
+ *   to use as keys in the result.
  * @returns A new array with plucked values or object with key-value pairs.
  *
  * @example
  *
  * pluck({ user1: { name: 'John' }, user2: { name: 'Jane' } }, 'name'); -> ['John', 'Jane']
  * pluck({ user1: { id: 1, name: 'John' }, user2: { id: 2, name: 'Jane' } }, 'name', 'id'); -> { 1: 'John', 2: 'Jane' }
+ * pluck({ a: { developer: { name: 'Taylor' } } }, ['developer', 'name']); -> ['Taylor']
+ * pluck({ a: { account: 'a', users: [{ first: 'taylor' }] } }, 'users.*.first'); -> [['taylor']]
+ * pluck({ a: { name: 'Taylor', role: 'dev' } }, null, 'name'); -> { Taylor: { name: 'Taylor', role: 'dev' } }
  */
 export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    value: string | ((item: TValue) => unknown),
-    key: string | ((item: TValue) => string | number) | null = null,
+    value: string | readonly string[] | ((item: TValue) => unknown) | null,
+    key:
+        | string
+        | readonly string[]
+        | ((item: TValue) => string | number)
+        | null = null,
 ): unknown[] | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
-        return key ? {} : [];
+        return isNull(key) || isUndefined(key) ? [] : {};
     }
 
     const obj = data as Record<string, TValue>;
-    const results: unknown[] | Record<PropertyKey, unknown> = key ? {} : [];
+    // Same predicate as the write branch below — JS truthiness would send
+    // key = "" down the array path while the write branch does keyed writes.
+    const results: unknown[] | Record<PropertyKey, unknown> =
+        isNull(key) || isUndefined(key) ? [] : {};
 
     for (const [, item] of Object.entries(obj)) {
         let itemValue: unknown;
@@ -1763,23 +1866,35 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
         if (isFunction(value)) {
             itemValue = value(item);
         } else {
-            // Use dot notation to get nested value
-            itemValue = getObjectValue(item, value as PathKey);
+            itemValue = resolvePluckPath(
+                item,
+                explodePluckPath(value as string | readonly string[] | null),
+            );
         }
 
         // Get the key if specified
         if (!isNull(key) && !isUndefined(key)) {
             if (isFunction(key)) {
-                itemKey = key(item) as string | number;
+                itemKey = (key as (item: TValue) => string | number)(item);
             } else {
-                itemKey = getObjectValue(item, key as PathKey) as
-                    | string
-                    | number;
+                const nestedKey = resolvePluckPath(
+                    item,
+                    explodePluckPath(key as string | readonly string[]),
+                );
+
+                if (
+                    typeof nestedKey === "string" ||
+                    typeof nestedKey === "number"
+                ) {
+                    itemKey = nestedKey;
+                } else if (!isNull(nestedKey)) {
+                    itemKey = String(nestedKey) as string;
+                }
             }
 
             // Convert objects with toString to string
-            if (isStringable(itemKey)) {
-                itemKey = itemKey.toString();
+            if (!isUndefined(itemKey) && isStringable(itemKey)) {
+                itemKey = String(itemKey);
             }
         }
 
@@ -1787,8 +1902,10 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
         if (isNull(key) || isUndefined(key)) {
             (results as unknown[]).push(itemValue);
         } else {
+            // PHP casts a null array key to "" — a key path that resolves
+            // to null/undefined files the value under "", not "undefined".
             (results as Record<string | number, unknown>)[
-                itemKey as string | number
+                isUndefined(itemKey) ? "" : itemKey
             ] = itemValue;
         }
     }
@@ -2517,10 +2634,103 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Sort the object using the given callback or "dot" notation.
+ * A single sort descriptor accepted by {@linkcode sort} and
+ * {@linkcode sortDesc}'s array-of-descriptors (multi-key) form.
+ *
+ * Deliberately not `@tolki/arr`'s exported `SortSpec` type. That type's
+ * tuple arm requires an explicit direction (`readonly [string, direction]`),
+ * which cannot express Laravel's actual default: `Collection::sortByMany`
+ * (`Collection.php:1627-1666`) runs every descriptor through `Arr::wrap`
+ * first, so a bare key path *and* a single-element tuple (`['age']`) both
+ * resolve their missing `[1]` slot via `Arr::get($comparison, 1, true)` —
+ * defaulting to `true`, i.e. ascending (PHP-verified:
+ * docs/php-parity/task-10-pluck-sort.json, "direction tuple [age] — omitted
+ * defaults to ascending").
+ *
+ * `@tolki/arr`'s `sortSpecComparator` has no branch for a 1-element tuple:
+ * an untyped caller who passes one there destructures `direction` as
+ * `undefined`, which reads as "not ascending" and sorts DESCENDING — the
+ * opposite of Laravel. That is a real `arr` divergence from this task's
+ * PHP-verified ground truth, not a hidden feature to copy; see
+ * {@linkcode objSortSpecComparator}'s `isAscending` check for the fix.
+ *
+ * - a dot-notated key path, sorted ascending
+ * - a `[key]` tuple — identical to a bare key path, ascending
+ * - a `[key, direction]` tuple: `true`, `'asc'`, and `SortDirection.Ascending`
+ *   sort ascending; every other direction value — `false`, `'desc'`,
+ *   `SortDirection.Descending`, or anything unrecognized from an untyped
+ *   caller — sorts descending, exactly like Laravel's default arm
+ * - a comparator returning a negative, zero, or positive number
+ */
+type ObjSortSpec<TValue> =
+    | string
+    | readonly [string]
+    | readonly [string, boolean | "Ascending" | "Descending" | "asc" | "desc"]
+    | ((a: TValue, b: TValue) => number);
+
+/**
+ * Build a comparator from a single sort descriptor. See {@linkcode ObjSortSpec}
+ * for why a 1-element tuple (and a bare key path) must default to ascending.
+ *
+ * `forceDescending` mirrors `Collection::sortByDesc` (`Collection.php`
+ * lines 1683-1693): for a key path or tuple it overrides the direction to
+ * descending regardless of what was specified, but it has no effect on a
+ * comparator function, which always runs exactly as authored.
+ *
+ * @param spec - The key path, `[key]`/`[key, direction]` tuple, or comparator.
+ * @param forceDescending - When true, key paths and tuples ignore their own direction and sort descending; comparator functions are unaffected.
+ * @returns A comparator for the descriptor.
+ */
+function objSortSpecComparator<TValue>(
+    spec: ObjSortSpec<TValue>,
+    forceDescending: boolean,
+): (a: TValue, b: TValue) => number {
+    if (isFunction(spec)) {
+        return spec as (a: TValue, b: TValue) => number;
+    }
+
+    if (isArray(spec)) {
+        const [key, direction] = spec as readonly [
+            string,
+            (boolean | "Ascending" | "Descending" | "asc" | "desc")?,
+        ];
+        // Collection::sortByMany's match-arm, with the 1-element-tuple fix
+        // documented on ObjSortSpec: a missing direction defaults to `true`
+        // (ascending) via Arr::get($comparison, 1, true); `true`, `'asc'`,
+        // and Ascending sort ascending; everything else sorts descending.
+        const isAscending =
+            isUndefined(direction) ||
+            direction === true ||
+            direction === "asc" ||
+            direction === SortDirection.Ascending;
+        const isDescending = forceDescending || !isAscending;
+
+        return (a, b) => {
+            const comparison = compareValues(
+                getNestedValue(a as Record<string, unknown>, key),
+                getNestedValue(b as Record<string, unknown>, key),
+            );
+
+            return isDescending ? -comparison : comparison;
+        };
+    }
+
+    return (a, b) => {
+        const comparison = compareValues(
+            getNestedValue(a as Record<string, unknown>, spec as string),
+            getNestedValue(b as Record<string, unknown>, spec as string),
+        );
+
+        return forceDescending ? -comparison : comparison;
+    };
+}
+
+/**
+ * Sort the object using the given callback, "dot" notation, or an array of
+ * sort descriptors for multi-key sorting.
  *
  * @param data - The object to sort.
- * @param callback - The sorting callback, field name, or null for natural sorting.
+ * @param callback - The sorting callback, field name, an array of sort descriptors, or null for natural sorting.
  * @returns A new object with sorted entries.
  *
  * @example
@@ -2528,18 +2738,31 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
  * sort({ c: 3, a: 1, b: 4, d: 1, e: 5 }); -> { a: 1, d: 1, c: 3, b: 4, e: 5 } (sorted by values)
  * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, 'age'); -> sorted by age
  * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name
+ * sort({ a: { name: 'Item', age: 10 }, b: { name: 'Item', age: 2 } }, ['name', ['age', false]]); -> sorted by name asc, then age desc
  */
 export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
-    callback?: ((value: TValue, key: TKey) => unknown) | string | null,
+    callback?:
+        | ((value: TValue, key: TKey) => unknown)
+        | string
+        | readonly ObjSortSpec<TValue>[]
+        | null,
 ): Record<TKey, TValue>;
 export function sort(
     data: unknown,
-    callback?: ((value: unknown, key: PropertyKey) => unknown) | string | null,
+    callback?:
+        | ((value: unknown, key: PropertyKey) => unknown)
+        | string
+        | readonly ObjSortSpec<unknown>[]
+        | null,
 ): Record<PropertyKey, unknown>;
 export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback: ((value: TValue, key: TKey) => unknown) | string | null = null,
+    callback:
+        | ((value: TValue, key: TKey) => unknown)
+        | string
+        | readonly ObjSortSpec<TValue>[]
+        | null = null,
 ): Record<TKey, TValue> | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
@@ -2547,6 +2770,26 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const obj = data as Record<TKey, TValue>;
     const entries = Object.entries(obj);
+
+    if (isArray(callback)) {
+        // Multi-key sorting - mirrors Collection::sortByMany; each
+        // descriptor keeps its own direction (Collection.php:1638-1640).
+        const comparators = (callback as readonly ObjSortSpec<TValue>[]).map(
+            (spec) => objSortSpecComparator<TValue>(spec, false),
+        );
+
+        entries.sort(([, a], [, b]) => {
+            for (const comparator of comparators) {
+                const comparison = comparator(a as TValue, b as TValue);
+
+                if (comparison !== 0) {
+                    return comparison;
+                }
+            }
+
+            return 0;
+        });
+    }
 
     if (isFalsy(callback)) {
         // Natural sorting by values
@@ -2646,12 +2889,13 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Sort the object in descending order using the given callback or "dot" notation.
+ * Sort the object in descending order using the given callback, "dot"
+ * notation, or an array of sort descriptors for multi-key sorting.
  *
  * TODO: use the sort function with a "descending" parameter defined
  *
  * @param data - The object to sort.
- * @param callback - The value extractor callback, field name, or null for natural sorting.
+ * @param callback - The value extractor callback, field name, an array of sort descriptors, or null for natural sorting.
  * @returns A new object with sorted entries in descending order.
  *
  * @example
@@ -2659,18 +2903,31 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
  * sortDesc({ c: 3, a: 1, b: 4, d: 1, e: 5 }); -> { e: 5, b: 4, c: 3, a: 1, d: 1 } (sorted by values desc)
  * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, 'age'); -> sorted by age desc
  * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name desc
+ * sortDesc({ a: { name: 'Item', age: 10 }, b: { name: 'Item', age: 2 } }, ['name', ['age', false]]); -> each descriptor's comparison is reversed
  */
 export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
-    callback?: ((value: TValue, key: TKey) => unknown) | string | null,
+    callback?:
+        | ((value: TValue, key: TKey) => unknown)
+        | string
+        | readonly ObjSortSpec<TValue>[]
+        | null,
 ): Record<TKey, TValue>;
 export function sortDesc(
     data: unknown,
-    callback?: ((value: unknown, key: PropertyKey) => unknown) | string | null,
+    callback?:
+        | ((value: unknown, key: PropertyKey) => unknown)
+        | string
+        | readonly ObjSortSpec<unknown>[]
+        | null,
 ): Record<PropertyKey, unknown>;
 export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback?: ((value: TValue, key: TKey) => unknown) | string | null,
+    callback?:
+        | ((value: TValue, key: TKey) => unknown)
+        | string
+        | readonly ObjSortSpec<TValue>[]
+        | null,
 ): Record<TKey, TValue> | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
@@ -2679,10 +2936,33 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     const obj = data as Record<TKey, TValue>;
     const entries = Object.entries(obj);
 
+    if (isArray(callback)) {
+        // Multi-key sorting - mirrors Collection::sortByDesc: every
+        // descriptor's own direction is overridden to descending (a
+        // comparator function is unaffected - see objSortSpecComparator).
+        const comparators = (callback as readonly ObjSortSpec<TValue>[]).map(
+            (spec) => objSortSpecComparator<TValue>(spec, true),
+        );
+
+        entries.sort(([, a], [, b]) => {
+            for (const comparator of comparators) {
+                const comparison = comparator(a as TValue, b as TValue);
+
+                if (comparison !== 0) {
+                    return comparison;
+                }
+            }
+
+            return 0;
+        });
+    }
+
     if (isUndefined(callback) || isNull(callback)) {
         // Natural sorting by values in descending order
         entries.sort(([, a], [, b]) => compareValues(b, a));
-    } else if (isString(callback)) {
+    }
+
+    if (isString(callback)) {
         // Sort by field name using dot notation in descending order
         entries.sort(([, a], [, b]) => {
             const aValue = getObjectValue(
@@ -2696,7 +2976,9 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
 
             return compareValues(bValue, aValue);
         });
-    } else {
+    }
+
+    if (isFunction(callback)) {
         // Extract sort values using callback, then sort by those values in descending order
         const indexed = entries.map(([key, value]) => ({
             key,

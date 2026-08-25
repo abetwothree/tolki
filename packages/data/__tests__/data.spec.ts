@@ -2313,6 +2313,17 @@ describe("Data", () => {
                 ),
             ).toEqual(["House", "Condo", "Apartment"]);
         });
+
+        it("plucks a wildcard path the same way for array and object backing", () => {
+            // dataPluck routes object input to Obj.pluck and array input to
+            // Arr.pluck; Task 10 added wildcard support to Obj.pluck, so
+            // this pins that the two backings now agree instead of
+            // silently diverging on a wildcard path.
+            const shape = { users: [{ first: "t" }] };
+            expect(Data.dataPluck({ a: shape }, "users.*.first")).toEqual(
+                Data.dataPluck([shape], "users.*.first"),
+            );
+        });
     });
 
     describe("dataPop", () => {
