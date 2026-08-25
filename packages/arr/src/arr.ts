@@ -22,8 +22,12 @@ import type {
     CaseValue,
     EnsureArray,
     FlatArrayValue,
+    NonNullableArray,
     PathKey,
     PathKeys,
+    PluckValue,
+    SortSpec,
+    TruthyArray,
     UndotResult,
 } from "@tolki/types";
 import {
@@ -192,6 +196,19 @@ export function arrayItem<TValue, TDefault = null>(
  * boolean([{active: true}], '0.active'); -> true
  * boolean([{active: 'yes'}], '0.active'); -> throws Error
  */
+// Overload: typed array → boolean value
+export function boolean<TValue, TDefault = null>(
+    data: ArrayItems<TValue>,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): boolean;
+// Overload: unknown fallback
+export function boolean<TDefault = null>(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): boolean;
+// Implementation
 export function boolean<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -213,7 +230,6 @@ export function boolean<TValue, TDefault = null>(
  *
  * @param data - The array to chunk
  * @param size - The size of each chunk
- * @param preserveKeys - Whether to preserve the original keys, defaults to false
  * @returns Chunked array
  */
 export function chunk<TValue>(
@@ -908,6 +924,15 @@ export function take<TValue>(
  * flatten([1, [2, [3, 4]], 5], 1); -> [1, 2, [3, 4], 5]
  */
 export function flatten<TValue>(data: TValue[][], depth?: number): TValue[];
+// Overload: readonly-of-readonly 2D array → flattened one level, matching
+// the mutable `TValue[][]` overload above. Must sit above the single-level
+// `TValue[]` overload below, which would otherwise catch it by inferring
+// TValue as the inner (readonly) array type itself, leaving the result
+// un-flattened at the type level.
+export function flatten<TValue>(
+    data: ArrayItems<ArrayItems<TValue>>,
+    depth?: number,
+): TValue[];
 export function flatten<TValue>(data: TValue[], depth?: number): TValue[];
 export function flatten(data: unknown, depth?: number): unknown[];
 export function flatten<TValue>(
@@ -966,6 +991,11 @@ export function flatten<TValue>(
  * flip(['a', 'b', 'c']); -> {a: 0, b: 1, c: 2}
  * flip(['a', 1, null, false, true, 1.5, [], {}]); -> {a: 0, 1: 1}
  */
+// Overload: typed array → flipped record
+export function flip<TValue>(data: ArrayItems<TValue>): Record<string, number>;
+// Overload: unknown fallback
+export function flip(data: unknown): Record<string, number>;
+// Implementation
 export function flip<TValue>(
     data: readonly TValue[] | unknown,
 ): Record<string, number> {
@@ -1005,6 +1035,19 @@ export function flip<TValue>(
  * float([{price: 19.99}], '0.price'); -> 19.99
  * float([{price: 'free'}], '0.price'); -> throws Error
  */
+// Overload: typed array → float value
+export function float<TValue, TDefault = null>(
+    data: ArrayItems<TValue>,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): number;
+// Overload: unknown fallback
+export function float<TDefault = null>(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): number;
+// Implementation
 export function float<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -1109,9 +1152,9 @@ export function from(items: unknown): unknown {
 /**
  * Get an item from an array using numeric-only dot notation.
  *
- * @param  data - The array to get the item from.
+ * @param  array - The array to get the item from.
  * @param  key - The key or dot-notated path of the item to get.
- * @param  default - The default value if key is not found
+ * @param  defaultValue - The default value if key is not found
  * @returns The value or the default
  *
  * @example
@@ -1194,6 +1237,11 @@ export function get<TValue, TDefault = unknown>(
  * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.1']); -> true
  * has(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); -> false
  */
+// Overload: typed array → existence check
+export function has<TValue>(data: ArrayItems<TValue>, keys: PathKeys): boolean;
+// Overload: unknown fallback
+export function has(data: unknown, keys: PathKeys): boolean;
+// Implementation
 export function has<TValue>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
@@ -1228,6 +1276,14 @@ export function has<TValue>(
  * hasAll(['foo', 'bar', ['baz', 'qux']], ['0', '2.1']); -> true
  * hasAll(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); -> false
  */
+// Overload: typed array → existence check for all keys
+export function hasAll<TValue>(
+    data: ArrayItems<TValue>,
+    keys: PathKeys,
+): boolean;
+// Overload: unknown fallback
+export function hasAll(data: unknown, keys: PathKeys): boolean;
+// Implementation
 export function hasAll<TValue>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
@@ -1259,6 +1315,14 @@ export function hasAll<TValue>(
  * hasAny(['foo', 'bar', ['baz', 'qux']], ['0', '2.2']); -> true
  * hasAny(['foo', 'bar', ['baz', 'qux']], ['3', '4']); -> false
  */
+// Overload: typed array → existence check for any key
+export function hasAny<TValue>(
+    data: ArrayItems<TValue>,
+    keys: PathKeys,
+): boolean;
+// Overload: unknown fallback
+export function hasAny(data: unknown, keys: PathKeys): boolean;
+// Implementation
 export function hasAny<TValue>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
@@ -1417,7 +1481,7 @@ export function some<TValue>(
  *
  * @param  data - The array to get the item from.
  * @param  key - The key or dot-notated path of the item to get.
- * @param  default - The default value if key is not found
+ * @param  defaultValue - The default value if key is not found
  *
  * @returns The integer value.
  *
@@ -1429,6 +1493,19 @@ export function some<TValue>(
  * integer([10, 20, 30], 5, 100); -> 100
  * integer(["house"], 0); -> Error: The value is not an integer.
  */
+// Overload: typed array → integer value
+export function integer<TValue, TDefault = null>(
+    data: ArrayItems<TValue>,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): number;
+// Overload: unknown fallback
+export function integer<TDefault = null>(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): number;
+// Implementation
 export function integer<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -1457,6 +1534,15 @@ export function integer<TValue, TDefault = null>(
  * join(['a', 'b', 'c'], ', ') => 'a, b, c'
  * join(['a', 'b', 'c'], ', ', ' and ') => 'a, b and c'
  */
+// Overload: typed array → joined string
+export function join<TValue>(
+    data: ArrayItems<TValue>,
+    glue: string,
+    finalGlue?: string,
+): string;
+// Overload: unknown fallback
+export function join(data: unknown, glue: string, finalGlue?: string): string;
+// Implementation
 export function join<TValue>(
     data: ArrayItems<TValue> | unknown,
     glue: string,
@@ -1498,7 +1584,7 @@ export function join<TValue>(
  */
 // Overload: array type with callback for proper type inference
 export function keyBy<TValue extends Record<string, unknown>>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     keyBy: ((item: TValue) => string | number | null | undefined) | string,
 ): Record<string, TValue>;
 // Overload: non-array fallback
@@ -1563,6 +1649,17 @@ function stringifyKey(keyValue: unknown): string {
  *
  * prependKeysWith(['a', 'b', 'c'], 'item_'); -> Creates array with keys: item_0, item_1, item_2
  */
+// Overload: typed array → keys prefixed, element type preserved
+export function prependKeysWith<TValue>(
+    data: ArrayItems<TValue>,
+    prependWith: string,
+): Record<string, TValue>;
+// Overload: unknown fallback
+export function prependKeysWith(
+    data: unknown,
+    prependWith: string,
+): Record<string, unknown>;
+// Implementation
 export function prependKeysWith<TValue>(
     data: ArrayItems<TValue> | unknown,
     prependWith: string,
@@ -1589,7 +1686,10 @@ export function prependKeysWith<TValue>(
  * only(['a', 'b', 'c', 'd'], [0, 2]); -> ['a', 'c']
  * only(['a', 'b', 'c'], [1]); -> ['b']
  */
-export function only<TValue>(data: TValue[], keys: number[]): TValue[];
+export function only<TValue>(
+    data: ArrayItems<TValue>,
+    keys: number[],
+): TValue[];
 export function only(data: unknown, keys: number[]): unknown[];
 export function only<TValue>(
     data: ArrayItems<TValue> | unknown,
@@ -1647,6 +1747,22 @@ export function onlyValues<TValue>(
  * select([{a: 1, b: 2, c: 3}, {a: 4, b: 5, c: 6}], 'a'); -> [{a: 1}, {a: 4}]
  * select([{a: 1, b: 2}, {a: 3, b: 4}], ['a', 'b']); -> [{a: 1, b: 2}, {a: 3, b: 4}]
  */
+// Overload: literal key array → picked element type
+export function select<
+    TValue extends Record<string, unknown>,
+    const TKeys extends readonly (keyof TValue & string)[],
+>(data: ArrayItems<TValue>, keys: TKeys): Pick<TValue, TKeys[number]>[];
+// Overload: single literal key → picked element type
+export function select<
+    TValue extends Record<string, unknown>,
+    const TKey extends keyof TValue & string,
+>(data: ArrayItems<TValue>, keys: TKey): Pick<TValue, TKey>[];
+// Overload: non-literal keys or untyped data → opaque records
+export function select<TValue extends Record<string, unknown>>(
+    data: ArrayItems<TValue> | unknown,
+    keys: PathKeys,
+): Record<string, unknown>[];
+// Implementation
 export function select<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
@@ -1674,48 +1790,147 @@ export function select<TValue extends Record<string, unknown>>(
 }
 
 /**
+ * Resolve a pluck path against a single item, expanding `*` segments into an
+ * array of the values found at that level. Covers the `data_get()` wildcard
+ * behaviour that Laravel's `Arr::pluck` tests exercise, with two known
+ * divergences on inputs `ArrTest.php` never reaches:
+ *
+ * - a wildcard over a non-iterable yields `[]` (via `getAccessibleValues`)
+ *   where `data_get` bails out with its default (`null`);
+ * - multiple wildcards nest (`[[..], [..]]`) where `data_get` collapses the
+ *   tail one level (`Arr::collapse`).
+ *
+ * Align these before building `data_get`-equivalent helpers on top of it.
+ *
+ * @param item - The item to resolve the path against.
+ * @param segments - The already-split path segments.
+ * @returns The resolved value, an array of values for a wildcard, or null.
+ */
+function resolvePluckPath(item: unknown, segments: readonly string[]): unknown {
+    if (segments.length === 0) {
+        return item;
+    }
+
+    const [segment, ...rest] = segments;
+
+    if (segment === "*") {
+        const values = getAccessibleValues(item);
+
+        return values.map((value) => resolvePluckPath(value, rest));
+    }
+
+    if (isNull(item) || isUndefined(item)) {
+        return null;
+    }
+
+    const next = getNestedValue(item, segment as string);
+
+    if (isUndefined(next)) {
+        return null;
+    }
+
+    return resolvePluckPath(next, rest);
+}
+
+/**
+ * Split a pluck value or key argument into path segments the way Laravel's
+ * `explodePluckParameters` does: strings split on dots, arrays pass through.
+ *
+ * @param path - The path to split.
+ * @returns The path segments.
+ */
+function explodePluckPath(path: string | readonly string[]): string[] {
+    if (isArray(path)) {
+        return [...path];
+    }
+
+    return String(path).split(".");
+}
+
+/**
  * Pluck an array of values from an array.
  *
  * @param data - The array to pluck from.
- * @param value - The key path to pluck, or a callback function.
+ * @param value - The key path to pluck (a dot-notated string, an array of
+ *   segments, or a path containing a `*` wildcard segment), or a callback function.
  * @param key - Optional key path to use as keys in result, or callback function.
- * @returns A new array with plucked values.
+ * @returns A new array of plucked values, or a record keyed by the
+ *   resolved `key` values when a key is given.
  *
  * @example
  *
  * pluck([{name: 'John', age: 30}, {name: 'Jane', age: 25}], 'name'); -> ['John', 'Jane']
  * pluck([{user: {name: 'John'}}, {user: {name: 'Jane'}}], 'user.name'); -> ['John', 'Jane']
  * pluck([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'name', 'id'); -> {1: 'John', 2: 'Jane'}
+ * pluck([{developer: {name: 'Taylor'}}], ['developer', 'name']); -> ['Taylor']
+ * pluck([{users: [{first: 'taylor'}, {first: 'dayle'}]}], 'users.*.first'); -> [['taylor', 'dayle']]
+ * pluck([{name: 'John'}, {name: 'Jane'}], 'missing'); -> [null, null]
  */
+// Overload: literal path + key → record keyed by the key, resolved value type
+export function pluck<
+    TValue extends Record<string, unknown>,
+    const TPath extends string,
+>(
+    data: ArrayItems<TValue>,
+    value: TPath,
+    key: string | readonly string[] | ((item: TValue) => string | number),
+): Record<string | number, PluckValue<TValue, TPath>>;
+// Overload: literal path, no key → array of the resolved value type
+export function pluck<
+    TValue extends Record<string, unknown>,
+    const TPath extends string,
+>(data: ArrayItems<TValue>, value: TPath): PluckValue<TValue, TPath>[];
+// Overload: closure value + key → record keyed by the key
+export function pluck<TValue extends Record<string, unknown>, TResult>(
+    data: ArrayItems<TValue>,
+    value: (item: TValue) => TResult,
+    key: string | readonly string[] | ((item: TValue) => string | number),
+): Record<string | number, TResult>;
+// Overload: closure value, no key → array of the closure return type
+export function pluck<TValue extends Record<string, unknown>, TResult>(
+    data: ArrayItems<TValue>,
+    value: (item: TValue) => TResult,
+): TResult[];
 // Overload: with key → returns Record (keyed result)
 export function pluck<TValue extends Record<string, unknown>>(
-    data: TValue[],
-    value: string | ((item: TValue) => unknown),
-    key: string | ((item: TValue) => string | number),
+    data: ArrayItems<TValue>,
+    value: string | readonly string[] | ((item: TValue) => unknown),
+    key: string | readonly string[] | ((item: TValue) => string | number),
 ): Record<string | number, unknown>;
 // Overload: without key → returns array
 export function pluck<TValue extends Record<string, unknown>>(
-    data: TValue[],
-    value: string | ((item: TValue) => unknown),
+    data: ArrayItems<TValue>,
+    value: string | readonly string[] | ((item: TValue) => unknown),
 ): unknown[];
 // Overload: non-array fallback
 export function pluck<TValue extends Record<string, unknown>>(
     data: unknown,
-    value: string | ((item: TValue) => unknown),
-    key?: string | ((item: TValue) => string | number) | null,
+    value: string | readonly string[] | ((item: TValue) => unknown),
+    key?:
+        | string
+        | readonly string[]
+        | ((item: TValue) => string | number)
+        | null,
 ): unknown[] | Record<string | number, unknown>;
 // Implementation
 export function pluck<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue> | unknown,
-    value: string | ((item: TValue) => unknown),
-    key: string | ((item: TValue) => string | number) | null = null,
+    value: string | readonly string[] | ((item: TValue) => unknown),
+    key:
+        | string
+        | readonly string[]
+        | ((item: TValue) => string | number)
+        | null = null,
 ): unknown[] | Record<string | number, unknown> {
     if (!accessible(data)) {
         return [];
     }
 
     const values = data as ArrayItems<TValue>;
-    const results: unknown[] | Record<string | number, unknown> = key ? {} : [];
+    // Same predicate as the write branch below — JS truthiness would send
+    // key = "" down the array path while the write branch does keyed writes.
+    const results: unknown[] | Record<string | number, unknown> =
+        isNull(key) || isUndefined(key) ? [] : {};
 
     for (const item of values) {
         let itemValue: unknown;
@@ -1725,8 +1940,10 @@ export function pluck<TValue extends Record<string, unknown>>(
         if (isFunction(value)) {
             itemValue = value(item);
         } else {
-            // Use dot notation to get nested value
-            itemValue = getNestedValue(item, value as string);
+            itemValue = resolvePluckPath(
+                item,
+                explodePluckPath(value as string | readonly string[]),
+            );
         }
 
         // Get the key if specified
@@ -1734,7 +1951,10 @@ export function pluck<TValue extends Record<string, unknown>>(
             if (isFunction(key)) {
                 itemKey = (key as (item: TValue) => string | number)(item);
             } else {
-                const nestedKey = getNestedValue(item, key as string);
+                const nestedKey = resolvePluckPath(
+                    item,
+                    explodePluckPath(key as string | readonly string[]),
+                );
                 if (
                     typeof nestedKey === "string" ||
                     typeof nestedKey === "number"
@@ -1755,8 +1975,10 @@ export function pluck<TValue extends Record<string, unknown>>(
         if (isNull(key) || isUndefined(key)) {
             (results as unknown[]).push(itemValue);
         } else {
+            // PHP casts a null array key to "" — a key path that resolves
+            // to null/undefined files the value under "", not "undefined".
             (results as Record<string | number, unknown>)[
-                itemKey as string | number
+                isUndefined(itemKey) ? "" : itemKey
             ] = itemValue;
         }
     }
@@ -1771,8 +1993,8 @@ export function pluck<TValue extends Record<string, unknown>>(
  * @param count - The number of items to pop. Defaults to 1.
  * @returns The popped item, items, or null if none found
  */
-export function pop<TValue>(data: TValue[]): TValue | null;
-export function pop<TValue>(data: TValue[], count: number): TValue[];
+export function pop<TValue>(data: ArrayItems<TValue>): TValue | null;
+export function pop<TValue>(data: ArrayItems<TValue>, count: number): TValue[];
 export function pop<TValue>(
     data: ArrayItems<TValue> | unknown,
     count?: number,
@@ -1817,7 +2039,7 @@ export function pop<TValue>(
  */
 // Overload: array type with callback for proper type inference
 export function map<TValue, TMapReturn>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => TMapReturn,
 ): TMapReturn[];
 // Overload: non-array fallback
@@ -1858,9 +2080,9 @@ export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
     TKey extends number = number,
-    TMapWithKeysKey extends PropertyKey = PropertyKey,
+    TMapWithKeysKey extends string = string,
 >(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback: (
         value: TValue,
         index: TKey,
@@ -1871,7 +2093,7 @@ export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
     TKey extends number = number,
-    TMapWithKeysKey extends PropertyKey = PropertyKey,
+    TMapWithKeysKey extends string = string,
 >(
     data: unknown,
     callback: (
@@ -1884,46 +2106,31 @@ export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
     TKey extends number = number,
-    TMapWithKeysKey extends PropertyKey = PropertyKey,
+    TMapWithKeysKey extends string = string,
 >(
     data: ArrayItems<TValue> | unknown,
     callback: (
         value: TValue,
         index: TKey,
     ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
-):
-    | Record<TMapWithKeysKey, TMapWithKeysValue>
-    | Map<TMapWithKeysKey, TMapWithKeysValue> {
+): Record<TMapWithKeysKey, TMapWithKeysValue> {
     if (!accessible(data)) {
         return {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
 
     const values = data as ArrayItems<TValue>;
     const result = {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
-    const resultMap = new Map<TMapWithKeysKey, TMapWithKeysValue>();
-    let hasNumericKeys = false;
 
     for (let i = 0; i < values.length; i++) {
         const mappedObject = callback(values[i] as TValue, i as TKey);
 
         // Merge all key/value pairs from the returned object
         for (const [mapKey, mapValue] of Object.entries(mappedObject)) {
-            // Check if this is a numeric key
-            const numKey = Number(mapKey);
-            if (!Number.isNaN(numKey) && String(numKey) === mapKey) {
-                hasNumericKeys = true;
-            }
-
             result[mapKey as TMapWithKeysKey] = mapValue as TMapWithKeysValue;
-            resultMap.set(
-                mapKey as TMapWithKeysKey,
-                mapValue as TMapWithKeysValue,
-            );
         }
     }
 
-    // Return Map if we have numeric keys to preserve insertion order
-    return hasNumericKeys ? resultMap : result;
+    return result;
 }
 
 /**
@@ -1939,19 +2146,19 @@ export function mapWithKeys<
  * mapSpread([['John', 25], ['Jane', 30]], (name, age) => `${name} is ${age}`); -> ['John is 25', 'Jane is 30']
  */
 export function mapSpread<T1, TMapReturn>(
-    data: [T1][],
+    data: ArrayItems<readonly [T1]>,
     callback: (arg1: T1, index: number) => TMapReturn,
 ): TMapReturn[];
 export function mapSpread<T1, T2, TMapReturn>(
-    data: [T1, T2][],
+    data: ArrayItems<readonly [T1, T2]>,
     callback: (arg1: T1, arg2: T2, index: number) => TMapReturn,
 ): TMapReturn[];
 export function mapSpread<T1, T2, T3, TMapReturn>(
-    data: [T1, T2, T3][],
+    data: ArrayItems<readonly [T1, T2, T3]>,
     callback: (arg1: T1, arg2: T2, arg3: T3, index: number) => TMapReturn,
 ): TMapReturn[];
 export function mapSpread<T1, T2, T3, T4, TMapReturn>(
-    data: [T1, T2, T3, T4][],
+    data: ArrayItems<readonly [T1, T2, T3, T4]>,
     callback: (
         arg1: T1,
         arg2: T2,
@@ -1961,7 +2168,7 @@ export function mapSpread<T1, T2, T3, T4, TMapReturn>(
     ) => TMapReturn,
 ): TMapReturn[];
 export function mapSpread<T1, T2, T3, T4, T5, TMapReturn>(
-    data: [T1, T2, T3, T4, T5][],
+    data: ArrayItems<readonly [T1, T2, T3, T4, T5]>,
     callback: (
         arg1: T1,
         arg2: T2,
@@ -2009,6 +2216,19 @@ export function mapSpread<TMapReturn>(
  * prepend(['b', 'c'], 'a'); -> ['a', 'b', 'c']
  * prepend([1, 2, 3], 0); -> [0, 1, 2, 3]
  */
+// Overload: typed array → array with the value prepended, element type preserved
+export function prepend<TValue>(
+    data: ArrayItems<TValue>,
+    value: TValue,
+    key?: number,
+): TValue[];
+// Overload: unknown fallback
+export function prepend<TValue>(
+    data: unknown,
+    value: TValue,
+    key?: number,
+): TValue[];
+// Implementation
 export function prepend<TValue>(
     data: ArrayItems<TValue> | unknown,
     value: TValue,
@@ -2042,20 +2262,24 @@ export function prepend<TValue>(
  * pull(['a', 'b', 'c'], 5, 'x'); -> { value: 'x', data: ['a', 'b', 'c'] }
  * pull(['a', ['b', 'c']], '1.2', 'x'); -> { value: 'x', data: ['a', ['b', 'c']] }
  */
+// Overload: typed array without a default
 export function pull<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     key: PathKey,
 ): { value: TValue | null; data: TValue[] };
+// Overload: typed array with a default
 export function pull<TValue, TDefault>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     key: PathKey,
     defaultValue: TDefault | (() => TDefault),
 ): { value: TValue | TDefault; data: TValue[] };
+// Overload: unknown fallback
 export function pull<TValue, TDefault = null>(
-    data: ArrayItems<TValue> | unknown,
+    data: unknown,
     key: PathKey,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): { value: TValue | TDefault | null; data: TValue[] };
+// Implementation
 export function pull<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -2105,7 +2329,14 @@ export function pull<TValue, TDefault = null>(
  * query(['a', 'b', 'c']); -> '0=a&1=b&2=c'
  * query({tags: ['php', 'js']}); -> 'tags[0]=php&tags[1]=js'
  * query({user: {name: 'John', age: 30}}); -> 'user[name]=John&user[age]=30'
+ * query({foo: 'bar', bar: true}); -> 'foo=bar&bar=1' (booleans cast like PHP's http_build_query)
+ * query({foo: 'bar', bar: false}); -> 'foo=bar&bar='
  */
+// Overload: typed array → query string
+export function query<TValue>(data: ArrayItems<TValue>): string;
+// Overload: unknown fallback
+export function query(data: unknown): string;
+// Implementation
 export function query(data: unknown): string {
     if (isNull(data) || isUndefined(data)) {
         return "";
@@ -2115,6 +2346,16 @@ export function query(data: unknown): string {
         return encodeURIComponent(key)
             .replace(/%5B/g, "[")
             .replace(/%5D/g, "]");
+    };
+
+    // Mirrors PHP's http_build_query scalar casting: booleans become "1"
+    // or "" rather than JavaScript's "true"/"false".
+    const stringifyQueryValue = (value: unknown): string => {
+        if (isBoolean(value)) {
+            return value ? "1" : "";
+        }
+
+        return String(value);
     };
 
     const buildQuery = (obj: unknown, prefix: string = ""): string[] => {
@@ -2132,7 +2373,7 @@ export function query(data: unknown): string {
                         // Use a custom encoder that doesn't encode [ and ] to match PHP behavior
                         const encodedKey = encodeKeyComponent(key);
                         parts.push(
-                            `${encodedKey}=${encodeURIComponent(String(value))}`,
+                            `${encodedKey}=${encodeURIComponent(stringifyQueryValue(value))}`,
                         );
                     }
                 }
@@ -2148,7 +2389,7 @@ export function query(data: unknown): string {
                         // Use a custom encoder that doesn't encode [ and ] to match PHP behavior
                         const encodedKey = encodeKeyComponent(key);
                         parts.push(
-                            `${encodedKey}=${encodeURIComponent(String(value))}`,
+                            `${encodedKey}=${encodeURIComponent(stringifyQueryValue(value))}`,
                         );
                     }
                 }
@@ -2157,7 +2398,9 @@ export function query(data: unknown): string {
             // Scalar value
             const key = prefix || "0";
             const encodedKey = encodeKeyComponent(key);
-            parts.push(`${encodedKey}=${encodeURIComponent(String(obj))}`);
+            parts.push(
+                `${encodedKey}=${encodeURIComponent(stringifyQueryValue(obj))}`,
+            );
         }
 
         return parts;
@@ -2169,28 +2412,29 @@ export function query(data: unknown): string {
 /**
  * Get one or a specified number of random values from an array.
  *
- * @param data - The array to get random values from.
+ * @param data - The array to get random values from. Non-array-like input is treated as absent, not as an empty array.
  * @param number - The number of items to return. If null, returns a single item.
  * @param preserveKeys - Whether to preserve the original keys when returning multiple items.
- * @returns A single random item, an array of random items, or null if array is empty.
- * @throws Error if more items are requested than available.
+ * @returns A single random item, an array of random items, an empty array when zero or fewer items are requested, or null when no count is given and the input isn't array-like.
+ * @throws Error if more items are requested than are available, including requesting a single item (or any positive count) from an empty array.
  *
  * @example
  *
  * random([1, 2, 3]); -> 2 (single random item)
  * random([1, 2, 3], 2); -> [3, 1] (two random items)
  * random(['a', 'b', 'c'], 2, true); -> {1: 'b', 2: 'c'} (with original keys)
- * random([], 1); -> null
+ * random([], 0); -> [] (explicitly requesting zero items)
+ * random([]); -> throws Error (no items available)
  * random([1, 2], 5); -> throws Error
  */
-export function random<TValue>(data: TValue[]): TValue | null;
+export function random<TValue>(data: ArrayItems<TValue>): TValue | null;
 export function random<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     number: number,
     preserveKeys: true,
 ): Record<number, TValue>;
 export function random<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     number: number,
     preserveKeys?: false,
 ): TValue[];
@@ -2204,18 +2448,27 @@ export function random<TValue>(
     number?: number | null,
     preserveKeys: boolean = false,
 ): TValue | TValue[] | Record<number, TValue> | null {
-    const values = getAccessibleValues(data) as TValue[];
-    const count = values.length;
-    const requested = isNull(number) || isUndefined(number) ? 1 : number;
+    const numberProvided = !isNull(number) && !isUndefined(number);
 
-    if (count === 0 || requested <= 0) {
-        return isNull(number) || isUndefined(number) ? null : [];
+    // Non-array-like input has no Laravel equivalent (PHP's count() would
+    // error on it), so it degrades gracefully instead of entering the
+    // ported throw/empty logic below, which only applies to real arrays.
+    if (!isArray(data)) {
+        return numberProvided ? [] : null;
     }
+
+    const values = data as TValue[];
+    const count = values.length;
+    const requested = numberProvided ? (number as number) : 1;
 
     if (requested > count) {
         throw new Error(
             `You requested ${requested} items, but there are only ${count} items available.`,
         );
+    }
+
+    if (numberProvided && requested <= 0) {
+        return [];
     }
 
     // Generate random indices
@@ -2229,7 +2482,7 @@ export function random<TValue>(
     }
 
     // If only one item requested, return it directly
-    if (isNull(number) || isUndefined(number)) {
+    if (!numberProvided) {
         return values[selectedIndices[0] as number] as TValue;
     }
 
@@ -2253,8 +2506,11 @@ export function random<TValue>(
  * @param count - The number of items to shift. Defaults to 1.
  * @returns The shifted item(s) or null/empty array if none.
  */
-export function shift<TValue>(data: TValue[]): TValue | null;
-export function shift<TValue>(data: TValue[], count: number): TValue[];
+export function shift<TValue>(data: ArrayItems<TValue>): TValue | null;
+export function shift<TValue>(
+    data: ArrayItems<TValue>,
+    count: number,
+): TValue[];
 export function shift<TValue>(
     data: ArrayItems<TValue> | unknown,
     count?: number,
@@ -2292,7 +2548,7 @@ export function shift<TValue>(
  *
  * If no key is given to the method, the entire array will be replaced.
  *
- * @param  data - The array to set the item in.
+ * @param  array - The array to set the item in.
  * @param  key - The key or dot-notated path of the item to set.
  * @param  value - The value to set.
  * @returns - A new array with the item set, or the value itself when key is null/undefined.
@@ -2304,25 +2560,36 @@ export function shift<TValue>(
  */
 // Overload: null/undefined key → returns the value (replaces entire array)
 export function set<TSetValue>(
-    array: unknown[] | unknown,
+    array: unknown,
     key: null | undefined,
     value: TSetValue,
 ): TSetValue;
-// Overload: non-null key with same type → preserves array type
-export function set<TValue>(
-    array: TValue[],
-    key: string | number,
-    value: TValue,
+// Overload: dot-notated path key → nested write, outer element type unchanged
+export function set<TValue, TPath extends `${string}.${string}`>(
+    array: ArrayItems<TValue>,
+    key: TPath,
+    value: unknown,
 ): TValue[];
-// Overload: non-null key with different type → union array type
+// Overload: top-level key with a same-type value → preserves array type
+// `NoInfer<TValue>` keeps `value` from driving `TValue` on its own, so a
+// same-shaped write (e.g. an object matching the element shape) still
+// resolves TValue purely from `array` instead of colliding with a second,
+// structurally-identical-but-distinct inferred type in the union overload
+// below.
+export function set<TValue>(
+    array: ArrayItems<TValue>,
+    key: string | number,
+    value: NoInfer<TValue>,
+): TValue[];
+// Overload: top-level key with a different-type value → union array type
 export function set<TValue, TSetValue>(
-    array: TValue[],
+    array: ArrayItems<TValue>,
     key: string | number,
     value: TSetValue,
 ): (TValue | TSetValue)[];
 // Overload: generic fallback
 export function set<TValue>(
-    array: ArrayItems<TValue> | unknown,
+    array: unknown,
     key: PathKey | null,
     value: unknown,
 ): TValue[];
@@ -2348,8 +2615,21 @@ export function set(
  * push(['a', ['b']], '1', 'c', 'd'); -> ['a', ['b', 'c', 'd']]
  * push(['a', ['b']], '1.1', 'c'); -> ['a', ['b', 'c']]
  */
+// Overload: typed array → element type preserved (including unions)
 export function push<TValue>(
-    data: TValue[] | unknown,
+    data: ArrayItems<TValue>,
+    key: PathKey,
+    ...values: TValue[]
+): TValue[];
+// Overload: unknown fallback
+export function push<TValue>(
+    data: unknown,
+    key: PathKey,
+    ...values: TValue[]
+): TValue[];
+// Implementation
+export function push<TValue>(
+    data: ArrayItems<TValue> | unknown,
     key: PathKey,
     ...values: TValue[]
 ): TValue[] {
@@ -2367,7 +2647,7 @@ export function push<TValue>(
  * shuffle([1, 2, 3, 4, 5]); -> [3, 1, 5, 2, 4] (random order)
  * shuffle(['a', 'b', 'c']); -> ['c', 'a', 'b'] (random order)
  */
-export function shuffle<TValue>(data: TValue[]): TValue[];
+export function shuffle<TValue>(data: ArrayItems<TValue>): TValue[];
 export function shuffle(data: unknown): unknown[];
 export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
@@ -2402,7 +2682,7 @@ export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
  * slice([1, 2, 3, 4], 2); -> [3, 4]
  */
 export function slice<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     offset: number,
     length?: number | null,
 ): TValue[];
@@ -2452,11 +2732,14 @@ export function slice<TValue>(
  */
 // Overload: array type with callback for proper type inference
 export function sole<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => boolean,
 ): TValue;
 // Overload: array type without callback
-export function sole<TValue>(data: TValue[], callback?: undefined): TValue;
+export function sole<TValue>(
+    data: ArrayItems<TValue>,
+    callback?: undefined,
+): TValue;
 // Overload: non-array fallback
 export function sole<TValue>(
     data: unknown,
@@ -2503,10 +2786,105 @@ export function sole<TValue>(
 }
 
 /**
- * Sort the array using the given callback or "dot" notation.
+ * Build a comparator from a single sort descriptor.
+ *
+ * A tuple's direction follows Laravel's array-form multi-sort semantics
+ * (`Collection::sortByMany` in the stub): `true`/`'asc'`/`"Ascending"` sorts
+ * ascending and every other direction value sorts descending — see the `SortSpec`
+ * JSDoc for why this is the opposite of a plain `descending` flag.
+ *
+ * `forceDescending` mirrors `Collection::sortByDesc` (`Collection.php`
+ * lines 1683-1693): for a key path or `[key, direction]` tuple it
+ * overrides the direction to descending regardless of what was specified,
+ * but it has no effect on a comparator function, which always runs
+ * exactly as authored — `sortByDesc`'s force-to-descending rewrite only
+ * ever touches a comparison's `[1]` slot, and `sortByMany`'s callable
+ * branch never reads that slot.
+ *
+ * @param spec - The key path, `[key, direction]` tuple, or comparator.
+ * @param forceDescending - When true, key paths and tuples ignore their own direction and sort descending; comparator functions are unaffected. Always passed explicitly by {@linkcode sortByComparators}, the only caller.
+ * @returns A comparator for the descriptor.
+ */
+function sortSpecComparator<TValue>(
+    spec: SortSpec<TValue>,
+    forceDescending: boolean,
+): (a: TValue, b: TValue) => number {
+    if (isFunction(spec)) {
+        return spec as (a: TValue, b: TValue) => number;
+    }
+
+    if (isArray(spec)) {
+        const [key, direction] = spec as readonly [
+            string,
+            boolean | "Ascending" | "Descending" | "asc" | "desc",
+        ];
+        // Laravel's sortByMany match-arm: only `true`, `'asc'`, and
+        // Ascending sort ascending — every other value (including anything
+        // an untyped JS caller passes) falls through to descending.
+        const isAscending =
+            direction === true ||
+            direction === "asc" ||
+            direction === SortDirection.Ascending;
+        const isDescending = forceDescending || !isAscending;
+
+        return (a, b) => {
+            const comparison = compareValues(
+                getNestedValue(a as Record<string, unknown>, key),
+                getNestedValue(b as Record<string, unknown>, key),
+            );
+
+            return isDescending ? -comparison : comparison;
+        };
+    }
+
+    return (a, b) => {
+        const comparison = compareValues(
+            getNestedValue(a as Record<string, unknown>, spec as string),
+            getNestedValue(b as Record<string, unknown>, spec as string),
+        );
+
+        return forceDescending ? -comparison : comparison;
+    };
+}
+
+/**
+ * Sort by a list of descriptors, falling through to the next descriptor
+ * whenever the current one ties. Shared by `sort` and `sortDesc`'s
+ * multi-key branches; only `forceDescending` differs between them.
+ *
+ * @param result - The array to sort in place.
+ * @param specs - The sort descriptors to apply in order.
+ * @param forceDescending - Forwarded to {@linkcode sortSpecComparator} for every descriptor.
+ * @returns The sorted array (same reference as `result`).
+ */
+function sortByComparators<TValue>(
+    result: TValue[],
+    specs: readonly SortSpec<TValue>[],
+    forceDescending = false,
+): TValue[] {
+    const comparators = specs.map((spec) =>
+        sortSpecComparator<TValue>(spec, forceDescending),
+    );
+
+    return result.sort((a, b) => {
+        for (const comparator of comparators) {
+            const comparison = comparator(a, b);
+
+            if (comparison !== 0) {
+                return comparison;
+            }
+        }
+
+        return 0;
+    });
+}
+
+/**
+ * Sort the array using the given callback, "dot" notation, or an array of
+ * sort descriptors for multi-key sorting.
  *
  * @param data - The array to sort.
- * @param callback - The sorting callback, field name, or null for natural sorting.
+ * @param callback - The sorting callback, field name, an array of sort descriptors, or null for natural sorting.
  * @returns A new sorted array.
  *
  * @example
@@ -2515,23 +2893,41 @@ export function sole<TValue>(
  * sort(['banana', 'apple', 'cherry']); -> ['apple', 'banana', 'cherry']
  * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], 'age'); -> sorted by age
  * sort([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); -> sorted by name
+ * sort([{name: 'John', age: 25}, {name: 'John', age: 30}], ['name', ['age', false]]); -> sorted by name asc, then age desc
  */
+// Overload: array of sort descriptors → element type preserved
+export function sort<TValue>(
+    data: ArrayItems<TValue>,
+    callback: readonly SortSpec<TValue>[],
+): TValue[];
 // Overload: array type with callback for proper type inference
 export function sort<TValue>(
-    data: TValue[],
-    callback: ((value: TValue, key: number) => unknown) | string | null,
+    data: ArrayItems<TValue>,
+    callback:
+        | ((value: TValue, key: number) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
 ): TValue[];
 // Overload: array type without callback (natural sorting)
-export function sort<TValue>(data: TValue[]): TValue[];
+export function sort<TValue>(data: ArrayItems<TValue>): TValue[];
 // Overload: non-array fallback
 export function sort<TValue>(
     data: unknown,
-    callback?: ((value: TValue, key: number) => unknown) | string | null,
+    callback?:
+        | ((value: TValue, key: number) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
 ): TValue[];
 // Implementation
 export function sort<TValue>(
     data: ArrayItems<TValue> | unknown,
-    callback: ((value: TValue, key: number) => unknown) | string | null = null,
+    callback:
+        | ((value: TValue, key: number) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null = null,
 ): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
     const result = values.slice();
@@ -2539,6 +2935,14 @@ export function sort<TValue>(
     if (isFalsy(callback)) {
         // Natural sorting - use compareValues for proper numeric/string comparison
         return result.sort((a, b) => compareValues(a, b));
+    }
+
+    if (isArray(callback)) {
+        // Multi-key sorting - each descriptor keeps its own direction.
+        return sortByComparators(
+            result,
+            callback as readonly SortSpec<TValue>[],
+        );
     }
 
     if (isString(callback)) {
@@ -2573,10 +2977,11 @@ export function sort<TValue>(
 }
 
 /**
- * Sort the array in descending order using the given callback or "dot" notation.
+ * Sort the array in descending order using the given callback, "dot"
+ * notation, or an array of sort descriptors for multi-key sorting.
  *
  * @param data - The array to sort.
- * @param callback - The sorting callback, field name, or null for natural sorting.
+ * @param callback - The sorting callback, field name, an array of sort descriptors, or null for natural sorting.
  * @returns A new sorted array in descending order.
  *
  * @example
@@ -2585,30 +2990,64 @@ export function sort<TValue>(
  * sortDesc(['banana', 'apple', 'cherry']); -> ['cherry', 'banana', 'apple']
  * sortDesc([{name: 'John', age: 25}, {name: 'Jane', age: 30}], 'age'); -> sorted by age desc
  * sortDesc([{name: 'John', age: 25}, {name: 'Jane', age: 30}], (item) => item.name); -> sorted by name desc
+ * sortDesc([{name: 'John', age: 25}, {name: 'John', age: 30}], ['name', ['age', false]]); -> each descriptor's comparison is reversed
  */
+// Overload: array of sort descriptors → element type preserved
+export function sortDesc<TValue>(
+    data: ArrayItems<TValue>,
+    callback: readonly SortSpec<TValue>[],
+): TValue[];
 // Overload: array type with callback for proper type inference
 export function sortDesc<TValue>(
-    data: TValue[],
-    callback: ((item: TValue) => unknown) | string | null,
+    data: ArrayItems<TValue>,
+    callback:
+        | ((item: TValue) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
 ): TValue[];
 // Overload: array type without callback (natural sorting)
-export function sortDesc<TValue>(data: TValue[]): TValue[];
+export function sortDesc<TValue>(data: ArrayItems<TValue>): TValue[];
 // Overload: non-array fallback
 export function sortDesc<TValue>(
     data: unknown,
-    callback?: ((item: TValue) => unknown) | string | null,
+    callback?:
+        | ((item: TValue) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
 ): TValue[];
 // Implementation
 export function sortDesc<TValue>(
     data: ArrayItems<TValue> | unknown,
-    callback?: ((item: TValue) => unknown) | string | null,
+    callback?:
+        | ((item: TValue) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
 ): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
     const result = values.slice();
 
-    if (!callback) {
-        // Natural sorting in descending order
-        return result.sort().reverse();
+    if (!callback || (isArray(callback) && callback.length === 0)) {
+        // Natural sorting in descending order - use compareValues (reversed)
+        // for proper numeric/string comparison, matching `sort`'s ascending
+        // branch. A bare `.sort().reverse()` coerces every element to a
+        // string and compares by UTF-16 code unit, which is wrong for
+        // multi-digit numbers (e.g. "10" sorts before "9" lexicographically)
+        // and unstable for ties.
+        return result.sort((a, b) => compareValues(b, a));
+    }
+
+    if (isArray(callback)) {
+        // Multi-key sorting - mirrors `Collection::sortByDesc`: every
+        // descriptor's own direction is overridden to descending (a
+        // comparator function is unaffected - see `sortSpecComparator`).
+        return sortByComparators(
+            result,
+            callback as readonly SortSpec<TValue>[],
+            true,
+        );
     }
 
     if (isString(callback)) {
@@ -2654,7 +3093,7 @@ export function sortDesc<TValue>(
  * sortRecursive([{ name: 'john', age: 30 }, { name: 'jane', age: 25 }]); -> sorted objects with sorted keys
  */
 export function sortRecursive<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     descending?: CaseValue<typeof SortDirection> | boolean,
 ): TValue[];
 export function sortRecursive<TValue>(
@@ -2733,7 +3172,7 @@ export function sortRecursive<TValue>(
  *
  * sortRecursiveDesc({ a: [1, 2, 3], b: { c: 1, d: 2 } }); -> { b: { d: 2, c: 1 }, a: [3, 2, 1] }
  */
-export function sortRecursiveDesc<TValue>(data: TValue[]): TValue[];
+export function sortRecursiveDesc<TValue>(data: ArrayItems<TValue>): TValue[];
 export function sortRecursiveDesc<TValue>(
     data: ArrayItems<TValue> | Record<string, unknown> | unknown,
 ): TValue[] | Record<string, unknown>;
@@ -2821,6 +3260,19 @@ export function splice<TValue, TReplacements>(
  * string([{name: 'John'}], '0.name'); -> 'John'
  * string([{name: 123}], '0.name'); -> throws Error
  */
+// Overload: typed array → string value
+export function string<TValue, TDefault = null>(
+    data: ArrayItems<TValue>,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): string;
+// Overload: unknown fallback
+export function string<TDefault = null>(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: TDefault | (() => TDefault) | null,
+): string;
+// Implementation
 export function string<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -2849,6 +3301,15 @@ export function string<TValue, TDefault = null>(
  * toCssClasses(['font-bold', 'mt-4', { 'ml-2': true, 'mr-2': false }]); -> 'font-bold mt-4 ml-2'
  * toCssClasses({ 'font-bold': true, 'text-red': false }); -> 'font-bold'
  */
+// Overload: typed array or record → CSS class string
+export function toCssClasses<TValue>(
+    data: ArrayItems<TValue> | Record<string, TValue>,
+): string;
+// Overload: unknown fallback
+export function toCssClasses(
+    data: ArrayItems<unknown> | Record<string, unknown> | unknown,
+): string;
+// Implementation
 export function toCssClasses(
     data: ArrayItems<unknown> | Record<string, unknown> | unknown,
 ): string {
@@ -2897,6 +3358,15 @@ export function toCssClasses(
  * toCssStyles(['font-weight: bold', 'margin-top: 4px']); -> 'font-weight: bold; margin-top: 4px;'
  * toCssStyles(['font-weight: bold', { 'margin-left: 2px': true, 'margin-right: 2px': false }]); -> 'font-weight: bold; margin-left: 2px;'
  */
+// Overload: typed array or record → CSS style string
+export function toCssStyles<TValue>(
+    data: ArrayItems<TValue> | Record<string, TValue>,
+): string;
+// Overload: unknown fallback
+export function toCssStyles(
+    data: ArrayItems<unknown> | Record<string, unknown> | unknown,
+): string;
+// Implementation
 export function toCssStyles(
     data: ArrayItems<unknown> | Record<string, unknown> | unknown,
 ): string {
@@ -2948,7 +3418,7 @@ export function toCssStyles(
  */
 // Overload: array type with callback for proper type inference
 export function where<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => boolean,
 ): TValue[];
 // Overload: non-array fallback
@@ -2988,7 +3458,7 @@ export function where<TValue>(
  */
 // Overload: array type with callback for proper type inference
 export function reject<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => boolean,
 ): TValue[];
 // Overload: non-array fallback
@@ -3021,22 +3491,22 @@ export function reject<TValue>(
  */
 // Overload: null/undefined replacer — returns original array unchanged
 export function replace<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     replacerData: null | undefined,
 ): TValue[];
 // Overload: array replacer — sequential replacement, no gaps
 export function replace<TValue>(
-    data: TValue[],
-    replacerData: TValue[],
+    data: ArrayItems<TValue>,
+    replacerData: ArrayItems<TValue>,
 ): TValue[];
 // Overload: array replacer with different type — sequential replacement, no gaps
 export function replace<TValue, TReplace>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     replacerData: TReplace[],
 ): (TValue | TReplace)[];
 // Overload: object replacer — sparse indices can fill gaps with undefined
 export function replace<TValue, TReplace = TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     replacerData: Record<number, TReplace>,
 ): (TValue | TReplace | undefined)[];
 // Overload: generic fallback
@@ -3109,22 +3579,22 @@ export function replace<TValue, TReplace = TValue>(
  */
 // Overload: null/undefined replacer — returns original type unchanged
 export function replaceRecursive<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     replacerData: null | undefined,
 ): TValue[];
 // Overload: array replacer with same type — sequential replacement, may fill gaps
 export function replaceRecursive<TValue>(
-    data: TValue[],
-    replacerData: TValue[],
+    data: ArrayItems<TValue>,
+    replacerData: ArrayItems<TValue>,
 ): (TValue | undefined)[];
 // Overload: array replacer with different type — sequential replacement, may fill gaps
 export function replaceRecursive<TValue, TReplace>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     replacerData: TReplace[],
 ): (TValue | TReplace | undefined)[];
 // Overload: object replacer — sparse indices can fill gaps with undefined
 export function replaceRecursive<TValue, TReplace = TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     replacerData: Record<number, TReplace>,
 ): (TValue | TReplace | undefined)[];
 // Overload: generic fallback
@@ -3275,7 +3745,7 @@ export function replaceRecursive<TValue, TReplace = TValue>(
  * reverse([1, 2, 3]); -> [3, 2, 1]
  * reverse(['a', 'b', 'c']); -> ['c', 'b', 'a']
  */
-export function reverse<TValue>(data: TValue[]): TValue[];
+export function reverse<TValue>(data: ArrayItems<TValue>): TValue[];
 export function reverse(data: unknown): unknown[];
 export function reverse<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
@@ -3339,7 +3809,7 @@ export function pad<TPadValue, TValue>(
  */
 // Overload: array type with callback for proper type inference
 export function partition<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => boolean,
 ): [TValue[], TValue[]];
 // Overload: non-array fallback
@@ -3379,8 +3849,13 @@ export function partition<TValue>(
  * whereNotNull([1, null, 2, undefined, 3]); -> [1, 2, undefined, 3]
  * whereNotNull(['a', null, 'b', null]); -> ['a', 'b']
  */
-export function whereNotNull<TValue>(data: TValue[]): TValue[];
+// Overload: typed array → null removed from the element type
+export function whereNotNull<TData extends readonly unknown[]>(
+    data: TData,
+): NonNullableArray<TData>;
+// Overload: unknown fallback
 export function whereNotNull(data: unknown): unknown[];
+// Implementation
 export function whereNotNull<TValue>(
     data: ArrayItems<TValue> | unknown,
 ): TValue[] {
@@ -3403,13 +3878,13 @@ export function whereNotNull<TValue>(
  */
 // Overload: callback function - infers TValue from array type
 export function contains<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     value: (value: TValue, key: number) => boolean,
     strict?: boolean,
 ): boolean;
 // Overload: value comparison - infers TValue from array type
 export function contains<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     value: TValue,
     strict?: boolean,
 ): boolean;
@@ -3458,14 +3933,16 @@ export function contains<TValue>(
  * filter([1, 2, 3, 4], (x) => x > 2); -> [3, 4]
  * filter([1, null, 2, undefined, 3]); -> [1, 2, 3]
  */
-// Overload: with callback - infers TValue from array type
+// Overload: no callback → PHP-falsy values removed from the element type
+export function filter<TData extends readonly unknown[]>(
+    data: TData,
+): TruthyArray<TData>;
+// Overload: with callback → element type preserved
 export function filter<TValue>(
-    data: TValue[],
+    data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => boolean,
 ): TValue[];
-// Overload: without callback (filters falsy values) - infers TValue from array type
-export function filter<TValue>(data: TValue[]): TValue[];
-// Overload: non-array fallback
+// Overload: unknown fallback
 export function filter<TValue>(
     data: unknown,
     callback?: (value: TValue, index: number) => boolean,
@@ -3514,6 +3991,12 @@ export function filter<TValue>(
  */
 export function wrap(value: null): [];
 export function wrap<TValue>(value: TValue[]): TValue[];
+// Overload: readonly array → passed through unchanged (must sit above the
+// scalar overload below, which would otherwise match any readonly array as
+// a single value to wrap in a one-tuple). Returns `readonly TValue[]`
+// because wrap aliases its input array rather than copying it — a mutable
+// return type here would allow writes through to the readonly source.
+export function wrap<TValue>(value: readonly TValue[]): readonly TValue[];
 export function wrap<TValue>(value: TValue): [TValue];
 export function wrap<TValue>(value: TValue | null): TValue[] | [] {
     if (isNull(value)) {
@@ -3534,6 +4017,11 @@ export function wrap<TValue>(value: TValue | null): TValue[] | [] {
  * keys(['name', 'age', 'city']); -> [0, 1, 2]
  * keys([]); -> []
  */
+// Overload: typed array → numeric index list
+export function keys<TValue>(data: ArrayItems<TValue>): number[];
+// Overload: unknown fallback
+export function keys(data: unknown): number[];
+// Implementation
 export function keys<TValue>(data: ArrayItems<TValue> | unknown): number[] {
     if (!accessible(data)) {
         return [];
@@ -3553,7 +4041,7 @@ export function keys<TValue>(data: ArrayItems<TValue> | unknown): number[] {
  * values(['name', 'age', 'city']); -> ['name', 'age', 'city']
  * values([]); -> []
  */
-export function values<TValue>(data: TValue[]): TValue[];
+export function values<TValue>(data: ArrayItems<TValue>): TValue[];
 export function values(data: unknown): unknown[];
 export function values<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
     if (!accessible(data)) {
@@ -3575,7 +4063,10 @@ export function values<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
  * diff([1, 2, 3], [2, 3, 4]); -> [1]
  * diff(['a', 'b', 'c'], ['b', 'c', 'd']); -> ['a']
  */
-export function diff<TValue>(data: TValue[], other: TValue[]): TValue[];
+export function diff<TValue>(
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TValue>,
+): TValue[];
 export function diff<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
@@ -3619,14 +4110,14 @@ export function diff<TValue>(
  */
 // Overload: with callback - infers TValue and TOther from array types
 export function intersect<TValue, TOther>(
-    data: TValue[],
-    other: TOther[],
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TOther>,
     callable: (a: TValue, b: TOther) => boolean,
 ): TValue[];
 // Overload: without callback - same type comparison
 export function intersect<TValue>(
-    data: TValue[],
-    other: TValue[],
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TValue>,
     callable?: null,
 ): TValue[];
 // Overload: non-array fallback
@@ -3678,6 +4169,14 @@ export function intersect<TValue, TOther = TValue>(
  * intersectAssoc(['a', 'b', 'c'], ['a', 'b', 'd']); -> ['a', 'b']
  * intersectAssoc([1, 2, 3, 4], [5, 2, 3]); -> [2, 3]
  */
+// Overload: typed arrays → element type preserved
+export function intersectAssoc<TValue>(
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TValue>,
+): TValue[];
+// Overload: unknown fallback
+export function intersectAssoc(data: unknown, other: unknown): unknown[];
+// Implementation
 export function intersectAssoc<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
@@ -3718,8 +4217,8 @@ export function intersectAssoc<TValue>(
  * intersectAssocUsing([1, 2, 3], [1, 2, 3], alwaysEqual); -> [1, 2, 3]
  */
 export function intersectAssocUsing<TValue>(
-    data: TValue[],
-    other: TValue[],
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TValue>,
     callback: (keyA: number, keyB: number) => boolean,
 ): TValue[];
 export function intersectAssocUsing<TValue>(
@@ -3766,9 +4265,10 @@ export function intersectAssocUsing<TValue>(
  * @param other - The array to intersect with
  * @returns A new array containing items with keys present in both arrays
  */
+// Overload: typed array → element type preserved, other array read for indices only
 export function intersectByKeys<TValue>(
-    data: TValue[],
-    other: TValue[] | number[],
+    data: ArrayItems<TValue>,
+    other: ArrayItems<unknown>,
 ): TValue[];
 export function intersectByKeys<TValue>(
     data: ArrayItems<TValue> | unknown,

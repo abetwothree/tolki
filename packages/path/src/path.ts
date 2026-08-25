@@ -11,7 +11,6 @@ import {
     isObject,
     isObjectAny,
     isString,
-    isSymbol,
     isUndefined,
     isUnsafeKey,
     typeOf,
@@ -1138,9 +1137,8 @@ export function getNestedValue<TReturn>(
         return undefined;
     }
 
-    // if path is number or symbol, convert to string
-    const pathStr =
-        isNumber(path) || isSymbol(path) ? String(path) : String(path);
+    // Normalize the path to a string, whatever its original key type.
+    const pathStr = String(path);
 
     // Split path into segments
     const segments = pathStr.split(".");

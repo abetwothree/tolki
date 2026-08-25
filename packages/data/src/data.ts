@@ -1219,7 +1219,7 @@ export function dataSelect<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @example
  *
- * dataMapWithKeys([1, 2], (value, index) => [`key_${index}`, value * 2]);
+ * dataMapWithKeys([1, 2], (value, index) => [`key_${String(index)}`, value * 2]);
  * -> {key_0: 2, key_1: 4}
  */
 export function dataMapWithKeys<
@@ -1236,10 +1236,30 @@ export function dataMapWithKeys<
         | [TMapWithKeysKey, TMapWithKeysValue]
         | Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue> {
+    // The declared callback type permits either a `[key, value]` tuple or a
+    // `Record<K, V>`. Both objMapWithKeys and arrMapWithKeys only understand
+    // the Record form (they fold the result via `Object.entries`, which on
+    // an actual tuple/array yields `{0: key, 1: value}` instead), so a tuple
+    // return is normalized into a single-pair Record here, before either
+    // branch, so the two paths can't drift out of sync on this again.
+    const normalizedCallback = (
+        value: TValue,
+        key: TKey,
+    ): Record<TMapWithKeysKey, TMapWithKeysValue> => {
+        const mapped = callback(value, key);
+
+        return isArray(mapped)
+            ? ({ [mapped[0]]: mapped[1] } as Record<
+                  TMapWithKeysKey,
+                  TMapWithKeysValue
+              >)
+            : mapped;
+    };
+
     if (isObject(data)) {
         return objMapWithKeys(
             data as Record<string, TValue>,
-            callback as (
+            normalizedCallback as (
                 value: TValue,
                 key: string,
             ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
@@ -1248,10 +1268,8 @@ export function dataMapWithKeys<
 
     return arrMapWithKeys(
         arrWrap(data) as TValue[],
-        callback as (
-            value: TValue,
-            index: number,
-        ) => [TMapWithKeysKey, TMapWithKeysValue],
+        (value: TValue, index: number) =>
+            normalizedCallback(value, index as unknown as TKey),
     ) as Record<TMapWithKeysKey, TMapWithKeysValue>;
 }
 

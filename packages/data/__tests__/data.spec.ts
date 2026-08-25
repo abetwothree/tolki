@@ -987,6 +987,23 @@ describe("Data", () => {
                 Jane: 2,
             });
         });
+
+        it("is array with a [key, value] tuple callback", () => {
+            const result = Data.dataMapWithKeys([1, 2], (value, index) => [
+                `key_${String(index)}`,
+                value * 2,
+            ]);
+            expect(result).toEqual({ key_0: 2, key_1: 4 });
+        });
+
+        it("is object with a [key, value] tuple callback", () => {
+            const obj = { a: 1, b: 2 };
+            const result = Data.dataMapWithKeys(obj, (value, key) => [
+                `key_${String(key)}`,
+                value * 2,
+            ]);
+            expect(result).toEqual({ key_a: 2, key_b: 4 });
+        });
     });
 
     describe("dataMapSpread", () => {

@@ -28,7 +28,6 @@ import {
     dataKeys,
     dataLast,
     dataMap,
-    dataMapWithKeys,
     dataOnly,
     dataPad,
     dataPartition,
@@ -1927,25 +1926,31 @@ export class Collection<TValue, TKey extends PropertyKey> {
             key: TKey,
         ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
     ) {
-        // If we have preserved insertion order, use it for iteration
-        if (this.itemsWithOrder) {
-            const map = new Map<TMapWithKeysKey, TMapWithKeysValue>();
+        const entries: Array<[TKey, TValue]> = this.itemsWithOrder
+            ? this.itemsWithOrder
+            : isArray(this.items)
+              ? Object.entries(this.items).map(
+                    ([key, value]) =>
+                        [entriesKeyValue(key), value] as [TKey, TValue],
+                )
+              : (Object.entries(this.items) as unknown as Array<
+                    [TKey, TValue]
+                >);
 
-            for (const [key, value] of this.itemsWithOrder) {
-                const result = callback(value, key);
-                // Spread the result object to get the key-value pairs
-                for (const [newKey, newValue] of Object.entries(result)) {
-                    map.set(
-                        newKey as TMapWithKeysKey,
-                        newValue as TMapWithKeysValue,
-                    );
-                }
+        const map = new Map<TMapWithKeysKey, TMapWithKeysValue>();
+
+        for (const [key, value] of entries) {
+            const result = callback(value, key);
+            // Spread the result object to get the key-value pairs
+            for (const [newKey, newValue] of Object.entries(result)) {
+                map.set(
+                    newKey as TMapWithKeysKey,
+                    newValue as TMapWithKeysValue,
+                );
             }
-
-            return this.newInstance(map);
         }
 
-        return this.newInstance(dataMapWithKeys(this.items, callback));
+        return this.newInstance(map);
     }
 
     /**
@@ -2591,7 +2596,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).random(2); -> new Collection([1, 3])
      * new Collection({a: 1, b: 2, c: 3}).random(2, true); -> new Collection({a: 1, c: 3})
      * new Collection([1, 2, 3]).random(collection => Math.floor(collection.count() / 2)); -> new Collection([2])
-     * new Collection([]).random(); -> undefined
+     * new Collection([]).random(); -> throws Error (no items available)
      */
     random(count?: null, preserveKeys?: boolean): TValue;
     random(

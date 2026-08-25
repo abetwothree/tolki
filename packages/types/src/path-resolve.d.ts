@@ -261,3 +261,52 @@ export type GetFieldType<
                 : R
             : TDefault
         : TDefault;
+
+/**
+ * Resolves the value type produced by plucking `TPath` out of each element of
+ * an array. A `*` segment produces an array of the values found at that level.
+ * Non-literal paths resolve to `unknown`.
+ *
+ * The terminal (non-wildcard) arm maps `undefined` to `null`: at runtime,
+ * `resolvePluckPath` (arr.ts) substitutes `null` for any segment that
+ * resolves to `undefined` — including an absent optional property — so an
+ * optional property's type must be `T | null`, never `T | undefined`, to
+ * match what `pluck` actually returns.
+ *
+ * The same mapping applies to intermediate segments: an optional or
+ * nullable intermediate makes the whole resolved type nullable, because
+ * `resolvePluckPath` short-circuits to `null` the moment any segment is
+ * null or undefined.
+ *
+ * @example
+ * PluckValue<{ name: string }, "name">                    // string
+ * PluckValue<{ user: { name: string } }, "user.name">     // string
+ * PluckValue<{ users: { first: string }[] }, "users.*.first"> // string[]
+ * PluckValue<{ name: string }, string>                    // unknown
+ * PluckValue<{ name?: string }, "name">                   // string | null
+ * PluckValue<{ user?: { name: string } }, "user.name">    // string | null
+ */
+export type PluckValue<TItem, TPath> =
+    TPath extends `${infer Head}.${infer Rest}`
+        ? Head extends "*"
+            ? TItem extends readonly (infer TElement)[]
+                ? PluckValue<TElement, Rest>[]
+                : unknown
+            : Head extends keyof TItem
+              ? null extends TItem[Head]
+                  ? PluckValue<NonNullable<TItem[Head]>, Rest> | null
+                  : undefined extends TItem[Head]
+                    ? PluckValue<NonNullable<TItem[Head]>, Rest> | null
+                    : PluckValue<TItem[Head], Rest>
+              : unknown
+        : TPath extends "*"
+          ? TItem extends readonly (infer TElement)[]
+              ? TElement[]
+              : unknown
+          : TPath extends keyof TItem
+            ? TItem[TPath] extends infer TResolved
+                ? TResolved extends undefined
+                    ? null
+                    : TResolved
+                : never
+            : unknown;

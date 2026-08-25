@@ -3123,6 +3123,26 @@ describe("Collection", () => {
                 expect(mapped.keys().all()).toEqual([3, 5, 4]);
             });
         });
+
+        it("passes each source's own key shape to the callback", () => {
+            // Array-backed: numeric index, matching arrMapWithKeys.
+            const arraySeenKeys: unknown[] = [];
+            collect(["a", "b"]).mapWithKeys((value, key) => {
+                arraySeenKeys.push(key);
+                return { [`${String(key)}_${value}`]: true };
+            });
+            expect(arraySeenKeys).toEqual([0, 1]);
+
+            // Object-backed: the raw string key, matching objMapWithKeys —
+            // NOT run through entriesKeyValue, which would coerce "0x10"
+            // and "1e3" into the numbers 16 and 1000.
+            const objectSeenKeys: unknown[] = [];
+            collect({ "0x10": "a", "1e3": "b" }).mapWithKeys((value, key) => {
+                objectSeenKeys.push(key);
+                return { [`${String(key)}_${value}`]: true };
+            });
+            expect(objectSeenKeys).toEqual(["0x10", "1e3"]);
+        });
     });
 
     describe("merge", () => {
@@ -4372,6 +4392,15 @@ describe("Collection", () => {
                 const randomStringZero = data.random("0");
                 expect(randomStringZero).toBeInstanceOf(Collection);
                 expect(randomStringZero.count()).toBe(0);
+            });
+
+            it("test random on empty collection with no count throws", () => {
+                // Documented at Collection.random's JSDoc: with no count,
+                // one item is requested, and an empty collection cannot
+                // supply it — same error Arr.random raises.
+                expect(() => collect([]).random()).toThrowError(
+                    "You requested 1 items, but there are only 0 items available.",
+                );
             });
 
             it("test random throws an exception using amount bigger than collection size", () => {

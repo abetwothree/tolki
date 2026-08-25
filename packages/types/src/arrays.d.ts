@@ -83,3 +83,45 @@ export type AddToArray<T extends unknown[], V> =
             ? Array<U | V>
             : never
         : never;
+
+/**
+ * Removes `null` from an array's element type.
+ * Used by helpers that filter null values out of an array.
+ *
+ * @example
+ * NonNullableArray<(string | null)[]> // string[]
+ * NonNullableArray<string[]>          // string[]
+ */
+export type NonNullableArray<T extends readonly unknown[]> =
+    T extends readonly (infer U)[] ? Exclude<U, null>[] : never;
+
+/**
+ * Removes the values PHP treats as falsy from an array's element type.
+ *
+ * @example
+ * TruthyArray<(string | null | undefined)[]> // string[]
+ * TruthyArray<(number | false)[]>            // number[]
+ */
+export type TruthyArray<T extends readonly unknown[]> =
+    T extends readonly (infer U)[]
+        ? Exclude<U, null | undefined | false | 0 | "">[]
+        : never;
+
+/**
+ * A single sort descriptor accepted by array sort helpers.
+ *
+ * - a dot-notated key path, sorted ascending
+ * - a `[key, direction]` tuple. Mirrors Laravel's `Collection::sortByMany`,
+ *   where `true`, `'asc'`, and the `"Ascending"` case of `@tolki/enum`'s
+ *   `SortDirection` sort ascending, and every other direction value —
+ *   `false`, `'desc'`, `"Descending"`, or anything unrecognized from an
+ *   untyped caller — sorts descending, exactly like Laravel's default arm.
+ *   The literal case names are inlined here rather than imported from
+ *   `@tolki/enum`, which depends on this package — importing it back would
+ *   create a circular dependency.
+ * - a comparator returning a negative, zero, or positive number
+ */
+export type SortSpec<TValue> =
+    | string
+    | readonly [string, boolean | "Ascending" | "Descending" | "asc" | "desc"]
+    | ((a: TValue, b: TValue) => number);
