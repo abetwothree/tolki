@@ -1884,19 +1884,18 @@ export function select<TValue extends Record<string, unknown>>(
  * and associative arrays, so both a JS array and a plain object count
  * here — deliberately not `getAccessibleValues`, which only expands arrays.
  *
- * @param target - The value a `*` segment is expanding.
- * @returns The values to recurse into, or `[]` for a non-iterable target.
+ * @param target - The value a `*` segment is expanding; callers bail to
+ * `null` before this runs for anything that isn't an array or an object.
+ * @returns The values to recurse into.
  */
-function getPluckWildcardValues(target: unknown): unknown[] {
+function getPluckWildcardValues(
+    target: unknown[] | Record<PropertyKey, unknown>,
+): unknown[] {
     if (isArray(target)) {
         return target;
     }
 
-    if (isObject(target)) {
-        return Object.values(target);
-    }
-
-    return [];
+    return Object.values(target);
 }
 
 /**
@@ -1920,9 +1919,13 @@ function resolvePluckPath(item: unknown, segments: readonly string[]): unknown {
     const [segment, ...rest] = segments;
 
     if (segment === "*") {
-        const values = getPluckWildcardValues(item);
+        if (!isArray(item) && !isObject(item)) {
+            return null;
+        }
 
-        return values.map((value) => resolvePluckPath(value, rest));
+        return getPluckWildcardValues(item).map((value) =>
+            resolvePluckPath(value, rest),
+        );
     }
 
     if (isNull(item) || isUndefined(item)) {

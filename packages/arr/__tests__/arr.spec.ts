@@ -2834,10 +2834,13 @@ describe("Arr", () => {
             expect(Arr.pluck([shape], "meta.*.v")).toEqual([[1, 2]]);
         });
 
-        it("yields an empty array for a wildcard over a non-iterable target", () => {
-            const shape = { meta: "not-iterable" };
-
-            expect(Arr.pluck([shape], "meta.*.v")).toEqual([[]]);
+        it("yields null for a wildcard over a non-iterable target", () => {
+            // PHP-verified in docs/php-parity/task-10-pluck-sort.json: data_get
+            // bails to its default when the target is not iterable.
+            expect(Arr.pluck([{ meta: "not-iterable" }], "meta.*.v")).toEqual([
+                null,
+            ]);
+            expect(Arr.pluck([{ meta: null }], "meta.*.v")).toEqual([null]);
         });
 
         it("returns null when an intermediate segment resolves to null", () => {
