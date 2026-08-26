@@ -246,6 +246,9 @@ export function boolean<TValue, TDefault = null>(
 /**
  * Chunk the array into chunks of the given size.
  *
+ * @see Collection::chunk — `packages/collection/stubs/Collection.php:1520`.
+ *      Wraps a manual chunking loop (`array_slice` per chunk), `preserveKeys` defaults to `true`.
+ *
  * @param data - The array to chunk
  * @param size - The size of each chunk
  * @returns Chunked array
@@ -334,6 +337,9 @@ export function collapse<TValue extends ArrayItems<unknown>>(
  * `mapWithKeys`), so `keys`' element type is intentionally unconstrained
  * rather than `PropertyKey` — the result's key type is always `string`,
  * matching those functions' `Record<string, TValue>` convention.
+ *
+ * @see Collection::combine — `packages/collection/stubs/Collection.php:933`.
+ *      Wraps `array_combine`.
  *
  * @param keys - The keys.
  * @param values - The values, matched to `keys` by position.
@@ -534,6 +540,9 @@ export function undot<TValue, TKey extends UndotArrayKey = number>(
  * Union multiple arrays into a single array containing only unique values,
  * preserving insertion order.
  *
+ * @see Collection::union — `packages/collection/stubs/Collection.php:944`.
+ *      Uses PHP's `+` operator (key union: left keys win), not `array_merge`.
+ *
  * @param arrays - The arrays to union.
  * @returns A new array containing all unique elements from the input arrays.
  */
@@ -587,6 +596,9 @@ export function union(...arrays: (readonly unknown[])[]): unknown[] {
  * Prepend one or more items to the beginning of the array, mutating it in
  * place, like PHP's array_unshift.
  * Undefined items are skipped.
+ *
+ * @see Collection::unshift — `packages/collection/stubs/Collection.php:1087`.
+ *      Wraps `array_unshift`; mutates.
  *
  * @param data - The array to prepend items to. Mutated in place.
  * @param items - The items to prepend.
@@ -2094,6 +2106,9 @@ export function pluck<TValue extends Record<string, unknown>>(
  * Get and remove the last N items from the array, mutating it in place,
  * like PHP's array_pop.
  *
+ * @see Collection::pop — `packages/collection/stubs/Collection.php:1027`.
+ *      Mirrors `array_pop`/`array_splice`-style removal from the end, driven by `$count`; mutates.
+ *
  * @param data - The array to pop items from. Mutated in place.
  * @param count - The number of items to pop. Defaults to 1.
  * @returns The popped item when count is 1, an array of popped items
@@ -2620,6 +2635,9 @@ export function random<TValue>(
  * negative count throws, an empty array returns null for any count, a
  * count of zero returns an empty array, then items are shifted off.
  *
+ * @see Collection::shift — `packages/collection/stubs/Collection.php:1268`.
+ *      Mirrors `array_shift`-style removal from the front, driven by `$count`; mutates.
+ *
  * @param data - The array to shift items from. Mutated in place.
  * @param count - The number of items to shift. Defaults to 1.
  * @returns The shifted item(s), or null if the array had nothing to shift.
@@ -2793,6 +2811,9 @@ export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
  * Similar to JavaScript's Array.slice() and PHP's array_slice(), it returns only the subset.
  *
  * For a WRITE operation that tracks removed elements, use `splice()` instead.
+ *
+ * @see Collection::slice — `packages/collection/stubs/Collection.php:1369`.
+ *      Wraps `array_slice($items, $offset, $length, preserveKeys: true)`.
  *
  * @param data - The array to slice
  * @param offset - The starting index
@@ -3356,6 +3377,9 @@ export function sortRecursiveDesc<TValue>(
  *
  * Replacement values that are arrays will be flattened into the result.
  *
+ * @see Collection::splice — `packages/collection/stubs/Collection.php:1755`.
+ *      Wraps `array_splice`; mutates.
+ *
  * @param data - The array to splice. Mutated in place.
  * @param offset - The starting index
  * @param length - The number of items to remove. Defaults to everything
@@ -3662,6 +3686,9 @@ export function reject<TValue>(
  * Supports both arrays and numeric keyed objects as replacement values.
  * When using a numeric keyed object, keys determine positions to replace/add.
  *
+ * @see Collection::replace — `packages/collection/stubs/Collection.php:1170`.
+ *      Wraps `array_replace`.
+ *
  * @param data - The array to replace items in.
  * @param replacerData - The array or numeric keyed object containing items to replace.
  * @returns The modified original array with replaced items.
@@ -3749,6 +3776,9 @@ export function replace<TValue, TReplace = TValue>(
  * Supports both arrays and numeric keyed objects as replacement values.
  * When an array contains a numeric keyed object, that object represents sparse index replacements.
  * Nested objects with numeric keys are treated as nested array replacements.
+ *
+ * @see Collection::replaceRecursive — `packages/collection/stubs/Collection.php:1181`.
+ *      Wraps `array_replace_recursive`.
  *
  * @param data - The original array to replace items in.
  * @param replacerData - The array or numeric keyed object containing items to replace.
@@ -3919,6 +3949,9 @@ export function replaceRecursive<TValue, TReplace = TValue>(
 /**
  * Reverse the order of the array and return the result.
  *
+ * @see Collection::reverse — `packages/collection/stubs/Collection.php:1191`.
+ *      Wraps `array_reverse($items, true)` — preserves keys.
+ *
  * @param data - The array to reverse.
  * @returns A new array with the items in reverse order.
  *
@@ -3940,6 +3973,9 @@ export function reverse<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
  *
  * If size is positive, pads on the right (append).
  * If size is negative, pads on the left (prepend).
+ *
+ * @see Collection::pad — `packages/collection/stubs/Collection.php:1904`.
+ *      Wraps `array_pad`.
  *
  * @param data - The array to pad.
  * @param size - The desired length of the array (negative means pad left).
@@ -4047,6 +4083,9 @@ export function whereNotNull<TValue>(
 /**
  * Check if an array contains a given value.
  *
+ * @see Collection::contains — `packages/collection/stubs/Collection.php:195`.
+ *      Value/callback/key-operator-value search; has no `Arr.php` counterpart at all.
+ *
  * @param data - The array to search in.
  * @param value - The value to search for.
  * @param strict - Whether to use strict comparison.
@@ -4105,6 +4144,9 @@ export function contains<TValue>(
 
 /**
  * Filter the array using a callback function.
+ *
+ * @see Collection::filter — `packages/collection/stubs/Collection.php:424`.
+ *      Delegates to `Arr::where()` internally, but `filter` itself is Collection-only naming.
  *
  * @param data - The array to filter.
  * @param callback - Optional callback function to filter items.
@@ -4181,6 +4223,9 @@ export function wrap<TValue>(value: TValue | null): TValue[] | [] {
 /**
  * Get all keys from an array.
  *
+ * @see Collection::keys — `packages/collection/stubs/Collection.php:790`.
+ *      Wraps `array_keys`.
+ *
  * @param data - The array to get keys from.
  * @returns An array of all keys.
  *
@@ -4205,6 +4250,9 @@ export function keys<TValue>(data: ArrayItems<TValue> | unknown): number[] {
 /**
  * Get all values from an array.
  *
+ * @see Collection::values — `packages/collection/stubs/Collection.php:1870`.
+ *      Wraps `array_values`.
+ *
  * @param data - The array to get values from.
  * @returns An array of all values.
  *
@@ -4225,6 +4273,9 @@ export function values<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
 
 /**
  * Get the items that are not present in the given array.
+ *
+ * @see Collection::diff — `packages/collection/stubs/Collection.php:276`.
+ *      Wraps `array_diff`.
  *
  * @param data - The original array.
  * @param other - The array to compare against.
@@ -4274,6 +4325,9 @@ export function diff<TValue>(
 
 /**
  * Intersect the data array with the given other array
+ *
+ * @see Collection::intersect — `packages/collection/stubs/Collection.php:660`.
+ *      Wraps `array_intersect`.
  *
  * @param data - The original array
  * @param other - The array to intersect with
@@ -4331,6 +4385,9 @@ export function intersect<TValue, TOther = TValue>(
  * Intersect the array with the given items with additional index check.
  * Returns items where both the index AND value match.
  *
+ * @see Collection::intersectAssoc — `packages/collection/stubs/Collection.php:683`.
+ *      Wraps `array_intersect_assoc`.
+ *
  * @param data - The original array
  * @param other - The array to intersect with
  * @returns A new array containing items where both index and value match
@@ -4376,6 +4433,9 @@ export function intersectAssoc<TValue>(
 /**
  * Intersect the array with the given items with additional index check, using the callback.
  * The callback is used to compare indices, while values are compared strictly.
+ *
+ * @see Collection::intersectAssocUsing — `packages/collection/stubs/Collection.php:695`.
+ *      Wraps `array_intersect_uassoc`.
  *
  * @param data - The original array
  * @param other - The array to intersect with
@@ -4432,6 +4492,9 @@ export function intersectAssocUsing<TValue>(
 
 /**
  * Intersect the array with the given items by key.
+ *
+ * @see Collection::intersectByKeys — `packages/collection/stubs/Collection.php:706`.
+ *      Wraps `array_intersect_key`.
  *
  * @param data - The original array
  * @param other - The array to intersect with

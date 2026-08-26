@@ -207,6 +207,9 @@ export function boolean<
 /**
  * Chunk the object into chunks of the given size.
  *
+ * @see Collection::chunk — `packages/collection/stubs/Collection.php:1520`.
+ *      Wraps a manual chunking loop (`array_slice` per chunk), `preserveKeys` defaults to `true`.
+ *
  * @param data - The record to chunk
  * @param size - The size of each chunk
  * @param preserveKeys - Whether to preserve the original keys, defaults to false
@@ -308,6 +311,9 @@ export function collapse<
  * Combine two objects into one, using the values from the first object as
  * keys, mirroring PHP's `array_combine()` / `Collection::combine()`
  * (`Collection.php:935`).
+ *
+ * @see Collection::combine — `packages/collection/stubs/Collection.php:933`.
+ *      Wraps `array_combine`.
  *
  * @param keysObject - The object containing keys.
  * @param valuesObject - The object containing values.
@@ -506,6 +512,9 @@ export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
  * of the existing value — the same fix as `unshift`'s equivalent
  * prototype-chain guard above.
  *
+ * @see Collection::union — `packages/collection/stubs/Collection.php:944`.
+ *      Uses PHP's `+` operator (key union: left keys win), not `array_merge`.
+ *
  * @param objects - The objects to union.
  * @return A new object containing all key-value pairs from the input objects.
  */
@@ -542,6 +551,9 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
  * key 0 (or the next free integer key)" behaviour. `null`/`undefined`
  * items are skipped, matching this package's existing "undefined items
  * are skipped" convention.
+ *
+ * @see Collection::unshift — `packages/collection/stubs/Collection.php:1087`.
+ *      Wraps `array_unshift`; mutates.
  *
  * @param items - The items to prepend. The first item is the target
  * object, mutated in place when it is itself object-accessible.
@@ -961,6 +973,11 @@ export function flatten<TValue>(
  *
  * Creates dot-notation keys up to the specified depth, with values being the
  * nodes at that depth boundary.
+ *
+ * This function has no Laravel counterpart — neither `Arr.php` nor
+ * `Collection.php` exposes a depth-bounded dot-flatten (`Arr::dot()` always
+ * flattens fully). It carries no parity obligation; nothing here is meant
+ * to mirror a specific PHP behaviour.
  *
  * @param data - The object to flatten.
  * @param depth - Maximum depth for dot-notation keys.
@@ -1922,6 +1939,9 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get and remove the last N items from the collection.
  *
+ * @see Collection::pop — `packages/collection/stubs/Collection.php:1027`.
+ *      Mirrors `array_pop`/`array_splice`-style removal from the end, driven by `$count`; mutates.
+ *
  * @param data - The object to pop items from.
  * @param count - The number of items to pop. Defaults to 1.
  * @returns The popped item(s) or null/empty array if none.
@@ -2361,6 +2381,9 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
  * negative count throws, an empty object returns null for any count, a
  * count of zero returns an empty array, then items are shifted off.
  *
+ * @see Collection::shift — `packages/collection/stubs/Collection.php:1268`.
+ *      Mirrors `array_shift`-style removal from the front, driven by `$count`; mutates.
+ *
  * @param data - The object to shift items from. Mutated in place.
  * @param count - The number of items to shift. Defaults to 1.
  * @returns The shifted item(s), or null if the object had nothing to shift.
@@ -2531,6 +2554,9 @@ export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Slice the underlying object items, preserving keys — `array_slice($items,
  * $offset, $length, true)` (`Collection.php:1371`).
+ *
+ * @see Collection::slice — `packages/collection/stubs/Collection.php:1369`.
+ *      Wraps `array_slice($items, $offset, $length, preserveKeys: true)`.
  *
  * @param data - The object to slice
  * @param offset - The starting index
@@ -3144,6 +3170,9 @@ function reindexIntegerKeys<TValue>(
  * prototype-pollution guidance, and `replace`/`replaceRecursive` below
  * for the same pattern applied to a non-mutating rebuild).
  *
+ * @see Collection::splice — `packages/collection/stubs/Collection.php:1755`.
+ *      Wraps `array_splice`; mutates.
+ *
  * @param data - The object to splice. Mutated in place.
  * @param offset - The starting index, by entry order (not by key)
  * @param length - The number of entries to remove. Defaults to everything
@@ -3436,6 +3465,9 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
  * surface never accepts an array for `replacerData`, and `@tolki/data`'s
  * `dataReplace` only calls this once both sides are already object-shaped.
  *
+ * @see Collection::replace — `packages/collection/stubs/Collection.php:1170`.
+ *      Wraps `array_replace`.
+ *
  * @param data - The original object to replace items in. Never mutated.
  * @param replacerData - The object containing items to replace. `null`/`undefined` is a no-op.
  * @returns A new object with the replaced items.
@@ -3516,6 +3548,9 @@ export function replace<T1, T2>(
  * `prototype` fall through to the same `defineKey` write as every other
  * key below.
  *
+ * @see Collection::replaceRecursive — `packages/collection/stubs/Collection.php:1181`.
+ *      Wraps `array_replace_recursive`.
+ *
  * @param data - The original object to replace items in. Never mutated.
  * @param replacerData - The object containing items to replace. `null`/`undefined` is a no-op.
  * @returns A new, recursively merged object.
@@ -3592,6 +3627,9 @@ export function replaceRecursive<T1, T2>(
  * positional/insertion order for integer keys, a guarantee a plain JS
  * object cannot reproduce. Do not re-file this as a bug.
  *
+ * @see Collection::reverse — `packages/collection/stubs/Collection.php:1191`.
+ *      Wraps `array_reverse($items, true)` — preserves keys.
+ *
  * @param data - The object to reverse.
  * @returns A new object with reversed entries.
  *
@@ -3641,6 +3679,9 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
  * for integer keys. (For a *negative* `size` there is no divergence: PHP
  * already places the padding first positionally, and JS's key-hoisting
  * lands the same keys in the same place.) Do not re-file this as a bug.
+ *
+ * @see Collection::pad — `packages/collection/stubs/Collection.php:1904`.
+ *      Wraps `array_pad`.
  *
  * @param data - The object to pad.
  * @param size - The desired size of the object after padding. Positive to pad at the end, negative to pad at the beginning.
@@ -3744,6 +3785,9 @@ export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Determine if an object contains a given value.
  *
+ * @see Collection::contains — `packages/collection/stubs/Collection.php:195`.
+ *      Value/callback/key-operator-value search; has no `Arr.php` counterpart at all.
+ *
  * @param data - The object to search in.
  * @param value - The value to search for.
  * @returns True if the value is found, false otherwise.
@@ -3803,6 +3847,9 @@ export function contains<TValue>(
 
 /**
  * Filter the object using the given callback.
+ *
+ * @see Collection::filter — `packages/collection/stubs/Collection.php:424`.
+ *      Delegates to `Arr::where()` internally, but `filter` itself is Collection-only naming.
  *
  * @param data - The object to filter.
  * @param callback - The function to call for each item (value, key) => boolean.
@@ -3885,6 +3932,9 @@ export function wrap<TValue>(
  * returns them rather than via an explicit filter — there is no PHP array
  * concept for a symbol key to port.
  *
+ * @see Collection::keys — `packages/collection/stubs/Collection.php:790`.
+ *      Wraps `array_keys`.
+ *
  * @param data - The object to get keys from.
  * @returns An array of all keys.
  *
@@ -3920,6 +3970,9 @@ export function keys<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get all values from an object.
  *
+ * @see Collection::values — `packages/collection/stubs/Collection.php:1870`.
+ *      Wraps `array_values`.
+ *
  * @param data - The object to get values from.
  * @returns An array of all values.
  *
@@ -3953,6 +4006,9 @@ export function values<TValue, TKey extends PropertyKey = PropertyKey>(
  * A non-accessible `other` (e.g. `null`) is treated the same way PHP's
  * `EnumeratesValues::getArrayableItems()` treats `null` — as an empty
  * array — so every item of `data` is kept unchanged.
+ *
+ * @see Collection::diff — `packages/collection/stubs/Collection.php:276`.
+ *      Wraps `array_diff`.
  *
  * @param data - The original object.
  * @param other - The object to compare against.
@@ -4017,6 +4073,9 @@ export function diff<
  * Diff the data object with the given other object using a callback for key comparison.
  * Compares keys using the callback and values using strict equality.
  *
+ * @see Collection::diffAssocUsing — `packages/collection/stubs/Collection.php:311`.
+ *      Wraps `array_diff_uassoc`. Obj-only — `Arr.php` has no equivalent, so there is no `arr.diffAssocUsing`.
+ *
  * @param data - The original object
  * @param other - The object to diff against
  * @param callback - Function to compare keys (returns true if keys match)
@@ -4064,6 +4123,9 @@ export function diffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Diff the data object with the given other object using a callback for key comparison only.
  * Compares keys using the callback and ignores values completely.
+ *
+ * @see Collection::diffKeysUsing — `packages/collection/stubs/Collection.php:334`.
+ *      Wraps `array_diff_ukey`. Obj-only — `Arr.php` has no equivalent, so there is no `arr.diffKeysUsing`.
  *
  * @param data - The original object
  * @param other - The object to diff against
@@ -4130,6 +4192,9 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
  * A non-accessible `other` (e.g. `null`) is treated as empty, matching how
  * PHP's `EnumeratesValues::getArrayableItems()` treats `null`, so the
  * result is `{}`.
+ *
+ * @see Collection::intersect — `packages/collection/stubs/Collection.php:660`.
+ *      Wraps `array_intersect`.
  *
  * @param data - The original object
  * @param other - The object to intersect with
@@ -4204,6 +4269,9 @@ export function intersect<T1, T2 = T1>(
  * A non-accessible `other` (e.g. `null`) is treated as empty, so the result
  * is `{}`.
  *
+ * @see Collection::intersectAssoc — `packages/collection/stubs/Collection.php:683`.
+ *      Wraps `array_intersect_assoc`.
+ *
  * @param data - The original object
  * @param other - The object to intersect with
  * @returns A new object containing items where both key and value match
@@ -4244,6 +4312,9 @@ export function intersectAssoc<T1, T2 = T1>(
  *
  * A non-accessible `other` (e.g. `null`) is treated as empty, so the result
  * is `{}`.
+ *
+ * @see Collection::intersectAssocUsing — `packages/collection/stubs/Collection.php:695`.
+ *      Wraps `array_intersect_uassoc`.
  *
  * @param data - The original object
  * @param other - The object to intersect with
@@ -4287,6 +4358,9 @@ export function intersectAssocUsing<T1, T2 = T1>(
  *
  * A non-accessible `other` (e.g. `null`) is treated as empty, so the result
  * is `{}`.
+ *
+ * @see Collection::intersectByKeys — `packages/collection/stubs/Collection.php:706`.
+ *      Wraps `array_intersect_key`.
  *
  * @param data - The original object
  * @param other - The object to intersect with
