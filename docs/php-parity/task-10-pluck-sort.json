@@ -235,6 +235,24 @@
                 "1": "X",
                 "0": "Y"
             }
+        },
+        {
+            "label": "pluck wildcard over a non-iterable",
+            "php": "Arr::pluck([[\"meta\"=>\"x\"]], \"meta.*.v\")",
+            "value": {
+                "scalar_string": [
+                    null
+                ],
+                "null": [
+                    null
+                ],
+                "int": [
+                    null
+                ],
+                "assoc_target": [
+                    null
+                ]
+            }
         }
     ]
 }

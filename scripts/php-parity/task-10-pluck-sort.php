@@ -175,4 +175,13 @@ probe('Arr::pluck — boolean key casts to int, not string', 'Arr::pluck($u, "na
     return Arr::pluck($u, 'name', 'flag');
 });
 
+probe('pluck wildcard over a non-iterable', 'Arr::pluck([["meta"=>"x"]], "meta.*.v")', function () {
+    return [
+        'scalar_string' => Arr::pluck([['meta' => 'not-iterable']], 'meta.*.v'),
+        'null' => Arr::pluck([['meta' => null]], 'meta.*.v'),
+        'int' => Arr::pluck([['meta' => 5]], 'meta.*.v'),
+        'assoc_target' => Arr::pluck(['a' => ['meta' => 'not-iterable']], 'meta.*.v'),
+    ];
+});
+
 emit();
