@@ -108,7 +108,11 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
         }
 
         // For objects, numeric keys are treated as string keys
-        return !isNull(root) && isObject(root) && String(key) in root;
+        return (
+            !isNull(root) &&
+            isObject(root) &&
+            Object.hasOwn(root as object, String(key))
+        );
     }
 
     const segs = parseSegments(key);
@@ -136,7 +140,7 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
                 return false; // Arrays don't have string keys
             }
 
-            if (!(s in (cursor as Record<string, unknown>))) {
+            if (!Object.hasOwn(cursor as object, s)) {
                 return false;
             }
 
@@ -185,7 +189,7 @@ export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
         } else if (!isNull(root) && isObject(root)) {
             // For objects, numeric keys are treated as string keys
             const stringKey = String(key);
-            return stringKey in root
+            return Object.hasOwn(root as object, stringKey)
                 ? {
                       found: true,
                       value: (root as Record<string, unknown>)[stringKey],
@@ -221,7 +225,7 @@ export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
                 return { found: false }; // Arrays don't have string keys
             }
 
-            if (!isObject(cursor) || !(s in cursor)) {
+            if (!isObject(cursor) || !Object.hasOwn(cursor, s)) {
                 return { found: false };
             }
 
@@ -1744,7 +1748,7 @@ export function getObjectValue<
     // The literal key wins even when it contains dots. Presence, not
     // definedness, decides: a literal key whose value is `undefined` is
     // still "found" and resolves to the default, not dot-path traversal.
-    if (keyStr in (obj as Record<string, unknown>)) {
+    if (Object.hasOwn(obj as object, keyStr)) {
         const literalValue = (obj as Record<string, unknown>)[keyStr];
 
         return !isUndefined(literalValue)

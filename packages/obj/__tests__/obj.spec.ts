@@ -1146,6 +1146,17 @@ describe("Obj", () => {
                 Obj.intersectAssoc({ toString: inheritedToString }, {}),
             ).toEqual({});
         });
+
+        it("does not see an inherited key through getObjectValue", () => {
+            // PHP-verified: Arr::add([], 'toString', 1) -> {"toString": 1}.
+            // `in` found the inherited toString and skipped the write.
+            expect(Obj.add({}, "toString", 1)).toEqual({ toString: 1 });
+
+            // PHP-verified: keyBy('constructor') on an empty item resolves
+            // to null (Arr::exists is false), falling back to the ""
+            // key -- not the inherited constructor function.
+            expect(Obj.keyBy({ a: {} }, "constructor")).toEqual({ "": {} });
+        });
     });
 
     describe("hasAll", () => {

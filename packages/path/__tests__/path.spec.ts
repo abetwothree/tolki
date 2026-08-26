@@ -198,6 +198,11 @@ describe("Path Functions", () => {
             // First 0 -> [null], second 0 -> null, can't navigate further
             expect(Path.hasPath(data, "0.0.0")).toBe(false);
         });
+
+        it("does not see an inherited key via a dotted object path", () => {
+            // `in` climbs the prototype chain; {} has no own "constructor".
+            expect(Path.hasPath({ a: {} }, "a.constructor")).toBe(false);
+        });
     });
 
     describe("getRaw", () => {
@@ -310,6 +315,13 @@ describe("Path Functions", () => {
         it("returns false for non-object non-array root with numeric key", () => {
             const result = Path.getRaw("string", 0);
             expect(result).toEqual({ found: false });
+        });
+
+        it("does not see an inherited key via a dotted object path", () => {
+            // `in` climbs the prototype chain; {} has no own "constructor".
+            expect(Path.getRaw({ a: {} }, "a.constructor")).toEqual({
+                found: false,
+            });
         });
     });
 
