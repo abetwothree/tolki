@@ -10595,6 +10595,8 @@ describe("Collection", () => {
         });
 
         it("random, either backing (Task 8)", () => {
+            // No value pin here (unlike every other test in this sweep):
+            // random's output is non-deterministic by design.
             const fromArray = new Collection(arr4.slice());
             const fromObject = new Collection({ ...obj4 });
 

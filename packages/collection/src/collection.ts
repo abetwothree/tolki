@@ -2141,8 +2141,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * Create a collection by using this collection's own VALUES as keys
-     * and another's values as values (`array_combine($this->all(),
-     * ...)`, `Collection.php:935`) — not this collection's own keys.
+     * and another's values as values (`array_combine($this->all(), ...)`,
+     * `Collection.php:933`) — not this collection's own keys.
      *
      * @param values - The values to combine with the keys from this collection
      * @returns A new collection with the combined keys and values
@@ -2664,7 +2664,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Replace the collection items with the given items.
      *
      * A `null` `items` is a no-op regardless of whether this collection is
-     * array- or object-backed (X11). `getRawItems(null)` always returns
+     * array- or object-backed. `getRawItems(null)` always returns
      * `[]` — correct for `merge`/`diff`-style callers, but wrong here: an
      * object-backed collection would then be asked to replace against an
      * array, which `dataReplace`'s same-type guard rejects. So `null` is
@@ -3236,7 +3236,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Sort the collection using the given callback.
      *
      * @param callback - The callback to determine the sort value, a path key to get values from and compare, or an array of such callbacks/keys for multi-level sorting
-     * @param descending - Whether to sort in descending order, defaults to false. Ignored when `callback` is an array of descriptors - PHP's sortBy discards $descending entirely for that form (Collection.php:1590-1592); use sortByDesc or sortByMany's own force-descending param instead.
+     * @param descending - Whether to sort in descending order, defaults to false. Ignored when `callback` is an array of descriptors - PHP's sortBy discards $descending entirely for that form (Collection.php:1588); use sortByDesc or sortByMany's own force-descending param instead.
      * @returns A new collection with the sorted items
      *
      * @example
@@ -3270,12 +3270,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const isDesc =
             descending === true || descending === SortDirection.Descending;
         if (isArray(callback) && !isFunction(callback)) {
-            // PHP's sortBy discards $descending entirely for the array
-            // form (`return $this->sortByMany($callback, $options);` never
-            // forwards it, Collection.php:1590-1592) - `descending` is not
-            // passed through here either. Use sortByDesc (or sortByMany's
-            // own forceDescending param directly) to force every
-            // direction-less descriptor descending.
+            // PHP's sortBy (Collection.php:1588) discards $descending
+            // entirely for the array form; not passed through here either.
+            // Use sortByDesc/sortByMany's forceDescending to force it.
             return this.sortByMany(callback);
         }
 
@@ -3501,12 +3498,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | PathKey,
     ) {
         if (isArray(callback) && !isFunction(callback)) {
-            // sortBy's array branch discards its own `descending` argument
-            // (matching PHP), so forcing every descriptor descending here
-            // has to go through sortByMany's own forceDescending param
-            // directly - mirroring Collection::sortByDesc's rewrite of
-            // every comparison's direction slot before sorting
-            // (Collection.php:1687-1697).
+            // sortBy's array branch discards its own `descending` argument,
+            // so forcing every descriptor descending goes through
+            // sortByMany's forceDescending param (Collection.php:1687).
             return this.sortByMany(callback, true);
         }
 

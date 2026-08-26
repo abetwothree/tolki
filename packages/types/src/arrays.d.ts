@@ -132,7 +132,10 @@ export type TruthyArray<T extends readonly unknown[]> =
  * A single sort descriptor accepted by array sort helpers.
  *
  * - a dot-notated key path, sorted ascending
- * - a `[key]` single-element tuple — identical to a bare key path, ascending
+ * - a `[key]` single-element tuple — identical to a bare key path, ascending.
+ *   Exists so a `const [key, direction] = spec` destructure gets a real,
+ *   typed `direction: undefined` case, instead of reaching it only via an
+ *   unchecked cast.
  * - a `[key, direction]` tuple: `true`/`'asc'`/`"Ascending"` sorts
  *   ascending, everything else sorts descending, mirroring
  *   `Collection::sortByMany`. Case names are inlined rather than imported

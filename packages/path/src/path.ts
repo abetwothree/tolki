@@ -988,7 +988,7 @@ export function dotFlattenArray<TValue>(
  * keys), so this dispatches to {@link undotExpandObject} in practice — the
  * `undotExpandArray` branch only matters for non-object input such as
  * `null`. Nested containers built from consecutive integer segments
- * (`0..n-1`) become real arrays (decision D3); the root stays an object
+ * (`0..n-1`) become real arrays; the root stays an object
  * even when its own top-level keys happen to be `0..n-1` — see
  * {@link undotExpandObject}.
  *

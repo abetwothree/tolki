@@ -198,7 +198,7 @@ export function boolean<
 /**
  * Chunk the object into chunks of the given size.
  *
- * @see Collection::chunk — `packages/collection/stubs/Collection.php:1527`.
+ * @see Collection::chunk — `packages/collection/stubs/Collection.php:1520`.
  *      Wraps `array_chunk`; `preserveKeys` defaults to `true`.
  *
  * @param data - The record to chunk
@@ -301,7 +301,7 @@ export function collapse<
 /**
  * Combine two objects into one, using the values from the first object as
  * keys, mirroring PHP's `array_combine()` / `Collection::combine()`
- * (`Collection.php:935`).
+ * (`Collection.php:933`).
  *
  * @see Collection::combine — `packages/collection/stubs/Collection.php:933`.
  *      Wraps `array_combine`.
@@ -317,11 +317,8 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
     valuesObject: Record<PropertyKey, TValues>,
 ): Record<PropertyKey, TCombineValue> {
     const maxLength = Object.keys(keysObject).length;
-    // Plain String() coercion, not `isFunction(k) ? String(k()) :
-    // String(k)` — review fix (Minor 6): this used to call a
-    // function-typed key to resolve it, diverging from arr.combine's
-    // plain String(). Neither matches PHP (no function-typed array keys),
-    // so both packages now agree on plain String().
+    // Plain String() coercion, not a function-calling one: PHP has no
+    // function-typed array keys, and arr.combine agrees on plain String().
     const keys = Object.values(keysObject).map((k) => String(k));
     const values = Object.values(valuesObject);
 
@@ -434,7 +431,7 @@ export function dot<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Convert a flatten "dot" notation object into an expanded object.
  *
- * Decision D3: a nested container whose own keys are the consecutive
+ * A nested container whose own keys are the consecutive
  * integers `0..n-1` is rebuilt as a real array; the root always stays a
  * plain object even when its own top-level keys are `0..n-1`.
  *
@@ -2469,7 +2466,7 @@ export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Slice the underlying object items, preserving keys — `array_slice($items,
- * $offset, $length, true)` (`Collection.php:1371`).
+ * $offset, $length, true)` (`Collection.php:1369`).
  *
  * @see Collection::slice — `packages/collection/stubs/Collection.php:1369`.
  *      Wraps `array_slice($items, $offset, $length, preserveKeys: true)`.
@@ -2681,8 +2678,8 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     const entries = Object.entries(obj);
 
     if (isArray(callback)) {
-        // Multi-key sorting - mirrors Collection::sortByMany; each
-        // descriptor keeps its own direction (Collection.php:1638-1640).
+        // Multi-key sorting - mirrors Collection::sortByMany
+        // (Collection.php:1627); each descriptor keeps its own direction.
         const comparators = (callback as readonly SortSpec<TValue>[]).map(
             (spec) => objSortSpecComparator<TValue>(spec, false),
         );
@@ -3316,8 +3313,8 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
  * Replace the data items with the given replacer items, like PHP's
  * `array_replace()` / `Collection::replace()`.
  *
- * `Collection.php:1172` ends in `$this->newInstance(array_replace(...))`,
- * so this builds and returns a new object rather than writing into `data`
+ * `Collection::replace` (`Collection.php:1170`) returns via
+ * `$this->newInstance(array_replace(...))`, so this builds and returns a new object rather than writing into `data`
  * — matching this package's mutation contract (see the block comment near
  * the top of this file: `replace`/`replaceRecursive` are in the "does not
  * mutate" half of the split, alongside `filter`, `slice`, `combine`, etc.).
@@ -3389,8 +3386,8 @@ export function replace<T1, T2>(
  * Recursively replace the data items with the given items, like PHP's
  * `array_replace_recursive()` / `Collection::replaceRecursive()`.
  *
- * `Collection.php:1183` ends in the same `$this->newInstance(...)` pattern
- * as `replace` above, so this builds and returns a new object at every
+ * `Collection::replaceRecursive` (`Collection.php:1181`) uses the same
+ * `$this->newInstance(...)` pattern as `replace` above, so this builds and returns a new object at every
  * level of the recursion rather than writing into `data` or any nested
  * object — a shallow top-level copy alone would not be enough, since the
  * old code's mutation happened one recursion level down. Because the
@@ -3882,9 +3879,8 @@ export function values<TValue, TKey extends PropertyKey = PropertyKey>(
 // Overload: typed — data and other's key sets are independent (TOtherKey),
 // so a differently-shaped `other` (e.g. { x: 'Hello' } against a data of
 // { id, first_word }) doesn't fail to unify. `other` may be null/undefined
-// (X14: already treated as empty before this fix; kept here so a
-// legitimately-typed nullable argument still matches this overload instead
-// of falling through to the unknown fallback below).
+// (treated as empty), so it still matches this overload instead of
+// falling through to the unknown fallback below.
 export function diff<
     TValue,
     TKey extends PropertyKey = PropertyKey,

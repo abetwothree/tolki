@@ -237,7 +237,7 @@ export function boolean<TValue, TDefault = null>(
 /**
  * Chunk the array into chunks of the given size.
  *
- * @see Collection::chunk — `packages/collection/stubs/Collection.php:1527`.
+ * @see Collection::chunk — `packages/collection/stubs/Collection.php:1520`.
  *      Wraps `array_chunk`; no `preserveKeys` param here (always reindexes).
  *
  * @param data - The array to chunk
@@ -314,15 +314,15 @@ export function collapse<TValue extends ArrayItems<unknown>>(
 /**
  * Combine an array of keys with an array of values into an object,
  * mirroring PHP's `array_combine()` / `Collection::combine()`
- * (`Collection.php:935`).
+ * (`Collection.php:933`).
  *
  * The previous implementation zipped an arbitrary number of arrays into an
  * array of tuples — that never corresponded to `array_combine`, whose
  * *only* two-argument shape produces a keyed map (confirmed against the
  * real `CollectionTest::testCombineWithArray`, and already how
- * `Obj.combine` behaved). It was silently mislabeled: X19's fix requires
- * `combine` to throw on a count mismatch, and that only makes sense once
- * `combine` actually implements `array_combine` semantics.
+ * `Obj.combine` behaved). It was silently mislabeled: throwing on a count
+ * mismatch only makes sense once `combine` actually implements
+ * `array_combine` semantics.
  *
  * Each key is coerced with `String()` (same as `flip`/`keyBy`/
  * `mapWithKeys`), so `keys`' element type is intentionally unconstrained

@@ -179,8 +179,8 @@ import {
 } from "@tolki/utils";
 
 /**
- * A note on most of the `as` casts below (Task 11 cast audit): each
- * function here dispatches a loose `DataItems<TValue, TKey>` union to a
+ * A note on most of the `as` casts below: each function here dispatches
+ * a loose `DataItems<TValue, TKey>` union to a
  * stricter `@tolki/arr`/`@tolki/obj` implementation via `isObject()`,
  * which can't narrow the union's generics. Most of what's left after this
  * task's cleanup (257 real assertions found via the TS compiler API, 110
@@ -1932,7 +1932,7 @@ export function dataWhere<TValue, TKey extends PropertyKey = PropertyKey>(
  * Replace the data items with the given items.
  *
  * A `null`/`undefined` `replacerData` is a no-op regardless of `data`'s
- * backing (X11 — PHP's `getArrayableItems(null)` returns `[]`,
+ * backing (PHP's `getArrayableItems(null)` returns `[]`,
  * `EnumeratesValues.php:1106`), dispatched by `data`'s own shape rather
  * than requiring `replacerData` to already agree with it — otherwise an
  * object-backed `data` could never accept a `null` replacer, since there
@@ -1997,8 +1997,7 @@ export function dataReplaceRecursive<
         >;
     }
 
-    // arrReplaceRecursive accepts an object-shaped (sparse) replacer too,
-    // same as arrReplace (Critical 1) — same fix, same reason.
+    // Mirrors arrReplace: an object-shaped replacer is legal on the array branch.
     if (
         isArray(data) &&
         (replacerIsNullish || isArray(replacerData) || isObject(replacerData))
@@ -2397,7 +2396,7 @@ export function dataContains<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get the differences between data collections.
  *
- * A `null`/`undefined` `other` is treated as empty (X14), so every item of
+ * A `null`/`undefined` `other` is treated as empty, so every item of
  * `data` is kept unchanged, regardless of whether `data` is array- or
  * object-backed.
  *
@@ -2430,7 +2429,7 @@ export function dataDiff<
     // overload, not its `null`-only one), so `undefined` is normalized to
     // `[]` explicitly here rather than passed through `arrWrap` — otherwise
     // a `null`/`undefined` `other` would diff differently depending on
-    // which one was passed, breaking the X14 "null other is empty" rule.
+    // which one was passed, breaking the "null other is empty" rule.
     const otherArray =
         isNull(other) || isUndefined(other) ? [] : arrWrap(other);
 
@@ -2612,7 +2611,7 @@ export function dataPop<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Intersect the data with the given items.
  *
- * A `null`/`undefined` `other` is treated as empty (X14) rather than
+ * A `null`/`undefined` `other` is treated as empty rather than
  * throwing the same-type error below, matching how PHP's
  * `EnumeratesValues::getArrayableItems()` turns `null` into `[]` for every
  * `Collection::intersect*` method — so the result is empty regardless of
@@ -2651,7 +2650,7 @@ export function dataIntersect<
  * Intersect the data with the given items with additional key check.
  * Returns items where both the key AND value match.
  *
- * A `null`/`undefined` `other` is treated as empty (X14) rather than
+ * A `null`/`undefined` `other` is treated as empty rather than
  * throwing the same-type error below.
  *
  * @param data - The original data
