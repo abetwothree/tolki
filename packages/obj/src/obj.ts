@@ -33,6 +33,7 @@ import {
     isUndefined,
     isWeakMap,
     looseEqual,
+    reindexIntegerKeys,
     typeOf,
 } from "@tolki/utils";
 
@@ -2672,6 +2673,14 @@ function objSortSpecComparator<TValue>(
  * Sort the object using the given callback, "dot" notation, or an array of
  * sort descriptors for multi-key sorting.
  *
+ * Values are ordered by `compareValues`, never by falsiness — PHP's
+ * `asort` puts `-1` before `0`. Integer-like keys are renumbered over the
+ * sorted sequence, the one policy the whole reorder family shares; see
+ * `reindexIntegerKeys` in `@tolki/utils` for why, and what it costs.
+ *
+ * @see Collection::sort — `packages/collection/stubs/Collection.php:1554`.
+ *      Wraps `uasort`/`asort` — both key-preserving.
+ *
  * @param data - The object to sort.
  * @param callback - The sorting callback, field name, an array of sort descriptors, or null for natural sorting.
  * @returns A new object with sorted entries.
@@ -2712,11 +2721,12 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     const obj = data as Record<TKey, TValue>;
-    const entries = Object.entries(obj);
+    let entries = Object.entries(obj);
 
     if (isArray(callback)) {
-        // Multi-key sorting - mirrors Collection::sortByMany
-        // (Collection.php:1627); each descriptor keeps its own direction.
+        // Multi-key sorting - mirrors Collection::sortByMany (Collection.php:1627);
+        // each descriptor keeps its own direction. Checked before isFalsy: an empty
+        // descriptor array is PHP-falsy too, but is a no-op here, not a value sort.
         const comparators = (callback as readonly SortSpec<TValue>[]).map(
             (spec) => objSortSpecComparator<TValue>(spec, false),
         );
@@ -2732,102 +2742,33 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
 
             return 0;
         });
-    }
-
-    // `isFalsy([])` is true (an empty array is PHP-falsy), so the
-    // `!isArray` guard is required — otherwise an empty descriptor array
-    // would fall through and get re-sorted by raw value instead of no-op.
-    if (isFalsy(callback) && !isArray(callback)) {
-        // Natural sorting by values
-        entries.sort(([, a], [, b]) => {
-            const aValue = a as TValue;
-            const bValue = b as TValue;
-
-            if (isFalsy(aValue) && isFalsy(bValue)) {
-                return 0;
-            }
-
-            if (isFalsy(aValue)) {
-                return -1;
-            }
-
-            if (isFalsy(bValue)) {
-                return 1;
-            }
-
-            // Safe comparison for comparable types
-            if (aValue < bValue) {
-                return -1;
-            }
-
-            if (aValue > bValue) {
-                return 1;
-            }
-
-            return 0;
-        });
-    }
-
-    if (isString(callback)) {
+    } else if (isFalsy(callback)) {
+        // asort() on raw values: -1 sorts before 0, so falsiness must not
+        // pre-empt the comparison. Same predicate and comparator as
+        // Arr.sort, which is what keeps the two backings agreeing.
+        entries.sort(([, a], [, b]) => compareValues(a, b));
+    } else if (isString(callback)) {
         // Sort by field name using dot notation
-        entries.sort(([, a], [, b]) => {
-            const aValue = getObjectValue(
-                a as Record<string, unknown>,
-                callback,
-            );
-            const bValue = getObjectValue(
-                b as Record<string, unknown>,
-                callback,
-            );
-
-            if (isFalsy(aValue) && isFalsy(bValue)) {
-                return 0;
-            }
-
-            if (isFalsy(aValue)) {
-                return -1;
-            }
-
-            if (isFalsy(bValue)) {
-                return 1;
-            }
-
-            // Safe comparison for any comparable types
-            const aComparable = aValue as string | number | boolean;
-            const bComparable = bValue as string | number | boolean;
-
-            if (aComparable < bComparable) {
-                return -1;
-            }
-
-            if (aComparable > bComparable) {
-                return 1;
-            }
-
-            return 0;
-        });
-    }
-
-    if (isFunction(callback)) {
+        entries.sort(([, a], [, b]) =>
+            compareValues(
+                getObjectValue(a as Record<string, unknown>, callback),
+                getObjectValue(b as Record<string, unknown>, callback),
+            ),
+        );
+    } else if (isFunction(callback)) {
         // Extract sort values using callback, then sort by those values
-        const indexed = entries.map(([key, value]) => ({
-            key,
-            value,
-            sortKey: callback(value as TValue, key as TKey),
-        }));
-
-        indexed.sort((a, b) => compareValues(a.sortKey, b.sortKey));
-
-        const result: Record<string, TValue> = {};
-        for (const item of indexed) {
-            result[item.key] = item.value as TValue;
-        }
-
-        return result as Record<TKey, TValue>;
+        entries = entries
+            .map(([key, value]) => ({
+                key,
+                value,
+                sortKey: callback(value as TValue, key as TKey),
+            }))
+            .sort((a, b) => compareValues(a.sortKey, b.sortKey))
+            .map(({ key, value }) => [key, value] as [string, unknown]);
     }
 
     const result: Record<string, TValue> = {};
-    for (const [key, value] of entries) {
+    for (const [key, value] of reindexIntegerKeys(entries)) {
         result[key] = value as TValue;
     }
 
@@ -2839,6 +2780,13 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
  * notation, or an array of sort descriptors for multi-key sorting.
  *
  * TODO: use the sort function with a "descending" parameter defined
+ *
+ * Integer-like keys are renumbered over the sorted sequence, the one
+ * policy the whole reorder family shares; see `reindexIntegerKeys` in
+ * `@tolki/utils`.
+ *
+ * @see Collection::sortDesc — `packages/collection/stubs/Collection.php:1571`.
+ *      Wraps `arsort` — key-preserving.
  *
  * @param data - The object to sort.
  * @param callback - The value extractor callback, field name, an array of sort descriptors, or null for natural sorting.
@@ -2880,7 +2828,7 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     const obj = data as Record<TKey, TValue>;
-    const entries = Object.entries(obj);
+    let entries = Object.entries(obj);
 
     if (isArray(callback)) {
         // Multi-key sorting - mirrors Collection::sortByDesc: every
@@ -2901,49 +2849,31 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
 
             return 0;
         });
-    }
-
-    if (isUndefined(callback) || isNull(callback)) {
+    } else if (isUndefined(callback) || isNull(callback)) {
         // Natural sorting by values in descending order
         entries.sort(([, a], [, b]) => compareValues(b, a));
-    }
-
-    if (isString(callback)) {
+    } else if (isString(callback)) {
         // Sort by field name using dot notation in descending order
-        entries.sort(([, a], [, b]) => {
-            const aValue = getObjectValue(
-                a as Record<string, unknown>,
-                callback,
-            );
-            const bValue = getObjectValue(
-                b as Record<string, unknown>,
-                callback,
-            );
-
-            return compareValues(bValue, aValue);
-        });
-    }
-
-    if (isFunction(callback)) {
+        entries.sort(([, a], [, b]) =>
+            compareValues(
+                getObjectValue(b as Record<string, unknown>, callback),
+                getObjectValue(a as Record<string, unknown>, callback),
+            ),
+        );
+    } else if (isFunction(callback)) {
         // Extract sort values using callback, then sort by those values in descending order
-        const indexed = entries.map(([key, value]) => ({
-            key,
-            value,
-            sortKey: callback(value as TValue, key as TKey),
-        }));
-
-        indexed.sort((a, b) => compareValues(b.sortKey, a.sortKey));
-
-        const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
-        for (const item of indexed) {
-            result[item.key as TKey] = item.value as TValue;
-        }
-
-        return result;
+        entries = entries
+            .map(([key, value]) => ({
+                key,
+                value,
+                sortKey: callback(value as TValue, key as TKey),
+            }))
+            .sort((a, b) => compareValues(b.sortKey, a.sortKey))
+            .map(({ key, value }) => [key, value] as [string, unknown]);
     }
 
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
-    for (const [key, value] of entries) {
+    for (const [key, value] of reindexIntegerKeys(entries)) {
         result[key as TKey] = value as TValue;
     }
 
@@ -3040,29 +2970,6 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
     data: T | unknown,
 ): T | Record<PropertyKey, unknown> {
     return sortRecursive(data, SortDirection.Descending);
-}
-
-/**
- * Renumber the integer-like keys in `entries` to a fresh 0-based sequence,
- * in the order they appear in `entries`; string keys pass through
- * unchanged. Mirrors `array_splice`'s "keys in input are not preserved for
- * numeric keys" rule, applied independently to the remainder and to the
- * removed portion (each starts its own count at 0), matching the
- * `array_splice([10=>a,20=>b,30=>c], 1, 1)` probe: remaining `["a","c"]`,
- * cut `["b"]` — both reindexed from 0, not from the original keys.
- */
-function reindexIntegerKeys<TValue>(
-    entries: [string, TValue][],
-): [string, TValue][] {
-    let nextIndex = 0;
-
-    return entries.map(([key, value]) => {
-        if (isIntegerLikeKey(key)) {
-            return [String(nextIndex++), value] as [string, TValue];
-        }
-
-        return [key, value] as [string, TValue];
-    });
 }
 
 /**

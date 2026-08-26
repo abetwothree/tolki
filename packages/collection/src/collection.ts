@@ -344,10 +344,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const highestCount = counts.max();
 
+        // PHP sorts the filtered counts again before reading their keys, but
+        // every remaining value equals $highestValue so asort cannot move
+        // one; here that sort would renumber the keys mode() is after.
         return (
             counts
                 .filter((value) => value === highestCount)
-                .sort()
                 .keys()
                 .all() as PropertyKey[]
         ).map((key: PropertyKey) => {

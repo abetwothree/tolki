@@ -3393,18 +3393,13 @@ describe("Data", () => {
         });
 
         it("sort accepts a key, a descriptor and an empty list", () => {
-            // sort preserves keys, and JS re-sorts integer keys ascending on write
-            // (ECMA-262 OrdinaryOwnPropertyKeys), so an all-integer-keyed object cannot
-            // show a reorder. Both halves are pinned rather than normalised.
-            expect(entriesOf(Arr.sort(records(), "id"))).toEqual([
+            // Integer-like keys are renumbered over the sorted sequence, so an
+            // all-integer-keyed object reorders like the array does; PHP keeps the
+            // key names instead (sort_all {"1":1,"2":2,"0":3} in the task-10 probe).
+            agree(Arr.sort(records(), "id"), Obj.sort(recordsObj(), "id"), [
                 ["0", { id: 1, name: "a" }],
                 ["1", { id: 2, name: "b" }],
                 ["2", { id: 3, name: "c" }],
-            ]);
-            expect(entriesOf(Obj.sort(recordsObj(), "id"))).toEqual([
-                ["0", { id: 3, name: "c" }],
-                ["1", { id: 1, name: "a" }],
-                ["2", { id: 2, name: "b" }],
             ]);
             expect(
                 entriesOf(
@@ -3428,6 +3423,23 @@ describe("Data", () => {
         });
 
         it("sortDesc reverses the comparison, not the container", () => {
+            // A negative alongside a zero: arsort(['a'=>-1,'b'=>0,'c'=>5]) is
+            // {"c":5,"b":0,"a":-1} ("asort over PHP-falsy mixed values"), and an
+            // integer-keyed object reorders now that the family renumbers its keys.
+            agree(
+                Arr.sortDesc([-1, 0, 5]),
+                Obj.sortDesc({ 0: -1, 1: 0, 2: 5 }),
+                [
+                    ["0", 5],
+                    ["1", 0],
+                    ["2", -1],
+                ],
+            );
+            expect(entriesOf(Obj.sortDesc({ a: -1, b: 0, c: 5 }))).toEqual([
+                ["c", 5],
+                ["b", 0],
+                ["a", -1],
+            ]);
             expect(entriesOf(Arr.sortDesc([30, 10, 20]))).toEqual([
                 ["0", 30],
                 ["1", 20],

@@ -5912,11 +5912,14 @@ describe("Collection", () => {
             ]);
         });
 
-        it("is a documented no-op on an integer-keyed object backing", () => {
-            // Known divergence from PHP (collect([0=>3,1=>1,2=>2])->sortDesc()
-            // gives values [3,2,1]): Obj.sortDesc can't reorder all-integer keys.
+        it("sorts an integer-keyed object instead of silently no-opping", () => {
+            // PHP-verified (task-10-pluck-sort.json, "sort/sortDesc/reverse preserve
+            // integer keys and their order"): sort_values [1,2,3], sortdesc_values [3,2,1].
+            // PHP keeps the names (sortdesc_all {"0":3,"2":2,"1":1}); JS renumbers instead.
             const c = new Collection({ 0: 3, 1: 1, 2: 2 });
-            expect(c.sortDesc().all()).toEqual({ 0: 3, 1: 1, 2: 2 });
+            expect(c.sortDesc().values().all()).toEqual([3, 2, 1]);
+            expect(c.sortDesc().all()).toEqual({ 0: 3, 1: 2, 2: 1 });
+            expect(c.sort().values().all()).toEqual([1, 2, 3]);
         });
     });
 
@@ -10721,47 +10724,51 @@ describe("Collection", () => {
         });
 
         it("sort and sortDesc, either backing", () => {
-            // sort preserves keys, and JS re-sorts integer keys ascending on write, so an
-            // all-integer-keyed object cannot show a reorder. Both halves are pinned; the
-            // string-keyed object is where the object backing can show it.
-            expect(
-                entriesOf(new Collection([30, 10, 20]).sort().all()),
-            ).toEqual([
-                ["0", 10],
-                ["1", 20],
-                ["2", 30],
-            ]);
-            expect(
-                entriesOf(new Collection({ 0: 30, 1: 10, 2: 20 }).sort().all()),
-            ).toEqual([
-                ["0", 30],
-                ["1", 10],
-                ["2", 20],
-            ]);
-            expect(
-                entriesOf(new Collection({ c: 30, a: 10, b: 20 }).sort().all()),
-            ).toEqual([
-                ["a", 10],
-                ["b", 20],
-                ["c", 30],
-            ]);
+            // A negative alongside a zero is what makes this row non-vacuous. PHP, in
+            // "sort orders falsy values by value, not by falsiness": asort(['a'=>-1,
+            // 'b'=>0,'c'=>5]) -> {"a":-1,"b":0,"c":5}; arsort -> {"c":5,"b":0,"a":-1}.
+            agree(
+                new Collection([5, -1, 0]).sort().all(),
+                new Collection({ a: -1, b: 0, c: 5 }).sort().all(),
+                [
+                    ["0", -1],
+                    ["1", 0],
+                    ["2", 5],
+                ],
+                [
+                    ["a", -1],
+                    ["b", 0],
+                    ["c", 5],
+                ],
+            );
 
-            expect(
-                entriesOf(new Collection([30, 10, 20]).sortDesc().all()),
-            ).toEqual([
-                ["0", 30],
-                ["1", 20],
-                ["2", 10],
-            ]);
-            expect(
-                entriesOf(
-                    new Collection({ c: 30, a: 10, b: 20 }).sortDesc().all(),
-                ),
-            ).toEqual([
-                ["c", 30],
-                ["b", 20],
-                ["a", 10],
-            ]);
+            agree(
+                new Collection([5, -1, 0]).sortDesc().all(),
+                new Collection({ a: -1, b: 0, c: 5 }).sortDesc().all(),
+                [
+                    ["0", 5],
+                    ["1", 0],
+                    ["2", -1],
+                ],
+                [
+                    ["c", 5],
+                    ["b", 0],
+                    ["a", -1],
+                ],
+            );
+
+            // An all-integer-keyed object now reorders too: the keys are renumbered over
+            // the sorted sequence rather than preserved, so the order survives the write.
+            // PHP keeps the names (sort_all {"1":1,"2":2,"0":3}) but the same value order.
+            agree(
+                new Collection([30, 10, 20]).sort().all(),
+                new Collection({ 0: 30, 1: 10, 2: 20 }).sort().all(),
+                [
+                    ["0", 10],
+                    ["1", 20],
+                    ["2", 30],
+                ],
+            );
         });
 
         it("sortBy with no comparisons leaves the order alone, either backing", () => {

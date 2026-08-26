@@ -1,3 +1,4 @@
+import * as Arr from "@tolki/arr";
 import { SortDirection } from "@tolki/enum";
 import * as Obj from "@tolki/obj";
 import { isString } from "@tolki/utils";
@@ -3023,27 +3024,122 @@ describe("Obj", () => {
             });
 
             it("should handle when values are falsy", () => {
+                // PHP ties 0, null and false (null_vs_zero/false_vs_zero [0,0] in
+                // "asort over PHP-falsy mixed values") and puts [] last; compareValues
+                // also hoists null/undefined - arr.spec.ts pins Arr.sort([null,3,1]).
                 const obj = { a: 0, b: null, c: undefined, d: false, e: [] };
-                const result = Obj.sort(obj);
-                expect(Object.values(result)).toEqual([
-                    0,
+                expect(Object.values(Obj.sort(obj))).toEqual([
                     null,
                     undefined,
+                    0,
                     false,
                     [],
                 ]);
+
+                // Arr.sort cannot join this row: Array.prototype.sort hoists an
+                // `undefined` element past the comparator, which obj's [key, value]
+                // entries never trigger. PHP has no undefined, so it cannot arbitrate.
+                const defined = { a: 0, b: null, d: false, e: [] };
+                expect(Object.values(Obj.sort(defined))).toEqual(
+                    Arr.sort(Object.values(defined)),
+                );
+            });
+
+            it("orders falsy values by value, not ahead of everything", () => {
+                // PHP-verified in docs/php-parity/task-10-pluck-sort.json,
+                // "sort orders falsy values by value, not by falsiness":
+                // asort(['a'=>-1,'b'=>0,'c'=>5]) -> {"a":-1,"b":0,"c":5}.
+                expect(Object.entries(Obj.sort({ a: -1, b: 0, c: 5 }))).toEqual(
+                    [
+                        ["a", -1],
+                        ["b", 0],
+                        ["c", 5],
+                    ],
+                );
+            });
+
+            it("agrees with arr.sort on the same values", () => {
+                // Same probe row: arr_sort -> [-1,0,5].
+                expect(Object.values(Obj.sort({ a: -1, b: 0, c: 5 }))).toEqual(
+                    Arr.sort([-1, 0, 5]),
+                );
+            });
+
+            it("renumbers integer-like keys instead of silently no-opping", () => {
+                // Same file, "sort/sortDesc/reverse preserve integer keys and their
+                // order": sort_values [1,2,3], sortdesc_values [3,2,1]. JS re-sorts
+                // integer keys, so the order survives only if they are renumbered.
+                expect(Object.values(Obj.sort({ 0: 3, 1: 1, 2: 2 }))).toEqual([
+                    1, 2, 3,
+                ]);
+                expect(
+                    Object.values(Obj.sortDesc({ 0: 3, 1: 1, 2: 2 })),
+                ).toEqual([3, 2, 1]);
+            });
+
+            it("cannot order a mixed-key object, whatever the policy", () => {
+                // Integer-like keys are hoisted ahead of string keys on write
+                // (ECMA-262 OrdinaryOwnPropertyKeys), so a mixed object keeps
+                // neither PHP's key names nor its order - reverse included.
+                const mixed = { x: 5, 0: 9 };
+                const hoisted: [string, number][] = [
+                    ["0", 9],
+                    ["x", 5],
+                ];
+
+                expect(Object.entries(Obj.sort(mixed))).toEqual(hoisted);
+                expect(Object.entries(Obj.sortDesc(mixed))).toEqual(hoisted);
+                expect(Object.entries(Obj.reverse(mixed))).toEqual(hoisted);
+            });
+
+            it("leaves negative integer keys alone, as reverse does", () => {
+                // Same file, "negative integer keys under the sort/reverse family":
+                // asort([-1=>'b',-2=>'a','x'=>'c']) -> {"-2":"a","-1":"b","x":"c"}. JS
+                // never re-sorts negative keys, so leaving them alone IS the PHP answer.
+                const source = Object.create(null) as Record<string, string>;
+                source["-1"] = "b";
+                source["-2"] = "a";
+                source["x"] = "c";
+
+                expect(Object.entries(Obj.sort(source))).toEqual([
+                    ["-2", "a"],
+                    ["-1", "b"],
+                    ["x", "c"],
+                ]);
+            });
+
+            it("returns the object unchanged when the callback is neither a string nor a function", () => {
+                const source = { a: 3, b: 1, c: 2 };
+
+                // @ts-expect-error Testing edge case with invalid callback type
+                expect(Obj.sort(source, 123)).toEqual({ a: 3, b: 1, c: 2 });
+                // @ts-expect-error Testing edge case with invalid callback type
+                expect(Obj.sort(source, { key: "value" })).toEqual({
+                    a: 3,
+                    b: 1,
+                    c: 2,
+                });
             });
 
             it("should handle a few values are falsy", () => {
-                const obj = { x: 1000, a: {}, b: 1, c: 2, d: [], y: 1000 };
+                // An empty container coerces to 0 against a number, so it
+                // leads; PHP disagrees ([] <=> 1 is 1 in empty_array_vs_one),
+                // a compareValues divergence both backings share.
+                const obj = { x: 1000, b: 1, c: 2, d: [], y: 1000 };
                 const result = Obj.sort(obj);
-                expect(Object.values(result)).toEqual([
-                    {},
+                expect(Object.values(result)).toEqual([[], 1, 2, 1000, 1000]);
+                expect(Object.values(result)).toEqual(
+                    Arr.sort(Object.values(obj)),
+                );
+            });
+
+            it("orders two empty containers by their JSON form", () => {
+                // Mixing {} with numbers is not orderable at all - compareValues
+                // ties {} with every number while ranking [] below them - so the
+                // two containers are only comparable against each other.
+                expect(Object.values(Obj.sort({ a: {}, d: [] }))).toEqual([
                     [],
-                    1,
-                    2,
-                    1000,
-                    1000,
+                    {},
                 ]);
             });
         });
@@ -3058,6 +3154,18 @@ describe("Obj", () => {
                 expect(Object.keys(result)).toEqual(["user2", "user1"]);
             });
 
+            it("does not re-sort by an empty path after the natural sort", () => {
+                // The branches were if/if/if, so a falsy string ran the natural
+                // sort and then the field sort over it, reversing this pair. PHP
+                // cannot arbitrate - Collection::sort("") throws TypeError.
+                const source = { a: { "": 10 }, b: { "": 9 } };
+
+                expect(Object.keys(Obj.sort(source, ""))).toEqual(["a", "b"]);
+                expect(Object.values(Obj.sort(source, ""))).toEqual(
+                    Arr.sort(Object.values(source), ""),
+                );
+            });
+
             it("should handle missing keys", () => {
                 const obj = {
                     user1: { name: "John" },
@@ -3068,6 +3176,9 @@ describe("Obj", () => {
             });
 
             it("should handle when values are falsy", () => {
+                // The string-path form now shares compareValues with the
+                // callback form, so it must land where "should handle when
+                // values are falsy in callback" does: null ahead of 0.
                 const obj = {
                     user1: { name: "John", age: 0 },
                     user2: { name: "Jane", age: null },
@@ -3075,10 +3186,13 @@ describe("Obj", () => {
                 };
                 const result = Obj.sort(obj, "age");
                 expect(Object.keys(result)).toEqual([
-                    "user1",
                     "user2",
+                    "user1",
                     "user3",
                 ]);
+                expect(Object.keys(result)).toEqual(
+                    Object.keys(Obj.sort(obj, (item) => item.age)),
+                );
             });
 
             it("should handle when some values are falsy", () => {
@@ -3092,15 +3206,21 @@ describe("Obj", () => {
                     user6: { name: "Jane", age: 100 },
                 };
                 const result = Obj.sort(obj, "age");
+                // null/undefined lead, then [] (which coerces to 0 against a
+                // number), then the numbers ascending - ties keeping their
+                // original order, so user0 stays ahead of user6.
                 expect(Object.keys(result)).toEqual([
                     "user2",
-                    "user4",
                     "user5",
+                    "user4",
                     "user3",
                     "user1",
                     "user0",
                     "user6",
                 ]);
+                expect(Object.keys(result)).toEqual(
+                    Object.keys(Obj.sort(obj, (item) => item.age)),
+                );
             });
         });
 
@@ -3304,6 +3424,19 @@ describe("Obj", () => {
         it("should handle non-object data", () => {
             expect(Obj.sortDesc(null)).toEqual({});
             expect(Obj.sortDesc([])).toEqual({});
+        });
+
+        it("returns the object unchanged when the callback is neither a string nor a function", () => {
+            const source = { a: 1, b: 3, c: 2 };
+
+            // @ts-expect-error Testing edge case with invalid callback type
+            expect(Obj.sortDesc(source, 123)).toEqual({ a: 1, b: 3, c: 2 });
+            // @ts-expect-error Testing edge case with invalid callback type
+            expect(Obj.sortDesc(source, { key: "value" })).toEqual({
+                a: 1,
+                b: 3,
+                c: 2,
+            });
         });
 
         describe("sort.objects", () => {

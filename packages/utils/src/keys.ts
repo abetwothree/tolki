@@ -68,15 +68,53 @@ export function isPhpArrayKey(value: unknown): value is string | number {
  * renumber. String keys are left untouched by both.
  *
  * Negative integers such as "-1" are deliberately excluded, unlike PHP's
- * own int-cast rule (which does renumber them). That divergence is a known,
- * pinned carve-out — see `obj.spec.ts`'s unshift/splice tests — not a gap
- * to close here.
+ * own int-cast rule. This is the single integer-key policy for the whole
+ * reorder family — see `reindexIntegerKeys` below for why.
  *
  * @param key - The key to test
  * @returns True if `key` is a canonical non-negative integer string
  */
 export function isIntegerLikeKey(key: string): boolean {
     return /^(0|[1-9]\d*)$/.test(key);
+}
+
+/**
+ * Renumber the integer-like keys in `entries` to a fresh 0-based sequence,
+ * in the order they appear; string keys pass through unchanged.
+ *
+ * This is the one integer-key policy for every reordering helper — `sort`,
+ * `sortDesc`, `sortBy`, `sortByMany`, `reverse`, `pad`, `splice`. PHP's
+ * originals are key-preserving (`asort`, `arsort`, `array_reverse($x, true)`),
+ * but a plain JS object cannot hold an arbitrary order for canonical integer
+ * keys — ECMA-262 `OrdinaryOwnPropertyKeys` always re-sorts them ascending —
+ * so preserving them would silently discard the reordering. Renumbering
+ * trades the key *names* to keep PHP's value *order*.
+ *
+ * That trade only pays off for an all-integer or all-string object. A MIXED
+ * one keeps neither: the write hoists every integer-like key ahead of every
+ * string key whatever their numbers, so `sort({x: 5, 0: 9})` still iterates
+ * `[9, 5]`. No caller can fix that; a plain object cannot express the order.
+ *
+ * Negative integer keys are excluded: the JS engine does not re-sort them, so
+ * they already hold insertion order, and renumbering them would create a
+ * divergence rather than remove one. `array_splice`/`array_unshift` do
+ * renumber them in PHP — that narrower divergence stands, and is pinned.
+ *
+ * @param entries - The entries to renumber, in their intended order
+ * @returns The same entries with integer-like keys renumbered from 0
+ */
+export function reindexIntegerKeys<TValue>(
+    entries: [string, TValue][],
+): [string, TValue][] {
+    let nextIndex = 0;
+
+    return entries.map(([key, value]) => {
+        if (isIntegerLikeKey(key)) {
+            return [String(nextIndex++), value] as [string, TValue];
+        }
+
+        return [key, value] as [string, TValue];
+    });
 }
 
 /**
