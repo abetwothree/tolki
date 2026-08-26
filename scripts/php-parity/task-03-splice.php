@@ -50,7 +50,10 @@ probe('splice discards replacement keys', 'array_splice($a,1,1,["foo"=>"bar"])',
     $collision = ['a' => 1, 'b' => 2, 'c' => 3];
     array_splice($collision, 1, 1, ['a' => 9]);
 
-    return ['simple' => $simple, 'multi' => $multi, 'collision' => $collision];
+    $insert = ['a' => 1, 'b' => 2, 'c' => 3];
+    array_splice($insert, 1, 0, [10]);
+
+    return ['simple' => $simple, 'multi' => $multi, 'collision' => $collision, 'insert' => $insert];
 });
 
 emit();

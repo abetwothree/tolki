@@ -3630,8 +3630,8 @@ describe("Obj", () => {
         });
 
         it("splice with length 0 (insert only)", () => {
-            // The replacement's own key is discarded and renumbered from 0 (same rule
-            // regardless of length); "0" then sorts first — JS's integer-key ordering.
+            // PHP-verified (task-03-splice.json "insert"): key discarded, renumbered from
+            // 0 regardless of length; "0" then sorts first here (JS integer-key order).
             const obj = { a: 1, b: 2, c: 3 };
             const removed = Obj.splice(obj, 1, 0, { x: 10 });
             expect(removed).toEqual({});
@@ -3656,11 +3656,12 @@ describe("Obj", () => {
         });
 
         it("keeps every element when a replacement key collides with a survivor", () => {
-            // PHP-verified: 3 entries out, nothing dropped.
+            // PHP-verified (task-03-splice.json "collision"): 3 entries out, nothing dropped.
             const data = { a: 1, b: 2, c: 3 };
             Obj.splice(data, 1, 1, { a: 9 });
 
             expect(Object.keys(data)).toHaveLength(3);
+            expect(data).toEqual({ a: 1, "0": 9, c: 3 });
         });
 
         it("splice without replacement", () => {
