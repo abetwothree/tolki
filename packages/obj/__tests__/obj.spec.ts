@@ -4083,11 +4083,14 @@ describe("Obj", () => {
             ["00", "foo"],
             ["0.0", "foo"],
         ])("applies PHP truthiness to the value %s", (value, expected) => {
-            // PHP-verified in docs/php-parity/task-08-arr-parity.json.
+            // Captured: docs/php-parity/task-08-arr-parity.json
+            // ("CSS helpers use PHP truthiness for the value").
             expect(Obj.toCssClasses({ foo: value })).toBe(expected);
         });
 
         it("drops an empty container value", () => {
+            // Captured: docs/php-parity/task-08-arr-parity.json
+            // ("CSS helpers use PHP truthiness for the value").
             expect(Obj.toCssClasses({ foo: [] })).toBe("");
             expect(Obj.toCssClasses({ foo: {} })).toBe("");
         });
@@ -4167,11 +4170,14 @@ describe("Obj", () => {
             ["00", "foo;"],
             ["0.0", "foo;"],
         ])("applies PHP truthiness to the value %s", (value, expected) => {
-            // PHP-verified in docs/php-parity/task-08-arr-parity.json.
+            // Captured: docs/php-parity/task-08-arr-parity.json
+            // ("CSS helpers use PHP truthiness for the value").
             expect(Obj.toCssStyles({ foo: value })).toBe(expected);
         });
 
         it("drops an empty container value", () => {
+            // Captured: docs/php-parity/task-08-arr-parity.json
+            // ("CSS helpers use PHP truthiness for the value").
             expect(Obj.toCssStyles({ foo: [] })).toBe("");
             expect(Obj.toCssStyles({ foo: {} })).toBe("");
         });

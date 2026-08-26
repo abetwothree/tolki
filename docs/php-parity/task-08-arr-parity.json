@@ -253,7 +253,9 @@
                 "empty_array": "",
                 "double_zero": "foo",
                 "zero_point_zero": "foo",
-                "styles_zero": ""
+                "styles_zero": "",
+                "styles_double_zero": "foo;",
+                "styles_zero_point_zero": "foo;"
             }
         }
     ]
