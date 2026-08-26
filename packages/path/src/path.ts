@@ -1108,6 +1108,13 @@ export function undotExpandObject<
 }
 
 /**
+ * Ceiling for a numeric `undot` segment: an index this large would force any
+ * spread or serialization of the result to materialize tens of megabytes of
+ * holes, so it is refused before the array is ever built.
+ */
+export const MAX_UNDOT_INDEX = 2 ** 24 - 2;
+
+/**
  * Expand a flat object with dot notation keys into a nested array structure.
  * Converts a flattened object back into its original nested array form.
  *
@@ -1126,8 +1133,11 @@ export function undotExpandArray<
 >(map: Record<TKey, TValue>): TValue[] {
     const root: unknown[] = [];
     const isValidIndex = (seg: string): boolean => {
-        const n = seg.length ? Number(seg) : NaN;
-        return isInteger(n) && n >= 0;
+        if (!/^(0|[1-9][0-9]*)$/.test(seg)) {
+            return false;
+        }
+
+        return Number(seg) <= MAX_UNDOT_INDEX;
     };
     // Object.entries returns string keys only
     for (const [rawKey, value] of Object.entries(map ?? {}) as [

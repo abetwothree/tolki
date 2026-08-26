@@ -2360,6 +2360,21 @@ describe("Path Functions", () => {
             // Empty segment is not a valid index, so that entry should be skipped
             expect(result).toEqual([[undefined, "valid"]]);
         });
+
+        it("undotExpandArray rejects a leading-zero index instead of treating it as canonical", () => {
+            // PHP-verified in docs/php-parity/task-12-regression-pins.json: "01" stays a string
+            // key, so it must not be treated as array index 1 here either.
+            const result = Path.undotExpandArray({ "01": "x" });
+            expect(result).toEqual([]);
+        });
+
+        it("undotExpandArray rejects an index above MAX_UNDOT_INDEX", () => {
+            // A canonical decimal segment can still be too large to safely build an array from.
+            // .length (not toEqual([])) avoids diffing a huge array if this regresses.
+            const tooLarge = `${Path.MAX_UNDOT_INDEX + 1}`;
+            const result = Path.undotExpandArray({ [tooLarge]: "x" });
+            expect(result.length).toBe(0);
+        });
     });
 
     describe("forgetKeysArray", () => {
