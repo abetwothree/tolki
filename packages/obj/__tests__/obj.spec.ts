@@ -576,6 +576,34 @@ describe("Obj", () => {
                 b: 2,
             });
         });
+
+        it("renumbers existing integer keys instead of overwriting them", () => {
+            // array_unshift([10,20,30,40],1,2) -> [1,2,10,20,30,40].
+            expect(Obj.unshift({ 0: 10, 1: 20, 2: 30, 3: 40 }, 1, 2)).toEqual({
+                0: 1,
+                1: 2,
+                2: 10,
+                3: 20,
+                4: 30,
+                5: 40,
+            });
+        });
+
+        it("renumbers integer keys and leaves string keys alone", () => {
+            // array_unshift([0=>'a','x'=>1,1=>'b'],9) -> {0:9,1:'a',x:1,2:'b'}.
+            expect(Obj.unshift({ 0: "a", x: 1, 1: "b" }, 9)).toEqual({
+                0: 9,
+                1: "a",
+                2: "b",
+                x: 1,
+            });
+        });
+
+        it("renumbers past an integer key a prepended object already claimed", () => {
+            expect(
+                Obj.unshift({ 0: "keep", 1: "also" }, { 0: "zero" }),
+            ).toEqual({ 0: "zero", 1: "keep", 2: "also" });
+        });
     });
 
     describe("except", () => {
@@ -1933,35 +1961,29 @@ describe("Obj", () => {
             expect(result).toEqual(["John", "Jane", "Hello"]);
         });
 
-        it("stops at an explicit depth instead of flattening fully", () => {
+        it("spends the last level of depth on the container's own values", () => {
             const obj = {
                 users: { john: { name: "John" }, jane: { name: "Jane" } },
                 posts: { "1": { title: "Hello" } },
             };
 
-            expect(Obj.flatten(obj, 2)).toEqual([
-                { name: "John" },
-                { name: "Jane" },
-                { title: "Hello" },
-            ]);
+            expect(Obj.flatten(obj, 2)).toEqual(["John", "Jane", "Hello"]);
         });
 
         it("respects the depth parameter", () => {
             const obj = { a: { b: { c: { d: "value" } } } };
 
-            // depth = 1: only flatten top-level values
-            expect(Obj.flatten(obj, 1)).toEqual([{ b: { c: { d: "value" } } }]);
-
-            // depth = 2: flatten one more level
-            expect(Obj.flatten(obj, 2)).toEqual([{ c: { d: "value" } }]);
+            expect(Obj.flatten(obj, 1)).toEqual([{ c: { d: "value" } }]);
+            expect(Obj.flatten(obj, 2)).toEqual([{ d: "value" }]);
+            expect(Obj.flatten(obj, 3)).toEqual(["value"]);
         });
 
         it("handles arrays within object values at boundary depth", () => {
             const obj = { items: [{ v: 1 }, { v: 2 }] };
-            // Default depth is Infinity, so nested objects flatten fully.
+
             expect(Obj.flatten(obj)).toEqual([1, 2]);
-            // Explicit depth=2 stops at the object boundary.
-            expect(Obj.flatten(obj, 2)).toEqual([{ v: 1 }, { v: 2 }]);
+            expect(Obj.flatten(obj, 2)).toEqual([1, 2]);
+            expect(Obj.flatten(obj, 1)).toEqual([{ v: 1 }, { v: 2 }]);
         });
 
         it("returns empty array for non-accessible data", () => {
@@ -1973,15 +1995,13 @@ describe("Obj", () => {
             ).toEqual([]);
         });
 
-        it("honors depth=0 by returning top-level values", () => {
+        it("keeps descending at depth 0, since only depth 1 stops it", () => {
             const obj = {
                 users: { john: { name: "John" }, jane: { name: "Jane" } },
                 posts: { "1": { title: "Hello" } },
             };
-            expect(Obj.flatten(obj, 0)).toEqual([
-                { john: { name: "John" }, jane: { name: "Jane" } },
-                { "1": { title: "Hello" } },
-            ]);
+
+            expect(Obj.flatten(obj, 0)).toEqual(["John", "Jane", "Hello"]);
         });
 
         it("flattens objects with primitive values", () => {
@@ -3685,6 +3705,33 @@ describe("Obj", () => {
             expect(obj).toEqual({ 0: "n2", x: "s" });
         });
 
+        it("splices a scalar replacement in as one element", () => {
+            // array_splice([10,20,30,40],1,2,99) leaves [10,99,40];
+            // Object.entries(99) is empty, so the value used to vanish.
+            const obj: Record<string, number> = { 0: 10, 1: 20, 2: 30, 3: 40 };
+            const removed = Obj.splice(obj, 1, 2, 99);
+
+            expect(removed).toEqual({ 0: 20, 1: 30 });
+            expect(obj).toEqual({ 0: 10, 1: 99, 2: 40 });
+        });
+
+        it("splices a null replacement in rather than dropping it", () => {
+            // array_splice([10,20,30],1,1,[null,null]) -> [10,null,null,30].
+            const obj: Record<string, number | null> = { 0: 10, 1: 20, 2: 30 };
+            const removed = Obj.splice(obj, 1, 1, null, null);
+
+            expect(removed).toEqual({ 0: 20 });
+            expect(obj).toEqual({ 0: 10, 1: null, 2: null, 3: 30 });
+        });
+
+        it("spreads an array replacement across the splice point", () => {
+            const obj: Record<string, number> = { 0: 10, 1: 20, 2: 30 };
+            const removed = Obj.splice(obj, 1, 1, [7, 8]);
+
+            expect(removed).toEqual({ 0: 20 });
+            expect(obj).toEqual({ 0: 10, 1: 7, 2: 8, 3: 30 });
+        });
+
         it("does not reparent the object via a __proto__ entry (offset 0, the case that reproduces without the fix)", () => {
             // Critical 1. JSON.parse produces a real own enumerable
             // "__proto__" key (a literal `{ __proto__: ... }` would set
@@ -4045,6 +4092,49 @@ describe("Obj", () => {
             const data = { a: 1, b: 2 };
             expect(Obj.pad(data, 0, 0)).not.toBe(data);
         });
+
+        it("appends positive padding past the existing integer keys", () => {
+            // array_pad([10,20,30,40],6,0) -> [10,20,30,40,0,0]. Numbering
+            // the pad slots from 0 overwrote the first two entries.
+            expect(Obj.pad({ 0: 10, 1: 20, 2: 30, 3: 40 }, 6, 0)).toEqual({
+                0: 10,
+                1: 20,
+                2: 30,
+                3: 40,
+                4: 0,
+                5: 0,
+            });
+        });
+
+        it("continues the integer sequence across mixed keys", () => {
+            // array_pad([0=>'a','x'=>1],4,'p') -> {0:'a',x:1,1:'p',2:'p'}.
+            expect(Obj.pad({ 0: "a", x: 1 }, 4, "p")).toEqual({
+                0: "a",
+                1: "p",
+                2: "p",
+                x: 1,
+            });
+        });
+
+        it("renumbers the originals after negative padding", () => {
+            // array_pad([10,20,30,40],-6,0) -> [0,0,10,20,30,40].
+            expect(Obj.pad({ 0: 10, 1: 20, 2: 30, 3: 40 }, -6, 0)).toEqual({
+                0: 0,
+                1: 0,
+                2: 10,
+                3: 20,
+                4: 30,
+                5: 40,
+            });
+        });
+
+        it("leaves sparse integer keys alone when no padding is needed", () => {
+            // array_pad([5=>'a',9=>'b'],2,0) keeps 5 and 9 as they are.
+            expect(Obj.pad({ 5: "a", 9: "b" }, 2, 0)).toEqual({
+                5: "a",
+                9: "b",
+            });
+        });
     });
 
     describe("replaceRecursive", () => {
@@ -4142,16 +4232,23 @@ describe("Obj", () => {
             expect(Obj.reverse([])).toEqual({});
         });
 
-        it("cannot reproduce PHP's positional order for integer-like keys — not a bug", () => {
-            // JS spec-orders integer-like own keys ascending, ahead of
-            // string keys, regardless of insertion order. reverse()
-            // reverses insertion order internally, but writing "0"/"1"
-            // back onto a plain object snaps them back to ascending
-            // position. PHP's array_reverse would give {1: "b", 0: "a"}.
-            expect(Object.keys(Obj.reverse({ 0: "a", 1: "b" }))).toEqual([
-                "0",
-                "1",
-            ]);
+        it("renumbers integer-like keys so the values actually reverse", () => {
+            // JS re-sorts integer-like keys ascending on write, so keeping
+            // PHP's {1:'b',0:'a'} would leave the object untouched.
+            // Renumbering keeps collect(['a','b'])->reverse()'s value order.
+            expect(Obj.reverse({ 0: "a", 1: "b" })).toEqual({
+                0: "b",
+                1: "a",
+            });
+            expect(Object.values(Obj.reverse({ 0: 10, 1: 20, 2: 30 }))).toEqual(
+                [30, 20, 10],
+            );
+        });
+
+        it("renumbers integer keys but leaves string keys in place", () => {
+            const result = Obj.reverse({ 0: "a", x: 1, 1: "b" });
+
+            expect(result).toEqual({ 0: "b", 1: "a", x: 1 });
         });
     });
 

@@ -499,6 +499,10 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
  * items are skipped, matching this package's existing "undefined items
  * are skipped" convention.
  *
+ * Existing integer-like keys are renumbered upward so the prepended items
+ * can take `0..n-1`, exactly as `array_unshift` does; string keys keep
+ * theirs. Overwriting them in place would destroy their values.
+ *
  * @see Collection::unshift — `packages/collection/stubs/Collection.php:1087`.
  *      Wraps `array_unshift`; mutates.
  *
@@ -548,6 +552,17 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
     Object.assign(data, itemsObject);
 
     for (const [key, value] of originalEntries) {
+        if (isIntegerLikeKey(key)) {
+            while (Object.hasOwn(data, nextIndex)) {
+                nextIndex++;
+            }
+
+            data[nextIndex as TKey] = value as TValue;
+            nextIndex++;
+
+            continue;
+        }
+
         if (!Object.hasOwn(itemsObject, key)) {
             data[key as TKey] = value as TValue;
         }
@@ -871,9 +886,12 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
  * the values, recursively flattening nested arrays and objects into a single
  * array of values, discarding keys.
  *
+ * @see Arr::flatten — `packages/arr/stubs/Arr.php:366`.
+ *
  * @param data - The object (or value) to flatten.
  * @param depth - Maximum depth to flatten. Defaults to Infinity (full flattening),
- * matching Arr.php's `Arr::flatten` default (Arr.php:368).
+ * matching Arr.php's `Arr::flatten` default (Arr.php:368). Only a depth of
+ * exactly 1 stops the descent, so 0 and negatives flatten completely.
  * @returns A new flattened array of values.
  *
  * @example
@@ -900,10 +918,14 @@ export function flatten<TValue>(
         for (const item of values) {
             if (!isArray(item) && !isObject(item)) {
                 result.push(item);
-            } else if (currentDepth <= 1) {
-                // At boundary depth, push the immediate items themselves
-                // (objects or arrays) without descending further.
-                result.push(item);
+            } else if (currentDepth === 1) {
+                // Arr.php:373 spends the last level of depth on the
+                // container's own values, so depth 1 still unwraps once.
+                const nested = isArray(item) ? item : Object.values(item);
+
+                for (const value of nested) {
+                    result.push(value);
+                }
             } else {
                 flattenRecursive(item, currentDepth - 1);
             }
@@ -3045,7 +3067,8 @@ function reindexIntegerKeys<TValue>(
  * PHP's array_splice.
  *
  * String keys keep their exact key on both the remainder and the removed
- * portion; integer-like keys reindex from 0, matching `array_splice`.
+ * portion; integer-like keys reindex from 0, matching `array_splice`. A
+ * replacement that is not itself a container splices in as one element.
  * Writes go through `defineKey` so a `__proto__` entry becomes a real own
  * key instead of reparenting the target through the `__proto__` setter.
  *
@@ -3097,11 +3120,19 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
     // Prepare replacement entries
     const replacementEntries: [string, TValue][] = [];
     for (const repObj of replacement) {
-        for (const [key, value] of Object.entries(
-            repObj as Record<string, TValue>,
-        )) {
-            replacementEntries.push([key, value as TValue]);
+        if (accessible(repObj) || isArray(repObj)) {
+            for (const [key, value] of Object.entries(
+                repObj as Record<string, TValue>,
+            )) {
+                replacementEntries.push([key, value as TValue]);
+            }
+
+            continue;
         }
+
+        // array_splice takes a bare scalar as one spliced-in element;
+        // reindexIntegerKeys renumbers this placeholder by position.
+        replacementEntries.push(["0", repObj as unknown as TValue]);
     }
 
     for (const key of Object.keys(obj)) {
@@ -3486,13 +3517,11 @@ export function replaceRecursive<T1, T2>(
 /**
  * Reverse the order of the object's entries.
  *
- * Not a bug: JS spec-orders integer-like own keys ascending, ahead of
- * string keys, regardless of insertion order (ECMA-262
- * OrdinaryOwnPropertyKeys). `reverse({0: 'a', 1: 'b'})` therefore still
- * iterates `0, 1` — the reversed insertion order is lost the moment those
- * keys are written back onto a plain object. PHP's array preserves
- * positional/insertion order for integer keys, a guarantee a plain JS
- * object cannot reproduce. Do not re-file this as a bug.
+ * String keys keep theirs. Integer-like keys are renumbered over the
+ * reversed sequence instead, because JS re-sorts them ascending on write
+ * (ECMA-262 OrdinaryOwnPropertyKeys) and preserving them would make the
+ * whole call a no-op; renumbering keeps PHP's reversed value order, the
+ * same trade `Arr.reverse` makes for a real array.
  *
  * @see Collection::reverse — `packages/collection/stubs/Collection.php:1191`.
  *      Wraps `array_reverse($items, true)` — preserves keys.
@@ -3515,11 +3544,10 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
     const obj = data as Record<TKey, TValue>;
     const entries = Object.entries(obj);
 
-    // Reverse the entries array
     entries.reverse();
 
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
-    for (const [key, value] of entries) {
+    for (const [key, value] of reindexIntegerKeys(entries)) {
         result[key as TKey] = value as TValue;
     }
 
@@ -3529,12 +3557,13 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Pad object to the specified length with a value.
  *
- * Pad slots are always numbered `0, 1, 2, ...`, regardless of direction.
- * For a positive `size` this is a genuine, unfixable divergence from PHP
- * (which appends padding after the original keys): JS always orders
- * integer-like keys ascending, ahead of string keys, regardless of
- * insertion order (ECMA-262 `OrdinaryOwnPropertyKeys`). Do not re-file as
- * a bug — a negative `size` has no such divergence.
+ * Pad slots join the integer-key sequence rather than restarting it, so a
+ * positive `size` appends after the original entries and a negative one
+ * prepends before them — `array_pad`'s own numbering. String keys keep
+ * theirs. Only the *iteration order* of a mixed-key object can still
+ * differ, because JS always enumerates integer-like keys ahead of string
+ * keys (ECMA-262 `OrdinaryOwnPropertyKeys`); every key/value pair is the
+ * one PHP produces.
  *
  * @see Collection::pad — `packages/collection/stubs/Collection.php:1904`.
  *      Wraps `array_pad`.
@@ -3565,18 +3594,16 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     const padEntries: [string, TPadValue][] = [];
 
     for (let i = 0; i < padCount; i++) {
-        padEntries.push([i.toString(), value]);
+        // Any integer-like key works here; reindexIntegerKeys below
+        // renumbers the whole sequence by position anyway.
+        padEntries.push(["0", value]);
     }
 
-    let resultEntries: [string, TValue | TPadValue][];
-    if (size > 0) {
-        resultEntries = [...entries, ...padEntries];
-    } else {
-        resultEntries = [...padEntries, ...entries];
-    }
+    const orderedEntries: [string, TValue | TPadValue][] =
+        size > 0 ? [...entries, ...padEntries] : [...padEntries, ...entries];
 
     const result: Record<string, TValue | TPadValue> = {};
-    for (const [key, val] of resultEntries) {
+    for (const [key, val] of reindexIntegerKeys(orderedEntries)) {
         result[key] = val;
     }
 

@@ -501,6 +501,8 @@ describe("Data", () => {
 
     describe("dataFlatten", () => {
         it("is object", () => {
+            // Arr::flatten(..., 1) spends its last level of depth on each
+            // container's own values, so one level of nesting survives.
             const result = Data.dataFlatten(
                 {
                     users: { john: { name: "John" }, jane: { name: "Jane" } },
@@ -510,36 +512,21 @@ describe("Data", () => {
             );
 
             expect(result).toEqual([
-                {
-                    jane: {
-                        name: "Jane",
-                    },
-                    john: {
-                        name: "John",
-                    },
-                },
-                {
-                    "1": {
-                        title: "Hello",
-                    },
-                },
+                { name: "John" },
+                { name: "Jane" },
+                { title: "Hello" },
             ]);
         });
 
         it("is object with array values", () => {
             const result = Data.dataFlatten({ list: ["x", "y"] }, 1);
-            expect(result).toEqual([["x", "y"]]);
+            expect(result).toEqual(["x", "y"]);
         });
 
         it("is object with deeper nesting", () => {
             const data = { a: { b: { c: 1 } } };
-            // depth = 2 should include three segments in the key
-            expect(Data.dataFlatten(data, 2)).toEqual([
-                {
-                    c: 1,
-                },
-            ]);
-            // default (Infinity) should also fully dot-flatten to the leaf
+
+            expect(Data.dataFlatten(data, 2)).toEqual([1]);
             expect(Data.dataFlatten(data)).toEqual([1]);
         });
         it("is array", () => {
