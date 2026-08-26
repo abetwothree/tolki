@@ -78,4 +78,28 @@ probe('diffAssoc on array-backed collection', '$c->diffAssoc([1,9,3])', function
     return (new Collection([1, 2, 3]))->diffAssoc([1, 9, 3])->all();
 });
 
+// Task 12 (parity-review-fixes) — C5: diff must accept a mismatched operand
+// shape instead of treating an array `other` as absent. C6: intersect* must
+// treat a nullish first operand as empty, like diff already does.
+probe('diff and intersect accept any array operand', 'collect(["a"=>10,"b"=>20])->diff([20])', function () {
+    return [
+        'assoc_diff_list' => (new Collection(['a' => 10, 'b' => 20]))->diff([20])->all(),
+        'list_diff_assoc' => (new Collection([10, 20]))->diff(['x' => 20])->all(),
+        'null_intersect' => (new Collection(null))->intersect(['a' => 1])->all(),
+        'null_diff' => (new Collection(null))->diff(['a' => 1])->all(),
+    ];
+});
+
+// Extra probes beyond the brief — intersectAssoc/intersectAssocUsing/intersectByKeys
+// must agree with intersect's null-first-operand-is-empty behaviour (C6/R5).
+probe('intersectAssoc/intersectAssocUsing/intersectByKeys treat a nullish first operand as empty too', 'collect(null)->intersectAssoc(...)', function () {
+    $strcasecmp = fn ($a, $b) => strtolower((string) $a) === strtolower((string) $b);
+
+    return [
+        'null_intersect_assoc' => (new Collection(null))->intersectAssoc(['a' => 1])->all(),
+        'null_intersect_assoc_using' => (new Collection(null))->intersectAssocUsing(['a' => 1], $strcasecmp)->all(),
+        'null_intersect_by_keys' => (new Collection(null))->intersectByKeys(['a' => 1])->all(),
+    ];
+});
+
 emit();

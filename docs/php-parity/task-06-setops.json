@@ -102,6 +102,29 @@
             "value": {
                 "1": 2
             }
+        },
+        {
+            "label": "diff and intersect accept any array operand",
+            "php": "collect([\"a\"=>10,\"b\"=>20])->diff([20])",
+            "value": {
+                "assoc_diff_list": {
+                    "a": 10
+                },
+                "list_diff_assoc": [
+                    10
+                ],
+                "null_intersect": [],
+                "null_diff": []
+            }
+        },
+        {
+            "label": "intersectAssoc/intersectAssocUsing/intersectByKeys treat a nullish first operand as empty too",
+            "php": "collect(null)->intersectAssoc(...)",
+            "value": {
+                "null_intersect_assoc": [],
+                "null_intersect_assoc_using": [],
+                "null_intersect_by_keys": []
+            }
         }
     ]
 }
