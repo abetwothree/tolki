@@ -203,9 +203,45 @@ if (condition) {
 }
 ```
 
-- Each function or method should have a JSDoc comment explaining its purpose, parameters, and return value. Example format:
+- The Laravel helpers are mostly static methods on classes in PHP. In JS, these should be implemented as standalone functions in the corresponding package, e.g. `arr.ts` for the `Arr` package. The reason for this is for tree-shaking reasons, so that users can import only the functions they need without pulling in an entire class of functionality when they only need one or two functions.
+  - This unfortunately cannot be avoided on the Stringable or Collection version in JavaScript because those do require a class to hold the state. But for the static helper functions, they should be standalone functions.
+- When writing tests, look at the corresponding Laravel test files for inspiration, but do not copy them verbatim. Adapt them to JavaScript and the specific implementation in this monorepo.
+- Source of truth of the Laravel implementation for each package are in the `packages/stubs/*` folders. The files are named after the corresponding Laravel class, e.g. `Arr.php` for the `Arr` package and the tests are in the corresponding file named `ArrTest.php`. Tests from the Laravel codebase can be used as the test to implement for the JS tests, but should not be copied verbatim. Especially when the Laravel tests use PHP-specific features or syntax, they should be adapted to JS.
+  - When looking at the source stub like `Arr.php`, the methods are usually static methods on a class. In JS, these should be implemented as standalone functions in the corresponding package, e.g. `arr.ts`.
+  - When looking at the source test stub like `ArrTest.php`, look for the methods in static format such as `Arr::set` to find the corresponding tests.
+  - Use the stubs function list files to see which functions are implemented in each stub and their order.
+    - The files are named like `Arr-Function-List.txt` for the `Arr.php` stub and are located in the `fn-lists` in the same folder root.
+- Functions should be written in the same order as in the Laravel stub for easier reference.
+- Functions should be defined with named exports, e.g. `export function functionName() {}` instead of `export const functionName = () => {}` for easier reference and consistency.
 
-```JavaScript
+## Comments
+
+This explains when to write comments in the code base and how to write comments.
+
+### Mostly avoid comments
+
+For the most part, comments can be avoided if the logic isn't complicated or the code is self explanatory.
+
+### How to write comments
+
+#### Comment length
+
+**At most 3 lines, each at most 120 characters.** Prefer one line, or none.
+
+Say _why_, then stop. Do not restate what the code does, narrate how a decision was
+reached, or record how something was verified — that belongs in the commit message or
+the PR. Only a genuinely non-obvious failure mode or an invisible-from-the-code
+workaround earns more, and even then keep it tight.
+
+This applies to every file type.
+
+#### Comment Format
+
+All functions and methods must have a super simple docblock comment that describes what the function does from an extremely high level overview. E.g. "Calculates the area of a rectangle."
+
+It also needs to include parameter types for its parameters and its return type as shown below.
+
+```TypeScript
 /**
  * Description of the function.
  *
@@ -218,17 +254,6 @@ function functionName<PossibleGeneric>(paramName: PossibleGeneric): ReturnType {
    */
 }
 ```
-
-- The Laravel helpers are mostly static methods on classes in PHP. In JS, these should be implemented as standalone functions in the corresponding package, e.g. `arr.ts` for the `Arr` package. The reason for this is for tree-shaking reasons, so that users can import only the functions they need without pulling in an entire class of functionality when they only need one or two functions.
-  - This unfortunately cannot be avoided on the Stringable or Collection version in JavaScript because those do require a class to hold the state. But for the static helper functions, they should be standalone functions.
-- When writing tests, look at the corresponding Laravel test files for inspiration, but do not copy them verbatim. Adapt them to JavaScript and the specific implementation in this monorepo.
-- Source of truth of the Laravel implementation for each package are in the `packages/stubs/*` folders. The files are named after the corresponding Laravel class, e.g. `Arr.php` for the `Arr` package and the tests are in the corresponding file named `ArrTest.php`. Tests from the Laravel codebase can be used as the test to implement for the JS tests, but should not be copied verbatim. Especially when the Laravel tests use PHP-specific features or syntax, they should be adapted to JS.
-  - When looking at the source stub like `Arr.php`, the methods are usually static methods on a class. In JS, these should be implemented as standalone functions in the corresponding package, e.g. `arr.ts`.
-  - When looking at the source test stub like `ArrTest.php`, look for the methods in static format such as `Arr::set` to find the corresponding tests.
-  - Use the stubs function list files to see which functions are implemented in each stub and their order.
-    - The files are named like `Arr-Function-List.txt` for the `Arr.php` stub and are located in the `fn-lists` in the same folder root.
-- Functions should be written in the same order as in the Laravel stub for easier reference.
-- Functions should be defined with named exports, e.g. `export function functionName() {}` instead of `export const functionName = () => {}` for easier reference and consistency.
 
 ## Structure and description of packages
 
