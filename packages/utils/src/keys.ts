@@ -122,6 +122,11 @@ export function reindexIntegerKeys<TValue>(
  * setter, so a key such as `__proto__` becomes a real own key rather than
  * reaching `Object.prototype` through the inherited setter.
  *
+ * This is the one sanctioned way to write a computed key onto a fresh result
+ * object in `arr`/`obj`: plain `result[key] = value` is not sanctioned there,
+ * because `key` can be attacker/data-controlled and a literal `"__proto__"`
+ * silently reparents `result` instead of becoming an entry.
+ *
  * @param target - The object to define the key on
  * @param key - The key to define
  * @param value - The value to store under the key
