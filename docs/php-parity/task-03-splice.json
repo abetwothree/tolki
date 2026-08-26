@@ -1,53 +1,59 @@
-[
-    {
-        "label": "splice(1,1) on assoc \u2014 keys preserved on BOTH halves",
-        "php": "$c->splice(1,1)",
-        "value": {
-            "remaining": {
-                "x": 1,
-                "z": 3
-            },
-            "cut": {
-                "y": 2
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.25.0-10-g0015ce4753"
+    },
+    "probes": [
+        {
+            "label": "splice(1,1) on assoc \u2014 keys preserved on BOTH halves",
+            "php": "$c->splice(1,1)",
+            "value": {
+                "remaining": {
+                    "x": 1,
+                    "z": 3
+                },
+                "cut": {
+                    "y": 2
+                }
+            }
+        },
+        {
+            "label": "splice(1) \u2014 one-arg form removes to the end",
+            "php": "$c->splice(1)",
+            "value": {
+                "remaining": {
+                    "foo": "f"
+                },
+                "cut": {
+                    "baz": "z"
+                }
+            }
+        },
+        {
+            "label": "splice with replacement",
+            "php": "$c->splice(1,1,\"bar\")",
+            "value": {
+                "remaining": [
+                    "foo",
+                    "bar"
+                ],
+                "cut": [
+                    "baz"
+                ]
+            }
+        },
+        {
+            "label": "splice on numeric keys \u2014 reindexes",
+            "php": "array_splice([10=>a,20=>b,30=>c],1,1)",
+            "value": {
+                "remaining": [
+                    "a",
+                    "c"
+                ],
+                "cut": [
+                    "b"
+                ]
             }
         }
-    },
-    {
-        "label": "splice(1) \u2014 one-arg form removes to the end",
-        "php": "$c->splice(1)",
-        "value": {
-            "remaining": {
-                "foo": "f"
-            },
-            "cut": {
-                "baz": "z"
-            }
-        }
-    },
-    {
-        "label": "splice with replacement",
-        "php": "$c->splice(1,1,\"bar\")",
-        "value": {
-            "remaining": [
-                "foo",
-                "bar"
-            ],
-            "cut": [
-                "baz"
-            ]
-        }
-    },
-    {
-        "label": "splice on numeric keys \u2014 reindexes",
-        "php": "array_splice([10=>a,20=>b,30=>c],1,1)",
-        "value": {
-            "remaining": [
-                "a",
-                "c"
-            ],
-            "cut": [
-                "b"
-            ]
-        }
-    }
-]
+    ]
+}

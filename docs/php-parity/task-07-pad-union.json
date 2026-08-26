@@ -1,47 +1,53 @@
-[
-    {
-        "label": "pad negative on assoc",
-        "php": "array_pad([\"a\"=>1,\"b\"=>2],-5,0)",
-        "value": {
-            "0": 0,
-            "1": 0,
-            "2": 0,
-            "a": 1,
-            "b": 2
-        }
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.25.0-10-g0015ce4753"
     },
-    {
-        "label": "pad positive on assoc",
-        "php": "array_pad([\"a\"=>1,\"b\"=>2],5,0)",
-        "value": {
-            "a": 1,
-            "b": 2,
-            "0": 0,
-            "1": 0,
-            "2": 0
+    "probes": [
+        {
+            "label": "pad negative on assoc",
+            "php": "array_pad([\"a\"=>1,\"b\"=>2],-5,0)",
+            "value": {
+                "0": 0,
+                "1": 0,
+                "2": 0,
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "pad positive on assoc",
+            "php": "array_pad([\"a\"=>1,\"b\"=>2],5,0)",
+            "value": {
+                "a": 1,
+                "b": 2,
+                "0": 0,
+                "1": 0,
+                "2": 0
+            }
+        },
+        {
+            "label": "pad when no padding needed",
+            "php": "array_pad([\"a\"=>1,\"b\"=>2],2,0)",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "union \u2014 left wins, including null",
+            "php": "[\"a\"=>null] + [\"a\"=>1]",
+            "value": {
+                "a": null
+            }
+        },
+        {
+            "label": "Collection::union",
+            "php": "$c->union([\"a\"=>1,\"b\"=>2])",
+            "value": {
+                "a": null,
+                "b": 2
+            }
         }
-    },
-    {
-        "label": "pad when no padding needed",
-        "php": "array_pad([\"a\"=>1,\"b\"=>2],2,0)",
-        "value": {
-            "a": 1,
-            "b": 2
-        }
-    },
-    {
-        "label": "union \u2014 left wins, including null",
-        "php": "[\"a\"=>null] + [\"a\"=>1]",
-        "value": {
-            "a": null
-        }
-    },
-    {
-        "label": "Collection::union",
-        "php": "$c->union([\"a\"=>1,\"b\"=>2])",
-        "value": {
-            "a": null,
-            "b": 2
-        }
-    }
-]
+    ]
+}

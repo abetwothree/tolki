@@ -23,6 +23,21 @@ or throw.
   Laravel checkout to be present.
 - **Not exhaustive coverage.** Each `task-*.php` file probes exactly the
   behaviour a specific task needs, nothing more.
+- **A global `SortDirection` enum is shimmed, not shipped.** `bootstrap.php:62`
+  declares it before the autoloader runs, because the framework references
+  `SortDirection::Ascending` / `::Descending` but does not ship the enum
+  itself. The shim is compared by identity only, so it cannot alter any
+  probe's observed behaviour. Native enums require PHP 8.1+; the Laravel
+  checkout itself needs PHP 8.2+.
+
+## Probes must be deterministic
+
+The review workflow is `pnpm php:parity` producing an empty diff against
+`docs/php-parity/`. A probe that depends on RNG, the system clock, locale,
+or an absolute path (e.g. `FRAMEWORK_PATH`) breaks that: every regeneration
+would show a spurious diff with no behavioural change behind it. Where a
+method's output can't be pinned outright (`Arr::random`), pin the invariant
+— key shape, count, type — instead of the drawn value.
 
 ## How it works
 

@@ -161,9 +161,17 @@ probe('X23 random throws before the empty guard', 'Arr::random([],1)', function 
 });
 
 probe('X24 random preserveKeys defaults to false', 'Arr::random([10,20,30,40],2)', function () {
-    $out = Arr::random(nums(), 2);
+    $reindexed = Arr::random(nums(), 2);
+    $preserved = Arr::random(nums(), 2, true);
 
-    return ['keys' => array_keys($out), 'preserved' => array_keys(Arr::random(nums(), 2, true))];
+    // Which keys get drawn is CSPRNG-driven; only the key SHAPE is stable.
+    return [
+        'keys' => array_keys($reindexed),
+        'preserved_count' => count($preserved),
+        'preserved_keys_are_original' => array_values(
+            array_diff(array_keys($preserved), array_keys(nums()))
+        ) === [],
+    ];
 });
 
 probe('X25 only accepts a bare key and null', 'Arr::only([10,20,30,40],1)', function () {

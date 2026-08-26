@@ -1,234 +1,240 @@
-[
-    {
-        "label": "Arr::pluck wildcard path",
-        "php": "Arr::pluck($d, \"users.*.first\")",
-        "value": [
-            [
-                "taylor"
-            ],
-            [
-                "abigail",
-                "dayle"
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.25.0-10-g0015ce4753"
+    },
+    "probes": [
+        {
+            "label": "Arr::pluck wildcard path",
+            "php": "Arr::pluck($d, \"users.*.first\")",
+            "value": [
+                [
+                    "taylor"
+                ],
+                [
+                    "abigail",
+                    "dayle"
+                ]
             ]
-        ]
-    },
-    {
-        "label": "Arr::pluck wildcard + key",
-        "php": "Arr::pluck($d, \"users.*.first\", \"account\")",
-        "value": {
-            "a": [
-                "taylor"
-            ],
-            "b": [
-                "abigail",
-                "dayle"
+        },
+        {
+            "label": "Arr::pluck wildcard + key",
+            "php": "Arr::pluck($d, \"users.*.first\", \"account\")",
+            "value": {
+                "a": [
+                    "taylor"
+                ],
+                "b": [
+                    "abigail",
+                    "dayle"
+                ]
+            }
+        },
+        {
+            "label": "Arr::pluck array path",
+            "php": "Arr::pluck($d, [\"developer\",\"name\"])",
+            "value": [
+                "Taylor",
+                "Abigail"
             ]
-        }
-    },
-    {
-        "label": "Arr::pluck array path",
-        "php": "Arr::pluck($d, [\"developer\",\"name\"])",
-        "value": [
-            "Taylor",
-            "Abigail"
-        ]
-    },
-    {
-        "label": "Arr::pluck null value keeps the item",
-        "php": "Arr::pluck($d, null, \"name\")",
-        "value": {
-            "Taylor": {
-                "name": "Taylor",
-                "role": "dev"
-            }
-        }
-    },
-    {
-        "label": "Arr::pluck missing path",
-        "php": "Arr::pluck($d, \"foo\")",
-        "value": [
-            null,
-            null
-        ]
-    },
-    {
-        "label": "Arr::sort multi-key",
-        "php": "Arr::sort($u, [\"name\",\"age\",\"meta.key\"])",
-        "value": [
-            {
-                "name": "Apple",
-                "age": 10,
-                "meta": {
-                    "key": 2
-                }
-            },
-            {
-                "name": "Item",
-                "age": 2,
-                "meta": {
-                    "key": 1
-                }
-            },
-            {
-                "name": "Item",
-                "age": 10,
-                "meta": {
-                    "key": 3
+        },
+        {
+            "label": "Arr::pluck null value keeps the item",
+            "php": "Arr::pluck($d, null, \"name\")",
+            "value": {
+                "Taylor": {
+                    "name": "Taylor",
+                    "role": "dev"
                 }
             }
-        ]
-    },
-    {
-        "label": "Arr::sortDesc numeric comparison",
-        "php": "Arr::sortDesc([1,10,9])",
-        "value": [
-            10,
-            9,
-            1
-        ]
-    },
-    {
-        "label": "direction tuple [age,false] \u2014 descending",
-        "php": "Arr::sort($u, [\"name\",[\"age\",false]])",
-        "value": [
-            {
-                "name": "Item",
-                "age": 10
-            },
-            {
-                "name": "Item",
-                "age": 2
+        },
+        {
+            "label": "Arr::pluck missing path",
+            "php": "Arr::pluck($d, \"foo\")",
+            "value": [
+                null,
+                null
+            ]
+        },
+        {
+            "label": "Arr::sort multi-key",
+            "php": "Arr::sort($u, [\"name\",\"age\",\"meta.key\"])",
+            "value": [
+                {
+                    "name": "Apple",
+                    "age": 10,
+                    "meta": {
+                        "key": 2
+                    }
+                },
+                {
+                    "name": "Item",
+                    "age": 2,
+                    "meta": {
+                        "key": 1
+                    }
+                },
+                {
+                    "name": "Item",
+                    "age": 10,
+                    "meta": {
+                        "key": 3
+                    }
+                }
+            ]
+        },
+        {
+            "label": "Arr::sortDesc numeric comparison",
+            "php": "Arr::sortDesc([1,10,9])",
+            "value": [
+                10,
+                9,
+                1
+            ]
+        },
+        {
+            "label": "direction tuple [age,false] \u2014 descending",
+            "php": "Arr::sort($u, [\"name\",[\"age\",false]])",
+            "value": [
+                {
+                    "name": "Item",
+                    "age": 10
+                },
+                {
+                    "name": "Item",
+                    "age": 2
+                }
+            ]
+        },
+        {
+            "label": "direction tuple [age,true] \u2014 ascending",
+            "php": "Arr::sort($u, [\"name\",[\"age\",true]])",
+            "value": [
+                {
+                    "name": "Item",
+                    "age": 2
+                },
+                {
+                    "name": "Item",
+                    "age": 10
+                }
+            ]
+        },
+        {
+            "label": "direction tuple [age,\"desc\"] \u2014 string form",
+            "php": "Arr::sort($u, [[\"age\",\"desc\"]])",
+            "value": [
+                {
+                    "age": 10
+                },
+                {
+                    "age": 2
+                }
+            ]
+        },
+        {
+            "label": "direction tuple [age] \u2014 omitted defaults to ascending",
+            "php": "Arr::sort($u, [[\"age\"]])",
+            "value": [
+                {
+                    "age": 2
+                },
+                {
+                    "age": 10
+                }
+            ]
+        },
+        {
+            "label": "direction tuple [age,\"BOGUS\"] \u2014 default arm is DESCENDING",
+            "php": "Arr::sort($u, [[\"age\",\"BOGUS\"]])",
+            "value": [
+                {
+                    "age": 10
+                },
+                {
+                    "age": 2
+                }
+            ]
+        },
+        {
+            "label": "Arr::pluck \u2014 missing key field vs explicit null key",
+            "php": "Arr::pluck($u, \"name\", \"id\")",
+            "value": {
+                "": "Jane"
             }
-        ]
-    },
-    {
-        "label": "direction tuple [age,true] \u2014 ascending",
-        "php": "Arr::sort($u, [\"name\",[\"age\",true]])",
-        "value": [
-            {
-                "name": "Item",
-                "age": 2
-            },
-            {
-                "name": "Item",
-                "age": 10
-            }
-        ]
-    },
-    {
-        "label": "direction tuple [age,\"desc\"] \u2014 string form",
-        "php": "Arr::sort($u, [[\"age\",\"desc\"]])",
-        "value": [
-            {
-                "age": 10
-            },
-            {
-                "age": 2
-            }
-        ]
-    },
-    {
-        "label": "direction tuple [age] \u2014 omitted defaults to ascending",
-        "php": "Arr::sort($u, [[\"age\"]])",
-        "value": [
-            {
-                "age": 2
-            },
-            {
-                "age": 10
-            }
-        ]
-    },
-    {
-        "label": "direction tuple [age,\"BOGUS\"] \u2014 default arm is DESCENDING",
-        "php": "Arr::sort($u, [[\"age\",\"BOGUS\"]])",
-        "value": [
-            {
-                "age": 10
-            },
-            {
-                "age": 2
-            }
-        ]
-    },
-    {
-        "label": "Arr::pluck \u2014 missing key field vs explicit null key",
-        "php": "Arr::pluck($u, \"name\", \"id\")",
-        "value": {
-            "": "Jane"
-        }
-    },
-    {
-        "label": "Arr::pluck wildcard over an associative (object-shaped) target, string-keyed outer",
-        "php": "Arr::pluck([\"a\"=>$shape], \"meta.*.v\")",
-        "value": [
-            [
+        },
+        {
+            "label": "Arr::pluck wildcard over an associative (object-shaped) target, string-keyed outer",
+            "php": "Arr::pluck([\"a\"=>$shape], \"meta.*.v\")",
+            "value": [
+                [
+                    1,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "Arr::pluck wildcard over an associative (object-shaped) target, list outer",
+            "php": "Arr::pluck([$shape], \"meta.*.v\")",
+            "value": [
+                [
+                    1,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "Collection::sortBy \u2014 string \"desc\" direction sorts descending",
+            "php": "sortBy([[\"age\",\"desc\"]])",
+            "value": [
+                {
+                    "age": 10
+                },
+                {
+                    "age": 2
+                }
+            ]
+        },
+        {
+            "label": "Collection::sortBy \u2014 unrecognized direction sorts descending (default arm)",
+            "php": "sortBy([[\"age\",\"BOGUS\"]])",
+            "value": [
+                {
+                    "age": 10
+                },
+                {
+                    "age": 2
+                }
+            ]
+        },
+        {
+            "label": "Collection::sortBy \u2014 global $descending=true is ignored for the array-of-descriptors form",
+            "php": "sortBy([[\"age\"]], SORT_REGULAR, true)",
+            "value": [
+                {
+                    "age": 2
+                },
+                {
+                    "age": 10
+                }
+            ]
+        },
+        {
+            "label": "Arr::sort \u2014 empty descriptor array preserves insertion order",
+            "php": "Arr::sort($u, [])",
+            "value": [
+                5,
                 1,
-                2
+                3
             ]
-        ]
-    },
-    {
-        "label": "Arr::pluck wildcard over an associative (object-shaped) target, list outer",
-        "php": "Arr::pluck([$shape], \"meta.*.v\")",
-        "value": [
-            [
-                1,
-                2
-            ]
-        ]
-    },
-    {
-        "label": "Collection::sortBy \u2014 string \"desc\" direction sorts descending",
-        "php": "sortBy([[\"age\",\"desc\"]])",
-        "value": [
-            {
-                "age": 10
-            },
-            {
-                "age": 2
+        },
+        {
+            "label": "Arr::pluck \u2014 boolean key casts to int, not string",
+            "php": "Arr::pluck($u, \"name\", \"flag\")",
+            "value": {
+                "1": "X",
+                "0": "Y"
             }
-        ]
-    },
-    {
-        "label": "Collection::sortBy \u2014 unrecognized direction sorts descending (default arm)",
-        "php": "sortBy([[\"age\",\"BOGUS\"]])",
-        "value": [
-            {
-                "age": 10
-            },
-            {
-                "age": 2
-            }
-        ]
-    },
-    {
-        "label": "Collection::sortBy \u2014 global $descending=true is ignored for the array-of-descriptors form",
-        "php": "sortBy([[\"age\"]], SORT_REGULAR, true)",
-        "value": [
-            {
-                "age": 2
-            },
-            {
-                "age": 10
-            }
-        ]
-    },
-    {
-        "label": "Arr::sort \u2014 empty descriptor array preserves insertion order",
-        "php": "Arr::sort($u, [])",
-        "value": [
-            5,
-            1,
-            3
-        ]
-    },
-    {
-        "label": "Arr::pluck \u2014 boolean key casts to int, not string",
-        "php": "Arr::pluck($u, \"name\", \"flag\")",
-        "value": {
-            "1": "X",
-            "0": "Y"
         }
-    }
-]
+    ]
+}

@@ -96,8 +96,23 @@ function probe(string $label, string $expression, callable $run): void
     $GLOBALS['__probes'][] = ['label' => $label, 'php' => $expression] + $result;
 }
 
-/** Print every recorded probe as pretty JSON on stdout. */
+/** The exact framework revision a capture was taken against. */
+function frameworkVersion(): string
+{
+    $out = @shell_exec(
+        'git -C ' . escapeshellarg(frameworkPath()) . ' describe --tags --always --dirty 2>/dev/null'
+    );
+
+    return $out === null ? 'unknown' : trim($out);
+}
+
+/** Print the capture metadata and every recorded probe as pretty JSON. */
 function emit(): void
 {
-    echo json_encode($GLOBALS['__probes'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+    $payload = [
+        'meta' => ['php' => PHP_VERSION, 'laravel' => frameworkVersion()],
+        'probes' => $GLOBALS['__probes'],
+    ];
+
+    echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
 }
