@@ -36,18 +36,9 @@ import {
 } from "@tolki/utils";
 
 /**
- * Mutation contract (decided 2026-08-25, Phase 1 Task 1)
- *
- * Laravel's Collection splits cleanly: a method either ends in
- * array_pop/array_shift/array_splice/array_unshift on $this->items and
- * MUTATES, or ends in $this->newInstance(...) and does NOT.
- *
- * This package follows that split exactly. pop, shift, splice and unshift
- * mutate their first argument. replace, replaceRecursive, filter, slice,
- * chunk, reverse, union, combine, diff* and intersect* do not.
- *
- * @tolki/arr and @tolki/obj agree on this. Do not "align" one to the other
- * without re-reading Collection.php.
+ * Mutation contract: pop, shift, splice and unshift mutate their first
+ * argument; every other function returns a new value. arr and obj agree
+ * on this — re-read Collection.php before "aligning" one to the other.
  */
 
 /**
@@ -207,12 +198,12 @@ export function boolean<
 /**
  * Chunk the object into chunks of the given size.
  *
- * @see Collection::chunk — `packages/collection/stubs/Collection.php:1520`.
- *      Wraps a manual chunking loop (`array_slice` per chunk), `preserveKeys` defaults to `true`.
+ * @see Collection::chunk — `packages/collection/stubs/Collection.php:1527`.
+ *      Wraps `array_chunk`; `preserveKeys` defaults to `true`.
  *
  * @param data - The record to chunk
  * @param size - The size of each chunk
- * @param preserveKeys - Whether to preserve the original keys, defaults to false
+ * @param preserveKeys - Whether to preserve the original keys, defaults to true
  * @returns Chunked record
  */
 export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
@@ -343,8 +334,7 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
     const result: Record<PropertyKey, TCombineValue> = {};
 
     for (let i = 0; i < maxLength; i++) {
-        // `noUncheckedIndexedAccess` types this `string | undefined`, but it
-        // is always defined: `i` only ever ranges up to `keys.length`.
+        // Always defined: i only ever ranges up to keys.length.
         const key = keys[i] as string;
         // Writes go through `defineKey` rather than plain assignment so
         // a `__proto__` key resolved from `keysObject` becomes a real
@@ -445,44 +435,13 @@ export function dot<TValue, TKey extends PropertyKey = PropertyKey>(
  * Convert a flatten "dot" notation object into an expanded object.
  *
  * Decision D3: a nested container whose own keys are the consecutive
- * integer sequence `0..n-1` is rebuilt as a real array, not left as a
- * `{0: ..., 1: ...}` object. This mirrors PHP: `Arr::undot` walks each
- * dotted key through `Arr::set`, which auto-vivifies plain PHP arrays as it
- * descends, and a PHP array whose keys happen to be `0..n-1` in that order
- * is exactly what `array_is_list` (and therefore `json_encode`) renders as
- * a JSON array rather than an object. PHP-verified: running `Arr::set`'s
- * algorithm over
- * `["user.languages.0"=>"PHP","user.languages.1"=>"C#","user.name"=>"Taylor"]`
- * yields `{"user":{"languages":["PHP","C#"],"name":"Taylor"}}`
- * (docs/php-parity/task-09-paths.json, "Arr::undot — integer segments
- * rebuild a list"). The root of the result always stays a plain object,
- * matching this function's `Record` return type, even when its own
- * top-level keys happen to be `0..n-1` — see `undotExpandObject` in
- * `@tolki/path`, where the promotion logic (`promoteConsecutiveIntegerContainers`)
- * actually lives.
+ * integers `0..n-1` is rebuilt as a real array; the root always stays a
+ * plain object even when its own top-level keys are `0..n-1`.
  *
- * **Correction (Task 9 review, Important 2):** an earlier version of this
- * JSDoc claimed `Arr.undot` "shares this exact rule with" `Obj.undot`. It
- * does not, and cannot: `Arr.undot`'s `undotExpandArray` only ever builds
- * arrays, so a mixed key like `"user.languages.0"` (string-first segment)
- * silently discarded the entire input rather than falling back to an
- * object. `Arr.undot`'s parameter type is now constrained to
- * `UndotArrayKey` so that shape of input no longer compiles at all — use
- * `Obj.undot` for it, as this JSDoc's own example does.
- *
- * **Caveat (JS vs. PHP array key order):** `array_is_list` in PHP is
- * insertion-order-sensitive — `['1'=>'x','0'=>'y']` (key `1` inserted
- * before key `0`) is *not* a list, since iterating it visits `1` before
- * `0`. JS objects do not preserve that: `Object.keys` always enumerates
- * integer-like keys in ascending numeric order regardless of insertion
- * order. So `Obj.undot({"a.1":"x","a.0":"y"})` promotes to
- * `{a: ["y", "x"]}` (list, keys read back out in `0,1` order) where real
- * PHP's `Arr::undot` on the equivalent input gives
- * `{"a":{"1":"x","0":"y"}}` (not a list — insertion order was `1` then
- * `0`). This is a genuine, unrepresentable-in-JS divergence from PHP for
- * out-of-order numeric insertion, not a bug: JS has no ordinary object
- * shape that preserves "these look like array indices, but were inserted
- * out of order" the way a PHP array can.
+ * Genuine JS/PHP divergence, not a bug: JS always enumerates integer-like
+ * keys ascending regardless of insertion order, so out-of-order numeric
+ * dotted keys promote to a list here where PHP's insertion-order-sensitive
+ * `array_is_list` would not treat the equivalent array as one.
  *
  * @param map - The flat object with dot-notated keys.
  * @returns A new multi-dimensional object.
@@ -499,15 +458,9 @@ export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Union multiple objects into one.
- *
- * Mirrors PHP's `+` array union operator (`["a"=>null] + ["a"=>1]` ->
- * `["a"=>null]`, PHP-verified in docs/php-parity/task-07-pad-union.json):
- * the left-most object to already hold a key wins that key's value
- * unconditionally, even when that value is `null` or `undefined`. The
- * guard is therefore presence (`Object.hasOwn`), not truthiness/definedness
- * of the existing value — the same fix as `unshift`'s equivalent
- * prototype-chain guard above.
+ * Union multiple objects into one, mirroring PHP's `+` array union
+ * operator: the left-most object to already hold a key wins that key's
+ * value, even `null`/`undefined` — the guard is presence, not truthiness.
  *
  * @see Collection::union — `packages/collection/stubs/Collection.php:944`.
  *      Uses PHP's `+` operator (key union: left keys win), not `array_merge`.
@@ -971,10 +924,9 @@ export function flatten<TValue>(
  * Creates dot-notation keys up to the specified depth, with values being the
  * nodes at that depth boundary.
  *
- * This function has no Laravel counterpart — neither `Arr.php` nor
- * `Collection.php` exposes a depth-bounded dot-flatten (`Arr::dot()` always
- * flattens fully). It carries no parity obligation; nothing here is meant
- * to mirror a specific PHP behaviour.
+ * One verified divergence from `Arr::dot`/`Obj.dot`: an empty nested
+ * container is dropped entirely here, where PHP keeps it as a leaf value
+ * (`Arr::dot(["a"=>[],"b"=>1])` -> `{"a":[],"b":1}`, not `{"b":1}`).
  *
  * @param data - The object to flatten.
  * @param depth - Maximum depth for dot-notation keys.
@@ -1181,15 +1133,9 @@ export function from(items: unknown): Record<string, unknown> {
 /**
  * Get an item from an object using "dot" notation.
  *
- * Mirrors `Arr::get`, which calls `Arr::exists` **before** splitting the
- * key on "." (`Arr.php:497`) — a literal key wins over path traversal even
- * when it contains dots (PHP-verified: docs/php-parity/task-09-paths.json,
- * "Arr::get — literal dotted key wins"). `Arr::exists` is a *presence*
- * check (`array_key_exists`, not `isset`), so a literal key whose value is
- * `undefined` still counts as found and does not fall through to dot-path
- * traversal — it resolves through this function's existing "found but
- * undefined -> default" convention instead, keeping `get` and `has` in
- * agreement about which key is found (Task 9 review, Important 3).
+ * A literal key wins over dot-path traversal even when it contains dots
+ * (mirrors `Arr::exists` being checked before the key is split), and a
+ * literal key whose value is `undefined` still counts as found.
  *
  * @param  data - The object to get the item from.
  * @param  key - The key or dot-notated path of the item to get.
@@ -1227,15 +1173,9 @@ export function get<
             : defaultValue;
     }
 
-    // The literal key wins even when it contains dots. Presence -- not
-    // definedness -- decides: a literal key whose stored value is
-    // `undefined` is still "found" (via `in`, matching `has`'s check) and
-    // falls straight to the "found but undefined -> default" convention
-    // below, rather than falling through to dot-path traversal. Before
-    // this fix, `get({"a.b": undefined, a: {b: 2}}, "a.b")` returned `2`
-    // (it fell through and traversed "a" -> "b") while `has` on the same
-    // input correctly said the literal key existed -- the two disagreed
-    // (Task 9 review, Important 3).
+    // The literal key wins even when it contains dots. Presence, not
+    // definedness, decides: a literal key whose value is `undefined` is
+    // still "found" and does not fall through to dot-path traversal.
     const keyStr = String(key);
     if (keyStr in (object as Record<string, unknown>)) {
         const literalValue = (object as Record<string, unknown>)[keyStr];
@@ -1904,8 +1844,6 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
                 } else if (typeof nestedKey === "boolean") {
                     // PHP casts a boolean array key to int (true -> 1,
                     // false -> 0), not to the string "true"/"false".
-                    // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
-                    // "Arr::pluck — boolean key casts to int, not string".
                     itemKey = nestedKey ? 1 : 0;
                 } else if (!isNull(nestedKey)) {
                     itemKey = String(nestedKey) as string;
@@ -1937,7 +1875,7 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
  * Get and remove the last N items from the collection.
  *
  * @see Collection::pop — `packages/collection/stubs/Collection.php:1027`.
- *      Mirrors `array_pop`/`array_splice`-style removal from the end, driven by `$count`; mutates.
+ *      Mirrors `array_pop`, called `$count` times from the end; mutates.
  *
  * @param data - The object to pop items from.
  * @param count - The number of items to pop. Defaults to 1.
@@ -1959,9 +1897,7 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     if (count === 1) {
-        // `noUncheckedIndexedAccess` types this `[string, TValue] |
-        // undefined`, but it is always defined: `entries.length > 0` was
-        // already checked above.
+        // Always defined: entries.length > 0 checked above.
         const [key, value] = entries[entries.length - 1] as [string, TValue];
         delete obj[key];
         return value;
@@ -2367,9 +2303,8 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
  * Get and remove the first N items from the object, mutating it in place,
  * like PHP's array_shift.
  *
- * Guard order matters and is PHP-verified against Collection::shift():
- * negative count throws, an empty object returns null for any count, a
- * count of zero returns an empty array, then items are shifted off.
+ * Guard order matters: negative count throws, an empty object returns
+ * null for any count, a count of zero returns an empty array, then items shift.
  *
  * @see Collection::shift — `packages/collection/stubs/Collection.php:1268`.
  *      Mirrors `array_shift`-style removal from the front, driven by `$count`; mutates.
@@ -2399,9 +2334,7 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     if (count === 1) {
-        // `noUncheckedIndexedAccess` types this `[string, TValue] |
-        // undefined`, but it is always defined: `entries.length > 0` was
-        // already checked above.
+        // Always defined: entries.length > 0 checked above.
         const [key, value] = entries[0] as [string, TValue];
         delete obj[key];
         return value;
@@ -2563,10 +2496,8 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
     const entries = Object.entries(obj);
 
     // Normalise a negative offset against the entry count BEFORE combining
-    // it with length. The old code fed a raw negative offset straight into
-    // `Array.prototype.slice(offset, length)`, so `slice(data, -2, 5)`
-    // became `entries.slice(-2, 5)` and returned `{}` instead of the last
-    // two entries — PHP-verified in docs/php-parity/task-04-shared.json.
+    // it with length, matching array_slice — a raw negative offset fed
+    // straight into Array.prototype.slice combines the two differently.
     const start = offset < 0 ? Math.max(entries.length + offset, 0) : offset;
     const end = isNull(length)
         ? undefined
@@ -2649,27 +2580,14 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Build a comparator from a single sort descriptor, using the shared
- * {@linkcode SortSpec} type (`@tolki/types`) rather than a package-local
- * fork of it - review round 1, Important 5: `obj` previously declared its
- * own `ObjSortSpec` with a `[key]` single-element tuple arm that
- * `@tolki/arr`'s exported `SortSpec` lacked, so `obj` consumers could name
- * a descriptor type `arr` consumers couldn't, and `arr.ts`'s
- * `sortSpecComparator` had its own, separately-fixed copy of the same
- * omitted-direction bug (see that function's JSDoc). `SortSpec` now
- * carries the `[key]` arm for both packages, and both comparator
- * functions independently implement the ascending default it documents.
+ * Build a comparator from a single sort descriptor.
  *
- * See {@linkcode SortSpec}'s JSDoc for why a 1-element tuple (and a bare
- * key path) must default to ascending.
- *
- * `forceDescending` mirrors `Collection::sortByDesc` (`Collection.php`
- * lines 1683-1693): for a key path or tuple it overrides the direction to
- * descending regardless of what was specified, but it has no effect on a
- * comparator function, which always runs exactly as authored.
+ * A tuple's direction follows Laravel's array-form multi-sort semantics:
+ * `true`/`'asc'`/`"Ascending"` sorts ascending, any other explicit value
+ * sorts descending, and an omitted direction defaults to ascending.
  *
  * @param spec - The key path, `[key]`/`[key, direction]` tuple, or comparator.
- * @param forceDescending - When true, key paths and tuples ignore their own direction and sort descending; comparator functions are unaffected.
+ * @param forceDescending - Forces descending on a key path or tuple; has no effect on a comparator function.
  * @returns A comparator for the descriptor.
  */
 function objSortSpecComparator<TValue>(
@@ -2782,18 +2700,9 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
         });
     }
 
-    // Review round 1, Important 3: `isFalsy([])` is true (an empty array
-    // is PHP-falsy), so without the `!isArray` guard an empty descriptor
-    // array fell into BOTH branches - the isArray branch above correctly
-    // left `entries` untouched (zero comparators, stable no-op), then this
-    // branch immediately re-sorted it by raw value, corrupting the no-op.
-    // Collection::sortByMany([]) is a true no-op in PHP (uasort's
-    // comparator closure has an empty foreach body, so it falls off the
-    // end and implicitly returns null, coerced to 0 for every pair) - not
-    // "sort naturally by value". PHP-verified:
-    // docs/php-parity/task-10-pluck-sort.json, "Arr::sort — empty
-    // descriptor array preserves insertion order" (same principle; arr and
-    // obj share it).
+    // `isFalsy([])` is true (an empty array is PHP-falsy), so the
+    // `!isArray` guard is required — otherwise an empty descriptor array
+    // would fall through and get re-sorted by raw value instead of no-op.
     if (isFalsy(callback) && !isArray(callback)) {
         // Natural sorting by values
         entries.sort(([, a], [, b]) => {
@@ -3138,20 +3047,10 @@ function reindexIntegerKeys<TValue>(
  * Splice a portion of the underlying object, mutating it in place, like
  * PHP's array_splice.
  *
- * String keys keep the exact key they had before the splice, on both the
- * remainder and the removed portion — PHP-verified:
- * `array_splice(["x"=>1,"y"=>2,"z"=>3], 1, 1)` leaves `{"x":1,"z":3}` and
- * returns `{"y":2}`. Integer-like keys reindex from 0 instead, same as
- * `arr.splice` (whose backing `array_splice` never preserves numeric
- * keys) — PHP-verified: `array_splice([10=>a,20=>b,30=>c], 1, 1)` leaves
- * `["a","c"]` (keys 0,1) and returns `["b"]` (key 0).
- *
- * Writes go through `defineKey` rather than plain assignment so a
- * `__proto__` entry — whether already present in `data` or introduced by
- * a replacement object — becomes a real own key instead of reparenting
- * the target through the `__proto__` setter (see `AGENTS.md`'s
- * prototype-pollution guidance, and `replace`/`replaceRecursive` below
- * for the same pattern applied to a non-mutating rebuild).
+ * String keys keep their exact key on both the remainder and the removed
+ * portion; integer-like keys reindex from 0, matching `array_splice`.
+ * Writes go through `defineKey` so a `__proto__` entry becomes a real own
+ * key instead of reparenting the target through the `__proto__` setter.
  *
  * @see Collection::splice — `packages/collection/stubs/Collection.php:1755`.
  *      Wraps `array_splice`; mutates.
@@ -3268,14 +3167,8 @@ export function string<
 
 /**
  * Cast a CSS-list value the way PHP casts it when pushed raw into
- * `implode()`/`Str::finish()` at a numeric key in `toCssClasses`/
- * `toCssStyles` (Arr.php:1215/1238): `null` becomes `""` (implode's
- * silent cast; `Str::finish` also settles on `""` for it despite a
- * PHP 8.1+ deprecation notice on the internal `preg_replace` call, which
- * is non-fatal and does not change the return value), a boolean becomes
- * `"1"`/`""`, and everything else goes through `String()`. Verified
- * against docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses/
- * toCssStyles non-string value at numeric key").
+ * `implode()`/`Str::finish()`: `null` becomes `""`, a boolean becomes
+ * `"1"`/`""`, and everything else goes through `String()`.
  */
 function cssListItemToString(value: unknown): string {
     if (isNull(value) || isUndefined(value)) {
@@ -3468,15 +3361,9 @@ export function replace<T1, T2>(
     data: Record<PropertyKey, T1>,
     replacerData: Record<PropertyKey, T2>,
 ): Record<PropertyKey, T1 | T2>;
-// A caller holding a `Record<PropertyKey, T2> | null` — the realistic
-// shape of "a replacer that might be absent", and exactly the case X11
-// exists for — matches neither overload above on its own: TypeScript
-// resolves an overloaded call against the *declared* overload signatures
-// only, never the implementation signature below, so such a call fails
-// with TS2769 without this third, still-concrete overload. This is the
-// mirror image of the `X | unknown` collapse that has bitten this branch
-// before: over-narrow overloads instead of an over-wide `unknown`
-// catch-all, but the same net effect of rejecting a valid caller.
+// A caller holding `Record<PropertyKey, T2> | null` matches neither
+// overload above: a call is resolved against declared overloads only,
+// never the implementation signature, so this third one is required.
 export function replace<T1, T2>(
     data: Record<PropertyKey, T1>,
     replacerData: Record<PropertyKey, T2> | null | undefined,
@@ -3645,23 +3532,12 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Pad object to the specified length with a value.
  *
- * Mirrors PHP's `array_pad()` (Collection.php:1906, PHP-verified in
- * docs/php-parity/task-07-pad-union.json): pad slots are numbered `0,
- * 1, 2, ...` regardless of direction — a negative `size` does NOT number
- * them backwards from `-1`. For `pad({a:1,b:2}, -5, 0)` PHP's real result
- * is `{0:0, 1:0, 2:0, a:1, b:2}`, not `{-2:0, -1:0, 0:0, a:1, b:2}`.
- *
- * Not a bug: for a *positive* `size`, this is a genuine, unfixable
- * divergence from PHP. PHP appends the padding after the original keys
- * (`array_pad(['a'=>1,'b'=>2], 4, 0)` -> `{a:1, b:2, 0:0, 1:0}`, verified
- * in docs/php-parity/task-07-pad-union.json), but JS spec-orders
- * integer-like own keys ascending, ahead of string keys, regardless of
- * insertion order (ECMA-262 OrdinaryOwnPropertyKeys) — so the appended
- * `0, 1, ...` pad keys iterate *before* `a, b` here, not after. A plain
- * JS object cannot reproduce PHP's append-at-the-end positional guarantee
- * for integer keys. (For a *negative* `size` there is no divergence: PHP
- * already places the padding first positionally, and JS's key-hoisting
- * lands the same keys in the same place.) Do not re-file this as a bug.
+ * Pad slots are always numbered `0, 1, 2, ...`, regardless of direction.
+ * For a positive `size` this is a genuine, unfixable divergence from PHP
+ * (which appends padding after the original keys): JS always orders
+ * integer-like keys ascending, ahead of string keys, regardless of
+ * insertion order (ECMA-262 `OrdinaryOwnPropertyKeys`). Do not re-file as
+ * a bug — a negative `size` has no such divergence.
  *
  * @see Collection::pad — `packages/collection/stubs/Collection.php:1904`.
  *      Wraps `array_pad`.
@@ -3832,7 +3708,7 @@ export function contains<TValue>(
  * Filter the object using the given callback.
  *
  * @see Collection::filter — `packages/collection/stubs/Collection.php:424`.
- *      Delegates to `Arr::where()` internally, but `filter` itself is Collection-only naming.
+ *      With a callback, delegates to `Arr::where()`; without one, wraps `array_filter`.
  *
  * @param data - The object to filter.
  * @param callback - The function to call for each item (value, key) => boolean.

@@ -1824,19 +1824,8 @@ describe("Obj", () => {
         });
 
         it("expands a wildcard over a plain object, matching arr.pluck", () => {
-            // Both packages agree here: obj's resolvePluckPath treats both
-            // arrays and plain objects as iterable, matching data_get()'s
-            // is_iterable() check (helpers.php:90-94), which doesn't
-            // distinguish either — and so does arr's own
-            // getPluckWildcardValues (arr.ts), since Task 10's Critical-1
-            // fix. Before that fix, arr's wildcard resolution only
-            // expanded JS arrays, so a wildcard target that was a plain
-            // object silently resolved to [] instead of expanding it like
-            // this test does; that divergence claim is what this test's
-            // name and this comment used to assert. It no longer holds —
-            // recorded here as a false-claim correction found in Task 11's
-            // reconciliation (Task 10's own review had already flagged the
-            // staleness but left the fix to this task).
+            // Both packages expand object-shaped wildcard targets, matching
+            // data_get's is_iterable.
             const data = {
                 a: { meta: { x: { value: 1 }, y: { value: 2 } } },
             };

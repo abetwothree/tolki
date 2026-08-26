@@ -132,25 +132,11 @@ export type TruthyArray<T extends readonly unknown[]> =
  * A single sort descriptor accepted by array sort helpers.
  *
  * - a dot-notated key path, sorted ascending
- * - a `[key]` single-element tuple — identical to a bare key path,
- *   ascending. `Collection::sortByMany` (`Collection.php:1627-1666`) runs
- *   every descriptor through `Arr::wrap` before reading it, so a bare
- *   string AND a 1-element tuple both resolve their missing `[1]` slot via
- *   `Arr::get($comparison, 1, true)` — defaulting to `true`, i.e.
- *   ascending (PHP-verified: docs/php-parity/task-10-pluck-sort.json,
- *   "direction tuple [age] — omitted defaults to ascending"). This arm
- *   exists specifically so a consumer's `sortSpecComparator`-style
- *   destructuring (`const [key, direction] = spec`) has a real, typed case
- *   where `direction` is `undefined`, instead of silently reaching that
- *   state only via an unchecked cast.
- * - a `[key, direction]` tuple. Mirrors Laravel's `Collection::sortByMany`,
- *   where `true`, `'asc'`, and the `"Ascending"` case of `@tolki/enum`'s
- *   `SortDirection` sort ascending, and every other direction value —
- *   `false`, `'desc'`, `"Descending"`, or anything unrecognized from an
- *   untyped caller — sorts descending, exactly like Laravel's default arm.
- *   The literal case names are inlined here rather than imported from
- *   `@tolki/enum`, which depends on this package — importing it back would
- *   create a circular dependency.
+ * - a `[key]` single-element tuple — identical to a bare key path, ascending
+ * - a `[key, direction]` tuple: `true`/`'asc'`/`"Ascending"` sorts
+ *   ascending, everything else sorts descending, mirroring
+ *   `Collection::sortByMany`. Case names are inlined rather than imported
+ *   from `@tolki/enum` to avoid a circular dependency.
  * - a comparator returning a negative, zero, or positive number
  */
 export type SortSpec<TValue> =

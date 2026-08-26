@@ -649,11 +649,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Get the items in the collection whose keys and values are not present in the given items.
      *
      * This is `array_diff_assoc` (key AND value must both fail to match to
-     * be excluded) and is deliberately implemented inline here rather than
-     * delegating to `dataDiff` — `dataDiff` backs plain `diff()`, which
-     * Task 6 fixed to be `array_diff`'s value-only semantics. Reusing it
-     * here would silently collapse `diffAssoc` back into `diff` (they'd
-     * agree on everything except cases exactly like the ones below).
+     * be excluded); implemented inline rather than via `dataDiff`, which
+     * is value-only and would silently collapse this into plain `diff`.
      *
      * @param items - The items to diff against
      * @returns A new collection with the difference
@@ -2173,22 +2170,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * Union the collection with the given items, mirroring PHP's `+`
-     * operator: this collection's own keys always win, and the argument
-     * only ever contributes keys this collection doesn't already have. For
-     * an array-backed collection that means indices 0..n-1 are already
-     * occupied, so the argument can only extend the tail — it never
-     * deduplicates or overwrites existing values (PHP-verified directly,
-     * Task 11: `[1,2,3] + [3,4,5]` -> `[1,2,3]`, not a concatenation).
+     * operator: this collection's own keys win, the argument only fills
+     * keys it doesn't already have.
      *
-     * @param items - The items to union with. Must share this collection's
-     *   backing (both array-shaped or both object-shaped) — `dataUnion`
-     *   throws otherwise.
+     * @param items - The items to union with. Must share this collection's backing — `dataUnion` throws otherwise.
      * @returns A new collection with the union of items
      *
      * @example
      *
-     * new Collection([1, 2, 3]).union([3, 4, 5]); -> new Collection([1, 2, 3]) — every index the right side could fill is already taken
-     * new Collection([1, 2]).union([3, 4, 5]); -> new Collection([1, 2, 5]) — index 2 is still free, so 5 (index 2 of the argument) is added
+     * new Collection([1, 2, 3]).union([3, 4, 5]); -> new Collection([1, 2, 3])
+     * new Collection([1, 2]).union([3, 4, 5]); -> new Collection([1, 2, 5])
      * new Collection({a: 1, b: 2}).union({b: 2, c: 3}); -> new Collection({a: 1, b: 2, c: 3})
      */
     union<T, K extends PropertyKey>(
@@ -2539,11 +2530,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
             this.items = obj as unknown as DataItems<TValue, TKey>;
         } else {
             // For objects or path-based keys, manually remove the path.
-            // Arr::pull's removal goes through Arr::forget, which calls
-            // Arr::exists first (Arr.php) — a literal key wins over
-            // dot-path traversal even when it contains dots. PHP-verified:
-            // docs/php-parity/task-09-paths.json, "Arr::pull — first-level
-            // key containing dots".
+            // A literal key wins over dot-path traversal even when it
+            // contains dots (mirrors Arr::exists being checked first).
             const keyStr = String(key);
 
             if (isObject(items) && Object.hasOwn(items, keyStr)) {
@@ -3408,22 +3396,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
                         b as TValue,
                     );
                 } else {
-                    // Determine this descriptor's own direction, mirroring
-                    // Collection::sortByMany's match arm (Collection.php:
-                    // 1638-1640, PHP-verified in docs/php-parity/task-10-
-                    // pluck-sort.json): a missing direction defaults to
-                    // ascending via Arr::get($comparison, 1, true);
-                    // true/'asc'/Ascending sort ascending; everything else
-                    // - false, 'desc', Descending, or anything
-                    // unrecognized from an untyped caller - sorts
-                    // descending. `isDescGlobal` (this method's own
-                    // `descending` param) then forces the descriptor
-                    // descending regardless of its own direction, mirroring
-                    // sortByDesc's rewrite of every comparison's direction
-                    // slot before sorting (Collection.php:1687-1697) - it
-                    // never reaches the comparator-function branch above,
-                    // matching PHP where that rewrite only ever touches a
-                    // comparison's [1] slot.
+                    // A missing direction defaults to ascending;
+                    // true/'asc'/Ascending sort ascending, everything else
+                    // sorts descending. isDescGlobal then forces descending
+                    // regardless, but never touches the comparator branch above.
                     const directionValue = comparisonArray[1];
                     const isAscendingOwn =
                         isUndefined(directionValue) ||
@@ -3877,17 +3853,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Pad collection to the specified length with a value.
      *
-     * For an object-backed collection, pad slots are numbered `0, 1, 2, ...`
-     * regardless of direction — matching PHP's `array_pad()`, PHP-verified
-     * in docs/php-parity/task-07-pad-union.json. For a *positive* `size`
-     * this is a genuine, unfixable divergence from PHP: PHP appends the
-     * padding after the original keys, but JS spec-orders integer-like
-     * keys ascending, ahead of string keys, regardless of insertion order,
-     * so the appended pad keys iterate before the original string keys
-     * instead of after. (For a *negative* `size` there is no divergence —
-     * PHP already places the padding first positionally, and JS's
-     * key-hoisting lands the same keys in the same place.) Not a bug; see
-     * `pad`'s JSDoc in `@tolki/obj` for the full explanation.
+     * For an object-backed collection, pad slots are numbered `0, 1, 2,
+     * ...` regardless of direction. A positive `size` is a genuine,
+     * unfixable divergence from PHP (JS orders integer-like keys ahead of
+     * string keys regardless of insertion order); not a bug — see `pad`'s
+     * JSDoc in `@tolki/obj`.
      *
      * @param size - The size to pad to, positive to pad at the end, negative to pad at the beginning
      * @param value - The value to pad with
@@ -5116,8 +5086,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
     whereInstanceOf<TWhereInstanceOf>(
         type:
             | (new (...args: unknown[]) => TWhereInstanceOf)
-            | Array<new (...args: any[]) => unknown>
-            | Record<PropertyKey, new (...args: any[]) => unknown>,
+            | Array<new (...args: never[]) => unknown>
+            | Record<PropertyKey, new (...args: never[]) => unknown>,
     ) {
         return this.filter((item: TValue) => {
             if (isArray(type) || isObject(type)) {

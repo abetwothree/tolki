@@ -513,25 +513,12 @@ const PHP_NUMERIC_STRING_PATTERN =
 
 /**
  * Determine whether a value is numeric the way PHP's `is_numeric()` treats
- * it, i.e. PHP's own numeric-string grammar rather than JS's `Number()`
- * coercion.
+ * it, using PHP's numeric-string grammar rather than JS's `Number()`.
  *
- * Any actual JS `number` is numeric, matching PHP: once a value is already
- * an `int`/`float`, `is_numeric()` always returns `true` for it, including
- * `NaN` and `Infinity` (both are floats in PHP terms). For strings, PHP
- * accepts optional leading/trailing whitespace, an optional `+`/`-` sign,
- * digits with an optional decimal point, and an optional exponent
- * (`e`/`E` with an optional sign and digits) -- verified directly against
- * a real PHP 8 checkout (`docs/php-parity/task-08-arr-parity.json`, "is_numeric
- * matrix for CSS-helper keys"), not assumed.
- *
- * `Number(value)` cannot be reused for this: `Number("")`, `Number(" ")`,
- * and `Number("0x10")` are all `0`/`16` (numeric to JS) but PHP's
- * `is_numeric` says `false` for all three -- hex strings stopped being
- * numeric in PHP 7. Conversely `Number("Infinity")` is `Infinity` (numeric
- * to JS) but PHP's `is_numeric("Infinity")` is `false`, since PHP has no
- * numeric-string spelling for infinity. All five are pinned by the same
- * capture.
+ * `Number(value)` cannot be reused: `Number("")`, `Number(" ")`, and
+ * `Number("0x10")` are all numeric to JS but not to PHP (hex strings
+ * stopped being numeric in PHP 7), and `Number("Infinity")` is numeric to
+ * JS but PHP has no numeric-string spelling for infinity.
  *
  * @param value - The value to check
  * @returns True if the value is numeric under PHP's rules

@@ -1014,38 +1014,14 @@ export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Replace a nested container with a real array when its own keys are
- * exactly the consecutive integer sequence "0", "1", ..., "n-1".
+ * exactly the consecutive integer sequence "0", "1", ..., "n-1", mirroring
+ * PHP's `array_is_list`. Only touches containers the expansion itself
+ * created (see `containerPaths` below), walked deepest-first.
  *
- * This mirrors what `Arr::set` + PHP's `array_is_list` do together: each
- * dotted key auto-vivifies plain PHP arrays as it walks (`Arr.php`'s
- * `set()`), and a PHP array whose keys happen to be `0..n-1` in that order
- * is indistinguishable from a "list" — `json_encode` (and this port) render
- * it as `[...]` rather than `{...}}`. PHP-verified: running `Arr::set`'s
- * algorithm over
- * `["user.languages.0"=>"PHP","user.languages.1"=>"C#","user.name"=>"Taylor"]`
- * yields `{"user":{"languages":["PHP","C#"],"name":"Taylor"}}` — `languages`
- * (keys `0`, `1`) becomes a list, `user` (keys `languages`, `name`) does not
- * (docs/php-parity/task-09-paths.json, "Arr::undot — integer segments
- * rebuild a list").
- *
- * `containerPaths` holds only paths that were themselves built by splitting
- * a dotted input key (see `undotExpandObject` below) — never a leaf value
- * the caller supplied directly — so this only touches containers the
- * expansion itself created, walked deepest-first so a child is promoted
- * before its parent is inspected.
- *
- * Caveat (JS vs. PHP key order): PHP's `array_is_list` is
- * insertion-order-sensitive, but this check uses `Object.keys`, which
- * always enumerates integer-like keys in ascending numeric order
- * regardless of insertion order. So a container built from
- * `{"a.1":"x","a.0":"y"}` (key `1` inserted before key `0`) promotes to
- * `["y","x"]` here, where real PHP -- whose iteration order is insertion
- * order -- would *not* treat the equivalent array as a list at all
- * (`array_is_list` requires the keys to be visited as `0,1,...` in
- * iteration order). This is an unrepresentable-in-JS divergence for
- * out-of-order numeric insertion specifically, not a bug to fix: no plain
- * JS object shape preserves "these look like array indices, but arrived
- * out of order" the way a PHP array can.
+ * Genuine JS/PHP divergence, not a bug: `Object.keys` always enumerates
+ * integer-like keys ascending regardless of insertion order, so
+ * out-of-order numeric insertion promotes to a list here where PHP's
+ * insertion-order-sensitive `array_is_list` would not treat it as one.
  */
 function promoteConsecutiveIntegerContainers(
     results: Record<string, unknown>,
@@ -1091,11 +1067,9 @@ function promoteConsecutiveIntegerContainers(
  * Expand a flat object with dot notation keys into a nested object structure.
  * Converts a flattened object back into its original nested object form.
  *
- * Nested containers whose own keys are the consecutive integer sequence
- * `0..n-1` are rebuilt as real arrays (decision D3, PHP-verified — see
- * {@link promoteConsecutiveIntegerContainers}). The root always stays a
- * plain object, matching `Obj.undot`'s `Record` contract, even when its own
- * top-level keys happen to be `0..n-1`.
+ * Nested containers whose own keys are the consecutive integers `0..n-1`
+ * are rebuilt as real arrays (see {@link promoteConsecutiveIntegerContainers}).
+ * The root always stays a plain object, even when its own keys are `0..n-1`.
  *
  * @param map - The flat object with dot-notated keys.
  * @returns A nested object structure.
@@ -1641,15 +1615,10 @@ export function setMixedImmutable<TValue>(
  * Check if a key exists using mixed array/object dot notation.
  * Supports both numeric array indices and object property names in paths.
  *
- * Mirrors `Arr::has`, which calls `Arr::exists` **before** splitting the
- * key on "." (`Arr.php:534`) — a literal key wins over path traversal even
- * when it contains dots, and a numeric key is checked against a plain
- * object the same way a string key is, not only against arrays
- * (PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has — numeric
- * key"). The literal-key fast path only applies to plain objects: a JS
- * array's `in` operator climbs `Array.prototype` ("length", "toString",
- * ...), which no PHP array could ever have as a key, so arrays always fall
- * through to the existing bounds-checked traversal below instead.
+ * A literal key wins over path traversal even when it contains dots. This
+ * fast path only applies to plain objects — a JS array's `in` operator
+ * also climbs `Array.prototype` ("length", "toString", ...), so arrays
+ * always fall through to the bounds-checked traversal below instead.
  *
  * @param data - The data to check.
  * @param key - The path to check.
@@ -1725,14 +1694,8 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
  * Get a value from an object using dot notation.
  * This is an object-specific version that handles object property access.
  *
- * Mirrors `Arr::get`, which calls `Arr::exists` **before** splitting the
- * key on "." (`Arr.php:497`) — a literal key wins over path traversal even
- * when it contains dots (PHP-verified: docs/php-parity/task-09-paths.json,
- * "Arr::get — literal dotted key wins"). `Arr::exists` is a *presence*
- * check, not `isset` -- a literal key whose value is `undefined` still
- * counts as found and resolves to `defaultValue` rather than falling
- * through to dot-path traversal, keeping this in agreement with
- * `hasObjectKey` about which key is found (Task 9 review, Important 3).
+ * A literal key wins over dot-path traversal even when it contains dots,
+ * and a literal key whose value is `undefined` still counts as found.
  *
  * @param obj - The object to get the value from.
  * @param key - The key or dot-notated path.
@@ -1765,13 +1728,9 @@ export function getObjectValue<
 
     const keyStr = String(key);
 
-    // The literal key wins even when it contains dots. Presence -- not
-    // definedness -- decides, matching hasObjectKey's `in`-based check: a
-    // literal key whose value is `undefined` is still "found" and resolves
-    // to the default here rather than falling through to try dot-path
-    // traversal (Task 9 review, Important 3 -- the same fix applied to
-    // Obj.get, extended to this shared helper for consistency with
-    // hasObjectKey).
+    // The literal key wins even when it contains dots. Presence, not
+    // definedness, decides: a literal key whose value is `undefined` is
+    // still "found" and resolves to the default, not dot-path traversal.
     if (keyStr in (obj as Record<string, unknown>)) {
         const literalValue = (obj as Record<string, unknown>)[keyStr];
 
@@ -1862,13 +1821,9 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Check if a key exists in an object using dot notation.
  *
- * Mirrors `Arr::has`, which calls `Arr::exists` **before** splitting the
- * key on "." (`Arr.php:534`) — so a literal key that itself contains dots
- * wins over path traversal. `{ "products.desk": {} }` has the literal key
- * `"products.desk"`, so `hasObjectKey(obj, "products.desk")` must be `true`
- * without ever treating it as `products` -> `desk`
- * (PHP-verified: docs/php-parity/task-09-paths.json, "Arr::exists — literal
- * dotted key").
+ * A literal key that itself contains dots wins over path traversal:
+ * `{ "products.desk": {} }` must report the literal key as found without
+ * ever treating it as `products` -> `desk`.
  *
  * @param obj - The object to check.
  * @param key - The key or dot-notated path.

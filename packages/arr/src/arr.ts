@@ -59,18 +59,9 @@ import {
 } from "@tolki/utils";
 
 /**
- * Mutation contract (decided 2026-08-25, Phase 1 Task 1)
- *
- * Laravel's Collection splits cleanly: a method either ends in
- * array_pop/array_shift/array_splice/array_unshift on $this->items and
- * MUTATES, or ends in $this->newInstance(...) and does NOT.
- *
- * This package follows that split exactly. pop, shift, splice and unshift
- * mutate their first argument. replace, replaceRecursive, filter, slice,
- * chunk, reverse, union, combine, diff* and intersect* do not.
- *
- * @tolki/arr and @tolki/obj agree on this. Do not "align" one to the other
- * without re-reading Collection.php.
+ * Mutation contract: pop, shift, splice and unshift mutate their first
+ * argument; every other function returns a new value. arr and obj agree
+ * on this — re-read Collection.php before "aligning" one to the other.
  */
 
 /**
@@ -246,8 +237,8 @@ export function boolean<TValue, TDefault = null>(
 /**
  * Chunk the array into chunks of the given size.
  *
- * @see Collection::chunk — `packages/collection/stubs/Collection.php:1520`.
- *      Wraps a manual chunking loop (`array_slice` per chunk), `preserveKeys` defaults to `true`.
+ * @see Collection::chunk — `packages/collection/stubs/Collection.php:1527`.
+ *      Wraps `array_chunk`; no `preserveKeys` param here (always reindexes).
  *
  * @param data - The array to chunk
  * @param size - The size of each chunk
@@ -489,37 +480,8 @@ export function dot<TValue>(
 /**
  * Convert a flatten "dot" notation object into an expanded array.
  *
- * **Correction (Task 9 review):** an earlier version of this JSDoc claimed
- * decision D3 "already holds here by construction, with nothing extra to
- * implement." That was wrong. `undotExpandArray` (in `@tolki/path`) drops
- * any key whose segments aren't *all* numeric — so
- * `Arr.undot({"user.languages.0": "PHP", "user.languages.1": "C#",
- * "user.name": "Taylor"})` used to silently return `[]`, discarding every
- * entry with no diagnostic, where real `Arr::undot` (and this package's own
- * `Obj.undot`) correctly returns
- * `{"user":{"languages":["PHP","C#"],"name":"Taylor"}}`.
- *
- * The fix is at the type level: `TKey` is now constrained to
- * {@link UndotArrayKey} (a bare numeric index, or a dot-path whose *first*
- * segment is numeric), so a map like the one above no longer compiles —
- * silent data loss becomes a compile error. Rationale: `Arr.undot` is the
- * inverse of `Arr.dot` over lists specifically; `Obj.undot` already covers
- * PHP's general associative case (including decision D3's list-rebuilding
- * rule) correctly; between the two, PHP's `Arr::undot` is fully covered.
- * Use `Obj.undot` for any map whose keys aren't numeric-first.
- *
- * For the inputs this function *does* accept, every container it builds is
- * a genuine array from the moment it's created (`undotExpandArray`
- * requires every segment to be numeric before it will build anything), so
- * decision D3 ("a container whose own keys are the consecutive integer
- * sequence `0..n-1` is a real list") holds trivially for them — there is no
- * intermediate plain-object stage to promote the way `Obj.undot`'s
- * `promoteConsecutiveIntegerContainers` needs. PHP-verified reasoning for
- * D3 itself: running `Arr::set`'s algorithm over dotted keys auto-vivifies
- * plain PHP arrays as it descends, and a PHP array whose keys land on
- * `0..n-1` is exactly what `array_is_list` (and therefore `json_encode`)
- * renders as a JSON array (docs/php-parity/task-09-paths.json, "Arr::undot
- * — integer segments rebuild a list").
+ * Only accepts numeric-first dotted keys (a mixed key like
+ * "user.languages.0" doesn't compile) — use `Obj.undot` for anything else.
  *
  * @param map - The flat object with numeric-first dot-notated keys.
  * @returns A new multi-dimensional array.
@@ -537,18 +499,9 @@ export function undot<TValue, TKey extends UndotArrayKey = number>(
 }
 
 /**
- * Union multiple arrays, mirroring PHP's `+` operator folded left-to-right:
- * the first (left-most) array to already occupy an index keeps it, and a
- * later array only ever contributes indices beyond what's already been
- * filled. This is a KEY union, not a value union — it does not deduplicate
- * values, and it is not `array_merge`/`Collection::merge` (which
- * concatenates on numeric keys instead of unioning them).
- *
- * PHP-verified (`+` is a native operator, and Task 11 ran these directly):
- * `[1,2] + [3,4,5]` -> `[1,2,5]`; `[1,2] + [2,3]` -> `[1,2]` (both indices
- * already exist on the left, so the right side contributes nothing); `[1,2,3]
- * + [3,4,5]` -> `[1,2,3]` (same reason, at length 3); `["a","b"] +
- * ["b","c","a"]` -> `["a","b","a"]`.
+ * Union multiple arrays, mirroring PHP's `+` operator: a KEY union, not a
+ * value union, folded left-to-right — the first array to occupy an index
+ * keeps it. Not `array_merge`/`Collection::merge`, which concatenates.
  *
  * @see Collection::union — `packages/collection/stubs/Collection.php:944`.
  *      Uses PHP's `+` operator (key union: left keys win), not `array_merge`.
@@ -1883,19 +1836,9 @@ export function select<TValue extends Record<string, unknown>>(
 
 /**
  * Get the values a pluck wildcard segment iterates over, mirroring
- * `data_get()`'s `is_iterable()` check (`helpers.php:90-94`): a PHP
- * `foreach` walks both arrays and associative arrays, so both a JS array
- * and a plain object count here.
- *
- * Deliberately NOT `getAccessibleValues` (used everywhere else in this
- * file for arr's top-level `data` parameter, which is always meant to be a
- * JS array): that helper only expands actual JS arrays, so a wildcard
- * whose target is a plain-object-shaped nested value — e.g.
- * `Arr::pluck(["a"=>["meta"=>["x"=>["v"=>1],"y"=>["v"=>2]]]], "meta.*.v")`,
- * PHP-verified in docs/php-parity/task-10-pluck-sort.json to return
- * `[[1,2]]` — silently resolved to `[]` here before this fix (review round
- * 1, Critical 1). `data_get`'s `*` arm doesn't distinguish an array from
- * an associative array; neither does this.
+ * `data_get()`'s `is_iterable()` check: a PHP `foreach` walks both arrays
+ * and associative arrays, so both a JS array and a plain object count
+ * here — deliberately not `getAccessibleValues`, which only expands arrays.
  *
  * @param target - The value a `*` segment is expanding.
  * @returns The values to recurse into, or `[]` for a non-iterable target.
@@ -2082,8 +2025,6 @@ export function pluck<TValue extends Record<string, unknown>>(
                 } else if (typeof nestedKey === "boolean") {
                     // PHP casts a boolean array key to int (true -> 1,
                     // false -> 0), not to the string "true"/"false".
-                    // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
-                    // "Arr::pluck — boolean key casts to int, not string".
                     itemKey = nestedKey ? 1 : 0;
                 } else if (!isNull(nestedKey)) {
                     itemKey = String(nestedKey) as string;
@@ -2116,7 +2057,7 @@ export function pluck<TValue extends Record<string, unknown>>(
  * like PHP's array_pop.
  *
  * @see Collection::pop — `packages/collection/stubs/Collection.php:1027`.
- *      Mirrors `array_pop`/`array_splice`-style removal from the end, driven by `$count`; mutates.
+ *      Mirrors `array_pop`, called `$count` times from the end; mutates.
  *
  * @param data - The array to pop items from. Mutated in place.
  * @param count - The number of items to pop. Defaults to 1.
@@ -2492,12 +2433,8 @@ export function query(data: unknown): string {
     };
 
     // Mirrors PHP's http_build_query scalar casting: booleans become "1"
-    // or "0" rather than JavaScript's "true"/"false". Verified directly
-    // against http_build_query (not just Arr::query) and captured at
-    // docs/php-parity/task-08-arr-parity.json ("Arr::query with booleans"):
-    // false casts to "0", not "". The empty string only comes from an
-    // actual empty-string VALUE (ArrTest.php:1247), a separate case this
-    // helper never touches — non-boolean scalars fall through to String().
+    // or "0", not JavaScript's "true"/"false"/""; other scalars use
+    // String().
     const stringifyQueryValue = (value: unknown): string => {
         if (isBoolean(value)) {
             return value ? "1" : "0";
@@ -2651,9 +2588,8 @@ export function random<TValue>(
  * Get and remove the first N items from the array, mutating it in place,
  * like PHP's array_shift.
  *
- * Guard order matters and is PHP-verified against Collection::shift():
- * negative count throws, an empty array returns null for any count, a
- * count of zero returns an empty array, then items are shifted off.
+ * Guard order matters: negative count throws, an empty array returns null
+ * for any count, a count of zero returns an empty array, then items shift.
  *
  * @see Collection::shift — `packages/collection/stubs/Collection.php:1268`.
  *      Mirrors `array_shift`-style removal from the front, driven by `$count`; mutates.
@@ -2871,13 +2807,9 @@ export function slice<TValue>(
 
     const values = (data as ArrayItems<TValue>).slice();
 
-    // Normalise a negative offset against the array length BEFORE combining
-    // it with length — `array_slice($items, $offset, $length, true)`
-    // (Collection.php:1371). The old code fed a raw negative offset
-    // straight into `Array.prototype.slice(offset, length)`, so
-    // `slice(data, -2, 5)` became `values.slice(-2, 5)` and returned `[]`
-    // instead of the last two items — PHP-verified in
-    // docs/php-parity/task-04-shared.json.
+    // Normalise a negative offset against the length BEFORE combining it
+    // with length, matching array_slice — a raw negative offset fed
+    // straight into Array.prototype.slice combines the two differently.
     const start = offset < 0 ? Math.max(values.length + offset, 0) : offset;
     const end = isNull(length)
         ? undefined
@@ -2962,27 +2894,12 @@ export function sole<TValue>(
 /**
  * Build a comparator from a single sort descriptor.
  *
- * A tuple's direction follows Laravel's array-form multi-sort semantics
- * (`Collection::sortByMany` in the stub): `true`/`'asc'`/`"Ascending"` sorts
- * ascending and every other direction value sorts descending — see the `SortSpec`
- * JSDoc for why this is the opposite of a plain `descending` flag. A missing
- * direction (a bare key path, or a `[key]` single-element tuple) defaults to
- * ascending via `Arr::get($comparison, 1, true)` — review round 1, Critical
- * fix: this function previously destructured a 1-element tuple's `direction`
- * as `undefined` and read that as "not ascending," sorting descending, the
- * opposite of Laravel (PHP-verified: docs/php-parity/task-10-pluck-sort.json,
- * "direction tuple [age] — omitted defaults to ascending").
- *
- * `forceDescending` mirrors `Collection::sortByDesc` (`Collection.php`
- * lines 1683-1693): for a key path or `[key, direction]` tuple it
- * overrides the direction to descending regardless of what was specified,
- * but it has no effect on a comparator function, which always runs
- * exactly as authored — `sortByDesc`'s force-to-descending rewrite only
- * ever touches a comparison's `[1]` slot, and `sortByMany`'s callable
- * branch never reads that slot.
+ * A tuple's direction follows Laravel's array-form multi-sort semantics:
+ * `true`/`'asc'`/`"Ascending"` sorts ascending, any other explicit value
+ * sorts descending, and an omitted direction defaults to ascending.
  *
  * @param spec - The key path, `[key]`/`[key, direction]` tuple, or comparator.
- * @param forceDescending - When true, key paths and tuples ignore their own direction and sort descending; comparator functions are unaffected. Always passed explicitly by {@linkcode sortByComparators}, the only caller.
+ * @param forceDescending - Forces descending on a key path or tuple; has no effect on a comparator function.
  * @returns A comparator for the descriptor.
  */
 function sortSpecComparator<TValue>(
@@ -2998,11 +2915,6 @@ function sortSpecComparator<TValue>(
             string,
             (boolean | "Ascending" | "Descending" | "asc" | "desc")?,
         ];
-        // Laravel's sortByMany match-arm: a missing direction defaults to
-        // `true` (ascending) via Arr::get($comparison, 1, true); `true`,
-        // `'asc'`, and Ascending sort ascending — every other value
-        // (including anything an untyped JS caller passes) falls through
-        // to descending.
         const isAscending =
             isUndefined(direction) ||
             direction === true ||
@@ -3116,16 +3028,9 @@ export function sort<TValue>(
     const result = values.slice();
 
     if (isArray(callback)) {
-        // Multi-key sorting - each descriptor keeps its own direction. Must
-        // be checked before isFalsy: an empty descriptor array is falsy
-        // too, but Collection::sortByMany([]) is a true no-op (uasort's
-        // comparator closure has an empty foreach body, so it falls off
-        // the end and implicitly returns null, coerced to 0 for every
-        // pair) - review round 1, Important 3 - PHP-verified:
-        // docs/php-parity/task-10-pluck-sort.json, "Arr::sort — empty
-        // descriptor array preserves insertion order". Checking isArray
-        // first routes [] through sortByComparators's zero-comparator,
-        // stable no-op instead of the natural-value-sort branch below.
+        // Must be checked before isFalsy: an empty descriptor array is
+        // falsy too, but an empty array here is a stable no-op, not a
+        // natural-value sort.
         return sortByComparators(
             result,
             callback as readonly SortSpec<TValue>[],
@@ -3222,20 +3127,10 @@ export function sortDesc<TValue>(
     const result = values.slice();
 
     if (isArray(callback)) {
-        // Multi-key sorting - mirrors `Collection::sortByDesc`: every
-        // descriptor's own direction is overridden to descending (a
-        // comparator function is unaffected - see `sortSpecComparator`).
-        // Must be checked before the natural-sort branch below: an empty
-        // descriptor array is falsy too, but Collection::sortByDesc([])
-        // is a true no-op (its rewrite loop has nothing to rewrite, and
-        // the empty comparisons array it hands to sortBy/sortByMany falls
-        // off uasort's comparator closure as an implicit null, coerced to
-        // 0 for every pair) - review round 1, Important 3, same principle
-        // as `sort`'s empty-array fix (docs/php-parity/task-10-pluck-
-        // sort.json, "Arr::sort — empty descriptor array preserves
-        // insertion order"). sortByComparators([], forceDescending) has
-        // zero comparators regardless of forceDescending, so this
-        // naturally falls out to a stable no-op for `[]`.
+        // Every descriptor's own direction is overridden to descending; a
+        // comparator function is unaffected. Checked before the
+        // natural-sort branch: an empty descriptor array is falsy too,
+        // but is a stable no-op here, not a natural-value sort.
         return sortByComparators(
             result,
             callback as readonly SortSpec<TValue>[],
@@ -3490,14 +3385,8 @@ export function string<TValue, TDefault = null>(
 
 /**
  * Cast a CSS-list value the way PHP casts it when pushed raw into
- * `implode()`/`Str::finish()` at a numeric key in `toCssClasses`/
- * `toCssStyles` (Arr.php:1215/1238): `null` becomes `""` (implode's
- * silent cast; `Str::finish` also settles on `""` for it despite a
- * PHP 8.1+ deprecation notice on the internal `preg_replace` call, which
- * is non-fatal and does not change the return value), a boolean becomes
- * `"1"`/`""`, and everything else goes through `String()`. Verified
- * against docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses/
- * toCssStyles non-string value at numeric key").
+ * `implode()`/`Str::finish()`: `null` becomes `""`, a boolean becomes
+ * `"1"`/`""`, and everything else goes through `String()`.
  */
 function cssListItemToString(value: unknown): string {
     if (isNull(value) || isUndefined(value)) {
@@ -4166,7 +4055,7 @@ export function contains<TValue>(
  * Filter the array using a callback function.
  *
  * @see Collection::filter — `packages/collection/stubs/Collection.php:424`.
- *      Delegates to `Arr::where()` internally, but `filter` itself is Collection-only naming.
+ *      With a callback, delegates to `Arr::where()`; without one, wraps `array_filter`.
  *
  * @param data - The array to filter.
  * @param callback - Optional callback function to filter items.
