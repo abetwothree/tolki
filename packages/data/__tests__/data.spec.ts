@@ -226,10 +226,8 @@ describe("Data", () => {
 
     describe("dataCombine", () => {
         it("is object", () => {
-            // Four keys, four values — equal counts (see Task 4 / X19 note
-            // on "is array" below for why this matters now). Plain
-            // String() coercion, not function-calling (Minor 6 review
-            // fix) — see obj.spec.ts's combine tests for the dedicated
+            // Four keys, four values — equal counts. Plain String coercion, not
+            // function-calling — see obj.spec.ts's combine tests for the dedicated
             // function-key case.
             const keys = {
                 1: "name",
@@ -248,13 +246,9 @@ describe("Data", () => {
             });
         });
 
-        // Task 4 (X19): `Arr.combine` used to zip arrays into tuples
-        // (`[[1,4],[2,5],[3,6]]`), diverging in *shape* from the object
-        // branch above, which already produced a keyed map — a unison-rule
-        // violation this test was pinning. `array_combine(keys, values)`
-        // produces a keyed map for both shapes, PHP-verified against the
-        // real `CollectionTest::testCombineWithArray`:
-        // `array_combine([1,2,3],[4,5,6])` -> `[1=>4, 2=>5, 3=>6]`.
+        // `Arr.combine` used to zip arrays into tuples (`[[1,4],[2,5],[3,6]]`),
+        // diverging in *shape* from the object branch above, which already produced a
+        // keyed map — a unison-rule violation this test was pinning.
         it("is array", () => {
             const baseData = [1, 2, 3];
             const result = Data.dataCombine(baseData, [4, 5, 6]);
@@ -269,10 +263,9 @@ describe("Data", () => {
             expect(() => Data.dataCombine({ a: 1 }, [1, 2, 3])).toThrowError();
         });
 
-        // PHP raises a ValueError on a key/value count mismatch;
-        // PHP-verified message (docs/php-parity/task-04-shared.json,
-        // "array_combine mismatch"). Asserted for both shapes, per the
-        // unison rule.
+        // PHP raises a ValueError on a key/value count mismatch; PHP-verified message
+        // (docs/php-parity/task-04-shared.json, "array_combine mismatch"). Asserted for
+        // both shapes, per the unison rule.
         it("throws when the key and value counts differ — both shapes agree", () => {
             expect(() => Data.dataCombine(["a", "b"], [1])).toThrow(
                 "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
@@ -394,7 +387,7 @@ describe("Data", () => {
             expect(result).toEqual(["a", ["b", ["c"]]]);
         });
 
-        it("rebuilds a list from consecutive integer segments starting at 0, through the object backing (decision D3, X26)", () => {
+        it("rebuilds a list from consecutive integer segments starting at 0, through the object backing", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::undot
             // — integer segments rebuild a list".
             const result = Data.dataUndot({
@@ -415,12 +408,9 @@ describe("Data", () => {
         });
 
         it("is array", () => {
-            // PHP-verified directly (`+` is a native operator, Task 11):
-            // [1,2] + [2,3] -> [1,2] — both indices the right side could
-            // fill are already occupied by the left, so it contributes
-            // nothing. Before Task 11 this asserted [1,2,3], the
-            // concat-and-dedupe shape of a bug Task 7 found in arr.union
-            // and explicitly deferred.
+            // PHP-verified directly (`+` is a native operator, ): [1,2] + [2,3] ->
+            // [1,2] — both indices the right side could fill are already occupied by
+            // the left, so it contributes nothing.
             const result = Data.dataUnion([1, 2], [2, 3]);
             expect(result).toEqual([1, 2]);
         });
@@ -437,8 +427,8 @@ describe("Data", () => {
         });
 
         it("lets the left operand win even when its value is undefined", () => {
-            // X20 through the data layer — PHP-verified: ["a"=>null] +
-            // ["a"=>1] -> {"a":null} (docs/php-parity/task-07-pad-union.json).
+            // PHP-verified: ["a"=>null] + ["a"=>1] -> {"a":null}
+            // (docs/php-parity/task-07-pad-union.json).
             const result = Data.dataUnion({ a: undefined }, { a: 1 });
             expect(result).toEqual({ a: undefined });
             // toEqual({ a: undefined }) alone would also pass against {}
@@ -485,7 +475,7 @@ describe("Data", () => {
             expect(Data.dataExists([1, 2, 3], 5)).toBe(false);
         });
 
-        it("dataExists resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+        it("dataExists resolves a literal dotted key before traversing, through the object backing", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::exists
             // — literal dotted key".
             expect(
@@ -730,7 +720,7 @@ describe("Data", () => {
             expect(result).toBe(2);
         });
 
-        it("dataGet resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+        it("dataGet resolves a literal dotted key before traversing, through the object backing", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::get
             // — literal dotted key wins".
             const result = Data.dataGet(
@@ -752,7 +742,7 @@ describe("Data", () => {
             expect(result).toBe(true);
         });
 
-        it("dataHas resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+        it("dataHas resolves a literal dotted key before traversing, through the object backing", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
             // — literal dotted key".
             expect(
@@ -763,13 +753,13 @@ describe("Data", () => {
             ).toBe(true);
         });
 
-        it("finds a numeric key on a plain object, not only on arrays (X26)", () => {
+        it("finds a numeric key on a plain object, not only on arrays", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
             // — numeric key".
             expect(Data.dataHas({ 123: "x" }, 123)).toBe(true);
         });
 
-        it("does not leak Array.prototype through the array backing (X26 regression)", () => {
+        it("does not leak Array.prototype through the array backing", () => {
             expect(Data.dataHas([1, 2], "length")).toBe(false);
             expect(Data.dataHas([1, 2], "toString")).toBe(false);
         });
@@ -1102,9 +1092,8 @@ describe("Data", () => {
             expect(result).toEqual({ key_a: 2, key_b: 4 });
         });
 
-        // X30 / D2 — Arr::mapWithKeys (Arr.php:880) builds one plain array;
-        // there is no Map in PHP. Array- and object-backed data must agree,
-        // per the unison rule.
+        // Arr::mapWithKeys (Arr.php:880) builds one plain array; there is no Map in
+        // PHP. Array- and object-backed data must agree, per the unison rule.
         it("returns a plain object even for numeric-like mapped keys, either backing", () => {
             const fromArray = Data.dataMapWithKeys([1, 2], (value) => ({
                 [value]: value,
@@ -1173,7 +1162,7 @@ describe("Data", () => {
             expect(result1.data).toEqual([1, 3]);
         });
 
-        it("pulls a first-level key that contains dots, through the object backing (X26)", () => {
+        it("pulls a first-level key that contains dots, through the object backing", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::pull
             // — first-level key containing dots".
             const result = Data.dataPull(
@@ -1195,8 +1184,8 @@ describe("Data", () => {
             expect(Data.dataQuery([1, 2, 3])).toBe("0=1&1=2&2=3");
         });
 
-        // X21 — both backings must cast booleans like PHP's
-        // http_build_query: true -> "1", false -> "0".
+        // Both backings must cast booleans like PHP's http_build_query: true -> "1",
+        // false -> "0".
         it("casts booleans like PHP's http_build_query, either backing", () => {
             expect(Data.dataQuery({ foo: "bar", bar: true })).toBe(
                 "foo=bar&bar=1",
@@ -1222,8 +1211,8 @@ describe("Data", () => {
             expect(arr).toContain(result);
         });
 
-        // X23/X24 — Arr.php:977 throws above the empty guard, and
-        // Arr.php:971 defaults preserveKeys to false. Both backings agree.
+        // Arr.php:977 throws above the empty guard, and Arr.php:971 defaults
+        // preserveKeys to false. Both backings agree.
         it("throws on an empty source and reindexes by default, either backing", () => {
             expect(() => Data.dataRandom([])).toThrow(
                 "You requested 1 items, but there are only 0 items available.",
@@ -1532,11 +1521,9 @@ describe("Data", () => {
             expect(Data.dataSlice([1, 2, 3, 4, 5], 2)).toEqual([3, 4, 5]);
         });
 
-        // Task 4 (X15): a negative offset combined with a length beyond the
-        // remaining tail used to return an empty result instead of the last
-        // N items — PHP-verified (docs/php-parity/task-04-shared.json,
-        // "slice(-2,5) preserve_keys"). Asserted for both shapes, per the
-        // unison rule.
+        // A negative offset combined with a length beyond the remaining tail used to
+        // return an empty result instead of the last N items — PHP-verified
+        // (docs/php-parity/task-04-shared.json, "slice(-2,5) preserve_keys").
         it("slices from the end for a negative offset with a length — both shapes agree", () => {
             const arr = [1, 2, 3, 4, 5, 6, 7, 8];
             const obj = { a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8 };
@@ -1544,18 +1531,16 @@ describe("Data", () => {
             expect(Data.dataSlice(arr, -2, 5)).toEqual([7, 8]);
             expect(Data.dataSlice(obj, -2, 5)).toEqual({ g: 7, h: 8 });
 
-            // Review fix (Minor 8): the arr/obj layers also pin
-            // slice(-2,2) — PHP-verified
-            // (docs/php-parity/task-04-shared.json, "slice(-2,2)
-            // preserve_keys") — add it here too, both shapes.
+            // The arr/obj layers also pin slice(-2,2) — PHP-verified
+            // (docs/php-parity/task-04-shared.json, "slice(-2,2) preserve_keys") — add
+            // it here too, both shapes.
             expect(Data.dataSlice(arr, -2, 2)).toEqual([7, 8]);
             expect(Data.dataSlice(obj, -2, 2)).toEqual({ g: 7, h: 8 });
         });
 
-        // Review fix (Minor 8): the arr/obj layers pin a zero length —
-        // PHP-verified (docs/php-parity/task-04-shared.json, "slice(1,0)"):
-        // array_slice(['a'=>1,'b'=>2,'c'=>3], 1, 0, true) -> []. Both
-        // shapes.
+        // The arr/obj layers pin a zero length — PHP-verified
+        // (docs/php-parity/task-04-shared.json, "slice(1,0)"):
+        // array_slice(['a'=>1,'b'=>2,'c'=>3], 1, 0, true) -> []. Both shapes.
         it("returns an empty result for a zero length — both shapes agree", () => {
             expect(Data.dataSlice([1, 2, 3], 1, 0)).toEqual([]);
             expect(Data.dataSlice({ a: 1, b: 2, c: 3 }, 1, 0)).toEqual({});
@@ -1664,8 +1649,8 @@ describe("Data", () => {
 
     describe("dataSplice", () => {
         it("is object", () => {
-            // X8: an object-backed source stays object-backed and keeps
-            // its keys on both the remainder and the removed portion.
+            // An object-backed source stays object-backed and keeps its keys on both
+            // the remainder and the removed portion.
             const obj = { a: 1, b: 2, c: 3, d: 4 };
             const result = Data.dataSplice(obj, 1, 2, {
                 x: 99,
@@ -1682,7 +1667,7 @@ describe("Data", () => {
             expect(arr).toEqual([1, 99, 100, 4]);
         });
         it("removes through to the end when no length is given, for either backing", () => {
-            // X7: the one-arg form removes offset -> end, not nothing.
+            // The one-arg form removes offset -> end, not nothing.
             const obj = { foo: "f", baz: "z" };
             expect(Data.dataSplice(obj, 1)).toEqual({ baz: "z" });
             expect(obj).toEqual({ foo: "f" });
@@ -1729,8 +1714,8 @@ describe("Data", () => {
             );
         });
 
-        // X22 — Arr.php:1214, is_numeric($class) pushes the VALUE. Both
-        // backings must agree, per the unison rule.
+        // Arr.php:1214, is_numeric($class) pushes the VALUE. Both backings must agree,
+        // per the unison rule.
         it("emits the value for numeric keys, either backing", () => {
             expect(
                 Data.dataToCssClasses({
@@ -1762,8 +1747,8 @@ describe("Data", () => {
             ).toBe("font-weight: bold; margin-top: 4px;");
         });
 
-        // X22 — Arr.php:1237, is_numeric($class) pushes the VALUE, finished
-        // with a semicolon. Both backings must agree, per the unison rule.
+        // Arr.php:1237, is_numeric($class) pushes the VALUE, finished with a semicolon.
+        // Both backings must agree, per the unison rule.
         it("emits the value for numeric keys, either backing", () => {
             expect(
                 Data.dataToCssStyles({
@@ -1813,12 +1798,9 @@ describe("Data", () => {
         });
 
         it("treats a null/undefined replacer as a no-op, for either backing", () => {
-            // X11, review round 2 Important 1: dataReplace's same-type
-            // guard used to reject `null` outright for an object-backed
-            // `data` (there is no object-shaped spelling of "null"), so
+            // dataReplace's same-type guard used to reject `null` outright for an
+            // object-backed `data` (there is no object-shaped spelling of "null"), so
             // Collection.replace(null) threw for an object-backed source.
-            // Dispatch now happens on `data`'s own shape whenever
-            // `replacerData` is nullish, matching arr/obj's null no-op.
             expect(Data.dataReplace({ a: 1, b: 2 }, null)).toEqual({
                 a: 1,
                 b: 2,
@@ -1876,7 +1858,7 @@ describe("Data", () => {
         });
 
         it("treats a null/undefined replacer as a no-op, for either backing", () => {
-            // X11 — same rationale as dataReplace's null pin above.
+            // Same rationale as dataReplace's null pin above.
             expect(Data.dataReplaceRecursive({ a: 1 }, null)).toEqual({
                 a: 1,
             });
@@ -1939,16 +1921,13 @@ describe("Data", () => {
         });
 
         it("numbers negative pad slots from zero for object-backed data", () => {
-            // X17 through the data layer — PHP-verified:
-            // array_pad(["a"=>1,"b"=>2], -5, 0) ->
-            // {"0":0,"1":0,"2":0,"a":1,"b":2}
-            // (docs/php-parity/task-07-pad-union.json).
+            // PHP-verified: array_pad(["a"=>1,"b"=>2], -5, 0) ->
+            // {"0":0,"1":0,"2":0,"a":1,"b":2} (docs/php-parity/task-07-pad-union.json).
             const result = Data.dataPad({ a: 1, b: 2 }, -5, 0);
             expect(result).toEqual({ 0: 0, 1: 0, 2: 0, a: 1, b: 2 });
         });
 
         it("returns a copy even when no padding is needed for object-backed data", () => {
-            // X18 through the data layer.
             const data = { a: 1, b: 2 };
             expect(Data.dataPad(data, 2, 0)).not.toBe(data);
         });
@@ -2034,11 +2013,9 @@ describe("Data", () => {
             );
         });
 
-        // Task 4 (X16): array_filter()'s falsy set is narrower than
-        // Boolean() — PHP-verified (docs/php-parity/task-04-shared.json,
-        // "Collection::filter() falsy set"): it drops "0", "", 0, [],
-        // false, null, but keeps "00" and "0.0". Asserted for both shapes,
-        // per the unison rule.
+        // array_filter's falsy set is narrower than Boolean — PHP-verified
+        // (docs/php-parity/task-04-shared.json, "Collection::filter falsy set"): it
+        // drops "0", "", 0, [], false, null, but keeps "00" and "0.0".
         it("drops PHP-falsy values including the string zero — both shapes agree", () => {
             expect(Data.dataFilter(["0", "", 0, "x"])).toEqual(["x"]);
             expect(Data.dataFilter({ a: "0", b: "", c: 0, d: "x" })).toEqual({
@@ -2054,8 +2031,7 @@ describe("Data", () => {
             });
         });
 
-        // Review fix (Minor 8): the arr/obj layers pin NaN's truthiness —
-        // add it here too, both shapes.
+        // The arr/obj layers pin NaN's truthiness — add it here too, both shapes.
         it("keeps NaN, which is truthy in PHP — both shapes agree", () => {
             expect(Data.dataFilter([NaN, 0, 1])).toEqual([NaN, 1]);
             expect(Data.dataFilter({ a: NaN, b: 0, c: 1 })).toEqual({
@@ -2278,14 +2254,10 @@ describe("Data", () => {
             expect(Data.dataDiff([1, 2, 3], [2, 3, 4])).toEqual([1]);
         });
 
-        it("diffs on values only regardless of backing (X13, both backings)", () => {
-            // Captured via docs/php-parity/task-06-setops.json
-            // ("diff — values only"): neither "id" nor "first_word" exists
-            // as a key on `other`, so an assoc-style diff would keep both.
-            // Value-only diff drops "first_word" because "Hello" appears
-            // among other's values — and the array-backed equivalent
-            // (index 1's value 20 appears in other's values) drops the same
-            // way, showing both backings agree on the value-only rule.
+        it("diffs on values only regardless of backing", () => {
+            // Captured via docs/php-parity/task-06-setops.json ("diff — values only"):
+            // neither "id" nor "first_word" exists as a key on `other`, so an
+            // assoc-style diff would keep both.
             expect(
                 Data.dataDiff({ id: 1, first_word: "Hello" }, { x: "Hello" }),
             ).toEqual({ id: 1 });
@@ -2293,14 +2265,13 @@ describe("Data", () => {
         });
 
         it("treats a null other as an unchanged copy rather than throwing", () => {
-            // X14
             expect(Data.dataDiff({ id: 1 }, null)).toEqual({ id: 1 });
         });
 
         it("treats a null/undefined other as empty for array-backed data too", () => {
-            // X14 — exercises the array branch's explicit nullish check
-            // (arrWrap(undefined) would otherwise wrap it to [undefined]
-            // instead of [], see the source doc comment).
+            // Exercises the array branch's explicit nullish check (arrWrap(undefined)
+            // would otherwise wrap it to [undefined] instead of [], see the source doc
+            // comment).
             expect(Data.dataDiff([1, 2], null)).toEqual([1, 2]);
             expect(Data.dataDiff([1, 2], undefined)).toEqual([1, 2]);
         });
@@ -2333,16 +2304,9 @@ describe("Data", () => {
         });
 
         it("plucks a wildcard path the same way for array and object backing", () => {
-            // dataPluck routes object input to Obj.pluck and array input to
-            // Arr.pluck; Task 10 added wildcard support to both. The
-            // wildcard TARGET (shape.meta) is a plain (associative) object,
-            // not a JS array - a list-shaped target like {users: [...]}
-            // cannot catch a divergence here, since arr's and obj's
-            // wildcard expansion already agreed on real JS arrays before
-            // review round 1 found arr's wildcard silently resolving an
-            // object-shaped target to [] (Critical 1). PHP-verified:
-            // docs/php-parity/task-10-pluck-sort.json, "Arr::pluck wildcard
-            // over an associative (object-shaped) target" -> [[1,2]].
+            // dataPluck routes object input to Obj.pluck and array input to Arr.pluck.
+            // The wildcard target here is a plain object, not a JS array: a list-shaped
+            // target cannot catch arr's wildcard resolving an object target to [].
             const shape = { meta: { x: { v: 1 }, y: { v: 2 } } };
             const expected = [[1, 2]];
             expect(Data.dataPluck({ a: shape }, "meta.*.v")).toEqual(expected);
@@ -2396,12 +2360,10 @@ describe("Data", () => {
             }).toThrowError();
         });
 
-        it("intersects on values only regardless of backing (X12, both backings)", () => {
-            // Captured via docs/php-parity/task-06-setops.json
-            // ("intersect — values only, left keys"): the keys differ
-            // ("first_word" vs "first_world") and the value still matches,
-            // keeping the left key. The array-backed equivalent (value 20
-            // at a different index on each side) shows the same rule.
+        it("intersects on values only regardless of backing", () => {
+            // Captured via docs/php-parity/task-06-setops.json ("intersect — values
+            // only, left keys"): the keys differ ("first_word" vs "first_world") and
+            // the value still matches, keeping the left key.
             expect(
                 Data.dataIntersect(
                     { id: 1, first_word: "Hello" },
@@ -2411,7 +2373,7 @@ describe("Data", () => {
             expect(Data.dataIntersect([1, 20], [99, 20])).toEqual([20]);
         });
 
-        it("treats a null/undefined other as empty rather than throwing (X14)", () => {
+        it("treats a null/undefined other as empty rather than throwing", () => {
             expect(Data.dataIntersect({ a: 1 }, null)).toEqual({});
             expect(Data.dataIntersect([1, 2], null)).toEqual([]);
             expect(Data.dataIntersect({ a: 1 }, undefined)).toEqual({});
@@ -2437,7 +2399,7 @@ describe("Data", () => {
             }).toThrowError();
         });
 
-        it("treats a null other as empty rather than throwing (X14)", () => {
+        it("treats a null other as empty rather than throwing", () => {
             expect(Data.dataIntersectByKeys({ name: "M" }, null)).toEqual({});
             expect(Data.dataIntersectByKeys([1, 2], null)).toEqual([]);
         });
@@ -2504,15 +2466,8 @@ describe("Data", () => {
         });
 
         it("is array — compares by index (key) via the callback, then value", () => {
-            // PHP-verified directly (Task 11):
-            // array_diff_uassoc([1,2,3],[2,3,4],strcasecmp) -> [1,2,3].
-            // Every index (0,1,2) matches positionally via the callback,
-            // but every value at that index differs (1 vs 2, 2 vs 3, 3 vs
-            // 4), so nothing is excluded. Before Task 11 this asserted
-            // [1] — the array branch fell through to a plain value-diff
-            // and silently ignored the callback entirely (a Task 6
-            // finding, deferred; closed out here because it broke the
-            // array/object cross-backing agreement sweep).
+            // PHP-verified directly : array_diff_uassoc([1,2,3],[2,3,4],strcasecmp) ->
+            // [1,2,3].
             const result = Data.dataDiffAssocUsing(
                 [1, 2, 3],
                 [2, 3, 4],
@@ -2533,12 +2488,9 @@ describe("Data", () => {
         });
 
         it("is array — compares by index (key) via the callback only", () => {
-            // PHP-verified directly (Task 11):
-            // array_diff_ukey([1,2,3],[2,3,4],strcasecmp) -> [] (values
-            // are ignored entirely; every index 0-2 matches positionally,
-            // so every entry is excluded). Before Task 11 this asserted
-            // [1] for the same fallback-to-plain-diff reason as
-            // dataDiffAssocUsing above.
+            // PHP-verified directly : array_diff_ukey([1,2,3],[2,3,4],strcasecmp) -> []
+            // (values are ignored entirely; every index 0-2 matches positionally, so
+            // every entry is excluded).
             const result = Data.dataDiffKeysUsing(
                 [1, 2, 3],
                 [2, 3, 4],
@@ -2573,7 +2525,7 @@ describe("Data", () => {
             );
         });
 
-        it("treats a null other as empty rather than throwing (X14)", () => {
+        it("treats a null other as empty rather than throwing", () => {
             expect(Data.dataIntersectAssoc({ a: "green" }, null)).toEqual({});
             expect(Data.dataIntersectAssoc([1, 2], null)).toEqual([]);
         });
@@ -2615,7 +2567,7 @@ describe("Data", () => {
             );
         });
 
-        it("treats a null other as empty rather than throwing (X14)", () => {
+        it("treats a null other as empty rather than throwing", () => {
             const strcasecmpKeys = (a: unknown, b: unknown) =>
                 String(a).toLowerCase() === String(b).toLowerCase();
             expect(
@@ -2685,20 +2637,9 @@ describe("Data", () => {
         });
     });
 
-    // Cross-backing agreement sweep, the plan's exit criterion: one test
-    // per defect-matrix row, run over the same conceptual PHP array in
-    // both backings — a real array and a plain object whose own keys are
-    // exactly that array's indices.
-    //
-    // Every assertion is on own key/value PAIRS, not a value list. A value
-    // list cannot see a key collision, which is how two functions shipped
-    // that overwrote entries they were supposed to move. Where the two
-    // backings legitimately produce different keys — a JS array cannot
-    // hold PHP's sparse survivors, so it reindexes — both are pinned
-    // separately and only the value sequence has to agree.
-    //
-    // The rows run at the arr/obj/data layer, which is where the ported
-    // code lives; collection.spec.ts covers the Collection layer on top.
+    // Cross-backing agreement sweep, the plan's exit criterion: one test per
+    // defect-matrix row, run over the same conceptual PHP array in both backings — a
+    // real array and a plain object whose own keys are exactly that array's indices.
     describe("cross-backing agreement sweep (plan exit criterion)", () => {
         /** Own key/value pairs — the one view an array and a plain object share. */
         const entriesOf = (value: unknown): [string, unknown][] =>
@@ -2749,7 +2690,7 @@ describe("Data", () => {
             2: { id: 2, name: "b" },
         });
 
-        it("X1 pop mutates and returns the last value", () => {
+        it("pop mutates and returns the last value", () => {
             // collect([10,20,30,40])->pop() -> 40, leaving [10,20,30];
             // ->pop(2) -> [40,30], leaving [10,20].
             const arrOne = nums();
@@ -2784,7 +2725,7 @@ describe("Data", () => {
             ]);
         });
 
-        it("X2 shift mutates, returns the first value and renumbers", () => {
+        it("shift mutates, returns the first value and renumbers", () => {
             // collect([10,20,30,40])->shift() -> 10, leaving [20,30,40] —
             // array_shift renumbers, so {1:20,2:30,3:40} is not the answer.
             const arrOne = nums();
@@ -2819,7 +2760,7 @@ describe("Data", () => {
             ]);
         });
 
-        it("X3 shift throws on a negative count", () => {
+        it("shift throws on a negative count", () => {
             const message =
                 "Number of shifted items may not be less than zero.";
 
@@ -2829,7 +2770,7 @@ describe("Data", () => {
             expect(() => Data.dataShift(numsObj(), -1)).toThrow(message);
         });
 
-        it("X4 shift on empty returns null for any count", () => {
+        it("shift on empty returns null for any count", () => {
             // The isEmpty() guard precedes every count branch.
             expect(Arr.shift([], 3)).toBeNull();
             expect(Obj.shift({}, 3)).toBeNull();
@@ -2839,7 +2780,7 @@ describe("Data", () => {
             expect(Data.dataShift({}, 3)).toBeNull();
         });
 
-        it("X5 unshift mutates and renumbers the existing integer keys", () => {
+        it("unshift mutates and renumbers the existing integer keys", () => {
             // array_unshift([10,20,30,40],1,2) -> [1,2,10,20,30,40]. Writing
             // the prepended values at 0 and 1 destroyed 10 and 20 instead.
             const expected: [string, unknown][] = [
@@ -2864,7 +2805,7 @@ describe("Data", () => {
             agree(arrData, objData, expected);
         });
 
-        it("X6 splice mutates and returns the removed items", () => {
+        it("splice mutates and returns the removed items", () => {
             // collect([10,20,30,40])->splice(1,2) removes [20,30],
             // leaving [10,40].
             const arrSource = nums();
@@ -2894,7 +2835,7 @@ describe("Data", () => {
             ]);
         });
 
-        it("X7 splice with no length removes through to the end", () => {
+        it("splice with no length removes through to the end", () => {
             const arrSource = nums();
             const objSource = numsObj();
 
@@ -2906,7 +2847,7 @@ describe("Data", () => {
             agree(arrSource, objSource, [["0", 10]]);
         });
 
-        it("X8 splice keeps string keys and reindexes integer keys", () => {
+        it("splice keeps string keys and reindexes integer keys", () => {
             // array_splice(['x'=>1,'y'=>2,'z'=>3],1,1) leaves {x:1,z:3} and
             // returns {y:2}; [10=>'a',20=>'b',30=>'c'] reindexes to
             // ['a','c'] and returns ['b'].
@@ -2929,7 +2870,7 @@ describe("Data", () => {
             ]);
         });
 
-        it("X8b splice takes a bare scalar as one spliced-in element", () => {
+        it("splice takes a bare scalar as one spliced-in element", () => {
             // array_splice([10,20,30,40],1,2,99) leaves [10,99,40].
             const arrSource = nums();
             const objSource = numsObj();
@@ -2949,7 +2890,7 @@ describe("Data", () => {
             ]);
         });
 
-        it("X9 replace does not mutate its source", () => {
+        it("replace does not mutate its source", () => {
             // array_replace([10,20,30,40],[1=>'d']) -> [10,'d',30,40].
             const arrSource = nums();
             const objSource = numsObj();
@@ -2968,7 +2909,7 @@ describe("Data", () => {
             agree(arrSource, objSource, numsEntries);
         });
 
-        it("X10 replaceRecursive does not mutate its source", () => {
+        it("replaceRecursive does not mutate its source", () => {
             // array_replace_recursive([['a'=>1],['b'=>2]],[['c'=>3]]) ->
             // [{a:1,c:3},{b:2}].
             const arrSource = [{ a: 1 }, { b: 2 }];
@@ -2991,7 +2932,7 @@ describe("Data", () => {
             ]);
         });
 
-        it("X11 replace and replaceRecursive treat null as a no-op", () => {
+        it("replace and replaceRecursive treat null as a no-op", () => {
             agree(
                 Arr.replace(nums(), null),
                 Obj.replace(numsObj(), null),
@@ -3009,7 +2950,7 @@ describe("Data", () => {
             );
         });
 
-        it("X12 intersect compares values only", () => {
+        it("intersect compares values only", () => {
             // collect([10,20,30,40])->intersect([20,40]) -> {1:20,3:40}.
             agree(
                 Arr.intersect(nums(), [20, 40]),
@@ -3037,7 +2978,7 @@ describe("Data", () => {
             );
         });
 
-        it("X13 diff compares values only", () => {
+        it("diff compares values only", () => {
             // collect([10,20,30,40])->diff([20,40]) -> {0:10,2:30}.
             agree(
                 Arr.diff(nums(), [20, 40]),
@@ -3065,7 +3006,7 @@ describe("Data", () => {
             );
         });
 
-        it("X13b diffAssocUsing and diffKeysUsing run their comparator", () => {
+        it("diffAssocUsing and diffKeysUsing run their comparator", () => {
             // array_diff_uassoc([10,20,30,40],[10,999,30,40],cmp) -> {1:20};
             // array_diff_ukey([10,20,30,40],[1=>'x',3=>'y'],cmp) -> {0:10,2:30}.
             const same = (a: PropertyKey, b: PropertyKey) => a === b;
@@ -3099,7 +3040,7 @@ describe("Data", () => {
             );
         });
 
-        it("X14 the intersect family treats null as empty", () => {
+        it("the intersect family treats null as empty", () => {
             agree(
                 Arr.intersect(nums(), null),
                 Obj.intersect(numsObj(), null),
@@ -3117,7 +3058,7 @@ describe("Data", () => {
             );
         });
 
-        it("X14b intersectAssoc, intersectAssocUsing and intersectByKeys", () => {
+        it("intersectAssoc, intersectAssocUsing and intersectByKeys", () => {
             // array_intersect_assoc([10,20,30,40],[10,999,30]) -> {0:10,2:30};
             // array_intersect_key([10,20,30,40],[1=>'x',3=>'y']) -> {1:20,3:40}.
             const same = (a: PropertyKey, b: PropertyKey) => a === b;
@@ -3168,7 +3109,7 @@ describe("Data", () => {
             );
         });
 
-        it("X15 slice handles a negative offset with a length", () => {
+        it("slice handles a negative offset with a length", () => {
             // collect([10,20,30,40])->slice(-3,2) -> {1:20,2:30}.
             agree(
                 Arr.slice(nums(), -3, 2),
@@ -3184,7 +3125,7 @@ describe("Data", () => {
             );
         });
 
-        it("X16 filter drops PHP-falsy '0' but keeps '00' and '0.0'", () => {
+        it("filter drops PHP-falsy '0' but keeps '00' and '0.0'", () => {
             const mixed = ["0", "00", "0.0", "", 0, false, null, [], "a"];
             const mixedObj: Record<string, unknown> = {
                 0: "0",
@@ -3214,7 +3155,7 @@ describe("Data", () => {
             );
         });
 
-        it("X17 pad numbers negative pad slots from zero", () => {
+        it("pad numbers negative pad slots from zero", () => {
             // array_pad(['a'=>1,'b'=>2],-5,0) -> {0:0,1:0,2:0,a:1,b:2};
             // array_pad([10,20,30,40],-6,0) -> [0,0,10,20,30,40].
             expect(entriesOf(Obj.pad({ a: 1, b: 2 }, -5, 0))).toEqual([
@@ -3234,7 +3175,7 @@ describe("Data", () => {
             ]);
         });
 
-        it("X18 positive padding appends past the existing keys", () => {
+        it("positive padding appends past the existing keys", () => {
             // array_pad([10,20,30,40],6,0) -> [10,20,30,40,0,0]. Numbering
             // the pad slots from 0 overwrote the first two entries, which a
             // value-list assertion could not see.
@@ -3256,7 +3197,7 @@ describe("Data", () => {
             ]);
         });
 
-        it("X18b pad returns a copy when no padding is needed", () => {
+        it("pad returns a copy when no padding is needed", () => {
             const source = numsObj();
             const result = Obj.pad(source, 2, 0);
 
@@ -3264,7 +3205,7 @@ describe("Data", () => {
             agree(Arr.pad(nums(), 2, 0), result, numsEntries);
         });
 
-        it("X19 combine throws on a key/value count mismatch", () => {
+        it("combine throws on a key/value count mismatch", () => {
             const message =
                 "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements";
 
@@ -3283,7 +3224,7 @@ describe("Data", () => {
             );
         });
 
-        it("X20 union lets the left operand win, null value included", () => {
+        it("union lets the left operand win, null value included", () => {
             // ['a'=>null] + ['a'=>1] -> {a:null}; collect([10,20])
             // ->union([1,1,50,60]) -> [10,20,50,60].
             expect(entriesOf(Obj.union({ a: undefined }, { a: 1 }))).toEqual([
@@ -3301,7 +3242,7 @@ describe("Data", () => {
             );
         });
 
-        it("X20b union treats a nullish operand as empty", () => {
+        it("union treats a nullish operand as empty", () => {
             // getArrayableItems casts null to [], so collect([10,20])
             // ->union(null) -> [10,20] on either backing.
             agree(
@@ -3316,7 +3257,7 @@ describe("Data", () => {
             );
         });
 
-        it("X21 query casts booleans to 1 and 0", () => {
+        it("query casts booleans to 1 and 0", () => {
             expect(Arr.query({ a: true, b: false })).toBe("a=1&b=0");
             expect(Obj.query({ a: true, b: false })).toBe("a=1&b=0");
             expect(Arr.query(["a", "b"])).toBe("0=a&1=b");
@@ -3325,7 +3266,7 @@ describe("Data", () => {
             expect(Data.dataQuery({ 0: "a", 1: "b" })).toBe("0=a&1=b");
         });
 
-        it("X22 the CSS helpers emit the value for numeric keys", () => {
+        it("the CSS helpers emit the value for numeric keys", () => {
             expect(Arr.toCssClasses(["font-bold", "text-red"])).toBe(
                 "font-bold text-red",
             );
@@ -3346,7 +3287,7 @@ describe("Data", () => {
             ).toBe("font-bold text-red");
         });
 
-        it("X23 random throws before the empty guard", () => {
+        it("random throws before the empty guard", () => {
             const message =
                 "You requested 1 items, but there are only 0 items available.";
 
@@ -3356,7 +3297,7 @@ describe("Data", () => {
             expect(() => Data.dataRandom({}, 1)).toThrow(message);
         });
 
-        it("X24 random's preserveKeys defaults to false", () => {
+        it("random's preserveKeys defaults to false", () => {
             // No value pin: random is non-deterministic by design. The keys
             // are the deterministic part — reindexed unless asked otherwise.
             expect(Object.keys(Arr.random(nums(), 2) as object)).toEqual([
@@ -3374,7 +3315,7 @@ describe("Data", () => {
             ).toBe(true);
         });
 
-        it("X25 only accepts a bare key and null", () => {
+        it("only accepts a bare key and null", () => {
             // Arr::only([10,20,30,40],1) -> {1:20}; with null -> [].
             agree(
                 Arr.only(nums(), 1),
@@ -3397,7 +3338,7 @@ describe("Data", () => {
             );
         });
 
-        it("X26 get, has and exists resolve a literal dotted key first", () => {
+        it("get, has and exists resolve a literal dotted key first", () => {
             const dotted = { "a.b": "literal", a: { b: "nested" } };
 
             expect(Obj.get(dotted, "a.b")).toBe("literal");
@@ -3416,7 +3357,7 @@ describe("Data", () => {
             expect(Data.dataExists(numsObj(), 9)).toBe(false);
         });
 
-        it("X27 pluck supports keyed and wildcard paths", () => {
+        it("pluck supports keyed and wildcard paths", () => {
             // Arr::pluck(records,'name','id') -> {3:'c',1:'a',2:'b'}; JS
             // hoists those integer keys ascending, so the pairs are the
             // same and only the iteration order differs.
@@ -3450,13 +3391,10 @@ describe("Data", () => {
             );
         });
 
-        it("X28 sort accepts a key, a descriptor and an empty list", () => {
-            // Arr::sort(records,'id') sorts ascending by id; a plain object
-            // whose keys are all integers cannot show it, because sort
-            // preserves keys and JS re-sorts integer keys ascending on
-            // write (ECMA-262 OrdinaryOwnPropertyKeys). Both halves are
-            // pinned so the divergence is visible rather than normalised
-            // away; the string-keyed object below is where obj can show it.
+        it("sort accepts a key, a descriptor and an empty list", () => {
+            // sort preserves keys, and JS re-sorts integer keys ascending on write
+            // (ECMA-262 OrdinaryOwnPropertyKeys), so an all-integer-keyed object cannot
+            // show a reorder. Both halves are pinned rather than normalised.
             expect(entriesOf(Arr.sort(records(), "id"))).toEqual([
                 ["0", { id: 1, name: "a" }],
                 ["1", { id: 2, name: "b" }],
@@ -3488,7 +3426,7 @@ describe("Data", () => {
             ]);
         });
 
-        it("X28b sortDesc reverses the comparison, not the container", () => {
+        it("sortDesc reverses the comparison, not the container", () => {
             expect(entriesOf(Arr.sortDesc([30, 10, 20]))).toEqual([
                 ["0", 30],
                 ["1", 20],
@@ -3506,7 +3444,7 @@ describe("Data", () => {
             ]);
         });
 
-        it("X29 flatten defaults to Infinity and stops only at depth 1", () => {
+        it("flatten defaults to Infinity and stops only at depth 1", () => {
             // Arr::flatten([1,[2,[3]]]) -> [1,2,3]; at depth 1 -> [1,2,[3]];
             // at depth 2 -> [1,2,3]; at depth 0 it keeps descending.
             const nested = [1, [2, [3]]];
@@ -3537,7 +3475,7 @@ describe("Data", () => {
             );
         });
 
-        it("X30 mapWithKeys returns one plain container", () => {
+        it("mapWithKeys returns one plain container", () => {
             // Arr::mapWithKeys(records, fn -> [name => id]) -> {c:3,a:1,b:2};
             // with numeric keys -> {3:'c',1:'a',2:'b'}, which JS hoists
             // ascending. Neither backing may hand back a Map.

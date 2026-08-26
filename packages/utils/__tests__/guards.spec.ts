@@ -413,11 +413,9 @@ describe("Utils", () => {
     });
 
     describe("isPhpFalsy", () => {
-        // Task 4 (@tolki/arr, @tolki/obj): array_filter()'s falsy set is
-        // narrower than isFalsy's — PHP-verified
-        // (docs/php-parity/task-04-shared.json, "Collection::filter()
-        // falsy set"): drops "0", "", 0, [], false, null, but keeps "00"
-        // and "0.0", and NaN is truthy.
+        // array_filter's falsy set is narrower than isFalsy's — PHP-verified
+        // (docs/php-parity/task-04-shared.json, "Collection::filter falsy set"): drops
+        // "0", "", 0, [], false, null, but keeps "00" and "0.0", and NaN is truthy.
         it("returns true for the exact PHP-falsy set", () => {
             expect(Utils.isPhpFalsy(false)).toBe(true);
             expect(Utils.isPhpFalsy(null)).toBe(true);
@@ -462,10 +460,9 @@ describe("Utils", () => {
         });
 
         it("treats any own-key-less object as falsy, a documented non-PHP limitation", () => {
-            // PHP has no equivalent of Date/Map/RegExp; these are
-            // objects with no own enumerable keys, so isPhpFalsy treats
-            // them the same as an empty plain object. Documented in the
-            // function's doc comment as a known limit, not fixed here.
+            // PHP has no equivalent of Date/Map/RegExp; these are objects with no own
+            // enumerable keys, so isPhpFalsy treats them the same as an empty plain
+            // object.
             expect(Utils.isPhpFalsy(new Date())).toBe(true);
             expect(Utils.isPhpFalsy(new Map())).toBe(true);
             expect(Utils.isPhpFalsy(/re/)).toBe(true);
@@ -473,13 +470,9 @@ describe("Utils", () => {
     });
 
     describe("isPhpNumeric", () => {
-        // Task 8 review round 1 (@tolki/arr, @tolki/obj): toCssClasses/
-        // toCssStyles used `!isNaN(Number(key))` to detect PHP's
-        // is_numeric($class), which disagreed with real PHP on four of
-        // five probed edge cases — PHP-verified
-        // (docs/php-parity/task-08-arr-parity.json, "is_numeric matrix
-        // for CSS-helper keys" and "Arr::toCssClasses with is_numeric
-        // edge-case keys").
+        // toCssClasses/toCssStyles used `!isNaN(Number(key))` for PHP's is_numeric,
+        // which disagreed with real PHP on four of five probed edge cases. PHP-verified
+        // in docs/php-parity/task-08-arr-parity.json.
         it("returns true for real PHP-numeric strings", () => {
             expect(Utils.isPhpNumeric("1e3")).toBe(true);
             expect(Utils.isPhpNumeric(" 42")).toBe(true);

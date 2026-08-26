@@ -2000,12 +2000,9 @@ describe("arr type tests", () => {
     });
 
     describe("combine", () => {
-        // Task 4 (X19): `combine` used to zip an arbitrary number of arrays
-        // into an array of tuples — that never corresponded to PHP's
-        // `array_combine`/`Collection::combine`, whose only shape is a
-        // two-array (keys, values) call that produces a keyed map. The type
-        // tests below replace the old variadic-zip coverage with the
-        // corrected `(keys, values) => Record<string, TValue>` signature.
+        // `combine` used to zip an arbitrary number of arrays into an array of tuples —
+        // that never corresponded to PHP's `array_combine`/`Collection::combine`, whose
+        // only shape is a two-array (keys, values) call that produces a keyed map.
         it("returns Record<string, TValue> for typed keys and values", () => {
             const result = Arr.combine(["a", "b"], [1, 2]);
             expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
@@ -2983,14 +2980,9 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<UndotValue<string>[]>();
             });
 
-            it("rejects a key whose first segment is not numeric (Task 9 review, Important 2)", () => {
-                // Arr.undot's TKey is constrained to UndotArrayKey: a bare
-                // numeric index, or a dot-path whose first segment is
-                // numeric. undotExpandArray drops any key that fails this
-                // at runtime with no diagnostic (it used to silently
-                // return [] for an object keyed like this), so the type
-                // now rejects it at the call site instead. Use Obj.undot
-                // for a map with genuinely string-first keys.
+            it("rejects a key whose first segment is not numeric", () => {
+                // Arr.undot's TKey is constrained to UndotArrayKey: a bare numeric
+                // index, or a dot-path whose first segment is numeric.
                 Arr.undot({
                     // @ts-expect-error -- "foo" is not a UndotArrayKey
                     foo: "x",
@@ -3660,14 +3652,9 @@ describe("arr type tests", () => {
             });
 
             it("preserves const literal item types", () => {
-                // An inline `as const` tuple literal passed directly as an
-                // argument (not through a named variable) still resolves
-                // through the second overload here — TValue infers from the
-                // tuple's element types even though the tuple itself is
-                // readonly. This is a genuine TypeScript inference quirk for
-                // fresh literal arguments, not a hole in unshift's own
-                // overloads (a named readonly/const variable, as above, is
-                // correctly rejected), so it's pinned rather than "fixed".
+                // An inline `as const` tuple passed directly as an argument still
+                // resolves through the second overload: TValue infers from the tuple's
+                // element types even without a named variable to widen it.
                 const result = Arr.unshift([1, 2] as const, "hello" as const);
                 expectTypeOf(result).toEqualTypeOf<(1 | 2 | "hello")[]>();
             });

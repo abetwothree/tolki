@@ -10,13 +10,10 @@ describe("Path Functions", () => {
             expect(result).toEqual({ a: { b: 1 }, c: { d: 2 } });
         });
 
-        it("rebuilds a list from consecutive integer segments starting at 0 (decision D3)", () => {
-            // PHP-verified: running Arr::set's algorithm over this exact
-            // input yields {"user":{"languages":["PHP","C#"],"name":"Taylor"}}
-            // (docs/php-parity/task-09-paths.json, "Arr::undot — integer
-            // segments rebuild a list"). "languages" has keys 0, 1 and
-            // rebuilds as an array; "user" has keys "languages", "name" and
-            // stays an object, and the root stays an object regardless.
+        it("rebuilds a list from consecutive integer segments starting at 0", () => {
+            // PHP-verified in docs/php-parity/task-09-paths.json: Arr::set's algorithm
+            // over this input yields {"user":{"languages":["PHP","C#"],"name":"Taylor"}},
+            // so integer segments rebuild a list rather than a keyed map.
             expect(
                 Path.undotExpandObject({
                     "user.languages.0": "PHP",
@@ -36,11 +33,9 @@ describe("Path Functions", () => {
         });
 
         it("skips promotion when a tracked container path was later overwritten by a scalar", () => {
-            // "a.b" is tracked as a container path while processing
-            // "a.b.c", but the later "a" key (no dots) overwrites the
-            // entire nested object with a scalar. The promotion pass must
-            // not throw when a tracked path's parent or container is no
-            // longer an object.
+            // "a.b" is tracked as a container path while processing "a.b.c", but the
+            // later "a" key (no dots) overwrites the entire nested object with a
+            // scalar.
             expect(
                 Path.undotExpandObject({
                     "a.b.c": 1,
@@ -958,11 +953,8 @@ describe("Path Functions", () => {
 
     describe("undotExpand", () => {
         it("expands flat object to nested arrays", () => {
-            // The root stays an object (its own keys "0"/"1" are not
-            // promoted), but the nested "1" container's keys "0"/"1" are a
-            // consecutive integer sequence starting at 0, so it rebuilds a
-            // real array (decision D3, PHP-verified:
-            // docs/php-parity/task-09-paths.json).
+            // The root stays an object, but the nested "1" container's keys are a
+            // consecutive integer sequence from 0, so it rebuilds a real array.
             expect(
                 Path.undotExpand({
                     "0": "a",
@@ -1810,10 +1802,9 @@ describe("Path Functions", () => {
         });
 
         it("resolves a literal key containing dots before traversing it as a path", () => {
-            // Arr::has calls Arr::exists first (Arr.php:534) — the literal
-            // key wins even though it contains dots (PHP-verified:
-            // docs/php-parity/task-09-paths.json, "Arr::has — literal
-            // dotted key").
+            // Arr::has calls Arr::exists first (Arr.php:534) — the literal key wins
+            // even though it contains dots (PHP-verified:
+            // docs/php-parity/task-09-paths.json, "Arr::has — literal dotted key").
             expect(
                 Path.hasMixed(
                     { "products.desk": { price: 100 } },
@@ -1838,12 +1829,10 @@ describe("Path Functions", () => {
             expect(Path.hasMixed({ foo: 1 }, "bar")).toBe(false);
         });
 
-        it("does not leak Array.prototype through the literal-key fast path on arrays (X26 regression)", () => {
-            // The literal-key-first check must only apply to plain objects.
-            // `in` climbs the prototype chain, and Array.prototype owns/
-            // inherits "length" and "toString" -- keys no PHP array could
-            // ever have. Arrays must fall straight through to the existing
-            // bounds-checked getNestedValue traversal instead.
+        it("does not leak Array.prototype through the literal-key fast path on arrays", () => {
+            // The literal-key-first check must only apply to plain objects. `in` climbs
+            // the prototype chain, and Array.prototype owns/ inherits "length" and
+            // "toString" -- keys no PHP array could ever have.
             expect(Path.hasMixed([1, 2], "length")).toBe(false);
             expect(Path.hasMixed([1, 2], "toString")).toBe(false);
             // A plain object is unaffected -- it still gets the literal-key
@@ -1899,10 +1888,8 @@ describe("Path Functions", () => {
         });
 
         it("resolves a literal key containing dots before traversing it as a path", () => {
-            // Arr::get calls Arr::exists first (Arr.php:497) — the literal
-            // key wins even though it contains dots (PHP-verified:
-            // docs/php-parity/task-09-paths.json, "Arr::get — literal
-            // dotted key wins").
+            // Arr::get calls Arr::exists first (Arr.php:497), so a literal key wins even
+            // when it contains dots. PHP-verified in docs/php-parity/task-09-paths.json.
             expect(
                 Path.getObjectValue(
                     { "products.desk": { price: 100 } },
@@ -1911,12 +1898,10 @@ describe("Path Functions", () => {
             ).toEqual({ price: 100 });
         });
 
-        it("agrees with hasObjectKey on an undefined-valued literal dotted key (Task 9 review, Important 3)", () => {
-            // Presence, not definedness, decides: the literal "a.b" key
-            // must be treated as found even though its stored value is
-            // undefined, resolving to the default rather than falling
-            // through to traverse a -> b (which would incorrectly return
-            // 2).
+        it("agrees with hasObjectKey on an undefined-valued literal dotted key", () => {
+            // Presence, not definedness, decides: the literal "a.b" key counts as found
+            // even with an undefined value, so this resolves to the default rather than
+            // falling through to traverse a -> b.
             const data = { "a.b": undefined, a: { b: 2 } };
             expect(Path.getObjectValue(data, "a.b", "default")).toBe("default");
             expect(Path.hasObjectKey(data, "a.b")).toBe(true);
@@ -2025,10 +2010,9 @@ describe("Path Functions", () => {
         });
 
         it("resolves a literal key containing dots before traversing it as a path", () => {
-            // Arr::exists is a literal array_key_exists check (Arr.php:497,
-            // :534) — it must win over dot-path traversal (PHP-verified:
-            // docs/php-parity/task-09-paths.json, "Arr::exists — literal
-            // dotted key").
+            // Arr::exists is a literal array_key_exists check (Arr.php:497, :534) — it
+            // must win over dot-path traversal (PHP-verified:
+            // docs/php-parity/task-09-paths.json, "Arr::exists — literal dotted key").
             expect(
                 Path.hasObjectKey({ "products.desk": {} }, "products.desk"),
             ).toBe(true);

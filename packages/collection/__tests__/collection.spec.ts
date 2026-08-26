@@ -855,13 +855,9 @@ describe("Collection", () => {
         });
 
         it("diffs on values only, ignoring which key held the value on other", () => {
-            // X13 — pinned so `diff` can't silently regress into
-            // `array_diff_assoc` (`diffAssoc`'s semantics). Neither key on
-            // the left ("id", "first_word") exists on the right, so an
-            // assoc-style diff would keep both; a value-only diff drops
-            // "first_word" because "Hello" appears among other's values.
-            // Captured via docs/php-parity/task-06-setops.json
-            // ("diff — values only").
+            // Pinned so `diff` cannot regress into array_diff_assoc: neither left key
+            // exists on the right, so an assoc-style diff would keep both, while a
+            // value-only diff drops "first_word" because "Hello" is among the values.
             const c = collect({ id: 1, first_word: "Hello" });
             expect(c.diff({ x: "Hello" }).all()).toEqual({ id: 1 });
         });
@@ -948,18 +944,9 @@ describe("Collection", () => {
         });
 
         it("returns a reindexed list for an array-backed collection", () => {
-            // `diffAssoc` reimplemented itself inline for Task 6 (see the
-            // source doc comment) rather than delegating to the now
-            // value-only `dataDiff`, mirroring `diffKeys`'s existing
-            // array-backed reindexing above. Real Laravel actually
-            // PRESERVES the original index here — captured via
-            // docs/php-parity/task-06-setops.json ("diffAssoc on
-            // array-backed collection"): `(new Collection([1,2,3]))
-            // ->diffAssoc([1,9,3])->all()` returns `{"1": 2}`, not `[2]`.
-            // This test pins the existing (pre-Task-6, out-of-scope)
-            // reindexing convention shared by every array-backed
-            // diff*/intersect* method in this package — see the X11 note
-            // on `Collection.replace`'s doc comment — not true parity.
+            // `diffAssoc` reimplemented itself inline for (see the source doc comment)
+            // rather than delegating to the now value-only `dataDiff`, mirroring
+            // `diffKeys`'s existing array-backed reindexing above.
             expect(collect([1, 2, 3]).diffAssoc([1, 9, 3]).all()).toEqual([2]);
         });
     });
@@ -1244,11 +1231,9 @@ describe("Collection", () => {
             expect(filtered.all()).toEqual({ b: 1, d: 2, f: 3 });
         });
 
-        // Task 4 (X16): array_filter()'s falsy set is narrower than
-        // Boolean() — PHP-verified (docs/php-parity/task-04-shared.json,
-        // "Collection::filter() falsy set"): it drops "0", "", 0, [],
-        // false, null, but keeps "00" and "0.0". Array- and object-backed
-        // Collections must agree, per the unison rule.
+        // array_filter's falsy set is narrower than Boolean — PHP-verified
+        // (docs/php-parity/task-04-shared.json, "Collection::filter falsy set"): it
+        // drops "0", "", 0, [], false, null, but keeps "00" and "0.0".
         it("drops PHP-falsy values including the string zero — both shapes agree", () => {
             expect(collect(["0", "", 0, "x"]).filter().all()).toEqual(["x"]);
             expect(
@@ -1469,8 +1454,8 @@ describe("Collection", () => {
             expect(result.all()).toEqual([5, 10]);
         });
 
-        // X29 — Arr.php:368 defaults $depth to INF. Array- and
-        // object-backed Collections must agree, per the unison rule.
+        // Arr.php:368 defaults $depth to INF. Array- and object-backed Collections must
+        // agree, per the unison rule.
         it("flattens fully by default, either backing", () => {
             expect(
                 collect([["#foo", ["#bar", ["#baz"]]], "#zap"])
@@ -1611,7 +1596,7 @@ describe("Collection", () => {
             expect(collection.get(5, "default")).toBe("default");
         });
 
-        it("get() resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+        it("get() resolves a literal dotted key before traversing, through the object backing", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::get
             // — literal dotted key wins".
             const collection = collect({ "products.desk": { price: 100 } });
@@ -2216,21 +2201,21 @@ describe("Collection", () => {
             expect(collection.has([0, 5])).toBe(false);
         });
 
-        it("has() resolves a literal dotted key before traversing, through the object backing (X26)", () => {
+        it("has() resolves a literal dotted key before traversing, through the object backing", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
             // — literal dotted key".
             const collection = collect({ "products.desk": { price: 100 } });
             expect(collection.has("products.desk")).toBe(true);
         });
 
-        it("finds a numeric key on a plain object, not only on arrays (X26)", () => {
+        it("finds a numeric key on a plain object, not only on arrays", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
             // — numeric key".
             const collection = collect({ 123: "x" });
             expect(collection.has(123)).toBe(true);
         });
 
-        it("does not leak Array.prototype through the array backing (X26 regression)", () => {
+        it("does not leak Array.prototype through the array backing", () => {
             const collection = collect([1, 2]);
             expect(collection.has("length")).toBe(false);
             expect(collection.has("toString")).toBe(false);
@@ -2348,14 +2333,8 @@ describe("Collection", () => {
             });
 
             it("test intersect collection", () => {
-                // Uses `first_world` (not `first_word`) on the other side —
-                // matching Laravel's actual CollectionTest.php:1767. The
-                // previous version of this test used `first_word` on both
-                // sides, which happens to produce the same result whether
-                // `intersect` matches on value only or on key-and-value, so
-                // it didn't actually pin X12. Captured via
-                // docs/php-parity/task-06-setops.json ("intersect — values
-                // only, left keys").
+                // Uses `first_world` (not `first_word`) on the other side — matching
+                // Laravel's actual CollectionTest.php:1767.
                 const c = collect({ id: 1, first_word: "Hello" });
                 expect(
                     c
@@ -2372,16 +2351,8 @@ describe("Collection", () => {
             });
 
             it("test intersect array-backed collection", () => {
-                // Review round 1, Minor 4: there was no array-backed
-                // positive assertion for `intersect`, only the null case
-                // above. Real Laravel preserves original indices here
-                // (captured via docs/php-parity/task-06-setops.json
-                // ("intersect on array-backed collection"):
-                // (new Collection([1,2,3,4]))->intersect([2,4,6])->all()
-                // -> {"1":2,"3":4}) but this codebase reindexes
-                // array-backed results to a dense list, same pre-existing,
-                // out-of-scope convention documented on the diffAssoc
-                // array-backed test above (X11).
+                // There was no array-backed positive assertion for `intersect`, only
+                // the null case above.
                 expect(
                     collect([1, 2, 3, 4]).intersect([2, 4, 6]).all(),
                 ).toEqual([2, 4]);
@@ -2389,32 +2360,9 @@ describe("Collection", () => {
         });
 
         it("intersect deep-clones this.items before comparing, unlike intersectUsing", () => {
-            // Review round 1, Minor 4: `intersect` calls
-            // `recursivelyConvertCollections` on BOTH `this.items` and
-            // `items`, while `intersectUsing` calls it only on `items`
-            // (see both methods' source below). Investigated whether this
-            // asymmetry matters:
-            //
-            // `recursivelyConvertCollections` unconditionally rebuilds every
-            // array/object it walks — even with zero Collection instances
-            // present, `[obj].map(...)` and the object-branch's `result = {}`
-            // always produce NEW references, never the original ones.
-            //
-            // For plain `intersect` (no callback), matching is by `===`. If
-            // `this.items` holds non-primitive (object/array) values, this
-            // clone makes it *impossible* to match by reference: the SAME
-            // object present in both `this.items` and `other` no longer
-            // `===`-equals itself after both sides are independently cloned.
-            // Reproduced below with the exact same object reference on both
-            // sides.
-            //
-            // For `intersectUsing`, this doesn't matter: it requires a
-            // callback, and a callback comparing objects meaningfully always
-            // compares their VALUES/properties (e.g. `a.id === b.id`), never
-            // relies on `this.items`' values keeping their original
-            // reference — so leaving `this.items` unconverted while `items`
-            // gets cloned has no observable effect on intersectUsing's
-            // result, confirmed below with the same shared reference.
+            // `intersect` calls `recursivelyConvertCollections` on BOTH `this.items`
+            // and `items`, while `intersectUsing` calls it only on `items` (see both
+            // methods' source below).
             const shared = { id: 1 };
             const other = [shared];
 
@@ -3097,17 +3045,8 @@ describe("Collection", () => {
         });
 
         it("plucks wildcard paths the same way for array and object backing", () => {
-            // dataPluck routes object input to Obj.pluck and array input to
-            // Arr.pluck; Task 10 added wildcard support to both. The
-            // wildcard TARGET here (shape.meta) is itself a plain
-            // (associative) object, not a JS array - a list-shaped target
-            // like {users: [...]} cannot catch a divergence, because both
-            // arr's and obj's wildcard expansion already agreed on real JS
-            // arrays before review round 1 found arr's wildcard silently
-            // resolving an object-shaped target to [] (Critical 1).
-            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
-            // "Arr::pluck wildcard over an associative (object-shaped)
-            // target" (both outer forms) -> [[1,2]].
+            // dataPluck routes object input to Obj.pluck and array input to Arr.pluck,
+            // and the wildcard target here is a plain object, not a JS array.
             const shape = { meta: { x: { v: 1 }, y: { v: 2 } } };
             const expected = [[1, 2]];
             expect(
@@ -3338,12 +3277,9 @@ describe("Collection", () => {
             expect(objectSeenKeys).toEqual(["0x10", "1e3"]);
         });
 
-        // X30 / D2 — Collection.mapWithKeys builds its own internal Map to
-        // preserve PHP-array-like insertion order for numeric-like keys
-        // (see "test map with keys integer keys" above), but that Map must
-        // never leak out through .all() — it's an implementation detail,
-        // not the public shape. Array- and object-backed Collections must
-        // agree, per the unison rule.
+        // Collection.mapWithKeys builds an internal Map to hold PHP-like insertion order
+        // for numeric keys, but that Map must never leak out through all(): PHP has no
+        // Map, so callers must always see one plain container.
         it("never exposes the internal Map through .all(), either backing", () => {
             const fromArray = collect([1, 2]).mapWithKeys((value) => ({
                 [value]: value,
@@ -3562,16 +3498,8 @@ describe("Collection", () => {
 
     describe("combine", () => {
         describe("Laravel Tests", () => {
-            // Task 4 (X19): `Arr.combine` used to zip arrays into tuples,
-            // so `c.combine([4,5,6])` here returned
-            // `[[1,4],[2,5],[3,6]]` — this test was pinning that bug.
-            // `Collection::combine` is `array_combine($this->all(), ...)`,
-            // which uses the collection's own VALUES as keys, matching
-            // the object cases below and this method's own doc example
-            // (`new Collection([1, 2]).combine([3, 4]) ->
-            // new Collection({1: 3, 2: 4})`). PHP-verified against the
-            // real `CollectionTest::testCombineWithArray`:
-            // `array_combine([1,2,3],[4,5,6])` -> `[1=>4, 2=>5, 3=>6]`.
+            // `Arr.combine` used to zip arrays into tuples, so `c.combine([4,5,6])`
+            // here returned `[[1,4],[2,5],[3,6]]` — this test was pinning that bug.
             it("test combine with array", () => {
                 const c = collect([1, 2, 3]);
                 expect(c.combine([4, 5, 6]).all()).toEqual({
@@ -3617,11 +3545,9 @@ describe("Collection", () => {
             });
         });
 
-        // Task 4 (X19): a key/value count mismatch used to silently
-        // produce `undefined` values or truncate instead of throwing.
-        // PHP-verified message (docs/php-parity/task-04-shared.json,
-        // "array_combine mismatch"). Array- and object-backed Collections
-        // must agree, per the unison rule.
+        // A key/value count mismatch used to silently produce `undefined` values or
+        // truncate instead of throwing. PHP-verified message
+        // (docs/php-parity/task-04-shared.json, "array_combine mismatch").
         it("throws when the key and value counts differ — both shapes agree", () => {
             expect(() => collect(["a", "b"]).combine([1])).toThrow(
                 "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
@@ -3656,8 +3582,8 @@ describe("Collection", () => {
         });
 
         it("lets the left operand win even when its value is undefined", () => {
-            // X20 through the Collection layer — PHP-verified: ["a"=>null] +
-            // ["a"=>1] -> {"a":null} (docs/php-parity/task-07-pad-union.json).
+            // PHP-verified: ["a"=>null] + ["a"=>1] -> {"a":null}
+            // (docs/php-parity/task-07-pad-union.json).
             const c = collect({ a: undefined });
             const result = c.union({ a: 1, b: 2 }).all();
             expect(result).toEqual({ a: undefined, b: 2 });
@@ -3667,14 +3593,8 @@ describe("Collection", () => {
             expect(result).toHaveProperty("a");
         });
 
-        // Task 11: every existing test above this point unions object-backed
-        // collections only. arr.union — the array-backed path this method
-        // delegates to for array-backed collections — concatenated and
-        // deduplicated VALUES instead of unioning KEYS (a bug Task 7 found
-        // and explicitly deferred, "needs its own probe and task"). Nothing
-        // caught it because no array-backed union test existed here. Fixed
-        // in Task 11; these pin the real `+` semantics, PHP-verified
-        // directly since `+` is a native operator.
+        // Every union test above this point is object-backed, which is why nothing here
+        // caught arr.union concatenating values instead of unioning keys.
         it("unions array-backed collections by key, mirroring PHP's + operator", () => {
             // Every index the right side could fill (0-2) is already
             // occupied by the left, so it contributes nothing.
@@ -3788,9 +3708,9 @@ describe("Collection", () => {
             });
         });
 
-        // X25 — Arr.php:744 casts via (array) $keys, so a bare key and a
-        // null key both work directly, not just spread via varargs. Array-
-        // and object-backed Collections must agree, per the unison rule.
+        // Arr.php:744 casts via (array) $keys, so a bare key and a null key both work
+        // directly, not just spread via varargs. Array- and object-backed Collections
+        // must agree, per the unison rule.
         it("accepts a single key and a null key, either backing", () => {
             expect(collect(["a", "b", "c"]).only(1).all()).toEqual(["b"]);
             expect(collect(["a", "b", "c"]).only(null).all()).toEqual([
@@ -4473,12 +4393,8 @@ describe("Collection", () => {
                 nested: { valid: "data" },
             });
 
-            // Test pulling a first-level key that contains dots — the
-            // literal key must be both retrieved AND removed, not just
-            // retrieved (dataGet already resolved the literal key; pull's
-            // removal step used to re-split on "." and miss it). PHP-verified:
-            // docs/php-parity/task-09-paths.json, "Arr::pull — first-level
-            // key containing dots".
+            // A first-level key containing dots must be both retrieved AND removed;
+            // dataGet already resolved it, but dataForget still had to stop traversing.
             const c8b = collect({
                 "joe@example.com": "Joe",
                 "jane@localhost": "Jane",
@@ -4729,8 +4645,8 @@ describe("Collection", () => {
             });
         });
 
-        // X24 — Arr.php:971 defaults $preserveKeys = false. Array- and
-        // object-backed Collections must agree, per the unison rule.
+        // Arr.php:971 defaults $preserveKeys = false. Array- and object-backed
+        // Collections must agree, per the unison rule.
         it("reindexes from zero by default, either backing", () => {
             const fromArray: Collection<number, number> = collect([
                 10, 20, 30,
@@ -4796,11 +4712,8 @@ describe("Collection", () => {
         });
 
         it("replaces without mutating, either backing", () => {
-            // X9/X10 — Collection.php:1172 ends in newInstance(...), so
-            // neither the array-backed nor the object-backed source
-            // collection's items may change. Array-backed values pinned by
-            // docs/php-parity/task-05-replace.json "replace array does not
-            // mutate"; object-backed by "replace does not mutate".
+            // Collection.php:1172 ends in newInstance(...), so neither the array-backed
+            // nor the object-backed source collection's items may change.
             const fromArray = new Collection([1, 2]);
             const fromObject = new Collection({ a: 1, b: 2 });
             fromArray.replace([9]);
@@ -4810,14 +4723,9 @@ describe("Collection", () => {
         });
 
         it("treats a null replacer as a no-op, either backing", () => {
-            // X11 — review round 2, Important 1: getRawItems(null) always
-            // returns [], so an object-backed collection was being asked
-            // to replace against an array and dataReplace's same-type
-            // guard threw. Fixed by passing null straight through to
-            // dataReplace instead of normalizing it first. Pinned by
-            // docs/php-parity/task-05-replace.json "replace array (null)"
-            // and "replace does not mutate" (obj-backed values match the
-            // source since a null replacer changes nothing).
+            // getRawItems(null) always returns [], so an object-backed collection was
+            // being asked to replace against an array and dataReplace's same-type guard
+            // threw.
             const fromArray = new Collection([1, 2, 3]);
             const fromObject = new Collection({ a: 1, b: 2 });
             expect(fromArray.replace(null).all()).toEqual([1, 2, 3]);
@@ -4864,10 +4772,9 @@ describe("Collection", () => {
         });
 
         it("replaces without mutating, either backing", () => {
-            // X10 — same rationale as replace's "either backing" test
-            // above. Array-backed values pinned by
-            // docs/php-parity/task-05-replace.json "replaceRecursive array
-            // nested"; object-backed by "replaceRecursive nested".
+            // Same rationale as replace's "either backing" test above. Array-backed
+            // values pinned by docs/php-parity/task-05-replace.json "replaceRecursive
+            // array nested"; object-backed by "replaceRecursive nested".
             const fromArray = new Collection([{ x: 1 }, 2]);
             const fromObject = new Collection({ a: { x: 1 }, b: 2 });
             fromArray.replaceRecursive([{ y: 2 }]);
@@ -4877,10 +4784,7 @@ describe("Collection", () => {
         });
 
         it("treats a null replacer as a no-op, either backing", () => {
-            // X11 — same rationale as replace's null pin above. Pinned by
-            // docs/php-parity/task-05-replace.json "replaceRecursive array
-            // (null)" and "replaceRecursive nested" (obj-backed values
-            // match the source since a null replacer changes nothing).
+            // Same rationale as replace's null pin above.
             const fromArray = new Collection([1]);
             const fromObject = new Collection({ a: 1 });
             expect(fromArray.replaceRecursive(null).all()).toEqual([1]);
@@ -5475,12 +5379,9 @@ describe("Collection", () => {
             });
         });
 
-        // Task 4 (X15): a negative offset combined with a length beyond
-        // the remaining tail used to return an empty result instead of
-        // the last N items — PHP-verified
-        // (docs/php-parity/task-04-shared.json, "slice(-2,5)
-        // preserve_keys"). Array- and object-backed Collections must
-        // agree, per the unison rule.
+        // A negative offset combined with a length beyond the remaining tail used to
+        // return an empty result instead of the last N items — PHP-verified
+        // (docs/php-parity/task-04-shared.json, "slice(-2,5) preserve_keys").
         it("slices from the end for a negative offset with a length — both shapes agree", () => {
             const arr = collect([1, 2, 3, 4, 5, 6, 7, 8]);
             expect(arr.slice(-2, 5).all()).toEqual([7, 8]);
@@ -6316,13 +6217,9 @@ describe("Collection", () => {
         });
 
         it("supports the lowercase 'desc'/'asc' string direction forms", () => {
-            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
-            // "Collection::sortBy — string \"desc\" direction sorts
-            // descending". The match arm compares against the enum and
-            // booleans; the plain 'asc'/'desc' strings an untyped caller
-            // is most likely to pass must hit the same arms. Multi-digit
-            // ages on purpose - a single-digit-only fixture hides a
-            // lexicographic ("10" < "9" as strings) bug.
+            // PHP-verified in docs/php-parity/task-10-pluck-sort.json: a string "desc"
+            // direction sorts descending, since the match arm compares against the enum
+            // and booleans and anything else falls through to descending.
             const data = collect([{ age: 2 }, { age: 10 }]);
             const desc = data.sortByMany([["age", "desc"]]);
             expect(desc.values().pluck("age").all()).toEqual([10, 2]);
@@ -6333,10 +6230,8 @@ describe("Collection", () => {
 
         it("falls through an unrecognized direction to descending (default arm)", () => {
             // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
-            // "Collection::sortBy — unrecognized direction sorts
-            // descending (default arm)". Laravel's match has no
-            // catch-all-ascending arm - `default => Descending` is the
-            // literal fallback, "for backwards compatibility".
+            // "Collection::sortBy — unrecognized direction sorts descending (default
+            // arm)".
             const data = collect([{ age: 2 }, { age: 10 }]);
             const sorted = data.sortByMany([
                 ["age", "BOGUS" as unknown as "asc"],
@@ -6346,24 +6241,17 @@ describe("Collection", () => {
 
         it("ignores a global descending flag on sortBy for the array-of-descriptors form", () => {
             // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
-            // "Collection::sortBy — global $descending=true is ignored for
-            // the array-of-descriptors form". sortBy's array branch
-            // discards $descending entirely in Laravel
-            // (Collection.php:1590-1592 never forwards it to
-            // sortByMany) - a direction-less descriptor still defaults to
-            // ascending even when sortBy's own second argument says
-            // descending.
+            // "Collection::sortBy — global $descending=true is ignored for the
+            // array-of-descriptors form".
             const data = collect([{ age: 10 }, { age: 2 }]);
             const sorted = data.sortBy([["age"]], true);
             expect(sorted.values().pluck("age").all()).toEqual([2, 10]);
         });
 
         it("forceDescending overrides a descriptor's own explicit direction, but never a comparator", () => {
-            // Mirrors Collection::sortByDesc rewriting every comparison's
-            // direction slot before sorting (Collection.php:1687-1697):
-            // sortByMany's own `descending` (force) parameter overrides an
-            // explicit per-descriptor direction, unlike a direction-less
-            // descriptor's plain default.
+            // Mirrors Collection::sortByDesc rewriting every comparison's direction slot
+            // before sorting (Collection.php:1687-1697): the force parameter overrides
+            // an explicit per-descriptor direction.
             const data = collect([{ age: 2 }, { age: 10 }]);
             const forced = data.sortByMany([["age", "asc"]], true);
             expect(forced.values().pluck("age").all()).toEqual([10, 2]);
@@ -6376,12 +6264,8 @@ describe("Collection", () => {
         });
 
         it("sortByDesc forces a bare-key array descriptor descending", () => {
-            // Pins the array-form JSDoc example as an executable test:
-            // sortByDesc(['id']) previously relied on sortBy forwarding
-            // its global descending flag into sortByMany as a per-
-            // descriptor fallback; that path is gone (sortBy no longer
-            // forwards `descending` for the array form), so sortByDesc now
-            // forces via sortByMany's own force-descending param directly.
+            // Pins the array-form JSDoc example as an executable test: sortByDesc(['id'])
+            // must sort descending on its own, without sortBy forwarding a global flag.
             const data = collect([{ id: 2 }, { id: 1 }, { id: 10 }]);
             const sorted = data.sortByDesc(["id"]);
             expect(sorted.values().pluck("id").all()).toEqual([10, 2, 1]);
@@ -6498,10 +6382,9 @@ describe("Collection", () => {
         });
 
         it("keeps an object-backed collection object-backed after splice", () => {
-            // X8: Collection.splice used to assign `this.items =
-            // result.value`, and obj.splice's `value` was an array —
-            // silently converting an object-backed Collection to
-            // array-backed and destroying its keys.
+            // Collection.splice used to assign `this.items = result.value`, and
+            // obj.splice's `value` was an array — silently converting an object-backed
+            // Collection to array-backed and destroying its keys.
             const collection = new Collection({ a: 1, b: 2, c: 3 });
             const removed = collection.splice(1, 1);
             expect(Array.isArray(collection.all())).toBe(false);
@@ -6510,9 +6393,8 @@ describe("Collection", () => {
         });
 
         it("splices to the end with a single argument, either backing", () => {
-            // X7: PHP branches on func_num_args() === 1
-            // (Collection.php:1757) — the one-arg form removes offset ->
-            // end for both backings, not nothing.
+            // PHP branches on func_num_args === 1 (Collection.php:1757) — the one-arg
+            // form removes offset -> end for both backings, not nothing.
             const fromArray = new Collection(["f", "z"]);
             const fromObject = new Collection({ foo: "f", baz: "z" });
             expect(fromArray.splice(1).all()).toEqual(["z"]);
@@ -6656,7 +6538,7 @@ describe("Collection", () => {
             });
         });
 
-        it("rebuilds a list from consecutive integer segments starting at 0, through the object backing (decision D3, X26)", () => {
+        it("rebuilds a list from consecutive integer segments starting at 0, through the object backing", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::undot
             // — integer segments rebuild a list".
             const data = collect({
@@ -6845,10 +6727,8 @@ describe("Collection", () => {
         });
 
         it("numbers negative pad slots from zero for object-backed collections", () => {
-            // X17 through the Collection layer — PHP-verified:
-            // array_pad(["a"=>1,"b"=>2], -5, 0) ->
-            // {"0":0,"1":0,"2":0,"a":1,"b":2}
-            // (docs/php-parity/task-07-pad-union.json).
+            // PHP-verified: array_pad(["a"=>1,"b"=>2], -5, 0) ->
+            // {"0":0,"1":0,"2":0,"a":1,"b":2} (docs/php-parity/task-07-pad-union.json).
             const c = collect({ a: 1, b: 2 });
             expect(c.pad(-5, 0).all()).toEqual({
                 0: 0,
@@ -6860,7 +6740,6 @@ describe("Collection", () => {
         });
 
         it("returns a copy even when no padding is needed for object-backed collections", () => {
-            // X18 through the Collection layer.
             const items = { a: 1, b: 2 };
             const c = collect(items);
             expect(c.pad(2, 0).all()).not.toBe(items);
@@ -10215,15 +10094,9 @@ describe("Collection", () => {
         });
     });
 
-    // Collection half of the cross-backing agreement sweep. The row-by-row
-    // sweep over the ported arr/obj/data code lives in data.spec.ts; this
-    // block asserts the Collection layer on top of it stays in step, again
-    // on own key/value PAIRS rather than a value list.
-    //
-    // Four methods here do not call into the data layer at all — unshift,
-    // flatten, mapWithKeys and pull each carry their own implementation on
-    // Collection — so for those this block is the only thing checking them,
-    // and each is pinned against the same PHP value the data-layer row uses.
+    // Collection half of the cross-backing agreement sweep; the row-by-row sweep over
+    // the ported arr/obj/data code lives in data.spec.ts. Four methods here carry their
+    // own implementation, so this block is the only thing checking them.
     describe("cross-backing agreement sweep (plan exit criterion)", () => {
         /** Own key/value pairs — the one view an array and a plain object share. */
         const entriesOf = (value: unknown): [string, unknown][] =>
@@ -10536,10 +10409,9 @@ describe("Collection", () => {
         });
 
         it("pad in both directions, either backing", () => {
-            // collect([10,20,30,40])->pad(6,0) -> [10,20,30,40,0,0];
-            // ->pad(-6,0) -> [0,0,10,20,30,40]. Positive padding used to
-            // overwrite the first two entries on the object backing, which
-            // is why this row now runs both signs.
+            // collect([10,20,30,40])->pad(6,0) -> [10,20,30,40,0,0]; ->pad(-6,0) ->
+            // [0,0,10,20,30,40]. Positive padding used to overwrite the first two
+            // entries on the object backing, which is why this row now runs both signs.
             agree(
                 new Collection(nums()).pad(6, 0).all(),
                 new Collection(numsObj()).pad(6, 0).all(),
@@ -10742,11 +10614,9 @@ describe("Collection", () => {
         });
 
         it("sort and sortDesc, either backing", () => {
-            // sort preserves keys, and JS re-sorts integer keys ascending on
-            // write, so an object whose keys are all integers cannot show a
-            // reorder. Both halves are pinned rather than normalised away;
-            // the string-keyed object is where the object backing can show
-            // it. collect([30,10,20])->sort() iterates 10,20,30.
+            // sort preserves keys, and JS re-sorts integer keys ascending on write, so an
+            // all-integer-keyed object cannot show a reorder. Both halves are pinned; the
+            // string-keyed object is where the object backing can show it.
             expect(
                 entriesOf(new Collection([30, 10, 20]).sort().all()),
             ).toEqual([

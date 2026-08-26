@@ -209,12 +209,8 @@ describe("Arr", () => {
     });
 
     describe("combine", () => {
-        // Task 4 (X19): the previous implementation zipped an arbitrary
-        // number of arrays into an array of `[a[i], b[i]]` tuples, which
-        // never corresponded to `array_combine()` — that test was pinning
-        // a bug. `array_combine(keys, values)` produces a keyed map
-        // instead, PHP-verified against the real
-        // `CollectionTest::testCombineWithArray`:
+        // `array_combine(keys, values)` produces a keyed map instead, PHP-verified
+        // against the real `CollectionTest::testCombineWithArray`:
         // `array_combine([1,2,3],[4,5,6])` -> `[1=>4, 2=>5, 3=>6]`.
         it("combines keys and values into an object", () => {
             expect(Arr.combine([1, 2, 3], [4, 5, 6])).toEqual({
@@ -243,11 +239,9 @@ describe("Arr", () => {
             );
         });
 
-        // Review fix (Important 2): defineKey hardening in combine had no
-        // test — reverting to plain `result[key] = value` failed nothing.
-        // A plain array literal already contains "__proto__" as a normal
-        // element (no JSON.parse trick needed on the keys side, unlike an
-        // object's own keys); the risk is entirely on the write side.
+        // A plain array literal already contains "__proto__" as a normal element (no
+        // JSON.parse trick needed on the keys side, unlike an object's own keys); the
+        // risk is entirely on the write side.
         it("does not reparent the result via a __proto__ key", () => {
             const result = Arr.combine(
                 ["a", "__proto__", "c"],
@@ -257,11 +251,8 @@ describe("Arr", () => {
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
         });
 
-        // Review fix (Minor 6): obj.combine used to resolve function keys
-        // by *calling* them; arr.combine always used plain String(). Ruled
-        // to make both agree on plain String() (neither matches PHP, which
-        // has no function-typed array keys) — pinning the agreed
-        // behaviour here.
+        // obj.combine used to resolve function keys by *calling* them; arr.combine
+        // always used plain String.
         it("stringifies a function key instead of calling it", () => {
             const fn = () => "callback";
             const result = Arr.combine([fn], [1]);
@@ -1032,11 +1023,10 @@ describe("Arr", () => {
             expect(Arr.get(null as unknown as unknown[], 1)).toBeNull();
         });
 
-        it("agrees with has() on Array.prototype keys (X26 regression)", () => {
-            // Arr.get never leaked Array.prototype (it routes through
-            // getMixedValue, unaffected by hasMixed's bug), but Arr.has did
-            // until fixed. Pin both together so a future change can't make
-            // them disagree again.
+        it("agrees with has() on Array.prototype keys", () => {
+            // Arr.get never leaked Array.prototype (it routes through getMixedValue,
+            // unaffected by hasMixed's bug), but Arr.has did until fixed. Pin both
+            // together so a future change can't make them disagree again.
             expect(Arr.get([1, 2], "length")).toBeNull();
             expect(Arr.has([1, 2], "length")).toBe(false);
         });
@@ -1107,14 +1097,10 @@ describe("Arr", () => {
             expect(Arr.has([], [""])).toBe(false);
         });
 
-        it("does not leak Array.prototype through the literal-key fast path (X26 regression)", () => {
-            // hasMixed's literal-key-first check (`keyStr in data`) must not
-            // apply to arrays: `in` climbs the prototype chain, and
-            // Array.prototype owns/inherits "length" and "toString" — keys
-            // no PHP array could ever have. Both must stay false, matching
-            // real PHP (no such Arr::has probe needed: PHP arrays simply
-            // cannot have these keys) and matching Arr.get's null for the
-            // same lookups (see the "get" describe block below).
+        it("does not leak Array.prototype through the literal-key fast path", () => {
+            // hasMixed's literal-key check (`keyStr in data`) must not apply to arrays:
+            // `in` climbs the prototype chain, and Array.prototype owns "length" and
+            // "toString" — keys no PHP array could ever have.
             expect(Arr.has([1, 2], "length")).toBe(false);
             expect(Arr.has([1, 2], "toString")).toBe(false);
         });
@@ -1715,23 +1701,8 @@ describe("Arr", () => {
             ).toEqual([]);
         });
 
-        it("builds real arrays for numeric-only paths (not a decision-D3 pin — see note)", () => {
-            // Correction (Task 9 review, Important 2): this does NOT pin
-            // decision D3. undotExpandArray never calls
-            // promoteConsecutiveIntegerContainers -- it drops any key
-            // whose segments aren't all numeric and otherwise builds real
-            // arrays directly, for every input, regardless of whether the
-            // keys happen to be consecutive from 0. Deleting
-            // promoteConsecutiveIntegerContainers does not fail this test.
-            // It only pins that Arr.undot's numeric-only construction
-            // already yields real nested arrays for this shape of input --
-            // an invariant independent of D3. The actual D3 pin (a
-            // container's own keys being promoted to a list specifically
-            // *because* they are 0..n-1) lives in obj.spec.ts ("Obj >
-            // undot > rebuilds a list...") and path.spec.ts
-            // ("undotExpandObject > rebuilds a list..."), both verified by
-            // reverting promoteConsecutiveIntegerContainers and confirming
-            // they fail.
+        it("builds real arrays for numeric-only paths", () => {
+            // This does NOT pin the shared undot rule.
             expect(
                 Arr.undot({
                     "0.0": "PHP",
@@ -1743,14 +1714,9 @@ describe("Arr", () => {
     });
 
     describe("union", () => {
-        // PHP-verified directly (`+` is a native operator, docs/php-parity
-        // has no dedicated probe for it — Task 11 ran these against real
-        // PHP 8.5): `[1,2] + [2,3]` -> `[1,2]`; `["a","b"] + ["b","c","a"]`
-        // -> `["a","b","a"]`. Before this fix, arr.union concatenated and
-        // deduplicated values instead of unioning keys — a bug found in
-        // Task 7, deferred, and closed out here in Task 11's cross-backing
-        // sweep (Collection.union must agree whether array- or
-        // object-backed, and obj.union already did the real `+` semantics).
+        // PHP-verified directly (`+` is a native operator, docs/php-parity has no
+        // dedicated probe for it — run against real PHP 8.5): `[1,2] + [2,3]` ->
+        // `[1,2]`; `["a","b"] + ["b","c","a"]` -> `["a","b","a"]`.
         it("unions by key, left array wins, mirroring PHP's + operator", () => {
             // Both arrays are length 2, so every index the right side could
             // fill is already occupied by the left — it contributes nothing,
@@ -1776,9 +1742,9 @@ describe("Arr", () => {
         });
 
         it("keeps a left-most null/undefined value over a later real value", () => {
-            // PHP-verified: [null] + [1] -> [null] — presence of the key on
-            // the left wins even when its value is null, exactly like
-            // obj.union's own null/undefined-precedence fix (X20).
+            // PHP-verified: [null] + [1] -> [null] — presence of the key on the left
+            // wins even when its value is null, exactly like obj.union's own
+            // null/undefined-precedence fix.
             expect(Arr.union([undefined], [1])).toEqual([undefined]);
         });
 
@@ -2024,10 +1990,9 @@ describe("Arr", () => {
             expect(Arr.filter({}, () => true)).toEqual([]);
         });
 
-        // Task 4 (X16): array_filter()'s falsy set is narrower than
-        // Boolean() — PHP-verified (docs/php-parity/task-04-shared.json,
-        // "Collection::filter() falsy set"): it drops "0", "", 0, [],
-        // false, null, but keeps "00" and "0.0", and NaN is truthy.
+        // array_filter's falsy set is narrower than Boolean: it drops "0", "", 0, [],
+        // false and null, but keeps "00" and "0.0", and NaN is truthy. PHP-verified in
+        // docs/php-parity/task-04-shared.json.
         it("drops PHP-falsy values including the string zero", () => {
             expect(Arr.filter(["0", "", 0, "x"])).toEqual(["x"]);
         });
@@ -2040,13 +2005,8 @@ describe("Arr", () => {
             expect(Arr.filter([NaN, 0, 1])).toEqual([NaN, 1]);
         });
 
-        // Review fix (Minor 4): the full 9-value probe set, pinned once —
-        // PHP-verified (docs/php-parity/task-04-shared.json,
-        // "Collection::filter() falsy set"):
-        // (new Collection(['a'=>'0','b'=>'','c'=>0,'d'=>[],'e'=>false,
-        // 'f'=>null,'g'=>'x','h'=>'00','i'=>'0.0']))->filter()->all()
-        // -> {g:'x', h:'00', i:'0.0'}. Array-shaped here (positional,
-        // same value order).
+        // The full nine-value probe set from docs/php-parity/task-04-shared.json,
+        // pinned once: only 'x', '00' and '0.0' survive filter().
         it("matches the full probed falsy set", () => {
             expect(
                 Arr.filter(["0", "", 0, [], false, null, "x", "00", "0.0"]),
@@ -2142,12 +2102,9 @@ describe("Arr", () => {
             });
         });
 
-        // X9/X11 pair pins — arr already matches Collection.php:1172
-        // (newInstance(array_replace(...))) and getArrayableItems(null) ->
-        // [] (EnumeratesValues.php:1106). obj was fixed to match in this
-        // task; these lock arr's side of the pair so it cannot drift back.
-        // Values pinned by docs/php-parity/task-05-replace.json "replace
-        // array does not mutate" and "replace array (null)".
+        // arr already matches Collection.php:1172 (newInstance(array_replace(...))) and
+        // getArrayableItems(null) -> [] (EnumeratesValues.php:1106). obj was fixed to
+        // match here; these lock arr's side of the pair so it cannot drift back.
         it("does not mutate its argument", () => {
             const data = [1, 2];
             Arr.replace(data, [9]);
@@ -2227,18 +2184,13 @@ describe("Arr", () => {
             expect(result[5]).toBe("z");
         });
 
-        // X10/X11 pair pins — same rationale as the "replace" pins above.
-        // Values pinned by docs/php-parity/task-05-replace.json
-        // "replaceRecursive array nested" and "replaceRecursive array
-        // (null)".
+        // Same rationale as the "replace" pins above. Values pinned by
+        // docs/php-parity/task-05-replace.json "replaceRecursive array nested" and
+        // "replaceRecursive array (null)".
         it("does not mutate its argument, including a nested object embedded in an array", () => {
-            // The nested-object shape matters here specifically:
-            // arr.replaceRecursive delegates nested-object merges to
-            // obj.replaceRecursive (see the objReplaceRecursive import at
-            // the top of this file). Before this task's obj-side fix, that
-            // delegation mutated the nested object in place even though
-            // arr's own top-level array was already a fresh copy — the
-            // array reference changed but the object inside it did not.
+            // The nested-object shape matters here specifically: arr.replaceRecursive
+            // delegates nested-object merges to obj.replaceRecursive (see the
+            // objReplaceRecursive import at the top of this file).
             const nested = [{ x: 1 }, 2];
             Arr.replaceRecursive(nested, [{ y: 2 }]);
             expect(nested).toEqual([{ x: 1 }, 2]);
@@ -2513,11 +2465,8 @@ describe("Arr", () => {
         });
 
         it("compares values only — the position holding the value on other is irrelevant", () => {
-            // arr.diff was already correct going into Task 6 (unlike obj's,
-            // which implemented array_diff_assoc). Pinned here so it can't
-            // drift from obj.diff's now-fixed value-only semantics — the
-            // value 20 lives at index 0 on the left and index 1 on `other`,
-            // and still counts as a match.
+            // arr.diff was already correct before this change (unlike obj's, which
+            // implemented array_diff_assoc).
             expect(Arr.diff([20, 1], [99, 20])).toEqual([1]);
         });
     });
@@ -2544,11 +2493,8 @@ describe("Arr", () => {
         });
 
         it("compares values only — the position holding the value on other is irrelevant", () => {
-            // arr.intersect was already correct going into Task 6 (unlike
-            // obj's, which implemented array_intersect_assoc). Pinned here
-            // so it can't drift from obj.intersect's now-fixed value-only
-            // semantics — the value 20 lives at index 1 on the left and
-            // index 0 on `other`, and still counts as a match.
+            // arr.intersect was already correct before this change (unlike obj's, which
+            // implemented array_intersect_assoc).
             expect(Arr.intersect([1, 20], [20, 99])).toEqual([20]);
         });
     });
@@ -2771,12 +2717,9 @@ describe("Arr", () => {
         });
 
         it('casts a boolean key to int, not the string "true"/"false"', () => {
-            // Review round 1, Minor 7: this test previously asserted a
-            // *JS-native* coercion quirk (String(true/false) used as an
-            // object key) rather than PHP's actual behaviour. PHP casts a
-            // boolean array key to int (true -> 1, false -> 0).
-            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
-            // "Arr::pluck — boolean key casts to int, not string".
+            // PHP casts a boolean array key to int (true -> 1, false -> 0).
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json, "Arr::pluck —
+            // boolean key casts to int, not string".
             const data = [
                 { value: "a", key: true },
                 { value: "b", key: false },
@@ -2884,12 +2827,8 @@ describe("Arr", () => {
         });
 
         it("expands a wildcard over a plain-object-shaped (associative) target", () => {
-            // Review round 1, Critical 1: data_get()'s "*" arm gates on
-            // is_iterable(), true for a PHP associative array regardless
-            // of whether it prints as a JS array or plain object.
-            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
-            // "Arr::pluck wildcard over an associative (object-shaped)
-            // target, list outer" -> [[1,2]].
+            // data_get's "*" arm gates on is_iterable, true for a PHP associative array
+            // regardless of whether it prints as a JS array or plain object.
             const shape = { meta: { x: { v: 1 }, y: { v: 2 } } };
 
             expect(Arr.pluck([shape], "meta.*.v")).toEqual([[1, 2]]);
@@ -3040,10 +2979,8 @@ describe("Arr", () => {
         });
 
         it("returns an empty array when popping more than one item from an empty array", () => {
-            // Collection::pop($count) returns newInstance() (empty) once
-            // isEmpty() is true and count !== 1 — not null. Matches
-            // Arr.pop([], 5) against the captured Collection::pop ground
-            // truth: an empty source with a multi-item count pops nothing.
+            // Collection::pop($count) returns newInstance (empty) once isEmpty is true
+            // and count !== 1 — not null.
             expect(Arr.pop([], 5)).toEqual([]);
         });
     });
@@ -3434,12 +3371,8 @@ describe("Arr", () => {
                 "foo=bar&bar=baz",
             );
 
-            // PHP's http_build_query casts true to "1" and false to "0"
-            // (verified directly against http_build_query, not just
-            // Arr::query, and captured at
-            // docs/php-parity/task-08-arr-parity.json — this commit
-            // corrects a wrong PHP-equivalence claim from 33b2197, which
-            // asserted "" for false without ever probing it).
+            // PHP's http_build_query casts true to "1" and false to "0", captured in
+            // docs/php-parity/task-08-arr-parity.json.
             expect(Arr.query({ foo: "bar", bar: true })).toBe("foo=bar&bar=1");
             expect(Arr.query({ foo: "bar", bar: false })).toBe("foo=bar&bar=0");
 
@@ -3544,12 +3477,9 @@ describe("Arr", () => {
             expect(Arr.slice(undefined, -6, -2)).toEqual([]);
         });
 
-        // Task 4 (X15): a negative offset combined with a length beyond the
-        // array's remaining tail used to return `[]` instead of the last N
-        // items — PHP-verified (docs/php-parity/task-04-shared.json,
-        // "slice(-2,5) preserve_keys" / "slice(-2,2) preserve_keys"):
-        // array_slice($a, -2, 5, true) and array_slice($a, -2, 2, true)
-        // both leave only the last two entries.
+        // array_slice($a, -2, 5, true) and array_slice($a, -2, 2, true) both leave the
+        // last two entries; a length beyond the remaining tail is not an empty result.
+        // PHP-verified in docs/php-parity/task-04-shared.json.
         it("slices from the end for a negative offset with a length", () => {
             const data = [1, 2, 3, 4, 5, 6, 7, 8];
             expect(Arr.slice(data, -2, 5)).toEqual([7, 8]);
@@ -3561,12 +3491,9 @@ describe("Arr", () => {
             expect(Arr.slice([1, 2, 3], 1, 0)).toEqual([]);
         });
 
-        // Review fix (Important 3): no test exercised an offset more
-        // negative than the container, so dropping the
-        // `Math.max(len + offset, 0)` clamp would have silently regressed
-        // to `[]` without failing anything. PHP-verified:
-        // array_slice([1,2,3], -10, 2, true) -> [1,2] (clamps to 0);
-        // array_slice([1,2,3], 10, 2, true) -> [] (offset beyond length).
+        // No test exercised an offset more negative than the container, so dropping the
+        // `Math.max(len + offset, 0)` clamp would have silently regressed to `[]`
+        // without failing anything.
         it("clamps an offset more negative than the container to the start", () => {
             expect(Arr.slice([1, 2, 3], -10, 2)).toEqual([1, 2]);
         });
@@ -3665,10 +3592,9 @@ describe("Arr", () => {
             expect(Arr.shift(data)).toBe("Taylor");
             expect(data).toEqual(["Otwell"]);
 
-            // An explicit `undefined` hole is returned directly, like any
-            // other value — PHP has no concept of a hole, so array_shift
-            // wouldn't skip it either. Matches obj.shift, which never
-            // special-cases undefined.
+            // An explicit `undefined` hole is returned directly, like any other value —
+            // PHP has no concept of a hole, so array_shift wouldn't skip it either.
+            // Matches obj.shift, which never special-cases undefined.
             data.unshift(undefined!);
             expect(Arr.shift(data)).toBeUndefined();
             expect(data).toEqual(["Otwell"]);
@@ -3898,13 +3824,9 @@ describe("Arr", () => {
         });
 
         it("defaults an omitted direction to ascending, not descending", () => {
-            // Review round 1, Critical fix: this function previously
-            // destructured a 1-element tuple's direction as `undefined`
-            // and read that as "not ascending," sorting descending - the
-            // opposite of Laravel. PHP-verified:
-            // docs/php-parity/task-10-pluck-sort.json, "direction tuple
-            // [age] — omitted defaults to ascending". Multi-digit ages on
-            // purpose (see the numeric-comparison test above).
+            // This function previously destructured a 1-element tuple's direction as
+            // `undefined` and read that as "not ascending," sorting descending - the
+            // opposite of Laravel.
             expect(Arr.sort([{ age: 10 }, { age: 2 }], [["age"]])).toEqual([
                 { age: 2 },
                 { age: 10 },
@@ -3973,13 +3895,7 @@ describe("Arr", () => {
         });
 
         it("preserves insertion order for an empty spec array", () => {
-            // Review round 1, Important 3: this test previously asserted
-            // a natural-value sort for an empty descriptor array, but
-            // Collection::sortByMany([]) is a true no-op in PHP - uasort's
-            // comparator closure has an empty foreach body, so it falls
-            // off the end and implicitly returns null (coerced to 0 for
-            // every pair), leaving insertion order untouched. PHP-verified:
-            // docs/php-parity/task-10-pluck-sort.json, "Arr::sort — empty
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json, "Arr::sort — empty
             // descriptor array preserves insertion order".
             expect(Arr.sort([3, 1, 2], [])).toEqual([3, 1, 2]);
         });
@@ -4309,11 +4225,8 @@ describe("Arr", () => {
         });
 
         it("PHP-casts non-string values at numeric keys instead of dropping them", () => {
-            // Task 8 review round 1 — Arr::toCssClasses pushes $constraint
-            // raw into the array before implode(), which casts null -> "",
-            // true -> "1", numbers via their decimal string. Captured:
-            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses
-            // non-string value at numeric key") -> "123  1".
+            // Arr::toCssClasses pushes $constraint raw into the array before implode,
+            // which casts null -> "", true -> "1", numbers via their decimal string.
             expect(Arr.toCssClasses([123, null, undefined, true])).toBe(
                 "123   1",
             );
@@ -4327,13 +4240,10 @@ describe("Arr", () => {
             expect(Arr.toCssClasses([false, "x"])).toBe(" x");
         });
 
-        it("emits the value for numeric keys and the key for truthy string keys in one mixed array (Task 8 pin)", () => {
+        it("emits the value for numeric keys and the key for truthy string keys in one mixed array", () => {
             // arr was already correct here; pinned against
-            // docs/php-parity/task-08-arr-parity.json
-            // ("Arr::toCssClasses mixed keys") so obj's Task 8 fix can't
-            // drift from it. Array with both positional and named string
-            // props, matching Arr::toCssClasses(['font-bold', 'mt-4',
-            // 'ml-2' => true, 'mr-2' => false]).
+            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses mixed keys")
+            // so obj's fix can't drift from it.
             const mixed: unknown[] & { "ml-2"?: boolean; "mr-2"?: boolean } = [
                 "font-bold",
                 "mt-4",
@@ -4344,10 +4254,7 @@ describe("Arr", () => {
         });
 
         it("uses PHP's is_numeric for the key check, not Number()/isNaN", () => {
-            // Task 8 review round 1 (escalated to Important) — a prior
-            // round used `!isNaN(Number(key))`, which disagrees with PHP
-            // on hex, blank, and "Infinity"-style keys. Captured:
-            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses
+            // Captured: docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses
             // with is_numeric edge-case keys").
             expect(Arr.toCssClasses({ "": "foo" })).toBe("");
             expect(Arr.toCssClasses({ " ": "foo" })).toBe(" ");
@@ -4409,10 +4316,9 @@ describe("Arr", () => {
         });
 
         it("PHP-casts non-string values at numeric keys instead of dropping them", () => {
-            // Task 8 review round 1 — same PHP-cast as toCssClasses, then
-            // each pushed value is finished with a semicolon. Captured:
-            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssStyles
-            // non-string value at numeric key") -> "123; ; ; 1;".
+            // Same PHP-cast as toCssClasses, then each pushed value is finished with a
+            // semicolon. Captured: docs/php-parity/task-08-arr-parity.json
+            // ("Arr::toCssStyles non-string value at numeric key") -> "123;;; 1;".
             expect(Arr.toCssStyles([123, null, undefined, true])).toBe(
                 "123; ; ; 1;",
             );
@@ -4425,11 +4331,10 @@ describe("Arr", () => {
             expect(Arr.toCssStyles([false, "x"])).toBe("; x;");
         });
 
-        it("emits the value for numeric keys and the key for truthy string keys in one mixed array (Task 8 pin)", () => {
+        it("emits the value for numeric keys and the key for truthy string keys in one mixed array", () => {
             // arr was already correct here; pinned against
-            // docs/php-parity/task-08-arr-parity.json
-            // ("Arr::toCssStyles mixed keys") so obj's Task 8 fix can't
-            // drift from it.
+            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssStyles mixed keys")
+            // so obj's fix can't drift from it.
             const mixed: unknown[] & {
                 "margin-left: 2px;"?: boolean;
                 "margin-right: 2px"?: boolean;
@@ -4442,9 +4347,8 @@ describe("Arr", () => {
         });
 
         it("uses PHP's is_numeric for the key check, not Number()/isNaN", () => {
-            // Task 8 review round 1 (escalated to Important). Captured:
-            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssStyles
-            // with is_numeric edge-case keys").
+            // Review round 1. Captured: docs/php-parity/task-08-arr-parity.json
+            // ("Arr::toCssStyles with is_numeric edge-case keys").
             expect(Arr.toCssStyles({ "": "foo" })).toBe(";");
             expect(Arr.toCssStyles({ " ": "foo" })).toBe(" ;");
             expect(Arr.toCssStyles({ "0x10": "foo" })).toBe("0x10;");
@@ -4646,8 +4550,8 @@ describe("Arr", () => {
 
     describe("splice", () => {
         it("mutates the array in place and returns the removed elements", () => {
-            // X6/X7: splice mutates and returns only what was removed;
-            // omitting length removes everything from offset to the end.
+            // Splice mutates and returns only what was removed; omitting length removes
+            // everything from offset to the end.
             let data = ["foo", "baz"];
             expect(Arr.splice(data, 1)).toEqual(["baz"]);
             expect(data).toEqual(["foo"]);
