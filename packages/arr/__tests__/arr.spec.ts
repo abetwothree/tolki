@@ -208,6 +208,18 @@ describe("Arr", () => {
                 d: 4,
             });
         });
+
+        it("does not reparent the result via a __proto__ entry (Object.assign is not sanctioned)", () => {
+            // JSON.parse produces a real own enumerable "__proto__" key (a literal
+            // `{ __proto__:... }` would set the prototype instead and never reach this code).
+            const hostile = JSON.parse(
+                '{"a":1,"__proto__":{"polluted":true},"c":3}',
+            );
+            const result = Arr.collapse([hostile]);
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect((result as { polluted?: boolean }).polluted).toBeUndefined();
+        });
     });
 
     describe("combine", () => {
@@ -932,6 +944,18 @@ describe("Arr", () => {
             ).toEqual(["a", "b"]);
 
             expect(Arr.from([1, 2][Symbol.iterator]())).toEqual([1, 2]);
+        });
+
+        it("keeps a Map's __proto__ key as data instead of reparenting the result", () => {
+            const hostile = new Map<string, unknown>([
+                ["a", 1],
+                ["__proto__", { polluted: true }],
+                ["c", 3],
+            ]);
+            const result = Arr.from(hostile) as { polluted?: boolean };
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(result.polluted).toBeUndefined();
         });
     });
 
@@ -2406,6 +2430,17 @@ describe("Arr", () => {
             ];
             expect(Arr.select(objects, null)).toEqual([{}, {}]);
         });
+
+        it("keeps a __proto__ column as data instead of reparenting the item", () => {
+            const hostile = JSON.parse('{"a":1,"__proto__":{"polluted":true}}');
+            const results = Arr.select([hostile], ["a", "__proto__"]) as {
+                polluted?: boolean;
+            }[];
+            const result = results[0];
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(result?.polluted).toBeUndefined();
+        });
     });
 
     describe("wrap", () => {
@@ -2969,6 +3004,16 @@ describe("Arr", () => {
             ];
             expect(Arr.pluck(data, "user.name")).toEqual(["Taylor", null]);
         });
+
+        it("keeps a __proto__ result key as data instead of reparenting the object", () => {
+            const data = [{ flag: { polluted: true } }];
+            const result = Arr.pluck(data, "flag", () => "__proto__") as {
+                polluted?: boolean;
+            };
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(result.polluted).toBeUndefined();
+        });
     });
 
     describe("pop", () => {
@@ -3098,6 +3143,16 @@ describe("Arr", () => {
             // @ts-expect-error - symbols cannot index Record<string, TValue>
             expect(result[sym]).toEqual({ id: 1, name: "foo" });
         });
+
+        it("keeps __proto__ as data instead of reparenting the result", () => {
+            const item = { polluted: true };
+            const result = Arr.keyBy([item], () => "__proto__") as {
+                polluted?: boolean;
+            };
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(result.polluted).toBeUndefined();
+        });
     });
 
     describe("mapWithKeys", () => {
@@ -3169,6 +3224,17 @@ describe("Arr", () => {
             expect(
                 Arr.mapWithKeys("abc", (value) => ({ [String(value)]: value })),
             ).toEqual({});
+        });
+
+        it("keeps a __proto__ key as data instead of reparenting the result", () => {
+            // A computed property name (as opposed to a literal `__proto__: v`)
+            // creates a genuine own enumerable key instead of setting the prototype.
+            const result = Arr.mapWithKeys([{ polluted: true }], (v) => ({
+                ["__proto__"]: v,
+            })) as { polluted?: boolean };
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(result.polluted).toBeUndefined();
         });
     });
 
@@ -4500,6 +4566,18 @@ describe("Arr", () => {
             expect(Arr.sortRecursive("string")).toEqual("string");
             expect(Arr.sortRecursive(true)).toEqual(true);
             expect(Arr.sortRecursive(false)).toEqual(false);
+        });
+
+        it("does not reparent the result via a __proto__ entry (object input)", () => {
+            // JSON.parse produces a real own enumerable "__proto__" key (a literal
+            // `{ __proto__:... }` would set the prototype instead and never reach this code).
+            const hostile = JSON.parse(
+                '{"a":1,"__proto__":{"polluted":true},"c":3}',
+            );
+            const result = Arr.sortRecursive(hostile) as { polluted?: boolean };
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(result.polluted).toBeUndefined();
         });
     });
 

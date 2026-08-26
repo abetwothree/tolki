@@ -296,7 +296,11 @@ export function collapse<TValue extends ArrayItems<unknown>>(
         const result: Record<string, unknown> = {};
         for (const item of data) {
             if (isObject(item) && !isArray(item)) {
-                Object.assign(result, item);
+                // Object.assign uses [[Set]] like a plain bracket assignment
+                // would, so it is exposed to the same __proto__ setter risk.
+                for (const [key, value] of Object.entries(item)) {
+                    defineKey(result, key, value);
+                }
             }
         }
         return result;
@@ -1204,7 +1208,7 @@ export function from(items: unknown): unknown {
         const out: Record<string, unknown> = {};
 
         for (const [k, v] of items as Map<PropertyKey, unknown>) {
-            out[String(k)] = v;
+            defineKey(out, String(k), v);
         }
 
         return out;
@@ -1698,7 +1702,7 @@ export function keyBy<TValue extends Record<string, unknown>>(
             key = stringifyKey(keyValue);
         }
 
-        results[key] = item;
+        defineKey(results as Record<string, TValue>, key as string, item);
     }
 
     return results;
@@ -1869,7 +1873,11 @@ export function select<TValue extends Record<string, unknown>>(
                 !isUndefined(key) &&
                 key in typedItem
             ) {
-                result[key] = (typedItem as Record<string, unknown>)[key];
+                defineKey(
+                    result,
+                    key as string,
+                    (typedItem as Record<string, unknown>)[key],
+                );
             }
         }
 
@@ -2089,9 +2097,11 @@ export function pluck<TValue extends Record<string, unknown>>(
         } else {
             // PHP casts a null array key to "" — a key path that resolves
             // to null/undefined files the value under "", not "undefined".
-            (results as Record<string | number, unknown>)[
-                isUndefined(itemKey) ? "" : itemKey
-            ] = itemValue;
+            defineKey(
+                results as Record<string, unknown>,
+                String(isUndefined(itemKey) ? "" : itemKey),
+                itemValue,
+            );
         }
     }
 
@@ -2245,7 +2255,11 @@ export function mapWithKeys<
 
         // Merge all key/value pairs from the returned object
         for (const [mapKey, mapValue] of Object.entries(mappedObject)) {
-            result[mapKey as TMapWithKeysKey] = mapValue as TMapWithKeysValue;
+            defineKey(
+                result as Record<string, TMapWithKeysValue>,
+                mapKey,
+                mapValue as TMapWithKeysValue,
+            );
         }
     }
 
@@ -2369,6 +2383,8 @@ export function prepend<TValue>(
     if (!isUndefined(key)) {
         // When key is provided, we need to create a new array with the key-value pair at the beginning
         // This mimics PHP's behavior where ['key' => 'value'] + $array works
+        // `key` is a `number` here, like every other bare numeric-index write in this file
+        // (loop counters, parseInt'd indices): a number can never stringify to "__proto__".
         const result: TValue[] = [];
         result[key] = value;
         return result.concat(values);
@@ -3287,7 +3303,7 @@ export function sortRecursive<TValue>(
         // Recursively sort nested values first
         for (const [key, value] of entries) {
             if (isArray(value) || (isObject(value) && !isNull(value))) {
-                result[key] = sortRecursive(value, isDesc);
+                defineKey(result, key, sortRecursive(value, isDesc));
             }
         }
 
@@ -3300,7 +3316,7 @@ export function sortRecursive<TValue>(
         // Rebuild object with sorted keys
         const sortedResult: Record<string, unknown> = {};
         for (const [key] of sortedEntries) {
-            sortedResult[key] = result[key];
+            defineKey(sortedResult, key, result[key]);
         }
         result = sortedResult;
     }
