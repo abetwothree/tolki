@@ -253,6 +253,316 @@
                     null
                 ]
             }
+        },
+        {
+            "label": "sort orders falsy values by value, not by falsiness",
+            "php": "asort([-1,0,5])",
+            "value": {
+                "natural": {
+                    "a": -1,
+                    "b": 0,
+                    "c": 5
+                },
+                "arr_sort": [
+                    -1,
+                    0,
+                    5
+                ],
+                "collection_sortby_null": {
+                    "a": -1,
+                    "b": 0,
+                    "c": 5
+                },
+                "sortdesc_values": [
+                    3,
+                    2,
+                    1
+                ],
+                "reverse_values": [
+                    2,
+                    1,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "sort by a string field orders falsy field values by value",
+            "php": "Arr::sort($u, \"n\")",
+            "value": {
+                "arr_sort_field": {
+                    "a": {
+                        "n": -1
+                    },
+                    "b": {
+                        "n": 0
+                    },
+                    "c": {
+                        "n": 5
+                    }
+                },
+                "collection_sortby_field": {
+                    "a": {
+                        "n": -1
+                    },
+                    "b": {
+                        "n": 0
+                    },
+                    "c": {
+                        "n": 5
+                    }
+                }
+            }
+        },
+        {
+            "label": "sort/sortDesc/reverse preserve integer keys and their order",
+            "php": "asort/arsort/array_reverse on [0=>3,1=>1,2=>2]",
+            "value": {
+                "sort_all": {
+                    "1": 1,
+                    "2": 2,
+                    "0": 3
+                },
+                "sort_values": [
+                    1,
+                    2,
+                    3
+                ],
+                "sortdesc_all": {
+                    "0": 3,
+                    "2": 2,
+                    "1": 1
+                },
+                "sortdesc_values": [
+                    3,
+                    2,
+                    1
+                ],
+                "reverse_all": {
+                    "2": 2,
+                    "1": 1,
+                    "0": 3
+                },
+                "reverse_values": [
+                    2,
+                    1,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "sortBy/sortByDesc: all() and values() agree on order",
+            "php": "sortBy/sortByDesc over [0=>3,1=>1,2=>2]",
+            "value": {
+                "sortby_all": {
+                    "1": {
+                        "v": 1
+                    },
+                    "2": {
+                        "v": 2
+                    },
+                    "0": {
+                        "v": 3
+                    }
+                },
+                "sortby_values": [
+                    {
+                        "v": 1
+                    },
+                    {
+                        "v": 2
+                    },
+                    {
+                        "v": 3
+                    }
+                ],
+                "sortbydesc_all": {
+                    "0": {
+                        "v": 3
+                    },
+                    "2": {
+                        "v": 2
+                    },
+                    "1": {
+                        "v": 1
+                    }
+                },
+                "sortbydesc_values": [
+                    {
+                        "v": 3
+                    },
+                    {
+                        "v": 2
+                    },
+                    {
+                        "v": 1
+                    }
+                ],
+                "sortbymany_values": [
+                    {
+                        "v": 1
+                    },
+                    {
+                        "v": 2
+                    },
+                    {
+                        "v": 3
+                    }
+                ]
+            }
+        },
+        {
+            "label": "negative integer keys under the sort/reverse family",
+            "php": "array_reverse/asort with negative keys",
+            "value": {
+                "reverse_negative_keys": {
+                    "x": "c",
+                    "-2": "b",
+                    "-1": "a"
+                },
+                "asort_negative_keys": {
+                    "-2": "a",
+                    "-1": "b",
+                    "x": "c"
+                },
+                "unshift_renumbers_negative": {
+                    "0": 9,
+                    "1": "a",
+                    "x": "b"
+                }
+            }
+        },
+        {
+            "label": "asort over PHP-falsy mixed values",
+            "php": "asort([0, null, false, []])",
+            "value": {
+                "falsy_keys": [
+                    "a",
+                    "b",
+                    "d",
+                    "e"
+                ],
+                "arsort_falsy_values": {
+                    "c": 5,
+                    "b": 0,
+                    "a": -1
+                },
+                "null_vs_zero": [
+                    0,
+                    0
+                ],
+                "false_vs_zero": [
+                    0,
+                    0
+                ],
+                "empty_array_vs_zero": [
+                    1,
+                    -1
+                ],
+                "null_vs_empty_array": [
+                    0,
+                    0
+                ],
+                "empty_array_vs_one": [
+                    1,
+                    -1
+                ]
+            }
+        },
+        {
+            "label": "Collection::sort \u2014 a string callback is a sort flag, not a field path",
+            "php": "sort(\"\"), sort(\"0\"), sort(\"age\")",
+            "value": {
+                "empty_string": {
+                    "threw": "TypeError",
+                    "message": "asort(): Argument #2 ($flags) must be of type int, string given"
+                },
+                "zero_string": {
+                    "b": 1,
+                    "c": 2,
+                    "a": 3
+                },
+                "non_callable_string": {
+                    "threw": "TypeError",
+                    "message": "asort(): Argument #2 ($flags) must be of type int, string given"
+                },
+                "is_callable_age": false
+            }
+        },
+        {
+            "label": "Collection::mode \u2014 the inner sort before keys() is a no-op",
+            "php": "mode() and its filtered-then-sorted keys",
+            "value": {
+                "mode_single": [
+                    4
+                ],
+                "mode_tie": [
+                    1,
+                    2
+                ],
+                "mode_assoc_tie": [
+                    1,
+                    2
+                ],
+                "filtered_keys": [
+                    1,
+                    2
+                ],
+                "filtered_sorted_keys": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "sortBy/sortByMany over an integer-keyed backing",
+            "php": "sortBy(fn), sortBy([[key]]), sortBy([comparator])",
+            "value": {
+                "words_all": {
+                    "1": "dayle",
+                    "0": "taylor"
+                },
+                "words_values": [
+                    "dayle",
+                    "taylor"
+                ],
+                "records_all": {
+                    "1": {
+                        "sort": 1
+                    },
+                    "0": {
+                        "sort": 2
+                    }
+                },
+                "records_values": [
+                    {
+                        "sort": 1
+                    },
+                    {
+                        "sort": 2
+                    }
+                ],
+                "imgs_plucked": [
+                    "img1",
+                    "img10",
+                    "img101",
+                    "img11"
+                ],
+                "vals_plucked": [
+                    5,
+                    10,
+                    20
+                ],
+                "nums_all": {
+                    "1": 1,
+                    "2": 2,
+                    "0": 3
+                },
+                "nums_values": [
+                    1,
+                    2,
+                    3
+                ]
+            }
         }
     ]
 }
