@@ -588,6 +588,13 @@ describe("Obj", () => {
                 Obj.unshift({ 0: "keep", 1: "also" }, { 0: "zero" }),
             ).toEqual({ 0: "zero", 1: "keep", 2: "also" });
         });
+
+        it("keeps a negative-string key as-is instead of renumbering it", () => {
+            // "-1" isn't a canonical JS array index (see the same case under
+            // splice), so it's left alone rather than renumbered.
+            const result = Obj.unshift({ "-1": "x", b: "y" }, 9);
+            expect(result).toEqual({ 0: 9, "-1": "x", b: "y" });
+        });
     });
 
     describe("except", () => {
@@ -2780,6 +2787,15 @@ describe("Obj", () => {
                 ["1", 40],
             ]);
         });
+
+        it("keeps a negative-string key as-is when reindexing the survivors", () => {
+            // "-1" isn't a canonical JS array index (see the same case under
+            // splice), so it survives instead of being swept into the renumbering.
+            const data: Record<string, string> = { b: "y", "-1": "x", c: "z" };
+
+            expect(Obj.shift(data)).toBe("y");
+            expect(data).toEqual({ "-1": "x", c: "z" });
+        });
     });
 
     describe("push", () => {
@@ -3642,6 +3658,48 @@ describe("Obj", () => {
             expect(obj).toEqual({ 0: "n2", x: "s" });
         });
 
+        it("keeps a negative-string key as-is instead of renumbering it", () => {
+            // "-1" isn't a canonical JS array index, so our grammar leaves it alone —
+            // unlike PHP, which casts "-1" to int(-1) and array_splice renumbers it too.
+            const obj: Record<string, string> = { "-1": "x", b: "y", c: "z" };
+            const removed = Obj.splice(obj, 1, 1);
+            expect(removed).toEqual({ b: "y" });
+            expect(obj).toEqual({ "-1": "x", c: "z" });
+        });
+
+        it("classifies keys by the array-index grammar, not by Number()'s notion of numeric", () => {
+            // "0"/"1"/"42" are canonical indices and reindex; none of the rest are
+            // (leading zero, sign, fraction, exponent, whitespace, hex, or empty).
+            const obj: Record<string, string> = {
+                "0": "A",
+                "1": "B",
+                "42": "C",
+                "-1": "D",
+                "1.5": "E",
+                "01": "F",
+                "": "G",
+                " ": "H",
+                "1e3": "I",
+                "0x10": "J",
+                Infinity: "K",
+            };
+            const removed = Obj.splice(obj, 0, 0);
+            expect(removed).toEqual({});
+            expect(obj).toEqual({
+                "0": "A",
+                "1": "B",
+                "2": "C",
+                "-1": "D",
+                "1.5": "E",
+                "01": "F",
+                "": "G",
+                " ": "H",
+                "1e3": "I",
+                "0x10": "J",
+                Infinity: "K",
+            });
+        });
+
         it("splices a scalar replacement in as one element", () => {
             // array_splice([10,20,30,40],1,2,99) leaves [10,99,40];
             // Object.entries(99) is empty, so the value used to vanish.
@@ -4041,6 +4099,16 @@ describe("Obj", () => {
                 9: "b",
             });
         });
+
+        it("keeps a negative-string key as-is instead of folding it into the pad sequence", () => {
+            // "-1" isn't a canonical JS array index (see the same case under
+            // splice), so it never joins the integer sequence pad slots are numbered against.
+            expect(Obj.pad({ "-1": "x", b: "y" }, 3, "p")).toEqual({
+                "-1": "x",
+                b: "y",
+                "0": "p",
+            });
+        });
     });
 
     describe("replaceRecursive", () => {
@@ -4145,6 +4213,13 @@ describe("Obj", () => {
             const result = Obj.reverse({ 0: "a", x: 1, 1: "b" });
 
             expect(result).toEqual({ 0: "b", 1: "a", x: 1 });
+        });
+
+        it("keeps a negative-string key as-is instead of renumbering it", () => {
+            // "-1" isn't a canonical JS array index (see the same case under
+            // splice), so it's left alone rather than renumbered.
+            const result = Obj.reverse({ "-1": "x", b: "y", c: "z" });
+            expect(result).toEqual({ c: "z", b: "y", "-1": "x" });
         });
     });
 

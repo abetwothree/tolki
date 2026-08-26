@@ -1408,6 +1408,13 @@ describe("Collection", () => {
                 ]);
             });
 
+            it("test flatten with depth 0 flattens fully, not a no-op", () => {
+                // PHP: Arr::flatten($a, 0) never hits the depth===1 base case, so it
+                // recurses to depth -1, -2, ... and fully flattens, same as Infinity.
+                const c = collect([1, [2, [3]]]);
+                expect(c.flatten(0).all()).toEqual([1, 2, 3]);
+            });
+
             it("test flatten ignores keys", () => {
                 // No depth ignores keys
                 const c = collect([
@@ -4220,6 +4227,13 @@ describe("Collection", () => {
                 a: "value",
             });
         });
+
+        it("mutates the original array in place (array backing aliases the caller's array)", () => {
+            const original = [2, 3];
+            const c = new Collection(original);
+            c.unshift(1);
+            expect(original).toEqual([1, 2, 3]);
+        });
     });
 
     describe("concat", () => {
@@ -5837,6 +5851,34 @@ describe("Collection", () => {
                 const data4 = collect(["T2", "T1", "T10"]).sortDesc();
                 expect(data4.values().all()).toEqual(["T2", "T10", "T1"]);
             });
+        });
+
+        it("keeps ties in their original relative order, array backing", () => {
+            // PHP-verified (task-12-regression-pins.json): sortByDesc on this data
+            // gives d,a,c,b. A naive sort().reverse() reverses tie order too: d,c,a,b.
+            const items: Array<{ id: string; k: number }> = [
+                { id: "a", k: 2 },
+                { id: "b", k: 1 },
+                { id: "c", k: 2 },
+                { id: "d", k: 3 },
+            ];
+            const result = new Collection<{ id: string; k: number }, number>(
+                items,
+            ).sortDesc((item) => item.k);
+            const ordered = result.values().all() as Array<{ id: string }>;
+            expect(ordered.map((item) => item.id)).toEqual([
+                "d",
+                "a",
+                "c",
+                "b",
+            ]);
+        });
+
+        it("is a documented no-op on an integer-keyed object backing", () => {
+            // Known divergence from PHP (collect([0=>3,1=>1,2=>2])->sortDesc()
+            // gives values [3,2,1]): Obj.sortDesc can't reorder all-integer keys.
+            const c = new Collection({ 0: 3, 1: 1, 2: 2 });
+            expect(c.sortDesc().all()).toEqual({ 0: 3, 1: 1, 2: 2 });
         });
     });
 
