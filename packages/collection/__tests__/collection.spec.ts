@@ -10215,550 +10215,589 @@ describe("Collection", () => {
         });
     });
 
-    // Task 11 cross-backing agreement sweep (plan exit criterion): for
-    // every function fixed across Tasks 2-10, an array-backed and an
-    // object-backed Collection over the SAME conceptual PHP array (an
-    // object whose own keys are exactly the array's indices, 0..n-1) must
-    // agree on what the operation produces. Container SHAPE is allowed to
-    // differ and is not what's being asserted here — an array-backed
-    // Collection always reindexes to a dense array, an object-backed one
-    // never does, and several tasks already pinned that difference
-    // deliberately (Task 3's splice, Task 9's undot D3). What must agree is
-    // the VALUE list an operation produces, read via Object.values() (which
-    // reads a value list off either a real array or a plain object the
-    // same way, discarding key labels) — or, for functions that return a
-    // scalar/boolean directly, the value itself.
+    // Collection half of the cross-backing agreement sweep. The row-by-row
+    // sweep over the ported arr/obj/data code lives in data.spec.ts; this
+    // block asserts the Collection layer on top of it stays in step, again
+    // on own key/value PAIRS rather than a value list.
     //
-    // query, toCssClasses, toCssStyles and exists (Tasks 8-9) have no
-    // Collection method at all (Arr.php has them, Collection.php does not),
-    // so their sweep lives in data.spec.ts instead, at the dispatch layer
-    // that does expose them.
-    describe("cross-backing agreement sweep (Task 11, plan exit criterion)", () => {
-        const arr4 = [10, 20, 30, 40];
-        const obj4 = { 0: 10, 1: 20, 2: 30, 3: 40 };
-        const recArr = [
+    // Four methods here do not call into the data layer at all — unshift,
+    // flatten, mapWithKeys and pull each carry their own implementation on
+    // Collection — so for those this block is the only thing checking them,
+    // and each is pinned against the same PHP value the data-layer row uses.
+    describe("cross-backing agreement sweep (plan exit criterion)", () => {
+        /** Own key/value pairs — the one view an array and a plain object share. */
+        const entriesOf = (value: unknown): [string, unknown][] =>
+            Object.entries(value as object);
+
+        /** Pin both backings' pairs, then assert their value sequences match. */
+        function agree(
+            fromArray: unknown,
+            fromObject: unknown,
+            arrEntries: [string, unknown][],
+            objEntries: [string, unknown][] = arrEntries,
+        ): void {
+            expect(entriesOf(fromArray)).toEqual(arrEntries);
+            expect(entriesOf(fromObject)).toEqual(objEntries);
+            expect(Object.values(fromArray as object)).toEqual(
+                Object.values(fromObject as object),
+            );
+        }
+
+        const nums = (): number[] => [10, 20, 30, 40];
+        const numsObj = (): Record<string, number> => ({
+            0: 10,
+            1: 20,
+            2: 30,
+            3: 40,
+        });
+        const numsEntries: [string, unknown][] = [
+            ["0", 10],
+            ["1", 20],
+            ["2", 30],
+            ["3", 40],
+        ];
+        const records = () => [
             { id: 3, name: "c" },
             { id: 1, name: "a" },
             { id: 2, name: "b" },
         ];
-        const recObj = {
+        const recordsObj = () => ({
             0: { id: 3, name: "c" },
             1: { id: 1, name: "a" },
             2: { id: 2, name: "b" },
-        };
-
-        it("pop, either backing (Task 2)", () => {
-            // PHP-verified: collect([10,20,30,40])->pop() -> 40;
-            // ->pop(2) -> [40,30].
-            expect(new Collection(arr4.slice()).pop()).toBe(40);
-            expect(new Collection({ ...obj4 }).pop()).toBe(40);
-            expect(
-                Object.values(new Collection(arr4.slice()).pop(2).all()),
-            ).toEqual([40, 30]);
-            expect(
-                Object.values(new Collection({ ...obj4 }).pop(2).all()),
-            ).toEqual([40, 30]);
         });
 
-        it("shift, either backing (Task 2)", () => {
-            // PHP-verified: collect([10,20,30,40])->shift() -> 10;
-            // ->shift(2) -> [10,20].
-            expect(new Collection(arr4.slice()).shift()).toBe(10);
-            expect(new Collection({ ...obj4 }).shift()).toBe(10);
-            expect(
-                Object.values(new Collection(arr4.slice()).shift(2).all()),
-            ).toEqual([10, 20]);
-            expect(
-                Object.values(new Collection({ ...obj4 }).shift(2).all()),
-            ).toEqual([10, 20]);
+        it("pop, either backing", () => {
+            // collect([10,20,30,40])->pop() -> 40, leaving [10,20,30].
+            const fromArray = new Collection(nums());
+            const fromObject = new Collection(numsObj());
+
+            expect(fromArray.pop()).toBe(40);
+            expect(fromObject.pop()).toBe(40);
+            agree(fromArray.all(), fromObject.all(), [
+                ["0", 10],
+                ["1", 20],
+                ["2", 30],
+            ]);
         });
 
-        it("unshift, either backing (Task 2)", () => {
-            // PHP-verified: collect([10,20,30,40])->unshift(1,2) ->
-            // [1,2,10,20,30,40].
-            const expected = [1, 2, 10, 20, 30, 40];
-            expect(
-                Object.values(new Collection(arr4.slice()).unshift(1, 2).all()),
-            ).toEqual(expected);
-            expect(
-                Object.values(new Collection({ ...obj4 }).unshift(1, 2).all()),
-            ).toEqual(expected);
+        it("shift, either backing", () => {
+            // collect([10,20,30,40])->shift() -> 10, leaving [20,30,40].
+            // The object branch used to leave a hole at 0 instead.
+            const fromArray = new Collection(nums());
+            const fromObject = new Collection(numsObj());
+
+            expect(fromArray.shift()).toBe(10);
+            expect(fromObject.shift()).toBe(10);
+            agree(fromArray.all(), fromObject.all(), [
+                ["0", 20],
+                ["1", 30],
+                ["2", 40],
+            ]);
+
+            const twoFromArray = new Collection(nums());
+            const twoFromObject = new Collection(numsObj());
+            agree(twoFromArray.shift(2).all(), twoFromObject.shift(2).all(), [
+                ["0", 10],
+                ["1", 20],
+            ]);
+            agree(twoFromArray.all(), twoFromObject.all(), [
+                ["0", 30],
+                ["1", 40],
+            ]);
         });
 
-        it("splice, either backing (Task 3)", () => {
-            // PHP-verified: collect([10,20,30,40])->splice(1,2) removes
-            // [20,30], leaving [10,40].
-            const fromArray = new Collection(arr4.slice());
-            const fromObject = new Collection({ ...obj4 });
-            const removedArray = fromArray.splice(1, 2);
-            const removedObject = fromObject.splice(1, 2);
-
-            expect(Object.values(removedArray.all())).toEqual([20, 30]);
-            expect(Object.values(removedObject.all())).toEqual([20, 30]);
-            expect(Object.values(fromArray.all())).toEqual([10, 40]);
-            expect(Object.values(fromObject.all())).toEqual([10, 40]);
+        it("unshift, either backing (Collection's own implementation)", () => {
+            // array_unshift([10,20,30,40],1,2) -> [1,2,10,20,30,40].
+            agree(
+                new Collection(nums()).unshift(1, 2).all(),
+                new Collection(numsObj()).unshift(1, 2).all(),
+                [
+                    ["0", 1],
+                    ["1", 2],
+                    ["2", 10],
+                    ["3", 20],
+                    ["4", 30],
+                    ["5", 40],
+                ],
+            );
         });
 
-        it("slice, either backing (Task 4)", () => {
-            // PHP-verified: collect([10,20,30,40])->slice(1,2) -> [20,30].
-            const expected = [20, 30];
-            expect(
-                Object.values(new Collection(arr4.slice()).slice(1, 2).all()),
-            ).toEqual(expected);
-            expect(
-                Object.values(new Collection({ ...obj4 }).slice(1, 2).all()),
-            ).toEqual(expected);
+        it("splice, either backing", () => {
+            const fromArray = new Collection(nums());
+            const fromObject = new Collection(numsObj());
+
+            agree(fromArray.splice(1, 2).all(), fromObject.splice(1, 2).all(), [
+                ["0", 20],
+                ["1", 30],
+            ]);
+            agree(fromArray.all(), fromObject.all(), [
+                ["0", 10],
+                ["1", 40],
+            ]);
         });
 
-        it("filter, either backing (Task 4)", () => {
-            // PHP-verified: collect([10,20,30,40])->filter(fn($v)=>$v>15)
-            // -> [20,30,40].
-            const cb = (v: number) => v > 15;
-            const expected = [20, 30, 40];
-            expect(
-                Object.values(new Collection(arr4.slice()).filter(cb).all()),
-            ).toEqual(expected);
-            expect(
-                Object.values(new Collection({ ...obj4 }).filter(cb).all()),
-            ).toEqual(expected);
+        it("slice, either backing", () => {
+            // collect([10,20,30,40])->slice(1,2) -> {1:20,2:30}.
+            agree(
+                new Collection(nums()).slice(1, 2).all(),
+                new Collection(numsObj()).slice(1, 2).all(),
+                [
+                    ["0", 20],
+                    ["1", 30],
+                ],
+                [
+                    ["1", 20],
+                    ["2", 30],
+                ],
+            );
         });
 
-        it("combine, either backing (Task 4)", () => {
-            // combine's second operand must share the receiver's backing
-            // (dataCombine throws otherwise). PHP-verified:
-            // collect(['a','b','c'])->combine([1,2,3]) -> {a:1,b:2,c:3}.
-            const expected = [1, 2, 3];
-            expect(
-                Object.values(
-                    new Collection(["a", "b", "c"]).combine([1, 2, 3]).all(),
-                ),
-            ).toEqual(expected);
-            expect(
-                Object.values(
-                    new Collection({ 0: "a", 1: "b", 2: "c" })
-                        .combine({ 0: 1, 1: 2, 2: 3 })
-                        .all(),
-                ),
-            ).toEqual(expected);
+        it("filter, either backing", () => {
+            // collect([10,20,30,40])->filter(fn($v)=>$v>15) -> {1:20,2:30,3:40}.
+            const above15 = (value: number) => value > 15;
+
+            agree(
+                new Collection(nums()).filter(above15).all(),
+                new Collection(numsObj()).filter(above15).all(),
+                [
+                    ["0", 20],
+                    ["1", 30],
+                    ["2", 40],
+                ],
+                [
+                    ["1", 20],
+                    ["2", 30],
+                    ["3", 40],
+                ],
+            );
         });
 
-        it("replace, either backing (Task 5)", () => {
-            // A sparse (single-index) replacer: arr.replace accepts an
-            // object-shaped replacer directly, so both backings take the
-            // same argument (PHP-verified: array_replace(['a','b','c'],
-            // [1=>'d']) -> ['a','d','c']).
-            const replacer = { 1: "d" };
-
-            expect(
-                new Collection(["a", "b", "c"]).replace(replacer).all(),
-            ).toEqual(["a", "d", "c"]);
-            expect(
-                Object.values(
-                    new Collection({ 0: "a", 1: "b", 2: "c" })
-                        .replace(replacer)
-                        .all(),
-                ),
-            ).toEqual(["a", "d", "c"]);
+        it("combine, either backing", () => {
+            agree(
+                new Collection(["a", "b", "c"]).combine([1, 2, 3]).all(),
+                new Collection({ 0: "a", 1: "b", 2: "c" })
+                    .combine({ 0: 1, 1: 2, 2: 3 })
+                    .all(),
+                [
+                    ["a", 1],
+                    ["b", 2],
+                    ["c", 3],
+                ],
+            );
         });
 
-        it("replaceRecursive, either backing (Task 5)", () => {
-            // PHP-verified: array_replace_recursive([['a'=>1],['b'=>2]],
-            // [['c'=>3]]) -> [{a:1,c:3},{b:2}].
-            const nestedArr = [{ a: 1 }, { b: 2 }];
-            const nestedObj = { 0: { a: 1 }, 1: { b: 2 } };
-            const arrayPatch = [{ c: 3 }];
-            const objectPatch = { 0: { c: 3 } };
-            const expected = [{ a: 1, c: 3 }, { b: 2 }];
-
-            expect(
-                Object.values(
-                    new Collection(nestedArr)
-                        .replaceRecursive(arrayPatch)
-                        .all(),
-                ),
-            ).toEqual(expected);
-            expect(
-                Object.values(
-                    new Collection(nestedObj)
-                        .replaceRecursive(objectPatch)
-                        .all(),
-                ),
-            ).toEqual(expected);
+        it("replace and replaceRecursive, either backing", () => {
+            // array_replace(['a','b','c'],[1=>'d']) -> ['a','d','c'].
+            agree(
+                new Collection(["a", "b", "c"]).replace({ 1: "d" }).all(),
+                new Collection({ 0: "a", 1: "b", 2: "c" })
+                    .replace({ 1: "d" })
+                    .all(),
+                [
+                    ["0", "a"],
+                    ["1", "d"],
+                    ["2", "c"],
+                ],
+            );
+            agree(
+                new Collection([{ a: 1 }, { b: 2 }])
+                    .replaceRecursive([{ c: 3 }])
+                    .all(),
+                new Collection({ 0: { a: 1 }, 1: { b: 2 } })
+                    .replaceRecursive({ 0: { c: 3 } })
+                    .all(),
+                [
+                    ["0", { a: 1, c: 3 }],
+                    ["1", { b: 2 }],
+                ],
+            );
         });
 
-        it("diff, either backing (Task 6)", () => {
-            // dataDiff also requires the same backing on both sides.
-            // PHP-verified: collect([10,20,30,40])->diff([20,40]) ->
-            // [10,30].
-            const expected = [10, 30];
-            expect(
-                Object.values(
-                    new Collection(arr4.slice()).diff([20, 40]).all(),
-                ),
-            ).toEqual(expected);
-            expect(
-                Object.values(
-                    new Collection({ ...obj4 }).diff({ 0: 20, 1: 40 }).all(),
-                ),
-            ).toEqual(expected);
+        it("diff and the diff*Using variants, either backing", () => {
+            const same = (a: PropertyKey, b: PropertyKey) => a === b;
+
+            agree(
+                new Collection(nums()).diff([20, 40]).all(),
+                new Collection(numsObj()).diff({ 0: 20, 1: 40 }).all(),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                ],
+            );
+            agree(
+                new Collection(nums())
+                    .diffAssocUsing([10, 999, 30, 40], same)
+                    .all(),
+                new Collection(numsObj())
+                    .diffAssocUsing({ 0: 10, 1: 999, 2: 30, 3: 40 }, same)
+                    .all(),
+                [["0", 20]],
+                [["1", 20]],
+            );
+            agree(
+                new Collection(nums())
+                    .diffKeysUsing(Object.assign([], { 1: "x", 3: "y" }), same)
+                    .all(),
+                new Collection(numsObj())
+                    .diffKeysUsing({ 1: "x", 3: "y" }, same)
+                    .all(),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                ],
+            );
         });
 
-        it("diffAssocUsing, either backing (Task 6)", () => {
-            // PHP-verified (spaceship comparator, since bool return is
-            // deprecated for array_diff_uassoc): collect([10,20,30,40])
-            // ->diffAssocUsing([10,999,30,40], cmp) -> {1:20}.
-            const cb = (a: PropertyKey, b: PropertyKey) => a === b;
-            const arrayOther = [10, 999, 30, 40];
-            const objectOther = { 0: 10, 1: 999, 2: 30, 3: 40 };
-            const expected = [20];
-            expect(
-                Object.values(
-                    new Collection(arr4.slice())
-                        .diffAssocUsing(arrayOther, cb)
-                        .all(),
-                ),
-            ).toEqual(expected);
-            expect(
-                Object.values(
-                    new Collection({ ...obj4 })
-                        .diffAssocUsing(objectOther, cb)
-                        .all(),
-                ),
-            ).toEqual(expected);
+        it("the intersect family, either backing", () => {
+            const same = (a: PropertyKey, b: PropertyKey) => a === b;
+            const sparse = Object.assign([] as unknown[], { 1: "x", 3: "y" });
+
+            agree(
+                new Collection(nums()).intersect([20, 40]).all(),
+                new Collection(numsObj()).intersect({ 0: 20, 1: 40 }).all(),
+                [
+                    ["0", 20],
+                    ["1", 40],
+                ],
+                [
+                    ["1", 20],
+                    ["3", 40],
+                ],
+            );
+            agree(
+                new Collection(nums()).intersectAssoc([10, 999, 30]).all(),
+                new Collection(numsObj())
+                    .intersectAssoc({ 0: 10, 1: 999, 2: 30 })
+                    .all(),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                ],
+            );
+            agree(
+                new Collection(nums())
+                    .intersectAssocUsing([10, 999, 30], same)
+                    .all(),
+                new Collection(numsObj())
+                    .intersectAssocUsing({ 0: 10, 1: 999, 2: 30 }, same)
+                    .all(),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                ],
+            );
+            agree(
+                new Collection(nums()).intersectByKeys(sparse).all(),
+                new Collection(numsObj())
+                    .intersectByKeys({ 1: "x", 3: "y" })
+                    .all(),
+                [
+                    ["0", 20],
+                    ["1", 40],
+                ],
+                [
+                    ["1", 20],
+                    ["3", 40],
+                ],
+            );
         });
 
-        it("diffKeysUsing, either backing (Task 6)", () => {
-            // PHP-verified: collect([10,20,30,40])->diffKeysUsing(
-            // [1=>'x',3=>'y'], cmp) -> {0:10,2:30}.
-            const cb = (a: PropertyKey, b: PropertyKey) => a === b;
-            const arrayOther = Object.assign([], { 1: "x", 3: "y" });
-            const objectOther = { 1: "x", 3: "y" };
-            const expected = [10, 30];
-            expect(
-                Object.values(
-                    new Collection(arr4.slice())
-                        .diffKeysUsing(arrayOther, cb)
-                        .all(),
-                ),
-            ).toEqual(expected);
-            expect(
-                Object.values(
-                    new Collection({ ...obj4 })
-                        .diffKeysUsing(objectOther, cb)
-                        .all(),
-                ),
-            ).toEqual(expected);
+        it("union, either backing", () => {
+            // collect([10,20])->union([1,1,50,60]) -> [10,20,50,60].
+            agree(
+                new Collection([10, 20]).union([1, 1, 50, 60]).all(),
+                new Collection({ 0: 10, 1: 20 })
+                    .union({ 0: 1, 1: 1, 2: 50, 3: 60 })
+                    .all(),
+                [
+                    ["0", 10],
+                    ["1", 20],
+                    ["2", 50],
+                    ["3", 60],
+                ],
+            );
         });
 
-        it("intersect, either backing (Task 6)", () => {
-            // PHP-verified: collect([10,20,30,40])->intersect([20,40]) ->
-            // [20,40].
-            const expected = [20, 40];
-            expect(
-                Object.values(
-                    new Collection(arr4.slice()).intersect([20, 40]).all(),
-                ),
-            ).toEqual(expected);
-            expect(
-                Object.values(
-                    new Collection({ ...obj4 })
-                        .intersect({ 0: 20, 1: 40 })
-                        .all(),
-                ),
-            ).toEqual(expected);
+        it("pad in both directions, either backing", () => {
+            // collect([10,20,30,40])->pad(6,0) -> [10,20,30,40,0,0];
+            // ->pad(-6,0) -> [0,0,10,20,30,40]. Positive padding used to
+            // overwrite the first two entries on the object backing, which
+            // is why this row now runs both signs.
+            agree(
+                new Collection(nums()).pad(6, 0).all(),
+                new Collection(numsObj()).pad(6, 0).all(),
+                [
+                    ["0", 10],
+                    ["1", 20],
+                    ["2", 30],
+                    ["3", 40],
+                    ["4", 0],
+                    ["5", 0],
+                ],
+            );
+            agree(
+                new Collection(nums()).pad(-6, 0).all(),
+                new Collection(numsObj()).pad(-6, 0).all(),
+                [
+                    ["0", 0],
+                    ["1", 0],
+                    ["2", 10],
+                    ["3", 20],
+                    ["4", 30],
+                    ["5", 40],
+                ],
+            );
         });
 
-        it("intersectAssoc, either backing (Task 6)", () => {
-            // dataIntersectAssoc requires both operands to share a
-            // backing. PHP-verified: collect([10,20,30,40])
-            // ->intersectAssoc([10,999,30]) -> {0:10,2:30}.
-            const expected = [10, 30];
-            expect(
-                Object.values(
-                    new Collection(arr4.slice())
-                        .intersectAssoc([10, 999, 30])
-                        .all(),
-                ),
-            ).toEqual(expected);
-            expect(
-                Object.values(
-                    new Collection({ ...obj4 })
-                        .intersectAssoc({ 0: 10, 1: 999, 2: 30 })
-                        .all(),
-                ),
-            ).toEqual(expected);
+        it("keys and values, either backing", () => {
+            agree(
+                new Collection(nums()).keys().all(),
+                new Collection(numsObj()).keys().all(),
+                [
+                    ["0", 0],
+                    ["1", 1],
+                    ["2", 2],
+                    ["3", 3],
+                ],
+            );
+            agree(
+                new Collection(nums()).values().all(),
+                new Collection(numsObj()).values().all(),
+                numsEntries,
+            );
         });
 
-        it("intersectAssocUsing, either backing (Task 6)", () => {
-            // PHP-verified: collect([10,20,30,40])->intersectAssocUsing(
-            // [10,999,30], cmp) -> {0:10,2:30}.
-            const cb = (a: PropertyKey, b: PropertyKey) => a === b;
-            const expected = [10, 30];
-            expect(
-                Object.values(
-                    new Collection(arr4.slice())
-                        .intersectAssocUsing([10, 999, 30], cb)
-                        .all(),
-                ),
-            ).toEqual(expected);
-            expect(
-                Object.values(
-                    new Collection({ ...obj4 })
-                        .intersectAssocUsing({ 0: 10, 1: 999, 2: 30 }, cb)
-                        .all(),
-                ),
-            ).toEqual(expected);
+        it("reverse, either backing", () => {
+            // collect([10,20,30,40])->reverse() iterates 40,30,20,10.
+            agree(
+                new Collection(nums()).reverse().all(),
+                new Collection(numsObj()).reverse().all(),
+                [
+                    ["0", 40],
+                    ["1", 30],
+                    ["2", 20],
+                    ["3", 10],
+                ],
+            );
         });
 
-        it("intersectByKeys, either backing (Task 6)", () => {
-            // A sparse array's own keys are exactly its set indices —
-            // Object.entries skips the holes — so this array's keys are
-            // {1, 3}, matching the object's {1, 3} below. PHP-verified:
-            // collect([10,20,30,40])->intersectByKeys([1=>'x',3=>'y']) ->
-            // {1:20,3:40}.
-            const sparseOther: unknown[] = [];
-            sparseOther[1] = "x";
-            sparseOther[3] = "y";
-            const expected = [20, 40];
+        it("random, either backing", () => {
+            // No value pin: random is non-deterministic by design. Its keys
+            // are the deterministic part.
+            const fromArray = new Collection(nums());
+            const fromObject = new Collection(numsObj());
 
-            expect(
-                Object.values(
-                    new Collection(arr4.slice())
-                        .intersectByKeys(sparseOther)
-                        .all(),
-                ),
-            ).toEqual(expected);
-            expect(
-                Object.values(
-                    new Collection({ ...obj4 })
-                        .intersectByKeys({ 1: "x", 3: "y" })
-                        .all(),
-                ),
-            ).toEqual(expected);
+            expect(nums()).toContain(fromArray.random());
+            expect(nums()).toContain(fromObject.random());
+            expect(Object.keys(fromArray.random(2).all())).toEqual(["0", "1"]);
+            expect(Object.keys(fromObject.random(2).all())).toEqual(["0", "1"]);
         });
 
-        it("union, either backing (Task 7)", () => {
-            // PHP-verified: collect([10,20])->union([1,1,50,60]) ->
-            // [10,20,50,60] (both indices 0,1 already occupied).
-            const expected = [10, 20, 50, 60];
-            expect(
-                Object.values(
-                    new Collection([10, 20]).union([1, 1, 50, 60]).all(),
-                ),
-            ).toEqual(expected);
-            expect(
-                Object.values(
-                    new Collection({ 0: 10, 1: 20 })
-                        .union({ 0: 1, 1: 1, 2: 50, 3: 60 })
-                        .all(),
-                ),
-            ).toEqual(expected);
+        it("only, either backing", () => {
+            // collect([10,20,30,40])->only([1,3]) -> {1:20,3:40}.
+            agree(
+                new Collection(nums()).only(1, 3).all(),
+                new Collection(numsObj()).only(1, 3).all(),
+                [
+                    ["0", 20],
+                    ["1", 40],
+                ],
+                [
+                    ["1", 20],
+                    ["3", 40],
+                ],
+            );
         });
 
-        it("pad, either backing (Task 7)", () => {
-            // Positive-size padding is deliberately excluded here: obj.ts's
-            // own JSDoc (packages/obj/src/obj.ts, pad) documents a genuine,
-            // "do not re-file" unfixable divergence where JS hoists
-            // integer-like keys ahead of string keys regardless of
-            // insertion order, so an object-backed positive pad can't
-            // reproduce PHP's append-at-the-end value order (and, if the
-            // object's own keys already happen to be 0..n-1 like `obj4`,
-            // the new "0","1",... pad keys collide with and overwrite
-            // them). Negative padding has no such divergence — PHP already
-            // places it first, which is also where JS's key-hoisting
-            // stashes it — so that's what this agreement check covers, and
-            // it uses non-numeric object keys specifically to sidestep the
-            // collision case.
-            // PHP-verified: collect([10,20,30,40])->pad(-6,0) ->
-            // [0,0,10,20,30,40].
-            const asArray = [10, 20, 30, 40];
-            const asObject = { a: 10, b: 20, c: 30, d: 40 };
-            const expected = [0, 0, 10, 20, 30, 40];
+        it("flatten, either backing (Collection's own implementation)", () => {
+            // Arr::flatten([1,[2,[3]]]) -> [1,2,3]; at depth 1 -> [1,2,[3]].
+            const nested = [1, [2, [3]]];
+            const nestedObj = { 0: 1, 1: { 0: 2, 1: { 0: 3 } } };
 
+            agree(
+                new Collection(nested).flatten().all(),
+                new Collection(nestedObj).flatten().all(),
+                [
+                    ["0", 1],
+                    ["1", 2],
+                    ["2", 3],
+                ],
+            );
+            expect(entriesOf(new Collection(nested).flatten(1).all())).toEqual([
+                ["0", 1],
+                ["1", 2],
+                ["2", [3]],
+            ]);
             expect(
-                Object.values(new Collection(asArray).pad(-6, 0).all()),
-            ).toEqual(expected);
-            expect(
-                Object.values(new Collection(asObject).pad(-6, 0).all()),
-            ).toEqual(expected);
+                entriesOf(new Collection(nestedObj).flatten(1).all()),
+            ).toEqual([
+                ["0", 1],
+                ["1", 2],
+                ["2", { 0: 3 }],
+            ]);
         });
 
-        it("keys, either backing (Task 7)", () => {
-            // PHP-verified: collect([10,20,30,40])->keys() -> [0,1,2,3].
-            const expected = [0, 1, 2, 3];
-            expect(
-                Object.values(new Collection(arr4.slice()).keys().all()),
-            ).toEqual(expected);
-            expect(
-                Object.values(new Collection({ ...obj4 }).keys().all()),
-            ).toEqual(expected);
-        });
-
-        it("values, either backing (Task 7)", () => {
-            expect(
-                Object.values(new Collection(arr4.slice()).values().all()),
-            ).toEqual(arr4);
-            expect(
-                Object.values(new Collection({ ...obj4 }).values().all()),
-            ).toEqual(arr4);
-        });
-
-        it("random, either backing (Task 8)", () => {
-            // No value pin here (unlike every other test in this sweep):
-            // random's output is non-deterministic by design.
-            const fromArray = new Collection(arr4.slice());
-            const fromObject = new Collection({ ...obj4 });
-
-            expect(arr4).toContain(fromArray.random());
-            expect(Object.values(obj4)).toContain(fromObject.random());
-            expect(Object.values(fromArray.random(2).all())).toHaveLength(2);
-            expect(Object.values(fromObject.random(2).all())).toHaveLength(2);
-        });
-
-        it("only, either backing (Task 8)", () => {
-            // PHP-verified: collect([10,20,30,40])->only([1,3]) ->
-            // {1:20,3:40}.
-            const expected = [20, 40];
-            expect(
-                Object.values(new Collection(arr4.slice()).only(1, 3).all()),
-            ).toEqual(expected);
-            expect(
-                Object.values(new Collection({ ...obj4 }).only(1, 3).all()),
-            ).toEqual(expected);
-        });
-
-        it("flatten, either backing (Task 8)", () => {
-            // PHP-verified: collect([1,[2,3],4])->flatten() -> [1,2,3,4].
-            const nestedArr = [1, [2, 3], 4];
-            const nestedObj = { 0: 1, 1: [2, 3], 2: 4 };
-            const expected = [1, 2, 3, 4];
-            expect(
-                Object.values(new Collection(nestedArr).flatten().all()),
-            ).toEqual(expected);
-            expect(
-                Object.values(new Collection(nestedObj).flatten().all()),
-            ).toEqual(expected);
-        });
-
-        it("mapWithKeys, either backing (Task 8)", () => {
-            // Result keys are non-numeric (item.name) deliberately: an
-            // all-numeric-string key set would hit the same JS key-hoisting
-            // that pad/sort document, making this test unable to tell
-            // insertion order from ascending-key order. PHP-verified:
-            // collect([{id:3,name:c},{id:1,name:a},{id:2,name:b}])
-            // ->mapWithKeys(fn($i)=>[$i['name']=>$i['id']]) ->
-            // {c:3,a:1,b:2}.
-            const cb = (item: { id: number; name: string }) => ({
+        it("mapWithKeys, either backing (Collection's own implementation)", () => {
+            // Arr::mapWithKeys(records, fn -> [name => id]) -> {c:3,a:1,b:2};
+            // keying by id instead gives {3:'c',1:'a',2:'b'}, which JS
+            // hoists ascending — the pairs are the same either way.
+            const byName = (item: { id: number; name: string }) => ({
                 [item.name]: item.id,
             });
-            const expected = [3, 1, 2];
-            expect(
-                Object.values(new Collection(recArr).mapWithKeys(cb).all()),
-            ).toEqual(expected);
-            expect(
-                Object.values(new Collection(recObj).mapWithKeys(cb).all()),
-            ).toEqual(expected);
+            const byId = (item: { id: number; name: string }) => ({
+                [item.id]: item.name,
+            });
+
+            agree(
+                new Collection(records()).mapWithKeys(byName).all(),
+                new Collection(recordsObj()).mapWithKeys(byName).all(),
+                [
+                    ["c", 3],
+                    ["a", 1],
+                    ["b", 2],
+                ],
+            );
+            agree(
+                new Collection(records()).mapWithKeys(byId).all(),
+                new Collection(recordsObj()).mapWithKeys(byId).all(),
+                [
+                    ["1", "a"],
+                    ["2", "b"],
+                    ["3", "c"],
+                ],
+            );
         });
 
-        it("get, either backing (Task 9)", () => {
-            // PHP-verified: collect([10,20,30,40])->get(2) -> 30;
-            // ->get(99,'default') -> 'default'.
-            expect(new Collection(arr4.slice()).get(2)).toBe(30);
-            expect(new Collection({ ...obj4 }).get(2)).toBe(30);
-            expect(new Collection(arr4.slice()).get(99, "default")).toBe(
+        it("get and has, either backing", () => {
+            expect(new Collection(nums()).get(2)).toBe(30);
+            expect(new Collection(numsObj()).get(2)).toBe(30);
+            expect(new Collection(nums()).get(99, "default")).toBe("default");
+            expect(new Collection(numsObj()).get(99, "default")).toBe(
                 "default",
             );
-            expect(new Collection({ ...obj4 }).get(99, "default")).toBe(
-                "default",
-            );
+            expect(new Collection(nums()).has(2)).toBe(true);
+            expect(new Collection(numsObj()).has(2)).toBe(true);
+            expect(new Collection(nums()).has(99)).toBe(false);
+            expect(new Collection(numsObj()).has(99)).toBe(false);
         });
 
-        it("has, either backing (Task 9)", () => {
-            // PHP-verified: collect([10,20,30,40])->has(2) -> true;
-            // ->has(99) -> false.
-            expect(new Collection(arr4.slice()).has(2)).toBe(true);
-            expect(new Collection({ ...obj4 }).has(2)).toBe(true);
-            expect(new Collection(arr4.slice()).has(99)).toBe(false);
-            expect(new Collection({ ...obj4 }).has(99)).toBe(false);
-        });
-
-        it("pull, either backing (Task 9)", () => {
-            // PHP-verified: collect([10,20,30,40])->pull(1) -> 20,
-            // leaving {0:10,2:30,3:40}.
-            const fromArray = new Collection(arr4.slice());
-            const fromObject = new Collection({ ...obj4 });
+        it("pull, either backing (Collection's own implementation)", () => {
+            // collect([10,20,30,40])->pull(1) -> 20, leaving {0:10,2:30,3:40}
+            // — unset, not array_splice, so nothing is renumbered.
+            const fromArray = new Collection(nums());
+            const fromObject = new Collection(numsObj());
 
             expect(fromArray.pull(1)).toBe(20);
             expect(fromObject.pull(1)).toBe(20);
+            expect(entriesOf(fromObject.all())).toEqual([
+                ["0", 10],
+                ["2", 30],
+                ["3", 40],
+            ]);
             expect(Object.values(fromArray.all())).toEqual([10, 30, 40]);
-            expect(Object.values(fromObject.all())).toEqual([10, 30, 40]);
         });
 
-        it("undot, either backing (Task 9)", () => {
-            // A real array can carry bolted-on non-index own properties
-            // (Object.entries enumerates them like any other object), so
-            // this exercises arrUndot (array branch) against objUndot
-            // (object branch) over the exact same flat dotted-key data —
-            // decision D3 says both must rebuild the same nested list.
-            // PHP-verified: collect(['0'=>'a','1.0'=>'b','1.1'=>'c'])
-            // ->undot() -> ['a',['b','c']].
-            const flatArr = Object.assign(["a"], { "1.0": "b", "1.1": "c" });
-            const flatObj = { "0": "a", "1.0": "b", "1.1": "c" };
-            const expected = ["a", ["b", "c"]];
+        it("undot, either backing", () => {
+            // Arr::undot(['0'=>'a','1.0'=>'b','1.1'=>'c']) -> ['a',['b','c']].
+            const flatArray = Object.assign(["a"], { "1.0": "b", "1.1": "c" });
+            const flatObject = { "0": "a", "1.0": "b", "1.1": "c" };
 
-            expect(
-                Object.values(new Collection(flatArr).undot().all()),
-            ).toEqual(expected);
-            expect(
-                Object.values(new Collection(flatObj).undot().all()),
-            ).toEqual(expected);
+            agree(
+                new Collection(flatArray).undot().all(),
+                new Collection(flatObject).undot().all(),
+                [
+                    ["0", "a"],
+                    ["1", ["b", "c"]],
+                ],
+            );
         });
 
-        it("pluck, either backing (Task 10)", () => {
-            // PHP-verified: collect([{id:3,name:c},{id:1,name:a},
-            // {id:2,name:b}])->pluck('name') -> ['c','a','b'].
-            const expected = ["c", "a", "b"];
-            expect(
-                Object.values(new Collection(recArr).pluck("name").all()),
-            ).toEqual(expected);
-            expect(
-                Object.values(new Collection(recObj).pluck("name").all()),
-            ).toEqual(expected);
+        it("pluck, either backing", () => {
+            agree(
+                new Collection(records()).pluck("name").all(),
+                new Collection(recordsObj()).pluck("name").all(),
+                [
+                    ["0", "c"],
+                    ["1", "a"],
+                    ["2", "b"],
+                ],
+            );
         });
 
-        it("sort, either backing (Task 10)", () => {
-            // Non-numeric object keys, deliberately: `sort` is a
-            // key-preserving associative sort, but a plain JS object with
-            // ALL-numeric-string keys is spec-ordered ascending by key
-            // regardless of insertion order (ECMA-262
-            // OrdinaryOwnPropertyKeys — the same rule behind pad's
-            // documented positive-size divergence above), so an
-            // object-backed sort of {0,1,2}-keyed data cannot visibly
-            // reorder anything through Object.values(); that would be
-            // testing a JS engine limitation, not this function.
-            // PHP-verified: collect([30,10,20])->sort() -> [10,20,30].
-            const scrambledArr = [30, 10, 20];
-            const scrambledObj = { a: 30, b: 10, c: 20 };
-            const expected = [10, 20, 30];
+        it("sort and sortDesc, either backing", () => {
+            // sort preserves keys, and JS re-sorts integer keys ascending on
+            // write, so an object whose keys are all integers cannot show a
+            // reorder. Both halves are pinned rather than normalised away;
+            // the string-keyed object is where the object backing can show
+            // it. collect([30,10,20])->sort() iterates 10,20,30.
             expect(
-                Object.values(new Collection(scrambledArr).sort().all()),
-            ).toEqual(expected);
+                entriesOf(new Collection([30, 10, 20]).sort().all()),
+            ).toEqual([
+                ["0", 10],
+                ["1", 20],
+                ["2", 30],
+            ]);
             expect(
-                Object.values(new Collection(scrambledObj).sort().all()),
-            ).toEqual(expected);
+                entriesOf(new Collection({ 0: 30, 1: 10, 2: 20 }).sort().all()),
+            ).toEqual([
+                ["0", 30],
+                ["1", 10],
+                ["2", 20],
+            ]);
+            expect(
+                entriesOf(new Collection({ c: 30, a: 10, b: 20 }).sort().all()),
+            ).toEqual([
+                ["a", 10],
+                ["b", 20],
+                ["c", 30],
+            ]);
+
+            expect(
+                entriesOf(new Collection([30, 10, 20]).sortDesc().all()),
+            ).toEqual([
+                ["0", 30],
+                ["1", 20],
+                ["2", 10],
+            ]);
+            expect(
+                entriesOf(
+                    new Collection({ c: 30, a: 10, b: 20 }).sortDesc().all(),
+                ),
+            ).toEqual([
+                ["c", 30],
+                ["b", 20],
+                ["a", 10],
+            ]);
         });
 
-        it("sortDesc, either backing (Task 10)", () => {
-            // PHP-verified: collect([30,10,20])->sortDesc() -> [30,20,10].
-            const scrambledArr = [30, 10, 20];
-            const scrambledObj = { a: 30, b: 10, c: 20 };
-            const expected = [30, 20, 10];
-            expect(
-                Object.values(new Collection(scrambledArr).sortDesc().all()),
-            ).toEqual(expected);
-            expect(
-                Object.values(new Collection(scrambledObj).sortDesc().all()),
-            ).toEqual(expected);
+        it("sortBy with no comparisons leaves the order alone, either backing", () => {
+            // collect([3,1,2])->sortBy([]) -> [3,1,2].
+            agree(
+                new Collection([3, 1, 2]).sortBy([]).all(),
+                new Collection({ 0: 3, 1: 1, 2: 2 }).sortBy([]).all(),
+                [
+                    ["0", 3],
+                    ["1", 1],
+                    ["2", 2],
+                ],
+            );
         });
     });
 });

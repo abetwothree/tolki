@@ -1,4 +1,6 @@
+import * as Arr from "@tolki/arr";
 import * as Data from "@tolki/data";
+import * as Obj from "@tolki/obj";
 import { assertType, describe, expect, it } from "vitest";
 
 const strcasecmp = (a: unknown, b: unknown) =>
@@ -2683,58 +2685,972 @@ describe("Data", () => {
         });
     });
 
-    // Task 11 cross-backing agreement sweep (plan exit criterion): for every
-    // function fixed in Tasks 2-10, an array-backed and an object-backed
-    // representation of the *same* conceptual PHP array (an object whose
-    // own keys are exactly the array's indices, 0..n-1) must agree on what
-    // the operation produces. `query`, `toCssClasses`, `toCssStyles` and
-    // `exists` (Tasks 8-9) have no `Collection` method at all — Arr.php has
-    // them, Collection.php does not — so their sweep lives here at the
-    // `data` dispatch layer instead of collection.spec.ts.
-    describe("cross-backing agreement sweep (Task 11, plan exit criterion)", () => {
-        it("dataExists agrees, either backing (Task 9)", () => {
-            const asArray = [10, 20, 30];
-            const asObject = { 0: 10, 1: 20, 2: 30 };
+    // Cross-backing agreement sweep, the plan's exit criterion: one test
+    // per defect-matrix row, run over the same conceptual PHP array in
+    // both backings — a real array and a plain object whose own keys are
+    // exactly that array's indices.
+    //
+    // Every assertion is on own key/value PAIRS, not a value list. A value
+    // list cannot see a key collision, which is how two functions shipped
+    // that overwrote entries they were supposed to move. Where the two
+    // backings legitimately produce different keys — a JS array cannot
+    // hold PHP's sparse survivors, so it reindexes — both are pinned
+    // separately and only the value sequence has to agree.
+    //
+    // The rows run at the arr/obj/data layer, which is where the ported
+    // code lives; collection.spec.ts covers the Collection layer on top.
+    describe("cross-backing agreement sweep (plan exit criterion)", () => {
+        /** Own key/value pairs — the one view an array and a plain object share. */
+        const entriesOf = (value: unknown): [string, unknown][] =>
+            Object.entries(value as object);
 
-            expect(Data.dataExists(asArray, 1)).toBe(
-                Data.dataExists(asObject, 1),
+        /**
+         * Pin each backing's exact key/value pairs, then assert the value
+         * sequence both produce is the same. `objEntries` defaults to
+         * `arrEntries` for the rows where the keys match too.
+         */
+        function agree(
+            arrResult: unknown,
+            objResult: unknown,
+            arrEntries: [string, unknown][],
+            objEntries: [string, unknown][] = arrEntries,
+        ): void {
+            expect(entriesOf(arrResult)).toEqual(arrEntries);
+            expect(entriesOf(objResult)).toEqual(objEntries);
+            expect(Object.values(arrResult as object)).toEqual(
+                Object.values(objResult as object),
             );
-            expect(Data.dataExists(asArray, 1)).toBe(true);
-            expect(Data.dataExists(asArray, 5)).toBe(
-                Data.dataExists(asObject, 5),
+        }
+
+        const nums = (): number[] => [10, 20, 30, 40];
+        const numsObj = (): Record<string, number> => ({
+            0: 10,
+            1: 20,
+            2: 30,
+            3: 40,
+        });
+        const numsEntries: [string, unknown][] = [
+            ["0", 10],
+            ["1", 20],
+            ["2", 30],
+            ["3", 40],
+        ];
+        const records = () => [
+            { id: 3, name: "c" },
+            { id: 1, name: "a" },
+            { id: 2, name: "b" },
+        ];
+        const recordsObj = (): Record<
+            string,
+            { id: number; name: string }
+        > => ({
+            0: { id: 3, name: "c" },
+            1: { id: 1, name: "a" },
+            2: { id: 2, name: "b" },
+        });
+
+        it("X1 pop mutates and returns the last value", () => {
+            // collect([10,20,30,40])->pop() -> 40, leaving [10,20,30];
+            // ->pop(2) -> [40,30], leaving [10,20].
+            const arrOne = nums();
+            const objOne = numsObj();
+            expect(Arr.pop(arrOne)).toBe(40);
+            expect(Obj.pop(objOne)).toBe(40);
+            agree(arrOne, objOne, [
+                ["0", 10],
+                ["1", 20],
+                ["2", 30],
+            ]);
+
+            const arrTwo = nums();
+            const objTwo = numsObj();
+            agree(Arr.pop(arrTwo, 2), Obj.pop(objTwo, 2), [
+                ["0", 40],
+                ["1", 30],
+            ]);
+            agree(arrTwo, objTwo, [
+                ["0", 10],
+                ["1", 20],
+            ]);
+
+            const arrData = nums();
+            const objData = numsObj();
+            expect(Data.dataPop(arrData)).toBe(40);
+            expect(Data.dataPop(objData)).toBe(40);
+            agree(arrData, objData, [
+                ["0", 10],
+                ["1", 20],
+                ["2", 30],
+            ]);
+        });
+
+        it("X2 shift mutates, returns the first value and renumbers", () => {
+            // collect([10,20,30,40])->shift() -> 10, leaving [20,30,40] —
+            // array_shift renumbers, so {1:20,2:30,3:40} is not the answer.
+            const arrOne = nums();
+            const objOne = numsObj();
+            expect(Arr.shift(arrOne)).toBe(10);
+            expect(Obj.shift(objOne)).toBe(10);
+            agree(arrOne, objOne, [
+                ["0", 20],
+                ["1", 30],
+                ["2", 40],
+            ]);
+
+            const arrTwo = nums();
+            const objTwo = numsObj();
+            agree(Arr.shift(arrTwo, 2), Obj.shift(objTwo, 2), [
+                ["0", 10],
+                ["1", 20],
+            ]);
+            agree(arrTwo, objTwo, [
+                ["0", 30],
+                ["1", 40],
+            ]);
+
+            const arrData = nums();
+            const objData = numsObj();
+            expect(Data.dataShift(arrData)).toBe(10);
+            expect(Data.dataShift(objData)).toBe(10);
+            agree(arrData, objData, [
+                ["0", 20],
+                ["1", 30],
+                ["2", 40],
+            ]);
+        });
+
+        it("X3 shift throws on a negative count", () => {
+            const message =
+                "Number of shifted items may not be less than zero.";
+
+            expect(() => Arr.shift(nums(), -1)).toThrow(message);
+            expect(() => Obj.shift(numsObj(), -1)).toThrow(message);
+            expect(() => Data.dataShift(nums(), -1)).toThrow(message);
+            expect(() => Data.dataShift(numsObj(), -1)).toThrow(message);
+        });
+
+        it("X4 shift on empty returns null for any count", () => {
+            // The isEmpty() guard precedes every count branch.
+            expect(Arr.shift([], 3)).toBeNull();
+            expect(Obj.shift({}, 3)).toBeNull();
+            expect(Arr.shift([])).toBeNull();
+            expect(Obj.shift({})).toBeNull();
+            expect(Data.dataShift([], 3)).toBeNull();
+            expect(Data.dataShift({}, 3)).toBeNull();
+        });
+
+        it("X5 unshift mutates and renumbers the existing integer keys", () => {
+            // array_unshift([10,20,30,40],1,2) -> [1,2,10,20,30,40]. Writing
+            // the prepended values at 0 and 1 destroyed 10 and 20 instead.
+            const expected: [string, unknown][] = [
+                ["0", 1],
+                ["1", 2],
+                ["2", 10],
+                ["3", 20],
+                ["4", 30],
+                ["5", 40],
+            ];
+
+            const arrOne = nums();
+            const objOne = numsObj();
+            Arr.unshift(arrOne, 1, 2);
+            Obj.unshift(objOne, 1, 2);
+            agree(arrOne, objOne, expected);
+
+            const arrData = nums();
+            const objData = numsObj();
+            Data.dataUnshift(arrData, 1, 2);
+            Data.dataUnshift(objData, 1, 2);
+            agree(arrData, objData, expected);
+        });
+
+        it("X6 splice mutates and returns the removed items", () => {
+            // collect([10,20,30,40])->splice(1,2) removes [20,30],
+            // leaving [10,40].
+            const arrSource = nums();
+            const objSource = numsObj();
+            agree(Arr.splice(arrSource, 1, 2), Obj.splice(objSource, 1, 2), [
+                ["0", 20],
+                ["1", 30],
+            ]);
+            agree(arrSource, objSource, [
+                ["0", 10],
+                ["1", 40],
+            ]);
+
+            const arrData = nums();
+            const objData = numsObj();
+            agree(
+                Data.dataSplice(arrData, 1, 2),
+                Data.dataSplice(objData, 1, 2),
+                [
+                    ["0", 20],
+                    ["1", 30],
+                ],
             );
-            expect(Data.dataExists(asArray, 5)).toBe(false);
+            agree(arrData, objData, [
+                ["0", 10],
+                ["1", 40],
+            ]);
         });
 
-        it("dataQuery agrees, either backing (Task 8)", () => {
-            // Arr::query(['a','b']) -> "0=a&1=b".
-            const asArray = ["a", "b"];
-            const asObject = { 0: "a", 1: "b" };
-            const expected = "0=a&1=b";
+        it("X7 splice with no length removes through to the end", () => {
+            const arrSource = nums();
+            const objSource = numsObj();
 
-            expect(Data.dataQuery(asArray)).toBe(expected);
-            expect(Data.dataQuery(asObject)).toBe(expected);
+            agree(Arr.splice(arrSource, 1), Obj.splice(objSource, 1), [
+                ["0", 20],
+                ["1", 30],
+                ["2", 40],
+            ]);
+            agree(arrSource, objSource, [["0", 10]]);
         });
 
-        it("dataToCssClasses agrees, either backing (Task 8)", () => {
-            // Arr::toCssClasses(['font-bold','text-red']) -> "font-bold text-red".
-            const asArray = ["font-bold", "text-red"];
-            const asObject = { 0: "font-bold", 1: "text-red" };
-            const expected = "font-bold text-red";
+        it("X8 splice keeps string keys and reindexes integer keys", () => {
+            // array_splice(['x'=>1,'y'=>2,'z'=>3],1,1) leaves {x:1,z:3} and
+            // returns {y:2}; [10=>'a',20=>'b',30=>'c'] reindexes to
+            // ['a','c'] and returns ['b'].
+            const strings: Record<string, number> = { x: 1, y: 2, z: 3 };
+            expect(entriesOf(Obj.splice(strings, 1, 1))).toEqual([["y", 2]]);
+            expect(entriesOf(strings)).toEqual([
+                ["x", 1],
+                ["z", 3],
+            ]);
 
-            expect(Data.dataToCssClasses(asArray)).toBe(expected);
-            expect(Data.dataToCssClasses(asObject)).toBe(expected);
+            const sparse: Record<string, string> = {
+                10: "a",
+                20: "b",
+                30: "c",
+            };
+            expect(entriesOf(Obj.splice(sparse, 1, 1))).toEqual([["0", "b"]]);
+            expect(entriesOf(sparse)).toEqual([
+                ["0", "a"],
+                ["1", "c"],
+            ]);
         });
 
-        it("dataToCssStyles agrees, either backing (Task 8)", () => {
-            // Arr::toCssStyles(['color:red','font-size:14px']) ->
-            // "color:red; font-size:14px;".
-            const asArray = ["color:red", "font-size:14px"];
-            const asObject = { 0: "color:red", 1: "font-size:14px" };
-            const expected = "color:red; font-size:14px;";
+        it("X8b splice takes a bare scalar as one spliced-in element", () => {
+            // array_splice([10,20,30,40],1,2,99) leaves [10,99,40].
+            const arrSource = nums();
+            const objSource = numsObj();
 
-            expect(Data.dataToCssStyles(asArray)).toBe(expected);
-            expect(Data.dataToCssStyles(asObject)).toBe(expected);
+            agree(
+                Arr.splice(arrSource, 1, 2, 99),
+                Obj.splice(objSource, 1, 2, 99),
+                [
+                    ["0", 20],
+                    ["1", 30],
+                ],
+            );
+            agree(arrSource, objSource, [
+                ["0", 10],
+                ["1", 99],
+                ["2", 40],
+            ]);
+        });
+
+        it("X9 replace does not mutate its source", () => {
+            // array_replace([10,20,30,40],[1=>'d']) -> [10,'d',30,40].
+            const arrSource = nums();
+            const objSource = numsObj();
+            const expected: [string, unknown][] = [
+                ["0", 10],
+                ["1", "d"],
+                ["2", 30],
+                ["3", 40],
+            ];
+
+            agree(
+                Arr.replace(arrSource, { 1: "d" }),
+                Obj.replace(objSource, { 1: "d" }),
+                expected,
+            );
+            agree(arrSource, objSource, numsEntries);
+        });
+
+        it("X10 replaceRecursive does not mutate its source", () => {
+            // array_replace_recursive([['a'=>1],['b'=>2]],[['c'=>3]]) ->
+            // [{a:1,c:3},{b:2}].
+            const arrSource = [{ a: 1 }, { b: 2 }];
+            const objSource: Record<string, Record<string, number>> = {
+                0: { a: 1 },
+                1: { b: 2 },
+            };
+
+            agree(
+                Arr.replaceRecursive(arrSource, [{ c: 3 }]),
+                Obj.replaceRecursive(objSource, { 0: { c: 3 } }),
+                [
+                    ["0", { a: 1, c: 3 }],
+                    ["1", { b: 2 }],
+                ],
+            );
+            agree(arrSource, objSource, [
+                ["0", { a: 1 }],
+                ["1", { b: 2 }],
+            ]);
+        });
+
+        it("X11 replace and replaceRecursive treat null as a no-op", () => {
+            agree(
+                Arr.replace(nums(), null),
+                Obj.replace(numsObj(), null),
+                numsEntries,
+            );
+            agree(
+                Arr.replaceRecursive(nums(), null),
+                Obj.replaceRecursive(numsObj(), null),
+                numsEntries,
+            );
+            agree(
+                Data.dataReplace(nums(), null),
+                Data.dataReplace(numsObj(), null),
+                numsEntries,
+            );
+        });
+
+        it("X12 intersect compares values only", () => {
+            // collect([10,20,30,40])->intersect([20,40]) -> {1:20,3:40}.
+            agree(
+                Arr.intersect(nums(), [20, 40]),
+                Obj.intersect(numsObj(), { 0: 20, 1: 40 }),
+                [
+                    ["0", 20],
+                    ["1", 40],
+                ],
+                [
+                    ["1", 20],
+                    ["3", 40],
+                ],
+            );
+            agree(
+                Data.dataIntersect(nums(), [20, 40]),
+                Data.dataIntersect(numsObj(), { 0: 20, 1: 40 }),
+                [
+                    ["0", 20],
+                    ["1", 40],
+                ],
+                [
+                    ["1", 20],
+                    ["3", 40],
+                ],
+            );
+        });
+
+        it("X13 diff compares values only", () => {
+            // collect([10,20,30,40])->diff([20,40]) -> {0:10,2:30}.
+            agree(
+                Arr.diff(nums(), [20, 40]),
+                Obj.diff(numsObj(), { 0: 20, 1: 40 }),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                ],
+            );
+            agree(
+                Data.dataDiff(nums(), [20, 40]),
+                Data.dataDiff(numsObj(), { 0: 20, 1: 40 }),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                ],
+            );
+        });
+
+        it("X13b diffAssocUsing and diffKeysUsing run their comparator", () => {
+            // array_diff_uassoc([10,20,30,40],[10,999,30,40],cmp) -> {1:20};
+            // array_diff_ukey([10,20,30,40],[1=>'x',3=>'y'],cmp) -> {0:10,2:30}.
+            const same = (a: PropertyKey, b: PropertyKey) => a === b;
+            const sparseArray = Object.assign([] as unknown[], {
+                1: "x",
+                3: "y",
+            });
+
+            agree(
+                Data.dataDiffAssocUsing(nums(), [10, 999, 30, 40], same),
+                Data.dataDiffAssocUsing(
+                    numsObj(),
+                    { 0: 10, 1: 999, 2: 30, 3: 40 },
+                    same,
+                ),
+                [["0", 20]],
+                [["1", 20]],
+            );
+            const numsMixed: Record<string, unknown> = numsObj();
+            agree(
+                Data.dataDiffKeysUsing(nums(), sparseArray, same),
+                Data.dataDiffKeysUsing(numsMixed, { 1: "x", 3: "y" }, same),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                ],
+            );
+        });
+
+        it("X14 the intersect family treats null as empty", () => {
+            agree(
+                Arr.intersect(nums(), null),
+                Obj.intersect(numsObj(), null),
+                [],
+            );
+            agree(
+                Arr.intersectAssoc(nums(), null),
+                Obj.intersectAssoc(numsObj(), null),
+                [],
+            );
+            agree(
+                Arr.intersectByKeys(nums(), null),
+                Obj.intersectByKeys(numsObj(), null),
+                [],
+            );
+        });
+
+        it("X14b intersectAssoc, intersectAssocUsing and intersectByKeys", () => {
+            // array_intersect_assoc([10,20,30,40],[10,999,30]) -> {0:10,2:30};
+            // array_intersect_key([10,20,30,40],[1=>'x',3=>'y']) -> {1:20,3:40}.
+            const same = (a: PropertyKey, b: PropertyKey) => a === b;
+            const sparseArray = Object.assign([] as unknown[], {
+                1: "x",
+                3: "y",
+            });
+
+            agree(
+                Arr.intersectAssoc(nums(), [10, 999, 30]),
+                Obj.intersectAssoc(numsObj(), { 0: 10, 1: 999, 2: 30 }),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                ],
+            );
+            agree(
+                Arr.intersectAssocUsing(nums(), [10, 999, 30], same),
+                Obj.intersectAssocUsing(
+                    numsObj(),
+                    { 0: 10, 1: 999, 2: 30 },
+                    same,
+                ),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                ],
+            );
+            agree(
+                Arr.intersectByKeys(nums(), sparseArray),
+                Obj.intersectByKeys(numsObj(), { 1: "x", 3: "y" }),
+                [
+                    ["0", 20],
+                    ["1", 40],
+                ],
+                [
+                    ["1", 20],
+                    ["3", 40],
+                ],
+            );
+        });
+
+        it("X15 slice handles a negative offset with a length", () => {
+            // collect([10,20,30,40])->slice(-3,2) -> {1:20,2:30}.
+            agree(
+                Arr.slice(nums(), -3, 2),
+                Obj.slice(numsObj(), -3, 2),
+                [
+                    ["0", 20],
+                    ["1", 30],
+                ],
+                [
+                    ["1", 20],
+                    ["2", 30],
+                ],
+            );
+        });
+
+        it("X16 filter drops PHP-falsy '0' but keeps '00' and '0.0'", () => {
+            const mixed = ["0", "00", "0.0", "", 0, false, null, [], "a"];
+            const mixedObj: Record<string, unknown> = {
+                0: "0",
+                1: "00",
+                2: "0.0",
+                3: "",
+                4: 0,
+                5: false,
+                6: null,
+                7: [],
+                8: "a",
+            };
+
+            agree(
+                Arr.filter(mixed),
+                Obj.filter(mixedObj),
+                [
+                    ["0", "00"],
+                    ["1", "0.0"],
+                    ["2", "a"],
+                ],
+                [
+                    ["1", "00"],
+                    ["2", "0.0"],
+                    ["8", "a"],
+                ],
+            );
+        });
+
+        it("X17 pad numbers negative pad slots from zero", () => {
+            // array_pad(['a'=>1,'b'=>2],-5,0) -> {0:0,1:0,2:0,a:1,b:2};
+            // array_pad([10,20,30,40],-6,0) -> [0,0,10,20,30,40].
+            expect(entriesOf(Obj.pad({ a: 1, b: 2 }, -5, 0))).toEqual([
+                ["0", 0],
+                ["1", 0],
+                ["2", 0],
+                ["a", 1],
+                ["b", 2],
+            ]);
+            agree(Arr.pad(nums(), -6, 0), Obj.pad(numsObj(), -6, 0), [
+                ["0", 0],
+                ["1", 0],
+                ["2", 10],
+                ["3", 20],
+                ["4", 30],
+                ["5", 40],
+            ]);
+        });
+
+        it("X18 positive padding appends past the existing keys", () => {
+            // array_pad([10,20,30,40],6,0) -> [10,20,30,40,0,0]. Numbering
+            // the pad slots from 0 overwrote the first two entries, which a
+            // value-list assertion could not see.
+            agree(Arr.pad(nums(), 6, 0), Obj.pad(numsObj(), 6, 0), [
+                ["0", 10],
+                ["1", 20],
+                ["2", 30],
+                ["3", 40],
+                ["4", 0],
+                ["5", 0],
+            ]);
+            agree(Data.dataPad(nums(), 6, 0), Data.dataPad(numsObj(), 6, 0), [
+                ["0", 10],
+                ["1", 20],
+                ["2", 30],
+                ["3", 40],
+                ["4", 0],
+                ["5", 0],
+            ]);
+        });
+
+        it("X18b pad returns a copy when no padding is needed", () => {
+            const source = numsObj();
+            const result = Obj.pad(source, 2, 0);
+
+            expect(result).not.toBe(source);
+            agree(Arr.pad(nums(), 2, 0), result, numsEntries);
+        });
+
+        it("X19 combine throws on a key/value count mismatch", () => {
+            const message =
+                "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements";
+
+            expect(() => Arr.combine(["a", "b"], [1])).toThrow(message);
+            expect(() => Obj.combine({ 0: "a", 1: "b" }, { 0: 1 })).toThrow(
+                message,
+            );
+            agree(
+                Arr.combine(["a", "b", "c"], [1, 2, 3]),
+                Obj.combine({ 0: "a", 1: "b", 2: "c" }, { 0: 1, 1: 2, 2: 3 }),
+                [
+                    ["a", 1],
+                    ["b", 2],
+                    ["c", 3],
+                ],
+            );
+        });
+
+        it("X20 union lets the left operand win, null value included", () => {
+            // ['a'=>null] + ['a'=>1] -> {a:null}; collect([10,20])
+            // ->union([1,1,50,60]) -> [10,20,50,60].
+            expect(entriesOf(Obj.union({ a: undefined }, { a: 1 }))).toEqual([
+                ["a", undefined],
+            ]);
+            agree(
+                Arr.union([10, 20], [1, 1, 50, 60]),
+                Obj.union({ 0: 10, 1: 20 }, { 0: 1, 1: 1, 2: 50, 3: 60 }),
+                [
+                    ["0", 10],
+                    ["1", 20],
+                    ["2", 50],
+                    ["3", 60],
+                ],
+            );
+        });
+
+        it("X20b union treats a nullish operand as empty", () => {
+            // getArrayableItems casts null to [], so collect([10,20])
+            // ->union(null) -> [10,20] on either backing.
+            agree(
+                Arr.union(nums(), null),
+                Obj.union(numsObj(), null),
+                numsEntries,
+            );
+            agree(
+                Data.dataUnion(nums(), null),
+                Data.dataUnion(numsObj(), null),
+                numsEntries,
+            );
+        });
+
+        it("X21 query casts booleans to 1 and 0", () => {
+            expect(Arr.query({ a: true, b: false })).toBe("a=1&b=0");
+            expect(Obj.query({ a: true, b: false })).toBe("a=1&b=0");
+            expect(Arr.query(["a", "b"])).toBe("0=a&1=b");
+            expect(Obj.query({ 0: "a", 1: "b" })).toBe("0=a&1=b");
+            expect(Data.dataQuery(["a", "b"])).toBe("0=a&1=b");
+            expect(Data.dataQuery({ 0: "a", 1: "b" })).toBe("0=a&1=b");
+        });
+
+        it("X22 the CSS helpers emit the value for numeric keys", () => {
+            expect(Arr.toCssClasses(["font-bold", "text-red"])).toBe(
+                "font-bold text-red",
+            );
+            expect(Obj.toCssClasses({ 0: "font-bold", 1: "text-red" })).toBe(
+                "font-bold text-red",
+            );
+            expect(Arr.toCssStyles(["color:red", "font-size:14px"])).toBe(
+                "color:red; font-size:14px;",
+            );
+            expect(
+                Obj.toCssStyles({ 0: "color:red", 1: "font-size:14px" }),
+            ).toBe("color:red; font-size:14px;");
+            expect(Data.dataToCssClasses(["font-bold", "text-red"])).toBe(
+                "font-bold text-red",
+            );
+            expect(
+                Data.dataToCssClasses({ 0: "font-bold", 1: "text-red" }),
+            ).toBe("font-bold text-red");
+        });
+
+        it("X23 random throws before the empty guard", () => {
+            const message =
+                "You requested 1 items, but there are only 0 items available.";
+
+            expect(() => Arr.random([], 1)).toThrow(message);
+            expect(() => Obj.random({}, 1)).toThrow(message);
+            expect(() => Data.dataRandom([], 1)).toThrow(message);
+            expect(() => Data.dataRandom({}, 1)).toThrow(message);
+        });
+
+        it("X24 random's preserveKeys defaults to false", () => {
+            // No value pin: random is non-deterministic by design. The keys
+            // are the deterministic part — reindexed unless asked otherwise.
+            expect(Object.keys(Arr.random(nums(), 2) as object)).toEqual([
+                "0",
+                "1",
+            ]);
+            expect(Object.keys(Obj.random(numsObj(), 2) as object)).toEqual([
+                "0",
+                "1",
+            ]);
+            expect(
+                Object.keys(Obj.random(numsObj(), 2, true) as object).every(
+                    (key) => Object.hasOwn(numsObj(), key),
+                ),
+            ).toBe(true);
+        });
+
+        it("X25 only accepts a bare key and null", () => {
+            // Arr::only([10,20,30,40],1) -> {1:20}; with null -> [].
+            agree(
+                Arr.only(nums(), 1),
+                Obj.only(numsObj(), "1"),
+                [["0", 20]],
+                [["1", 20]],
+            );
+            agree(Arr.only(nums(), null), Obj.only(numsObj(), null), []);
+            agree(
+                Arr.only(nums(), [1, 3]),
+                Obj.only(numsObj(), ["1", "3"]),
+                [
+                    ["0", 20],
+                    ["1", 40],
+                ],
+                [
+                    ["1", 20],
+                    ["3", 40],
+                ],
+            );
+        });
+
+        it("X26 get, has and exists resolve a literal dotted key first", () => {
+            const dotted = { "a.b": "literal", a: { b: "nested" } };
+
+            expect(Obj.get(dotted, "a.b")).toBe("literal");
+            expect(Obj.has(dotted, "a.b")).toBe(true);
+            expect(Obj.exists(dotted, "a.b")).toBe(true);
+
+            expect(Arr.get(nums(), 2)).toBe(30);
+            expect(Obj.get(numsObj(), 2)).toBe(30);
+            expect(Arr.has(nums(), 2)).toBe(true);
+            expect(Obj.has(numsObj(), 2)).toBe(true);
+            expect(Arr.exists(nums(), 2)).toBe(true);
+            expect(Obj.exists(numsObj(), 2)).toBe(true);
+            expect(Data.dataExists(nums(), 2)).toBe(true);
+            expect(Data.dataExists(numsObj(), 2)).toBe(true);
+            expect(Data.dataExists(nums(), 9)).toBe(false);
+            expect(Data.dataExists(numsObj(), 9)).toBe(false);
+        });
+
+        it("X27 pluck supports keyed and wildcard paths", () => {
+            // Arr::pluck(records,'name','id') -> {3:'c',1:'a',2:'b'}; JS
+            // hoists those integer keys ascending, so the pairs are the
+            // same and only the iteration order differs.
+            const nested = [{ posts: [{ title: "p1" }, { title: "p2" }] }];
+            const nestedObj = {
+                0: { posts: [{ title: "p1" }, { title: "p2" }] },
+            };
+
+            agree(
+                Arr.pluck(records(), "name"),
+                Obj.pluck(recordsObj(), "name"),
+                [
+                    ["0", "c"],
+                    ["1", "a"],
+                    ["2", "b"],
+                ],
+            );
+            agree(
+                Arr.pluck(records(), "name", "id"),
+                Obj.pluck(recordsObj(), "name", "id"),
+                [
+                    ["1", "a"],
+                    ["2", "b"],
+                    ["3", "c"],
+                ],
+            );
+            agree(
+                Arr.pluck(nested, "posts.*.title"),
+                Obj.pluck(nestedObj, "posts.*.title"),
+                [["0", ["p1", "p2"]]],
+            );
+        });
+
+        it("X28 sort accepts a key, a descriptor and an empty list", () => {
+            // Arr::sort(records,'id') sorts ascending by id; a plain object
+            // whose keys are all integers cannot show it, because sort
+            // preserves keys and JS re-sorts integer keys ascending on
+            // write (ECMA-262 OrdinaryOwnPropertyKeys). Both halves are
+            // pinned so the divergence is visible rather than normalised
+            // away; the string-keyed object below is where obj can show it.
+            expect(entriesOf(Arr.sort(records(), "id"))).toEqual([
+                ["0", { id: 1, name: "a" }],
+                ["1", { id: 2, name: "b" }],
+                ["2", { id: 3, name: "c" }],
+            ]);
+            expect(entriesOf(Obj.sort(recordsObj(), "id"))).toEqual([
+                ["0", { id: 3, name: "c" }],
+                ["1", { id: 1, name: "a" }],
+                ["2", { id: 2, name: "b" }],
+            ]);
+            expect(
+                entriesOf(
+                    Obj.sort(
+                        { c: { id: 3 }, a: { id: 1 }, b: { id: 2 } },
+                        "id",
+                    ),
+                ),
+            ).toEqual([
+                ["a", { id: 1 }],
+                ["b", { id: 2 }],
+                ["c", { id: 3 }],
+            ]);
+
+            // Arr::sort([3,1,2],[]) -> [3,1,2]: no comparisons, no reorder.
+            agree(Arr.sort([3, 1, 2], []), Obj.sort({ 0: 3, 1: 1, 2: 2 }, []), [
+                ["0", 3],
+                ["1", 1],
+                ["2", 2],
+            ]);
+        });
+
+        it("X28b sortDesc reverses the comparison, not the container", () => {
+            expect(entriesOf(Arr.sortDesc([30, 10, 20]))).toEqual([
+                ["0", 30],
+                ["1", 20],
+                ["2", 10],
+            ]);
+            expect(entriesOf(Obj.sortDesc({ c: 30, a: 10, b: 20 }))).toEqual([
+                ["c", 30],
+                ["b", 20],
+                ["a", 10],
+            ]);
+            expect(entriesOf(Data.dataSortDesc([30, 10, 20]))).toEqual([
+                ["0", 30],
+                ["1", 20],
+                ["2", 10],
+            ]);
+        });
+
+        it("X29 flatten defaults to Infinity and stops only at depth 1", () => {
+            // Arr::flatten([1,[2,[3]]]) -> [1,2,3]; at depth 1 -> [1,2,[3]];
+            // at depth 2 -> [1,2,3]; at depth 0 it keeps descending.
+            const nested = [1, [2, [3]]];
+            const nestedObj = { 0: 1, 1: { 0: 2, 1: { 0: 3 } } };
+            const flat: [string, unknown][] = [
+                ["0", 1],
+                ["1", 2],
+                ["2", 3],
+            ];
+
+            agree(Arr.flatten(nested), Obj.flatten(nestedObj), flat);
+            agree(Arr.flatten(nested, 2), Obj.flatten(nestedObj, 2), flat);
+            agree(Arr.flatten(nested, 0), Obj.flatten(nestedObj, 0), flat);
+            expect(entriesOf(Arr.flatten(nested, 1))).toEqual([
+                ["0", 1],
+                ["1", 2],
+                ["2", [3]],
+            ]);
+            expect(entriesOf(Obj.flatten(nestedObj, 1))).toEqual([
+                ["0", 1],
+                ["1", 2],
+                ["2", { 0: 3 }],
+            ]);
+            agree(
+                Data.dataFlatten(nested, 2),
+                Data.dataFlatten(nestedObj, 2),
+                flat,
+            );
+        });
+
+        it("X30 mapWithKeys returns one plain container", () => {
+            // Arr::mapWithKeys(records, fn -> [name => id]) -> {c:3,a:1,b:2};
+            // with numeric keys -> {3:'c',1:'a',2:'b'}, which JS hoists
+            // ascending. Neither backing may hand back a Map.
+            agree(
+                Arr.mapWithKeys(records(), (item) => ({
+                    [item.name]: item.id,
+                })),
+                Obj.mapWithKeys(
+                    recordsObj(),
+                    (item: { id: number; name: string }) => ({
+                        [item.name]: item.id,
+                    }),
+                ),
+                [
+                    ["c", 3],
+                    ["a", 1],
+                    ["b", 2],
+                ],
+            );
+            agree(
+                Arr.mapWithKeys(records(), (item) => ({
+                    [item.id]: item.name,
+                })),
+                Obj.mapWithKeys(
+                    recordsObj(),
+                    (item: { id: number; name: string }) => ({
+                        [item.id]: item.name,
+                    }),
+                ),
+                [
+                    ["1", "a"],
+                    ["2", "b"],
+                    ["3", "c"],
+                ],
+            );
+        });
+
+        it("keys and values read the same pairs off either backing", () => {
+            agree(Arr.keys(nums()), Obj.keys(numsObj()), [
+                ["0", 0],
+                ["1", 1],
+                ["2", 2],
+                ["3", 3],
+            ]);
+            agree(Arr.values(nums()), Obj.values(numsObj()), numsEntries);
+            agree(Data.dataKeys(nums()), Data.dataKeys(numsObj()), [
+                ["0", 0],
+                ["1", 1],
+                ["2", 2],
+                ["3", 3],
+            ]);
+        });
+
+        it("reverse actually reverses an integer-keyed object", () => {
+            // collect([10,20,30,40])->reverse() iterates 40,30,20,10.
+            // Preserving PHP's keys would make this a no-op, because JS
+            // re-sorts integer keys ascending on write.
+            const reversed: [string, unknown][] = [
+                ["0", 40],
+                ["1", 30],
+                ["2", 20],
+                ["3", 10],
+            ];
+
+            agree(Arr.reverse(nums()), Obj.reverse(numsObj()), reversed);
+            agree(
+                Data.dataReverse(nums()),
+                Data.dataReverse(numsObj()),
+                reversed,
+            );
+            expect(entriesOf(Obj.reverse({ a: 1, b: 2, c: 3 }))).toEqual([
+                ["c", 3],
+                ["b", 2],
+                ["a", 1],
+            ]);
+        });
+
+        it("pull removes its key without renumbering the rest", () => {
+            // collect([10,20,30,40])->pull(1) -> 20, leaving {0:10,2:30,3:40}
+            // — unset, not array_splice, so no renumbering here.
+            const arrSource = nums();
+            const objSource = numsObj();
+
+            expect(Data.dataPull(arrSource, 1).value).toBe(20);
+            expect(Data.dataPull(objSource, 1).value).toBe(20);
+            expect(entriesOf(Obj.pull(objSource, 1).data)).toEqual([
+                ["0", 10],
+                ["2", 30],
+                ["3", 40],
+            ]);
+        });
+
+        it("undot rebuilds the same nested list from either backing", () => {
+            // Arr::undot(['0'=>'a','1.0'=>'b','1.1'=>'c']) -> ['a',['b','c']].
+            const flat = { 0: "a", "1.0": "b", "1.1": "c" };
+
+            agree(Arr.undot(flat), Obj.undot(flat), [
+                ["0", "a"],
+                ["1", ["b", "c"]],
+            ]);
+        });
+
+        it("add stores a key that is no array index on either backing", () => {
+            // Arr::add(['a','b'],'foo','X') -> {0:'a',1:'b',foo:'X'}.
+            agree(
+                Arr.add(["a", "b"], "foo", "X"),
+                Obj.add({ 0: "a", 1: "b" }, "foo", "X"),
+                [
+                    ["0", "a"],
+                    ["1", "b"],
+                    ["foo", "X"],
+                ],
+            );
         });
     });
 });
