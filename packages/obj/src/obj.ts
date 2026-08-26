@@ -1208,7 +1208,7 @@ export function get<
     // definedness, decides: a literal key whose value is `undefined` is
     // still "found" and does not fall through to dot-path traversal.
     const keyStr = String(key);
-    if (keyStr in (object as Record<string, unknown>)) {
+    if (Object.hasOwn(object as object, keyStr)) {
         const literalValue = (object as Record<string, unknown>)[keyStr];
         return !isUndefined(literalValue)
             ? (literalValue as TDefault)
@@ -1236,7 +1236,7 @@ export function get<
                 : defaultValue;
         }
 
-        if (!(segment in current)) {
+        if (!Object.hasOwn(current as object, segment)) {
             return isFunction(defaultValue)
                 ? (defaultValue as () => TDefault)()
                 : defaultValue;
@@ -1632,7 +1632,7 @@ export function only<TValue, TKey extends PropertyKey = PropertyKey>(
     const keyList = isNull(keys) ? [] : isArray(keys) ? keys : [keys];
 
     for (const key of keyList) {
-        if (key in obj) {
+        if (Object.hasOwn(obj, key)) {
             result[key] = obj[key] as TValue;
         }
     }
@@ -1705,7 +1705,7 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
         const selected: Record<PropertyKey, unknown> = {};
 
         for (const key of keyList) {
-            if (isObject(item) && key in item) {
+            if (isObject(item) && Object.hasOwn(item, key)) {
                 selected[key] = item[key];
             }
         }
@@ -4091,7 +4091,7 @@ export function intersectAssoc<T1, T2 = T1>(
 
     for (const [key, value] of Object.entries(data)) {
         if (
-            key in otherObj &&
+            Object.hasOwn(otherObj, key) &&
             (value as unknown) === (otherObj[key as PropertyKey] as unknown)
         ) {
             result[key] = value as T1;
@@ -4179,7 +4179,7 @@ export function intersectByKeys<T1, T2 = T1>(
     const otherObj = other as Record<PropertyKey, T2>;
 
     for (const [key, value] of Object.entries(data)) {
-        if (key in otherObj) {
+        if (Object.hasOwn(otherObj, key)) {
             result[key] = value as T1;
         }
     }

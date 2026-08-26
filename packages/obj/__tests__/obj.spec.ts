@@ -1113,6 +1113,41 @@ describe("Obj", () => {
         });
     });
 
+    describe("own-property checks (inherited keys)", () => {
+        it.each(["toString", "constructor", "valueOf", "hasOwnProperty"])(
+            "does not see the inherited key %s",
+            (key) => {
+                // PHP-verified: Arr::has(['a'=>1],'toString') === false.
+                expect(Obj.has({ a: 1 }, key)).toBe(false);
+                expect(Obj.get({}, key, "D")).toBe("D");
+                expect(Obj.exists({}, key)).toBe(false);
+            },
+        );
+
+        it("does not see an inherited key through a dot path", () => {
+            expect(Obj.get({ a: {} }, "a.constructor", "D")).toBe("D");
+        });
+
+        it("ignores inherited keys in only and intersectByKeys", () => {
+            expect(Obj.only({ a: 1 }, ["constructor"])).toEqual({});
+            expect(Obj.intersectByKeys({ constructor: 1 }, {})).toEqual({});
+        });
+
+        it("ignores inherited keys in select and intersectAssoc", () => {
+            expect(Obj.select({ item: { a: 1 } }, ["constructor"])).toEqual({
+                item: {},
+            });
+
+            // `{}` inherits toString, and `{}.toString` equals this same
+            // reference, so a naive `in` check would wrongly pass both
+            // the key-presence and value-equality tests here.
+            const inheritedToString = Object.prototype.toString;
+            expect(
+                Obj.intersectAssoc({ toString: inheritedToString }, {}),
+            ).toEqual({});
+        });
+    });
+
     describe("hasAll", () => {
         it("should return true when all keys exist", () => {
             const obj = { name: "John", age: 30, city: "NYC" };
