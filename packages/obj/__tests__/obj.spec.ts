@@ -3630,19 +3630,37 @@ describe("Obj", () => {
         });
 
         it("splice with length 0 (insert only)", () => {
+            // The replacement's own key is discarded and renumbered from 0 (same rule
+            // regardless of length); "0" then sorts first — JS's integer-key ordering.
             const obj = { a: 1, b: 2, c: 3 };
             const removed = Obj.splice(obj, 1, 0, { x: 10 });
-            // No removal, just insert — the inserted keys land between
-            // the untouched surrounding keys.
             expect(removed).toEqual({});
-            expect(obj).toEqual({ a: 1, x: 10, b: 2, c: 3 });
+            expect(Object.entries(obj)).toEqual([
+                ["0", 10],
+                ["a", 1],
+                ["b", 2],
+                ["c", 3],
+            ]);
         });
 
-        it("splice with length > 0 (remove and insert)", () => {
-            const obj = { a: 1, b: 2, c: 3 };
-            const removed = Obj.splice(obj, 1, 1, { x: 10 });
-            expect(removed).toEqual({ b: 2 });
-            expect(obj).toEqual({ a: 1, x: 10, c: 3 });
+        it("discards the replacement object's keys, renumbering from zero", () => {
+            // PHP-verified in docs/php-parity/task-03-splice.json ("simple").
+            const data = { x: 1, y: 2, z: 3 };
+            Obj.splice(data, 1, 1, { foo: "bar" });
+
+            expect(Object.entries(data)).toEqual([
+                ["0", "bar"],
+                ["x", 1],
+                ["z", 3],
+            ]);
+        });
+
+        it("keeps every element when a replacement key collides with a survivor", () => {
+            // PHP-verified: 3 entries out, nothing dropped.
+            const data = { a: 1, b: 2, c: 3 };
+            Obj.splice(data, 1, 1, { a: 9 });
+
+            expect(Object.keys(data)).toHaveLength(3);
         });
 
         it("splice without replacement", () => {
@@ -3653,10 +3671,17 @@ describe("Obj", () => {
         });
 
         it("handles multiple replacement objects", () => {
+            // PHP-verified (task-03-splice.json "multi"): each replacement's values
+            // renumber from 0 in turn; "0"/"1" then sort first (JS integer-key order).
             const obj = { a: 1, b: 2, c: 3 };
             const removed = Obj.splice(obj, 1, 1, { x: 10 }, { y: 20 });
             expect(removed).toEqual({ b: 2 });
-            expect(obj).toEqual({ a: 1, x: 10, y: 20, c: 3 });
+            expect(Object.entries(obj)).toEqual([
+                ["0", 10],
+                ["1", 20],
+                ["a", 1],
+                ["c", 3],
+            ]);
         });
 
         it("clamps a negative length to no removal (known divergence from PHP)", () => {

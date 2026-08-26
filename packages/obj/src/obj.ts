@@ -3091,6 +3091,9 @@ function reindexIntegerKeys<TValue>(
  * Writes go through `defineKey` so a `__proto__` entry becomes a real own
  * key instead of reparenting the target through the `__proto__` setter.
  *
+ * A replacement's spliced-in order can differ from PHP's — JS enumerates integer-like
+ * keys first (unfixable, same class as `reverse`/`pad`); key names and count still match.
+ *
  * @see Collection::splice — `packages/collection/stubs/Collection.php:1755`.
  *      Wraps `array_splice`; mutates.
  *
@@ -3098,7 +3101,7 @@ function reindexIntegerKeys<TValue>(
  * @param offset - The starting index, by entry order (not by key)
  * @param length - The number of entries to remove. Defaults to everything
  * from offset to the end.
- * @param replacement - Object(s) whose own entries are spliced in at offset
+ * @param replacement - Object(s) whose values are spliced in at offset, renumbered from 0
  * @returns The removed entries, keyed the same way they were in `data`.
  *
  * @example
@@ -3140,10 +3143,10 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
     const replacementEntries: [string, TValue][] = [];
     for (const repObj of replacement) {
         if (accessible(repObj) || isArray(repObj)) {
-            for (const [key, value] of Object.entries(
+            for (const value of Object.values(
                 repObj as Record<string, TValue>,
             )) {
-                replacementEntries.push([key, value as TValue]);
+                replacementEntries.push(["0", value as TValue]);
             }
 
             continue;

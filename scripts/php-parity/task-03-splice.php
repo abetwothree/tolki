@@ -40,4 +40,17 @@ probe('splice on numeric keys — reindexes', 'array_splice([10=>a,20=>b,30=>c],
     return ['remaining' => $a, 'cut' => $cut];
 });
 
+probe('splice discards replacement keys', 'array_splice($a,1,1,["foo"=>"bar"])', function () {
+    $simple = ['x' => 1, 'y' => 2, 'z' => 3];
+    array_splice($simple, 1, 1, ['foo' => 'bar']);
+
+    $multi = ['a' => 1, 'b' => 2, 'c' => 3];
+    array_splice($multi, 1, 1, ['x' => 10, 'y' => 20]);
+
+    $collision = ['a' => 1, 'b' => 2, 'c' => 3];
+    array_splice($collision, 1, 1, ['a' => 9]);
+
+    return ['simple' => $simple, 'multi' => $multi, 'collision' => $collision];
+});
+
 emit();

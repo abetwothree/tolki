@@ -54,6 +54,28 @@
                     "b"
                 ]
             }
+        },
+        {
+            "label": "splice discards replacement keys",
+            "php": "array_splice($a,1,1,[\"foo\"=>\"bar\"])",
+            "value": {
+                "simple": {
+                    "x": 1,
+                    "0": "bar",
+                    "z": 3
+                },
+                "multi": {
+                    "a": 1,
+                    "0": 10,
+                    "1": 20,
+                    "c": 3
+                },
+                "collision": {
+                    "a": 1,
+                    "0": 9,
+                    "c": 3
+                }
+            }
         }
     ]
 }

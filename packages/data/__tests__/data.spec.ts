@@ -1649,8 +1649,9 @@ describe("Data", () => {
 
     describe("dataSplice", () => {
         it("is object", () => {
-            // An object-backed source stays object-backed and keeps its keys on both
-            // the remainder and the removed portion.
+            // An object-backed source stays object-backed and keeps its keys on the
+            // removed portion; the replacement's own keys are discarded and renumbered
+            // from 0 (array_splice), which then sorts first — JS integer-key ordering.
             const obj = { a: 1, b: 2, c: 3, d: 4 };
             const result = Data.dataSplice(obj, 1, 2, {
                 x: 99,
@@ -1658,7 +1659,7 @@ describe("Data", () => {
             });
             expect(Array.isArray(obj)).toBe(false);
             expect(result).toEqual({ b: 2, c: 3 });
-            expect(obj).toEqual({ a: 1, x: 99, y: 100, d: 4 });
+            expect(obj).toEqual({ "0": 99, "1": 100, a: 1, d: 4 });
         });
         it("is array", () => {
             const arr = [1, 2, 3, 4];
