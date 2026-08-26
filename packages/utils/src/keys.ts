@@ -67,6 +67,11 @@ export function isPhpArrayKey(value: unknown): value is string | number {
  * as an integer array key — the one `array_splice`/`array_unshift`
  * renumber. String keys are left untouched by both.
  *
+ * Negative integers such as "-1" are deliberately excluded, unlike PHP's
+ * own int-cast rule (which does renumber them). That divergence is a known,
+ * pinned carve-out — see `obj.spec.ts`'s unshift/splice tests — not a gap
+ * to close here.
+ *
  * @param key - The key to test
  * @returns True if `key` is a canonical non-negative integer string
  */
