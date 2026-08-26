@@ -476,7 +476,11 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
             if (accessible(obj)) {
                 for (const [key, value] of Object.entries(obj)) {
                     if (!Object.hasOwn(acc, key)) {
-                        acc[key as TKey] = value as TValue;
+                        defineKey(
+                            acc as Record<string, TValue>,
+                            key,
+                            value as TValue,
+                        );
                     }
                 }
             }
@@ -564,7 +568,7 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
         }
 
         if (!Object.hasOwn(itemsObject, key)) {
-            data[key as TKey] = value as TValue;
+            defineKey(data as Record<string, TValue>, key, value as TValue);
         }
     }
 

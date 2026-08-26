@@ -494,6 +494,27 @@ describe("Obj", () => {
                 a: 9,
             });
         });
+
+        it("keeps a __proto__ key as data instead of reparenting the result", () => {
+            // PHP-verified: Collection::union keeps "__proto__" as an ordinary key.
+            const hostile = JSON.parse(
+                '{"a":1,"__proto__":{"polluted":true},"c":3}',
+            );
+
+            const result = Obj.union(hostile, { z: 9 });
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(Object.hasOwn(result, "__proto__")).toBe(true);
+            expect(Object.keys(result)).toEqual(["a", "__proto__", "c", "z"]);
+        });
+
+        it("does not reparent through unshift, which delegates to union", () => {
+            const hostile = JSON.parse('{"a":1,"__proto__":{"polluted":true}}');
+
+            const result = Obj.unshift(hostile, 9);
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+        });
     });
 
     describe("unshift", () => {
