@@ -179,40 +179,17 @@ import {
 } from "@tolki/utils";
 
 /**
- * A note on the `as` casts below (Task 11, cross-package parity reconciliation):
- *
- * Every exported function here dispatches a single, deliberately loose
- * `DataItems<TValue, TKey>` union to one of two more strictly-typed
- * implementations (`@tolki/arr` or `@tolki/obj`), chosen at runtime by
- * `isObject()`. `isObject()` is a plain structural guard — it does not (and
- * cannot) narrow the generic `TValue`/`TKey` carried on the union, so the
- * compiler still sees the *whole* `DataItems` union inside each branch, not
- * the branch-appropriate member. Two consequences follow, and account for
- * nearly all the casts that remain after this task's cleanup pass:
- *
- * 1. Passing `data` on into `objXxx`/`arrXxx` needs a cast to hint the
- *    generic the callee can no longer infer for itself (`data as
- *    Record<TKey, TValue>` / `data as TValue[]`, etc.).
- * 2. Several `obj*`/`arr*` signatures accept a parameter typed `X | unknown`
- *    (to also accept non-object/non-array runtime input, per their own
- *    contracts). Once `unknown` is part of a parameter's type, TypeScript's
- *    generic inference from that argument's position is defeated (anything
- *    is assignable to `unknown`), so the compiler falls back to inferring
- *    the callee's generics from the *contextual return type* instead — and
- *    because that return position is itself the two-member `DataItems`
- *    union, inference can smear array-prototype member types (`push`,
- *    `concat`, `length`, …) across the inferred value type. The fix is the
- *    same: pin the generics explicitly with a cast on the call, and/or on
- *    the returned value.
- *
- * These are pre-existing, load-bearing casts (401 originally; ~150 remain
- * after this pass removed the ~110 that had become redundant once Tasks
- * 2-10 corrected obj's/arr's own signatures) — not new widenings introduced
- * here. Per this task's brief: this is `data` genuinely needing a looser
- * type because it dispatches over `DataItems`, so the widening happens
- * here, at the dispatch boundary, and not by loosening `obj`'s or `arr`'s
- * own return types. A handful of functions have a more specific reason of
- * their own; those carry their own comment at the call site.
+ * A note on most of the `as` casts below (Task 11 cast audit): each
+ * function here dispatches a loose `DataItems<TValue, TKey>` union to a
+ * stricter `@tolki/arr`/`@tolki/obj` implementation via `isObject()`,
+ * which can't narrow the union's generics. Most of what's left after this
+ * task's cleanup (257 real assertions found via the TS compiler API, 110
+ * removed as dead, 147 remain) exists because many `obj`/`arr` parameters
+ * are typed `X | unknown`, which defeats argument-based generic inference
+ * — that inference sink is Phase 2's territory, not fixed here. Widening
+ * happens at this dispatch boundary, not by loosening `obj`/`arr`'s own
+ * return types. Some casts carry their own comment for a more specific
+ * reason.
  */
 
 /**
@@ -620,13 +597,9 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
         return objUndot(data);
     }
 
-    // Widen: forcing the array-shaped algorithm (asArray) means an
-    // object-backed `data` is deliberately routed to `Arr.undot`, whose
-    // exported type (Task 9) rejects non-numeric-first keys to prevent
-    // silent data loss on direct calls. `dataUndot` still accepts the
-    // general `DataItems` union by design (that is its entire reason to
-    // exist over `Arr.undot`/`Obj.undot` directly), so the safety net that
-    // type narrowing provides for direct callers cannot be preserved here.
+    // Widen: asArray routes even object-backed data to Arr.undot, whose
+    // type rejects non-numeric-first keys — dataUndot's own contract is
+    // broader, so that safety net can't be preserved through this call.
     return arrUndot(data as Record<TKey, TValue>) as DataItems<TValue>;
 }
 
@@ -1557,12 +1530,12 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
 export function dataShift<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     count: number = 1,
-) {
+): DataItems<TValue, TKey> {
     if (isObject(items)) {
-        return objShift(items, count);
+        return objShift(items, count) as DataItems<TValue, TKey>;
     }
 
-    return arrShift(arrWrap(items), count);
+    return arrShift(arrWrap(items), count) as DataItems<TValue, TKey>;
 }
 
 /**
@@ -1977,15 +1950,20 @@ export function dataReplace<
 >(
     data: DataItems<TValue, TKey>,
     replacerData: DataItems<TValue, TReplacerKey> | null | undefined,
-) {
+): DataItems<TValue, TKey> {
     const replacerIsNullish = isNull(replacerData) || isUndefined(replacerData);
 
     if (isObject(data) && (replacerIsNullish || isObject(replacerData))) {
-        return objReplace(data, replacerData);
+        return objReplace(data, replacerData) as DataItems<TValue, TKey>;
     }
 
-    if (isArray(data) && (replacerIsNullish || isArray(replacerData))) {
-        return arrReplace(data, replacerData);
+    // arrReplace accepts an object-shaped (sparse, by-index) replacer too,
+    // not just an array one — require only that it isn't a bare scalar.
+    if (
+        isArray(data) &&
+        (replacerIsNullish || isArray(replacerData) || isObject(replacerData))
+    ) {
+        return arrReplace(data, replacerData) as DataItems<TValue, TKey>;
     }
 
     throw new Error(
@@ -2009,15 +1987,26 @@ export function dataReplaceRecursive<
 >(
     data: DataItems<TValue, TKey>,
     replacerData: DataItems<TValue, TKey> | null | undefined,
-) {
+): DataItems<TValue, TKey> {
     const replacerIsNullish = isNull(replacerData) || isUndefined(replacerData);
 
     if (isObject(data) && (replacerIsNullish || isObject(replacerData))) {
-        return objReplaceRecursive(data, replacerData);
+        return objReplaceRecursive(data, replacerData) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
-    if (isArray(data) && (replacerIsNullish || isArray(replacerData))) {
-        return arrReplaceRecursive(data, replacerData);
+    // arrReplaceRecursive accepts an object-shaped (sparse) replacer too,
+    // same as arrReplace (Critical 1) — same fix, same reason.
+    if (
+        isArray(data) &&
+        (replacerIsNullish || isArray(replacerData) || isObject(replacerData))
+    ) {
+        return arrReplaceRecursive(data, replacerData) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     throw new Error(
@@ -2085,12 +2074,16 @@ export function dataPad<
     TPadValue,
     TValue,
     TKey extends PropertyKey = PropertyKey,
->(data: DataItems<TValue, TKey>, size: number, value: TPadValue) {
+>(
+    data: DataItems<TValue, TKey>,
+    size: number,
+    value: TPadValue,
+): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objPad(data, size, value);
+        return objPad(data, size, value) as DataItems<TValue, TKey>;
     }
 
-    return arrPad(arrWrap(data), size, value);
+    return arrPad(arrWrap(data), size, value) as DataItems<TValue, TKey>;
 }
 
 /**
@@ -2445,19 +2438,11 @@ export function dataDiff<
 }
 
 /**
- * A JS array's own keys ARE its indices, in exactly the same shape
- * `Object.entries`/`Object.keys` produce for a plain object (string
- * indices) — so `array_diff_uassoc`/`array_diff_ukey`'s key-comparison
- * algorithm applies unchanged; only `accessible()` (obj.ts) rejects arrays
- * outright, which is what previously forced these two dispatch functions
- * to fall back to a plain value-only diff and silently ignore the
- * callback for array-backed input (a Task 6 finding, deferred; closed out
- * here in Task 11 because it broke the array/object cross-backing
- * agreement sweep on these two functions).
- *
- * Reindexes the survivors, matching every other array-branch diff/
- * intersect function in this file (Task 6's index-preservation gap is
- * deferred uniformly, not specially handled here).
+ * A JS array's own keys are its indices, in the same shape
+ * `Object.entries`/`Object.keys` produce for a plain object — so
+ * `array_diff_uassoc`/`array_diff_ukey`'s key-comparison algorithm applies
+ * unchanged. Reindexes the survivors, matching every other array-branch
+ * diff/intersect function in this file.
  */
 function arrayDiffUsingKeys<TValue>(
     data: readonly TValue[],
@@ -2684,15 +2669,15 @@ export function dataIntersectAssoc<
 >(
     data: DataItems<TValue, TKey>,
     other: DataItems<TValue, TKey> | null | undefined,
-) {
+): DataItems<TValue, TKey> {
     const otherIsNullish = isNull(other) || isUndefined(other);
 
     if (isObject(data) && (otherIsNullish || isObject(other))) {
-        return objIntersectAssoc(data, other);
+        return objIntersectAssoc(data, other) as DataItems<TValue, TKey>;
     }
 
     if (isArray(data) && (otherIsNullish || isArray(other))) {
-        return arrIntersectAssoc(data, other);
+        return arrIntersectAssoc(data, other) as DataItems<TValue, TKey>;
     }
 
     throw new Error(
@@ -2759,15 +2744,15 @@ export function dataIntersectByKeys<
 >(
     data: DataItems<TValue, TKey>,
     other: DataItems<TValue, TOtherKey> | null | undefined,
-) {
+): DataItems<TValue, TKey> {
     const otherIsNullish = isNull(other) || isUndefined(other);
 
     if (isObject(data) && (otherIsNullish || isObject(other))) {
-        return objIntersectByKeys(data, other);
+        return objIntersectByKeys(data, other) as DataItems<TValue, TKey>;
     }
 
     if (isArray(data) && (otherIsNullish || isArray(other))) {
-        return arrIntersectByKeys(data, other);
+        return arrIntersectByKeys(data, other) as DataItems<TValue, TKey>;
     }
 
     throw new Error(

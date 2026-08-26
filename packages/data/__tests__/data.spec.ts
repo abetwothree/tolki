@@ -1861,6 +1861,15 @@ describe("Data", () => {
             expect(result).toEqual(["d", "e", ["f", "g"]]);
         });
 
+        it("accepts a sparse object-shaped replacer for array-backed data", () => {
+            // PHP-verified: array_replace_recursive([['a'=>1],['b'=>2]],
+            // [0=>['a'=>99]]) -> [{a:99},{b:2}].
+            const result = Data.dataReplaceRecursive([{ a: 1 }, { b: 2 }], {
+                0: { a: 99 },
+            });
+            expect(result).toEqual([{ a: 99 }, { b: 2 }]);
+        });
+
         it("throws when values do not match type", () => {
             expect(() => {
                 Data.dataReplaceRecursive({ a: 1, b: 2 }, [3, 4]);
@@ -2703,28 +2712,34 @@ describe("Data", () => {
         });
 
         it("dataQuery agrees, either backing (Task 8)", () => {
+            // Arr::query(['a','b']) -> "0=a&1=b".
             const asArray = ["a", "b"];
             const asObject = { 0: "a", 1: "b" };
+            const expected = "0=a&1=b";
 
-            expect(Data.dataQuery(asArray)).toBe(Data.dataQuery(asObject));
+            expect(Data.dataQuery(asArray)).toBe(expected);
+            expect(Data.dataQuery(asObject)).toBe(expected);
         });
 
         it("dataToCssClasses agrees, either backing (Task 8)", () => {
+            // Arr::toCssClasses(['font-bold','text-red']) -> "font-bold text-red".
             const asArray = ["font-bold", "text-red"];
             const asObject = { 0: "font-bold", 1: "text-red" };
+            const expected = "font-bold text-red";
 
-            expect(Data.dataToCssClasses(asArray)).toBe(
-                Data.dataToCssClasses(asObject),
-            );
+            expect(Data.dataToCssClasses(asArray)).toBe(expected);
+            expect(Data.dataToCssClasses(asObject)).toBe(expected);
         });
 
         it("dataToCssStyles agrees, either backing (Task 8)", () => {
+            // Arr::toCssStyles(['color:red','font-size:14px']) ->
+            // "color:red; font-size:14px;".
             const asArray = ["color:red", "font-size:14px"];
             const asObject = { 0: "color:red", 1: "font-size:14px" };
+            const expected = "color:red; font-size:14px;";
 
-            expect(Data.dataToCssStyles(asArray)).toBe(
-                Data.dataToCssStyles(asObject),
-            );
+            expect(Data.dataToCssStyles(asArray)).toBe(expected);
+            expect(Data.dataToCssStyles(asObject)).toBe(expected);
         });
     });
 });
