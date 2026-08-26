@@ -1709,16 +1709,43 @@ describe("Arr", () => {
     });
 
     describe("union", () => {
-        it("union", () => {
-            expect(Arr.union([1, 2], [2, 3])).toEqual([1, 2, 3]);
+        // PHP-verified directly (`+` is a native operator, docs/php-parity
+        // has no dedicated probe for it — Task 11 ran these against real
+        // PHP 8.5): `[1,2] + [2,3]` -> `[1,2]`; `["a","b"] + ["b","c","a"]`
+        // -> `["a","b","a"]`. Before this fix, arr.union concatenated and
+        // deduplicated values instead of unioning keys — a bug found in
+        // Task 7, deferred, and closed out here in Task 11's cross-backing
+        // sweep (Collection.union must agree whether array- or
+        // object-backed, and obj.union already did the real `+` semantics).
+        it("unions by key, left array wins, mirroring PHP's + operator", () => {
+            // Both arrays are length 2, so every index the right side could
+            // fill is already occupied by the left — it contributes nothing,
+            // even though 3 never appears on the left.
+            expect(Arr.union([1, 2], [2, 3])).toEqual([1, 2]);
+            // The right array is longer: indices 0-1 stay from the left,
+            // index 2 ("a") is only filled by the right.
             expect(Arr.union(["a", "b"], ["b", "c", "a"])).toEqual([
                 "a",
                 "b",
-                "c",
+                "a",
             ]);
             expect(Arr.union([], [1, 2])).toEqual([1, 2]);
             expect(Arr.union([1, 2], [])).toEqual([1, 2]);
             expect(Arr.union([], [])).toEqual([]);
+        });
+
+        it("folds three or more arrays left-to-right", () => {
+            // PHP-verified: [1] + [10,20,30] + [100,200] -> [1,20,30].
+            expect(Arr.union([1], [10, 20, 30], [100, 200])).toEqual([
+                1, 20, 30,
+            ]);
+        });
+
+        it("keeps a left-most null/undefined value over a later real value", () => {
+            // PHP-verified: [null] + [1] -> [null] — presence of the key on
+            // the left wins even when its value is null, exactly like
+            // obj.union's own null/undefined-precedence fix (X20).
+            expect(Arr.union([undefined], [1])).toEqual([undefined]);
         });
     });
 

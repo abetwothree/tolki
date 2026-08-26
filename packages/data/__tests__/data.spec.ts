@@ -413,8 +413,20 @@ describe("Data", () => {
         });
 
         it("is array", () => {
+            // PHP-verified directly (`+` is a native operator, Task 11):
+            // [1,2] + [2,3] -> [1,2] — both indices the right side could
+            // fill are already occupied by the left, so it contributes
+            // nothing. Before Task 11 this asserted [1,2,3], the
+            // concat-and-dedupe shape of a bug Task 7 found in arr.union
+            // and explicitly deferred.
             const result = Data.dataUnion([1, 2], [2, 3]);
-            expect(result).toEqual([1, 2, 3]);
+            expect(result).toEqual([1, 2]);
+        });
+
+        it("extends the tail once the left operand runs out of indices", () => {
+            // PHP-verified: [1,2] + [3,4,5] -> [1,2,5].
+            const result = Data.dataUnion([1, 2], [3, 4, 5]);
+            expect(result).toEqual([1, 2, 5]);
         });
 
         it("throws error on mismatched types", () => {
@@ -2649,6 +2661,55 @@ describe("Data", () => {
 
             const result7 = Data.dataOnlyValues(arr5, [1, 2, 3]);
             expect(result7).toEqual([1, "1", 2, "2", 3]);
+        });
+    });
+
+    // Task 11 cross-backing agreement sweep (plan exit criterion): for every
+    // function fixed in Tasks 2-10, an array-backed and an object-backed
+    // representation of the *same* conceptual PHP array (an object whose
+    // own keys are exactly the array's indices, 0..n-1) must agree on what
+    // the operation produces. `query`, `toCssClasses`, `toCssStyles` and
+    // `exists` (Tasks 8-9) have no `Collection` method at all — Arr.php has
+    // them, Collection.php does not — so their sweep lives here at the
+    // `data` dispatch layer instead of collection.spec.ts.
+    describe("cross-backing agreement sweep (Task 11, plan exit criterion)", () => {
+        it("dataExists agrees, either backing (Task 9)", () => {
+            const asArray = [10, 20, 30];
+            const asObject = { 0: 10, 1: 20, 2: 30 };
+
+            expect(Data.dataExists(asArray, 1)).toBe(
+                Data.dataExists(asObject, 1),
+            );
+            expect(Data.dataExists(asArray, 1)).toBe(true);
+            expect(Data.dataExists(asArray, 5)).toBe(
+                Data.dataExists(asObject, 5),
+            );
+            expect(Data.dataExists(asArray, 5)).toBe(false);
+        });
+
+        it("dataQuery agrees, either backing (Task 8)", () => {
+            const asArray = ["a", "b"];
+            const asObject = { 0: "a", 1: "b" };
+
+            expect(Data.dataQuery(asArray)).toBe(Data.dataQuery(asObject));
+        });
+
+        it("dataToCssClasses agrees, either backing (Task 8)", () => {
+            const asArray = ["font-bold", "text-red"];
+            const asObject = { 0: "font-bold", 1: "text-red" };
+
+            expect(Data.dataToCssClasses(asArray)).toBe(
+                Data.dataToCssClasses(asObject),
+            );
+        });
+
+        it("dataToCssStyles agrees, either backing (Task 8)", () => {
+            const asArray = ["color:red", "font-size:14px"];
+            const asObject = { 0: "color:red", 1: "font-size:14px" };
+
+            expect(Data.dataToCssStyles(asArray)).toBe(
+                Data.dataToCssStyles(asObject),
+            );
         });
     });
 });

@@ -537,14 +537,24 @@ export function undot<TValue, TKey extends UndotArrayKey = number>(
 }
 
 /**
- * Union multiple arrays into a single array containing only unique values,
- * preserving insertion order.
+ * Union multiple arrays, mirroring PHP's `+` operator folded left-to-right:
+ * the first (left-most) array to already occupy an index keeps it, and a
+ * later array only ever contributes indices beyond what's already been
+ * filled. This is a KEY union, not a value union — it does not deduplicate
+ * values, and it is not `array_merge`/`Collection::merge` (which
+ * concatenates on numeric keys instead of unioning them).
+ *
+ * PHP-verified (`+` is a native operator, and Task 11 ran these directly):
+ * `[1,2] + [3,4,5]` -> `[1,2,5]`; `[1,2] + [2,3]` -> `[1,2]` (both indices
+ * already exist on the left, so the right side contributes nothing); `[1,2,3]
+ * + [3,4,5]` -> `[1,2,3]` (same reason, at length 3); `["a","b"] +
+ * ["b","c","a"]` -> `["a","b","a"]`.
  *
  * @see Collection::union — `packages/collection/stubs/Collection.php:944`.
  *      Uses PHP's `+` operator (key union: left keys win), not `array_merge`.
  *
  * @param arrays - The arrays to union.
- * @returns A new array containing all unique elements from the input arrays.
+ * @returns A new array combining each array's indices, left-most wins.
  */
 export function union(): unknown[];
 export function union<A>(a: readonly A[]): A[];
@@ -577,15 +587,14 @@ export function union<A, B, C, D, E, F>(
 ): (A | B | C | D | E | F)[];
 export function union(...arrays: (readonly unknown[])[]): unknown[];
 export function union(...arrays: (readonly unknown[])[]): unknown[] {
-    const result: unknown[] = [];
+    let result: unknown[] = [];
 
     for (const array of arrays) {
-        for (const item of array) {
-            if (result.includes(item)) {
-                continue;
-            }
-
-            result.push(item);
+        // Every index below `result.length` is already occupied by an
+        // earlier (left-most-wins) array, so only the tail beyond that
+        // point can still contribute — mirroring PHP's `+` key union.
+        if (array.length > result.length) {
+            result = [...result, ...array.slice(result.length)];
         }
     }
 

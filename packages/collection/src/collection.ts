@@ -2172,16 +2172,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Union the collection with the given items.
+     * Union the collection with the given items, mirroring PHP's `+`
+     * operator: this collection's own keys always win, and the argument
+     * only ever contributes keys this collection doesn't already have. For
+     * an array-backed collection that means indices 0..n-1 are already
+     * occupied, so the argument can only extend the tail — it never
+     * deduplicates or overwrites existing values (PHP-verified directly,
+     * Task 11: `[1,2,3] + [3,4,5]` -> `[1,2,3]`, not a concatenation).
      *
-     * @param items - The items to union with
+     * @param items - The items to union with. Must share this collection's
+     *   backing (both array-shaped or both object-shaped) — `dataUnion`
+     *   throws otherwise.
      * @returns A new collection with the union of items
      *
      * @example
      *
-     * new Collection([1, 2, 3]).union([3, 4, 5]); -> new Collection([1, 2, 3, 4, 5])
+     * new Collection([1, 2, 3]).union([3, 4, 5]); -> new Collection([1, 2, 3]) — every index the right side could fill is already taken
+     * new Collection([1, 2]).union([3, 4, 5]); -> new Collection([1, 2, 5]) — index 2 is still free, so 5 (index 2 of the argument) is added
      * new Collection({a: 1, b: 2}).union({b: 2, c: 3}); -> new Collection({a: 1, b: 2, c: 3})
-     * new Collection([1, 2]).union({a: 3}); -> new Collection([1, 2, {a: 3}])
      */
     union<T, K extends PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null,

@@ -3666,6 +3666,35 @@ describe("Collection", () => {
             // absent one); assert the key actually exists too.
             expect(result).toHaveProperty("a");
         });
+
+        // Task 11: every existing test above this point unions object-backed
+        // collections only. arr.union — the array-backed path this method
+        // delegates to for array-backed collections — concatenated and
+        // deduplicated VALUES instead of unioning KEYS (a bug Task 7 found
+        // and explicitly deferred, "needs its own probe and task"). Nothing
+        // caught it because no array-backed union test existed here. Fixed
+        // in Task 11; these pin the real `+` semantics, PHP-verified
+        // directly since `+` is a native operator.
+        it("unions array-backed collections by key, mirroring PHP's + operator", () => {
+            // Every index the right side could fill (0-2) is already
+            // occupied by the left, so it contributes nothing.
+            expect(collect([1, 2, 3]).union([3, 4, 5]).all()).toEqual([
+                1, 2, 3,
+            ]);
+            // The left only fills indices 0-1, so index 2 ("5") still comes
+            // from the right.
+            expect(collect([1, 2]).union([3, 4, 5]).all()).toEqual([1, 2, 5]);
+        });
+
+        it("agrees whether array- or object-backed, over the same conceptual data", () => {
+            const fromArray = collect([1, 2]);
+            const fromObject = collect({ 0: 1, 1: 2 });
+
+            expect(fromArray.union([3, 4, 5]).all()).toEqual([1, 2, 5]);
+            expect(Object.values(fromObject.union({ 0: 3, 1: 4, 2: 5 }).all())).toEqual(
+                [1, 2, 5],
+            );
+        });
     });
 
     describe("nth", () => {
