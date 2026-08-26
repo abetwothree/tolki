@@ -2859,7 +2859,7 @@ export function slice<TValue>(
         ? undefined
         : length >= 0
           ? start + length
-          : values.length + length;
+          : Math.max(start, values.length + length);
 
     return values.slice(start, end);
 }

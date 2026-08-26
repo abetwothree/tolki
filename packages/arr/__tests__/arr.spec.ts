@@ -3501,6 +3501,12 @@ describe("Arr", () => {
         it("returns an empty array for an offset larger than the container", () => {
             expect(Arr.slice([1, 2, 3], 10, 2)).toEqual([]);
         });
+
+        it("returns empty when a negative length exceeds the remaining tail", () => {
+            // PHP-verified in docs/php-parity/task-12-regression-pins.json.
+            expect(Arr.slice([1, 2, 3], 0, -5)).toEqual([]);
+            expect(Arr.slice([1, 2, 3], -5, -5)).toEqual([]);
+        });
     });
 
     describe("random", () => {
