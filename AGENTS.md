@@ -239,6 +239,8 @@ This applies to every file type.
 
 All functions and methods must have a super simple docblock comment that describes what the function does from an extremely high level overview. E.g. "Calculates the area of a rectangle."
 
+When possible, the comment should just be what the Laravel Framework uses in its docblock since the functionality is intended to be exact same as the Laravel Framework.
+
 It also needs to include parameter types for its parameters and its return type as shown below.
 
 ```TypeScript
