@@ -7,6 +7,7 @@ import {
     getNestedValue,
     getRaw,
     hasMixed,
+    isCanonicalUndotIndex,
     MAX_UNDOT_INDEX,
     pushWithPath,
     setMixed,
@@ -483,13 +484,7 @@ export function dot<TValue>(
  * test `undotExpandArray` applies before it will build anything from a key.
  */
 function isArrayIndexPath(key: string): boolean {
-    return key.split(".").every((segment) => {
-        if (!/^(0|[1-9][0-9]*)$/.test(segment)) {
-            return false;
-        }
-
-        return Number(segment) <= MAX_UNDOT_INDEX;
-    });
+    return key.split(".").every(isCanonicalUndotIndex);
 }
 
 /**
@@ -504,7 +499,8 @@ function isArrayIndexPath(key: string): boolean {
  *
  * @param map - The flat object with numeric-first dot-notated keys.
  * @returns A new multi-dimensional array.
- * @throws TypeError if any key has a segment that is not a non-negative integer.
+ * @throws TypeError if any key has a segment that is not a canonical decimal
+ * integer (no leading zeros, sign, or exponent) within MAX_UNDOT_INDEX.
  *
  * @example
  *
@@ -518,7 +514,7 @@ export function undot<TValue, TKey extends UndotArrayKey = number>(
     for (const key of Object.keys(map ?? {})) {
         if (!isArrayIndexPath(key)) {
             throw new TypeError(
-                `Arr.undot cannot build an array from the key "${key}": every dot segment must be a non-negative integer. Use Obj.undot for string keys.`,
+                `Arr.undot cannot build an array from the key "${key}": every dot segment must be a canonical decimal integer (no leading zeros, sign, or exponent) from 0 up to ${MAX_UNDOT_INDEX}. Use Obj.undot for string keys.`,
             );
         }
     }

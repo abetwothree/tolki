@@ -1,6 +1,7 @@
 import * as Arr from "@tolki/arr";
 import { SortDirection } from "@tolki/enum";
 import * as Obj from "@tolki/obj";
+import { MAX_UNDOT_INDEX } from "@tolki/path";
 import type { UndotArrayKey } from "@tolki/types";
 import { isArray } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
@@ -1678,7 +1679,7 @@ describe("Arr", () => {
                 Arr.undot(
                     mixedSegments as unknown as Record<UndotArrayKey, string>,
                 ),
-            ).toThrow(/every dot segment must be a non-negative integer/);
+            ).toThrow(/every dot segment must be a canonical decimal integer/);
             expect(() =>
                 Arr.undot({ "1.bar": "y" } as unknown as Record<
                     UndotArrayKey,
@@ -1701,13 +1702,27 @@ describe("Arr", () => {
             (key) => {
                 // PHP-verified in docs/php-parity/task-12-regression-pins.json: PHP keeps
                 // these as string keys, so arr must refuse rather than build an array.
-                expect(() => Arr.undot({ [key]: "x" })).toThrow();
+                expect(() => Arr.undot({ [key]: "x" })).toThrow(
+                    /canonical decimal integer/,
+                );
                 expect(Obj.undot({ [key]: "x" })).toEqual({ [key]: "x" });
             },
         );
 
+        it("throws for '1e21', which used to silently discard the value instead of erroring", () => {
+            // Old Number()-based check treated 1e21 as an in-range integer index; the write
+            // landed on a non-index property, so undot returned [] with a stray "1e+21" key.
+            expect(() => Arr.undot({ "1e21": "x" })).toThrow(
+                /canonical decimal integer/,
+            );
+        });
+
         it("refuses an index large enough to exhaust memory", () => {
-            expect(() => Arr.undot({ "1000000000": "x" })).toThrow();
+            // The message must name the ceiling, not just "not an integer" - 1000000000
+            // unambiguously is one, so a generic message would be actively misleading.
+            expect(() => Arr.undot({ "1000000000": "x" })).toThrow(
+                new RegExp(`up to ${MAX_UNDOT_INDEX}`),
+            );
         });
 
         it("accepts an empty or nullish map", () => {

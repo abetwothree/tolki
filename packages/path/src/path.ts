@@ -1108,11 +1108,23 @@ export function undotExpandObject<
 }
 
 /**
- * Ceiling for a numeric `undot` segment: an index this large would force any
- * spread or serialization of the result to materialize tens of megabytes of
- * holes, so it is refused before the array is ever built.
+ * Ceiling for a numeric `undot` segment: 2**24 keeps a fully materialized
+ * array under ~128MB (8 bytes/slot) - past any legitimate input, but well
+ * below what forces a spread/serialize of the result to exhaust memory.
  */
 export const MAX_UNDOT_INDEX = 2 ** 24 - 2;
+
+/**
+ * Whether `segment` is a canonical decimal integer PHP would treat as an
+ * array key, and small enough to safely become a real array index.
+ */
+export function isCanonicalUndotIndex(segment: string): boolean {
+    if (!/^(0|[1-9][0-9]*)$/.test(segment)) {
+        return false;
+    }
+
+    return Number(segment) <= MAX_UNDOT_INDEX;
+}
 
 /**
  * Expand a flat object with dot notation keys into a nested array structure.
@@ -1132,13 +1144,6 @@ export function undotExpandArray<
     TKey extends PropertyKey = PropertyKey,
 >(map: Record<TKey, TValue>): TValue[] {
     const root: unknown[] = [];
-    const isValidIndex = (seg: string): boolean => {
-        if (!/^(0|[1-9][0-9]*)$/.test(seg)) {
-            return false;
-        }
-
-        return Number(seg) <= MAX_UNDOT_INDEX;
-    };
     // Object.entries returns string keys only
     for (const [rawKey, value] of Object.entries(map ?? {}) as [
         string,
@@ -1149,7 +1154,7 @@ export function undotExpandArray<
         }
 
         const segments = rawKey.split(".");
-        if (segments.some((s) => !isValidIndex(s))) {
+        if (segments.some((s) => !isCanonicalUndotIndex(s))) {
             continue;
         }
 
