@@ -3843,21 +3843,22 @@ export function values<TValue, TKey extends PropertyKey = PropertyKey>(
  * `diffAssocUsing`/`diffKeysUsing` above for the assoc-style (key-aware)
  * variants that still exist in this port.
  *
- * A non-accessible `other` (e.g. `null`) is treated the same way PHP's
- * `EnumeratesValues::getArrayableItems()` treats `null` — as an empty
- * array — so every item of `data` is kept unchanged.
+ * An array `other` is a valid `array_diff` operand too — only `null`/`undefined`
+ * (or a scalar) is treated the same way PHP's `EnumeratesValues::getArrayableItems()`
+ * treats `null`, as an empty array, so every item of `data` is kept unchanged.
  *
  * @see Collection::diff — `packages/collection/stubs/Collection.php:276`.
  *      Wraps `array_diff`.
  *
  * @param data - The original object.
- * @param other - The object to compare against.
+ * @param other - The object (or array) to compare against.
  * @returns A new object containing items from data whose value is not present in other.
  *
  * @example
  *
  * diff({ a: 1, b: 2, c: 3 }, { b: 2, d: 4 }); -> { a: 1, c: 3 }
  * diff({ id: 1, first_word: 'Hello' }, { x: 'Hello' }); -> { id: 1 } (value-only: 'first_word' drops even though 'x' !== 'first_word')
+ * diff({ a: 10, b: 20 }, [20]); -> { a: 10 } (an array other compares by its values too)
  * diff({ id: 1 }, null); -> { id: 1 } (non-accessible other is treated as empty)
  */
 // Overload: typed — data and other's key sets are independent (TOtherKey),
@@ -3891,7 +3892,10 @@ export function diff<
         return {} as Record<TKey, TValue>;
     }
 
-    if (!accessible(other)) {
+    // array_diff accepts any array, so an array `other` must not be treated as
+    // absent the way `accessible` (object-only) would; only null/undefined/a
+    // scalar other means "nothing to diff against".
+    if (!accessible(other) && !isArray(other)) {
         return { ...(data as Record<TKey, TValue>) };
     }
 
@@ -4028,9 +4032,10 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
  * parameter instead of adding a standalone `intersectUsing` at this layer
  * (the `@tolki/collection` package's `intersectUsing()` forwards here).
  *
- * A non-accessible `other` (e.g. `null`) is treated as empty, matching how
- * PHP's `EnumeratesValues::getArrayableItems()` treats `null`, so the
- * result is `{}`.
+ * A non-accessible `data` OR `other` (e.g. `null`) is treated as empty,
+ * matching how PHP's `EnumeratesValues::getArrayableItems()` treats `null`
+ * for either operand of `collect($data)->intersect($other)`, so the result
+ * is `{}`.
  *
  * @see Collection::intersect — `packages/collection/stubs/Collection.php:660`.
  *      Wraps `array_intersect`.
@@ -4044,6 +4049,7 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * intersect({ id: 1, first_word: 'Hello' }, { first_world: 'Hello', last_word: 'World' }); -> { first_word: 'Hello' } (keys differ, value matches)
  * intersect({ id: 1 }, null); -> {} (non-accessible other is treated as empty)
+ * intersect(null, { a: 1 }); -> {} (non-accessible data is treated as empty too)
  */
 // Overload: with callback — T1 and T2 inferred independently
 export function intersect<T1, T2>(
@@ -4071,7 +4077,7 @@ export function intersect<T1, T2 = T1>(
 ): Record<PropertyKey, T1> {
     const result: Record<PropertyKey, T1> = {};
 
-    if (!accessible(other)) {
+    if (!accessible(data) || !accessible(other)) {
         return result;
     }
 
@@ -4105,8 +4111,8 @@ export function intersect<T1, T2 = T1>(
  * IS required. Do not merge this back into `intersect`; the two must stay
  * distinct (see `intersect`'s doc comment).
  *
- * A non-accessible `other` (e.g. `null`) is treated as empty, so the result
- * is `{}`.
+ * A non-accessible `data` OR `other` (e.g. `null`) is treated as empty, so
+ * the result is `{}` — matching `intersect`'s guard on both operands.
  *
  * @see Collection::intersectAssoc — `packages/collection/stubs/Collection.php:683`.
  *      Wraps `array_intersect_assoc`.
@@ -4120,20 +4126,34 @@ export function intersect<T1, T2 = T1>(
  * intersectAssoc({a: 'green', b: 'brown', c: 'blue'}, {a: 'green', b: 'yellow', c: 'blue'}); -> {a: 'green', c: 'blue'}
  * intersectAssoc({a: 1, b: 2}, {a: 1, c: 3}); -> {a: 1}
  * intersectAssoc({a: 1}, null); -> {}
+ * intersectAssoc(null, {a: 1}); -> {}
  */
+// Overload: typed
 export function intersectAssoc<T1, T2 = T1>(
     data: Record<PropertyKey, T1>,
     other: Record<PropertyKey, T2> | null | undefined,
+): Record<PropertyKey, T1>;
+// Overload: unknown fallback — agrees with intersect's null-data acceptance (R5)
+export function intersectAssoc<T1>(
+    data: unknown,
+    other: unknown,
+): Record<PropertyKey, T1>;
+// Implementation
+export function intersectAssoc<T1, T2 = T1>(
+    data: Record<PropertyKey, T1> | unknown,
+    other: Record<PropertyKey, T2> | unknown,
 ): Record<PropertyKey, T1> {
     const result: Record<PropertyKey, T1> = {};
 
-    if (!accessible(other)) {
+    if (!accessible(data) || !accessible(other)) {
         return result;
     }
 
     const otherObj = other as Record<PropertyKey, T2>;
 
-    for (const [key, value] of Object.entries(data)) {
+    for (const [key, value] of Object.entries(
+        data as Record<PropertyKey, T1>,
+    )) {
         if (
             Object.hasOwn(otherObj, key) &&
             (value as unknown) === (otherObj[key as PropertyKey] as unknown)
@@ -4149,8 +4169,8 @@ export function intersectAssoc<T1, T2 = T1>(
  * Intersect the object with the given items with additional key check, using the callback.
  * The callback is used to compare keys, while values are compared strictly.
  *
- * A non-accessible `other` (e.g. `null`) is treated as empty, so the result
- * is `{}`.
+ * A non-accessible `data` OR `other` (e.g. `null`) is treated as empty, so
+ * the result is `{}` — matching `intersect`'s guard on both operands.
  *
  * @see Collection::intersectAssocUsing — `packages/collection/stubs/Collection.php:695`.
  *      Wraps `array_intersect_uassoc`.
@@ -4165,20 +4185,38 @@ export function intersectAssoc<T1, T2 = T1>(
  * const strcasecmpKeys = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
  * intersectAssocUsing({a: 'green', b: 'brown'}, {A: 'GREEN', B: 'brown'}, strcasecmpKeys); -> {b: 'brown'}
  * intersectAssocUsing({a: 'green'}, null, strcasecmpKeys); -> {}
+ * intersectAssocUsing(null, {a: 'green'}, strcasecmpKeys); -> {}
  */
+// Overload: typed
 export function intersectAssocUsing<T1, T2 = T1>(
     data: Record<PropertyKey, T1>,
     other: Record<PropertyKey, T2> | null | undefined,
     callback: (keyA: PropertyKey, keyB: PropertyKey) => boolean,
+): Record<PropertyKey, T1>;
+// Overload: unknown fallback — agrees with intersect's null-data acceptance (R5)
+export function intersectAssocUsing<T1>(
+    data: unknown,
+    other: unknown,
+    callback: (keyA: PropertyKey, keyB: PropertyKey) => boolean,
+): Record<PropertyKey, T1>;
+// Implementation
+export function intersectAssocUsing<T1, T2 = T1>(
+    data: Record<PropertyKey, T1> | unknown,
+    other: Record<PropertyKey, T2> | unknown,
+    callback: (keyA: PropertyKey, keyB: PropertyKey) => boolean,
 ): Record<PropertyKey, T1> {
     const result: Record<PropertyKey, T1> = {};
 
-    if (!accessible(other)) {
+    if (!accessible(data) || !accessible(other)) {
         return result;
     }
 
-    for (const [dataKey, dataValue] of Object.entries(data)) {
-        for (const [otherKey, otherValue] of Object.entries(other)) {
+    for (const [dataKey, dataValue] of Object.entries(
+        data as Record<PropertyKey, T1>,
+    )) {
+        for (const [otherKey, otherValue] of Object.entries(
+            other as Record<PropertyKey, T2>,
+        )) {
             if (
                 callback(dataKey, otherKey) &&
                 (dataValue as unknown) === (otherValue as unknown)
@@ -4199,8 +4237,8 @@ export function intersectAssocUsing<T1, T2 = T1>(
 /**
  * Intersect the object with the given items by key.
  *
- * A non-accessible `other` (e.g. `null`) is treated as empty, so the result
- * is `{}`.
+ * A non-accessible `data` OR `other` (e.g. `null`) is treated as empty, so
+ * the result is `{}` — matching `intersect`'s guard on both operands.
  *
  * @see Collection::intersectByKeys — `packages/collection/stubs/Collection.php:706`.
  *      Wraps `array_intersect_key`.
@@ -4213,20 +4251,34 @@ export function intersectAssocUsing<T1, T2 = T1>(
  *
  * intersectByKeys({a: 1, b: 2}, {a: 20, c: 30}); -> {a: 1}
  * intersectByKeys({name: 'M'}, null); -> {}
+ * intersectByKeys(null, {name: 'M'}); -> {}
  */
+// Overload: typed
 export function intersectByKeys<T1, T2 = T1>(
     data: Record<PropertyKey, T1>,
     other: Record<PropertyKey, T2> | null | undefined,
+): Record<PropertyKey, T1>;
+// Overload: unknown fallback — agrees with intersect's null-data acceptance (R5)
+export function intersectByKeys<T1>(
+    data: unknown,
+    other: unknown,
+): Record<PropertyKey, T1>;
+// Implementation
+export function intersectByKeys<T1, T2 = T1>(
+    data: Record<PropertyKey, T1> | unknown,
+    other: Record<PropertyKey, T2> | unknown,
 ): Record<PropertyKey, T1> {
     const result: Record<PropertyKey, T1> = {};
 
-    if (!accessible(other)) {
+    if (!accessible(data) || !accessible(other)) {
         return result;
     }
 
     const otherObj = other as Record<PropertyKey, T2>;
 
-    for (const [key, value] of Object.entries(data)) {
+    for (const [key, value] of Object.entries(
+        data as Record<PropertyKey, T1>,
+    )) {
         if (Object.hasOwn(otherObj, key)) {
             defineKey(result as Record<string, T1>, key, value as T1);
         }

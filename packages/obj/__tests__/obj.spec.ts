@@ -1596,6 +1596,13 @@ describe("Obj", () => {
             // items unchanged").
             expect(Obj.diff({ id: 1 }, null)).toEqual({ id: 1 });
         });
+
+        it("diffs an object against a list by value, as PHP does", () => {
+            // PHP-verified via docs/php-parity/task-06-setops.json ("diff and
+            // intersect accept any array operand"): collect(['a'=>10,'b'=>20])
+            // ->diff([20]) === ['a'=>10]; the pre-fix guard rejected arrays outright.
+            expect(Obj.diff({ a: 10, b: 20 }, [20])).toEqual({ a: 10 });
+        });
     });
 
     describe("intersect", () => {
@@ -1716,6 +1723,28 @@ describe("Obj", () => {
             expect(
                 Obj.intersectAssocUsing({ a: "green" }, null, () => true),
             ).toEqual({});
+        });
+    });
+
+    describe("intersect family nullish data guard (C6)", () => {
+        // Dispatches by name instead of `as never` (which `tsc --strict` rejects
+        // as "not callable") so the whole family can be swept in one `it.each`.
+        type IntersectFamilyFn = (
+            data: unknown,
+            other: unknown,
+        ) => Record<PropertyKey, unknown>;
+        const family = Obj as unknown as Record<string, IntersectFamilyFn>;
+
+        it.each([
+            "intersect",
+            "intersectAssoc",
+            "intersectAssocUsing",
+            "intersectByKeys",
+        ])("%s returns empty for a nullish first operand, like diff", (fn) => {
+            // PHP-verified via docs/php-parity/task-06-setops.json ("...treat a
+            // nullish first operand as empty too"): getArrayableItems(null) === [],
+            // so collect(null)->intersect*(...) is always empty.
+            expect(family[fn]?.(null, { a: 1 })).toEqual({});
         });
     });
 

@@ -155,4 +155,22 @@ describe("obj type tests", () => {
             expectTypeOf(result).toEqualTypeOf<Record<PropertyKey, number>>();
         });
     });
+
+    describe("intersectAssoc, intersectAssocUsing, intersectByKeys", () => {
+        it("accept a nullish data operand at the type level, like intersect (R5)", () => {
+            // Before this fix, these three declared `data: Record<PropertyKey, T1>`
+            // with no `unknown` fallback, so `null` was rejected by `tsc`, unlike
+            // `intersect` and `diff`, even though the runtime treats it as empty.
+            expectTypeOf(Obj.intersect).toBeCallableWith(null, { a: 1 });
+            expectTypeOf(Obj.intersectAssoc).toBeCallableWith(null, { a: 1 });
+            expectTypeOf(Obj.intersectAssocUsing).toBeCallableWith(
+                null,
+                { a: 1 },
+                (a, b) => a === b,
+            );
+            expectTypeOf(Obj.intersectByKeys).toBeCallableWith(null, {
+                a: 1,
+            });
+        });
+    });
 });
