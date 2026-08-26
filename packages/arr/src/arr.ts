@@ -478,23 +478,48 @@ export function dot<TValue>(
 }
 
 /**
+ * Whether every dot segment of `key` is a usable array index, matching the
+ * test `undotExpandArray` applies before it will build anything from a key.
+ */
+function isArrayIndexPath(key: string): boolean {
+    return key.split(".").every((segment) => {
+        const index = segment.length ? Number(segment) : NaN;
+
+        return isInteger(index) && index >= 0;
+    });
+}
+
+/**
  * Convert a flatten "dot" notation object into an expanded array.
  *
- * Only accepts numeric-first dotted keys (a mixed key like
- * "user.languages.0" doesn't compile) — use `Obj.undot` for anything else.
+ * Only accepts numeric-first dotted keys — use `Obj.undot` for anything
+ * else. The `UndotArrayKey` constraint rejects a bad key at the call site
+ * only for a fresh object literal, where TypeScript's excess-property
+ * check fires; anything reaching this through a variable is caught here
+ * instead, because the alternative is returning an empty array and calling
+ * it a result.
  *
  * @param map - The flat object with numeric-first dot-notated keys.
  * @returns A new multi-dimensional array.
+ * @throws TypeError if any key has a segment that is not a non-negative integer.
  *
  * @example
  *
  * undot({ '0': 'a', '1.0': 'b', '1.1': 'c' }); -> ['a', ['b', 'c']]
  * undot({ '0.0': 'PHP', '0.1': 'C#', '1': 'Taylor' }); -> [['PHP', 'C#'], 'Taylor']
- * // undot({ "user.languages.0": "PHP" }); -> does not compile; use Obj.undot
+ * // undot({ "user.languages.0": "PHP" }); -> throws; use Obj.undot
  */
 export function undot<TValue, TKey extends UndotArrayKey = number>(
     map: Record<TKey, TValue>,
 ): UndotResult<TKey, TValue> {
+    for (const key of Object.keys(map ?? {})) {
+        if (!isArrayIndexPath(key)) {
+            throw new TypeError(
+                `Arr.undot cannot build an array from the key "${key}": every dot segment must be a non-negative integer. Use Obj.undot for string keys.`,
+            );
+        }
+    }
+
     return undotExpandArray(map) as UndotResult<TKey, TValue>;
 }
 
@@ -505,6 +530,9 @@ export function undot<TValue, TKey extends UndotArrayKey = number>(
  *
  * @see Collection::union — `packages/collection/stubs/Collection.php:944`.
  *      Uses PHP's `+` operator (key union: left keys win), not `array_merge`.
+ *
+ * A `null`/`undefined` operand contributes nothing, matching the
+ * `(array) null` cast `getArrayableItems` performs before the `+`.
  *
  * @param arrays - The arrays to union.
  * @returns A new array combining each array's indices, left-most wins.
@@ -538,11 +566,21 @@ export function union<A, B, C, D, E, F>(
     e: readonly E[],
     f: readonly F[],
 ): (A | B | C | D | E | F)[];
-export function union(...arrays: (readonly unknown[])[]): unknown[];
-export function union(...arrays: (readonly unknown[])[]): unknown[] {
+export function union(
+    ...arrays: (readonly unknown[] | null | undefined)[]
+): unknown[];
+export function union(
+    ...arrays: (readonly unknown[] | null | undefined)[]
+): unknown[] {
     let result: unknown[] = [];
 
     for (const array of arrays) {
+        // getArrayableItems casts a null operand to an empty array
+        // (EnumeratesValues.php:1106), so it contributes nothing.
+        if (isNull(array) || isUndefined(array)) {
+            continue;
+        }
+
         // Every index below `result.length` is already occupied by an
         // earlier (left-most-wins) array, so only the tail beyond that
         // point can still contribute — mirroring PHP's `+` key union.
@@ -1722,28 +1760,34 @@ export function prependKeysWith<TValue>(
 /**
  * Get a subset of the items from the given array.
  *
+ * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:744): `null`
+ * becomes no keys at all and a bare index becomes a single-index
+ * selection, rather than blowing up on a non-iterable.
+ *
  * @param data - The array to get items from.
- * @param keys - The indices to select.
+ * @param keys - The index, indices, or null to select.
  * @returns A new array with only the specified indices.
  *
  * @example
  *
  * only(['a', 'b', 'c', 'd'], [0, 2]); -> ['a', 'c']
- * only(['a', 'b', 'c'], [1]); -> ['b']
+ * only(['a', 'b', 'c'], 1); -> ['b']
+ * only(['a', 'b', 'c'], null); -> []
  */
 export function only<TValue>(
     data: ArrayItems<TValue>,
-    keys: number[],
+    keys: number | number[] | null,
 ): TValue[];
-export function only(data: unknown, keys: number[]): unknown[];
+export function only(data: unknown, keys: number | number[] | null): unknown[];
 export function only<TValue>(
     data: ArrayItems<TValue> | unknown,
-    keys: number[],
+    keys: number | number[] | null,
 ): TValue[] {
     const values = getAccessibleValues(data);
     const result: TValue[] = [];
+    const keyList = isArray(keys) ? keys : isNull(keys) ? [] : [keys];
 
-    for (const key of keys) {
+    for (const key of keyList) {
         if (key >= 0 && key < values.length) {
             result.push(values[key] as TValue);
         }

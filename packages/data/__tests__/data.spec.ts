@@ -444,6 +444,14 @@ describe("Data", () => {
             // absent one); assert the key actually exists too.
             expect(result).toHaveProperty("a");
         });
+
+        it("treats a nullish operand as empty rather than a shape mismatch", () => {
+            // collect([10,20])->union(null) -> [10,20]: getArrayableItems
+            // casts null to [], so it says nothing about the backing.
+            expect(Data.dataUnion([10, 20], null)).toEqual([10, 20]);
+            expect(Data.dataUnion({ a: 1 }, undefined)).toEqual({ a: 1 });
+            expect(Data.dataUnion(null, [10, 20])).toEqual([10, 20]);
+        });
     });
 
     describe("dataExcept", () => {

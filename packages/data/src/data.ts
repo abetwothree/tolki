@@ -578,12 +578,12 @@ export function dataDot<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param asArray - Force array-shaped rebuilding (`Arr.undot`'s algorithm)
  *   instead of the object-shaped one, even when `data` is a plain object.
  *   Has no PHP counterpart (PHP arrays are both list and map, so there is
- *   nothing to choose between); it is JS-only ergonomics. Like `Arr.undot`
- *   itself, entries whose dotted-key segments never resolve to a valid
- *   array index are silently dropped rather than raising — pass an
- *   object-shaped `data` with `asArray: true` only when every key is
- *   numeric-first.
+ *   nothing to choose between); it is JS-only ergonomics. `Arr.undot`
+ *   throws on a key whose dot segments are not all non-negative integers,
+ *   so pass an object-shaped `data` with `asArray: true` only when every
+ *   key is numeric-first.
  * @returns Nested data structure
+ * @throws TypeError via `Arr.undot` when `asArray` is set and a key is not an index path.
  *
  * @example
  *
@@ -599,7 +599,8 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
 
     // Widen: asArray routes even object-backed data to Arr.undot, whose
     // type rejects non-numeric-first keys — dataUndot's own contract is
-    // broader, so that safety net can't be preserved through this call.
+    // broader, so that safety net can't be preserved through this call
+    // and Arr.undot's runtime guard is what catches a bad key instead.
     return arrUndot(data as Record<TKey, TValue>) as DataItems<TValue>;
 }
 
@@ -610,14 +611,20 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
  * @return A new object or array containing all values
  */
 export function dataUnion<TValue>(
-    ...items: (TValue[] | Record<PropertyKey, TValue>)[]
+    ...items: (TValue[] | Record<PropertyKey, TValue> | null | undefined)[]
 ) {
-    if (items.every(isObject)) {
-        return objUnion(...items);
+    // A nullish operand is `(array) null` in PHP — empty, and no evidence
+    // either way about the backing the rest of the operands share.
+    const present = items.filter(
+        (item) => !isNull(item) && !isUndefined(item),
+    ) as (TValue[] | Record<PropertyKey, TValue>)[];
+
+    if (present.every(isObject)) {
+        return objUnion(...present);
     }
 
-    if (items.every(isArray)) {
-        return arrUnion(...(items as TValue[][]));
+    if (present.every(isArray)) {
+        return arrUnion(...(present as TValue[][]));
     }
 
     throw new Error(

@@ -1383,14 +1383,14 @@ export function setMixed<TValue>(
     const firstIndex = parseInt(firstSegment, 10);
     // At this point, current === arr which is always an array
     if (!isInteger(firstIndex) || firstIndex < 0) {
-        // If first segment is not a valid array index and array is not empty,
-        // treat this as an invalid path and return unchanged
-        if ((current as unknown[]).length > 0) {
-            return arr;
-        }
         // If array is empty, create object at index 0 for non-numeric first segment
-        (current as unknown[]).push({});
-        current = (current as unknown[])[0];
+        if ((current as unknown[]).length === 0) {
+            (current as unknown[]).push({});
+            current = (current as unknown[])[0];
+        }
+        // Otherwise fall through: Arr::set stores a key that is no array
+        // index on the array itself, and a JS array is an object, so it
+        // can carry it as an own property rather than losing the value.
     }
 
     for (let i = 0; i < segments.length - 1; i++) {
@@ -1457,7 +1457,7 @@ export function setMixed<TValue>(
         current[lastIndex] = value as TValue;
     } else if (
         !isNull(current) &&
-        isObject(current) &&
+        isObjectAny(current) &&
         !isUnsafeKey(lastSegment)
     ) {
         (current as Record<string, unknown>)[lastSegment] = value;

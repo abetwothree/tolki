@@ -1202,10 +1202,16 @@ describe("Path Functions", () => {
             expect(arr).toEqual([{ user: { name: "John" } }]);
         });
 
-        it("returns unchanged for invalid paths on non-empty arrays", () => {
+        it("stores a non-index path as an own property on a non-empty array", () => {
+            // Arr::set(['existing'],'invalid.path','value') ->
+            // {0:'existing',invalid:{path:'value'}}.
             const arr = ["existing"];
             const result = Path.setMixed(arr, "invalid.path", "value");
-            expect(result).toEqual(["existing"]);
+
+            expect(Object.entries(result)).toEqual([
+                ["0", "existing"],
+                ["invalid", { path: "value" }],
+            ]);
         });
 
         it("handles mixed array/object nested paths", () => {
@@ -1238,12 +1244,12 @@ describe("Path Functions", () => {
             expect(arr2[0]).toEqual({ user: "John" });
         });
 
-        it("setMixed returns unchanged when first segment is invalid and array has items", () => {
-            // firstIndex is invalid but array is not empty
+        it("keeps the array's own indices when it stores a non-index path", () => {
             const arr = ["existing"];
             const result = Path.setMixed(arr, "invalid.path", "value");
-            // First segment "invalid" parses to NaN, array.length > 0, so return unchanged
-            expect(result).toEqual(["existing"]);
+
+            expect(result).toHaveLength(1);
+            expect(result[0]).toBe("existing");
         });
 
         it("setMixed handles paths with dots that create empty segments", () => {
@@ -1269,11 +1275,16 @@ describe("Path Functions", () => {
             expect(result).toEqual([{ data: { key: "value" } }]);
         });
 
-        it("handles first segment not being valid array index on non-empty array", () => {
+        it("stores a single non-index segment on a non-empty array", () => {
+            // Arr::set(['existing'],'invalid','value') ->
+            // {0:'existing',invalid:'value'}.
             const arr = ["existing"];
-            // Non-numeric first segment on non-empty array
             const result = Path.setMixed(arr, "invalid", "value");
-            expect(result).toEqual(["existing"]);
+
+            expect(Object.entries(result)).toEqual([
+                ["0", "existing"],
+                ["invalid", "value"],
+            ]);
         });
 
         it("handles object properties during path navigation", () => {
@@ -1351,16 +1362,16 @@ describe("Path Functions", () => {
             expect(result).toEqual([{ container: { name: "test" } }]);
         });
 
-        it("setMixed returns unchanged when final segment is non-numeric on array", () => {
-            // Tests to verify behavior when branches are skipped
-            // Navigate to an array, but last segment is non-numeric
-            // This should skip the final value setting
+        it("stores a non-numeric final segment on a nested array", () => {
+            // Arr::set([[]],'0.invalidKey','value') ->
+            // [{invalidKey:'value'}]; JS keeps the nested container an
+            // array and hangs the key off it.
             const arr: unknown[] = [[]];
             const result = Path.setMixed(arr, "0.invalidKey", "value");
-            // current is arr[0] which is [], lastIndex is NaN
-            // First if fails (lastIndex not valid), second if fails (current is array, not object)
-            // So nothing is set
-            expect(result).toEqual([[]]);
+
+            expect(Object.entries(result[0] as object)).toEqual([
+                ["invalidKey", "value"],
+            ]);
         });
 
         it("ignores __proto__ in object property path", () => {

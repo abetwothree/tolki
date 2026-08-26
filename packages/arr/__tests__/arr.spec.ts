@@ -66,13 +66,23 @@ describe("Arr", () => {
             ]);
         });
 
-        it("leaves the array unchanged for an Array.prototype key (X26 regression)", () => {
-            // hasMixed correctly reports "length" as absent (not leaked via
-            // the prototype chain), so add() attempts setMixed(..., "length",
-            // ...) — which itself refuses to add a non-numeric first segment
-            // to a non-empty array (a separate, pre-existing guard), so the
-            // net result is still a no-op, but reached for the right reason.
-            expect(Arr.add(["a", "b"], "length", "X")).toEqual(["a", "b"]);
+        it("stores a string key on a list, like Arr::add", () => {
+            // Arr::add(['a','b'],'foo','X') -> {0:'a',1:'b',foo:'X'}. This
+            // used to be dropped, so obj.add and arr.add disagreed.
+            expect(Object.entries(Arr.add(["a", "b"], "foo", "X"))).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+                ["foo", "X"],
+            ]);
+        });
+
+        it("cannot store the one key JS reserves on an array", () => {
+            // Arr::add(['a','b'],'length','X') -> {0:'a',1:'b',length:'X'},
+            // which obj.add reproduces; a real JS array rejects the write
+            // outright. Loud beats the silent drop this used to be.
+            expect(() => Arr.add(["a", "b"], "length", "X")).toThrow(
+                RangeError,
+            );
         });
     });
 
@@ -1383,11 +1393,21 @@ describe("Arr", () => {
             expect(Arr.set([1, 2, 3], null, "replaced")).toEqual("replaced");
         });
 
-        it("sets the next available index and ignores invalid dot segments", () => {
-            expect(Arr.set([1, 2, 3], 3, "new")).toEqual([1, 2, 3, "new"]); // Set at next available index
+        it("sets the next available index", () => {
+            expect(Arr.set([1, 2, 3], 3, "new")).toEqual([1, 2, 3, "new"]);
+        });
 
-            expect(Arr.set([1, 2, 3], "invalid.path", "value")).toEqual([
-                1, 2, 3,
+        it("stores a key that is no array index as an own property", () => {
+            // Arr::set([1,2,3],'invalid.path','value') ->
+            // {0:1,1:2,2:3,invalid:{path:'value'}}. A JS array is an object,
+            // so it carries the key rather than dropping the value.
+            const result = Arr.set([1, 2, 3], "invalid.path", "value");
+
+            expect(Object.entries(result)).toEqual([
+                ["0", 1],
+                ["1", 2],
+                ["2", 3],
+                ["invalid", { path: "value" }],
             ]);
         });
 
@@ -1647,21 +1667,6 @@ describe("Arr", () => {
                 ["b", ["c"]],
             ]);
 
-            // Ignore non-numeric segments. "foo" no longer satisfies
-            // UndotArrayKey (Task 9 review, Important 2) -- cast through
-            // `unknown` to deliberately exercise the runtime defensive
-            // behavior against a key shape the type system now rejects at
-            // the call site (e.g. data arriving from an untyped source).
-            const undotted = Arr.undot({
-                foo: "x",
-                "1.bar": "y",
-                "2": "z",
-            } as unknown as Record<UndotArrayKey, string>);
-            expect(undotted.length).toBe(3);
-            expect(undotted[0]).toBeUndefined();
-            expect(undotted[1]).toBeUndefined();
-            expect(undotted[2]).toBe("z");
-
             // Conflicting intermediate path: skip conflicting keys
             // First sets 0 -> "x", then key "0.1" conflicts (0 is not an array)
             expect(Arr.undot({ "0": "x", "0.1": "y", "1.0": "z" })).toEqual([
@@ -1670,15 +1675,44 @@ describe("Arr", () => {
             ]);
         });
 
-        it("ignores non-numeric segments while expanding dotted keys", () => {
-            // Test undotExpand with edge cases
-            const flattened = {
-                "0.0": "deep",
-                "1": "shallow",
-                "invalid.key": "ignored",
-            };
-            const expanded = Arr.undot(flattened);
-            expect(expanded).toEqual([["deep"], "shallow"]);
+        it("throws on a key that is not an array index path", () => {
+            // The UndotArrayKey constraint only fires on a fresh object
+            // literal, so a variable of this shape used to compile and
+            // silently return []. Both keys below reach the runtime guard.
+            const stringKeyed = { foo: "x" };
+            const mixedSegments = { "0.0": "deep", "invalid.key": "ignored" };
+
+            expect(() =>
+                Arr.undot(
+                    stringKeyed as unknown as Record<UndotArrayKey, string>,
+                ),
+            ).toThrow(TypeError);
+            expect(() =>
+                Arr.undot(
+                    mixedSegments as unknown as Record<UndotArrayKey, string>,
+                ),
+            ).toThrow(/every dot segment must be a non-negative integer/);
+            expect(() =>
+                Arr.undot({ "1.bar": "y" } as unknown as Record<
+                    UndotArrayKey,
+                    string
+                >),
+            ).toThrow(/Use Obj\.undot for string keys/);
+        });
+
+        it("throws on an empty dot segment", () => {
+            expect(() =>
+                Arr.undot({ "0..1": "x" } as unknown as Record<
+                    UndotArrayKey,
+                    string
+                >),
+            ).toThrow(TypeError);
+        });
+
+        it("accepts an empty or nullish map", () => {
+            expect(
+                Arr.undot(null as unknown as Record<UndotArrayKey, string>),
+            ).toEqual([]);
         });
 
         it("builds real arrays for numeric-only paths (not a decision-D3 pin — see note)", () => {
@@ -1746,6 +1780,13 @@ describe("Arr", () => {
             // the left wins even when its value is null, exactly like
             // obj.union's own null/undefined-precedence fix (X20).
             expect(Arr.union([undefined], [1])).toEqual([undefined]);
+        });
+
+        it("treats a nullish operand as empty, like (array) null", () => {
+            // collect([10,20])->union(null) -> [10,20].
+            expect(Arr.union([10, 20], null)).toEqual([10, 20]);
+            expect(Arr.union([10, 20], undefined)).toEqual([10, 20]);
+            expect(Arr.union(null, [10, 20])).toEqual([10, 20]);
         });
     });
 
@@ -2557,6 +2598,13 @@ describe("Arr", () => {
             // Non-accessible data
             expect(Arr.only(null, [0, 1])).toEqual([]);
             expect(Arr.only("abc", [0, 1])).toEqual([]);
+        });
+
+        it("casts a bare index and null the way Arr::only's (array) cast does", () => {
+            // Arr::only([10,20,30,40],1) -> {1:20};
+            // Arr::only([10,20,30,40],null) -> [].
+            expect(Arr.only([10, 20, 30, 40], 1)).toEqual([20]);
+            expect(Arr.only([10, 20, 30, 40], null)).toEqual([]);
         });
     });
 
