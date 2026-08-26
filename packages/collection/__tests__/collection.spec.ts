@@ -6174,9 +6174,18 @@ describe("Collection", () => {
         });
 
         it("sort by many coverage", () => {
-            // Test empty comparison array throws error
-            const data = collect([{ a: 1 }, { a: 2 }]);
-            expect(() => data.sortByMany([])).toThrowError();
+            // collect([3,1,2])->sortBy([]) keeps [3,1,2]: PHP's usort
+            // comparator falls straight through to `return 0` with no
+            // comparisons to run. Only a non-array argument is rejected.
+            expect(collect([3, 1, 2]).sortBy([]).values().all()).toEqual([
+                3, 1, 2,
+            ]);
+            expect(collect([3, 1, 2]).sortByMany([]).values().all()).toEqual([
+                3, 1, 2,
+            ]);
+            expect(() =>
+                collect([{ a: 1 }]).sortByMany(null as unknown as string[]),
+            ).toThrowError("You must provide at least one comparison.");
 
             // Test with function comparator returning numbers directly
             // This tests the path: if (!isString(prop) && isFunction(prop))

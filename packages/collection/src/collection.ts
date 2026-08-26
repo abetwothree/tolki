@@ -3337,7 +3337,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Sort the collection using multiple comparisons.
      *
-     * @param comparisons - An array of callbacks to determine the sort value, path keys to get values from and compare, or tuples of such keys for multi-level sorting. A bare key path or a direction-less tuple defaults to ascending, mirroring Collection::sortByMany's `Arr::get($comparison, 1, true)`.
+     * @param comparisons - An array of callbacks to determine the sort value, path keys to get values from and compare, or tuples of such keys for multi-level sorting. A bare key path or a direction-less tuple defaults to ascending, mirroring Collection::sortByMany's `Arr::get($comparison, 1, true)`. An empty array leaves the order alone: PHP's usort comparator falls straight through to `return 0`.
      * @param descending - When true, forces every key-path/tuple comparison descending regardless of its own direction, mirroring Collection::sortByDesc's rewrite of each comparison's direction slot before sorting. Has no effect on a comparator function, which always runs exactly as authored. Defaults to false.
      * @returns A new collection with the sorted items
      *
@@ -3360,7 +3360,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         >,
         descending: CaseValue<typeof SortDirection> | boolean = false,
     ) {
-        if (!isArray(comparisons) || comparisons.length === 0) {
+        if (!isArray(comparisons)) {
             throw new Error("You must provide at least one comparison.");
         }
 
