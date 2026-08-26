@@ -4720,6 +4720,13 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
     });
 
     describe.each([
+        [
+            // Object.fromEntries uses CreateDataProperty, not [[Set]], so the inner
+            // chunk object is already safe; this pins that behaviour against a future
+            // refactor to a bracket-assign loop, which would reintroduce the bug.
+            "chunk",
+            () => Obj.chunk(HOSTILE(), 3, true)[0],
+        ],
         ["map", () => Obj.map(HOSTILE(), (v) => v)],
         [
             "mapWithKeys",
@@ -4835,6 +4842,7 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
             const result = run();
 
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(Object.hasOwn(result as object, "__proto__")).toBe(true);
             expect((result as { polluted?: boolean }).polluted).toBeUndefined();
         });
     });
