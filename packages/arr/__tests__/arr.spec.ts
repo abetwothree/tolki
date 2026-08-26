@@ -1,5 +1,6 @@
 import * as Arr from "@tolki/arr";
 import { SortDirection } from "@tolki/enum";
+import * as Obj from "@tolki/obj";
 import type { UndotArrayKey } from "@tolki/types";
 import { isArray } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
@@ -1693,6 +1694,20 @@ describe("Arr", () => {
                     string
                 >),
             ).toThrow(TypeError);
+        });
+
+        it.each(["1e2", " 1", "+1", "01"])(
+            "throws for the non-canonical index %s",
+            (key) => {
+                // PHP-verified in docs/php-parity/task-12-regression-pins.json: PHP keeps
+                // these as string keys, so arr must refuse rather than build an array.
+                expect(() => Arr.undot({ [key]: "x" })).toThrow();
+                expect(Obj.undot({ [key]: "x" })).toEqual({ [key]: "x" });
+            },
+        );
+
+        it("refuses an index large enough to exhaust memory", () => {
+            expect(() => Arr.undot({ "1000000000": "x" })).toThrow();
         });
 
         it("accepts an empty or nullish map", () => {

@@ -7,6 +7,7 @@ import {
     getNestedValue,
     getRaw,
     hasMixed,
+    MAX_UNDOT_INDEX,
     pushWithPath,
     setMixed,
     setMixedImmutable,
@@ -483,9 +484,11 @@ export function dot<TValue>(
  */
 function isArrayIndexPath(key: string): boolean {
     return key.split(".").every((segment) => {
-        const index = segment.length ? Number(segment) : NaN;
+        if (!/^(0|[1-9][0-9]*)$/.test(segment)) {
+            return false;
+        }
 
-        return isInteger(index) && index >= 0;
+        return Number(segment) <= MAX_UNDOT_INDEX;
     });
 }
 
