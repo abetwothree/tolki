@@ -62,6 +62,7 @@ import type {
 } from "@tolki/types";
 import {
     compareValues,
+    defineKey,
     entriesKeyValue,
     isArray,
     isBoolean,
@@ -77,6 +78,7 @@ import {
     isUnsafeKey,
     looseEqual,
     objectToString,
+    reindexIntegerKeys,
     strictEqual,
     toArrayable,
     toJsonable,
@@ -124,6 +126,26 @@ export function collect<TValue, TKey extends PropertyKey>(
 }
 
 /**
+ * Build the backing object for an already-ordered list of entries, applying
+ * the reorder family's one integer-key policy: integer-like keys are
+ * renumbered so the order survives the write, string keys keep theirs.
+ *
+ * @param entries - The sorted entries, in their intended order
+ * @returns A plain object whose iteration order is `entries`' order
+ */
+function sortedIntoItems<TValue>(
+    entries: Array<[string, TValue]>,
+): Record<string, TValue> {
+    const items: Record<string, TValue> = {};
+
+    for (const [key, value] of reindexIntegerKeys(entries)) {
+        defineKey(items, key, value);
+    }
+
+    return items;
+}
+
+/**
  * A Collection whose items are always array-backed, ensuring all() returns TValue[].
  * Used as the return type for methods like partition() that always produce arrays.
  */
@@ -159,8 +181,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     protected items: TValue[] | Record<TKey, TValue>;
 
     /**
-     * Preserve insertion order for numeric object keys (JavaScript limitation workaround).
-     * When set, this array of [key, value] pairs preserves the original insertion order.
+     * Insertion order for a Map-built collection whose keys are numeric, which
+     * a plain object cannot hold (ECMA-262 `OrdinaryOwnPropertyKeys`). Only
+     * `getRawItems` writes it; the sort family renumbers keys instead, so
+     * `all()` and `values()` can no longer disagree about a sorted order.
      */
     protected itemsWithOrder?: Array<[TKey, TValue]>;
 
@@ -3160,17 +3184,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Sort through each item with a callback.
      *
-     * `sort` is a key-preserving associative sort (like PHP's `uasort`),
-     * not a reindex — an object-backed collection keeps its own keys,
-     * reordered. That reordering is invisible, though, if every one of
-     * those keys is an integer-like string (e.g. `{0: ..., 1: ..., 2:
-     * ...}`): a plain JS object always iterates integer-like keys ascending
-     * regardless of insertion order (ECMA-262 `OrdinaryOwnPropertyKeys`),
-     * the same rule behind `pad`'s documented positive-size divergence
-     * above. There is no workaround — a plain object cannot represent an
-     * arbitrary key order for purely-numeric keys, so `sort`'s effect only
-     * shows up in `Object.values()`/iteration order when at least one key
-     * is non-numeric.
+     * PHP's `sort` is key-preserving (`uasort`/`asort`), and a string-keyed
+     * object keeps its keys here too. Integer-like keys cannot be preserved
+     * and reordered at once — a plain JS object always iterates them ascending
+     * (ECMA-262 `OrdinaryOwnPropertyKeys`) — so they are renumbered over the
+     * sorted sequence, the one policy `sortBy`, `sortDesc`, `reverse`, `pad`
+     * and `splice` all follow. Values land in PHP's order; their key names do
+     * not survive. See `reindexIntegerKeys` in `@tolki/utils`.
      *
      * @param callback - The value extractor callback, a path key to get values from, or null for default sort
      * @returns A new collection with the sorted items
@@ -3213,6 +3233,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * Sort the collection using the given callback.
+     *
+     * Integer-like keys are renumbered over the sorted sequence, so `all()`
+     * and `values()` always agree about order; see `sort` above.
      *
      * @param callback - The callback to determine the sort value, a path key to get values from and compare, or an array of such callbacks/keys for multi-level sorting
      * @param descending - Whether to sort in descending order, defaults to false. Ignored when `callback` is an array of descriptors - PHP's sortBy discards $descending entirely for that form (Collection.php:1588); use sortByDesc or sortByMany's own force-descending param instead.
@@ -3287,34 +3310,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return isDesc ? -comparison : comparison;
         });
 
-        // Rebuild collection maintaining sorted key order
-        const sortedItems = {} as DataItems<TValue, TKey>;
-        const orderedPairs: Array<[TKey, TValue]> = [];
-        let hasNumericKeys = false;
-
-        for (const [key, value] of entries) {
-            // Check if key is numeric
-            const numKey = Number(key);
-            if (!Number.isNaN(numKey) && String(numKey) === String(key)) {
-                hasNumericKeys = true;
-            }
-
-            (sortedItems as Record<TKey, TValue>)[key] = value;
-            orderedPairs.push([key, value]);
-        }
-
-        const result = this.newInstance(sortedItems);
-
-        // Preserve insertion order for numeric keys
-        if (hasNumericKeys) {
-            result.itemsWithOrder = orderedPairs;
-        }
-
-        return result;
+        return this.newInstance(
+            sortedIntoItems(
+                entries.map(([key, value]) => [String(key), value]),
+            ) as DataItems<TValue, TKey>,
+        );
     }
 
     /**
      * Sort the collection using multiple comparisons.
+     *
+     * Integer-like keys are renumbered over the sorted sequence; see `sort`.
      *
      * @param comparisons - An array of callbacks to determine the sort value, path keys to get values from and compare, or tuples of such keys for multi-level sorting. A bare key path or a direction-less tuple defaults to ascending, mirroring Collection::sortByMany's `Arr::get($comparison, 1, true)`. An empty array leaves the order alone: PHP's usort comparator falls straight through to `return 0`.
      * @param descending - When true, forces every key-path/tuple comparison descending regardless of its own direction, mirroring Collection::sortByDesc's rewrite of each comparison's direction slot before sorting. Has no effect on a comparator function, which always runs exactly as authored. Defaults to false.
@@ -3420,28 +3426,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return 0;
         });
 
-        const sortedItems = {} as DataItems<TValue, TKey>;
-        const orderedPairs: Array<[TKey, TValue]> = [];
-        let hasNumericKeys = false;
-
-        for (const [key, value] of entries) {
-            // Check if key is numeric
-            const numKey = Number(key);
-            if (!Number.isNaN(numKey) && String(numKey) === String(key)) {
-                hasNumericKeys = true;
-            }
-
-            (sortedItems as Record<TKey, TValue>)[key as TKey] =
-                value as TValue;
-            orderedPairs.push([key as TKey, value as TValue]);
-        }
-
-        const result = this.newInstance(sortedItems);
-        if (hasNumericKeys) {
-            result.itemsWithOrder = orderedPairs;
-        }
-
-        return result;
+        return this.newInstance(
+            sortedIntoItems(
+                entries.map(([key, value]) => [String(key), value as TValue]),
+            ) as DataItems<TValue, TKey>,
+        );
     }
 
     /**

@@ -3665,12 +3665,22 @@ describe("Collection", () => {
         });
 
         it("uses itemsWithOrder when available", () => {
-            // Create collection with numeric keys that needs order preservation
-            const c = collect({ 1: "a", 0: "b", 2: "c" });
-            // sortBy creates itemsWithOrder
-            const sorted = c.sortBy((v) => v);
-            // nth should use itemsWithOrder
-            expect(sorted.nth(1).all()).toEqual(["a", "b", "c"]);
+            // Only a Map-built collection carries itemsWithOrder now; sortBy
+            // renumbers its keys instead, so the object itself holds the order.
+            const c = collect(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+            );
+            expect(c.nth(1).all()).toEqual(["c", "a", "b"]);
+            expect(
+                collect({ 1: "a", 0: "b", 2: "c" })
+                    .sortBy((v) => v)
+                    .nth(1)
+                    .all(),
+            ).toEqual(["a", "b", "c"]);
         });
 
         it("uses Object.entries when itemsWithOrder is not available", () => {
@@ -5924,6 +5934,48 @@ describe("Collection", () => {
     });
 
     describe("sortBy", () => {
+        it("keeps all() and values() in agreement over integer keys", () => {
+            // PHP-verified (task-10-pluck-sort.json, "sortBy/sortByDesc: all() and
+            // values() agree on order"): sortby_values and sortbymany_values are
+            // [{v:1},{v:2},{v:3}], sortbydesc_values [{v:3},{v:2},{v:1}].
+            const c = new Collection({
+                0: { v: 3 },
+                1: { v: 1 },
+                2: { v: 2 },
+            });
+
+            expect(Object.values(c.sortBy("v").all())).toEqual(
+                c.sortBy("v").values().all(),
+            );
+            expect(c.sortBy("v").values().all()).toEqual([
+                { v: 1 },
+                { v: 2 },
+                { v: 3 },
+            ]);
+
+            expect(Object.values(c.sortByDesc("v").all())).toEqual(
+                c.sortByDesc("v").values().all(),
+            );
+            expect(c.sortByDesc("v").values().all()).toEqual([
+                { v: 3 },
+                { v: 2 },
+                { v: 1 },
+            ]);
+
+            expect(Object.values(c.sortBy([["v"]]).all())).toEqual(
+                c
+                    .sortBy([["v"]])
+                    .values()
+                    .all(),
+            );
+            expect(
+                c
+                    .sortBy([["v"]])
+                    .values()
+                    .all(),
+            ).toEqual([{ v: 1 }, { v: 2 }, { v: 3 }]);
+        });
+
         describe("Laravel Tests", () => {
             it("test sort by", () => {
                 const data = collect(["taylor", "dayle"]);
@@ -6000,7 +6052,10 @@ describe("Collection", () => {
                 const data2 = collect(["taylor", "dayle"]);
                 const sorted2 = data2.sortBy((x) => x);
 
-                expect(sorted2.all()).toEqual({ 1: "dayle", 0: "taylor" });
+                // PHP-verified ("sortBy/sortByMany over an integer-keyed backing"):
+                // words_all is {"1":"dayle","0":"taylor"}, words_values is
+                // ["dayle","taylor"]. Only the order survives the renumbering here.
+                expect(sorted2.all()).toEqual({ 0: "dayle", 1: "taylor" });
 
                 const data3 = collect({ a: { sort: 2 }, b: { sort: 1 } });
                 const sorted3 = data3.sortBy("sort");
@@ -6013,9 +6068,12 @@ describe("Collection", () => {
                 const data4 = collect([{ sort: 2 }, { sort: 1 }]);
                 const sorted4 = data4.sortBy("sort");
 
+                // Same trade as data2 above: PHP's records_all is
+                // {"1":{"sort":1},"0":{"sort":2}}, records_values is
+                // [{"sort":1},{"sort":2}], and only the order survives here.
                 expect(sorted4.all()).toEqual({
-                    1: { sort: 1 },
-                    0: { sort: 2 },
+                    0: { sort: 1 },
+                    1: { sort: 2 },
                 });
             });
         });
@@ -6088,11 +6146,13 @@ describe("Collection", () => {
                 ]);
 
                 const sorted2 = data2.sortBy(["item"]);
-                // JavaScript sorts strings lexicographically
+                // PHP-verified, same probe row: imgs_plucked is
+                // ["img1","img10","img101","img11"]. The old expectation was just the
+                // input order - sortBy could not reorder an integer-keyed backing.
                 expect(sorted2.pluck("item").all()).toEqual([
                     "img1",
-                    "img101",
                     "img10",
+                    "img101",
                     "img11",
                 ]);
 
@@ -6177,15 +6237,17 @@ describe("Collection", () => {
 
             const sorted = data2.sortByMany([(a, b) => a.value - b.value]);
 
-            expect(sorted.pluck("value").all()).toEqual([10, 5, 20]);
+            // PHP-verified: vals_plucked [5,10,20] in the same probe row.
+            expect(sorted.pluck("value").all()).toEqual([5, 10, 20]);
 
-            // Test numeric key handling - ensure hasNumericKeys path is covered
+            // PHP's nums_all keeps the names, {"1":1,"2":2,"0":3}; renumbering
+            // is what lets the object hold nums_values' order [1,2,3] at all.
             const arrayData = collect([3, 1, 2]);
             const sortedArray = arrayData.sortByMany([(a, b) => a - b]);
             expect(sortedArray.all()).toEqual({
-                "0": 3,
-                "1": 1,
-                "2": 2,
+                "0": 1,
+                "1": 2,
+                "2": 3,
             });
 
             // Test continue branch - when first comparison returns 0,
