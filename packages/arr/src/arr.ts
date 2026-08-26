@@ -3142,7 +3142,7 @@ export function sortDesc<TValue>(
 export function sortDesc<TValue>(
     data: ArrayItems<TValue>,
     callback:
-        | ((item: TValue) => unknown)
+        | ((value: TValue, key: number) => unknown)
         | string
         | readonly SortSpec<TValue>[]
         | null,
@@ -3153,7 +3153,7 @@ export function sortDesc<TValue>(data: ArrayItems<TValue>): TValue[];
 export function sortDesc<TValue>(
     data: unknown,
     callback?:
-        | ((item: TValue) => unknown)
+        | ((value: TValue, key: number) => unknown)
         | string
         | readonly SortSpec<TValue>[]
         | null,
@@ -3162,7 +3162,7 @@ export function sortDesc<TValue>(
 export function sortDesc<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback?:
-        | ((item: TValue) => unknown)
+        | ((value: TValue, key: number) => unknown)
         | string
         | readonly SortSpec<TValue>[]
         | null,
@@ -3210,12 +3210,15 @@ export function sortDesc<TValue>(
 
     if (isFunction(callback)) {
         // Sort by callback result in descending order
-        return result.sort((a, b) => {
-            const aValue = callback(a);
-            const bValue = callback(b);
+        // Same indexed shape as `sort`, so the callback sees the key too.
+        const indexed = result.map((value, key) => ({
+            value,
+            sortKey: callback(value, key),
+        }));
 
-            return compareValues(bValue, aValue); // Reverse order
-        });
+        indexed.sort((a, b) => compareValues(b.sortKey, a.sortKey));
+
+        return indexed.map((item) => item.value);
     }
 
     return result;

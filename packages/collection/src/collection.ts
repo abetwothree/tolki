@@ -41,9 +41,11 @@ import {
     dataSearch,
     dataSelect,
     dataSet,
+    dataShift,
     dataShuffle,
     dataSlice,
     dataSort,
+    dataSortDesc,
     dataSplice,
     dataUndot,
     dataUnion,
@@ -979,8 +981,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 // If item is not an array/object, add it directly
                 if (!isArray(item) && !isObject(item)) {
                     result.push(item);
-                } else if (currentDepth <= 1) {
-                    // If we've reached the depth limit, add the values as-is
+                } else if (currentDepth === 1) {
+                    // Arr.php:373 spends the last level of depth on the
+                    // container's own values, so depth 1 still unwraps once.
                     const itemValues = isArray(item)
                         ? item
                         : Object.values(item);
@@ -2835,41 +2838,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
             >;
         }
 
+        // Delegating keeps the object-backed branch on array_shift's
+        // key renumbering, which the inline version here never did.
+        const shifted = dataShift(this.items, count);
+
         if (count === 1) {
-            if (isArray(this.items)) {
-                const value = (this.items as TValue[]).shift();
-                // Since we already checked isEmpty(), if shift() returns undefined,
-                // it means the first element was actually undefined, not that array was empty
-                return value as TValue;
-            }
-
-            // For objects, remove and return the first item
-            const keys = Object.keys(this.items) as TKey[];
-            const firstKey = keys[0] as TKey;
-            const value = (this.items as Record<TKey, TValue>)[firstKey];
-            delete (this.items as Record<TKey, TValue>)[firstKey];
-
-            return value;
+            return shifted as TValue;
         }
 
-        // For count > 1, shift multiple items
-        const shiftedValues: TValue[] = [];
-        const itemCount = this.count();
-
-        for (let i = 0; i < Math.min(count, itemCount); i++) {
-            if (isArray(this.items)) {
-                const value = (this.items as TValue[]).shift();
-                shiftedValues.push(value as TValue);
-            } else {
-                const keys = Object.keys(this.items) as TKey[];
-                const firstKey = keys[0] as TKey;
-                const value = (this.items as Record<TKey, TValue>)[firstKey];
-                delete (this.items as Record<TKey, TValue>)[firstKey];
-                shiftedValues.push(value);
-            }
-        }
-
-        return this.newInstance(shiftedValues) as unknown as Collection<
+        return this.newInstance(shifted as TValue[]) as unknown as Collection<
             TValue[],
             number
         >;
@@ -3229,7 +3206,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | string
             | null = null,
     ) {
-        return this.newInstance(this.sort(callback).reverse().all());
+        return this.newInstance(dataSortDesc(this.items, callback));
     }
 
     /**

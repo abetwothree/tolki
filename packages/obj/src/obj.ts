@@ -2325,6 +2325,9 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
  * Guard order matters: negative count throws, an empty object returns
  * null for any count, a count of zero returns an empty array, then items shift.
  *
+ * The survivors' integer-like keys are renumbered from 0, matching
+ * `array_shift`; string keys keep theirs.
+ *
  * @see Collection::shift — `packages/collection/stubs/Collection.php:1268`.
  *      Mirrors `array_shift`-style removal from the front, driven by `$count`; mutates.
  *
@@ -2352,21 +2355,27 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
         return null;
     }
 
-    if (count === 1) {
-        // Always defined: entries.length > 0 checked above.
-        const [key, value] = entries[0] as [string, TValue];
-        delete obj[key];
-        return value;
+    const actualCount = count === 1 ? 1 : Math.min(count, entries.length);
+
+    if (actualCount === 0) {
+        return [];
     }
 
-    const shiftedValues: TValue[] = [];
-    const actualCount = Math.min(count, entries.length);
+    const shiftedValues = entries
+        .slice(0, actualCount)
+        .map(([, value]) => value);
 
-    for (let i = 0; i < actualCount; i++) {
-        // Always defined: `i < actualCount <= entries.length`.
-        const [key, value] = entries[i] as [string, TValue];
+    for (const key of Object.keys(obj)) {
         delete obj[key];
-        shiftedValues.push(value);
+    }
+
+    for (const [key, value] of reindexIntegerKeys(entries.slice(actualCount))) {
+        defineKey(obj, key, value);
+    }
+
+    if (count === 1) {
+        // Always defined: entries.length > 0 checked above.
+        return shiftedValues[0] as TValue;
     }
 
     return shiftedValues;

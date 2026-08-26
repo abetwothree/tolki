@@ -2793,7 +2793,45 @@ describe("Obj", () => {
         });
 
         it("returns an empty array when the requested count is zero", () => {
-            expect(Obj.shift({ a: 1, b: 2 }, 0)).toEqual([]);
+            const data = { 0: "a", 1: "b" };
+
+            expect(Obj.shift(data, 0)).toEqual([]);
+            // A no-op count must not renumber anything either.
+            expect(Object.entries(data)).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+            ]);
+        });
+
+        it("renumbers the survivors' integer keys, like array_shift", () => {
+            // array_shift([10,20,30,40]) leaves [20,30,40], not
+            // {1:20,2:30,3:40} — the gap at 0 is not a PHP array shape.
+            const data: Record<string, number> = { 0: 10, 1: 20, 2: 30, 3: 40 };
+
+            expect(Obj.shift(data)).toBe(10);
+            expect(Object.entries(data)).toEqual([
+                ["0", 20],
+                ["1", 30],
+                ["2", 40],
+            ]);
+        });
+
+        it("renumbers integer keys but leaves string keys alone", () => {
+            // array_shift([0=>'a','x'=>1,1=>'b']) -> {x:1,0:'b'}.
+            const data: Record<string, unknown> = { 0: "a", x: 1, 1: "b" };
+
+            expect(Obj.shift(data)).toBe("a");
+            expect(data).toEqual({ 0: "b", x: 1 });
+        });
+
+        it("renumbers after a multi-item shift too", () => {
+            const data: Record<string, number> = { 0: 10, 1: 20, 2: 30, 3: 40 };
+
+            expect(Obj.shift(data, 2)).toEqual([10, 20]);
+            expect(Object.entries(data)).toEqual([
+                ["0", 30],
+                ["1", 40],
+            ]);
         });
     });
 

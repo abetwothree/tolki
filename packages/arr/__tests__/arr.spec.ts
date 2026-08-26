@@ -3992,6 +3992,19 @@ describe("Arr", () => {
     });
 
     describe("sortDesc", () => {
+        it("hands the callback the key, the same way sort does", () => {
+            const seen: number[] = [];
+
+            expect(
+                Arr.sortDesc([30, 10, 20], (value, key) => {
+                    seen.push(key);
+
+                    return value;
+                }),
+            ).toEqual([30, 20, 10]);
+            expect(seen).toEqual([0, 1, 2]);
+        });
+
         it("sortDesc", () => {
             // Natural sorting in descending order
             expect(Arr.sortDesc([3, 1, 4, 1, 5])).toEqual([5, 4, 3, 1, 1]);

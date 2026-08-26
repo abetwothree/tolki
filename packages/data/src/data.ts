@@ -1626,7 +1626,7 @@ export function dataUnshift<TValue>(
 ): unknown[];
 export function dataUnshift<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
-    ...items: Record<PropertyKey, unknown>[]
+    ...items: unknown[]
 ): Record<PropertyKey, unknown>;
 export function dataUnshift<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
@@ -1759,7 +1759,10 @@ export function dataSort<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function dataSortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
-    callback?: string | ((item: TValue) => unknown) | null,
+    callback:
+        | ((value: TValue, key: PropertyKey) => unknown)
+        | string
+        | null = null,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objSortDesc(data, callback);
