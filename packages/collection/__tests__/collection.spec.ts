@@ -3691,9 +3691,9 @@ describe("Collection", () => {
             const fromObject = collect({ 0: 1, 1: 2 });
 
             expect(fromArray.union([3, 4, 5]).all()).toEqual([1, 2, 5]);
-            expect(Object.values(fromObject.union({ 0: 3, 1: 4, 2: 5 }).all())).toEqual(
-                [1, 2, 5],
-            );
+            expect(
+                Object.values(fromObject.union({ 0: 3, 1: 4, 2: 5 }).all()),
+            ).toEqual([1, 2, 5]);
         });
     });
 
@@ -10260,13 +10260,9 @@ describe("Collection", () => {
 
         it("unshift, either backing (Task 2)", () => {
             expect(
-                Object.values(
-                    new Collection(arr4.slice()).unshift(1, 2).all(),
-                ),
+                Object.values(new Collection(arr4.slice()).unshift(1, 2).all()),
             ).toEqual(
-                Object.values(
-                    new Collection({ ...obj4 }).unshift(1, 2).all(),
-                ),
+                Object.values(new Collection({ ...obj4 }).unshift(1, 2).all()),
             );
         });
 
@@ -10372,9 +10368,7 @@ describe("Collection", () => {
                 ),
             ).toEqual(
                 Object.values(
-                    new Collection({ ...obj4 })
-                        .diff({ 0: 20, 1: 40 })
-                        .all(),
+                    new Collection({ ...obj4 }).diff({ 0: 20, 1: 40 }).all(),
                 ),
             );
         });
@@ -10410,7 +10404,9 @@ describe("Collection", () => {
                 ),
             ).toEqual(
                 Object.values(
-                    new Collection({ ...obj4 }).diffKeysUsing(objectOther, cb).all(),
+                    new Collection({ ...obj4 })
+                        .diffKeysUsing(objectOther, cb)
+                        .all(),
                 ),
             );
         });
@@ -10522,9 +10518,7 @@ describe("Collection", () => {
 
             expect(
                 Object.values(new Collection(asArray).pad(-6, 0).all()),
-            ).toEqual(
-                Object.values(new Collection(asObject).pad(-6, 0).all()),
-            );
+            ).toEqual(Object.values(new Collection(asObject).pad(-6, 0).all()));
         });
 
         it("keys, either backing (Task 7)", () => {
@@ -10564,9 +10558,7 @@ describe("Collection", () => {
             const nestedObj = { 0: 1, 1: [2, 3], 2: 4 };
             expect(
                 Object.values(new Collection(nestedArr).flatten().all()),
-            ).toEqual(
-                Object.values(new Collection(nestedObj).flatten().all()),
-            );
+            ).toEqual(Object.values(new Collection(nestedObj).flatten().all()));
         });
 
         it("mapWithKeys, either backing (Task 8)", () => {
@@ -10625,7 +10617,9 @@ describe("Collection", () => {
         it("pluck, either backing (Task 10)", () => {
             expect(
                 Object.values(new Collection(recArr).pluck("name").all()),
-            ).toEqual(Object.values(new Collection(recObj).pluck("name").all()));
+            ).toEqual(
+                Object.values(new Collection(recObj).pluck("name").all()),
+            );
         });
 
         it("sort, either backing (Task 10)", () => {
@@ -10642,9 +10636,7 @@ describe("Collection", () => {
             const scrambledObj = { a: 30, b: 10, c: 20 };
             expect(
                 Object.values(new Collection(scrambledArr).sort().all()),
-            ).toEqual(
-                Object.values(new Collection(scrambledObj).sort().all()),
-            );
+            ).toEqual(Object.values(new Collection(scrambledObj).sort().all()));
         });
 
         it("sortDesc, either backing (Task 10)", () => {

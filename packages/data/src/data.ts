@@ -456,7 +456,9 @@ export function dataCollapse<TValue>(data: DataItems<TValue, PropertyKey>) {
         // Widen: objCollapse requires nested-record values, but the
         // dispatch signature's TValue is unconstrained (the overloads above
         // are what actually enforce the nested shape for callers).
-        return objCollapse(data as Record<PropertyKey, Record<PropertyKey, TValue>>);
+        return objCollapse(
+            data as Record<PropertyKey, Record<PropertyKey, TValue>>,
+        );
     }
 
     return arrCollapse(arrWrap(data));
@@ -489,10 +491,7 @@ export function dataCombine<TKeys, TValues>(
     itemsB: DataItems<TValues>,
 ) {
     if (isObject(itemsA) && isObject(itemsB)) {
-        return objCombine(
-            itemsA,
-            itemsB,
-        );
+        return objCombine(itemsA, itemsB);
     }
 
     if (isArray(itemsA) && isArray(itemsB)) {
@@ -701,11 +700,7 @@ export function dataExceptValues<
     strict: boolean = false,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objExceptValues(
-            data,
-            values,
-            strict,
-        );
+        return objExceptValues(data, values, strict);
     }
 
     return arrExceptValues(data, values, strict);
@@ -1138,16 +1133,10 @@ export function dataKeyBy(
     keyBy: string | ((item: unknown) => string | number | null | undefined),
 ): Record<string | number, unknown> {
     if (isObject(data)) {
-        return objKeyBy(
-            data,
-            keyBy,
-        );
+        return objKeyBy(data, keyBy);
     }
 
-    return arrKeyBy(
-        arrWrap(data),
-        keyBy,
-    );
+    return arrKeyBy(arrWrap(data), keyBy);
 }
 
 /**
@@ -1218,11 +1207,7 @@ export function dataOnlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
     strict: boolean = false,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objOnlyValues(
-            data,
-            values,
-            strict,
-        );
+        return objOnlyValues(data, values, strict);
     }
 
     return arrOnlyValues(data, values, strict);
@@ -1247,10 +1232,7 @@ export function dataSelect<TValue, TKey extends PropertyKey = PropertyKey>(
         return objSelect(data, keys);
     }
 
-    return arrSelect(
-        arrWrap(data),
-        keys,
-    );
+    return arrSelect(arrWrap(data), keys);
 }
 
 /**
@@ -1713,11 +1695,7 @@ export function dataSlice<TValue, TKey extends PropertyKey = PropertyKey>(
     length: number | null = null,
 ) {
     if (isObject(data)) {
-        return objSlice(
-            data,
-            offset,
-            length,
-        );
+        return objSlice(data, offset, length);
     }
 
     return arrSlice(arrWrap(data), offset, length);
@@ -1773,16 +1751,10 @@ export function dataSort<TValue, TKey extends PropertyKey = PropertyKey>(
         | null = null,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objSort(
-            data,
-            callback,
-        );
+        return objSort(data, callback);
     }
 
-    return arrSort(
-        arrWrap(data),
-        callback,
-    );
+    return arrSort(arrWrap(data), callback);
 }
 
 /**
@@ -1825,10 +1797,7 @@ export function dataSortRecursive<
     TKey extends PropertyKey = PropertyKey,
 >(data: DataItems<TValue, TKey>, descending = false): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objSortRecursive(
-            data,
-            descending,
-        );
+        return objSortRecursive(data, descending);
     }
 
     return arrSortRecursive(arrWrap(data), descending);
@@ -1875,20 +1844,10 @@ export function dataSplice<TValue, TKey extends PropertyKey, TReplacements>(
     ...replacement: TReplacements[]
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objSplice(
-            data,
-            offset,
-            length,
-            ...replacement,
-        );
+        return objSplice(data, offset, length, ...replacement);
     }
 
-    return arrSplice(
-        arrWrap(data),
-        offset,
-        length,
-        ...replacement,
-    );
+    return arrSplice(arrWrap(data), offset, length, ...replacement);
 }
 
 /**
@@ -2014,17 +1973,11 @@ export function dataReplace<
     const replacerIsNullish = isNull(replacerData) || isUndefined(replacerData);
 
     if (isObject(data) && (replacerIsNullish || isObject(replacerData))) {
-        return objReplace(
-            data,
-            replacerData,
-        );
+        return objReplace(data, replacerData);
     }
 
     if (isArray(data) && (replacerIsNullish || isArray(replacerData))) {
-        return arrReplace(
-            data,
-            replacerData,
-        );
+        return arrReplace(data, replacerData);
     }
 
     throw new Error(
@@ -2052,17 +2005,11 @@ export function dataReplaceRecursive<
     const replacerIsNullish = isNull(replacerData) || isUndefined(replacerData);
 
     if (isObject(data) && (replacerIsNullish || isObject(replacerData))) {
-        return objReplaceRecursive(
-            data,
-            replacerData,
-        );
+        return objReplaceRecursive(data, replacerData);
     }
 
     if (isArray(data) && (replacerIsNullish || isArray(replacerData))) {
-        return arrReplaceRecursive(
-            data,
-            replacerData,
-        );
+        return arrReplaceRecursive(data, replacerData);
     }
 
     throw new Error(
@@ -2440,18 +2387,10 @@ export function dataContains<TValue, TKey extends PropertyKey = PropertyKey>(
     strict = false,
 ): boolean {
     if (isObject(data)) {
-        return objContains(
-            data,
-            value,
-            strict,
-        );
+        return objContains(data, value, strict);
     }
 
-    return arrContains(
-        arrWrap(data),
-        value,
-        strict,
-    );
+    return arrContains(arrWrap(data), value, strict);
 }
 
 /**
@@ -2703,19 +2642,11 @@ export function dataIntersect<
     const otherIsNullish = isNull(other) || isUndefined(other);
 
     if (isObject(data) && (otherIsNullish || isObject(other))) {
-        return objIntersect(
-            data,
-            other,
-            callable,
-        );
+        return objIntersect(data, other, callable);
     }
 
     if (isArray(data) && (otherIsNullish || isArray(other))) {
-        return arrIntersect(
-            data,
-            other,
-            callable,
-        );
+        return arrIntersect(data, other, callable);
     }
 
     throw new Error(
@@ -2749,17 +2680,11 @@ export function dataIntersectAssoc<
     const otherIsNullish = isNull(other) || isUndefined(other);
 
     if (isObject(data) && (otherIsNullish || isObject(other))) {
-        return objIntersectAssoc(
-            data,
-            other,
-        );
+        return objIntersectAssoc(data, other);
     }
 
     if (isArray(data) && (otherIsNullish || isArray(other))) {
-        return arrIntersectAssoc(
-            data,
-            other,
-        );
+        return arrIntersectAssoc(data, other);
     }
 
     throw new Error(
@@ -2830,17 +2755,11 @@ export function dataIntersectByKeys<
     const otherIsNullish = isNull(other) || isUndefined(other);
 
     if (isObject(data) && (otherIsNullish || isObject(other))) {
-        return objIntersectByKeys(
-            data,
-            other,
-        );
+        return objIntersectByKeys(data, other);
     }
 
     if (isArray(data) && (otherIsNullish || isArray(other))) {
-        return arrIntersectByKeys(
-            data,
-            other,
-        );
+        return arrIntersectByKeys(data, other);
     }
 
     throw new Error(
