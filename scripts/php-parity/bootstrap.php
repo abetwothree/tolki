@@ -114,5 +114,14 @@ function emit(): void
         'probes' => $GLOBALS['__probes'],
     ];
 
-    echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+    $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+    // A probe value with invalid UTF-8/NAN/INF makes json_encode() return false; fail loudly
+    // instead of writing an empty transcript that the atomic wrapper would mv over ground truth.
+    if ($json === false) {
+        fwrite(STDERR, 'emit() failed: ' . json_last_error_msg() . PHP_EOL);
+        exit(1);
+    }
+
+    echo $json, PHP_EOL;
 }

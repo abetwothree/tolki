@@ -52,24 +52,31 @@ method's output can't be pinned outright (`Arr::random`), pin the invariant
      exception's class and message are captured instead of the return value,
      so exception parity can be verified the same way as return-value
      parity.
-   - `emit(): void` — prints every recorded probe as one pretty-printed JSON
-     array on stdout.
+   - `emit(): void` — prints one pretty-printed JSON object on stdout:
+     `{"meta": {"php", "laravel"}, "probes": [...]}`. `meta` records the PHP
+     version and the framework revision (`git describe`) a capture was taken
+     against; every recorded probe lands under `probes`.
 
 Each `task-NN-*.php` file requires `bootstrap.php`, calls `probe()` once per
 behaviour under investigation, and finishes with `emit()`.
 
 ## Running the probes
 
-Run a single probe file and capture its output:
-
-```bash
-php scripts/php-parity/task-02-mutation.php > docs/php-parity/task-02-mutation.json
-```
-
-Or regenerate every captured file at once:
+Regenerate every captured file at once — this is the normal path, and the
+one the review workflow assumes:
 
 ```bash
 pnpm php:parity
+```
+
+To run a single probe file by hand, use the same atomic pattern `pnpm
+php:parity` uses per file, rather than a bare `>` redirect: PHP CLI writes
+fatals to stdout as well as stderr, so a bare redirect can silently replace
+committed ground truth with a stack trace.
+
+```bash
+o=docs/php-parity/task-02-mutation.json
+php -d display_errors=stderr scripts/php-parity/task-02-mutation.php > "$o.tmp" && mv "$o.tmp" "$o"
 ```
 
 ## Captured output is committed and reviewed
