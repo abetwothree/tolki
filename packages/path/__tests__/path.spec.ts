@@ -1077,6 +1077,13 @@ describe("Path Functions", () => {
             expect(Path.getNestedValue(data, "0.prop")).toBeUndefined();
             expect(Path.getNestedValue(data, "1.nested.prop")).toBeUndefined();
         });
+
+        it("does not see an inherited key via a dotted object path", () => {
+            // `in` climbs the prototype chain; {} has no own "constructor".
+            expect(
+                Path.getNestedValue({ a: {} }, "a.constructor"),
+            ).toBeUndefined();
+        });
     });
 
     describe("getMixedValue", () => {
@@ -1838,6 +1845,13 @@ describe("Path Functions", () => {
             // A plain object is unaffected -- it still gets the literal-key
             // fast path.
             expect(Path.hasMixed({ length: "x" }, "length")).toBe(true);
+        });
+
+        it("does not see an inherited key on a plain object via `in`", () => {
+            // Object mirror of the array pin above: `in` also climbs
+            // Object.prototype, so a plain object must reject "toString" too.
+            expect(Path.hasMixed({ a: 1 }, "toString")).toBe(false);
+            expect(Path.hasMixed({ toString: "x" }, "toString")).toBe(true);
         });
     });
 

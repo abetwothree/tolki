@@ -1249,7 +1249,7 @@ export function getNestedValue<TReturn>(
             current = current[index];
         } else {
             // Handle object property access
-            if (!(segment in current)) {
+            if (!Object.hasOwn(current as object, segment)) {
                 return undefined;
             }
             current = (current as Record<string, unknown>)[segment];
@@ -1671,9 +1671,7 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
             return key >= 0 && key < data.length;
         }
 
-        return (
-            isObject(data) && String(key) in (data as Record<string, unknown>)
-        );
+        return isObject(data) && Object.hasOwn(data as object, String(key));
     }
 
     if (!isArray(data) && !isObject(data)) {
@@ -1690,7 +1688,7 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
     // bounds-checked getNestedValue below, exactly as they did before this
     // literal-key fast path was added.
     if (isObject(data)) {
-        if (keyStr in (data as Record<string, unknown>)) {
+        if (Object.hasOwn(data as object, keyStr)) {
             return true;
         }
 
@@ -1855,7 +1853,7 @@ export function hasObjectKey<TValue, TKey extends PropertyKey = PropertyKey>(
     const keyStr = String(key);
 
     // The literal key wins even when it contains dots.
-    if (keyStr in (obj as Record<string, unknown>)) {
+    if (Object.hasOwn(obj as object, keyStr)) {
         return true;
     }
 
