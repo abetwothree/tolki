@@ -1718,37 +1718,28 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
  * Get the values a pluck wildcard segment iterates over, mirroring
  * `data_get()`'s `is_iterable()` check (`helpers.php:90-94`): a PHP
  * `foreach` walks both arrays and (associative) objects, so both a JS
- * array and a plain object count here. This is intentionally broader than
- * `@tolki/arr`'s `getAccessibleValues` (used by `resolvePluckPath` in
- * arr.ts), which only expands actual JS arrays — a wildcard whose target
- * is a plain object silently resolves to `[]` there. `data_get` doesn't
- * distinguish; neither does this.
+ * array and a plain object count here, matching `@tolki/arr`'s helper.
  *
- * @param target - The value a `*` segment is expanding.
- * @returns The values to recurse into, or `[]` for a non-iterable target.
+ * @param target - The value a `*` segment is expanding; callers bail to
+ * `null` before this runs for anything that isn't an array or an object.
+ * @returns The values to recurse into.
  */
-function getPluckWildcardValues(target: unknown): unknown[] {
+function getPluckWildcardValues(
+    target: unknown[] | Record<PropertyKey, unknown>,
+): unknown[] {
     if (isArray(target)) {
         return target;
     }
 
-    if (isObject(target)) {
-        return Object.values(target);
-    }
-
-    return [];
+    return Object.values(target);
 }
 
 /**
  * Resolve a pluck path against a single item, expanding `*` segments into an
- * array of the values found at that level. Ports arr.ts's `resolvePluckPath`
- * (same two documented divergences from `data_get()` apply here):
- *
- * - a wildcard over a non-iterable yields `[]` (via
- *   {@linkcode getPluckWildcardValues}) where `data_get` bails out with its
- *   default (`null`);
- * - multiple wildcards nest (`[[..], [..]]`) where `data_get` collapses the
- *   tail one level (`Arr::collapse`).
+ * array of the values found at that level. Ports arr.ts's `resolvePluckPath`,
+ * with the same known divergence from `data_get()`: multiple wildcards nest
+ * (`[[..], [..]]`) where `data_get` collapses the tail one level
+ * (`Arr::collapse`).
  *
  * @param item - The item to resolve the path against.
  * @param segments - The already-split path segments.
@@ -1762,9 +1753,13 @@ function resolvePluckPath(item: unknown, segments: readonly string[]): unknown {
     const [segment, ...rest] = segments;
 
     if (segment === "*") {
-        const values = getPluckWildcardValues(item);
+        if (!isArray(item) && !isObject(item)) {
+            return null;
+        }
 
-        return values.map((value) => resolvePluckPath(value, rest));
+        return getPluckWildcardValues(item).map((value) =>
+            resolvePluckPath(value, rest),
+        );
     }
 
     if (isNull(item) || isUndefined(item)) {

@@ -1854,9 +1854,15 @@ describe("Obj", () => {
             expect(Obj.pluck(data, "meta.*.value")).toEqual([[1, 2]]);
         });
 
-        it("yields an empty array for a wildcard over a non-iterable target", () => {
-            const data = { a: { meta: "not-iterable" } };
-            expect(Obj.pluck(data, "meta.*.value")).toEqual([[]]);
+        it("yields null for a wildcard over a non-iterable target", () => {
+            // PHP-verified in docs/php-parity/task-10-pluck-sort.json: data_get
+            // bails to its default when the target is not iterable.
+            expect(
+                Obj.pluck({ a: { meta: "not-iterable" } }, "meta.*.value"),
+            ).toEqual([null]);
+            expect(Obj.pluck({ a: { meta: null } }, "meta.*.value")).toEqual([
+                null,
+            ]);
         });
     });
 
