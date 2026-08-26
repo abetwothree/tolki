@@ -107,4 +107,72 @@ probe('Arr::pluck — missing key field vs explicit null key', 'Arr::pluck($u, "
     return Arr::pluck($u, 'name', 'id');
 });
 
+// ---------------------------------------------------------------------
+// Review round 1 additions: pin values the arr/collection review found
+// diverging from PHP.
+// ---------------------------------------------------------------------
+
+// Critical 1: data_get()'s "*" arm gates on is_iterable(), true for a plain
+// (associative) PHP array. Both a keyed-by-string outer array and a plain
+// list outer array should wildcard-expand an associative inner value the
+// same way - there is only one Arr::pluck in PHP, so "array-backed" vs
+// "object-backed" is purely a JS-side distinction that must not change the
+// result.
+probe('Arr::pluck wildcard over an associative (object-shaped) target, string-keyed outer', 'Arr::pluck(["a"=>$shape], "meta.*.v")', function () {
+    $shape = ['meta' => ['x' => ['v' => 1], 'y' => ['v' => 2]]];
+
+    return Arr::pluck(['a' => $shape], 'meta.*.v');
+});
+
+probe('Arr::pluck wildcard over an associative (object-shaped) target, list outer', 'Arr::pluck([$shape], "meta.*.v")', function () {
+    $shape = ['meta' => ['x' => ['v' => 1], 'y' => ['v' => 2]]];
+
+    return Arr::pluck([$shape], 'meta.*.v');
+});
+
+// Critical 2: Collection::sortByMany's direction match-arm compares against
+// the SortDirection enum and booleans; the string forms 'asc'/'desc' and any
+// unrecognized value must still route through the same match arms.
+probe('Collection::sortBy — string "desc" direction sorts descending', 'sortBy([["age","desc"]])', function () {
+    $c = new \Illuminate\Support\Collection(['a' => ['age' => 2], 'b' => ['age' => 10]]);
+
+    return $c->sortBy([['age', 'desc']])->values()->all();
+});
+
+probe('Collection::sortBy — unrecognized direction sorts descending (default arm)', 'sortBy([["age","BOGUS"]])', function () {
+    $c = new \Illuminate\Support\Collection(['a' => ['age' => 2], 'b' => ['age' => 10]]);
+
+    return $c->sortBy([['age', 'BOGUS']])->values()->all();
+});
+
+// "Also fix": sortBy's array form discards $descending entirely
+// (`return $this->sortByMany($callback, $options);` never forwards it) - a
+// direction-less descriptor inside an array callback ignores the third
+// argument to sortBy and always defaults to ascending.
+probe('Collection::sortBy — global $descending=true is ignored for the array-of-descriptors form', 'sortBy([["age"]], SORT_REGULAR, true)', function () {
+    $c = new \Illuminate\Support\Collection(['a' => ['age' => 10], 'b' => ['age' => 2]]);
+
+    return $c->sortBy([['age']], SORT_REGULAR, true)->values()->all();
+});
+
+// Important 3 / "Also fix": an empty comparisons array is a true no-op in
+// PHP - uasort's comparator closure has an empty foreach body, so it falls
+// off the end and implicitly returns null (coerced to 0 for every pair),
+// leaving insertion order untouched. This is NOT the same as "sort
+// naturally by value".
+probe('Arr::sort — empty descriptor array preserves insertion order', 'Arr::sort($u, [])', function () {
+    return array_values(Arr::sort(['a' => 5, 'b' => 1, 'c' => 3], []));
+});
+
+// Minor 7: PHP casts a boolean array key to int (true -> 1, false -> 0),
+// not to the string "true"/"false".
+probe('Arr::pluck — boolean key casts to int, not string', 'Arr::pluck($u, "name", "flag")', function () {
+    $u = [
+        'a' => ['flag' => true, 'name' => 'X'],
+        'b' => ['flag' => false, 'name' => 'Y'],
+    ];
+
+    return Arr::pluck($u, 'name', 'flag');
+});
+
 emit();

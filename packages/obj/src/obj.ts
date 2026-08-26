@@ -11,7 +11,7 @@ import {
     undotExpandObject,
 } from "@tolki/path";
 import { finish, randomInt } from "@tolki/str";
-import type { CaseValue, PathKey, PathKeys } from "@tolki/types";
+import type { CaseValue, PathKey, PathKeys, SortSpec } from "@tolki/types";
 import {
     compareValues,
     defineKey,
@@ -1887,6 +1887,12 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
                     typeof nestedKey === "number"
                 ) {
                     itemKey = nestedKey;
+                } else if (typeof nestedKey === "boolean") {
+                    // PHP casts a boolean array key to int (true -> 1,
+                    // false -> 0), not to the string "true"/"false".
+                    // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+                    // "Arr::pluck — boolean key casts to int, not string".
+                    itemKey = nestedKey ? 1 : 0;
                 } else if (!isNull(nestedKey)) {
                     itemKey = String(nestedKey) as string;
                 }
@@ -2634,43 +2640,19 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * A single sort descriptor accepted by {@linkcode sort} and
- * {@linkcode sortDesc}'s array-of-descriptors (multi-key) form.
+ * Build a comparator from a single sort descriptor, using the shared
+ * {@linkcode SortSpec} type (`@tolki/types`) rather than a package-local
+ * fork of it - review round 1, Important 5: `obj` previously declared its
+ * own `ObjSortSpec` with a `[key]` single-element tuple arm that
+ * `@tolki/arr`'s exported `SortSpec` lacked, so `obj` consumers could name
+ * a descriptor type `arr` consumers couldn't, and `arr.ts`'s
+ * `sortSpecComparator` had its own, separately-fixed copy of the same
+ * omitted-direction bug (see that function's JSDoc). `SortSpec` now
+ * carries the `[key]` arm for both packages, and both comparator
+ * functions independently implement the ascending default it documents.
  *
- * Deliberately not `@tolki/arr`'s exported `SortSpec` type. That type's
- * tuple arm requires an explicit direction (`readonly [string, direction]`),
- * which cannot express Laravel's actual default: `Collection::sortByMany`
- * (`Collection.php:1627-1666`) runs every descriptor through `Arr::wrap`
- * first, so a bare key path *and* a single-element tuple (`['age']`) both
- * resolve their missing `[1]` slot via `Arr::get($comparison, 1, true)` —
- * defaulting to `true`, i.e. ascending (PHP-verified:
- * docs/php-parity/task-10-pluck-sort.json, "direction tuple [age] — omitted
- * defaults to ascending").
- *
- * `@tolki/arr`'s `sortSpecComparator` has no branch for a 1-element tuple:
- * an untyped caller who passes one there destructures `direction` as
- * `undefined`, which reads as "not ascending" and sorts DESCENDING — the
- * opposite of Laravel. That is a real `arr` divergence from this task's
- * PHP-verified ground truth, not a hidden feature to copy; see
- * {@linkcode objSortSpecComparator}'s `isAscending` check for the fix.
- *
- * - a dot-notated key path, sorted ascending
- * - a `[key]` tuple — identical to a bare key path, ascending
- * - a `[key, direction]` tuple: `true`, `'asc'`, and `SortDirection.Ascending`
- *   sort ascending; every other direction value — `false`, `'desc'`,
- *   `SortDirection.Descending`, or anything unrecognized from an untyped
- *   caller — sorts descending, exactly like Laravel's default arm
- * - a comparator returning a negative, zero, or positive number
- */
-type ObjSortSpec<TValue> =
-    | string
-    | readonly [string]
-    | readonly [string, boolean | "Ascending" | "Descending" | "asc" | "desc"]
-    | ((a: TValue, b: TValue) => number);
-
-/**
- * Build a comparator from a single sort descriptor. See {@linkcode ObjSortSpec}
- * for why a 1-element tuple (and a bare key path) must default to ascending.
+ * See {@linkcode SortSpec}'s JSDoc for why a 1-element tuple (and a bare
+ * key path) must default to ascending.
  *
  * `forceDescending` mirrors `Collection::sortByDesc` (`Collection.php`
  * lines 1683-1693): for a key path or tuple it overrides the direction to
@@ -2682,7 +2664,7 @@ type ObjSortSpec<TValue> =
  * @returns A comparator for the descriptor.
  */
 function objSortSpecComparator<TValue>(
-    spec: ObjSortSpec<TValue>,
+    spec: SortSpec<TValue>,
     forceDescending: boolean,
 ): (a: TValue, b: TValue) => number {
     if (isFunction(spec)) {
@@ -2695,7 +2677,7 @@ function objSortSpecComparator<TValue>(
             (boolean | "Ascending" | "Descending" | "asc" | "desc")?,
         ];
         // Collection::sortByMany's match-arm, with the 1-element-tuple fix
-        // documented on ObjSortSpec: a missing direction defaults to `true`
+        // documented on SortSpec: a missing direction defaults to `true`
         // (ascending) via Arr::get($comparison, 1, true); `true`, `'asc'`,
         // and Ascending sort ascending; everything else sorts descending.
         const isAscending =
@@ -2745,7 +2727,7 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     callback?:
         | ((value: TValue, key: TKey) => unknown)
         | string
-        | readonly ObjSortSpec<TValue>[]
+        | readonly SortSpec<TValue>[]
         | null,
 ): Record<TKey, TValue>;
 export function sort(
@@ -2753,7 +2735,7 @@ export function sort(
     callback?:
         | ((value: unknown, key: PropertyKey) => unknown)
         | string
-        | readonly ObjSortSpec<unknown>[]
+        | readonly SortSpec<unknown>[]
         | null,
 ): Record<PropertyKey, unknown>;
 export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
@@ -2761,7 +2743,7 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     callback:
         | ((value: TValue, key: TKey) => unknown)
         | string
-        | readonly ObjSortSpec<TValue>[]
+        | readonly SortSpec<TValue>[]
         | null = null,
 ): Record<TKey, TValue> | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
@@ -2774,7 +2756,7 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isArray(callback)) {
         // Multi-key sorting - mirrors Collection::sortByMany; each
         // descriptor keeps its own direction (Collection.php:1638-1640).
-        const comparators = (callback as readonly ObjSortSpec<TValue>[]).map(
+        const comparators = (callback as readonly SortSpec<TValue>[]).map(
             (spec) => objSortSpecComparator<TValue>(spec, false),
         );
 
@@ -2791,7 +2773,19 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
         });
     }
 
-    if (isFalsy(callback)) {
+    // Review round 1, Important 3: `isFalsy([])` is true (an empty array
+    // is PHP-falsy), so without the `!isArray` guard an empty descriptor
+    // array fell into BOTH branches - the isArray branch above correctly
+    // left `entries` untouched (zero comparators, stable no-op), then this
+    // branch immediately re-sorted it by raw value, corrupting the no-op.
+    // Collection::sortByMany([]) is a true no-op in PHP (uasort's
+    // comparator closure has an empty foreach body, so it falls off the
+    // end and implicitly returns null, coerced to 0 for every pair) - not
+    // "sort naturally by value". PHP-verified:
+    // docs/php-parity/task-10-pluck-sort.json, "Arr::sort — empty
+    // descriptor array preserves insertion order" (same principle; arr and
+    // obj share it).
+    if (isFalsy(callback) && !isArray(callback)) {
         // Natural sorting by values
         entries.sort(([, a], [, b]) => {
             const aValue = a as TValue;
@@ -2910,7 +2904,7 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     callback?:
         | ((value: TValue, key: TKey) => unknown)
         | string
-        | readonly ObjSortSpec<TValue>[]
+        | readonly SortSpec<TValue>[]
         | null,
 ): Record<TKey, TValue>;
 export function sortDesc(
@@ -2918,7 +2912,7 @@ export function sortDesc(
     callback?:
         | ((value: unknown, key: PropertyKey) => unknown)
         | string
-        | readonly ObjSortSpec<unknown>[]
+        | readonly SortSpec<unknown>[]
         | null,
 ): Record<PropertyKey, unknown>;
 export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
@@ -2926,7 +2920,7 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     callback?:
         | ((value: TValue, key: TKey) => unknown)
         | string
-        | readonly ObjSortSpec<TValue>[]
+        | readonly SortSpec<TValue>[]
         | null,
 ): Record<TKey, TValue> | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
@@ -2940,7 +2934,7 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
         // Multi-key sorting - mirrors Collection::sortByDesc: every
         // descriptor's own direction is overridden to descending (a
         // comparator function is unaffected - see objSortSpecComparator).
-        const comparators = (callback as readonly ObjSortSpec<TValue>[]).map(
+        const comparators = (callback as readonly SortSpec<TValue>[]).map(
             (spec) => objSortSpecComparator<TValue>(spec, true),
         );
 

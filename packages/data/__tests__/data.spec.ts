@@ -2316,13 +2316,19 @@ describe("Data", () => {
 
         it("plucks a wildcard path the same way for array and object backing", () => {
             // dataPluck routes object input to Obj.pluck and array input to
-            // Arr.pluck; Task 10 added wildcard support to Obj.pluck, so
-            // this pins that the two backings now agree instead of
-            // silently diverging on a wildcard path.
-            const shape = { users: [{ first: "t" }] };
-            expect(Data.dataPluck({ a: shape }, "users.*.first")).toEqual(
-                Data.dataPluck([shape], "users.*.first"),
-            );
+            // Arr.pluck; Task 10 added wildcard support to both. The
+            // wildcard TARGET (shape.meta) is a plain (associative) object,
+            // not a JS array - a list-shaped target like {users: [...]}
+            // cannot catch a divergence here, since arr's and obj's
+            // wildcard expansion already agreed on real JS arrays before
+            // review round 1 found arr's wildcard silently resolving an
+            // object-shaped target to [] (Critical 1). PHP-verified:
+            // docs/php-parity/task-10-pluck-sort.json, "Arr::pluck wildcard
+            // over an associative (object-shaped) target" -> [[1,2]].
+            const shape = { meta: { x: { v: 1 }, y: { v: 2 } } };
+            const expected = [[1, 2]];
+            expect(Data.dataPluck({ a: shape }, "meta.*.v")).toEqual(expected);
+            expect(Data.dataPluck([shape], "meta.*.v")).toEqual(expected);
         });
     });
 

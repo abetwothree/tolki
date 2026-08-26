@@ -132,6 +132,17 @@ export type TruthyArray<T extends readonly unknown[]> =
  * A single sort descriptor accepted by array sort helpers.
  *
  * - a dot-notated key path, sorted ascending
+ * - a `[key]` single-element tuple — identical to a bare key path,
+ *   ascending. `Collection::sortByMany` (`Collection.php:1627-1666`) runs
+ *   every descriptor through `Arr::wrap` before reading it, so a bare
+ *   string AND a 1-element tuple both resolve their missing `[1]` slot via
+ *   `Arr::get($comparison, 1, true)` — defaulting to `true`, i.e.
+ *   ascending (PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+ *   "direction tuple [age] — omitted defaults to ascending"). This arm
+ *   exists specifically so a consumer's `sortSpecComparator`-style
+ *   destructuring (`const [key, direction] = spec`) has a real, typed case
+ *   where `direction` is `undefined`, instead of silently reaching that
+ *   state only via an unchecked cast.
  * - a `[key, direction]` tuple. Mirrors Laravel's `Collection::sortByMany`,
  *   where `true`, `'asc'`, and the `"Ascending"` case of `@tolki/enum`'s
  *   `SortDirection` sort ascending, and every other direction value —
@@ -144,5 +155,6 @@ export type TruthyArray<T extends readonly unknown[]> =
  */
 export type SortSpec<TValue> =
     | string
+    | readonly [string]
     | readonly [string, boolean | "Ascending" | "Descending" | "asc" | "desc"]
     | ((a: TValue, b: TValue) => number);

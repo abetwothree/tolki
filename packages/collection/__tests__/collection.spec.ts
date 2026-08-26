@@ -3098,13 +3098,24 @@ describe("Collection", () => {
 
         it("plucks wildcard paths the same way for array and object backing", () => {
             // dataPluck routes object input to Obj.pluck and array input to
-            // Arr.pluck; Task 10 added wildcard support to Obj.pluck, so
-            // this pins that the two backings now agree instead of
-            // silently diverging on a wildcard path.
-            const shape = { users: [{ first: "t" }] };
+            // Arr.pluck; Task 10 added wildcard support to both. The
+            // wildcard TARGET here (shape.meta) is itself a plain
+            // (associative) object, not a JS array - a list-shaped target
+            // like {users: [...]} cannot catch a divergence, because both
+            // arr's and obj's wildcard expansion already agreed on real JS
+            // arrays before review round 1 found arr's wildcard silently
+            // resolving an object-shaped target to [] (Critical 1).
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+            // "Arr::pluck wildcard over an associative (object-shaped)
+            // target" (both outer forms) -> [[1,2]].
+            const shape = { meta: { x: { v: 1 }, y: { v: 2 } } };
+            const expected = [[1, 2]];
             expect(
-                new Collection({ a: shape }).pluck("users.*.first").all(),
-            ).toEqual(new Collection([shape]).pluck("users.*.first").all());
+                new Collection({ a: shape }).pluck("meta.*.v").all(),
+            ).toEqual(expected);
+            expect(new Collection([shape]).pluck("meta.*.v").all()).toEqual(
+                expected,
+            );
         });
     });
 
@@ -6264,6 +6275,78 @@ describe("Collection", () => {
                 { group: "b", rank: 4 },
                 { group: "b", rank: 3 },
             ]);
+        });
+
+        it("supports the lowercase 'desc'/'asc' string direction forms", () => {
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+            // "Collection::sortBy — string \"desc\" direction sorts
+            // descending". The match arm compares against the enum and
+            // booleans; the plain 'asc'/'desc' strings an untyped caller
+            // is most likely to pass must hit the same arms. Multi-digit
+            // ages on purpose - a single-digit-only fixture hides a
+            // lexicographic ("10" < "9" as strings) bug.
+            const data = collect([{ age: 2 }, { age: 10 }]);
+            const desc = data.sortByMany([["age", "desc"]]);
+            expect(desc.values().pluck("age").all()).toEqual([10, 2]);
+
+            const asc = data.sortByMany([["age", "asc"]]);
+            expect(asc.values().pluck("age").all()).toEqual([2, 10]);
+        });
+
+        it("falls through an unrecognized direction to descending (default arm)", () => {
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+            // "Collection::sortBy — unrecognized direction sorts
+            // descending (default arm)". Laravel's match has no
+            // catch-all-ascending arm - `default => Descending` is the
+            // literal fallback, "for backwards compatibility".
+            const data = collect([{ age: 2 }, { age: 10 }]);
+            const sorted = data.sortByMany([
+                ["age", "BOGUS" as unknown as "asc"],
+            ]);
+            expect(sorted.values().pluck("age").all()).toEqual([10, 2]);
+        });
+
+        it("ignores a global descending flag on sortBy for the array-of-descriptors form", () => {
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+            // "Collection::sortBy — global $descending=true is ignored for
+            // the array-of-descriptors form". sortBy's array branch
+            // discards $descending entirely in Laravel
+            // (Collection.php:1590-1592 never forwards it to
+            // sortByMany) - a direction-less descriptor still defaults to
+            // ascending even when sortBy's own second argument says
+            // descending.
+            const data = collect([{ age: 10 }, { age: 2 }]);
+            const sorted = data.sortBy([["age"]], true);
+            expect(sorted.values().pluck("age").all()).toEqual([2, 10]);
+        });
+
+        it("forceDescending overrides a descriptor's own explicit direction, but never a comparator", () => {
+            // Mirrors Collection::sortByDesc rewriting every comparison's
+            // direction slot before sorting (Collection.php:1687-1697):
+            // sortByMany's own `descending` (force) parameter overrides an
+            // explicit per-descriptor direction, unlike a direction-less
+            // descriptor's plain default.
+            const data = collect([{ age: 2 }, { age: 10 }]);
+            const forced = data.sortByMany([["age", "asc"]], true);
+            expect(forced.values().pluck("age").all()).toEqual([10, 2]);
+
+            // A comparator function is unaffected by forceDescending.
+            const byAgeAsc = (a: { age: number }, b: { age: number }) =>
+                a.age - b.age;
+            const withComparator = data.sortByMany([byAgeAsc], true);
+            expect(withComparator.values().pluck("age").all()).toEqual([2, 10]);
+        });
+
+        it("sortByDesc forces a bare-key array descriptor descending", () => {
+            // Pins the array-form JSDoc example as an executable test:
+            // sortByDesc(['id']) previously relied on sortBy forwarding
+            // its global descending flag into sortByMany as a per-
+            // descriptor fallback; that path is gone (sortBy no longer
+            // forwards `descending` for the array form), so sortByDesc now
+            // forces via sortByMany's own force-descending param directly.
+            const data = collect([{ id: 2 }, { id: 1 }, { id: 10 }]);
+            const sorted = data.sortByDesc(["id"]);
+            expect(sorted.values().pluck("id").all()).toEqual([10, 2, 1]);
         });
     });
 

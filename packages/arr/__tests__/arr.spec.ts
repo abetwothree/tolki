@@ -2695,14 +2695,19 @@ describe("Arr", () => {
             expect(result).toEqual({ customKey: "a", normalKey: "b" });
         });
 
-        it("should handle non-null, non-string, non-number key values", () => {
-            // Tests nestedKey is not string/number but also not null
+        it('casts a boolean key to int, not the string "true"/"false"', () => {
+            // Review round 1, Minor 7: this test previously asserted a
+            // *JS-native* coercion quirk (String(true/false) used as an
+            // object key) rather than PHP's actual behaviour. PHP casts a
+            // boolean array key to int (true -> 1, false -> 0).
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+            // "Arr::pluck — boolean key casts to int, not string".
             const data = [
                 { value: "a", key: true },
                 { value: "b", key: false },
             ];
             const result = Arr.pluck(data, "value", "key");
-            expect(result).toEqual({ true: "a", false: "b" });
+            expect(result).toEqual({ 1: "a", 0: "b" });
         });
 
         it("should handle null key value", () => {
@@ -2801,6 +2806,24 @@ describe("Arr", () => {
                 ["taylorotwell@gmail.com"],
                 [null, null],
             ]);
+        });
+
+        it("expands a wildcard over a plain-object-shaped (associative) target", () => {
+            // Review round 1, Critical 1: data_get()'s "*" arm gates on
+            // is_iterable(), true for a PHP associative array regardless
+            // of whether it prints as a JS array or plain object.
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+            // "Arr::pluck wildcard over an associative (object-shaped)
+            // target, list outer" -> [[1,2]].
+            const shape = { meta: { x: { v: 1 }, y: { v: 2 } } };
+
+            expect(Arr.pluck([shape], "meta.*.v")).toEqual([[1, 2]]);
+        });
+
+        it("yields an empty array for a wildcard over a non-iterable target", () => {
+            const shape = { meta: "not-iterable" };
+
+            expect(Arr.pluck([shape], "meta.*.v")).toEqual([[]]);
         });
 
         it("returns null when an intermediate segment resolves to null", () => {
@@ -3799,6 +3822,20 @@ describe("Arr", () => {
             ]);
         });
 
+        it("defaults an omitted direction to ascending, not descending", () => {
+            // Review round 1, Critical fix: this function previously
+            // destructured a 1-element tuple's direction as `undefined`
+            // and read that as "not ascending," sorting descending - the
+            // opposite of Laravel. PHP-verified:
+            // docs/php-parity/task-10-pluck-sort.json, "direction tuple
+            // [age] — omitted defaults to ascending". Multi-digit ages on
+            // purpose (see the numeric-comparison test above).
+            expect(Arr.sort([{ age: 10 }, { age: 2 }], [["age"]])).toEqual([
+                { age: 2 },
+                { age: 10 },
+            ]);
+        });
+
         it("sorts using SortDirection enum values", () => {
             expect(
                 Arr.sort(unsorted, [
@@ -3860,8 +3897,16 @@ describe("Arr", () => {
             ]);
         });
 
-        it("falls back to natural ascending sort for an empty spec array", () => {
-            expect(Arr.sort([3, 1, 2], [])).toEqual([1, 2, 3]);
+        it("preserves insertion order for an empty spec array", () => {
+            // Review round 1, Important 3: this test previously asserted
+            // a natural-value sort for an empty descriptor array, but
+            // Collection::sortByMany([]) is a true no-op in PHP - uasort's
+            // comparator closure has an empty foreach body, so it falls
+            // off the end and implicitly returns null (coerced to 0 for
+            // every pair), leaving insertion order untouched. PHP-verified:
+            // docs/php-parity/task-10-pluck-sort.json, "Arr::sort — empty
+            // descriptor array preserves insertion order".
+            expect(Arr.sort([3, 1, 2], [])).toEqual([3, 1, 2]);
         });
 
         it("leaves the source array untouched", () => {
@@ -4076,8 +4121,11 @@ describe("Arr", () => {
             ]);
         });
 
-        it("returns the input naturally sorted descending for an empty spec array", () => {
-            expect(Arr.sortDesc([3, 1, 2], [])).toEqual([3, 2, 1]);
+        it("preserves insertion order for an empty spec array", () => {
+            // Same principle as sort's empty-array fix above:
+            // Collection::sortByDesc([]) has nothing to rewrite and
+            // delegates to an empty sortByMany, which is a no-op.
+            expect(Arr.sortDesc([3, 1, 2], [])).toEqual([3, 1, 2]);
         });
 
         it("falls through to the next descriptor and preserves stable order once every descriptor ties", () => {

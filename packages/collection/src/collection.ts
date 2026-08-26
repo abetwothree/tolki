@@ -3228,7 +3228,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Sort the collection using the given callback.
      *
      * @param callback - The callback to determine the sort value, a path key to get values from and compare, or an array of such callbacks/keys for multi-level sorting
-     * @param descending - Whether to sort in descending order, defaults to false
+     * @param descending - Whether to sort in descending order, defaults to false. Ignored when `callback` is an array of descriptors - PHP's sortBy discards $descending entirely for that form (Collection.php:1590-1592); use sortByDesc or sortByMany's own force-descending param instead.
      * @returns A new collection with the sorted items
      *
      * @example
@@ -3244,7 +3244,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
                   | ((a: TValue, b: TValue) => TSortValue)
                   | ((item: TValue, key: TKey) => TSortValue)
                   | PathKey
-                  | [PathKey, CaseValue<typeof SortDirection> | boolean]
+                  | [PathKey]
+                  | [
+                        PathKey,
+                        (
+                            | CaseValue<typeof SortDirection>
+                            | boolean
+                            | "asc"
+                            | "desc"
+                        ),
+                    ]
               >
             | ((item: TValue, key: TKey) => TSortValue)
             | PathKey,
@@ -3253,7 +3262,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const isDesc =
             descending === true || descending === SortDirection.Descending;
         if (isArray(callback) && !isFunction(callback)) {
-            return this.sortByMany(callback, descending);
+            // PHP's sortBy discards $descending entirely for the array
+            // form (`return $this->sortByMany($callback, $options);` never
+            // forwards it, Collection.php:1590-1592) - `descending` is not
+            // passed through here either. Use sortByDesc (or sortByMany's
+            // own forceDescending param directly) to force every
+            // direction-less descriptor descending.
+            return this.sortByMany(callback);
         }
 
         const callbackFn = this.valueRetriever(
@@ -3317,8 +3332,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Sort the collection using multiple comparisons.
      *
-     * @param comparisons - An array of callbacks to determine the sort value, path keys to get values from and compare, or tuples of such keys for multi-level sorting
-     * @param descending - Whether to sort in descending order, defaults to false
+     * @param comparisons - An array of callbacks to determine the sort value, path keys to get values from and compare, or tuples of such keys for multi-level sorting. A bare key path or a direction-less tuple defaults to ascending, mirroring Collection::sortByMany's `Arr::get($comparison, 1, true)`.
+     * @param descending - When true, forces every key-path/tuple comparison descending regardless of its own direction, mirroring Collection::sortByDesc's rewrite of each comparison's direction slot before sorting. Has no effect on a comparator function, which always runs exactly as authored. Defaults to false.
      * @returns A new collection with the sorted items
      *
      * @example
@@ -3332,7 +3347,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | ((a: TValue, b: TValue) => TSortValue)
             | ((item: TValue, key: TKey) => TSortValue)
             | PathKey
-            | [PathKey, CaseValue<typeof SortDirection> | boolean]
+            | [PathKey]
+            | [
+                  PathKey,
+                  CaseValue<typeof SortDirection> | boolean | "asc" | "desc",
+              ]
         >,
         descending: CaseValue<typeof SortDirection> | boolean = false,
     ) {
@@ -3352,7 +3371,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
                         | ((a: TValue, b: TValue) => TSortValue)
                         | ((item: TValue, key: TKey) => TSortValue)
                     ),
-                    (CaseValue<typeof SortDirection> | boolean)?,
+                    (
+                        | CaseValue<typeof SortDirection>
+                        | boolean
+                        | "asc"
+                        | "desc"
+                    )?,
                 ];
                 const prop = comparisonArray[0];
 
@@ -3364,20 +3388,29 @@ export class Collection<TValue, TKey extends PropertyKey> {
                         b as TValue,
                     );
                 } else {
-                    // Determine per-comparison direction from second element
+                    // Determine this descriptor's own direction, mirroring
+                    // Collection::sortByMany's match arm (Collection.php:
+                    // 1638-1640, PHP-verified in docs/php-parity/task-10-
+                    // pluck-sort.json): a missing direction defaults to
+                    // ascending via Arr::get($comparison, 1, true);
+                    // true/'asc'/Ascending sort ascending; everything else
+                    // - false, 'desc', Descending, or anything
+                    // unrecognized from an untyped caller - sorts
+                    // descending. `isDescGlobal` (this method's own
+                    // `descending` param) then forces the descriptor
+                    // descending regardless of its own direction, mirroring
+                    // sortByDesc's rewrite of every comparison's direction
+                    // slot before sorting (Collection.php:1687-1697) - it
+                    // never reaches the comparator-function branch above,
+                    // matching PHP where that rewrite only ever touches a
+                    // comparison's [1] slot.
                     const directionValue = comparisonArray[1];
-                    let isDescComparison: boolean;
-                    if (directionValue === undefined) {
-                        // No direction specified; use global descending flag
-                        isDescComparison = isDescGlobal;
-                    } else if (
-                        directionValue === SortDirection.Descending ||
-                        directionValue === false
-                    ) {
-                        isDescComparison = true;
-                    } else {
-                        isDescComparison = false;
-                    }
+                    const isAscendingOwn =
+                        isUndefined(directionValue) ||
+                        directionValue === true ||
+                        directionValue === "asc" ||
+                        directionValue === SortDirection.Ascending;
+                    const isDescComparison = isDescGlobal || !isAscendingOwn;
 
                     let aValue = dataGet(
                         a as DataItems<unknown, PropertyKey>,
@@ -3457,11 +3490,30 @@ export class Collection<TValue, TKey extends PropertyKey> {
                   | ((a: TValue, b: TValue) => TSortValue)
                   | ((item: TValue, key: TKey) => TSortValue)
                   | PathKey
-                  | [PathKey, CaseValue<typeof SortDirection> | boolean]
+                  | [PathKey]
+                  | [
+                        PathKey,
+                        (
+                            | CaseValue<typeof SortDirection>
+                            | boolean
+                            | "asc"
+                            | "desc"
+                        ),
+                    ]
               >
             | ((item: TValue, key: TKey) => TSortValue)
             | PathKey,
     ) {
+        if (isArray(callback) && !isFunction(callback)) {
+            // sortBy's array branch discards its own `descending` argument
+            // (matching PHP), so forcing every descriptor descending here
+            // has to go through sortByMany's own forceDescending param
+            // directly - mirroring Collection::sortByDesc's rewrite of
+            // every comparison's direction slot before sorting
+            // (Collection.php:1687-1697).
+            return this.sortByMany(callback, true);
+        }
+
         return this.sortBy(callback, SortDirection.Descending);
     }
 

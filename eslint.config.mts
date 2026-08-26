@@ -20,13 +20,6 @@ export default defineConfig([
             ".agents/**",
             ".claude/**",
             ".github/**",
-            // PHP's own JSON_PRETTY_PRINT transcripts (see
-            // scripts/php-parity/README.md) — left byte-for-byte as
-            // emit() wrote them, same reasoning as .prettierignore. A
-            // captured value can legitimately be an empty string key
-            // (e.g. task-10-pluck-sort.json's null-array-key probe),
-            // which json/no-empty-keys otherwise flags.
-            "docs/php-parity/**",
         ],
     },
     {
@@ -48,6 +41,24 @@ export default defineConfig([
         plugins: { json },
         language: "json/json",
         extends: ["json/recommended"],
+    },
+    {
+        // PHP's own JSON_PRETTY_PRINT transcripts (see
+        // scripts/php-parity/README.md) — left byte-for-byte as emit()
+        // wrote them, same reasoning as .prettierignore. Only
+        // json/no-empty-keys is disabled here, not the whole ruleset -
+        // review round 1, Minor 6: a wholesale directory ignore also drops
+        // JSON parse and duplicate-key validation, the only automated
+        // guard against a corrupted transcript (e.g. an unsuppressed PHP
+        // deprecation notice leaking onto stdout ahead of emit()'s JSON).
+        // A captured value can legitimately be an empty string key (e.g.
+        // task-10-pluck-sort.json's null-array-key probe).
+        files: ["docs/php-parity/**/*.json"],
+        plugins: { json },
+        language: "json/json",
+        rules: {
+            "json/no-empty-keys": "off",
+        },
     },
     {
         files: ["**/*.jsonc"],

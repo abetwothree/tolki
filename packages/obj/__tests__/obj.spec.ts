@@ -1808,6 +1808,21 @@ describe("Obj", () => {
             expect(Obj.pluck(data, "mid.deeper")).toEqual([null]);
         });
 
+        it('casts a boolean key to int, not the string "true"/"false"', () => {
+            // Review round 1, Minor 7. PHP-verified:
+            // docs/php-parity/task-10-pluck-sort.json, "Arr::pluck —
+            // boolean key casts to int, not string".
+            const data = {
+                a: { flag: true, name: "X" },
+                b: { flag: false, name: "Y" },
+            };
+
+            expect(Obj.pluck(data, "name", "flag")).toEqual({
+                1: "X",
+                0: "Y",
+            });
+        });
+
         it("expands a wildcard over a plain object, unlike arr.pluck", () => {
             // Divergence from @tolki/arr: arr's resolvePluckPath uses
             // getAccessibleValues, which only expands JS arrays, so a
@@ -3218,6 +3233,21 @@ describe("Obj", () => {
                     "b",
                 ]);
             });
+
+            it("preserves insertion order for an empty descriptor array", () => {
+                // Review round 1, Important 3: isFalsy([]) is true (an
+                // empty array is PHP-falsy), so without an explicit guard
+                // an empty descriptor array fell through to the natural
+                // value-sort branch after the isArray branch's correct
+                // no-op, corrupting it. Collection::sortByMany([]) is a
+                // true no-op in PHP - not "sort naturally by value".
+                const unsorted = { x: 5, y: 1, z: 3 };
+                expect(Object.entries(Obj.sort(unsorted, []))).toEqual([
+                    ["x", 5],
+                    ["y", 1],
+                    ["z", 3],
+                ]);
+            });
         });
     });
 
@@ -3384,23 +3414,32 @@ describe("Obj", () => {
             it("reverses every descriptor's own direction", () => {
                 // Mirrors Collection::sortByDesc (Collection.php:1683-1693):
                 // every key/tuple descriptor's direction is overridden to
-                // descending, regardless of what it specified. Insertion
-                // order (p, q, r) is deliberately NOT already
-                // descending-by-name-then-age, so a no-op fallback would
-                // produce a different (wrong) order than a real descending
-                // sort - unlike an earlier version of this fixture, whose
-                // expected order coincidentally matched the unsorted input.
+                // descending, regardless of what it specified.
+                //
+                // Review round 1, Important 4: an earlier version of this
+                // fixture used only single-digit ages/meta.keys (5/2/9 and
+                // 9/1/2), making it the only key-path test of the
+                // forceDescending comparator with zero multi-digit
+                // coverage - it could not have caught a lexicographic
+                // ("12" sorts before "2" as strings) bug. This version
+                // mixes single- and multi-digit ages (12 vs 2) on the two
+                // "Item" entries, AND keeps the non-vacuity property from
+                // the previous fix: insertion order (p, r, q) is neither
+                // already descending-sorted NOR its own reversal equal to
+                // the correctly-sorted order, so neither "no sort
+                // happened" nor "the whole thing got reversed" could pass
+                // this test by coincidence.
                 const unsorted = {
                     p: { name: "Apple", age: 5, meta: { key: 9 } },
+                    r: { name: "Item", age: 12, meta: { key: 20 } },
                     q: { name: "Item", age: 2, meta: { key: 1 } },
-                    r: { name: "Item", age: 9, meta: { key: 2 } },
                 };
                 expect(
                     Object.values(
                         Obj.sortDesc(unsorted, ["name", "age", "meta.key"]),
                     ),
                 ).toEqual([
-                    { name: "Item", age: 9, meta: { key: 2 } },
+                    { name: "Item", age: 12, meta: { key: 20 } },
                     { name: "Item", age: 2, meta: { key: 1 } },
                     { name: "Apple", age: 5, meta: { key: 9 } },
                 ]);
@@ -3427,6 +3466,16 @@ describe("Obj", () => {
                 expect(Object.keys(Obj.sortDesc(unsorted, ["name"]))).toEqual([
                     "a",
                     "b",
+                ]);
+            });
+
+            it("preserves insertion order for an empty descriptor array", () => {
+                // Same principle as sort's empty-array fix above.
+                const unsorted = { x: 5, y: 1, z: 3 };
+                expect(Object.entries(Obj.sortDesc(unsorted, []))).toEqual([
+                    ["x", 5],
+                    ["y", 1],
+                    ["z", 3],
                 ]);
             });
         });

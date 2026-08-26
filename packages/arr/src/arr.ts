@@ -1861,17 +1861,44 @@ export function select<TValue extends Record<string, unknown>>(
 }
 
 /**
+ * Get the values a pluck wildcard segment iterates over, mirroring
+ * `data_get()`'s `is_iterable()` check (`helpers.php:90-94`): a PHP
+ * `foreach` walks both arrays and associative arrays, so both a JS array
+ * and a plain object count here.
+ *
+ * Deliberately NOT `getAccessibleValues` (used everywhere else in this
+ * file for arr's top-level `data` parameter, which is always meant to be a
+ * JS array): that helper only expands actual JS arrays, so a wildcard
+ * whose target is a plain-object-shaped nested value — e.g.
+ * `Arr::pluck(["a"=>["meta"=>["x"=>["v"=>1],"y"=>["v"=>2]]]], "meta.*.v")`,
+ * PHP-verified in docs/php-parity/task-10-pluck-sort.json to return
+ * `[[1,2]]` — silently resolved to `[]` here before this fix (review round
+ * 1, Critical 1). `data_get`'s `*` arm doesn't distinguish an array from
+ * an associative array; neither does this.
+ *
+ * @param target - The value a `*` segment is expanding.
+ * @returns The values to recurse into, or `[]` for a non-iterable target.
+ */
+function getPluckWildcardValues(target: unknown): unknown[] {
+    if (isArray(target)) {
+        return target;
+    }
+
+    if (isObject(target)) {
+        return Object.values(target);
+    }
+
+    return [];
+}
+
+/**
  * Resolve a pluck path against a single item, expanding `*` segments into an
  * array of the values found at that level. Covers the `data_get()` wildcard
- * behaviour that Laravel's `Arr::pluck` tests exercise, with two known
- * divergences on inputs `ArrTest.php` never reaches:
- *
- * - a wildcard over a non-iterable yields `[]` (via `getAccessibleValues`)
- *   where `data_get` bails out with its default (`null`);
- * - multiple wildcards nest (`[[..], [..]]`) where `data_get` collapses the
- *   tail one level (`Arr::collapse`).
- *
- * Align these before building `data_get`-equivalent helpers on top of it.
+ * behaviour that Laravel's `Arr::pluck` tests exercise, with one known
+ * divergence on inputs `ArrTest.php` never reaches: multiple wildcards nest
+ * (`[[..], [..]]`) where `data_get` collapses the tail one level
+ * (`Arr::collapse`). Align this before building `data_get`-equivalent
+ * helpers on top of it.
  *
  * @param item - The item to resolve the path against.
  * @param segments - The already-split path segments.
@@ -1885,7 +1912,7 @@ function resolvePluckPath(item: unknown, segments: readonly string[]): unknown {
     const [segment, ...rest] = segments;
 
     if (segment === "*") {
-        const values = getAccessibleValues(item);
+        const values = getPluckWildcardValues(item);
 
         return values.map((value) => resolvePluckPath(value, rest));
     }
@@ -2031,6 +2058,12 @@ export function pluck<TValue extends Record<string, unknown>>(
                     typeof nestedKey === "number"
                 ) {
                     itemKey = nestedKey;
+                } else if (typeof nestedKey === "boolean") {
+                    // PHP casts a boolean array key to int (true -> 1,
+                    // false -> 0), not to the string "true"/"false".
+                    // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+                    // "Arr::pluck — boolean key casts to int, not string".
+                    itemKey = nestedKey ? 1 : 0;
                 } else if (!isNull(nestedKey)) {
                     itemKey = String(nestedKey) as string;
                 }
@@ -2891,7 +2924,13 @@ export function sole<TValue>(
  * A tuple's direction follows Laravel's array-form multi-sort semantics
  * (`Collection::sortByMany` in the stub): `true`/`'asc'`/`"Ascending"` sorts
  * ascending and every other direction value sorts descending — see the `SortSpec`
- * JSDoc for why this is the opposite of a plain `descending` flag.
+ * JSDoc for why this is the opposite of a plain `descending` flag. A missing
+ * direction (a bare key path, or a `[key]` single-element tuple) defaults to
+ * ascending via `Arr::get($comparison, 1, true)` — review round 1, Critical
+ * fix: this function previously destructured a 1-element tuple's `direction`
+ * as `undefined` and read that as "not ascending," sorting descending, the
+ * opposite of Laravel (PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+ * "direction tuple [age] — omitted defaults to ascending").
  *
  * `forceDescending` mirrors `Collection::sortByDesc` (`Collection.php`
  * lines 1683-1693): for a key path or `[key, direction]` tuple it
@@ -2901,7 +2940,7 @@ export function sole<TValue>(
  * ever touches a comparison's `[1]` slot, and `sortByMany`'s callable
  * branch never reads that slot.
  *
- * @param spec - The key path, `[key, direction]` tuple, or comparator.
+ * @param spec - The key path, `[key]`/`[key, direction]` tuple, or comparator.
  * @param forceDescending - When true, key paths and tuples ignore their own direction and sort descending; comparator functions are unaffected. Always passed explicitly by {@linkcode sortByComparators}, the only caller.
  * @returns A comparator for the descriptor.
  */
@@ -2916,12 +2955,15 @@ function sortSpecComparator<TValue>(
     if (isArray(spec)) {
         const [key, direction] = spec as readonly [
             string,
-            boolean | "Ascending" | "Descending" | "asc" | "desc",
+            (boolean | "Ascending" | "Descending" | "asc" | "desc")?,
         ];
-        // Laravel's sortByMany match-arm: only `true`, `'asc'`, and
-        // Ascending sort ascending — every other value (including anything
-        // an untyped JS caller passes) falls through to descending.
+        // Laravel's sortByMany match-arm: a missing direction defaults to
+        // `true` (ascending) via Arr::get($comparison, 1, true); `true`,
+        // `'asc'`, and Ascending sort ascending — every other value
+        // (including anything an untyped JS caller passes) falls through
+        // to descending.
         const isAscending =
+            isUndefined(direction) ||
             direction === true ||
             direction === "asc" ||
             direction === SortDirection.Ascending;
@@ -3032,17 +3074,26 @@ export function sort<TValue>(
     const values = getAccessibleValues(data) as TValue[];
     const result = values.slice();
 
-    if (isFalsy(callback)) {
-        // Natural sorting - use compareValues for proper numeric/string comparison
-        return result.sort((a, b) => compareValues(a, b));
-    }
-
     if (isArray(callback)) {
-        // Multi-key sorting - each descriptor keeps its own direction.
+        // Multi-key sorting - each descriptor keeps its own direction. Must
+        // be checked before isFalsy: an empty descriptor array is falsy
+        // too, but Collection::sortByMany([]) is a true no-op (uasort's
+        // comparator closure has an empty foreach body, so it falls off
+        // the end and implicitly returns null, coerced to 0 for every
+        // pair) - review round 1, Important 3 - PHP-verified:
+        // docs/php-parity/task-10-pluck-sort.json, "Arr::sort — empty
+        // descriptor array preserves insertion order". Checking isArray
+        // first routes [] through sortByComparators's zero-comparator,
+        // stable no-op instead of the natural-value-sort branch below.
         return sortByComparators(
             result,
             callback as readonly SortSpec<TValue>[],
         );
+    }
+
+    if (isFalsy(callback)) {
+        // Natural sorting - use compareValues for proper numeric/string comparison
+        return result.sort((a, b) => compareValues(a, b));
     }
 
     if (isString(callback)) {
@@ -3129,7 +3180,29 @@ export function sortDesc<TValue>(
     const values = getAccessibleValues(data) as TValue[];
     const result = values.slice();
 
-    if (!callback || (isArray(callback) && callback.length === 0)) {
+    if (isArray(callback)) {
+        // Multi-key sorting - mirrors `Collection::sortByDesc`: every
+        // descriptor's own direction is overridden to descending (a
+        // comparator function is unaffected - see `sortSpecComparator`).
+        // Must be checked before the natural-sort branch below: an empty
+        // descriptor array is falsy too, but Collection::sortByDesc([])
+        // is a true no-op (its rewrite loop has nothing to rewrite, and
+        // the empty comparisons array it hands to sortBy/sortByMany falls
+        // off uasort's comparator closure as an implicit null, coerced to
+        // 0 for every pair) - review round 1, Important 3, same principle
+        // as `sort`'s empty-array fix (docs/php-parity/task-10-pluck-
+        // sort.json, "Arr::sort — empty descriptor array preserves
+        // insertion order"). sortByComparators([], forceDescending) has
+        // zero comparators regardless of forceDescending, so this
+        // naturally falls out to a stable no-op for `[]`.
+        return sortByComparators(
+            result,
+            callback as readonly SortSpec<TValue>[],
+            true,
+        );
+    }
+
+    if (!callback) {
         // Natural sorting in descending order - use compareValues (reversed)
         // for proper numeric/string comparison, matching `sort`'s ascending
         // branch. A bare `.sort().reverse()` coerces every element to a
@@ -3137,17 +3210,6 @@ export function sortDesc<TValue>(
         // multi-digit numbers (e.g. "10" sorts before "9" lexicographically)
         // and unstable for ties.
         return result.sort((a, b) => compareValues(b, a));
-    }
-
-    if (isArray(callback)) {
-        // Multi-key sorting - mirrors `Collection::sortByDesc`: every
-        // descriptor's own direction is overridden to descending (a
-        // comparator function is unaffected - see `sortSpecComparator`).
-        return sortByComparators(
-            result,
-            callback as readonly SortSpec<TValue>[],
-            true,
-        );
     }
 
     if (isString(callback)) {
