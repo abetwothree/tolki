@@ -2314,6 +2314,17 @@ export function mapSpread<TMapReturn>(
     data: unknown,
     callback: (...args: unknown[]) => TMapReturn,
 ): TMapReturn[];
+// Note: `any[]` here (only, and only in the implementation signature) is
+// intentional. The 5 typed overloads above each declare a callback with
+// concrete, differently-shaped parameters (`(arg1: T1, index: number)`,
+// `(arg1: T1, arg2: T2, index: number)`, ...). TypeScript requires an
+// implementation signature to be compatible with every overload it
+// implements, and a variadic `(...args: unknown[])` is NOT — `unknown` for
+// each parameter is too narrow to accept a real callback whose parameters
+// are concrete types (verified: swapping to `unknown[]` here breaks
+// exactly on that overload-compatibility check, TS2394). `any[]` is the
+// TypeScript-standard escape for this, and is invisible to callers, who
+// only ever see the typed overloads or the `unknown[]` fallback above.
 export function mapSpread<TMapReturn>(
     data: unknown,
     callback: (...args: any[]) => TMapReturn,

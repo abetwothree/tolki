@@ -343,22 +343,19 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
     const result: Record<PropertyKey, TCombineValue> = {};
 
     for (let i = 0; i < maxLength; i++) {
-        const key = keys[i];
-        // Key is always defined because we iterate up to keys.length
-        // but TypeScript needs the guard for type narrowing
-        /* istanbul ignore if -- @preserve TypeScript narrowing */
-        if (!isUndefined(key)) {
-            // Writes go through `defineKey` rather than plain assignment so
-            // a `__proto__` key resolved from `keysObject` becomes a real
-            // own key instead of reparenting `result` through the
-            // `__proto__` setter (see `splice`'s doc comment and
-            // `AGENTS.md`'s prototype-pollution guidance).
-            defineKey(
-                result as Record<string, TCombineValue>,
-                key,
-                values[i] as TCombineValue,
-            );
-        }
+        // `noUncheckedIndexedAccess` types this `string | undefined`, but it
+        // is always defined: `i` only ever ranges up to `keys.length`.
+        const key = keys[i] as string;
+        // Writes go through `defineKey` rather than plain assignment so
+        // a `__proto__` key resolved from `keysObject` becomes a real
+        // own key instead of reparenting `result` through the
+        // `__proto__` setter (see `splice`'s doc comment and
+        // `AGENTS.md`'s prototype-pollution guidance).
+        defineKey(
+            result as Record<string, TCombineValue>,
+            key,
+            values[i] as TCombineValue,
+        );
     }
 
     return result;
@@ -1962,14 +1959,10 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     if (count === 1) {
-        const lastEntry = entries[entries.length - 1];
-
-        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
-        if (!lastEntry) {
-            return null;
-        }
-
-        const [key, value] = lastEntry;
+        // `noUncheckedIndexedAccess` types this `[string, TValue] |
+        // undefined`, but it is always defined: `entries.length > 0` was
+        // already checked above.
+        const [key, value] = entries[entries.length - 1] as [string, TValue];
         delete obj[key];
         return value;
     }
@@ -1978,14 +1971,11 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
     const actualCount = Math.min(count, entries.length);
 
     for (let i = 0; i < actualCount; i++) {
-        const entry = entries[entries.length - 1 - i];
-
-        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
-        if (!entry) {
-            continue;
-        }
-
-        const [key, value] = entry;
+        // Always defined: `i < actualCount <= entries.length`.
+        const [key, value] = entries[entries.length - 1 - i] as [
+            string,
+            TValue,
+        ];
         delete obj[key];
 
         poppedValues.push(value);
@@ -2409,13 +2399,10 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     if (count === 1) {
-        const firstEntry = entries[0];
-        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
-        if (!firstEntry) {
-            return null;
-        }
-
-        const [key, value] = firstEntry;
+        // `noUncheckedIndexedAccess` types this `[string, TValue] |
+        // undefined`, but it is always defined: `entries.length > 0` was
+        // already checked above.
+        const [key, value] = entries[0] as [string, TValue];
         delete obj[key];
         return value;
     }
@@ -2424,12 +2411,8 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     const actualCount = Math.min(count, entries.length);
 
     for (let i = 0; i < actualCount; i++) {
-        const entry = entries[i];
-        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
-        if (!entry) {
-            continue;
-        }
-        const [key, value] = entry;
+        // Always defined: `i < actualCount <= entries.length`.
+        const [key, value] = entries[i] as [string, TValue];
         delete obj[key];
         shiftedValues.push(value);
     }

@@ -1310,6 +1310,14 @@ export function dataMapWithKeys<
  * dataMapSpread([[1, 2], [3, 4]], (a, b) => a + b); -> [3, 7]
  */
 
+// Note: `any[]` here is intentional. `dataMapSpread` exists precisely so
+// callers can write a callback whose parameters are concrete types (the
+// example above: `(a, b) => a + b`, where `a`/`b` need to support `+`) —
+// `unknown[]` would make every parameter `unknown` and reject that exact
+// usage (verified: swapping to `unknown[]` breaks the arithmetic in this
+// function's own doc example, TS2469/18046 depending on the expression).
+// `any[]` is the TypeScript-standard escape for a callback parameter
+// whose real shape is caller-defined and unconstrained here.
 export function dataMapSpread<U>(
     data: unknown,
     callback: (...args: any[]) => U,
