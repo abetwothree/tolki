@@ -616,6 +616,21 @@ describe("Obj", () => {
             const result = Obj.unshift({ "-1": "x", b: "y" }, 9);
             expect(result).toEqual({ 0: 9, "-1": "x", b: "y" });
         });
+
+        it("keeps __proto__ as data when prepended, not reparenting the result", () => {
+            // PHP-verified: array_unshift keeps "__proto__" as an ordinary key.
+            const data = { b: 2 };
+            const hostile = JSON.parse('{"__proto__":{"polluted":true},"x":5}');
+
+            const result = Obj.unshift(data, hostile);
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(Object.hasOwn(result, "__proto__")).toBe(true);
+            expect((result as Record<string, unknown>)["__proto__"]).toEqual({
+                polluted: true,
+            });
+            expect(Object.keys(result)).toEqual(["__proto__", "x", "b"]);
+        });
     });
 
     describe("except", () => {

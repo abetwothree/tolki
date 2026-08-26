@@ -531,7 +531,11 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
     for (const item of itemsToPrepend) {
         if (accessible(item)) {
             for (const [key, value] of Object.entries(item)) {
-                itemsObject[key as TKey] = value as TValue;
+                defineKey(
+                    itemsObject as Record<string, TValue>,
+                    key,
+                    value as TValue,
+                );
             }
         } else if (!isNull(item) && !isUndefined(item)) {
             while (Object.hasOwn(itemsObject, nextIndex)) {
@@ -553,7 +557,9 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
         delete data[key as TKey];
     }
 
-    Object.assign(data, itemsObject);
+    for (const [key, value] of Object.entries(itemsObject)) {
+        defineKey(data as Record<string, TValue>, key, value as TValue);
+    }
 
     for (const [key, value] of originalEntries) {
         if (isIntegerLikeKey(key)) {
