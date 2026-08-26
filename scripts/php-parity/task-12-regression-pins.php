@@ -57,4 +57,14 @@ probe('slice over-negative length clamps to empty', 'array_slice($a,0,-5,true)',
     ];
 });
 
+probe('undot only canonicalises canonical integer keys', 'Arr::undot(["1e2"=>"x"])', function () {
+    return [
+        'exp' => Arr::undot(['1e2' => 'x']),
+        'leading_space' => Arr::undot([' 1' => 'x']),
+        'plus' => Arr::undot(['+1' => 'x']),
+        'leading_zero' => Arr::undot(['01' => 'x']),
+        'canonical' => Arr::undot(['1' => 'x']),
+    ];
+});
+
 emit();

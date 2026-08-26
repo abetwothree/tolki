@@ -70,6 +70,27 @@
                 "list_neg5_neg5": [],
                 "assoc_0_neg6_of5": []
             }
+        },
+        {
+            "label": "undot only canonicalises canonical integer keys",
+            "php": "Arr::undot([\"1e2\"=>\"x\"])",
+            "value": {
+                "exp": {
+                    "1e2": "x"
+                },
+                "leading_space": {
+                    " 1": "x"
+                },
+                "plus": {
+                    "+1": "x"
+                },
+                "leading_zero": {
+                    "01": "x"
+                },
+                "canonical": {
+                    "1": "x"
+                }
+            }
         }
     ]
 }
