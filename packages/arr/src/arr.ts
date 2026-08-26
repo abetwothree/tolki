@@ -3516,7 +3516,7 @@ export function toCssClasses(
             classes.push(cssListItemToString(value));
         } else {
             // String key: use key as class name if value is truthy
-            if (value) {
+            if (!isPhpFalsy(value)) {
                 classes.push(key);
             }
         }
@@ -3575,7 +3575,7 @@ export function toCssStyles(
             styles.push(finish(cssListItemToString(value), ";"));
         } else {
             // String key: use key as style if value is truthy
-            if (value) {
+            if (!isPhpFalsy(value)) {
                 styles.push(finish(key, ";"));
             }
         }

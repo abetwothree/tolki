@@ -4367,6 +4367,20 @@ describe("Arr", () => {
             expect(Arr.toCssClasses({ "1e3": "foo" })).toBe("foo");
             expect(Arr.toCssClasses({ Infinity: "foo" })).toBe("Infinity");
         });
+
+        it.each([
+            ["0", ""],
+            ["00", "foo"],
+            ["0.0", "foo"],
+        ])("applies PHP truthiness to the value %s", (value, expected) => {
+            // PHP-verified in docs/php-parity/task-08-arr-parity.json.
+            expect(Arr.toCssClasses({ foo: value })).toBe(expected);
+        });
+
+        it("drops an empty container value", () => {
+            expect(Arr.toCssClasses({ foo: [] })).toBe("");
+            expect(Arr.toCssClasses({ foo: {} })).toBe("");
+        });
     });
 
     describe("toCssStyles", () => {
@@ -4459,6 +4473,20 @@ describe("Arr", () => {
             expect(Arr.toCssStyles({ "0x10": "foo" })).toBe("0x10;");
             expect(Arr.toCssStyles({ "1e3": "foo" })).toBe("foo;");
             expect(Arr.toCssStyles({ Infinity: "foo" })).toBe("Infinity;");
+        });
+
+        it.each([
+            ["0", ""],
+            ["00", "foo;"],
+            ["0.0", "foo;"],
+        ])("applies PHP truthiness to the value %s", (value, expected) => {
+            // PHP-verified in docs/php-parity/task-08-arr-parity.json.
+            expect(Arr.toCssStyles({ foo: value })).toBe(expected);
+        });
+
+        it("drops an empty container value", () => {
+            expect(Arr.toCssStyles({ foo: [] })).toBe("");
+            expect(Arr.toCssStyles({ foo: {} })).toBe("");
         });
     });
 
