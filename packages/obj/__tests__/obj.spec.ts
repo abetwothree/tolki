@@ -2952,6 +2952,15 @@ describe("Obj", () => {
             expect(Obj.slice({ a: 1, b: 2, c: 3 }, 10, 2)).toEqual({});
         });
 
+        it("returns empty when a negative length exceeds the remaining tail", () => {
+            // PHP-verified in docs/php-parity/task-12-regression-pins.json.
+            expect(Obj.slice({ a: 1, b: 2, c: 3 }, 0, -5)).toEqual({});
+            expect(Obj.slice({ a: 1, b: 2, c: 3 }, -5, -5)).toEqual({});
+            expect(Obj.slice({ a: 1, b: 2, c: 3, d: 4, e: 5 }, 0, -6)).toEqual(
+                {},
+            );
+        });
+
         // JSON.parse produces a real own enumerable "__proto__" key (a literal `{
         // __proto__:... }` would set the prototype instead and never reach this code
         // path) — see obj.spec.ts's splice tests for the same pattern.

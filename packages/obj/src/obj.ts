@@ -2541,7 +2541,7 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
         ? undefined
         : length >= 0
           ? start + length
-          : entries.length + length;
+          : Math.max(start, entries.length + length);
 
     const slicedEntries = entries.slice(start, end);
 
