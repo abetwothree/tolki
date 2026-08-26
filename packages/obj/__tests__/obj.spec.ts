@@ -2,7 +2,7 @@ import * as Arr from "@tolki/arr";
 import { SortDirection } from "@tolki/enum";
 import * as Obj from "@tolki/obj";
 import { isString } from "@tolki/utils";
-import { assertType, describe, expect, it } from "vitest";
+import { afterEach, assertType, describe, expect, it } from "vitest";
 
 describe("Obj", () => {
     describe("accessible", () => {
@@ -4700,6 +4700,142 @@ describe("Obj", () => {
             expect(Obj.diffKeysUsing({ a: 1 }, [], callback)).toEqual({
                 a: 1,
             });
+        });
+    });
+});
+
+// Only JSON.parse produces a real own enumerable "__proto__" key; a literal
+// `{ __proto__: ... }` sets the prototype at construction time instead.
+const HOSTILE = () =>
+    JSON.parse('{"a":1,"__proto__":{"polluted":true},"c":3}') as Record<
+        string,
+        unknown
+    >;
+
+describe("computed-key writes treat __proto__ as data, not a prototype", () => {
+    afterEach(() => {
+        // Every case below writes into a *fresh* result object; none of them
+        // should ever be able to touch the shared Object.prototype itself.
+        expect(({} as { polluted?: boolean }).polluted).toBeUndefined();
+    });
+
+    describe.each([
+        ["map", () => Obj.map(HOSTILE(), (v) => v)],
+        [
+            "mapWithKeys",
+            () => Obj.mapWithKeys(HOSTILE(), (v, k) => ({ [k]: v })),
+        ],
+        [
+            "mapSpread",
+            () => Obj.mapSpread(HOSTILE(), () => ({ polluted: true })),
+        ],
+        [
+            "pluck",
+            () =>
+                Obj.pluck(
+                    { item1: { flag: { polluted: true } } },
+                    "flag",
+                    () => "__proto__",
+                ),
+        ],
+        [
+            "keyBy",
+            () => Obj.keyBy({ item1: { polluted: true } }, () => "__proto__"),
+        ],
+        ["prependKeysWith", () => Obj.prependKeysWith(HOSTILE(), "")],
+        ["only", () => Obj.only(HOSTILE(), ["a", "__proto__"])],
+        [
+            "onlyValues",
+            () => {
+                const h = HOSTILE();
+                return Obj.onlyValues(h, h["__proto__"]);
+            },
+        ],
+        ["exceptValues", () => Obj.exceptValues(HOSTILE(), [999])],
+        ["take", () => Obj.take(HOSTILE(), 3)],
+        ["flattenDot", () => Obj.flattenDot(HOSTILE(), 0)],
+        [
+            "from (Map key)",
+            () =>
+                Obj.from(
+                    new Map<string, unknown>([
+                        ["a", 1],
+                        ["__proto__", { polluted: true }],
+                        ["c", 3],
+                    ]),
+                ),
+        ],
+        [
+            "select",
+            () =>
+                Obj.select(
+                    JSON.parse(
+                        '{"__proto__":{"a":1,"__proto__":{"polluted":true}},"b":2}',
+                    ),
+                    ["a", "__proto__"],
+                ),
+        ],
+        ["prepend", () => Obj.prepend(HOSTILE(), "prepended", "z")],
+        ["random", () => Obj.random(HOSTILE(), 3, true)],
+        ["shuffle", () => Obj.shuffle(HOSTILE())],
+        ["sort", () => Obj.sort(HOSTILE())],
+        ["sortDesc", () => Obj.sortDesc(HOSTILE())],
+        ["sortRecursive", () => Obj.sortRecursive(HOSTILE())],
+        ["where", () => Obj.where(HOSTILE(), () => true)],
+        ["reject", () => Obj.reject(HOSTILE(), () => false)],
+        ["whereNotNull", () => Obj.whereNotNull(HOSTILE())],
+        ["reverse", () => Obj.reverse(HOSTILE())],
+        ["pad", () => Obj.pad(HOSTILE(), 5, 0)],
+        ["partition (passed)", () => Obj.partition(HOSTILE(), () => true)[0]],
+        ["partition (failed)", () => Obj.partition(HOSTILE(), () => false)[1]],
+        ["diff", () => Obj.diff(HOSTILE(), {})],
+        [
+            "diffAssocUsing",
+            () => Obj.diffAssocUsing(HOSTILE(), {}, () => false),
+        ],
+        ["diffKeysUsing", () => Obj.diffKeysUsing(HOSTILE(), {}, () => false)],
+        [
+            "intersect",
+            () => {
+                const h = HOSTILE();
+                return Obj.intersect(h, h);
+            },
+        ],
+        [
+            "intersectAssoc",
+            () => {
+                const h = HOSTILE();
+                return Obj.intersectAssoc(h, h);
+            },
+        ],
+        [
+            "intersectAssocUsing",
+            () => {
+                const h = HOSTILE();
+                return Obj.intersectAssocUsing(h, h, (a, b) => a === b);
+            },
+        ],
+        [
+            "intersectByKeys",
+            () => {
+                const h = HOSTILE();
+                return Obj.intersectByKeys(h, h);
+            },
+        ],
+        [
+            "collapse",
+            () =>
+                Obj.collapse({ group1: HOSTILE() } as Record<
+                    PropertyKey,
+                    Record<PropertyKey, unknown>
+                >),
+        ],
+    ] as [string, () => unknown][])("%s", (_name, run) => {
+        it("treats __proto__ as data, not as a prototype", () => {
+            const result = run();
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect((result as { polluted?: boolean }).polluted).toBeUndefined();
         });
     });
 });

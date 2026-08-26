@@ -293,7 +293,11 @@ export function collapse<
 
     for (const item of Object.values(object)) {
         if (isObject(item)) {
-            Object.assign(out, item);
+            // Object.assign uses [[Set]] like a plain bracket assignment
+            // would, so it is exposed to the same __proto__ setter risk.
+            for (const [key, value] of Object.entries(item)) {
+                defineKey(out as Record<string, unknown>, key, value);
+            }
         }
     }
 
@@ -630,7 +634,7 @@ export function exceptValues<TValue, TKey extends PropertyKey = PropertyKey>(
         );
 
         if (!shouldExclude) {
-            result[key] = value;
+            defineKey(result as Record<string, TValue>, key as string, value);
         }
     }
 
@@ -885,7 +889,7 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
 
     const result: Record<string, unknown> = {};
     for (const [key, value] of selectedEntries) {
-        result[key] = value;
+        defineKey(result, key, value);
     }
 
     return result;
@@ -990,7 +994,7 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
         // Stop if node is scalar or we've reached the target segment length
         if ((!isObj && !isArr) || pathLen >= maxSegments) {
             if (pathLen > 0) {
-                out[pathParts.join(".")] = node as unknown;
+                defineKey(out, pathParts.join("."), node);
             }
             return;
         }
@@ -1132,7 +1136,7 @@ export function from(items: unknown): Record<string, unknown> {
         const out: Record<string, unknown> = {};
 
         for (const [k, v] of items as Map<PropertyKey, unknown>) {
-            out[String(k)] = v;
+            defineKey(out, String(k), v);
         }
 
         return out;
@@ -1567,7 +1571,7 @@ export function keyBy<TValue extends Record<PropertyKey, unknown>>(
             key = "";
         }
 
-        results[key] = item;
+        defineKey(results as Record<string, TValue>, key as string, item);
     }
 
     return results;
@@ -1595,7 +1599,11 @@ export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
     const obj = data as Record<TKey, TValue>;
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
     for (const [key, value] of Object.entries(obj)) {
-        result[(prependWith + key) as TKey] = value as TValue;
+        defineKey(
+            result as Record<string, TValue>,
+            prependWith + key,
+            value as TValue,
+        );
     }
 
     return result;
@@ -1633,7 +1641,11 @@ export function only<TValue, TKey extends PropertyKey = PropertyKey>(
 
     for (const key of keyList) {
         if (Object.hasOwn(obj, key)) {
-            result[key] = obj[key] as TValue;
+            defineKey(
+                result as Record<string, TValue>,
+                key,
+                obj[key] as TValue,
+            );
         }
     }
 
@@ -1668,7 +1680,7 @@ export function onlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
         );
 
         if (shouldInclude) {
-            result[key] = value;
+            defineKey(result as Record<string, TValue>, key as string, value);
         }
     }
 
@@ -1706,11 +1718,19 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
 
         for (const key of keyList) {
             if (isObject(item) && Object.hasOwn(item, key)) {
-                selected[key] = item[key];
+                defineKey(
+                    selected as Record<string, unknown>,
+                    key as string,
+                    item[key],
+                );
             }
         }
 
-        result[objKey] = selected;
+        defineKey(
+            result as Record<string, Record<PropertyKey, unknown>>,
+            objKey,
+            selected,
+        );
     }
 
     return result;
@@ -1888,9 +1908,11 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
         } else {
             // PHP casts a null array key to "" — a key path that resolves
             // to null/undefined files the value under "", not "undefined".
-            (results as Record<string | number, unknown>)[
-                isUndefined(itemKey) ? "" : itemKey
-            ] = itemValue;
+            defineKey(
+                results as Record<string, unknown>,
+                String(isUndefined(itemKey) ? "" : itemKey),
+                itemValue,
+            );
         }
     }
 
@@ -1974,7 +1996,11 @@ export function map<
     const result: Record<PropertyKey, TMapValue> = {};
 
     for (const [key, value] of Object.entries(obj)) {
-        result[key] = callback(value as TValue, key as TKey);
+        defineKey(
+            result as Record<string, TMapValue>,
+            key,
+            callback(value as TValue, key as TKey),
+        );
     }
 
     return result;
@@ -2024,7 +2050,11 @@ export function mapWithKeys<
         const mappedObject = callback(value, key as TKey);
 
         for (const [mapKey, mapValue] of Object.entries(mappedObject)) {
-            result[mapKey as TMapWithKeysKey] = mapValue as TMapWithKeysValue;
+            defineKey(
+                result as Record<string, TMapWithKeysValue>,
+                mapKey,
+                mapValue as TMapWithKeysValue,
+            );
         }
     }
 
@@ -2061,10 +2091,18 @@ export function mapSpread<
         if (isObject(item)) {
             // Spread the object values as arguments to the callback
             const values = Object.values(item);
-            result[key as PropertyKey] = callback(...values, key);
+            defineKey(
+                result as Record<string, TMapSpreadValue>,
+                key,
+                callback(...values, key),
+            );
         } else {
             // If item is not an object, pass it as single argument with key
-            result[key as PropertyKey] = callback(item, key);
+            defineKey(
+                result as Record<string, TMapSpreadValue>,
+                key,
+                callback(item, key),
+            );
         }
     }
 
@@ -2101,7 +2139,11 @@ export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
 
     // Add existing entries after the prepended one
     for (const [existingKey, existingValue] of Object.entries(obj)) {
-        result[existingKey as TKey] = existingValue as TValue;
+        defineKey(
+            result as Record<string, TValue>,
+            existingKey,
+            existingValue as TValue,
+        );
     }
 
     return result;
@@ -2316,8 +2358,10 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
         const [key, value] = entries[entryIndex] as [TKey, TValue];
 
         if (preserveKeys) {
-            result[key] = value;
+            defineKey(result as Record<string, TValue>, key as string, value);
         } else {
+            // i is a plain loop counter (0..selectedIndices.length), never
+            // attacker-controlled, so a bracket assign here is safe.
             result[i as TKey] = value;
         }
     }
@@ -2496,7 +2540,7 @@ export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
     for (const [key, value] of entries) {
-        result[key as TKey] = value as TValue;
+        defineKey(result as Record<string, TValue>, key, value as TValue);
     }
 
     return result;
@@ -2769,7 +2813,7 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const result: Record<string, TValue> = {};
     for (const [key, value] of reindexIntegerKeys(entries)) {
-        result[key] = value as TValue;
+        defineKey(result, key, value as TValue);
     }
 
     return result as Record<TKey, TValue>;
@@ -2874,7 +2918,7 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
     for (const [key, value] of reindexIntegerKeys(entries)) {
-        result[key as TKey] = value as TValue;
+        defineKey(result as Record<string, TValue>, key, value as TValue);
     }
 
     return result;
@@ -2945,7 +2989,7 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
     // Rebuild object with sorted keys
     const result: Record<PropertyKey, unknown> = {};
     for (const [key, value] of processedEntries) {
-        result[key] = value;
+        defineKey(result as Record<string, unknown>, key as string, value);
     }
 
     return result as T;
@@ -3227,7 +3271,7 @@ export function where<TValue, TKey extends PropertyKey = PropertyKey>(
 
     for (const [key, value] of Object.entries(obj)) {
         if (callback(value as TValue, key as TKey)) {
-            result[key as TKey] = value as TValue;
+            defineKey(result as Record<string, TValue>, key, value as TValue);
         }
     }
 
@@ -3461,7 +3505,7 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
     for (const [key, value] of reindexIntegerKeys(entries)) {
-        result[key as TKey] = value as TValue;
+        defineKey(result as Record<string, TValue>, key, value as TValue);
     }
 
     return result;
@@ -3517,7 +3561,7 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
 
     const result: Record<string, TValue | TPadValue> = {};
     for (const [key, val] of reindexIntegerKeys(orderedEntries)) {
-        result[key] = val;
+        defineKey(result, key, val);
     }
 
     return result as Record<TKey, TValue | TPadValue>;
@@ -3549,9 +3593,9 @@ export function partition<TValue, TKey extends PropertyKey = PropertyKey>(
 
     for (const [key, value] of Object.entries(obj)) {
         if (callback(value as TValue, key as TKey)) {
-            passed[key as TKey] = value as TValue;
+            defineKey(passed as Record<string, TValue>, key, value as TValue);
         } else {
-            failed[key as TKey] = value as TValue;
+            defineKey(failed as Record<string, TValue>, key, value as TValue);
         }
     }
 
@@ -3857,7 +3901,7 @@ export function diff<
 
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
         if (!otherValues.includes(value)) {
-            result[key] = value;
+            defineKey(result as Record<string, TValue>, key as string, value);
         }
     }
 
@@ -3908,7 +3952,7 @@ export function diffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
 
         // Include if: no matching key found OR matching key has different value
         if (matchingKey === undefined || otherObj[matchingKey] !== value) {
-            result[key] = value;
+            defineKey(result as Record<string, TValue>, key as string, value);
         }
     }
 
@@ -3959,7 +4003,7 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
 
         // Include if: no matching key found (values are ignored)
         if (matchingKey === undefined) {
-            result[key] = value;
+            defineKey(result as Record<string, TValue>, key as string, value);
         }
     }
 
@@ -4046,7 +4090,7 @@ export function intersect<T1, T2 = T1>(
               );
 
         if (matches) {
-            result[key] = value as T1;
+            defineKey(result as Record<string, T1>, key, value as T1);
         }
     }
 
@@ -4094,7 +4138,7 @@ export function intersectAssoc<T1, T2 = T1>(
             Object.hasOwn(otherObj, key) &&
             (value as unknown) === (otherObj[key as PropertyKey] as unknown)
         ) {
-            result[key] = value as T1;
+            defineKey(result as Record<string, T1>, key, value as T1);
         }
     }
 
@@ -4139,7 +4183,11 @@ export function intersectAssocUsing<T1, T2 = T1>(
                 callback(dataKey, otherKey) &&
                 (dataValue as unknown) === (otherValue as unknown)
             ) {
-                result[dataKey] = dataValue as T1;
+                defineKey(
+                    result as Record<string, T1>,
+                    dataKey,
+                    dataValue as T1,
+                );
                 break; // Only add once per dataKey
             }
         }
@@ -4180,7 +4228,7 @@ export function intersectByKeys<T1, T2 = T1>(
 
     for (const [key, value] of Object.entries(data)) {
         if (Object.hasOwn(otherObj, key)) {
-            result[key] = value as T1;
+            defineKey(result as Record<string, T1>, key, value as T1);
         }
     }
 
