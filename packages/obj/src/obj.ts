@@ -3199,7 +3199,7 @@ export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
             // Numeric key: push the value as-is (PHP-cast), like PHP
             // pushing $constraint straight into the array before implode().
             classes.push(cssListItemToString(value));
-        } else if (value) {
+        } else if (!isPhpFalsy(value)) {
             classes.push(key);
         }
     }
@@ -3238,7 +3238,7 @@ export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
             // Numeric key: push the value as-is (PHP-cast, then finished),
             // like PHP's Str::finish($constraint, ';').
             styles.push(finish(cssListItemToString(value), ";"));
-        } else if (value) {
+        } else if (!isPhpFalsy(value)) {
             styles.push(finish(key, ";"));
         }
     }
