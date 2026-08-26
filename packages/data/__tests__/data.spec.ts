@@ -2276,6 +2276,14 @@ describe("Data", () => {
             expect(Data.dataDiff([1, 2], null)).toEqual([1, 2]);
             expect(Data.dataDiff([1, 2], undefined)).toEqual([1, 2]);
         });
+
+        it("diffs an object against a list by value, as PHP does", () => {
+            // PHP-verified via docs/php-parity/task-06-setops.json ("diff and
+            // intersect accept any array operand"): collect(['a'=>10,'b'=>20])
+            // ->diff([20]) === ['a'=>10]; collect([10,20])->diff(['x'=>20]) === [10].
+            expect(Data.dataDiff({ a: 10, b: 20 }, [20])).toEqual({ a: 10 });
+            expect(Data.dataDiff([10, 20], { x: 20 })).toEqual([10]);
+        });
     });
 
     describe("dataPluck", () => {
@@ -3005,6 +3013,14 @@ describe("Data", () => {
                     ["2", 30],
                 ],
             );
+        });
+
+        it("diff also compares values across a mismatched operand shape (C5)", () => {
+            // Every other row above pairs same-shape operands. PHP-verified via
+            // docs/php-parity/task-06-setops.json ("diff and intersect accept any
+            // array operand"): array_diff compares by value only, so shape doesn't matter.
+            expect(Data.dataDiff({ a: 10, b: 20 }, [20])).toEqual({ a: 10 });
+            expect(Data.dataDiff([10, 20], { x: 20 })).toEqual([10]);
         });
 
         it("diffAssocUsing and diffKeysUsing run their comparator", () => {

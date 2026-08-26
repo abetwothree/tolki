@@ -874,6 +874,15 @@ describe("Collection", () => {
             const diff = collection.diff({ b: 2, d: 4 });
             expect(diff.all()).toEqual({ a: 1, c: 3 });
         });
+
+        it("diffs across a mismatched operand shape by value (C5)", () => {
+            // PHP-verified via docs/php-parity/task-06-setops.json ("diff and
+            // intersect accept any array operand"): collect(['a'=>10,'b'=>20])
+            // ->diff([20]) === ['a'=>10].
+            expect(new Collection({ a: 10, b: 20 }).diff([20]).all()).toEqual({
+                a: 10,
+            });
+        });
     });
 
     describe("diffUsing", () => {
