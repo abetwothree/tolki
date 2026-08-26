@@ -105,4 +105,15 @@ probe('Arr::toCssStyles false value at numeric key', "Arr::toCssStyles([0 => fal
     return Arr::toCssStyles([0 => false, 1 => 'x']);
 });
 
+
+probe('CSS helpers use PHP truthiness for the value', 'Arr::toCssClasses(["foo"=>"0"])', function () {
+    return [
+        'zero_string' => Arr::toCssClasses(['foo' => '0']),
+        'empty_array' => Arr::toCssClasses(['foo' => []]),
+        'double_zero' => Arr::toCssClasses(['foo' => '00']),
+        'zero_point_zero' => Arr::toCssClasses(['foo' => '0.0']),
+        'styles_zero' => Arr::toCssStyles(['a:b' => '0']),
+    ];
+});
+
 emit();
