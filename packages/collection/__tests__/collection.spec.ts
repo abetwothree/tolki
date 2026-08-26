@@ -1,4 +1,5 @@
 import { collect, Collection } from "@tolki/collection";
+import { dataUnshift } from "@tolki/data";
 import { SortDirection } from "@tolki/enum";
 import { Stringable } from "@tolki/str";
 import { assertType, describe, expect, it } from "vitest";
@@ -4233,6 +4234,33 @@ describe("Collection", () => {
             const c = new Collection(original);
             c.unshift(1);
             expect(original).toEqual([1, 2, 3]);
+        });
+
+        it("classifies keys like PHP, keeping non-canonical numeric strings", () => {
+            // PHP-verified: array_unshift only renumbers canonical integer keys.
+            expect(
+                new Collection({ "1.5": "a", x: "b" }).unshift(9).all(),
+            ).toEqual({
+                0: 9,
+                "1.5": "a",
+                x: "b",
+            });
+        });
+
+        it("keeps an empty-string key instead of destroying it", () => {
+            expect(new Collection({ "": "a" }).unshift(9).all()).toEqual({
+                0: 9,
+                "": "a",
+            });
+        });
+
+        it("agrees with the data layer on the same input", () => {
+            const viaCollection = new Collection({ "1.5": "a", x: "b" })
+                .unshift(9)
+                .all();
+            const viaData = dataUnshift({ "1.5": "a", x: "b" }, 9);
+
+            expect(viaCollection).toEqual(viaData);
         });
     });
 
@@ -10244,6 +10272,33 @@ describe("Collection", () => {
                     ["3", 20],
                     ["4", 30],
                     ["5", 40],
+                ],
+            );
+
+            // numsObj() alone is all-canonical-integer, so it can't see a
+            // non-canonical key like "1.5" wrongly swept into the renumbered run.
+            agree(
+                new Collection([10, 20, 30, 40, 999]).unshift(1, 2).all(),
+                new Collection({ 0: 10, 1: 20, 2: 30, 3: 40, "1.5": 999 })
+                    .unshift(1, 2)
+                    .all(),
+                [
+                    ["0", 1],
+                    ["1", 2],
+                    ["2", 10],
+                    ["3", 20],
+                    ["4", 30],
+                    ["5", 40],
+                    ["6", 999],
+                ],
+                [
+                    ["0", 1],
+                    ["1", 2],
+                    ["2", 10],
+                    ["3", 20],
+                    ["4", 30],
+                    ["5", 40],
+                    ["1.5", 999],
                 ],
             );
         });

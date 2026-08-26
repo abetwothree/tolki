@@ -10,6 +10,22 @@ describe("Utils", () => {
         );
     });
 
+    describe("isIntegerLikeKey", () => {
+        it("returns true for canonical non-negative integer strings", () => {
+            expect(Utils.isIntegerLikeKey("0")).toBe(true);
+            expect(Utils.isIntegerLikeKey("1")).toBe(true);
+            expect(Utils.isIntegerLikeKey("23")).toBe(true);
+        });
+
+        it("returns false for strings that merely look numeric", () => {
+            expect(Utils.isIntegerLikeKey("01")).toBe(false);
+            expect(Utils.isIntegerLikeKey("-1")).toBe(false);
+            expect(Utils.isIntegerLikeKey("1.5")).toBe(false);
+            expect(Utils.isIntegerLikeKey("")).toBe(false);
+            expect(Utils.isIntegerLikeKey("x")).toBe(false);
+        });
+    });
+
     describe("isPhpArrayKey", () => {
         it("returns true for strings", () => {
             expect(Utils.isPhpArrayKey("taylor")).toBe(true);

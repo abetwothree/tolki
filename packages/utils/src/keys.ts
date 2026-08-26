@@ -60,6 +60,21 @@ export function isPhpArrayKey(value: unknown): value is string | number {
 }
 
 /**
+ * Whether `key` is a canonical non-negative integer string ("0", "1",
+ * "23", but not "01", "-1", "1.5"). This is both the class of key the JS
+ * engine itself always sorts ahead of string keys (in ascending numeric
+ * order, regardless of insertion order) and the class of key PHP treats
+ * as an integer array key — the one `array_splice`/`array_unshift`
+ * renumber. String keys are left untouched by both.
+ *
+ * @param key - The key to test
+ * @returns True if `key` is a canonical non-negative integer string
+ */
+export function isIntegerLikeKey(key: string): boolean {
+    return /^(0|[1-9]\d*)$/.test(key);
+}
+
+/**
  * Define an own enumerable property on the target without going through a
  * setter, so a key such as `__proto__` becomes a real own key rather than
  * reaching `Object.prototype` through the inherited setter.

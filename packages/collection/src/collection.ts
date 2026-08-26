@@ -66,6 +66,7 @@ import {
     isArray,
     isBoolean,
     isFunction,
+    isIntegerLikeKey,
     isMap,
     isNull,
     isNumber,
@@ -2449,8 +2450,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             // Add old items, renumbering numeric keys and keeping string keys
             for (const [key, value] of Object.entries(oldItems)) {
-                const numKey = Number(key);
-                if (!isNaN(numKey)) {
+                if (isIntegerLikeKey(key)) {
                     // Renumber numeric keys
                     newItems[index] = value as T;
                     index++;

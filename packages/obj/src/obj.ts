@@ -20,6 +20,7 @@ import {
     isFalsy,
     isFunction,
     isInteger,
+    isIntegerLikeKey,
     isMap,
     isNull,
     isNumber,
@@ -3039,18 +3040,6 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
     data: T | unknown,
 ): T | Record<PropertyKey, unknown> {
     return sortRecursive(data, SortDirection.Descending);
-}
-
-/**
- * Whether `key` is a canonical non-negative integer string ("0", "1",
- * "23", but not "01", "-1", "1.5"). This is both the class of key the JS
- * engine itself always sorts ahead of string keys (in ascending numeric
- * order, regardless of insertion order) and the class of key PHP treats
- * as an integer array key — the one `array_splice` renumbers. String keys
- * are left untouched by both.
- */
-function isIntegerLikeKey(key: string): boolean {
-    return /^(0|[1-9]\d*)$/.test(key);
 }
 
 /**
