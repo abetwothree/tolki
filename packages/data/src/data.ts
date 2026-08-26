@@ -2498,9 +2498,48 @@ export function dataDiff<
 }
 
 /**
+ * A JS array's own keys ARE its indices, in exactly the same shape
+ * `Object.entries`/`Object.keys` produce for a plain object (string
+ * indices) — so `array_diff_uassoc`/`array_diff_ukey`'s key-comparison
+ * algorithm applies unchanged; only `accessible()` (obj.ts) rejects arrays
+ * outright, which is what previously forced these two dispatch functions
+ * to fall back to a plain value-only diff and silently ignore the
+ * callback for array-backed input (a Task 6 finding, deferred; closed out
+ * here in Task 11 because it broke the array/object cross-backing
+ * agreement sweep on these two functions).
+ *
+ * Reindexes the survivors, matching every other array-branch diff/
+ * intersect function in this file (Task 6's index-preservation gap is
+ * deferred uniformly, not specially handled here).
+ */
+function arrayDiffUsingKeys<TValue>(
+    data: readonly TValue[],
+    other: readonly unknown[],
+    callback: (keyA: PropertyKey, keyB: PropertyKey) => boolean,
+    compareValues: boolean,
+): TValue[] {
+    const otherEntries = Object.entries(other);
+
+    return Object.entries(data)
+        .filter(([key, value]) => {
+            const matchingKey = otherEntries.find(([otherKey]) =>
+                callback(key, otherKey),
+            );
+
+            if (matchingKey === undefined) {
+                return true;
+            }
+
+            return compareValues && matchingKey[1] !== value;
+        })
+        .map(([, value]) => value);
+}
+
+/**
  * Diff data with the given other data using a callback for key comparison.
  * For objects, compares keys using the callback and values using strict equality.
- * For arrays, wraps them and falls back to arrDiff.
+ * For arrays, the same algorithm runs over the arrays' own indices (their
+ * only possible "keys"), reindexing the survivors.
  *
  * @param data - The data to diff
  * @param other - The data to diff against
@@ -2528,14 +2567,19 @@ export function dataDiffAssocUsing<
         ) as DataItems<TValue, TKey>;
     }
 
-    // For arrays, there's no meaningful key comparison, so fall back to regular diff
-    return arrDiff(arrWrap(data), arrWrap(other)) as DataItems<TValue>;
+    return arrayDiffUsingKeys(
+        arrWrap(data),
+        arrWrap(other),
+        callback as (keyA: PropertyKey, keyB: PropertyKey) => boolean,
+        true,
+    ) as DataItems<TValue>;
 }
 
 /**
  * Diff data keys with the given other data using a callback for key comparison only.
  * For objects, compares keys using the callback and ignores values completely.
- * For arrays, falls back to regular diff since key comparison doesn't make sense for numeric indices.
+ * For arrays, the same algorithm runs over the arrays' own indices (their
+ * only possible "keys"), reindexing the survivors.
  *
  * @param data - The data to diff
  * @param other - The data to diff against
@@ -2563,8 +2607,12 @@ export function dataDiffKeysUsing<
         ) as DataItems<TValue, TKey>;
     }
 
-    // For arrays, there's no meaningful key comparison, so fall back to regular diff
-    return arrDiff(arrWrap(data), arrWrap(other)) as DataItems<TValue>;
+    return arrayDiffUsingKeys(
+        arrWrap(data),
+        arrWrap(other),
+        callback as (keyA: PropertyKey, keyB: PropertyKey) => boolean,
+        false,
+    ) as DataItems<TValue>;
 }
 
 /**

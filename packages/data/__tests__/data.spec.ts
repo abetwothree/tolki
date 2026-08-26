@@ -2497,13 +2497,22 @@ describe("Data", () => {
             expect(result).toEqual({ b: "brown" });
         });
 
-        it("is array (falls back to regular diff)", () => {
+        it("is array — compares by index (key) via the callback, then value", () => {
+            // PHP-verified directly (Task 11):
+            // array_diff_uassoc([1,2,3],[2,3,4],strcasecmp) -> [1,2,3].
+            // Every index (0,1,2) matches positionally via the callback,
+            // but every value at that index differs (1 vs 2, 2 vs 3, 3 vs
+            // 4), so nothing is excluded. Before Task 11 this asserted
+            // [1] — the array branch fell through to a plain value-diff
+            // and silently ignored the callback entirely (a Task 6
+            // finding, deferred; closed out here because it broke the
+            // array/object cross-backing agreement sweep).
             const result = Data.dataDiffAssocUsing(
                 [1, 2, 3],
                 [2, 3, 4],
                 strcasecmp,
             );
-            expect(result).toEqual([1]);
+            expect(result).toEqual([1, 2, 3]);
         });
     });
 
@@ -2517,13 +2526,19 @@ describe("Data", () => {
             expect(result).toEqual({ first_word: "Hello" });
         });
 
-        it("is array (falls back to regular diff)", () => {
+        it("is array — compares by index (key) via the callback only", () => {
+            // PHP-verified directly (Task 11):
+            // array_diff_ukey([1,2,3],[2,3,4],strcasecmp) -> [] (values
+            // are ignored entirely; every index 0-2 matches positionally,
+            // so every entry is excluded). Before Task 11 this asserted
+            // [1] for the same fallback-to-plain-diff reason as
+            // dataDiffAssocUsing above.
             const result = Data.dataDiffKeysUsing(
                 [1, 2, 3],
                 [2, 3, 4],
                 strcasecmp,
             );
-            expect(result).toEqual([1]);
+            expect(result).toEqual([]);
         });
     });
 

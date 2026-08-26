@@ -10205,4 +10205,456 @@ describe("Collection", () => {
             expect(padded.tag).toBe("my-tag");
         });
     });
+
+    // Task 11 cross-backing agreement sweep (plan exit criterion): for
+    // every function fixed across Tasks 2-10, an array-backed and an
+    // object-backed Collection over the SAME conceptual PHP array (an
+    // object whose own keys are exactly the array's indices, 0..n-1) must
+    // agree on what the operation produces. Container SHAPE is allowed to
+    // differ and is not what's being asserted here — an array-backed
+    // Collection always reindexes to a dense array, an object-backed one
+    // never does, and several tasks already pinned that difference
+    // deliberately (Task 3's splice, Task 9's undot D3). What must agree is
+    // the VALUE list an operation produces, read via Object.values() (which
+    // reads a value list off either a real array or a plain object the
+    // same way, discarding key labels) — or, for functions that return a
+    // scalar/boolean directly, the value itself.
+    //
+    // query, toCssClasses, toCssStyles and exists (Tasks 8-9) have no
+    // Collection method at all (Arr.php has them, Collection.php does not),
+    // so their sweep lives in data.spec.ts instead, at the dispatch layer
+    // that does expose them.
+    describe("cross-backing agreement sweep (Task 11, plan exit criterion)", () => {
+        const arr4 = [10, 20, 30, 40];
+        const obj4 = { 0: 10, 1: 20, 2: 30, 3: 40 };
+        const recArr = [
+            { id: 3, name: "c" },
+            { id: 1, name: "a" },
+            { id: 2, name: "b" },
+        ];
+        const recObj = {
+            0: { id: 3, name: "c" },
+            1: { id: 1, name: "a" },
+            2: { id: 2, name: "b" },
+        };
+
+        it("pop, either backing (Task 2)", () => {
+            expect(new Collection(arr4.slice()).pop()).toBe(
+                new Collection({ ...obj4 }).pop(),
+            );
+            expect(
+                Object.values(new Collection(arr4.slice()).pop(2).all()),
+            ).toEqual(Object.values(new Collection({ ...obj4 }).pop(2).all()));
+        });
+
+        it("shift, either backing (Task 2)", () => {
+            expect(new Collection(arr4.slice()).shift()).toBe(
+                new Collection({ ...obj4 }).shift(),
+            );
+            expect(
+                Object.values(new Collection(arr4.slice()).shift(2).all()),
+            ).toEqual(
+                Object.values(new Collection({ ...obj4 }).shift(2).all()),
+            );
+        });
+
+        it("unshift, either backing (Task 2)", () => {
+            expect(
+                Object.values(
+                    new Collection(arr4.slice()).unshift(1, 2).all(),
+                ),
+            ).toEqual(
+                Object.values(
+                    new Collection({ ...obj4 }).unshift(1, 2).all(),
+                ),
+            );
+        });
+
+        it("splice, either backing (Task 3)", () => {
+            const fromArray = new Collection(arr4.slice());
+            const fromObject = new Collection({ ...obj4 });
+            const removedArray = fromArray.splice(1, 2);
+            const removedObject = fromObject.splice(1, 2);
+
+            expect(Object.values(removedArray.all())).toEqual(
+                Object.values(removedObject.all()),
+            );
+            expect(Object.values(fromArray.all())).toEqual(
+                Object.values(fromObject.all()),
+            );
+        });
+
+        it("slice, either backing (Task 4)", () => {
+            expect(
+                Object.values(new Collection(arr4.slice()).slice(1, 2).all()),
+            ).toEqual(
+                Object.values(new Collection({ ...obj4 }).slice(1, 2).all()),
+            );
+        });
+
+        it("filter, either backing (Task 4)", () => {
+            const cb = (v: number) => v > 15;
+            expect(
+                Object.values(new Collection(arr4.slice()).filter(cb).all()),
+            ).toEqual(
+                Object.values(new Collection({ ...obj4 }).filter(cb).all()),
+            );
+        });
+
+        it("combine, either backing (Task 4)", () => {
+            // combine's second operand must share the receiver's backing
+            // (dataCombine throws otherwise), so the values collection is
+            // shaped to match: an array for the array-backed receiver, an
+            // identically-keyed object for the object-backed one.
+            expect(
+                Object.values(
+                    new Collection(["a", "b", "c"]).combine([1, 2, 3]).all(),
+                ),
+            ).toEqual(
+                Object.values(
+                    new Collection({ 0: "a", 1: "b", 2: "c" })
+                        .combine({ 0: 1, 1: 2, 2: 3 })
+                        .all(),
+                ),
+            );
+        });
+
+        it("replace, either backing (Task 5)", () => {
+            // dataReplace throws on a backing mismatch, so the replacer is
+            // shaped to match each receiver. arr.replace's array-shaped
+            // replacer overload is deliberately "sequential, no gaps"
+            // (its own JSDoc) — sparseness is only supported through an
+            // object-shaped replacer, and dataReplace's array branch
+            // doesn't forward one through — so this replaces a dense
+            // PREFIX (indices 0-1) instead of a single sparse index,
+            // which a plain array and a `{0,1}`-keyed object can both
+            // express identically.
+            const arrayReplacer = [99, 88];
+            const objectReplacer = { 0: 99, 1: 88 };
+
+            expect(
+                Object.values(
+                    new Collection(arr4.slice()).replace(arrayReplacer).all(),
+                ),
+            ).toEqual(
+                Object.values(
+                    new Collection({ ...obj4 }).replace(objectReplacer).all(),
+                ),
+            );
+        });
+
+        it("replaceRecursive, either backing (Task 5)", () => {
+            const nestedArr = [{ a: 1 }, { b: 2 }];
+            const nestedObj = { 0: { a: 1 }, 1: { b: 2 } };
+            const arrayPatch = [{ c: 3 }];
+            const objectPatch = { 0: { c: 3 } };
+
+            expect(
+                Object.values(
+                    new Collection(nestedArr)
+                        .replaceRecursive(arrayPatch)
+                        .all(),
+                ),
+            ).toEqual(
+                Object.values(
+                    new Collection(nestedObj)
+                        .replaceRecursive(objectPatch)
+                        .all(),
+                ),
+            );
+        });
+
+        it("diff, either backing (Task 6)", () => {
+            // dataDiff also requires the same backing on both sides.
+            expect(
+                Object.values(
+                    new Collection(arr4.slice()).diff([20, 40]).all(),
+                ),
+            ).toEqual(
+                Object.values(
+                    new Collection({ ...obj4 })
+                        .diff({ 0: 20, 1: 40 })
+                        .all(),
+                ),
+            );
+        });
+
+        it("diffAssocUsing, either backing (Task 6)", () => {
+            const cb = (a: PropertyKey, b: PropertyKey) => a === b;
+            const arrayOther = [10, 999, 30, 40];
+            const objectOther = { 0: 10, 1: 999, 2: 30, 3: 40 };
+            expect(
+                Object.values(
+                    new Collection(arr4.slice())
+                        .diffAssocUsing(arrayOther, cb)
+                        .all(),
+                ),
+            ).toEqual(
+                Object.values(
+                    new Collection({ ...obj4 })
+                        .diffAssocUsing(objectOther, cb)
+                        .all(),
+                ),
+            );
+        });
+
+        it("diffKeysUsing, either backing (Task 6)", () => {
+            const cb = (a: PropertyKey, b: PropertyKey) => a === b;
+            const arrayOther = Object.assign([], { 1: "x", 3: "y" });
+            const objectOther = { 1: "x", 3: "y" };
+            expect(
+                Object.values(
+                    new Collection(arr4.slice())
+                        .diffKeysUsing(arrayOther, cb)
+                        .all(),
+                ),
+            ).toEqual(
+                Object.values(
+                    new Collection({ ...obj4 }).diffKeysUsing(objectOther, cb).all(),
+                ),
+            );
+        });
+
+        it("intersect, either backing (Task 6)", () => {
+            expect(
+                Object.values(
+                    new Collection(arr4.slice()).intersect([20, 40]).all(),
+                ),
+            ).toEqual(
+                Object.values(
+                    new Collection({ ...obj4 })
+                        .intersect({ 0: 20, 1: 40 })
+                        .all(),
+                ),
+            );
+        });
+
+        it("intersectAssoc, either backing (Task 6)", () => {
+            // dataIntersectAssoc requires both operands to share a backing
+            // (array-with-array, object-with-object) — it throws
+            // otherwise — so `other` is shaped to match each receiver,
+            // with the same key/value content either way.
+            expect(
+                Object.values(
+                    new Collection(arr4.slice())
+                        .intersectAssoc([10, 999, 30])
+                        .all(),
+                ),
+            ).toEqual(
+                Object.values(
+                    new Collection({ ...obj4 })
+                        .intersectAssoc({ 0: 10, 1: 999, 2: 30 })
+                        .all(),
+                ),
+            );
+        });
+
+        it("intersectAssocUsing, either backing (Task 6)", () => {
+            const cb = (a: PropertyKey, b: PropertyKey) => a === b;
+            expect(
+                Object.values(
+                    new Collection(arr4.slice())
+                        .intersectAssocUsing([10, 999, 30], cb)
+                        .all(),
+                ),
+            ).toEqual(
+                Object.values(
+                    new Collection({ ...obj4 })
+                        .intersectAssocUsing({ 0: 10, 1: 999, 2: 30 }, cb)
+                        .all(),
+                ),
+            );
+        });
+
+        it("intersectByKeys, either backing (Task 6)", () => {
+            // A sparse array's own keys are exactly its set indices —
+            // Object.entries skips the holes — so this array's keys are
+            // {1, 3}, matching the object's {1, 3} below.
+            const sparseOther: unknown[] = [];
+            sparseOther[1] = "x";
+            sparseOther[3] = "y";
+
+            expect(
+                Object.values(
+                    new Collection(arr4.slice())
+                        .intersectByKeys(sparseOther)
+                        .all(),
+                ),
+            ).toEqual(
+                Object.values(
+                    new Collection({ ...obj4 })
+                        .intersectByKeys({ 1: "x", 3: "y" })
+                        .all(),
+                ),
+            );
+        });
+
+        it("union, either backing (Task 7)", () => {
+            expect(
+                Object.values(
+                    new Collection([10, 20]).union([1, 1, 50, 60]).all(),
+                ),
+            ).toEqual(
+                Object.values(
+                    new Collection({ 0: 10, 1: 20 })
+                        .union({ 0: 1, 1: 1, 2: 50, 3: 60 })
+                        .all(),
+                ),
+            );
+        });
+
+        it("pad, either backing (Task 7)", () => {
+            // Positive-size padding is deliberately excluded here: obj.ts's
+            // own JSDoc (packages/obj/src/obj.ts, pad) documents a genuine,
+            // "do not re-file" unfixable divergence where JS hoists
+            // integer-like keys ahead of string keys regardless of
+            // insertion order, so an object-backed positive pad can't
+            // reproduce PHP's append-at-the-end value order (and, if the
+            // object's own keys already happen to be 0..n-1 like `obj4`,
+            // the new "0","1",... pad keys collide with and overwrite
+            // them). Negative padding has no such divergence — PHP already
+            // places it first, which is also where JS's key-hoisting
+            // stashes it — so that's what this agreement check covers, and
+            // it uses non-numeric object keys specifically to sidestep the
+            // collision case.
+            const asArray = [10, 20, 30, 40];
+            const asObject = { a: 10, b: 20, c: 30, d: 40 };
+
+            expect(
+                Object.values(new Collection(asArray).pad(-6, 0).all()),
+            ).toEqual(
+                Object.values(new Collection(asObject).pad(-6, 0).all()),
+            );
+        });
+
+        it("keys, either backing (Task 7)", () => {
+            expect(
+                Object.values(new Collection(arr4.slice()).keys().all()),
+            ).toEqual(Object.values(new Collection({ ...obj4 }).keys().all()));
+        });
+
+        it("values, either backing (Task 7)", () => {
+            expect(
+                Object.values(new Collection(arr4.slice()).values().all()),
+            ).toEqual(
+                Object.values(new Collection({ ...obj4 }).values().all()),
+            );
+        });
+
+        it("random, either backing (Task 8)", () => {
+            const fromArray = new Collection(arr4.slice());
+            const fromObject = new Collection({ ...obj4 });
+
+            expect(arr4).toContain(fromArray.random());
+            expect(Object.values(obj4)).toContain(fromObject.random());
+            expect(Object.values(fromArray.random(2).all())).toHaveLength(2);
+            expect(Object.values(fromObject.random(2).all())).toHaveLength(2);
+        });
+
+        it("only, either backing (Task 8)", () => {
+            expect(
+                Object.values(new Collection(arr4.slice()).only(1, 3).all()),
+            ).toEqual(
+                Object.values(new Collection({ ...obj4 }).only(1, 3).all()),
+            );
+        });
+
+        it("flatten, either backing (Task 8)", () => {
+            const nestedArr = [1, [2, 3], 4];
+            const nestedObj = { 0: 1, 1: [2, 3], 2: 4 };
+            expect(
+                Object.values(new Collection(nestedArr).flatten().all()),
+            ).toEqual(
+                Object.values(new Collection(nestedObj).flatten().all()),
+            );
+        });
+
+        it("mapWithKeys, either backing (Task 8)", () => {
+            const cb = (item: { id: number; name: string }) => ({
+                [item.id]: item.name,
+            });
+            expect(
+                Object.values(new Collection(recArr).mapWithKeys(cb).all()),
+            ).toEqual(
+                Object.values(new Collection(recObj).mapWithKeys(cb).all()),
+            );
+        });
+
+        it("get, either backing (Task 9)", () => {
+            expect(new Collection(arr4.slice()).get(2)).toBe(
+                new Collection({ ...obj4 }).get(2),
+            );
+            expect(new Collection(arr4.slice()).get(99, "default")).toBe(
+                new Collection({ ...obj4 }).get(99, "default"),
+            );
+        });
+
+        it("has, either backing (Task 9)", () => {
+            expect(new Collection(arr4.slice()).has(2)).toBe(
+                new Collection({ ...obj4 }).has(2),
+            );
+            expect(new Collection(arr4.slice()).has(99)).toBe(
+                new Collection({ ...obj4 }).has(99),
+            );
+        });
+
+        it("pull, either backing (Task 9)", () => {
+            const fromArray = new Collection(arr4.slice());
+            const fromObject = new Collection({ ...obj4 });
+
+            expect(fromArray.pull(1)).toBe(fromObject.pull(1));
+            expect(Object.values(fromArray.all())).toEqual(
+                Object.values(fromObject.all()),
+            );
+        });
+
+        it("undot, either backing (Task 9)", () => {
+            // A real array can carry bolted-on non-index own properties
+            // (Object.entries enumerates them like any other object), so
+            // this exercises arrUndot (array branch) against objUndot
+            // (object branch) over the exact same flat dotted-key data —
+            // decision D3 says both must rebuild the same nested list.
+            const flatArr = Object.assign(["a"], { "1.0": "b", "1.1": "c" });
+            const flatObj = { "0": "a", "1.0": "b", "1.1": "c" };
+
+            expect(
+                Object.values(new Collection(flatArr).undot().all()),
+            ).toEqual(Object.values(new Collection(flatObj).undot().all()));
+        });
+
+        it("pluck, either backing (Task 10)", () => {
+            expect(
+                Object.values(new Collection(recArr).pluck("name").all()),
+            ).toEqual(Object.values(new Collection(recObj).pluck("name").all()));
+        });
+
+        it("sort, either backing (Task 10)", () => {
+            // Non-numeric object keys, deliberately: `sort` is a
+            // key-preserving associative sort, but a plain JS object with
+            // ALL-numeric-string keys is spec-ordered ascending by key
+            // regardless of insertion order (ECMA-262
+            // OrdinaryOwnPropertyKeys — the same rule behind pad's
+            // documented positive-size divergence above), so an
+            // object-backed sort of {0,1,2}-keyed data cannot visibly
+            // reorder anything through Object.values(); that would be
+            // testing a JS engine limitation, not this function.
+            const scrambledArr = [30, 10, 20];
+            const scrambledObj = { a: 30, b: 10, c: 20 };
+            expect(
+                Object.values(new Collection(scrambledArr).sort().all()),
+            ).toEqual(
+                Object.values(new Collection(scrambledObj).sort().all()),
+            );
+        });
+
+        it("sortDesc, either backing (Task 10)", () => {
+            const scrambledArr = [30, 10, 20];
+            const scrambledObj = { a: 30, b: 10, c: 20 };
+            expect(
+                Object.values(new Collection(scrambledArr).sortDesc().all()),
+            ).toEqual(
+                Object.values(new Collection(scrambledObj).sortDesc().all()),
+            );
+        });
+    });
 });
