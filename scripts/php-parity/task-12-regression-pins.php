@@ -47,4 +47,14 @@ probe('PHP casts "-1" to int(-1) and array_splice renumbers it too (JS does not)
     return $a;
 });
 
+probe('slice over-negative length clamps to empty', 'array_slice($a,0,-5,true)', function () {
+    return [
+        'assoc_0_neg5' => Arr::get(['v' => array_slice(['a' => 1, 'b' => 2, 'c' => 3], 0, -5, true)], 'v'),
+        'assoc_neg5_neg5' => array_slice(['a' => 1, 'b' => 2, 'c' => 3], -5, -5, true),
+        'list_0_neg5' => array_slice([1, 2, 3], 0, -5),
+        'list_neg5_neg5' => array_slice([1, 2, 3], -5, -5),
+        'assoc_0_neg6_of5' => array_slice(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4, 'e' => 5], 0, -6, true),
+    ];
+});
+
 emit();

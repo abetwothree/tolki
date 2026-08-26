@@ -5412,6 +5412,16 @@ describe("Collection", () => {
             });
             expect(obj.slice(-2, 5).all()).toEqual({ g: 7, h: 8 });
         });
+
+        // Both backings share the byte-identical over-negative-length defect, so without
+        // this pin they'd still "agree" while both diverging from PHP.
+        // PHP-verified in docs/php-parity/task-12-regression-pins.json.
+        it("agrees across backings on an over-negative slice length", () => {
+            expect(new Collection([1, 2, 3]).slice(0, -5).all()).toEqual([]);
+            expect(
+                new Collection({ a: 1, b: 2, c: 3 }).slice(0, -5).all(),
+            ).toEqual({});
+        });
     });
 
     describe("split", () => {

@@ -59,6 +59,17 @@
                 "0": "x",
                 "c": "z"
             }
+        },
+        {
+            "label": "slice over-negative length clamps to empty",
+            "php": "array_slice($a,0,-5,true)",
+            "value": {
+                "assoc_0_neg5": [],
+                "assoc_neg5_neg5": [],
+                "list_0_neg5": [],
+                "list_neg5_neg5": [],
+                "assoc_0_neg6_of5": []
+            }
         }
     ]
 }
