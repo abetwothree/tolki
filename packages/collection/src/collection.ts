@@ -3193,6 +3193,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Sort through each item with a callback.
      *
+     * `sort` is a key-preserving associative sort (like PHP's `uasort`),
+     * not a reindex — an object-backed collection keeps its own keys,
+     * reordered. That reordering is invisible, though, if every one of
+     * those keys is an integer-like string (e.g. `{0: ..., 1: ..., 2:
+     * ...}`): a plain JS object always iterates integer-like keys ascending
+     * regardless of insertion order (ECMA-262 `OrdinaryOwnPropertyKeys`),
+     * the same rule behind `pad`'s documented positive-size divergence
+     * above. There is no workaround — a plain object cannot represent an
+     * arbitrary key order for purely-numeric keys, so `sort`'s effect only
+     * shows up in `Object.values()`/iteration order when at least one key
+     * is non-numeric.
+     *
      * @param callback - The value extractor callback, a path key to get values from, or null for default sort
      * @returns A new collection with the sorted items
      *
