@@ -537,7 +537,8 @@ function isArrayIndexPath(key: string): boolean {
  * @param map - The flat object with numeric-first dot-notated keys.
  * @returns A new multi-dimensional array.
  * @throws TypeError if any key has a segment that is not a canonical decimal
- * integer (no leading zeros, sign, or exponent) within MAX_UNDOT_INDEX.
+ * integer (no leading zeros, sign, or exponent) within MAX_UNDOT_INDEX, or if
+ * the keys' largest indices, summed, would exceed that same budget.
  *
  * @example
  *
@@ -548,10 +549,21 @@ function isArrayIndexPath(key: string): boolean {
 export function undot<TValue, TKey extends UndotArrayKey = number>(
     map: Record<TKey, TValue>,
 ): UndotResult<TKey, TValue> {
+    let totalIndex = 0;
+
     for (const key of Object.keys(map ?? {})) {
         if (!isArrayIndexPath(key)) {
             throw new TypeError(
                 `Arr.undot cannot build an array from the key "${key}": every dot segment must be a canonical decimal integer (no leading zeros, sign, or exponent) from 0 up to ${MAX_UNDOT_INDEX}. Use Obj.undot for string keys.`,
+            );
+        }
+
+        // Each key can allocate an array as large as its own biggest segment; bounding only
+        // that segment (not their sum) lets many merely-large keys jointly exhaust memory.
+        totalIndex += Math.max(...key.split(".").map(Number));
+        if (totalIndex > MAX_UNDOT_INDEX) {
+            throw new TypeError(
+                `Arr.undot cannot build an array: these keys' combined indices exceed the ${MAX_UNDOT_INDEX}-slot budget.`,
             );
         }
     }

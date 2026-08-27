@@ -1846,6 +1846,24 @@ describe("Arr", () => {
             );
         });
 
+        it("rejects a key set whose combined indices would exhaust memory", () => {
+            const map: Record<string, string> = {};
+            for (let i = 0; i < 40; i++) {
+                map[`${i}.16777214`] = "x";
+            }
+
+            expect(() => Arr.undot(map)).toThrow(/cannot build an array/i);
+        });
+
+        it("still accepts a key set well inside the budget", () => {
+            const map: Record<string, string> = {};
+            for (let i = 0; i < 40; i++) {
+                map[`${i}.10`] = "x";
+            }
+
+            expect(() => Arr.undot(map)).not.toThrow();
+        });
+
         it("accepts an empty or nullish map", () => {
             expect(
                 Arr.undot(null as unknown as Record<UndotArrayKey, string>),

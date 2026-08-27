@@ -1089,8 +1089,8 @@ export function undotExpandObject<
 
 /**
  * Ceiling for a numeric `undot` segment: 2**24 keeps a fully materialized
- * array under ~128MB (8 bytes/slot) - past any legitimate input, but well
- * below what forces a spread/serialize of the result to exhaust memory.
+ * array under ~134MB. `Arr.undot` also caps the keys' summed indices, since
+ * N such arrays cost N x ~134MB to materialize.
  */
 export const MAX_UNDOT_INDEX = 2 ** 24 - 2;
 
