@@ -2932,10 +2932,20 @@ describe("Obj", () => {
             expect(result).toEqual({ items: ["a", "b"] });
         });
 
-        it("should throw error for non-array values", () => {
-            const obj = { name: "John" };
-            expect(() => Obj.push(obj, "name", "value")).toThrow(
-                "Cannot push to non-array value at key [name]",
+        it("throws PHP's message when the key holds a non-array", () => {
+            // PHP-verified in docs/php-parity/task-12-regression-pins.json
+            // ("push requires an array at the key").
+            expect(() => Obj.push({ 0: 1, 1: 2, 2: 3 }, "0", 9)).toThrow(
+                "Array value for key [0] must be an array, integer found.",
+            );
+        });
+
+        it("creates the array at a missing key but rejects an explicit null", () => {
+            // PHP-verified in docs/php-parity/task-12-regression-pins.json
+            // ("push at a missing key creates the array" / "push through an explicit null").
+            expect(Obj.push({}, "name", 9)).toEqual({ name: [9] });
+            expect(() => Obj.push({ name: null }, "name", 9)).toThrow(
+                "Array value for key [name] must be an array, NULL found.",
             );
         });
 

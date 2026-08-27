@@ -1,9 +1,8 @@
-import { wrap as arrWrap } from "@tolki/arr";
+import { arrayValueMessage, wrap as arrWrap } from "@tolki/arr";
 import type { ArrayItems, PathKey, PathKeys } from "@tolki/types";
 import {
     castableToArray,
     isArray,
-    isBoolean,
     isFunction,
     isInteger,
     isNull,
@@ -819,14 +818,11 @@ export function pushWithPath<TValue>(
         );
     }
 
+    // An existing value at the leaf must itself be an array (PHP's Arr::array()
+    // rule); a leaf past the end of cursor is absent, not existing-and-wrong-type.
     const leaf = numericSegs[numericSegs.length - 1]!;
-    if (leaf < cursor.length) {
-        const existing = cursor[leaf];
-        if (isBoolean(existing)) {
-            throw new Error(
-                `Array value for key [${String(key)}] must be an array, boolean found.`,
-            );
-        }
+    if (leaf < cursor.length && !isArray(cursor[leaf])) {
+        throw new Error(arrayValueMessage(cursor[leaf], key));
     }
 
     cursor.push(...(values as unknown[]));

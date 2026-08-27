@@ -1,4 +1,7 @@
-import { replaceRecursive as arrReplaceRecursive } from "@tolki/arr";
+import {
+    arrayValueMessage,
+    replaceRecursive as arrReplaceRecursive,
+} from "@tolki/arr";
 import { SortDirection } from "@tolki/enum";
 import {
     dotFlatten,
@@ -2501,12 +2504,15 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isArray(existingValue)) {
         const newArray = [...existingValue, ...values];
         return setObjectValue(obj, key, newArray) as Record<TKey, TValue>;
-    } else if (isNull(existingValue)) {
-        // Create new array if path doesn't exist
-        return setObjectValue(obj, key, [...values]) as Record<TKey, TValue>;
-    } else {
-        throw new Error(`Cannot push to non-array value at key [${key}]`);
     }
+
+    // A missing path defaults to [] like PHP's Arr::array(); an explicit null is a
+    // real value at the key, so it must fail the array check instead of being created over.
+    if (!hasMixed(obj, key)) {
+        return setObjectValue(obj, key, [...values]) as Record<TKey, TValue>;
+    }
+
+    throw new Error(arrayValueMessage(existingValue, key));
 }
 
 /**

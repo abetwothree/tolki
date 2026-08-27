@@ -1448,8 +1448,13 @@ describe("Arr", () => {
             data = Arr.push(data, "0.0", "Desk");
             expect(data).toEqual([["Desk"]]);
 
-            data = Arr.push(data, "0.0", "Chair", "Lamp");
-            expect(data).toEqual([["Desk", "Chair", "Lamp"]]);
+            // A multi-segment key resolves the same array-or-throw guard at its final
+            // segment as a single-segment one; data[0][0] is "Desk", not an array.
+            // PHP-verified in docs/php-parity/task-12-regression-pins.json
+            // ("push at a multi-segment key still requires an array at the resolved path").
+            expect(() => Arr.push(data, "0.0", "Chair", "Lamp")).toThrow(
+                "Array value for key [0.0] must be an array, string found.",
+            );
 
             let data2: unknown[] = [];
 
@@ -1462,6 +1467,14 @@ describe("Arr", () => {
             const data3 = ["foo", ["bar", false]];
             expect(() => Arr.push(data3, "1.1", "baz")).toThrow(
                 "Array value for key [1.1] must be an array, boolean found.",
+            );
+        });
+
+        it("throws PHP's message when the key holds a non-array", () => {
+            // PHP-verified in docs/php-parity/task-12-regression-pins.json
+            // ("push requires an array at the key").
+            expect(() => Arr.push([1, 2, 3], 0, 9)).toThrow(
+                "Array value for key [0] must be an array, integer found.",
             );
         });
 
