@@ -2442,12 +2442,9 @@ export function dataDiff<
         >;
     }
 
-    // `arrWrap(undefined)` returns `[undefined]` (it hits `wrap`'s scalar
-    // overload, not its `null`-only one), so `undefined` is normalized to
-    // `[]` explicitly here rather than passed through `arrWrap` — otherwise
-    // a `null`/`undefined` `other` would diff differently depending on
-    // which one was passed, breaking the "null other is empty" rule.
-    // An object `other` diffs by its values, matching array_diff itself.
+    // `arrWrap(undefined)` returns `[undefined]`, not `[]` (it hits `wrap`'s
+    // scalar overload), so nullish `other` is normalized explicitly here to
+    // keep "null other is empty" true for both `null` and `undefined`.
     const otherArray =
         isNull(other) || isUndefined(other)
             ? []

@@ -1727,13 +1727,16 @@ describe("Obj", () => {
     });
 
     describe("intersect family nullish data guard (C6)", () => {
-        // Dispatches by name instead of `as never` (which `tsc --strict` rejects
-        // as "not callable") so the whole family can be swept in one `it.each`.
         type IntersectFamilyFn = (
             data: unknown,
             other: unknown,
+            // Matches intersectAssocUsing's real arity, so a future guard-order
+            // change fails this as an assertion, not a `TypeError` on `undefined`.
+            callback?: (a: unknown, b: unknown) => boolean,
         ) => Record<PropertyKey, unknown>;
+        // Dispatches by name instead of `as never`, which `tsc --strict` rejects.
         const family = Obj as unknown as Record<string, IntersectFamilyFn>;
+        const alwaysMatch = () => true;
 
         it.each([
             "intersect",
@@ -1744,7 +1747,7 @@ describe("Obj", () => {
             // PHP-verified via docs/php-parity/task-06-setops.json ("...treat a
             // nullish first operand as empty too"): getArrayableItems(null) === [],
             // so collect(null)->intersect*(...) is always empty.
-            expect(family[fn]?.(null, { a: 1 })).toEqual({});
+            expect(family[fn]?.(null, { a: 1 }, alwaysMatch)).toEqual({});
         });
     });
 
