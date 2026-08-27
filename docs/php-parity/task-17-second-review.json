@@ -1,0 +1,345 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.25.0-10-g0015ce4753"
+    },
+    "probes": [
+        {
+            "label": "diff with a Collection operand",
+            "php": "collect([\"a\"=>10,\"b\"=>20])->diff(collect([20]))",
+            "value": {
+                "a": 10
+            }
+        },
+        {
+            "label": "intersect with a Collection operand",
+            "php": "collect([\"a\"=>10,\"b\"=>20])->intersect(collect([20]))",
+            "value": {
+                "b": 20
+            }
+        },
+        {
+            "label": "diff with a Traversable operand",
+            "php": "collect([\"a\"=>10,\"b\"=>20])->diff(new ArrayIterator([20]))",
+            "value": {
+                "a": 10
+            }
+        },
+        {
+            "label": "getArrayableItems rejects a bare object",
+            "php": "collect([1])->diff(new stdClass())",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "intersect over array items collapses to \"Array\"",
+            "php": "collect([[\"id\"=>1],[\"id\"=>2]])->intersect([[\"id\"=>1]])",
+            "value": [
+                {
+                    "id": 1
+                },
+                {
+                    "id": 2
+                }
+            ]
+        },
+        {
+            "label": "diff over array items collapses to \"Array\"",
+            "php": "collect([[\"id\"=>1],[\"id\"=>2]])->diff([[\"id\"=>1]])",
+            "value": []
+        },
+        {
+            "label": "splice with an assoc replacement on a list",
+            "php": "collect([1,2,3])->splice(1,1,[\"foo\"=>\"bar\"])",
+            "value": {
+                "removed": [
+                    2
+                ],
+                "after": [
+                    1,
+                    "bar",
+                    3
+                ]
+            }
+        },
+        {
+            "label": "push onto a {\"01\"}-keyed array",
+            "php": "collect([\"01\"=>\"lead\"])->push(9)",
+            "value": {
+                "01": "lead",
+                "0": 9
+            }
+        },
+        {
+            "label": "push onto a {\"1e2\"}-keyed array",
+            "php": "collect([\"1e2\"=>\"exp\"])->push(9)",
+            "value": {
+                "1e2": "exp",
+                "0": 9
+            }
+        },
+        {
+            "label": "push onto a {\"-1\"}-keyed array",
+            "php": "collect([\"-1\"=>\"neg\"])->push(9)",
+            "value": {
+                "-1": "neg",
+                "0": 9
+            }
+        },
+        {
+            "label": "push onto a {\"5\"}-keyed array",
+            "php": "collect([\"5\"=>\"five\"])->push(9)",
+            "value": {
+                "5": "five",
+                "6": 9
+            }
+        },
+        {
+            "label": "ksort on integer keys",
+            "php": "ksort([5=>\"e\",2=>\"b\",9=>\"z\"])",
+            "value": {
+                "2": "b",
+                "5": "e",
+                "9": "z"
+            }
+        },
+        {
+            "label": "krsort on integer keys",
+            "php": "krsort([5=>\"e\",2=>\"b\",9=>\"z\"])",
+            "value": {
+                "9": "z",
+                "5": "e",
+                "2": "b"
+            }
+        },
+        {
+            "label": "krsort on a packed list",
+            "php": "krsort([0=>\"a\",1=>\"b\",2=>\"c\"])",
+            "value": {
+                "2": "c",
+                "1": "b",
+                "0": "a"
+            }
+        },
+        {
+            "label": "krsort mixes integer and string keys",
+            "php": "krsort([10=>\"j\",\"b\"=>\"bee\",2=>\"c\"])",
+            "value": {
+                "b": "bee",
+                "10": "j",
+                "2": "c"
+            }
+        },
+        {
+            "label": "sortBy(null) over array values",
+            "php": "collect([\"a\"=>[\"n\"=>2],\"b\"=>[\"n\"=>1],\"c\"=>[\"n\"=>3]])->sortBy(null)->values()",
+            "value": [
+                {
+                    "n": 1
+                },
+                {
+                    "n": 2
+                },
+                {
+                    "n": 3
+                }
+            ]
+        },
+        {
+            "label": "sortByMany falls through on an equal first key",
+            "php": "collect([[\"a\"=>[],\"b\"=>2],[\"a\"=>[],\"b\"=>1]])->sortBy([[\"a\",\"asc\"],[\"b\",\"asc\"]])->values()",
+            "value": [
+                {
+                    "a": [],
+                    "b": 1
+                },
+                {
+                    "a": [],
+                    "b": 2
+                }
+            ]
+        },
+        {
+            "label": "sortByMany treats 1 and \"1\" as a tie",
+            "php": "collect([[\"a\"=>1,\"b\"=>2],[\"a\"=>\"1\",\"b\"=>1]])->sortBy([[\"a\",\"asc\"],[\"b\",\"asc\"]])->values()",
+            "value": [
+                {
+                    "a": "1",
+                    "b": 1
+                },
+                {
+                    "a": 1,
+                    "b": 2
+                }
+            ]
+        },
+        {
+            "label": "sort orders numeric strings numerically",
+            "php": "sort([\"9\",\"10\"])",
+            "value": [
+                "9",
+                "10"
+            ]
+        },
+        {
+            "label": "rsort orders numeric strings numerically",
+            "php": "rsort([\"9\",\"10\"])",
+            "value": [
+                "10",
+                "9"
+            ]
+        },
+        {
+            "label": "spaceship on two numeric strings",
+            "php": "\"5\" <=> \"10\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on a numeric and a non-numeric string",
+            "php": "\"5\" <=> \"abc\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on zero and empty string",
+            "php": "0 <=> \"\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on null and false",
+            "php": "null <=> false",
+            "value": 0
+        },
+        {
+            "label": "array_intersect_assoc casts values to string",
+            "php": "array_intersect_assoc([\"a\"=>0],[\"a\"=>\"0\"])",
+            "value": {
+                "a": 0
+            }
+        },
+        {
+            "label": "array_diff_assoc casts values to string",
+            "php": "array_diff_assoc([\"a\"=>0],[\"a\"=>\"0\"])",
+            "value": []
+        },
+        {
+            "label": "array_diff_assoc casts a float to string",
+            "php": "array_diff_assoc([\"a\"=>1.0],[\"a\"=>\"1\"])",
+            "value": []
+        },
+        {
+            "label": "array_intersect_key never compares values",
+            "php": "array_intersect_key([\"a\"=>0],[\"a\"=>\"zzz\"])",
+            "value": {
+                "a": 0
+            }
+        },
+        {
+            "label": "Arr::dot keeps a \"__proto__\" key",
+            "php": "Arr::dot([\"__proto__\"=>1])",
+            "value": {
+                "__proto__": 1
+            }
+        },
+        {
+            "label": "Arr::dot keeps a \"__proto__\" array value",
+            "php": "Arr::dot([\"__proto__\"=>[]])",
+            "value": {
+                "__proto__": []
+            }
+        },
+        {
+            "label": "Arr::set preserves a sibling \"__proto__\" key",
+            "php": "Arr::set([[\"__proto__\"=>[\"isAdmin\"=>true],\"z\"=>1]],\"0.z\",2)",
+            "value": [
+                {
+                    "__proto__": {
+                        "isAdmin": true
+                    },
+                    "z": 2
+                }
+            ]
+        },
+        {
+            "label": "put uses \"length\" as an ordinary key",
+            "php": "collect([1,2])->put(\"length\",5)",
+            "value": {
+                "0": 1,
+                "1": 2,
+                "length": 5
+            }
+        },
+        {
+            "label": "Arr::push with a null key appends",
+            "php": "Arr::push([\"a\"=>1], null, 9)",
+            "value": {
+                "a": 1,
+                "0": 9
+            }
+        },
+        {
+            "label": "Arr::push with a null key on a list",
+            "php": "Arr::push([1,2], null, 9)",
+            "value": [
+                1,
+                2,
+                9
+            ]
+        },
+        {
+            "label": "Arr::undot with a billion-index key",
+            "php": "Arr::undot([\"1000000000\"=>\"x\"])",
+            "value": [
+                1000000000
+            ]
+        },
+        {
+            "label": "Arr::undot with a negative integer key",
+            "php": "Arr::undot([\"-1\"=>\"x\"])",
+            "value": [
+                -1
+            ]
+        },
+        {
+            "label": "Arr::set writes a \"constructor\" key",
+            "php": "Arr::set([], \"constructor\", 5)",
+            "value": {
+                "constructor": 5
+            }
+        },
+        {
+            "label": "Arr::set writes a nested \"constructor.prototype\" path",
+            "php": "Arr::set([], \"constructor.prototype.polluted\", 5)",
+            "value": {
+                "constructor": {
+                    "prototype": {
+                        "polluted": 5
+                    }
+                }
+            }
+        },
+        {
+            "label": "Arr::set writes a \"__proto__\" key",
+            "php": "Arr::set([], \"__proto__\", 5)",
+            "value": {
+                "__proto__": 5
+            }
+        },
+        {
+            "label": "Arr::flatten defaults to unlimited depth",
+            "php": "Arr::flatten([\"a\"=>[\"b\"=>[\"c\"=>[\"d\"=>1]]]])",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "Arr::flatten honours an explicit depth of 2",
+            "php": "Arr::flatten([\"a\"=>[\"b\"=>[\"c\"=>[\"d\"=>1]]]], 2)",
+            "value": [
+                {
+                    "d": 1
+                }
+            ]
+        }
+    ]
+}
