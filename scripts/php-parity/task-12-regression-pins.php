@@ -113,4 +113,30 @@ probe('push at a multi-segment key still requires an array at the resolved path'
     return ['unreachable' => $pd];
 });
 
+// The null-vs-missing distinction through a dotted path — the hard part of D5 — since a
+// flat key can't tell "hasOwn but null" apart from "no own key" the way a dotted path can.
+probe('push through an explicit null at a dotted path', 'Arr::push($e1 = ["a"=>["b"=>null]], "a.b", 9)', function () {
+    $e1 = ['a' => ['b' => null]];
+    Arr::push($e1, 'a.b', 9);
+
+    return ['unreachable' => $e1];
+});
+
+probe('push at a missing dotted path creates the array', 'Arr::push($e2 = ["a"=>[]], "a.b", 9)', function () {
+    $e2 = ['a' => []];
+    Arr::push($e2, 'a.b', 9);
+
+    return $e2;
+});
+
+// Surprise (see task-13 fix report): a non-array intermediate segment does NOT throw.
+// Arr::get()'s dot-walk returns the [] default the moment a segment isn't accessible,
+// so Arr::set() silently overwrites 1.5 with a fresh array instead of ever raising.
+probe('push through a float in a middle segment does not throw', 'Arr::push($e3 = [1.5, [2]], "0.1", 9)', function () {
+    $e3 = [1.5, [2]];
+    Arr::push($e3, '0.1', 9);
+
+    return $e3;
+});
+
 emit();

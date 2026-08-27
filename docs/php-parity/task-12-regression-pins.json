@@ -136,6 +136,37 @@
             "php": "Arr::push($pd = [[\"Desk\"]], \"0.0\", \"Chair\", \"Lamp\")",
             "threw": "InvalidArgumentException",
             "message": "Array value for key [0.0] must be an array, string found."
+        },
+        {
+            "label": "push through an explicit null at a dotted path",
+            "php": "Arr::push($e1 = [\"a\"=>[\"b\"=>null]], \"a.b\", 9)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [a.b] must be an array, NULL found."
+        },
+        {
+            "label": "push at a missing dotted path creates the array",
+            "php": "Arr::push($e2 = [\"a\"=>[]], \"a.b\", 9)",
+            "value": {
+                "a": {
+                    "b": [
+                        9
+                    ]
+                }
+            }
+        },
+        {
+            "label": "push through a float in a middle segment does not throw",
+            "php": "Arr::push($e3 = [1.5, [2]], \"0.1\", 9)",
+            "value": [
+                {
+                    "1": [
+                        9
+                    ]
+                },
+                [
+                    2
+                ]
+            ]
         }
     ]
 }

@@ -12,7 +12,6 @@ import {
     isString,
     isUndefined,
     isUnsafeKey,
-    typeOf,
 } from "@tolki/utils";
 
 /**
@@ -813,9 +812,7 @@ export function pushWithPath<TValue>(
             continue;
         }
 
-        throw new Error(
-            `Array value for key [${String(key)}] must be an array, ${typeOf(next)} found.`,
-        );
+        throw new Error(arrayValueMessage(next, key));
     }
 
     // An existing value at the leaf must itself be an array (PHP's Arr::array()

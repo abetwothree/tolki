@@ -2949,6 +2949,16 @@ describe("Obj", () => {
             );
         });
 
+        it("makes the same null-vs-missing distinction through a dotted path", () => {
+            // Same hasOwn distinction, one path segment deeper. PHP-verified in
+            // docs/php-parity/task-12-regression-pins.json ("push through an explicit null
+            // at a dotted path" / "push at a missing dotted path creates the array").
+            expect(Obj.push({ a: {} }, "a.b", 9)).toEqual({ a: { b: [9] } });
+            expect(() => Obj.push({ a: { b: null } }, "a.b", 9)).toThrow(
+                "Array value for key [a.b] must be an array, NULL found.",
+            );
+        });
+
         it("should handle non-object values", () => {
             const result = Obj.push(null, "items", "a");
             expect(result).toEqual({ items: ["a"] });
