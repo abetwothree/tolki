@@ -18,6 +18,45 @@ function compareStrings(a: string, b: string): number {
 }
 
 /**
+ * PHP's integer-string shape: its own whitespace set, an optional sign, digits.
+ * No nested quantifiers, so it cannot backtrack catastrophically (CodeQL ReDoS).
+ */
+const PHP_INTEGER_STRING_PATTERN = /^[ \t\n\r\v\f]*[+-]?\d+[ \t\n\r\v\f]*$/;
+
+/**
+ * Order two numeric strings the way PHP does, which `Number()` alone cannot.
+ *
+ * Two integer strings compare exactly, because a double collapses them past
+ * 2^53 — `"9007199254740993"` and `"…992"` are one `Number()` value. A pair
+ * that overflows to the same infinity falls back to string order, as PHP's
+ * `zendi_smart_strcmp` does.
+ *
+ * @param a - First numeric string
+ * @param b - Second numeric string
+ * @returns -1 if a < b, 1 if a > b, 0 if equal
+ */
+function compareNumericStrings(a: string, b: string): number {
+    if (
+        PHP_INTEGER_STRING_PATTERN.test(a) &&
+        PHP_INTEGER_STRING_PATTERN.test(b)
+    ) {
+        const leftInt = BigInt(a);
+        const rightInt = BigInt(b);
+
+        return leftInt < rightInt ? -1 : leftInt > rightInt ? 1 : 0;
+    }
+
+    const left = Number(a);
+    const right = Number(b);
+
+    if (left === right && !Number.isFinite(left)) {
+        return compareStrings(a, b);
+    }
+
+    return left < right ? -1 : left > right ? 1 : 0;
+}
+
+/**
  * Cast a value the way PHP's `(bool)` does, for `<=>`'s rule that a null or a
  * boolean on either side compares both sides as booleans.
  *
@@ -49,9 +88,14 @@ function toPhpBool(value: unknown): boolean {
  * on either side compares both sides as booleans, so `null` ties `0` and `""`
  * while `0` still outranks `""`.
  *
- * One departure is deliberate: arrays and objects order by their JSON form
+ * Two departures are deliberate. Arrays and objects order by their JSON form
  * rather than by PHP's "an array outranks every scalar" rule, which is a
- * partial order this port's object sorts cannot be built on.
+ * partial order this port's object sorts cannot be built on. And `undefined`,
+ * which PHP has no analogue for, compares as null.
+ *
+ * Faithful to PHP, this order is **not transitive** — `null` ties both `0` and
+ * `""`, yet `0 > ""`. Each pair answers what PHP answers, but where nulls or
+ * booleans mix with other scalars the permutation a sort lands on is its own.
  *
  * @param a - First value to compare
  * @param b - Second value to compare
@@ -88,6 +132,10 @@ export function compareValues(a: unknown, b: unknown): number {
     }
 
     if (isPhpNumeric(a) && isPhpNumeric(b)) {
+        if (isString(a) && isString(b)) {
+            return compareNumericStrings(a, b);
+        }
+
         const left = Number(a);
         const right = Number(b);
 

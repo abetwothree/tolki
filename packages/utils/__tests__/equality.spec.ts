@@ -33,46 +33,97 @@ describe("Utils", () => {
 
     describe("compareValues follows PHP 8's comparison rules", () => {
         // task-17-second-review.json, "spaceship on two numeric strings";
-        // task-19-spaceship.json, "spaceship on two numeric strings, wider on
-        // the left" and "spaceship on numeric strings spelled differently"
+        // task-19-spaceship.json, "spaceship on two numeric strings, wider on the left"
         it("compares two numeric strings numerically", () => {
             expect(Utils.compareValues("5", "10")).toBe(-1);
             expect(Utils.compareValues("9", "10")).toBe(-1);
             expect(Utils.compareValues("10", "9")).toBe(1);
-            expect(Utils.compareValues("1", "01")).toBe(0);
         });
 
-        // task-17-second-review.json, "spaceship on a numeric and a
-        // non-numeric string"
-        it("compares a numeric and a non-numeric string as strings", () => {
+        // task-19-spaceship.json, "spaceship on numeric strings spelled
+        // differently", "spaceship on an int and its numeric string" and
+        // "spaceship on a whitespace-padded integer string"
+        it("ties numeric operands that spell the same number", () => {
+            expect(Utils.compareValues("1", "01")).toBe(0);
+            expect(Utils.compareValues(1, "1")).toBe(0);
+            expect(Utils.compareValues(" 42 ", "42")).toBe(0);
+        });
+
+        // task-19-spaceship.json, "spaceship on integer strings one apart past
+        // 2^53" and its ascending twin, "spaceship on negative integer strings
+        // past 2^53", "spaceship on integer strings past the int64 range"
+        it("compares integer strings past 2^53 exactly", () => {
+            expect(
+                Utils.compareValues("9007199254740993", "9007199254740992"),
+            ).toBe(1);
+            expect(
+                Utils.compareValues("9007199254740993", "9007199254740994"),
+            ).toBe(-1);
+            expect(
+                Utils.compareValues("-9007199254740993", "-9007199254740992"),
+            ).toBe(-1);
+            expect(
+                Utils.compareValues(
+                    "99999999999999999999",
+                    "99999999999999999998",
+                ),
+            ).toBe(1);
+        });
+
+        // task-19-spaceship.json, "spaceship on a leading-zero integer string
+        // that is larger" and "spaceship on a leading-zero integer string that
+        // is smaller"
+        it("compares integer strings by value, not by digit count", () => {
+            expect(Utils.compareValues("0000123", "99")).toBe(1);
+            expect(Utils.compareValues("00001", "99")).toBe(-1);
+        });
+
+        // task-19-spaceship.json, "spaceship on exponent strings that overflow
+        // to infinity" and "spaceship on identical exponent strings that
+        // overflow" - PHP's own fallback for a pair that overflows to one value
+        it("orders exponent strings that overflow to infinity as strings", () => {
+            expect(Utils.compareValues("1e400", "1e401")).toBe(-1);
+            expect(Utils.compareValues("1e400", "1e400")).toBe(0);
+        });
+
+        // task-19-spaceship.json, "spaceship on decimal strings spelled
+        // differently" and "spaceship on an integer string and a decimal string"
+        it("compares decimal strings as numbers", () => {
+            expect(Utils.compareValues("1.5", "1.50")).toBe(0);
+            expect(Utils.compareValues("1.5", "2.5")).toBe(-1);
+            expect(Utils.compareValues("2.5", "1.5")).toBe(1);
+            expect(Utils.compareValues("42", "1.5")).toBe(1);
+        });
+
+        // task-17-second-review.json, "spaceship on a numeric and a non-numeric
+        // string". A pin, not a RED test: JS's `<` on two strings is already
+        // lexical, so this holds on the pre-fix source too.
+        it("compares two strings lexically when either is non-numeric", () => {
             expect(Utils.compareValues("5", "abc")).toBe(-1);
         });
 
         // task-17-second-review.json, "spaceship on zero and empty string";
-        // task-19-spaceship.json, "spaceship on a non-numeric string and an
-        // int", "spaceship on an int and a non-numeric string", "spaceship on
-        // a negative int and an empty string" and "spaceship on an int and its
-        // numeric string"
+        // task-19-spaceship.json, "spaceship on an int and a non-numeric string",
+        // "... a non-numeric string and an int", "... a negative int and an empty string"
         it("compares a number against a non-numeric string as strings", () => {
             expect(Utils.compareValues(0, "")).toBe(1);
             expect(Utils.compareValues(0, "abc")).toBe(-1);
             expect(Utils.compareValues("abc", 0)).toBe(1);
             expect(Utils.compareValues(5, "abc")).toBe(-1);
             expect(Utils.compareValues(-1, "")).toBe(1);
-            expect(Utils.compareValues(1, "1")).toBe(0);
         });
 
         // task-17-second-review.json, "spaceship on null and false";
-        // task-19-spaceship.json, "spaceship on null and zero" and "spaceship
-        // on null and an empty string"
+        // task-19-spaceship.json, "spaceship on null and zero" and
+        // "spaceship on null and an empty string"
         it("treats null as equal to the other falsy scalars", () => {
             expect(Utils.compareValues(null, false)).toBe(0);
             expect(Utils.compareValues(null, 0)).toBe(0);
             expect(Utils.compareValues(null, "")).toBe(0);
         });
 
-        // task-19-spaceship.json, "spaceship on null and a non-numeric
-        // string" and "spaceship on null and the string zero"
+        // task-19-spaceship.json, "spaceship on null and a non-numeric string"
+        // and "spaceship on null and the string zero"
         it("compares null against a string as the empty string", () => {
             expect(Utils.compareValues(null, "abc")).toBe(-1);
             expect(Utils.compareValues("abc", null)).toBe(1);
@@ -81,22 +132,30 @@ describe("Utils", () => {
         });
 
         // task-19-spaceship.json, "spaceship on null and a positive int",
-        // "spaceship on null and an empty array", "spaceship on null and a
-        // one-element array", "spaceship on false and a negative int",
-        // "spaceship on false and a non-numeric string", "spaceship on true
-        // and a positive int", "spaceship on true and an empty string",
-        // "spaceship on true and the string zero", "spaceship on false and an
-        // empty array" and "spaceship on true and false"
-        it("compares null or a boolean against anything else as booleans", () => {
+        // "spaceship on null and an empty array" and "spaceship on null and a
+        // one-element array"
+        it("compares null against a non-string as booleans", () => {
             expect(Utils.compareValues(null, 5)).toBe(-1);
             expect(Utils.compareValues(null, [])).toBe(0);
             expect(Utils.compareValues(null, [1])).toBe(-1);
+        });
+
+        // task-19-spaceship.json, "spaceship on false and a negative int",
+        // "spaceship on false and a non-numeric string" and "spaceship on false
+        // and an empty array"
+        it("compares false against anything else as booleans", () => {
             expect(Utils.compareValues(false, -1)).toBe(-1);
             expect(Utils.compareValues(false, "abc")).toBe(-1);
+            expect(Utils.compareValues(false, [])).toBe(0);
+        });
+
+        // task-19-spaceship.json, "spaceship on true and a positive int",
+        // "spaceship on true and an empty string", "spaceship on true and the
+        // string zero" and "spaceship on true and false"
+        it("compares true against anything else as booleans", () => {
             expect(Utils.compareValues(true, 5)).toBe(0);
             expect(Utils.compareValues(true, "")).toBe(1);
             expect(Utils.compareValues(true, "0")).toBe(1);
-            expect(Utils.compareValues(false, [])).toBe(0);
             expect(Utils.compareValues(true, false)).toBe(1);
         });
 

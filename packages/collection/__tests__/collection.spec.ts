@@ -9405,6 +9405,37 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        const mixed = [
+            { v: "9" },
+            { v: "10" },
+            { v: "1" },
+            { v: 5 },
+            { v: null },
+            { v: 0 },
+        ];
+
+        // task-19-spaceship.json, "whereNotBetween over numeric strings and
+        // falsy values" - a non-sort consumer of compareValues, which used to
+        // drop "10" because "10" <= "5" lexically.
+        it("excludes numeric strings by value, not lexically", () => {
+            expect(
+                collect(mixed)
+                    .whereNotBetween("v", ["1", "5"])
+                    .pluck("v")
+                    .all(),
+            ).toEqual(["9", "10", null, 0]);
+        });
+
+        // Known defect, NOT parity, and outside B6's scope: whereBetween filters
+        // through `where(key, ">=", ...)`, a comparator compareValues never
+        // reached, so it disagrees with PHP ("whereBetween over the same items"
+        // is ["1", 5]) and with the sibling above. Unchanged by this fix.
+        it("disagrees with whereBetween, which uses a different comparator", () => {
+            expect(
+                collect(mixed).whereBetween("v", ["1", "5"]).pluck("v").all(),
+            ).toEqual(["10", "1", 5]);
+        });
     });
 
     describe("whereNotIn", () => {

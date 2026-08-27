@@ -3192,9 +3192,9 @@ describe("Obj", () => {
                 expect(Object.keys(result)).toEqual(["a", "b", "c"]);
             });
 
-            // task-19-spaceship.json, "Arr::sort orders numeric strings
-            // numerically" and "Arr::sortDesc orders numeric strings
-            // numerically" - Obj mirrors Arr over an object backing.
+            // task-19-spaceship.json, "asort over a keyed mix of numeric
+            // strings and an int" and "arsort over a keyed mix of numeric
+            // strings and an int" - probed over this literal, not a list.
             it("orders numeric strings numerically, not lexically", () => {
                 const obj = { a: "9", b: "10", c: "1", d: 5 };
 
@@ -3761,6 +3761,27 @@ describe("Obj", () => {
                     "user2",
                     "user4",
                     "user5",
+                ]);
+            });
+
+            // task-19-spaceship.json, "arsort over the same null and empty-array
+            // fixture" - this port matches PHP's permutation exactly here, which
+            // the asort row it mirrors does not (see compareValues' docblock).
+            it("matches PHP's arsort over a null and empty-array fixture", () => {
+                const obj = {
+                    user0: 100,
+                    user1: 30,
+                    user2: null,
+                    user3: 25,
+                    user4: [],
+                };
+
+                expect(Object.keys(Obj.sortDesc(obj))).toEqual([
+                    "user0",
+                    "user1",
+                    "user3",
+                    "user2",
+                    "user4",
                 ]);
             });
         });
