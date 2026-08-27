@@ -6595,12 +6595,14 @@ describe("Collection", () => {
                 c: 3,
             });
 
-            // Test with numeric string keys
+            // Test with numeric string keys. Integer-like keys are renumbered
+            // from 0 by the integer-key policy (see sortedIntoItems), so "1"/"2"/"3"
+            // become "0"/"1"/"2" even though the order was already correct.
             const data2 = collect({ "3": "three", "1": "one", "2": "two" });
             expect(data2.sortKeys().all()).toEqual({
-                "1": "one",
-                "2": "two",
-                "3": "three",
+                "0": "one",
+                "1": "two",
+                "2": "three",
             });
 
             // Test empty collection
@@ -6636,6 +6638,76 @@ describe("Collection", () => {
                     B: "dayle",
                 });
             });
+        });
+
+        it("keeps array backing", () => {
+            // Covers sortKeysUsing's isArray branch; sortKeys' own array branch
+            // is already covered via sortKeysDesc's packed-list test below.
+            const sorted = new Collection(["a", "b", "c"]).sortKeysUsing(
+                (a, b) => Number(b) - Number(a),
+            );
+            expect(sorted.all()).toEqual(["c", "b", "a"]);
+            expect(Array.isArray(sorted.all())).toBe(true);
+        });
+    });
+
+    describe("sortKeys integer-key policy", () => {
+        // docs/php-parity/task-17-second-review.json, "krsort on integer keys":
+        // krsort([5=>"e",2=>"b",9=>"z"]) -> {"9":"z","5":"e","2":"b"}; keys get
+        // renumbered here (policy), so order is checked via values(), not names.
+        it("sorts integer keys descending", () => {
+            const sorted = new Collection({
+                5: "e",
+                2: "b",
+                9: "z",
+            }).sortKeysDesc();
+            expect(sorted.all()).toEqual({ 0: "z", 1: "e", 2: "b" });
+            expect(sorted.values().all()).toEqual(["z", "e", "b"]);
+        });
+
+        // docs/php-parity/task-17-second-review.json, "ksort on integer keys":
+        // ksort([5=>"e",2=>"b",9=>"z"]) -> {"2":"b","5":"e","9":"z"}.
+        it("sorts integer keys ascending", () => {
+            const sorted = new Collection({
+                5: "e",
+                2: "b",
+                9: "z",
+            }).sortKeys();
+            expect(sorted.all()).toEqual({ 0: "b", 1: "e", 2: "z" });
+            expect(sorted.values().all()).toEqual(["b", "e", "z"]);
+        });
+
+        it("orders integer keys numerically, not lexically", () => {
+            // A lexical comparator sorts "10" before "9"; only values() (not
+            // Object.keys(), which the engine always forces ascending) can show it.
+            const sorted = new Collection({ 9: "a", 10: "b" }).sortKeysDesc();
+            expect(sorted.values().all()).toEqual(["b", "a"]);
+        });
+
+        // docs/php-parity/task-17-second-review.json, "krsort on a packed list":
+        // krsort([0=>"a",1=>"b",2=>"c"]) -> {"2":"c","1":"b","0":"a"}.
+        it("reverses a packed list's keys and keeps it array-backed", () => {
+            const sorted = new Collection(["a", "b", "c"]).sortKeysDesc();
+            expect(sorted.all()).toEqual(["c", "b", "a"]);
+            expect(Array.isArray(sorted.all())).toBe(true);
+        });
+
+        it("still sorts string keys", () => {
+            const sorted = new Collection({ b: 2, a: 1, c: 3 }).sortKeysDesc();
+            expect(sorted.all()).toEqual({ c: 3, b: 2, a: 1 });
+            expect(sorted.values().all()).toEqual([3, 2, 1]);
+        });
+
+        // docs/php-parity/task-17-second-review.json, "krsort mixes integer and
+        // string keys": PHP gives {"b":"bee","10":"j","2":"c"}. Documented
+        // limitation: the engine always hoists integer keys first (reindexIntegerKeys).
+        it("cannot preserve krsort's order when integer and string keys mix", () => {
+            const sorted = new Collection({
+                10: "j",
+                b: "bee",
+                2: "c",
+            }).sortKeysDesc();
+            expect(sorted.values().all()).toEqual(["j", "c", "bee"]);
         });
     });
 

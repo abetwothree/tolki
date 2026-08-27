@@ -3513,23 +3513,33 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const keys = Object.keys(this.items);
 
         keys.sort((a, b) => {
-            if (isDesc) {
-                return a < b ? 1 : -1;
-            }
+            // Object.keys() never repeats a key, so a and b always differ:
+            // no third "equal" arm is reachable here, unlike a value comparator.
+            const comparison =
+                isIntegerLikeKey(a) && isIntegerLikeKey(b)
+                    ? Number(a) - Number(b)
+                    : a < b
+                      ? -1
+                      : 1;
 
-            return a < b ? -1 : 1;
+            return isDesc ? -comparison : comparison;
         });
 
-        const sortedItems = {} as DataItems<TValue, TKey>;
-        for (const key of keys) {
-            defineKey(
-                sortedItems as Record<string, TValue>,
-                key,
-                (this.items as Record<TKey, TValue>)[key as TKey],
-            );
+        const entries = keys.map(
+            (key) =>
+                [key, (this.items as Record<string, TValue>)[key]] as [
+                    string,
+                    TValue,
+                ],
+        );
+
+        // A real array has no engine-imposed key order to fight, so the sorted
+        // values slot straight in; only the object branch needs reindexIntegerKeys.
+        if (isArray(this.items)) {
+            return this.newInstance(entries.map(([, value]) => value));
         }
 
-        return this.newInstance(sortedItems);
+        return this.newInstance(sortedIntoItems(entries));
     }
 
     /**
@@ -3561,16 +3571,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         keys.sort((a, b) => callback(a as TKey, b as TKey));
 
-        const sortedItems = {} as DataItems<TValue, TKey>;
-        for (const key of keys) {
-            defineKey(
-                sortedItems as Record<string, TValue>,
-                key,
-                (this.items as Record<TKey, TValue>)[key as TKey],
-            );
+        const entries = keys.map(
+            (key) =>
+                [key, (this.items as Record<string, TValue>)[key]] as [
+                    string,
+                    TValue,
+                ],
+        );
+
+        if (isArray(this.items)) {
+            return this.newInstance(entries.map(([, value]) => value));
         }
 
-        return this.newInstance(sortedItems);
+        return this.newInstance(sortedIntoItems(entries));
     }
 
     /**
