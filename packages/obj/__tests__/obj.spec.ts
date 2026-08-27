@@ -485,10 +485,8 @@ describe("Obj", () => {
             ).toEqual({ user: { languages: ["PHP", "C#"], name: "Taylor" } });
         });
 
-        // Reviewer finding (2026-08-27): undotExpandObject's old Object.assign-based
-        // merge used [[Set]], so a "__proto__" key setObjectValue returns as its
-        // own data reparented the accumulator instead of copying it as data.
-        // PHP gives {"__proto__":{"PWN":"yes"}}.
+        // Object.assign uses [[Set]]; once setObjectValue returns "__proto__"
+        // as real data, merging it via assign reparented the result instead.
         it("keeps a __proto__ key as own data instead of reparenting the result", () => {
             const result = Obj.undot(
                 JSON.parse('{"__proto__.PWN":"yes"}'),
@@ -1490,7 +1488,7 @@ describe("Obj", () => {
         });
 
         // docs/php-parity/task-17-second-review.json: "Arr::set writes a
-        // \"constructor\" key", "Arr::set writes a \"__proto__\" key"
+        // \"constructor\" key", "...a \"prototype\" key", "...a \"__proto__\" key"
         describe("unsafe-key write policy", () => {
             afterEach(() => {
                 expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
@@ -1519,10 +1517,8 @@ describe("Obj", () => {
                 expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
             });
 
-            // Reviewer finding (2026-08-27): setObjectValue's own clone of
-            // an existing nested value (any segment, not just unsafe ones)
-            // already severs this alias, unlike setMixed/pushMixed's mutable
-            // traversal — confirming Obj.set stays immune.
+            // setObjectValue clones every existing nested value it descends
+            // through, unsafe key or not, so Obj.set stays immune here.
             it("never writes onto Object.prototype through an item's own aliased __proto__ key", () => {
                 const item = Object.create(null) as Record<string, unknown>;
                 item["__proto__"] = Object.prototype;
