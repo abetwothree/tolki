@@ -3509,6 +3509,30 @@ describe("Obj", () => {
                     { name: "Item", age: 10 },
                 ]);
 
+                // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
+                // "direction tuple [age,"asc"] — string form".
+                expect(
+                    Object.values(
+                        Obj.sort({ a: { age: 10 }, b: { age: 2 } }, [
+                            ["age", "asc"],
+                        ]),
+                    ),
+                ).toEqual([{ age: 2 }, { age: 10 }]);
+            });
+
+            it("honours [key, SortDirection.Ascending] as ascending", () => {
+                // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
+                // "direction tuple [age,SortDirection::Ascending]".
+                expect(
+                    Object.values(
+                        Obj.sort({ a: { age: 10 }, b: { age: 2 } }, [
+                            ["age", SortDirection.Ascending],
+                        ]),
+                    ),
+                ).toEqual([{ age: 2 }, { age: 10 }]);
+            });
+
+            it("honours [key, 'desc'] as descending", () => {
                 // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
                 // "direction tuple [age,"desc"] — string form".
                 expect(
@@ -3799,6 +3823,18 @@ describe("Obj", () => {
                     { name: "Item", age: 2, meta: { key: 1 } },
                     { name: "Apple", age: 5, meta: { key: 9 } },
                 ]);
+            });
+
+            it("lets sortDesc override an explicit ascending direction", () => {
+                // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
+                // "sortDesc overrides an explicit "asc" direction".
+                expect(
+                    Object.values(
+                        Obj.sortDesc({ x: { age: 2 }, y: { age: 10 } }, [
+                            ["age", "asc"],
+                        ]),
+                    ),
+                ).toEqual([{ age: 10 }, { age: 2 }]);
             });
 
             it("does not override a comparator descriptor's own direction", () => {

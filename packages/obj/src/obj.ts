@@ -18,6 +18,7 @@ import type { CaseValue, PathKey, PathKeys, SortSpec } from "@tolki/types";
 import {
     arrayableValues,
     compareValues,
+    createSortSpecComparator,
     defineKey,
     isArray,
     isBoolean,
@@ -47,6 +48,8 @@ import {
  * argument; every other function returns a new value. arr and obj agree
  * on this — re-read Collection.php before "aligning" one to the other.
  */
+
+const sortSpecComparator = createSortSpecComparator(getNestedValue);
 
 /**
  * Determine whether the given value is object accessible.
@@ -2667,61 +2670,6 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Build a comparator from a single sort descriptor.
- *
- * A tuple's direction follows Laravel's array-form multi-sort semantics:
- * `true`/`'asc'`/`"Ascending"` sorts ascending, any other explicit value
- * sorts descending, and an omitted direction defaults to ascending.
- *
- * @param spec - The key path, `[key]`/`[key, direction]` tuple, or comparator.
- * @param forceDescending - Forces descending on a key path or tuple; has no effect on a comparator function.
- * @returns A comparator for the descriptor.
- */
-function objSortSpecComparator<TValue>(
-    spec: SortSpec<TValue>,
-    forceDescending: boolean,
-): (a: TValue, b: TValue) => number {
-    if (isFunction(spec)) {
-        return spec as (a: TValue, b: TValue) => number;
-    }
-
-    if (isArray(spec)) {
-        const [key, direction] = spec as readonly [
-            string,
-            (boolean | "Ascending" | "Descending" | "asc" | "desc")?,
-        ];
-        // Collection::sortByMany's match-arm, with the 1-element-tuple fix
-        // documented on SortSpec: a missing direction defaults to `true`
-        // (ascending) via Arr::get($comparison, 1, true); `true`, `'asc'`,
-        // and Ascending sort ascending; everything else sorts descending.
-        const isAscending =
-            isUndefined(direction) ||
-            direction === true ||
-            direction === "asc" ||
-            direction === SortDirection.Ascending;
-        const isDescending = forceDescending || !isAscending;
-
-        return (a, b) => {
-            const comparison = compareValues(
-                getNestedValue(a as Record<string, unknown>, key),
-                getNestedValue(b as Record<string, unknown>, key),
-            );
-
-            return isDescending ? -comparison : comparison;
-        };
-    }
-
-    return (a, b) => {
-        const comparison = compareValues(
-            getNestedValue(a as Record<string, unknown>, spec as string),
-            getNestedValue(b as Record<string, unknown>, spec as string),
-        );
-
-        return forceDescending ? -comparison : comparison;
-    };
-}
-
-/**
  * Sort the object using the given callback, "dot" notation, or an array of
  * sort descriptors for multi-key sorting.
  *
@@ -2780,7 +2728,7 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
         // each descriptor keeps its own direction. Checked before isFalsy: an empty
         // descriptor array is PHP-falsy too, but is a no-op here, not a value sort.
         const comparators = (callback as readonly SortSpec<TValue>[]).map(
-            (spec) => objSortSpecComparator<TValue>(spec, false),
+            (spec) => sortSpecComparator<TValue>(spec, false),
         );
 
         entries.sort(([, a], [, b]) => {
@@ -2885,9 +2833,9 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isArray(callback)) {
         // Multi-key sorting - mirrors Collection::sortByDesc: every
         // descriptor's own direction is overridden to descending (a
-        // comparator function is unaffected - see objSortSpecComparator).
+        // comparator function is unaffected - see sortSpecComparator).
         const comparators = (callback as readonly SortSpec<TValue>[]).map(
-            (spec) => objSortSpecComparator<TValue>(spec, true),
+            (spec) => sortSpecComparator<TValue>(spec, true),
         );
 
         entries.sort(([, a], [, b]) => {

@@ -37,6 +37,7 @@ import {
     arrayableValues,
     castableToArray,
     compareValues,
+    createSortSpecComparator,
     defineKey,
     getAccessibleValues,
     isArray,
@@ -67,6 +68,8 @@ import {
  * argument; every other function returns a new value. arr and obj agree
  * on this — re-read Collection.php before "aligning" one to the other.
  */
+
+const sortSpecComparator = createSortSpecComparator(getNestedValue);
 
 /**
  * Determine whether the given value is array accessible.
@@ -2983,57 +2986,6 @@ export function sole<TValue>(
     }
 
     return filteredValues[0] as TValue;
-}
-
-/**
- * Build a comparator from a single sort descriptor.
- *
- * A tuple's direction follows Laravel's array-form multi-sort semantics:
- * `true`/`'asc'`/`"Ascending"` sorts ascending, any other explicit value
- * sorts descending, and an omitted direction defaults to ascending.
- *
- * @param spec - The key path, `[key]`/`[key, direction]` tuple, or comparator.
- * @param forceDescending - Forces descending on a key path or tuple; has no effect on a comparator function.
- * @returns A comparator for the descriptor.
- */
-function sortSpecComparator<TValue>(
-    spec: SortSpec<TValue>,
-    forceDescending: boolean,
-): (a: TValue, b: TValue) => number {
-    if (isFunction(spec)) {
-        return spec as (a: TValue, b: TValue) => number;
-    }
-
-    if (isArray(spec)) {
-        const [key, direction] = spec as readonly [
-            string,
-            (boolean | "Ascending" | "Descending" | "asc" | "desc")?,
-        ];
-        const isAscending =
-            isUndefined(direction) ||
-            direction === true ||
-            direction === "asc" ||
-            direction === SortDirection.Ascending;
-        const isDescending = forceDescending || !isAscending;
-
-        return (a, b) => {
-            const comparison = compareValues(
-                getNestedValue(a as Record<string, unknown>, key),
-                getNestedValue(b as Record<string, unknown>, key),
-            );
-
-            return isDescending ? -comparison : comparison;
-        };
-    }
-
-    return (a, b) => {
-        const comparison = compareValues(
-            getNestedValue(a as Record<string, unknown>, spec as string),
-            getNestedValue(b as Record<string, unknown>, spec as string),
-        );
-
-        return forceDescending ? -comparison : comparison;
-    };
 }
 
 /**
