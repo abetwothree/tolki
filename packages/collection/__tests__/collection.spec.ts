@@ -4233,9 +4233,9 @@ describe("Collection", () => {
             });
 
             it("classifies keys the same way unshift does", () => {
-                // "5" is excluded: PHP-verified, push always keeps an
-                // existing key but unshift's array_unshift renumbers a
-                // genuine canonical integer key, so the two diverge by design.
+                // "5" is excluded: PHP push keeps it, unshift renumbers it. "-1" also diverges
+                // from PHP's unshift (array_unshift renumbers it too), but agrees here only
+                // because isIntegerLikeKey excludes negatives for both — see keys.ts's carve-out.
                 for (const key of ["01", "1e2", "-1", ""]) {
                     const pushed = Object.keys(
                         new Collection({ [key]: "v" } as never)
