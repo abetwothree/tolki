@@ -624,10 +624,14 @@ describe("Path Functions", () => {
         });
 
         it("creates nested structure for non-accessible data", () => {
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             expect(Path.pushWithPath("not-array", "0", "value")).toEqual([
-                "value",
+                ["value"],
             ]);
-            expect(Path.pushWithPath(null, "0.0", "deep")).toEqual([["deep"]]);
+            expect(Path.pushWithPath(null, "0.0", "deep")).toEqual([
+                [["deep"]],
+            ]);
         });
 
         it("returns empty array for invalid segments", () => {
@@ -636,13 +640,17 @@ describe("Path Functions", () => {
             );
         });
 
-        it("pushes to nested arrays", () => {
+        it("pushes into the array already at the key", () => {
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             const data = [["a"]];
-            expect(Path.pushWithPath(data, "0", "b")).toEqual([["a"], "b"]);
+            expect(Path.pushWithPath(data, "0", "b")).toEqual([["a", "b"]]);
         });
 
         it("creates nested arrays as needed", () => {
-            expect(Path.pushWithPath([], "0.0", "deep")).toEqual([["deep"]]);
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
+            expect(Path.pushWithPath([], "0.0", "deep")).toEqual([[["deep"]]]);
         });
 
         it("handles existing non-array elements", () => {
@@ -659,19 +667,21 @@ describe("Path Functions", () => {
             );
         });
 
-        it("extends arrays when setting at higher indices", () => {
+        it("pushes into the empty array already at the key", () => {
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             const data = [[]];
             expect(Path.pushWithPath(data, "0", "a", "b")).toEqual([
-                [],
-                "a",
-                "b",
+                ["a", "b"],
             ]);
         });
 
         it("handles complex nested pushing", () => {
+            // The port clamps an out-of-range index to an append; PHP writes a gapped
+            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
             const data: unknown[] = [];
             const result = Path.pushWithPath(data, "0.1", "nested");
-            expect(result).toEqual([["nested"]]); // Creates structure to push to 0.1
+            expect(result).toEqual([[["nested"]]]);
         });
 
         it("covers additional pushWithPath edge cases", () => {
@@ -724,8 +734,9 @@ describe("Path Functions", () => {
             const data = [["existing"]];
             // Navigating to idx 5 should clamp to cursor.length (1)
             const result = Path.pushWithPath(data, "5.0", "value");
-            // Since we navigate to a high index, it creates nested structure and pushes
-            expect(result).toEqual([["existing"], ["value"]]);
+            // The port clamps an out-of-range index to an append; PHP writes a gapped
+            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
+            expect(result).toEqual([["existing"], [["value"]]]);
         });
 
         describe("array data branch with existing elements", () => {
@@ -733,16 +744,16 @@ describe("Path Functions", () => {
                 // Tests null replacement in array data branch
                 const data: (null | unknown[])[] = [null];
                 Path.pushWithPath(data, "0.0", "value");
-                // null at index 0 gets replaced with array
-                expect(data).toEqual([["value"]]);
+                // null at index 0 gets replaced with an array, then the leaf below it
+                expect(data).toEqual([[["value"]]]);
             });
 
             it("navigates into existing array", () => {
                 // Tests navigate into existing array
                 const data = [["existing"]];
                 Path.pushWithPath(data, "0.1", "new");
-                // Should navigate to data[0] and push "new"
-                expect(data).toEqual([["existing", "new"]]);
+                // Should navigate to data[0] and push into a fresh array at index 1
+                expect(data).toEqual([["existing", ["new"]]]);
             });
 
             it("throws for non-array at existing position", () => {
@@ -766,18 +777,19 @@ describe("Path Functions", () => {
             });
         });
 
-        describe("non-array data branch coverage", () => {
-            it("navigates through existing array at idx in non-array data branch", () => {
-                // Non-array data, path "0.1.0" with nested arrays
+        describe("non-accessible data stands in for an empty array", () => {
+            it("creates the whole nested structure for a clamped path", () => {
+                // The port clamps an out-of-range index to an append; PHP writes a gapped
+                // integer key instead (task-16-final-review.json, "push at an out-of-range index").
                 const result = Path.pushWithPath(null, "0.1.0", "value");
-                // Creates nested array structure
-                expect(result).toEqual([[["value"]]]);
+                expect(result).toEqual([[[["value"]]]]);
             });
 
-            it("replaces null at nested position in non-array data branch", () => {
-                // This tests where next is null
+            it("creates the whole nested structure for a three-segment path", () => {
+                // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+                // into the array AT the key, never beside it").
                 const result = Path.pushWithPath(null, "0.0.0", "value");
-                expect(result).toEqual([[["value"]]]);
+                expect(result).toEqual([[[["value"]]]]);
             });
 
             it("throws for non-array element in non-array data branch", () => {
@@ -792,10 +804,11 @@ describe("Path Functions", () => {
                 );
             });
 
-            it("checks boolean at leaf position in non-array data branch", () => {
-                // Tests boolean check at leaf
+            it("pushes a boolean value into the created leaf array", () => {
+                // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+                // into the array AT the key, never beside it").
                 const result = Path.pushWithPath(null, "0", true);
-                expect(result).toEqual([true]);
+                expect(result).toEqual([[true]]);
             });
         });
 
@@ -806,14 +819,17 @@ describe("Path Functions", () => {
         });
 
         it("handles non-array data with valid numeric path", () => {
-            // Creates array structure from null
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             const result = Path.pushWithPath(null, "0", "value");
-            expect(result).toEqual(["value"]);
+            expect(result).toEqual([["value"]]);
         });
 
         it("handles non-array data with nested numeric path", () => {
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             const result = Path.pushWithPath(null, "0.0", "value");
-            expect(result).toEqual([["value"]]);
+            expect(result).toEqual([[["value"]]]);
         });
 
         it("handles boolean at leaf position during push", () => {
@@ -838,7 +854,9 @@ describe("Path Functions", () => {
             // Test pushWithPath navigation creating child arrays
             const data: unknown[] = [];
             Path.pushWithPath(data, "0.1.2", "deep-value");
-            expect(data[0]).toEqual([["deep-value"]]);
+            // The port clamps an out-of-range index to an append; PHP writes a gapped
+            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
+            expect(data[0]).toEqual([[["deep-value"]]]);
 
             // Test pushWithPath with non-array existing value
             const data2 = [{}]; // Object at index 0
@@ -865,10 +883,10 @@ describe("Path Functions", () => {
 
         it("navigates through existing null elements", () => {
             const data: unknown[] = [null];
-            // When we have existing array with null at position 0, function replaces null with child array
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             Path.pushWithPath(data, "0.0", "value");
-            // Path "0.0" navigates to data[0] (null → []), then pushes "value" to cursor
-            expect(data).toEqual([["value"]]);
+            expect(data).toEqual([[["value"]]]);
         });
 
         it("handles leaf index with existing boolean in array data", () => {
@@ -883,16 +901,18 @@ describe("Path Functions", () => {
 
         it("creates nested arrays during navigation", () => {
             const data: unknown[] = [];
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             Path.pushWithPath(data, "0.0", "deep");
-            // Creates data[0] = [] then pushes "deep" to that array
-            expect(data).toEqual([["deep"]]);
+            expect(data).toEqual([[["deep"]]]);
         });
 
         it("handles pushing values when navigating creates new structure", () => {
             const data: unknown[] = [[]];
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             Path.pushWithPath(data, "0.0", "value");
-            // Navigates to data[0] (which is []), pushes "value" to cursor
-            expect(data).toEqual([["value"]]);
+            expect(data).toEqual([[["value"]]]);
         });
     });
 

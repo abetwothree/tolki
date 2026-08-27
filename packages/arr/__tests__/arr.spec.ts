@@ -1445,13 +1445,19 @@ describe("Arr", () => {
         it("push", () => {
             let data: unknown[] = [];
 
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             data = Arr.push(data, "0.0", "Desk");
-            expect(data).toEqual([["Desk"]]);
+            expect(data).toEqual([[["Desk"]]]);
+
+            // Pushing again lands inside the same leaf array rather than throwing.
+            data = Arr.push(data, "0.0", "Chair", "Lamp");
+            expect(data).toEqual([[["Desk", "Chair", "Lamp"]]]);
 
             // The guard fires at the final segment regardless of path depth. PHP-verified
             // in docs/php-parity/task-12-regression-pins.json ("push at a multi-segment
             // key still requires an array at the resolved path").
-            expect(() => Arr.push(data, "0.0", "Chair", "Lamp")).toThrow(
+            expect(() => Arr.push([["Desk"]], "0.0", "Chair", "Lamp")).toThrow(
                 "Array value for key [0.0] must be an array, string found.",
             );
 
@@ -1478,12 +1484,14 @@ describe("Arr", () => {
         });
 
         it("creates nested structure for deep paths and appends when a path segment does not exist", () => {
-            // Test push with complex nested paths that need creation
-            expect(Arr.push([], "0.0.0", "deep")).toEqual([[["deep"]]]);
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
+            expect(Arr.push([], "0.0.0", "deep")).toEqual([[[["deep"]]]]);
 
-            // Test push with paths
+            // The port clamps an out-of-range index to an append; PHP writes a gapped
+            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
             const result = Arr.push([], "2", "value");
-            expect(result).toEqual(["value"]); // pushWithPath appends to root when path doesn't exist
+            expect(result).toEqual([["value"]]);
         });
 
         it("should test complex push scenarios", () => {
@@ -1498,8 +1506,9 @@ describe("Arr", () => {
                 "new",
             ]); // Push to root
 
-            // Test push to create intermediate arrays
-            expect(Arr.push([], "1.0", "item")).toEqual([["item"]]); // Creates minimal structure
+            // The port clamps an out-of-range index to an append; PHP writes a gapped
+            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
+            expect(Arr.push([], "1.0", "item")).toEqual([[["item"]]]);
 
             // Test push with boolean conflict - should throw error
             try {
@@ -1527,9 +1536,10 @@ describe("Arr", () => {
         });
 
         it("creates minimal nested structure for a multi-segment path", () => {
-            // Test complex nested push operations
+            // The port clamps an out-of-range index to an append; PHP writes a gapped
+            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
             const nested = Arr.push([], "0.1.2", "deep-value");
-            expect(nested).toEqual([[["deep-value"]]]); // Creates minimal structure needed
+            expect(nested).toEqual([[[["deep-value"]]]]);
         });
     });
 

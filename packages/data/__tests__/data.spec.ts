@@ -1412,6 +1412,8 @@ describe("Data", () => {
             expect(result).toEqual({ items: ["a", "b", "c", "d"] });
         });
         it("is array", () => {
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             const result = Data.dataPush(
                 [
                     ["a", "b"],
@@ -1422,8 +1424,7 @@ describe("Data", () => {
             );
             expect(result).toEqual([
                 ["a", "b"],
-                ["c", "d"],
-                ["x", "y"],
+                ["c", "d", ["x", "y"]],
             ]);
         });
     });
@@ -2820,6 +2821,40 @@ describe("Data", () => {
             expect(() => Data.dataPush({ name: null }, "name", 9)).toThrow(
                 nullMessage,
             );
+        });
+
+        it("push appends into the array at the key on both backings", () => {
+            // Both backings pushed the values NEXT TO the array at the key instead of
+            // into it. PHP-verified in docs/php-parity/task-16-final-review.json
+            // ("push appends into the array AT the key, never beside it").
+            agree(
+                Arr.push([["Desk"]], "0", "Chair"),
+                Obj.push({ 0: ["Desk"] }, "0", "Chair"),
+                [["0", ["Desk", "Chair"]]],
+            );
+            agree(
+                Arr.push(["a", ["b"]], "1", "c", "d"),
+                Obj.push({ 0: "a", 1: ["b"] }, "1", "c", "d"),
+                [
+                    ["0", "a"],
+                    ["1", ["b", "c", "d"]],
+                ],
+            );
+            agree(
+                Data.dataPush([], "0", "value"),
+                Data.dataPush({}, "0", "value"),
+                [["0", ["value"]]],
+            );
+
+            // A multi-segment key creates the leaf array and pushes inside it.
+            expect(Arr.push([], "0.0", "value")).toEqual([[["value"]]]);
+            expect(Obj.push({}, "0.0", "value")).toEqual({
+                0: { 0: ["value"] },
+            });
+            expect(Arr.push([[[1]]], "0.0", 9)).toEqual([[[1, 9]]]);
+            expect(Obj.push({ a: { b: [1] } }, "a.b", 9)).toEqual({
+                a: { b: [1, 9] },
+            });
         });
 
         it("unshift mutates and renumbers the existing integer keys", () => {

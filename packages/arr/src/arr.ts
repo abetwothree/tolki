@@ -2789,18 +2789,22 @@ export function set(
 }
 
 /**
- * Push one or more items into an array using numeric-only dot notation and return new array.
+ * Push one or more items into the array at the given key, using numeric-only dot notation.
+ *
+ * Unlike PHP, the whole array is returned rather than `Arr::set`'s innermost
+ * container, and an out-of-range index is clamped to an append instead of
+ * producing a gapped integer key a JS array cannot hold.
  *
  * @param data - The array to push items into.
  * @param key - The key or dot-notated path of the array to push into. If null, push into root.
  * @param values - The values to push.
- * @returns A new array with the values pushed in.
+ * @returns The array with the values pushed into the array at the key.
  *
  * @example
  *
  * push(['a', 'b'], null, 'c', 'd'); -> ['a', 'b', 'c', 'd']
  * push(['a', ['b']], '1', 'c', 'd'); -> ['a', ['b', 'c', 'd']]
- * push(['a', ['b']], '1.1', 'c'); -> ['a', ['b', 'c']]
+ * push(['a', ['b']], '1.1', 'c'); -> ['a', ['b', ['c']]]
  */
 // Overload: typed array → element type preserved (including unions)
 export function push<TValue>(

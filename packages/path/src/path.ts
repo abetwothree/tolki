@@ -712,7 +712,7 @@ export function setImmutable<TValue>(
 
 /**
  * Push values to an array at a specific path using dot notation.
- * Creates nested arrays as needed and pushes values to the target location.
+ * Creates nested arrays as needed and pushes values into the array at the target key.
  *
  * @param data - The array to push values into.
  * @param key - The path where to push values (number, string, null, or undefined).
@@ -731,56 +731,26 @@ export function pushWithPath<TValue>(
     key: PathKey,
     ...values: TValue[]
 ): TValue[] {
+    // Non-accessible data stands in for the empty array PHP's `Arr::push` would
+    // have been handed, so both shapes build the same nested structure.
+    const root: unknown[] = isArray(data) ? (data as unknown[]) : [];
+
     if (isNull(key)) {
-        if (isArray(data)) {
-            (data as unknown[]).push(...(values as unknown[]));
-            return data as TValue[];
-        }
+        root.push(...(values as unknown[]));
 
-        return [...(values as unknown[])] as TValue[];
+        return root as TValue[];
     }
-
-    if (!isArray(data)) {
-        const out: unknown[] = [];
-        const segs = parseSegments(key);
-        if (!segs || segs.length === 0) {
-            return out as TValue[];
-        }
-
-        // Filter to only numeric segments for array operations
-        const numericSegs = segs.filter((s): s is number => isNumber(s));
-        if (numericSegs.length !== segs.length) {
-            // Mixed paths not supported in this array-only function
-            return out as TValue[];
-        }
-
-        const parentSegs = numericSegs.slice(0, -1);
-        let cursor: unknown[] = out;
-        for (const _desired of parentSegs) {
-            // Always append since we start with empty arrays and traverse immediately
-            const child: unknown[] = [];
-            cursor.push(child);
-            cursor = child;
-        }
-
-        cursor.push(...(values as unknown[]));
-
-        return out as TValue[];
-    }
-
-    // At this point, data is guaranteed to be an array
-    const root: unknown[] = data as unknown[];
 
     const segs = parseSegments(key);
     if (!segs || segs.length === 0) {
-        return data as TValue[];
+        return root as TValue[];
     }
 
     // Filter to only numeric segments for array operations
     const numericSegs = segs.filter((s): s is number => isNumber(s));
     if (numericSegs.length !== segs.length) {
         // Mixed paths not supported in this array-only function
-        return data as TValue[];
+        return root as TValue[];
     }
 
     const clamp = (idx: number, length: number): number => {
@@ -815,16 +785,22 @@ export function pushWithPath<TValue>(
         throw new Error(arrayValueMessage(next, key));
     }
 
-    // An existing value at the leaf must itself be an array (PHP's Arr::array()
-    // rule); a leaf past the end of cursor is absent, not existing-and-wrong-type.
-    const leaf = numericSegs[numericSegs.length - 1]!;
+    // `Arr::push` appends into the array AT the key, never beside it; an existing
+    // value there must itself be an array (PHP's `Arr::array()` rule), and an
+    // absent one becomes a fresh array first.
+    const leaf = clamp(numericSegs[numericSegs.length - 1]!, cursor.length);
+
     if (leaf < cursor.length && !isArray(cursor[leaf])) {
         throw new Error(arrayValueMessage(cursor[leaf], key));
     }
 
-    cursor.push(...(values as unknown[]));
+    if (leaf === cursor.length) {
+        cursor.push([]);
+    }
 
-    return data as TValue[];
+    (cursor[leaf] as unknown[]).push(...(values as unknown[]));
+
+    return root as TValue[];
 }
 
 /**
