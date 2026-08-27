@@ -2789,6 +2789,39 @@ describe("Data", () => {
             expect(Data.dataShift({}, 3)).toBeNull();
         });
 
+        it("push agrees on the array-guard message across both backings", () => {
+            // dataPush([1,2,3],0,9) never threw at all, and the object path threw a
+            // different, non-PHP message. PHP-verified in
+            // docs/php-parity/task-12-regression-pins.json ("push requires an array at the key").
+            const message =
+                "Array value for key [0] must be an array, integer found.";
+
+            expect(() => Arr.push([1, 2, 3], 0, 9)).toThrow(message);
+            expect(() => Obj.push({ 0: 1, 1: 2, 2: 3 }, "0", 9)).toThrow(
+                message,
+            );
+            expect(() => Data.dataPush([1, 2, 3], 0, 9)).toThrow(message);
+            expect(() => Data.dataPush({ 0: 1, 1: 2, 2: 3 }, "0", 9)).toThrow(
+                message,
+            );
+        });
+
+        it("push creates the array at a missing key but rejects an explicit null", () => {
+            // PHP-verified in docs/php-parity/task-12-regression-pins.json
+            // ("push at a missing key creates the array" / "push through an explicit null").
+            expect(Obj.push({}, "name", 9)).toEqual({ name: [9] });
+            expect(Data.dataPush({}, "name", 9)).toEqual({ name: [9] });
+
+            const nullMessage =
+                "Array value for key [name] must be an array, NULL found.";
+            expect(() => Obj.push({ name: null }, "name", 9)).toThrow(
+                nullMessage,
+            );
+            expect(() => Data.dataPush({ name: null }, "name", 9)).toThrow(
+                nullMessage,
+            );
+        });
+
         it("unshift mutates and renumbers the existing integer keys", () => {
             // array_unshift([10,20,30,40],1,2) -> [1,2,10,20,30,40]. Writing
             // the prepended values at 0 and 1 destroyed 10 and 20 instead.

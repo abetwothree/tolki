@@ -67,4 +67,50 @@ probe('undot only canonicalises canonical integer keys', 'Arr::undot(["1e2"=>"x"
     ];
 });
 
+// Arr::push() takes $array by reference, so it must be assigned to a variable first —
+// passing a literal dies with "could not be passed by reference" before the body runs.
+probe('push requires an array at the key', 'Arr::push($pa = [1,2,3], 0, 9)', function () {
+    $pa = [1, 2, 3];
+    Arr::push($pa, 0, 9);
+
+    return ['unreachable' => $pa];
+});
+
+probe('push through an explicit null', 'Arr::push($pb = ["name"=>null], "name", 9)', function () {
+    $pb = ['name' => null];
+    Arr::push($pb, 'name', 9);
+
+    return ['unreachable' => $pb];
+});
+
+probe('push at a missing key creates the array', 'Arr::push($pc = [], "name", 9)', function () {
+    $pc = [];
+    Arr::push($pc, 'name', 9);
+
+    return $pc;
+});
+
+// Arr::array() is the guard Arr::push() calls internally; probed directly here so
+// arrayItem's own pinned tests (the JS port of Arr::array()) trace to an exact-match row.
+probe('Arr::array requires an array at the key', 'Arr::array([1,2,3], 0)', function () {
+    return Arr::array([1, 2, 3], 0);
+});
+
+probe('Arr::array through an explicit null', 'Arr::array([null,["valid"]], 0)', function () {
+    return Arr::array([null, ['valid']], 0);
+});
+
+probe('Arr::array through a float', 'Arr::array([1.5], 0)', function () {
+    return Arr::array([1.5], 0);
+});
+
+// A multi-segment key resolves to the same array-or-throw guard at its final segment,
+// regardless of how many segments precede it.
+probe('push at a multi-segment key still requires an array at the resolved path', 'Arr::push($pd = [["Desk"]], "0.0", "Chair", "Lamp")', function () {
+    $pd = [['Desk']];
+    Arr::push($pd, '0.0', 'Chair', 'Lamp');
+
+    return ['unreachable' => $pd];
+});
+
 emit();

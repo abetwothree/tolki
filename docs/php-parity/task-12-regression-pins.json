@@ -91,6 +91,51 @@
                     "1": "x"
                 }
             }
+        },
+        {
+            "label": "push requires an array at the key",
+            "php": "Arr::push($pa = [1,2,3], 0, 9)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, integer found."
+        },
+        {
+            "label": "push through an explicit null",
+            "php": "Arr::push($pb = [\"name\"=>null], \"name\", 9)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [name] must be an array, NULL found."
+        },
+        {
+            "label": "push at a missing key creates the array",
+            "php": "Arr::push($pc = [], \"name\", 9)",
+            "value": {
+                "name": [
+                    9
+                ]
+            }
+        },
+        {
+            "label": "Arr::array requires an array at the key",
+            "php": "Arr::array([1,2,3], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, integer found."
+        },
+        {
+            "label": "Arr::array through an explicit null",
+            "php": "Arr::array([null,[\"valid\"]], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, NULL found."
+        },
+        {
+            "label": "Arr::array through a float",
+            "php": "Arr::array([1.5], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, double found."
+        },
+        {
+            "label": "push at a multi-segment key still requires an array at the resolved path",
+            "php": "Arr::push($pd = [[\"Desk\"]], \"0.0\", \"Chair\", \"Lamp\")",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0.0] must be an array, string found."
         }
     ]
 }
