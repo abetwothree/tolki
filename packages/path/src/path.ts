@@ -1030,8 +1030,10 @@ function promoteConsecutiveIntegerContainers(
             keys.length > 0 && keys.every((k, i) => k === String(i));
 
         if (isConsecutiveList) {
-            (parent as Record<string, unknown>)[lastSegment] = keys.map(
-                (k) => (container as Record<string, unknown>)[k],
+            defineKey(
+                parent as Record<string, unknown>,
+                lastSegment,
+                keys.map((k) => (container as Record<string, unknown>)[k]),
             );
         }
     }
@@ -1065,7 +1067,11 @@ export function undotExpandObject<
     // Object.entries returns string keys only (symbols are not enumerated)
     for (const [key, value] of Object.entries(map) as [string, TValue][]) {
         const result = setObjectValue(results, key, value);
-        Object.assign(results, result);
+        // Object.assign uses [[Set]], so a "__proto__" key setObjectValue
+        // returns as its own data would reparent results instead of copying.
+        for (const [k, v] of Object.entries(result)) {
+            defineKey(results, k, v);
+        }
 
         const segments = key.split(".");
         for (let i = 1; i < segments.length; i++) {
@@ -1414,10 +1420,11 @@ export function setMixed<TValue>(
             // At this point, current is guaranteed to be an object (or array treated as object)
             // because we always create structure before navigating
             const obj = current as Record<string, unknown>;
+            const unsafe = isUnsafeKey(segment);
             // An unsafe key not yet its own risks reading the inherited
             // accessor/data value (e.g. Object.prototype); treat it as absent.
             const nextValue =
-                isUnsafeKey(segment) && !Object.hasOwn(obj, segment)
+                unsafe && !Object.hasOwn(obj, segment)
                     ? undefined
                     : obj[segment];
             if (
@@ -1431,6 +1438,19 @@ export function setMixed<TValue>(
                     obj,
                     segment,
                     (isInteger(nextIndex) ? [] : {}) as TValue,
+                );
+            } else if (unsafe) {
+                // An owned unsafe key can itself be a live reference to a
+                // global (e.g. its value literally IS Object.prototype);
+                // clone it so the write below never lands on the real thing.
+                defineKey(
+                    obj,
+                    segment,
+                    (isArray(nextValue)
+                        ? [...(nextValue as unknown[])]
+                        : {
+                              ...(nextValue as Record<string, unknown>),
+                          }) as TValue,
                 );
             }
             current = obj[segment];
@@ -1450,9 +1470,10 @@ export function setMixed<TValue>(
             current.push(undefined as TValue);
         }
         current[lastIndex] = value as TValue;
-    } else {
-        // The traversal above never leaves `current` as anything but an
-        // array or plain object, so this write always has a target.
+    } else if (!isNull(current) && isObjectAny(current)) {
+        // The traversal above builds structure as it goes, so `current` is
+        // an array or plain object here for any array-shaped root — this
+        // guard only matters for a caller-supplied root that never was one.
         defineKey(current as Record<string, unknown>, lastSegment, value);
     }
 
@@ -1529,14 +1550,22 @@ export function pushMixed<TValue>(
         } else if (!isNull(current) && isObject(current)) {
             // Handle object properties
             const obj = current as Record<string, unknown>;
+            const unsafe = isUnsafeKey(segment);
             // An unsafe key not yet its own risks reading the inherited
             // accessor/data value (e.g. Object.prototype); treat it as absent.
             const existing =
-                isUnsafeKey(segment) && !Object.hasOwn(obj, segment)
+                unsafe && !Object.hasOwn(obj, segment)
                     ? undefined
                     : obj[segment];
             if (isNull(existing) || !isObject(existing)) {
                 defineKey(obj, segment, []);
+            } else if (unsafe) {
+                // An owned unsafe key can itself be a live reference to a
+                // global (e.g. its value literally IS Object.prototype);
+                // clone it so later writes never land on the real thing.
+                defineKey(obj, segment, {
+                    ...(existing as Record<string, unknown>),
+                });
             }
             current = obj[segment];
         } else {

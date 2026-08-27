@@ -1,5 +1,5 @@
 import * as Path from "@tolki/path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 describe("Path Functions", () => {
     describe("undotExpandObject", () => {
@@ -42,6 +42,30 @@ describe("Path Functions", () => {
                     a: 2,
                 }),
             ).toEqual({ a: 2 });
+        });
+
+        // Reviewer finding (2026-08-27): setObjectValue returns "__proto__"
+        // as an own key; the old Object.assign-based accumulator merge used
+        // [[Set]], which reparented the result instead of copying it as data.
+        it("keeps a __proto__ key as own data instead of reparenting the result", () => {
+            const result = Path.undotExpandObject(
+                JSON.parse('{"__proto__.PWN":"yes"}'),
+            ) as Record<string, unknown>;
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(Object.hasOwn(result, "__proto__")).toBe(true);
+            expect(
+                (result["__proto__"] as Record<string, unknown>)["PWN"],
+            ).toBe("yes");
+            expect((result as { PWN?: unknown }).PWN).toBeUndefined();
+        });
+
+        it("promotes a consecutive-integer __proto__ container to an array as own data", () => {
+            const result = Path.undotExpandObject(
+                JSON.parse('{"__proto__.0":"a","__proto__.1":"b"}'),
+            ) as Record<string, unknown>;
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(Object.hasOwn(result, "__proto__")).toBe(true);
+            expect(result["__proto__"]).toEqual(["a", "b"]);
         });
     });
 
@@ -1430,6 +1454,70 @@ describe("Path Functions", () => {
             expect(({} as Record<string, unknown>)["evil"]).toBeUndefined();
             expect(result).toBe(arr);
         });
+
+        // Reviewer finding (2026-08-27): an owned unsafe key whose value is
+        // itself a live reference (not a fresh container) must be cloned
+        // before further writes descend through it, or the write lands on
+        // the aliased target rather than on new, disconnected data.
+        describe("with an owned unsafe key aliasing a live reference", () => {
+            afterEach(() => {
+                expect(
+                    Object.getOwnPropertyNames(Object.prototype),
+                ).not.toContain("PWN");
+                expect(({} as { PWN?: unknown }).PWN).toBeUndefined();
+            });
+
+            it("clones a shared reference instead of writing through it", () => {
+                const shared = { keep: true };
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = shared;
+                const result = Path.setMixed([item], "0.__proto__.added", 1);
+                const owned = (result[0] as Record<string, unknown>)[
+                    "__proto__"
+                ] as Record<string, unknown>;
+                expect(owned).not.toBe(shared);
+                expect(owned).toEqual({ keep: true, added: 1 });
+                expect(shared).toEqual({ keep: true });
+            });
+
+            it("clones a shared array reference instead of writing through it", () => {
+                const shared = ["keep"];
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = shared;
+                const result = Path.setMixed([item], "0.__proto__.1", "added");
+                const owned = (result[0] as Record<string, unknown>)[
+                    "__proto__"
+                ];
+                expect(owned).not.toBe(shared);
+                expect(owned).toEqual(["keep", "added"]);
+                expect(shared).toEqual(["keep"]);
+            });
+
+            it("never writes onto Object.prototype through an aliased __proto__ key", () => {
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = Object.prototype;
+                Path.setMixed([item], "0.__proto__.PWN", 1);
+            });
+
+            it("never corrupts Object.prototype.constructor through a chained alias", () => {
+                const before = Object.prototype.constructor;
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = Object.prototype;
+                Path.setMixed([item], "0.__proto__.constructor.PWN", 1);
+                expect(Object.prototype.constructor).toBe(before);
+            });
+        });
+
+        // Reviewer minor (2026-08-27): a caller-supplied root that was never
+        // an array or object must stay a no-op, not throw from defineKey.
+        it("is a no-op for a final segment write against a non-object root", () => {
+            expect(() =>
+                Path.setMixed("abc" as unknown as unknown[], "x", 1),
+            ).not.toThrow();
+            expect(Path.setMixed("abc" as unknown as unknown[], "x", 1)).toBe(
+                "abc",
+            );
+        });
     });
 
     describe("pushMixed", () => {
@@ -1644,6 +1732,46 @@ describe("Path Functions", () => {
             expect(item["__proto__"]).toEqual(["evil"]);
             expect(({} as Record<string, unknown>)["0"]).toBeUndefined();
             expect(result).toBe(data);
+        });
+
+        // Reviewer finding (2026-08-27): same aliasing hazard as setMixed —
+        // an owned unsafe key whose value is a live reference must be cloned
+        // before pushMixed's navigation descends through it.
+        describe("with an owned unsafe key aliasing a live reference", () => {
+            afterEach(() => {
+                expect(
+                    Object.getOwnPropertyNames(Object.prototype),
+                ).not.toContain("PWN");
+                expect(({} as { PWN?: unknown }).PWN).toBeUndefined();
+            });
+
+            it("clones a shared reference instead of navigating through it", () => {
+                const shared = { keep: true };
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = shared;
+                Path.pushMixed<unknown>([item], "0.__proto__.ignored", "evil");
+                const owned = item["__proto__"] as Record<string, unknown>;
+                expect(owned).not.toBe(shared);
+                expect(shared).toEqual({ keep: true });
+            });
+
+            it("never writes onto Object.prototype through an aliased __proto__ key", () => {
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = Object.prototype;
+                Path.pushMixed<unknown>([item], "0.__proto__.ignored", "x");
+            });
+
+            it("never corrupts Object.prototype.constructor through a chained alias", () => {
+                const before = Object.prototype.constructor;
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = Object.prototype;
+                Path.pushMixed<unknown>(
+                    [item],
+                    "0.__proto__.constructor.ignored",
+                    "x",
+                );
+                expect(Object.prototype.constructor).toBe(before);
+            });
         });
     });
 
