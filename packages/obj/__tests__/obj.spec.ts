@@ -3153,10 +3153,18 @@ describe("Obj", () => {
             );
         });
 
-        it("should throw error for key being null", () => {
-            const obj = { name: "John" };
-            expect(() => Obj.push(obj, null, "value")).toThrow(
-                "Cannot push to root of object without specifying a key (key is null)",
+        it("appends with the next integer key when the key is null", () => {
+            // docs/php-parity/task-17-second-review.json, "Arr::push with a null key appends"
+            expect(Obj.push({ a: 1 }, null, 9)).toEqual({ a: 1, 0: 9 });
+        });
+
+        it("agrees with the array backing on a null key", () => {
+            // Integer-like keys always enumerate first, so compare values as sets.
+            const objValues = Object.values(Obj.push({ a: 1, b: 2 }, null, 9));
+            const arrValues = Arr.push([1, 2], null, 9);
+
+            expect([...objValues].sort((a, b) => a - b)).toEqual(
+                [...arrValues].sort((a, b) => a - b),
             );
         });
     });

@@ -1500,6 +1500,10 @@ describe("Data", () => {
             const result = Data.dataPush(obj, "items", "c", "d");
             expect(result).toEqual({ items: ["a", "b", "c", "d"] });
         });
+        it("appends with the next integer key when the key is null", () => {
+            // docs/php-parity/task-17-second-review.json, "Arr::push with a null key appends"
+            expect(Data.dataPush({ a: 1 }, null, 9)).toEqual({ a: 1, 0: 9 });
+        });
         it("is array", () => {
             // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
             // into the array AT the key, never beside it").
@@ -2960,6 +2964,19 @@ describe("Data", () => {
             expect(Obj.push({ a: { b: [1] } }, "a.b", 9)).toEqual({
                 a: { b: [1, 9] },
             });
+        });
+
+        it("push appends with the next integer key when the key is null", () => {
+            // docs/php-parity/task-17-second-review.json, "Arr::push with a null key on a list"
+            agree(
+                Data.dataPush([1, 2], null, 9),
+                Data.dataPush({ 0: 1, 1: 2 }, null, 9),
+                [
+                    ["0", 1],
+                    ["1", 2],
+                    ["2", 9],
+                ],
+            );
         });
 
         it("unshift mutates and renumbers the existing integer keys", () => {

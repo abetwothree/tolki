@@ -2499,13 +2499,27 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
         return setObjectValue({} as Record<TKey, TValue>, key, values);
     }
 
+    const obj = data as Record<TKey, TValue>;
+
+    // Arr::push with a null key is Arr::get(null) (whole array) then array_push, so it
+    // appends after the highest existing integer-like key instead of throwing.
     if (isNull(key)) {
-        throw new Error(
-            "Cannot push to root of object without specifying a key (key is null)",
-        );
+        let nextIndex = 0;
+        for (const existing of Object.keys(obj)) {
+            if (isIntegerLikeKey(existing) && Number(existing) >= nextIndex) {
+                nextIndex = Number(existing) + 1;
+            }
+        }
+
+        const result = { ...obj } as Record<PropertyKey, TValue>;
+        for (const value of values) {
+            result[nextIndex] = value;
+            nextIndex++;
+        }
+
+        return result as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<TKey, TValue>;
     const existingValue = getObjectValue(obj, key);
 
     if (isArray(existingValue)) {
