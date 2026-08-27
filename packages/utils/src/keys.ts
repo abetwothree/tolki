@@ -132,7 +132,7 @@ export function reindexIntegerKeys<TValue>(
  */
 export function defineKey<TValue>(
     target: Record<string, TValue>,
-    key: string,
+    key: PropertyKey,
     value: TValue,
 ): void {
     Object.defineProperty(target, key, {

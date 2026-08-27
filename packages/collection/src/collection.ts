@@ -1229,13 +1229,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
                 groupKey = normalizeGroupKey(groupKey) as TGroupKey;
 
-                const groupName = String(groupKey);
                 const groups = results as Record<
-                    string,
+                    PropertyKey,
                     Collection<TValue, TKey>
                 >;
-                let group = Object.hasOwn(groups, groupName)
-                    ? groups[groupName]
+                let group = Object.hasOwn(groups, groupKey)
+                    ? groups[groupKey]
                     : undefined;
 
                 if (!group) {
@@ -1245,7 +1244,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
                         TValue,
                         TKey
                     >;
-                    defineKey(groups, groupName, group);
+                    defineKey(
+                        groups as Record<string, Collection<TValue, TKey>>,
+                        groupKey,
+                        group,
+                    );
                 }
 
                 group.offsetSet(
@@ -1370,7 +1373,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 resolvedKey = "";
             }
 
-            defineKey(results, String(resolvedKey), value as TValue);
+            defineKey(results, resolvedKey as PropertyKey, value as TValue);
         }
 
         return this.newInstance(results);
@@ -1932,9 +1935,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
             TMapToDictionaryValue[]
         >;
 
-        const buckets = dictionary as Record<string, TMapToDictionaryValue[]>;
+        const buckets = dictionary as Record<
+            PropertyKey,
+            TMapToDictionaryValue[]
+        >;
 
-        const bucket = (name: string): TMapToDictionaryValue[] => {
+        const bucket = (name: PropertyKey): TMapToDictionaryValue[] => {
             const existing = Object.hasOwn(buckets, name)
                 ? buckets[name]
                 : undefined;
@@ -1944,7 +1950,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
 
             const created: TMapToDictionaryValue[] = [];
-            defineKey(buckets, name, created);
+            defineKey(
+                buckets as Record<string, TMapToDictionaryValue[]>,
+                name,
+                created,
+            );
 
             return created;
         };
@@ -1966,7 +1976,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
                 const [mappedKey, mappedValue] = mapped;
 
-                bucket(String(mappedKey)).push(
+                bucket(mappedKey as PropertyKey).push(
                     mappedValue as TMapToDictionaryValue,
                 );
                 continue;
@@ -4012,7 +4022,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         if (!isNull(key)) {
             defineKey(
                 this.items as Record<string, TValue>,
-                String(key),
+                key,
                 item as unknown as TValue,
             );
 
@@ -5835,7 +5845,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
                 defineKey(
                     obj as Record<string, TValue>,
-                    String(finalKey),
+                    finalKey,
                     value as TValue,
                 );
                 orderedPairs.push([finalKey, value as TValue]);
