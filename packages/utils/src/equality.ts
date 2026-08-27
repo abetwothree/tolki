@@ -1,6 +1,57 @@
+import {
+    isArray,
+    isBoolean,
+    isNull,
+    isPhpNumeric,
+    isString,
+    isUndefined,
+} from "./guards";
+
+/** PHP has no `undefined`; this port uses it for the missing value `data_get` answers with null. */
+function isNullish(value: unknown): value is null | undefined {
+    return isNull(value) || isUndefined(value);
+}
+
+/** Order two strings by UTF-16 code unit, which is PHP's non-numeric string comparison. */
+function compareStrings(a: string, b: string): number {
+    return a < b ? -1 : a > b ? 1 : 0;
+}
+
 /**
- * Helper function to safely compare two unknown values for sorting.
- * Provides stable comparison for objects using JSON serialization.
+ * Cast a value the way PHP's `(bool)` does, for `<=>`'s rule that a null or a
+ * boolean on either side compares both sides as booleans.
+ *
+ * @param value - The value to cast
+ * @returns The value's PHP truthiness
+ */
+function toPhpBool(value: unknown): boolean {
+    // typeof, not isNumber: PHP's (bool) NAN is true, so only a real zero is falsy.
+    if (typeof value === "number") {
+        return value !== 0;
+    }
+
+    if (isString(value)) {
+        return value !== "" && value !== "0";
+    }
+
+    if (isArray(value)) {
+        return value.length > 0;
+    }
+
+    return Boolean(value);
+}
+
+/**
+ * Order two values the way PHP 8's `<=>` does.
+ *
+ * Two numeric operands compare numerically, so `"9"` sorts below `"10"`;
+ * anything else against a string compares as strings; and a null or a boolean
+ * on either side compares both sides as booleans, so `null` ties `0` and `""`
+ * while `0` still outranks `""`.
+ *
+ * One departure is deliberate: arrays and objects order by their JSON form
+ * rather than by PHP's "an array outranks every scalar" rule, which is a
+ * partial order this port's object sorts cannot be built on.
  *
  * @param a - First value to compare
  * @param b - Second value to compare
@@ -8,21 +59,43 @@
  *
  * @example
  * compareValues(1, 2); -> -1
- * compareValues('b', 'a'); -> 1
+ * compareValues("9", "10"); -> -1
+ * compareValues(0, ""); -> 1
+ * compareValues(null, false); -> 0
  * compareValues({x: 1}, {x: 1}); -> 0
  */
 export function compareValues(a: unknown, b: unknown): number {
-    if (a == null && b == null) return 0;
-    if (a == null) return -1;
-    if (b == null) return 1;
+    // PHP takes the null-against-string arm before the boolean one, so null
+    // compares as "" there and ends up below "0" rather than tying it.
+    if (isNullish(a) && isString(b)) {
+        return compareStrings("", b);
+    }
 
-    // For objects, compare by JSON string representation for stable sorting
+    if (isString(a) && isNullish(b)) {
+        return compareStrings(a, "");
+    }
+
+    if (isNullish(a) || isNullish(b) || isBoolean(a) || isBoolean(b)) {
+        const left = toPhpBool(a);
+        const right = toPhpBool(b);
+
+        return left === right ? 0 : left ? 1 : -1;
+    }
+
+    // Stable JSON ordering, not PHP's array rule -- see the note on the docblock.
     if (typeof a === "object" && typeof b === "object") {
-        const aStr = JSON.stringify(a);
-        const bStr = JSON.stringify(b);
-        if (aStr < bStr) return -1;
-        if (aStr > bStr) return 1;
-        return 0;
+        return compareStrings(JSON.stringify(a), JSON.stringify(b));
+    }
+
+    if (isPhpNumeric(a) && isPhpNumeric(b)) {
+        const left = Number(a);
+        const right = Number(b);
+
+        return left < right ? -1 : left > right ? 1 : 0;
+    }
+
+    if (isString(a) || isString(b)) {
+        return compareStrings(String(a), String(b));
     }
 
     if (a < b) return -1;

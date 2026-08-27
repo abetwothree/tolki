@@ -3187,12 +3187,7 @@ export function sortDesc<TValue>(
     }
 
     if (isFalsy(callback)) {
-        // Natural sorting in descending order - use compareValues (reversed)
-        // for proper numeric/string comparison, matching `sort`'s ascending
-        // branch. A bare `.sort().reverse()` coerces every element to a
-        // string and compares by UTF-16 code unit, which is wrong for
-        // multi-digit numbers (e.g. "10" sorts before "9" lexicographically)
-        // and unstable for ties.
+        // PHP 8 orders numeric strings numerically; compareValues carries that rule.
         return result.sort((a, b) => compareValues(b, a));
     }
 

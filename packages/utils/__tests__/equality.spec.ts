@@ -31,6 +31,85 @@ describe("Utils", () => {
         expect(Utils.compareValues([], {})).toBe(-1); // "[]" < "{}"
     });
 
+    describe("compareValues follows PHP 8's comparison rules", () => {
+        // task-17-second-review.json, "spaceship on two numeric strings";
+        // task-19-spaceship.json, "spaceship on two numeric strings, wider on
+        // the left" and "spaceship on numeric strings spelled differently"
+        it("compares two numeric strings numerically", () => {
+            expect(Utils.compareValues("5", "10")).toBe(-1);
+            expect(Utils.compareValues("9", "10")).toBe(-1);
+            expect(Utils.compareValues("10", "9")).toBe(1);
+            expect(Utils.compareValues("1", "01")).toBe(0);
+        });
+
+        // task-17-second-review.json, "spaceship on a numeric and a
+        // non-numeric string"
+        it("compares a numeric and a non-numeric string as strings", () => {
+            expect(Utils.compareValues("5", "abc")).toBe(-1);
+        });
+
+        // task-17-second-review.json, "spaceship on zero and empty string";
+        // task-19-spaceship.json, "spaceship on a non-numeric string and an
+        // int", "spaceship on an int and a non-numeric string", "spaceship on
+        // a negative int and an empty string" and "spaceship on an int and its
+        // numeric string"
+        it("compares a number against a non-numeric string as strings", () => {
+            expect(Utils.compareValues(0, "")).toBe(1);
+            expect(Utils.compareValues(0, "abc")).toBe(-1);
+            expect(Utils.compareValues("abc", 0)).toBe(1);
+            expect(Utils.compareValues(5, "abc")).toBe(-1);
+            expect(Utils.compareValues(-1, "")).toBe(1);
+            expect(Utils.compareValues(1, "1")).toBe(0);
+        });
+
+        // task-17-second-review.json, "spaceship on null and false";
+        // task-19-spaceship.json, "spaceship on null and zero" and "spaceship
+        // on null and an empty string"
+        it("treats null as equal to the other falsy scalars", () => {
+            expect(Utils.compareValues(null, false)).toBe(0);
+            expect(Utils.compareValues(null, 0)).toBe(0);
+            expect(Utils.compareValues(null, "")).toBe(0);
+        });
+
+        // task-19-spaceship.json, "spaceship on null and a non-numeric
+        // string" and "spaceship on null and the string zero"
+        it("compares null against a string as the empty string", () => {
+            expect(Utils.compareValues(null, "abc")).toBe(-1);
+            expect(Utils.compareValues("abc", null)).toBe(1);
+            expect(Utils.compareValues(null, "0")).toBe(-1);
+            expect(Utils.compareValues("0", null)).toBe(1);
+        });
+
+        // task-19-spaceship.json, "spaceship on null and a positive int",
+        // "spaceship on null and an empty array", "spaceship on null and a
+        // one-element array", "spaceship on false and a negative int",
+        // "spaceship on false and a non-numeric string", "spaceship on true
+        // and a positive int", "spaceship on true and an empty string",
+        // "spaceship on true and the string zero", "spaceship on false and an
+        // empty array" and "spaceship on true and false"
+        it("compares null or a boolean against anything else as booleans", () => {
+            expect(Utils.compareValues(null, 5)).toBe(-1);
+            expect(Utils.compareValues(null, [])).toBe(0);
+            expect(Utils.compareValues(null, [1])).toBe(-1);
+            expect(Utils.compareValues(false, -1)).toBe(-1);
+            expect(Utils.compareValues(false, "abc")).toBe(-1);
+            expect(Utils.compareValues(true, 5)).toBe(0);
+            expect(Utils.compareValues(true, "")).toBe(1);
+            expect(Utils.compareValues(true, "0")).toBe(1);
+            expect(Utils.compareValues(false, [])).toBe(0);
+            expect(Utils.compareValues(true, false)).toBe(1);
+        });
+
+        // Recorded divergence, not parity: PHP orders every array above every
+        // scalar (task-19-spaceship.json, "spaceship on an int and a
+        // one-element array" is -1), where this port keeps JS coercion.
+        it("leaves an array against a number to JS coercion", () => {
+            expect(Utils.compareValues([1], 5)).toBe(-1);
+            expect(Utils.compareValues([1], 0)).toBe(1);
+            expect(Utils.compareValues([5], 5)).toBe(0);
+        });
+    });
+
     it("strictEqual handles class instances vs plain objects and key mismatches", () => {
         class Foo {
             x: number;

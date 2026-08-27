@@ -6017,6 +6017,39 @@ describe("Collection", () => {
                 // Natural sorting would require a different implementation with localeCompare numeric option
             });
         });
+
+        // task-19-spaceship.json, "Collection::sort orders numeric strings
+        // numerically", "Collection::sortDesc ...", "Collection::sortBy(null)
+        // ..." and "Collection::sortByDesc(null) ..."
+        it("orders numeric strings numerically through every sort entry point", () => {
+            const mixed = ["9", "10", "1", 5];
+            const ascending = ["1", 5, "9", "10"];
+            const descending = ["10", "9", 5, "1"];
+
+            expect(collect(mixed).sort().values().all()).toEqual(ascending);
+            expect(collect(mixed).sortDesc().values().all()).toEqual(
+                descending,
+            );
+            expect(collect(mixed).sortBy(null).values().all()).toEqual(
+                ascending,
+            );
+            expect(collect(mixed).sortByDesc(null).values().all()).toEqual(
+                descending,
+            );
+        });
+
+        // task-19-spaceship.json, "Collection::sortBy([key]) orders numeric
+        // strings numerically"
+        it("orders numeric strings numerically through sortByMany", () => {
+            const rows = [{ n: "9" }, { n: "10" }, { n: "1" }, { n: 5 }];
+
+            expect(collect(rows).sortBy(["n"]).pluck("n").all()).toEqual([
+                "1",
+                5,
+                "9",
+                "10",
+            ]);
+        });
     });
 
     describe("sortDesc", () => {
@@ -6231,13 +6264,14 @@ describe("Collection", () => {
             ]);
         });
 
-        it("handles a == null comparison", () => {
+        // task-19-spaceship.json, "spaceship on null and a positive int"
+        it("orders a null value before a number", () => {
             const c = collect([{ val: null }, { val: 1 }]);
             const sorted = c.sortBy("val");
             expect(sorted.values().all()).toEqual([{ val: null }, { val: 1 }]);
         });
 
-        it("handles b == null comparison", () => {
+        it("orders a null value before a number from either side", () => {
             const c = collect([{ val: 1 }, { val: null }]);
             const sorted = c.sortBy("val");
             expect(sorted.values().all()).toEqual([{ val: null }, { val: 1 }]);

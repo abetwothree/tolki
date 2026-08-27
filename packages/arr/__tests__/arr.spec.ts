@@ -3962,10 +3962,42 @@ describe("Arr", () => {
         });
 
         it("orders null before numbers, matching compareValues' ascending semantics", () => {
-            // compareValues treats null as less than any non-null value
-            // (`a == null` short-circuits to -1 before the numeric branch
-            // runs), so ascending natural sort puts null first.
+            // PHP compares null against a number as booleans, so null loses to
+            // every non-zero one (task-19-spaceship.json, "spaceship on null
+            // and a positive int").
             expect(Arr.sort([null, 3, 1])).toEqual([null, 1, 3]);
+        });
+
+        // task-17-second-review.json, "sort orders numeric strings
+        // numerically" and "rsort orders numeric strings numerically";
+        // task-19-spaceship.json, "Arr::sort orders numeric strings
+        // numerically" and "Arr::sortDesc orders numeric strings numerically"
+        it("orders numeric strings numerically, not lexically", () => {
+            expect(Arr.sort(["9", "10"])).toEqual(["9", "10"]);
+            expect(Object.values(Arr.sortDesc(["9", "10"]))).toEqual([
+                "10",
+                "9",
+            ]);
+            expect(Arr.sort(["9", "10", "1", 5])).toEqual(["1", 5, "9", "10"]);
+            expect(Arr.sortDesc(["9", "10", "1", 5])).toEqual([
+                "10",
+                "9",
+                5,
+                "1",
+            ]);
+        });
+
+        // task-19-spaceship.json, "Arr::sort by key orders numeric strings
+        // numerically"
+        it("orders numeric strings numerically through a key path too", () => {
+            const rows = [{ n: "9" }, { n: "10" }, { n: "1" }, { n: 5 }];
+
+            expect(Arr.sort(rows, "n")).toEqual([
+                { n: "1" },
+                { n: 5 },
+                { n: "9" },
+                { n: "10" },
+            ]);
         });
     });
 
@@ -4271,8 +4303,9 @@ describe("Arr", () => {
         });
 
         it("orders null after numbers, matching compareValues' descending semantics", () => {
-            // compareValues treats null as less than any non-null value, so
-            // descending order (compareValues(b, a)) puts null last.
+            // PHP compares null against a number as booleans, so null loses to
+            // every non-zero one (task-19-spaceship.json, "spaceship on null
+            // and a positive int") and descending order puts it last.
             expect(Arr.sortDesc([null, 3, 1])).toEqual([3, 1, null]);
         });
     });

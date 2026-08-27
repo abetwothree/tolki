@@ -3192,15 +3192,35 @@ describe("Obj", () => {
                 expect(Object.keys(result)).toEqual(["a", "b", "c"]);
             });
 
+            // task-19-spaceship.json, "Arr::sort orders numeric strings
+            // numerically" and "Arr::sortDesc orders numeric strings
+            // numerically" - Obj mirrors Arr over an object backing.
+            it("orders numeric strings numerically, not lexically", () => {
+                const obj = { a: "9", b: "10", c: "1", d: 5 };
+
+                expect(Object.values(Obj.sort(obj))).toEqual([
+                    "1",
+                    5,
+                    "9",
+                    "10",
+                ]);
+                expect(Object.values(Obj.sortDesc(obj))).toEqual([
+                    "10",
+                    "9",
+                    5,
+                    "1",
+                ]);
+            });
+
             it("should handle when values are falsy", () => {
-                // PHP ties 0, null and false (null_vs_zero/false_vs_zero [0,0] in
-                // "asort over PHP-falsy mixed values") and puts [] last; compareValues
-                // also hoists null/undefined - arr.spec.ts pins Arr.sort([null,3,1]).
+                // PHP ties 0, null, false and [] and so leaves them in insertion
+                // order (task-10-pluck-sort.json, "asort over PHP-falsy mixed
+                // values": falsy_keys is ["a","b","d","e"]).
                 const obj = { a: 0, b: null, c: undefined, d: false, e: [] };
                 expect(Object.values(Obj.sort(obj))).toEqual([
+                    0,
                     null,
                     undefined,
-                    0,
                     false,
                     [],
                 ]);
@@ -3345,9 +3365,9 @@ describe("Obj", () => {
             });
 
             it("should handle when values are falsy", () => {
-                // The string-path form now shares compareValues with the
-                // callback form, so it must land where "should handle when
-                // values are falsy in callback" does: null ahead of 0.
+                // PHP ties null with 0, so both keep their insertion order
+                // (task-19-spaceship.json, "asort ties zero and null, keeping
+                // insertion order"). The callback form must land in the same place.
                 const obj = {
                     user1: { name: "John", age: 0 },
                     user2: { name: "Jane", age: null },
@@ -3355,8 +3375,8 @@ describe("Obj", () => {
                 };
                 const result = Obj.sort(obj, "age");
                 expect(Object.keys(result)).toEqual([
-                    "user2",
                     "user1",
+                    "user2",
                     "user3",
                 ]);
                 expect(Object.keys(result)).toEqual(
@@ -3375,13 +3395,13 @@ describe("Obj", () => {
                     user6: { name: "Jane", age: 100 },
                 };
                 const result = Obj.sort(obj, "age");
-                // null/undefined lead, then [] (which coerces to 0 against a
-                // number), then the numbers ascending - ties keeping their
-                // original order, so user0 stays ahead of user6.
+                // PHP ties null with [] (task-19-spaceship.json, "spaceship on
+                // null and an empty array"), but ranks [] above every number,
+                // which this port does not - see compareValues' docblock.
                 expect(Object.keys(result)).toEqual([
                     "user2",
-                    "user5",
                     "user4",
+                    "user5",
                     "user3",
                     "user1",
                     "user0",
@@ -3416,6 +3436,8 @@ describe("Obj", () => {
             });
 
             it("should handle when values are falsy in callback", () => {
+                // task-19-spaceship.json, "asort ties zero and null, keeping
+                // insertion order".
                 const obj = {
                     user1: { name: "John", age: 0 },
                     user2: { name: "Jane", age: null },
@@ -3423,8 +3445,8 @@ describe("Obj", () => {
                 };
                 const result = Obj.sort(obj, (item) => item.age);
                 expect(Object.keys(result)).toEqual([
-                    "user2",
                     "user1",
+                    "user2",
                     "user3",
                 ]);
             });
@@ -3728,13 +3750,16 @@ describe("Obj", () => {
                     user6: { name: "Jane", age: 100 },
                 };
                 const result = Obj.sortDesc(obj, "age");
+                // The descending mirror of "should handle when some values are
+                // falsy": null, [] and undefined tie, so they keep their
+                // insertion order behind the numbers.
                 expect(Object.keys(result)).toEqual([
                     "user0",
                     "user6",
                     "user1",
                     "user3",
-                    "user4",
                     "user2",
+                    "user4",
                     "user5",
                 ]);
             });
