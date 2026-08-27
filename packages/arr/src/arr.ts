@@ -538,7 +538,8 @@ function isArrayIndexPath(key: string): boolean {
  * @returns A new multi-dimensional array.
  * @throws TypeError if any key has a segment that is not a canonical decimal
  * integer (no leading zeros, sign, or exponent) within MAX_UNDOT_INDEX, or if
- * the keys' largest indices, summed, would exceed that same budget.
+ * the containers the keys build, summed by their own max index, would exceed
+ * that same budget.
  *
  * @example
  *
@@ -549,7 +550,11 @@ function isArrayIndexPath(key: string): boolean {
 export function undot<TValue, TKey extends UndotArrayKey = number>(
     map: Record<TKey, TValue>,
 ): UndotResult<TKey, TValue> {
-    let totalIndex = 0;
+    // Sum each distinct container's own max index once, keyed by its prefix path -
+    // a sum over leaf keys instead treats every key as its own container, so a
+    // plain n-key flat array (one shared root container) would cost O(n^2).
+    const containerMax = new Map<string, number>();
+    let totalSlots = 0;
 
     for (const key of Object.keys(map ?? {})) {
         if (!isArrayIndexPath(key)) {
@@ -558,13 +563,24 @@ export function undot<TValue, TKey extends UndotArrayKey = number>(
             );
         }
 
-        // Each key can allocate an array as large as its own biggest segment; bounding only
-        // that segment (not their sum) lets many merely-large keys jointly exhaust memory.
-        totalIndex += Math.max(...key.split(".").map(Number));
-        if (totalIndex > MAX_UNDOT_INDEX) {
-            throw new TypeError(
-                `Arr.undot cannot build an array: these keys' combined indices exceed the ${MAX_UNDOT_INDEX}-slot budget.`,
-            );
+        const segments = key.split(".");
+        for (let i = 0; i < segments.length; i++) {
+            const containerPath = segments.slice(0, i).join(".");
+            const index = Number(segments[i]);
+            const previousMax = containerMax.get(containerPath) ?? -1;
+
+            if (index <= previousMax) {
+                continue;
+            }
+
+            totalSlots += index - previousMax;
+            containerMax.set(containerPath, index);
+
+            if (totalSlots > MAX_UNDOT_INDEX) {
+                throw new TypeError(
+                    `Arr.undot cannot build an array: these keys' combined container sizes exceed the ${MAX_UNDOT_INDEX}-slot budget.`,
+                );
+            }
         }
     }
 

@@ -1864,6 +1864,30 @@ describe("Arr", () => {
             expect(() => Arr.undot(map)).not.toThrow();
         });
 
+        it("accepts a large flat array instead of costing O(n^2) against the budget", () => {
+            // A naive sum-over-leaf-keys check charges key i for i slots, so an n-key flat
+            // array (one shared root container) would cost n(n-1)/2 instead of n.
+            const map: Record<string, number> = {};
+            for (let i = 0; i < 50000; i++) {
+                map[String(i)] = i;
+            }
+
+            expect(() => Arr.undot(map)).not.toThrow();
+        });
+
+        it("round-trips a large flat array through dot and undot", () => {
+            const bigArray = Array.from({ length: 50000 }, (_, i) => i);
+
+            expect(
+                Arr.undot(
+                    Arr.dot(bigArray) as unknown as Record<
+                        UndotArrayKey,
+                        number
+                    >,
+                ),
+            ).toEqual(bigArray);
+        });
+
         it("accepts an empty or nullish map", () => {
             expect(
                 Arr.undot(null as unknown as Record<UndotArrayKey, string>),
