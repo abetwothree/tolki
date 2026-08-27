@@ -2969,6 +2969,23 @@ describe("Data", () => {
             ]);
         });
 
+        it("splice with an object replacement discards its keys", () => {
+            // docs/php-parity/task-17-second-review.json, "splice with an assoc replacement on a list"
+            const arrSource = [1, 2, 3];
+            const objSource: Record<string, number> = { 0: 1, 1: 2, 2: 3 };
+
+            agree(
+                Data.dataSplice(arrSource, 1, 1, { foo: "bar" } as never),
+                Data.dataSplice(objSource, 1, 1, { foo: "bar" } as never),
+                [["0", 2]],
+            );
+            agree(arrSource, objSource, [
+                ["0", 1],
+                ["1", "bar"],
+                ["2", 3],
+            ]);
+        });
+
         it("replace does not mutate its source", () => {
             // array_replace([10,20,30,40],[1=>'d']) -> [10,'d',30,40].
             const arrSource = nums();

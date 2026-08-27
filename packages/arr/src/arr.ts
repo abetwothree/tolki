@@ -3405,6 +3405,7 @@ export function sortRecursiveDesc<TValue>(
  * splice(['foo', 'baz'], 1, 1, 'bar'); -> ['baz'], data is now ['foo', 'bar']
  * splice(['foo', 'baz'], 1, 0, 'bar'); -> [], data is now ['foo', 'bar', 'baz']
  * splice(['foo', 'baz'], 1, 0, ['bar']); -> [], data is now ['foo', 'bar', 'baz'] // flattened
+ * splice(['foo', 'baz'], 1, 1, {a: 'bar'}); -> ['baz'], data is now ['foo', 'bar'] // keys discarded
  * splice(['foo', 'baz'], 1); -> ['baz'], data is now ['foo']
  */
 export function splice<TValue, TReplacements>(
@@ -3420,8 +3421,11 @@ export function splice<TValue, TReplacements>(
     // Flatten replacement if it's an array within an array
     const flatReplacement: TValue[] = [];
     for (const item of replacement) {
-        if (accessible(item)) {
-            flatReplacement.push(...(item as unknown as TValue[]));
+        // array_splice takes the replacement's values; an object's keys are discarded.
+        if (accessible(item) || isObject(item)) {
+            flatReplacement.push(
+                ...(Object.values(item as object) as TValue[]),
+            );
         } else {
             flatReplacement.push(item as unknown as TValue);
         }

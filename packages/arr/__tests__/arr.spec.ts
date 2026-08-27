@@ -4843,6 +4843,27 @@ describe("Arr", () => {
                 expect(data).toEqual(remaining);
             }
         });
+
+        // docs/php-parity/task-17-second-review.json, "splice with an assoc replacement on a list"
+        it("discards a replacement object's keys, splicing in its values", () => {
+            const data = [1, 2, 3];
+            expect(Arr.splice(data, 1, 1, { foo: "bar" } as never)).toEqual([
+                2,
+            ]);
+            expect(data).toEqual([1, "bar", 3]);
+        });
+
+        it("splices in every value of a multi-key replacement object", () => {
+            const data = [1, 2, 3];
+            Arr.splice(data, 1, 1, { foo: "bar", baz: "qux" } as never);
+            expect(data).toEqual([1, "bar", "qux", 3]);
+        });
+
+        it("still splices an array replacement's elements, not the array", () => {
+            const data = [1, 2, 3];
+            Arr.splice(data, 1, 1, [9, 8] as never);
+            expect(data).toEqual([1, 9, 8, 3]);
+        });
     });
 
     describe("get", () => {
