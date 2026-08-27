@@ -1622,10 +1622,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return this.newInstance(
             dataIntersect<TValue, TKey>(
                 this.items,
-                this.recursivelyConvertCollections(items) as DataItems<
-                    TValue,
-                    TKey
-                >,
+                this.getRawItems(items) as DataItems<TValue, TKey>,
                 callback,
             ),
         );
@@ -1653,10 +1650,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return this.newInstance(
             dataIntersectAssoc<TValue, TKey>(
                 this.items,
-                this.recursivelyConvertCollections(items) as DataItems<
-                    TValue,
-                    TKey
-                >,
+                this.getRawItems(items) as DataItems<TValue, TKey>,
             ),
         );
     }
@@ -1685,10 +1679,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return this.newInstance(
             dataIntersectAssocUsing<TValue, TKey>(
                 this.items,
-                this.recursivelyConvertCollections(items) as DataItems<
-                    TValue,
-                    TKey
-                >,
+                this.getRawItems(items) as DataItems<TValue, TKey>,
                 callback,
             ),
         );
@@ -1714,10 +1705,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return this.newInstance(
             dataIntersectByKeys<TValue, TKey>(
                 this.items,
-                this.recursivelyConvertCollections(items) as DataItems<
-                    TValue,
-                    TKey
-                >,
+                this.getRawItems(items) as DataItems<TValue, TKey>,
             ),
         );
     }

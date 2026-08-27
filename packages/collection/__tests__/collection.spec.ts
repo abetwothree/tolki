@@ -2454,6 +2454,18 @@ describe("Collection", () => {
         });
     });
 
+    describe("intersectUsing operand handling", () => {
+        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        it("normalizes a Map operand the way diff and intersect do", () => {
+            const map = new Map([["b", 20]]);
+            expect(
+                new Collection({ a: 10, b: 20 })
+                    .intersectUsing(map as never, (a, b) => a === b)
+                    .all(),
+            ).toEqual({ b: 20 });
+        });
+    });
+
     describe("intersectAssoc", () => {
         describe("Laravel Tests", () => {
             it("test intersect assoc with null", () => {
@@ -2504,6 +2516,27 @@ describe("Collection", () => {
                     "red",
                 ]);
             });
+        });
+    });
+
+    describe("intersectAssoc operand handling", () => {
+        it("keeps an identical object value under a matching key, like intersect does", () => {
+            const shared = { id: 1 };
+            expect(
+                new Collection({ a: shared })
+                    .intersectAssoc({ a: shared })
+                    .all(),
+            ).toEqual({ a: shared });
+        });
+
+        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        it("normalizes a Map operand the way diff and intersect do", () => {
+            const map = new Map([["b", 20]]);
+            expect(
+                new Collection({ a: 10, b: 20 })
+                    .intersectAssoc(map as never)
+                    .all(),
+            ).toEqual({ b: 20 });
         });
     });
 
@@ -2562,6 +2595,30 @@ describe("Collection", () => {
         });
     });
 
+    describe("intersectAssocUsing operand handling", () => {
+        it("keeps an identical object value when the key callback matches", () => {
+            const shared = { id: 1 };
+            expect(
+                new Collection({ a: shared })
+                    .intersectAssocUsing({ A: shared }, strcasecmpKeys)
+                    .all(),
+            ).toEqual({ a: shared });
+        });
+
+        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        it("normalizes a Map operand the way diff and intersect do", () => {
+            const map = new Map([
+                ["A", "green"],
+                ["B", "yellow"],
+            ]);
+            expect(
+                new Collection({ a: "green", b: "brown" })
+                    .intersectAssocUsing(map as never, strcasecmpKeys)
+                    .all(),
+            ).toEqual({ a: "green" });
+        });
+    });
+
     describe("intersectByKeys", () => {
         describe("Laravel Tests", () => {
             it("test intersect by keys null", () => {
@@ -2601,6 +2658,18 @@ describe("Collection", () => {
                         .all(),
                 ).toEqual({ name: "taylor", family: "otwell" });
             });
+        });
+    });
+
+    describe("intersectByKeys operand handling", () => {
+        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        it("normalizes a Map operand the way diff and intersect do", () => {
+            const map = new Map([["b", 999]]);
+            expect(
+                new Collection({ a: 1, b: 2 })
+                    .intersectByKeys(map as never)
+                    .all(),
+            ).toEqual({ b: 2 });
         });
     });
 
