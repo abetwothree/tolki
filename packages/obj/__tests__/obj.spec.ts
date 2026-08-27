@@ -1361,7 +1361,7 @@ describe("Obj", () => {
         });
 
         // array_filter's falsy set is narrower than Boolean: it drops "0", "", 0, [],
-        // false and null, but keeps "00" and "0.0", and NaN is truthy. PHP-verified in
+        // false and null, but keeps "00" and "0.0". PHP-verified in
         // docs/php-parity/task-04-shared.json.
         it("drops PHP-falsy values including the string zero", () => {
             expect(
@@ -1376,6 +1376,7 @@ describe("Obj", () => {
             });
         });
 
+        // PHP-verified (docs/php-parity/task-04-shared.json, "NAN is truthy for array_filter").
         it("keeps NaN, which is truthy in PHP", () => {
             expect(Obj.filter({ a: NaN, b: 0, c: 1 })).toEqual({
                 a: NaN,
@@ -3949,14 +3950,12 @@ describe("Obj", () => {
             ]);
         });
 
-        it("clamps a negative length to no removal (known divergence from PHP)", () => {
-            // Deliberate divergence: array_splice's negative length counts that many
-            // elements back from the end, but this clamps to "remove nothing", matching
-            // JS Array.prototype.splice and arr.splice.
+        it("treats a negative length as counting back from the end, like array_splice", () => {
+            // PHP-verified (task-03-splice.json "associative, single removal").
             const obj = { a: 1, b: 2, c: 3 };
             const removed = Obj.splice(obj, 1, -1);
-            expect(removed).toEqual({});
-            expect(obj).toEqual({ a: 1, b: 2, c: 3 });
+            expect(removed).toEqual({ b: 2 });
+            expect(obj).toEqual({ a: 1, c: 3 });
         });
 
         it("clamps an offset beyond the end to the end", () => {
@@ -4229,7 +4228,7 @@ describe("Obj", () => {
         it("PHP-casts non-string values at numeric keys instead of dropping them", () => {
             // Same PHP-cast as toCssClasses, then each pushed value is finished with a
             // semicolon. Captured: docs/php-parity/task-08-arr-parity.json
-            // ("Arr::toCssStyles non-string value at numeric key") -> "123;;; 1;".
+            // ("Arr::toCssStyles non-string value at numeric key") -> "123; ; 1;".
             expect(
                 Obj.toCssStyles({
                     0: 123,

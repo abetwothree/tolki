@@ -2064,7 +2064,7 @@ describe("Arr", () => {
         });
 
         // array_filter's falsy set is narrower than Boolean: it drops "0", "", 0, [],
-        // false and null, but keeps "00" and "0.0", and NaN is truthy. PHP-verified in
+        // false and null, but keeps "00" and "0.0". PHP-verified in
         // docs/php-parity/task-04-shared.json.
         it("drops PHP-falsy values including the string zero", () => {
             expect(Arr.filter(["0", "", 0, "x"])).toEqual(["x"]);
@@ -2074,6 +2074,7 @@ describe("Arr", () => {
             expect(Arr.filter(["00", "0.0", "0"])).toEqual(["00", "0.0"]);
         });
 
+        // PHP-verified (docs/php-parity/task-04-shared.json, "NAN is truthy for array_filter").
         it("keeps NaN, which is truthy in PHP", () => {
             expect(Arr.filter([NaN, 0, 1])).toEqual([NaN, 1]);
         });
@@ -4484,7 +4485,7 @@ describe("Arr", () => {
         it("PHP-casts non-string values at numeric keys instead of dropping them", () => {
             // Same PHP-cast as toCssClasses, then each pushed value is finished with a
             // semicolon. Captured: docs/php-parity/task-08-arr-parity.json
-            // ("Arr::toCssStyles non-string value at numeric key") -> "123;;; 1;".
+            // ("Arr::toCssStyles non-string value at numeric key") -> "123; ; 1;".
             expect(Arr.toCssStyles([123, null, undefined, true])).toBe(
                 "123; ; ; 1;",
             );
@@ -4796,6 +4797,23 @@ describe("Arr", () => {
             expect(Arr.splice(undefined as unknown as string[], 0, 1)).toEqual(
                 [],
             );
+        });
+
+        it("treats a negative length as counting back from the end, like array_splice", () => {
+            // PHP-verified (task-03-splice.json "numeric, five offset/length combinations").
+            const cases: [number, number, number[], number[]][] = [
+                [1, -1, [2, 3, 4], [1, 5]],
+                [-3, -1, [3, 4], [1, 2, 5]],
+                [0, -5, [], [1, 2, 3, 4, 5]],
+                [-2, -1, [4], [1, 2, 3, 5]],
+                [1, -2, [2, 3], [1, 4, 5]],
+            ];
+
+            for (const [offset, length, cut, remaining] of cases) {
+                const data = [1, 2, 3, 4, 5];
+                expect(Arr.splice(data, offset, length)).toEqual(cut);
+                expect(data).toEqual(remaining);
+            }
         });
     });
 

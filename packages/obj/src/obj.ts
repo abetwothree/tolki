@@ -3068,14 +3068,12 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
 
     const start =
         offset < 0 ? Math.max(len + offset, 0) : Math.min(offset, len);
-    // Negative length clamping to "no removal" is JS Array.prototype.splice
-    // semantics, not PHP's — array_splice's negative length counts that
-    // many elements back from the end instead. This is a pre-existing,
-    // deliberate divergence (unchanged by this fix; no probe backs
-    // negative-length parity), kept rather than guessed at.
+    // PHP's array_splice treats a negative length as counting back from the end.
     const deleteCount = isUndefined(length)
         ? len - start
-        : Math.max(0, Math.min(length, len - start));
+        : length < 0
+          ? Math.max(len + length - start, 0)
+          : length;
 
     const beforeEntries = entries.slice(0, start);
     const removedEntries = entries.slice(start, start + deleteCount);

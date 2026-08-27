@@ -3427,7 +3427,13 @@ export function splice<TValue, TReplacements>(
         return data.splice(offset, data.length - offset, ...flatReplacement);
     }
 
-    return data.splice(offset, length, ...flatReplacement);
+    const len = data.length;
+    const start =
+        offset < 0 ? Math.max(len + offset, 0) : Math.min(offset, len);
+    // PHP's array_splice treats a negative length as counting back from the array's end.
+    const count = length < 0 ? Math.max(len + length - start, 0) : length;
+
+    return data.splice(start, count, ...flatReplacement);
 }
 
 /**
