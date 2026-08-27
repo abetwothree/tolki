@@ -87,10 +87,8 @@ describe("Arr", () => {
             );
         });
 
-        // Reviewer finding (2026-08-27): add's `[...data]` copy is shallow,
-        // so an item already holding its own "__proto__" key that aliases a
-        // global reached setMixed's traversal unchanged; only a clone before
-        // descending (now in setMixed) severs it before the write happens.
+        // add's shallow `[...data]` copy exposes an item's own aliased
+        // "__proto__" key to setMixed; the clone-before-descend fix covers it.
         it("never pollutes Object.prototype through an item's own aliased __proto__ key", () => {
             const item = Object.create(null) as Record<string, unknown>;
             item["__proto__"] = Object.prototype;
@@ -1485,8 +1483,7 @@ describe("Arr", () => {
             });
 
             // docs/php-parity/task-17-second-review.json: "Arr::set writes a
-            // \"constructor\" key" (`Arr::set([], "constructor", 5)`), plus
-            // its prototype/__proto__ siblings
+            // \"constructor\" key", "...a \"prototype\" key", "...a \"__proto__\" key"
             it.each(["constructor", "prototype", "__proto__"])(
                 "keeps a %s key as own data",
                 (key) => {
@@ -1507,7 +1504,9 @@ describe("Arr", () => {
                     "constructor.prototype.polluted",
                     5,
                 ) as unknown as Record<string, unknown>[];
-                expect(result[0]!["constructor"]).toEqual({
+                expect(
+                    (result[0] as Record<string, unknown>)["constructor"],
+                ).toEqual({
                     prototype: { polluted: 5 },
                 });
             });
