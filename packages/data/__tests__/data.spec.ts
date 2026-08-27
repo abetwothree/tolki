@@ -1454,6 +1454,50 @@ describe("Data", () => {
                     (function () {} as unknown as { PWN?: unknown }).PWN,
                 ).toBeUndefined();
             });
+
+            // Reviewer finding (2026-08-27): every fixture above is a fresh
+            // container, which can't expose the one real hazard — an owned
+            // unsafe key whose value already IS a live reference to a global.
+            // That alias must exist in the host data already (JSON alone
+            // cannot express a reference to Object.prototype), but once it
+            // does, descending through it must never write onto the real
+            // global. Arr.set's own deep-copy (from an earlier fix) already
+            // neutralizes this by accident, so Arr.add is used instead — it
+            // shallow-copies only the outer array, reaching setMixed's
+            // traversal with the alias intact, same as the reviewer's repro.
+            it("cannot pollute a global prototype when an own key aliases one", () => {
+                const aliasing = (target: object): Record<string, unknown> => {
+                    const a = Object.create(null) as Record<string, unknown>;
+                    a["__proto__"] = target;
+                    return a;
+                };
+
+                for (const target of [Object.prototype, Array.prototype]) {
+                    for (const path of [
+                        "__proto__.PWN",
+                        "constructor.prototype.PWN",
+                        "0.__proto__.PWN",
+                        "0.constructor.prototype.PWN",
+                    ]) {
+                        Arr.set([aliasing(target)], path, 1);
+                        Arr.add([aliasing(target)], path, 1);
+                    }
+                    Data.dataSet(aliasing(target), "__proto__.PWN", 1);
+                    Data.dataSet(
+                        aliasing(target),
+                        "constructor.prototype.PWN",
+                        1,
+                    );
+                }
+
+                expect(({} as { PWN?: unknown }).PWN).toBeUndefined();
+                expect(
+                    ([] as unknown as { PWN?: unknown }).PWN,
+                ).toBeUndefined();
+                expect(
+                    (function () {} as unknown as { PWN?: unknown }).PWN,
+                ).toBeUndefined();
+            });
         });
     });
 
