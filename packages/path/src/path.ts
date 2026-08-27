@@ -1413,11 +1413,13 @@ export function setMixed<TValue>(
             // Handle non-numeric keys (object properties)
             // At this point, current is guaranteed to be an object (or array treated as object)
             // because we always create structure before navigating
-            if (isUnsafeKey(segment)) {
-                return arr;
-            }
             const obj = current as Record<string, unknown>;
-            const nextValue = obj[segment];
+            // An unsafe key not yet its own risks reading the inherited
+            // accessor/data value (e.g. Object.prototype); treat it as absent.
+            const nextValue =
+                isUnsafeKey(segment) && !Object.hasOwn(obj, segment)
+                    ? undefined
+                    : obj[segment];
             if (
                 isNull(nextValue) ||
                 isUndefined(nextValue) ||
@@ -1425,7 +1427,11 @@ export function setMixed<TValue>(
             ) {
                 const nextSegment = segments[i + 1]!;
                 const nextIndex = parseInt(nextSegment, 10);
-                obj[segment] = isInteger(nextIndex) ? [] : {};
+                defineKey(
+                    obj,
+                    segment,
+                    (isInteger(nextIndex) ? [] : {}) as TValue,
+                );
             }
             current = obj[segment];
         }
@@ -1444,12 +1450,10 @@ export function setMixed<TValue>(
             current.push(undefined as TValue);
         }
         current[lastIndex] = value as TValue;
-    } else if (
-        !isNull(current) &&
-        isObjectAny(current) &&
-        !isUnsafeKey(lastSegment)
-    ) {
-        (current as Record<string, unknown>)[lastSegment] = value;
+    } else {
+        // The traversal above never leaves `current` as anything but an
+        // array or plain object, so this write always has a target.
+        defineKey(current as Record<string, unknown>, lastSegment, value);
     }
 
     return arr;
@@ -1524,12 +1528,15 @@ export function pushMixed<TValue>(
             current = current[index];
         } else if (!isNull(current) && isObject(current)) {
             // Handle object properties
-            if (isUnsafeKey(segment)) {
-                return data as TValue[];
-            }
             const obj = current as Record<string, unknown>;
-            if (isNull(obj[segment]) || !isObject(obj[segment])) {
-                obj[segment] = [];
+            // An unsafe key not yet its own risks reading the inherited
+            // accessor/data value (e.g. Object.prototype); treat it as absent.
+            const existing =
+                isUnsafeKey(segment) && !Object.hasOwn(obj, segment)
+                    ? undefined
+                    : obj[segment];
+            if (isNull(existing) || !isObject(existing)) {
+                defineKey(obj, segment, []);
             }
             current = obj[segment];
         } else {
@@ -1763,43 +1770,43 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
 
     // Handle simple property access (no dots)
     if (!keyStr.includes(".")) {
-        if (!isUnsafeKey(keyStr)) {
-            result[keyStr as TKey] = value;
-        }
+        defineKey(result as Record<string, unknown>, keyStr, value);
 
         return result as Record<TKey, TValue>;
     }
 
     // Handle nested property access with dot notation
     const segments = keyStr.split(".");
-
-    if (segments.some((s) => isUnsafeKey(s))) {
-        return result as Record<TKey, TValue>;
-    }
-
     let current: Record<string, unknown> = result;
 
     for (let i = 0; i < segments.length - 1; i++) {
         const segment = segments[i];
-        if (!segment || isUnsafeKey(segment)) {
+        if (!segment) {
             continue;
         }
 
-        if (!current[segment] || !isObject(current[segment])) {
-            current[segment] = {};
-        } else {
-            // Clone nested objects to maintain immutability
-            current[segment] = {
-                ...(current[segment] as Record<string, unknown>),
-            };
-        }
+        // An unsafe segment not yet its own risks reading the inherited
+        // accessor/data value (e.g. Object.prototype); treat it as absent.
+        const existing =
+            isUnsafeKey(segment) && !Object.hasOwn(current, segment)
+                ? undefined
+                : current[segment];
+
+        defineKey(
+            current,
+            segment,
+            !existing || !isObject(existing)
+                ? {}
+                : // Clone nested objects to maintain immutability
+                  { ...(existing as Record<string, unknown>) },
+        );
 
         current = current[segment] as Record<string, unknown>;
     }
 
     const lastSegment = segments[segments.length - 1];
-    if (lastSegment && !isUnsafeKey(lastSegment)) {
-        current[lastSegment] = value;
+    if (lastSegment) {
+        defineKey(current, lastSegment, value);
     }
 
     return result as Record<TKey, TValue>;

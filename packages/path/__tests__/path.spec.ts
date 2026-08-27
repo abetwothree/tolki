@@ -1405,16 +1405,28 @@ describe("Path Functions", () => {
             ]);
         });
 
-        it("ignores __proto__ in object property path", () => {
+        // docs/php-parity/task-17-second-review.json, "Arr::set writes a nested \"constructor.prototype\" path"
+        it("keeps a __proto__ key as own data in a nested path", () => {
             const arr: unknown[] = [{}];
             const result = Path.setMixed(arr, "0.__proto__.polluted", true);
+            const item = result[0] as Record<string, unknown>;
+            expect(Object.getPrototypeOf(item)).toBe(Object.prototype);
+            expect(Object.hasOwn(item, "__proto__")).toBe(true);
+            expect(
+                (item["__proto__"] as Record<string, unknown>)["polluted"],
+            ).toBe(true);
             expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
             expect(result).toBe(arr);
         });
 
-        it("ignores __proto__ as last segment for object assignment", () => {
+        // docs/php-parity/task-17-second-review.json, "Arr::set writes a \"__proto__\" key"
+        it("keeps a __proto__ key as own data as the last segment", () => {
             const arr: unknown[] = [{}];
             const result = Path.setMixed(arr, "0.__proto__", { evil: true });
+            const item = result[0] as Record<string, unknown>;
+            expect(Object.getPrototypeOf(item)).toBe(Object.prototype);
+            expect(Object.hasOwn(item, "__proto__")).toBe(true);
+            expect(item["__proto__"]).toEqual({ evil: true });
             expect(({} as Record<string, unknown>)["evil"]).toBeUndefined();
             expect(result).toBe(arr);
         });
@@ -1618,9 +1630,18 @@ describe("Path Functions", () => {
             expect(data).toEqual([{ user: ["value"] }]);
         });
 
-        it("ignores __proto__ in object property path", () => {
+        // docs/php-parity/task-17-second-review.json, "Arr::set writes a \"__proto__\" key"
+        it("keeps a __proto__ key as an own array container when pushing", () => {
             const data: unknown[] = [{}];
-            const result = Path.pushMixed(data, "0.__proto__.0", "evil");
+            const result = Path.pushMixed<unknown>(
+                data,
+                "0.__proto__.0",
+                "evil",
+            );
+            const item = result[0] as Record<string, unknown>;
+            expect(Object.getPrototypeOf(item)).toBe(Object.prototype);
+            expect(Object.hasOwn(item, "__proto__")).toBe(true);
+            expect(item["__proto__"]).toEqual(["evil"]);
             expect(({} as Record<string, unknown>)["0"]).toBeUndefined();
             expect(result).toBe(data);
         });
@@ -2005,30 +2026,49 @@ describe("Path Functions", () => {
             expect(result).toHaveProperty("a");
         });
 
-        it("ignores __proto__ as a simple key", () => {
+        // docs/php-parity/task-17-second-review.json, "Arr::set writes a \"__proto__\" key"
+        it("keeps a __proto__ key as own data for a simple key", () => {
             const obj = { a: 1 };
             const result = Path.setObjectValue(obj, "__proto__", {
                 evil: true,
-            });
-            expect(result).toEqual({ a: 1 });
+            }) as Record<string, unknown>;
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(Object.hasOwn(result, "__proto__")).toBe(true);
+            expect(result["a"]).toBe(1);
+            expect(result["__proto__"]).toEqual({ evil: true });
             expect(({} as Record<string, unknown>)["evil"]).toBeUndefined();
         });
 
-        it("ignores __proto__ in nested dot notation path", () => {
+        // docs/php-parity/task-17-second-review.json, "Arr::set writes a nested \"constructor.prototype\" path"
+        it("keeps a __proto__ key as own data in a nested dot notation path", () => {
             const obj = { a: 1 };
-            const result = Path.setObjectValue(obj, "__proto__.polluted", true);
+            const result = Path.setObjectValue(
+                obj,
+                "__proto__.polluted",
+                true,
+            ) as Record<string, unknown>;
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(Object.hasOwn(result, "__proto__")).toBe(true);
+            expect(
+                (result["__proto__"] as Record<string, unknown>)["polluted"],
+            ).toBe(true);
             expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
-            expect(result).toEqual({ a: 1 });
         });
 
-        it("ignores constructor and prototype as keys", () => {
+        // docs/php-parity/task-17-second-review.json, "Arr::set writes a \"constructor\" key"
+        it("keeps constructor and prototype keys as own data", () => {
             const obj = { a: 1 };
-            expect(Path.setObjectValue(obj, "constructor", "bad")).toEqual({
-                a: 1,
-            });
-            expect(Path.setObjectValue(obj, "prototype", "bad")).toEqual({
-                a: 1,
-            });
+            const withConstructor = Path.setObjectValue(
+                obj,
+                "constructor",
+                "bad",
+            );
+            expect(Object.hasOwn(withConstructor, "constructor")).toBe(true);
+            expect(withConstructor).toEqual({ a: 1, constructor: "bad" });
+
+            const withPrototype = Path.setObjectValue(obj, "prototype", "bad");
+            expect(Object.hasOwn(withPrototype, "prototype")).toBe(true);
+            expect(withPrototype).toEqual({ a: 1, prototype: "bad" });
         });
     });
 
