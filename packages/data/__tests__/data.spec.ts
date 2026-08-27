@@ -1,7 +1,7 @@
 import * as Arr from "@tolki/arr";
 import * as Data from "@tolki/data";
 import * as Obj from "@tolki/obj";
-import { assertType, describe, expect, it } from "vitest";
+import { afterEach, assertType, describe, expect, it } from "vitest";
 
 const strcasecmp = (a: unknown, b: unknown) =>
     String(a).toLowerCase() === String(b).toLowerCase();
@@ -1402,6 +1402,58 @@ describe("Data", () => {
         it("is array", () => {
             const result = Data.dataSet([1, 2, 3], 1, 99);
             expect(result).toEqual([1, 99, 3]);
+        });
+
+        // docs/php-parity/task-17-second-review.json, "Arr::set writes a
+        // \"constructor\" key", "Arr::set writes a \"__proto__\" key"
+        describe("unsafe-key write policy", () => {
+            afterEach(() => {
+                expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+                expect(Object.getPrototypeOf({})).toBe(Object.prototype);
+            });
+
+            it.each(["constructor", "prototype", "__proto__"])(
+                "keeps a %s key as own data",
+                (key) => {
+                    expect(
+                        Object.hasOwn(Data.dataSet({}, key, 5) as object, key),
+                    ).toBe(true);
+                },
+            );
+
+            // docs/php-parity/task-17-second-review.json, "Arr::set writes a nested \"constructor.prototype\" path"
+            it("builds a nested constructor.prototype path without polluting", () => {
+                const result = Data.dataSet(
+                    {},
+                    "constructor.prototype.polluted",
+                    5,
+                ) as Record<string, unknown>;
+                expect(result).toEqual({
+                    constructor: { prototype: { polluted: 5 } },
+                });
+            });
+
+            // The 4 hostile paths from the Task 0 audit: neither the accessor
+            // (__proto__) nor the ordinary data properties (constructor,
+            // prototype) reach a global prototype through Arr.set or dataSet.
+            it("cannot pollute a global prototype through any write path", () => {
+                for (const path of [
+                    "__proto__.PWN",
+                    "constructor.prototype.PWN",
+                    "0.__proto__.PWN",
+                    "0.constructor.prototype.PWN",
+                ]) {
+                    Arr.set([{}], path, 1);
+                    Data.dataSet({}, path, 1);
+                }
+                expect(({} as { PWN?: unknown }).PWN).toBeUndefined();
+                expect(
+                    ([] as unknown as { PWN?: unknown }).PWN,
+                ).toBeUndefined();
+                expect(
+                    (function () {} as unknown as { PWN?: unknown }).PWN,
+                ).toBeUndefined();
+            });
         });
     });
 
