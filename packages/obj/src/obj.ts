@@ -2475,7 +2475,8 @@ export function set<TValue, TKey extends PropertyKey = PropertyKey>(
  * Push one or more items into an object at a nested path using dot notation.
  *
  * @param data - The object to push items into.
- * @param key - The key or dot-notated path of the array to push into. If null, not supported for objects.
+ * @param key - The key or dot-notated path of the array to push into. A null key appends
+ * to the object itself under the next integer-like key, mirroring Arr::push.
  * @param values - The values to push.
  * @returns A new object with the values pushed in.
  *
@@ -2483,6 +2484,7 @@ export function set<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * push({ items: ['a', 'b'] }, 'items', 'c', 'd'); -> { items: ['a', 'b', 'c', 'd'] }
  * push({ user: { tags: ['js'] } }, 'user.tags', 'ts', 'php'); -> { user: { tags: ['js', 'ts', 'php'] } }
+ * push({ a: 1 }, null, 9); -> { a: 1, 0: 9 }
  */
 export function push<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -2505,8 +2507,10 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
     // appends after the highest existing integer-like key instead of throwing.
     if (isNull(key)) {
         let nextIndex = 0;
+        // Own key order always lists integer-like keys ascending, so the last one
+        // seen is the largest; no need to compare against nextIndex (Collection.push).
         for (const existing of Object.keys(obj)) {
-            if (isIntegerLikeKey(existing) && Number(existing) >= nextIndex) {
+            if (isIntegerLikeKey(existing)) {
                 nextIndex = Number(existing) + 1;
             }
         }
