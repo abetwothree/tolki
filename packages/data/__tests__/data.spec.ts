@@ -529,6 +529,18 @@ describe("Data", () => {
             expect(Data.dataFlatten(data, 2)).toEqual([1]);
             expect(Data.dataFlatten(data)).toEqual([1]);
         });
+
+        it("flattens to unlimited depth by default", () => {
+            const data = { a: { b: { c: { d: 1 } } } };
+
+            expect(Data.dataFlatten(data)).toEqual([1]);
+        });
+
+        it("stops at an explicit depth", () => {
+            const data = { a: { b: { c: { d: 1 } } } };
+
+            expect(Data.dataFlatten(data, 2)).toEqual([{ d: 1 }]);
+        });
         it("is array", () => {
             const result = Data.dataFlatten([["#foo", ["#bar"]], ["#baz"]]);
             expect(result).toEqual(["#foo", "#bar", "#baz"]);

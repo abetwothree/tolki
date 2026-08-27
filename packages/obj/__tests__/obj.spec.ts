@@ -2222,6 +2222,16 @@ describe("Obj", () => {
             expect(result).toEqual(["John", "Jane", "Hello"]);
         });
 
+        it("flattens to unlimited depth by default", () => {
+            expect(Obj.flatten({ a: { b: { c: { d: 1 } } } })).toEqual([1]);
+        });
+
+        it("stops at an explicit depth", () => {
+            expect(Obj.flatten({ a: { b: { c: { d: 1 } } } }, 2)).toEqual([
+                { d: 1 },
+            ]);
+        });
+
         it("spends the last level of depth on the container's own values", () => {
             const obj = {
                 users: { john: { name: "John" }, jane: { name: "Jane" } },
