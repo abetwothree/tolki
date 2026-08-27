@@ -2467,6 +2467,20 @@ describe("Data", () => {
         });
     });
 
+    describe("dataDiffAssoc", () => {
+        it("is object", () => {
+            const result = Data.dataDiffAssoc(
+                { a: "green", b: "brown" },
+                { a: "green", b: "yellow" },
+            );
+            expect(result).toEqual({ b: "brown" });
+        });
+
+        it("is array", () => {
+            expect(Data.dataDiffAssoc([1, 2, 3], [1, 9, 3])).toEqual([2]);
+        });
+    });
+
     describe("dataDiffAssocUsing", () => {
         it("is object", () => {
             const result = Data.dataDiffAssocUsing(

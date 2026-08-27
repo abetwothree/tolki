@@ -8,6 +8,7 @@ import {
     contains as arrContains,
     crossJoin as arrCrossJoin,
     diff as arrDiff,
+    diffAssoc as arrDiffAssoc,
     divide as arrDivide,
     dot as arrDot,
     every as arrEvery,
@@ -86,6 +87,7 @@ import {
     contains as objContains,
     crossJoin as objCrossJoin,
     diff as objDiff,
+    diffAssoc as objDiffAssoc,
     diffAssocUsing as objDiffAssocUsing,
     diffKeysUsing as objDiffKeysUsing,
     divide as objDivide,
@@ -2442,6 +2444,40 @@ export function dataDiff<
     }
 
     return arrDiff(arrWrap(data), other) as DataItems<TValue>;
+}
+
+/**
+ * Get the items whose key and value are not both present in the given other data.
+ *
+ * Unlike `dataDiff`, this dispatches straight to the matching obj/arr
+ * primitive without normalizing `other` through `arrayableValues` — a key
+ * that exists on `other` with a different value is what keeps the item, so
+ * `other`'s own keys (not just its values) matter here.
+ *
+ * @param data - The source data
+ * @param other - The data to compare against
+ * @returns Data with differences, preserving structure
+ *
+ * @example
+ *
+ * dataDiffAssoc({a: 1, b: 2, c: 3}, {b: 2}); -> {a: 1, c: 3}
+ * dataDiffAssoc([1, 2, 3], [1, 9, 3]); -> [2]
+ */
+export function dataDiffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: DataItems<TValue, TKey>,
+    other: DataItems<TValue, TKey>,
+): DataItems<TValue, TKey> {
+    if (isObject(data)) {
+        return objDiffAssoc(
+            data as Record<TKey, TValue>,
+            other as Record<TKey, TValue>,
+        ) as DataItems<TValue, TKey>;
+    }
+
+    return arrDiffAssoc(
+        data as TValue[],
+        other as TValue[],
+    ) as DataItems<TValue>;
 }
 
 /**
