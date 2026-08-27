@@ -6254,12 +6254,74 @@ describe("Collection", () => {
             const sorted = data.sortBy((x) => x, SortDirection.Ascending);
             expect(sorted.values().all()).toEqual(["dayle", "taylor"]);
         });
+
+        // docs/php-parity/task-17-second-review.json, "sortBy(null) over array values"
+        it("sortBy(null) orders object values the way sort() does", () => {
+            const collection = new Collection({
+                a: { n: 2 },
+                b: { n: 1 },
+                c: { n: 3 },
+            });
+            expect(
+                collection
+                    .sortBy(null as never)
+                    .values()
+                    .all(),
+            ).toEqual([{ n: 1 }, { n: 2 }, { n: 3 }]);
+            expect(
+                collection
+                    .sortBy(null as never)
+                    .values()
+                    .all(),
+            ).toEqual(collection.sort().values().all());
+        });
+
+        // docs/php-parity/task-17-second-review.json,
+        // "sortByMany falls through on an equal first key"
+        it("consults the second sort key when the first ties on non-primitives", () => {
+            const collection = new Collection([
+                { a: [], b: 2 },
+                { a: [], b: 1 },
+            ]);
+            expect(
+                collection
+                    .sortBy([
+                        ["a", "asc"],
+                        ["b", "asc"],
+                    ] as never)
+                    .values()
+                    .all(),
+            ).toEqual([
+                { a: [], b: 1 },
+                { a: [], b: 2 },
+            ]);
+        });
+
+        // docs/php-parity/task-17-second-review.json,
+        // "sortByMany treats 1 and \"1\" as a tie"
+        it('treats 1 and "1" as a tie and falls through to the next key', () => {
+            const collection = new Collection([
+                { a: 1, b: 2 },
+                { a: "1", b: 1 },
+            ]);
+            expect(
+                collection
+                    .sortBy([
+                        ["a", "asc"],
+                        ["b", "asc"],
+                    ] as never)
+                    .values()
+                    .all(),
+            ).toEqual([
+                { a: "1", b: 1 },
+                { a: 1, b: 2 },
+            ]);
+        });
     });
 
     describe("sortByMany", () => {
         describe("Laravel Tests", () => {
             it("test sort by many", () => {
-                // Test sorting with mixed types - JavaScript compares them all as strings
                 const data = collect([
                     { item: "1" },
                     { item: "10" },
@@ -6267,18 +6329,19 @@ describe("Collection", () => {
                     { item: 20 },
                 ]);
 
-                // Sort ascending by single field - all converted to strings for comparison
-                // "1" < "10" < "20" < "5" (lexicographic order)
+                // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
+                // "sortByMany orders mixed numeric strings and ints numerically".
+                // sortByMany compares with <=>, so "10" is 10, not the string.
                 const sorted1 = data.sortBy(["item"]);
-                expect(sorted1.pluck("item").all()).toEqual(["1", "10", 5, 20]);
+                expect(sorted1.pluck("item").all()).toEqual(["1", 5, "10", 20]);
 
-                // Sort descending by single field using global descending parameter
-                // Note: sortByMany second parameter applies globally to all fields
+                // Same file, "sortByMany forced descending over the same mixed
+                // items". sortByMany's second parameter applies globally.
                 const sorted1Desc = data.sortByMany(["item"], true);
                 const values = sorted1Desc.values().all() as {
                     item: string | number;
                 }[];
-                expect(values.map((v) => v.item)).toEqual([20, 5, "10", "1"]);
+                expect(values.map((v) => v.item)).toEqual([20, "10", 5, "1"]);
 
                 // Test natural string sorting with numbers
                 const data2 = collect([

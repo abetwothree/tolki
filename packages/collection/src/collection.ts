@@ -59,9 +59,11 @@ import type {
     DataItems,
     PathKey,
     PathKeys,
+    SortSpec,
 } from "@tolki/types";
 import {
     compareValues,
+    createSortSpecComparator,
     defineKey,
     entriesKeyValue,
     isArray,
@@ -87,6 +89,12 @@ import {
 } from "@tolki/utils";
 
 // import { initProxyHandler } from "./proxy";
+
+// Collection resolves a descriptor's key with dataGet, the way
+// Collection::sortByMany does; Arr and Obj resolve with getNestedValue.
+const sortSpecComparator = createSortSpecComparator((item, key) =>
+    dataGet(item as DataItems<unknown, PropertyKey>, key),
+);
 
 export function collect<TValue>(
     items: TValue[] | readonly TValue[],
@@ -3316,18 +3324,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         // Sort by the sort values
         entries.sort(([, , a], [, , b]) => {
-            if (a == null && b == null) return 0;
-            if (a == null) return -1;
-            if (b == null) return 1;
-
-            let comparison: number;
-            if (a < b) {
-                comparison = -1;
-            } else if (a > b) {
-                comparison = 1;
-            } else {
-                comparison = 0;
-            }
+            const comparison = compareValues(a, b);
 
             return isDesc ? -comparison : comparison;
         });
@@ -3374,75 +3371,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const isDescGlobal =
             descending === true || descending === SortDirection.Descending;
 
+        const comparators = comparisons.map((comparison) =>
+            sortSpecComparator<TValue>(
+                comparison as SortSpec<TValue>,
+                isDescGlobal,
+            ),
+        );
+
         const entries = Object.entries(this.items);
         entries.sort(([, a], [, b]) => {
-            for (const comparison of comparisons) {
-                const comparisonArray = arrWrap(comparison) as [
-                    (
-                        | PathKey
-                        | ((a: TValue, b: TValue) => TSortValue)
-                        | ((item: TValue, key: TKey) => TSortValue)
-                    ),
-                    (
-                        | CaseValue<typeof SortDirection>
-                        | boolean
-                        | "asc"
-                        | "desc"
-                    )?,
-                ];
-                const prop = comparisonArray[0];
+            for (const comparator of comparators) {
+                const result = comparator(a as TValue, b as TValue);
 
-                let result: number;
-
-                if (!isString(prop) && isFunction(prop)) {
-                    result = (prop as (a: TValue, b: TValue) => number)(
-                        a as TValue,
-                        b as TValue,
-                    );
-                } else {
-                    // A missing direction defaults to ascending;
-                    // true/'asc'/Ascending sort ascending, everything else
-                    // sorts descending. isDescGlobal then forces descending
-                    // regardless, but never touches the comparator branch above.
-                    const directionValue = comparisonArray[1];
-                    const isAscendingOwn =
-                        isUndefined(directionValue) ||
-                        directionValue === true ||
-                        directionValue === "asc" ||
-                        directionValue === SortDirection.Ascending;
-                    const isDescComparison = isDescGlobal || !isAscendingOwn;
-
-                    let aValue = dataGet(
-                        a as DataItems<unknown, PropertyKey>,
-                        prop as PathKey,
-                    );
-                    let bValue = dataGet(
-                        b as DataItems<unknown, PropertyKey>,
-                        prop as PathKey,
-                    );
-
-                    if (isDescComparison) {
-                        [aValue, bValue] = [bValue, aValue];
-                    }
-
-                    if (aValue === bValue) {
-                        result = 0;
-                    } else if (isNull(aValue)) {
-                        result = -1;
-                    } else if (isNull(bValue)) {
-                        result = 1;
-                    } else if (isNumber(aValue) && isNumber(bValue)) {
-                        result = aValue < bValue ? -1 : 1;
-                    } else {
-                        result = String(aValue) < String(bValue) ? -1 : 1;
-                    }
+                if (result !== 0) {
+                    return result;
                 }
-
-                if (result === 0) {
-                    continue;
-                }
-
-                return result;
             }
 
             return 0;
