@@ -638,6 +638,17 @@ describe("Utils", () => {
             expect(Utils.phpValueMatch(1e-7, 1e-7)).toBe(true);
         });
 
+        it("still casts a high-precision float, so it diverges rather than falling back", () => {
+            // PHP casts 0.1 + 0.2 to "0.3" at precision=14 and array_diff matches;
+            // String() prints every digit. Captured in
+            // docs/php-parity/task-16-final-review.json ("array_diff matches a
+            // high-precision float against its precision=14 cast").
+            expect(Utils.phpValueMatch(0.1 + 0.2, "0.3")).toBe(false);
+            expect(Utils.phpValueMatch(0.1 + 0.2, "0.30000000000000004")).toBe(
+                true,
+            );
+        });
+
         it("falls back to SameValueZero identity for NaN and Infinity", () => {
             expect(Utils.phpValueMatch(NaN, NaN)).toBe(true);
             expect(Utils.phpValueMatch(NaN, "x")).toBe(false);

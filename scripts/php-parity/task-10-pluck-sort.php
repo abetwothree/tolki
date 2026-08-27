@@ -283,12 +283,8 @@ probe('asort over PHP-falsy mixed values', 'asort([0, null, false, []])', functi
     ];
 });
 
-// Task 7: which callbacks count as "no callback". Collection::sort's own test
-// is `$callback && is_callable($callback)` - PHP falsiness - so a non-callable
-// string never reaches uasort; it is forwarded to asort as a SORT_* flag and
-// PHP 8 rejects it outright. Real Laravel therefore gives NO answer for the
-// string-as-field-path form the TS port adds, which is why cross-backing
-// agreement with Arr.sort (isFalsy) settles the dispatch guard instead.
+// Collection::sort forwards a non-callable string to asort as a SORT_* flag,
+// so PHP has no answer for the string-as-field-path form the TS port adds.
 probe('Collection::sort — a string callback is a sort flag, not a field path', 'sort(""), sort("0"), sort("age")', function () {
     $c = new \Illuminate\Support\Collection(['a' => 3, 'b' => 1, 'c' => 2]);
 
@@ -308,10 +304,8 @@ probe('Collection::sort — a string callback is a sort flag, not a field path',
     ];
 });
 
-// Task 7: Collection::mode's inner `->sort()` runs over a set whose values
-// are all equal to $highestValue, so asort leaves it untouched - the keys it
-// then reads are the filtered order either way. The TS port drops that sort
-// because sort() renumbers integer keys there.
+// Collection::mode's inner `->sort()` runs over values that are all equal, so
+// asort leaves the filtered order alone either way.
 probe('Collection::mode — the inner sort before keys() is a no-op', 'mode() and its filtered-then-sorted keys', function () {
     $counts = new \Illuminate\Support\Collection([1 => 2, 2 => 2, 3 => 1]);
     $filtered = $counts->filter(fn ($value) => $value == 2);

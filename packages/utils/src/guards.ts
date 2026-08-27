@@ -661,9 +661,13 @@ function toPhpScalarString(value: unknown): string | null {
  * do: `(string) $a === (string) $b`. Only `string`, `boolean`, `null` and
  * plain finite numbers have a PHP scalar analogue to cast through; everything
  * else (`undefined`, symbols, functions, objects, arrays, `Date`, `NaN`,
- * `Infinity`, and high-precision/exponential floats) falls back to
- * SameValueZero identity instead of PHP's `"Array"` collapse or object-cast
+ * `Infinity`, and floats `String()` renders in exponential notation) falls back
+ * to SameValueZero identity instead of PHP's `"Array"` collapse or object-cast
  * fatal, neither of which has a safe JS equivalent.
+ *
+ * A high-precision float is NOT one of those: it goes through the cast, where
+ * JS prints every digit and PHP's `precision=14` rounds. That is a real
+ * divergence, not a fallback.
  *
  * @param a - First value to compare
  * @param b - Second value to compare
@@ -676,6 +680,7 @@ function toPhpScalarString(value: unknown): string | null {
  * phpValueMatch(true, "1"); -> true
  * phpValueMatch(0, ""); -> false
  * phpValueMatch(100, "1e2"); -> false (PHP's `==` agrees, but `(string)` does not)
+ * phpValueMatch(0.1 + 0.2, "0.3"); -> false (PHP casts to "0.3" at precision=14 and matches)
  * phpValueMatch(NaN, NaN); -> true (SameValueZero fallback, not a string cast)
  */
 export function phpValueMatch(a: unknown, b: unknown): boolean {
