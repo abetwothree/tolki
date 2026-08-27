@@ -1472,6 +1472,37 @@ describe("Obj", () => {
             expect(Obj.set(null, "key", "value")).toEqual({});
             expect(Obj.set("string", "key", "value")).toEqual({});
         });
+
+        // docs/php-parity/task-17-second-review.json: "Arr::set writes a
+        // \"constructor\" key", "Arr::set writes a \"__proto__\" key"
+        describe("unsafe-key write policy", () => {
+            afterEach(() => {
+                expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+                expect(Object.getPrototypeOf({})).toBe(Object.prototype);
+            });
+
+            it.each(["constructor", "prototype", "__proto__"])(
+                "keeps a %s key as own data",
+                (key) => {
+                    expect(
+                        Object.hasOwn(Obj.set({}, key, 5) as object, key),
+                    ).toBe(true);
+                },
+            );
+
+            // docs/php-parity/task-17-second-review.json, "Arr::set writes a nested \"constructor.prototype\" path"
+            it("builds a nested constructor.prototype path without polluting", () => {
+                const result = Obj.set(
+                    {},
+                    "constructor.prototype.polluted",
+                    5,
+                ) as Record<string, unknown>;
+                expect(result).toEqual({
+                    constructor: { prototype: { polluted: 5 } },
+                });
+                expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+            });
+        });
     });
 
     describe("string", () => {
