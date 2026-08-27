@@ -2507,10 +2507,11 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
     // appends after the highest existing integer-like key instead of throwing.
     if (isNull(key)) {
         let nextIndex = 0;
-        // Own key order always lists integer-like keys ascending, so the last one
-        // seen is the largest; no need to compare against nextIndex (Collection.push).
+        // Ascending key order only holds inside the array-index range (0 to 2**32-2);
+        // isIntegerLikeKey has no such ceiling, so a PHP-scale key above it keeps
+        // insertion order instead - the >= comparison is load-bearing, not redundant.
         for (const existing of Object.keys(obj)) {
-            if (isIntegerLikeKey(existing)) {
+            if (isIntegerLikeKey(existing) && Number(existing) >= nextIndex) {
                 nextIndex = Number(existing) + 1;
             }
         }

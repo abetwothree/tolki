@@ -3167,6 +3167,19 @@ describe("Obj", () => {
                 [...arrValues].sort((a, b) => a - b),
             );
         });
+
+        it("finds the true max key above the array-index range, not the last enumerated one", () => {
+            // Above 2**32-2, Object.keys keeps insertion order instead of sorting ascending,
+            // so the smaller key here is enumerated second - the naive "last one wins" reading
+            // of key order would pick 5000000000 and collide with an existing 5000000001.
+            const obj = { "6000000000": "a", "5000000000": "b" };
+
+            expect(Obj.push(obj, null, "NEW")).toEqual({
+                "6000000000": "a",
+                "5000000000": "b",
+                "6000000001": "NEW",
+            });
+        });
     });
 
     describe("shuffle", () => {
