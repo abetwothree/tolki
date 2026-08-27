@@ -131,6 +131,27 @@ probe('"__proto__" is an ordinary array key in every keyed Collection result', '
     ];
 });
 
+// sortDesc's no-callback guard: `sort` was aligned on PHP falsiness in both
+// packages, `sortDesc` was not. PHP reads a string as a SORT_* flag, so only
+// the numeric-string form has an answer at all.
+probe('Collection::sortDesc — a string callback is a sort flag, not a field path', 'sortDesc(""), sortDesc("0"), sortDesc("age")', function () {
+    $c = new Collection(['a' => 3, 'b' => 1, 'c' => 2]);
+
+    $attempt = static function ($flag) use ($c) {
+        try {
+            return $c->sortDesc($flag)->all();
+        } catch (\Throwable $e) {
+            return ['threw' => get_class($e), 'message' => $e->getMessage()];
+        }
+    };
+
+    return [
+        'empty_string' => $attempt(''),
+        'zero_string' => $attempt('0'),
+        'non_numeric_string' => $attempt('age'),
+    ];
+});
+
 // The docblock on phpValueMatch claimed high-precision floats bail out to
 // identity; PHP's precision=14 (string) cast is what actually collapses them.
 probe('array_diff matches a high-precision float against its precision=14 cast', 'array_diff([0.1 + 0.2], ["0.3"])', function () {

@@ -3591,6 +3591,29 @@ describe("Obj", () => {
                 expect(Object.keys(result)).toEqual(["user1", "user2"]);
             });
 
+            it("treats a falsy callback as no callback, like sort does", () => {
+                // The mirror of sort's own row. "" left the object untouched while
+                // Arr.sortDesc sorted it; a blank string and {} split the other way.
+                // PHP cannot arbitrate - Collection::sortDesc("") throws (see
+                // docs/php-parity/task-16-final-review.json), so agreement decides.
+                const source = { a: 3, b: 1, c: 2 };
+                const descending: [string, number][] = [
+                    ["a", 3],
+                    ["c", 2],
+                    ["b", 1],
+                ];
+                const values = Object.values(source);
+
+                for (const falsy of ["", "   "]) {
+                    expect(Object.entries(Obj.sortDesc(source, falsy))).toEqual(
+                        descending,
+                    );
+                    expect(Object.values(Obj.sortDesc(source, falsy))).toEqual(
+                        Arr.sortDesc(values, falsy),
+                    );
+                }
+            });
+
             it("should handle missing keys", () => {
                 const obj = {
                     user1: { name: "John" },

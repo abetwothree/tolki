@@ -2900,8 +2900,10 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
 
             return 0;
         });
-    } else if (isUndefined(callback) || isNull(callback)) {
-        // Natural sorting by values in descending order
+    } else if (isFalsy(callback)) {
+        // arsort() on raw values. Same predicate as Arr.sortDesc and as both
+        // packages' sort, which is what keeps the four in agreement — PHP
+        // cannot arbitrate, since Collection::sortDesc("") throws.
         entries.sort(([, a], [, b]) => compareValues(b, a));
     } else if (isString(callback)) {
         // Sort by field name using dot notation in descending order

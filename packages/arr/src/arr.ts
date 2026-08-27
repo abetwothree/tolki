@@ -3231,7 +3231,7 @@ export function sortDesc<TValue>(
         );
     }
 
-    if (!callback) {
+    if (isFalsy(callback)) {
         // Natural sorting in descending order - use compareValues (reversed)
         // for proper numeric/string comparison, matching `sort`'s ascending
         // branch. A bare `.sort().reverse()` coerces every element to a

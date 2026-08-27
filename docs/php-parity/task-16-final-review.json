@@ -582,6 +582,25 @@
             }
         },
         {
+            "label": "Collection::sortDesc \u2014 a string callback is a sort flag, not a field path",
+            "php": "sortDesc(\"\"), sortDesc(\"0\"), sortDesc(\"age\")",
+            "value": {
+                "empty_string": {
+                    "threw": "TypeError",
+                    "message": "arsort(): Argument #2 ($flags) must be of type int, string given"
+                },
+                "zero_string": {
+                    "a": 3,
+                    "c": 2,
+                    "b": 1
+                },
+                "non_numeric_string": {
+                    "threw": "TypeError",
+                    "message": "arsort(): Argument #2 ($flags) must be of type int, string given"
+                }
+            }
+        },
+        {
             "label": "array_diff matches a high-precision float against its precision=14 cast",
             "php": "array_diff([0.1 + 0.2], [\"0.3\"])",
             "value": {
