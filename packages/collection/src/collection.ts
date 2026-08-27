@@ -2841,7 +2841,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).shift(); -> 1
      * new Collection([]).shift(); -> null
      * new Collection([1, 2, 3]).shift(2); -> new Collection([1, 2])
-     * new Collection({a: 1, b: 2, c: 3}).shift(2); -> new Collection({a: 1, b: 2})
+     * new Collection({a: 1, b: 2, c: 3}).shift(2); -> new Collection([1, 2])
      * new Collection([1, 2, 3]).shift(0); -> new Collection([])
      */
     shift(): TValue | null;
