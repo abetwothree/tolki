@@ -4293,10 +4293,9 @@ export function values<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
  * its `"Array"` collapse for array operands, and its fatal on casting a
  * plain object are deliberately NOT ported.
  *
- * `other` may be of any shape — `arrayableValues` applies the same
- * `EnumeratesValues::getArrayableItems()` rule `Collection::diff` does, so an
- * object contributes its values, nullish is empty and a scalar is a single
- * value. A non-accessible `data` is empty, so nothing survives the diff.
+ * `other` is normalized by `arrayableValues`: an Enumerable/Arrayable/iterable
+ * contributes its values, a plain object its own values. `Arr::from`'s default-arm
+ * throw is unreachable here — its object arm (`(array) $items`) catches first.
  *
  * @see Collection::diff — `packages/collection/stubs/Collection.php:276`.
  *      Wraps `array_diff`.
@@ -4352,10 +4351,9 @@ export function diff<TValue>(
  * plain object are deliberately NOT ported. `callable`, when given,
  * replaces the default value comparator above with a custom one.
  *
- * `other` may be of any shape — `arrayableValues` applies the same
- * `EnumeratesValues::getArrayableItems()` rule `Collection::intersect` does,
- * so an object contributes its values, nullish is empty and a scalar is a
- * single value.
+ * `other` is normalized by `arrayableValues`: an Enumerable/Arrayable/iterable
+ * contributes its values, a plain object its own values. `Arr::from`'s default-arm
+ * throw is unreachable here — its object arm (`(array) $items`) catches first.
  *
  * @see Collection::intersect — `packages/collection/stubs/Collection.php:660`.
  *      Wraps `array_intersect`.
