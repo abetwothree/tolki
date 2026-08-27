@@ -86,6 +86,20 @@ describe("Arr", () => {
                 RangeError,
             );
         });
+
+        // Reviewer finding (2026-08-27): add's `[...data]` copy is shallow,
+        // so an item already holding its own "__proto__" key that aliases a
+        // global reached setMixed's traversal unchanged; only a clone before
+        // descending (now in setMixed) severs it before the write happens.
+        it("never pollutes Object.prototype through an item's own aliased __proto__ key", () => {
+            const item = Object.create(null) as Record<string, unknown>;
+            item["__proto__"] = Object.prototype;
+            Arr.add([item], "0.__proto__.PWN", 1);
+            expect(({} as { PWN?: unknown }).PWN).toBeUndefined();
+            expect(Object.getOwnPropertyNames(Object.prototype)).not.toContain(
+                "PWN",
+            );
+        });
     });
 
     describe("arrayItem", () => {
@@ -1470,29 +1484,30 @@ describe("Arr", () => {
                 ).toBeUndefined();
             });
 
-            // docs/php-parity/task-17-second-review.json, "Arr::set writes a
-            // \"constructor\" key", "Arr::set writes a \"__proto__\" key"
+            // docs/php-parity/task-17-second-review.json: "Arr::set writes a
+            // \"constructor\" key" (`Arr::set([], "constructor", 5)`), plus
+            // its prototype/__proto__ siblings
             it.each(["constructor", "prototype", "__proto__"])(
-                "keeps a %s key as own data alongside existing entries",
+                "keeps a %s key as own data",
                 (key) => {
-                    const result = Arr.set(
-                        [1, 2, 3],
-                        key,
-                        5,
-                    ) as unknown as Record<string, unknown>;
-                    expect(Object.hasOwn(result, key)).toBe(true);
-                    expect(result[key]).toBe(5);
+                    const result = Arr.set([], key, 5) as unknown as Record<
+                        string,
+                        unknown
+                    >[];
+                    expect(Object.hasOwn(result[0] as object, key)).toBe(true);
+                    expect((result[0] as Record<string, unknown>)[key]).toBe(5);
                 },
             );
 
             // docs/php-parity/task-17-second-review.json, "Arr::set writes a nested \"constructor.prototype\" path"
+            // (`Arr::set([], "constructor.prototype.polluted", 5)`)
             it("builds a nested constructor.prototype path without polluting", () => {
                 const result = Arr.set(
-                    [1, 2, 3],
+                    [],
                     "constructor.prototype.polluted",
                     5,
-                ) as unknown as Record<string, unknown>;
-                expect(result["constructor"]).toEqual({
+                ) as unknown as Record<string, unknown>[];
+                expect(result[0]!["constructor"]).toEqual({
                     prototype: { polluted: 5 },
                 });
             });
