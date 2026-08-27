@@ -558,6 +558,35 @@ describe("Collection", () => {
             ]);
             expect(data3.collapseWithKeys().all()).toEqual([3, 4, 5, 6]);
         });
+
+        // Only JSON.parse produces a real own enumerable "__proto__" key; a literal
+        // `{ __proto__: ... }` sets the prototype at construction time instead.
+        describe("with a hostile __proto__ key (B8)", () => {
+            afterEach(() => {
+                expect(
+                    ({} as { polluted?: unknown; isAdmin?: unknown }).polluted,
+                ).toBeUndefined();
+                expect(
+                    ({} as { polluted?: unknown; isAdmin?: unknown }).isAdmin,
+                ).toBeUndefined();
+            });
+
+            // PHP-verified in docs/php-parity/task-16-final-review.json ('"__proto__"
+            // is an ordinary array key in every keyed Collection result').
+            it("collapseWithKeys keeps a __proto__ key as data", () => {
+                const payload = JSON.parse(
+                    '[{"__proto__":{"isAdmin":true}},{"b":2}]',
+                );
+                const result = new Collection(payload)
+                    .collapseWithKeys()
+                    .all() as Record<string, unknown>;
+                expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+                expect(Object.hasOwn(result, "__proto__")).toBe(true);
+                expect(
+                    (result as { isAdmin?: unknown }).isAdmin,
+                ).toBeUndefined();
+            });
+        });
     });
 
     describe("contains", () => {

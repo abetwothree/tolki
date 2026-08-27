@@ -449,8 +449,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
             isArray(item),
         );
 
-        // Merge all arrays/objects with later keys overwriting earlier ones
-        const merged = Object.assign({}, ...Object.values(validResults));
+        // Merge all arrays/objects with later keys overwriting earlier ones. A plain
+        // Object.assign uses [[Set]], so a "__proto__" source key would reparent the
+        // merge target instead of becoming an entry.
+        const merged: Record<string, unknown> = {};
+        for (const source of Object.values(validResults)) {
+            for (const [key, value] of Object.entries(source as object)) {
+                defineKey(merged, key, value);
+            }
+        }
 
         // If all inputs were arrays, convert the result back to an array
         // to match PHP's behavior
