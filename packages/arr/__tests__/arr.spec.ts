@@ -4043,6 +4043,19 @@ describe("Arr", () => {
             ]);
         });
 
+        it("runs a comparator nested in a one-element descriptor", () => {
+            // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
+            // "Arr::sort runs a comparator nested in a one-element descriptor".
+            const byAge = (a: { age: number }, b: { age: number }) =>
+                a.age - b.age;
+
+            expect(
+                Arr.sort([{ age: 3 }, { age: 1 }, { age: 2 }], [
+                    [byAge],
+                ] as never),
+            ).toEqual([{ age: 1 }, { age: 2 }, { age: 3 }]);
+        });
+
         it("sorts using an array of comparator callbacks", () => {
             expect(
                 Arr.sort(unsorted, [

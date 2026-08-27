@@ -3544,6 +3544,19 @@ describe("Obj", () => {
                 ).toEqual([{ age: 10 }, { age: 2 }]);
             });
 
+            it("runs a comparator nested in a one-element descriptor", () => {
+                // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
+                // "Arr::sort runs a comparator nested in a one-element
+                // descriptor" - Obj.sort shares Arr.sort's descriptor handling.
+                const byAge = (a: { age: number }, b: { age: number }) =>
+                    a.age - b.age;
+                const data = { x: { age: 3 }, y: { age: 1 }, z: { age: 2 } };
+
+                expect(
+                    Object.values(Obj.sort(data, [[byAge]] as never)),
+                ).toEqual([{ age: 1 }, { age: 2 }, { age: 3 }]);
+            });
+
             it("defaults an omitted direction to ascending", () => {
                 const unsorted = {
                     a: { age: 10 },

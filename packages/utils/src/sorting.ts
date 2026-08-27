@@ -30,6 +30,13 @@ export function createSortSpecComparator(resolve: SortValueResolver) {
             return spec as (a: TValue, b: TValue) => number;
         }
 
+        // Collection::sortByMany reads [0] off Arr::wrap($comparison) and then
+        // tests is_callable, so a comparator nested in a one-element descriptor
+        // is still a comparator, never a key path.
+        if (isArray(spec) && isFunction(spec[0])) {
+            return spec[0] as (a: TValue, b: TValue) => number;
+        }
+
         const [key, direction] = isArray(spec)
             ? (spec as readonly [
                   string,
@@ -37,9 +44,8 @@ export function createSortSpecComparator(resolve: SortValueResolver) {
               ])
             : ([spec as string, undefined] as const);
 
-        // Collection::sortByMany reads the direction through
-        // Arr::get($comparison, 1, true), so a missing one is ascending and
-        // anything unrecognised falls through to descending.
+        // The direction comes through Arr::get($comparison, 1, true), so a
+        // missing one is ascending and anything unrecognised is descending.
         const isAscending =
             isUndefined(direction) ||
             direction === true ||

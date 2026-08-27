@@ -6614,6 +6614,28 @@ describe("Collection", () => {
             expect(withComparator.values().pluck("age").all()).toEqual([2, 10]);
         });
 
+        it("runs a comparator nested in a one-element descriptor", () => {
+            // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
+            // "sortBy runs a comparator nested in a one-element descriptor" and
+            // "sortBy treats [[fn]] and [fn] the same".
+            const byAge = (a: { age: number }, b: { age: number }) =>
+                a.age - b.age;
+            const data = collect([{ age: 3 }, { age: 1 }, { age: 2 }]);
+
+            expect(
+                data
+                    .sortByMany([[byAge]] as never)
+                    .values()
+                    .all(),
+            ).toEqual([{ age: 1 }, { age: 2 }, { age: 3 }]);
+            expect(
+                data
+                    .sortByMany([[byAge]] as never)
+                    .values()
+                    .all(),
+            ).toEqual(data.sortByMany([byAge]).values().all());
+        });
+
         it("sortByDesc forces a bare-key array descriptor descending", () => {
             // Pins the array-form JSDoc example as an executable test: sortByDesc(['id'])
             // must sort descending on its own, without sortBy forwarding a global flag.

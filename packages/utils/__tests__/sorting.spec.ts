@@ -69,4 +69,13 @@ describe("createSortSpecComparator", () => {
 
         expect(comparatorFor(byAge, true)).toBe(byAge);
     });
+
+    it("unwraps a comparator nested in a one-element descriptor", () => {
+        // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
+        // "sortBy treats [[fn]] and [fn] the same" — Arr::wrap leaves a bare
+        // comparator and a one-element descriptor in the same shape.
+        const byAge = (a: Row, b: Row) => a.age - b.age;
+
+        expect(comparatorFor([byAge] as never, true)).toBe(byAge);
+    });
 });
