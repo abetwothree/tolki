@@ -135,6 +135,26 @@ probe('"__proto__" is an ordinary array key in every keyed Collection result', '
     ];
 });
 
+// put/offsetSet/getOrPut forward an unconstrained key into an ARRAY-backed
+// collection, so "__proto__" reaches the array write too, not just the object one.
+probe('"__proto__" is an ordinary key on an array-backed collection too', 'collect([1,2])->put("__proto__", ["polluted" => true])', function () {
+    $put = new Collection([1, 2]);
+    $put->put('__proto__', ['polluted' => true]);
+
+    $index = new Collection([1, 2]);
+    $index->put(2, 3);
+
+    $getOrPut = new Collection([1, 2]);
+    $getOrPut->getOrPut('__proto__', ['polluted' => true]);
+
+    return [
+        'list_put_proto' => $put->all(),
+        'list_put_proto_still_maps' => $put->map(fn ($v) => $v)->all(),
+        'list_put_index' => $index->all(),
+        'list_get_or_put_proto' => $getOrPut->all(),
+    ];
+});
+
 // sortDesc's no-callback guard: `sort` was aligned on PHP falsiness in both
 // packages, `sortDesc` was not. PHP reads a string as a SORT_* flag, so only
 // the numeric-string form has an answer at all.

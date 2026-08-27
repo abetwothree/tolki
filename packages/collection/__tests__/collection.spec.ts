@@ -11008,4 +11008,51 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
             expect((result as { polluted?: boolean }).polluted).toBeUndefined();
         });
     });
+
+    // Unlike every row above, the hostile input here is the KEY ARGUMENT, not the
+    // data, so it reaches the array-backed write that `put`/`offsetSet`/`getOrPut`
+    // all forward into. The result stays an array, so its prototype is Array's.
+    describe.each([
+        [
+            "put",
+            (collection: Collection<unknown, PropertyKey>) => {
+                collection.put("__proto__", { polluted: true });
+            },
+        ],
+        [
+            "offsetSet",
+            (collection: Collection<unknown, PropertyKey>) => {
+                collection.offsetSet("__proto__", { polluted: true });
+            },
+        ],
+        [
+            "getOrPut",
+            (collection: Collection<unknown, PropertyKey>) => {
+                collection.getOrPut("__proto__", { polluted: true });
+            },
+        ],
+    ])("%s on an array-backed collection", (_name, write) => {
+        it("keeps a __proto__ key argument as data, not as a prototype", () => {
+            // PHP-verified in docs/php-parity/task-16-final-review.json
+            // ('"__proto__" is an ordinary key on an array-backed collection too'):
+            // collect([1,2])->put("__proto__", …) keeps the key and still maps.
+            const collection = new Collection<unknown, PropertyKey>([1, 2]);
+            write(collection);
+
+            const items = collection.all();
+
+            expect(Object.getPrototypeOf(items)).toBe(Array.prototype);
+            expect(Object.hasOwn(items as object, "__proto__")).toBe(true);
+            expect(collection.map((value) => value).all()).toEqual([1, 2]);
+        });
+    });
+
+    it("still appends through put at a numeric key", () => {
+        // PHP-verified in the same row (list_put_index): collect([1,2])->put(2,3)
+        // is [1,2,3]. defineKey must not change the ordinary index write.
+        const collection = new Collection<number, number>([1, 2]);
+        collection.put(2, 3);
+
+        expect(collection.all()).toEqual([1, 2, 3]);
+    });
 });

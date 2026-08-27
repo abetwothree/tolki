@@ -4010,8 +4010,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
     add<T, K extends PropertyKey>(item: T, key: K | null = null) {
         if (isArray(this.items)) {
             if (!isNull(key)) {
-                (this.items as TValue[])[key as number] =
-                    item as unknown as TValue;
+                // `put`/`offsetSet`/`getOrPut` take an unconstrained key, so a
+                // "__proto__" one reaches the array write and would reparent it.
+                defineKey(
+                    this.items as unknown as Record<string, TValue>,
+                    key,
+                    item as unknown as TValue,
+                );
             } else {
                 (this.items as TValue[]).push(item as unknown as TValue);
             }

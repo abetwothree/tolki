@@ -588,6 +588,38 @@
             }
         },
         {
+            "label": "\"__proto__\" is an ordinary key on an array-backed collection too",
+            "php": "collect([1,2])->put(\"__proto__\", [\"polluted\" => true])",
+            "value": {
+                "list_put_proto": {
+                    "0": 1,
+                    "1": 2,
+                    "__proto__": {
+                        "polluted": true
+                    }
+                },
+                "list_put_proto_still_maps": {
+                    "0": 1,
+                    "1": 2,
+                    "__proto__": {
+                        "polluted": true
+                    }
+                },
+                "list_put_index": [
+                    1,
+                    2,
+                    3
+                ],
+                "list_get_or_put_proto": {
+                    "0": 1,
+                    "1": 2,
+                    "__proto__": {
+                        "polluted": true
+                    }
+                }
+            }
+        },
+        {
             "label": "Collection::sortDesc \u2014 a string callback is a sort flag, not a field path",
             "php": "sortDesc(\"\"), sortDesc(\"0\"), sortDesc(\"age\")",
             "value": {
