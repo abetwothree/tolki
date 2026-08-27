@@ -647,8 +647,10 @@ function toPhpScalarString(value: unknown): string | null {
     }
 
     if (isFiniteNumber(value)) {
+        // ECMA-262's Number::toString always lowercases the exponent marker,
+        // so checking for "E" here would be dead code — no JS number produces it.
         const cast = String(value);
-        return cast.includes("e") || cast.includes("E") ? null : cast;
+        return cast.includes("e") ? null : cast;
     }
 
     return null;

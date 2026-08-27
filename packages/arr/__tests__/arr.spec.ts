@@ -2591,8 +2591,9 @@ describe("Arr", () => {
         });
 
         it("compares values with PHP's (string) cast, not strict equality", () => {
-            // Captured: docs/php-parity/task-06-setops.json ("diff and
-            // intersect compare by string cast"): array_intersect([0],["0"]) === [0].
+            // Captured: docs/php-parity/task-06-setops.json ("diff and intersect
+            // compare by string cast"): intersect_int_string is [0], intersect_bool_one
+            // is [true], intersect_int_empty (array_intersect([0],[""])) is [].
             expect(Arr.intersect([0], ["0"])).toEqual([0]);
             expect(Arr.intersect([true], ["1"])).toEqual([true]);
             expect(Arr.intersect([0], [""])).toEqual([]);

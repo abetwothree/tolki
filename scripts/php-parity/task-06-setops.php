@@ -110,7 +110,9 @@ probe('diff and intersect compare by string cast', 'array_diff([0],["0"])', func
         'diff_int_string' => array_diff([0], ['0']),
         'diff_null_empty' => array_diff([null], ['']),
         'diff_int_empty' => array_diff([0], ['']),
+        'diff_int_exponential_string' => array_diff([100], ['1e2']),
         'intersect_int_string' => array_intersect([0], ['0']),
+        'intersect_int_empty' => array_intersect([0], ['']),
         'intersect_bool_one' => array_intersect([true], ['1']),
         'intersect_arrays' => @array_intersect([['id' => 1], ['id' => 2]], [['id' => 1]]),
     ];

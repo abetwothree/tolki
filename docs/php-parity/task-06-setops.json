@@ -135,9 +135,13 @@
                 "diff_int_empty": [
                     0
                 ],
+                "diff_int_exponential_string": [
+                    100
+                ],
                 "intersect_int_string": [
                     0
                 ],
+                "intersect_int_empty": [],
                 "intersect_bool_one": [
                     true
                 ],

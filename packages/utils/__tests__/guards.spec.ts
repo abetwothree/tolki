@@ -617,8 +617,9 @@ describe("Utils", () => {
         ])(
             "matches %s against %s as PHP's string cast does",
             (a, b, expected) => {
-                // Captured: docs/php-parity/task-06-setops.json
-                // ("diff and intersect compare by string cast").
+                // Captured: docs/php-parity/task-06-setops.json ("diff and intersect
+                // compare by string cast"): diff_int_string, diff_null_empty,
+                // intersect_bool_one, diff_int_empty, diff_int_exponential_string.
                 expect(Utils.phpValueMatch(a, b)).toBe(expected);
             },
         );

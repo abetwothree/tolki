@@ -1651,8 +1651,9 @@ describe("Obj", () => {
         });
 
         it("compares values with PHP's (string) cast, not strict equality", () => {
-            // Captured: docs/php-parity/task-06-setops.json ("diff and
-            // intersect compare by string cast"): array_intersect([0],["0"]) === [0].
+            // Captured: docs/php-parity/task-06-setops.json ("diff and intersect
+            // compare by string cast"): intersect_int_string is [0], intersect_bool_one
+            // is [true], intersect_int_empty (array_intersect([0],[""])) is [].
             expect(Obj.intersect({ a: 0 }, { x: "0" })).toEqual({ a: 0 });
             expect(Obj.intersect({ a: true }, { x: "1" })).toEqual({
                 a: true,
