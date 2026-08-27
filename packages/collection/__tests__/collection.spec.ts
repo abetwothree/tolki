@@ -4768,6 +4768,25 @@ describe("Collection", () => {
                 collection.put("length" as never, 5 as never),
             ).not.toThrow();
         });
+
+        // docs/php-parity/task-17-second-review.json, "Arr::set writes a
+        // \"constructor\" key", "Arr::set writes a \"__proto__\" key". This is
+        // the reference behaviour path.ts's writes were brought in line with.
+        describe("unsafe-key write policy", () => {
+            afterEach(() => {
+                expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+                expect(Object.getPrototypeOf({})).toBe(Object.prototype);
+            });
+
+            it.each(["constructor", "prototype", "__proto__"])(
+                "keeps a %s key as own data",
+                (key) => {
+                    expect(
+                        new Collection({}).put(key as never, 5 as never).all(),
+                    ).toEqual({ [key]: 5 });
+                },
+            );
+        });
     });
 
     describe("random", () => {
