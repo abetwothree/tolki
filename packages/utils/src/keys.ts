@@ -83,12 +83,13 @@ export function isIntegerLikeKey(key: string): boolean {
  * in the order they appear; string keys pass through unchanged.
  *
  * This is the one integer-key policy for every reordering helper — `sort`,
- * `sortDesc`, `sortBy`, `sortByMany`, `reverse`, `pad`, `splice`. PHP's
- * originals are key-preserving (`asort`, `arsort`, `array_reverse($x, true)`),
- * but a plain JS object cannot hold an arbitrary order for canonical integer
- * keys — ECMA-262 `OrdinaryOwnPropertyKeys` always re-sorts them ascending —
- * so preserving them would silently discard the reordering. Renumbering
- * trades the key *names* to keep PHP's value *order*.
+ * `sortDesc`, `sortBy`, `sortByMany`, `reverse`, `pad`, `splice`, `sortKeys`,
+ * `sortKeysDesc`, and `sortKeysUsing`. PHP's originals are key-preserving
+ * (`asort`, `arsort`, `array_reverse($x, true)`), but a plain JS object
+ * cannot hold an arbitrary order for canonical integer keys — ECMA-262
+ * `OrdinaryOwnPropertyKeys` always re-sorts them ascending — so preserving
+ * them would silently discard the reordering. Renumbering trades the key
+ * *names* to keep PHP's value *order*.
  *
  * That trade only pays off for an all-integer or all-string object. A MIXED
  * one keeps neither: the write hoists every integer-like key ahead of every

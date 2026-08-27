@@ -6677,9 +6677,10 @@ describe("Collection", () => {
             expect(sorted.values().all()).toEqual(["b", "e", "z"]);
         });
 
+        // Generic correctness check, not PHP-parity-sensitive (no probe row
+        // covers this): a lexical comparator sorts "10" before "9"; only
+        // values() (Object.keys() is forced ascending regardless) can show it.
         it("orders integer keys numerically, not lexically", () => {
-            // A lexical comparator sorts "10" before "9"; only values() (not
-            // Object.keys(), which the engine always forces ascending) can show it.
             const sorted = new Collection({ 9: "a", 10: "b" }).sortKeysDesc();
             expect(sorted.values().all()).toEqual(["b", "a"]);
         });
@@ -6692,6 +6693,8 @@ describe("Collection", () => {
             expect(Array.isArray(sorted.all())).toBe(true);
         });
 
+        // Generic correctness check, not PHP-parity-sensitive (no probe row
+        // covers pure string keys); reindexIntegerKeys passes them through.
         it("still sorts string keys", () => {
             const sorted = new Collection({ b: 2, a: 1, c: 3 }).sortKeysDesc();
             expect(sorted.all()).toEqual({ c: 3, b: 2, a: 1 });

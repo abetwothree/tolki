@@ -3209,9 +3209,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * object keeps its keys here too. Integer-like keys cannot be preserved
      * and reordered at once — a plain JS object always iterates them ascending
      * (ECMA-262 `OrdinaryOwnPropertyKeys`) — so they are renumbered over the
-     * sorted sequence, the one policy `sortBy`, `sortDesc`, `reverse`, `pad`
-     * and `splice` all follow. Values land in PHP's order; their key names do
-     * not survive. See `reindexIntegerKeys` in `@tolki/utils`.
+     * sorted sequence, the one policy `sortBy`, `sortDesc`, `reverse`, `pad`,
+     * `splice`, `sortKeys`, `sortKeysDesc`, and `sortKeysUsing` all follow.
+     * Values land in PHP's order; their key names do not survive. See
+     * `reindexIntegerKeys` in `@tolki/utils`.
      *
      * @param callback - The value extractor callback, a path key to get values from, or null for default sort
      * @returns A new collection with the sorted items
@@ -3506,6 +3507,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * new Collection({b: 2, a: 1, c: 3}).sortKeys(); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection({b: 2, a: 1, c: 3}).sortKeys(true); -> new Collection({c: 3, b: 2, a: 1})
+     * new Collection({5: "e", 2: "b", 9: "z"}).sortKeys(); -> new Collection({0: "b", 1: "e", 2: "z"}) (integer-like keys renumbered from 0; see reindexIntegerKeys)
      */
     sortKeys(descending: CaseValue<typeof SortDirection> | boolean = false) {
         const isDesc =
@@ -3550,6 +3552,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection({a: 1, b: 2, c: 3}).sortKeysDesc(); -> new Collection({c: 3, b: 2, a: 1})
+     * new Collection({5: "e", 2: "b", 9: "z"}).sortKeysDesc(); -> new Collection({0: "z", 1: "e", 2: "b"}) (same renumbering as sortKeys)
      */
     sortKeysDesc() {
         return this.sortKeys(SortDirection.Descending);
@@ -3565,6 +3568,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * new Collection({b: 2, a: 1, c: 3}).sortKeysUsing((a, b) => a.localeCompare(b)); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection({b: 2, a: 1, c: 3}).sortKeysUsing((a, b) => b.localeCompare(a)); -> new Collection({c: 3, b: 2, a: 1})
+     * new Collection({5: "e", 2: "b", 9: "z"}).sortKeysUsing((a, b) => Number(b) - Number(a)); -> new Collection({0: "z", 1: "e", 2: "b"}) (integer-like keys renumbered from 0)
      */
     sortKeysUsing(callback: (a: TKey, b: TKey) => number) {
         const keys = Object.keys(this.items);
