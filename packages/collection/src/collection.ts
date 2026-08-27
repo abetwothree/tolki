@@ -666,8 +666,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 }
             }
             if (!found) {
-                (results as Record<TKey, TValue>)[key as TKey] =
-                    value as TValue;
+                defineKey(results as Record<string, TValue>, key, value);
             }
         }
 
@@ -703,9 +702,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
         )) {
-            if (!(key in otherItems) || otherItems[key] !== value) {
-                (results as Record<TKey, TValue>)[key as TKey] =
-                    value as TValue;
+            if (!Object.hasOwn(otherItems, key) || otherItems[key] !== value) {
+                defineKey(results as Record<string, TValue>, key, value);
             }
         }
 
@@ -764,9 +762,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
         )) {
-            if (!(key in otherItems)) {
-                (results as Record<TKey, TValue>)[key as TKey] =
-                    value as TValue;
+            if (!Object.hasOwn(otherItems as object, key)) {
+                defineKey(results as Record<string, TValue>, key, value);
             }
         }
 
@@ -850,7 +847,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 // Don't call .values() again as it would reset keys unnecessarily
                 uniqueItems = uniqueItems.skip(1);
             } else {
-                duplicatesItems[key as TKey] = value as TMapValue;
+                defineKey(
+                    duplicatesItems as Record<string, TMapValue>,
+                    key,
+                    value as TMapValue,
+                );
             }
         }
 
@@ -1228,19 +1229,26 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
                 groupKey = normalizeGroupKey(groupKey) as TGroupKey;
 
-                if (!results[groupKey]) {
-                    results[groupKey] = useObjects
-                        ? (this.newInstance({}) as unknown as Collection<
-                              TValue,
-                              TKey
-                          >)
-                        : (this.newInstance() as unknown as Collection<
-                              TValue,
-                              TKey
-                          >);
+                const groupName = String(groupKey);
+                const groups = results as Record<
+                    string,
+                    Collection<TValue, TKey>
+                >;
+                let group = Object.hasOwn(groups, groupName)
+                    ? groups[groupName]
+                    : undefined;
+
+                if (!group) {
+                    group = (useObjects
+                        ? this.newInstance({})
+                        : this.newInstance()) as unknown as Collection<
+                        TValue,
+                        TKey
+                    >;
+                    defineKey(groups, groupName, group);
                 }
 
-                results[groupKey]!.offsetSet(
+                group.offsetSet(
                     preserveKeys ? (key as TKey) : null,
                     value as TValue,
                 );
@@ -1265,8 +1273,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
             for (const [groupKey, collection] of Object.entries(
                 nestedResult.items,
             )) {
-                nestedConvertedResults[groupKey as TGroupKey] =
-                    collection.all() as TValue[] | Record<TKey, TValue>;
+                defineKey(
+                    nestedConvertedResults as Record<
+                        string,
+                        TValue[] | Record<TKey, TValue>
+                    >,
+                    groupKey,
+                    collection.all() as TValue[] | Record<TKey, TValue>,
+                );
             }
 
             return this.newInstance(nestedConvertedResults);
@@ -1282,9 +1296,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
             string,
             Collection<TValue, TKey>,
         ][]) {
-            convertedResults[groupKey as TGroupKey] = collection.all() as
-                | TValue[]
-                | Record<TKey, TValue>;
+            defineKey(
+                convertedResults as Record<
+                    string,
+                    TValue[] | Record<TKey, TValue>
+                >,
+                groupKey,
+                collection.all() as TValue[] | Record<TKey, TValue>,
+            );
         }
 
         return this.newInstance(convertedResults);
@@ -1351,8 +1370,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 resolvedKey = "";
             }
 
-            (results as Record<string, TValue>)[resolvedKey as string] =
-                value as TValue;
+            defineKey(results, String(resolvedKey), value as TValue);
         }
 
         return this.newInstance(results);
@@ -1914,6 +1932,23 @@ export class Collection<TValue, TKey extends PropertyKey> {
             TMapToDictionaryValue[]
         >;
 
+        const buckets = dictionary as Record<string, TMapToDictionaryValue[]>;
+
+        const bucket = (name: string): TMapToDictionaryValue[] => {
+            const existing = Object.hasOwn(buckets, name)
+                ? buckets[name]
+                : undefined;
+
+            if (existing) {
+                return existing;
+            }
+
+            const created: TMapToDictionaryValue[] = [];
+            defineKey(buckets, name, created);
+
+            return created;
+        };
+
         // For objects, use Object.entries
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
@@ -1931,24 +1966,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
                 const [mappedKey, mappedValue] = mapped;
 
-                if (!dictionary[mappedKey as TMapToDictionaryKey]) {
-                    dictionary[mappedKey as TMapToDictionaryKey] = [];
-                }
-
-                dictionary[mappedKey as TMapToDictionaryKey].push(
+                bucket(String(mappedKey)).push(
                     mappedValue as TMapToDictionaryValue,
                 );
                 continue;
             }
 
             for (const [mappedKey, mappedValue] of Object.entries(mapped)) {
-                if (!dictionary[mappedKey as TMapToDictionaryKey]) {
-                    dictionary[mappedKey as TMapToDictionaryKey] = [];
-                }
-
-                dictionary[mappedKey as TMapToDictionaryKey].push(
-                    mappedValue as TMapToDictionaryValue,
-                );
+                bucket(mappedKey).push(mappedValue as TMapToDictionaryValue);
             }
         }
 
@@ -2098,12 +2123,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 const result = { ...target };
 
                 for (const [key, value] of Object.entries(source)) {
-                    if (key in result) {
-                        result[key] = mergeRecursively(result[key], value);
-                    } else {
-                        // Add new key from source
-                        result[key] = value;
-                    }
+                    defineKey(
+                        result,
+                        key,
+                        Object.hasOwn(result, key)
+                            ? mergeRecursively(result[key], value)
+                            : value,
+                    );
                 }
 
                 return result;
@@ -2482,7 +2508,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     index++;
                 } else {
                     // Keep string keys as-is
-                    newItems[key] = value as T;
+                    defineKey(newItems as Record<string, T>, key, value as T);
                 }
             }
 
@@ -3501,9 +3527,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const sortedItems = {} as DataItems<TValue, TKey>;
         for (const key of keys) {
-            (sortedItems as Record<TKey, TValue>)[key as TKey] = (
-                this.items as Record<TKey, TValue>
-            )[key as TKey];
+            defineKey(
+                sortedItems as Record<string, TValue>,
+                key,
+                (this.items as Record<TKey, TValue>)[key as TKey],
+            );
         }
 
         return this.newInstance(sortedItems);
@@ -3540,9 +3568,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const sortedItems = {} as DataItems<TValue, TKey>;
         for (const key of keys) {
-            (sortedItems as Record<TKey, TValue>)[key as TKey] = (
-                this.items as Record<TKey, TValue>
-            )[key as TKey];
+            defineKey(
+                sortedItems as Record<string, TValue>,
+                key,
+                (this.items as Record<TKey, TValue>)[key as TKey],
+            );
         }
 
         return this.newInstance(sortedItems);
@@ -3945,11 +3975,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 resultKey = String(result);
             }
 
-            if (resultKey in results) {
-                results[resultKey] = (results[resultKey] as number) + 1;
-            } else {
-                results[resultKey] = 1;
-            }
+            const seen = Object.hasOwn(results, resultKey)
+                ? (results[resultKey] as number)
+                : 0;
+
+            defineKey(results as Record<string, number>, resultKey, seen + 1);
         }
 
         return this.newInstance(results);
@@ -3980,8 +4010,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (!isNull(key)) {
-            (this.items as Record<TKey, TValue>)[key as unknown as TKey] =
-                item as unknown as TValue;
+            defineKey(
+                this.items as Record<string, TValue>,
+                String(key),
+                item as unknown as TValue,
+            );
+
             return this;
         }
 
@@ -5728,10 +5762,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (isObject(data)) {
-            const result: Record<PropertyKey, unknown> = {};
+            const result: Record<string, unknown> = {};
             for (const [key, value] of Object.entries(data)) {
-                result[key] = this.recursivelyConvertCollections(
-                    value as unknown as T[] | Record<K, T> | Collection<T, K>,
+                defineKey(
+                    result,
+                    key,
+                    this.recursivelyConvertCollections(
+                        value as unknown as
+                            | T[]
+                            | Record<K, T>
+                            | Collection<T, K>,
+                    ),
                 );
             }
             return result as Record<K, T>;
@@ -5792,7 +5833,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     finalKey = numKey as TKey;
                 }
 
-                obj[finalKey] = value as TValue;
+                defineKey(
+                    obj as Record<string, TValue>,
+                    String(finalKey),
+                    value as TValue,
+                );
                 orderedPairs.push([finalKey, value as TValue]);
             }
 

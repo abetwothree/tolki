@@ -2,7 +2,7 @@ import { collect, Collection } from "@tolki/collection";
 import { dataUnshift } from "@tolki/data";
 import { SortDirection } from "@tolki/enum";
 import { Stringable } from "@tolki/str";
-import { assertType, describe, expect, it } from "vitest";
+import { afterEach, assertType, describe, expect, it } from "vitest";
 
 import {
     TestArrayableObject,
@@ -10856,6 +10856,156 @@ describe("Collection", () => {
                     ["2", 2],
                 ],
             );
+        });
+    });
+});
+
+// Only JSON.parse produces a real own enumerable "__proto__" key; a literal
+// `{ __proto__: ... }` sets the prototype at construction time instead.
+const HOSTILE = () =>
+    JSON.parse('{"a":1,"__proto__":{"polluted":true},"c":3}') as Record<
+        string,
+        unknown
+    >;
+
+describe("computed-key writes treat __proto__ as data, not a prototype", () => {
+    afterEach(() => {
+        // Every case below writes into a *fresh* result object; none of them
+        // should ever be able to touch the shared Object.prototype itself.
+        expect(({} as { polluted?: boolean }).polluted).toBeUndefined();
+    });
+
+    describe.each([
+        [
+            "keyBy",
+            () => new Collection([{ k: "__proto__", v: 1 }]).keyBy("k").all(),
+        ],
+        [
+            "groupBy",
+            () => new Collection([{ k: "__proto__" }]).groupBy("k").all(),
+        ],
+        [
+            // preserveKeys puts the hostile key on the INNER group, so the inner
+            // object is the one the shared assertions have to see.
+            "groupBy (preserveKeys)",
+            () =>
+                new Collection(JSON.parse('{"__proto__":{"k":"z"}}'))
+                    .groupBy("k", true)
+                    .all()["z"],
+        ],
+        [
+            "groupBy (nested)",
+            () =>
+                new Collection([{ k: "__proto__", j: "x" }])
+                    .groupBy(["k", "j"])
+                    .all(),
+        ],
+        ["countBy", () => new Collection(["__proto__"]).countBy().all()],
+        [
+            "mapToDictionary",
+            () =>
+                new Collection([{ n: "__proto__", i: 1 }])
+                    .mapToDictionary((item) => ({ [item.n]: item.i }))
+                    .all(),
+        ],
+        [
+            "mapToDictionary (tuple)",
+            () =>
+                new Collection([1])
+                    .mapToDictionary(
+                        () =>
+                            ["__proto__", 1] as unknown as Record<
+                                string,
+                                number
+                            >,
+                    )
+                    .all(),
+        ],
+        [
+            "mapWithKeys",
+            () =>
+                new Collection([1])
+                    .mapWithKeys(() =>
+                        JSON.parse('{"__proto__":{"polluted":true}}'),
+                    )
+                    .all(),
+        ],
+        ["sortKeys", () => new Collection(HOSTILE()).sortKeys().all()],
+        [
+            "sortKeysUsing",
+            () =>
+                new Collection(HOSTILE())
+                    .sortKeysUsing((a, b) => String(a).localeCompare(String(b)))
+                    .all(),
+        ],
+        ["unshift", () => new Collection(HOSTILE()).unshift(9).all()],
+        [
+            "mergeRecursive",
+            () => new Collection({ z: 1 }).mergeRecursive(HOSTILE()).all(),
+        ],
+        [
+            "mergeRecursive (nested)",
+            () =>
+                (
+                    new Collection({ z: { q: 1 } })
+                        .mergeRecursive(
+                            JSON.parse('{"z":{"__proto__":{"polluted":true}}}'),
+                        )
+                        .all() as Record<string, unknown>
+                )["z"],
+        ],
+        ["diffAssoc", () => new Collection(HOSTILE()).diffAssoc({}).all()],
+        ["diffKeys", () => new Collection(HOSTILE()).diffKeys({}).all()],
+        [
+            "diffUsing",
+            () => new Collection(HOSTILE()).diffUsing({}, () => false).all(),
+        ],
+        [
+            "duplicates",
+            () =>
+                new Collection(JSON.parse('{"a":1,"__proto__":1,"c":3}'))
+                    .duplicates()
+                    .all(),
+        ],
+        [
+            "getRawItems (Map key)",
+            () =>
+                new Collection(
+                    new Map<string, unknown>([
+                        ["a", 1],
+                        ["__proto__", { polluted: true }],
+                        ["c", 3],
+                    ]),
+                ).all(),
+        ],
+        [
+            "offsetSet",
+            () => {
+                const collection = new Collection<unknown, string>({ a: 1 });
+                collection.offsetSet("__proto__", 2);
+
+                return collection.all();
+            },
+        ],
+        [
+            "pull (recursive conversion)",
+            () => {
+                const collection = new Collection(HOSTILE());
+                collection.pull("nope");
+
+                return collection.all();
+            },
+        ],
+    ] as [string, () => unknown][])("%s", (_name, run) => {
+        it("treats __proto__ as data, not as a prototype", () => {
+            // PHP has no inherited __proto__ setter, so every row keeps it as an
+            // ordinary key. PHP-verified in docs/php-parity/task-16-final-review.json
+            // ('"__proto__" is an ordinary array key in every keyed Collection result').
+            const result = run();
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(Object.hasOwn(result as object, "__proto__")).toBe(true);
+            expect((result as { polluted?: boolean }).polluted).toBeUndefined();
         });
     });
 });
