@@ -69,7 +69,9 @@ import {
  * on this — re-read Collection.php before "aligning" one to the other.
  */
 
-const sortSpecComparator = createSortSpecComparator(getNestedValue);
+const sortSpecComparator = createSortSpecComparator((item, key) =>
+    getNestedValue(item, key as PropertyKey),
+);
 
 /**
  * Determine whether the given value is array accessible.

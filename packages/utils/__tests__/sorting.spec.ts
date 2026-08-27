@@ -1,4 +1,4 @@
-import type { SortSpec } from "@tolki/types";
+import type { PathKey, SortSpec } from "@tolki/types";
 import { createSortSpecComparator } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
 
@@ -6,15 +6,15 @@ type Row = { age: number };
 
 // Stands in for the resolvers the packages inject: getNestedValue in
 // arr/obj, dataGet in collection.
-const readOwnKey = (item: unknown, key: string) =>
-    (item as Record<string, unknown>)[key];
+const readOwnKey = (item: unknown, key: PathKey) =>
+    (item as Record<string, unknown>)[key as string];
 
 const comparatorFor = (spec: SortSpec<Row>, forceDescending = false) =>
     createSortSpecComparator(readOwnKey)<Row>(spec, forceDescending);
 
 describe("createSortSpecComparator", () => {
     it("reads every descriptor key through the injected resolver", () => {
-        const seen: string[] = [];
+        const seen: PathKey[] = [];
         const comparator = createSortSpecComparator((item, key) => {
             seen.push(key);
 

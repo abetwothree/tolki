@@ -1,4 +1,4 @@
-import type { SortSpec } from "@tolki/types";
+import type { PathKey, SortSpec } from "@tolki/types";
 
 import { compareValues } from "./equality";
 import { isArray, isFunction, isUndefined } from "./guards";
@@ -10,7 +10,7 @@ import { isArray, isFunction, isUndefined } from "./guards";
  * @param key - The descriptor's key path.
  * @returns The value to compare.
  */
-export type SortValueResolver = (item: unknown, key: string) => unknown;
+export type SortValueResolver = (item: unknown, key: PathKey) => unknown;
 
 /**
  * Build the sort-descriptor comparator factory for one path resolver.
@@ -39,10 +39,10 @@ export function createSortSpecComparator(resolve: SortValueResolver) {
 
         const [key, direction] = isArray(spec)
             ? (spec as readonly [
-                  string,
+                  PathKey,
                   (boolean | "Ascending" | "Descending" | "asc" | "desc")?,
               ])
-            : ([spec as string, undefined] as const);
+            : ([spec as PathKey, undefined] as const);
 
         // The direction comes through Arr::get($comparison, 1, true), so a
         // missing one is ascending and anything unrecognised is descending.
