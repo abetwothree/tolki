@@ -67,4 +67,36 @@ probe('arsort over the same null and empty-array fixture', 'arsort(["user2"=>nul
     return array_keys($falsy);
 });
 
+// B6 follow-up — the precision arms. Number() collapses integer strings past
+// 2^53 and overflows exponents to one infinity; PHP compares the first exactly
+// and falls back to strcmp on the second.
+probe('spaceship on integer strings one apart past 2^53', '"9007199254740993" <=> "9007199254740992"', fn () => '9007199254740993' <=> '9007199254740992');
+probe('spaceship on integer strings one apart past 2^53, ascending', '"9007199254740993" <=> "9007199254740994"', fn () => '9007199254740993' <=> '9007199254740994');
+probe('spaceship on negative integer strings past 2^53', '"-9007199254740993" <=> "-9007199254740992"', fn () => '-9007199254740993' <=> '-9007199254740992');
+probe('spaceship on integer strings past the int64 range', '"99999999999999999999" <=> "99999999999999999998"', fn () => '99999999999999999999' <=> '99999999999999999998');
+probe('spaceship on a leading-zero integer string that is larger', '"0000123" <=> "99"', fn () => '0000123' <=> '99');
+probe('spaceship on a leading-zero integer string that is smaller', '"00001" <=> "99"', fn () => '00001' <=> '99');
+probe('spaceship on a whitespace-padded integer string', '" 42 " <=> "42"', fn () => ' 42 ' <=> '42');
+probe('spaceship on exponent strings that overflow to infinity', '"1e400" <=> "1e401"', fn () => '1e400' <=> '1e401');
+probe('spaceship on identical exponent strings that overflow', '"1e400" <=> "1e400"', fn () => '1e400' <=> '1e400');
+probe('spaceship on decimal strings spelled differently', '"1.5" <=> "1.50"', fn () => '1.5' <=> '1.50');
+probe('spaceship on an integer string and a decimal string', '"42" <=> "1.5"', fn () => '42' <=> '1.5');
+
+// B6 follow-up — an object-backed natural sort, which the list rows above do
+// not cover: obj.spec pins asort/arsort over this literal, not sort/rsort.
+$keyed = ['a' => '9', 'b' => '10', 'c' => '1', 'd' => 5];
+probe('asort over a keyed mix of numeric strings and an int', 'asort(["a"=>"9","b"=>"10","c"=>"1","d"=>5])', function () use ($keyed) {
+    asort($keyed);
+    return array_values($keyed);
+});
+probe('arsort over a keyed mix of numeric strings and an int', 'arsort(["a"=>"9","b"=>"10","c"=>"1","d"=>5])', function () use ($keyed) {
+    arsort($keyed);
+    return array_values($keyed);
+});
+
+// B6 follow-up — whereNotBetween is a non-sort consumer of the same comparison.
+$between = [['v' => '9'], ['v' => '10'], ['v' => '1'], ['v' => 5], ['v' => null], ['v' => 0]];
+probe('whereNotBetween over numeric strings and falsy values', 'collect($between)->whereNotBetween("v",["1","5"])->pluck("v")', fn () => collect($between)->whereNotBetween('v', ['1', '5'])->pluck('v')->all());
+probe('whereBetween over the same items', 'collect($between)->whereBetween("v",["1","5"])->pluck("v")', fn () => collect($between)->whereBetween('v', ['1', '5'])->pluck('v')->all());
+
 emit();

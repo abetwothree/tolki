@@ -232,6 +232,99 @@
                 "user2",
                 "user4"
             ]
+        },
+        {
+            "label": "spaceship on integer strings one apart past 2^53",
+            "php": "\"9007199254740993\" <=> \"9007199254740992\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on integer strings one apart past 2^53, ascending",
+            "php": "\"9007199254740993\" <=> \"9007199254740994\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on negative integer strings past 2^53",
+            "php": "\"-9007199254740993\" <=> \"-9007199254740992\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on integer strings past the int64 range",
+            "php": "\"99999999999999999999\" <=> \"99999999999999999998\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a leading-zero integer string that is larger",
+            "php": "\"0000123\" <=> \"99\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a leading-zero integer string that is smaller",
+            "php": "\"00001\" <=> \"99\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on a whitespace-padded integer string",
+            "php": "\" 42 \" <=> \"42\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on exponent strings that overflow to infinity",
+            "php": "\"1e400\" <=> \"1e401\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on identical exponent strings that overflow",
+            "php": "\"1e400\" <=> \"1e400\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on decimal strings spelled differently",
+            "php": "\"1.5\" <=> \"1.50\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on an integer string and a decimal string",
+            "php": "\"42\" <=> \"1.5\"",
+            "value": 1
+        },
+        {
+            "label": "asort over a keyed mix of numeric strings and an int",
+            "php": "asort([\"a\"=>\"9\",\"b\"=>\"10\",\"c\"=>\"1\",\"d\"=>5])",
+            "value": [
+                "1",
+                5,
+                "9",
+                "10"
+            ]
+        },
+        {
+            "label": "arsort over a keyed mix of numeric strings and an int",
+            "php": "arsort([\"a\"=>\"9\",\"b\"=>\"10\",\"c\"=>\"1\",\"d\"=>5])",
+            "value": [
+                "10",
+                "9",
+                5,
+                "1"
+            ]
+        },
+        {
+            "label": "whereNotBetween over numeric strings and falsy values",
+            "php": "collect($between)->whereNotBetween(\"v\",[\"1\",\"5\"])->pluck(\"v\")",
+            "value": [
+                "9",
+                "10",
+                null,
+                0
+            ]
+        },
+        {
+            "label": "whereBetween over the same items",
+            "php": "collect($between)->whereBetween(\"v\",[\"1\",\"5\"])->pluck(\"v\")",
+            "value": [
+                "1",
+                5
+            ]
         }
     ]
 }
