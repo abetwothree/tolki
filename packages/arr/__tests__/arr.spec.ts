@@ -1847,12 +1847,23 @@ describe("Arr", () => {
         });
 
         it("rejects a key set whose combined indices would exhaust memory", () => {
+            // Each container (500000) sits far under MAX_UNDOT_INDEX alone, so this only
+            // throws once enough distinct containers' maxes are summed - a genuine test of
+            // cross-container summation, not a single oversized container tripping it alone.
             const map: Record<string, string> = {};
             for (let i = 0; i < 40; i++) {
-                map[`${i}.16777214`] = "x";
+                map[`${i}.500000`] = "x";
             }
 
             expect(() => Arr.undot(map)).toThrow(/cannot build an array/i);
+        });
+
+        it("accepts a single container sitting exactly at MAX_UNDOT_INDEX", () => {
+            // The per-segment gate allows an index up to and including MAX_UNDOT_INDEX;
+            // the container budget must agree, not reject the same value as "over".
+            expect(() =>
+                Arr.undot({ [String(MAX_UNDOT_INDEX)]: "x" }),
+            ).not.toThrow();
         });
 
         it("still accepts a key set well inside the budget", () => {

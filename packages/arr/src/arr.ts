@@ -551,10 +551,10 @@ export function undot<TValue, TKey extends UndotArrayKey = number>(
     map: Record<TKey, TValue>,
 ): UndotResult<TKey, TValue> {
     // Sum each distinct container's own max index once, keyed by its prefix path -
-    // a sum over leaf keys instead treats every key as its own container, so a
-    // plain n-key flat array (one shared root container) would cost O(n^2).
+    // summing leaf keys instead treats each as its own container, costing O(n^2)
+    // on a flat array. Summing max INDEX (not slot count) agrees with the gate above.
     const containerMax = new Map<string, number>();
-    let totalSlots = 0;
+    let totalIndex = 0;
 
     for (const key of Object.keys(map ?? {})) {
         if (!isArrayIndexPath(key)) {
@@ -567,18 +567,18 @@ export function undot<TValue, TKey extends UndotArrayKey = number>(
         for (let i = 0; i < segments.length; i++) {
             const containerPath = segments.slice(0, i).join(".");
             const index = Number(segments[i]);
-            const previousMax = containerMax.get(containerPath) ?? -1;
+            const previousMax = containerMax.get(containerPath) ?? 0;
 
             if (index <= previousMax) {
                 continue;
             }
 
-            totalSlots += index - previousMax;
+            totalIndex += index - previousMax;
             containerMax.set(containerPath, index);
 
-            if (totalSlots > MAX_UNDOT_INDEX) {
+            if (totalIndex > MAX_UNDOT_INDEX) {
                 throw new TypeError(
-                    `Arr.undot cannot build an array: these keys' combined container sizes exceed the ${MAX_UNDOT_INDEX}-slot budget.`,
+                    `Arr.undot cannot build an array: these keys' combined container indices exceed the ${MAX_UNDOT_INDEX} budget.`,
                 );
             }
         }
