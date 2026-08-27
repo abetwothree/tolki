@@ -1448,10 +1448,9 @@ describe("Arr", () => {
             data = Arr.push(data, "0.0", "Desk");
             expect(data).toEqual([["Desk"]]);
 
-            // A multi-segment key resolves the same array-or-throw guard at its final
-            // segment as a single-segment one; data[0][0] is "Desk", not an array.
-            // PHP-verified in docs/php-parity/task-12-regression-pins.json
-            // ("push at a multi-segment key still requires an array at the resolved path").
+            // The guard fires at the final segment regardless of path depth. PHP-verified
+            // in docs/php-parity/task-12-regression-pins.json ("push at a multi-segment
+            // key still requires an array at the resolved path").
             expect(() => Arr.push(data, "0.0", "Chair", "Lamp")).toThrow(
                 "Array value for key [0.0] must be an array, string found.",
             );
