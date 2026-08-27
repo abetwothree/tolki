@@ -571,8 +571,9 @@ describe("Collection", () => {
                 ).toBeUndefined();
             });
 
-            // PHP-verified in docs/php-parity/task-16-final-review.json ('"__proto__"
-            // is an ordinary array key in every keyed Collection result').
+            // No collapseWithKeys probe exists in docs/php-parity/; this is inferred from
+            // the general keyed-Collection merge rule in task-16-final-review.json
+            // ('"__proto__" is an ordinary array key in every keyed Collection result').
             it("collapseWithKeys keeps a __proto__ key as data", () => {
                 const payload = JSON.parse(
                     '[{"__proto__":{"isAdmin":true}},{"b":2}]',
