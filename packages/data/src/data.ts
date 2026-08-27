@@ -1537,12 +1537,12 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
 export function dataShift<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     count: number = 1,
-): DataItems<TValue, TKey> {
+): TValue | TValue[] | null {
     if (isObject(items)) {
-        return objShift(items, count) as DataItems<TValue, TKey>;
+        return objShift(items, count);
     }
 
-    return arrShift(arrWrap(items), count) as DataItems<TValue, TKey>;
+    return arrShift(arrWrap(items), count);
 }
 
 /**
