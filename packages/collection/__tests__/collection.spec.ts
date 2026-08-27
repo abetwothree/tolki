@@ -955,10 +955,16 @@ describe("Collection", () => {
         });
 
         it("returns a reindexed list for an array-backed collection", () => {
-            // `diffAssoc` reimplemented itself inline for (see the source doc comment)
-            // rather than delegating to the now value-only `dataDiff`, mirroring
-            // `diffKeys`'s existing array-backed reindexing above.
+            // `diffAssoc` delegates to `dataDiffAssoc`, whose array branch
+            // pushes survivors into a fresh array, reindexing them.
             expect(collect([1, 2, 3]).diffAssoc([1, 9, 3]).all()).toEqual([2]);
+        });
+
+        // docs/php-parity/task-17-second-review.json, "array_diff_assoc casts values to string"
+        it("matches values by PHP's string cast", () => {
+            expect(
+                new Collection({ a: 0 }).diffAssoc({ a: "0" } as never).all(),
+            ).toEqual({});
         });
     });
 
@@ -2538,6 +2544,15 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({ b: 20 });
         });
+
+        // docs/php-parity/task-17-second-review.json, "array_intersect_assoc casts values to string"
+        it("matches values by PHP's string cast", () => {
+            expect(
+                new Collection({ a: 0 })
+                    .intersectAssoc({ a: "0" } as never)
+                    .all(),
+            ).toEqual({ a: 0 });
+        });
     });
 
     describe("intersectAssocUsing", () => {
@@ -2616,6 +2631,15 @@ describe("Collection", () => {
                     .intersectAssocUsing(map as never, strcasecmpKeys)
                     .all(),
             ).toEqual({ a: "green" });
+        });
+
+        // docs/php-parity/task-17-second-review.json, "array_intersect_assoc casts values to string"
+        it("matches values by PHP's string cast, like intersectAssoc", () => {
+            expect(
+                new Collection({ a: 0 })
+                    .intersectAssocUsing({ a: "0" } as never, (x, y) => x === y)
+                    .all(),
+            ).toEqual({ a: 0 });
         });
     });
 
