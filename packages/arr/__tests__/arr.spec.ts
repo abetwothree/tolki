@@ -4,7 +4,7 @@ import * as Obj from "@tolki/obj";
 import { MAX_UNDOT_INDEX } from "@tolki/path";
 import type { UndotArrayKey } from "@tolki/types";
 import { isArray } from "@tolki/utils";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 describe("Arr", () => {
     describe("accessible", () => {
@@ -1438,6 +1438,37 @@ describe("Arr", () => {
 
         it("returns an empty array for a negative root index", () => {
             expect(Arr.set([], -1, "value")).toEqual([]);
+        });
+
+        // Only JSON.parse produces a real own enumerable "__proto__" key; a literal
+        // `{ __proto__: ... }` sets the prototype at construction time instead.
+        describe("with a hostile __proto__ key (B8)", () => {
+            afterEach(() => {
+                expect(
+                    ({} as { polluted?: unknown; isAdmin?: unknown }).polluted,
+                ).toBeUndefined();
+                expect(
+                    ({} as { polluted?: unknown; isAdmin?: unknown }).isAdmin,
+                ).toBeUndefined();
+            });
+
+            // docs/php-parity/task-17-second-review.json, "Arr::set preserves a sibling \"__proto__\" key"
+            it("set keeps a __proto__ key through its deep copy", () => {
+                const payload = JSON.parse(
+                    '[{"__proto__":{"isAdmin":true},"z":1}]',
+                );
+                const result = Arr.set(payload, "0.z", 2) as Record<
+                    string,
+                    unknown
+                >[];
+                expect(Object.getPrototypeOf(result[0])).toBe(Object.prototype);
+                expect(Object.hasOwn(result[0] as object, "__proto__")).toBe(
+                    true,
+                );
+                expect(
+                    (result[0] as { isAdmin?: unknown }).isAdmin,
+                ).toBeUndefined();
+            });
         });
     });
 

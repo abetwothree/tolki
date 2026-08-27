@@ -2,6 +2,7 @@ import { arrayValueMessage, wrap as arrWrap } from "@tolki/arr";
 import type { ArrayItems, PathKey, PathKeys } from "@tolki/types";
 import {
     castableToArray,
+    defineKey,
     isArray,
     isFunction,
     isInteger,
@@ -895,7 +896,7 @@ export function dotFlattenObject<
             ) {
                 walk(value as Record<TKey, TValue>, newKey, currentDepth + 1);
             } else {
-                results[newKey] = value;
+                defineKey(results as Record<string, TValue>, newKey, value);
             }
         }
     };
@@ -1588,7 +1589,7 @@ export function setMixedImmutable<TValue>(
         // Object case - obj is a non-null, non-array object
         const result: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(obj)) {
-            result[k] = deepCopy(v);
+            defineKey(result, k, deepCopy(v));
         }
         return result;
     };

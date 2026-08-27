@@ -419,6 +419,35 @@ describe("Obj", () => {
                 "prefix.user.name": "Taylor",
             });
         });
+
+        // Only JSON.parse produces a real own enumerable "__proto__" key; a literal
+        // `{ __proto__: ... }` sets the prototype at construction time instead.
+        describe("with a hostile __proto__ key (B8)", () => {
+            afterEach(() => {
+                expect(
+                    ({} as { polluted?: unknown; isAdmin?: unknown }).polluted,
+                ).toBeUndefined();
+                expect(
+                    ({} as { polluted?: unknown; isAdmin?: unknown }).isAdmin,
+                ).toBeUndefined();
+            });
+
+            const hostile = () =>
+                JSON.parse('{"a":1,"__proto__":{"polluted":true},"c":3}');
+
+            // docs/php-parity/task-17-second-review.json, "Arr::dot keeps a \"__proto__\" key"
+            it("dot keeps a __proto__ key as data instead of reparenting the result", () => {
+                const result = Obj.dot(hostile(), "", 0) as Record<
+                    string,
+                    unknown
+                >;
+                expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+                expect(Object.hasOwn(result, "__proto__")).toBe(true);
+                expect(
+                    (result as { polluted?: unknown }).polluted,
+                ).toBeUndefined();
+            });
+        });
     });
 
     describe("undot", () => {
@@ -5107,6 +5136,7 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
         ["exceptValues", () => Obj.exceptValues(HOSTILE(), [999])],
         ["take", () => Obj.take(HOSTILE(), 3)],
         ["flattenDot", () => Obj.flattenDot(HOSTILE(), 0)],
+        ["dot", () => Obj.dot(HOSTILE(), "", 0)],
         [
             "from (Map key)",
             () =>
