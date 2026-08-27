@@ -1404,8 +1404,8 @@ describe("Data", () => {
             expect(result).toEqual([1, 99, 3]);
         });
 
-        // docs/php-parity/task-17-second-review.json, "Arr::set writes a
-        // \"constructor\" key", "Arr::set writes a \"__proto__\" key"
+        // docs/php-parity/task-17-second-review.json: "Arr::set writes a
+        // \"constructor\" key", "...a \"prototype\" key", "...a \"__proto__\" key"
         describe("unsafe-key write policy", () => {
             afterEach(() => {
                 expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
@@ -1455,16 +1455,9 @@ describe("Data", () => {
                 ).toBeUndefined();
             });
 
-            // Reviewer finding (2026-08-27): every fixture above is a fresh
-            // container, which can't expose the one real hazard — an owned
-            // unsafe key whose value already IS a live reference to a global.
-            // That alias must exist in the host data already (JSON alone
-            // cannot express a reference to Object.prototype), but once it
-            // does, descending through it must never write onto the real
-            // global. Arr.set's own deep-copy (from an earlier fix) already
-            // neutralizes this by accident, so Arr.add is used instead — it
-            // shallow-copies only the outer array, reaching setMixed's
-            // traversal with the alias intact, same as the reviewer's repro.
+            // A pre-existing own key aliasing a global, not a fresh container,
+            // is the only fixture exposing this. Arr.add exercises it (Arr.set's
+            // own deep copy happens to flatten the alias first).
             it("cannot pollute a global prototype when an own key aliases one", () => {
                 const aliasing = (target: object): Record<string, unknown> => {
                     const a = Object.create(null) as Record<string, unknown>;
