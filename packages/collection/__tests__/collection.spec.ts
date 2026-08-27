@@ -4769,8 +4769,8 @@ describe("Collection", () => {
             ).not.toThrow();
         });
 
-        // docs/php-parity/task-17-second-review.json, "Arr::set writes a
-        // \"constructor\" key", "Arr::set writes a \"__proto__\" key". This is
+        // docs/php-parity/task-17-second-review.json: "Arr::set writes a
+        // \"constructor\" key", "...a \"prototype\" key", "...a \"__proto__\" key" —
         // the reference behaviour path.ts's writes were brought in line with.
         describe("unsafe-key write policy", () => {
             afterEach(() => {
