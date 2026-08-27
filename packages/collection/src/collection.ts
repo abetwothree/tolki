@@ -2447,11 +2447,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             const keys = Object.keys(this.items);
             let nextIndex = 0;
 
-            // Find the next numeric index
+            // Own key order always lists integer-like keys ascending, so the
+            // last one seen is the largest; no need to compare against nextIndex.
             for (const key of keys) {
-                const numKey = Number(key);
-                if (!isNaN(numKey) && numKey >= nextIndex) {
-                    nextIndex = numKey + 1;
+                if (isIntegerLikeKey(key)) {
+                    nextIndex = Number(key) + 1;
                 }
             }
 

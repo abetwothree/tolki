@@ -4216,6 +4216,41 @@ describe("Collection", () => {
             expect(result).toBe(c8); // Should return same instance
             expect(c8.all()).toEqual([1, 2, 3, 4]);
         });
+
+        describe("push key classification", () => {
+            // docs/php-parity/task-17-second-review.json, "push onto a \"01\"-keyed array"
+            it.each([
+                ["01", { "01": "v", 0: 9 }],
+                ["1e2", { "1e2": "v", 0: 9 }],
+                ["-1", { "-1": "v", 0: 9 }],
+                ["5", { 5: "v", 6: 9 }],
+            ])("classifies a %s key the way PHP does", (key, expected) => {
+                expect(
+                    new Collection({ [key]: "v" } as never)
+                        .push(9 as never)
+                        .all(),
+                ).toEqual(expected);
+            });
+
+            it("classifies keys the same way unshift does", () => {
+                // "5" is excluded: PHP-verified, push always keeps an
+                // existing key but unshift's array_unshift renumbers a
+                // genuine canonical integer key, so the two diverge by design.
+                for (const key of ["01", "1e2", "-1", ""]) {
+                    const pushed = Object.keys(
+                        new Collection({ [key]: "v" } as never)
+                            .push(9 as never)
+                            .all(),
+                    );
+                    const unshifted = Object.keys(
+                        new Collection({ [key]: "v" } as never)
+                            .unshift(9 as never)
+                            .all(),
+                    );
+                    expect(pushed.includes(key)).toBe(unshifted.includes(key));
+                }
+            });
+        });
     });
 
     describe("unshift", () => {
