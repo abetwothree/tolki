@@ -3856,10 +3856,9 @@ export function values<TValue, TKey extends PropertyKey = PropertyKey>(
  * `diffAssocUsing`/`diffKeysUsing` above for the assoc-style (key-aware)
  * variants that still exist in this port.
  *
- * `other` may be of any shape — `arrayableValues` applies the same
- * `EnumeratesValues::getArrayableItems()` rule `Collection::diff` does, so an
- * array contributes its values, a scalar is a single value, and only
- * `null`/`undefined` is empty (leaving every item of `data` unchanged).
+ * `other` is normalized by `arrayableValues`: an Enumerable/Arrayable/iterable
+ * contributes its values, a plain object its own values. `Arr::from`'s default-arm
+ * throw is unreachable here — its object arm (`(array) $items`) catches first.
  *
  * @see Collection::diff — `packages/collection/stubs/Collection.php:276`.
  *      Wraps `array_diff`.
@@ -3890,6 +3889,13 @@ export function diff<
     data: Record<TKey, TValue>,
     other: Record<TOtherKey, TValue> | null | undefined,
 ): Record<TKey, TValue>;
+// Overload: data typed, other opaque (e.g. Enumerable/Arrayable-like) — keys
+// widen to PropertyKey since other's shape is unknown, but TValue still comes
+// from data, so the result isn't a plain `unknown` record.
+export function diff<TValue>(
+    data: Record<PropertyKey, TValue>,
+    other: unknown,
+): Record<PropertyKey, TValue>;
 // Overload: unknown fallback
 export function diff(
     data: unknown,
@@ -4049,10 +4055,9 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
  * (the `@tolki/collection` package's `intersectUsing()` forwards here).
  *
  * A non-accessible `data` (e.g. `null`) is empty, so the result is `{}`.
- * `other` may be of any shape — `arrayableValues` applies the same
- * `EnumeratesValues::getArrayableItems()` rule `Collection::intersect` does,
- * so an array contributes its values, a scalar is a single value, and only
- * `null`/`undefined` is empty.
+ * `other` is normalized by `arrayableValues`: an Enumerable/Arrayable/iterable
+ * contributes its values, a plain object its own values. `Arr::from`'s default-arm
+ * throw is unreachable here — its object arm (`(array) $items`) catches first.
  *
  * @see Collection::intersect — `packages/collection/stubs/Collection.php:660`.
  *      Wraps `array_intersect`.
@@ -4080,6 +4085,14 @@ export function intersect<T1, T2>(
 export function intersect<T1>(
     data: Record<PropertyKey, T1>,
     other: Record<PropertyKey, T1> | null | undefined,
+    callable?: null,
+): Record<PropertyKey, T1>;
+// Overload: data typed, other opaque (e.g. Enumerable/Arrayable-like) — mirrors
+// diff's equivalent overload above; T1 still comes from data instead of
+// collapsing to a plain `unknown` record.
+export function intersect<T1>(
+    data: Record<PropertyKey, T1>,
+    other: unknown,
     callable?: null,
 ): Record<PropertyKey, T1>;
 // Overload: unknown fallback

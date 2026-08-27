@@ -134,6 +134,13 @@ describe("obj type tests", () => {
             const result = Obj.diff({ a: 1 }, nullableOther);
             expectTypeOf(result).toEqualTypeOf<Record<"a", number>>();
         });
+
+        it("accepts an Enumerable-like operand without a cast", () => {
+            const enumerable = { all: () => [20] };
+            expectTypeOf(Obj.diff({ a: 10, b: 20 }, enumerable)).toEqualTypeOf<
+                Record<PropertyKey, number>
+            >();
+        });
     });
 
     describe("intersect", () => {
@@ -153,6 +160,13 @@ describe("obj type tests", () => {
         it("accepts an other typed as Record<string, T> | null", () => {
             const result = Obj.intersect({ a: 1 }, nullableOther);
             expectTypeOf(result).toEqualTypeOf<Record<PropertyKey, number>>();
+        });
+
+        it("accepts an Enumerable-like operand without a cast", () => {
+            const enumerable = { all: () => [20] };
+            expectTypeOf(
+                Obj.intersect({ a: 10, b: 20 }, enumerable),
+            ).toEqualTypeOf<Record<PropertyKey, number>>();
         });
     });
 

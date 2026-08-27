@@ -1622,6 +1622,21 @@ describe("Obj", () => {
             expect(Obj.diff({ a: null }, { x: "" })).toEqual({});
             expect(Obj.diff({ a: 0 }, { x: "" })).toEqual({ a: 0 });
         });
+
+        // docs/php-parity/task-17-second-review.json, "diff with a Collection operand"
+        it("unwraps a Collection-like operand instead of reading its fields", () => {
+            const enumerable = { all: () => [20] };
+            expect(Obj.diff({ a: 10, b: 20 }, enumerable as never)).toEqual({
+                a: 10,
+            });
+        });
+
+        // docs/php-parity/task-17-second-review.json, "diff with a Traversable operand"
+        it("unwraps an iterable operand", () => {
+            expect(Obj.diff({ a: 10, b: 20 }, new Set([20]) as never)).toEqual({
+                a: 10,
+            });
+        });
     });
 
     describe("intersect", () => {
@@ -1688,6 +1703,14 @@ describe("Obj", () => {
             // excluded from diff and kept by intersect, like any other match.
             expect(Obj.diff({ a: NaN }, { x: NaN })).toEqual({});
             expect(Obj.intersect({ a: NaN }, { x: NaN })).toEqual({ a: NaN });
+        });
+
+        // docs/php-parity/task-17-second-review.json, "intersect with a Collection operand"
+        it("intersects against a Collection-like operand's values", () => {
+            const enumerable = { all: () => [20] };
+            expect(
+                Obj.intersect({ a: 10, b: 20 }, enumerable as never),
+            ).toEqual({ b: 20 });
         });
     });
 
