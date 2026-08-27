@@ -1593,11 +1593,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         return this.newInstance(
             dataIntersect(
-                this.recursivelyConvertCollections(this.items),
-                this.recursivelyConvertCollections(items) as DataItems<
-                    TValue,
-                    TKey
-                >,
+                this.items,
+                this.getRawItems(items) as DataItems<TValue, TKey>,
             ),
         );
     }

@@ -1,3 +1,4 @@
+import * as Arr from "@tolki/arr";
 import { collect, Collection } from "@tolki/collection";
 import { dataUnshift } from "@tolki/data";
 import { SortDirection } from "@tolki/enum";
@@ -2376,30 +2377,56 @@ describe("Collection", () => {
             });
         });
 
-        it("intersect's deep clone makes object items compare by identity — a divergence from PHP, unlike intersectUsing", () => {
-            // `intersect` calls `recursivelyConvertCollections` on BOTH `this.items`
-            // and `items`, while `intersectUsing` calls it only on `items` (see both
-            // methods' source below).
+        // docs/php-parity/task-17-second-review.json, "intersect over array items collapses to \"Array\""
+        // PHP casts every array value to the string "Array", so both items match; we compare
+        // object values by identity instead. Documented in the Phase 1 divergence list.
+        it('keeps object items that are identical, where PHP keeps both via its "Array" cast', () => {
             const shared = { id: 1 };
-            const other = [shared];
-
-            // Real PHP casts arrays to "Array", so array_intersect matches everything
-            // and returns both items (task-06-setops.json, intersect_arrays).
-            // phpValueMatch keeps identity for objects, so [] is correct for this port.
             expect(
                 collect([shared, { id: 2 }])
-                    .intersect(other)
+                    .intersect([shared])
                     .all(),
-            ).toEqual([]);
+            ).toEqual([shared]);
+        });
+    });
 
+    describe("intersect operand handling", () => {
+        it("agrees with Arr.intersect on identical object items", () => {
+            const shared = { id: 1 };
+            const collection = new Collection([shared, { id: 2 }])
+                .intersect([shared])
+                .all();
+            expect(collection).toEqual(
+                Arr.intersect([shared, { id: 2 }], [shared]),
+            );
+        });
+
+        it("does not contradict diff about whether an item is present", () => {
+            const shared = { id: 1 };
+            const removedByDiff = new Collection([shared, { id: 2 }])
+                .diff([shared])
+                .all();
+            const keptByIntersect = new Collection([shared, { id: 2 }])
+                .intersect([shared])
+                .all();
+            expect(removedByDiff).toEqual([{ id: 2 }]);
+            expect(keptByIntersect).toEqual([shared]);
+        });
+
+        it("normalizes an Arrayable operand the way diff does", () => {
+            const arrayable = { toArray: () => ({ b: 20 }) };
             expect(
-                collect([shared, { id: 2 }])
-                    .intersectUsing(
-                        other,
-                        (a: { id: number }, b: { id: number }) => a.id === b.id,
-                    )
+                new Collection({ a: 10, b: 20 })
+                    .intersect(arrayable as never)
                     .all(),
-            ).toEqual([{ id: 1 }]);
+            ).toEqual({ b: 20 });
+        });
+
+        it("normalizes a Map operand the way diff does", () => {
+            const map = new Map([["b", 20]]);
+            expect(
+                new Collection({ a: 10, b: 20 }).intersect(map as never).all(),
+            ).toEqual({ b: 20 });
         });
     });
 
