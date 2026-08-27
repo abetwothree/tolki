@@ -57,6 +57,7 @@ import {
     isUndefined,
     isWeakMap,
     looseEqual,
+    phpValueMatch,
     typeOf,
 } from "@tolki/utils";
 
@@ -4274,6 +4275,13 @@ export function values<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
 /**
  * Get the items that are not present in the given array.
  *
+ * Approximates PHP's `array_diff()`: comparison uses PHP's scalar
+ * `(string) $a === (string) $b` equivalence for values with a real PHP
+ * analogue (see `phpValueMatch` in `@tolki/utils`); everything else falls
+ * back to SameValueZero identity. PHP's `precision=14` float formatting,
+ * its `"Array"` collapse for array operands, and its fatal on casting a
+ * plain object are deliberately NOT ported.
+ *
  * @see Collection::diff — `packages/collection/stubs/Collection.php:276`.
  *      Wraps `array_diff`.
  *
@@ -4285,6 +4293,7 @@ export function values<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
  *
  * diff([1, 2, 3], [2, 3, 4]); -> [1]
  * diff(['a', 'b', 'c'], ['b', 'c', 'd']); -> ['a']
+ * diff([0], ['0']); -> [] (0 and '0' match under PHP's (string) cast)
  */
 export function diff<TValue>(
     data: ArrayItems<TValue>,
@@ -4315,7 +4324,7 @@ export function diff<TValue>(
     const result: TValue[] = [];
 
     for (const item of dataArray) {
-        if (!otherArray.includes(item)) {
+        if (!otherArray.some((otherItem) => phpValueMatch(item, otherItem))) {
             result.push(item);
         }
     }
@@ -4326,6 +4335,14 @@ export function diff<TValue>(
 /**
  * Intersect the data array with the given other array
  *
+ * Approximates PHP's `array_intersect()`: comparison uses PHP's scalar
+ * `(string) $a === (string) $b` equivalence for values with a real PHP
+ * analogue (see `phpValueMatch` in `@tolki/utils`); everything else falls
+ * back to SameValueZero identity. PHP's `precision=14` float formatting,
+ * its `"Array"` collapse for array operands, and its fatal on casting a
+ * plain object are deliberately NOT ported. `callable`, when given,
+ * replaces the default value comparator above with a custom one.
+ *
  * @see Collection::intersect — `packages/collection/stubs/Collection.php:660`.
  *      Wraps `array_intersect`.
  *
@@ -4333,6 +4350,10 @@ export function diff<TValue>(
  * @param other - The array to intersect with
  * @param callable - Optional function to compare values
  * @returns A new array containing items present in both arrays
+ *
+ * @example
+ *
+ * intersect([0], ['0']); -> [0] (0 and '0' match under PHP's (string) cast)
  */
 // Overload: with callback - infers TValue and TOther from array types
 export function intersect<TValue, TOther>(
@@ -4369,8 +4390,8 @@ export function intersect<TValue, TOther = TValue>(
     for (const item of dataValues) {
         const found = isFunction(callable)
             ? otherValues.some((otherItem) => callable(item, otherItem))
-            : otherValues.some(
-                  (otherItem) => otherItem === (item as unknown as TOther),
+            : otherValues.some((otherItem) =>
+                  phpValueMatch(item as unknown, otherItem as unknown),
               );
 
         if (found) {

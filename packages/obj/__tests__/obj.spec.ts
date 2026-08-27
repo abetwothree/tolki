@@ -1603,6 +1603,14 @@ describe("Obj", () => {
             // ->diff([20]) === ['a'=>10]; the pre-fix guard rejected arrays outright.
             expect(Obj.diff({ a: 10, b: 20 }, [20])).toEqual({ a: 10 });
         });
+
+        it("compares values with PHP's (string) cast, not strict equality", () => {
+            // Captured: docs/php-parity/task-06-setops.json ("diff and
+            // intersect compare by string cast"): array_diff([0],["0"]) === [].
+            expect(Obj.diff({ a: 0 }, { x: "0" })).toEqual({});
+            expect(Obj.diff({ a: null }, { x: "" })).toEqual({});
+            expect(Obj.diff({ a: 0 }, { x: "" })).toEqual({ a: 0 });
+        });
     });
 
     describe("intersect", () => {
@@ -1640,6 +1648,24 @@ describe("Obj", () => {
         it("treats a null other as empty rather than throwing", () => {
             // Captured via docs/php-parity/task-06-setops.json ("intersect(null)").
             expect(Obj.intersect({ id: 1 }, null)).toEqual({});
+        });
+
+        it("compares values with PHP's (string) cast, not strict equality", () => {
+            // Captured: docs/php-parity/task-06-setops.json ("diff and
+            // intersect compare by string cast"): array_intersect([0],["0"]) === [0].
+            expect(Obj.intersect({ a: 0 }, { x: "0" })).toEqual({ a: 0 });
+            expect(Obj.intersect({ a: true }, { x: "1" })).toEqual({
+                a: true,
+            });
+            expect(Obj.intersect({ a: 0 }, { x: "" })).toEqual({});
+        });
+
+        it("treats NaN as matching itself, unlike the pre-fix strict ===", () => {
+            // Pre-fix, diff (SameValueZero via .includes) and intersect (===)
+            // disagreed on NaN: it vanished from both outputs instead of being
+            // excluded from diff and kept by intersect, like any other match.
+            expect(Obj.diff({ a: NaN }, { x: NaN })).toEqual({});
+            expect(Obj.intersect({ a: NaN }, { x: NaN })).toEqual({ a: NaN });
         });
     });
 

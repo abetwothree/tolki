@@ -36,6 +36,7 @@ import {
     isUndefined,
     isWeakMap,
     looseEqual,
+    phpValueMatch,
     reindexIntegerKeys,
     typeOf,
 } from "@tolki/utils";
@@ -3840,8 +3841,13 @@ export function values<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get the items that are not present in the given object.
  *
- * Mirrors PHP's `array_diff()` (what Laravel's `Collection::diff()` calls
- * under the hood): comparison is by VALUE only, and the left operand's keys
+ * Approximates PHP's `array_diff()` (what Laravel's `Collection::diff()`
+ * calls under the hood): comparison is by VALUE only, using PHP's scalar
+ * `(string) $a === (string) $b` equivalence for values with a real PHP
+ * analogue (see `phpValueMatch` in `@tolki/utils`). PHP's `precision=14`
+ * float formatting, its `"Array"` collapse for array operands, and its
+ * fatal on casting a plain object are deliberately NOT ported — those
+ * cases fall back to SameValueZero identity instead. The left operand's keys
  * are kept regardless of what key (if any) held a matching value on
  * `other`. This is deliberately NOT `array_diff_assoc` — a key that exists
  * on `other` with a *different* value does not save the item; only whether
@@ -3866,6 +3872,7 @@ export function values<TValue, TKey extends PropertyKey = PropertyKey>(
  * diff({ id: 1, first_word: 'Hello' }, { x: 'Hello' }); -> { id: 1 } (value-only: 'first_word' drops even though 'x' !== 'first_word')
  * diff({ a: 10, b: 20 }, [20]); -> { a: 10 } (an array other compares by its values too)
  * diff({ id: 1 }, null); -> { id: 1 } (non-accessible other is treated as empty)
+ * diff({ a: 0 }, { x: '0' }); -> {} (0 and '0' match under PHP's (string) cast)
  */
 // Overload: typed — data and other's key sets are independent (TOtherKey),
 // so a differently-shaped `other` (e.g. { x: 'Hello' } against a data of
@@ -3910,7 +3917,9 @@ export function diff<
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
-        if (!otherValues.includes(value)) {
+        if (
+            !otherValues.some((otherValue) => phpValueMatch(value, otherValue))
+        ) {
             defineKey(result as Record<string, TValue>, key as string, value);
         }
     }
@@ -4023,15 +4032,20 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Intersect the data object with the given other object.
  *
- * Mirrors PHP's `array_intersect()` (what Laravel's `Collection::intersect()`
- * calls under the hood): comparison is by VALUE only, and the left
- * operand's keys are kept for every value that also appears somewhere in
- * `other`'s values — `key in other` is NOT required. This is deliberately
- * NOT `array_intersect_assoc`; see `intersectAssoc`/`intersectAssocUsing`
+ * Approximates PHP's `array_intersect()` (what Laravel's `Collection::intersect()`
+ * calls under the hood): comparison is by VALUE only, using PHP's scalar
+ * `(string) $a === (string) $b` equivalence for values with a real PHP
+ * analogue (see `phpValueMatch` in `@tolki/utils`); everything else falls
+ * back to SameValueZero identity. PHP's `precision=14` float formatting,
+ * its `"Array"` collapse for array operands, and its fatal on casting a
+ * plain object are deliberately NOT ported. The left operand's keys are
+ * kept for every value that also matches somewhere in `other`'s values —
+ * `key in other` is NOT required. This is deliberately NOT
+ * `array_intersect_assoc`; see `intersectAssoc`/`intersectAssocUsing`
  * below for the assoc-style (key-aware) variants.
  *
- * `callable`, when given, replaces strict equality with a custom value
- * comparator and is checked against every value of `other` (not just the
+ * `callable`, when given, replaces the default value comparator above with
+ * a custom one and is checked against every value of `other` (not just the
  * one under the same key) — this approximates PHP's `array_uintersect()`.
  * Laravel exposes this as a separate `intersectUsing()` method on
  * `Collection`; this port folds it into `intersect`'s optional third
@@ -4056,6 +4070,7 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
  * intersect({ id: 1, first_word: 'Hello' }, { first_world: 'Hello', last_word: 'World' }); -> { first_word: 'Hello' } (keys differ, value matches)
  * intersect({ id: 1 }, null); -> {} (non-accessible other is treated as empty)
  * intersect(null, { a: 1 }); -> {} (non-accessible data is treated as empty too)
+ * intersect({ a: 0 }, { x: '0' }); -> { a: 0 } (0 and '0' match under PHP's (string) cast)
  */
 // Overload: with callback — T1 and T2 inferred independently
 export function intersect<T1, T2>(
@@ -4096,9 +4111,8 @@ export function intersect<T1, T2 = T1>(
             ? otherValues.some((otherValue) =>
                   callable(value as T1, otherValue as T2),
               )
-            : otherValues.some(
-                  (otherValue) =>
-                      (otherValue as unknown) === (value as unknown),
+            : otherValues.some((otherValue) =>
+                  phpValueMatch(value as unknown, otherValue as unknown),
               );
 
         if (matches) {

@@ -2553,6 +2553,14 @@ describe("Arr", () => {
             // implemented array_diff_assoc).
             expect(Arr.diff([20, 1], [99, 20])).toEqual([1]);
         });
+
+        it("compares values with PHP's (string) cast, not strict equality", () => {
+            // Captured: docs/php-parity/task-06-setops.json ("diff and
+            // intersect compare by string cast"): array_diff([0],["0"]) === [].
+            expect(Arr.diff([0], ["0"])).toEqual([]);
+            expect(Arr.diff([null], [""])).toEqual([]);
+            expect(Arr.diff([0], [""])).toEqual([0]);
+        });
     });
 
     describe("intersect", () => {
@@ -2580,6 +2588,22 @@ describe("Arr", () => {
             // arr.intersect was already correct before this change (unlike obj's, which
             // implemented array_intersect_assoc).
             expect(Arr.intersect([1, 20], [20, 99])).toEqual([20]);
+        });
+
+        it("compares values with PHP's (string) cast, not strict equality", () => {
+            // Captured: docs/php-parity/task-06-setops.json ("diff and
+            // intersect compare by string cast"): array_intersect([0],["0"]) === [0].
+            expect(Arr.intersect([0], ["0"])).toEqual([0]);
+            expect(Arr.intersect([true], ["1"])).toEqual([true]);
+            expect(Arr.intersect([0], [""])).toEqual([]);
+        });
+
+        it("treats NaN as matching itself, unlike the pre-fix strict ===", () => {
+            // Pre-fix, diff (SameValueZero via .includes) and intersect (===)
+            // disagreed on NaN: it vanished from both outputs instead of being
+            // excluded from diff and kept by intersect, like any other match.
+            expect(Arr.diff([NaN], [NaN])).toEqual([]);
+            expect(Arr.intersect([NaN], [NaN])).toEqual([NaN]);
         });
     });
 
