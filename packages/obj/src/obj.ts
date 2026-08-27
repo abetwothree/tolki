@@ -3803,8 +3803,8 @@ export function values<TValue, TKey extends PropertyKey = PropertyKey>(
  * `other`. This is deliberately NOT `array_diff_assoc` — a key that exists
  * on `other` with a *different* value does not save the item; only whether
  * the value itself appears somewhere in `other`'s values matters. See
- * `diffAssocUsing`/`diffKeysUsing` above for the assoc-style (key-aware)
- * variants that still exist in this port.
+ * `diffAssoc`/`diffAssocUsing`/`diffKeysUsing` below for the assoc-style
+ * (key-aware) variants that still exist in this port.
  *
  * `other` is normalized by `arrayableValues`: an Enumerable/Arrayable/iterable
  * contributes its values, a plain object its own values. `Arr::from`'s default-arm
@@ -3880,8 +3880,60 @@ export function diff<
 }
 
 /**
+ * Diff the object with the given other object, comparing both keys and values.
+ *
+ * This is `array_diff_assoc` — unlike `diff` above, a key that exists on
+ * `other` with a *different* value is what keeps the item; whether the
+ * value merely appears somewhere else in `other`'s values (as `diff` checks)
+ * is irrelevant. Do not merge this back into `diff`; see `diff`'s doc comment.
+ *
+ * A non-accessible `data` returns `{}`; a non-accessible `other` (e.g.
+ * `null`) is treated as empty, so every entry of `data` survives.
+ *
+ * @see Collection::diffAssoc — `packages/collection/stubs/Collection.php:299`.
+ *      Wraps `array_diff_assoc`.
+ *
+ * @param data - The original object
+ * @param other - The object to diff against
+ * @returns A new object containing key-value pairs not present in other
+ *
+ * @example
+ *
+ * diffAssoc({a: 1, b: 2, c: 3}, {b: 2}); -> {a: 1, c: 3}
+ * diffAssoc({a: 1, b: 2, c: 3}, {b: 3}); -> {a: 1, b: 2, c: 3}
+ * diffAssoc({a: 0}, {a: '0'}); -> {} (0 and '0' match under PHP's (string) cast)
+ */
+export function diffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    other: Record<TKey, TValue> | unknown,
+): Record<TKey, TValue> {
+    if (!accessible(data)) {
+        return {} as Record<TKey, TValue>;
+    }
+
+    if (!accessible(other)) {
+        return { ...(data as Record<TKey, TValue>) };
+    }
+
+    const obj = data as Record<TKey, TValue>;
+    const otherObj = other as Record<TKey, TValue>;
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+
+    for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
+        if (
+            !Object.hasOwn(otherObj, key) ||
+            !phpValueMatch(otherObj[key as TKey], value)
+        ) {
+            defineKey(result as Record<string, TValue>, key as string, value);
+        }
+    }
+
+    return result;
+}
+
+/**
  * Diff the data object with the given other object using a callback for key comparison.
- * Compares keys using the callback and values using strict equality.
+ * Compares keys using the callback and values using PHP's `(string)` cast rule.
  *
  * @see Collection::diffAssocUsing — `packages/collection/stubs/Collection.php:311`.
  *      Wraps `array_diff_uassoc`. Obj-only — `Arr.php` has no equivalent, so there is no `arr.diffAssocUsing`.
@@ -3922,7 +3974,10 @@ export function diffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
         );
 
         // Include if: no matching key found OR matching key has different value
-        if (matchingKey === undefined || otherObj[matchingKey] !== value) {
+        if (
+            matchingKey === undefined ||
+            !phpValueMatch(otherObj[matchingKey], value)
+        ) {
             defineKey(result as Record<string, TValue>, key as string, value);
         }
     }
@@ -4137,7 +4192,10 @@ export function intersectAssoc<T1, T2 = T1>(
     )) {
         if (
             Object.hasOwn(otherObj, key) &&
-            (value as unknown) === (otherObj[key as PropertyKey] as unknown)
+            phpValueMatch(
+                value as unknown,
+                otherObj[key as PropertyKey] as unknown,
+            )
         ) {
             defineKey(result as Record<string, T1>, key, value as T1);
         }
@@ -4148,7 +4206,7 @@ export function intersectAssoc<T1, T2 = T1>(
 
 /**
  * Intersect the object with the given items with additional key check, using the callback.
- * The callback is used to compare keys, while values are compared strictly.
+ * The callback is used to compare keys, while values are compared by PHP's `(string)` cast rule.
  *
  * A non-accessible `data` OR `other` (e.g. `null`) is treated as empty, so
  * the result is `{}` — matching `intersect`'s guard on both operands.
@@ -4200,7 +4258,7 @@ export function intersectAssocUsing<T1, T2 = T1>(
         )) {
             if (
                 callback(dataKey, otherKey) &&
-                (dataValue as unknown) === (otherValue as unknown)
+                phpValueMatch(dataValue as unknown, otherValue as unknown)
             ) {
                 defineKey(
                     result as Record<string, T1>,

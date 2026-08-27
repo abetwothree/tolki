@@ -1730,6 +1730,13 @@ describe("Obj", () => {
             // ("intersectByKeys(null)").
             expect(Obj.intersectByKeys({ name: "M" }, null)).toEqual({});
         });
+
+        // docs/php-parity/task-17-second-review.json, "array_intersect_key never compares values"
+        it("still ignores values entirely, even PHP-matching ones", () => {
+            expect(
+                Obj.intersectByKeys({ a: 0 }, { a: "zzz" } as never),
+            ).toEqual({ a: 0 });
+        });
     });
 
     describe("intersectAssoc", () => {
@@ -1737,6 +1744,13 @@ describe("Obj", () => {
             const obj1 = { a: 1, b: 2, c: 3 };
             const obj2 = { a: 1, b: 20, d: 4 };
             expect(Obj.intersectAssoc(obj1, obj2)).toEqual({ a: 1 });
+        });
+
+        // docs/php-parity/task-17-second-review.json, "array_intersect_assoc casts values to string"
+        it("matches values by PHP's string cast", () => {
+            expect(Obj.intersectAssoc({ a: 0 }, { a: "0" } as never)).toEqual({
+                a: 0,
+            });
         });
 
         it("should return empty when no matches", () => {
@@ -1794,6 +1808,17 @@ describe("Obj", () => {
             expect(
                 Obj.intersectAssocUsing({ a: "green" }, null, () => true),
             ).toEqual({});
+        });
+
+        // docs/php-parity/task-17-second-review.json, "array_intersect_assoc casts values to string"
+        it("matches values by PHP's string cast, like intersectAssoc", () => {
+            expect(
+                Obj.intersectAssocUsing(
+                    { a: 0 },
+                    { a: "0" } as never,
+                    (x, y) => x === y,
+                ),
+            ).toEqual({ a: 0 });
         });
     });
 
@@ -4898,6 +4923,45 @@ describe("Obj", () => {
         });
     });
 
+    describe("diffAssoc", () => {
+        it("should return entries whose key is missing or whose value differs", () => {
+            expect(Obj.diffAssoc({ a: 1, b: 2, c: 3 }, { b: 2 })).toEqual({
+                a: 1,
+                c: 3,
+            });
+            expect(Obj.diffAssoc({ a: 1, b: 2, c: 3 }, { b: 3 })).toEqual({
+                a: 1,
+                b: 2,
+                c: 3,
+            });
+            expect(Obj.diffAssoc({ a: 1, b: 2, c: 3 }, { d: 4 })).toEqual({
+                a: 1,
+                b: 2,
+                c: 3,
+            });
+        });
+
+        it("should return empty object for non-accessible data", () => {
+            expect(Obj.diffAssoc(null, { a: 1 })).toEqual({});
+            expect(Obj.diffAssoc([], { a: 1 })).toEqual({});
+        });
+
+        it("should return copy of data for non-accessible other", () => {
+            expect(Obj.diffAssoc({ a: 1 }, null)).toEqual({ a: 1 });
+            expect(Obj.diffAssoc({ a: 1 }, [])).toEqual({ a: 1 });
+        });
+
+        // docs/php-parity/task-17-second-review.json, "array_diff_assoc casts values to string"
+        it("matches values by PHP's string cast", () => {
+            expect(Obj.diffAssoc({ a: 0 }, { a: "0" } as never)).toEqual({});
+        });
+
+        // docs/php-parity/task-17-second-review.json, "array_diff_assoc casts a float to string"
+        it("casts a float the way PHP does", () => {
+            expect(Obj.diffAssoc({ a: 1.0 }, { a: "1" } as never)).toEqual({});
+        });
+    });
+
     describe("diffAssocUsing", () => {
         it("should diff using key callback and value comparison", () => {
             const strcasecmp = (a: unknown, b: unknown) =>
@@ -4936,6 +5000,15 @@ describe("Obj", () => {
             expect(Obj.diffAssocUsing({ a: 1 }, [], callback)).toEqual({
                 a: 1,
             });
+        });
+
+        // docs/php-parity/task-17-second-review.json, "array_diff_assoc casts values to string"
+        it("compares values by PHP's string cast, like diffAssoc", () => {
+            const strcasecmp = (a: unknown, b: unknown) =>
+                String(a).toLowerCase() === String(b).toLowerCase();
+            expect(
+                Obj.diffAssocUsing({ a: 0 }, { a: "0" } as never, strcasecmp),
+            ).toEqual({});
         });
     });
 
