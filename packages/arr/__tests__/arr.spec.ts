@@ -1469,6 +1469,33 @@ describe("Arr", () => {
                     (result[0] as { isAdmin?: unknown }).isAdmin,
                 ).toBeUndefined();
             });
+
+            // docs/php-parity/task-17-second-review.json, "Arr::set writes a
+            // \"constructor\" key", "Arr::set writes a \"__proto__\" key"
+            it.each(["constructor", "prototype", "__proto__"])(
+                "keeps a %s key as own data alongside existing entries",
+                (key) => {
+                    const result = Arr.set(
+                        [1, 2, 3],
+                        key,
+                        5,
+                    ) as unknown as Record<string, unknown>;
+                    expect(Object.hasOwn(result, key)).toBe(true);
+                    expect(result[key]).toBe(5);
+                },
+            );
+
+            // docs/php-parity/task-17-second-review.json, "Arr::set writes a nested \"constructor.prototype\" path"
+            it("builds a nested constructor.prototype path without polluting", () => {
+                const result = Arr.set(
+                    [1, 2, 3],
+                    "constructor.prototype.polluted",
+                    5,
+                ) as unknown as Record<string, unknown>;
+                expect(result["constructor"]).toEqual({
+                    prototype: { polluted: 5 },
+                });
+            });
         });
     });
 
