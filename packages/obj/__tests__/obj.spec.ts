@@ -484,6 +484,22 @@ describe("Obj", () => {
                 }),
             ).toEqual({ user: { languages: ["PHP", "C#"], name: "Taylor" } });
         });
+
+        // Reviewer finding (2026-08-27): undotExpandObject's old Object.assign-based
+        // merge used [[Set]], so a "__proto__" key setObjectValue returns as its
+        // own data reparented the accumulator instead of copying it as data.
+        // PHP gives {"__proto__":{"PWN":"yes"}}.
+        it("keeps a __proto__ key as own data instead of reparenting the result", () => {
+            const result = Obj.undot(
+                JSON.parse('{"__proto__.PWN":"yes"}'),
+            ) as Record<string, unknown>;
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(Object.hasOwn(result, "__proto__")).toBe(true);
+            expect(
+                (result["__proto__"] as Record<string, unknown>)["PWN"],
+            ).toBe("yes");
+            expect((result as { PWN?: unknown }).PWN).toBeUndefined();
+        });
     });
 
     describe("union", () => {
@@ -1501,6 +1517,20 @@ describe("Obj", () => {
                     constructor: { prototype: { polluted: 5 } },
                 });
                 expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+            });
+
+            // Reviewer finding (2026-08-27): setObjectValue's own clone of
+            // an existing nested value (any segment, not just unsafe ones)
+            // already severs this alias, unlike setMixed/pushMixed's mutable
+            // traversal — confirming Obj.set stays immune.
+            it("never writes onto Object.prototype through an item's own aliased __proto__ key", () => {
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = Object.prototype;
+                Obj.set(item, "__proto__.PWN", 1);
+                expect(({} as { PWN?: unknown }).PWN).toBeUndefined();
+                expect(
+                    Object.getOwnPropertyNames(Object.prototype),
+                ).not.toContain("PWN");
             });
         });
     });
