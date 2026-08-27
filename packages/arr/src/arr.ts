@@ -4294,6 +4294,64 @@ export function diff<TValue>(
 }
 
 /**
+ * Get the items whose index and value are not both present in the given other array.
+ *
+ * This is `array_diff_assoc` — unlike `diff` above, an index that exists on
+ * `other` with a *different* value is what keeps the item; whether the value
+ * merely appears elsewhere in `other`'s values (as `diff` checks) is
+ * irrelevant. Do not merge this back into `diff`; see `diff`'s doc comment.
+ *
+ * A non-accessible `data` returns `[]`; a non-accessible `other` (e.g.
+ * `null`) is treated as empty, so every item of `data` survives.
+ *
+ * @see Collection::diffAssoc — `packages/collection/stubs/Collection.php:299`.
+ *      Wraps `array_diff_assoc`.
+ *
+ * @param data - The original array
+ * @param other - The array to diff against
+ * @returns A new array containing items whose index+value pair is not in other
+ *
+ * @example
+ *
+ * diffAssoc([1, 2, 3], [1, 9, 3]); -> [2]
+ * diffAssoc(['a', 'b'], ['a', 'b']); -> []
+ * diffAssoc([0], ['0']); -> [] (0 and '0' match under PHP's (string) cast)
+ */
+export function diffAssoc<TValue>(
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TValue>,
+): TValue[];
+export function diffAssoc(data: unknown, other: unknown): unknown[];
+export function diffAssoc<TValue>(
+    data: ArrayItems<TValue> | unknown,
+    other: ArrayItems<TValue> | unknown,
+): TValue[] {
+    if (!accessible(data)) {
+        return [] as TValue[];
+    }
+
+    const dataValues = getAccessibleValues(data) as TValue[];
+
+    if (!accessible(other)) {
+        return [...dataValues];
+    }
+
+    const otherValues = getAccessibleValues(other) as TValue[];
+    const result: TValue[] = [];
+
+    for (let index = 0; index < dataValues.length; index++) {
+        if (
+            index >= otherValues.length ||
+            !phpValueMatch(dataValues[index], otherValues[index])
+        ) {
+            result.push(dataValues[index] as TValue);
+        }
+    }
+
+    return result;
+}
+
+/**
  * Intersect the data array with the given other array
  *
  * Approximates PHP's `array_intersect()`: comparison uses PHP's scalar
@@ -4408,7 +4466,7 @@ export function intersectAssoc<TValue>(
     for (let index = 0; index < dataValues.length; index++) {
         if (
             index < otherValues.length &&
-            dataValues[index] === otherValues[index]
+            phpValueMatch(dataValues[index], otherValues[index])
         ) {
             result.push(dataValues[index] as TValue);
         }
@@ -4419,7 +4477,7 @@ export function intersectAssoc<TValue>(
 
 /**
  * Intersect the array with the given items with additional index check, using the callback.
- * The callback is used to compare indices, while values are compared strictly.
+ * The callback is used to compare indices, while values are compared by PHP's `(string)` cast rule.
  *
  * @see Collection::intersectAssocUsing — `packages/collection/stubs/Collection.php:695`.
  *      Wraps `array_intersect_uassoc`.
@@ -4466,7 +4524,7 @@ export function intersectAssocUsing<TValue>(
         ) {
             if (
                 callback(dataIndex, otherIndex) &&
-                dataValues[dataIndex] === otherValues[otherIndex]
+                phpValueMatch(dataValues[dataIndex], otherValues[otherIndex])
             ) {
                 result.push(dataValues[dataIndex] as TValue);
                 break; // Only add once per dataIndex

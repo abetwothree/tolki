@@ -2580,6 +2580,29 @@ describe("Arr", () => {
         });
     });
 
+    describe("diffAssoc", () => {
+        it("should return entries whose index is out of range or whose value differs", () => {
+            expect(Arr.diffAssoc([1, 2, 3], [1, 9, 3])).toEqual([2]);
+            expect(Arr.diffAssoc(["a", "b"], ["a", "b"])).toEqual([]);
+            expect(Arr.diffAssoc([1, 2], [1])).toEqual([2]);
+        });
+
+        it("should return empty array for non-accessible data", () => {
+            expect(Arr.diffAssoc(null, [1, 2])).toEqual([]);
+            expect(Arr.diffAssoc("not array", [1, 2])).toEqual([]);
+        });
+
+        it("should return copy of data for non-accessible other", () => {
+            expect(Arr.diffAssoc([1, 2], null)).toEqual([1, 2]);
+            expect(Arr.diffAssoc([1, 2], "not array")).toEqual([1, 2]);
+        });
+
+        // docs/php-parity/task-17-second-review.json, "array_diff_assoc casts values to string"
+        it("matches values by PHP's string cast", () => {
+            expect(Arr.diffAssoc([0], ["0"] as never)).toEqual([]);
+        });
+    });
+
     describe("intersect", () => {
         it("accepts an operand of any shape, as getArrayableItems does", () => {
             // An object `other` was rejected outright by the `accessible(other)`
@@ -5125,6 +5148,11 @@ describe("Arr", () => {
             expect(Arr.intersectAssoc([1, 2], [])).toEqual([]);
             expect(Arr.intersectAssoc([], [1, 2])).toEqual([]);
         });
+
+        // docs/php-parity/task-17-second-review.json, "array_intersect_assoc casts values to string"
+        it("matches values by PHP's string cast", () => {
+            expect(Arr.intersectAssoc([0], ["0"] as never)).toEqual([0]);
+        });
     });
 
     describe("intersectAssocUsing", () => {
@@ -5163,6 +5191,13 @@ describe("Arr", () => {
             expect(Arr.intersectAssocUsing([], [], cb)).toEqual([]);
             expect(Arr.intersectAssocUsing([1, 2], [], cb)).toEqual([]);
             expect(Arr.intersectAssocUsing([], [1, 2], cb)).toEqual([]);
+        });
+
+        // docs/php-parity/task-17-second-review.json, "array_intersect_assoc casts values to string"
+        it("matches values by PHP's string cast, like intersectAssoc", () => {
+            expect(
+                Arr.intersectAssocUsing([0], ["0"] as never, (a, b) => a === b),
+            ).toEqual([0]);
         });
     });
 });
