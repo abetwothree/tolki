@@ -1,4 +1,12 @@
-import { isArray, isFunction, isNull, isObject, isUndefined } from "./guards";
+import {
+    isArray,
+    isFunction,
+    isIterable,
+    isMap,
+    isNull,
+    isObject,
+    isUndefined,
+} from "./guards";
 
 /**
  * Check if a value is arrayable (has a toArray method).
@@ -121,8 +129,10 @@ export function getAccessibleValues<T>(data: ReadonlyArray<T> | unknown): T[] {
 /**
  * Normalize a set-operation operand the way Laravel's
  * `EnumeratesValues::getArrayableItems()` does before `array_diff`/
- * `array_intersect` sees it: nullish becomes an empty array, an array or object
- * contributes its own values, and any other scalar becomes a one-element array.
+ * `array_intersect` sees it: nullish becomes an empty array; an
+ * Enumerable/Arrayable-like object unwraps via `all()`/`toArray()`, an
+ * iterable spreads, a plain object contributes its own values, and any other
+ * scalar becomes a one-element array.
  *
  * @param items - The operand to normalize
  * @returns The operand's values, in iteration order
@@ -130,6 +140,8 @@ export function getAccessibleValues<T>(data: ReadonlyArray<T> | unknown): T[] {
  * @example
  * arrayableValues([1, 2]); -> [1, 2]
  * arrayableValues({ x: 20 }); -> [20]
+ * arrayableValues({ all: () => [1, 2] }); -> [1, 2]
+ * arrayableValues(new Set([1, 2])); -> [1, 2]
  * arrayableValues(null); -> []
  * arrayableValues("x"); -> ["x"]
  */
@@ -143,6 +155,30 @@ export function arrayableValues<T>(items: unknown): T[] {
     }
 
     if (isObject(items)) {
+        const source = items as Record<string, unknown>;
+
+        if (isFunction(source["all"])) {
+            return arrayableValues<T>((source["all"] as () => unknown)());
+        }
+
+        if (isFunction(source["toArray"])) {
+            return arrayableValues<T>((source["toArray"] as () => unknown)());
+        }
+
+        if (isFunction(source["toJSON"])) {
+            return arrayableValues<T>((source["toJSON"] as () => unknown)());
+        }
+
+        // A Map's default iterator yields [key, value] pairs; PHP's foreach over a
+        // Traversable yields values only, so unwrap via values() instead of spreading.
+        if (isMap(items)) {
+            return [...items.values()] as T[];
+        }
+
+        if (isIterable(items)) {
+            return [...(items as Iterable<T>)];
+        }
+
         return Object.values(items) as T[];
     }
 

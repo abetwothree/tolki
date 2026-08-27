@@ -114,4 +114,46 @@ describe("Utils", () => {
         const source = [1, 2];
         expect(Utils.arrayableValues(source)).not.toBe(source);
     });
+
+    describe("arrayableValues unwrapping", () => {
+        it("unwraps an object exposing all(), like Enumerable", () => {
+            const enumerable = { all: () => [10, 20] };
+            expect(Utils.arrayableValues(enumerable)).toEqual([10, 20]);
+        });
+
+        it("unwraps an object exposing toArray(), like Arrayable", () => {
+            const arrayable = { toArray: () => ({ b: 20 }) };
+            expect(Utils.arrayableValues(arrayable)).toEqual([20]);
+        });
+
+        it("unwraps an iterable", () => {
+            expect(Utils.arrayableValues(new Set([10, 20]))).toEqual([10, 20]);
+            expect(Utils.arrayableValues(new Map([["a", 10]]))).toEqual([10]);
+        });
+
+        it("unwraps an object exposing toJSON(), like JsonSerializable", () => {
+            const jsonable = { toJSON: () => ({ b: 20 }) };
+            expect(Utils.arrayableValues(jsonable)).toEqual([20]);
+        });
+
+        it("prefers all() over toArray() when both are present", () => {
+            expect(
+                Utils.arrayableValues({ all: () => [1], toArray: () => [2] }),
+            ).toEqual([1]);
+        });
+
+        it("still returns own values for a plain object", () => {
+            expect(Utils.arrayableValues({ x: 20 })).toEqual([20]);
+        });
+
+        it("does not leak a class instance's own fields", () => {
+            class Box {
+                readonly secret = "leak";
+                all() {
+                    return [1];
+                }
+            }
+            expect(Utils.arrayableValues(new Box())).toEqual([1]);
+        });
+    });
 });
