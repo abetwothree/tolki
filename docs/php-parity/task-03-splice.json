@@ -82,6 +82,79 @@
                     "c": 3
                 }
             }
+        },
+        {
+            "label": "array_splice negative length \u2014 associative, single removal",
+            "php": "array_splice($a,1,-1)",
+            "value": {
+                "remaining": {
+                    "a": 1,
+                    "c": 3
+                },
+                "cut": {
+                    "b": 2
+                }
+            }
+        },
+        {
+            "label": "array_splice negative length \u2014 numeric, five offset/length combinations",
+            "php": "array_splice($a,$offset,$length)",
+            "value": {
+                "1,-1": {
+                    "remaining": [
+                        1,
+                        5
+                    ],
+                    "cut": [
+                        2,
+                        3,
+                        4
+                    ]
+                },
+                "-3,-1": {
+                    "remaining": [
+                        1,
+                        2,
+                        5
+                    ],
+                    "cut": [
+                        3,
+                        4
+                    ]
+                },
+                "0,-5": {
+                    "remaining": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "cut": []
+                },
+                "-2,-1": {
+                    "remaining": [
+                        1,
+                        2,
+                        3,
+                        5
+                    ],
+                    "cut": [
+                        4
+                    ]
+                },
+                "1,-2": {
+                    "remaining": [
+                        1,
+                        4,
+                        5
+                    ],
+                    "cut": [
+                        2,
+                        3
+                    ]
+                }
+            }
         }
     ]
 }

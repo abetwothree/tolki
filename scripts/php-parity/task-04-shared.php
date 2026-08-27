@@ -39,4 +39,8 @@ probe('array_combine mismatch', 'array_combine(["a","b"],[1])', function () {
     return array_combine(['a', 'b'], [1]);
 });
 
+probe('NAN is truthy for array_filter', 'array_keys(array_filter(["n"=>NAN,"z"=>0.0]))', function () {
+    return ['bool_cast' => @((bool) NAN), 'kept' => array_keys(@array_filter(['n' => NAN, 'z' => 0.0]))];
+});
+
 emit();

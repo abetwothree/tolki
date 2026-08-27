@@ -414,8 +414,8 @@ describe("Utils", () => {
 
     describe("isPhpFalsy", () => {
         // array_filter's falsy set is narrower than isFalsy's — PHP-verified
-        // (docs/php-parity/task-04-shared.json, "Collection::filter falsy set"): drops
-        // "0", "", 0, [], false, null, but keeps "00" and "0.0", and NaN is truthy.
+        // (docs/php-parity/task-04-shared.json, "Collection::filter() falsy set"): drops
+        // "0", "", 0, [], false, null, but keeps "00" and "0.0".
         it("returns true for the exact PHP-falsy set", () => {
             expect(Utils.isPhpFalsy(false)).toBe(true);
             expect(Utils.isPhpFalsy(null)).toBe(true);
@@ -432,6 +432,7 @@ describe("Utils", () => {
             expect(Utils.isPhpFalsy("0.0")).toBe(false);
         });
 
+        // PHP-verified (docs/php-parity/task-04-shared.json, "NAN is truthy for array_filter").
         it("keeps NaN, unlike isFalsy", () => {
             expect(Utils.isPhpFalsy(NaN)).toBe(false);
             expect(Utils.isFalsy(NaN)).toBe(true);

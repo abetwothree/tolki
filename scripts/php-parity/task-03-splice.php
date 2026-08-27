@@ -56,4 +56,22 @@ probe('splice discards replacement keys', 'array_splice($a,1,1,["foo"=>"bar"])',
     return ['simple' => $simple, 'multi' => $multi, 'collision' => $collision, 'insert' => $insert];
 });
 
+probe('array_splice negative length — associative, single removal', 'array_splice($a,1,-1)', function () {
+    $a = ['a' => 1, 'b' => 2, 'c' => 3];
+    $cut = array_splice($a, 1, -1);
+
+    return ['remaining' => $a, 'cut' => $cut];
+});
+
+probe('array_splice negative length — numeric, five offset/length combinations', 'array_splice($a,$offset,$length)', function () {
+    $cases = [];
+    foreach ([[1, -1], [-3, -1], [0, -5], [-2, -1], [1, -2]] as [$offset, $length]) {
+        $a = [1, 2, 3, 4, 5];
+        $cut = array_splice($a, $offset, $length);
+        $cases["{$offset},{$length}"] = ['remaining' => $a, 'cut' => $cut];
+    }
+
+    return $cases;
+});
+
 emit();

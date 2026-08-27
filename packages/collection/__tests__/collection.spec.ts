@@ -1242,7 +1242,7 @@ describe("Collection", () => {
         });
 
         // array_filter's falsy set is narrower than Boolean — PHP-verified
-        // (docs/php-parity/task-04-shared.json, "Collection::filter falsy set"): it
+        // (docs/php-parity/task-04-shared.json, "Collection::filter() falsy set"): it
         // drops "0", "", 0, [], false, null, but keeps "00" and "0.0".
         it("drops PHP-falsy values including the string zero — both shapes agree", () => {
             expect(collect(["0", "", 0, "x"]).filter().all()).toEqual(["x"]);
