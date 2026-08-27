@@ -85,6 +85,8 @@ probe('diff and intersect accept any array operand', 'collect(["a"=>10,"b"=>20])
     return [
         'assoc_diff_list' => (new Collection(['a' => 10, 'b' => 20]))->diff([20])->all(),
         'list_diff_assoc' => (new Collection([10, 20]))->diff(['x' => 20])->all(),
+        'assoc_intersect_list' => (new Collection(['a' => 1, 'b' => 2]))->intersect([2])->all(),
+        'list_intersect_assoc' => (new Collection([10, 20]))->intersect(['x' => 20])->all(),
         'null_intersect' => (new Collection(null))->intersect(['a' => 1])->all(),
         'null_diff' => (new Collection(null))->diff(['a' => 1])->all(),
     ];

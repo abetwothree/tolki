@@ -1,4 +1,4 @@
-import { isArray, isFunction, isNull, isObject } from "./guards";
+import { isArray, isFunction, isNull, isObject, isUndefined } from "./guards";
 
 /**
  * Check if a value is arrayable (has a toArray method).
@@ -116,4 +116,35 @@ export function normalizeToArray<T>(
 export function getAccessibleValues<T>(data: ReadonlyArray<T> | unknown): T[] {
     const normalized = normalizeToArray<T>(data);
     return normalized || [];
+}
+
+/**
+ * Normalize a set-operation operand the way Laravel's
+ * `EnumeratesValues::getArrayableItems()` does before `array_diff`/
+ * `array_intersect` sees it: nullish becomes an empty array, an array or object
+ * contributes its own values, and any other scalar becomes a one-element array.
+ *
+ * @param items - The operand to normalize
+ * @returns The operand's values, in iteration order
+ *
+ * @example
+ * arrayableValues([1, 2]); -> [1, 2]
+ * arrayableValues({ x: 20 }); -> [20]
+ * arrayableValues(null); -> []
+ * arrayableValues("x"); -> ["x"]
+ */
+export function arrayableValues<T>(items: unknown): T[] {
+    if (isNull(items) || isUndefined(items)) {
+        return [];
+    }
+
+    if (isArray(items)) {
+        return items.slice() as T[];
+    }
+
+    if (isObject(items)) {
+        return Object.values(items) as T[];
+    }
+
+    return [items as T];
 }

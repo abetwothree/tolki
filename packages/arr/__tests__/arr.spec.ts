@@ -2555,8 +2555,18 @@ describe("Arr", () => {
             expect(Arr.diff([1, 2], [])).toEqual([1, 2]);
 
             expect(Arr.diff([1, 2], null)).toEqual([1, 2]);
-            expect(Arr.diff(null, [1, 2])).toEqual([1, 2]);
             expect(Arr.diff(null, null)).toEqual([]);
+        });
+
+        it("accepts an operand of any shape, as getArrayableItems does", () => {
+            // A nullish `data` returned `other` instead of nothing, and an object
+            // `other` was treated as absent. PHP-verified in
+            // docs/php-parity/task-16-final-review.json ("diff accepts an operand of
+            // any shape").
+            expect(Arr.diff(null, [1, 2])).toEqual([]);
+            expect(Arr.diff([10, 20], { x: 20 })).toEqual([10]);
+            expect(Arr.diff([1, "x"], "x")).toEqual([1]);
+            expect(Arr.diff([1, 2], 2)).toEqual([1]);
         });
 
         it("compares values only — the position holding the value on other is irrelevant", () => {
@@ -2575,6 +2585,18 @@ describe("Arr", () => {
     });
 
     describe("intersect", () => {
+        it("accepts an operand of any shape, as getArrayableItems does", () => {
+            // An object `other` was rejected outright by the `accessible(other)`
+            // guard. PHP-verified in docs/php-parity/task-16-final-review.json
+            // ("intersect accepts an operand of any shape").
+            expect(Arr.intersect([1], { x: 1 })).toEqual([1]);
+            expect(Arr.intersect([10, 20, 30, 40], { a: 20, b: 40 })).toEqual([
+                20, 40,
+            ]);
+            expect(Arr.intersect([1, "x"], "x")).toEqual(["x"]);
+            expect(Arr.intersect(null, [1, 2])).toEqual([]);
+        });
+
         it("intersect", () => {
             const data = [1, 2, 3, 4];
             expect(Arr.intersect(data, null)).toEqual([]);

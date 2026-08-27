@@ -2364,10 +2364,12 @@ describe("Data", () => {
             const result = Data.dataIntersect(data1, data2);
             expect(result).toEqual([3, 4]);
         });
-        it("throws when values do not match type", () => {
-            expect(() => {
-                Data.dataIntersect({ a: 1, b: 2 }, [2]);
-            }).toThrowError();
+        it("accepts an operand of any shape, like diff", () => {
+            // A mismatched shape threw "Data to intersect must be of the same type".
+            // PHP-verified in docs/php-parity/task-06-setops.json ("diff and intersect
+            // accept any array operand"): array_intersect compares by value only.
+            expect(Data.dataIntersect({ a: 1, b: 2 }, [2])).toEqual({ b: 2 });
+            expect(Data.dataIntersect([10, 20], { x: 20 })).toEqual([20]);
         });
 
         it("intersects on values only regardless of backing", () => {
@@ -3091,6 +3093,17 @@ describe("Data", () => {
             expect(Data.dataDiff([10, 20], { x: 20 })).toEqual([10]);
         });
 
+        it("diff wraps a scalar operand the same way on both backings", () => {
+            // The array branch wrapped the scalar and the object branch treated it as
+            // empty, so the two disagreed on the same call. PHP-verified in
+            // docs/php-parity/task-16-final-review.json ("diff accepts an operand of
+            // any shape").
+            expect(Arr.diff([1, "x"], "x")).toEqual([1]);
+            expect(Obj.diff({ a: 1, b: "x" }, "x")).toEqual({ a: 1 });
+            expect(Data.dataDiff([1, "x"], "x")).toEqual([1]);
+            expect(Data.dataDiff({ a: 1, b: "x" }, "x")).toEqual({ a: 1 });
+        });
+
         it("diffAssocUsing and diffKeysUsing run their comparator", () => {
             // array_diff_uassoc([10,20,30,40],[10,999,30,40],cmp) -> {1:20};
             // array_diff_ukey([10,20,30,40],[1=>'x',3=>'y'],cmp) -> {0:10,2:30}.
@@ -3123,6 +3136,17 @@ describe("Data", () => {
                     ["2", 30],
                 ],
             );
+        });
+
+        it("intersect also compares values across a mismatched operand shape", () => {
+            // The row diff's own mismatched-shape case sits next to: intersect kept
+            // the same-type guard until the final review. PHP-verified in
+            // docs/php-parity/task-06-setops.json ("diff and intersect accept any
+            // array operand").
+            expect(Arr.intersect([10, 20], { x: 20 })).toEqual([20]);
+            expect(Obj.intersect({ a: 1, b: 2 }, [2])).toEqual({ b: 2 });
+            expect(Data.dataIntersect([10, 20], { x: 20 })).toEqual([20]);
+            expect(Data.dataIntersect({ a: 1, b: 2 }, [2])).toEqual({ b: 2 });
         });
 
         it("the intersect family treats null as empty", () => {

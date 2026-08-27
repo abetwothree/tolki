@@ -2406,11 +2406,9 @@ export function dataContains<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get the differences between data collections.
  *
- * A `null`/`undefined` `other` is treated as empty, so every item of
- * `data` is kept unchanged, regardless of whether `data` is array- or
- * object-backed. `array_diff` compares by value only, so a mismatched
- * `other` shape (e.g. array data against an object other, or vice versa) is
- * defined behaviour, not an error — see `Data.diff`'s cross-shape example.
+ * Both backings normalize `other` through `arrayableValues`, so a mismatched
+ * shape (array data against an object other, or vice versa), a scalar, and
+ * `null`/`undefined` are all defined behaviour rather than an error.
  *
  * @param data - The source data
  * @param other - The data to compare against
@@ -2423,6 +2421,7 @@ export function dataContains<TValue, TKey extends PropertyKey = PropertyKey>(
  * Data.diff({a: 1}, null); -> {a: 1}
  * Data.diff({a: 10, b: 20}, [20]); -> {a: 10}
  * Data.diff([10, 20], {x: 20}); -> [10]
+ * Data.diff({a: 1, b: 'x'}, 'x'); -> {a: 1}
  */
 export function dataDiff<
     TValue,
@@ -2434,25 +2433,15 @@ export function dataDiff<
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         // `other`'s shape is left unnarrowed on purpose (no cast to
-        // Record<TOtherKey, TValue>) — objDiff's own guard now accepts an
-        // array other, so laundering it here would hide a real mismatch.
+        // Record<TOtherKey, TValue>) — both branches normalize it themselves,
+        // so laundering it here would hide a real mismatch.
         return objDiff(data as Record<TKey, TValue>, other) as DataItems<
             TValue,
             TKey
         >;
     }
 
-    // `arrWrap(undefined)` returns `[undefined]`, not `[]` (it hits `wrap`'s
-    // scalar overload), so nullish `other` is normalized explicitly here to
-    // keep "null other is empty" true for both `null` and `undefined`.
-    const otherArray =
-        isNull(other) || isUndefined(other)
-            ? []
-            : isObject(other)
-              ? Object.values(other)
-              : arrWrap(other);
-
-    return arrDiff(arrWrap(data), otherArray) as DataItems<TValue>;
+    return arrDiff(arrWrap(data), other) as DataItems<TValue>;
 }
 
 /**
@@ -2630,11 +2619,10 @@ export function dataPop<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Intersect the data with the given items.
  *
- * A `null`/`undefined` `other` is treated as empty rather than
- * throwing the same-type error below, matching how PHP's
- * `EnumeratesValues::getArrayableItems()` turns `null` into `[]` for every
- * `Collection::intersect*` method — so the result is empty regardless of
- * `data`'s own backing.
+ * Like `dataDiff`, both backings normalize `other` through `arrayableValues`,
+ * so a mismatched shape, a scalar and `null`/`undefined` are all defined
+ * behaviour — `array_intersect` compares by value only. The key-aware
+ * `intersectAssoc*`/`intersectByKeys` siblings still require matching shapes.
  *
  * @param data - The original data
  * @param items - The items to intersect with
@@ -2650,19 +2638,11 @@ export function dataIntersect<
     other: DataItems<TValue, TOtherKey> | null | undefined,
     callable: ((a: TValue, b: TValue) => boolean) | null = null,
 ): DataItems<TValue, TKey> {
-    const otherIsNullish = isNull(other) || isUndefined(other);
-
-    if (isObject(data) && (otherIsNullish || isObject(other))) {
+    if (isObject(data)) {
         return objIntersect(data, other, callable);
     }
 
-    if (isArray(data) && (otherIsNullish || isArray(other))) {
-        return arrIntersect(data, other, callable);
-    }
-
-    throw new Error(
-        "Data to intersect must be of the same type (both array or both object).",
-    );
+    return arrIntersect(data, other, callable);
 }
 
 /**

@@ -16,6 +16,7 @@ import {
 import { finish, randomInt } from "@tolki/str";
 import type { CaseValue, PathKey, PathKeys, SortSpec } from "@tolki/types";
 import {
+    arrayableValues,
     compareValues,
     defineKey,
     isArray,
@@ -3855,9 +3856,10 @@ export function values<TValue, TKey extends PropertyKey = PropertyKey>(
  * `diffAssocUsing`/`diffKeysUsing` above for the assoc-style (key-aware)
  * variants that still exist in this port.
  *
- * An array `other` is a valid `array_diff` operand too — only `null`/`undefined`
- * (or a scalar) is treated the same way PHP's `EnumeratesValues::getArrayableItems()`
- * treats `null`, as an empty array, so every item of `data` is kept unchanged.
+ * `other` may be of any shape — `arrayableValues` applies the same
+ * `EnumeratesValues::getArrayableItems()` rule `Collection::diff` does, so an
+ * array contributes its values, a scalar is a single value, and only
+ * `null`/`undefined` is empty (leaving every item of `data` unchanged).
  *
  * @see Collection::diff — `packages/collection/stubs/Collection.php:276`.
  *      Wraps `array_diff`.
@@ -3871,7 +3873,8 @@ export function values<TValue, TKey extends PropertyKey = PropertyKey>(
  * diff({ a: 1, b: 2, c: 3 }, { b: 2, d: 4 }); -> { a: 1, c: 3 }
  * diff({ id: 1, first_word: 'Hello' }, { x: 'Hello' }); -> { id: 1 } (value-only: 'first_word' drops even though 'x' !== 'first_word')
  * diff({ a: 10, b: 20 }, [20]); -> { a: 10 } (an array other compares by its values too)
- * diff({ id: 1 }, null); -> { id: 1 } (non-accessible other is treated as empty)
+ * diff({ a: 1, b: 'x' }, 'x'); -> { a: 1 } (a scalar other is a one-value array)
+ * diff({ id: 1 }, null); -> { id: 1 } (a nullish other is treated as empty)
  * diff({ a: 0 }, { x: '0' }); -> {} (0 and '0' match under PHP's (string) cast)
  */
 // Overload: typed — data and other's key sets are independent (TOtherKey),
@@ -3905,15 +3908,8 @@ export function diff<
         return {} as Record<TKey, TValue>;
     }
 
-    // array_diff accepts any array, so an array `other` must not be treated as
-    // absent the way `accessible` (object-only) would; only null/undefined/a
-    // scalar other means "nothing to diff against".
-    if (!accessible(other) && !isArray(other)) {
-        return { ...(data as Record<TKey, TValue>) };
-    }
-
     const obj = data as Record<TKey, TValue>;
-    const otherValues = Object.values(other as Record<TOtherKey, TValue>);
+    const otherValues = arrayableValues<TValue>(other);
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
@@ -4052,10 +4048,11 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
  * parameter instead of adding a standalone `intersectUsing` at this layer
  * (the `@tolki/collection` package's `intersectUsing()` forwards here).
  *
- * A non-accessible `data` OR `other` (e.g. `null`) is treated as empty,
- * matching how PHP's `EnumeratesValues::getArrayableItems()` treats `null`
- * for either operand of `collect($data)->intersect($other)`, so the result
- * is `{}`.
+ * A non-accessible `data` (e.g. `null`) is empty, so the result is `{}`.
+ * `other` may be of any shape — `arrayableValues` applies the same
+ * `EnumeratesValues::getArrayableItems()` rule `Collection::intersect` does,
+ * so an array contributes its values, a scalar is a single value, and only
+ * `null`/`undefined` is empty.
  *
  * @see Collection::intersect — `packages/collection/stubs/Collection.php:660`.
  *      Wraps `array_intersect`.
@@ -4068,7 +4065,8 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
  * @example
  *
  * intersect({ id: 1, first_word: 'Hello' }, { first_world: 'Hello', last_word: 'World' }); -> { first_word: 'Hello' } (keys differ, value matches)
- * intersect({ id: 1 }, null); -> {} (non-accessible other is treated as empty)
+ * intersect({ a: 1 }, [1]); -> { a: 1 } (an array other compares by its values too)
+ * intersect({ id: 1 }, null); -> {} (a nullish other is treated as empty)
  * intersect(null, { a: 1 }); -> {} (non-accessible data is treated as empty too)
  * intersect({ a: 0 }, { x: '0' }); -> { a: 0 } (0 and '0' match under PHP's (string) cast)
  */
@@ -4098,11 +4096,11 @@ export function intersect<T1, T2 = T1>(
 ): Record<PropertyKey, T1> {
     const result: Record<PropertyKey, T1> = {};
 
-    if (!accessible(data) || !accessible(other)) {
+    if (!accessible(data)) {
         return result;
     }
 
-    const otherValues = Object.values(other as Record<PropertyKey, T2>);
+    const otherValues = arrayableValues<T2>(other);
 
     for (const [key, value] of Object.entries(
         data as Record<PropertyKey, T1>,

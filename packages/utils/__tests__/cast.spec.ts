@@ -98,4 +98,20 @@ describe("Utils", () => {
         expect(Utils.getAccessibleValues(null)).toEqual([]);
         expect(Utils.getAccessibleValues(undefined)).toEqual([]);
     });
+
+    it("arrayableValues", () => {
+        // The EnumeratesValues::getArrayableItems() rule the diff/intersect
+        // operands share. PHP-verified in docs/php-parity/task-16-final-review.json
+        // ("diff accepts an operand of any shape").
+        expect(Utils.arrayableValues([1, 2])).toEqual([1, 2]);
+        expect(Utils.arrayableValues({ x: 20, y: 30 })).toEqual([20, 30]);
+        expect(Utils.arrayableValues(null)).toEqual([]);
+        expect(Utils.arrayableValues(undefined)).toEqual([]);
+        expect(Utils.arrayableValues("x")).toEqual(["x"]);
+        expect(Utils.arrayableValues(0)).toEqual([0]);
+
+        // A copy, never the caller's array.
+        const source = [1, 2];
+        expect(Utils.arrayableValues(source)).not.toBe(source);
+    });
 });

@@ -1581,6 +1581,16 @@ describe("Obj", () => {
             ).toEqual({ id: 1 });
         });
 
+        it("wraps a scalar other into a one-value array, as getArrayableItems does", () => {
+            // A scalar other was treated as empty and the docblock attributed that to
+            // PHP, which actually casts it to ['x']. PHP-verified in
+            // docs/php-parity/task-16-final-review.json ("diff accepts an operand of
+            // any shape"), where the array backing already wrapped it and split.
+            expect(Obj.diff({ a: 1, b: "x" }, "x")).toEqual({ a: 1 });
+            expect(Obj.diff({ a: 1, b: 2 }, 2)).toEqual({ a: 1 });
+            expect(Obj.diff({ a: 1 }, undefined)).toEqual({ a: 1 });
+        });
+
         it("is case-sensitive", () => {
             // Captured via docs/php-parity/task-06-setops.json ("diff is
             // case-sensitive"). CollectionTest.php:1582.
@@ -1633,6 +1643,16 @@ describe("Obj", () => {
             expect(Obj.intersect(obj1, obj2, (a, b) => a === b)).toEqual({
                 b: 2,
             });
+        });
+
+        it("accepts an operand of any shape, as getArrayableItems does", () => {
+            // An array or scalar other was rejected by the `accessible(other)` guard
+            // while diff's own guard already accepted one. PHP-verified in
+            // docs/php-parity/task-16-final-review.json ("intersect accepts an operand
+            // of any shape").
+            expect(Obj.intersect({ a: 1 }, [1])).toEqual({ a: 1 });
+            expect(Obj.intersect({ a: 1, b: 2 }, [2])).toEqual({ b: 2 });
+            expect(Obj.intersect({ a: 1, b: "x" }, "x")).toEqual({ b: "x" });
         });
 
         it("compares values only, keeping the left keys", () => {

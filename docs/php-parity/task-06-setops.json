@@ -113,6 +113,12 @@
                 "list_diff_assoc": [
                     10
                 ],
+                "assoc_intersect_list": {
+                    "b": 2
+                },
+                "list_intersect_assoc": {
+                    "1": 20
+                },
                 "null_intersect": [],
                 "null_diff": []
             }

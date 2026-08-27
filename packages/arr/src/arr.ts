@@ -34,6 +34,7 @@ import type {
     UndotResult,
 } from "@tolki/types";
 import {
+    arrayableValues,
     castableToArray,
     compareValues,
     defineKey,
@@ -4292,17 +4293,24 @@ export function values<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
  * its `"Array"` collapse for array operands, and its fatal on casting a
  * plain object are deliberately NOT ported.
  *
+ * `other` may be of any shape — `arrayableValues` applies the same
+ * `EnumeratesValues::getArrayableItems()` rule `Collection::diff` does, so an
+ * object contributes its values, nullish is empty and a scalar is a single
+ * value. A non-accessible `data` is empty, so nothing survives the diff.
+ *
  * @see Collection::diff — `packages/collection/stubs/Collection.php:276`.
  *      Wraps `array_diff`.
  *
  * @param data - The original array.
- * @param other - The array to compare against.
+ * @param other - The items to compare against (array, object, scalar or nullish).
  * @returns A new array containing items from data that are not in other.
  *
  * @example
  *
  * diff([1, 2, 3], [2, 3, 4]); -> [1]
  * diff(['a', 'b', 'c'], ['b', 'c', 'd']); -> ['a']
+ * diff([10, 20], {x: 20}); -> [10] (an object other compares by its values)
+ * diff(null, [1, 2]); -> [] (a non-accessible data is empty)
  * diff([0], ['0']); -> [] (0 and '0' match under PHP's (string) cast)
  */
 export function diff<TValue>(
@@ -4317,24 +4325,15 @@ export function diff<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
 ): TValue[] {
-    if (!accessible(data) && !accessible(other)) {
+    if (!accessible(data)) {
         return [];
     }
 
-    if (!accessible(data)) {
-        return (other as TValue[]).slice() as TValue[];
-    }
-
-    if (!accessible(other)) {
-        return data.slice() as TValue[];
-    }
-
-    const dataArray = data as ArrayItems<TValue>;
-    const otherArray = other as ArrayItems<TValue>;
+    const otherValues = arrayableValues<TValue>(other);
     const result: TValue[] = [];
 
-    for (const item of dataArray) {
-        if (!otherArray.some((otherItem) => phpValueMatch(item, otherItem))) {
+    for (const item of data as ArrayItems<TValue>) {
+        if (!otherValues.some((otherItem) => phpValueMatch(item, otherItem))) {
             result.push(item);
         }
     }
@@ -4353,16 +4352,22 @@ export function diff<TValue>(
  * plain object are deliberately NOT ported. `callable`, when given,
  * replaces the default value comparator above with a custom one.
  *
+ * `other` may be of any shape — `arrayableValues` applies the same
+ * `EnumeratesValues::getArrayableItems()` rule `Collection::intersect` does,
+ * so an object contributes its values, nullish is empty and a scalar is a
+ * single value.
+ *
  * @see Collection::intersect — `packages/collection/stubs/Collection.php:660`.
  *      Wraps `array_intersect`.
  *
  * @param data - The original array
- * @param other - The array to intersect with
+ * @param other - The items to intersect with (array, object, scalar or nullish)
  * @param callable - Optional function to compare values
  * @returns A new array containing items present in both arrays
  *
  * @example
  *
+ * intersect([1], {x: 1}); -> [1] (an object other compares by its values)
  * intersect([0], ['0']); -> [0] (0 and '0' match under PHP's (string) cast)
  */
 // Overload: with callback - infers TValue and TOther from array types
@@ -4389,12 +4394,12 @@ export function intersect<TValue, TOther = TValue>(
     other: ArrayItems<TOther> | unknown,
     callable: ((a: TValue, b: TOther) => boolean) | null = null,
 ): TValue[] {
-    if (!accessible(data) || !accessible(other)) {
+    if (!accessible(data)) {
         return [] as TValue[];
     }
 
     const dataValues = getAccessibleValues(data) as TValue[];
-    const otherValues = getAccessibleValues(other) as TOther[];
+    const otherValues = arrayableValues<TOther>(other);
     const result: TValue[] = [];
 
     for (const item of dataValues) {
