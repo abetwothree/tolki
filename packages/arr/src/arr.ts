@@ -138,6 +138,36 @@ export function add<TValue, TAddValue>(
 }
 
 /**
+ * Render a value's type the way PHP's gettype() does, for Arr::array()-style messages.
+ *
+ * @param value - The value whose type name is needed.
+ * @returns The PHP type name ("NULL", "integer", "double", or the JS typeof otherwise).
+ */
+function phpTypeName(value: unknown): string {
+    if (isNull(value)) {
+        return "NULL";
+    }
+
+    if (isNumber(value)) {
+        return isInteger(value) ? "integer" : "double";
+    }
+
+    return typeof value;
+}
+
+/**
+ * Build Arr::array()'s exact "must be an array" message, shared by every
+ * push/array guard so arr, obj, and the path leaf-check agree on one string.
+ *
+ * @param value - The resolved value that failed the array check.
+ * @param key - The key or path used in the error message.
+ * @returns The formatted error message.
+ */
+export function arrayValueMessage(value: unknown, key: PathKey): string {
+    return `Array value for key [${String(key)}] must be an array, ${phpTypeName(value)} found.`;
+}
+
+/**
  * Get an array item from an array using "dot" notation.
  *
  * @param data - The array to get the item from.
@@ -181,11 +211,7 @@ export function arrayItem<TValue, TDefault = null>(
     const value = getMixedValue(data, key, defaultValue);
 
     if (!isArray(value)) {
-        const typeName = isNull(value) ? "null" : typeOf(value);
-
-        throw new Error(
-            `Array value for key [${key}] must be an array, ${typeName} found.`,
-        );
+        throw new Error(arrayValueMessage(value, key));
     }
 
     return value;

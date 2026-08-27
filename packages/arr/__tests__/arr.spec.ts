@@ -108,9 +108,11 @@ describe("Arr", () => {
             // Default value (should be array)
             expect(Arr.arrayItem([1, 2, 3], 10, [])).toEqual([]);
 
-            // Should throw for non-arrays
+            // Should throw for non-arrays. PHP-verified in
+            // docs/php-parity/task-12-regression-pins.json ("Arr::array requires an
+            // array at the key" / "Arr::array through an explicit null").
             expect(() => Arr.arrayItem([1, 2, 3], 0)).toThrow(
-                "Array value for key [0] must be an array, number found.",
+                "Array value for key [0] must be an array, integer found.",
             );
             expect(() =>
                 Arr.arrayItem([{ items: "not array" }], "0.items"),
@@ -118,7 +120,12 @@ describe("Arr", () => {
                 "Array value for key [0.items] must be an array, string found.",
             );
             expect(() => Arr.arrayItem([null, ["valid"]], 0)).toThrow(
-                "Array value for key [0] must be an array, null found.",
+                "Array value for key [0] must be an array, NULL found.",
+            );
+            // PHP-verified in docs/php-parity/task-12-regression-pins.json
+            // ("Arr::array through a float").
+            expect(() => Arr.arrayItem([1.5], 0)).toThrow(
+                "Array value for key [0] must be an array, double found.",
             );
         });
     });
