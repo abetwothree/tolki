@@ -72,6 +72,7 @@ probe('Arr::undot with a negative integer key', 'Arr::undot(["-1"=>"x"])', fn ()
 
 // D1 — constructor and prototype are ordinary keys
 probe('Arr::set writes a "constructor" key', 'Arr::set([], "constructor", 5)', function () { $a = []; Arr::set($a, 'constructor', 5); return $a; });
+probe('Arr::set writes a "prototype" key', 'Arr::set([], "prototype", 5)', function () { $a = []; Arr::set($a, 'prototype', 5); return $a; });
 probe('Arr::set writes a nested "constructor.prototype" path', 'Arr::set([], "constructor.prototype.polluted", 5)', function () { $a = []; Arr::set($a, 'constructor.prototype.polluted', 5); return $a; });
 probe('Arr::set writes a "__proto__" key', 'Arr::set([], "__proto__", 5)', function () { $a = []; Arr::set($a, '__proto__', 5); return $a; });
 

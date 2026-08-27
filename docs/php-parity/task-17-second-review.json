@@ -308,6 +308,13 @@
             }
         },
         {
+            "label": "Arr::set writes a \"prototype\" key",
+            "php": "Arr::set([], \"prototype\", 5)",
+            "value": {
+                "prototype": 5
+            }
+        },
+        {
             "label": "Arr::set writes a nested \"constructor.prototype\" path",
             "php": "Arr::set([], \"constructor.prototype.polluted\", 5)",
             "value": {
