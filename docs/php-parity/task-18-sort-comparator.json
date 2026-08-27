@@ -59,6 +59,51 @@
                 5,
                 "1"
             ]
+        },
+        {
+            "label": "sortBy runs a comparator nested in a one-element descriptor",
+            "php": "collect($rows)->sortBy([[$byAge]])->values()",
+            "value": [
+                {
+                    "age": 1
+                },
+                {
+                    "age": 2
+                },
+                {
+                    "age": 3
+                }
+            ]
+        },
+        {
+            "label": "sortBy treats [[fn]] and [fn] the same",
+            "php": "collect($rows)->sortBy([$byAge])->values()",
+            "value": [
+                {
+                    "age": 1
+                },
+                {
+                    "age": 2
+                },
+                {
+                    "age": 3
+                }
+            ]
+        },
+        {
+            "label": "Arr::sort runs a comparator nested in a one-element descriptor",
+            "php": "Arr::sort($rows, [[$byAge]])",
+            "value": [
+                {
+                    "age": 1
+                },
+                {
+                    "age": 2
+                },
+                {
+                    "age": 3
+                }
+            ]
         }
     ]
 }
