@@ -55,6 +55,10 @@ probe('push appends into the array AT the key, never beside it', 'Arr::push($a =
     ];
 });
 
+probe('push rejects a boolean at the leaf', 'Arr::push($a = [true], "0", "value")', function () {
+    return pushed([true], '0', 'value');
+});
+
 // The port is array-backed: it clamps an out-of-range index to an append rather
 // than producing PHP's gapped integer key, which a JS array cannot express.
 probe('push at an out-of-range index writes a gapped key in PHP', 'Arr::push($a = [], "2", "value")', function () {

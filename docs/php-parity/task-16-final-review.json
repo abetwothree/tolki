@@ -324,6 +324,12 @@
             }
         },
         {
+            "label": "push rejects a boolean at the leaf",
+            "php": "Arr::push($a = [true], \"0\", \"value\")",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, boolean found."
+        },
+        {
             "label": "push at an out-of-range index writes a gapped key in PHP",
             "php": "Arr::push($a = [], \"2\", \"value\")",
             "value": {

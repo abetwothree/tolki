@@ -1510,15 +1510,11 @@ describe("Arr", () => {
             // integer key instead (task-16-final-review.json, "push at an out-of-range index").
             expect(Arr.push([], "1.0", "item")).toEqual([[["item"]]]);
 
-            // Test push with boolean conflict - should throw error
-            try {
-                const data = [true]; // This is a boolean, not an array at index 0
-                Arr.push(data, "0", "value");
-                // If we get here, something went wrong - but actually this won't throw in our current implementation
-                // because we handle mixed types gracefully
-            } catch (error) {
-                expect((error as Error).message).toContain("must be an array");
-            }
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push
+            // rejects a boolean at the leaf").
+            expect(() => Arr.push([true], "0", "value")).toThrow(
+                "Array value for key [0] must be an array, boolean found.",
+            );
         });
 
         it("creates nested structure without throwing for a fresh path", () => {
