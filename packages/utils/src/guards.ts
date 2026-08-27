@@ -626,3 +626,69 @@ export function isFiniteNumber(value: unknown): value is number {
 export function isAccessibleData(data: unknown): boolean {
     return Array.isArray(data);
 }
+
+/**
+ * Cast a value the way PHP's `(string)` operator does, but only for types that
+ * have a real PHP scalar analogue. Returns `null` (the "no cast" sentinel) for
+ * anything else, including NaN/Infinity and floats `String()` would render in
+ * exponential notation — PHP's `precision=14` formatting is not ported.
+ */
+function toPhpScalarString(value: unknown): string | null {
+    if (isString(value)) {
+        return value;
+    }
+
+    if (isBoolean(value)) {
+        return value ? "1" : "";
+    }
+
+    if (isNull(value)) {
+        return "";
+    }
+
+    if (isFiniteNumber(value)) {
+        const cast = String(value);
+        return cast.includes("e") || cast.includes("E") ? null : cast;
+    }
+
+    return null;
+}
+
+/**
+ * Determine whether two values match the way PHP's `array_diff`/`array_intersect`
+ * do: `(string) $a === (string) $b`. Only `string`, `boolean`, `null` and
+ * plain finite numbers have a PHP scalar analogue to cast through; everything
+ * else (`undefined`, symbols, functions, objects, arrays, `Date`, `NaN`,
+ * `Infinity`, and high-precision/exponential floats) falls back to
+ * SameValueZero identity instead of PHP's `"Array"` collapse or object-cast
+ * fatal, neither of which has a safe JS equivalent.
+ *
+ * @param a - First value to compare
+ * @param b - Second value to compare
+ * @returns True if the values match under PHP's string-cast comparison, or are identical
+ *
+ * @example
+ *
+ * phpValueMatch(0, "0"); -> true
+ * phpValueMatch(null, ""); -> true
+ * phpValueMatch(true, "1"); -> true
+ * phpValueMatch(0, ""); -> false
+ * phpValueMatch(100, "1e2"); -> false (PHP's `==` agrees, but `(string)` does not)
+ * phpValueMatch(NaN, NaN); -> true (SameValueZero fallback, not a string cast)
+ */
+export function phpValueMatch(a: unknown, b: unknown): boolean {
+    const castA = toPhpScalarString(a);
+    const castB = toPhpScalarString(b);
+
+    if (castA !== null && castB !== null) {
+        return castA === castB;
+    }
+
+    return (
+        a === b ||
+        (typeof a === "number" &&
+            typeof b === "number" &&
+            Number.isNaN(a) &&
+            Number.isNaN(b))
+    );
+}

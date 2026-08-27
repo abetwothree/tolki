@@ -606,4 +606,58 @@ describe("Utils", () => {
         expect(Utils.isAccessibleData(null)).toBe(false);
         expect(Utils.isAccessibleData(undefined)).toBe(false);
     });
+
+    describe("phpValueMatch", () => {
+        it.each([
+            [0, "0", true],
+            [null, "", true],
+            [true, "1", true],
+            [0, "", false],
+            [100, "1e2", false],
+        ])(
+            "matches %s against %s as PHP's string cast does",
+            (a, b, expected) => {
+                // Captured: docs/php-parity/task-06-setops.json
+                // ("diff and intersect compare by string cast").
+                expect(Utils.phpValueMatch(a, b)).toBe(expected);
+            },
+        );
+
+        it("casts false, null and non-exponential decimals the same way PHP does", () => {
+            expect(Utils.phpValueMatch(false, "")).toBe(true);
+            expect(Utils.phpValueMatch(0.5, "0.5")).toBe(true);
+            expect(Utils.phpValueMatch(1, "01")).toBe(false);
+        });
+
+        it("does not port PHP's precision=14 float formatting for exponential numbers", () => {
+            // String(1e21) is "1e+21", not PHP's "1.0E+21" — neither side of
+            // this comparison is castable, so it falls back to identity.
+            expect(Utils.phpValueMatch(1e21, "1e+21")).toBe(false);
+            expect(Utils.phpValueMatch(1e-7, 1e-7)).toBe(true);
+        });
+
+        it("falls back to SameValueZero identity for NaN and Infinity", () => {
+            expect(Utils.phpValueMatch(NaN, NaN)).toBe(true);
+            expect(Utils.phpValueMatch(NaN, "x")).toBe(false);
+            expect(Utils.phpValueMatch(NaN, 5)).toBe(false);
+            expect(Utils.phpValueMatch(5, NaN)).toBe(false);
+            expect(Utils.phpValueMatch(Infinity, Infinity)).toBe(true);
+        });
+
+        it("falls back to SameValueZero identity for types with no PHP analogue", () => {
+            const obj = { id: 1 };
+            const fn = () => true;
+            const sym = Symbol("x");
+
+            expect(Utils.phpValueMatch(undefined, undefined)).toBe(true);
+            expect(Utils.phpValueMatch(0, undefined)).toBe(false);
+            expect(Utils.phpValueMatch(obj, { id: 1 })).toBe(false);
+            expect(Utils.phpValueMatch(obj, obj)).toBe(true);
+            expect(Utils.phpValueMatch([1, 2], [1, 2])).toBe(false);
+            expect(Utils.phpValueMatch(fn, fn)).toBe(true);
+            expect(Utils.phpValueMatch(sym, sym)).toBe(true);
+            expect(Utils.phpValueMatch(Symbol("x"), Symbol("x"))).toBe(false);
+            expect(Utils.phpValueMatch(new Date(0), new Date(0))).toBe(false);
+        });
+    });
 });
