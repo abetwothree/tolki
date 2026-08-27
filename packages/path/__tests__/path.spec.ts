@@ -1455,10 +1455,8 @@ describe("Path Functions", () => {
             expect(result).toBe(arr);
         });
 
-        // Reviewer finding (2026-08-27): an owned unsafe key whose value is
-        // itself a live reference (not a fresh container) must be cloned
-        // before further writes descend through it, or the write lands on
-        // the aliased target rather than on new, disconnected data.
+        // An owned unsafe key can alias a live reference; descending through
+        // it without cloning first writes onto the aliased target, not fresh data.
         describe("with an owned unsafe key aliasing a live reference", () => {
             afterEach(() => {
                 expect(
