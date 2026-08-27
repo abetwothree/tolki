@@ -2376,13 +2376,16 @@ describe("Collection", () => {
             });
         });
 
-        it("intersect deep-clones this.items before comparing, unlike intersectUsing", () => {
+        it("intersect's deep clone makes object items compare by identity — a divergence from PHP, unlike intersectUsing", () => {
             // `intersect` calls `recursivelyConvertCollections` on BOTH `this.items`
             // and `items`, while `intersectUsing` calls it only on `items` (see both
             // methods' source below).
             const shared = { id: 1 };
             const other = [shared];
 
+            // Real PHP casts arrays to "Array", so array_intersect matches everything
+            // and returns both items (task-06-setops.json, intersect_arrays).
+            // phpValueMatch keeps identity for objects, so [] is correct for this port.
             expect(
                 collect([shared, { id: 2 }])
                     .intersect(other)

@@ -125,6 +125,31 @@
                 "null_intersect_assoc_using": [],
                 "null_intersect_by_keys": []
             }
+        },
+        {
+            "label": "diff and intersect compare by string cast",
+            "php": "array_diff([0],[\"0\"])",
+            "value": {
+                "diff_int_string": [],
+                "diff_null_empty": [],
+                "diff_int_empty": [
+                    0
+                ],
+                "intersect_int_string": [
+                    0
+                ],
+                "intersect_bool_one": [
+                    true
+                ],
+                "intersect_arrays": [
+                    {
+                        "id": 1
+                    },
+                    {
+                        "id": 2
+                    }
+                ]
+            }
         }
     ]
 }

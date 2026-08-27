@@ -102,4 +102,18 @@ probe('intersectAssoc/intersectAssocUsing/intersectByKeys treat a nullish first 
     ];
 });
 
+// Task 14 (parity-review-fixes) — C7: diff/intersect compare values by
+// (string) cast in real PHP, not strict ===. @ suppresses the "Array to
+// string conversion" warning array_intersect emits for array operands.
+probe('diff and intersect compare by string cast', 'array_diff([0],["0"])', function () {
+    return [
+        'diff_int_string' => array_diff([0], ['0']),
+        'diff_null_empty' => array_diff([null], ['']),
+        'diff_int_empty' => array_diff([0], ['']),
+        'intersect_int_string' => array_intersect([0], ['0']),
+        'intersect_bool_one' => array_intersect([true], ['1']),
+        'intersect_arrays' => @array_intersect([['id' => 1], ['id' => 2]], [['id' => 1]]),
+    ];
+});
+
 emit();
