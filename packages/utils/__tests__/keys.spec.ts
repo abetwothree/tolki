@@ -131,4 +131,34 @@ describe("Utils", () => {
             expect(Object.keys(target)).toEqual(["constructor", "prototype"]);
         });
     });
+
+    describe("defineKey on a non-configurable key", () => {
+        it("falls back to assignment for an array's length", () => {
+            const target: unknown[] = [1, 2];
+            expect(() =>
+                Utils.defineKey(
+                    target as unknown as Record<string, unknown>,
+                    "length",
+                    5,
+                ),
+            ).not.toThrow();
+            expect(target.length).toBe(5);
+        });
+
+        it("falls back to assignment for a sealed object's existing key", () => {
+            const target = Object.seal({ a: 1 });
+            expect(() =>
+                Utils.defineKey(target as Record<string, unknown>, "a", 2),
+            ).not.toThrow();
+            expect(target.a).toBe(2);
+        });
+
+        it("still defines a __proto__ key as own data", () => {
+            const target: Record<string, unknown> = {};
+            Utils.defineKey(target, "__proto__", 5);
+
+            expect(Object.hasOwn(target, "__proto__")).toBe(true);
+            expect(Object.getPrototypeOf(target)).toBe(Object.prototype);
+        });
+    });
 });

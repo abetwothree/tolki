@@ -124,8 +124,8 @@ export function reindexIntegerKeys<TValue>(
  * reaching `Object.prototype` through the inherited setter.
  *
  * `defineKey` is the sanctioned way to write a computed key onto a fresh result object;
- * plain `result[key] = value` lets a `"__proto__"` key reparent `result` instead of
- * becoming an entry.
+ * plain `result[key] = value` lets a `"__proto__"` key reparent `result`. A key that is
+ * already non-configurable falls back to assignment, since it cannot be a setter.
  *
  * @param target - The object to define the key on
  * @param key - The key to define
@@ -136,6 +136,15 @@ export function defineKey<TValue>(
     key: PropertyKey,
     value: TValue,
 ): void {
+    // A non-configurable own key (an array's `length`, a sealed object's entry)
+    // cannot be redefined; plain assignment is both correct and safe there,
+    // because such a key already exists as own data.
+    if (Object.getOwnPropertyDescriptor(target, key)?.configurable === false) {
+        (target as Record<PropertyKey, TValue>)[key] = value;
+
+        return;
+    }
+
     Object.defineProperty(target, key, {
         value,
         enumerable: true,

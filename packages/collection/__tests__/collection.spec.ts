@@ -4759,6 +4759,14 @@ describe("Collection", () => {
                 });
             });
         });
+
+        // docs/php-parity/task-17-second-review.json, "put uses \"length\" as an ordinary key"
+        it('puts a "length" key on an array backing without throwing', () => {
+            const collection = new Collection([1, 2]);
+            expect(() =>
+                collection.put("length" as never, 5 as never),
+            ).not.toThrow();
+        });
     });
 
     describe("random", () => {
