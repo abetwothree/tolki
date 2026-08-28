@@ -64,6 +64,7 @@ import {
     isWeakMap,
     looseEqual,
     phpValueMatch,
+    phpValueMatcher,
     resolveSliceRange,
     typeOf,
 } from "@tolki/utils";
@@ -4181,10 +4182,11 @@ export function diff<TValue>(
     }
 
     const otherValues = arrayableValues<TValue>(other);
+    const matches = phpValueMatcher(otherValues);
     const result: TValue[] = [];
 
     for (const item of data as ArrayItems<TValue>) {
-        if (!otherValues.some((otherItem) => phpValueMatch(item, otherItem))) {
+        if (!matches(item)) {
             result.push(item);
         }
     }
@@ -4310,14 +4312,20 @@ export function intersect<TValue, TOther = TValue>(
     const otherValues = arrayableValues<TOther>(other);
     const result: TValue[] = [];
 
-    for (const item of dataValues) {
-        const found = isFunction(callable)
-            ? otherValues.some((otherItem) => callable(item, otherItem))
-            : otherValues.some((otherItem) =>
-                  phpValueMatch(item as unknown, otherItem as unknown),
-              );
+    if (isFunction(callable)) {
+        for (const item of dataValues) {
+            if (otherValues.some((otherItem) => callable(item, otherItem))) {
+                result.push(item);
+            }
+        }
 
-        if (found) {
+        return result;
+    }
+
+    const matches = phpValueMatcher(otherValues);
+
+    for (const item of dataValues) {
+        if (matches(item)) {
             result.push(item);
         }
     }

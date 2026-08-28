@@ -40,6 +40,7 @@ import {
     isWeakMap,
     looseEqual,
     phpValueMatch,
+    phpValueMatcher,
     reindexIntegerKeys,
     resolveSliceRange,
     typeOf,
@@ -3777,12 +3778,11 @@ export function diff<
 
     const obj = data as Record<TKey, TValue>;
     const otherValues = arrayableValues<TValue>(other);
+    const matches = phpValueMatcher(otherValues);
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
-        if (
-            !otherValues.some((otherValue) => phpValueMatch(value, otherValue))
-        ) {
+        if (!matches(value)) {
             defineKey(result as Record<string, TValue>, key as string, value);
         }
     }
@@ -4030,19 +4030,26 @@ export function intersect<T1, T2 = T1>(
     }
 
     const otherValues = arrayableValues<T2>(other);
+    const entries = Object.entries(data as Record<PropertyKey, T1>);
 
-    for (const [key, value] of Object.entries(
-        data as Record<PropertyKey, T1>,
-    )) {
-        const matches = isFunction(callable)
-            ? otherValues.some((otherValue) =>
-                  callable(value as T1, otherValue as T2),
-              )
-            : otherValues.some((otherValue) =>
-                  phpValueMatch(value as unknown, otherValue as unknown),
-              );
+    if (isFunction(callable)) {
+        for (const [key, value] of entries) {
+            if (
+                otherValues.some((otherValue) =>
+                    callable(value as T1, otherValue),
+                )
+            ) {
+                defineKey(result as Record<string, T1>, key, value as T1);
+            }
+        }
 
-        if (matches) {
+        return result;
+    }
+
+    const matches = phpValueMatcher(otherValues);
+
+    for (const [key, value] of entries) {
+        if (matches(value)) {
             defineKey(result as Record<string, T1>, key, value as T1);
         }
     }

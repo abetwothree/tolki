@@ -699,3 +699,38 @@ export function phpValueMatch(a: unknown, b: unknown): boolean {
             Number.isNaN(b))
     );
 }
+
+/**
+ * Build a reusable membership test with the same semantics as `phpValueMatch`,
+ * without its O(n) rescan per call: cast operands go into a `Set`, so `diff`/
+ * `intersect` can test each item in O(1) instead of scanning `others` per item.
+ *
+ * @param others - The values to test membership against.
+ * @returns A predicate that is true when a value matches any of them.
+ */
+export function phpValueMatcher(
+    others: readonly unknown[],
+): (value: unknown) => boolean {
+    const cast = new Set<string>();
+    const residual: unknown[] = [];
+
+    for (const other of others) {
+        const key = toPhpScalarString(other);
+
+        if (isNull(key)) {
+            residual.push(other);
+        } else {
+            cast.add(key);
+        }
+    }
+
+    return (value) => {
+        const key = toPhpScalarString(value);
+
+        if (!isNull(key)) {
+            return cast.has(key);
+        }
+
+        return residual.some((other) => phpValueMatch(value, other));
+    };
+}

@@ -673,4 +673,48 @@ describe("Utils", () => {
             expect(Utils.phpValueMatch(new Date(0), new Date(0))).toBe(false);
         });
     });
+
+    describe("phpValueMatcher", () => {
+        it("agrees with phpValueMatch on every pair", () => {
+            const values = [
+                0,
+                "0",
+                "",
+                null,
+                undefined,
+                false,
+                true,
+                1,
+                "1",
+                1.0,
+                NaN,
+                "abc",
+                [],
+                {},
+                -0,
+                "00",
+            ];
+            const matcher = Utils.phpValueMatcher(values);
+
+            for (const candidate of values) {
+                expect(matcher(candidate)).toBe(
+                    values.some((other) =>
+                        Utils.phpValueMatch(candidate, other),
+                    ),
+                );
+            }
+        });
+
+        it("falls back to the residual list for a non-castable operand", () => {
+            // Exercises the branch toPhpScalarString can't shortcut through
+            // a Set: an object operand has no PHP scalar cast.
+            const marker = { id: 1 };
+            const matcher = Utils.phpValueMatcher([marker, "5"]);
+
+            expect(matcher(marker)).toBe(true);
+            expect(matcher({ id: 1 })).toBe(false);
+            expect(matcher("5")).toBe(true);
+            expect(matcher("6")).toBe(false);
+        });
+    });
 });
