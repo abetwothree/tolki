@@ -184,7 +184,7 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `isFalsy(variable)` - checks if the variable is falsy the way PHP treats falsy values
   - `isTruthy(variable)` - checks if the variable is truthy the way PHP treats truthy values
   - `isAccessibleData(variable)` - checks if the variable is an array or object whose values can be walked
-  - `typeOf(variable)` - returns the JavaScript `typeof` name of the variable, not PHP's; `null` reports as `"object"`
+  - `typeOf(variable)` - returns the JavaScript `typeof` name of the variable, not PHP's, except that an array reports as `"array"`; `null` reports as `"object"`
   - `phpTypeName(variable)` - returns the type name the way PHP's `gettype()` would; use this in parity-facing messages
   - `strictEqual(value1, value2)` - checks if two values are strictly equal the way that PHP does it with `===`
   - `isUnsafeKey(key)` - checks if a key could cause prototype pollution (`__proto__`, `constructor`, `prototype`)

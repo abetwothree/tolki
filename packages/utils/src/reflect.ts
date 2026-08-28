@@ -1,4 +1,11 @@
-import { isArray, isInteger, isNull, isNumber } from "./guards";
+import {
+    isArray,
+    isFunction,
+    isInteger,
+    isNull,
+    isNumber,
+    isUndefined,
+} from "./guards";
 
 /**
  * Get a more specific type description for debugging purposes.
@@ -61,6 +68,20 @@ export function phpTypeName(value: unknown): string {
     // `typeof []` is "object"; PHP's gettype() calls an array an array.
     if (isArray(value)) {
         return "array";
+    }
+
+    // `typeof` disagrees with gettype() on three more shapes: NaN is a float in
+    // PHP, a closure is an object, and an absent value reads NULL.
+    if (Number.isNaN(value)) {
+        return "double";
+    }
+
+    if (isFunction(value)) {
+        return "object";
+    }
+
+    if (isUndefined(value)) {
+        return "NULL";
     }
 
     return typeof value;
