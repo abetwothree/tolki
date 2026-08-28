@@ -2443,10 +2443,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             const keys = Object.keys(this.items);
             let nextIndex = 0;
 
-            // Own key order always lists integer-like keys ascending, so the
-            // last one seen is the largest; no need to compare against nextIndex.
+            // Ascending key order stops above 2**32-2, so the largest integer-like key may not be last.
             for (const key of keys) {
-                if (isIntegerLikeKey(key)) {
+                if (isIntegerLikeKey(key) && Number(key) >= nextIndex) {
                     nextIndex = Number(key) + 1;
                 }
             }
