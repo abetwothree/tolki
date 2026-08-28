@@ -5334,3 +5334,66 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
         });
     });
 });
+
+// Object.prototype passes `isObjectAny` and Array.prototype passes `isArray`,
+// so a write target has to be refused by identity, not by its shape.
+describe("prototype objects as write targets", () => {
+    const prototypes: [string, object][] = [
+        ["Object.prototype", Object.prototype],
+        ["Array.prototype", Array.prototype],
+        ["Function.prototype", Function.prototype],
+    ];
+
+    afterEach(() => {
+        for (const [, prototype] of prototypes) {
+            const record = prototype as Record<string, unknown>;
+            delete record["PWNED"];
+            delete record["0"];
+        }
+        Array.prototype.length = 0;
+    });
+
+    const unpolluted = (): void => {
+        for (const [, prototype] of prototypes) {
+            expect(Object.getOwnPropertyNames(prototype)).not.toContain(
+                "PWNED",
+            );
+            expect(Object.getOwnPropertyNames(prototype)).not.toContain("0");
+        }
+        expect(Array.prototype.length).toBe(0);
+        expect(({} as { PWNED?: unknown }).PWNED).toBeUndefined();
+        expect(([] as unknown as { PWNED?: unknown }).PWNED).toBeUndefined();
+    };
+
+    it.each(prototypes)(
+        "set never writes into %s reached through an object key",
+        (_label, prototype) => {
+            Obj.set({ p: prototype }, "p.PWNED", 1);
+            Obj.set({ p: prototype }, "p.0", 1);
+            Obj.set(prototype, "PWNED", 1);
+
+            unpolluted();
+        },
+    );
+
+    it.each(prototypes)(
+        "set never writes into %s reached through an array element",
+        (_label, prototype) => {
+            Obj.set({ p: [prototype] }, "p.0.PWNED", 1);
+            Obj.set({ p: [prototype] }, "p.0.0", 1);
+
+            unpolluted();
+        },
+    );
+
+    it.each(prototypes)(
+        "add and unshift never write into %s",
+        (_label, prototype) => {
+            Obj.add({ p: prototype }, "p.PWNED", 1);
+            Obj.add(prototype, "PWNED", 1);
+            Obj.unshift(prototype, 1);
+
+            unpolluted();
+        },
+    );
+});

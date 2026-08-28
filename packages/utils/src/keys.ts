@@ -1,4 +1,4 @@
-import { isInteger, isString } from "./guards";
+import { isInteger, isPrototypeObject, isString } from "./guards";
 
 /**
  * The first magnitude beyond PHP's 64-bit integer range. `PHP_INT_MAX`
@@ -115,6 +115,12 @@ export function defineKey<TValue>(
     key: PropertyKey,
     value: TValue,
 ): void {
+    // Every value inheriting from a prototype object sees a write landing there,
+    // so refuse it: no caller-supplied path may reach a shared global.
+    if (isPrototypeObject(target)) {
+        return;
+    }
+
     // A non-configurable own key (an array's `length`, a sealed object's entry)
     // cannot be redefined; plain assignment is both correct and safe there,
     // because such a key already exists as own data.

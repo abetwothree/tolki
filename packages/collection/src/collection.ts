@@ -2452,8 +2452,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
 
             for (const value of values) {
-                (this.items as Record<TKey, TValue>)[nextIndex as TKey] =
-                    value as unknown as TValue;
+                defineKey(
+                    this.items as Record<string, TValue>,
+                    nextIndex,
+                    value as unknown as TValue,
+                );
                 nextIndex++;
             }
         }
@@ -3950,8 +3953,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         const lengthKey = Object.keys(this.items).length;
-        (this.items as Record<TKey, TValue>)[lengthKey as unknown as TKey] =
-            item as unknown as TValue;
+        defineKey(
+            this.items as Record<string, TValue>,
+            lengthKey,
+            item as unknown as TValue,
+        );
 
         return this;
     }

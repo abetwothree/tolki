@@ -11492,3 +11492,43 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
         expect(collection.all()).toEqual([1, 2, 3]);
     });
 });
+
+// A collection built straight from a prototype object would otherwise let put,
+// push and add write onto a global every value in the process inherits from.
+describe("prototype objects as write targets", () => {
+    const prototypes: [string, object][] = [
+        ["Object.prototype", Object.prototype],
+        ["Array.prototype", Array.prototype],
+        ["Function.prototype", Function.prototype],
+    ];
+
+    afterEach(() => {
+        for (const [, prototype] of prototypes) {
+            const record = prototype as Record<string, unknown>;
+            delete record["PWNED"];
+            delete record["0"];
+        }
+        Array.prototype.length = 0;
+    });
+
+    it.each(prototypes)(
+        "put, push and add never write into %s",
+        (_label, prototype) => {
+            new Collection(prototype as Record<string, unknown>).put(
+                "PWNED",
+                1,
+            );
+            new Collection(prototype as Record<string, unknown>).push(1);
+            new Collection(prototype as Record<string, unknown>).add(1);
+
+            for (const [, other] of prototypes) {
+                expect(Object.getOwnPropertyNames(other)).not.toContain(
+                    "PWNED",
+                );
+                expect(Object.getOwnPropertyNames(other)).not.toContain("0");
+            }
+            expect(Array.prototype.length).toBe(0);
+            expect(({} as { PWNED?: unknown }).PWNED).toBeUndefined();
+        },
+    );
+});

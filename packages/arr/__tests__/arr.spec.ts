@@ -5352,4 +5352,70 @@ describe("Arr", () => {
             ).toEqual([0]);
         });
     });
+    // Array.prototype passes `isArray` and Object.prototype passes `isObjectAny`,
+    // so a write target has to be refused by identity, not by its shape.
+    describe("prototype objects as write targets", () => {
+        const prototypes: [string, object][] = [
+            ["Object.prototype", Object.prototype],
+            ["Array.prototype", Array.prototype],
+            ["Function.prototype", Function.prototype],
+        ];
+
+        afterEach(() => {
+            for (const [, prototype] of prototypes) {
+                const record = prototype as Record<string, unknown>;
+                delete record["PWNED"];
+                delete record["0"];
+            }
+            Array.prototype.length = 0;
+        });
+
+        const unpolluted = (): void => {
+            for (const [, prototype] of prototypes) {
+                expect(Object.getOwnPropertyNames(prototype)).not.toContain(
+                    "PWNED",
+                );
+                expect(Object.getOwnPropertyNames(prototype)).not.toContain(
+                    "0",
+                );
+            }
+            expect(Array.prototype.length).toBe(0);
+            expect(({} as { PWNED?: unknown }).PWNED).toBeUndefined();
+            expect(
+                ([] as unknown as { PWNED?: unknown }).PWNED,
+            ).toBeUndefined();
+        };
+
+        it.each(prototypes)(
+            "add never writes into %s reached through an array element",
+            (_label, prototype) => {
+                Arr.add([prototype], "0.PWNED", 1);
+                Arr.add([prototype], "0.0", 1);
+                Arr.add([[prototype]], "0.0.PWNED", 1);
+
+                unpolluted();
+            },
+        );
+
+        it.each(prototypes)(
+            "add never writes into %s reached through an object key",
+            (_label, prototype) => {
+                Arr.add([{ p: prototype }], "0.p.PWNED", 1);
+                Arr.add([{ p: prototype }], "0.p.0", 1);
+
+                unpolluted();
+            },
+        );
+
+        // Only Array.prototype is array-shaped; the other two reach push and
+        // unshift as ordinary non-array values and are rejected on that ground.
+        it("push and unshift never mutate Array.prototype", () => {
+            Arr.push(Array.prototype, null, 1);
+            Arr.push([Array.prototype], "0", 1);
+            Arr.push([Array.prototype], "0.0", 1);
+            Arr.unshift(Array.prototype, 1);
+
+            unpolluted();
+        });
+    });
 });

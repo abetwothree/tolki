@@ -57,6 +57,7 @@ import {
     isPhpArrayKey,
     isPhpFalsy,
     isPhpNumeric,
+    isPrototypeObject,
     isString,
     isStringable,
     isSymbol,
@@ -647,6 +648,12 @@ export function unshift<TValue>(
     data: TValue[],
     ...items: unknown[]
 ): unknown[] {
+    // Mutating a prototype object in place is a write every inheritor sees,
+    // so refuse it rather than prepend onto a shared global.
+    if (isPrototypeObject(data)) {
+        return data;
+    }
+
     for (let i = items.length - 1; i >= 0; i--) {
         const item = items[i];
         if (!isUndefined(item)) {

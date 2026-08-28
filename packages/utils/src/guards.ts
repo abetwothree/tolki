@@ -62,6 +62,37 @@ export function isTruthyObject(value: unknown): value is object {
 }
 
 /**
+ * Check if a value is a prototype object: the `prototype` of the constructor it
+ * carries as an own property. True for `Object.prototype`, `Array.prototype`,
+ * `Function.prototype`, every other intrinsic prototype and every class prototype.
+ *
+ * @param value - The value to check
+ * @returns True if the value is some function's prototype object
+ *
+ * @example
+ *
+ * isPrototypeObject(Object.prototype); -> true
+ * isPrototypeObject(Array.prototype); -> true
+ * isPrototypeObject({ constructor: Object }); -> false
+ * isPrototypeObject({ a: 1 }); -> false
+ */
+export function isPrototypeObject(value: unknown): boolean {
+    if (!isTruthyObject(value) && !isFunction(value)) {
+        return false;
+    }
+
+    const constructor = Object.getOwnPropertyDescriptor(
+        value as object,
+        "constructor",
+    )?.value;
+
+    return (
+        isFunction(constructor) &&
+        (constructor as { prototype?: unknown }).prototype === value
+    );
+}
+
+/**
  * Check if a value is a string.
  *
  * @param value - The value to check

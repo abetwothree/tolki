@@ -160,6 +160,7 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `isObject(variable)` - checks if the variable is a non-null non-array object
   - `isObjectAny(variable)` - checks if the variable is a object (including arrays, null)
   - `isTruthyObject(variable)` - checks if the variable is a non-null non-undefined object (including arrays)
+  - `isPrototypeObject(variable)` - checks if the variable is a prototype object (`Object.prototype`, `Array.prototype`, a class's `prototype`), which no caller-supplied path may write into
   - `isString(variable)` - checks if the variable is a string
   - `isStringable(variable)` - checks if the variable can be cast to a string or is an object with the `toString` method
   - `objectToString`(variable) - checks if the variable is an object with the `toString` method

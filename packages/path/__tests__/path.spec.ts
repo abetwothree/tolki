@@ -2657,4 +2657,86 @@ describe("Path Functions", () => {
             expect(result).toEqual(["b", "d"]);
         });
     });
+    // Array.prototype satisfies `isArray` and Object.prototype satisfies
+    // `isObjectAny`, so a shared prototype has to be refused by identity.
+    describe("prototype objects as write targets", () => {
+        const prototypes: [string, object][] = [
+            ["Object.prototype", Object.prototype],
+            ["Array.prototype", Array.prototype],
+            ["Function.prototype", Function.prototype],
+        ];
+
+        afterEach(() => {
+            for (const [, prototype] of prototypes) {
+                const record = prototype as Record<string, unknown>;
+                delete record["PWNED"];
+                delete record["0"];
+                delete record["a"];
+            }
+            Array.prototype.length = 0;
+        });
+
+        const ownNames = (prototype: object): string[] =>
+            Object.getOwnPropertyNames(prototype);
+
+        it.each(prototypes)(
+            "setMixed refuses %s as its root",
+            (_label, prototype) => {
+                Path.setMixed(prototype as unknown[], "PWNED", 1);
+                Path.setMixed(prototype as unknown[], 0, 1);
+
+                expect(ownNames(prototype)).not.toContain("PWNED");
+                expect(ownNames(prototype)).not.toContain("0");
+            },
+        );
+
+        it.each(prototypes)(
+            "setMixed refuses to descend into %s",
+            (_label, prototype) => {
+                Path.setMixed([{ p: prototype }], "0.p.0.PWNED", 1);
+                Path.setMixed([{ p: prototype }], "0.p.a.PWNED", 1);
+
+                expect(ownNames(prototype)).not.toContain("0");
+                expect(ownNames(prototype)).not.toContain("a");
+                expect(Array.prototype.length).toBe(0);
+            },
+        );
+
+        it.each(prototypes)(
+            "pushMixed refuses %s as its root",
+            (_label, prototype) => {
+                Path.pushMixed(prototype as unknown[], null, 1);
+                Path.pushMixed(prototype as unknown[], "0", 1);
+
+                expect(ownNames(prototype)).not.toContain("0");
+                expect(Array.prototype.length).toBe(0);
+            },
+        );
+
+        it("pushWithPath treats a prototype root as absent data", () => {
+            expect(Path.pushWithPath(Array.prototype, null, 1)).toEqual([1]);
+            expect(Array.prototype.length).toBe(0);
+            expect(Object.getOwnPropertyNames(Array.prototype)).not.toContain(
+                "0",
+            );
+        });
+
+        it("pushWithPath refuses a prototype array mid-path", () => {
+            Path.pushWithPath([Array.prototype], "0.0", 1);
+
+            expect(Array.prototype.length).toBe(0);
+            expect(Object.getOwnPropertyNames(Array.prototype)).not.toContain(
+                "0",
+            );
+        });
+
+        it("pushWithPath refuses a prototype array at the leaf", () => {
+            Path.pushWithPath([Array.prototype], "0", 1);
+
+            expect(Array.prototype.length).toBe(0);
+            expect(Object.getOwnPropertyNames(Array.prototype)).not.toContain(
+                "0",
+            );
+        });
+    });
 });

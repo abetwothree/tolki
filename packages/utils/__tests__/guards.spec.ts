@@ -66,6 +66,33 @@ describe("Utils", () => {
         });
     });
 
+    describe("isPrototypeObject", () => {
+        it("returns true for intrinsic and class prototypes", () => {
+            expect(Utils.isPrototypeObject(Object.prototype)).toBe(true);
+            expect(Utils.isPrototypeObject(Array.prototype)).toBe(true);
+            expect(Utils.isPrototypeObject(Function.prototype)).toBe(true);
+            expect(Utils.isPrototypeObject(Map.prototype)).toBe(true);
+
+            class Example {}
+            expect(Utils.isPrototypeObject(Example.prototype)).toBe(true);
+        });
+
+        it("returns false for ordinary values and constructor look-alikes", () => {
+            expect(Utils.isPrototypeObject({})).toBe(false);
+            expect(Utils.isPrototypeObject([])).toBe(false);
+            expect(Utils.isPrototypeObject(Object.create(null))).toBe(false);
+            expect(Utils.isPrototypeObject(null)).toBe(false);
+            expect(Utils.isPrototypeObject(undefined)).toBe(false);
+            expect(Utils.isPrototypeObject(123)).toBe(false);
+            expect(Utils.isPrototypeObject("Object.prototype")).toBe(false);
+            // Own "constructor" keys that do not point back are not prototypes.
+            expect(Utils.isPrototypeObject({ constructor: Object })).toBe(
+                false,
+            );
+            expect(Utils.isPrototypeObject({ constructor: 1 })).toBe(false);
+        });
+    });
+
     describe("isString", () => {
         it("returns true for strings", () => {
             expect(Utils.isString("hello")).toBe(true);

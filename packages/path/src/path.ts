@@ -12,6 +12,7 @@ import {
     isNumber,
     isObject,
     isObjectAny,
+    isPrototypeObject,
     isString,
     isUndefined,
     isUnsafeKey,
@@ -735,8 +736,10 @@ export function pushWithPath<TValue>(
     ...values: TValue[]
 ): TValue[] {
     // Non-accessible data stands in for the empty array PHP's `Arr::push` would
-    // have been handed, so both shapes build the same nested structure.
-    const root: unknown[] = isArray(data) ? (data as unknown[]) : [];
+    // have been handed, so both shapes build the same nested structure. A
+    // prototype object joins it: writing there would land on a shared global.
+    const root: unknown[] =
+        isArray(data) && !isPrototypeObject(data) ? (data as unknown[]) : [];
 
     if (isNull(key)) {
         root.push(...(values as unknown[]));
@@ -773,6 +776,10 @@ export function pushWithPath<TValue>(
         }
 
         const next = cursor[idx];
+        if (isPrototypeObject(next)) {
+            return root as TValue[];
+        }
+
         if (isNull(next)) {
             const child: unknown[] = [];
             cursor[idx] = child;
@@ -801,7 +808,11 @@ export function pushWithPath<TValue>(
         cursor.push([]);
     }
 
-    (cursor[leaf] as unknown[]).push(...(values as unknown[]));
+    const target = cursor[leaf];
+
+    if (!isPrototypeObject(target)) {
+        (target as unknown[]).push(...(values as unknown[]));
+    }
 
     return root as TValue[];
 }
@@ -1326,6 +1337,12 @@ export function setMixed<TValue>(
     key: PathKey,
     value: unknown,
 ): TValue[] {
+    // A prototype object is shared by everything that inherits from it, so no
+    // caller-supplied path may write into one, array-shaped or not.
+    if (isPrototypeObject(arr)) {
+        return arr;
+    }
+
     if (isNull(key) || isUndefined(key)) {
         // If key is null, replace the entire array
         arr.length = 0;
@@ -1441,6 +1458,12 @@ export function setMixed<TValue>(
             }
             current = obj[segment];
         }
+
+        // Descending into one makes every write below it global, so the same
+        // refusal has to apply at each step, not only at the root.
+        if (isPrototypeObject(current)) {
+            return arr;
+        }
     }
 
     // Set the final value
@@ -1485,6 +1508,12 @@ export function pushMixed<TValue>(
     key: PathKey,
     ...values: TValue[]
 ): TValue[] {
+    // A prototype object is shared by everything that inherits from it, so no
+    // caller-supplied path may push into one, array-shaped or not.
+    if (isPrototypeObject(data)) {
+        return data as TValue[];
+    }
+
     if (isNull(key) || isUndefined(key)) {
         if (isArray(data)) {
             (data as unknown[]).push(...(values as unknown[]));

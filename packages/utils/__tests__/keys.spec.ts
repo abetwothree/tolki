@@ -130,6 +130,20 @@ describe("Utils", () => {
             expect(target["prototype"]).toBe("b");
             expect(Object.keys(target)).toEqual(["constructor", "prototype"]);
         });
+
+        it.each([
+            ["Object.prototype", Object.prototype],
+            ["Array.prototype", Array.prototype],
+            ["Function.prototype", Function.prototype],
+        ])("refuses %s as a write target", (_label, target) => {
+            Utils.defineKey(target as Record<string, unknown>, "PWNED", 1);
+
+            expect(Object.getOwnPropertyNames(target)).not.toContain("PWNED");
+            expect(({} as Record<string, unknown>)["PWNED"]).toBeUndefined();
+            expect(
+                ([] as unknown as Record<string, unknown>)["PWNED"],
+            ).toBeUndefined();
+        });
     });
 
     describe("defineKey on a non-configurable key", () => {
