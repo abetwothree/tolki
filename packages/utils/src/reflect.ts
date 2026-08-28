@@ -1,4 +1,4 @@
-import { isArray, isNull } from "./guards";
+import { isArray, isInteger, isNull, isNumber } from "./guards";
 
 /**
  * Get a more specific type description for debugging purposes.
@@ -41,4 +41,22 @@ export function resolveDefault<D>(defaultValue?: D | (() => D)): D | null {
     return typeof defaultValue === "function"
         ? (defaultValue as () => D)()
         : (defaultValue as D);
+}
+
+/**
+ * Render a value's type the way PHP's gettype() does, for Arr::array()-style messages.
+ *
+ * @param value - The value whose type name is needed.
+ * @returns The PHP type name ("NULL", "integer", "double", or the JS typeof otherwise).
+ */
+export function phpTypeName(value: unknown): string {
+    if (isNull(value)) {
+        return "NULL";
+    }
+
+    if (isNumber(value)) {
+        return isInteger(value) ? "integer" : "double";
+    }
+
+    return typeof value;
 }

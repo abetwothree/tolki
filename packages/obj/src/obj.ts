@@ -1,7 +1,4 @@
-import {
-    arrayValueMessage,
-    replaceRecursive as arrReplaceRecursive,
-} from "@tolki/arr";
+import { replaceRecursive as arrReplaceRecursive } from "@tolki/arr";
 import { SortDirection } from "@tolki/enum";
 import {
     dotFlatten,
@@ -17,8 +14,10 @@ import { finish, randomInt } from "@tolki/str";
 import type { CaseValue, PathKey, PathKeys, SortSpec } from "@tolki/types";
 import {
     arrayableValues,
+    arrayValueMessage,
     compareValues,
     createSortSpecComparator,
+    cssListItemToString,
     defineKey,
     isArray,
     isBoolean,
@@ -40,6 +39,7 @@ import {
     looseEqual,
     phpValueMatch,
     reindexIntegerKeys,
+    resolveSliceRange,
     typeOf,
 } from "@tolki/utils";
 
@@ -2605,16 +2605,7 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const obj = data as Record<string, TValue>;
     const entries = Object.entries(obj);
-
-    // Normalise a negative offset against the entry count BEFORE combining
-    // it with length, matching array_slice — a raw negative offset fed
-    // straight into Array.prototype.slice combines the two differently.
-    const start = offset < 0 ? Math.max(entries.length + offset, 0) : offset;
-    const end = isNull(length)
-        ? undefined
-        : length >= 0
-          ? start + length
-          : Math.max(start, entries.length + length);
+    const { start, end } = resolveSliceRange(entries.length, offset, length);
 
     const slicedEntries = entries.slice(start, end);
 
@@ -3125,23 +3116,6 @@ export function string<
     }
 
     return value;
-}
-
-/**
- * Cast a CSS-list value the way PHP casts it when pushed raw into
- * `implode()`/`Str::finish()`: `null` becomes `""`, a boolean becomes
- * `"1"`/`""`, and everything else goes through `String()`.
- */
-function cssListItemToString(value: unknown): string {
-    if (isNull(value) || isUndefined(value)) {
-        return "";
-    }
-
-    if (isBoolean(value)) {
-        return value ? "1" : "";
-    }
-
-    return String(value);
 }
 
 /**

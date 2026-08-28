@@ -1,5 +1,6 @@
 import {
     isArray,
+    isBoolean,
     isFunction,
     isIterable,
     isMap,
@@ -183,4 +184,24 @@ export function arrayableValues<T>(items: unknown): T[] {
     }
 
     return [items as T];
+}
+
+/**
+ * Cast a CSS-list value the way PHP casts it when pushed raw into
+ * `implode()`/`Str::finish()`: `null` becomes `""`, a boolean becomes
+ * `"1"`/`""`, and everything else goes through `String()`.
+ *
+ * @param value - The CSS class or style fragment to cast.
+ * @returns The string PHP would have interpolated.
+ */
+export function cssListItemToString(value: unknown): string {
+    if (isNull(value) || isUndefined(value)) {
+        return "";
+    }
+
+    if (isBoolean(value)) {
+        return value ? "1" : "";
+    }
+
+    return String(value);
 }

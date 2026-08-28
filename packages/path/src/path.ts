@@ -1,11 +1,13 @@
-import { arrayValueMessage, wrap as arrWrap } from "@tolki/arr";
+import { wrap as arrWrap } from "@tolki/arr";
 import type { ArrayItems, PathKey, PathKeys } from "@tolki/types";
 import {
+    arrayValueMessage,
     castableToArray,
     defineKey,
     isArray,
     isFunction,
     isInteger,
+    isIntegerLikeKey,
     isNull,
     isNumber,
     isObject,
@@ -1099,11 +1101,7 @@ export const MAX_UNDOT_INDEX = 2 ** 24 - 2;
  * array key, and small enough to safely become a real array index.
  */
 export function isCanonicalUndotIndex(segment: string): boolean {
-    if (!/^(0|[1-9][0-9]*)$/.test(segment)) {
-        return false;
-    }
-
-    return Number(segment) <= MAX_UNDOT_INDEX;
+    return isIntegerLikeKey(segment) && Number(segment) <= MAX_UNDOT_INDEX;
 }
 
 /**

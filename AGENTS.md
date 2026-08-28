@@ -416,8 +416,10 @@ export function dataCollapse(data: unknown): unknown {
   - `src/cast.ts` - conversion and coercion helpers
   - `src/equality.ts` - comparison and equality helpers
   - `src/keys.ts` - object key helpers
+  - `src/range.ts` - numeric range helpers shared across packages
   - `src/string.ts` - string helpers shared across packages
   - `src/reflect.ts` - runtime type reflection helpers
+  - `src/sorting.ts` - sort-descriptor helpers shared across packages
   - `src/utils.ts` - barrel that re-exports the files above, keeping the
     `@tolki/utils` and `@tolki/utils/utils` entry points unchanged
 - Tests mirror the source layout: `__tests__/<module>.spec.ts` per source file

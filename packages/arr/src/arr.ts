@@ -35,9 +35,11 @@ import type {
 } from "@tolki/types";
 import {
     arrayableValues,
+    arrayValueMessage,
     castableToArray,
     compareValues,
     createSortSpecComparator,
+    cssListItemToString,
     defineKey,
     getAccessibleValues,
     isArray,
@@ -60,6 +62,7 @@ import {
     isWeakMap,
     looseEqual,
     phpValueMatch,
+    resolveSliceRange,
     typeOf,
 } from "@tolki/utils";
 
@@ -142,36 +145,6 @@ export function add<TValue, TAddValue>(
     }
 
     return mutableData;
-}
-
-/**
- * Render a value's type the way PHP's gettype() does, for Arr::array()-style messages.
- *
- * @param value - The value whose type name is needed.
- * @returns The PHP type name ("NULL", "integer", "double", or the JS typeof otherwise).
- */
-function phpTypeName(value: unknown): string {
-    if (isNull(value)) {
-        return "NULL";
-    }
-
-    if (isNumber(value)) {
-        return isInteger(value) ? "integer" : "double";
-    }
-
-    return typeof value;
-}
-
-/**
- * Build Arr::array()'s exact "must be an array" message, shared by every
- * push/array guard so arr, obj, and the path leaf-check agree on one string.
- *
- * @param value - The resolved value that failed the array check.
- * @param key - The key or path used in the error message.
- * @returns The formatted error message.
- */
-export function arrayValueMessage(value: unknown, key: PathKey): string {
-    return `Array value for key [${String(key)}] must be an array, ${phpTypeName(value)} found.`;
 }
 
 /**
@@ -2933,16 +2906,7 @@ export function slice<TValue>(
     }
 
     const values = (data as ArrayItems<TValue>).slice();
-
-    // Normalise a negative offset against the length BEFORE combining it
-    // with length, matching array_slice — a raw negative offset fed
-    // straight into Array.prototype.slice combines the two differently.
-    const start = offset < 0 ? Math.max(values.length + offset, 0) : offset;
-    const end = isNull(length)
-        ? undefined
-        : length >= 0
-          ? start + length
-          : Math.max(start, values.length + length);
+    const { start, end } = resolveSliceRange(values.length, offset, length);
 
     return values.slice(start, end);
 }
@@ -3465,23 +3429,6 @@ export function string<TValue, TDefault = null>(
     }
 
     return value;
-}
-
-/**
- * Cast a CSS-list value the way PHP casts it when pushed raw into
- * `implode()`/`Str::finish()`: `null` becomes `""`, a boolean becomes
- * `"1"`/`""`, and everything else goes through `String()`.
- */
-function cssListItemToString(value: unknown): string {
-    if (isNull(value) || isUndefined(value)) {
-        return "";
-    }
-
-    if (isBoolean(value)) {
-        return value ? "1" : "";
-    }
-
-    return String(value);
 }
 
 /**
