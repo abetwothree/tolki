@@ -970,8 +970,8 @@ export function flatten<TValue>(
  * nodes at that depth boundary.
  *
  * One verified divergence from `Arr::dot`/`Obj.dot`: an empty nested
- * container is dropped entirely here, where PHP keeps it as a leaf value
- * (`Arr::dot(["a"=>[],"b"=>1])` -> `{"a":[],"b":1}`, not `{"b":1}`).
+ * container is dropped entirely here, where PHP keeps it as a leaf value.
+ * @see probe row `Arr::dot keeps a "__proto__" array value`
  *
  * @param data - The object to flatten.
  * @param depth - Maximum depth for dot-notation keys.
