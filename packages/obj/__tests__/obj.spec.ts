@@ -150,6 +150,10 @@ describe("Obj", () => {
             expect(() => Obj.boolean({ name: null }, "name")).toThrow(
                 "Object value for key [name] must be a boolean, NULL found.",
             );
+            // docs/php-parity/task-17-second-review.json, "gettype of an array"
+            expect(() => Obj.boolean({ tags: [1] }, "tags")).toThrow(
+                "Object value for key [tags] must be a boolean, array found.",
+            );
         });
 
         it("should return default value if key not found and default is boolean", () => {

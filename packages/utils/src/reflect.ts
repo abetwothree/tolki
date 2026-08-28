@@ -58,5 +58,10 @@ export function phpTypeName(value: unknown): string {
         return isInteger(value) ? "integer" : "double";
     }
 
+    // `typeof []` is "object"; PHP's gettype() calls an array an array.
+    if (isArray(value)) {
+        return "array";
+    }
+
     return typeof value;
 }

@@ -164,6 +164,10 @@ describe("Arr", () => {
             expect(() => Arr.boolean([null, true], 0)).toThrow(
                 "Array value for key [0] must be a boolean, NULL found.",
             );
+            // docs/php-parity/task-17-second-review.json, "gettype of an array"
+            expect(() => Arr.boolean([[1], true], 0)).toThrow(
+                "Array value for key [0] must be a boolean, array found.",
+            );
         });
     });
 
