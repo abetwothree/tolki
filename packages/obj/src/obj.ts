@@ -34,6 +34,7 @@ import {
     isPhpArrayKey,
     isPhpFalsy,
     isPhpNumeric,
+    isPrototypeObject,
     isString,
     isStringable,
     isUndefined,
@@ -520,6 +521,13 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     const data = items[0] as Record<TKey, TValue>;
+
+    // This rebuilds `data` in place: it clears the container before writing the
+    // merged keys back. On a target defineKey declines, that clear is data loss.
+    if (isPrototypeObject(data)) {
+        return data;
+    }
+
     const itemsObject = {} as Record<TKey, TValue>;
     let nextIndex = 0;
 
@@ -564,7 +572,11 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
                 nextIndex++;
             }
 
-            data[nextIndex as TKey] = value as TValue;
+            defineKey(
+                data as Record<PropertyKey, TValue>,
+                nextIndex,
+                value as TValue,
+            );
             nextIndex++;
 
             continue;

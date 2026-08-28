@@ -577,6 +577,26 @@ describe("Obj", () => {
     });
 
     describe("unshift", () => {
+        it("leaves a prototype object untouched instead of clearing it", () => {
+            class Holder {}
+            Object.defineProperty(Holder.prototype, "kept", {
+                value: "str",
+                enumerable: true,
+                configurable: true,
+                writable: true,
+            });
+
+            // unshift rebuilds its container in place, so a target defineKey
+            // declines would be cleared and never written back.
+            const result = Obj.unshift(Holder.prototype as never, 5 as never);
+
+            expect((Holder.prototype as Record<string, unknown>)["kept"]).toBe(
+                "str",
+            );
+            expect(result).toBe(Holder.prototype);
+            expect(({} as Record<string, unknown>)["kept"]).toBeUndefined();
+        });
+
         it("prepends onto the source, like array_unshift", () => {
             const data = { b: 2 };
             Obj.unshift(data, { a: 1 });

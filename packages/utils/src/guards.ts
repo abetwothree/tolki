@@ -64,7 +64,11 @@ export function isTruthyObject(value: unknown): value is object {
 /**
  * Check if a value is a prototype object: the `prototype` of the constructor it
  * carries as an own property. True for `Object.prototype`, `Array.prototype`,
- * `Function.prototype`, every other intrinsic prototype and every class prototype.
+ * `Function.prototype` and every class prototype.
+ *
+ * Detects only prototypes carrying an own *function* `constructor`, so
+ * `%IteratorPrototype%` and friends -- whose `constructor` is an accessor or
+ * absent -- are not detected, and neither is a `Proxy` wrapping a prototype.
  *
  * @param value - The value to check
  * @returns True if the value is some function's prototype object
