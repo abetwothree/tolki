@@ -75,10 +75,10 @@ export function isIntegerLikeKey(key: string): boolean {
  * Renumber the integer-like keys in `entries` to a fresh 0-based sequence, in
  * the order they appear; string keys pass through unchanged.
  *
- * The one integer-key policy for every reordering helper (`sort`, `reverse`,
- * `pad`, `splice`, etc.), since a plain JS object always re-sorts integer-like
- * keys ascending (ECMA-262). Negative integer keys are excluded, since JS
- * doesn't re-sort those.
+ * The one integer-key policy for every reordering helper, since a plain JS
+ * object always re-sorts integer-like keys ascending (ECMA-262). Negative keys
+ * are excluded — JS doesn't re-sort those. A mixed object keeps neither order:
+ * integer keys hoist ahead of string keys, so `sort({x: 5, 0: 9})` gives `[9, 5]`.
  *
  * @param entries - The entries to renumber, in their intended order
  * @returns The same entries with integer-like keys renumbered from 0

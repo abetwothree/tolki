@@ -4518,7 +4518,7 @@ describe("Obj", () => {
         });
 
         it("uses PHP's is_numeric for the key check, not Number()/isNaN", () => {
-            // Review round 1. Captured: docs/php-parity/task-08-arr-parity.json
+            // docs/php-parity/task-08-arr-parity.json
             // ("Arr::toCssStyles with is_numeric edge-case keys").
             expect(Obj.toCssStyles({ "": "foo" })).toBe(";");
             expect(Obj.toCssStyles({ " ": "foo" })).toBe(" ;");
