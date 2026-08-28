@@ -80,4 +80,16 @@ probe('Arr::set writes a "__proto__" key', 'Arr::set([], "__proto__", 5)', funct
 probe('Arr::flatten defaults to unlimited depth', 'Arr::flatten(["a"=>["b"=>["c"=>["d"=>1]]]])', fn () => Arr::flatten(['a' => ['b' => ['c' => ['d' => 1]]]]));
 probe('Arr::flatten honours an explicit depth of 2', 'Arr::flatten(["a"=>["b"=>["c"=>["d"=>1]]]], 2)', fn () => Arr::flatten(['a' => ['b' => ['c' => ['d' => 1]]]], 2));
 
+// Task 20 — gettype() names for the value-assertion messages (typeOf leaks JS names)
+probe('gettype of an integer', 'gettype(1)', fn () => gettype(1));
+probe('gettype of a float', 'gettype(1.5)', fn () => gettype(1.5));
+probe('gettype of a string', 'gettype("s")', fn () => gettype('s'));
+probe('gettype of a boolean', 'gettype(true)', fn () => gettype(true));
+probe('gettype of null', 'gettype(null)', fn () => gettype(null));
+probe('gettype of an array', 'gettype([1])', fn () => gettype([1]));
+probe('gettype of an object', 'gettype(new stdClass())', fn () => gettype(new stdClass()));
+
+// Task 20 Problem B — is_float() rejects a whole-number int; JS has one number type
+probe('Arr::float rejects a whole-number int', 'Arr::float(["k"=>1], "k")', fn () => Arr::float(['k' => 1], 'k'));
+
 emit();

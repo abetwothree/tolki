@@ -39,6 +39,7 @@ import {
     isUndefined,
     isWeakMap,
     looseEqual,
+    phpTypeName,
     phpValueMatch,
     phpValueMatcher,
     reindexIntegerKeys,
@@ -203,7 +204,7 @@ export function boolean<
 
     if (!isBoolean(value)) {
         throw new Error(
-            `Object value for key [${key}] must be a boolean, ${typeOf(value)} found.`,
+            `Object value for key [${key}] must be a boolean, ${phpTypeName(value)} found.`,
         );
     }
 
@@ -1037,6 +1038,11 @@ export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
  * Get a float item from an object using "dot" notation.
  * Throws an error if the value is not a number.
  *
+ * Known divergence: PHP's `is_float()` rejects a whole-number int (`Arr::float`
+ * throws on `1`, see docs/php-parity/task-17-second-review.json, "Arr::float
+ * rejects a whole-number int"). JS has one number type, so `isNumber` accepts
+ * it — narrowing to reject whole numbers would also reject `1.0`.
+ *
  * @param data - The object to get the item from.
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
@@ -1062,7 +1068,7 @@ export function float<
 
     if (!isNumber(value)) {
         throw new Error(
-            `Object value for key [${key}] must be a float, ${typeOf(value)} found.`,
+            `Object value for key [${key}] must be a float, ${phpTypeName(value)} found.`,
         );
     }
 
@@ -1452,7 +1458,7 @@ export function integer<
 
     if (!isInteger(value)) {
         throw new Error(
-            `Object value for key [${key}] must be an integer, ${typeOf(value)} found.`,
+            `Object value for key [${key}] must be an integer, ${phpTypeName(value)} found.`,
         );
     }
 
@@ -2926,7 +2932,7 @@ export function string<
 
     if (!isString(value)) {
         throw new Error(
-            `Object value for key [${key}] must be a string, ${typeOf(value)} found.`,
+            `Object value for key [${key}] must be a string, ${phpTypeName(value)} found.`,
         );
     }
 

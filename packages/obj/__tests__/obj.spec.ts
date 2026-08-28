@@ -141,6 +141,17 @@ describe("Obj", () => {
             );
         });
 
+        it("reports the PHP type name for a number or null", () => {
+            // docs/php-parity/task-17-second-review.json, "gettype of an integer"
+            expect(() => Obj.boolean({ count: 5 }, "count")).toThrow(
+                "Object value for key [count] must be a boolean, integer found.",
+            );
+            // docs/php-parity/task-17-second-review.json, "gettype of null"
+            expect(() => Obj.boolean({ name: null }, "name")).toThrow(
+                "Object value for key [name] must be a boolean, NULL found.",
+            );
+        });
+
         it("should return default value if key not found and default is boolean", () => {
             const obj = { name: "John" };
             expect(Obj.boolean(obj, "missing", false)).toBe(false);
@@ -1544,9 +1555,10 @@ describe("Obj", () => {
         });
 
         it("should throw error for non-string values", () => {
+            // docs/php-parity/task-17-second-review.json, "gettype of an integer"
             const obj = { age: 30 };
             expect(() => Obj.string(obj, "age")).toThrow(
-                "Object value for key [age] must be a string, number found.",
+                "Object value for key [age] must be a string, integer found.",
             );
         });
 
@@ -1575,6 +1587,13 @@ describe("Obj", () => {
             );
         });
 
+        it("reports the PHP type name for a null value", () => {
+            // docs/php-parity/task-17-second-review.json, "gettype of null"
+            expect(() => Obj.float({ name: null }, "name")).toThrow(
+                "Object value for key [name] must be a float, NULL found.",
+            );
+        });
+
         it("should return default value if key not found and default is number", () => {
             const obj = { name: "John" };
             expect(Obj.float(obj, "missing", 0.0)).toBe(0.0);
@@ -1594,9 +1613,10 @@ describe("Obj", () => {
         });
 
         it("should throw error for non-integer values", () => {
+            // docs/php-parity/task-17-second-review.json, "gettype of a float"
             const obj = { price: 19.99 };
             expect(() => Obj.integer(obj, "price")).toThrow(
-                "Object value for key [price] must be an integer, number found.",
+                "Object value for key [price] must be an integer, double found.",
             );
         });
 

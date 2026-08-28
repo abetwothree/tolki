@@ -347,6 +347,47 @@
                     "d": 1
                 }
             ]
+        },
+        {
+            "label": "gettype of an integer",
+            "php": "gettype(1)",
+            "value": "integer"
+        },
+        {
+            "label": "gettype of a float",
+            "php": "gettype(1.5)",
+            "value": "double"
+        },
+        {
+            "label": "gettype of a string",
+            "php": "gettype(\"s\")",
+            "value": "string"
+        },
+        {
+            "label": "gettype of a boolean",
+            "php": "gettype(true)",
+            "value": "boolean"
+        },
+        {
+            "label": "gettype of null",
+            "php": "gettype(null)",
+            "value": "NULL"
+        },
+        {
+            "label": "gettype of an array",
+            "php": "gettype([1])",
+            "value": "array"
+        },
+        {
+            "label": "gettype of an object",
+            "php": "gettype(new stdClass())",
+            "value": "object"
+        },
+        {
+            "label": "Arr::float rejects a whole-number int",
+            "php": "Arr::float([\"k\"=>1], \"k\")",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [k] must be a float, integer found."
         }
     ]
 }

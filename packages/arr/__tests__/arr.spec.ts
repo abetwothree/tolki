@@ -153,14 +153,16 @@ describe("Arr", () => {
             expect(Arr.boolean([1, 2, 3], 10, false)).toBe(false);
 
             // Should throw for non-booleans
+            // docs/php-parity/task-17-second-review.json, "gettype of an integer"
             expect(() => Arr.boolean([1, 2, 3], 0)).toThrow(
-                "Array value for key [0] must be a boolean, number found.",
+                "Array value for key [0] must be a boolean, integer found.",
             );
             expect(() => Arr.boolean([{ active: "yes" }], "0.active")).toThrow(
                 "Array value for key [0.active] must be a boolean, string found.",
             );
+            // docs/php-parity/task-17-second-review.json, "gettype of null"
             expect(() => Arr.boolean([null, true], 0)).toThrow(
-                "Array value for key [0] must be a boolean, object found.",
+                "Array value for key [0] must be a boolean, NULL found.",
             );
         });
     });
@@ -1363,6 +1365,17 @@ describe("Arr", () => {
 
             expect(Arr.integer(testArray, 2, 999)).toBe(999);
             expect(() => Arr.integer(testArray, 2)).toThrow(Error);
+        });
+
+        it("reports the PHP type name, not the JS one", () => {
+            // docs/php-parity/task-17-second-review.json, "gettype of a float"
+            expect(() => Arr.integer([1.5], 0)).toThrow(
+                "Array value for key [0] must be an integer, double found.",
+            );
+            // docs/php-parity/task-17-second-review.json, "gettype of null"
+            expect(() => Arr.integer([null], 0)).toThrow(
+                "Array value for key [0] must be an integer, NULL found.",
+            );
         });
     });
 
@@ -2986,6 +2999,15 @@ describe("Arr", () => {
             expect(Arr.pluck("abc", "name")).toEqual([]);
         });
 
+        it("keeps the whole item when the value path is null", () => {
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+            // "Arr::pluck null value keeps the item".
+            const data = [{ name: "Taylor", role: "dev" }];
+            expect(Arr.pluck(data, null, "name")).toEqual({
+                Taylor: { name: "Taylor", role: "dev" },
+            });
+        });
+
         it("should handle key with object having toString", () => {
             // Tests when nestedKey is stringable object
             const stringableObj = {
@@ -3475,8 +3497,9 @@ describe("Arr", () => {
             expect(() => Arr.float([{ price: "free" }], "0.price")).toThrow(
                 "Array value for key [0.price] must be a float, string found.",
             );
+            // docs/php-parity/task-17-second-review.json, "gettype of null"
             expect(() => Arr.float([null, 1.5], 0)).toThrow(
-                "Array value for key [0] must be a float, object found.",
+                "Array value for key [0] must be a float, NULL found.",
             );
         });
     });
@@ -3491,14 +3514,16 @@ describe("Arr", () => {
             expect(Arr.string([1, 2, 3], 10, "default")).toBe("default");
 
             // Should throw for non-strings
+            // docs/php-parity/task-17-second-review.json, "gettype of an integer"
             expect(() => Arr.string([123, "hello"], 0)).toThrow(
-                "Array value for key [0] must be a string, number found.",
+                "Array value for key [0] must be a string, integer found.",
             );
             expect(() => Arr.string([{ name: 123 }], "0.name")).toThrow(
-                "Array value for key [0.name] must be a string, number found.",
+                "Array value for key [0.name] must be a string, integer found.",
             );
+            // docs/php-parity/task-17-second-review.json, "gettype of null"
             expect(() => Arr.string([null, "valid"], 0)).toThrow(
-                "Array value for key [0] must be a string, object found.",
+                "Array value for key [0] must be a string, NULL found.",
             );
         });
     });

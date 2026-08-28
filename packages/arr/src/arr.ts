@@ -63,10 +63,10 @@ import {
     isUndefined,
     isWeakMap,
     looseEqual,
+    phpTypeName,
     phpValueMatch,
     phpValueMatcher,
     resolveSliceRange,
-    typeOf,
 } from "@tolki/utils";
 
 /**
@@ -238,7 +238,7 @@ export function boolean<TValue, TDefault = null>(
 
     if (!isBoolean(value)) {
         throw new Error(
-            `Array value for key [${key}] must be a boolean, ${typeOf(value)} found.`,
+            `Array value for key [${key}] must be a boolean, ${phpTypeName(value)} found.`,
         );
     }
 
@@ -1124,6 +1124,11 @@ export function flip<TValue>(
  * Get a float item from an array using "dot" notation.
  * Throws an error if the value is not a number.
  *
+ * Known divergence: PHP's `is_float()` rejects a whole-number int (`Arr::float`
+ * throws on `1`, see docs/php-parity/task-17-second-review.json, "Arr::float
+ * rejects a whole-number int"). JS has one number type, so `isNumber` accepts
+ * it — narrowing to reject whole numbers would also reject `1.0`.
+ *
  * @param data - The array to get the item from.
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
@@ -1159,7 +1164,7 @@ export function float<TValue, TDefault = null>(
     // Accept both integers and floats as valid numbers
     if (!isNumber(value)) {
         throw new Error(
-            `Array value for key [${key}] must be a float, ${typeOf(value)} found.`,
+            `Array value for key [${key}] must be a float, ${phpTypeName(value)} found.`,
         );
     }
 
@@ -1616,7 +1621,7 @@ export function integer<TValue, TDefault = null>(
 
     if (!isInteger(value)) {
         throw new Error(
-            `Array value for key [${key}] must be an integer, ${typeOf(value)} found.`,
+            `Array value for key [${key}] must be an integer, ${phpTypeName(value)} found.`,
         );
     }
 
@@ -1902,7 +1907,8 @@ export function select<TValue extends Record<string, unknown>>(
  *
  * @param data - The array to pluck from.
  * @param value - The key path to pluck (a dot-notated string, an array of
- *   segments, or a path containing a `*` wildcard segment), or a callback function.
+ *   segments, or a path containing a `*` wildcard segment), a callback, or
+ *   `null` to keep each whole item.
  * @param key - Optional key path to use as keys in result, or callback function.
  * @returns A new array of plucked values, or a record keyed by the
  *   resolved `key` values when a key is given.
@@ -1915,6 +1921,7 @@ export function select<TValue extends Record<string, unknown>>(
  * pluck([{developer: {name: 'Taylor'}}], ['developer', 'name']); -> ['Taylor']
  * pluck([{users: [{first: 'taylor'}, {first: 'dayle'}]}], 'users.*.first'); -> [['taylor', 'dayle']]
  * pluck([{name: 'John'}, {name: 'Jane'}], 'missing'); -> [null, null]
+ * pluck([{name: 'John'}, {name: 'Jane'}], null); -> [{name: 'John'}, {name: 'Jane'}]
  */
 // Overload: literal path + key → record keyed by the key, resolved value type
 export function pluck<
@@ -1941,6 +1948,17 @@ export function pluck<TValue extends Record<string, unknown>, TResult>(
     data: ArrayItems<TValue>,
     value: (item: TValue) => TResult,
 ): TResult[];
+// Overload: null value + key → record keyed by the key, whole items as values
+export function pluck<TValue extends Record<string, unknown>>(
+    data: ArrayItems<TValue>,
+    value: null,
+    key: string | readonly string[] | ((item: TValue) => string | number),
+): Record<string | number, TValue>;
+// Overload: null value, no key → array of whole items, matching Arr::pluck($data, null)
+export function pluck<TValue extends Record<string, unknown>>(
+    data: ArrayItems<TValue>,
+    value: null,
+): TValue[];
 // Overload: with key → returns Record (keyed result)
 export function pluck<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue>,
@@ -1955,7 +1973,7 @@ export function pluck<TValue extends Record<string, unknown>>(
 // Overload: non-array fallback
 export function pluck<TValue extends Record<string, unknown>>(
     data: unknown,
-    value: string | readonly string[] | ((item: TValue) => unknown),
+    value: string | readonly string[] | ((item: TValue) => unknown) | null,
     key?:
         | string
         | readonly string[]
@@ -1965,7 +1983,7 @@ export function pluck<TValue extends Record<string, unknown>>(
 // Implementation
 export function pluck<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue> | unknown,
-    value: string | readonly string[] | ((item: TValue) => unknown),
+    value: string | readonly string[] | ((item: TValue) => unknown) | null,
     key:
         | string
         | readonly string[]
@@ -1992,7 +2010,7 @@ export function pluck<TValue extends Record<string, unknown>>(
         } else {
             itemValue = resolvePluckPath(
                 item,
-                explodePluckPath(value as string | readonly string[]),
+                explodePluckPath(value as string | readonly string[] | null),
             );
         }
 
@@ -3277,7 +3295,7 @@ export function string<TValue, TDefault = null>(
 
     if (!isString(value)) {
         throw new Error(
-            `Array value for key [${key}] must be a string, ${typeOf(value)} found.`,
+            `Array value for key [${key}] must be a string, ${phpTypeName(value)} found.`,
         );
     }
 
