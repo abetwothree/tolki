@@ -181,17 +181,11 @@ import {
 } from "@tolki/utils";
 
 /**
- * A note on most of the `as` casts below: each function here dispatches
- * a loose `DataItems<TValue, TKey>` union to a
- * stricter `@tolki/arr`/`@tolki/obj` implementation via `isObject()`,
- * which can't narrow the union's generics. Most of what's left after this
- * task's cleanup (257 real assertions found via the TS compiler API, 110
- * removed as dead, 147 remain) exists because many `obj`/`arr` parameters
- * are typed `X | unknown`, which defeats argument-based generic inference
- * — that inference sink is Phase 2's territory, not fixed here. Widening
- * happens at this dispatch boundary, not by loosening `obj`/`arr`'s own
- * return types. Some casts carry their own comment for a more specific
- * reason.
+ * A note on most of the `as` casts below: each function here dispatches a loose
+ * `DataItems<TValue, TKey>` union to a stricter `@tolki/arr`/`@tolki/obj`
+ * implementation via `isObject()`, which can't narrow the union's generics.
+ * Widening happens at this dispatch boundary, not by loosening `obj`/`arr`'s own
+ * return types. Some casts carry their own comment for a more specific reason.
  */
 
 /**
@@ -511,10 +505,9 @@ export function dataCount<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataCrossJoin([1, 2], [3, 4]); -> [[1, 3], [1, 4], [2, 3], [2, 4]]
  */
 export function dataCrossJoin(data: unknown, ...others: unknown[]): unknown[] {
-    // Widen (both branches): dataCrossJoin takes `unknown` (it has no
-    // generics of its own), and only `data` is runtime-checked here —
-    // `others` is trusted to share its shape, exactly as PHP's
-    // Arr::crossJoin() trusts its variadic arguments to all be arrays.
+    // Widen (both branches): `dataCrossJoin` has no generics; only `data` is
+    // runtime-checked, `others` is trusted to share its shape, exactly as
+    // PHP's `Arr::crossJoin()` trusts its variadic arguments to all be arrays.
     if (isObject(data)) {
         // For objects, convert to format expected by objCrossJoin
         const objData = data as Record<string, readonly unknown[]>;
@@ -577,13 +570,9 @@ export function dataDot<TValue, TKey extends PropertyKey = PropertyKey>(
  * Convert dot notation back to nested data.
  *
  * @param data - The dot notation data object to convert
- * @param asArray - Force array-shaped rebuilding (`Arr.undot`'s algorithm)
- *   instead of the object-shaped one, even when `data` is a plain object.
- *   Has no PHP counterpart (PHP arrays are both list and map, so there is
- *   nothing to choose between); it is JS-only ergonomics. `Arr.undot`
- *   throws on a key whose dot segments are not all non-negative integers,
- *   so pass an object-shaped `data` with `asArray: true` only when every
- *   key is numeric-first.
+ * @param asArray - Force array-shaped rebuilding (`Arr.undot`) instead of the
+ *   object-shaped one. JS-only ergonomics with no PHP counterpart; throws if any
+ *   key's dot segments aren't all non-negative integers.
  * @returns Nested data structure
  * @throws TypeError via `Arr.undot` when `asArray` is set and a key is not an index path.
  *
@@ -599,10 +588,9 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
         return objUndot(data);
     }
 
-    // Widen: asArray routes even object-backed data to Arr.undot, whose
-    // type rejects non-numeric-first keys — dataUndot's own contract is
-    // broader, so that safety net can't be preserved through this call
-    // and Arr.undot's runtime guard is what catches a bad key instead.
+    // Widen: `asArray` routes object-backed data to `Arr.undot`, which rejects
+    // non-numeric-first keys — `dataUndot`'s own contract is broader; `Arr.undot`'s
+    // runtime guard is what catches a bad key instead.
     return arrUndot(data as Record<TKey, TValue>) as DataItems<TValue>;
 }
 
@@ -1292,14 +1280,9 @@ export function dataMapWithKeys<
  * dataMapSpread([[1, 2], [3, 4]], (a, b) => a + b); -> [3, 7]
  */
 
-// Note: `any[]` here is intentional. `dataMapSpread` exists precisely so
-// callers can write a callback whose parameters are concrete types (the
-// example above: `(a, b) => a + b`, where `a`/`b` need to support `+`) —
-// `unknown[]` would make every parameter `unknown` and reject that exact
-// usage (verified: swapping to `unknown[]` breaks the arithmetic in this
-// function's own doc example, TS2469/18046 depending on the expression).
-// `any[]` is the TypeScript-standard escape for a callback parameter
-// whose real shape is caller-defined and unconstrained here.
+// `any[]` here is intentional: `dataMapSpread` exists so callers can write a
+// callback whose parameters are concrete types; `unknown[]` would reject that
+// (TS2469/18046). Standard TypeScript escape, invisible to callers.
 export function dataMapSpread<U>(
     data: unknown,
     callback: (...args: any[]) => U,
@@ -1943,13 +1926,9 @@ export function dataWhere<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Replace the data items with the given items.
  *
- * A `null`/`undefined` `replacerData` is a no-op regardless of `data`'s
- * backing (PHP's `getArrayableItems(null)` returns `[]`,
- * `EnumeratesValues.php:1106`), dispatched by `data`'s own shape rather
- * than requiring `replacerData` to already agree with it — otherwise an
- * object-backed `data` could never accept a `null` replacer, since there
- * is no object-shaped spelling of "null" to satisfy the same-type check
- * below.
+ * A `null`/`undefined` `replacerData` is a no-op regardless of `data`'s backing
+ * (`EnumeratesValues.php:1106`), dispatched by `data`'s own shape since there's
+ * no object-shaped spelling of "null" to satisfy a same-type check.
  *
  * @param data - The original data
  * @param items - The items to replace with. `null`/`undefined` is a no-op.
@@ -2409,8 +2388,8 @@ export function dataContains<TValue, TKey extends PropertyKey = PropertyKey>(
  * Get the differences between data collections.
  *
  * Both backings normalize `other` through `arrayableValues`, so a mismatched
- * shape (array data against an object other, or vice versa), a scalar, and
- * `null`/`undefined` are all defined behaviour rather than an error.
+ * shape, a scalar, and `null`/`undefined` are all defined behaviour rather than
+ * an error.
  *
  * @param data - The source data
  * @param other - The data to compare against
@@ -2419,11 +2398,6 @@ export function dataContains<TValue, TKey extends PropertyKey = PropertyKey>(
  * @example
  *
  * Data.diff([1, 2, 3, 4], [2, 4]); -> [1, 3]
- * Data.diff({a: 1, b: 2, c: 3}, {b: 2, d: 4}); -> {a: 1, c: 3}
- * Data.diff({a: 1}, null); -> {a: 1}
- * Data.diff({a: 10, b: 20}, [20]); -> {a: 10}
- * Data.diff([10, 20], {x: 20}); -> [10]
- * Data.diff({a: 1, b: 'x'}, 'x'); -> {a: 1}
  */
 export function dataDiff<
     TValue,
@@ -2449,10 +2423,9 @@ export function dataDiff<
 /**
  * Get the items whose key and value are not both present in the given other data.
  *
- * Unlike `dataDiff`, this dispatches straight to the matching obj/arr
- * primitive without normalizing `other` through `arrayableValues` — a key
- * that exists on `other` with a different value is what keeps the item, so
- * `other`'s own keys (not just its values) matter here.
+ * Unlike `dataDiff`, this doesn't normalize `other` through `arrayableValues` —
+ * a key on `other` with a different value is what keeps the item, so `other`'s
+ * own keys matter here, not just its values.
  *
  * @param data - The source data
  * @param other - The data to compare against
@@ -2461,7 +2434,6 @@ export function dataDiff<
  * @example
  *
  * dataDiffAssoc({a: 1, b: 2, c: 3}, {b: 2}); -> {a: 1, c: 3}
- * dataDiffAssoc([1, 2, 3], [1, 9, 3]); -> [2]
  */
 export function dataDiffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
@@ -2486,6 +2458,12 @@ export function dataDiffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
  * `array_diff_uassoc`/`array_diff_ukey`'s key-comparison algorithm applies
  * unchanged. Reindexes the survivors, matching every other array-branch
  * diff/intersect function in this file.
+ *
+ * @param data - The source array.
+ * @param other - The array to compare keys (and optionally values) against.
+ * @param callback - The callback used to compare keys.
+ * @param compareValues - Whether to also require the values to match (diffAssocUsing vs diffKeysUsing).
+ * @returns The reindexed survivors.
  */
 function arrayDiffUsingKeys<TValue>(
     data: readonly TValue[],

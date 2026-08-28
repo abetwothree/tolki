@@ -352,11 +352,9 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
     for (let i = 0; i < maxLength; i++) {
         // Always defined: i only ever ranges up to keys.length.
         const key = keys[i] as string;
-        // Writes go through `defineKey` rather than plain assignment so
-        // a `__proto__` key resolved from `keysObject` becomes a real
-        // own key instead of reparenting `result` through the
-        // `__proto__` setter (see `splice`'s doc comment and
-        // `AGENTS.md`'s prototype-pollution guidance).
+        // Writes go through `defineKey` so a `__proto__` key resolved from
+        // `keysObject` becomes a real own key instead of reparenting `result`
+        // through the `__proto__` setter (see `isUnsafeKey`, AGENTS.md:189).
         defineKey(
             result as Record<string, TCombineValue>,
             key,
@@ -450,22 +448,12 @@ export function dot<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Convert a flatten "dot" notation object into an expanded object.
  *
- * A nested container whose own keys are the consecutive
- * integers `0..n-1` is rebuilt as a real array; the root always stays a
- * plain object even when its own top-level keys are `0..n-1`.
- *
- * Genuine JS/PHP divergence, not a bug: JS always enumerates integer-like
- * keys ascending regardless of insertion order, so out-of-order numeric
- * dotted keys promote to a list here where PHP's insertion-order-sensitive
- * `array_is_list` would not treat the equivalent array as one.
+ * A nested container with consecutive integer keys `0..n-1` becomes a real array;
+ * out-of-order numeric keys still promote to a list here (JS always enumerates
+ * integer-like keys ascending), unlike PHP's insertion-order-sensitive `array_is_list`.
  *
  * @param map - The flat object with dot-notated keys.
  * @returns A new multi-dimensional object.
- *
- * @example
- *
- * undot({ name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }); -> { name: 'John', address: { city: 'NYC', zip: '10001' } }
- * undot({ 'user.languages.0': 'PHP', 'user.languages.1': 'C#', 'user.name': 'Taylor' }); -> { user: { languages: ['PHP', 'C#'], name: 'Taylor' } }
  */
 export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
@@ -514,25 +502,14 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
  * Prepend one or more items to the beginning of the object, mutating it in
  * place, like PHP's array_unshift.
  *
- * Prepended items that are themselves object-accessible are merged in by
- * their own keys. A non-object, non-nullish item (e.g. a bare number or
- * string) is assigned the next available non-negative integer key instead
- * of being dropped, matching array_unshift's "prepend a scalar, it gets
- * key 0 (or the next free integer key)" behaviour. `null`/`undefined`
- * items are skipped, matching this package's existing "undefined items
- * are skipped" convention.
+ * A non-object, non-nullish item gets the next available integer key rather than
+ * being dropped; `null`/`undefined` items are skipped. Existing integer-like keys
+ * are renumbered upward to make room, exactly as `array_unshift` does.
  *
- * Existing integer-like keys are renumbered upward so the prepended items
- * can take `0..n-1`, exactly as `array_unshift` does; string keys keep
- * theirs. Overwriting them in place would destroy their values.
+ * @see Collection::unshift — `packages/collection/stubs/Collection.php:1087`. Wraps `array_unshift`; mutates.
  *
- * @see Collection::unshift — `packages/collection/stubs/Collection.php:1087`.
- *      Wraps `array_unshift`; mutates.
- *
- * @param items - The items to prepend. The first item is the target
- * object, mutated in place when it is itself object-accessible.
- * @returns The same object reference, mutated (or a new object when the
- * first item is not object-accessible, since there is nothing to mutate).
+ * @param items - The items to prepend. The first item is the target object, mutated in place when object-accessible.
+ * @returns The same object reference, mutated (or a new object when the first item isn't object-accessible).
  */
 export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
     ...items: Record<TKey, TValue>[] | unknown[]
@@ -911,24 +888,15 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
 /**
  * Flatten a multi-dimensional object into a single-level array.
  *
- * This mirrors Laravel's Arr::flatten behavior but for objects: it iterates over
- * the values, recursively flattening nested arrays and objects into a single
- * array of values, discarding keys.
- *
  * @see Arr::flatten — `packages/arr/stubs/Arr.php:366`.
  *
  * @param data - The object (or value) to flatten.
- * @param depth - Maximum depth to flatten. Defaults to Infinity (full flattening),
- * matching Arr.php's `Arr::flatten` default (Arr.php:368). Only a depth of
- * exactly 1 stops the descent, so 0 and negatives flatten completely.
+ * @param depth - Maximum depth to flatten. Defaults to Infinity; depth 1 stops after one level (Arr.php:368).
  * @returns A new flattened array of values.
  *
  * @example
  *
- * flatten({ a: [1, 2], b: [3, 4] }); -> [1, 2, 3, 4]
  * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }); -> [1, 2, 3]
- * flatten({ a: { b: { c: { d: 1 } } } }); -> [1]
- * flatten({ a: [1, [2, 3]], b: [4] }, 1); -> [1, [2, 3], 4]
  */
 export function flatten<TValue>(
     data: Record<PropertyKey, TValue> | TValue,
@@ -969,11 +937,8 @@ export function flatten<TValue>(
 /**
  * Flatten a multi-dimensional object into dot-notation with depth control.
  *
- * Creates dot-notation keys up to the specified depth, with values being the
- * nodes at that depth boundary.
- *
- * One verified divergence from `Arr::dot`/`Obj.dot`: an empty nested
- * container is dropped entirely here, where PHP keeps it as a leaf value.
+ * One divergence from `Arr::dot`/`Obj.dot`: an empty nested container is dropped
+ * here, where PHP keeps it as a leaf value.
  * @see probe row `Arr::dot keeps a "__proto__" array value`
  *
  * @param data - The object to flatten.
@@ -983,7 +948,6 @@ export function flatten<TValue>(
  * @example
  *
  * flattenDot({ users: { john: { name: 'John' } } }, 1); -> { 'users.john': { name: 'John' } }
- * flattenDot({ a: { b: { c: 1 } } }, 2); -> { 'a.b.c': 1 }
  */
 export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -1181,8 +1145,7 @@ export function from(items: unknown): Record<string, unknown> {
 /**
  * Get an item from an object using "dot" notation.
  *
- * A literal key wins over dot-path traversal even when it contains dots
- * (mirrors `Arr::exists` being checked before the key is split), and a
+ * A literal key wins over dot-path traversal even when it contains dots, and a
  * literal key whose value is `undefined` still counts as found.
  *
  * @param  data - The object to get the item from.
@@ -1192,11 +1155,8 @@ export function from(items: unknown): Record<string, unknown> {
  *
  * @example
  *
- * get({ name: 'John', age: 30 }, 'name'); -> 'John'
  * get({ user: { name: 'John' } }, 'user.name'); -> 'John'
- * get({ name: 'John' }, 'email', 'default'); -> 'default'
  * get({ "products.desk": { price: 100 } }, 'products.desk'); -> { price: 100 } (literal key wins over traversal)
- * get({ "a.b": undefined, a: { b: 2 } }, 'a.b', 'default'); -> 'default' (literal "a.b" is found but undefined; does not fall through to a.b traversal)
  */
 export function get<
     TValue,
@@ -1625,9 +1585,8 @@ export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get a subset of the items from the given object.
  *
- * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:744): `null`
- * becomes no keys at all, and a bare string becomes a single-key selection,
- * rather than being iterated character by character.
+ * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:744): `null` becomes
+ * no keys, a bare string becomes a single-key selection.
  *
  * @param data - The object to get items from.
  * @param keys - The key, keys, or null to select.
@@ -1636,9 +1595,6 @@ export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
  * @example
  *
  * only({ a: 1, b: 2, c: 3, d: 4 }, ['a', 'c']); -> { a: 1, c: 3 }
- * only({ name: 'John', age: 30, city: 'NYC' }, ['name']); -> { name: 'John' }
- * only({ foo: 1, bar: 'baz' }, 'bar'); -> { bar: 'baz' }
- * only({ a: 1 }, null); -> {}
  */
 export function only<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -1753,20 +1709,14 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
  * Pluck an array of values from an object.
  *
  * @param data - The object to pluck from.
- * @param value - The key path to pluck (a dot-notated string, an array of
- *   segments, or a path containing a `*` wildcard segment), a callback
- *   function, or `null` to keep each whole item as the value.
- * @param key - Optional key path (string, array of segments, or callback)
- *   to use as keys in the result.
+ * @param value - The key path to pluck (dot-notated string, array of segments, or a
+ *   `*` wildcard path), a callback, or `null` to keep each whole item.
+ * @param key - Optional key path (string, array of segments, or callback) to use as keys in the result.
  * @returns A new array with plucked values or object with key-value pairs.
  *
  * @example
  *
  * pluck({ user1: { name: 'John' }, user2: { name: 'Jane' } }, 'name'); -> ['John', 'Jane']
- * pluck({ user1: { id: 1, name: 'John' }, user2: { id: 2, name: 'Jane' } }, 'name', 'id'); -> { 1: 'John', 2: 'Jane' }
- * pluck({ a: { developer: { name: 'Taylor' } } }, ['developer', 'name']); -> ['Taylor']
- * pluck({ a: { account: 'a', users: [{ first: 'taylor' }] } }, 'users.*.first'); -> [['taylor']]
- * pluck({ a: { name: 'Taylor', role: 'dev' } }, null, 'name'); -> { Taylor: { name: 'Taylor', role: 'dev' } }
  */
 export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -1939,10 +1889,8 @@ export function map<
  * Run an associative map over each of the items.
  * The callback should return an object with key/value pairs.
  *
- * Always returns a plain object, even when every mapped key is
- * numeric-like. `Arr::mapWithKeys` (Arr.php:880) builds a single PHP array
- * — there is no `Map` type in PHP, and PHP arrays preserve insertion order
- * for both int and string keys, so there is nothing for a `Map` to buy here.
+ * Always returns a plain object, even when every mapped key is numeric-like —
+ * there's no PHP `Map` concept to preserve here (Arr.php:880).
  *
  * @param data - The object to map.
  * @param callback - Function that returns an object with key/value pairs.
@@ -2216,20 +2164,9 @@ export function query(data: unknown): string {
  *
  * @param data - The object to get random values from.
  * @param number - The number of items to return. If null, returns a single item.
- * @param preserveKeys - Whether to preserve the original keys when returning multiple items.
- * Defaults to `false`, matching `Arr::random`'s `$preserveKeys = false` default (Arr.php:971).
+ * @param preserveKeys - Preserve original keys when returning multiple items. Defaults to `false` (Arr.php:971).
  * @returns A single random item, an object of random items, or null if object is empty.
- * @throws Error if more items are requested than available — including against an
- * empty object, since `Arr.php:977` checks `$requested > $count` above the empty guard.
- *
- * @example
- *
- * random({ a: 1, b: 2, c: 3 }); -> 2 (single random value)
- * random({ a: 1, b: 2, c: 3 }, 2); -> { 0: 2, 1: 3 } (two random items, reindexed)
- * random({ a: 1, b: 2, c: 3 }, 2, true); -> { b: 2, c: 3 } (with original keys)
- * random({}, 0); -> {}
- * random({}, 1); -> throws Error
- * random({ a: 1, b: 2 }, 5); -> throws Error
+ * @throws Error if more items are requested than available, even against an empty object (Arr.php:977).
  */
 export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -2253,10 +2190,9 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
         );
     }
 
-    // Reaching this point with `number` null/undefined would mean
-    // requested === 1 survived the throw guard above, which requires
-    // count >= 1 — so `number` is always explicitly provided here, and
-    // Arr.php:983's empty-or-non-positive short-circuit always yields [].
+    // Reaching this point with `number` null/undefined would mean requested === 1
+    // survived the throw guard above (which requires count >= 1), so `number` is
+    // always provided here — Arr.php:983's empty-or-non-positive short-circuit yields [].
     if (requested <= 0) {
         return {} as Record<TKey, TValue>;
     }
@@ -2302,14 +2238,10 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
  * Get and remove the first N items from the object, mutating it in place,
  * like PHP's array_shift.
  *
- * Guard order matters: negative count throws, an empty object returns
- * null for any count, a count of zero returns an empty array, then items shift.
+ * Survivors' integer-like keys are renumbered from 0, matching `array_shift`;
+ * string keys keep theirs.
  *
- * The survivors' integer-like keys are renumbered from 0, matching
- * `array_shift`; string keys keep theirs.
- *
- * @see Collection::shift — `packages/collection/stubs/Collection.php:1268`.
- *      Mirrors `array_shift`-style removal from the front, driven by `$count`; mutates.
+ * @see Collection::shift — `packages/collection/stubs/Collection.php:1268`. Mirrors `array_shift`; mutates.
  *
  * @param data - The object to shift items from. Mutated in place.
  * @param count - The number of items to shift. Defaults to 1.
@@ -2531,10 +2463,9 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
     const result: Record<string, TValue> = {};
 
     for (const [key, value] of slicedEntries) {
-        // Writes go through `defineKey` rather than plain assignment so a
-        // `__proto__` entry becomes a real own key instead of reparenting
-        // `result` through the `__proto__` setter (see `splice`'s doc
-        // comment and `AGENTS.md`'s prototype-pollution guidance).
+        // Writes go through `defineKey` so a `__proto__` entry becomes a real
+        // own key instead of reparenting `result` through the `__proto__`
+        // setter (see `isUnsafeKey`, AGENTS.md:189).
         defineKey(result, key, value);
     }
 
@@ -2604,24 +2535,14 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
  * Sort the object using the given callback, "dot" notation, or an array of
  * sort descriptors for multi-key sorting.
  *
- * Values are ordered by `compareValues`, never by falsiness — PHP's
- * `asort` puts `-1` before `0`. Integer-like keys are renumbered over the
- * sorted sequence, the one policy the whole reorder family shares; see
- * `reindexIntegerKeys` in `@tolki/utils` for why, and what it costs.
+ * Values are ordered by `compareValues`, never by falsiness (PHP's `asort` puts
+ * `-1` before `0`). Integer-like keys are renumbered over the sorted sequence.
  *
- * @see Collection::sort — `packages/collection/stubs/Collection.php:1554`.
- *      Wraps `uasort`/`asort` — both key-preserving.
+ * @see Collection::sort — `packages/collection/stubs/Collection.php:1554`. Wraps `uasort`/`asort`.
  *
  * @param data - The object to sort.
  * @param callback - The sorting callback, field name, an array of sort descriptors, or null for natural sorting.
  * @returns A new object with sorted entries.
- *
- * @example
- *
- * sort({ c: 3, a: 1, b: 4, d: 1, e: 5 }); -> { a: 1, d: 1, c: 3, b: 4, e: 5 } (sorted by values)
- * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, 'age'); -> sorted by age
- * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name
- * sort({ a: { name: 'Item', age: 10 }, b: { name: 'Item', age: 2 } }, ['name', ['age', false]]); -> sorted by name asc, then age desc
  */
 export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
@@ -2712,23 +2633,13 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * TODO: use the sort function with a "descending" parameter defined
  *
- * Integer-like keys are renumbered over the sorted sequence, the one
- * policy the whole reorder family shares; see `reindexIntegerKeys` in
- * `@tolki/utils`.
+ * Integer-like keys are renumbered over the sorted sequence.
  *
- * @see Collection::sortDesc — `packages/collection/stubs/Collection.php:1571`.
- *      Wraps `arsort` — key-preserving.
+ * @see Collection::sortDesc — `packages/collection/stubs/Collection.php:1571`. Wraps `arsort`.
  *
  * @param data - The object to sort.
- * @param callback - The value extractor callback, field name, an array of sort descriptors, or null for natural sorting.
+ * @param callback - The value extractor callback, field name, sort descriptors, or null for natural sorting.
  * @returns A new object with sorted entries in descending order.
- *
- * @example
- *
- * sortDesc({ c: 3, a: 1, b: 4, d: 1, e: 5 }); -> { e: 5, b: 4, c: 3, a: 1, d: 1 } (sorted by values desc)
- * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, 'age'); -> sorted by age desc
- * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name desc
- * sortDesc({ a: { name: 'Item', age: 10 }, b: { name: 'Item', age: 2 } }, ['name', ['age', false]]); -> each descriptor's comparison is reversed
  */
 export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
@@ -2906,33 +2817,18 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
 }
 
 /**
- * Splice a portion of the underlying object, mutating it in place, like
- * PHP's array_splice.
+ * Splice a portion of the underlying object, mutating it in place, like PHP's
+ * `array_splice()`. String keys keep theirs; integer-like keys reindex from 0.
+ * Writes go through `defineKey` so a `__proto__` entry becomes a real own key
+ * (see `isUnsafeKey`, AGENTS.md:189).
  *
- * String keys keep their exact key on both the remainder and the removed
- * portion; integer-like keys reindex from 0, matching `array_splice`. A
- * replacement that is not itself a container splices in as one element.
- * Writes go through `defineKey` so a `__proto__` entry becomes a real own
- * key instead of reparenting the target through the `__proto__` setter.
- *
- * A replacement's spliced-in order can differ from PHP's — JS enumerates integer-like
- * keys first (unfixable, same class as `reverse`/`pad`); key names and count still match.
- *
- * @see Collection::splice — `packages/collection/stubs/Collection.php:1755`.
- *      Wraps `array_splice`; mutates.
+ * @see Collection::splice — `packages/collection/stubs/Collection.php:1755`. Wraps `array_splice`; mutates.
  *
  * @param data - The object to splice. Mutated in place.
  * @param offset - The starting index, by entry order (not by key)
- * @param length - The number of entries to remove. Defaults to everything
- * from offset to the end.
+ * @param length - The number of entries to remove. Defaults to everything from offset to the end.
  * @param replacement - Object(s) whose values are spliced in at offset, renumbered from 0
  * @returns The removed entries, keyed the same way they were in `data`.
- *
- * @example
- *
- * splice({ x: 1, y: 2, z: 3 }, 1, 1); -> { y: 2 }, data is now { x: 1, z: 3 }
- * splice({ foo: 'f', baz: 'z' }, 1); -> { baz: 'z' }, data is now { foo: 'f' }
- * splice({ 10: 'a', 20: 'b', 30: 'c' }, 1, 1); -> { 0: 'b' }, data is now { 0: 'a', 1: 'c' }
  */
 export function splice<TValue, TKey extends PropertyKey, TReplacements>(
     data: Record<TKey, TValue> | null | undefined,
@@ -3061,10 +2957,9 @@ export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
     const classes: string[] = [];
 
     for (const [key, value] of Object.entries(obj)) {
-        // Numeric-like keys (Arr.php:1214's is_numeric($class)) push the
-        // VALUE as the class name; other keys push the key when truthy.
-        // isPhpNumeric, not Number()/isNaN: hex, "", " ", and "Infinity"
-        // all parse under Number() but aren't PHP-numeric.
+        // Numeric-like keys (Arr.php:1214's is_numeric($class)) push the value as
+        // the class name; other keys push the key when truthy. isPhpNumeric, not
+        // Number()/isNaN: hex, "", " ", and "Infinity" parse under Number() but aren't PHP-numeric.
         if (isPhpNumeric(key)) {
             // Numeric key: push the value as-is (PHP-cast), like PHP
             // pushing $constraint straight into the array before implode().
@@ -3100,10 +2995,9 @@ export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
     const styles: string[] = [];
 
     for (const [key, value] of Object.entries(obj)) {
-        // Numeric-like keys (Arr.php:1237's is_numeric($class)) push the
-        // VALUE as the style; other keys push the key when truthy.
-        // isPhpNumeric, not Number()/isNaN: hex, "", " ", and "Infinity"
-        // all parse under Number() but aren't PHP-numeric.
+        // Numeric-like keys (Arr.php:1237's is_numeric($class)) push the value as
+        // the style; other keys push the key when truthy. isPhpNumeric, not
+        // Number()/isNaN: hex, "", " ", and "Infinity" parse under Number() but aren't PHP-numeric.
         if (isPhpNumeric(key)) {
             // Numeric key: push the value as-is (PHP-cast, then finished),
             // like PHP's Str::finish($constraint, ';').
@@ -3171,42 +3065,16 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
  * Replace the data items with the given replacer items, like PHP's
  * `array_replace()` / `Collection::replace()`.
  *
- * `Collection::replace` (`Collection.php:1170`) returns via
- * `$this->newInstance(array_replace(...))`, so this builds and returns a new object rather than writing into `data`
- * — matching this package's mutation contract (see the block comment near
- * the top of this file: `replace`/`replaceRecursive` are in the "does not
- * mutate" half of the split, alongside `filter`, `slice`, `combine`, etc.).
+ * Returns a new object rather than mutating `data`; a `null`/`undefined` replacer
+ * is a no-op (`CollectionTest.php:1482`). Writes go through `defineKey` so a
+ * `__proto__` key on `replacerData` becomes a real own key (see `isUnsafeKey`,
+ * AGENTS.md:189).
  *
- * A `null`/`undefined` replacer is a no-op: PHP's `getArrayableItems(null)`
- * returns `[]` (`EnumeratesValues.php:1106`), pinned by
- * `CollectionTest.php:1482`, so `data`'s values come back unchanged (in a
- * new object, still never the original reference).
- *
- * Writes go through `defineKey` rather than plain assignment so a
- * `__proto__` key on `replacerData` becomes a real own key on the result
- * instead of reparenting it through the `__proto__` setter (see `splice`'s
- * doc comment and `AGENTS.md`'s prototype-pollution guidance).
- *
- * `accessible()` gates `replacerData` the same way it gates `null`, and
- * `accessible()` excludes arrays — so an array forced past the type
- * surface (e.g. `as unknown as Record<PropertyKey, T2>`) is a deliberate
- * no-op here too, not a merge by numeric index the way
- * `array_replace(['a' => 1], ['x'])` (-> `['a' => 1, 0 => 'x']`) would
- * behave in PHP. This is intentionally out of scope: the declared type
- * surface never accepts an array for `replacerData`, and `@tolki/data`'s
- * `dataReplace` only calls this once both sides are already object-shaped.
- *
- * @see Collection::replace — `packages/collection/stubs/Collection.php:1170`.
- *      Wraps `array_replace`.
+ * @see Collection::replace — `packages/collection/stubs/Collection.php:1170`. Wraps `array_replace`.
  *
  * @param data - The original object to replace items in. Never mutated.
  * @param replacerData - The object containing items to replace. `null`/`undefined` is a no-op.
  * @returns A new object with the replaced items.
- *
- * @example
- *
- * replace({ a: 1 }, { b: 2 }); -> { a: 1, b: 2 }
- * replace({ a: 1, b: 2, c: 3 }, null); -> { a: 1, b: 2, c: 3 }
  */
 export function replace<T1>(
     data: Record<PropertyKey, T1>,
@@ -3244,46 +3112,16 @@ export function replace<T1, T2>(
  * Recursively replace the data items with the given items, like PHP's
  * `array_replace_recursive()` / `Collection::replaceRecursive()`.
  *
- * `Collection::replaceRecursive` (`Collection.php:1181`) uses the same
- * `$this->newInstance(...)` pattern as `replace` above, so this builds and returns a new object at every
- * level of the recursion rather than writing into `data` or any nested
- * object — a shallow top-level copy alone would not be enough, since the
- * old code's mutation happened one recursion level down. Because the
- * recursive calls are themselves pure, an untouched nested value is simply
- * carried over **by reference**, not copied — nothing writes through it
- * during this call, but that is not PHP's per-array value-copy semantics:
- * a JS array/object is aliased, so a caller who later mutates
- * `result.untouchedKey` mutates the same value reachable from `data`.
- * PHP's arrays copy on write and would not show that mutation at all.
+ * Builds a new object at every recursion level rather than mutating `data`. A
+ * `null`/`undefined` replacer is a no-op (`CollectionTest.php:1524`). Only
+ * `__proto__` is skipped on `replacerData` — the sole prototype-pollution hazard
+ * (see `isUnsafeKey`, AGENTS.md:189); `constructor`/`prototype` write normally.
  *
- * A `null`/`undefined` replacer is a no-op, for the same reason as
- * `replace` above (`EnumeratesValues.php:1106`, `CollectionTest.php:1524`).
- *
- * `isUnsafeKey` would skip `__proto__`/`constructor`/`prototype` keys on
- * `replacerData` uniformly, but only `__proto__` is actually hazardous —
- * it is the sole key with an inherited accessor setter on
- * `Object.prototype` that can reparent an object on plain assignment;
- * `constructor` and `prototype` are ordinary writable data properties, and
- * dropping them would silently discard legitimate replacer data with no
- * PHP array key ever behaving that way. So only `__proto__` is skipped
- * here — entirely, rather than written via `defineKey` the way `replace`
- * and `splice` write it — a deliberate JS-only divergence with **no PHP
- * counterpart** (PHP arrays have no accessor-key hazard for
- * `array_replace_recursive` to guard against). `constructor` and
- * `prototype` fall through to the same `defineKey` write as every other
- * key below.
- *
- * @see Collection::replaceRecursive — `packages/collection/stubs/Collection.php:1181`.
- *      Wraps `array_replace_recursive`.
+ * @see Collection::replaceRecursive — `packages/collection/stubs/Collection.php:1181`. Wraps `array_replace_recursive`.
  *
  * @param data - The original object to replace items in. Never mutated.
  * @param replacerData - The object containing items to replace. `null`/`undefined` is a no-op.
  * @returns A new, recursively merged object.
- *
- * @example
- *
- * replaceRecursive({ a: { x: 1 } }, { a: { y: 2 } }); -> { a: { x: 1, y: 2 } }
- * replaceRecursive({ a: 1 }, null); -> { a: 1 }
  */
 export function replaceRecursive<T1>(
     data: Record<PropertyKey, T1>,
@@ -3293,10 +3131,9 @@ export function replaceRecursive<T1, T2>(
     data: Record<PropertyKey, T1>,
     replacerData: Record<PropertyKey, T2>,
 ): Record<PropertyKey, T1 | T2>;
-// See the matching overload on `replace` above for why this third,
-// concrete overload is required rather than relying on the implementation
-// signature below (TS2769 otherwise, for any caller holding
-// `Record<PropertyKey, T2> | null`).
+// See `replace`'s matching overload for why this third, concrete overload is
+// required rather than relying on the implementation signature below (TS2769
+// otherwise, for a caller holding `Record<PropertyKey, T2> | null`).
 export function replaceRecursive<T1, T2>(
     data: Record<PropertyKey, T1>,
     replacerData: Record<PropertyKey, T2> | null | undefined,
@@ -3344,22 +3181,13 @@ export function replaceRecursive<T1, T2>(
 /**
  * Reverse the order of the object's entries.
  *
- * String keys keep theirs. Integer-like keys are renumbered over the
- * reversed sequence instead, because JS re-sorts them ascending on write
- * (ECMA-262 OrdinaryOwnPropertyKeys) and preserving them would make the
- * whole call a no-op; renumbering keeps PHP's reversed value order, the
- * same trade `Arr.reverse` makes for a real array.
+ * String keys keep theirs; integer-like keys are renumbered over the reversed
+ * sequence, since JS always re-sorts them ascending on write (ECMA-262).
  *
- * @see Collection::reverse — `packages/collection/stubs/Collection.php:1191`.
- *      Wraps `array_reverse($items, true)` — preserves keys.
+ * @see Collection::reverse — `packages/collection/stubs/Collection.php:1191`. Wraps `array_reverse($items, true)`.
  *
  * @param data - The object to reverse.
  * @returns A new object with reversed entries.
- *
- * @example
- *
- * reverse({ a: 1, b: 2, c: 3 }); -> { c: 3, b: 2, a: 1 }
- * reverse({ name: 'John', age: 30, city: 'NYC' }); -> { city: 'NYC', age: 30, name: 'John' }
  */
 export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -3384,16 +3212,11 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Pad object to the specified length with a value.
  *
- * Pad slots join the integer-key sequence rather than restarting it, so a
- * positive `size` appends after the original entries and a negative one
- * prepends before them — `array_pad`'s own numbering. String keys keep
- * theirs. Only the *iteration order* of a mixed-key object can still
- * differ, because JS always enumerates integer-like keys ahead of string
- * keys (ECMA-262 `OrdinaryOwnPropertyKeys`); every key/value pair is the
- * one PHP produces.
+ * Pad slots join the integer-key sequence rather than restarting it, matching
+ * `array_pad`'s numbering; string keys keep theirs. Only iteration order of a
+ * mixed-key object can differ, since JS enumerates integer-like keys first (ECMA-262).
  *
- * @see Collection::pad — `packages/collection/stubs/Collection.php:1904`.
- *      Wraps `array_pad`.
+ * @see Collection::pad — `packages/collection/stubs/Collection.php:1904`. Wraps `array_pad`.
  *
  * @param data - The object to pad.
  * @param size - The desired size of the object after padding. Positive to pad at the end, negative to pad at the beginning.
@@ -3590,11 +3413,9 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
             : !isPhpFalsy(value);
 
         if (shouldInclude) {
-            // Writes go through `defineKey` rather than plain assignment so
-            // a `__proto__` key in `data` becomes a real own key instead of
-            // reparenting `result` through the `__proto__` setter (see
-            // `splice`'s doc comment and `AGENTS.md`'s prototype-pollution
-            // guidance).
+            // Writes go through `defineKey` so a `__proto__` key in `data`
+            // becomes a real own key instead of reparenting `result` through
+            // the `__proto__` setter (see `isUnsafeKey`, AGENTS.md:189).
             defineKey(result as Record<string, TValue>, String(key), value);
         }
     }
@@ -3630,28 +3451,13 @@ export function wrap<TValue>(
 /**
  * Get all keys from an object.
  *
- * Uses `Object.keys()` — own ENUMERABLE string keys only — so its result
- * always has the same length as `values()`'s (which uses `Object.values()`,
- * the same enumerable-own-string-keys walk). They used to disagree:
- * `keys()` walked `Reflect.ownKeys()` (every own key, enumerable or not,
- * symbols included before filtering) while `values()` walked
- * `Object.values()` (enumerable only), so an object with a non-enumerable
- * own property produced a `keys()`/`values()` length mismatch and desynced
- * `combine(keys(o), values(o))`. One consequence of aligning them: symbol
- * keys are omitted, same as before, but now because `Object.keys()` never
- * returns them rather than via an explicit filter — there is no PHP array
- * concept for a symbol key to port.
+ * Uses `Object.keys()` — own enumerable string keys only — so its length always
+ * matches `values()`'s, which walks the same enumerable-own-string-keys set.
  *
- * @see Collection::keys — `packages/collection/stubs/Collection.php:790`.
- *      Wraps `array_keys`.
+ * @see Collection::keys — `packages/collection/stubs/Collection.php:790`. Wraps `array_keys`.
  *
  * @param data - The object to get keys from.
  * @returns An array of all keys.
- *
- * @example
- *
- * keys({ name: 'John', age: 30, city: 'NYC' }); -> ['name', 'age', 'city']
- * keys({}); -> []
  */
 export function keys<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -3704,45 +3510,19 @@ export function values<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get the items that are not present in the given object.
  *
- * Approximates PHP's `array_diff()` (what Laravel's `Collection::diff()`
- * calls under the hood): comparison is by VALUE only, using PHP's scalar
- * `(string) $a === (string) $b` equivalence for values with a real PHP
- * analogue (see `phpValueMatch` in `@tolki/utils`). PHP's `precision=14`
- * float formatting, its `"Array"` collapse for array operands, and its
- * fatal on casting a plain object are deliberately NOT ported — those
- * cases fall back to SameValueZero identity instead. The left operand's keys
- * are kept regardless of what key (if any) held a matching value on
- * `other`. This is deliberately NOT `array_diff_assoc` — a key that exists
- * on `other` with a *different* value does not save the item; only whether
- * the value itself appears somewhere in `other`'s values matters. See
- * `diffAssoc`/`diffAssocUsing`/`diffKeysUsing` below for the assoc-style
- * (key-aware) variants that still exist in this port.
+ * Compares by value only, using PHP's `(string) $a === (string) $b` rule (see
+ * `phpValueMatch`); unlike `diffAssoc`, a matching key on `other` with a different
+ * value does not save the item. `other` is normalized by `arrayableValues`.
  *
- * `other` is normalized by `arrayableValues`: an Enumerable/Arrayable/iterable
- * contributes its values, a plain object its own values. `Arr::from`'s default-arm
- * throw is unreachable here — its object arm (`(array) $items`) catches first.
- *
- * @see Collection::diff — `packages/collection/stubs/Collection.php:276`.
- *      Wraps `array_diff`.
+ * @see Collection::diff — `packages/collection/stubs/Collection.php:276`. Wraps `array_diff`.
  *
  * @param data - The original object.
  * @param other - The object (or array) to compare against.
  * @returns A new object containing items from data whose value is not present in other.
- *
- * @example
- *
- * diff({ a: 1, b: 2, c: 3 }, { b: 2, d: 4 }); -> { a: 1, c: 3 }
- * diff({ id: 1, first_word: 'Hello' }, { x: 'Hello' }); -> { id: 1 } (value-only: 'first_word' drops even though 'x' !== 'first_word')
- * diff({ a: 10, b: 20 }, [20]); -> { a: 10 } (an array other compares by its values too)
- * diff({ a: 1, b: 'x' }, 'x'); -> { a: 1 } (a scalar other is a one-value array)
- * diff({ id: 1 }, null); -> { id: 1 } (a nullish other is treated as empty)
- * diff({ a: 0 }, { x: '0' }); -> {} (0 and '0' match under PHP's (string) cast)
  */
-// Overload: typed — data and other's key sets are independent (TOtherKey),
-// so a differently-shaped `other` (e.g. { x: 'Hello' } against a data of
-// { id, first_word }) doesn't fail to unify. `other` may be null/undefined
-// (treated as empty), so it still matches this overload instead of
-// falling through to the unknown fallback below.
+// Overload: typed — TOtherKey lets a differently-shaped `other` unify without
+// failing, and `other` may be null/undefined (treated as empty) without falling
+// through to the unknown fallback below.
 export function diff<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -3793,26 +3573,14 @@ export function diff<
 /**
  * Diff the object with the given other object, comparing both keys and values.
  *
- * This is `array_diff_assoc` — unlike `diff` above, a key that exists on
- * `other` with a *different* value is what keeps the item; whether the
- * value merely appears somewhere else in `other`'s values (as `diff` checks)
- * is irrelevant. Do not merge this back into `diff`; see `diff`'s doc comment.
+ * This is `array_diff_assoc` — unlike `diff`, matching by key+value, not by value
+ * alone. A non-accessible `other` is treated as empty, so every entry of `data` survives.
  *
- * A non-accessible `data` returns `{}`; a non-accessible `other` (e.g.
- * `null`) is treated as empty, so every entry of `data` survives.
- *
- * @see Collection::diffAssoc — `packages/collection/stubs/Collection.php:299`.
- *      Wraps `array_diff_assoc`.
+ * @see Collection::diffAssoc — `packages/collection/stubs/Collection.php:299`. Wraps `array_diff_assoc`.
  *
  * @param data - The original object
  * @param other - The object to diff against
  * @returns A new object containing key-value pairs not present in other
- *
- * @example
- *
- * diffAssoc({a: 1, b: 2, c: 3}, {b: 2}); -> {a: 1, c: 3}
- * diffAssoc({a: 1, b: 2, c: 3}, {b: 3}); -> {a: 1, b: 2, c: 3}
- * diffAssoc({a: 0}, {a: '0'}); -> {} (0 and '0' match under PHP's (string) cast)
  */
 export function diffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -3950,46 +3718,18 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Intersect the data object with the given other object.
  *
- * Approximates PHP's `array_intersect()` (what Laravel's `Collection::intersect()`
- * calls under the hood): comparison is by VALUE only, using PHP's scalar
- * `(string) $a === (string) $b` equivalence for values with a real PHP
- * analogue (see `phpValueMatch` in `@tolki/utils`); everything else falls
- * back to SameValueZero identity. PHP's `precision=14` float formatting,
- * its `"Array"` collapse for array operands, and its fatal on casting a
- * plain object are deliberately NOT ported. The left operand's keys are
- * kept for every value that also matches somewhere in `other`'s values —
- * `key in other` is NOT required. This is deliberately NOT
- * `array_intersect_assoc`; see `intersectAssoc`/`intersectAssocUsing`
- * below for the assoc-style (key-aware) variants.
+ * Compares by value only, using PHP's `(string) $a === (string) $b` rule (see
+ * `phpValueMatch`); unlike `intersectAssoc`, `key in other` is not required.
+ * `callable`, when given, replaces the comparator (PHP's `array_uintersect()`
+ * style; folds Laravel's `intersectUsing()` into this parameter). `other` is
+ * normalized by `arrayableValues`.
  *
- * `callable`, when given, replaces the default value comparator above with
- * a custom one and is checked against every value of `other` (not just the
- * one under the same key) — this approximates PHP's `array_uintersect()`.
- * Laravel exposes this as a separate `intersectUsing()` method on
- * `Collection`; this port folds it into `intersect`'s optional third
- * parameter instead of adding a standalone `intersectUsing` at this layer
- * (the `@tolki/collection` package's `intersectUsing()` forwards here).
- *
- * A non-accessible `data` (e.g. `null`) is empty, so the result is `{}`.
- * `other` is normalized by `arrayableValues`: an Enumerable/Arrayable/iterable
- * contributes its values, a plain object its own values. `Arr::from`'s default-arm
- * throw is unreachable here — its object arm (`(array) $items`) catches first.
- *
- * @see Collection::intersect — `packages/collection/stubs/Collection.php:660`.
- *      Wraps `array_intersect`.
+ * @see Collection::intersect — `packages/collection/stubs/Collection.php:660`. Wraps `array_intersect`.
  *
  * @param data - The original object
  * @param other - The object to intersect with
  * @param callable - Optional function to compare values (array_uintersect-style)
  * @returns A new object containing data's items whose value is also present in other
- *
- * @example
- *
- * intersect({ id: 1, first_word: 'Hello' }, { first_world: 'Hello', last_word: 'World' }); -> { first_word: 'Hello' } (keys differ, value matches)
- * intersect({ a: 1 }, [1]); -> { a: 1 } (an array other compares by its values too)
- * intersect({ id: 1 }, null); -> {} (a nullish other is treated as empty)
- * intersect(null, { a: 1 }); -> {} (non-accessible data is treated as empty too)
- * intersect({ a: 0 }, { x: '0' }); -> { a: 0 } (0 and '0' match under PHP's (string) cast)
  */
 // Overload: with callback — T1 and T2 inferred independently
 export function intersect<T1, T2>(
@@ -4061,26 +3801,14 @@ export function intersect<T1, T2 = T1>(
  * Intersect the object with the given items with additional key check.
  * Returns items where both the key AND value match.
  *
- * This is `array_intersect_assoc` — unlike `intersect` above, `key in other`
- * IS required. Do not merge this back into `intersect`; the two must stay
- * distinct (see `intersect`'s doc comment).
+ * This is `array_intersect_assoc` — unlike `intersect`, `key in other` is required.
+ * A non-accessible `data` or `other` is treated as empty, so the result is `{}`.
  *
- * A non-accessible `data` OR `other` (e.g. `null`) is treated as empty, so
- * the result is `{}` — matching `intersect`'s guard on both operands.
- *
- * @see Collection::intersectAssoc — `packages/collection/stubs/Collection.php:683`.
- *      Wraps `array_intersect_assoc`.
+ * @see Collection::intersectAssoc — `packages/collection/stubs/Collection.php:683`. Wraps `array_intersect_assoc`.
  *
  * @param data - The original object
  * @param other - The object to intersect with
  * @returns A new object containing items where both key and value match
- *
- * @example
- *
- * intersectAssoc({a: 'green', b: 'brown', c: 'blue'}, {a: 'green', b: 'yellow', c: 'blue'}); -> {a: 'green', c: 'blue'}
- * intersectAssoc({a: 1, b: 2}, {a: 1, c: 3}); -> {a: 1}
- * intersectAssoc({a: 1}, null); -> {}
- * intersectAssoc(null, {a: 1}); -> {}
  */
 // Overload: typed
 export function intersectAssoc<T1, T2 = T1>(
@@ -4124,25 +3852,16 @@ export function intersectAssoc<T1, T2 = T1>(
 
 /**
  * Intersect the object with the given items with additional key check, using the callback.
- * The callback is used to compare keys, while values are compared by PHP's `(string)` cast rule.
+ * Values are compared by PHP's `(string)` cast rule; `callback` compares keys.
  *
- * A non-accessible `data` OR `other` (e.g. `null`) is treated as empty, so
- * the result is `{}` — matching `intersect`'s guard on both operands.
+ * A non-accessible `data` or `other` is treated as empty, so the result is `{}`.
  *
- * @see Collection::intersectAssocUsing — `packages/collection/stubs/Collection.php:695`.
- *      Wraps `array_intersect_uassoc`.
+ * @see Collection::intersectAssocUsing — `packages/collection/stubs/Collection.php:695`. Wraps `array_intersect_uassoc`
  *
  * @param data - The original object
  * @param other - The object to intersect with
  * @param callback - The callback function to compare keys (returns true if keys match)
  * @returns A new object containing items where both key (via callback) and value match
- *
- * @example
- *
- * const strcasecmpKeys = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
- * intersectAssocUsing({a: 'green', b: 'brown'}, {A: 'GREEN', B: 'brown'}, strcasecmpKeys); -> {b: 'brown'}
- * intersectAssocUsing({a: 'green'}, null, strcasecmpKeys); -> {}
- * intersectAssocUsing(null, {a: 'green'}, strcasecmpKeys); -> {}
  */
 // Overload: typed
 export function intersectAssocUsing<T1, T2 = T1>(
@@ -4194,21 +3913,13 @@ export function intersectAssocUsing<T1, T2 = T1>(
 /**
  * Intersect the object with the given items by key.
  *
- * A non-accessible `data` OR `other` (e.g. `null`) is treated as empty, so
- * the result is `{}` — matching `intersect`'s guard on both operands.
+ * A non-accessible `data` or `other` is treated as empty, so the result is `{}`.
  *
- * @see Collection::intersectByKeys — `packages/collection/stubs/Collection.php:706`.
- *      Wraps `array_intersect_key`.
+ * @see Collection::intersectByKeys — `packages/collection/stubs/Collection.php:706`. Wraps `array_intersect_key`.
  *
  * @param data - The original object
  * @param other - The object to intersect with
  * @returns A new object containing items with keys present in both objects
- *
- * @example
- *
- * intersectByKeys({a: 1, b: 2}, {a: 20, c: 30}); -> {a: 1}
- * intersectByKeys({name: 'M'}, null); -> {}
- * intersectByKeys(null, {name: 'M'}); -> {}
  */
 // Overload: typed
 export function intersectByKeys<T1, T2 = T1>(

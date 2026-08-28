@@ -3246,9 +3246,8 @@ describe("Data", () => {
 
         it("diff wraps a scalar operand the same way on both backings", () => {
             // The array branch wrapped the scalar and the object branch treated it as
-            // empty, so the two disagreed on the same call. PHP-verified in
-            // docs/php-parity/task-16-final-review.json ("diff accepts an operand of
-            // any shape").
+            // empty, so the two disagreed on the same call. PHP-verified:
+            // docs/php-parity/task-16-final-review.json ("diff accepts an operand of any shape").
             expect(Arr.diff([1, "x"], "x")).toEqual([1]);
             expect(Obj.diff({ a: 1, b: "x" }, "x")).toEqual({ a: 1 });
             expect(Data.dataDiff([1, "x"], "x")).toEqual([1]);
@@ -3291,9 +3290,8 @@ describe("Data", () => {
 
         it("intersect also compares values across a mismatched operand shape", () => {
             // The row diff's own mismatched-shape case sits next to: intersect kept
-            // the same-type guard until the final review. PHP-verified in
-            // docs/php-parity/task-06-setops.json ("diff and intersect accept any
-            // array operand").
+            // the same-type guard until the final review. PHP-verified:
+            // docs/php-parity/task-06-setops.json ("diff and intersect accept any array operand").
             expect(Arr.intersect([10, 20], { x: 20 })).toEqual([20]);
             expect(Obj.intersect({ a: 1, b: 2 }, [2])).toEqual({ b: 2 });
             expect(Data.dataIntersect([10, 20], { x: 20 })).toEqual([20]);

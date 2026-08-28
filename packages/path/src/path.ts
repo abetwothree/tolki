@@ -958,25 +958,17 @@ export function dotFlattenArray<TValue>(
 
 /**
  * Expand a flat object with dot notation keys into a nested structure.
- * Converts a flattened object back into its original nested form, supporting both arrays and objects.
  *
- * The input `map` is itself always a plain object (a `Record` of dotted
- * keys), so this dispatches to {@link undotExpandObject} in practice — the
- * `undotExpandArray` branch only matters for non-object input such as
- * `null`. Nested containers built from consecutive integer segments
- * (`0..n-1`) become real arrays; the root stays an object
- * even when its own top-level keys happen to be `0..n-1` — see
- * {@link undotExpandObject}.
+ * Dispatches to {@link undotExpandObject} for the (always plain-object) `map`
+ * input; nested consecutive-integer containers become real arrays, but the
+ * root always stays an object — see {@link undotExpandObject}.
  *
  * @param map - The flat object with dot-notated keys.
  * @returns A nested structure (array or object).
  *
  * @example
  *
- * Expand flat objects to nested structures
  * undotExpand({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
- * undotExpand({'0': 'x', '1.name': 'John'}); -> {0: 'x', 1: {name: 'John'}} (root stays an object)
- * undotExpand({'0': 'x', '1.0': 'a', '1.1': 'b'}); -> {0: 'x', 1: ['a', 'b']} (nested "1" rebuilds a list)
  */
 export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
@@ -989,15 +981,12 @@ export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Replace a nested container with a real array when its own keys are
- * exactly the consecutive integer sequence "0", "1", ..., "n-1", mirroring
- * PHP's `array_is_list`. Only touches containers the expansion itself
- * created (see `containerPaths` below), walked deepest-first.
+ * Replace a nested container with a real array when its own keys are exactly
+ * "0".."n-1", mirroring PHP's `array_is_list`. Only touches containers the
+ * expansion itself created, walked deepest-first.
  *
- * Genuine JS/PHP divergence, not a bug: `Object.keys` always enumerates
- * integer-like keys ascending regardless of insertion order, so
- * out-of-order numeric insertion promotes to a list here where PHP's
- * insertion-order-sensitive `array_is_list` would not treat it as one.
+ * @param results - The expanded structure to mutate in place.
+ * @param containerPaths - Dot-paths of containers the expansion created.
  */
 function promoteConsecutiveIntegerContainers(
     results: Record<string, unknown>,
@@ -1043,21 +1032,17 @@ function promoteConsecutiveIntegerContainers(
 
 /**
  * Expand a flat object with dot notation keys into a nested object structure.
- * Converts a flattened object back into its original nested object form.
  *
- * Nested containers whose own keys are the consecutive integers `0..n-1`
- * are rebuilt as real arrays (see {@link promoteConsecutiveIntegerContainers}).
- * The root always stays a plain object, even when its own keys are `0..n-1`.
+ * Nested containers whose own keys are the consecutive integers `0..n-1` are
+ * rebuilt as real arrays (see {@link promoteConsecutiveIntegerContainers}); the
+ * root always stays a plain object.
  *
  * @param map - The flat object with dot-notated keys.
  * @returns A nested object structure.
  *
  * @example
  *
- * Expand flat object to nested object
  * undotExpandObject({'user.name': 'John', 'user.age': 30}); -> {user: {name: 'John', age: 30}}
- * undotExpandObject({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
- * undotExpandObject({'user.languages.0': 'PHP', 'user.languages.1': 'C#'}); -> {user: {languages: ['PHP', 'C#']}}
  */
 export function undotExpandObject<
     TValue,
@@ -1099,6 +1084,9 @@ export const MAX_UNDOT_INDEX = 2 ** 24 - 2;
 /**
  * Whether `segment` is a canonical decimal integer PHP would treat as an
  * array key, and small enough to safely become a real array index.
+ *
+ * @param segment - The path segment to check.
+ * @returns True if `segment` is a safe, canonical array index.
  */
 export function isCanonicalUndotIndex(segment: string): boolean {
     return isIntegerLikeKey(segment) && Number(segment) <= MAX_UNDOT_INDEX;
@@ -1636,12 +1624,10 @@ export function setMixedImmutable<TValue>(
 
 /**
  * Check if a key exists using mixed array/object dot notation.
- * Supports both numeric array indices and object property names in paths.
  *
- * A literal key wins over path traversal even when it contains dots. This
- * fast path only applies to plain objects — a JS array's `in` operator
- * also climbs `Array.prototype` ("length", "toString", ...), so arrays
- * always fall through to the bounds-checked traversal below instead.
+ * A literal key wins over path traversal even when it contains dots; this
+ * fast path only applies to plain objects, since a JS array's `in` operator
+ * also climbs `Array.prototype`.
  *
  * @param data - The data to check.
  * @param key - The path to check.
@@ -1650,8 +1636,6 @@ export function setMixedImmutable<TValue>(
  * @example
  *
  * hasMixed([{ name: "John" }], "0.name"); -> true
- * hasMixed([{ name: "John" }], "0.age"); -> false
- * hasMixed([], "user.name"); -> false
  */
 export function hasMixed(data: unknown, key: PathKey): boolean {
     if (isNull(key) || isUndefined(key)) {
@@ -1688,13 +1672,9 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
 
     const keyStr = key.toString();
 
-    // The literal key wins even when it contains dots — but only for plain
-    // objects. Arrays only ever have numeric keys in this data model, and
-    // `in` climbs the prototype chain (Array.prototype's "length",
-    // "toString", etc.), which would wrongly report existence for keys no
-    // PHP array could ever have. Arrays fall straight through to the
-    // bounds-checked getNestedValue below, exactly as they did before this
-    // literal-key fast path was added.
+    // Literal key wins even with dots, but only for plain objects — arrays fall
+    // through to bounds-checked traversal below, since a JS array's `in` climbs
+    // `Array.prototype` and would wrongly report existence for keys no PHP array has.
     if (isObject(data)) {
         if (Object.hasOwn(data as object, keyStr)) {
             return true;

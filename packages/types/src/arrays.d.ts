@@ -65,19 +65,10 @@ export type UndotResult<
       : TValue[];
 
 /**
- * Key shape accepted by `Arr.undot`: either a bare numeric index (`0`,
- * `"0"`) or a dot-path whose first segment is numeric (`"0.1"`,
- * `"12.foo"`). `Arr.undot` only ever builds real arrays
- * (`undotExpandArray` requires every segment to be numeric, or the whole
- * key is dropped) -- there is no object fallback the way `Obj.undot` has.
- * A key like `"user.languages.0"`, whose first segment is a string, cannot
- * be represented by an array at all, so it used to be silently discarded
- * at runtime with no diagnostic. Constraining the parameter type to this
- * shape turns that into a compile error instead: pass a genuinely
- * string-keyed map and TypeScript rejects it before the data is ever lost.
- * `Obj.undot` (which does support string segments) is the correct choice
- * for that shape of data; the two functions together cover PHP's
- * `Arr::undot`.
+ * Key shape accepted by `Arr.undot`: either a bare numeric index (`0`, `"0"`)
+ * or a dot-path whose first segment is numeric (`"0.1"`, `"12.foo"`). A
+ * string-first-segment key like `"user.languages.0"` belongs to `Obj.undot`
+ * instead — this type rejects it at compile time rather than at runtime.
  *
  * @example
  * UndotArrayKey // matches: 0, "0", "1.2", "3.foo.bar"
@@ -132,14 +123,9 @@ export type TruthyArray<T extends readonly unknown[]> =
  * A single sort descriptor accepted by array sort helpers.
  *
  * - a dot-notated key path, sorted ascending
- * - a `[key]` single-element tuple — identical to a bare key path, ascending.
- *   Exists so a `const [key, direction] = spec` destructure gets a real,
- *   typed `direction: undefined` case, instead of reaching it only via an
- *   unchecked cast.
- * - a `[key, direction]` tuple: `true`/`'asc'`/`"Ascending"` sorts
- *   ascending, everything else sorts descending, mirroring
- *   `Collection::sortByMany`. Case names are inlined rather than imported
- *   from `@tolki/enum` to avoid a circular dependency.
+ * - a `[key]` single-element tuple, identical to a bare key path, ascending
+ * - a `[key, direction]` tuple: `true`/`'asc'`/`"Ascending"` sorts ascending,
+ *   everything else descending, mirroring `Collection::sortByMany`
  * - a comparator returning a negative, zero, or positive number
  */
 export type SortSpec<TValue> =

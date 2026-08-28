@@ -7,12 +7,23 @@ import {
     isUndefined,
 } from "./guards";
 
-/** PHP has no `undefined`; this port uses it for the missing value `data_get` answers with null. */
+/**
+ * PHP has no `undefined`; this port uses it for the missing value `data_get` answers with null.
+ *
+ * @param value - The value to check.
+ * @returns True if `value` is `null` or `undefined`.
+ */
 function isNullish(value: unknown): value is null | undefined {
     return isNull(value) || isUndefined(value);
 }
 
-/** Order two strings by UTF-16 code unit, which is PHP's non-numeric string comparison. */
+/**
+ * Order two strings by UTF-16 code unit, which is PHP's non-numeric string comparison.
+ *
+ * @param a - First string
+ * @param b - Second string
+ * @returns -1 if a < b, 1 if a > b, 0 if equal
+ */
 function compareStrings(a: string, b: string): number {
     return a < b ? -1 : a > b ? 1 : 0;
 }
@@ -83,30 +94,18 @@ function toPhpBool(value: unknown): boolean {
 /**
  * Order two values the way PHP 8's `<=>` does.
  *
- * Two numeric operands compare numerically, so `"9"` sorts below `"10"`;
- * anything else against a string compares as strings; and a null or a boolean
- * on either side compares both sides as booleans, so `null` ties `0` and `""`
- * while `0` still outranks `""`.
+ * Numeric operands compare numerically (`"9"` sorts below `"10"`); null/boolean
+ * compares both sides as booleans; arrays/objects order by JSON form.
  *
- * Two departures are deliberate. Arrays and objects order by their JSON form
- * rather than by PHP's "an array outranks every scalar" rule, which is a
- * partial order this port's object sorts cannot be built on. And `undefined`,
- * which PHP has no analogue for, compares as null.
- *
- * Faithful to PHP, this order is **not transitive** — `null` ties both `0` and
- * `""`, yet `0 > ""`. Each pair answers what PHP answers, but where nulls or
- * booleans mix with other scalars the permutation a sort lands on is its own.
+ * Faithful to PHP, this order is **not transitive** — `null` ties `0` and `""`,
+ * yet `0 > ""`.
  *
  * @param a - First value to compare
  * @param b - Second value to compare
  * @returns -1 if a < b, 1 if a > b, 0 if equal
  *
  * @example
- * compareValues(1, 2); -> -1
- * compareValues("9", "10"); -> -1
  * compareValues(0, ""); -> 1
- * compareValues(null, false); -> 0
- * compareValues({x: 1}, {x: 1}); -> 0
  */
 export function compareValues(a: unknown, b: unknown): number {
     // PHP takes the null-against-string arm before the boolean one, so null

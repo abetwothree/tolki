@@ -2680,10 +2680,9 @@ describe("Arr", () => {
         });
 
         it("accepts an operand of any shape, as getArrayableItems does", () => {
-            // A nullish `data` returned `other` instead of nothing, and an object
-            // `other` was treated as absent. PHP-verified in
-            // docs/php-parity/task-16-final-review.json ("diff accepts an operand of
-            // any shape").
+            // A nullish `data` returned `other` instead of nothing, and an object `other`
+            // was treated as absent. PHP-verified: docs/php-parity/task-16-final-review.json
+            // ("diff accepts an operand of any shape").
             expect(Arr.diff(null, [1, 2])).toEqual([]);
             expect(Arr.diff([10, 20], { x: 20 })).toEqual([10]);
             expect(Arr.diff([1, "x"], "x")).toEqual([1]);
@@ -4116,10 +4115,9 @@ describe("Arr", () => {
             expect(Arr.sort([null, 3, 1])).toEqual([null, 1, 3]);
         });
 
-        // task-17-second-review.json, "sort orders numeric strings
-        // numerically" and "rsort orders numeric strings numerically";
-        // task-19-spaceship.json, "Arr::sort orders numeric strings
-        // numerically" and "Arr::sortDesc orders numeric strings numerically"
+        // task-17-second-review.json ("sort"/"rsort orders numeric strings
+        // numerically") and task-19-spaceship.json ("Arr::sort"/"Arr::sortDesc orders
+        // numeric strings numerically")
         it("orders numeric strings numerically, not lexically", () => {
             expect(Arr.sort(["9", "10"])).toEqual(["9", "10"]);
             expect(Object.values(Arr.sortDesc(["9", "10"]))).toEqual([

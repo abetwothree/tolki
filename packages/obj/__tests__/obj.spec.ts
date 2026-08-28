@@ -1669,9 +1669,8 @@ describe("Obj", () => {
 
         it("wraps a scalar other into a one-value array, as getArrayableItems does", () => {
             // A scalar other was treated as empty and the docblock attributed that to
-            // PHP, which actually casts it to ['x']. PHP-verified in
-            // docs/php-parity/task-16-final-review.json ("diff accepts an operand of
-            // any shape"), where the array backing already wrapped it and split.
+            // PHP, which actually casts it to ['x']. PHP-verified:
+            // docs/php-parity/task-16-final-review.json ("diff accepts an operand of any shape").
             expect(Obj.diff({ a: 1, b: "x" }, "x")).toEqual({ a: 1 });
             expect(Obj.diff({ a: 1, b: 2 }, 2)).toEqual({ a: 1 });
             expect(Obj.diff({ a: 1 }, undefined)).toEqual({ a: 1 });
@@ -1748,9 +1747,8 @@ describe("Obj", () => {
 
         it("accepts an operand of any shape, as getArrayableItems does", () => {
             // An array or scalar other was rejected by the `accessible(other)` guard
-            // while diff's own guard already accepted one. PHP-verified in
-            // docs/php-parity/task-16-final-review.json ("intersect accepts an operand
-            // of any shape").
+            // while diff's own guard already accepted one. PHP-verified:
+            // docs/php-parity/task-16-final-review.json ("intersect accepts an operand of any shape").
             expect(Obj.intersect({ a: 1 }, [1])).toEqual({ a: 1 });
             expect(Obj.intersect({ a: 1, b: 2 }, [2])).toEqual({ b: 2 });
             expect(Obj.intersect({ a: 1, b: "x" }, "x")).toEqual({ b: "x" });
@@ -3838,10 +3836,9 @@ describe("Obj", () => {
             });
 
             it("treats a falsy callback as no callback, like sort does", () => {
-                // The mirror of sort's own row. "" left the object untouched while
-                // Arr.sortDesc sorted it; a blank string and {} split the other way.
-                // PHP cannot arbitrate - Collection::sortDesc("") throws (see
-                // docs/php-parity/task-16-final-review.json), so agreement decides.
+                // The mirror of sort's own row: "" left the object untouched while
+                // Arr.sortDesc sorted it. PHP can't arbitrate — Collection::sortDesc("")
+                // throws (docs/php-parity/task-16-final-review.json), so agreement decides.
                 const source = { a: 3, b: 1, c: 2 };
                 const descending: [string, number][] = [
                     ["a", 3],

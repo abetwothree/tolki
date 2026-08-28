@@ -25,12 +25,9 @@ export function getPluckWildcardValues(
 
 /**
  * Resolve a pluck path against a single item, expanding `*` segments into an
- * array of the values found at that level. Covers the `data_get()` wildcard
- * behaviour that Laravel's `Arr::pluck` tests exercise, with one known
- * divergence on inputs `ArrTest.php` never reaches: multiple wildcards nest
- * (`[[..], [..]]`) where `data_get` collapses the tail one level
- * (`Arr::collapse`). Align this before building `data_get`-equivalent
- * helpers on top of it.
+ * array of the values found at that level. Multiple wildcards nest here
+ * (`[[..], [..]]`) where PHP's `data_get` collapses the tail one level
+ * (`Arr::collapse`) — a known divergence on inputs `ArrTest.php` never reaches.
  *
  * @param item - The item to resolve the path against.
  * @param segments - The already-split path segments.

@@ -9508,10 +9508,9 @@ describe("Collection", () => {
             ).toEqual(["9", "10", null, 0]);
         });
 
-        // Known defect, NOT parity, and outside B6's scope: whereBetween filters
-        // through `where(key, ">=", ...)`, a comparator compareValues never
-        // reached, so it disagrees with PHP ("whereBetween over the same items"
-        // is ["1", 5]) and with the sibling above. Unchanged by this fix.
+        // Known defect, NOT parity, outside B6's scope: whereBetween filters through
+        // `where(key, ">=", ...)`, a comparator compareValues never reached, so it
+        // disagrees with PHP ("whereBetween over the same items" is ["1", 5]). Unchanged.
         it("disagrees with whereBetween, which uses a different comparator", () => {
             expect(
                 collect(mixed).whereBetween("v", ["1", "5"]).pluck("v").all(),

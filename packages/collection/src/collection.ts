@@ -2190,9 +2190,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Create a collection by using this collection's own VALUES as keys
-     * and another's values as values (`array_combine($this->all(), ...)`,
-     * `Collection.php:933`) — not this collection's own keys.
+     * Create a collection by using this collection's own VALUES as keys and
+     * another's values as values (`array_combine($this->all(), ...)`), not this
+     * collection's own keys.
      *
      * @param values - The values to combine with the keys from this collection
      * @returns A new collection with the combined keys and values
@@ -2200,9 +2200,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection([1, 2]).combine([3, 4]); -> new Collection({1: 3, 2: 4})
-     * new Collection({a: 1, b: 2}).combine({c: 3, d: 4}); -> new Collection({1: 3, 2: 4})
-     * new Collection([1, 2]).combine({a: 3, b: 4}); -> throws (both sides
-     * must be the same shape — array with array, object with object)
      */
     combine<TCombineValue, TCombineKey extends PropertyKey>(
         values:
@@ -2712,13 +2709,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Replace the collection items with the given items.
      *
-     * A `null` `items` is a no-op regardless of whether this collection is
-     * array- or object-backed. `getRawItems(null)` always returns
-     * `[]` — correct for `merge`/`diff`-style callers, but wrong here: an
-     * object-backed collection would then be asked to replace against an
-     * array, which `dataReplace`'s same-type guard rejects. So `null` is
-     * passed straight through to `dataReplace` instead of going through
-     * `getRawItems`, letting it dispatch on `this.items`'s own shape.
+     * A `null` `items` is a no-op regardless of whether this collection is array-
+     * or object-backed; it's passed straight to `dataReplace` rather than through
+     * `getRawItems` (which always returns `[]`) so it dispatches on `this.items`'s shape.
      *
      * @param items - The items to replace with
      * @returns A new collection with the replaced items
@@ -2726,8 +2719,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection([1, 2, 3]).replace([4, 5]); -> new Collection([4, 5])
-     * new Collection({a: 1, b: 2}).replace({c: 3}); -> new Collection({c: 3})
-     * new Collection([1, 2]).replace({a: 3}); -> new Collection({a: 3})
      */
     replace<T, K extends PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null,
@@ -3204,14 +3195,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Sort through each item with a callback.
      *
-     * PHP's `sort` is key-preserving (`uasort`/`asort`), and a string-keyed
-     * object keeps its keys here too. Integer-like keys cannot be preserved
-     * and reordered at once — a plain JS object always iterates them ascending
-     * (ECMA-262 `OrdinaryOwnPropertyKeys`) — so they are renumbered over the
-     * sorted sequence, the one policy `sortBy`, `sortDesc`, `reverse`, `pad`,
-     * `splice`, `sortKeys`, `sortKeysDesc`, and `sortKeysUsing` all follow.
-     * Values land in PHP's order; their key names do not survive. See
-     * `reindexIntegerKeys` in `@tolki/utils`.
+     * PHP's `sort` is key-preserving; integer-like keys can't be preserved and
+     * reordered at once, so they're renumbered over the sorted sequence (same
+     * policy as `sortBy`/`sortDesc`/`reverse`/`pad`/`splice`).
      *
      * @param callback - The value extractor callback, a path key to get values from, or null for default sort
      * @returns A new collection with the sorted items
@@ -3219,8 +3205,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection([3, 1, 2]).sort(); -> new Collection([1, 2, 3])
-     * new Collection([{id: 2}, {id: 1}, {id: 3}]).sort('id'); -> new Collection([{id: 1}, {id: 2}, {id: 3}])
-     * new Collection([{id: 2}, {id: 1}, {id: 3}]).sort((a, b) => a.id - b.id); -> new Collection([{id: 1}, {id: 2}, {id: 3}])
      */
     sort(
         callback:
@@ -3259,15 +3243,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * and `values()` always agree about order; see `sort` above.
      *
      * @param callback - The callback to determine the sort value, a path key to get values from and compare, or an array of such callbacks/keys for multi-level sorting
-     * @param descending - Whether to sort in descending order, defaults to false. Ignored when `callback` is an array of descriptors - PHP's sortBy discards $descending entirely for that form (Collection.php:1588); use sortByDesc or sortByMany's own force-descending param instead.
+     * @param descending - Ignored when `callback` is an array (Collection.php:1588); use `sortByDesc`/`sortByMany`.
      * @returns A new collection with the sorted items
      *
      * @example
      *
      * new Collection([{id: 1}, {id: 2}, {id: 3}]).sortBy('id'); -> new Collection([{id: 1}, {id: 2}, {id: 3}])
-     * new Collection([{id: 3}, {id: 1}, {id: 2}]).sortBy('id', true); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
-     * new Collection([{id: 2}, {id: 1}, {id: 3}]).sortBy(item => item.id); -> new Collection([{id: 1}, {id: 2}, {id: 3}])
-     * new Collection([{id: 2}, {id: 1}, {id: 3}]).sortBy(item => item.id, true); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
      */
     sortBy<TSortValue>(
         callback:
@@ -3332,8 +3313,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * Integer-like keys are renumbered over the sorted sequence; see `sort`.
      *
-     * @param comparisons - An array of callbacks to determine the sort value, path keys to get values from and compare, or tuples of such keys for multi-level sorting. A bare key path or a direction-less tuple defaults to ascending, mirroring Collection::sortByMany's `Arr::get($comparison, 1, true)`. An empty array leaves the order alone: PHP's usort comparator falls straight through to `return 0`.
-     * @param descending - When true, forces every key-path/tuple comparison descending regardless of its own direction, mirroring Collection::sortByDesc's rewrite of each comparison's direction slot before sorting. Has no effect on a comparator function, which always runs exactly as authored. Defaults to false.
+     * @param comparisons - An array of callbacks to determine the sort value, path keys
+     *   to get values from and compare, or tuples of such keys for multi-level sorting.
+     *   A bare key path or direction-less tuple defaults to ascending; an empty array
+     *   leaves the order alone (`Collection::sortByMany`).
+     * @param descending - Forces every comparison descending regardless of its own
+     *   direction; has no effect on a comparator function. Defaults to false.
      * @returns A new collection with the sorted items
      *
      * @example
@@ -3441,7 +3426,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * new Collection({b: 2, a: 1, c: 3}).sortKeys(); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection({b: 2, a: 1, c: 3}).sortKeys(true); -> new Collection({c: 3, b: 2, a: 1})
-     * new Collection({5: "e", 2: "b", 9: "z"}).sortKeys(); -> new Collection({0: "b", 1: "e", 2: "z"}) (integer-like keys renumbered from 0; see reindexIntegerKeys)
+     * new Collection({5: "e", 2: "b", 9: "z"}).sortKeys(); -> new Collection({0: "b", 1: "e", 2: "z"})
      */
     sortKeys(descending: CaseValue<typeof SortDirection> | boolean = false) {
         const isDesc =
@@ -3486,7 +3471,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection({a: 1, b: 2, c: 3}).sortKeysDesc(); -> new Collection({c: 3, b: 2, a: 1})
-     * new Collection({5: "e", 2: "b", 9: "z"}).sortKeysDesc(); -> new Collection({0: "z", 1: "e", 2: "b"}) (same renumbering as sortKeys)
+     * new Collection({5: "e", 2: "b", 9: "z"}).sortKeysDesc(); -> new Collection({0: "z", 1: "e", 2: "b"})
      */
     sortKeysDesc() {
         return this.sortKeys(SortDirection.Descending);
@@ -3502,7 +3487,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * new Collection({b: 2, a: 1, c: 3}).sortKeysUsing((a, b) => a.localeCompare(b)); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection({b: 2, a: 1, c: 3}).sortKeysUsing((a, b) => b.localeCompare(a)); -> new Collection({c: 3, b: 2, a: 1})
-     * new Collection({5: "e", 2: "b", 9: "z"}).sortKeysUsing((a, b) => Number(b) - Number(a)); -> new Collection({0: "z", 1: "e", 2: "b"}) (integer-like keys renumbered from 0)
      */
     sortKeysUsing(callback: (a: TKey, b: TKey) => number) {
         const keys = Object.keys(this.items);
@@ -3791,11 +3775,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Pad collection to the specified length with a value.
      *
-     * For an object-backed collection, pad slots are numbered `0, 1, 2,
-     * ...` regardless of direction. A positive `size` is a genuine,
-     * unfixable divergence from PHP (JS orders integer-like keys ahead of
-     * string keys regardless of insertion order); not a bug — see `pad`'s
-     * JSDoc in `@tolki/obj`.
+     * For an object-backed collection, pad slots are numbered `0, 1, 2, ...`
+     * regardless of direction — a genuine, unfixable JS/PHP divergence (see
+     * `pad`'s JSDoc in `@tolki/obj`).
      *
      * @param size - The size to pad to, positive to pad at the end, negative to pad at the beginning
      * @param value - The value to pad with
@@ -3804,9 +3786,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection([1, 2, 3]).pad(5, 0); -> new Collection([1, 2, 3, 0, 0])
-     * new Collection([1, 2, 3]).pad(-5, 0); -> new Collection([0, 0, 1, 2, 3])
-     * new Collection({a: 1, b: 2}).pad(4, 0); -> new Collection({'0': 0, '1': 0, a: 1, b: 2}) // PHP: {a:1, b:2, 0:0, 1:0} — padding keys iterate first in JS, last in PHP
-     * new Collection({a: 1, b: 2}).pad(-4, 0); -> new Collection({'0': 0, '1': 0, a: 1, b: 2})
      */
     pad<TPadValue>(size: number, value: TPadValue) {
         return this.newInstance(dataPad(this.items, size, value));

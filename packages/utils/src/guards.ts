@@ -438,25 +438,10 @@ export function isTruthy(value: unknown): boolean {
 
 /**
  * Determine whether a value is falsy the way PHP's `array_filter()` (no
- * callback) treats it, i.e. PHP's own truthiness rules rather than JS's.
+ * callback) treats it — PHP's own truthiness, not JS's.
  *
- * Drops exactly `false`, `null`/`undefined`, the number `0`, the empty
- * string `""`, and the string `"0"` — but, unlike `isFalsy`, keeps `"00"`
- * and `"0.0"` (truthy in PHP) and `NaN` (PHP's `NAN` is truthy). An empty
- * array or empty plain object is also falsy, matching PHP's empty array.
- *
- * This is not a full PHP-exactness check: PHP has no equivalent of a
- * `Date`, `Map`, or `RegExp` instance, and any object with no own
- * enumerable keys (e.g. `new Date()`) is treated as falsy here purely
- * because it looks like an empty object — that's a pre-existing,
- * documented limitation, not a claim that this mirrors PHP for every JS
- * value.
- *
- * `isFalsy` cannot be reused for this: it treats `NaN` as falsy
- * (unconditional `Number.isNaN` check) and does NOT treat the exact
- * string `"0"` as falsy (its string branch is `value.trim() === ""`,
- * false for `"0"`), while also wrongly treating whitespace-only strings
- * as falsy (PHP only treats the empty string as falsy, not whitespace).
+ * Drops `false`, `null`/`undefined`, `0`, `""`, `"0"`, and an empty array or
+ * plain object; keeps `"00"`, `"0.0"`, and `NaN` (all truthy in PHP).
  *
  * @param value - The value to check
  * @returns True if the value is falsy under PHP's rules
@@ -464,15 +449,7 @@ export function isTruthy(value: unknown): boolean {
  * @example
  *
  * isPhpFalsy("0"); -> true
- * isPhpFalsy(""); -> true
- * isPhpFalsy(0); -> true
- * isPhpFalsy([]); -> true
- * isPhpFalsy({}); -> true
- * isPhpFalsy(false); -> true
- * isPhpFalsy(null); -> true
  * isPhpFalsy("00"); -> false
- * isPhpFalsy("0.0"); -> false
- * isPhpFalsy(NaN); -> false
  */
 export function isPhpFalsy(value: unknown): boolean {
     if (
@@ -500,13 +477,10 @@ export function isPhpFalsy(value: unknown): boolean {
 }
 
 /**
- * A precompiled matcher for PHP's numeric-string grammar: optional
- * surrounding whitespace (PHP's own set -- space, tab, newline, CR,
- * vertical tab, form feed, matching `_is_numeric_string`'s scan, not JS's
- * broader `\s`), an optional sign, digits with an optional decimal point
- * (either side may supply the digits, so both ".5" and "5." qualify), and
- * an optional exponent. No nested/overlapping quantifiers, so this cannot
- * backtrack catastrophically (CodeQL ReDoS).
+ * A precompiled matcher for PHP's numeric-string grammar: optional whitespace,
+ * an optional sign, digits with an optional decimal point, and an optional
+ * exponent. No nested/overlapping quantifiers, so this cannot backtrack
+ * catastrophically (CodeQL ReDoS).
  */
 const PHP_NUMERIC_STRING_PATTERN =
     /^[ \t\n\r\v\f]*[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?[ \t\n\r\v\f]*$/;
@@ -515,28 +489,15 @@ const PHP_NUMERIC_STRING_PATTERN =
  * Determine whether a value is numeric the way PHP's `is_numeric()` treats
  * it, using PHP's numeric-string grammar rather than JS's `Number()`.
  *
- * `Number(value)` cannot be reused: `Number("")`, `Number(" ")`, and
- * `Number("0x10")` are all numeric to JS but not to PHP (hex strings
- * stopped being numeric in PHP 7), and `Number("Infinity")` is numeric to
- * JS but PHP has no numeric-string spelling for infinity.
+ * `Number("")`, `Number(" ")`, `Number("0x10")`, and `Number("Infinity")` are
+ * all numeric to JS but not to PHP.
  *
  * @param value - The value to check
  * @returns True if the value is numeric under PHP's rules
  *
  * @example
  *
- * isPhpNumeric(42); -> true
- * isPhpNumeric("42"); -> true
- * isPhpNumeric(" 42 "); -> true
- * isPhpNumeric("-3.14"); -> true
- * isPhpNumeric("1e3"); -> true
- * isPhpNumeric(".5"); -> true
- * isPhpNumeric(""); -> false
- * isPhpNumeric(" "); -> false
  * isPhpNumeric("0x10"); -> false
- * isPhpNumeric("Infinity"); -> false
- * isPhpNumeric("1_000"); -> false
- * isPhpNumeric(null); -> false
  */
 export function isPhpNumeric(value: unknown): boolean {
     // typeof, not isNumber: PHP's is_numeric(NAN) and is_numeric(INF) are
@@ -632,6 +593,9 @@ export function isAccessibleData(data: unknown): boolean {
  * have a real PHP scalar analogue. Returns `null` (the "no cast" sentinel) for
  * anything else, including NaN/Infinity and floats `String()` would render in
  * exponential notation — PHP's `precision=14` formatting is not ported.
+ *
+ * @param value - The value to cast.
+ * @returns The PHP-style string cast, or null if there is no scalar analogue.
  */
 function toPhpScalarString(value: unknown): string | null {
     if (isString(value)) {
@@ -658,16 +622,10 @@ function toPhpScalarString(value: unknown): string | null {
 
 /**
  * Determine whether two values match the way PHP's `array_diff`/`array_intersect`
- * do: `(string) $a === (string) $b`. Only `string`, `boolean`, `null` and
- * plain finite numbers have a PHP scalar analogue to cast through; everything
- * else (`undefined`, symbols, functions, objects, arrays, `Date`, `NaN`,
- * `Infinity`, and floats `String()` renders in exponential notation) falls back
- * to SameValueZero identity instead of PHP's `"Array"` collapse or object-cast
- * fatal, neither of which has a safe JS equivalent.
- *
- * A high-precision float is NOT one of those: it goes through the cast, where
- * JS prints every digit and PHP's `precision=14` rounds. That is a real
- * divergence, not a fallback.
+ * do: `(string) $a === (string) $b`. Only `string`, `boolean`, `null`, and plain
+ * finite numbers cast this way; everything else falls back to SameValueZero
+ * identity. A high-precision float still casts (JS keeps every digit; PHP's
+ * `precision=14` rounds) — a real divergence, not a fallback.
  *
  * @param a - First value to compare
  * @param b - Second value to compare
@@ -676,12 +634,6 @@ function toPhpScalarString(value: unknown): string | null {
  * @example
  *
  * phpValueMatch(0, "0"); -> true
- * phpValueMatch(null, ""); -> true
- * phpValueMatch(true, "1"); -> true
- * phpValueMatch(0, ""); -> false
- * phpValueMatch(100, "1e2"); -> false (PHP's `==` agrees, but `(string)` does not)
- * phpValueMatch(0.1 + 0.2, "0.3"); -> false (PHP casts to "0.3" at precision=14 and matches)
- * phpValueMatch(NaN, NaN); -> true (SameValueZero fallback, not a string cast)
  */
 export function phpValueMatch(a: unknown, b: unknown): boolean {
     const castA = toPhpScalarString(a);

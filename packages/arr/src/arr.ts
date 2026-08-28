@@ -327,34 +327,18 @@ export function collapse<TValue extends ArrayItems<unknown>>(
 }
 
 /**
- * Combine an array of keys with an array of values into an object,
- * mirroring PHP's `array_combine()` / `Collection::combine()`
- * (`Collection.php:933`).
+ * Combine an array of keys with an array of values into an object, like PHP's
+ * `array_combine()` / `Collection::combine()` (`Collection.php:933`).
  *
- * The previous implementation zipped an arbitrary number of arrays into an
- * array of tuples — that never corresponded to `array_combine`, whose
- * *only* two-argument shape produces a keyed map (confirmed against the
- * real `CollectionTest::testCombineWithArray`, and already how
- * `Obj.combine` behaved). It was silently mislabeled: throwing on a count
- * mismatch only makes sense once `combine` actually implements
- * `array_combine` semantics.
+ * Each key is coerced with `String()`, matching `flip`/`keyBy`/`mapWithKeys`, so the
+ * result's key type is always `string` rather than `PropertyKey`.
  *
- * Each key is coerced with `String()` (same as `flip`/`keyBy`/
- * `mapWithKeys`), so `keys`' element type is intentionally unconstrained
- * rather than `PropertyKey` — the result's key type is always `string`,
- * matching those functions' `Record<string, TValue>` convention.
- *
- * @see Collection::combine — `packages/collection/stubs/Collection.php:933`.
- *      Wraps `array_combine`.
+ * @see Collection::combine — `packages/collection/stubs/Collection.php:933`. Wraps `array_combine`.
  *
  * @param keys - The keys.
  * @param values - The values, matched to `keys` by position.
  * @returns A new object mapping each key to its corresponding value.
  * @throws Error if `keys` and `values` do not have the same length.
- *
- * @example
- *
- * combine(["a", "b"], [1, 2]); -> { a: 1, b: 2 }
  */
 export function combine<TKey, TValue>(
     keys: ArrayItems<TKey>,
@@ -495,6 +479,9 @@ export function dot<TValue>(
 /**
  * Whether every dot segment of `key` is a usable array index, matching the
  * test `undotExpandArray` applies before it will build anything from a key.
+ *
+ * @param key - The dot-notated key to check.
+ * @returns True if every segment of `key` is a canonical array index.
  */
 function isArrayIndexPath(key: string): boolean {
     return key.split(".").every(isCanonicalUndotIndex);
@@ -503,25 +490,16 @@ function isArrayIndexPath(key: string): boolean {
 /**
  * Convert a flatten "dot" notation object into an expanded array.
  *
- * Only accepts numeric-first dotted keys — use `Obj.undot` for anything
- * else. The `UndotArrayKey` constraint rejects a bad key at the call site
- * only for a fresh object literal, where TypeScript's excess-property
- * check fires; anything reaching this through a variable is caught here
- * instead, because the alternative is returning an empty array and calling
- * it a result.
+ * Only accepts numeric-first dotted keys — use `Obj.undot` for anything else.
  *
  * @param map - The flat object with numeric-first dot-notated keys.
  * @returns A new multi-dimensional array.
- * @throws TypeError if any key has a segment that is not a canonical decimal
- * integer (no leading zeros, sign, or exponent) within MAX_UNDOT_INDEX, or if
- * the containers the keys build, summed by their own max index, would exceed
- * that same budget.
+ * @throws TypeError if any key segment isn't a canonical decimal integer within
+ * MAX_UNDOT_INDEX, or the resulting containers would exceed that budget.
  *
  * @example
  *
  * undot({ '0': 'a', '1.0': 'b', '1.1': 'c' }); -> ['a', ['b', 'c']]
- * undot({ '0.0': 'PHP', '0.1': 'C#', '1': 'Taylor' }); -> [['PHP', 'C#'], 'Taylor']
- * // undot({ "user.languages.0": "PHP" }); -> throws; use Obj.undot
  */
 export function undot<TValue, TKey extends UndotArrayKey = number>(
     map: Record<TKey, TValue>,
@@ -1800,9 +1778,8 @@ export function prependKeysWith<TValue>(
 /**
  * Get a subset of the items from the given array.
  *
- * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:744): `null`
- * becomes no keys at all and a bare index becomes a single-index
- * selection, rather than blowing up on a non-iterable.
+ * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:744): `null` becomes
+ * no keys, a bare index becomes a single-index selection.
  *
  * @param data - The array to get items from.
  * @param keys - The index, indices, or null to select.
@@ -1811,8 +1788,6 @@ export function prependKeysWith<TValue>(
  * @example
  *
  * only(['a', 'b', 'c', 'd'], [0, 2]); -> ['a', 'c']
- * only(['a', 'b', 'c'], 1); -> ['b']
- * only(['a', 'b', 'c'], null); -> []
  */
 export function only<TValue>(
     data: ArrayItems<TValue>,
@@ -2274,17 +2249,9 @@ export function mapSpread<TMapReturn>(
     data: unknown,
     callback: (...args: unknown[]) => TMapReturn,
 ): TMapReturn[];
-// Note: `any[]` here (only, and only in the implementation signature) is
-// intentional. The 5 typed overloads above each declare a callback with
-// concrete, differently-shaped parameters (`(arg1: T1, index: number)`,
-// `(arg1: T1, arg2: T2, index: number)`, ...). TypeScript requires an
-// implementation signature to be compatible with every overload it
-// implements, and a variadic `(...args: unknown[])` is NOT — `unknown` for
-// each parameter is too narrow to accept a real callback whose parameters
-// are concrete types (verified: swapping to `unknown[]` here breaks
-// exactly on that overload-compatibility check, TS2394). `any[]` is the
-// TypeScript-standard escape for this, and is invisible to callers, who
-// only ever see the typed overloads or the `unknown[]` fallback above.
+// `any[]` here (only in the implementation signature) is TypeScript's standard escape
+// for satisfying every typed overload above with a variadic parameter; `unknown[]`
+// fails the overload-compatibility check (TS2394). Invisible to callers.
 export function mapSpread<TMapReturn>(
     data: unknown,
     callback: (...args: any[]) => TMapReturn,
@@ -2340,10 +2307,9 @@ export function prepend<TValue>(
     const values = getAccessibleValues(data) as TValue[];
 
     if (!isUndefined(key)) {
-        // When key is provided, we need to create a new array with the key-value pair at the beginning
-        // This mimics PHP's behavior where ['key' => 'value'] + $array works
-        // `key` is a `number` here, like every other bare numeric-index write in this file
-        // (loop counters, parseInt'd indices): a number can never stringify to "__proto__".
+        // Creates a new array with the key-value pair first, mimicking PHP's `['key' =>
+        // 'value'] + $array`. `key` is always a `number` here (loop counter/parseInt'd
+        // index), so it can never stringify to "__proto__".
         const result: TValue[] = [];
         result[key] = value;
         return result.concat(values);
@@ -2723,20 +2689,13 @@ export function set(
 /**
  * Push one or more items into the array at the given key, using numeric-only dot notation.
  *
- * Unlike PHP, the whole array is returned rather than `Arr::set`'s innermost
- * container, and an out-of-range index is clamped to an append instead of
- * producing a gapped integer key a JS array cannot hold.
+ * Unlike PHP, the whole array is returned rather than `Arr::set`'s innermost container,
+ * and an out-of-range index is clamped to an append instead of a gapped integer key.
  *
  * @param data - The array to push items into.
  * @param key - The key or dot-notated path of the array to push into. If null, push into root.
  * @param values - The values to push.
  * @returns The array with the values pushed into the array at the key.
- *
- * @example
- *
- * push(['a', 'b'], null, 'c', 'd'); -> ['a', 'b', 'c', 'd']
- * push(['a', ['b']], '1', 'c', 'd'); -> ['a', ['b', 'c', 'd']]
- * push(['a', ['b']], '1.1', 'c'); -> ['a', ['b', ['c']]]
  */
 // Overload: typed array → element type preserved (including unions)
 export function push<TValue>(
@@ -2786,27 +2745,15 @@ export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
 }
 
 /**
- * Slice the underlying array items.
+ * Slice the underlying array items, like PHP's `array_slice()`. A READ operation that
+ * extracts a subset without mutating; use `splice()` for a WRITE that removes items.
  *
- * This is a READ operation that extracts a portion of the array without modifying the original.
- * Similar to JavaScript's Array.slice() and PHP's array_slice(), it returns only the subset.
- *
- * For a WRITE operation that tracks removed elements, use `splice()` instead.
- *
- * @see Collection::slice — `packages/collection/stubs/Collection.php:1369`.
- *      Wraps `array_slice($items, $offset, $length, preserveKeys: true)`.
+ * @see Collection::slice — `packages/collection/stubs/Collection.php:1369`. Wraps `array_slice`, preserveKeys: true.
  *
  * @param data - The array to slice
  * @param offset - The starting index
  * @param length - The number of items to include (negative means stop that many from the end)
  * @returns Sliced array (subset of the original)
- *
- * @example
- *
- * slice([1, 2, 3, 4], 1, 2); -> [2, 3]
- * slice([1, 2, 3, 4], 1, -1); -> [2, 3]
- * slice([1, 2, 3, 4], 2); -> [3, 4]
- * slice([1, 2, 3, 4, 5, 6, 7, 8], -2, 5); -> [7, 8]
  */
 export function slice<TValue>(
     data: ArrayItems<TValue>,
@@ -3092,10 +3039,9 @@ export function sortDesc<TValue>(
     const result = values.slice();
 
     if (isArray(callback)) {
-        // Every descriptor's own direction is overridden to descending; a
-        // comparator function is unaffected. Checked before the
-        // natural-sort branch: an empty descriptor array is falsy too,
-        // but is a stable no-op here, not a natural-value sort.
+        // Every descriptor's own direction is overridden to descending; a comparator is
+        // unaffected. Checked first since an empty descriptor array is falsy too, but
+        // must stay a stable no-op here, not fall through to a natural-value sort.
         return sortByComparators(
             result,
             callback as readonly SortSpec<TValue>[],
@@ -3244,35 +3190,17 @@ export function sortRecursiveDesc<TValue>(
 }
 
 /**
- * Splice a portion of the underlying array, mutating it in place, like
- * PHP's array_splice.
+ * Splice a portion of the underlying array, mutating it in place, like PHP's
+ * `array_splice()`. Returns what was removed; use `slice()` for a non-mutating read.
+ * Replacement arrays are flattened into the result.
  *
- * This is a WRITE operation that removes and/or replaces elements and
- * returns what was removed, exactly like JavaScript's own Array.splice().
- *
- * For a READ operation that just extracts a subset without mutating, use
- * `slice()` instead.
- *
- * Replacement values that are arrays will be flattened into the result.
- *
- * @see Collection::splice — `packages/collection/stubs/Collection.php:1755`.
- *      Wraps `array_splice`; mutates.
+ * @see Collection::splice — `packages/collection/stubs/Collection.php:1755`. Wraps `array_splice`; mutates.
  *
  * @param data - The array to splice. Mutated in place.
  * @param offset - The starting index
- * @param length - The number of items to remove. Defaults to everything
- * from offset to the end of the array.
+ * @param length - The number of items to remove. Defaults to everything from offset to the end.
  * @param replacement - The replacement items (arrays will be flattened)
  * @returns The removed elements.
- *
- * @example
- *
- * splice(['foo', 'baz'], 1, 1); -> ['baz'], data is now ['foo']
- * splice(['foo', 'baz'], 1, 1, 'bar'); -> ['baz'], data is now ['foo', 'bar']
- * splice(['foo', 'baz'], 1, 0, 'bar'); -> [], data is now ['foo', 'bar', 'baz']
- * splice(['foo', 'baz'], 1, 0, ['bar']); -> [], data is now ['foo', 'bar', 'baz'] // flattened
- * splice(['foo', 'baz'], 1, 1, {a: 'bar'}); -> ['baz'], data is now ['foo', 'bar'] // keys discarded
- * splice(['foo', 'baz'], 1); -> ['baz'], data is now ['foo']
  */
 export function splice<TValue, TReplacements>(
     data: TValue[],
@@ -3638,21 +3566,14 @@ export function replace<TValue, TReplace = TValue>(
 /**
  * Recursively replace the data items with the given items.
  *
- * Supports both arrays and numeric keyed objects as replacement values.
- * When an array contains a numeric keyed object, that object represents sparse index replacements.
- * Nested objects with numeric keys are treated as nested array replacements.
+ * Supports arrays and numeric-keyed objects as replacement values; a numeric-keyed
+ * object nested in an array replaces by sparse index, same as a nested array.
  *
- * @see Collection::replaceRecursive — `packages/collection/stubs/Collection.php:1181`.
- *      Wraps `array_replace_recursive`.
+ * @see Collection::replaceRecursive — `packages/collection/stubs/Collection.php:1181`. Wraps `array_replace_recursive`.
  *
  * @param data - The original array to replace items in.
  * @param replacerData - The array or numeric keyed object containing items to replace.
  * @returns The modified original array with replaced items.
- *
- * @example
- *
- * replaceRecursive(['a', 'b', ['c', 'd']], null); -> ['a', 'b', ['c', 'd']]
- * replaceRecursive(['a', 'b', ['c', 'd']], ['z', {2: {1: 'e'}}]); -> ['z', 'b', ['c', 'e']]
  */
 // Overload: null/undefined replacer — returns original type unchanged
 export function replaceRecursive<TValue>(
@@ -4139,31 +4060,14 @@ export function values<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
 /**
  * Get the items that are not present in the given array.
  *
- * Approximates PHP's `array_diff()`: comparison uses PHP's scalar
- * `(string) $a === (string) $b` equivalence for values with a real PHP
- * analogue (see `phpValueMatch` in `@tolki/utils`); everything else falls
- * back to SameValueZero identity. PHP's `precision=14` float formatting,
- * its `"Array"` collapse for array operands, and its fatal on casting a
- * plain object are deliberately NOT ported.
+ * Compares scalars the way PHP's `(string) $a === (string) $b` does (see
+ * `phpValueMatch`); `other` is normalized by `arrayableValues`.
  *
- * `other` is normalized by `arrayableValues`: an Enumerable/Arrayable/iterable
- * contributes its values, a plain object its own values. `Arr::from`'s default-arm
- * throw is unreachable here — its object arm (`(array) $items`) catches first.
- *
- * @see Collection::diff — `packages/collection/stubs/Collection.php:276`.
- *      Wraps `array_diff`.
+ * @see Collection::diff — `packages/collection/stubs/Collection.php:276`. Wraps `array_diff`.
  *
  * @param data - The original array.
  * @param other - The items to compare against (array, object, scalar or nullish).
  * @returns A new array containing items from data that are not in other.
- *
- * @example
- *
- * diff([1, 2, 3], [2, 3, 4]); -> [1]
- * diff(['a', 'b', 'c'], ['b', 'c', 'd']); -> ['a']
- * diff([10, 20], {x: 20}); -> [10] (an object other compares by its values)
- * diff(null, [1, 2]); -> [] (a non-accessible data is empty)
- * diff([0], ['0']); -> [] (0 and '0' match under PHP's (string) cast)
  */
 export function diff<TValue>(
     data: ArrayItems<TValue>,
@@ -4197,26 +4101,14 @@ export function diff<TValue>(
 /**
  * Get the items whose index and value are not both present in the given other array.
  *
- * This is `array_diff_assoc` — unlike `diff` above, an index that exists on
- * `other` with a *different* value is what keeps the item; whether the value
- * merely appears elsewhere in `other`'s values (as `diff` checks) is
- * irrelevant. Do not merge this back into `diff`; see `diff`'s doc comment.
+ * This is `array_diff_assoc` — unlike `diff`, matching by index+value, not by value
+ * alone. A non-accessible `other` is treated as empty, so every item of `data` survives.
  *
- * A non-accessible `data` returns `[]`; a non-accessible `other` (e.g.
- * `null`) is treated as empty, so every item of `data` survives.
- *
- * @see Collection::diffAssoc — `packages/collection/stubs/Collection.php:299`.
- *      Wraps `array_diff_assoc`.
+ * @see Collection::diffAssoc — `packages/collection/stubs/Collection.php:299`. Wraps `array_diff_assoc`.
  *
  * @param data - The original array
  * @param other - The array to diff against
  * @returns A new array containing items whose index+value pair is not in other
- *
- * @example
- *
- * diffAssoc([1, 2, 3], [1, 9, 3]); -> [2]
- * diffAssoc(['a', 'b'], ['a', 'b']); -> []
- * diffAssoc([0], ['0']); -> [] (0 and '0' match under PHP's (string) cast)
  */
 export function diffAssoc<TValue>(
     data: ArrayItems<TValue>,
@@ -4253,32 +4145,18 @@ export function diffAssoc<TValue>(
 }
 
 /**
- * Intersect the data array with the given other array
+ * Intersect the data array with the given other array.
  *
- * Approximates PHP's `array_intersect()`: comparison uses PHP's scalar
- * `(string) $a === (string) $b` equivalence for values with a real PHP
- * analogue (see `phpValueMatch` in `@tolki/utils`); everything else falls
- * back to SameValueZero identity. PHP's `precision=14` float formatting,
- * its `"Array"` collapse for array operands, and its fatal on casting a
- * plain object are deliberately NOT ported. `callable`, when given,
- * replaces the default value comparator above with a custom one.
+ * Compares scalars the way PHP's `(string) $a === (string) $b` does (see
+ * `phpValueMatch`); `other` is normalized by `arrayableValues`. `callable`, when
+ * given, replaces the default comparator.
  *
- * `other` is normalized by `arrayableValues`: an Enumerable/Arrayable/iterable
- * contributes its values, a plain object its own values. `Arr::from`'s default-arm
- * throw is unreachable here — its object arm (`(array) $items`) catches first.
- *
- * @see Collection::intersect — `packages/collection/stubs/Collection.php:660`.
- *      Wraps `array_intersect`.
+ * @see Collection::intersect — `packages/collection/stubs/Collection.php:660`. Wraps `array_intersect`.
  *
  * @param data - The original array
  * @param other - The items to intersect with (array, object, scalar or nullish)
  * @param callable - Optional function to compare values
  * @returns A new array containing items present in both arrays
- *
- * @example
- *
- * intersect([1], {x: 1}); -> [1] (an object other compares by its values)
- * intersect([0], ['0']); -> [0] (0 and '0' match under PHP's (string) cast)
  */
 // Overload: with callback - infers TValue and TOther from array types
 export function intersect<TValue, TOther>(
