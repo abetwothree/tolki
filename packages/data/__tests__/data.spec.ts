@@ -530,12 +530,14 @@ describe("Data", () => {
             expect(Data.dataFlatten(data)).toEqual([1]);
         });
 
+        // docs/php-parity/task-17-second-review.json, "Arr::flatten defaults to unlimited depth"
         it("flattens to unlimited depth by default", () => {
             const data = { a: { b: { c: { d: 1 } } } };
 
             expect(Data.dataFlatten(data)).toEqual([1]);
         });
 
+        // docs/php-parity/task-17-second-review.json, "Arr::flatten honours an explicit depth of 2"
         it("stops at an explicit depth", () => {
             const data = { a: { b: { c: { d: 1 } } } };
 
