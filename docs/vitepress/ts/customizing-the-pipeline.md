@@ -48,6 +48,14 @@ The protected methods a subclass hooks into moved with it, so re-check any exist
 
 :::
 
+::: warning `RouteTransformer` holds the Inertia page analyzer in a wider type
+`routes.transformer_class` is a documented override point, so the protected `$inertiaPageAnalyzer` property is part of its surface. It is now typed as a union covering both page-prop analyzer implementations the package ships while the native one is rolled out, rather than the single class it named before.
+
+**Fails loudly at class load:** a subclass that redeclares the property with the old narrow type. PHP requires a redeclared typed property to match its parent's type exactly, so the incompatible declaration is rejected the moment the subclass loads. Drop the redeclaration, or widen it to match.
+
+Nothing else about it changed: the property is still `null` when Inertia support is off, and still listed in `transientProperties()` so it never reaches the generation cache.
+:::
+
 Each feature also has its own `*.template` config key (`models.template`, `enums.template`, `routes.template`, `form_requests.template`, `broadcast_channels.template`, and `broadcast_events.template` / `index_template` / `echo_augmentation.template`) pointing at the Blade view responsible for that feature's output syntax — see [Publishing & Editing Templates](#publishing-editing-templates).
 
 ### Shared & Combined Writers
