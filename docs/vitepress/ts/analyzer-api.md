@@ -74,7 +74,7 @@ $analysis = resolve(AstEngine::class)->analyzePublicProperties(App\Events\OrderS
 
 Two rules are worth calling out explicitly:
 
-- **Nullable is always `| null`, never `?`.** `trackingNumber` above is a nullable native type, and it comes back `string | null` with `optional: false`. Whether the *key* itself is allowed to be missing is a separate concern this method never decides — that's a `#[TsCasts]`-level choice for whatever builds a template from the result.
+- **Nullable is always `| null`, never `?`.** `trackingNumber` above is a nullable native type, and it comes back `string | null` with `optional: false`. Whether the _key_ itself is allowed to be missing is a separate concern this method never decides — that's a `#[TsCasts]`-level choice for whatever builds a template from the result.
 - **Trait-declared properties are excluded.** A property declared on a trait the class uses never appears in `properties` — including one supplied by a [`#[TsExtends]`](./extending-interfaces.md) trait, so its field isn't emitted both as a plain property here and again through the trait's own `extends` clause.
 
 ## Resources Get Resource Semantics
@@ -100,15 +100,17 @@ $imports = new AnalysisImports()->build($analysis, 'app/services');
 // $imports['valueImports'] => import path => list<const name>  (enum-wrapping only)
 ```
 
-The second argument is the *importing* file's own namespace path — every path in the result is already resolved relative to it, using the same algorithm [Modular Publishing](./modular-publishing.md) documents. Two FQCN channels that land on the same import path are merged into one entry instead of one overwriting the other.
+The second argument is the _importing_ file's own namespace path — every path in the result is already resolved relative to it, using the same algorithm [Modular Publishing](./modular-publishing.md) documents. Two FQCN channels that land on the same import path are merged into one entry instead of one overwriting the other.
 
 ::: warning A type token never outruns its import
-`build()` only resolves *what* to import — never what to call it once it's imported. If two FQCNs feeding one `MethodAnalysis` share a bare type name across different namespaces (two classes both named `User`, say), both of their paths still come back in the result; turning that collision into two distinct aliases is the caller's job, not this method's.
+`build()` only resolves _what_ to import — never what to call it once it's imported. If two FQCNs feeding one `MethodAnalysis` share a bare type name across different namespaces (two classes both named `User`, say), both of their paths still come back in the result; turning that collision into two distinct aliases is the caller's job, not this method's.
 :::
 
 ## What It Cannot Do
 
-**Broadcast events and Inertia props aren't on this engine yet.** Both still resolve through [Surveyor](https://github.com/laravel/surveyor), a separate static-analysis library `ts:publish` uses just for those two features. Calling `analyzeMethod()` against a controller action does not reproduce that action's Inertia page-prop type, and `BroadcastEventTransformer` doesn't call into this engine at all yet — [`analyzePublicProperties()`](#analyzing-public-properties) gives you an event's constructor-derived shape, but that's not what `ts:publish` currently writes for an event that defines its own `broadcastWith()`.
+**Inertia props aren't on this engine yet.** They still resolve through [Surveyor](https://github.com/laravel/surveyor), a separate static-analysis library `ts:publish` uses for that one feature, so calling `analyzeMethod()` against a controller action does not reproduce that action's [Inertia](./inertia.md) page-prop type. Moving Inertia over is planned for a future release.
+
+[Broadcast Events](./broadcast-events.md) are the exception, and they show what "on this engine" buys you: `ts:publish` calls `analyzeMethod($event, 'broadcastWith')` when the event has that method — inherited or trait-supplied counts, the same as Laravel's own dispatch — and [`analyzePublicProperties()`](#analyzing-public-properties) when it doesn't, so both entry points return exactly the properties the published interface is built from. Two presentation rules are still applied on top of the analysis by the transformer rather than by the engine: `#[TsCasts]` overrides, and rendering a model property as `Partial<Model>`.
 
 **No form-request rule parsing.** A `FormRequest`'s `rules()` method is typed by its own dedicated analyzer, not this engine — see [Form Requests](./form-requests.md). Neither `analyzeMethod()` nor `analyzePublicProperties()` has any special handling for a validation rule array.
 
