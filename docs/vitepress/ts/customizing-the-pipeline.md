@@ -48,6 +48,35 @@ The protected methods a subclass hooks into moved with it, so re-check any exist
 
 :::
 
+::: warning `ResourceTransformer` lost its model-resolution methods
+
+The four methods that decided which Eloquent model backs a resource have moved off the transformer into `AbeTwoThree\LaravelTsPublish\Ast\ModelClassResolver`, so the [analyzer](./analyzer-api.md) and the publish pipeline resolve a resource's model the same way. `resources.transformer_class` is still a supported override point; only these four names left it.
+
+**Fails quietly — this is the whole of it, so check by hand:**
+
+- **`modelFromDocblock()`, `modelFromAncestorDocblock()`, `guessModelFromConvention()` and `guessModelFromUseResourceAttribute()` are gone.** They were `protected` on `ResourceTransformer`; they are `private` on `ModelClassResolver`, which is `final`. A subclass that overrode any of them still compiles and still loads — the parent simply never calls it again. So a convention override that resolved, say, `App\Http\Resources\PostResource` to `App\Domain\Post` stops applying, every affected resource is silently typed against a different model, and nothing errors.
+
+Nothing on `ResourceTransformer` changed signature, so unlike the transformer above there is no loud half to warn you.
+
+**Migrating an override.** Two paths, in order of preference:
+
+1. **Override `resolveModelClass()`**, still `protected` on `ResourceTransformer` and the single seam all four methods now sit behind. Set `$this->modelClass` and return `$this`:
+
+```php
+protected function resolveModelClass(): self
+{
+    parent::resolveModelClass();
+
+    $this->modelClass ??= MyConvention::modelFor($this->reflectionResource);
+
+    return $this;
+}
+```
+
+2. **Bind a replacement for `ModelClassResolver`.** The pipeline resolves it from the container on every transform, so `$this->app->bind(ModelClassResolver::class, MyResolver::class)` in a service provider takes effect — but note it is auto-wired rather than registered, so there is no existing binding to decorate, and because the class is `final` a replacement cannot extend it. It must supply its own `resolve(ReflectionClass $resource): ?string`.
+
+:::
+
 Each feature also has its own `*.template` config key (`models.template`, `enums.template`, `routes.template`, `form_requests.template`, `broadcast_channels.template`, and `broadcast_events.template` / `index_template` / `echo_augmentation.template`) pointing at the Blade view responsible for that feature's output syntax — see [Publishing & Editing Templates](#publishing-editing-templates).
 
 ### Shared & Combined Writers
@@ -97,6 +126,15 @@ Same situation as the shared-data analyzer above: no config key, but it is resol
 **Also removed:** `InertiaTableAnalyzer::isTainted()` and `resolveComponent()`, and the whole table-taint family behind them. A controller that renders an Inertia UI Table no longer loses page types on its sibling actions — see [Sibling Actions on a Table Controller](./routing.md#sibling-actions-on-a-table-controller).
 
 New protected members a subclass can hook: `analyzeAction()`, `analyzerFor()`, `collectComponentBranches()`, `analyzeProps()`, `propsArrayLiterals()`, `analyzeDelegatedProps()`, `collectProps()`, `usedFqcns()` and `forgetOverriddenChannels()`.
+:::
+
+::: warning Two classes were removed outright
+
+Neither had a config key, but both were `public` API in the loosest sense — importable, and referenced by at least one real integration. Both fail loudly, immediately.
+
+- **`Analyzers\Inertia\ControllerPaginatorAnalyzer` is deleted.** It existed to recover paginator and resource-collection shapes that the old type-string rewrite passes could not, and it became callerless once page props moved onto the engine — paginators are resolved from the props expression itself now. Any `use` of it is a fatal `Class "…\ControllerPaginatorAnalyzer" not found`.
+- **`Analyzers\SurveyorTypeMapper` is deleted, and its `TOLKI_TYPES_MAP` constant is renamed.** The map of PHP classes that `@tolki/types` declares TypeScript types for now lives at `Support\TolkiTypes::MAP`, on a class that does nothing else. Replace `SurveyorTypeMapper::TOLKI_TYPES_MAP` with `TolkiTypes::MAP`; the contents are unchanged. The rest of that class went with Surveyor.
+
 :::
 
 ## Abstract Base Classes
