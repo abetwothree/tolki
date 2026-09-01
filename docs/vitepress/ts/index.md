@@ -142,6 +142,10 @@ Add `ts:publish` to the `post-update-cmd` hook in `composer.json` so deployed an
 }
 ```
 
+## Analyzer API
+
+The same static analysis engine that powers `ts:publish` is also callable directly — hand `AstEngine` a class and a method name and get back a typed property list, without running the full publish pipeline or writing anything to disk. See the full [Analyzer API documentation](./analyzer-api.md).
+
 ## Pre-Command Hook
 
 If you need to run custom logic right before `ts:publish` executes — dynamically configuring directories, swapping pipeline classes, or reacting to feature flags — register a closure with `LaravelTsPublish::callCommandUsing()` in a service provider's `boot()` method. See the full [Pre-Command Hook documentation](./pre-command-hook.md) for worked examples.

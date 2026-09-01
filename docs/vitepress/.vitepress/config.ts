@@ -159,6 +159,10 @@ export default defineConfig({
                         link: "/ts/customizing-the-pipeline",
                     },
                     {
+                        text: "Analyzer API",
+                        link: "/ts/analyzer-api",
+                    },
+                    {
                         text: "Pre-Command Hook",
                         link: "/ts/pre-command-hook",
                     },
