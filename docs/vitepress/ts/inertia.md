@@ -30,10 +30,8 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => ['user' => $request->user()],
-            'flash' => [
-                'success' => fn () => $request->session()->get('success'),
-                'error' => fn () => $request->session()->get('error'),
-            ],
+            'ziggy' => fn () => ['location' => $request->url()],
+            'sidebarOpen' => ! $request->hasCookie('sidebar_state'),
             'appName' => config('app.name'),
         ];
     }
@@ -49,7 +47,8 @@ declare global {
   namespace Inertia {
     type SharedData = {
       auth: { user: User | null };
-      flash: { success: string | null; error: string | null };
+      ziggy: { location: string };
+      sidebarOpen: boolean;
       appName: string;
     };
   }
@@ -59,7 +58,8 @@ declare module "@inertiajs/core" {
   export interface InertiaConfig {
     sharedPageProps: {
       auth: { user: User | null };
-      flash: { success: string | null; error: string | null };
+      ziggy: { location: string };
+      sidebarOpen: boolean;
       appName: string;
     };
     errorValueType: string[];
@@ -73,6 +73,7 @@ export {};
 - **`declare global { namespace Inertia { type SharedData = ...; } }`** makes `Inertia.SharedData` available by bare name in any `.ts` file in your project — including generated controller files that intersect it with page-specific props (see [Inertia Integration](./routing.md#inertia-integration)).
 - **`declare module '@inertiajs/core' { ... InertiaConfig ... }`** augments Inertia's own `usePage<T>()` / shared-data typing so `usePage().props` is typed correctly throughout your frontend, without you writing that augmentation by hand.
 - **`errorValueType: string[]`** is only added when the middleware has a `protected $withAllErrors = true;` property — it matches the shape Inertia uses for its validation error bag in that mode.
+- **A value the analyzer cannot read stays `unknown`.** `'flash' => ['success' => fn () => $request->session()->get('success')]` would emit `flash: { success: unknown }` — `session()` is not one of the typed request methods. Reach for [`#[TsCasts]` or a `@return` docblock](#type-resolution-priority) there.
 - **`export {};`** at the end is required — TypeScript only processes a `declare global` block inside a file that's an ES module (i.e., has at least one top-level `import` or `export`). Without it, the `declare global` block would be silently ignored.
 
 ## Type Resolution Priority
