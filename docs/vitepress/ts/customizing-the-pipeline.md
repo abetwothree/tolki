@@ -65,6 +65,23 @@ A few writers aren't tied to a single feature — they combine already-transform
 
 Inertia and Vite Env are **not** part of this swappable pipeline — they have their own dedicated analysis logic (reading the `HandleInertiaRequests` middleware, or parsing `.env`) and only expose filename/output-directory config, with no `*_class` override keys. See [Inertia](./inertia.md) and [Vite Env](./vite-env.md) for their configuration options.
 
+::: warning `InertiaSharedDataAnalyzer` changed shape
+There is no config key for it, but the class is resolved from the container, so a subclass bound in a service provider is a real (if undocumented) override point. [Shared data](./inertia.md) is now typed by the package's own [analyzer](./analyzer-api.md) instead of Surveyor/Ranger, and the class changed with it.
+
+**Fails quietly — check these by hand:**
+
+- **The constructor no longer takes a `Laravel\Ranger\Collectors\InertiaSharedData`.** PHP ignores extra arguments passed to a class with no declared constructor, so `new InertiaSharedDataAnalyzer($collector)` keeps working and silently discards the collector.
+- **`analyze()` returns `null` when no `Inertia\Middleware` subclass is discovered**, not when a collector came back empty.
+- **`buildTypeStringWithOverrides()` keeps its signature but not its argument shape.** Both parameters are now `array<string, array{type: string, optional: bool}>`; the first used to hold Surveyor `Type` objects, and the second plain type strings.
+- **The result array gained a required `typeImports` key.** Anything constructing that array by hand — a test double, a subclass that builds its own result — must supply it, or the Blade template renders against an undefined variable.
+
+**Fails loudly at class load:**
+
+- **`buildResult()` is now `buildResult(string $middlewareClass)`** — the `SharedDataComponent` argument is gone.
+
+New protected members a subclass can hook: `resolveWithAllErrors()`, `collectProps()`, `buildTypeImports()`, `forgetOverriddenChannels()`, and the `FRAMEWORK_OWNED_PROPS` constant that keeps `errors` out of the inferred shape.
+:::
+
 ## Abstract Base Classes
 
 Every built-in class extends one of these four abstract base classes. A custom class must extend the matching one and implement its abstract methods.
