@@ -48,14 +48,6 @@ The protected methods a subclass hooks into moved with it, so re-check any exist
 
 :::
 
-::: warning `RouteTransformer` holds the Inertia page analyzer in a wider type
-`routes.transformer_class` is a documented override point, so the protected `$inertiaPageAnalyzer` property is part of its surface. It is now typed as a union covering both page-prop analyzer implementations the package ships while the native one is rolled out, rather than the single class it named before.
-
-**Fails loudly at class load:** a subclass that redeclares the property with the old narrow type. PHP requires a redeclared typed property to match its parent's type exactly, so the incompatible declaration is rejected the moment the subclass loads. Drop the redeclaration, or widen it to match.
-
-Nothing else about it changed: the property is still `null` when Inertia support is off, and still listed in `transientProperties()` so it never reaches the generation cache.
-:::
-
 Each feature also has its own `*.template` config key (`models.template`, `enums.template`, `routes.template`, `form_requests.template`, `broadcast_channels.template`, and `broadcast_events.template` / `index_template` / `echo_augmentation.template`) pointing at the Blade view responsible for that feature's output syntax — see [Publishing & Editing Templates](#publishing-editing-templates).
 
 ### Shared & Combined Writers
@@ -89,6 +81,22 @@ There is no config key for it, but the class is resolved from the container, so 
 - **`buildResult()` is now `buildResult(string $middlewareClass)`** — the `SharedDataComponent` argument is gone.
 
 New protected members a subclass can hook: `resolveWithAllErrors()`, `collectProps()`, `buildTypeImports()`, `forgetOverriddenChannels()`, and the `FRAMEWORK_OWNED_PROPS` constant that keeps `errors` out of the inferred shape.
+:::
+
+::: warning `InertiaPageAnalyzer` changed shape
+Same situation as the shared-data analyzer above: no config key, but it is resolved from the container, so a subclass bound in a service provider is a real (if undocumented) override point. Per-route [page props](./routing.md#inertia-integration) are now typed by the package's own [analyzer](./analyzer-api.md) instead of Surveyor/Ranger, and this class was rewritten around that.
+
+**Fails loudly:** the constructor no longer takes a `Laravel\Ranger\Collectors\Response`. Its single parameter is an optional `InertiaTableAnalyzer` override, so `new InertiaPageAnalyzer($collector)` raises a `TypeError` the moment it runs. Construct it with no arguments.
+
+**Fails quietly — check these by hand:**
+
+- **The four type-string rewrite passes are gone**: `rewritePaginatorGenerics()`, `rewritePaginatedResourceProps()`, `rewritePaginatedStaticCollectionProps()` and `rewriteResourceCollections()`, along with `buildPageType()` and `resolveSingularResourceFqcn()`. Paginators and resource collections are resolved from the props expression itself now, so an override of any of them is dead code rather than an error.
+- **`buildTypeStringWithOverrides()` keeps its signature but not its argument shape.** Its first parameter is now `array<string, array{type: string, optional: bool}>`, where it used to hold Surveyor `Type` objects.
+- **`buildPageData()` takes different arguments**: the per-component branch analyses, the analyzer they were produced by, and the `#[TsCasts]` overrides and import map — not a list of Ranger `InertiaResponse` objects and five prop-key maps.
+
+**Also removed:** `InertiaTableAnalyzer::isTainted()` and `resolveComponent()`, and the whole table-taint family behind them. A controller that renders an Inertia UI Table no longer loses page types on its sibling actions — see [Sibling Actions on a Table Controller](./routing.md#sibling-actions-on-a-table-controller).
+
+New protected members a subclass can hook: `analyzeAction()`, `analyzerFor()`, `collectComponentBranches()`, `analyzeProps()`, `propsArrayLiterals()`, `analyzeDelegatedProps()`, `collectProps()`, `usedFqcns()` and `forgetOverriddenChannels()`.
 :::
 
 ## Abstract Base Classes
