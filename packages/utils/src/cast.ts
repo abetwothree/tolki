@@ -1,4 +1,13 @@
-import { isArray, isFunction, isNull, isObject } from "./guards";
+import {
+    isArray,
+    isBoolean,
+    isFunction,
+    isIterable,
+    isMap,
+    isNull,
+    isObject,
+    isUndefined,
+} from "./guards";
 
 /**
  * Check if a value is arrayable (has a toArray method).
@@ -116,4 +125,77 @@ export function normalizeToArray<T>(
 export function getAccessibleValues<T>(data: ReadonlyArray<T> | unknown): T[] {
     const normalized = normalizeToArray<T>(data);
     return normalized || [];
+}
+
+/**
+ * Normalize a set-operation operand the way Laravel's
+ * `EnumeratesValues::getArrayableItems()` does: nullish becomes an empty array,
+ * an Enumerable/Arrayable-like object unwraps via `all()`/`toArray()`, an
+ * iterable spreads, a plain object contributes its values, anything else
+ * becomes a one-element array.
+ *
+ * @param items - The operand to normalize
+ * @returns The operand's values, in iteration order
+ *
+ * @example
+ * arrayableValues({ x: 20 }); -> [20]
+ */
+export function arrayableValues<T>(items: unknown): T[] {
+    if (isNull(items) || isUndefined(items)) {
+        return [];
+    }
+
+    if (isArray(items)) {
+        return items.slice() as T[];
+    }
+
+    if (isObject(items)) {
+        const source = items as Record<string, unknown>;
+
+        if (isFunction(source["all"])) {
+            return arrayableValues<T>((source["all"] as () => unknown)());
+        }
+
+        if (isFunction(source["toArray"])) {
+            return arrayableValues<T>((source["toArray"] as () => unknown)());
+        }
+
+        if (isFunction(source["toJSON"])) {
+            return arrayableValues<T>((source["toJSON"] as () => unknown)());
+        }
+
+        // A Map's default iterator yields [key, value] pairs; PHP's foreach over a
+        // Traversable yields values only, so unwrap via values() instead of spreading.
+        if (isMap(items)) {
+            return [...items.values()] as T[];
+        }
+
+        if (isIterable(items)) {
+            return [...(items as Iterable<T>)];
+        }
+
+        return Object.values(items) as T[];
+    }
+
+    return [items as T];
+}
+
+/**
+ * Cast a CSS-list value the way PHP casts it when pushed raw into
+ * `implode()`/`Str::finish()`: `null` becomes `""`, a boolean becomes
+ * `"1"`/`""`, and everything else goes through `String()`.
+ *
+ * @param value - The CSS class or style fragment to cast.
+ * @returns The string PHP would have interpolated.
+ */
+export function cssListItemToString(value: unknown): string {
+    if (isNull(value) || isUndefined(value)) {
+        return "";
+    }
+
+    if (isBoolean(value)) {
+        return value ? "1" : "";
+    }
+
+    return String(value);
 }

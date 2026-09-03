@@ -1,0 +1,109 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-17-g5ba4bc5495"
+    },
+    "probes": [
+        {
+            "label": "direction tuple [age,\"asc\"] \u2014 string form",
+            "php": "Arr::sort($u, [[\"age\",\"asc\"]])",
+            "value": [
+                {
+                    "age": 2
+                },
+                {
+                    "age": 10
+                }
+            ]
+        },
+        {
+            "label": "direction tuple [age,SortDirection::Ascending]",
+            "php": "Arr::sort($u, [[\"age\",SortDirection::Ascending]])",
+            "value": [
+                {
+                    "age": 2
+                },
+                {
+                    "age": 10
+                }
+            ]
+        },
+        {
+            "label": "sortDesc overrides an explicit \"asc\" direction",
+            "php": "Arr::sortDesc($u, [[\"age\",\"asc\"]])",
+            "value": [
+                {
+                    "age": 10
+                },
+                {
+                    "age": 2
+                }
+            ]
+        },
+        {
+            "label": "sortByMany orders mixed numeric strings and ints numerically",
+            "php": "collect($mixed)->sortBy([\"item\"])->pluck(\"item\")",
+            "value": [
+                "1",
+                5,
+                "10",
+                20
+            ]
+        },
+        {
+            "label": "sortByMany forced descending over the same mixed items",
+            "php": "collect($mixed)->sortByDesc([\"item\"])->values()->pluck(\"item\")",
+            "value": [
+                20,
+                "10",
+                5,
+                "1"
+            ]
+        },
+        {
+            "label": "sortBy runs a comparator nested in a one-element descriptor",
+            "php": "collect($rows)->sortBy([[$byAge]])->values()",
+            "value": [
+                {
+                    "age": 1
+                },
+                {
+                    "age": 2
+                },
+                {
+                    "age": 3
+                }
+            ]
+        },
+        {
+            "label": "sortBy treats [[fn]] and [fn] the same",
+            "php": "collect($rows)->sortBy([$byAge])->values()",
+            "value": [
+                {
+                    "age": 1
+                },
+                {
+                    "age": 2
+                },
+                {
+                    "age": 3
+                }
+            ]
+        },
+        {
+            "label": "Arr::sort runs a comparator nested in a one-element descriptor",
+            "php": "Arr::sort($rows, [[$byAge]])",
+            "value": [
+                {
+                    "age": 1
+                },
+                {
+                    "age": 2
+                },
+                {
+                    "age": 3
+                }
+            ]
+        }
+    ]
+}

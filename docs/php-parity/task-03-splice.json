@@ -1,0 +1,160 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-17-g5ba4bc5495"
+    },
+    "probes": [
+        {
+            "label": "splice(1,1) on assoc \u2014 keys preserved on BOTH halves",
+            "php": "$c->splice(1,1)",
+            "value": {
+                "remaining": {
+                    "x": 1,
+                    "z": 3
+                },
+                "cut": {
+                    "y": 2
+                }
+            }
+        },
+        {
+            "label": "splice(1) \u2014 one-arg form removes to the end",
+            "php": "$c->splice(1)",
+            "value": {
+                "remaining": {
+                    "foo": "f"
+                },
+                "cut": {
+                    "baz": "z"
+                }
+            }
+        },
+        {
+            "label": "splice with replacement",
+            "php": "$c->splice(1,1,\"bar\")",
+            "value": {
+                "remaining": [
+                    "foo",
+                    "bar"
+                ],
+                "cut": [
+                    "baz"
+                ]
+            }
+        },
+        {
+            "label": "splice on numeric keys \u2014 reindexes",
+            "php": "array_splice([10=>a,20=>b,30=>c],1,1)",
+            "value": {
+                "remaining": [
+                    "a",
+                    "c"
+                ],
+                "cut": [
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "splice discards replacement keys",
+            "php": "array_splice($a,1,1,[\"foo\"=>\"bar\"])",
+            "value": {
+                "simple": {
+                    "x": 1,
+                    "0": "bar",
+                    "z": 3
+                },
+                "multi": {
+                    "a": 1,
+                    "0": 10,
+                    "1": 20,
+                    "c": 3
+                },
+                "collision": {
+                    "a": 1,
+                    "0": 9,
+                    "c": 3
+                },
+                "insert": {
+                    "a": 1,
+                    "0": 10,
+                    "b": 2,
+                    "c": 3
+                }
+            }
+        },
+        {
+            "label": "array_splice negative length \u2014 associative, single removal",
+            "php": "array_splice($a,1,-1)",
+            "value": {
+                "remaining": {
+                    "a": 1,
+                    "c": 3
+                },
+                "cut": {
+                    "b": 2
+                }
+            }
+        },
+        {
+            "label": "array_splice negative length \u2014 numeric, five offset/length combinations",
+            "php": "array_splice($a,$offset,$length)",
+            "value": {
+                "1,-1": {
+                    "remaining": [
+                        1,
+                        5
+                    ],
+                    "cut": [
+                        2,
+                        3,
+                        4
+                    ]
+                },
+                "-3,-1": {
+                    "remaining": [
+                        1,
+                        2,
+                        5
+                    ],
+                    "cut": [
+                        3,
+                        4
+                    ]
+                },
+                "0,-5": {
+                    "remaining": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "cut": []
+                },
+                "-2,-1": {
+                    "remaining": [
+                        1,
+                        2,
+                        3,
+                        5
+                    ],
+                    "cut": [
+                        4
+                    ]
+                },
+                "1,-2": {
+                    "remaining": [
+                        1,
+                        4,
+                        5
+                    ],
+                    "cut": [
+                        2,
+                        3
+                    ]
+                }
+            }
+        }
+    ]
+}

@@ -1,4 +1,4 @@
-import { collect } from "@tolki/collection";
+import { collect, Collection } from "@tolki/collection";
 import { describe, expectTypeOf, it } from "vitest";
 
 describe("collection type tests", () => {
@@ -23,6 +23,39 @@ describe("collection type tests", () => {
             // keys is always a numerically indexed collection of key names.
             // @ts-expect-error - a collection of objects is not a list of keys
             data.select(collect([{ first: "Taylor" }]));
+        });
+    });
+
+    describe("chunkWhile / chunkBy", () => {
+        // first()/last() take a default-type parameter that widens to `unknown` when omitted,
+        // so assert on the outer collection type rather than on what first() returns.
+        it("returns a collection of collections and types the callback", () => {
+            const chunks = collect([1, 2, 3]).chunkWhile(
+                (value, key, chunk) => {
+                    expectTypeOf(value).toEqualTypeOf<number>();
+                    expectTypeOf(key).toEqualTypeOf<number>();
+                    expectTypeOf(chunk).toEqualTypeOf<
+                        Collection<number, number>
+                    >();
+
+                    return true;
+                },
+            );
+
+            expectTypeOf(chunks).toEqualTypeOf<
+                Collection<Collection<number, number>, number>
+            >();
+        });
+
+        it("accepts a key path or a callback for chunkBy", () => {
+            const data = collect([{ parent: "a" }]);
+
+            expectTypeOf(data.chunkBy("parent")).toEqualTypeOf<
+                Collection<Collection<{ parent: string }, number>, number>
+            >();
+            expectTypeOf(data.chunkBy((value) => value.parent)).toEqualTypeOf<
+                Collection<Collection<{ parent: string }, number>, number>
+            >();
         });
     });
 });

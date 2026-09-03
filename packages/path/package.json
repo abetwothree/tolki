@@ -34,6 +34,10 @@
             "./path": {
                 "import": "./dist/path.js",
                 "types": "./dist/path.d.ts"
+            },
+            "./pluck": {
+                "import": "./dist/pluck.js",
+                "types": "./dist/pluck.d.ts"
             }
         }
     }

@@ -1,19 +1,21 @@
 import { wrap as arrWrap } from "@tolki/arr";
 import type { ArrayItems, PathKey, PathKeys } from "@tolki/types";
 import {
+    arrayValueMessage,
     castableToArray,
+    defineKey,
     isArray,
-    isBoolean,
     isFunction,
     isInteger,
+    isIntegerLikeKey,
     isNull,
     isNumber,
     isObject,
     isObjectAny,
+    isPrototypeObject,
     isString,
     isUndefined,
     isUnsafeKey,
-    typeOf,
 } from "@tolki/utils";
 
 /**
@@ -108,7 +110,11 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
         }
 
         // For objects, numeric keys are treated as string keys
-        return !isNull(root) && isObject(root) && String(key) in root;
+        return (
+            !isNull(root) &&
+            isObject(root) &&
+            Object.hasOwn(root as object, String(key))
+        );
     }
 
     const segs = parseSegments(key);
@@ -136,7 +142,7 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
                 return false; // Arrays don't have string keys
             }
 
-            if (!(s in (cursor as Record<string, unknown>))) {
+            if (!Object.hasOwn(cursor as object, s)) {
                 return false;
             }
 
@@ -185,7 +191,7 @@ export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
         } else if (!isNull(root) && isObject(root)) {
             // For objects, numeric keys are treated as string keys
             const stringKey = String(key);
-            return stringKey in root
+            return Object.hasOwn(root as object, stringKey)
                 ? {
                       found: true,
                       value: (root as Record<string, unknown>)[stringKey],
@@ -221,7 +227,7 @@ export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
                 return { found: false }; // Arrays don't have string keys
             }
 
-            if (!isObject(cursor) || !(s in cursor)) {
+            if (!isObject(cursor) || !Object.hasOwn(cursor, s)) {
                 return { found: false };
             }
 
@@ -710,7 +716,7 @@ export function setImmutable<TValue>(
 
 /**
  * Push values to an array at a specific path using dot notation.
- * Creates nested arrays as needed and pushes values to the target location.
+ * Creates nested arrays as needed and pushes values into the array at the target key.
  *
  * @param data - The array to push values into.
  * @param key - The path where to push values (number, string, null, or undefined).
@@ -729,56 +735,28 @@ export function pushWithPath<TValue>(
     key: PathKey,
     ...values: TValue[]
 ): TValue[] {
+    // Non-accessible data stands in for the empty array PHP's `Arr::push` would
+    // have been handed, so both shapes build the same nested structure. A
+    // prototype object joins it: writing there would land on a shared global.
+    const root: unknown[] =
+        isArray(data) && !isPrototypeObject(data) ? (data as unknown[]) : [];
+
     if (isNull(key)) {
-        if (isArray(data)) {
-            (data as unknown[]).push(...(values as unknown[]));
-            return data as TValue[];
-        }
+        root.push(...(values as unknown[]));
 
-        return [...(values as unknown[])] as TValue[];
+        return root as TValue[];
     }
-
-    if (!isArray(data)) {
-        const out: unknown[] = [];
-        const segs = parseSegments(key);
-        if (!segs || segs.length === 0) {
-            return out as TValue[];
-        }
-
-        // Filter to only numeric segments for array operations
-        const numericSegs = segs.filter((s): s is number => isNumber(s));
-        if (numericSegs.length !== segs.length) {
-            // Mixed paths not supported in this array-only function
-            return out as TValue[];
-        }
-
-        const parentSegs = numericSegs.slice(0, -1);
-        let cursor: unknown[] = out;
-        for (const _desired of parentSegs) {
-            // Always append since we start with empty arrays and traverse immediately
-            const child: unknown[] = [];
-            cursor.push(child);
-            cursor = child;
-        }
-
-        cursor.push(...(values as unknown[]));
-
-        return out as TValue[];
-    }
-
-    // At this point, data is guaranteed to be an array
-    const root: unknown[] = data as unknown[];
 
     const segs = parseSegments(key);
     if (!segs || segs.length === 0) {
-        return data as TValue[];
+        return root as TValue[];
     }
 
     // Filter to only numeric segments for array operations
     const numericSegs = segs.filter((s): s is number => isNumber(s));
     if (numericSegs.length !== segs.length) {
         // Mixed paths not supported in this array-only function
-        return data as TValue[];
+        return root as TValue[];
     }
 
     const clamp = (idx: number, length: number): number => {
@@ -798,6 +776,10 @@ export function pushWithPath<TValue>(
         }
 
         const next = cursor[idx];
+        if (isPrototypeObject(next)) {
+            return root as TValue[];
+        }
+
         if (isNull(next)) {
             const child: unknown[] = [];
             cursor[idx] = child;
@@ -810,24 +792,29 @@ export function pushWithPath<TValue>(
             continue;
         }
 
-        throw new Error(
-            `Array value for key [${String(key)}] must be an array, ${typeOf(next)} found.`,
-        );
+        throw new Error(arrayValueMessage(next, key));
     }
 
-    const leaf = numericSegs[numericSegs.length - 1]!;
-    if (leaf < cursor.length) {
-        const existing = cursor[leaf];
-        if (isBoolean(existing)) {
-            throw new Error(
-                `Array value for key [${String(key)}] must be an array, boolean found.`,
-            );
-        }
+    // `Arr::push` appends into the array AT the key, never beside it; an existing
+    // value there must itself be an array (PHP's `Arr::array()` rule), and an
+    // absent one becomes a fresh array first.
+    const leaf = clamp(numericSegs[numericSegs.length - 1]!, cursor.length);
+
+    if (leaf < cursor.length && !isArray(cursor[leaf])) {
+        throw new Error(arrayValueMessage(cursor[leaf], key));
     }
 
-    cursor.push(...(values as unknown[]));
+    if (leaf === cursor.length) {
+        cursor.push([]);
+    }
 
-    return data as TValue[];
+    const target = cursor[leaf];
+
+    if (!isPrototypeObject(target)) {
+        (target as unknown[]).push(...(values as unknown[]));
+    }
+
+    return root as TValue[];
 }
 
 /**
@@ -922,7 +909,7 @@ export function dotFlattenObject<
             ) {
                 walk(value as Record<TKey, TValue>, newKey, currentDepth + 1);
             } else {
-                results[newKey] = value;
+                defineKey(results as Record<string, TValue>, newKey, value);
             }
         }
     };
@@ -982,16 +969,17 @@ export function dotFlattenArray<TValue>(
 
 /**
  * Expand a flat object with dot notation keys into a nested structure.
- * Converts a flattened object back into its original nested form, supporting both arrays and objects.
+ *
+ * Dispatches to {@link undotExpandObject} for the (always plain-object) `map`
+ * input; nested consecutive-integer containers become real arrays, but the
+ * root always stays an object — see {@link undotExpandObject}.
  *
  * @param map - The flat object with dot-notated keys.
  * @returns A nested structure (array or object).
  *
  * @example
  *
- * Expand flat objects to nested structures
  * undotExpand({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
- * undotExpand({'0': 'x', '1.name': 'John'}); -> ['x', {name: 'John'}]
  */
 export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
@@ -1004,31 +992,115 @@ export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
+ * Replace a nested container with a real array when its own keys are exactly
+ * "0".."n-1", mirroring PHP's `array_is_list`. Only touches containers the
+ * expansion itself created, walked deepest-first.
+ *
+ * @param results - The expanded structure to mutate in place.
+ * @param containerPaths - Dot-paths of containers the expansion created.
+ */
+function promoteConsecutiveIntegerContainers(
+    results: Record<string, unknown>,
+    containerPaths: Set<string>,
+): void {
+    const sortedPaths = [...containerPaths].sort(
+        (a, b) => b.split(".").length - a.split(".").length,
+    );
+
+    for (const path of sortedPaths) {
+        const segments = path.split(".");
+        const lastSegment = segments[segments.length - 1] as string;
+        const parentSegments = segments.slice(0, -1);
+
+        const parent: unknown =
+            parentSegments.length === 0
+                ? results
+                : getNestedValue(results, parentSegments.join("."));
+
+        if (!isObject(parent)) {
+            continue;
+        }
+
+        const container = (parent as Record<string, unknown>)[lastSegment];
+
+        if (!isObject(container)) {
+            continue;
+        }
+
+        const keys = Object.keys(container);
+        const isConsecutiveList =
+            keys.length > 0 && keys.every((k, i) => k === String(i));
+
+        if (isConsecutiveList) {
+            defineKey(
+                parent as Record<string, unknown>,
+                lastSegment,
+                keys.map((k) => (container as Record<string, unknown>)[k]),
+            );
+        }
+    }
+}
+
+/**
  * Expand a flat object with dot notation keys into a nested object structure.
- * Converts a flattened object back into its original nested object form.
+ *
+ * Nested containers whose own keys are the consecutive integers `0..n-1` are
+ * rebuilt as real arrays (see {@link promoteConsecutiveIntegerContainers}); the
+ * root always stays a plain object.
  *
  * @param map - The flat object with dot-notated keys.
  * @returns A nested object structure.
  *
  * @example
  *
- * Expand flat object to nested object
  * undotExpandObject({'user.name': 'John', 'user.age': 30}); -> {user: {name: 'John', age: 30}}
- * undotExpandObject({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
  */
 export function undotExpandObject<
     TValue,
     TKey extends PropertyKey = PropertyKey,
 >(map: Record<TKey, TValue>): Record<TKey, TValue> {
     const results: Record<string, TValue> = {} as Record<TKey, TValue>;
+    const containerPaths = new Set<string>();
 
     // Object.entries returns string keys only (symbols are not enumerated)
     for (const [key, value] of Object.entries(map) as [string, TValue][]) {
         const result = setObjectValue(results, key, value);
-        Object.assign(results, result);
+        // Object.assign uses [[Set]], so a "__proto__" key setObjectValue
+        // returns as its own data would reparent results instead of copying.
+        for (const [k, v] of Object.entries(result)) {
+            defineKey(results, k, v);
+        }
+
+        const segments = key.split(".");
+        for (let i = 1; i < segments.length; i++) {
+            containerPaths.add(segments.slice(0, i).join("."));
+        }
     }
 
+    promoteConsecutiveIntegerContainers(
+        results as Record<string, unknown>,
+        containerPaths,
+    );
+
     return results as Record<TKey, TValue>;
+}
+
+/**
+ * Ceiling for a numeric `undot` segment: 2**24 keeps a fully materialized
+ * array under ~134MB. `Arr.undot` also caps each container's own max index,
+ * summed once per container, since N such containers cost N x ~134MB.
+ */
+export const MAX_UNDOT_INDEX = 2 ** 24 - 2;
+
+/**
+ * Whether `segment` is a canonical decimal integer PHP would treat as an
+ * array key, and small enough to safely become a real array index.
+ *
+ * @param segment - The path segment to check.
+ * @returns True if `segment` is a safe, canonical array index.
+ */
+export function isCanonicalUndotIndex(segment: string): boolean {
+    return isIntegerLikeKey(segment) && Number(segment) <= MAX_UNDOT_INDEX;
 }
 
 /**
@@ -1049,10 +1121,6 @@ export function undotExpandArray<
     TKey extends PropertyKey = PropertyKey,
 >(map: Record<TKey, TValue>): TValue[] {
     const root: unknown[] = [];
-    const isValidIndex = (seg: string): boolean => {
-        const n = seg.length ? Number(seg) : NaN;
-        return isInteger(n) && n >= 0;
-    };
     // Object.entries returns string keys only
     for (const [rawKey, value] of Object.entries(map ?? {}) as [
         string,
@@ -1063,7 +1131,7 @@ export function undotExpandArray<
         }
 
         const segments = rawKey.split(".");
-        if (segments.some((s) => !isValidIndex(s))) {
+        if (segments.some((s) => !isCanonicalUndotIndex(s))) {
             continue;
         }
 
@@ -1158,7 +1226,7 @@ export function getNestedValue<TReturn>(
             current = current[index];
         } else {
             // Handle object property access
-            if (!(segment in current)) {
+            if (!Object.hasOwn(current as object, segment)) {
                 return undefined;
             }
             current = (current as Record<string, unknown>)[segment];
@@ -1269,6 +1337,12 @@ export function setMixed<TValue>(
     key: PathKey,
     value: unknown,
 ): TValue[] {
+    // A prototype object is shared by everything that inherits from it, so no
+    // caller-supplied path may write into one, array-shaped or not.
+    if (isPrototypeObject(arr)) {
+        return arr;
+    }
+
     if (isNull(key) || isUndefined(key)) {
         // If key is null, replace the entire array
         arr.length = 0;
@@ -1307,14 +1381,14 @@ export function setMixed<TValue>(
     const firstIndex = parseInt(firstSegment, 10);
     // At this point, current === arr which is always an array
     if (!isInteger(firstIndex) || firstIndex < 0) {
-        // If first segment is not a valid array index and array is not empty,
-        // treat this as an invalid path and return unchanged
-        if ((current as unknown[]).length > 0) {
-            return arr;
-        }
         // If array is empty, create object at index 0 for non-numeric first segment
-        (current as unknown[]).push({});
-        current = (current as unknown[])[0];
+        if ((current as unknown[]).length === 0) {
+            (current as unknown[]).push({});
+            current = (current as unknown[])[0];
+        }
+        // Otherwise fall through: Arr::set stores a key that is no array
+        // index on the array itself, and a JS array is an object, so it
+        // can carry it as an own property rather than losing the value.
     }
 
     for (let i = 0; i < segments.length - 1; i++) {
@@ -1348,11 +1422,14 @@ export function setMixed<TValue>(
             // Handle non-numeric keys (object properties)
             // At this point, current is guaranteed to be an object (or array treated as object)
             // because we always create structure before navigating
-            if (isUnsafeKey(segment)) {
-                return arr;
-            }
             const obj = current as Record<string, unknown>;
-            const nextValue = obj[segment];
+            const unsafe = isUnsafeKey(segment);
+            // An unsafe key not yet its own risks reading the inherited
+            // accessor/data value (e.g. Object.prototype); treat it as absent.
+            const nextValue =
+                unsafe && !Object.hasOwn(obj, segment)
+                    ? undefined
+                    : obj[segment];
             if (
                 isNull(nextValue) ||
                 isUndefined(nextValue) ||
@@ -1360,9 +1437,32 @@ export function setMixed<TValue>(
             ) {
                 const nextSegment = segments[i + 1]!;
                 const nextIndex = parseInt(nextSegment, 10);
-                obj[segment] = isInteger(nextIndex) ? [] : {};
+                defineKey(
+                    obj,
+                    segment,
+                    (isInteger(nextIndex) ? [] : {}) as TValue,
+                );
+            } else if (unsafe) {
+                // An owned unsafe key can itself be a live reference to a
+                // global (e.g. its value literally IS Object.prototype);
+                // clone it so the write below never lands on the real thing.
+                defineKey(
+                    obj,
+                    segment,
+                    (isArray(nextValue)
+                        ? [...(nextValue as unknown[])]
+                        : {
+                              ...(nextValue as Record<string, unknown>),
+                          }) as TValue,
+                );
             }
             current = obj[segment];
+        }
+
+        // Descending into one makes every write below it global, so the same
+        // refusal has to apply at each step, not only at the root.
+        if (isPrototypeObject(current)) {
+            return arr;
         }
     }
 
@@ -1379,12 +1479,11 @@ export function setMixed<TValue>(
             current.push(undefined as TValue);
         }
         current[lastIndex] = value as TValue;
-    } else if (
-        !isNull(current) &&
-        isObject(current) &&
-        !isUnsafeKey(lastSegment)
-    ) {
-        (current as Record<string, unknown>)[lastSegment] = value;
+    } else if (!isNull(current) && isObjectAny(current)) {
+        // The traversal above builds structure as it goes, so `current` is
+        // an array or plain object here for any array-shaped root — this
+        // guard only matters for a caller-supplied root that never was one.
+        defineKey(current as Record<string, unknown>, lastSegment, value);
     }
 
     return arr;
@@ -1409,6 +1508,12 @@ export function pushMixed<TValue>(
     key: PathKey,
     ...values: TValue[]
 ): TValue[] {
+    // A prototype object is shared by everything that inherits from it, so no
+    // caller-supplied path may push into one, array-shaped or not.
+    if (isPrototypeObject(data)) {
+        return data as TValue[];
+    }
+
     if (isNull(key) || isUndefined(key)) {
         if (isArray(data)) {
             (data as unknown[]).push(...(values as unknown[]));
@@ -1459,12 +1564,23 @@ export function pushMixed<TValue>(
             current = current[index];
         } else if (!isNull(current) && isObject(current)) {
             // Handle object properties
-            if (isUnsafeKey(segment)) {
-                return data as TValue[];
-            }
             const obj = current as Record<string, unknown>;
-            if (isNull(obj[segment]) || !isObject(obj[segment])) {
-                obj[segment] = [];
+            const unsafe = isUnsafeKey(segment);
+            // An unsafe key not yet its own risks reading the inherited
+            // accessor/data value (e.g. Object.prototype); treat it as absent.
+            const existing =
+                unsafe && !Object.hasOwn(obj, segment)
+                    ? undefined
+                    : obj[segment];
+            if (isNull(existing) || !isObject(existing)) {
+                defineKey(obj, segment, []);
+            } else if (unsafe) {
+                // An owned unsafe key can itself be a live reference to a
+                // global (e.g. its value literally IS Object.prototype);
+                // clone it so later writes never land on the real thing.
+                defineKey(obj, segment, {
+                    ...(existing as Record<string, unknown>),
+                });
             }
             current = obj[segment];
         } else {
@@ -1524,7 +1640,7 @@ export function setMixedImmutable<TValue>(
         // Object case - obj is a non-null, non-array object
         const result: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(obj)) {
-            result[k] = deepCopy(v);
+            defineKey(result, k, deepCopy(v));
         }
         return result;
     };
@@ -1537,7 +1653,10 @@ export function setMixedImmutable<TValue>(
 
 /**
  * Check if a key exists using mixed array/object dot notation.
- * Supports both numeric array indices and object property names in paths.
+ *
+ * A literal key wins over path traversal even when it contains dots; this
+ * fast path only applies to plain objects, since a JS array's `in` operator
+ * also climbs `Array.prototype`.
  *
  * @param data - The data to check.
  * @param key - The path to check.
@@ -1546,8 +1665,6 @@ export function setMixedImmutable<TValue>(
  * @example
  *
  * hasMixed([{ name: "John" }], "0.name"); -> true
- * hasMixed([{ name: "John" }], "0.age"); -> false
- * hasMixed([], "user.name"); -> false
  */
 export function hasMixed(data: unknown, key: PathKey): boolean {
     if (isNull(key) || isUndefined(key)) {
@@ -1571,11 +1688,34 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
     }
 
     if (isNumber(key)) {
-        return isArray(data) && key >= 0 && key < data.length;
+        if (isArray(data)) {
+            return key >= 0 && key < data.length;
+        }
+
+        return isObject(data) && Object.hasOwn(data as object, String(key));
+    }
+
+    if (!isArray(data) && !isObject(data)) {
+        return false;
+    }
+
+    const keyStr = key.toString();
+
+    // Literal key wins even with dots, but only for plain objects — arrays fall
+    // through to bounds-checked traversal below, since a JS array's `in` climbs
+    // `Array.prototype` and would wrongly report existence for keys no PHP array has.
+    if (isObject(data)) {
+        if (Object.hasOwn(data as object, keyStr)) {
+            return true;
+        }
+
+        if (!keyStr.includes(".")) {
+            return false;
+        }
     }
 
     // Use getNestedValue to check existence
-    const result = getNestedValue(data, key.toString());
+    const result = getNestedValue(data, keyStr);
 
     return !isUndefined(result);
 }
@@ -1583,6 +1723,9 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
 /**
  * Get a value from an object using dot notation.
  * This is an object-specific version that handles object property access.
+ *
+ * A literal key wins over dot-path traversal even when it contains dots,
+ * and a literal key whose value is `undefined` still counts as found.
  *
  * @param obj - The object to get the value from.
  * @param key - The key or dot-notated path.
@@ -1615,11 +1758,19 @@ export function getObjectValue<
 
     const keyStr = String(key);
 
-    // Handle simple property access (no dots)
-    if (!keyStr.includes(".")) {
-        const value = (obj as Record<string, unknown>)[keyStr];
+    // The literal key wins even when it contains dots. Presence, not
+    // definedness, decides: a literal key whose value is `undefined` is
+    // still "found" and resolves to the default, not dot-path traversal.
+    if (Object.hasOwn(obj as object, keyStr)) {
+        const literalValue = (obj as Record<string, unknown>)[keyStr];
 
-        return !isUndefined(value) ? (value as TReturn) : resolveDefault();
+        return !isUndefined(literalValue)
+            ? (literalValue as TReturn)
+            : resolveDefault();
+    }
+
+    if (!keyStr.includes(".")) {
+        return resolveDefault();
     }
 
     // Handle nested property access with dot notation
@@ -1655,43 +1806,43 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
 
     // Handle simple property access (no dots)
     if (!keyStr.includes(".")) {
-        if (!isUnsafeKey(keyStr)) {
-            result[keyStr as TKey] = value;
-        }
+        defineKey(result as Record<string, unknown>, keyStr, value);
 
         return result as Record<TKey, TValue>;
     }
 
     // Handle nested property access with dot notation
     const segments = keyStr.split(".");
-
-    if (segments.some((s) => isUnsafeKey(s))) {
-        return result as Record<TKey, TValue>;
-    }
-
     let current: Record<string, unknown> = result;
 
     for (let i = 0; i < segments.length - 1; i++) {
         const segment = segments[i];
-        if (!segment || isUnsafeKey(segment)) {
+        if (!segment) {
             continue;
         }
 
-        if (!current[segment] || !isObject(current[segment])) {
-            current[segment] = {};
-        } else {
-            // Clone nested objects to maintain immutability
-            current[segment] = {
-                ...(current[segment] as Record<string, unknown>),
-            };
-        }
+        // An unsafe segment not yet its own risks reading the inherited
+        // accessor/data value (e.g. Object.prototype); treat it as absent.
+        const existing =
+            isUnsafeKey(segment) && !Object.hasOwn(current, segment)
+                ? undefined
+                : current[segment];
+
+        defineKey(
+            current,
+            segment,
+            !existing || !isObject(existing)
+                ? {}
+                : // Clone nested objects to maintain immutability
+                  { ...(existing as Record<string, unknown>) },
+        );
 
         current = current[segment] as Record<string, unknown>;
     }
 
     const lastSegment = segments[segments.length - 1];
-    if (lastSegment && !isUnsafeKey(lastSegment)) {
-        current[lastSegment] = value;
+    if (lastSegment) {
+        defineKey(current, lastSegment, value);
     }
 
     return result as Record<TKey, TValue>;
@@ -1699,6 +1850,10 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Check if a key exists in an object using dot notation.
+ *
+ * A literal key that itself contains dots wins over path traversal:
+ * `{ "products.desk": {} }` must report the literal key as found without
+ * ever treating it as `products` -> `desk`.
  *
  * @param obj - The object to check.
  * @param key - The key or dot-notated path.
@@ -1714,9 +1869,13 @@ export function hasObjectKey<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const keyStr = String(key);
 
-    // Handle simple property access (no dots)
+    // The literal key wins even when it contains dots.
+    if (Object.hasOwn(obj as object, keyStr)) {
+        return true;
+    }
+
     if (!keyStr.includes(".")) {
-        return keyStr in (obj as Record<string, unknown>);
+        return false;
     }
 
     // Handle nested property access with dot notation

@@ -1,5 +1,5 @@
 import * as Path from "@tolki/path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 describe("Path Functions", () => {
     describe("undotExpandObject", () => {
@@ -8,6 +8,64 @@ describe("Path Functions", () => {
             const map = { "a.b": 1, "c.d": 2 };
             const result = Path.undotExpandObject(map);
             expect(result).toEqual({ a: { b: 1 }, c: { d: 2 } });
+        });
+
+        it("rebuilds a list from consecutive integer segments starting at 0", () => {
+            // PHP-verified in docs/php-parity/task-09-paths.json: Arr::set's algorithm
+            // over this input yields {"user":{"languages":["PHP","C#"],"name":"Taylor"}},
+            // so integer segments rebuild a list rather than a keyed map.
+            expect(
+                Path.undotExpandObject({
+                    "user.languages.0": "PHP",
+                    "user.languages.1": "C#",
+                    "user.name": "Taylor",
+                }),
+            ).toEqual({ user: { languages: ["PHP", "C#"], name: "Taylor" } });
+        });
+
+        it("does not rebuild a list when integer segments are not consecutive from 0", () => {
+            expect(
+                Path.undotExpandObject({
+                    "item.0": "a",
+                    "item.2": "c",
+                }),
+            ).toEqual({ item: { 0: "a", 2: "c" } });
+        });
+
+        it("skips promotion when a tracked container path was later overwritten by a scalar", () => {
+            // "a.b" is tracked as a container path while processing "a.b.c", but the
+            // later "a" key (no dots) overwrites the entire nested object with a
+            // scalar.
+            expect(
+                Path.undotExpandObject({
+                    "a.b.c": 1,
+                    a: 2,
+                }),
+            ).toEqual({ a: 2 });
+        });
+
+        // Reviewer finding (2026-08-27): setObjectValue returns "__proto__"
+        // as an own key; the old Object.assign-based accumulator merge used
+        // [[Set]], which reparented the result instead of copying it as data.
+        it("keeps a __proto__ key as own data instead of reparenting the result", () => {
+            const result = Path.undotExpandObject(
+                JSON.parse('{"__proto__.PWN":"yes"}'),
+            ) as Record<string, unknown>;
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(Object.hasOwn(result, "__proto__")).toBe(true);
+            expect(
+                (result["__proto__"] as Record<string, unknown>)["PWN"],
+            ).toBe("yes");
+            expect((result as { PWN?: unknown }).PWN).toBeUndefined();
+        });
+
+        it("promotes a consecutive-integer __proto__ container to an array as own data", () => {
+            const result = Path.undotExpandObject(
+                JSON.parse('{"__proto__.0":"a","__proto__.1":"b"}'),
+            ) as Record<string, unknown>;
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(Object.hasOwn(result, "__proto__")).toBe(true);
+            expect(result["__proto__"]).toEqual(["a", "b"]);
         });
     });
 
@@ -164,6 +222,11 @@ describe("Path Functions", () => {
             // First 0 -> [null], second 0 -> null, can't navigate further
             expect(Path.hasPath(data, "0.0.0")).toBe(false);
         });
+
+        it("does not see an inherited key via a dotted object path", () => {
+            // `in` climbs the prototype chain; {} has no own "constructor".
+            expect(Path.hasPath({ a: {} }, "a.constructor")).toBe(false);
+        });
     });
 
     describe("getRaw", () => {
@@ -276,6 +339,13 @@ describe("Path Functions", () => {
         it("returns false for non-object non-array root with numeric key", () => {
             const result = Path.getRaw("string", 0);
             expect(result).toEqual({ found: false });
+        });
+
+        it("does not see an inherited key via a dotted object path", () => {
+            // `in` climbs the prototype chain; {} has no own "constructor".
+            expect(Path.getRaw({ a: {} }, "a.constructor")).toEqual({
+                found: false,
+            });
         });
     });
 
@@ -578,10 +648,14 @@ describe("Path Functions", () => {
         });
 
         it("creates nested structure for non-accessible data", () => {
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             expect(Path.pushWithPath("not-array", "0", "value")).toEqual([
-                "value",
+                ["value"],
             ]);
-            expect(Path.pushWithPath(null, "0.0", "deep")).toEqual([["deep"]]);
+            expect(Path.pushWithPath(null, "0.0", "deep")).toEqual([
+                [["deep"]],
+            ]);
         });
 
         it("returns empty array for invalid segments", () => {
@@ -590,13 +664,17 @@ describe("Path Functions", () => {
             );
         });
 
-        it("pushes to nested arrays", () => {
+        it("pushes into the array already at the key", () => {
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             const data = [["a"]];
-            expect(Path.pushWithPath(data, "0", "b")).toEqual([["a"], "b"]);
+            expect(Path.pushWithPath(data, "0", "b")).toEqual([["a", "b"]]);
         });
 
         it("creates nested arrays as needed", () => {
-            expect(Path.pushWithPath([], "0.0", "deep")).toEqual([["deep"]]);
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
+            expect(Path.pushWithPath([], "0.0", "deep")).toEqual([[["deep"]]]);
         });
 
         it("handles existing non-array elements", () => {
@@ -613,19 +691,21 @@ describe("Path Functions", () => {
             );
         });
 
-        it("extends arrays when setting at higher indices", () => {
+        it("pushes into the empty array already at the key", () => {
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             const data = [[]];
             expect(Path.pushWithPath(data, "0", "a", "b")).toEqual([
-                [],
-                "a",
-                "b",
+                ["a", "b"],
             ]);
         });
 
         it("handles complex nested pushing", () => {
+            // The port clamps an out-of-range index to an append; PHP writes a gapped
+            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
             const data: unknown[] = [];
             const result = Path.pushWithPath(data, "0.1", "nested");
-            expect(result).toEqual([["nested"]]); // Creates structure to push to 0.1
+            expect(result).toEqual([[["nested"]]]);
         });
 
         it("covers additional pushWithPath edge cases", () => {
@@ -678,8 +758,9 @@ describe("Path Functions", () => {
             const data = [["existing"]];
             // Navigating to idx 5 should clamp to cursor.length (1)
             const result = Path.pushWithPath(data, "5.0", "value");
-            // Since we navigate to a high index, it creates nested structure and pushes
-            expect(result).toEqual([["existing"], ["value"]]);
+            // The port clamps an out-of-range index to an append; PHP writes a gapped
+            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
+            expect(result).toEqual([["existing"], [["value"]]]);
         });
 
         describe("array data branch with existing elements", () => {
@@ -687,16 +768,16 @@ describe("Path Functions", () => {
                 // Tests null replacement in array data branch
                 const data: (null | unknown[])[] = [null];
                 Path.pushWithPath(data, "0.0", "value");
-                // null at index 0 gets replaced with array
-                expect(data).toEqual([["value"]]);
+                // null at index 0 gets replaced with an array, then the leaf below it
+                expect(data).toEqual([[["value"]]]);
             });
 
             it("navigates into existing array", () => {
                 // Tests navigate into existing array
                 const data = [["existing"]];
                 Path.pushWithPath(data, "0.1", "new");
-                // Should navigate to data[0] and push "new"
-                expect(data).toEqual([["existing", "new"]]);
+                // Should navigate to data[0] and push into a fresh array at index 1
+                expect(data).toEqual([["existing", ["new"]]]);
             });
 
             it("throws for non-array at existing position", () => {
@@ -720,18 +801,19 @@ describe("Path Functions", () => {
             });
         });
 
-        describe("non-array data branch coverage", () => {
-            it("navigates through existing array at idx in non-array data branch", () => {
-                // Non-array data, path "0.1.0" with nested arrays
+        describe("non-accessible data stands in for an empty array", () => {
+            it("creates the whole nested structure for a clamped path", () => {
+                // The port clamps an out-of-range index to an append; PHP writes a gapped
+                // integer key instead (task-16-final-review.json, "push at an out-of-range index").
                 const result = Path.pushWithPath(null, "0.1.0", "value");
-                // Creates nested array structure
-                expect(result).toEqual([[["value"]]]);
+                expect(result).toEqual([[[["value"]]]]);
             });
 
-            it("replaces null at nested position in non-array data branch", () => {
-                // This tests where next is null
+            it("creates the whole nested structure for a three-segment path", () => {
+                // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+                // into the array AT the key, never beside it").
                 const result = Path.pushWithPath(null, "0.0.0", "value");
-                expect(result).toEqual([[["value"]]]);
+                expect(result).toEqual([[[["value"]]]]);
             });
 
             it("throws for non-array element in non-array data branch", () => {
@@ -746,10 +828,11 @@ describe("Path Functions", () => {
                 );
             });
 
-            it("checks boolean at leaf position in non-array data branch", () => {
-                // Tests boolean check at leaf
+            it("pushes a boolean value into the created leaf array", () => {
+                // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+                // into the array AT the key, never beside it").
                 const result = Path.pushWithPath(null, "0", true);
-                expect(result).toEqual([true]);
+                expect(result).toEqual([[true]]);
             });
         });
 
@@ -760,14 +843,17 @@ describe("Path Functions", () => {
         });
 
         it("handles non-array data with valid numeric path", () => {
-            // Creates array structure from null
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             const result = Path.pushWithPath(null, "0", "value");
-            expect(result).toEqual(["value"]);
+            expect(result).toEqual([["value"]]);
         });
 
         it("handles non-array data with nested numeric path", () => {
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             const result = Path.pushWithPath(null, "0.0", "value");
-            expect(result).toEqual([["value"]]);
+            expect(result).toEqual([[["value"]]]);
         });
 
         it("handles boolean at leaf position during push", () => {
@@ -792,7 +878,9 @@ describe("Path Functions", () => {
             // Test pushWithPath navigation creating child arrays
             const data: unknown[] = [];
             Path.pushWithPath(data, "0.1.2", "deep-value");
-            expect(data[0]).toEqual([["deep-value"]]);
+            // The port clamps an out-of-range index to an append; PHP writes a gapped
+            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
+            expect(data[0]).toEqual([[["deep-value"]]]);
 
             // Test pushWithPath with non-array existing value
             const data2 = [{}]; // Object at index 0
@@ -819,10 +907,10 @@ describe("Path Functions", () => {
 
         it("navigates through existing null elements", () => {
             const data: unknown[] = [null];
-            // When we have existing array with null at position 0, function replaces null with child array
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             Path.pushWithPath(data, "0.0", "value");
-            // Path "0.0" navigates to data[0] (null → []), then pushes "value" to cursor
-            expect(data).toEqual([["value"]]);
+            expect(data).toEqual([[["value"]]]);
         });
 
         it("handles leaf index with existing boolean in array data", () => {
@@ -837,16 +925,18 @@ describe("Path Functions", () => {
 
         it("creates nested arrays during navigation", () => {
             const data: unknown[] = [];
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             Path.pushWithPath(data, "0.0", "deep");
-            // Creates data[0] = [] then pushes "deep" to that array
-            expect(data).toEqual([["deep"]]);
+            expect(data).toEqual([[["deep"]]]);
         });
 
         it("handles pushing values when navigating creates new structure", () => {
             const data: unknown[] = [[]];
+            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // into the array AT the key, never beside it").
             Path.pushWithPath(data, "0.0", "value");
-            // Navigates to data[0] (which is []), pushes "value" to cursor
-            expect(data).toEqual([["value"]]);
+            expect(data).toEqual([[["value"]]]);
         });
     });
 
@@ -919,21 +1009,26 @@ describe("Path Functions", () => {
 
     describe("undotExpand", () => {
         it("expands flat object to nested arrays", () => {
+            // The root stays an object, but the nested "1" container's keys are a
+            // consecutive integer sequence from 0, so it rebuilds a real array.
             expect(
                 Path.undotExpand({
                     "0": "a",
                     "1.0": "b",
                     "1.1": "c",
                 }),
-            ).toEqual({ 0: "a", 1: { 0: "b", 1: "c" } });
+            ).toEqual({ 0: "a", 1: ["b", "c"] });
         });
 
         it("handles deeply nested expansion", () => {
+            // Each non-root container built along the path ("0" and "0.0")
+            // has the single key "0", a one-element consecutive sequence,
+            // so both levels rebuild as arrays.
             expect(
                 Path.undotExpand({
                     "0.0.0": "deep",
                 }),
-            ).toEqual({ 0: { 0: { 0: "deep" } } });
+            ).toEqual({ 0: [["deep"]] });
         });
 
         it("handles empty or null input", () => {
@@ -969,11 +1064,13 @@ describe("Path Functions", () => {
         });
 
         it("handles existing nested structure conflicts", () => {
+            // Nested "0" container's keys "0"/"1" are consecutive from 0,
+            // so it rebuilds as a real array.
             const result = Path.undotExpand({
                 "0.0": "first",
                 "0.1": "second",
             });
-            expect(result).toEqual({ 0: { 0: "first", 1: "second" } });
+            expect(result).toEqual({ 0: ["first", "second"] });
         });
 
         it("covers undotExpand edge cases", () => {
@@ -981,13 +1078,18 @@ describe("Path Functions", () => {
                 "0": "string",
                 "0.child": "should-be-ignored",
             });
+            // Nested "0" container's only key is "child" (not "0"), so it
+            // stays an object.
             expect(result1).toEqual({ 0: { child: "should-be-ignored" } });
 
+            // Nested "0" container's only key is "0" — a one-element
+            // consecutive sequence — so it rebuilds as a single-element
+            // array, even though that element is itself an object.
             const result2 = Path.undotExpand({
                 "0.0": "first",
                 "0.0.child": "ignored",
             });
-            expect(result2).toEqual({ 0: { 0: { child: "ignored" } } });
+            expect(result2).toEqual({ 0: [{ child: "ignored" }] });
         });
     });
 
@@ -1030,6 +1132,13 @@ describe("Path Functions", () => {
             const data = [null, { nested: null }];
             expect(Path.getNestedValue(data, "0.prop")).toBeUndefined();
             expect(Path.getNestedValue(data, "1.nested.prop")).toBeUndefined();
+        });
+
+        it("does not see an inherited key via a dotted object path", () => {
+            // `in` climbs the prototype chain; {} has no own "constructor".
+            expect(
+                Path.getNestedValue({ a: {} }, "a.constructor"),
+            ).toBeUndefined();
         });
     });
 
@@ -1148,10 +1257,16 @@ describe("Path Functions", () => {
             expect(arr).toEqual([{ user: { name: "John" } }]);
         });
 
-        it("returns unchanged for invalid paths on non-empty arrays", () => {
+        it("stores a non-index path as an own property on a non-empty array", () => {
+            // Arr::set(['existing'],'invalid.path','value') ->
+            // {0:'existing',invalid:{path:'value'}}.
             const arr = ["existing"];
             const result = Path.setMixed(arr, "invalid.path", "value");
-            expect(result).toEqual(["existing"]);
+
+            expect(Object.entries(result)).toEqual([
+                ["0", "existing"],
+                ["invalid", { path: "value" }],
+            ]);
         });
 
         it("handles mixed array/object nested paths", () => {
@@ -1184,12 +1299,12 @@ describe("Path Functions", () => {
             expect(arr2[0]).toEqual({ user: "John" });
         });
 
-        it("setMixed returns unchanged when first segment is invalid and array has items", () => {
-            // firstIndex is invalid but array is not empty
+        it("keeps the array's own indices when it stores a non-index path", () => {
             const arr = ["existing"];
             const result = Path.setMixed(arr, "invalid.path", "value");
-            // First segment "invalid" parses to NaN, array.length > 0, so return unchanged
-            expect(result).toEqual(["existing"]);
+
+            expect(result).toHaveLength(1);
+            expect(result[0]).toBe("existing");
         });
 
         it("setMixed handles paths with dots that create empty segments", () => {
@@ -1215,11 +1330,16 @@ describe("Path Functions", () => {
             expect(result).toEqual([{ data: { key: "value" } }]);
         });
 
-        it("handles first segment not being valid array index on non-empty array", () => {
+        it("stores a single non-index segment on a non-empty array", () => {
+            // Arr::set(['existing'],'invalid','value') ->
+            // {0:'existing',invalid:'value'}.
             const arr = ["existing"];
-            // Non-numeric first segment on non-empty array
             const result = Path.setMixed(arr, "invalid", "value");
-            expect(result).toEqual(["existing"]);
+
+            expect(Object.entries(result)).toEqual([
+                ["0", "existing"],
+                ["invalid", "value"],
+            ]);
         });
 
         it("handles object properties during path navigation", () => {
@@ -1297,30 +1417,104 @@ describe("Path Functions", () => {
             expect(result).toEqual([{ container: { name: "test" } }]);
         });
 
-        it("setMixed returns unchanged when final segment is non-numeric on array", () => {
-            // Tests to verify behavior when branches are skipped
-            // Navigate to an array, but last segment is non-numeric
-            // This should skip the final value setting
+        it("stores a non-numeric final segment on a nested array", () => {
+            // Arr::set([[]],'0.invalidKey','value') ->
+            // [{invalidKey:'value'}]; JS keeps the nested container an
+            // array and hangs the key off it.
             const arr: unknown[] = [[]];
             const result = Path.setMixed(arr, "0.invalidKey", "value");
-            // current is arr[0] which is [], lastIndex is NaN
-            // First if fails (lastIndex not valid), second if fails (current is array, not object)
-            // So nothing is set
-            expect(result).toEqual([[]]);
+
+            expect(Object.entries(result[0] as object)).toEqual([
+                ["invalidKey", "value"],
+            ]);
         });
 
-        it("ignores __proto__ in object property path", () => {
+        // docs/php-parity/task-17-second-review.json, "Arr::set writes a nested \"constructor.prototype\" path"
+        it("keeps a __proto__ key as own data in a nested path", () => {
             const arr: unknown[] = [{}];
             const result = Path.setMixed(arr, "0.__proto__.polluted", true);
+            const item = result[0] as Record<string, unknown>;
+            expect(Object.getPrototypeOf(item)).toBe(Object.prototype);
+            expect(Object.hasOwn(item, "__proto__")).toBe(true);
+            expect(
+                (item["__proto__"] as Record<string, unknown>)["polluted"],
+            ).toBe(true);
             expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
             expect(result).toBe(arr);
         });
 
-        it("ignores __proto__ as last segment for object assignment", () => {
+        // docs/php-parity/task-17-second-review.json, "Arr::set writes a \"__proto__\" key"
+        it("keeps a __proto__ key as own data as the last segment", () => {
             const arr: unknown[] = [{}];
             const result = Path.setMixed(arr, "0.__proto__", { evil: true });
+            const item = result[0] as Record<string, unknown>;
+            expect(Object.getPrototypeOf(item)).toBe(Object.prototype);
+            expect(Object.hasOwn(item, "__proto__")).toBe(true);
+            expect(item["__proto__"]).toEqual({ evil: true });
             expect(({} as Record<string, unknown>)["evil"]).toBeUndefined();
             expect(result).toBe(arr);
+        });
+
+        // An owned unsafe key can alias a live reference; descending through
+        // it without cloning first writes onto the aliased target, not fresh data.
+        describe("with an owned unsafe key aliasing a live reference", () => {
+            afterEach(() => {
+                expect(
+                    Object.getOwnPropertyNames(Object.prototype),
+                ).not.toContain("PWN");
+                expect(({} as { PWN?: unknown }).PWN).toBeUndefined();
+            });
+
+            it("clones a shared reference instead of writing through it", () => {
+                const shared = { keep: true };
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = shared;
+                const result = Path.setMixed([item], "0.__proto__.added", 1);
+                const owned = (result[0] as Record<string, unknown>)[
+                    "__proto__"
+                ] as Record<string, unknown>;
+                expect(owned).not.toBe(shared);
+                expect(owned).toEqual({ keep: true, added: 1 });
+                expect(shared).toEqual({ keep: true });
+            });
+
+            it("clones a shared array reference instead of writing through it", () => {
+                const shared = ["keep"];
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = shared;
+                const result = Path.setMixed([item], "0.__proto__.1", "added");
+                const owned = (result[0] as Record<string, unknown>)[
+                    "__proto__"
+                ];
+                expect(owned).not.toBe(shared);
+                expect(owned).toEqual(["keep", "added"]);
+                expect(shared).toEqual(["keep"]);
+            });
+
+            it("never writes onto Object.prototype through an aliased __proto__ key", () => {
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = Object.prototype;
+                Path.setMixed([item], "0.__proto__.PWN", 1);
+            });
+
+            it("never corrupts Object.prototype.constructor through a chained alias", () => {
+                const before = Object.prototype.constructor;
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = Object.prototype;
+                Path.setMixed([item], "0.__proto__.constructor.PWN", 1);
+                expect(Object.prototype.constructor).toBe(before);
+            });
+        });
+
+        // Reviewer minor (2026-08-27): a caller-supplied root that was never
+        // an array or object must stay a no-op, not throw from defineKey.
+        it("is a no-op for a final segment write against a non-object root", () => {
+            expect(() =>
+                Path.setMixed("abc" as unknown as unknown[], "x", 1),
+            ).not.toThrow();
+            expect(Path.setMixed("abc" as unknown as unknown[], "x", 1)).toBe(
+                "abc",
+            );
         });
     });
 
@@ -1522,11 +1716,60 @@ describe("Path Functions", () => {
             expect(data).toEqual([{ user: ["value"] }]);
         });
 
-        it("ignores __proto__ in object property path", () => {
+        // docs/php-parity/task-17-second-review.json, "Arr::set writes a \"__proto__\" key"
+        it("keeps a __proto__ key as an own array container when pushing", () => {
             const data: unknown[] = [{}];
-            const result = Path.pushMixed(data, "0.__proto__.0", "evil");
+            const result = Path.pushMixed<unknown>(
+                data,
+                "0.__proto__.0",
+                "evil",
+            );
+            const item = result[0] as Record<string, unknown>;
+            expect(Object.getPrototypeOf(item)).toBe(Object.prototype);
+            expect(Object.hasOwn(item, "__proto__")).toBe(true);
+            expect(item["__proto__"]).toEqual(["evil"]);
             expect(({} as Record<string, unknown>)["0"]).toBeUndefined();
             expect(result).toBe(data);
+        });
+
+        // Reviewer finding (2026-08-27): same aliasing hazard as setMixed —
+        // an owned unsafe key whose value is a live reference must be cloned
+        // before pushMixed's navigation descends through it.
+        describe("with an owned unsafe key aliasing a live reference", () => {
+            afterEach(() => {
+                expect(
+                    Object.getOwnPropertyNames(Object.prototype),
+                ).not.toContain("PWN");
+                expect(({} as { PWN?: unknown }).PWN).toBeUndefined();
+            });
+
+            it("clones a shared reference instead of navigating through it", () => {
+                const shared = { keep: true };
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = shared;
+                Path.pushMixed<unknown>([item], "0.__proto__.ignored", "evil");
+                const owned = item["__proto__"] as Record<string, unknown>;
+                expect(owned).not.toBe(shared);
+                expect(shared).toEqual({ keep: true });
+            });
+
+            it("never writes onto Object.prototype through an aliased __proto__ key", () => {
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = Object.prototype;
+                Path.pushMixed<unknown>([item], "0.__proto__.ignored", "x");
+            });
+
+            it("never corrupts Object.prototype.constructor through a chained alias", () => {
+                const before = Object.prototype.constructor;
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = Object.prototype;
+                Path.pushMixed<unknown>(
+                    [item],
+                    "0.__proto__.constructor.ignored",
+                    "x",
+                );
+                expect(Object.prototype.constructor).toBe(before);
+            });
         });
     });
 
@@ -1743,6 +1986,52 @@ describe("Path Functions", () => {
             const data = [{ user: { name: "John" } }];
             expect(Path.hasMixed(data, "0.user.name")).toBe(true);
         });
+
+        it("resolves a literal key containing dots before traversing it as a path", () => {
+            // Arr::has calls Arr::exists first (Arr.php:534) — the literal key wins
+            // even though it contains dots (PHP-verified:
+            // docs/php-parity/task-09-paths.json, "Arr::has — literal dotted key").
+            expect(
+                Path.hasMixed(
+                    { "products.desk": { price: 100 } },
+                    "products.desk",
+                ),
+            ).toBe(true);
+        });
+
+        it("finds a numeric key on a plain object, not only on arrays", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json,
+            // "Arr::has — numeric key".
+            expect(Path.hasMixed({ 123: "x" }, 123)).toBe(true);
+            expect(Path.hasMixed({ 123: "x" }, 456)).toBe(false);
+        });
+
+        it("returns false for a string key when data is neither array nor object", () => {
+            expect(Path.hasMixed(42, "key")).toBe(false);
+            expect(Path.hasMixed("primitive", "key")).toBe(false);
+        });
+
+        it("returns false for a dot-free string key that is not literally present", () => {
+            expect(Path.hasMixed({ foo: 1 }, "bar")).toBe(false);
+        });
+
+        it("does not leak Array.prototype through the literal-key fast path on arrays", () => {
+            // The literal-key-first check must only apply to plain objects. `in` climbs
+            // the prototype chain, and Array.prototype owns/ inherits "length" and
+            // "toString" -- keys no PHP array could ever have.
+            expect(Path.hasMixed([1, 2], "length")).toBe(false);
+            expect(Path.hasMixed([1, 2], "toString")).toBe(false);
+            // A plain object is unaffected -- it still gets the literal-key
+            // fast path.
+            expect(Path.hasMixed({ length: "x" }, "length")).toBe(true);
+        });
+
+        it("does not see an inherited key on a plain object via `in`", () => {
+            // Object mirror of the array pin above: `in` also climbs
+            // Object.prototype, so a plain object must reject "toString" too.
+            expect(Path.hasMixed({ a: 1 }, "toString")).toBe(false);
+            expect(Path.hasMixed({ toString: "x" }, "toString")).toBe(true);
+        });
     });
 
     describe("getObjectValue", () => {
@@ -1789,6 +2078,26 @@ describe("Path Functions", () => {
             expect(Path.getObjectValue(obj, "missing", () => "computed")).toBe(
                 "computed",
             );
+        });
+
+        it("resolves a literal key containing dots before traversing it as a path", () => {
+            // Arr::get calls Arr::exists first (Arr.php:497), so a literal key wins even
+            // when it contains dots. PHP-verified in docs/php-parity/task-09-paths.json.
+            expect(
+                Path.getObjectValue(
+                    { "products.desk": { price: 100 } },
+                    "products.desk",
+                ),
+            ).toEqual({ price: 100 });
+        });
+
+        it("agrees with hasObjectKey on an undefined-valued literal dotted key", () => {
+            // Presence, not definedness, decides: the literal "a.b" key counts as found
+            // even with an undefined value, so this resolves to the default rather than
+            // falling through to traverse a -> b.
+            const data = { "a.b": undefined, a: { b: 2 } };
+            expect(Path.getObjectValue(data, "a.b", "default")).toBe("default");
+            expect(Path.hasObjectKey(data, "a.b")).toBe(true);
         });
     });
 
@@ -1843,30 +2152,49 @@ describe("Path Functions", () => {
             expect(result).toHaveProperty("a");
         });
 
-        it("ignores __proto__ as a simple key", () => {
+        // docs/php-parity/task-17-second-review.json, "Arr::set writes a \"__proto__\" key"
+        it("keeps a __proto__ key as own data for a simple key", () => {
             const obj = { a: 1 };
             const result = Path.setObjectValue(obj, "__proto__", {
                 evil: true,
-            });
-            expect(result).toEqual({ a: 1 });
+            }) as Record<string, unknown>;
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(Object.hasOwn(result, "__proto__")).toBe(true);
+            expect(result["a"]).toBe(1);
+            expect(result["__proto__"]).toEqual({ evil: true });
             expect(({} as Record<string, unknown>)["evil"]).toBeUndefined();
         });
 
-        it("ignores __proto__ in nested dot notation path", () => {
+        // docs/php-parity/task-17-second-review.json, "Arr::set writes a nested \"constructor.prototype\" path"
+        it("keeps a __proto__ key as own data in a nested dot notation path", () => {
             const obj = { a: 1 };
-            const result = Path.setObjectValue(obj, "__proto__.polluted", true);
+            const result = Path.setObjectValue(
+                obj,
+                "__proto__.polluted",
+                true,
+            ) as Record<string, unknown>;
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(Object.hasOwn(result, "__proto__")).toBe(true);
+            expect(
+                (result["__proto__"] as Record<string, unknown>)["polluted"],
+            ).toBe(true);
             expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
-            expect(result).toEqual({ a: 1 });
         });
 
-        it("ignores constructor and prototype as keys", () => {
+        // docs/php-parity/task-17-second-review.json, "Arr::set writes a \"constructor\" key"
+        it("keeps constructor and prototype keys as own data", () => {
             const obj = { a: 1 };
-            expect(Path.setObjectValue(obj, "constructor", "bad")).toEqual({
-                a: 1,
-            });
-            expect(Path.setObjectValue(obj, "prototype", "bad")).toEqual({
-                a: 1,
-            });
+            const withConstructor = Path.setObjectValue(
+                obj,
+                "constructor",
+                "bad",
+            );
+            expect(Object.hasOwn(withConstructor, "constructor")).toBe(true);
+            expect(withConstructor).toEqual({ a: 1, constructor: "bad" });
+
+            const withPrototype = Path.setObjectValue(obj, "prototype", "bad");
+            expect(Object.hasOwn(withPrototype, "prototype")).toBe(true);
+            expect(withPrototype).toEqual({ a: 1, prototype: "bad" });
         });
     });
 
@@ -1891,6 +2219,15 @@ describe("Path Functions", () => {
             const obj = { user: { profile: { name: "John" } } };
             expect(Path.hasObjectKey(obj, "user.profile.name")).toBe(true);
             expect(Path.hasObjectKey(obj, "user.missing.path")).toBe(false);
+        });
+
+        it("resolves a literal key containing dots before traversing it as a path", () => {
+            // Arr::exists is a literal array_key_exists check (Arr.php:497, :534) — it
+            // must win over dot-path traversal (PHP-verified:
+            // docs/php-parity/task-09-paths.json, "Arr::exists — literal dotted key").
+            expect(
+                Path.hasObjectKey({ "products.desk": {} }, "products.desk"),
+            ).toBe(true);
         });
     });
 
@@ -2235,6 +2572,21 @@ describe("Path Functions", () => {
             // Empty segment is not a valid index, so that entry should be skipped
             expect(result).toEqual([[undefined, "valid"]]);
         });
+
+        it("undotExpandArray rejects a leading-zero index instead of treating it as canonical", () => {
+            // PHP-verified in docs/php-parity/task-12-regression-pins.json: "01" stays a string
+            // key, so it must not be treated as array index 1 here either.
+            const result = Path.undotExpandArray({ "01": "x" });
+            expect(result).toEqual([]);
+        });
+
+        it("undotExpandArray rejects an index above MAX_UNDOT_INDEX", () => {
+            // A canonical decimal segment can still be too large to safely build an array from.
+            // .length (not toEqual([])) avoids diffing a huge array if this regresses.
+            const tooLarge = `${Path.MAX_UNDOT_INDEX + 1}`;
+            const result = Path.undotExpandArray({ [tooLarge]: "x" });
+            expect(result.length).toBe(0);
+        });
     });
 
     describe("forgetKeysArray", () => {
@@ -2303,6 +2655,88 @@ describe("Path Functions", () => {
             // Multiple numeric keys - groupsMap.get("") will return existing entry on second iteration
             const result = Path.forgetKeysArray(arr, [0, 2]);
             expect(result).toEqual(["b", "d"]);
+        });
+    });
+    // Array.prototype satisfies `isArray` and Object.prototype satisfies
+    // `isObjectAny`, so a shared prototype has to be refused by identity.
+    describe("prototype objects as write targets", () => {
+        const prototypes: [string, object][] = [
+            ["Object.prototype", Object.prototype],
+            ["Array.prototype", Array.prototype],
+            ["Function.prototype", Function.prototype],
+        ];
+
+        afterEach(() => {
+            for (const [, prototype] of prototypes) {
+                const record = prototype as Record<string, unknown>;
+                delete record["PWNED"];
+                delete record["0"];
+                delete record["a"];
+            }
+            Array.prototype.length = 0;
+        });
+
+        const ownNames = (prototype: object): string[] =>
+            Object.getOwnPropertyNames(prototype);
+
+        it.each(prototypes)(
+            "setMixed refuses %s as its root",
+            (_label, prototype) => {
+                Path.setMixed(prototype as unknown[], "PWNED", 1);
+                Path.setMixed(prototype as unknown[], 0, 1);
+
+                expect(ownNames(prototype)).not.toContain("PWNED");
+                expect(ownNames(prototype)).not.toContain("0");
+            },
+        );
+
+        it.each(prototypes)(
+            "setMixed refuses to descend into %s",
+            (_label, prototype) => {
+                Path.setMixed([{ p: prototype }], "0.p.0.PWNED", 1);
+                Path.setMixed([{ p: prototype }], "0.p.a.PWNED", 1);
+
+                expect(ownNames(prototype)).not.toContain("0");
+                expect(ownNames(prototype)).not.toContain("a");
+                expect(Array.prototype.length).toBe(0);
+            },
+        );
+
+        it.each(prototypes)(
+            "pushMixed refuses %s as its root",
+            (_label, prototype) => {
+                Path.pushMixed(prototype as unknown[], null, 1);
+                Path.pushMixed(prototype as unknown[], "0", 1);
+
+                expect(ownNames(prototype)).not.toContain("0");
+                expect(Array.prototype.length).toBe(0);
+            },
+        );
+
+        it("pushWithPath treats a prototype root as absent data", () => {
+            expect(Path.pushWithPath(Array.prototype, null, 1)).toEqual([1]);
+            expect(Array.prototype.length).toBe(0);
+            expect(Object.getOwnPropertyNames(Array.prototype)).not.toContain(
+                "0",
+            );
+        });
+
+        it("pushWithPath refuses a prototype array mid-path", () => {
+            Path.pushWithPath([Array.prototype], "0.0", 1);
+
+            expect(Array.prototype.length).toBe(0);
+            expect(Object.getOwnPropertyNames(Array.prototype)).not.toContain(
+                "0",
+            );
+        });
+
+        it("pushWithPath refuses a prototype array at the leaf", () => {
+            Path.pushWithPath([Array.prototype], "0", 1);
+
+            expect(Array.prototype.length).toBe(0);
+            expect(Object.getOwnPropertyNames(Array.prototype)).not.toContain(
+                "0",
+            );
         });
     });
 });
