@@ -1,6 +1,6 @@
 import { CaseTypes, Stringable } from "@tolki/str";
 import * as Str from "@tolki/str";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 // Helper to compare Stringable method against Str function
 function expectEqual(strResult: string, s: Stringable) {
@@ -80,6 +80,77 @@ describe("Stringable basic delegation", () => {
     describe("ascii", () => {
         it("Laravel tests", () => {
             expectEqual(Str.ascii("fóó"), Str.of("fóó").ascii());
+        });
+    });
+
+    describe("basename", () => {
+        // docs/php-parity/task-22-basename-dirname.json
+        it("Laravel tests", () => {
+            expect(
+                Str.of("/framework/tests/Support").basename().toString(),
+            ).toBe("Support");
+            expect(Str.of("/framework/src/Str.php").basename().toString()).toBe(
+                "Str.php",
+            );
+            expect(
+                Str.of("/framework/src/Str.php").basename(".php").toString(),
+            ).toBe("Str");
+        });
+
+        it.each<[string, string, string, string]>([
+            ["root alone is empty", "/", "", ""],
+            ["empty path", "", "", ""],
+            ["trailing slash is ignored", "foo/", "", "foo"],
+            ["repeated trailing slashes ignored", "/foo//", "", "foo"],
+            ["suffix equal to the whole name stays", ".php", ".php", ".php"],
+            [
+                "suffix equal to the whole file name stays",
+                "Str.php",
+                "Str.php",
+                "Str.php",
+            ],
+            ["dotfile is its own name", "dir/.hidden", "", ".hidden"],
+            ["only the last suffix is removed", "a/b/c.tar.gz", ".gz", "c.tar"],
+            ["suffix is case-sensitive", "file.PHP", ".php", "file.PHP"],
+            ["suffix absent leaves the name", "foo", ".php", "foo"],
+        ])("%s", (_label, path, suffix, expected) => {
+            expect(Str.of(path).basename(suffix).toString()).toBe(expected);
+        });
+    });
+
+    describe("dirname", () => {
+        // docs/php-parity/task-22-basename-dirname.json
+        it("Laravel tests", () => {
+            expect(
+                Str.of("/framework/tests/Support").dirname().toString(),
+            ).toBe("/framework/tests");
+            expect(
+                Str.of("/framework/tests/Support").dirname(2).toString(),
+            ).toBe("/framework");
+            expect(Str.of("framework").dirname().toString()).toBe(".");
+            expect(Str.of(".").dirname().toString()).toBe(".");
+            expect(Str.of("/framework/").dirname().toString()).toBe("/");
+            expect(Str.of("/").dirname().toString()).toBe("/");
+        });
+
+        it.each<[string, string, number, string]>([
+            ["parent of a file", "/framework/src/Str.php", 1, "/framework/src"],
+            ["empty path stays empty", "", 1, ""],
+            ["top-level file has root parent", "/foo", 1, "/"],
+            ["dot-dot becomes dot", "..", 1, "."],
+            ["trailing slash is ignored", "/a/b/c/", 1, "/a/b"],
+            ["repeated slashes collapse", "a//b", 1, "a"],
+            ["levels beyond the top stop at dot", "a/b/c", 5, "."],
+            ["levels reach the root", "/a/b/c", 3, "/"],
+            ["relative levels reach dot", "a/b/c", 3, "."],
+        ])("%s", (_label, path, levels, expected) => {
+            expect(Str.of(path).dirname(levels).toString()).toBe(expected);
+        });
+
+        it("throws when levels is below one, as PHP does", () => {
+            expect(() => Str.of("a").dirname(0)).toThrow(
+                "dirname(): Argument #2 ($levels) must be greater than or equal to 1",
+            );
         });
     });
 
@@ -1686,6 +1757,28 @@ describe("Stringable basic delegation", () => {
             const s = new Stringable();
             expect(s.toString()).toBe("");
             expect(s.isEmpty()).toBe(true);
+        });
+    });
+
+    describe("dump", () => {
+        it("Laravel tests: logs the value with the extra arguments and returns the same instance", () => {
+            const log = vi.spyOn(console, "log").mockImplementation(() => {});
+            const value = Str.of("foo");
+
+            expect(value.dump("one", "two")).toBe(value);
+            expect(log).toHaveBeenCalledTimes(1);
+            expect(log).toHaveBeenCalledWith("foo", "one", "two");
+
+            log.mockRestore();
+        });
+
+        it("logs just the value when called without arguments", () => {
+            const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+            Str.of("bar").dump();
+
+            expect(log).toHaveBeenCalledWith("bar");
+            log.mockRestore();
         });
     });
 });
