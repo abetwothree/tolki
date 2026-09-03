@@ -124,6 +124,7 @@
             "ts/vite-env.md",
             "ts/vite-plugin.md",
             "ts/customizing-the-pipeline.md",
+            "ts/analyzer-api.md",
             "ts/configuration-reference.md"
         ]
     }

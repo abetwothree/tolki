@@ -34,6 +34,9 @@ const MONOREPO_ROOT = path.resolve(
 const SENTINEL_START = "<!-- AUTO-GENERATED-DOCS:START -->";
 const SENTINEL_END = "<!-- AUTO-GENERATED-DOCS:END -->";
 
+/** Canonical base URL for the published VitePress docs site. */
+const SITE_BASE = "https://tolki.abe.dev";
+
 interface PackageInfo {
     name: string;
     dirName: string;
@@ -82,6 +85,35 @@ export function increaseHeadingLevels(content: string): string {
 }
 
 /**
+ * Rewrite relative markdown doc links (`./foo.md`, `./foo.md#frag`) to
+ * absolute docs-site URLs.
+ *
+ * Within docs/vitepress, a link like `./analyzer-api.md` resolves fine
+ * because VitePress renders it alongside its sibling files. Once the same
+ * text is spliced into a package README (npm, GitHub), that relative path
+ * points at a `.md` file that doesn't exist there, so the link dangles.
+ * Rewriting it to the published site URL (matching the `.html`-suffixed
+ * canonical links already hand-written elsewhere in this repo, e.g.
+ * `packages/str/src/str.ts`'s `@see` comments) keeps the link resolvable.
+ *
+ * @param content - Markdown content to rewrite.
+ * @param docDir - Directory of the source doc file, relative to
+ *   docs/vitepress/ (e.g. "ts"), used as the URL's section segment.
+ * @returns Markdown content with relative `./*.md` links rewritten to
+ *   absolute docs-site URLs.
+ */
+export function rewriteRelativeDocLinks(
+    content: string,
+    docDir: string,
+): string {
+    return content.replace(
+        /\]\(\.\/([^)#]+)\.md(#[^)]*)?\)/g,
+        (_match, slug: string, fragment: string | undefined) =>
+            `](${SITE_BASE}/${docDir}/${slug}.html${fragment ?? ""})`,
+    );
+}
+
+/**
  * Strip VitePress-specific syntax from markdown content.
  *
  * Removes:
@@ -90,15 +122,25 @@ export function increaseHeadingLevels(content: string): string {
  * - Raw HTML wrappers (<div>, </div>, <script setup>, etc.)
  * - Increases markdown headings by one level for README nesting
  * - Collapses 3+ consecutive blank lines into 2
+ * - Rewrites relative `./*.md` doc links to absolute docs-site URLs
+ *   (when `docDir` is given)
  *
  * @param content - Raw VitePress markdown content.
+ * @param docDir - Directory of the source doc file, relative to
+ *   docs/vitepress/, used to resolve relative doc links. Omit to leave
+ *   relative doc links untouched.
  * @returns Cleaned markdown suitable for GitHub/npm README rendering.
  */
-export function stripVitepressSyntax(content: string): string {
+export function stripVitepressSyntax(content: string, docDir?: string): string {
     let result = content;
 
     // Remove YAML frontmatter
     result = result.replace(/^---\n[\s\S]*?\n---\n?/, "");
+
+    // Rewrite relative doc links before anything else touches the text.
+    if (docDir) {
+        result = rewriteRelativeDocLinks(result, docDir);
+    }
 
     // Remove ::: code-group and closing ::: lines (keep inner content)
     result = result.replace(/^:::.*$/gm, "");
@@ -195,7 +237,10 @@ export function assembleDocsContent(docFiles: string[]): string {
         }
 
         const raw = fs.readFileSync(filePath, "utf-8");
-        const cleaned = stripVitepressSyntax(raw);
+        const docDir = docFile.includes("/")
+            ? docFile.slice(0, docFile.lastIndexOf("/"))
+            : "";
+        const cleaned = stripVitepressSyntax(raw, docDir);
 
         if (cleaned.length > 0) {
             sections.push(cleaned);
