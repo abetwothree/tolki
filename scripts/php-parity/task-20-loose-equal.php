@@ -99,6 +99,24 @@ probe('a string and an object with __toString', '\'hello\' == $stringable', fn (
 probe('object with __toString and a different string', '$stringable == \'world\'', fn () => $stringable == 'world');
 probe('plain object and a string', 'new stdClass() == \'hello\'', fn () => new stdClass() == 'hello');
 
+// This port models a PLAIN JS object as a PHP array, and an array never takes the __toString
+// cast — not even one whose own 'toString' key holds a closure. Read instead as a stdClass, a
+// 'toString' property is still not the __toString method, so that spelling is false as well.
+$arrayWithToStringKey = ['toString' => fn () => 'hello'];
+probe(
+    'array with a toString key and that string',
+    '[\'toString\' => fn () => \'hello\'] == \'hello\'',
+    fn () => $arrayWithToStringKey == 'hello'
+);
+
+$objectWithToStringProperty = new stdClass();
+$objectWithToStringProperty->toString = 'hello';
+probe(
+    'object with a toString property but no __toString',
+    '$o->toString = \'hello\'; $o == \'hello\'',
+    fn () => $objectWithToStringProperty == 'hello'
+);
+
 // F1 — an object is ALWAYS truthy in PHP, whatever its state, and however empty it looks.
 probe('plain object and true', 'new stdClass() == true', fn () => new stdClass() == true);
 probe('plain object and false', 'new stdClass() == false', fn () => new stdClass() == false);

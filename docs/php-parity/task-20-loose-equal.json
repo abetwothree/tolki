@@ -340,6 +340,16 @@
             "value": false
         },
         {
+            "label": "array with a toString key and that string",
+            "php": "['toString' => fn () => 'hello'] == 'hello'",
+            "value": false
+        },
+        {
+            "label": "object with a toString property but no __toString",
+            "php": "$o->toString = 'hello'; $o == 'hello'",
+            "value": false
+        },
+        {
             "label": "plain object and true",
             "php": "new stdClass() == true",
             "value": true

@@ -8,5 +8,6 @@
 - Two numeric strings, or a number and a numeric string, are compared as numbers even when spelled differently: `"1e1"` equals `"10"`, and `"1"` equals `"01"`, matching PHP.
 - `null` compared with text behaves like an empty string (`null` equals `""` but not `"0"`); compared with anything else it behaves like `false`, exactly as PHP does.
 - An object with no properties is now treated as empty, so it matches `false` and no longer matches `true`. A plain object stands in for a PHP associative array here, and an empty array is "empty" in PHP. Objects that carry their own behaviour, such as `Date`, `Map`, `Set` and instances of your own classes, are unaffected.
+- A plain object that defines its own `toString()` is no longer considered equal to the text that method returns, because PHP never converts an array to a string to compare it. An instance of a class, or a built-in such as a `Date`, still compares by its string form, the way PHP uses `__toString`.
 
 This affects every helper in the `@tolki` packages that uses PHP-style loose comparison, such as `contains()`, `where()` with `==`, `unique()` and `search()` when not in strict mode.

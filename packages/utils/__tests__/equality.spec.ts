@@ -390,9 +390,39 @@ describe("Utils", () => {
                 false,
             );
             expect(Utils.looseEqual({ a: 1 }, "hello")).toBe(false);
-            // A plain object's toString IS Object.prototype.toString, so the arm never fires for it.
+            // Probed as "plain object and a string": a plain object carries no __toString.
             expect(Utils.looseEqual({}, "[object Object]")).toBe(false);
             expect(Utils.looseEqual({ a: 1 }, "[object Object]")).toBe(false);
+
+            // A class instance with no toString of its own inherits Object.prototype's, so it
+            // reaches the arm as a non-plain object and still declines to cast.
+            class Bare {}
+
+            expect(Utils.looseEqual(new Bare(), "[object Object]")).toBe(false);
+        });
+
+        it("never casts a plain object to a string, however it spells toString", () => {
+            // Probed as "array with a toString key and that string" and "object with a toString
+            // property but no __toString", both false: a plain object models a PHP array here, and
+            // an array never takes the __toString cast even when a "toString" key holds a closure.
+            expect(Utils.looseEqual({ toString: () => "hello" }, "hello")).toBe(
+                false,
+            );
+            expect(Utils.looseEqual("hello", { toString: () => "hello" })).toBe(
+                false,
+            );
+            expect(Utils.looseEqual({ toString: () => "hello" }, "world")).toBe(
+                false,
+            );
+
+            // Object.create(null) is plain too — its prototype is null, not Object.prototype.
+            const nullPrototype = Object.create(null) as Record<
+                string,
+                unknown
+            >;
+            nullPrototype.toString = () => "hello";
+
+            expect(Utils.looseEqual(nullPrototype, "hello")).toBe(false);
         });
 
         it("keeps boolean comparisons against bigint and empty objects", () => {

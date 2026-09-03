@@ -247,12 +247,17 @@ export function looseEqual(a: unknown, b: unknown): boolean {
         return false;
     }
 
-    // PHP casts an object with __toString against a string operand. JS built-ins (Date, RegExp) carry a
-    // platform toString and so match here, where PHP's equivalents, lacking __toString, would not.
+    // PHP casts an object with __toString against a string operand. A plain object is excluded: it models
+    // a PHP array here, and an array never casts, even one whose own "toString" key holds a closure. JS
+    // built-ins (Date, RegExp) do carry a platform toString, where PHP's equivalents lacking one would not.
     if (isString(a) !== isString(b)) {
         const object = isString(a) ? b : a;
 
-        if (isObject(object) && hasCustomToString(object)) {
+        if (
+            isObject(object) &&
+            !isPlainObject(object) &&
+            hasCustomToString(object)
+        ) {
             return String(object) === (isString(a) ? a : b);
         }
     }
