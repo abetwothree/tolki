@@ -3,6 +3,8 @@ import {
     arrayItem,
     boolean as arrBoolean,
     chunk as arrChunk,
+    chunkBy as arrChunkBy,
+    chunkWhile as arrChunkWhile,
     collapse as arrCollapse,
     combine as arrCombine,
     contains as arrContains,
@@ -82,6 +84,8 @@ import {
     add as objAdd,
     boolean as objBoolean,
     chunk as objChunk,
+    chunkBy as objChunkBy,
+    chunkWhile as objChunkWhile,
     collapse as objCollapse,
     combine as objCombine,
     contains as objContains,
@@ -405,6 +409,93 @@ export function dataChunk<TValue>(
     }
 
     return arrChunk(arrWrap(data), size);
+}
+
+/**
+ * Chunk the data into chunks with a callback.
+ *
+ * @param data - The data to chunk
+ * @param callback - Receives the value, its key and the chunk built so far; return true to keep appending
+ * @returns Chunked data
+ *
+ * @example
+ *
+ * dataChunkWhile([1, 1, 2], (value, index, chunk) => chunk.at(-1) === value); -> [[1, 1], [2]]
+ * dataChunkWhile({ a: 1, b: 1, c: 2 }, (value, key, chunk) => Object.values(chunk).at(-1) === value); -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
+ */
+export function dataChunkWhile<TValue>(
+    data: TValue[],
+    callback: (value: TValue, index: number, chunk: TValue[]) => boolean,
+): TValue[][];
+export function dataChunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    callback: (
+        value: TValue,
+        key: TKey,
+        chunk: Record<TKey, TValue>,
+    ) => boolean,
+): Record<number, Record<TKey, TValue>>;
+export function dataChunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: DataItems<TValue, TKey>,
+    callback:
+        | ((value: TValue, key: TKey, chunk: Record<TKey, TValue>) => boolean)
+        | ((value: TValue, index: number, chunk: TValue[]) => boolean),
+): Record<number, Record<TKey, TValue>> | TValue[][] {
+    if (isObject(data)) {
+        return objChunkWhile(
+            data as Record<TKey, TValue>,
+            callback as (
+                value: TValue,
+                key: TKey,
+                chunk: Record<TKey, TValue>,
+            ) => boolean,
+        );
+    }
+
+    return arrChunkWhile(
+        arrWrap(data) as TValue[],
+        callback as (value: TValue, index: number, chunk: TValue[]) => boolean,
+    );
+}
+
+/**
+ * Chunk the data into chunks by comparing adjacent values using the given key or callback.
+ *
+ * @param data - The data to chunk
+ * @param key - A path into each item, or a callback receiving the value and its key
+ * @returns Chunked data
+ *
+ * @example
+ *
+ * dataChunkBy([1, 1, 2], (value) => value); -> [[1, 1], [2]]
+ * dataChunkBy({ a: 1, b: 1, c: 2 }, (value) => value); -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
+ */
+export function dataChunkBy<TValue>(
+    data: TValue[],
+    key: PathKey | ((value: TValue, index: number) => unknown),
+): TValue[][];
+export function dataChunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    key: PathKey | ((value: TValue, key: TKey) => unknown),
+): Record<number, Record<TKey, TValue>>;
+export function dataChunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: DataItems<TValue, TKey>,
+    key:
+        | PathKey
+        | ((value: TValue, key: TKey) => unknown)
+        | ((value: TValue, index: number) => unknown),
+): Record<number, Record<TKey, TValue>> | TValue[][] {
+    if (isObject(data)) {
+        return objChunkBy(
+            data as Record<TKey, TValue>,
+            key as PathKey | ((value: TValue, key: TKey) => unknown),
+        );
+    }
+
+    return arrChunkBy(
+        arrWrap(data) as TValue[],
+        key as PathKey | ((value: TValue, index: number) => unknown),
+    );
 }
 
 /**
