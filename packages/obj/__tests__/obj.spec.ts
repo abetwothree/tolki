@@ -2,7 +2,7 @@ import * as Arr from "@tolki/arr";
 import { SortDirection } from "@tolki/enum";
 import * as Obj from "@tolki/obj";
 import { isString } from "@tolki/utils";
-import { afterEach, assertType, describe, expect, it } from "vitest";
+import { afterEach, assertType, describe, expect, it, vi } from "vitest";
 
 describe("Obj", () => {
     describe("accessible", () => {
@@ -187,6 +187,232 @@ describe("Obj", () => {
         expect(Obj.chunk(null, 4)).toEqual({});
         expect(Obj.chunk("", 5)).toEqual({});
         expect(Obj.chunk(false, 2)).toEqual({});
+    });
+
+    describe("chunkWhile", () => {
+        // docs/php-parity/task-21-chunk-while-by.json
+        it("chunks equal adjacent values and preserves string keys", () => {
+            const result = Obj.chunkWhile(
+                { a: 1, b: 1, c: 2, d: 2, e: 3, f: 3, g: 3 },
+                (value, _key, chunk) => Object.values(chunk).at(-1) === value,
+            );
+
+            expect(result).toEqual({
+                0: { a: 1, b: 1 },
+                1: { c: 2, d: 2 },
+                2: { e: 3, f: 3, g: 3 },
+            });
+        });
+
+        it("passes the value, its key and the chunk so far, skipping the first item", () => {
+            const calls: [number, string, Record<string, number>][] = [];
+
+            Obj.chunkWhile({ x: 10, y: 11, z: 20 }, (value, key, chunk) => {
+                calls.push([value, key, { ...chunk }]);
+
+                return (Object.values(chunk).at(-1) as number) + 1 === value;
+            });
+
+            expect(calls).toEqual([
+                [11, "y", { x: 10 }],
+                [20, "z", { x: 10, y: 11 }],
+            ]);
+        });
+
+        it("returns an empty object for empty or non-object input", () => {
+            expect(Obj.chunkWhile({}, () => true)).toEqual({});
+            expect(Obj.chunkWhile(null, () => true)).toEqual({});
+            expect(Obj.chunkWhile("", () => true)).toEqual({});
+            expect(Obj.chunkWhile(false, () => true)).toEqual({});
+        });
+
+        it("keeps a single entry in one chunk without calling back", () => {
+            const callback = vi.fn(() => false);
+
+            expect(Obj.chunkWhile({ a: 5 }, callback)).toEqual({ 0: { a: 5 } });
+            expect(callback).not.toHaveBeenCalled();
+        });
+
+        it("splits on every false and merges on every true", () => {
+            expect(Obj.chunkWhile({ a: 1, b: 2, c: 3 }, () => false)).toEqual({
+                0: { a: 1 },
+                1: { b: 2 },
+                2: { c: 3 },
+            });
+            expect(Obj.chunkWhile({ a: 1, b: 2, c: 3 }, () => true)).toEqual({
+                0: { a: 1, b: 2, c: 3 },
+            });
+        });
+
+        it("gives integer-like keys back as numbers", () => {
+            const keys: PropertyKey[] = [];
+
+            Obj.chunkWhile({ 10: "a", 20: "b" }, (_value, key) => {
+                keys.push(key);
+
+                return true;
+            });
+
+            expect(keys).toEqual([20]);
+        });
+
+        it("keeps non-canonical numeric keys distinct instead of colliding them", () => {
+            // entriesKeyValue's Number()/parseFloat conversion (used for the key handed to the
+            // callback) is lossy for "01": Number("01") === Number("1") === 1. Writing that
+            // converted key back would collapse two entries into one; the raw key must survive.
+            const result = Obj.chunkWhile({ 1: "a", "01": "b" }, () => true);
+
+            expect(result).toEqual({ 0: { 1: "a", "01": "b" } });
+            expect(Object.keys(result[0] as Record<string, unknown>)).toEqual([
+                "1",
+                "01",
+            ]);
+        });
+
+        it("does not rename a non-canonical numeric key on write", () => {
+            const result = Obj.chunkWhile(
+                { "1e3": "a", " 1": "b" },
+                () => true,
+            );
+
+            expect(Object.keys(result[0] as Record<string, unknown>)).toEqual([
+                "1e3",
+                " 1",
+            ]);
+        });
+
+        it("does not mutate the input", () => {
+            const data = { a: 1, b: 1 };
+            Obj.chunkWhile(data, () => true);
+
+            expect(data).toEqual({ a: 1, b: 1 });
+        });
+
+        it("keeps a __proto__ key on the chunk itself, never on its prototype", () => {
+            // JSON.parse is the only way to get __proto__ as an own enumerable key (house pattern).
+            const data = JSON.parse(
+                '{"a":1,"__proto__":{"polluted":true},"c":1}',
+            ) as Record<string, unknown>;
+            const chunk = Obj.chunkWhile(data, () => true)[0] as Record<
+                string,
+                unknown
+            >;
+
+            expect(Object.getPrototypeOf(chunk)).toBe(Object.prototype);
+            expect(Object.hasOwn(chunk, "__proto__")).toBe(true);
+        });
+    });
+
+    describe("chunkBy", () => {
+        // docs/php-parity/task-21-chunk-while-by.json
+        it("chunks by a callback and preserves keys", () => {
+            expect(
+                Obj.chunkBy({ a: 1, b: 1, c: 2, d: 2, e: 1 }, (value) => value),
+            ).toEqual({
+                0: { a: 1, b: 1 },
+                1: { c: 2, d: 2 },
+                2: { e: 1 },
+            });
+        });
+
+        it("chunks by a bare string key", () => {
+            expect(
+                Obj.chunkBy(
+                    {
+                        p: { parent: "a" },
+                        q: { parent: "a" },
+                        r: { parent: "b" },
+                    },
+                    "parent",
+                ),
+            ).toEqual({
+                0: { p: { parent: "a" }, q: { parent: "a" } },
+                1: { r: { parent: "b" } },
+            });
+        });
+
+        it("chunks by a dotted key", () => {
+            expect(
+                Obj.chunkBy(
+                    {
+                        p: { address: { city: "NY" } },
+                        q: { address: { city: "NY" } },
+                        r: { address: { city: "LA" } },
+                    },
+                    "address.city",
+                ),
+            ).toEqual({
+                0: {
+                    p: { address: { city: "NY" } },
+                    q: { address: { city: "NY" } },
+                },
+                1: { r: { address: { city: "LA" } } },
+            });
+        });
+
+        it("passes the value and its key to the callback", () => {
+            expect(
+                Obj.chunkBy({ a: 1, b: 1, c: 1 }, (_value, key) =>
+                    key === "b" ? "x" : "y",
+                ),
+            ).toEqual({ 0: { a: 1 }, 1: { b: 1 }, 2: { c: 1 } });
+        });
+
+        it("compares adjacent values with PHP 8 loose equality", () => {
+            // Same sequence as the arr case; `null == 0`, `"" == false` merge, `0 == ""` does not.
+            expect(
+                Obj.chunkBy(
+                    {
+                        a: 1,
+                        b: "1",
+                        c: 2,
+                        d: "2",
+                        e: null,
+                        f: 0,
+                        g: "",
+                        h: false,
+                        i: "a",
+                        j: "A",
+                    },
+                    (value) => value,
+                ),
+            ).toEqual({
+                0: { a: 1, b: "1" },
+                1: { c: 2, d: "2" },
+                2: { e: null, f: 0 },
+                3: { g: "", h: false },
+                4: { i: "a" },
+                5: { j: "A" },
+            });
+        });
+
+        // docs/php-parity/task-21-chunk-while-by.json, "chunkBy with a null key falls back to
+        // identity comparison, like a callback" — PHP has no `undefined`, so that one probe
+        // backs both the `null` and `undefined` cases below (valueRetriever(null) === identity).
+        it("treats a null or undefined key as the identity, like a callback", () => {
+            expect(Obj.chunkBy({ a: 1, b: 1, c: 2, d: 2, e: 3 }, null)).toEqual(
+                {
+                    0: { a: 1, b: 1 },
+                    1: { c: 2, d: 2 },
+                    2: { e: 3 },
+                },
+            );
+            expect(Obj.chunkBy({ a: 1, b: 1, c: 2 }, undefined)).toEqual({
+                0: { a: 1, b: 1 },
+                1: { c: 2 },
+            });
+        });
+
+        it("puts entries that all lack the key into one chunk", () => {
+            expect(Obj.chunkBy({ a: { x: 1 }, b: { y: 2 } }, "key")).toEqual({
+                0: { a: { x: 1 }, b: { y: 2 } },
+            });
+        });
+
+        it("returns an empty object for empty or non-object input", () => {
+            expect(Obj.chunkBy({}, "key")).toEqual({});
+            expect(Obj.chunkBy(null, "key")).toEqual({});
+        });
     });
 
     describe("combine", () => {

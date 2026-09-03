@@ -21,6 +21,7 @@ import {
     createSortSpecComparator,
     cssListItemToString,
     defineKey,
+    entriesKeyValue,
     isArray,
     isBoolean,
     isFalsy,
@@ -288,6 +289,131 @@ export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
     } else {
         return chunks as Record<number, Record<number, TValue>>;
     }
+}
+
+/**
+ * Chunk the object into chunks with a callback.
+ *
+ * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1541`, which runs
+ *      `LazyCollection::chunkWhile`. Keys are preserved inside each chunk.
+ *
+ * @param data - The record to chunk
+ * @param callback - Receives the value, its key and the chunk built so far; return true to keep appending
+ * @returns Chunked record
+ *
+ * @example
+ *
+ * chunkWhile({ a: 1, b: 1, c: 2 }, (value, key, chunk) => Object.values(chunk).at(-1) === value); -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
+ */
+export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    callback: (
+        value: TValue,
+        key: TKey,
+        chunk: Record<TKey, TValue>,
+    ) => boolean,
+): Record<number, Record<TKey, TValue>>;
+export function chunkWhile(
+    data: unknown,
+    callback: (
+        value: unknown,
+        key: PropertyKey,
+        chunk: Record<PropertyKey, unknown>,
+    ) => boolean,
+): Record<number, never>;
+export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    callback: (
+        value: TValue,
+        key: TKey,
+        chunk: Record<TKey, TValue>,
+    ) => boolean,
+): Record<number, Record<TKey, TValue>> {
+    const chunks: Record<number, Record<TKey, TValue>> = {};
+
+    if (!accessible(data)) {
+        return chunks;
+    }
+
+    let chunk = {} as Record<TKey, TValue>;
+    let size = 0;
+    let chunkIndex = 0;
+
+    for (const [rawKey, value] of Object.entries(data) as [string, TValue][]) {
+        const key = entriesKeyValue(rawKey) as TKey;
+
+        if (size > 0 && !callback(value, key, chunk)) {
+            chunks[chunkIndex] = chunk;
+            chunkIndex += 1;
+            chunk = {} as Record<TKey, TValue>;
+            size = 0;
+        }
+
+        // Write the raw key, not `key`: entriesKeyValue's Number()/parseFloat conversion is
+        // lossy for non-canonical numeric strings ("01", "1e3", " 1"), and writing the
+        // converted form would rename or collide keys that PHP keeps distinct.
+        defineKey(chunk as Record<string, TValue>, rawKey, value);
+        size += 1;
+    }
+
+    if (size > 0) {
+        chunks[chunkIndex] = chunk;
+    }
+
+    return chunks;
+}
+
+/**
+ * Chunk the object into chunks by comparing adjacent values using the given key or callback.
+ *
+ * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:937`.
+ *      Adjacent values compare with PHP's `==`, so `1` and `"1"` share a chunk.
+ *
+ * @param data - The record to chunk
+ * @param key - A path into each item, or a callback receiving the value and its key
+ * @returns Chunked record
+ *
+ * @example
+ *
+ * chunkBy({ a: 1, b: 1, c: 2 }, (value) => value); -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
+ */
+export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    key: PathKey | ((value: TValue, key: TKey) => unknown),
+): Record<number, Record<TKey, TValue>>;
+export function chunkBy(
+    data: unknown,
+    key: PathKey | ((value: unknown, key: PropertyKey) => unknown),
+): Record<number, never>;
+export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    key: PathKey | ((value: TValue, key: TKey) => unknown),
+): Record<number, Record<TKey, TValue>> {
+    // isFunction's predicate is generic, so name the retriever's type rather than let the guard narrow it.
+    const retrieve: (value: TValue, key: TKey) => unknown = isFunction(key)
+        ? (key as (value: TValue, key: TKey) => unknown)
+        : (value) =>
+              isNull(key) || isUndefined(key)
+                  ? value
+                  : getNestedValue(value, key as string);
+
+    // chunkWhile calls back before writing `value`, and even a reset writes within the
+    // same iteration, so `chunk` is never empty here; Object.entries orders a chunk
+    // exactly as it ordered `data`, so its last entry is always the previous item.
+    return chunkWhile(
+        data as Record<TKey, TValue>,
+        (value, currentKey, chunk) => {
+            const [lastKey, lastValue] = Object.entries(chunk).at(-1) as [
+                string,
+                TValue,
+            ];
+
+            return looseEqual(
+                retrieve(value, currentKey),
+                retrieve(lastValue, entriesKeyValue(lastKey) as TKey),
+            );
+        },
+    );
 }
 
 /**
