@@ -1,0 +1,551 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-17-g5ba4bc5495"
+    },
+    "probes": [
+        {
+            "label": "X1 pop mutates and returns the last value",
+            "php": "collect([10,20,30,40])->pop()",
+            "value": {
+                "pop": 40,
+                "after": [
+                    10,
+                    20,
+                    30
+                ],
+                "pop2": [
+                    40,
+                    30
+                ],
+                "after2": [
+                    10,
+                    20
+                ]
+            }
+        },
+        {
+            "label": "X2 shift mutates and returns the first value",
+            "php": "collect([10,20,30,40])->shift()",
+            "value": {
+                "shift": 10,
+                "after": [
+                    20,
+                    30,
+                    40
+                ],
+                "shift2": [
+                    10,
+                    20
+                ],
+                "after2": [
+                    30,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "X3 shift throws on a negative count",
+            "php": "collect([10,20,30,40])->shift(-1)",
+            "threw": "InvalidArgumentException",
+            "message": "Number of shifted items may not be less than zero."
+        },
+        {
+            "label": "X4 shift on empty returns null for any count",
+            "php": "collect([])->shift(3)",
+            "value": {
+                "count3": null,
+                "count1": null
+            }
+        },
+        {
+            "label": "X5 unshift mutates and renumbers integer keys",
+            "php": "collect([10,20,30,40])->unshift(1,2)",
+            "value": [
+                1,
+                2,
+                10,
+                20,
+                30,
+                40
+            ]
+        },
+        {
+            "label": "X6 splice mutates and returns the removed items",
+            "php": "collect([10,20,30,40])->splice(1,2)",
+            "value": {
+                "removed": [
+                    20,
+                    30
+                ],
+                "after": [
+                    10,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "X7 splice one-arg form removes offset to end",
+            "php": "collect([10,20,30,40])->splice(1)",
+            "value": {
+                "removed": [
+                    20,
+                    30,
+                    40
+                ],
+                "after": [
+                    10
+                ]
+            }
+        },
+        {
+            "label": "X8 splice keeps string keys, reindexes integer keys",
+            "php": "array_splice(['x'=>1,'y'=>2,'z'=>3],1,1)",
+            "value": {
+                "strRemoved": {
+                    "y": 2
+                },
+                "strAfter": {
+                    "x": 1,
+                    "z": 3
+                },
+                "intRemoved": [
+                    "b"
+                ],
+                "intAfter": [
+                    "a",
+                    "c"
+                ]
+            }
+        },
+        {
+            "label": "X9 replace does not mutate",
+            "php": "collect([10,20,30,40])->replace([1=>'d'])",
+            "value": {
+                "result": [
+                    10,
+                    "d",
+                    30,
+                    40
+                ],
+                "source": [
+                    10,
+                    20,
+                    30,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "X10 replaceRecursive does not mutate",
+            "php": "collect([[a=>1],[b=>2]])->replaceRecursive([[c=>3]])",
+            "value": {
+                "result": [
+                    {
+                        "a": 1,
+                        "c": 3
+                    },
+                    {
+                        "b": 2
+                    }
+                ],
+                "source": [
+                    {
+                        "a": 1
+                    },
+                    {
+                        "b": 2
+                    }
+                ]
+            }
+        },
+        {
+            "label": "X11 replace/replaceRecursive treat null as a no-op",
+            "php": "collect([10,20,30,40])->replace(null)",
+            "value": {
+                "replace": [
+                    10,
+                    20,
+                    30,
+                    40
+                ],
+                "replaceRecursive": [
+                    10,
+                    20,
+                    30,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "X12 intersect compares values only",
+            "php": "collect([10,20,30,40])->intersect([20,40])",
+            "value": {
+                "1": 20,
+                "3": 40
+            }
+        },
+        {
+            "label": "X13 diff compares values only",
+            "php": "collect([10,20,30,40])->diff([20,40])",
+            "value": {
+                "0": 10,
+                "2": 30
+            }
+        },
+        {
+            "label": "X14 intersect variants treat null as empty",
+            "php": "collect([10,20,30,40])->intersect(null)",
+            "value": {
+                "intersect": [],
+                "intersectAssoc": [],
+                "intersectByKeys": []
+            }
+        },
+        {
+            "label": "X15 slice with a negative offset and a length",
+            "php": "collect([10,20,30,40])->slice(-3,2)",
+            "value": {
+                "1": 20,
+                "2": 30
+            }
+        },
+        {
+            "label": "X16 filter drops PHP-falsy \"0\" but keeps \"00\" and \"0.0\"",
+            "php": "collect([...])->filter()",
+            "value": {
+                "1": "00",
+                "2": "0.0",
+                "8": "a"
+            }
+        },
+        {
+            "label": "X17 pad numbers negative pad slots from 0",
+            "php": "array_pad(['a'=>1,'b'=>2],-5,0)",
+            "value": {
+                "strings": {
+                    "0": 0,
+                    "1": 0,
+                    "2": 0,
+                    "a": 1,
+                    "b": 2
+                },
+                "ints": [
+                    0,
+                    0,
+                    10,
+                    20,
+                    30,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "X18/pad positive padding appends",
+            "php": "collect([10,20,30,40])->pad(6,0)",
+            "value": {
+                "padded": [
+                    10,
+                    20,
+                    30,
+                    40,
+                    0,
+                    0
+                ],
+                "noPad": [
+                    10,
+                    20,
+                    30,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "X19 combine throws on a key/value count mismatch",
+            "php": "array_combine(['a','b'],[1])",
+            "threw": "ValueError",
+            "message": "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements"
+        },
+        {
+            "label": "X19 combine on matching counts",
+            "php": "collect(['a','b','c'])->combine([1,2,3])",
+            "value": {
+                "a": 1,
+                "b": 2,
+                "c": 3
+            }
+        },
+        {
+            "label": "X20 union lets the left operand win, null value included",
+            "php": "['a'=>null] + ['a'=>1]",
+            "value": {
+                "nullWins": {
+                    "a": null
+                },
+                "ints": [
+                    10,
+                    20,
+                    50,
+                    60
+                ]
+            }
+        },
+        {
+            "label": "X21 query casts booleans to 1/0",
+            "php": "Arr::query(['a'=>true,'b'=>false])",
+            "value": {
+                "bools": "a=1&b=0",
+                "list": "0=a&1=b"
+            }
+        },
+        {
+            "label": "X22 CSS helpers emit the value for numeric keys",
+            "php": "Arr::toCssClasses(['font-bold','text-red'])",
+            "value": {
+                "classes": "font-bold text-red",
+                "styles": "color:red; font-size:14px;",
+                "conditional": "font-bold active"
+            }
+        },
+        {
+            "label": "X23 random throws before the empty guard",
+            "php": "Arr::random([],1)",
+            "threw": "InvalidArgumentException",
+            "message": "You requested 1 items, but there are only 0 items available."
+        },
+        {
+            "label": "X24 random preserveKeys defaults to false",
+            "php": "Arr::random([10,20,30,40],2)",
+            "value": {
+                "keys": [
+                    0,
+                    1
+                ],
+                "preserved_count": 2,
+                "preserved_keys_are_original": true
+            }
+        },
+        {
+            "label": "X25 only accepts a bare key and null",
+            "php": "Arr::only([10,20,30,40],1)",
+            "value": {
+                "bare": {
+                    "1": 20
+                },
+                "null": [],
+                "list": {
+                    "1": 20,
+                    "3": 40
+                }
+            }
+        },
+        {
+            "label": "X26 get/has/exists resolve a literal dotted key first",
+            "php": "Arr::get(['a.b'=>'literal','a'=>['b'=>'nested']],'a.b')",
+            "value": {
+                "get": "literal",
+                "has": true,
+                "exists": true,
+                "getList": 30,
+                "hasList": true,
+                "existsList": true
+            }
+        },
+        {
+            "label": "X27 pluck supports wildcard and array paths",
+            "php": "Arr::pluck(...,'name')",
+            "value": {
+                "plain": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keyed": {
+                    "3": "c",
+                    "1": "a",
+                    "2": "b"
+                },
+                "wildcard": [
+                    [
+                        "p1",
+                        "p2"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "X28 sort accepts multi-key and [key, direction] descriptors",
+            "php": "Arr::sort(..., [...])",
+            "value": {
+                "byKey": [
+                    {
+                        "id": 1,
+                        "name": "a"
+                    },
+                    {
+                        "id": 2,
+                        "name": "b"
+                    },
+                    {
+                        "id": 3,
+                        "name": "c"
+                    }
+                ],
+                "descriptor": [
+                    {
+                        "id": 3,
+                        "name": "c"
+                    },
+                    {
+                        "id": 2,
+                        "name": "b"
+                    },
+                    {
+                        "id": 1,
+                        "name": "a"
+                    }
+                ],
+                "plain": {
+                    "1": 10,
+                    "2": 20,
+                    "0": 30
+                },
+                "empty": [
+                    3,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "X29 flatten defaults to INF",
+            "php": "Arr::flatten([1,[2,[3]]])",
+            "value": {
+                "default": [
+                    1,
+                    2,
+                    3
+                ],
+                "depth1": [
+                    1,
+                    2,
+                    [
+                        3
+                    ]
+                ],
+                "depth2": [
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "X30 mapWithKeys returns one plain container",
+            "php": "Arr::mapWithKeys(...)",
+            "value": {
+                "stringKeys": {
+                    "c": 3,
+                    "a": 1,
+                    "b": 2
+                },
+                "numericKeys": {
+                    "3": "c",
+                    "1": "a",
+                    "2": "b"
+                }
+            }
+        },
+        {
+            "label": "keys/values over the same fixture",
+            "php": "collect([10,20,30,40])->keys()",
+            "value": {
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    10,
+                    20,
+                    30,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "reverse over the same fixture",
+            "php": "collect([10,20,30,40])->reverse()",
+            "value": {
+                "3": 40,
+                "2": 30,
+                "1": 20,
+                "0": 10
+            }
+        },
+        {
+            "label": "pull removes and returns the value",
+            "php": "collect([10,20,30,40])->pull(1)",
+            "value": {
+                "pulled": 20,
+                "after": {
+                    "0": 10,
+                    "2": 30,
+                    "3": 40
+                }
+            }
+        },
+        {
+            "label": "undot rebuilds the nested list",
+            "php": "Arr::undot(['0'=>'a','1.0'=>'b','1.1'=>'c'])",
+            "value": [
+                "a",
+                [
+                    "b",
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "sortDesc over the same fixture",
+            "php": "collect([30,10,20])->sortDesc()",
+            "value": {
+                "0": 30,
+                "2": 20,
+                "1": 10
+            }
+        },
+        {
+            "label": "diffAssocUsing / diffKeysUsing with a real comparator",
+            "php": "array_diff_uassoc / array_diff_ukey",
+            "value": {
+                "assoc": {
+                    "1": 20
+                },
+                "keys": {
+                    "0": 10,
+                    "2": 30
+                }
+            }
+        },
+        {
+            "label": "intersectAssoc / intersectAssocUsing / intersectByKeys",
+            "php": "array_intersect_assoc family",
+            "value": {
+                "assoc": {
+                    "0": 10,
+                    "2": 30
+                },
+                "assocUsing": {
+                    "0": 10,
+                    "2": 30
+                },
+                "byKeys": {
+                    "1": 20,
+                    "3": 40
+                }
+            }
+        }
+    ]
+}

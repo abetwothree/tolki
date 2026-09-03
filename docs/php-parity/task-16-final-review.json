@@ -1,0 +1,650 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-17-g5ba4bc5495"
+    },
+    "probes": [
+        {
+            "label": "push appends into the array AT the key, never beside it",
+            "php": "Arr::push($a = [[\"Desk\"]], \"0\", \"Chair\")",
+            "value": {
+                "existing_leaf": {
+                    "returned": [
+                        [
+                            "Desk",
+                            "Chair"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            "Desk",
+                            "Chair"
+                        ]
+                    ]
+                },
+                "existing_leaf_two_values": {
+                    "returned": [
+                        "a",
+                        [
+                            "b",
+                            "c",
+                            "d"
+                        ]
+                    ],
+                    "after": [
+                        "a",
+                        [
+                            "b",
+                            "c",
+                            "d"
+                        ]
+                    ]
+                },
+                "existing_leaf_named": {
+                    "returned": [
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ]
+                },
+                "empty_leaf": {
+                    "returned": [
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ]
+                },
+                "missing_leaf": {
+                    "returned": [
+                        [
+                            "value"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            "value"
+                        ]
+                    ]
+                },
+                "missing_leaf_bool": {
+                    "returned": [
+                        [
+                            true
+                        ]
+                    ],
+                    "after": [
+                        [
+                            true
+                        ]
+                    ]
+                },
+                "missing_leaf_dotted": {
+                    "returned": [
+                        [
+                            "deep"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                "deep"
+                            ]
+                        ]
+                    ]
+                },
+                "missing_leaf_dotted_value": {
+                    "returned": [
+                        [
+                            "value"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                "value"
+                            ]
+                        ]
+                    ]
+                },
+                "missing_leaf_dotted_desk": {
+                    "returned": [
+                        [
+                            "Desk"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                "Desk"
+                            ]
+                        ]
+                    ]
+                },
+                "missing_leaf_dotted_three": {
+                    "returned": [
+                        [
+                            "value"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                [
+                                    "value"
+                                ]
+                            ]
+                        ]
+                    ]
+                },
+                "missing_leaf_dotted_three_deep": {
+                    "returned": [
+                        [
+                            "deep"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                [
+                                    "deep"
+                                ]
+                            ]
+                        ]
+                    ]
+                },
+                "jsdoc_existing_leaf": {
+                    "returned": [
+                        [
+                            "x",
+                            "y"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            "x",
+                            "y"
+                        ]
+                    ]
+                },
+                "jsdoc_dotted_leaf": {
+                    "returned": [
+                        "b",
+                        [
+                            "c"
+                        ]
+                    ],
+                    "after": [
+                        "a",
+                        [
+                            "b",
+                            [
+                                "c"
+                            ]
+                        ]
+                    ]
+                },
+                "null_intermediate": {
+                    "returned": [
+                        [
+                            "value"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                "value"
+                            ]
+                        ]
+                    ]
+                },
+                "empty_intermediate": {
+                    "returned": [
+                        [
+                            "value"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                "value"
+                            ]
+                        ]
+                    ]
+                },
+                "existing_nested_leaf": {
+                    "returned": [
+                        "existing",
+                        [
+                            "new"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            "existing",
+                            [
+                                "new"
+                            ]
+                        ]
+                    ]
+                },
+                "array_value_pushed_into_leaf": {
+                    "returned": [
+                        [
+                            "a",
+                            "b"
+                        ],
+                        [
+                            "c",
+                            "d",
+                            [
+                                "x",
+                                "y"
+                            ]
+                        ]
+                    ],
+                    "after": [
+                        [
+                            "a",
+                            "b"
+                        ],
+                        [
+                            "c",
+                            "d",
+                            [
+                                "x",
+                                "y"
+                            ]
+                        ]
+                    ]
+                },
+                "assoc_leaf_two_values": {
+                    "returned": {
+                        "items": [
+                            "a",
+                            "b",
+                            "c",
+                            "d"
+                        ]
+                    },
+                    "after": {
+                        "items": [
+                            "a",
+                            "b",
+                            "c",
+                            "d"
+                        ]
+                    }
+                },
+                "nested_leaf_in_place": {
+                    "returned": [
+                        [
+                            1,
+                            9
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                1,
+                                9
+                            ]
+                        ]
+                    ]
+                },
+                "assoc_nested_leaf_in_place": {
+                    "returned": {
+                        "b": [
+                            1,
+                            9
+                        ]
+                    },
+                    "after": {
+                        "a": {
+                            "b": [
+                                1,
+                                9
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "label": "push rejects a boolean at the leaf",
+            "php": "Arr::push($a = [true], \"0\", \"value\")",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, boolean found."
+        },
+        {
+            "label": "push at an out-of-range index writes a gapped key in PHP",
+            "php": "Arr::push($a = [], \"2\", \"value\")",
+            "value": {
+                "flat_gap": {
+                    "returned": {
+                        "2": [
+                            "value"
+                        ]
+                    },
+                    "after": {
+                        "2": [
+                            "value"
+                        ]
+                    }
+                },
+                "nested_gap": {
+                    "returned": {
+                        "1": [
+                            "nested"
+                        ]
+                    },
+                    "after": [
+                        {
+                            "1": [
+                                "nested"
+                            ]
+                        }
+                    ]
+                },
+                "nested_gap_deep": {
+                    "returned": {
+                        "2": [
+                            "deep-value"
+                        ]
+                    },
+                    "after": [
+                        {
+                            "1": {
+                                "2": [
+                                    "deep-value"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "nested_gap_mid": {
+                    "returned": [
+                        [
+                            "value"
+                        ]
+                    ],
+                    "after": [
+                        {
+                            "1": [
+                                [
+                                    "value"
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                "intermediate_gap": {
+                    "returned": [
+                        [
+                            "value"
+                        ]
+                    ],
+                    "after": {
+                        "0": [
+                            "existing"
+                        ],
+                        "5": [
+                            [
+                                "value"
+                            ]
+                        ]
+                    }
+                },
+                "leaf_gap_after_root": {
+                    "returned": [
+                        [
+                            "item"
+                        ]
+                    ],
+                    "after": {
+                        "1": [
+                            [
+                                "item"
+                            ]
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "label": "diff accepts an operand of any shape",
+            "php": "collect(null)->diff([1,2])",
+            "value": {
+                "null_data_list_other": [],
+                "list_data_assoc_other": [
+                    10
+                ],
+                "assoc_data_list_other": {
+                    "a": 10
+                },
+                "assoc_data_scalar_other": {
+                    "a": 1
+                },
+                "list_data_scalar_other": [
+                    1
+                ],
+                "list_data_int_other": [
+                    1
+                ],
+                "assoc_data_null_other": {
+                    "a": 1
+                },
+                "list_data_null_other": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "intersect accepts an operand of any shape",
+            "php": "collect([1])->intersect([\"x\"=>1])",
+            "value": {
+                "list_data_assoc_other": [
+                    1
+                ],
+                "assoc_data_list_other": {
+                    "a": 1
+                },
+                "assoc_data_list_other_two": {
+                    "b": 2
+                },
+                "nums_assoc_other": {
+                    "1": 20,
+                    "3": 40
+                },
+                "null_data_list_other": [],
+                "assoc_data_scalar_other": {
+                    "b": "x"
+                },
+                "list_data_scalar_other": {
+                    "1": "x"
+                },
+                "assoc_data_null_other": []
+            }
+        },
+        {
+            "label": "\"__proto__\" is an ordinary array key in every keyed Collection result",
+            "php": "collect([[\"k\"=>\"__proto__\"]])->keyBy(\"k\")",
+            "value": {
+                "keyBy": {
+                    "__proto__": {
+                        "k": "__proto__",
+                        "v": 1
+                    }
+                },
+                "groupBy": {
+                    "__proto__": [
+                        {
+                            "k": "__proto__"
+                        }
+                    ]
+                },
+                "groupBy_preserve_keys": {
+                    "z": {
+                        "__proto__": {
+                            "k": "z"
+                        }
+                    }
+                },
+                "countBy": {
+                    "__proto__": 1
+                },
+                "mapToDictionary": {
+                    "__proto__": [
+                        1
+                    ]
+                },
+                "sortKeys": {
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "a": 1,
+                    "c": 3
+                },
+                "sortKeysUsing": {
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "a": 1,
+                    "c": 3
+                },
+                "unshift": {
+                    "0": 9,
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "mergeRecursive": {
+                    "z": 1,
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "mergeRecursive_nested": {
+                    "z": {
+                        "q": 1,
+                        "__proto__": {
+                            "polluted": true
+                        }
+                    }
+                },
+                "diffAssoc": {
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "diffKeys": {
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "diffUsing": {
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "duplicates": {
+                    "__proto__": 1
+                },
+                "offsetSet": {
+                    "a": 1,
+                    "__proto__": 2
+                },
+                "pull_leaves_the_rest": {
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                }
+            }
+        },
+        {
+            "label": "\"__proto__\" is an ordinary key on an array-backed collection too",
+            "php": "collect([1,2])->put(\"__proto__\", [\"polluted\" => true])",
+            "value": {
+                "list_put_proto": {
+                    "0": 1,
+                    "1": 2,
+                    "__proto__": {
+                        "polluted": true
+                    }
+                },
+                "list_put_proto_still_maps": {
+                    "0": 1,
+                    "1": 2,
+                    "__proto__": {
+                        "polluted": true
+                    }
+                },
+                "list_put_index": [
+                    1,
+                    2,
+                    3
+                ],
+                "list_get_or_put_proto": {
+                    "0": 1,
+                    "1": 2,
+                    "__proto__": {
+                        "polluted": true
+                    }
+                }
+            }
+        },
+        {
+            "label": "Collection::sortDesc \u2014 a string callback is a sort flag, not a field path",
+            "php": "sortDesc(\"\"), sortDesc(\"0\"), sortDesc(\"age\")",
+            "value": {
+                "empty_string": {
+                    "threw": "TypeError",
+                    "message": "arsort(): Argument #2 ($flags) must be of type int, string given"
+                },
+                "zero_string": {
+                    "a": 3,
+                    "c": 2,
+                    "b": 1
+                },
+                "non_numeric_string": {
+                    "threw": "TypeError",
+                    "message": "arsort(): Argument #2 ($flags) must be of type int, string given"
+                }
+            }
+        },
+        {
+            "label": "array_diff matches a high-precision float against its precision=14 cast",
+            "php": "array_diff([0.1 + 0.2], [\"0.3\"])",
+            "value": {
+                "diff_precision": [],
+                "string_cast": "0.3"
+            }
+        }
+    ]
+}

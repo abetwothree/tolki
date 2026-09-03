@@ -10,6 +10,22 @@ describe("Utils", () => {
         );
     });
 
+    describe("isIntegerLikeKey", () => {
+        it("returns true for canonical non-negative integer strings", () => {
+            expect(Utils.isIntegerLikeKey("0")).toBe(true);
+            expect(Utils.isIntegerLikeKey("1")).toBe(true);
+            expect(Utils.isIntegerLikeKey("23")).toBe(true);
+        });
+
+        it("returns false for strings that merely look numeric", () => {
+            expect(Utils.isIntegerLikeKey("01")).toBe(false);
+            expect(Utils.isIntegerLikeKey("-1")).toBe(false);
+            expect(Utils.isIntegerLikeKey("1.5")).toBe(false);
+            expect(Utils.isIntegerLikeKey("")).toBe(false);
+            expect(Utils.isIntegerLikeKey("x")).toBe(false);
+        });
+    });
+
     describe("isPhpArrayKey", () => {
         it("returns true for strings", () => {
             expect(Utils.isPhpArrayKey("taylor")).toBe(true);
@@ -113,6 +129,50 @@ describe("Utils", () => {
             expect(target["constructor"]).toBe("a");
             expect(target["prototype"]).toBe("b");
             expect(Object.keys(target)).toEqual(["constructor", "prototype"]);
+        });
+
+        it.each([
+            ["Object.prototype", Object.prototype],
+            ["Array.prototype", Array.prototype],
+            ["Function.prototype", Function.prototype],
+        ])("refuses %s as a write target", (_label, target) => {
+            Utils.defineKey(target as Record<string, unknown>, "PWNED", 1);
+
+            expect(Object.getOwnPropertyNames(target)).not.toContain("PWNED");
+            expect(({} as Record<string, unknown>)["PWNED"]).toBeUndefined();
+            expect(
+                ([] as unknown as Record<string, unknown>)["PWNED"],
+            ).toBeUndefined();
+        });
+    });
+
+    describe("defineKey on a non-configurable key", () => {
+        it("falls back to assignment for an array's length", () => {
+            const target: unknown[] = [1, 2];
+            expect(() =>
+                Utils.defineKey(
+                    target as unknown as Record<string, unknown>,
+                    "length",
+                    5,
+                ),
+            ).not.toThrow();
+            expect(target.length).toBe(5);
+        });
+
+        it("falls back to assignment for a sealed object's existing key", () => {
+            const target = Object.seal({ a: 1 });
+            expect(() =>
+                Utils.defineKey(target as Record<string, unknown>, "a", 2),
+            ).not.toThrow();
+            expect(target.a).toBe(2);
+        });
+
+        it("still defines a __proto__ key as own data", () => {
+            const target: Record<string, unknown> = {};
+            Utils.defineKey(target, "__proto__", 5);
+
+            expect(Object.hasOwn(target, "__proto__")).toBe(true);
+            expect(Object.getPrototypeOf(target)).toBe(Object.prototype);
         });
     });
 });
