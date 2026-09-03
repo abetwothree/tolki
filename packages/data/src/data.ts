@@ -2019,7 +2019,7 @@ export function dataWhere<TValue, TKey extends PropertyKey = PropertyKey>(
  * Replace the data items with the given items.
  *
  * A `null`/`undefined` `replacerData` is a no-op regardless of `data`'s backing
- * (`EnumeratesValues.php:1106`), dispatched by `data`'s own shape since there's
+ * (`EnumeratesValues.php:1121`), dispatched by `data`'s own shape since there's
  * no object-shaped spelling of "null" to satisfy a same-type check.
  *
  * @param data - The original data

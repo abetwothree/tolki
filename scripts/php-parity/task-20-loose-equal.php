@@ -46,6 +46,22 @@ $pairs = [
     'hundred and an exponent string' => [100, '1e2'],
     'exponent string and plain string' => ['1e1', '10'],
     'one and zero-padded one'        => ['1', '01'],
+    'one and signed one'             => ['1', '+1'],
+    // F4 — past PHP_INT_MAX there is no int: both sides become doubles and tie.
+    'float past the int range and its integer string' => [1e23, '100000000000000000000000'],
+    'larger float past the int range and its integer string' => [1e30, '1000000000000000000000000000000'],
+    'negative float past the int range and its integer string' => [-1e23, '-100000000000000000000000'],
+    'one and an integer string past the int range' => [1, '100000000000000000000000'],
+    // F5 — zendi_smart_strcmp falls back to a byte compare when two integer strings
+    // overflow zend_long on the same side and their doubles tie. The in-range controls
+    // above ('one and zero-padded one', 'one and signed one') stay equal.
+    'overflowing integer strings, one signed' => ['9223372036854775808', '+9223372036854775808'],
+    'overflowing integer strings, one zero-padded' => ['9223372036854775808', '09223372036854775808'],
+    'PHP_INT_MAX strings, one signed' => ['9223372036854775807', '+9223372036854775807'],
+    'PHP_INT_MIN strings, one zero-padded' => ['-9223372036854775808', '-09223372036854775808'],
+    'underflowing integer strings, one zero-padded' => ['-9223372036854775809', '-09223372036854775809'],
+    'overflowing integer strings on opposite sides' => ['9223372036854775808', '-9223372036854775808'],
+    'overflowing integer strings of different magnitude' => ['9223372036854775808', '99999999999999999999'],
     'large integer strings one apart' => ['9007199254740993', '9007199254740992'],
     'overflowing exponent strings one apart' => ['1e999', '1e1000'],
     'large integer and the string one below it' => [9007199254740993, '9007199254740992'],
@@ -82,5 +98,13 @@ probe('object with __toString and its own string', '$stringable == \'hello\'', f
 probe('a string and an object with __toString', '\'hello\' == $stringable', fn () => 'hello' == $stringable);
 probe('object with __toString and a different string', '$stringable == \'world\'', fn () => $stringable == 'world');
 probe('plain object and a string', 'new stdClass() == \'hello\'', fn () => new stdClass() == 'hello');
+
+// F1 — an object is ALWAYS truthy in PHP, whatever its state, and however empty it looks.
+probe('plain object and true', 'new stdClass() == true', fn () => new stdClass() == true);
+probe('plain object and false', 'new stdClass() == false', fn () => new stdClass() == false);
+probe('plain object and null', 'new stdClass() == null', fn () => new stdClass() == null);
+probe('stateless object and true', 'new DateTime(\'@0\') == true', fn () => new DateTime('@0') == true);
+probe('stateless object and false', 'new DateTime(\'@0\') == false', fn () => new DateTime('@0') == false);
+probe('stateless object and null', 'new DateTime(\'@0\') == null', fn () => new DateTime('@0') == null);
 
 emit();

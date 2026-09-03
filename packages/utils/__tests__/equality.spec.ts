@@ -307,8 +307,69 @@ describe("Utils", () => {
             expect(Utils.looseEqual("abc", "ABC")).toBe(false);
         });
 
+        // task-20-loose-equal.json, "float past the int range and its integer string",
+        // "larger float past the int range and its integer string", its negative twin,
+        // and "one and an integer string past the int range"
+        it("ties a float and its integer string past PHP's int range", () => {
+            expect(Utils.looseEqual(1e23, "100000000000000000000000")).toBe(
+                true,
+            );
+            expect(
+                Utils.looseEqual(1e30, "1000000000000000000000000000000"),
+            ).toBe(true);
+            expect(Utils.looseEqual(-1e23, "-100000000000000000000000")).toBe(
+                true,
+            );
+            // The string is the left operand here, so it is the one leaving the int range.
+            expect(Utils.looseEqual("100000000000000000000000", 1e23)).toBe(
+                true,
+            );
+            expect(Utils.looseEqual(1, "100000000000000000000000")).toBe(false);
+        });
+
+        // task-20-loose-equal.json, "overflowing integer strings, one signed" and
+        // "... one zero-padded", "underflowing integer strings, one zero-padded",
+        // "... on opposite sides", "... of different magnitude", and the in-range
+        // controls "one and signed one", "PHP_INT_MAX strings, one signed",
+        // "PHP_INT_MIN strings, one zero-padded"
+        it("separates two spellings of one integer once it overflows PHP's int", () => {
+            expect(
+                Utils.looseEqual("9223372036854775808", "+9223372036854775808"),
+            ).toBe(false);
+            expect(
+                Utils.looseEqual("9223372036854775808", "09223372036854775808"),
+            ).toBe(false);
+            expect(
+                Utils.looseEqual(
+                    "-9223372036854775809",
+                    "-09223372036854775809",
+                ),
+            ).toBe(false);
+            // Overflowing on opposite sides, or to different doubles, never reaches the
+            // byte compare: PHP orders those as the doubles they became.
+            expect(
+                Utils.looseEqual("9223372036854775808", "-9223372036854775808"),
+            ).toBe(false);
+            expect(
+                Utils.looseEqual("9223372036854775808", "99999999999999999999"),
+            ).toBe(false);
+            // In range PHP holds both as ints, so the spelling stops mattering.
+            expect(Utils.looseEqual("1", "+1")).toBe(true);
+            expect(
+                Utils.looseEqual("9223372036854775807", "+9223372036854775807"),
+            ).toBe(true);
+            expect(
+                Utils.looseEqual(
+                    "-9223372036854775808",
+                    "-09223372036854775808",
+                ),
+            ).toBe(true);
+        });
+
         it("compares an object with a custom toString against a string, both ways", () => {
-            // PHP's __toString: $obj == "hello" is true. This is what collection.spec.ts:9284/:9291 rely on.
+            // PHP's __toString: $obj == "hello" is true. Cited by name, not line, so an
+            // insertion above cannot invalidate it: collection.spec.ts, describe("where")
+            // > describe("Laravel Tests") > it("test where") leans on this.
             class HtmlString {
                 value: string;
                 constructor(value: string) {
@@ -342,6 +403,61 @@ describe("Utils", () => {
             expect(Utils.looseEqual(false, {})).toBe(true);
             expect(Utils.looseEqual(true, {})).toBe(false);
             expect(Utils.looseEqual(true, { a: 1 })).toBe(true);
+        });
+
+        // task-20-loose-equal.json, "plain object and true"/"...and false"/"...and null"
+        // and their "stateless object" twins: an object is ALWAYS truthy in PHP, so only
+        // the plain object standing in for an associative array may be empty-and-falsy.
+        it("treats every non-plain object as truthy, however empty its own keys are", () => {
+            class Sized {
+                get size(): number {
+                    return 0;
+                }
+            }
+
+            const stateless: unknown[] = [
+                new Date(0),
+                new Map(),
+                new Set(),
+                /re/,
+                new Sized(),
+            ];
+
+            for (const value of stateless) {
+                expect(Utils.looseEqual(value, true)).toBe(true);
+                expect(Utils.looseEqual(value, false)).toBe(false);
+                expect(Utils.looseEqual(value, null)).toBe(false);
+            }
+
+            // Unchanged: a plain object still models a PHP array, so {} == false as [] does.
+            expect(Utils.looseEqual({}, true)).toBe(false);
+            expect(Utils.looseEqual({}, false)).toBe(true);
+            expect(Utils.looseEqual({}, null)).toBe(true);
+            expect(Utils.looseEqual({ a: 1 }, true)).toBe(true);
+            expect(Utils.looseEqual({ a: 1 }, false)).toBe(false);
+            expect(Utils.looseEqual({ a: 1 }, null)).toBe(false);
+            // A null prototype is plain too: there is nowhere else for state to hide.
+            expect(Utils.looseEqual(Object.create(null), false)).toBe(true);
+        });
+
+        // task-20-loose-equal.json, "assoc arrays in a different order",
+        // "true and the string zero", "false and the string zero"
+        it("ignores key order in an associative array and reads '0' as falsy", () => {
+            expect(Utils.looseEqual({ a: 1, b: 2 }, { b: 2, a: 1 })).toBe(true);
+            expect(Utils.looseEqual(true, "0")).toBe(false);
+            expect(Utils.looseEqual(false, "0")).toBe(true);
+        });
+
+        // A hole reads as undefined; Array.prototype.every skips it outright, which would
+        // let the hole match whatever sits opposite it.
+        it("compares a sparse array's holes instead of skipping them", () => {
+            const holeThenOne: unknown[] = new Array(2);
+
+            holeThenOne[1] = 1;
+
+            expect(Utils.looseEqual(holeThenOne, [9, 1])).toBe(false);
+            expect(Utils.looseEqual(new Array(2), [1, 2])).toBe(false);
+            expect(Utils.looseEqual(holeThenOne, [undefined, 1])).toBe(true);
         });
 
         it("never equates an array or object with a non-null scalar", () => {

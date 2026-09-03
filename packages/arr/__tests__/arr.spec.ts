@@ -2496,7 +2496,7 @@ describe("Arr", () => {
         });
 
         // arr already matches Collection.php:1172 (newInstance(array_replace(...))) and
-        // getArrayableItems(null) -> [] (EnumeratesValues.php:1106). obj was fixed to
+        // getArrayableItems(null) -> [] (EnumeratesValues.php:1121). obj was fixed to
         // match here; these lock arr's side of the pair so it cannot drift back.
         it("does not mutate its argument", () => {
             const data = [1, 2];

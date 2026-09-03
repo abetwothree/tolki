@@ -126,7 +126,8 @@ export function str(value: string = ""): Stringable {
  * PHP's `basename()` for `/`-separated paths.
  *
  * @param path - The path
- * @param suffix - Removed from the end of the name unless it is the whole name; required, the wrapper supplies the default
+ * @param suffix - Removed from the end of the name unless it is the whole name;
+ *      required, since the wrapper supplies the default
  * @returns The trailing name component
  */
 function basename(path: string, suffix: string): string {
@@ -170,6 +171,12 @@ function dirname(path: string, levels: number): string {
     return result;
 }
 
+/**
+ * One `dirname()` level: the path with its last `/`-separated component removed.
+ *
+ * @param path - The path to walk up from
+ * @returns The parent path, or the fixed points "", "." and "/" unchanged
+ */
 function parentOf(path: string): string {
     if (path === "") {
         return "";
@@ -194,6 +201,10 @@ function parentOf(path: string): string {
 
 /**
  * Drops trailing slashes, keeping at least `keep` characters so "/" survives when asked to.
+ *
+ * @param path - The path to trim
+ * @param keep - The number of leading characters no trim may consume
+ * @returns The path without its trailing slashes
  */
 function withoutTrailingSlashes(path: string, keep: number): string {
     let end = path.length;

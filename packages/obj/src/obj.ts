@@ -303,7 +303,8 @@ export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @example
  *
- * chunkWhile({ a: 1, b: 1, c: 2 }, (value, key, chunk) => Object.values(chunk).at(-1) === value); -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
+ * chunkWhile({ a: 1, b: 1, c: 2 }, (value, key, chunk) => Object.values(chunk).at(-1) === value);
+ * -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
  */
 export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
@@ -397,20 +398,35 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
                   ? value
                   : getNestedValue(value, key as string);
 
+    // The entry chunkWhile handed us last time. Reading the previous item back out of
+    // `chunk` instead re-materializes every entry on every element, which is quadratic.
+    let previous: { key: TKey; value: TValue } | undefined;
+
     // chunkWhile calls back before writing `value`, and even a reset writes within the
-    // same iteration, so `chunk` is never empty here; Object.entries orders a chunk
-    // exactly as it ordered `data`, so its last entry is always the previous item.
+    // same iteration, so `chunk` is never empty here; on the first call it holds exactly
+    // the one preceding entry, which is the only time it has to be read back.
     return chunkWhile(
         data as Record<TKey, TValue>,
         (value, currentKey, chunk) => {
-            const [lastKey, lastValue] = Object.entries(chunk).at(-1) as [
-                string,
-                TValue,
-            ];
+            if (previous === undefined) {
+                const [lastKey, lastValue] = Object.entries(chunk).at(-1) as [
+                    string,
+                    TValue,
+                ];
+
+                previous = {
+                    key: entriesKeyValue(lastKey) as TKey,
+                    value: lastValue,
+                };
+            }
+
+            const prior = previous;
+
+            previous = { key: currentKey, value };
 
             return looseEqual(
                 retrieve(value, currentKey),
-                retrieve(lastValue, entriesKeyValue(lastKey) as TKey),
+                retrieve(prior.value, prior.key),
             );
         },
     );
@@ -3210,7 +3226,7 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
  * `array_replace()` / `Collection::replace()`.
  *
  * Returns a new object rather than mutating `data`; a `null`/`undefined` replacer
- * is a no-op (`CollectionTest.php:1482`). Writes go through `defineKey` so a
+ * is a no-op (`CollectionTest.php:1490`). Writes go through `defineKey` so a
  * `__proto__` key on `replacerData` becomes a real own key (see `isUnsafeKey`,
  * AGENTS.md:189).
  *
@@ -3257,7 +3273,7 @@ export function replace<T1, T2>(
  * `array_replace_recursive()` / `Collection::replaceRecursive()`.
  *
  * Builds a new object at every recursion level rather than mutating `data`. A
- * `null`/`undefined` replacer is a no-op (`CollectionTest.php:1524`). Only
+ * `null`/`undefined` replacer is a no-op (`CollectionTest.php:1532`). Only
  * `__proto__` is skipped on `replacerData` — the sole prototype-pollution hazard
  * (see `isUnsafeKey`, AGENTS.md:189); `constructor`/`prototype` write normally.
  *

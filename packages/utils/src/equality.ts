@@ -37,6 +37,35 @@ function compareStrings(a: string, b: string): number {
 const PHP_INTEGER_STRING_PATTERN = /^[ \t\n\r\v\f]*[+-]?\d+[ \t\n\r\v\f]*$/;
 
 /**
+ * The first magnitude beyond PHP's 64-bit `int`. `PHP_INT_MAX` (2^63 - 1) is not
+ * representable as a JavaScript double, so this bound serves as the exclusive upper
+ * limit and, negated, as the inclusive lower one (`PHP_INT_MIN`, exactly -2^63).
+ */
+const PHP_INT_BOUND = 2 ** 63;
+
+/** The same bound as a bigint, for operands compared exactly rather than as doubles. */
+const PHP_INT_BOUND_BIGINT = 2n ** 63n;
+
+/**
+ * PHP's `oflow` for an integer-shaped operand: 1 above `PHP_INT_MAX`, -1 below
+ * `PHP_INT_MIN`, 0 within range.
+ *
+ * @param value - The exact integer the operand spells
+ * @returns The side the value overflows `zend_long` on, or 0
+ */
+function phpIntOverflow(value: bigint): number {
+    if (value >= PHP_INT_BOUND_BIGINT) {
+        return 1;
+    }
+
+    if (value < -PHP_INT_BOUND_BIGINT) {
+        return -1;
+    }
+
+    return 0;
+}
+
+/**
  * Order two numeric strings the way PHP does, which `Number()` alone cannot.
  *
  * Two integer strings compare exactly, because a double collapses them past
@@ -55,6 +84,18 @@ function compareNumericStrings(a: string, b: string): number {
     ) {
         const leftInt = BigInt(a);
         const rightInt = BigInt(b);
+        const overflow = phpIntOverflow(leftInt);
+
+        // zendi_smart_strcmp's own tie-break: two integer strings overflowing zend_long on
+        // the same side, whose doubles tie, fall back to a byte compare. That is why PHP
+        // says "9223372036854775808" and "+9223372036854775808" are different.
+        if (
+            overflow !== 0 &&
+            overflow === phpIntOverflow(rightInt) &&
+            Number(a) === Number(b)
+        ) {
+            return compareStrings(a, b);
+        }
 
         return leftInt < rightInt ? -1 : leftInt > rightInt ? 1 : 0;
     }
@@ -194,8 +235,9 @@ export function looseEqual(a: unknown, b: unknown): boolean {
         return isString(other) ? other === "" : !phpTruthy(other);
     }
 
-    // A JS object models a PHP associative array here, not a stdClass: isPhpFalsy (guards.ts) makes
-    // {} falsy, so false == {} is true exactly as PHP's [] == false is. Probed as "empty array and false".
+    // A PLAIN JS object models a PHP associative array here, not a stdClass, so phpTruthy lets
+    // isPhpFalsy (guards.ts) call {} falsy and false == {} holds as PHP's [] == false does.
+    // Probed as "empty array and false"; every other object is truthy, as "plain object and false".
     if (isBoolean(a) || isBoolean(b)) {
         return phpTruthy(a) === phpTruthy(b);
     }
@@ -245,7 +287,15 @@ export function looseEqual(a: unknown, b: unknown): boolean {
             return false;
         }
 
-        return a.every((value, index) => looseEqual(value, b[index]));
+        // An index loop, not `every`: `every` skips a sparse array's holes, which would
+        // let a hole match whatever sits opposite it instead of comparing as undefined.
+        for (let index = 0; index < a.length; index++) {
+            if (!looseEqual(a[index], b[index])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     if (isObject(a) && isObject(b)) {
@@ -270,6 +320,19 @@ export function looseEqual(a: unknown, b: unknown): boolean {
 }
 
 /**
+ * Whether an object is the plain associative-array analogue this port models a PHP
+ * array with: one whose prototype is `Object.prototype` or `null`.
+ *
+ * @param value - The object to check
+ * @returns True if the object is a plain object
+ */
+function isPlainObject(value: object): boolean {
+    const prototype: unknown = Object.getPrototypeOf(value);
+
+    return prototype === Object.prototype || prototype === null;
+}
+
+/**
  * PHP truthiness with bigint folded in, since PHP has no bigint but JS callers may pass one.
  *
  * @param value - The value to cast
@@ -278,6 +341,13 @@ export function looseEqual(a: unknown, b: unknown): boolean {
 function phpTruthy(value: unknown): boolean {
     if (typeof value === "bigint") {
         return value !== 0n;
+    }
+
+    // An object is always truthy in PHP; only the plain object standing in for an
+    // associative array may be empty-and-falsy, and its state is its own keys. A Date,
+    // Map, Set, RegExp or class instance keeps state elsewhere, so emptiness says nothing.
+    if (isObject(value) && !isPlainObject(value)) {
+        return true;
     }
 
     return !isPhpFalsy(value);
@@ -305,22 +375,31 @@ function isPhpNumericOrBigint(value: unknown): boolean {
 
 /**
  * Whether an operand is an exact integer PHP would hold as an `int`: an integral finite number, a
- * bigint, or a PHP integer string. `Infinity` and `NaN` are not integral, so they take the float
- * path rather than throwing in `BigInt()`.
+ * bigint, or a PHP integer string, in every case within `[PHP_INT_MIN, PHP_INT_MAX]`. `Infinity`,
+ * `NaN` and anything out of range take the float path, where PHP compares two doubles as well.
  *
  * @param value - The numeric operand to check
  * @returns True if the value compares exactly as a bigint
  */
 function isPhpIntegral(value: number | bigint | string): boolean {
+    // A bigint is not a spelling PHP could have produced, so it is always compared exactly;
+    // collapsing a pair of them onto one double would lose the very digits they carry.
     if (typeof value === "bigint") {
         return true;
     }
 
     if (typeof value === "number") {
-        return Number.isInteger(value);
+        return (
+            Number.isInteger(value) &&
+            value >= -PHP_INT_BOUND &&
+            value < PHP_INT_BOUND
+        );
     }
 
-    return PHP_INTEGER_STRING_PATTERN.test(value);
+    return (
+        PHP_INTEGER_STRING_PATTERN.test(value) &&
+        phpIntOverflow(BigInt(value)) === 0
+    );
 }
 
 /**

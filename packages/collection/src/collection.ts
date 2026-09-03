@@ -3194,7 +3194,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * new Collection(['A', 'A', 'B']).chunkWhile((value, key, chunk) => chunk.last() === value); -> new Collection([new Collection(['A', 'A']), new Collection(['B'])])
+     * new Collection(['A', 'A', 'B']).chunkWhile((value, key, chunk) => chunk.last() === value);
+     * -> new Collection([new Collection(['A', 'A']), new Collection(['B'])])
      */
     chunkWhile(
         callback: (
@@ -3230,8 +3231,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * new Collection([1, 1, 2, 2, 1]).chunkBy((value) => value); -> new Collection([new Collection([1, 1]), new Collection([2, 2]), new Collection([1])])
-     * new Collection([{ p: 'a' }, { p: 'b' }]).chunkBy('p'); -> new Collection([new Collection([{ p: 'a' }]), new Collection([{ p: 'b' }])])
+     * new Collection([1, 1, 2, 2, 1]).chunkBy((value) => value);
+     * -> new Collection([new Collection([1, 1]), new Collection([2, 2]), new Collection([1])])
+     * new Collection([{ p: 'a' }, { p: 'b' }]).chunkBy('p');
+     * -> new Collection([new Collection([{ p: 'a' }]), new Collection([{ p: 'b' }])])
      */
     chunkBy(
         key: PathKey | ((value: TValue, key: TKey) => unknown),

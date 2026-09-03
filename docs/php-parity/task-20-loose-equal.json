@@ -145,6 +145,66 @@
             "value": true
         },
         {
+            "label": "one and signed one",
+            "php": "'1' == '+1'",
+            "value": true
+        },
+        {
+            "label": "float past the int range and its integer string",
+            "php": "1.0E+23 == '100000000000000000000000'",
+            "value": true
+        },
+        {
+            "label": "larger float past the int range and its integer string",
+            "php": "1.0E+30 == '1000000000000000000000000000000'",
+            "value": true
+        },
+        {
+            "label": "negative float past the int range and its integer string",
+            "php": "-1.0E+23 == '-100000000000000000000000'",
+            "value": true
+        },
+        {
+            "label": "one and an integer string past the int range",
+            "php": "1 == '100000000000000000000000'",
+            "value": false
+        },
+        {
+            "label": "overflowing integer strings, one signed",
+            "php": "'9223372036854775808' == '+9223372036854775808'",
+            "value": false
+        },
+        {
+            "label": "overflowing integer strings, one zero-padded",
+            "php": "'9223372036854775808' == '09223372036854775808'",
+            "value": false
+        },
+        {
+            "label": "PHP_INT_MAX strings, one signed",
+            "php": "'9223372036854775807' == '+9223372036854775807'",
+            "value": true
+        },
+        {
+            "label": "PHP_INT_MIN strings, one zero-padded",
+            "php": "'-9223372036854775808' == '-09223372036854775808'",
+            "value": true
+        },
+        {
+            "label": "underflowing integer strings, one zero-padded",
+            "php": "'-9223372036854775809' == '-09223372036854775809'",
+            "value": false
+        },
+        {
+            "label": "overflowing integer strings on opposite sides",
+            "php": "'9223372036854775808' == '-9223372036854775808'",
+            "value": false
+        },
+        {
+            "label": "overflowing integer strings of different magnitude",
+            "php": "'9223372036854775808' == '99999999999999999999'",
+            "value": false
+        },
+        {
             "label": "large integer strings one apart",
             "php": "'9007199254740993' == '9007199254740992'",
             "value": false
@@ -277,6 +337,36 @@
         {
             "label": "plain object and a string",
             "php": "new stdClass() == 'hello'",
+            "value": false
+        },
+        {
+            "label": "plain object and true",
+            "php": "new stdClass() == true",
+            "value": true
+        },
+        {
+            "label": "plain object and false",
+            "php": "new stdClass() == false",
+            "value": false
+        },
+        {
+            "label": "plain object and null",
+            "php": "new stdClass() == null",
+            "value": false
+        },
+        {
+            "label": "stateless object and true",
+            "php": "new DateTime('@0') == true",
+            "value": true
+        },
+        {
+            "label": "stateless object and false",
+            "php": "new DateTime('@0') == false",
+            "value": false
+        },
+        {
+            "label": "stateless object and null",
+            "php": "new DateTime('@0') == null",
             "value": false
         }
     ]

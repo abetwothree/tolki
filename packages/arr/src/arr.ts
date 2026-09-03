@@ -670,7 +670,7 @@ export function union(
 
     for (const array of arrays) {
         // getArrayableItems casts a null operand to an empty array
-        // (EnumeratesValues.php:1106), so it contributes nothing.
+        // (EnumeratesValues.php:1121), so it contributes nothing.
         if (isNull(array) || isUndefined(array)) {
             continue;
         }

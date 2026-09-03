@@ -1948,7 +1948,7 @@ describe("Obj", () => {
 
         it("is case-sensitive", () => {
             // Captured via docs/php-parity/task-06-setops.json ("diff is
-            // case-sensitive"). CollectionTest.php:1582.
+            // case-sensitive"). CollectionTest.php:1590.
             expect(
                 Obj.diff(
                     { 0: "en_GB", 1: "fr", 2: "HR" },
@@ -2118,7 +2118,7 @@ describe("Obj", () => {
         });
 
         it("still matches on key AND value together (must not collapse into intersect)", () => {
-            // intersectAssoc keeps array_intersect_assoc semantics (CollectionTest.php:1800),
+            // intersectAssoc keeps array_intersect_assoc semantics (CollectionTest.php:1809),
             // pinned so a future edit cannot collapse it into intersect's value-only rule.
             expect(
                 Obj.intersectAssoc(
@@ -4876,8 +4876,8 @@ describe("Obj", () => {
         });
 
         it("treats a null replacer as a no-op", () => {
-            // getArrayableItems(null) -> [] (EnumeratesValues.php:1106); pinned by
-            // CollectionTest.php:1482.
+            // getArrayableItems(null) -> [] (EnumeratesValues.php:1121); pinned by
+            // CollectionTest.php:1490.
             expect(Obj.replace({ a: 1 }, null)).toEqual({ a: 1 });
         });
 
@@ -5079,8 +5079,8 @@ describe("Obj", () => {
         });
 
         it("treats a null replacer as a no-op", () => {
-            // getArrayableItems(null) -> [] (EnumeratesValues.php:1106); pinned by
-            // CollectionTest.php:1524.
+            // getArrayableItems(null) -> [] (EnumeratesValues.php:1121); pinned by
+            // CollectionTest.php:1532.
             expect(Obj.replaceRecursive({ a: 1 }, null)).toEqual({ a: 1 });
         });
 
