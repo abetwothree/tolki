@@ -66,6 +66,33 @@ describe("Utils", () => {
         });
     });
 
+    describe("isPrototypeObject", () => {
+        it("returns true for intrinsic and class prototypes", () => {
+            expect(Utils.isPrototypeObject(Object.prototype)).toBe(true);
+            expect(Utils.isPrototypeObject(Array.prototype)).toBe(true);
+            expect(Utils.isPrototypeObject(Function.prototype)).toBe(true);
+            expect(Utils.isPrototypeObject(Map.prototype)).toBe(true);
+
+            class Example {}
+            expect(Utils.isPrototypeObject(Example.prototype)).toBe(true);
+        });
+
+        it("returns false for ordinary values and constructor look-alikes", () => {
+            expect(Utils.isPrototypeObject({})).toBe(false);
+            expect(Utils.isPrototypeObject([])).toBe(false);
+            expect(Utils.isPrototypeObject(Object.create(null))).toBe(false);
+            expect(Utils.isPrototypeObject(null)).toBe(false);
+            expect(Utils.isPrototypeObject(undefined)).toBe(false);
+            expect(Utils.isPrototypeObject(123)).toBe(false);
+            expect(Utils.isPrototypeObject("Object.prototype")).toBe(false);
+            // Own "constructor" keys that do not point back are not prototypes.
+            expect(Utils.isPrototypeObject({ constructor: Object })).toBe(
+                false,
+            );
+            expect(Utils.isPrototypeObject({ constructor: 1 })).toBe(false);
+        });
+    });
+
     describe("isString", () => {
         it("returns true for strings", () => {
             expect(Utils.isString("hello")).toBe(true);
@@ -412,6 +439,132 @@ describe("Utils", () => {
         });
     });
 
+    describe("isPhpFalsy", () => {
+        // array_filter's falsy set is narrower than isFalsy's — PHP-verified
+        // (docs/php-parity/task-04-shared.json, "Collection::filter() falsy set"): drops
+        // "0", "", 0, [], false, null, but keeps "00" and "0.0".
+        it("returns true for the exact PHP-falsy set", () => {
+            expect(Utils.isPhpFalsy(false)).toBe(true);
+            expect(Utils.isPhpFalsy(null)).toBe(true);
+            expect(Utils.isPhpFalsy(undefined)).toBe(true);
+            expect(Utils.isPhpFalsy(0)).toBe(true);
+            expect(Utils.isPhpFalsy("")).toBe(true);
+            expect(Utils.isPhpFalsy("0")).toBe(true);
+            expect(Utils.isPhpFalsy([])).toBe(true);
+            expect(Utils.isPhpFalsy({})).toBe(true);
+        });
+
+        it("keeps strings that merely look like zero", () => {
+            expect(Utils.isPhpFalsy("00")).toBe(false);
+            expect(Utils.isPhpFalsy("0.0")).toBe(false);
+        });
+
+        // PHP-verified (docs/php-parity/task-04-shared.json, "NAN is truthy for array_filter").
+        it("keeps NaN, unlike isFalsy", () => {
+            expect(Utils.isPhpFalsy(NaN)).toBe(false);
+            expect(Utils.isFalsy(NaN)).toBe(true);
+        });
+
+        it('keeps the exact string "0" falsy, unlike isFalsy', () => {
+            expect(Utils.isPhpFalsy("0")).toBe(true);
+            expect(Utils.isFalsy("0")).toBe(false);
+        });
+
+        it("keeps whitespace-only strings truthy, unlike isFalsy", () => {
+            // PHP only treats the exact empty string as falsy, not
+            // whitespace — isFalsy's `.trim() === ""` branch gets this
+            // wrong (documented, not fixed, by this task).
+            expect(Utils.isPhpFalsy(" ")).toBe(false);
+            expect(Utils.isFalsy(" ")).toBe(true);
+        });
+
+        it("returns false for other truthy values", () => {
+            expect(Utils.isPhpFalsy(1)).toBe(false);
+            expect(Utils.isPhpFalsy(-1)).toBe(false);
+            expect(Utils.isPhpFalsy("x")).toBe(false);
+            expect(Utils.isPhpFalsy([1, 2, 3])).toBe(false);
+            expect(Utils.isPhpFalsy({ a: 1 })).toBe(false);
+            expect(Utils.isPhpFalsy(true)).toBe(false);
+        });
+
+        it("treats any own-key-less object as falsy, a documented non-PHP limitation", () => {
+            // PHP has no equivalent of Date/Map/RegExp; these are objects with no own
+            // enumerable keys, so isPhpFalsy treats them the same as an empty plain
+            // object.
+            expect(Utils.isPhpFalsy(new Date())).toBe(true);
+            expect(Utils.isPhpFalsy(new Map())).toBe(true);
+            expect(Utils.isPhpFalsy(/re/)).toBe(true);
+        });
+    });
+
+    describe("isPhpNumeric", () => {
+        // toCssClasses/toCssStyles used `!isNaN(Number(key))` for PHP's is_numeric,
+        // which disagreed with real PHP on four of five probed edge cases. PHP-verified
+        // in docs/php-parity/task-08-arr-parity.json.
+        it("returns true for real PHP-numeric strings", () => {
+            expect(Utils.isPhpNumeric("1e3")).toBe(true);
+            expect(Utils.isPhpNumeric(" 42")).toBe(true);
+            expect(Utils.isPhpNumeric("42 ")).toBe(true);
+            expect(Utils.isPhpNumeric(" 42 ")).toBe(true);
+            expect(Utils.isPhpNumeric("+42")).toBe(true);
+            expect(Utils.isPhpNumeric("-42")).toBe(true);
+            expect(Utils.isPhpNumeric("3.14")).toBe(true);
+            expect(Utils.isPhpNumeric("-3.14")).toBe(true);
+            expect(Utils.isPhpNumeric("1e-3")).toBe(true);
+            expect(Utils.isPhpNumeric("1E3")).toBe(true);
+            expect(Utils.isPhpNumeric("007")).toBe(true);
+            expect(Utils.isPhpNumeric("0")).toBe(true);
+            expect(Utils.isPhpNumeric("00")).toBe(true);
+            expect(Utils.isPhpNumeric(".5")).toBe(true);
+            expect(Utils.isPhpNumeric("5.")).toBe(true);
+            expect(Utils.isPhpNumeric("5.5e2")).toBe(true);
+            expect(Utils.isPhpNumeric("\t5")).toBe(true);
+            expect(Utils.isPhpNumeric("5\n")).toBe(true);
+            expect(Utils.isPhpNumeric("\n5\n")).toBe(true);
+            expect(Utils.isPhpNumeric("5\t")).toBe(true);
+        });
+
+        it("returns false for strings that only look numeric to JS's Number()", () => {
+            // Number("") === 0, Number(" ") === 0, Number("0x10") === 16,
+            // Number("Infinity") === Infinity — all "numeric" to
+            // `!isNaN(Number(x))`, none numeric to PHP's is_numeric.
+            expect(Utils.isPhpNumeric("")).toBe(false);
+            expect(Utils.isPhpNumeric(" ")).toBe(false);
+            expect(Utils.isPhpNumeric("  ")).toBe(false);
+            expect(Utils.isPhpNumeric("0x10")).toBe(false);
+            expect(Utils.isPhpNumeric("Infinity")).toBe(false);
+            expect(Utils.isPhpNumeric("NAN")).toBe(false);
+            expect(Utils.isPhpNumeric("INF")).toBe(false);
+        });
+
+        it("returns false for non-numeric strings, including near-misses", () => {
+            expect(Utils.isPhpNumeric("abc")).toBe(false);
+            expect(Utils.isPhpNumeric("1abc")).toBe(false);
+            expect(Utils.isPhpNumeric("abc1")).toBe(false);
+            expect(Utils.isPhpNumeric("1_000")).toBe(false);
+            expect(Utils.isPhpNumeric("0b101")).toBe(false);
+            expect(Utils.isPhpNumeric("0o17")).toBe(false);
+            expect(Utils.isPhpNumeric("5,5")).toBe(false);
+        });
+
+        it("treats any JS number as numeric, matching PHP's int|float", () => {
+            expect(Utils.isPhpNumeric(42)).toBe(true);
+            expect(Utils.isPhpNumeric(-3.14)).toBe(true);
+            expect(Utils.isPhpNumeric(0)).toBe(true);
+            expect(Utils.isPhpNumeric(NaN)).toBe(true);
+            expect(Utils.isPhpNumeric(Infinity)).toBe(true);
+        });
+
+        it("returns false for non-string, non-number values", () => {
+            expect(Utils.isPhpNumeric(null)).toBe(false);
+            expect(Utils.isPhpNumeric(undefined)).toBe(false);
+            expect(Utils.isPhpNumeric(true)).toBe(false);
+            expect(Utils.isPhpNumeric(false)).toBe(false);
+            expect(Utils.isPhpNumeric([])).toBe(false);
+            expect(Utils.isPhpNumeric({})).toBe(false);
+        });
+    });
+
     describe("isPrimitive", () => {
         it("returns true for primitive values", () => {
             expect(Utils.isPrimitive("hello")).toBe(true);
@@ -480,5 +633,114 @@ describe("Utils", () => {
         expect(Utils.isAccessibleData({})).toBe(false);
         expect(Utils.isAccessibleData(null)).toBe(false);
         expect(Utils.isAccessibleData(undefined)).toBe(false);
+    });
+
+    describe("phpValueMatch", () => {
+        it.each([
+            [0, "0", true],
+            [null, "", true],
+            [true, "1", true],
+            [0, "", false],
+            [100, "1e2", false],
+        ])(
+            "matches %s against %s as PHP's string cast does",
+            (a, b, expected) => {
+                // Captured: docs/php-parity/task-06-setops.json ("diff and intersect
+                // compare by string cast"): diff_int_string, diff_null_empty,
+                // intersect_bool_one, diff_int_empty, diff_int_exponential_string.
+                expect(Utils.phpValueMatch(a, b)).toBe(expected);
+            },
+        );
+
+        it("casts false, null and non-exponential decimals the same way PHP does", () => {
+            expect(Utils.phpValueMatch(false, "")).toBe(true);
+            expect(Utils.phpValueMatch(0.5, "0.5")).toBe(true);
+            expect(Utils.phpValueMatch(1, "01")).toBe(false);
+        });
+
+        it("does not port PHP's precision=14 float formatting for exponential numbers", () => {
+            // String(1e21) is "1e+21", not PHP's "1.0E+21" — neither side of
+            // this comparison is castable, so it falls back to identity.
+            expect(Utils.phpValueMatch(1e21, "1e+21")).toBe(false);
+            expect(Utils.phpValueMatch(1e-7, 1e-7)).toBe(true);
+        });
+
+        it("still casts a high-precision float, so it diverges rather than falling back", () => {
+            // PHP casts 0.1 + 0.2 to "0.3" at precision=14 and array_diff matches;
+            // String() prints every digit. Captured: docs/php-parity/task-16-final-review.json
+            // ("array_diff matches a high-precision float against its precision=14 cast").
+            expect(Utils.phpValueMatch(0.1 + 0.2, "0.3")).toBe(false);
+            expect(Utils.phpValueMatch(0.1 + 0.2, "0.30000000000000004")).toBe(
+                true,
+            );
+        });
+
+        it("falls back to SameValueZero identity for NaN and Infinity", () => {
+            expect(Utils.phpValueMatch(NaN, NaN)).toBe(true);
+            expect(Utils.phpValueMatch(NaN, "x")).toBe(false);
+            expect(Utils.phpValueMatch(NaN, 5)).toBe(false);
+            expect(Utils.phpValueMatch(5, NaN)).toBe(false);
+            expect(Utils.phpValueMatch(Infinity, Infinity)).toBe(true);
+        });
+
+        it("falls back to SameValueZero identity for types with no PHP analogue", () => {
+            const obj = { id: 1 };
+            const fn = () => true;
+            const sym = Symbol("x");
+
+            expect(Utils.phpValueMatch(undefined, undefined)).toBe(true);
+            expect(Utils.phpValueMatch(0, undefined)).toBe(false);
+            expect(Utils.phpValueMatch(obj, { id: 1 })).toBe(false);
+            expect(Utils.phpValueMatch(obj, obj)).toBe(true);
+            expect(Utils.phpValueMatch([1, 2], [1, 2])).toBe(false);
+            expect(Utils.phpValueMatch(fn, fn)).toBe(true);
+            expect(Utils.phpValueMatch(sym, sym)).toBe(true);
+            expect(Utils.phpValueMatch(Symbol("x"), Symbol("x"))).toBe(false);
+            expect(Utils.phpValueMatch(new Date(0), new Date(0))).toBe(false);
+        });
+    });
+
+    describe("phpValueMatcher", () => {
+        it("agrees with phpValueMatch on every pair", () => {
+            const values = [
+                0,
+                "0",
+                "",
+                null,
+                undefined,
+                false,
+                true,
+                1,
+                "1",
+                1.0,
+                NaN,
+                "abc",
+                [],
+                {},
+                -0,
+                "00",
+            ];
+            const matcher = Utils.phpValueMatcher(values);
+
+            for (const candidate of values) {
+                expect(matcher(candidate)).toBe(
+                    values.some((other) =>
+                        Utils.phpValueMatch(candidate, other),
+                    ),
+                );
+            }
+        });
+
+        it("falls back to the residual list for a non-castable operand", () => {
+            // Exercises the branch toPhpScalarString can't shortcut through
+            // a Set: an object operand has no PHP scalar cast.
+            const marker = { id: 1 };
+            const matcher = Utils.phpValueMatcher([marker, "5"]);
+
+            expect(matcher(marker)).toBe(true);
+            expect(matcher({ id: 1 })).toBe(false);
+            expect(matcher("5")).toBe(true);
+            expect(matcher("6")).toBe(false);
+        });
     });
 });

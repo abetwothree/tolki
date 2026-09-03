@@ -1,7 +1,9 @@
+import * as Arr from "@tolki/arr";
 import { collect, Collection } from "@tolki/collection";
+import { dataUnshift } from "@tolki/data";
 import { SortDirection } from "@tolki/enum";
 import { Stringable } from "@tolki/str";
-import { assertType, describe, expect, it } from "vitest";
+import { afterEach, assertType, describe, expect, it } from "vitest";
 
 import {
     TestArrayableObject,
@@ -556,6 +558,36 @@ describe("Collection", () => {
             ]);
             expect(data3.collapseWithKeys().all()).toEqual([3, 4, 5, 6]);
         });
+
+        // Only JSON.parse produces a real own enumerable "__proto__" key; a literal
+        // `{ __proto__: ... }` sets the prototype at construction time instead.
+        describe("with a hostile __proto__ key (B8)", () => {
+            afterEach(() => {
+                expect(
+                    ({} as { polluted?: unknown; isAdmin?: unknown }).polluted,
+                ).toBeUndefined();
+                expect(
+                    ({} as { polluted?: unknown; isAdmin?: unknown }).isAdmin,
+                ).toBeUndefined();
+            });
+
+            // No collapseWithKeys probe exists in docs/php-parity/; this is inferred from
+            // the general keyed-Collection merge rule in task-16-final-review.json
+            // ('"__proto__" is an ordinary array key in every keyed Collection result').
+            it("collapseWithKeys keeps a __proto__ key as data", () => {
+                const payload = JSON.parse(
+                    '[{"__proto__":{"isAdmin":true}},{"b":2}]',
+                );
+                const result = new Collection(payload)
+                    .collapseWithKeys()
+                    .all() as Record<string, unknown>;
+                expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+                expect(Object.hasOwn(result, "__proto__")).toBe(true);
+                expect(
+                    (result as { isAdmin?: unknown }).isAdmin,
+                ).toBeUndefined();
+            });
+        });
     });
 
     describe("contains", () => {
@@ -854,6 +886,14 @@ describe("Collection", () => {
             expect(e.diff(null).all()).toEqual({ id: 1, first_word: "Hello" });
         });
 
+        it("diffs on values only, ignoring which key held the value on other", () => {
+            // Pinned so `diff` cannot regress into array_diff_assoc: neither left key
+            // exists on the right, so an assoc-style diff would keep both, while a
+            // value-only diff drops "first_word" because "Hello" is among the values.
+            const c = collect({ id: 1, first_word: "Hello" });
+            expect(c.diff({ x: "Hello" }).all()).toEqual({ id: 1 });
+        });
+
         it("returns items not in given array collection", () => {
             const collection = collect([1, 2, 3, 4]);
             const diff = collection.diff([2, 4]);
@@ -864,6 +904,15 @@ describe("Collection", () => {
             const collection = collect({ a: 1, b: 2, c: 3, d: 4 });
             const diff = collection.diff({ b: 2, d: 4 });
             expect(diff.all()).toEqual({ a: 1, c: 3 });
+        });
+
+        it("diffs across a mismatched operand shape by value (C5)", () => {
+            // PHP-verified via docs/php-parity/task-06-setops.json ("diff and
+            // intersect accept any array operand"): collect(['a'=>10,'b'=>20])
+            // ->diff([20]) === ['a'=>10].
+            expect(new Collection({ a: 10, b: 20 }).diff([20]).all()).toEqual({
+                a: 10,
+            });
         });
     });
 
@@ -933,6 +982,19 @@ describe("Collection", () => {
                 c: "blue",
                 0: "red",
             });
+        });
+
+        it("returns a reindexed list for an array-backed collection", () => {
+            // `diffAssoc` delegates to `dataDiffAssoc`, whose array branch
+            // pushes survivors into a fresh array, reindexing them.
+            expect(collect([1, 2, 3]).diffAssoc([1, 9, 3]).all()).toEqual([2]);
+        });
+
+        // docs/php-parity/task-17-second-review.json, "array_diff_assoc casts values to string"
+        it("matches values by PHP's string cast", () => {
+            expect(
+                new Collection({ a: 0 }).diffAssoc({ a: "0" } as never).all(),
+            ).toEqual({});
         });
     });
 
@@ -1215,6 +1277,26 @@ describe("Collection", () => {
             const filtered = collection.filter();
             expect(filtered.all()).toEqual({ b: 1, d: 2, f: 3 });
         });
+
+        // array_filter's falsy set is narrower than Boolean — PHP-verified
+        // (docs/php-parity/task-04-shared.json, "Collection::filter() falsy set"): it
+        // drops "0", "", 0, [], false, null, but keeps "00" and "0.0".
+        it("drops PHP-falsy values including the string zero — both shapes agree", () => {
+            expect(collect(["0", "", 0, "x"]).filter().all()).toEqual(["x"]);
+            expect(
+                collect({ a: "0", b: "", c: 0, d: "x" }).filter().all(),
+            ).toEqual({ d: "x" });
+        });
+
+        it("keeps strings that merely look like zero — both shapes agree", () => {
+            expect(collect(["00", "0.0", "0"]).filter().all()).toEqual([
+                "00",
+                "0.0",
+            ]);
+            expect(
+                collect({ a: "00", b: "0.0", c: "0" }).filter().all(),
+            ).toEqual({ a: "00", b: "0.0" });
+        });
     });
 
     describe("first", () => {
@@ -1373,6 +1455,13 @@ describe("Collection", () => {
                 ]);
             });
 
+            it("test flatten with depth 0 flattens fully, not a no-op", () => {
+                // PHP: Arr::flatten($a, 0) never hits the depth===1 base case, so it
+                // recurses to depth -1, -2, ... and fully flattens, same as Infinity.
+                const c = collect([1, [2, [3]]]);
+                expect(c.flatten(0).all()).toEqual([1, 2, 3]);
+            });
+
             it("test flatten ignores keys", () => {
                 // No depth ignores keys
                 const c = collect([
@@ -1417,6 +1506,22 @@ describe("Collection", () => {
             const c = collect({ a: { b: 5 }, c: 10 });
             const result = c.flatten(1);
             expect(result.all()).toEqual([5, 10]);
+        });
+
+        // Arr.php:368 defaults $depth to INF. Array- and object-backed Collections must
+        // agree, per the unison rule.
+        it("flattens fully by default, either backing", () => {
+            expect(
+                collect([["#foo", ["#bar", ["#baz"]]], "#zap"])
+                    .flatten()
+                    .all(),
+            ).toEqual(["#foo", "#bar", "#baz", "#zap"]);
+
+            expect(
+                collect({ a: { b: { c: { d: 1 } } } })
+                    .flatten()
+                    .all(),
+            ).toEqual([1]);
         });
     });
 
@@ -1543,6 +1648,13 @@ describe("Collection", () => {
         it("returns default for missing array index", () => {
             const collection = collect([1, 2, 3]);
             expect(collection.get(5, "default")).toBe("default");
+        });
+
+        it("get() resolves a literal dotted key before traversing, through the object backing", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::get
+            // — literal dotted key wins".
+            const collection = collect({ "products.desk": { price: 100 } });
+            expect(collection.get("products.desk")).toEqual({ price: 100 });
         });
     });
 
@@ -2142,6 +2254,26 @@ describe("Collection", () => {
             expect(collection.has([0, 1])).toBe(true);
             expect(collection.has([0, 5])).toBe(false);
         });
+
+        it("has() resolves a literal dotted key before traversing, through the object backing", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
+            // — literal dotted key".
+            const collection = collect({ "products.desk": { price: 100 } });
+            expect(collection.has("products.desk")).toBe(true);
+        });
+
+        it("finds a numeric key on a plain object, not only on arrays", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
+            // — numeric key".
+            const collection = collect({ 123: "x" });
+            expect(collection.has(123)).toBe(true);
+        });
+
+        it("does not leak Array.prototype through the array backing", () => {
+            const collection = collect([1, 2]);
+            expect(collection.has("length")).toBe(false);
+            expect(collection.has("toString")).toBe(false);
+        });
     });
 
     describe("hasAny", () => {
@@ -2255,12 +2387,14 @@ describe("Collection", () => {
             });
 
             it("test intersect collection", () => {
+                // Uses `first_world` (not `first_word`) on the other side — matching
+                // Laravel's actual CollectionTest.php:1767.
                 const c = collect({ id: 1, first_word: "Hello" });
                 expect(
                     c
                         .intersect(
                             collect({
-                                first_word: "Hello",
+                                first_world: "Hello",
                                 last_word: "World",
                             }),
                         )
@@ -2269,6 +2403,66 @@ describe("Collection", () => {
                     first_word: "Hello",
                 });
             });
+
+            it("test intersect array-backed collection", () => {
+                // There was no array-backed positive assertion for `intersect`, only
+                // the null case above.
+                expect(
+                    collect([1, 2, 3, 4]).intersect([2, 4, 6]).all(),
+                ).toEqual([2, 4]);
+            });
+        });
+
+        // docs/php-parity/task-17-second-review.json, "intersect over array items collapses to \"Array\""
+        // PHP casts every array value to the string "Array", so both items match; we compare
+        // object values by identity instead. Documented in the Phase 1 divergence list.
+        it('keeps object items that are identical, where PHP keeps both via its "Array" cast', () => {
+            const shared = { id: 1 };
+            expect(
+                collect([shared, { id: 2 }])
+                    .intersect([shared])
+                    .all(),
+            ).toEqual([shared]);
+        });
+    });
+
+    describe("intersect operand handling", () => {
+        it("agrees with Arr.intersect on identical object items", () => {
+            const shared = { id: 1 };
+            const collection = new Collection([shared, { id: 2 }])
+                .intersect([shared])
+                .all();
+            expect(collection).toEqual(
+                Arr.intersect([shared, { id: 2 }], [shared]),
+            );
+        });
+
+        it("does not contradict diff about whether an item is present", () => {
+            const shared = { id: 1 };
+            const removedByDiff = new Collection([shared, { id: 2 }])
+                .diff([shared])
+                .all();
+            const keptByIntersect = new Collection([shared, { id: 2 }])
+                .intersect([shared])
+                .all();
+            expect(removedByDiff).toEqual([{ id: 2 }]);
+            expect(keptByIntersect).toEqual([shared]);
+        });
+
+        it("normalizes an Arrayable operand the way diff does", () => {
+            const arrayable = { toArray: () => ({ b: 20 }) };
+            expect(
+                new Collection({ a: 10, b: 20 })
+                    .intersect(arrayable as never)
+                    .all(),
+            ).toEqual({ b: 20 });
+        });
+
+        it("normalizes a Map operand the way diff does", () => {
+            const map = new Map([["b", 20]]);
+            expect(
+                new Collection({ a: 10, b: 20 }).intersect(map as never).all(),
+            ).toEqual({ b: 20 });
         });
     });
 
@@ -2293,6 +2487,18 @@ describe("Collection", () => {
                         .all(),
                 ).toEqual(["green", "brown"]);
             });
+        });
+    });
+
+    describe("intersectUsing operand handling", () => {
+        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        it("normalizes a Map operand the way diff and intersect do", () => {
+            const map = new Map([["b", 20]]);
+            expect(
+                new Collection({ a: 10, b: 20 })
+                    .intersectUsing(map as never, (a, b) => a === b)
+                    .all(),
+            ).toEqual({ b: 20 });
         });
     });
 
@@ -2346,6 +2552,36 @@ describe("Collection", () => {
                     "red",
                 ]);
             });
+        });
+    });
+
+    describe("intersectAssoc operand handling", () => {
+        it("keeps an identical object value under a matching key, like intersect does", () => {
+            const shared = { id: 1 };
+            expect(
+                new Collection({ a: shared })
+                    .intersectAssoc({ a: shared })
+                    .all(),
+            ).toEqual({ a: shared });
+        });
+
+        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        it("normalizes a Map operand the way diff and intersect do", () => {
+            const map = new Map([["b", 20]]);
+            expect(
+                new Collection({ a: 10, b: 20 })
+                    .intersectAssoc(map as never)
+                    .all(),
+            ).toEqual({ b: 20 });
+        });
+
+        // docs/php-parity/task-17-second-review.json, "array_intersect_assoc casts values to string"
+        it("matches values by PHP's string cast", () => {
+            expect(
+                new Collection({ a: 0 })
+                    .intersectAssoc({ a: "0" } as never)
+                    .all(),
+            ).toEqual({ a: 0 });
         });
     });
 
@@ -2404,6 +2640,39 @@ describe("Collection", () => {
         });
     });
 
+    describe("intersectAssocUsing operand handling", () => {
+        it("keeps an identical object value when the key callback matches", () => {
+            const shared = { id: 1 };
+            expect(
+                new Collection({ a: shared })
+                    .intersectAssocUsing({ A: shared }, strcasecmpKeys)
+                    .all(),
+            ).toEqual({ a: shared });
+        });
+
+        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        it("normalizes a Map operand the way diff and intersect do", () => {
+            const map = new Map([
+                ["A", "green"],
+                ["B", "yellow"],
+            ]);
+            expect(
+                new Collection({ a: "green", b: "brown" })
+                    .intersectAssocUsing(map as never, strcasecmpKeys)
+                    .all(),
+            ).toEqual({ a: "green" });
+        });
+
+        // docs/php-parity/task-17-second-review.json, "array_intersect_assoc casts values to string"
+        it("matches values by PHP's string cast, like intersectAssoc", () => {
+            expect(
+                new Collection({ a: 0 })
+                    .intersectAssocUsing({ a: "0" } as never, (x, y) => x === y)
+                    .all(),
+            ).toEqual({ a: 0 });
+        });
+    });
+
     describe("intersectByKeys", () => {
         describe("Laravel Tests", () => {
             it("test intersect by keys null", () => {
@@ -2443,6 +2712,18 @@ describe("Collection", () => {
                         .all(),
                 ).toEqual({ name: "taylor", family: "otwell" });
             });
+        });
+    });
+
+    describe("intersectByKeys operand handling", () => {
+        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        it("normalizes a Map operand the way diff and intersect do", () => {
+            const map = new Map([["b", 999]]);
+            expect(
+                new Collection({ a: 1, b: 2 })
+                    .intersectByKeys(map as never)
+                    .all(),
+            ).toEqual({ b: 2 });
         });
     });
 
@@ -2742,6 +3023,15 @@ describe("Collection", () => {
             const collection = collect([1, 2, 3]);
             expect(collection.keys().all()).toEqual([0, 1, 2]);
         });
+
+        it("reports the same number of keys as values, even with a non-enumerable own property", () => {
+            const items = Object.defineProperty({ a: 1 }, "hidden", {
+                value: 2,
+                enumerable: false,
+            });
+            const collection = collect(items);
+            expect(collection.keys().count()).toBe(collection.values().count());
+        });
     });
 
     describe("last", () => {
@@ -2922,6 +3212,19 @@ describe("Collection", () => {
             expect(names.all()).toEqual(["John", "Jane"]);
             const idedNames = collection.pluck("name", "id");
             expect(idedNames.all()).toEqual({ 1: "John", 2: "Jane" });
+        });
+
+        it("plucks wildcard paths the same way for array and object backing", () => {
+            // dataPluck routes object input to Obj.pluck and array input to Arr.pluck,
+            // and the wildcard target here is a plain object, not a JS array.
+            const shape = { meta: { x: { v: 1 }, y: { v: 2 } } };
+            const expected = [[1, 2]];
+            expect(
+                new Collection({ a: shape }).pluck("meta.*.v").all(),
+            ).toEqual(expected);
+            expect(new Collection([shape]).pluck("meta.*.v").all()).toEqual(
+                expected,
+            );
         });
     });
 
@@ -3143,6 +3446,23 @@ describe("Collection", () => {
             });
             expect(objectSeenKeys).toEqual(["0x10", "1e3"]);
         });
+
+        // Collection.mapWithKeys builds an internal Map to hold PHP-like insertion order
+        // for numeric keys, but that Map must never leak out through all(): PHP has no
+        // Map, so callers must always see one plain container.
+        it("never exposes the internal Map through .all(), either backing", () => {
+            const fromArray = collect([1, 2]).mapWithKeys((value) => ({
+                [value]: value,
+            }));
+            expect(fromArray.all()).not.toBeInstanceOf(Map);
+            expect(fromArray.all()).toEqual({ 1: 1, 2: 2 });
+
+            const fromObject = collect({ a: 1, b: 2 }).mapWithKeys((value) => ({
+                [value]: value,
+            }));
+            expect(fromObject.all()).not.toBeInstanceOf(Map);
+            expect(fromObject.all()).toEqual({ 1: 1, 2: 2 });
+        });
     });
 
     describe("merge", () => {
@@ -3348,19 +3668,21 @@ describe("Collection", () => {
 
     describe("combine", () => {
         describe("Laravel Tests", () => {
+            // `Arr.combine` used to zip arrays into tuples, so `c.combine([4,5,6])`
+            // here returned `[[1,4],[2,5],[3,6]]` — this test was pinning that bug.
             it("test combine with array", () => {
                 const c = collect([1, 2, 3]);
-                expect(c.combine([4, 5, 6]).all()).toEqual([
-                    [1, 4],
-                    [2, 5],
-                    [3, 6],
-                ]);
+                expect(c.combine([4, 5, 6]).all()).toEqual({
+                    1: 4,
+                    2: 5,
+                    3: 6,
+                });
 
                 const d = collect(["name", "family"]);
-                expect(d.combine(["taylor", "otwell"]).all()).toEqual([
-                    ["name", "taylor"],
-                    ["family", "otwell"],
-                ]);
+                expect(d.combine(["taylor", "otwell"]).all()).toEqual({
+                    name: "taylor",
+                    family: "otwell",
+                });
 
                 const e = collect({ 1: "name", 2: "family" });
                 expect(e.combine({ 2: "taylor", 3: "otwell" }).all()).toEqual({
@@ -3377,11 +3699,11 @@ describe("Collection", () => {
 
             it("test combine with collection", () => {
                 const c = collect([1, 2, 3]);
-                expect(c.combine(collect([4, 5, 6])).all()).toEqual([
-                    [1, 4],
-                    [2, 5],
-                    [3, 6],
-                ]);
+                expect(c.combine(collect([4, 5, 6])).all()).toEqual({
+                    1: 4,
+                    2: 5,
+                    3: 6,
+                });
 
                 const f = collect({ 1: "name", 2: "family" });
                 expect(
@@ -3391,6 +3713,18 @@ describe("Collection", () => {
                     family: "otwell",
                 });
             });
+        });
+
+        // A key/value count mismatch used to silently produce `undefined` values or
+        // truncate instead of throwing. PHP-verified message
+        // (docs/php-parity/task-04-shared.json, "array_combine mismatch").
+        it("throws when the key and value counts differ — both shapes agree", () => {
+            expect(() => collect(["a", "b"]).combine([1])).toThrow(
+                "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
+            );
+            expect(() => collect({ x: "a", y: "b" }).combine({ p: 1 })).toThrow(
+                "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
+            );
         });
     });
 
@@ -3415,6 +3749,41 @@ describe("Collection", () => {
                     c.union(collect({ name: "World", id: 1 })).all(),
                 ).toEqual({ name: "Hello", id: 1 });
             });
+        });
+
+        it("lets the left operand win even when its value is undefined", () => {
+            // PHP-verified: ["a"=>null] + ["a"=>1] -> {"a":null}
+            // (docs/php-parity/task-07-pad-union.json).
+            const c = collect({ a: undefined });
+            const result = c.union({ a: 1, b: 2 }).all();
+            expect(result).toEqual({ a: undefined, b: 2 });
+            // toEqual alone would also pass if "a" were dropped entirely
+            // (Vitest 4 treats an undefined-valued key as equal to an
+            // absent one); assert the key actually exists too.
+            expect(result).toHaveProperty("a");
+        });
+
+        // Every union test above this point is object-backed, which is why nothing here
+        // caught arr.union concatenating values instead of unioning keys.
+        it("unions array-backed collections by key, mirroring PHP's + operator", () => {
+            // Every index the right side could fill (0-2) is already
+            // occupied by the left, so it contributes nothing.
+            expect(collect([1, 2, 3]).union([3, 4, 5]).all()).toEqual([
+                1, 2, 3,
+            ]);
+            // The left only fills indices 0-1, so index 2 ("5") still comes
+            // from the right.
+            expect(collect([1, 2]).union([3, 4, 5]).all()).toEqual([1, 2, 5]);
+        });
+
+        it("agrees whether array- or object-backed, over the same conceptual data", () => {
+            const fromArray = collect([1, 2]);
+            const fromObject = collect({ 0: 1, 1: 2 });
+
+            expect(fromArray.union([3, 4, 5]).all()).toEqual([1, 2, 5]);
+            expect(
+                Object.values(fromObject.union({ 0: 3, 1: 4, 2: 5 }).all()),
+            ).toEqual([1, 2, 5]);
         });
     });
 
@@ -3458,12 +3827,22 @@ describe("Collection", () => {
         });
 
         it("uses itemsWithOrder when available", () => {
-            // Create collection with numeric keys that needs order preservation
-            const c = collect({ 1: "a", 0: "b", 2: "c" });
-            // sortBy creates itemsWithOrder
-            const sorted = c.sortBy((v) => v);
-            // nth should use itemsWithOrder
-            expect(sorted.nth(1).all()).toEqual(["a", "b", "c"]);
+            // Only a Map-built collection carries itemsWithOrder now; sortBy
+            // renumbers its keys instead, so the object itself holds the order.
+            const c = collect(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+            );
+            expect(c.nth(1).all()).toEqual(["c", "a", "b"]);
+            expect(
+                collect({ 1: "a", 0: "b", 2: "c" })
+                    .sortBy((v) => v)
+                    .nth(1)
+                    .all(),
+            ).toEqual(["a", "b", "c"]);
         });
 
         it("uses Object.entries when itemsWithOrder is not available", () => {
@@ -3507,6 +3886,23 @@ describe("Collection", () => {
                 first: "Taylor",
                 email: "taylorotwell@gmail.com",
             });
+        });
+
+        // Arr.php:744 casts via (array) $keys, so a bare key and a null key both work
+        // directly, not just spread via varargs. Array- and object-backed Collections
+        // must agree, per the unison rule.
+        it("accepts a single key and a null key, either backing", () => {
+            expect(collect(["a", "b", "c"]).only(1).all()).toEqual(["b"]);
+            expect(collect(["a", "b", "c"]).only(null).all()).toEqual([
+                "a",
+                "b",
+                "c",
+            ]);
+
+            expect(collect({ foo: 1, bar: "baz" }).only("bar").all()).toEqual({
+                bar: "baz",
+            });
+            expect(collect({ a: 1 }).only(null).all()).toEqual({ a: 1 });
         });
     });
 
@@ -3726,6 +4122,15 @@ describe("Collection", () => {
             expect(c2.pop(5).all()).toEqual([20, 10]);
             expect(c2.all()).toEqual({});
         });
+
+        it("pops identically whether array- or object-backed", () => {
+            const fromArray = new Collection([1, 2, 3]);
+            const fromObject = new Collection({ a: 1, b: 2, c: 3 });
+            expect(fromArray.pop()).toBe(3);
+            expect(fromObject.pop()).toBe(3);
+            expect(fromArray.count()).toBe(2);
+            expect(fromObject.count()).toBe(2);
+        });
     });
 
     describe("prepend", () => {
@@ -3865,6 +4270,57 @@ describe("Collection", () => {
             expect(result).toBe(c8); // Should return same instance
             expect(c8.all()).toEqual([1, 2, 3, 4]);
         });
+
+        describe("push key classification", () => {
+            // docs/php-parity/task-17-second-review.json, "push onto a \"01\"-keyed array"
+            it.each([
+                ["01", { "01": "v", 0: 9 }],
+                ["1e2", { "1e2": "v", 0: 9 }],
+                ["-1", { "-1": "v", 0: 9 }],
+                ["5", { 5: "v", 6: 9 }],
+            ])("classifies a %s key the way PHP does", (key, expected) => {
+                expect(
+                    new Collection({ [key]: "v" } as never)
+                        .push(9 as never)
+                        .all(),
+                ).toEqual(expected);
+            });
+
+            it("classifies keys the same way unshift does", () => {
+                // "5" is excluded: PHP push keeps it, unshift renumbers it. "-1" also diverges
+                // from PHP's unshift (array_unshift renumbers it too), but agrees here only
+                // because isIntegerLikeKey excludes negatives for both — see keys.ts's carve-out.
+                for (const key of ["01", "1e2", "-1", ""]) {
+                    const pushed = Object.keys(
+                        new Collection({ [key]: "v" } as never)
+                            .push(9 as never)
+                            .all(),
+                    );
+                    const unshifted = Object.keys(
+                        new Collection({ [key]: "v" } as never)
+                            .unshift(9 as never)
+                            .all(),
+                    );
+                    expect(pushed.includes(key)).toBe(unshifted.includes(key));
+                }
+            });
+
+            it("finds the true max key above the array-index range, not the last enumerated one", () => {
+                // Above 2**32-2, Object.keys keeps insertion order instead of sorting ascending,
+                // so the smaller key here is enumerated second - the naive "last one wins" reading
+                // of key order would pick 5000000000 and collide with an existing 5000000001.
+                const collection = new Collection({
+                    "6000000000": "a",
+                    "5000000000": "b",
+                } as never);
+
+                expect(collection.push("NEW" as never).all()).toEqual({
+                    "6000000000": "a",
+                    "5000000000": "b",
+                    "6000000001": "NEW",
+                });
+            });
+        });
     });
 
     describe("unshift", () => {
@@ -3994,6 +4450,40 @@ describe("Collection", () => {
                 1: "second",
                 a: "value",
             });
+        });
+
+        it("mutates the original array in place (array backing aliases the caller's array)", () => {
+            const original = [2, 3];
+            const c = new Collection(original);
+            c.unshift(1);
+            expect(original).toEqual([1, 2, 3]);
+        });
+
+        it("classifies keys like PHP, keeping non-canonical numeric strings", () => {
+            // PHP-verified: array_unshift only renumbers canonical integer keys.
+            expect(
+                new Collection({ "1.5": "a", x: "b" }).unshift(9).all(),
+            ).toEqual({
+                0: 9,
+                "1.5": "a",
+                x: "b",
+            });
+        });
+
+        it("keeps an empty-string key instead of destroying it", () => {
+            expect(new Collection({ "": "a" }).unshift(9).all()).toEqual({
+                0: 9,
+                "": "a",
+            });
+        });
+
+        it("agrees with the data layer on the same input", () => {
+            const viaCollection = new Collection({ "1.5": "a", x: "b" })
+                .unshift(9)
+                .all();
+            const viaData = dataUnshift({ "1.5": "a", x: "b" }, 9);
+
+            expect(viaCollection).toEqual(viaData);
         });
     });
 
@@ -4168,6 +4658,15 @@ describe("Collection", () => {
                 nested: { valid: "data" },
             });
 
+            // A first-level key containing dots must be both retrieved AND removed;
+            // dataGet already resolved it, but dataForget still had to stop traversing.
+            const c8b = collect({
+                "joe@example.com": "Joe",
+                "jane@localhost": "Jane",
+            });
+            expect(c8b.pull("joe@example.com")).toBe("Joe");
+            expect(c8b.all()).toEqual({ "jane@localhost": "Jane" });
+
             // Test pulling from array with simple numeric index (already covered but ensuring)
             const c9 = collect([10, 20, 30]);
             expect(c9.pull(1)).toBe(20);
@@ -4276,6 +4775,33 @@ describe("Collection", () => {
                     bar: { nested: "two" },
                 });
             });
+        });
+
+        // docs/php-parity/task-17-second-review.json, "put uses \"length\" as an ordinary key"
+        it('puts a "length" key on an array backing without throwing', () => {
+            const collection = new Collection([1, 2]);
+            expect(() =>
+                collection.put("length" as never, 5 as never),
+            ).not.toThrow();
+        });
+
+        // docs/php-parity/task-17-second-review.json: "Arr::set writes a
+        // \"constructor\" key", "...a \"prototype\" key", "...a \"__proto__\" key" —
+        // the reference behaviour path.ts's writes were brought in line with.
+        describe("unsafe-key write policy", () => {
+            afterEach(() => {
+                expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+                expect(Object.getPrototypeOf({})).toBe(Object.prototype);
+            });
+
+            it.each(["constructor", "prototype", "__proto__"])(
+                "keeps a %s key as own data",
+                (key) => {
+                    expect(
+                        new Collection({}).put(key as never, 5 as never).all(),
+                    ).toEqual({ [key]: 5 });
+                },
+            );
         });
     });
 
@@ -4410,6 +4936,24 @@ describe("Collection", () => {
                 }).toThrowError();
             });
         });
+
+        // Arr.php:971 defaults $preserveKeys = false. Array- and object-backed
+        // Collections must agree, per the unison rule.
+        it("reindexes from zero by default, either backing", () => {
+            const fromArray: Collection<number, number> = collect([
+                10, 20, 30,
+            ]).random(2);
+            expect(fromArray).toBeInstanceOf(Collection);
+            expect(Object.keys(fromArray.all())).toEqual(["0", "1"]);
+
+            const fromObject: Collection<number, string> = collect({
+                one: 10,
+                two: 20,
+                three: 30,
+            }).random(2);
+            expect(fromObject).toBeInstanceOf(Collection);
+            expect(Object.keys(fromObject.all())).toEqual(["0", "1"]);
+        });
     });
 
     describe("replace", () => {
@@ -4458,6 +5002,27 @@ describe("Collection", () => {
                 ).toEqual({ name: "taylor", family: "otwell", age: 26 });
             });
         });
+
+        it("replaces without mutating, either backing", () => {
+            // Collection.php:1172 ends in newInstance(...), so neither the array-backed
+            // nor the object-backed source collection's items may change.
+            const fromArray = new Collection([1, 2]);
+            const fromObject = new Collection({ a: 1, b: 2 });
+            fromArray.replace([9]);
+            fromObject.replace({ a: 9 });
+            expect(fromArray.all()).toEqual([1, 2]);
+            expect(fromObject.all()).toEqual({ a: 1, b: 2 });
+        });
+
+        it("treats a null replacer as a no-op, either backing", () => {
+            // getRawItems(null) always returns [], so an object-backed collection was
+            // being asked to replace against an array and dataReplace's same-type guard
+            // threw.
+            const fromArray = new Collection([1, 2, 3]);
+            const fromObject = new Collection({ a: 1, b: 2 });
+            expect(fromArray.replace(null).all()).toEqual([1, 2, 3]);
+            expect(fromObject.replace(null).all()).toEqual({ a: 1, b: 2 });
+        });
     });
 
     describe("replaceRecursive", () => {
@@ -4496,6 +5061,26 @@ describe("Collection", () => {
                         .all(),
                 ).toEqual(["z", "b", ["c", "e"], "f"]);
             });
+        });
+
+        it("replaces without mutating, either backing", () => {
+            // Same rationale as replace's "either backing" test above. Array-backed
+            // values pinned by docs/php-parity/task-05-replace.json "replaceRecursive
+            // array nested"; object-backed by "replaceRecursive nested".
+            const fromArray = new Collection([{ x: 1 }, 2]);
+            const fromObject = new Collection({ a: { x: 1 }, b: 2 });
+            fromArray.replaceRecursive([{ y: 2 }]);
+            fromObject.replaceRecursive({ a: { y: 2 } });
+            expect(fromArray.all()).toEqual([{ x: 1 }, 2]);
+            expect(fromObject.all()).toEqual({ a: { x: 1 }, b: 2 });
+        });
+
+        it("treats a null replacer as a no-op, either backing", () => {
+            // Same rationale as replace's null pin above.
+            const fromArray = new Collection([1]);
+            const fromObject = new Collection({ a: 1 });
+            expect(fromArray.replaceRecursive(null).all()).toEqual([1]);
+            expect(fromObject.replaceRecursive(null).all()).toEqual({ a: 1 });
         });
     });
 
@@ -4898,6 +5483,15 @@ describe("Collection", () => {
             expect(shifted.all()).toEqual([1]); // Only got 1 item
             expect(c.all()).toEqual({}); // Object is now empty
         });
+
+        it("throws from shift on a negative count, either backing", () => {
+            expect(() => new Collection([1]).shift(-1)).toThrow(
+                "Number of shifted items may not be less than zero.",
+            );
+            expect(() => new Collection({ a: 1 }).shift(-1)).toThrow(
+                "Number of shifted items may not be less than zero.",
+            );
+        });
     });
 
     describe("shuffle", () => {
@@ -5075,6 +5669,36 @@ describe("Collection", () => {
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
                 expect(data.slice(-6, -2).values().all()).toEqual([3, 4, 5, 6]);
             });
+        });
+
+        // A negative offset combined with a length beyond the remaining tail used to
+        // return an empty result instead of the last N items — PHP-verified
+        // (docs/php-parity/task-04-shared.json, "slice(-2,5) preserve_keys").
+        it("slices from the end for a negative offset with a length — both shapes agree", () => {
+            const arr = collect([1, 2, 3, 4, 5, 6, 7, 8]);
+            expect(arr.slice(-2, 5).all()).toEqual([7, 8]);
+
+            const obj = collect({
+                a: 1,
+                b: 2,
+                c: 3,
+                d: 4,
+                e: 5,
+                f: 6,
+                g: 7,
+                h: 8,
+            });
+            expect(obj.slice(-2, 5).all()).toEqual({ g: 7, h: 8 });
+        });
+
+        // Both backings share the byte-identical over-negative-length defect, so without
+        // this pin they'd still "agree" while both diverging from PHP.
+        // PHP-verified in docs/php-parity/task-12-regression-pins.json.
+        it("agrees across backings on an over-negative slice length", () => {
+            expect(new Collection([1, 2, 3]).slice(0, -5).all()).toEqual([]);
+            expect(
+                new Collection({ a: 1, b: 2, c: 3 }).slice(0, -5).all(),
+            ).toEqual({});
         });
     });
 
@@ -5490,6 +6114,39 @@ describe("Collection", () => {
                 // Natural sorting would require a different implementation with localeCompare numeric option
             });
         });
+
+        // task-19-spaceship.json, "Collection::sort orders numeric strings
+        // numerically", "Collection::sortDesc ...", "Collection::sortBy(null)
+        // ..." and "Collection::sortByDesc(null) ..."
+        it("orders numeric strings numerically through every sort entry point", () => {
+            const mixed = ["9", "10", "1", 5];
+            const ascending = ["1", 5, "9", "10"];
+            const descending = ["10", "9", 5, "1"];
+
+            expect(collect(mixed).sort().values().all()).toEqual(ascending);
+            expect(collect(mixed).sortDesc().values().all()).toEqual(
+                descending,
+            );
+            expect(collect(mixed).sortBy(null).values().all()).toEqual(
+                ascending,
+            );
+            expect(collect(mixed).sortByDesc(null).values().all()).toEqual(
+                descending,
+            );
+        });
+
+        // task-19-spaceship.json, "Collection::sortBy([key]) orders numeric
+        // strings numerically"
+        it("orders numeric strings numerically through sortByMany", () => {
+            const rows = [{ n: "9" }, { n: "10" }, { n: "1" }, { n: 5 }];
+
+            expect(collect(rows).sortBy(["n"]).pluck("n").all()).toEqual([
+                "1",
+                5,
+                "9",
+                "10",
+            ]);
+        });
     });
 
     describe("sortDesc", () => {
@@ -5516,9 +6173,82 @@ describe("Collection", () => {
                 expect(data4.values().all()).toEqual(["T2", "T10", "T1"]);
             });
         });
+
+        it("keeps ties in their original relative order, array backing", () => {
+            // PHP-verified (task-12-regression-pins.json): sortByDesc on this data
+            // gives d,a,c,b. A naive sort().reverse() reverses tie order too: d,c,a,b.
+            const items: Array<{ id: string; k: number }> = [
+                { id: "a", k: 2 },
+                { id: "b", k: 1 },
+                { id: "c", k: 2 },
+                { id: "d", k: 3 },
+            ];
+            const result = new Collection<{ id: string; k: number }, number>(
+                items,
+            ).sortDesc((item) => item.k);
+            const ordered = result.values().all() as Array<{ id: string }>;
+            expect(ordered.map((item) => item.id)).toEqual([
+                "d",
+                "a",
+                "c",
+                "b",
+            ]);
+        });
+
+        it("sorts an integer-keyed object instead of silently no-opping", () => {
+            // PHP-verified (task-10-pluck-sort.json, "sort/sortDesc/reverse preserve
+            // integer keys and their order"): sort_values [1,2,3], sortdesc_values [3,2,1].
+            // PHP keeps the names (sortdesc_all {"0":3,"2":2,"1":1}); JS renumbers instead.
+            const c = new Collection({ 0: 3, 1: 1, 2: 2 });
+            expect(c.sortDesc().values().all()).toEqual([3, 2, 1]);
+            expect(c.sortDesc().all()).toEqual({ 0: 3, 1: 2, 2: 1 });
+            expect(c.sort().values().all()).toEqual([1, 2, 3]);
+        });
     });
 
     describe("sortBy", () => {
+        it("keeps all() and values() in agreement over integer keys", () => {
+            // PHP-verified (task-10-pluck-sort.json, "sortBy/sortByDesc: all() and
+            // values() agree on order"): sortby_values and sortbymany_values are
+            // [{v:1},{v:2},{v:3}], sortbydesc_values [{v:3},{v:2},{v:1}].
+            const c = new Collection({
+                0: { v: 3 },
+                1: { v: 1 },
+                2: { v: 2 },
+            });
+
+            expect(Object.values(c.sortBy("v").all())).toEqual(
+                c.sortBy("v").values().all(),
+            );
+            expect(c.sortBy("v").values().all()).toEqual([
+                { v: 1 },
+                { v: 2 },
+                { v: 3 },
+            ]);
+
+            expect(Object.values(c.sortByDesc("v").all())).toEqual(
+                c.sortByDesc("v").values().all(),
+            );
+            expect(c.sortByDesc("v").values().all()).toEqual([
+                { v: 3 },
+                { v: 2 },
+                { v: 1 },
+            ]);
+
+            expect(Object.values(c.sortBy([["v"]]).all())).toEqual(
+                c
+                    .sortBy([["v"]])
+                    .values()
+                    .all(),
+            );
+            expect(
+                c
+                    .sortBy([["v"]])
+                    .values()
+                    .all(),
+            ).toEqual([{ v: 1 }, { v: 2 }, { v: 3 }]);
+        });
+
         describe("Laravel Tests", () => {
             it("test sort by", () => {
                 const data = collect(["taylor", "dayle"]);
@@ -5595,7 +6325,10 @@ describe("Collection", () => {
                 const data2 = collect(["taylor", "dayle"]);
                 const sorted2 = data2.sortBy((x) => x);
 
-                expect(sorted2.all()).toEqual({ 1: "dayle", 0: "taylor" });
+                // PHP-verified ("sortBy/sortByMany over an integer-keyed backing"):
+                // words_all is {"1":"dayle","0":"taylor"}, words_values is
+                // ["dayle","taylor"]. Only the order survives the renumbering here.
+                expect(sorted2.all()).toEqual({ 0: "dayle", 1: "taylor" });
 
                 const data3 = collect({ a: { sort: 2 }, b: { sort: 1 } });
                 const sorted3 = data3.sortBy("sort");
@@ -5608,9 +6341,12 @@ describe("Collection", () => {
                 const data4 = collect([{ sort: 2 }, { sort: 1 }]);
                 const sorted4 = data4.sortBy("sort");
 
+                // Same trade as data2 above: PHP's records_all is
+                // {"1":{"sort":1},"0":{"sort":2}}, records_values is
+                // [{"sort":1},{"sort":2}], and only the order survives here.
                 expect(sorted4.all()).toEqual({
-                    1: { sort: 1 },
-                    0: { sort: 2 },
+                    0: { sort: 1 },
+                    1: { sort: 2 },
                 });
             });
         });
@@ -5625,13 +6361,14 @@ describe("Collection", () => {
             ]);
         });
 
-        it("handles a == null comparison", () => {
+        // task-19-spaceship.json, "spaceship on null and a positive int"
+        it("orders a null value before a number", () => {
             const c = collect([{ val: null }, { val: 1 }]);
             const sorted = c.sortBy("val");
             expect(sorted.values().all()).toEqual([{ val: null }, { val: 1 }]);
         });
 
-        it("handles b == null comparison", () => {
+        it("orders a null value before a number from either side", () => {
             const c = collect([{ val: 1 }, { val: null }]);
             const sorted = c.sortBy("val");
             expect(sorted.values().all()).toEqual([{ val: null }, { val: 1 }]);
@@ -5648,12 +6385,74 @@ describe("Collection", () => {
             const sorted = data.sortBy((x) => x, SortDirection.Ascending);
             expect(sorted.values().all()).toEqual(["dayle", "taylor"]);
         });
+
+        // docs/php-parity/task-17-second-review.json, "sortBy(null) over array values"
+        it("sortBy(null) orders object values the way sort() does", () => {
+            const collection = new Collection({
+                a: { n: 2 },
+                b: { n: 1 },
+                c: { n: 3 },
+            });
+            expect(
+                collection
+                    .sortBy(null as never)
+                    .values()
+                    .all(),
+            ).toEqual([{ n: 1 }, { n: 2 }, { n: 3 }]);
+            expect(
+                collection
+                    .sortBy(null as never)
+                    .values()
+                    .all(),
+            ).toEqual(collection.sort().values().all());
+        });
+
+        // docs/php-parity/task-17-second-review.json,
+        // "sortByMany falls through on an equal first key"
+        it("consults the second sort key when the first ties on non-primitives", () => {
+            const collection = new Collection([
+                { a: [], b: 2 },
+                { a: [], b: 1 },
+            ]);
+            expect(
+                collection
+                    .sortBy([
+                        ["a", "asc"],
+                        ["b", "asc"],
+                    ] as never)
+                    .values()
+                    .all(),
+            ).toEqual([
+                { a: [], b: 1 },
+                { a: [], b: 2 },
+            ]);
+        });
+
+        // docs/php-parity/task-17-second-review.json,
+        // "sortByMany treats 1 and \"1\" as a tie"
+        it('treats 1 and "1" as a tie and falls through to the next key', () => {
+            const collection = new Collection([
+                { a: 1, b: 2 },
+                { a: "1", b: 1 },
+            ]);
+            expect(
+                collection
+                    .sortBy([
+                        ["a", "asc"],
+                        ["b", "asc"],
+                    ] as never)
+                    .values()
+                    .all(),
+            ).toEqual([
+                { a: "1", b: 1 },
+                { a: 1, b: 2 },
+            ]);
+        });
     });
 
     describe("sortByMany", () => {
         describe("Laravel Tests", () => {
             it("test sort by many", () => {
-                // Test sorting with mixed types - JavaScript compares them all as strings
                 const data = collect([
                     { item: "1" },
                     { item: "10" },
@@ -5661,18 +6460,19 @@ describe("Collection", () => {
                     { item: 20 },
                 ]);
 
-                // Sort ascending by single field - all converted to strings for comparison
-                // "1" < "10" < "20" < "5" (lexicographic order)
+                // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
+                // "sortByMany orders mixed numeric strings and ints numerically".
+                // sortByMany compares with <=>, so "10" is 10, not the string.
                 const sorted1 = data.sortBy(["item"]);
-                expect(sorted1.pluck("item").all()).toEqual(["1", "10", 5, 20]);
+                expect(sorted1.pluck("item").all()).toEqual(["1", 5, "10", 20]);
 
-                // Sort descending by single field using global descending parameter
-                // Note: sortByMany second parameter applies globally to all fields
+                // Same file, "sortByMany forced descending over the same mixed
+                // items". sortByMany's second parameter applies globally.
                 const sorted1Desc = data.sortByMany(["item"], true);
                 const values = sorted1Desc.values().all() as {
                     item: string | number;
                 }[];
-                expect(values.map((v) => v.item)).toEqual([20, 5, "10", "1"]);
+                expect(values.map((v) => v.item)).toEqual([20, "10", 5, "1"]);
 
                 // Test natural string sorting with numbers
                 const data2 = collect([
@@ -5683,11 +6483,13 @@ describe("Collection", () => {
                 ]);
 
                 const sorted2 = data2.sortBy(["item"]);
-                // JavaScript sorts strings lexicographically
+                // PHP-verified, same probe row: imgs_plucked is
+                // ["img1","img10","img101","img11"]. The old expectation was just the
+                // input order - sortBy could not reorder an integer-keyed backing.
                 expect(sorted2.pluck("item").all()).toEqual([
                     "img1",
-                    "img101",
                     "img10",
+                    "img101",
                     "img11",
                 ]);
 
@@ -5753,9 +6555,18 @@ describe("Collection", () => {
         });
 
         it("sort by many coverage", () => {
-            // Test empty comparison array throws error
-            const data = collect([{ a: 1 }, { a: 2 }]);
-            expect(() => data.sortByMany([])).toThrowError();
+            // collect([3,1,2])->sortBy([]) keeps [3,1,2]: PHP's usort
+            // comparator falls straight through to `return 0` with no
+            // comparisons to run. Only a non-array argument is rejected.
+            expect(collect([3, 1, 2]).sortBy([]).values().all()).toEqual([
+                3, 1, 2,
+            ]);
+            expect(collect([3, 1, 2]).sortByMany([]).values().all()).toEqual([
+                3, 1, 2,
+            ]);
+            expect(() =>
+                collect([{ a: 1 }]).sortByMany(null as unknown as string[]),
+            ).toThrowError("You must provide at least one comparison.");
 
             // Test with function comparator returning numbers directly
             // This tests the path: if (!isString(prop) && isFunction(prop))
@@ -5763,15 +6574,17 @@ describe("Collection", () => {
 
             const sorted = data2.sortByMany([(a, b) => a.value - b.value]);
 
-            expect(sorted.pluck("value").all()).toEqual([10, 5, 20]);
+            // PHP-verified: vals_plucked [5,10,20] in the same probe row.
+            expect(sorted.pluck("value").all()).toEqual([5, 10, 20]);
 
-            // Test numeric key handling - ensure hasNumericKeys path is covered
+            // PHP's nums_all keeps the names, {"1":1,"2":2,"0":3}; renumbering
+            // is what lets the object hold nums_values' order [1,2,3] at all.
             const arrayData = collect([3, 1, 2]);
             const sortedArray = arrayData.sortByMany([(a, b) => a - b]);
             expect(sortedArray.all()).toEqual({
-                "0": 3,
-                "1": 1,
-                "2": 2,
+                "0": 1,
+                "1": 2,
+                "2": 3,
             });
 
             // Test continue branch - when first comparison returns 0,
@@ -5884,6 +6697,83 @@ describe("Collection", () => {
                 { group: "b", rank: 3 },
             ]);
         });
+
+        it("supports the lowercase 'desc'/'asc' string direction forms", () => {
+            // PHP-verified in docs/php-parity/task-10-pluck-sort.json: a string "desc"
+            // direction sorts descending, since the match arm compares against the enum
+            // and booleans and anything else falls through to descending.
+            const data = collect([{ age: 2 }, { age: 10 }]);
+            const desc = data.sortByMany([["age", "desc"]]);
+            expect(desc.values().pluck("age").all()).toEqual([10, 2]);
+
+            const asc = data.sortByMany([["age", "asc"]]);
+            expect(asc.values().pluck("age").all()).toEqual([2, 10]);
+        });
+
+        it("falls through an unrecognized direction to descending (default arm)", () => {
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+            // "Collection::sortBy — unrecognized direction sorts descending (default
+            // arm)".
+            const data = collect([{ age: 2 }, { age: 10 }]);
+            const sorted = data.sortByMany([
+                ["age", "BOGUS" as unknown as "asc"],
+            ]);
+            expect(sorted.values().pluck("age").all()).toEqual([10, 2]);
+        });
+
+        it("ignores a global descending flag on sortBy for the array-of-descriptors form", () => {
+            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+            // "Collection::sortBy — global $descending=true is ignored for the
+            // array-of-descriptors form".
+            const data = collect([{ age: 10 }, { age: 2 }]);
+            const sorted = data.sortBy([["age"]], true);
+            expect(sorted.values().pluck("age").all()).toEqual([2, 10]);
+        });
+
+        it("forceDescending overrides a descriptor's own explicit direction, but never a comparator", () => {
+            // Mirrors Collection::sortByDesc rewriting every comparison's direction slot
+            // before sorting (Collection.php:1687-1697): the force parameter overrides
+            // an explicit per-descriptor direction.
+            const data = collect([{ age: 2 }, { age: 10 }]);
+            const forced = data.sortByMany([["age", "asc"]], true);
+            expect(forced.values().pluck("age").all()).toEqual([10, 2]);
+
+            // A comparator function is unaffected by forceDescending.
+            const byAgeAsc = (a: { age: number }, b: { age: number }) =>
+                a.age - b.age;
+            const withComparator = data.sortByMany([byAgeAsc], true);
+            expect(withComparator.values().pluck("age").all()).toEqual([2, 10]);
+        });
+
+        it("runs a comparator nested in a one-element descriptor", () => {
+            // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
+            // "sortBy runs a comparator nested in a one-element descriptor" and
+            // "sortBy treats [[fn]] and [fn] the same".
+            const byAge = (a: { age: number }, b: { age: number }) =>
+                a.age - b.age;
+            const data = collect([{ age: 3 }, { age: 1 }, { age: 2 }]);
+
+            expect(
+                data
+                    .sortByMany([[byAge]] as never)
+                    .values()
+                    .all(),
+            ).toEqual([{ age: 1 }, { age: 2 }, { age: 3 }]);
+            expect(
+                data
+                    .sortByMany([[byAge]] as never)
+                    .values()
+                    .all(),
+            ).toEqual(data.sortByMany([byAge]).values().all());
+        });
+
+        it("sortByDesc forces a bare-key array descriptor descending", () => {
+            // Pins the array-form JSDoc example as an executable test: sortByDesc(['id'])
+            // must sort descending on its own, without sortBy forwarding a global flag.
+            const data = collect([{ id: 2 }, { id: 1 }, { id: 10 }]);
+            const sorted = data.sortByDesc(["id"]);
+            expect(sorted.values().pluck("id").all()).toEqual([10, 2, 1]);
+        });
     });
 
     describe("sortKeys", () => {
@@ -5921,12 +6811,14 @@ describe("Collection", () => {
                 c: 3,
             });
 
-            // Test with numeric string keys
+            // Test with numeric string keys. Integer-like keys are renumbered
+            // from 0 by the integer-key policy (see sortedIntoItems), so "1"/"2"/"3"
+            // become "0"/"1"/"2" even though the order was already correct.
             const data2 = collect({ "3": "three", "1": "one", "2": "two" });
             expect(data2.sortKeys().all()).toEqual({
-                "1": "one",
-                "2": "two",
-                "3": "three",
+                "0": "one",
+                "1": "two",
+                "2": "three",
             });
 
             // Test empty collection
@@ -5963,6 +6855,79 @@ describe("Collection", () => {
                 });
             });
         });
+
+        it("keeps array backing", () => {
+            // Covers sortKeysUsing's isArray branch; sortKeys' own array branch
+            // is already covered via sortKeysDesc's packed-list test below.
+            const sorted = new Collection(["a", "b", "c"]).sortKeysUsing(
+                (a, b) => Number(b) - Number(a),
+            );
+            expect(sorted.all()).toEqual(["c", "b", "a"]);
+            expect(Array.isArray(sorted.all())).toBe(true);
+        });
+    });
+
+    describe("sortKeys integer-key policy", () => {
+        // docs/php-parity/task-17-second-review.json, "krsort on integer keys":
+        // krsort([5=>"e",2=>"b",9=>"z"]) -> {"9":"z","5":"e","2":"b"}; keys get
+        // renumbered here (policy), so order is checked via values(), not names.
+        it("sorts integer keys descending", () => {
+            const sorted = new Collection({
+                5: "e",
+                2: "b",
+                9: "z",
+            }).sortKeysDesc();
+            expect(sorted.all()).toEqual({ 0: "z", 1: "e", 2: "b" });
+            expect(sorted.values().all()).toEqual(["z", "e", "b"]);
+        });
+
+        // docs/php-parity/task-17-second-review.json, "ksort on integer keys":
+        // ksort([5=>"e",2=>"b",9=>"z"]) -> {"2":"b","5":"e","9":"z"}.
+        it("sorts integer keys ascending", () => {
+            const sorted = new Collection({
+                5: "e",
+                2: "b",
+                9: "z",
+            }).sortKeys();
+            expect(sorted.all()).toEqual({ 0: "b", 1: "e", 2: "z" });
+            expect(sorted.values().all()).toEqual(["b", "e", "z"]);
+        });
+
+        // Generic correctness check, not PHP-parity-sensitive (no probe row
+        // covers this): a lexical comparator sorts "10" before "9"; only
+        // values() (Object.keys() is forced ascending regardless) can show it.
+        it("orders integer keys numerically, not lexically", () => {
+            const sorted = new Collection({ 9: "a", 10: "b" }).sortKeysDesc();
+            expect(sorted.values().all()).toEqual(["b", "a"]);
+        });
+
+        // docs/php-parity/task-17-second-review.json, "krsort on a packed list":
+        // krsort([0=>"a",1=>"b",2=>"c"]) -> {"2":"c","1":"b","0":"a"}.
+        it("reverses a packed list's keys and keeps it array-backed", () => {
+            const sorted = new Collection(["a", "b", "c"]).sortKeysDesc();
+            expect(sorted.all()).toEqual(["c", "b", "a"]);
+            expect(Array.isArray(sorted.all())).toBe(true);
+        });
+
+        // Generic correctness check, not PHP-parity-sensitive (no probe row
+        // covers pure string keys); reindexIntegerKeys passes them through.
+        it("still sorts string keys", () => {
+            const sorted = new Collection({ b: 2, a: 1, c: 3 }).sortKeysDesc();
+            expect(sorted.all()).toEqual({ c: 3, b: 2, a: 1 });
+            expect(sorted.values().all()).toEqual([3, 2, 1]);
+        });
+
+        // docs/php-parity/task-17-second-review.json, "krsort mixes integer and
+        // string keys": PHP gives {"b":"bee","10":"j","2":"c"}. Documented
+        // limitation: the engine always hoists integer keys first (reindexIntegerKeys).
+        it("cannot preserve krsort's order when integer and string keys mix", () => {
+            const sorted = new Collection({
+                10: "j",
+                b: "bee",
+                2: "c",
+            }).sortKeysDesc();
+            expect(sorted.values().all()).toEqual(["j", "c", "bee"]);
+        });
     });
 
     describe("splice", () => {
@@ -5993,6 +6958,26 @@ describe("Collection", () => {
                 data6.splice(1, 0, collect(["bar"]));
                 expect(data6.all()).toEqual(["foo", "bar", "baz"]);
             });
+        });
+
+        it("keeps an object-backed collection object-backed after splice", () => {
+            // Collection.splice used to assign `this.items = result.value`, and
+            // obj.splice's `value` was an array — silently converting an object-backed
+            // Collection to array-backed and destroying its keys.
+            const collection = new Collection({ a: 1, b: 2, c: 3 });
+            const removed = collection.splice(1, 1);
+            expect(Array.isArray(collection.all())).toBe(false);
+            expect(collection.all()).toEqual({ a: 1, c: 3 });
+            expect(removed.all()).toEqual({ b: 2 });
+        });
+
+        it("splices to the end with a single argument, either backing", () => {
+            // PHP branches on func_num_args === 1 (Collection.php:1757) — the one-arg
+            // form removes offset -> end for both backings, not nothing.
+            const fromArray = new Collection(["f", "z"]);
+            const fromObject = new Collection({ foo: "f", baz: "z" });
+            expect(fromArray.splice(1).all()).toEqual(["z"]);
+            expect(fromObject.splice(1).all()).toEqual({ baz: "z" });
         });
     });
 
@@ -6129,6 +7114,20 @@ describe("Collection", () => {
                         baz: "boom",
                     },
                 });
+            });
+        });
+
+        it("rebuilds a list from consecutive integer segments starting at 0, through the object backing", () => {
+            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::undot
+            // — integer segments rebuild a list".
+            const data = collect({
+                "user.languages.0": "PHP",
+                "user.languages.1": "C#",
+                "user.name": "Taylor",
+            }).undot();
+
+            expect(data.all()).toEqual({
+                user: { languages: ["PHP", "C#"], name: "Taylor" },
             });
         });
     });
@@ -6304,6 +7303,25 @@ describe("Collection", () => {
                 f = f.pad(-4, 0);
                 expect(f.all()).toEqual([1, 2, 3, 4, 5]);
             });
+        });
+
+        it("numbers negative pad slots from zero for object-backed collections", () => {
+            // PHP-verified: array_pad(["a"=>1,"b"=>2], -5, 0) ->
+            // {"0":0,"1":0,"2":0,"a":1,"b":2} (docs/php-parity/task-07-pad-union.json).
+            const c = collect({ a: 1, b: 2 });
+            expect(c.pad(-5, 0).all()).toEqual({
+                0: 0,
+                1: 0,
+                2: 0,
+                a: 1,
+                b: 2,
+            });
+        });
+
+        it("returns a copy even when no padding is needed for object-backed collections", () => {
+            const items = { a: 1, b: 2 };
+            const c = collect(items);
+            expect(c.pad(2, 0).all()).not.toBe(items);
         });
     });
 
@@ -8484,6 +9502,36 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        const mixed = [
+            { v: "9" },
+            { v: "10" },
+            { v: "1" },
+            { v: 5 },
+            { v: null },
+            { v: 0 },
+        ];
+
+        // task-19-spaceship.json, "whereNotBetween over numeric strings and
+        // falsy values" - a non-sort consumer of compareValues, which used to
+        // drop "10" because "10" <= "5" lexically.
+        it("excludes numeric strings by value, not lexically", () => {
+            expect(
+                collect(mixed)
+                    .whereNotBetween("v", ["1", "5"])
+                    .pluck("v")
+                    .all(),
+            ).toEqual(["9", "10", null, 0]);
+        });
+
+        // Known defect, NOT parity, outside B6's scope: whereBetween filters through
+        // `where(key, ">=", ...)`, a comparator compareValues never reached, so it
+        // disagrees with PHP ("whereBetween over the same items" is ["1", 5]). Unchanged.
+        it("disagrees with whereBetween, which uses a different comparator", () => {
+            expect(
+                collect(mixed).whereBetween("v", ["1", "5"]).pluck("v").all(),
+            ).toEqual(["10", "1", 5]);
+        });
     });
 
     describe("whereNotIn", () => {
@@ -9654,4 +10702,849 @@ describe("Collection", () => {
             expect(padded.tag).toBe("my-tag");
         });
     });
+
+    // Collection half of the cross-backing agreement sweep; the row-by-row sweep over
+    // the ported arr/obj/data code lives in data.spec.ts. Four methods here carry their
+    // own implementation, so this block is the only thing checking them.
+    describe("cross-backing agreement sweep (plan exit criterion)", () => {
+        /** Own key/value pairs — the one view an array and a plain object share. */
+        const entriesOf = (value: unknown): [string, unknown][] =>
+            Object.entries(value as object);
+
+        /** Pin both backings' pairs, then assert their value sequences match. */
+        function agree(
+            fromArray: unknown,
+            fromObject: unknown,
+            arrEntries: [string, unknown][],
+            objEntries: [string, unknown][] = arrEntries,
+        ): void {
+            expect(entriesOf(fromArray)).toEqual(arrEntries);
+            expect(entriesOf(fromObject)).toEqual(objEntries);
+            expect(Object.values(fromArray as object)).toEqual(
+                Object.values(fromObject as object),
+            );
+        }
+
+        const nums = (): number[] => [10, 20, 30, 40];
+        const numsObj = (): Record<string, number> => ({
+            0: 10,
+            1: 20,
+            2: 30,
+            3: 40,
+        });
+        const numsEntries: [string, unknown][] = [
+            ["0", 10],
+            ["1", 20],
+            ["2", 30],
+            ["3", 40],
+        ];
+        const records = () => [
+            { id: 3, name: "c" },
+            { id: 1, name: "a" },
+            { id: 2, name: "b" },
+        ];
+        const recordsObj = () => ({
+            0: { id: 3, name: "c" },
+            1: { id: 1, name: "a" },
+            2: { id: 2, name: "b" },
+        });
+
+        it("pop, either backing", () => {
+            // collect([10,20,30,40])->pop() -> 40, leaving [10,20,30].
+            const fromArray = new Collection(nums());
+            const fromObject = new Collection(numsObj());
+
+            expect(fromArray.pop()).toBe(40);
+            expect(fromObject.pop()).toBe(40);
+            agree(fromArray.all(), fromObject.all(), [
+                ["0", 10],
+                ["1", 20],
+                ["2", 30],
+            ]);
+        });
+
+        it("shift, either backing", () => {
+            // collect([10,20,30,40])->shift() -> 10, leaving [20,30,40].
+            // The object branch used to leave a hole at 0 instead.
+            const fromArray = new Collection(nums());
+            const fromObject = new Collection(numsObj());
+
+            expect(fromArray.shift()).toBe(10);
+            expect(fromObject.shift()).toBe(10);
+            agree(fromArray.all(), fromObject.all(), [
+                ["0", 20],
+                ["1", 30],
+                ["2", 40],
+            ]);
+
+            const twoFromArray = new Collection(nums());
+            const twoFromObject = new Collection(numsObj());
+            agree(twoFromArray.shift(2).all(), twoFromObject.shift(2).all(), [
+                ["0", 10],
+                ["1", 20],
+            ]);
+            agree(twoFromArray.all(), twoFromObject.all(), [
+                ["0", 30],
+                ["1", 40],
+            ]);
+        });
+
+        it("unshift, either backing (Collection's own implementation)", () => {
+            // array_unshift([10,20,30,40],1,2) -> [1,2,10,20,30,40].
+            agree(
+                new Collection(nums()).unshift(1, 2).all(),
+                new Collection(numsObj()).unshift(1, 2).all(),
+                [
+                    ["0", 1],
+                    ["1", 2],
+                    ["2", 10],
+                    ["3", 20],
+                    ["4", 30],
+                    ["5", 40],
+                ],
+            );
+
+            // numsObj() alone is all-canonical-integer, so it can't see a
+            // non-canonical key like "1.5" wrongly swept into the renumbered run.
+            agree(
+                new Collection([10, 20, 30, 40, 999]).unshift(1, 2).all(),
+                new Collection({ 0: 10, 1: 20, 2: 30, 3: 40, "1.5": 999 })
+                    .unshift(1, 2)
+                    .all(),
+                [
+                    ["0", 1],
+                    ["1", 2],
+                    ["2", 10],
+                    ["3", 20],
+                    ["4", 30],
+                    ["5", 40],
+                    ["6", 999],
+                ],
+                [
+                    ["0", 1],
+                    ["1", 2],
+                    ["2", 10],
+                    ["3", 20],
+                    ["4", 30],
+                    ["5", 40],
+                    ["1.5", 999],
+                ],
+            );
+        });
+
+        it("splice, either backing", () => {
+            const fromArray = new Collection(nums());
+            const fromObject = new Collection(numsObj());
+
+            agree(fromArray.splice(1, 2).all(), fromObject.splice(1, 2).all(), [
+                ["0", 20],
+                ["1", 30],
+            ]);
+            agree(fromArray.all(), fromObject.all(), [
+                ["0", 10],
+                ["1", 40],
+            ]);
+        });
+
+        it("slice, either backing", () => {
+            // collect([10,20,30,40])->slice(1,2) -> {1:20,2:30}.
+            agree(
+                new Collection(nums()).slice(1, 2).all(),
+                new Collection(numsObj()).slice(1, 2).all(),
+                [
+                    ["0", 20],
+                    ["1", 30],
+                ],
+                [
+                    ["1", 20],
+                    ["2", 30],
+                ],
+            );
+        });
+
+        it("filter, either backing", () => {
+            // collect([10,20,30,40])->filter(fn($v)=>$v>15) -> {1:20,2:30,3:40}.
+            const above15 = (value: number) => value > 15;
+
+            agree(
+                new Collection(nums()).filter(above15).all(),
+                new Collection(numsObj()).filter(above15).all(),
+                [
+                    ["0", 20],
+                    ["1", 30],
+                    ["2", 40],
+                ],
+                [
+                    ["1", 20],
+                    ["2", 30],
+                    ["3", 40],
+                ],
+            );
+        });
+
+        it("combine, either backing", () => {
+            agree(
+                new Collection(["a", "b", "c"]).combine([1, 2, 3]).all(),
+                new Collection({ 0: "a", 1: "b", 2: "c" })
+                    .combine({ 0: 1, 1: 2, 2: 3 })
+                    .all(),
+                [
+                    ["a", 1],
+                    ["b", 2],
+                    ["c", 3],
+                ],
+            );
+        });
+
+        it("replace and replaceRecursive, either backing", () => {
+            // array_replace(['a','b','c'],[1=>'d']) -> ['a','d','c'].
+            agree(
+                new Collection(["a", "b", "c"]).replace({ 1: "d" }).all(),
+                new Collection({ 0: "a", 1: "b", 2: "c" })
+                    .replace({ 1: "d" })
+                    .all(),
+                [
+                    ["0", "a"],
+                    ["1", "d"],
+                    ["2", "c"],
+                ],
+            );
+            agree(
+                new Collection([{ a: 1 }, { b: 2 }])
+                    .replaceRecursive([{ c: 3 }])
+                    .all(),
+                new Collection({ 0: { a: 1 }, 1: { b: 2 } })
+                    .replaceRecursive({ 0: { c: 3 } })
+                    .all(),
+                [
+                    ["0", { a: 1, c: 3 }],
+                    ["1", { b: 2 }],
+                ],
+            );
+        });
+
+        it("diff and the diff*Using variants, either backing", () => {
+            const same = (a: PropertyKey, b: PropertyKey) => a === b;
+
+            agree(
+                new Collection(nums()).diff([20, 40]).all(),
+                new Collection(numsObj()).diff({ 0: 20, 1: 40 }).all(),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                ],
+            );
+            agree(
+                new Collection(nums())
+                    .diffAssocUsing([10, 999, 30, 40], same)
+                    .all(),
+                new Collection(numsObj())
+                    .diffAssocUsing({ 0: 10, 1: 999, 2: 30, 3: 40 }, same)
+                    .all(),
+                [["0", 20]],
+                [["1", 20]],
+            );
+            agree(
+                new Collection(nums())
+                    .diffKeysUsing(Object.assign([], { 1: "x", 3: "y" }), same)
+                    .all(),
+                new Collection(numsObj())
+                    .diffKeysUsing({ 1: "x", 3: "y" }, same)
+                    .all(),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                ],
+            );
+        });
+
+        it("the intersect family, either backing", () => {
+            const same = (a: PropertyKey, b: PropertyKey) => a === b;
+            const sparse = Object.assign([] as unknown[], { 1: "x", 3: "y" });
+
+            agree(
+                new Collection(nums()).intersect([20, 40]).all(),
+                new Collection(numsObj()).intersect({ 0: 20, 1: 40 }).all(),
+                [
+                    ["0", 20],
+                    ["1", 40],
+                ],
+                [
+                    ["1", 20],
+                    ["3", 40],
+                ],
+            );
+            agree(
+                new Collection(nums()).intersectAssoc([10, 999, 30]).all(),
+                new Collection(numsObj())
+                    .intersectAssoc({ 0: 10, 1: 999, 2: 30 })
+                    .all(),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                ],
+            );
+            agree(
+                new Collection(nums())
+                    .intersectAssocUsing([10, 999, 30], same)
+                    .all(),
+                new Collection(numsObj())
+                    .intersectAssocUsing({ 0: 10, 1: 999, 2: 30 }, same)
+                    .all(),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                ],
+            );
+            agree(
+                new Collection(nums()).intersectByKeys(sparse).all(),
+                new Collection(numsObj())
+                    .intersectByKeys({ 1: "x", 3: "y" })
+                    .all(),
+                [
+                    ["0", 20],
+                    ["1", 40],
+                ],
+                [
+                    ["1", 20],
+                    ["3", 40],
+                ],
+            );
+        });
+
+        it("union, either backing", () => {
+            // collect([10,20])->union([1,1,50,60]) -> [10,20,50,60].
+            agree(
+                new Collection([10, 20]).union([1, 1, 50, 60]).all(),
+                new Collection({ 0: 10, 1: 20 })
+                    .union({ 0: 1, 1: 1, 2: 50, 3: 60 })
+                    .all(),
+                [
+                    ["0", 10],
+                    ["1", 20],
+                    ["2", 50],
+                    ["3", 60],
+                ],
+            );
+        });
+
+        it("pad in both directions, either backing", () => {
+            // collect([10,20,30,40])->pad(6,0) -> [10,20,30,40,0,0]; ->pad(-6,0) ->
+            // [0,0,10,20,30,40]. Positive padding used to overwrite the first two
+            // entries on the object backing, which is why this row now runs both signs.
+            agree(
+                new Collection(nums()).pad(6, 0).all(),
+                new Collection(numsObj()).pad(6, 0).all(),
+                [
+                    ["0", 10],
+                    ["1", 20],
+                    ["2", 30],
+                    ["3", 40],
+                    ["4", 0],
+                    ["5", 0],
+                ],
+            );
+            agree(
+                new Collection(nums()).pad(-6, 0).all(),
+                new Collection(numsObj()).pad(-6, 0).all(),
+                [
+                    ["0", 0],
+                    ["1", 0],
+                    ["2", 10],
+                    ["3", 20],
+                    ["4", 30],
+                    ["5", 40],
+                ],
+            );
+        });
+
+        it("keys and values, either backing", () => {
+            agree(
+                new Collection(nums()).keys().all(),
+                new Collection(numsObj()).keys().all(),
+                [
+                    ["0", 0],
+                    ["1", 1],
+                    ["2", 2],
+                    ["3", 3],
+                ],
+            );
+            agree(
+                new Collection(nums()).values().all(),
+                new Collection(numsObj()).values().all(),
+                numsEntries,
+            );
+        });
+
+        it("reverse, either backing", () => {
+            // collect([10,20,30,40])->reverse() iterates 40,30,20,10.
+            agree(
+                new Collection(nums()).reverse().all(),
+                new Collection(numsObj()).reverse().all(),
+                [
+                    ["0", 40],
+                    ["1", 30],
+                    ["2", 20],
+                    ["3", 10],
+                ],
+            );
+        });
+
+        it("random, either backing", () => {
+            // No value pin: random is non-deterministic by design. Its keys
+            // are the deterministic part.
+            const fromArray = new Collection(nums());
+            const fromObject = new Collection(numsObj());
+
+            expect(nums()).toContain(fromArray.random());
+            expect(nums()).toContain(fromObject.random());
+            expect(Object.keys(fromArray.random(2).all())).toEqual(["0", "1"]);
+            expect(Object.keys(fromObject.random(2).all())).toEqual(["0", "1"]);
+        });
+
+        it("only, either backing", () => {
+            // collect([10,20,30,40])->only([1,3]) -> {1:20,3:40}.
+            agree(
+                new Collection(nums()).only(1, 3).all(),
+                new Collection(numsObj()).only(1, 3).all(),
+                [
+                    ["0", 20],
+                    ["1", 40],
+                ],
+                [
+                    ["1", 20],
+                    ["3", 40],
+                ],
+            );
+        });
+
+        it("flatten, either backing (Collection's own implementation)", () => {
+            // Arr::flatten([1,[2,[3]]]) -> [1,2,3]; at depth 1 -> [1,2,[3]].
+            const nested = [1, [2, [3]]];
+            const nestedObj = { 0: 1, 1: { 0: 2, 1: { 0: 3 } } };
+
+            agree(
+                new Collection(nested).flatten().all(),
+                new Collection(nestedObj).flatten().all(),
+                [
+                    ["0", 1],
+                    ["1", 2],
+                    ["2", 3],
+                ],
+            );
+            expect(entriesOf(new Collection(nested).flatten(1).all())).toEqual([
+                ["0", 1],
+                ["1", 2],
+                ["2", [3]],
+            ]);
+            expect(
+                entriesOf(new Collection(nestedObj).flatten(1).all()),
+            ).toEqual([
+                ["0", 1],
+                ["1", 2],
+                ["2", { 0: 3 }],
+            ]);
+        });
+
+        it("mapWithKeys, either backing (Collection's own implementation)", () => {
+            // Arr::mapWithKeys(records, fn -> [name => id]) -> {c:3,a:1,b:2};
+            // keying by id instead gives {3:'c',1:'a',2:'b'}, which JS
+            // hoists ascending — the pairs are the same either way.
+            const byName = (item: { id: number; name: string }) => ({
+                [item.name]: item.id,
+            });
+            const byId = (item: { id: number; name: string }) => ({
+                [item.id]: item.name,
+            });
+
+            agree(
+                new Collection(records()).mapWithKeys(byName).all(),
+                new Collection(recordsObj()).mapWithKeys(byName).all(),
+                [
+                    ["c", 3],
+                    ["a", 1],
+                    ["b", 2],
+                ],
+            );
+            agree(
+                new Collection(records()).mapWithKeys(byId).all(),
+                new Collection(recordsObj()).mapWithKeys(byId).all(),
+                [
+                    ["1", "a"],
+                    ["2", "b"],
+                    ["3", "c"],
+                ],
+            );
+        });
+
+        it("get and has, either backing", () => {
+            expect(new Collection(nums()).get(2)).toBe(30);
+            expect(new Collection(numsObj()).get(2)).toBe(30);
+            expect(new Collection(nums()).get(99, "default")).toBe("default");
+            expect(new Collection(numsObj()).get(99, "default")).toBe(
+                "default",
+            );
+            expect(new Collection(nums()).has(2)).toBe(true);
+            expect(new Collection(numsObj()).has(2)).toBe(true);
+            expect(new Collection(nums()).has(99)).toBe(false);
+            expect(new Collection(numsObj()).has(99)).toBe(false);
+        });
+
+        it("pull, either backing (Collection's own implementation)", () => {
+            // collect([10,20,30,40])->pull(1) -> 20, leaving {0:10,2:30,3:40}
+            // — unset, not array_splice, so nothing is renumbered.
+            const fromArray = new Collection(nums());
+            const fromObject = new Collection(numsObj());
+
+            expect(fromArray.pull(1)).toBe(20);
+            expect(fromObject.pull(1)).toBe(20);
+            expect(entriesOf(fromObject.all())).toEqual([
+                ["0", 10],
+                ["2", 30],
+                ["3", 40],
+            ]);
+            expect(Object.values(fromArray.all())).toEqual([10, 30, 40]);
+        });
+
+        it("undot, either backing", () => {
+            // Arr::undot(['0'=>'a','1.0'=>'b','1.1'=>'c']) -> ['a',['b','c']].
+            const flatArray = Object.assign(["a"], { "1.0": "b", "1.1": "c" });
+            const flatObject = { "0": "a", "1.0": "b", "1.1": "c" };
+
+            agree(
+                new Collection(flatArray).undot().all(),
+                new Collection(flatObject).undot().all(),
+                [
+                    ["0", "a"],
+                    ["1", ["b", "c"]],
+                ],
+            );
+        });
+
+        it("pluck, either backing", () => {
+            agree(
+                new Collection(records()).pluck("name").all(),
+                new Collection(recordsObj()).pluck("name").all(),
+                [
+                    ["0", "c"],
+                    ["1", "a"],
+                    ["2", "b"],
+                ],
+            );
+        });
+
+        it("sort and sortDesc, either backing", () => {
+            // A negative alongside a zero is what makes this row non-vacuous. PHP, in
+            // "sort orders falsy values by value, not by falsiness": asort(['a'=>-1,
+            // 'b'=>0,'c'=>5]) -> {"a":-1,"b":0,"c":5}; arsort -> {"c":5,"b":0,"a":-1}.
+            agree(
+                new Collection([5, -1, 0]).sort().all(),
+                new Collection({ a: -1, b: 0, c: 5 }).sort().all(),
+                [
+                    ["0", -1],
+                    ["1", 0],
+                    ["2", 5],
+                ],
+                [
+                    ["a", -1],
+                    ["b", 0],
+                    ["c", 5],
+                ],
+            );
+
+            agree(
+                new Collection([5, -1, 0]).sortDesc().all(),
+                new Collection({ a: -1, b: 0, c: 5 }).sortDesc().all(),
+                [
+                    ["0", 5],
+                    ["1", 0],
+                    ["2", -1],
+                ],
+                [
+                    ["c", 5],
+                    ["b", 0],
+                    ["a", -1],
+                ],
+            );
+
+            // An all-integer-keyed object now reorders too: the keys are renumbered over
+            // the sorted sequence rather than preserved, so the order survives the write.
+            // PHP keeps the names (sort_all {"1":1,"2":2,"0":3}) but the same value order.
+            agree(
+                new Collection([30, 10, 20]).sort().all(),
+                new Collection({ 0: 30, 1: 10, 2: 20 }).sort().all(),
+                [
+                    ["0", 10],
+                    ["1", 20],
+                    ["2", 30],
+                ],
+            );
+        });
+
+        it("sortBy with no comparisons leaves the order alone, either backing", () => {
+            // collect([3,1,2])->sortBy([]) -> [3,1,2].
+            agree(
+                new Collection([3, 1, 2]).sortBy([]).all(),
+                new Collection({ 0: 3, 1: 1, 2: 2 }).sortBy([]).all(),
+                [
+                    ["0", 3],
+                    ["1", 1],
+                    ["2", 2],
+                ],
+            );
+        });
+    });
+});
+
+// Only JSON.parse produces a real own enumerable "__proto__" key; a literal
+// `{ __proto__: ... }` sets the prototype at construction time instead.
+const HOSTILE = () =>
+    JSON.parse('{"a":1,"__proto__":{"polluted":true},"c":3}') as Record<
+        string,
+        unknown
+    >;
+
+describe("computed-key writes treat __proto__ as data, not a prototype", () => {
+    afterEach(() => {
+        // Every case below writes into a *fresh* result object; none of them
+        // should ever be able to touch the shared Object.prototype itself.
+        expect(({} as { polluted?: boolean }).polluted).toBeUndefined();
+    });
+
+    describe.each([
+        [
+            "keyBy",
+            () => new Collection([{ k: "__proto__", v: 1 }]).keyBy("k").all(),
+        ],
+        [
+            "groupBy",
+            () => new Collection([{ k: "__proto__" }]).groupBy("k").all(),
+        ],
+        [
+            // preserveKeys puts the hostile key on the INNER group, so the inner
+            // object is the one the shared assertions have to see.
+            "groupBy (preserveKeys)",
+            () =>
+                new Collection(JSON.parse('{"__proto__":{"k":"z"}}'))
+                    .groupBy("k", true)
+                    .all()["z"],
+        ],
+        [
+            "groupBy (nested)",
+            () =>
+                new Collection([{ k: "__proto__", j: "x" }])
+                    .groupBy(["k", "j"])
+                    .all(),
+        ],
+        ["countBy", () => new Collection(["__proto__"]).countBy().all()],
+        [
+            "mapToDictionary",
+            () =>
+                new Collection([{ n: "__proto__", i: 1 }])
+                    .mapToDictionary((item) => ({ [item.n]: item.i }))
+                    .all(),
+        ],
+        [
+            "mapToDictionary (tuple)",
+            () =>
+                new Collection([1])
+                    .mapToDictionary(
+                        () =>
+                            ["__proto__", 1] as unknown as Record<
+                                string,
+                                number
+                            >,
+                    )
+                    .all(),
+        ],
+        [
+            "mapWithKeys",
+            () =>
+                new Collection([1])
+                    .mapWithKeys(() =>
+                        JSON.parse('{"__proto__":{"polluted":true}}'),
+                    )
+                    .all(),
+        ],
+        ["sortKeys", () => new Collection(HOSTILE()).sortKeys().all()],
+        [
+            "sortKeysUsing",
+            () =>
+                new Collection(HOSTILE())
+                    .sortKeysUsing((a, b) => String(a).localeCompare(String(b)))
+                    .all(),
+        ],
+        ["unshift", () => new Collection(HOSTILE()).unshift(9).all()],
+        [
+            "mergeRecursive",
+            () => new Collection({ z: 1 }).mergeRecursive(HOSTILE()).all(),
+        ],
+        [
+            "mergeRecursive (nested)",
+            () =>
+                (
+                    new Collection({ z: { q: 1 } })
+                        .mergeRecursive(
+                            JSON.parse('{"z":{"__proto__":{"polluted":true}}}'),
+                        )
+                        .all() as Record<string, unknown>
+                )["z"],
+        ],
+        ["diffAssoc", () => new Collection(HOSTILE()).diffAssoc({}).all()],
+        ["diffKeys", () => new Collection(HOSTILE()).diffKeys({}).all()],
+        [
+            "diffUsing",
+            () => new Collection(HOSTILE()).diffUsing({}, () => false).all(),
+        ],
+        [
+            "duplicates",
+            () =>
+                new Collection(JSON.parse('{"a":1,"__proto__":1,"c":3}'))
+                    .duplicates()
+                    .all(),
+        ],
+        [
+            "getRawItems (Map key)",
+            () =>
+                new Collection(
+                    new Map<string, unknown>([
+                        ["a", 1],
+                        ["__proto__", { polluted: true }],
+                        ["c", 3],
+                    ]),
+                ).all(),
+        ],
+        [
+            "offsetSet",
+            () => {
+                const collection = new Collection<unknown, string>({ a: 1 });
+                collection.offsetSet("__proto__", 2);
+
+                return collection.all();
+            },
+        ],
+        [
+            "pull (recursive conversion)",
+            () => {
+                const collection = new Collection(HOSTILE());
+                collection.pull("nope");
+
+                return collection.all();
+            },
+        ],
+    ] as [string, () => unknown][])("%s", (_name, run) => {
+        it("treats __proto__ as data, not as a prototype", () => {
+            // PHP has no inherited __proto__ setter, so every row keeps it as an
+            // ordinary key. PHP-verified in docs/php-parity/task-16-final-review.json
+            // ('"__proto__" is an ordinary array key in every keyed Collection result').
+            const result = run();
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+            expect(Object.hasOwn(result as object, "__proto__")).toBe(true);
+            expect((result as { polluted?: boolean }).polluted).toBeUndefined();
+        });
+    });
+
+    // Unlike every row above, the hostile input here is the KEY ARGUMENT, not the
+    // data, so it reaches the array-backed write that `put`/`offsetSet`/`getOrPut`
+    // all forward into. The result stays an array, so its prototype is Array's.
+    describe.each([
+        [
+            "put",
+            (collection: Collection<unknown, PropertyKey>) => {
+                collection.put("__proto__", { polluted: true });
+            },
+        ],
+        [
+            "offsetSet",
+            (collection: Collection<unknown, PropertyKey>) => {
+                collection.offsetSet("__proto__", { polluted: true });
+            },
+        ],
+        [
+            "getOrPut",
+            (collection: Collection<unknown, PropertyKey>) => {
+                collection.getOrPut("__proto__", { polluted: true });
+            },
+        ],
+    ])("%s on an array-backed collection", (_name, write) => {
+        it("keeps a __proto__ key argument as data, not as a prototype", () => {
+            // PHP-verified in docs/php-parity/task-16-final-review.json
+            // ('"__proto__" is an ordinary key on an array-backed collection too'):
+            // collect([1,2])->put("__proto__", …) keeps the key and still maps.
+            const collection = new Collection<unknown, PropertyKey>([1, 2]);
+            write(collection);
+
+            const items = collection.all();
+
+            expect(Object.getPrototypeOf(items)).toBe(Array.prototype);
+            expect(Object.hasOwn(items as object, "__proto__")).toBe(true);
+            expect(collection.map((value) => value).all()).toEqual([1, 2]);
+        });
+    });
+
+    it("still appends through put at a numeric key", () => {
+        // PHP-verified in the same row (list_put_index): collect([1,2])->put(2,3)
+        // is [1,2,3]. defineKey must not change the ordinary index write.
+        const collection = new Collection<number, number>([1, 2]);
+        collection.put(2, 3);
+
+        expect(collection.all()).toEqual([1, 2, 3]);
+    });
+});
+
+// A collection built straight from a prototype object would otherwise let put,
+// push and add write onto a global every value in the process inherits from.
+describe("prototype objects as write targets", () => {
+    const prototypes: [string, object][] = [
+        ["Object.prototype", Object.prototype],
+        ["Array.prototype", Array.prototype],
+        ["Function.prototype", Function.prototype],
+    ];
+
+    afterEach(() => {
+        for (const [, prototype] of prototypes) {
+            const record = prototype as Record<string, unknown>;
+            delete record["PWNED"];
+            delete record["0"];
+        }
+        Array.prototype.length = 0;
+    });
+
+    it.each(prototypes)(
+        "put, push and add never write into %s",
+        (_label, prototype) => {
+            new Collection(prototype as Record<string, unknown>).put(
+                "PWNED",
+                1,
+            );
+            new Collection(prototype as Record<string, unknown>).push(1);
+            new Collection(prototype as Record<string, unknown>).add(1);
+
+            for (const [, other] of prototypes) {
+                expect(Object.getOwnPropertyNames(other)).not.toContain(
+                    "PWNED",
+                );
+                expect(Object.getOwnPropertyNames(other)).not.toContain("0");
+            }
+            expect(Array.prototype.length).toBe(0);
+            expect(({} as { PWNED?: unknown }).PWNED).toBeUndefined();
+        },
+    );
 });

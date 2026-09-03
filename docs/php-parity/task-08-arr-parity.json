@@ -1,0 +1,262 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.25.0-10-g0015ce4753"
+    },
+    "probes": [
+        {
+            "label": "Arr::query with booleans",
+            "php": "Arr::query([\"foo\"=>\"bar\",\"bar\"=>true])",
+            "value": {
+                "true": "foo=bar&bar=1",
+                "false": "foo=bar&bar=0",
+                "empty": "foo=bar&bar=",
+                "null": "foo=bar",
+                "none": ""
+            }
+        },
+        {
+            "label": "Arr::toCssClasses mixed keys",
+            "php": "Arr::toCssClasses([...])",
+            "value": "font-bold mt-4 ml-2"
+        },
+        {
+            "label": "Arr::toCssStyles mixed keys",
+            "php": "Arr::toCssStyles([...])",
+            "value": "font-weight: bold; margin-top: 4px; margin-left: 2px;"
+        },
+        {
+            "label": "Arr::random on empty",
+            "php": "Arr::random([])",
+            "threw": "InvalidArgumentException",
+            "message": "You requested 1 items, but there are only 0 items available."
+        },
+        {
+            "label": "Arr::random preserveKeys default",
+            "php": "Arr::random([...], 2)",
+            "value": [
+                0,
+                1
+            ]
+        },
+        {
+            "label": "Arr::only with a bare string key",
+            "php": "Arr::only([\"foo\"=>1,\"bar\"=>\"baz\"], \"bar\")",
+            "value": {
+                "bar": "baz"
+            }
+        },
+        {
+            "label": "Arr::flatten default depth",
+            "php": "Arr::flatten([\"a\"=>[\"b\"=>[\"c\"=>[\"d\"=>1]]]])",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "Arr::mapWithKeys numeric-like keys",
+            "php": "Arr::mapWithKeys([...])",
+            "value": {
+                "1": 1,
+                "2": 2
+            }
+        },
+        {
+            "label": "Arr::toCssClasses with is_numeric edge-case keys",
+            "php": "Arr::toCssClasses(['' => 'foo', ' ' => 'foo', '0x10' => 'foo', '1e3' => 'foo', 'Infinity' => 'foo'])",
+            "value": {
+                "empty": "",
+                "space": " ",
+                "hex": "0x10",
+                "sci": "foo",
+                "infinity": "Infinity"
+            }
+        },
+        {
+            "label": "is_numeric matrix for CSS-helper keys",
+            "php": "is_numeric($key) for each input",
+            "value": [
+                {
+                    "input": "",
+                    "is_numeric": false
+                },
+                {
+                    "input": " ",
+                    "is_numeric": false
+                },
+                {
+                    "input": "0x10",
+                    "is_numeric": false
+                },
+                {
+                    "input": "1e3",
+                    "is_numeric": true
+                },
+                {
+                    "input": "Infinity",
+                    "is_numeric": false
+                },
+                {
+                    "input": "NAN",
+                    "is_numeric": false
+                },
+                {
+                    "input": "INF",
+                    "is_numeric": false
+                },
+                {
+                    "input": " 42",
+                    "is_numeric": true
+                },
+                {
+                    "input": "42 ",
+                    "is_numeric": true
+                },
+                {
+                    "input": " 42 ",
+                    "is_numeric": true
+                },
+                {
+                    "input": "+42",
+                    "is_numeric": true
+                },
+                {
+                    "input": "-42",
+                    "is_numeric": true
+                },
+                {
+                    "input": "3.14",
+                    "is_numeric": true
+                },
+                {
+                    "input": "-3.14",
+                    "is_numeric": true
+                },
+                {
+                    "input": "1e-3",
+                    "is_numeric": true
+                },
+                {
+                    "input": "1E3",
+                    "is_numeric": true
+                },
+                {
+                    "input": "007",
+                    "is_numeric": true
+                },
+                {
+                    "input": "0",
+                    "is_numeric": true
+                },
+                {
+                    "input": "00",
+                    "is_numeric": true
+                },
+                {
+                    "input": ".5",
+                    "is_numeric": true
+                },
+                {
+                    "input": "5.",
+                    "is_numeric": true
+                },
+                {
+                    "input": "5.5e2",
+                    "is_numeric": true
+                },
+                {
+                    "input": "abc",
+                    "is_numeric": false
+                },
+                {
+                    "input": "1abc",
+                    "is_numeric": false
+                },
+                {
+                    "input": "abc1",
+                    "is_numeric": false
+                },
+                {
+                    "input": "1_000",
+                    "is_numeric": false
+                },
+                {
+                    "input": "0b101",
+                    "is_numeric": false
+                },
+                {
+                    "input": "0o17",
+                    "is_numeric": false
+                },
+                {
+                    "input": "\t5",
+                    "is_numeric": true
+                },
+                {
+                    "input": "5\n",
+                    "is_numeric": true
+                },
+                {
+                    "input": "\n5\n",
+                    "is_numeric": true
+                },
+                {
+                    "input": "5\t",
+                    "is_numeric": true
+                },
+                {
+                    "input": "5,5",
+                    "is_numeric": false
+                },
+                {
+                    "input": "  ",
+                    "is_numeric": false
+                }
+            ]
+        },
+        {
+            "label": "Arr::toCssStyles with is_numeric edge-case keys",
+            "php": "Arr::toCssStyles(['' => 'foo', ' ' => 'foo', '0x10' => 'foo', '1e3' => 'foo', 'Infinity' => 'foo'])",
+            "value": {
+                "empty": ";",
+                "space": " ;",
+                "hex": "0x10;",
+                "sci": "foo;",
+                "infinity": "Infinity;"
+            }
+        },
+        {
+            "label": "Arr::toCssClasses non-string value at numeric key",
+            "php": "Arr::toCssClasses([0 => 123, 1 => null, 3 => true])",
+            "value": "123  1"
+        },
+        {
+            "label": "Arr::toCssStyles non-string value at numeric key",
+            "php": "Arr::toCssStyles([0 => 123, 1 => null, 3 => true])",
+            "value": "123; ; 1;"
+        },
+        {
+            "label": "Arr::toCssClasses false value at numeric key",
+            "php": "Arr::toCssClasses([0 => false, 1 => 'x'])",
+            "value": " x"
+        },
+        {
+            "label": "Arr::toCssStyles false value at numeric key",
+            "php": "Arr::toCssStyles([0 => false, 1 => 'x'])",
+            "value": "; x;"
+        },
+        {
+            "label": "CSS helpers use PHP truthiness for the value",
+            "php": "Arr::toCssClasses([\"foo\"=>\"0\"])",
+            "value": {
+                "zero_string": "",
+                "empty_array": "",
+                "double_zero": "foo",
+                "zero_point_zero": "foo",
+                "styles_zero": "",
+                "styles_double_zero": "foo;",
+                "styles_zero_point_zero": "foo;"
+            }
+        }
+    ]
+}

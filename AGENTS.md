@@ -160,6 +160,7 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `isObject(variable)` - checks if the variable is a non-null non-array object
   - `isObjectAny(variable)` - checks if the variable is a object (including arrays, null)
   - `isTruthyObject(variable)` - checks if the variable is a non-null non-undefined object (including arrays)
+  - `isPrototypeObject(variable)` - checks if the variable is a prototype object (`Object.prototype`, `Array.prototype`, a class's `prototype`), which no caller-supplied path may write into
   - `isString(variable)` - checks if the variable is a string
   - `isStringable(variable)` - checks if the variable can be cast to a string or is an object with the `toString` method
   - `objectToString`(variable) - checks if the variable is an object with the `toString` method
@@ -184,7 +185,8 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `isFalsy(variable)` - checks if the variable is falsy the way PHP treats falsy values
   - `isTruthy(variable)` - checks if the variable is truthy the way PHP treats truthy values
   - `isAccessibleData(variable)` - checks if the variable is an array or object whose values can be walked
-  - `typeOf(variable)` - returns the PHP-style type name of the variable
+  - `typeOf(variable)` - returns the JavaScript `typeof` name of the variable, not PHP's, except that an array reports as `"array"`; `null` reports as `"object"`
+  - `phpTypeName(variable)` - returns the type name the way PHP's `gettype()` would; use this in parity-facing messages
   - `strictEqual(value1, value2)` - checks if two values are strictly equal the way that PHP does it with `===`
   - `isUnsafeKey(key)` - checks if a key could cause prototype pollution (`__proto__`, `constructor`, `prototype`)
   - `isPhpArrayKey(value)` - checks if a value is one PHP would accept as an array key
@@ -416,8 +418,10 @@ export function dataCollapse(data: unknown): unknown {
   - `src/cast.ts` - conversion and coercion helpers
   - `src/equality.ts` - comparison and equality helpers
   - `src/keys.ts` - object key helpers
+  - `src/range.ts` - numeric range helpers shared across packages
   - `src/string.ts` - string helpers shared across packages
   - `src/reflect.ts` - runtime type reflection helpers
+  - `src/sorting.ts` - sort-descriptor helpers shared across packages
   - `src/utils.ts` - barrel that re-exports the files above, keeping the
     `@tolki/utils` and `@tolki/utils/utils` entry points unchanged
 - Tests mirror the source layout: `__tests__/<module>.spec.ts` per source file

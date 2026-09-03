@@ -62,6 +62,41 @@ export function isTruthyObject(value: unknown): value is object {
 }
 
 /**
+ * Check if a value is a prototype object: the `prototype` of the constructor it
+ * carries as an own property. True for `Object.prototype`, `Array.prototype`,
+ * `Function.prototype` and every class prototype.
+ *
+ * Detects only prototypes carrying an own *function* `constructor`, so
+ * `%IteratorPrototype%` and friends -- whose `constructor` is an accessor or
+ * absent -- are not detected, and neither is a `Proxy` wrapping a prototype.
+ *
+ * @param value - The value to check
+ * @returns True if the value is some function's prototype object
+ *
+ * @example
+ *
+ * isPrototypeObject(Object.prototype); -> true
+ * isPrototypeObject(Array.prototype); -> true
+ * isPrototypeObject({ constructor: Object }); -> false
+ * isPrototypeObject({ a: 1 }); -> false
+ */
+export function isPrototypeObject(value: unknown): boolean {
+    if (!isTruthyObject(value) && !isFunction(value)) {
+        return false;
+    }
+
+    const constructor = Object.getOwnPropertyDescriptor(
+        value as object,
+        "constructor",
+    )?.value;
+
+    return (
+        isFunction(constructor) &&
+        (constructor as { prototype?: unknown }).prototype === value
+    );
+}
+
+/**
  * Check if a value is a string.
  *
  * @param value - The value to check
@@ -437,6 +472,83 @@ export function isTruthy(value: unknown): boolean {
 }
 
 /**
+ * Determine whether a value is falsy the way PHP's `array_filter()` (no
+ * callback) treats it — PHP's own truthiness, not JS's.
+ *
+ * Drops `false`, `null`/`undefined`, `0`, `""`, `"0"`, and an empty array or
+ * plain object; keeps `"00"`, `"0.0"`, and `NaN` (all truthy in PHP).
+ *
+ * @param value - The value to check
+ * @returns True if the value is falsy under PHP's rules
+ *
+ * @example
+ *
+ * isPhpFalsy("0"); -> true
+ * isPhpFalsy("00"); -> false
+ */
+export function isPhpFalsy(value: unknown): boolean {
+    if (
+        value === false ||
+        value === null ||
+        isUndefined(value) ||
+        value === 0 ||
+        value === "" ||
+        value === "0"
+    ) {
+        return true;
+    }
+
+    // Empty arrays are falsy in PHP
+    if (isArray(value)) {
+        return value.length === 0;
+    }
+
+    // Empty objects are falsy in PHP
+    if (isObject(value)) {
+        return Object.keys(value).length === 0;
+    }
+
+    return false;
+}
+
+/**
+ * A precompiled matcher for PHP's numeric-string grammar: optional whitespace,
+ * an optional sign, digits with an optional decimal point, and an optional
+ * exponent. No nested/overlapping quantifiers, so this cannot backtrack
+ * catastrophically (CodeQL ReDoS).
+ */
+const PHP_NUMERIC_STRING_PATTERN =
+    /^[ \t\n\r\v\f]*[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?[ \t\n\r\v\f]*$/;
+
+/**
+ * Determine whether a value is numeric the way PHP's `is_numeric()` treats
+ * it, using PHP's numeric-string grammar rather than JS's `Number()`.
+ *
+ * `Number("")`, `Number(" ")`, `Number("0x10")`, and `Number("Infinity")` are
+ * all numeric to JS but not to PHP.
+ *
+ * @param value - The value to check
+ * @returns True if the value is numeric under PHP's rules
+ *
+ * @example
+ *
+ * isPhpNumeric("0x10"); -> false
+ */
+export function isPhpNumeric(value: unknown): boolean {
+    // typeof, not isNumber: PHP's is_numeric(NAN) and is_numeric(INF) are
+    // both true (NAN/INF are still floats), but isNumber excludes NaN.
+    if (typeof value === "number") {
+        return true;
+    }
+
+    if (!isString(value)) {
+        return false;
+    }
+
+    return PHP_NUMERIC_STRING_PATTERN.test(value);
+}
+
+/**
  * Check if a value is a primitive type (null, boolean, number, string, symbol, undefined).
  *
  * @param value - The value to check
@@ -509,4 +621,103 @@ export function isFiniteNumber(value: unknown): value is number {
  */
 export function isAccessibleData(data: unknown): boolean {
     return Array.isArray(data);
+}
+
+/**
+ * Cast a value the way PHP's `(string)` operator does, but only for types that
+ * have a real PHP scalar analogue. Returns `null` (the "no cast" sentinel) for
+ * anything else, including NaN/Infinity and floats `String()` would render in
+ * exponential notation — PHP's `precision=14` formatting is not ported.
+ *
+ * @param value - The value to cast.
+ * @returns The PHP-style string cast, or null if there is no scalar analogue.
+ */
+function toPhpScalarString(value: unknown): string | null {
+    if (isString(value)) {
+        return value;
+    }
+
+    if (isBoolean(value)) {
+        return value ? "1" : "";
+    }
+
+    if (isNull(value)) {
+        return "";
+    }
+
+    if (isFiniteNumber(value)) {
+        // ECMA-262's Number::toString always lowercases the exponent marker,
+        // so checking for "E" here would be dead code — no JS number produces it.
+        const cast = String(value);
+        return cast.includes("e") ? null : cast;
+    }
+
+    return null;
+}
+
+/**
+ * Determine whether two values match the way PHP's `array_diff`/`array_intersect`
+ * do: `(string) $a === (string) $b`. Only `string`, `boolean`, `null`, and plain
+ * finite numbers cast this way; everything else falls back to SameValueZero
+ * identity. A high-precision float still casts (JS keeps every digit; PHP's
+ * `precision=14` rounds) — a real divergence, not a fallback.
+ *
+ * @param a - First value to compare
+ * @param b - Second value to compare
+ * @returns True if the values match under PHP's string-cast comparison, or are identical
+ *
+ * @example
+ *
+ * phpValueMatch(0, "0"); -> true
+ */
+export function phpValueMatch(a: unknown, b: unknown): boolean {
+    const castA = toPhpScalarString(a);
+    const castB = toPhpScalarString(b);
+
+    if (castA !== null && castB !== null) {
+        return castA === castB;
+    }
+
+    return (
+        a === b ||
+        (typeof a === "number" &&
+            typeof b === "number" &&
+            Number.isNaN(a) &&
+            Number.isNaN(b))
+    );
+}
+
+/**
+ * Build a reusable membership test with the same semantics as `phpValueMatch`,
+ * without its O(n) rescan per call: cast operands go into a `Set`, so `diff`/
+ * `intersect` can test each item in O(1) instead of scanning `others` per item.
+ *
+ * @param others - The values to test membership against.
+ * @returns A predicate that is true when a value matches any of them.
+ */
+export function phpValueMatcher(
+    others: readonly unknown[],
+): (value: unknown) => boolean {
+    const cast = new Set<string>();
+    const residual: unknown[] = [];
+
+    for (const other of others) {
+        const key = toPhpScalarString(other);
+
+        if (isNull(key)) {
+            residual.push(other);
+        } else {
+            cast.add(key);
+        }
+    }
+
+    return (value) => {
+        const key = toPhpScalarString(value);
+
+        if (!isNull(key)) {
+            return cast.has(key);
+        }
+
+        return residual.some((other) => phpValueMatch(value, other));
+    };
 }

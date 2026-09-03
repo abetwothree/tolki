@@ -1,0 +1,172 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.25.0-10-g0015ce4753"
+    },
+    "probes": [
+        {
+            "label": "flatten depth 0 fully flattens (depth never hits 1)",
+            "php": "Arr::flatten([1,[2,[3]]], 0)",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "flatten depth 0 via Collection",
+            "php": "collect([1,[2,[3]]])->flatten(0)->all()",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "flatten depth 1 for comparison",
+            "php": "collect([1,[2,[3]]])->flatten(1)->all()",
+            "value": [
+                1,
+                2,
+                [
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "sortDesc ties fall back to original order, not a full reverse",
+            "php": "collect([[id=a,k=2],[id=b,k=1],[id=c,k=2],[id=d,k=3]])->sortByDesc(fn($i)=>$i[\"k\"])->pluck(\"id\")->values()->all()",
+            "value": [
+                "d",
+                "a",
+                "c",
+                "b"
+            ]
+        },
+        {
+            "label": "sortDesc on integer-keyed collection reorders values (PHP)",
+            "php": "collect([0=>3,1=>1,2=>2])->sortDesc()->all()",
+            "value": {
+                "0": 3,
+                "2": 2,
+                "1": 1
+            }
+        },
+        {
+            "label": "PHP casts \"-1\" to int(-1) and array_splice renumbers it too (JS does not)",
+            "php": "array_splice($a=['-1'=>'x','b'=>'y','c'=>'z'], 1, 1)",
+            "value": {
+                "0": "x",
+                "c": "z"
+            }
+        },
+        {
+            "label": "slice over-negative length clamps to empty",
+            "php": "array_slice($a,0,-5,true)",
+            "value": {
+                "assoc_0_neg5": [],
+                "assoc_neg5_neg5": [],
+                "list_0_neg5": [],
+                "list_neg5_neg5": [],
+                "assoc_0_neg6_of5": []
+            }
+        },
+        {
+            "label": "undot only canonicalises canonical integer keys",
+            "php": "Arr::undot([\"1e2\"=>\"x\"])",
+            "value": {
+                "exp": {
+                    "1e2": "x"
+                },
+                "leading_space": {
+                    " 1": "x"
+                },
+                "plus": {
+                    "+1": "x"
+                },
+                "leading_zero": {
+                    "01": "x"
+                },
+                "canonical": {
+                    "1": "x"
+                }
+            }
+        },
+        {
+            "label": "push requires an array at the key",
+            "php": "Arr::push($pa = [1,2,3], 0, 9)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, integer found."
+        },
+        {
+            "label": "push through an explicit null",
+            "php": "Arr::push($pb = [\"name\"=>null], \"name\", 9)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [name] must be an array, NULL found."
+        },
+        {
+            "label": "push at a missing key creates the array",
+            "php": "Arr::push($pc = [], \"name\", 9)",
+            "value": {
+                "name": [
+                    9
+                ]
+            }
+        },
+        {
+            "label": "Arr::array requires an array at the key",
+            "php": "Arr::array([1,2,3], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, integer found."
+        },
+        {
+            "label": "Arr::array through an explicit null",
+            "php": "Arr::array([null,[\"valid\"]], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, NULL found."
+        },
+        {
+            "label": "Arr::array through a float",
+            "php": "Arr::array([1.5], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, double found."
+        },
+        {
+            "label": "push at a multi-segment key still requires an array at the resolved path",
+            "php": "Arr::push($pd = [[\"Desk\"]], \"0.0\", \"Chair\", \"Lamp\")",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0.0] must be an array, string found."
+        },
+        {
+            "label": "push through an explicit null at a dotted path",
+            "php": "Arr::push($e1 = [\"a\"=>[\"b\"=>null]], \"a.b\", 9)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [a.b] must be an array, NULL found."
+        },
+        {
+            "label": "push at a missing dotted path creates the array",
+            "php": "Arr::push($e2 = [\"a\"=>[]], \"a.b\", 9)",
+            "value": {
+                "a": {
+                    "b": [
+                        9
+                    ]
+                }
+            }
+        },
+        {
+            "label": "push through a float in a middle segment does not throw",
+            "php": "Arr::push($e3 = [1.5, [2]], \"0.1\", 9)",
+            "value": [
+                {
+                    "1": [
+                        9
+                    ]
+                },
+                [
+                    2
+                ]
+            ]
+        }
+    ]
+}

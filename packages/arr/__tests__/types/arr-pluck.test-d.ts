@@ -180,6 +180,20 @@ describe("arr pluck type tests", () => {
         });
     });
 
+    describe("null value", () => {
+        it("keeps whole items, typed as the array element type", () => {
+            expectTypeOf(Arr.pluck(nameItems, null)).toEqualTypeOf<
+                { name: string }[]
+            >();
+        });
+
+        it("returns a keyed record of whole items when a key is given", () => {
+            expectTypeOf(Arr.pluck(users, null, "id")).toEqualTypeOf<
+                Record<string | number, { id: number; name: string }>
+            >();
+        });
+    });
+
     describe("input variations", () => {
         it("accepts a readonly array", () => {
             const data: readonly { name: string }[] = nameItems;

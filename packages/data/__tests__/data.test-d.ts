@@ -61,4 +61,12 @@ describe("data type tests", () => {
             expectTypeOf(result).toEqualTypeOf<number | string | null>();
         });
     });
+
+    describe("dataShift", () => {
+        it("returns a value, a list of values, or null", () => {
+            expectTypeOf(Data.dataShift([1, 2, 3])).toEqualTypeOf<
+                number | number[] | null
+            >();
+        });
+    });
 });

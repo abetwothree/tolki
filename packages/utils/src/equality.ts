@@ -1,28 +1,148 @@
+import {
+    isArray,
+    isBoolean,
+    isNull,
+    isPhpNumeric,
+    isString,
+    isUndefined,
+} from "./guards";
+
 /**
- * Helper function to safely compare two unknown values for sorting.
- * Provides stable comparison for objects using JSON serialization.
+ * PHP has no `undefined`; this port uses it for the missing value `data_get` answers with null.
+ *
+ * @param value - The value to check.
+ * @returns True if `value` is `null` or `undefined`.
+ */
+function isNullish(value: unknown): value is null | undefined {
+    return isNull(value) || isUndefined(value);
+}
+
+/**
+ * Order two strings by UTF-16 code unit, which is PHP's non-numeric string comparison.
+ *
+ * @param a - First string
+ * @param b - Second string
+ * @returns -1 if a < b, 1 if a > b, 0 if equal
+ */
+function compareStrings(a: string, b: string): number {
+    return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/**
+ * PHP's integer-string shape: its own whitespace set, an optional sign, digits.
+ * No nested quantifiers, so it cannot backtrack catastrophically (CodeQL ReDoS).
+ */
+const PHP_INTEGER_STRING_PATTERN = /^[ \t\n\r\v\f]*[+-]?\d+[ \t\n\r\v\f]*$/;
+
+/**
+ * Order two numeric strings the way PHP does, which `Number()` alone cannot.
+ *
+ * Two integer strings compare exactly, because a double collapses them past
+ * 2^53 — `"9007199254740993"` and `"…992"` are one `Number()` value. A pair
+ * that overflows to the same infinity falls back to string order, as PHP's
+ * `zendi_smart_strcmp` does.
+ *
+ * @param a - First numeric string
+ * @param b - Second numeric string
+ * @returns -1 if a < b, 1 if a > b, 0 if equal
+ */
+function compareNumericStrings(a: string, b: string): number {
+    if (
+        PHP_INTEGER_STRING_PATTERN.test(a) &&
+        PHP_INTEGER_STRING_PATTERN.test(b)
+    ) {
+        const leftInt = BigInt(a);
+        const rightInt = BigInt(b);
+
+        return leftInt < rightInt ? -1 : leftInt > rightInt ? 1 : 0;
+    }
+
+    const left = Number(a);
+    const right = Number(b);
+
+    if (left === right && !Number.isFinite(left)) {
+        return compareStrings(a, b);
+    }
+
+    return left < right ? -1 : left > right ? 1 : 0;
+}
+
+/**
+ * Cast a value the way PHP's `(bool)` does, for `<=>`'s rule that a null or a
+ * boolean on either side compares both sides as booleans.
+ *
+ * @param value - The value to cast
+ * @returns The value's PHP truthiness
+ */
+function toPhpBool(value: unknown): boolean {
+    // typeof, not isNumber: PHP's (bool) NAN is true, so only a real zero is falsy.
+    if (typeof value === "number") {
+        return value !== 0;
+    }
+
+    if (isString(value)) {
+        return value !== "" && value !== "0";
+    }
+
+    if (isArray(value)) {
+        return value.length > 0;
+    }
+
+    return Boolean(value);
+}
+
+/**
+ * Order two values the way PHP 8's `<=>` does.
+ *
+ * Numeric operands compare numerically (`"9"` sorts below `"10"`); null/boolean
+ * compares both sides as booleans; arrays/objects order by JSON form.
+ *
+ * Faithful to PHP, this order is **not transitive** — `null` ties `0` and `""`,
+ * yet `0 > ""`.
  *
  * @param a - First value to compare
  * @param b - Second value to compare
  * @returns -1 if a < b, 1 if a > b, 0 if equal
  *
  * @example
- * compareValues(1, 2); -> -1
- * compareValues('b', 'a'); -> 1
- * compareValues({x: 1}, {x: 1}); -> 0
+ * compareValues(0, ""); -> 1
  */
 export function compareValues(a: unknown, b: unknown): number {
-    if (a == null && b == null) return 0;
-    if (a == null) return -1;
-    if (b == null) return 1;
+    // PHP takes the null-against-string arm before the boolean one, so null
+    // compares as "" there and ends up below "0" rather than tying it.
+    if (isNullish(a) && isString(b)) {
+        return compareStrings("", b);
+    }
 
-    // For objects, compare by JSON string representation for stable sorting
+    if (isString(a) && isNullish(b)) {
+        return compareStrings(a, "");
+    }
+
+    if (isNullish(a) || isNullish(b) || isBoolean(a) || isBoolean(b)) {
+        const left = toPhpBool(a);
+        const right = toPhpBool(b);
+
+        return left === right ? 0 : left ? 1 : -1;
+    }
+
+    // Stable JSON ordering, not PHP's array rule -- see the note on the docblock.
     if (typeof a === "object" && typeof b === "object") {
-        const aStr = JSON.stringify(a);
-        const bStr = JSON.stringify(b);
-        if (aStr < bStr) return -1;
-        if (aStr > bStr) return 1;
-        return 0;
+        return compareStrings(JSON.stringify(a), JSON.stringify(b));
+    }
+
+    if (isPhpNumeric(a) && isPhpNumeric(b)) {
+        if (isString(a) && isString(b)) {
+            return compareNumericStrings(a, b);
+        }
+
+        const left = Number(a);
+        const right = Number(b);
+
+        return left < right ? -1 : left > right ? 1 : 0;
+    }
+
+    if (isString(a) || isString(b)) {
+        return compareStrings(String(a), String(b));
     }
 
     if (a < b) return -1;
