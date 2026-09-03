@@ -4,7 +4,7 @@ import * as Obj from "@tolki/obj";
 import { MAX_UNDOT_INDEX } from "@tolki/path";
 import type { UndotArrayKey } from "@tolki/types";
 import { isArray } from "@tolki/utils";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 describe("Arr", () => {
     describe("accessible", () => {
@@ -195,6 +195,177 @@ describe("Arr", () => {
             expect(chunksNoKeys[3]).toEqual([10]);
             expect(Arr.chunk(baseData, 0)).toEqual([]);
             expect(Arr.chunk(baseData, -1)).toEqual([]);
+        });
+    });
+
+    describe("chunkWhile", () => {
+        // docs/php-parity/task-21-chunk-while-by.json — array chunks are reindexed (plan D2)
+        it("chunks equal adjacent elements", () => {
+            const result = Arr.chunkWhile(
+                ["A", "A", "B", "B", "C", "C", "C"],
+                (value, _index, chunk) => chunk.at(-1) === value,
+            );
+
+            expect(result).toEqual([
+                ["A", "A"],
+                ["B", "B"],
+                ["C", "C", "C"],
+            ]);
+        });
+
+        it("chunks contiguously increasing integers", () => {
+            const result = Arr.chunkWhile(
+                [1, 4, 9, 10, 11, 12, 15, 16, 19, 20, 21],
+                (value, _index, chunk) =>
+                    (chunk.at(-1) as number) + 1 === value,
+            );
+
+            expect(result).toEqual([
+                [1],
+                [4],
+                [9, 10, 11, 12],
+                [15, 16],
+                [19, 20, 21],
+            ]);
+        });
+
+        it("passes the value, its index and the chunk so far, skipping the first item", () => {
+            const calls: [number, number, number[]][] = [];
+
+            Arr.chunkWhile([10, 11, 20], (value, index, chunk) => {
+                calls.push([value, index, [...chunk]]);
+
+                return (chunk.at(-1) as number) + 1 === value;
+            });
+
+            expect(calls).toEqual([
+                [11, 1, [10]],
+                [20, 2, [10, 11]],
+            ]);
+        });
+
+        it("returns an empty array for empty input", () => {
+            expect(Arr.chunkWhile([], () => true)).toEqual([]);
+        });
+
+        it("keeps a single item in one chunk without calling back", () => {
+            const callback = vi.fn(() => false);
+
+            expect(Arr.chunkWhile([5], callback)).toEqual([[5]]);
+            expect(callback).not.toHaveBeenCalled();
+        });
+
+        it("splits on every false and merges on every true", () => {
+            expect(Arr.chunkWhile([1, 2, 3], () => false)).toEqual([
+                [1],
+                [2],
+                [3],
+            ]);
+            expect(Arr.chunkWhile([1, 2, 3], () => true)).toEqual([[1, 2, 3]]);
+        });
+
+        it("does not mutate the input", () => {
+            const data = [1, 1, 2];
+            Arr.chunkWhile(
+                data,
+                (value, _index, chunk) => chunk.at(-1) === value,
+            );
+
+            expect(data).toEqual([1, 1, 2]);
+        });
+    });
+
+    describe("chunkBy", () => {
+        // docs/php-parity/task-21-chunk-while-by.json
+        it("chunks by a callback", () => {
+            expect(
+                Arr.chunkBy([1, 1, 2, 2, 3, 3, 3], (value) => value),
+            ).toEqual([
+                [1, 1],
+                [2, 2],
+                [3, 3, 3],
+            ]);
+        });
+
+        it("chunks by a key", () => {
+            const products = [
+                { parent: "a", name: "1" },
+                { parent: "a", name: "2" },
+                { parent: "b", name: "3" },
+                { parent: "b", name: "4" },
+                { parent: "a", name: "5" },
+            ];
+
+            expect(Arr.chunkBy(products, "parent")).toEqual([
+                [products[0], products[1]],
+                [products[2], products[3]],
+                [products[4]],
+            ]);
+        });
+
+        it("chunks by a dotted key", () => {
+            const result = Arr.chunkBy(
+                [
+                    { address: { city: "NY" } },
+                    { address: { city: "NY" } },
+                    { address: { city: "LA" } },
+                ],
+                "address.city",
+            );
+
+            expect(result.map((chunk) => chunk.length)).toEqual([2, 1]);
+        });
+
+        it("compares adjacent values with PHP 8 loose equality", () => {
+            const result = Arr.chunkBy(
+                [1, "1", 2, "2", null, 0, "", false, "a", "A"],
+                (value) => value,
+            );
+
+            expect(result).toEqual([
+                [1, "1"],
+                [2, "2"],
+                [null, 0],
+                ["", false],
+                ["a"],
+                ["A"],
+            ]);
+        });
+
+        it("puts items that all lack the key into one chunk", () => {
+            expect(Arr.chunkBy([{ x: 1 }, { y: 2 }, { x: 1 }], "key")).toEqual([
+                [{ x: 1 }, { y: 2 }, { x: 1 }],
+            ]);
+        });
+
+        it("passes the value and its index to the callback", () => {
+            expect(
+                Arr.chunkBy([1, 1, 1], (_value, index) =>
+                    index === 1 ? "x" : "y",
+                ),
+            ).toEqual([[1], [1], [1]]);
+        });
+
+        it("returns an empty array for empty input", () => {
+            expect(Arr.chunkBy([], "key")).toEqual([]);
+        });
+
+        it("keeps a single item in one chunk", () => {
+            expect(Arr.chunkBy([{ key: "a" }], "key")).toEqual([
+                [{ key: "a" }],
+            ]);
+        });
+
+        // docs/php-parity/task-21-chunk-while-by.json, "chunkBy with a null key falls back to
+        // identity comparison, like a callback" — PHP has no `undefined`, so that one probe
+        // backs both the `null` and `undefined` cases below (valueRetriever(null) === identity).
+        it("treats a null or undefined key as the identity, like a callback", () => {
+            expect(Arr.chunkBy([1, 1, 2, 2, 3], null)).toEqual([
+                [1, 1],
+                [2, 2],
+                [3],
+            ]);
+            expect(Arr.chunkBy([1, 1, 2], undefined)).toEqual([[1, 1], [2]]);
         });
     });
 

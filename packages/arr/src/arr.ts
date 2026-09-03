@@ -275,6 +275,81 @@ export function chunk<TValue>(
 }
 
 /**
+ * Chunk the array into chunks with a callback.
+ *
+ * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1541`, which runs
+ *      `LazyCollection::chunkWhile`. Chunks are reindexed, as `chunk` does.
+ *
+ * @param data - The array to chunk
+ * @param callback - Receives the value, its index and the chunk built so far; return true to keep appending
+ * @returns The chunked array
+ *
+ * @example
+ *
+ * chunkWhile(['A', 'A', 'B'], (value, index, chunk) => chunk.at(-1) === value); -> [['A', 'A'], ['B']]
+ */
+export function chunkWhile<TValue>(
+    data: ArrayItems<TValue>,
+    callback: (value: TValue, index: number, chunk: TValue[]) => boolean,
+): TValue[][] {
+    const chunks: TValue[][] = [];
+    let chunk: TValue[] = [];
+
+    for (const [index, value] of data.entries()) {
+        if (chunk.length > 0 && !callback(value, index, chunk)) {
+            chunks.push(chunk);
+            chunk = [];
+        }
+
+        chunk.push(value);
+    }
+
+    if (chunk.length > 0) {
+        chunks.push(chunk);
+    }
+
+    return chunks;
+}
+
+/**
+ * Chunk the array into chunks by comparing adjacent values using the given key or callback.
+ *
+ * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:937`.
+ *      Adjacent values compare with PHP's `==`, so `1` and `"1"` share a chunk.
+ *
+ * @param data - The array to chunk
+ * @param key - A path into each item, or a callback receiving the value and its index
+ * @returns The chunked array
+ *
+ * @example
+ *
+ * chunkBy([1, 1, 2, 2, 1], (value) => value); -> [[1, 1], [2, 2], [1]]
+ * chunkBy([{ p: 'a' }, { p: 'a' }, { p: 'b' }], 'p'); -> [[{ p: 'a' }, { p: 'a' }], [{ p: 'b' }]]
+ */
+export function chunkBy<TValue>(
+    data: ArrayItems<TValue>,
+    key: PathKey | ((value: TValue, index: number) => unknown),
+): TValue[][] {
+    // isFunction's predicate is generic, so name the retriever's type rather than let the guard narrow it.
+    const retrieve: (value: TValue, index: number) => unknown = isFunction(key)
+        ? (key as (value: TValue, index: number) => unknown)
+        : (value) =>
+              isNull(key) || isUndefined(key)
+                  ? value
+                  : getNestedValue(value, key as string);
+
+    // chunkWhile invokes the callback before pushing `value`, and even a reset pushes
+    // within the same iteration, so at iteration `index` chunk is never empty and its
+    // last item is always data[index - 1] (array-only: object ports must carry the key).
+    return chunkWhile(data, (value, index, chunk) =>
+        looseEqual(
+            retrieve(value, index),
+            retrieve(chunk[chunk.length - 1] as TValue, index - 1),
+        ),
+    );
+}
+
+/**
  * Collapse an array of arrays into a single array, or an array of objects into a single object.
  *
  * @param data - The array to collapse.

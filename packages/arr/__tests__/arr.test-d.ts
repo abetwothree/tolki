@@ -1719,6 +1719,48 @@ describe("arr type tests", () => {
         });
     });
 
+    describe("chunkWhile", () => {
+        it("returns TValue[][] and types the callback arguments", () => {
+            const result = Arr.chunkWhile([1, 2, 3], (value, index, chunk) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(index).toEqualTypeOf<number>();
+                expectTypeOf(chunk).toEqualTypeOf<number[]>();
+
+                return true;
+            });
+
+            expectTypeOf(result).toEqualTypeOf<number[][]>();
+        });
+
+        it("accepts a readonly array", () => {
+            const data: readonly string[] = ["a"];
+
+            expectTypeOf(Arr.chunkWhile(data, () => true)).toEqualTypeOf<
+                string[][]
+            >();
+        });
+    });
+
+    describe("chunkBy", () => {
+        it("returns TValue[][] for a callback and types its arguments", () => {
+            const result = Arr.chunkBy([{ id: 1 }], (value, index) => {
+                expectTypeOf(value).toEqualTypeOf<{ id: number }>();
+                expectTypeOf(index).toEqualTypeOf<number>();
+
+                return value.id;
+            });
+
+            expectTypeOf(result).toEqualTypeOf<{ id: number }[][]>();
+        });
+
+        it("returns TValue[][] for a key path", () => {
+            expectTypeOf(
+                Arr.chunkBy([{ parent: "a" }], "parent"),
+            ).toEqualTypeOf<{ parent: string }[][]>();
+            expectTypeOf(Arr.chunkBy([1, 2], null)).toEqualTypeOf<number[][]>();
+        });
+    });
+
     describe("collapse", () => {
         describe("array of arrays → flat array (overload 1: TValue[][] → TValue[])", () => {
             it("flattens number[][] to number[]", () => {
