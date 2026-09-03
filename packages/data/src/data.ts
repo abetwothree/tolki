@@ -421,7 +421,8 @@ export function dataChunk<TValue>(
  * @example
  *
  * dataChunkWhile([1, 1, 2], (value, index, chunk) => chunk.at(-1) === value); -> [[1, 1], [2]]
- * dataChunkWhile({ a: 1, b: 1, c: 2 }, (value, key, chunk) => Object.values(chunk).at(-1) === value); -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
+ * dataChunkWhile({ a: 1, b: 1, c: 2 }, (value, key, chunk) => Object.values(chunk).at(-1) === value);
+ * -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
  */
 export function dataChunkWhile<TValue>(
     data: TValue[],
