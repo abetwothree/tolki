@@ -16,6 +16,14 @@ use Illuminate\Support\LazyCollection;
 use Illuminate\Support\MultipleItemsFoundException;
 use Illuminate\Support\Str;
 use Illuminate\Support\Stringable;
+use Illuminate\Tests\Support\Fixtures\TestArrayableObject;
+use Illuminate\Tests\Support\Fixtures\TestBackedEnum;
+use Illuminate\Tests\Support\Fixtures\TestEnum;
+use Illuminate\Tests\Support\Fixtures\TestJsonableObject;
+use Illuminate\Tests\Support\Fixtures\TestJsonSerializeObject;
+use Illuminate\Tests\Support\Fixtures\TestJsonSerializeWithScalarValueObject;
+use Illuminate\Tests\Support\Fixtures\TestStringBackedEnum;
+use Illuminate\Tests\Support\Fixtures\TestTraversableAndJsonSerializableObject;
 use InvalidArgumentException;
 use JsonSerializable;
 use Mockery;
@@ -29,8 +37,8 @@ use Symfony\Component\VarDumper\VarDumper;
 use UnexpectedValueException;
 use WeakMap;
 
-include_once 'Common.php';
-include_once 'Enums.php';
+include_once 'Fixtures/Common.php';
+include_once 'Fixtures/Enums.php';
 
 class SupportCollectionTest extends TestCase
 {
@@ -2433,6 +2441,91 @@ class SupportCollectionTest extends TestCase
         $this->assertEquals(['a' => 1, 'b' => 1], $data->first()->toArray());
         $this->assertEquals(['c' => 2, 'd' => 2], $data->get(1)->toArray());
         $this->assertEquals(['e' => 3, 'f' => 3, 'g' => 3], $data->last()->toArray());
+    }
+
+    #[DataProvider('collectionClassProvider')]
+    public function testChunkByWithCallback($collection)
+    {
+        $data = (new $collection([1, 1, 2, 2, 3, 3, 3]))
+            ->chunkBy(fn ($value) => $value);
+
+        $this->assertInstanceOf($collection, $data);
+        $this->assertInstanceOf($collection, $data->first());
+        $this->assertEquals([0 => 1, 1 => 1], $data->first()->toArray());
+        $this->assertEquals([2 => 2, 3 => 2], $data->get(1)->toArray());
+        $this->assertEquals([4 => 3, 5 => 3, 6 => 3], $data->last()->toArray());
+    }
+
+    #[DataProvider('collectionClassProvider')]
+    public function testChunkByWithStringKey($collection)
+    {
+        $data = (new $collection([
+            ['parent' => 'a', 'name' => '1'],
+            ['parent' => 'a', 'name' => '2'],
+            ['parent' => 'b', 'name' => '3'],
+            ['parent' => 'b', 'name' => '4'],
+            ['parent' => 'a', 'name' => '5'],
+        ]))->chunkBy('parent');
+
+        $this->assertInstanceOf($collection, $data);
+        $this->assertCount(3, $data);
+        $this->assertEquals([
+            ['parent' => 'a', 'name' => '1'],
+            ['parent' => 'a', 'name' => '2'],
+        ], $data->first()->values()->toArray());
+        $this->assertEquals([
+            ['parent' => 'b', 'name' => '3'],
+            ['parent' => 'b', 'name' => '4'],
+        ], $data->get(1)->values()->toArray());
+        $this->assertEquals([
+            ['parent' => 'a', 'name' => '5'],
+        ], $data->last()->values()->toArray());
+    }
+
+    #[DataProvider('collectionClassProvider')]
+    public function testChunkByPreservesKeys($collection)
+    {
+        $data = (new $collection(['a' => 1, 'b' => 1, 'c' => 2, 'd' => 2, 'e' => 1]))
+            ->chunkBy(fn ($value) => $value);
+
+        $this->assertInstanceOf($collection, $data);
+        $this->assertCount(3, $data);
+        $this->assertEquals(['a' => 1, 'b' => 1], $data->first()->toArray());
+        $this->assertEquals(['c' => 2, 'd' => 2], $data->get(1)->toArray());
+        $this->assertEquals(['e' => 1], $data->last()->toArray());
+    }
+
+    #[DataProvider('collectionClassProvider')]
+    public function testChunkByWithDotNotation($collection)
+    {
+        $data = (new $collection([
+            (object) ['address' => (object) ['city' => 'NY']],
+            (object) ['address' => (object) ['city' => 'NY']],
+            (object) ['address' => (object) ['city' => 'LA']],
+        ]))->chunkBy('address.city');
+
+        $this->assertCount(2, $data);
+        $this->assertCount(2, $data->first());
+        $this->assertCount(1, $data->last());
+    }
+
+    #[DataProvider('collectionClassProvider')]
+    public function testChunkByWithEmptyCollection($collection)
+    {
+        $data = (new $collection([]))->chunkBy('key');
+
+        $this->assertInstanceOf($collection, $data);
+        $this->assertCount(0, $data);
+    }
+
+    #[DataProvider('collectionClassProvider')]
+    public function testChunkByWithSingleItem($collection)
+    {
+        $data = (new $collection([['key' => 'a']]))->chunkBy('key');
+
+        $this->assertInstanceOf($collection, $data);
+        $this->assertCount(1, $data);
+        $this->assertEquals([['key' => 'a']], $data->first()->values()->toArray());
     }
 
     #[DataProvider('collectionClassProvider')]
