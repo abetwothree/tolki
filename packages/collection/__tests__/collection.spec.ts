@@ -2388,7 +2388,7 @@ describe("Collection", () => {
 
             it("test intersect collection", () => {
                 // Uses `first_world` (not `first_word`) on the other side — matching
-                // Laravel's actual CollectionTest.php:1767.
+                // Laravel's actual CollectionTest.php:1775.
                 const c = collect({ id: 1, first_word: "Hello" });
                 expect(
                     c
@@ -6082,6 +6082,228 @@ describe("Collection", () => {
                     [5],
                 ]);
             });
+        });
+    });
+
+    describe("chunkWhile", () => {
+        describe("Laravel Tests", () => {
+            // docs/php-parity/task-21-chunk-while-by.json — array-backed chunks are reindexed (plan D2),
+            // so the numeric-key assertions from CollectionTest go through .toArray() on the chunk.
+            // Read chunks with get(n): first()/last() resolve to `unknown`, so calling a method on them fails ts:check.
+            it("test chunk while on equal elements", () => {
+                const data = collect([
+                    "A",
+                    "A",
+                    "B",
+                    "B",
+                    "C",
+                    "C",
+                    "C",
+                ]).chunkWhile(
+                    (current, _key, chunk) => chunk.last() === current,
+                );
+
+                expect(data).toBeInstanceOf(Collection);
+                expect(data.first()).toBeInstanceOf(Collection);
+                expect(data.get(0)!.toArray()).toEqual(["A", "A"]);
+                expect(data.get(1)!.toArray()).toEqual(["B", "B"]);
+                expect(data.get(2)!.toArray()).toEqual(["C", "C", "C"]);
+            });
+
+            it("test chunk while on contiguously increasing integers", () => {
+                const data = collect([
+                    1, 4, 9, 10, 11, 12, 15, 16, 19, 20, 21,
+                ]).chunkWhile(
+                    (current, _key, chunk) =>
+                        (chunk.last() as number) + 1 === current,
+                );
+
+                expect(data).toBeInstanceOf(Collection);
+                expect(data.first()).toBeInstanceOf(Collection);
+                expect(data.get(0)!.toArray()).toEqual([1]);
+                expect(data.get(1)!.toArray()).toEqual([4]);
+                expect(data.get(2)!.toArray()).toEqual([9, 10, 11, 12]);
+                expect(data.get(3)!.toArray()).toEqual([15, 16]);
+                expect(data.get(4)!.toArray()).toEqual([19, 20, 21]);
+            });
+
+            it("test chunk while preserving string keys", () => {
+                const data = collect({
+                    a: 1,
+                    b: 1,
+                    c: 2,
+                    d: 2,
+                    e: 3,
+                    f: 3,
+                    g: 3,
+                }).chunkWhile(
+                    (current, _key, chunk) => chunk.last() === current,
+                );
+
+                expect(data).toBeInstanceOf(Collection);
+                expect(data.first()).toBeInstanceOf(Collection);
+                expect(data.get(0)!.toArray()).toEqual({ a: 1, b: 1 });
+                expect(data.get(1)!.toArray()).toEqual({ c: 2, d: 2 });
+                expect(data.get(2)!.toArray()).toEqual({ e: 3, f: 3, g: 3 });
+            });
+        });
+
+        it("hands the callback the chunk so far as a collection", () => {
+            const seen: unknown[][] = [];
+
+            collect({ x: 10, y: 11, z: 20 }).chunkWhile(
+                (current, key, chunk) => {
+                    seen.push([current, key, chunk.toArray()]);
+
+                    return (chunk.last() as number) + 1 === current;
+                },
+            );
+
+            expect(seen).toEqual([
+                [11, "y", { x: 10 }],
+                [20, "z", { x: 10, y: 11 }],
+            ]);
+        });
+
+        it("returns an empty collection for an empty collection", () => {
+            const data = collect([]).chunkWhile(() => true);
+
+            expect(data).toBeInstanceOf(Collection);
+            expect(data.count()).toBe(0);
+        });
+    });
+
+    describe("chunkBy", () => {
+        describe("Laravel Tests", () => {
+            // docs/php-parity/task-21-chunk-while-by.json
+            it("test chunk by with callback", () => {
+                const data = collect([1, 1, 2, 2, 3, 3, 3]).chunkBy(
+                    (value) => value,
+                );
+
+                expect(data).toBeInstanceOf(Collection);
+                expect(data.first()).toBeInstanceOf(Collection);
+                expect(data.get(0)!.toArray()).toEqual([1, 1]);
+                expect(data.get(1)!.toArray()).toEqual([2, 2]);
+                expect(data.get(2)!.toArray()).toEqual([3, 3, 3]);
+            });
+
+            it("test chunk by with string key", () => {
+                const data = collect([
+                    { parent: "a", name: "1" },
+                    { parent: "a", name: "2" },
+                    { parent: "b", name: "3" },
+                    { parent: "b", name: "4" },
+                    { parent: "a", name: "5" },
+                ]).chunkBy("parent");
+
+                expect(data).toBeInstanceOf(Collection);
+                expect(data.count()).toBe(3);
+                expect(data.get(0)!.values().toArray()).toEqual([
+                    { parent: "a", name: "1" },
+                    { parent: "a", name: "2" },
+                ]);
+                expect(data.get(1)!.values().toArray()).toEqual([
+                    { parent: "b", name: "3" },
+                    { parent: "b", name: "4" },
+                ]);
+                expect(data.get(2)!.values().toArray()).toEqual([
+                    { parent: "a", name: "5" },
+                ]);
+            });
+
+            it("test chunk by preserves keys", () => {
+                const data = collect({ a: 1, b: 1, c: 2, d: 2, e: 1 }).chunkBy(
+                    (value) => value,
+                );
+
+                expect(data).toBeInstanceOf(Collection);
+                expect(data.count()).toBe(3);
+                expect(data.get(0)!.toArray()).toEqual({ a: 1, b: 1 });
+                expect(data.get(1)!.toArray()).toEqual({ c: 2, d: 2 });
+                expect(data.get(2)!.toArray()).toEqual({ e: 1 });
+            });
+
+            it("test chunk by with dot notation", () => {
+                const data = collect([
+                    { address: { city: "NY" } },
+                    { address: { city: "NY" } },
+                    { address: { city: "LA" } },
+                ]).chunkBy("address.city");
+
+                expect(data.count()).toBe(2);
+                expect(data.get(0)!.count()).toBe(2);
+                expect(data.get(1)!.count()).toBe(1);
+            });
+
+            it("test chunk by with empty collection", () => {
+                const data = collect([]).chunkBy("key");
+
+                expect(data).toBeInstanceOf(Collection);
+                expect(data.count()).toBe(0);
+            });
+
+            it("test chunk by with single item", () => {
+                const data = collect([{ key: "a" }]).chunkBy("key");
+
+                expect(data).toBeInstanceOf(Collection);
+                expect(data.count()).toBe(1);
+                expect(data.get(0)!.values().toArray()).toEqual([{ key: "a" }]);
+            });
+        });
+
+        it("compares adjacent values loosely, as PHP's == does", () => {
+            const data = collect([
+                1,
+                "1",
+                2,
+                "2",
+                null,
+                0,
+                "",
+                false,
+                "a",
+                "A",
+            ]).chunkBy((value) => value);
+
+            expect(data.map((chunk) => chunk.toArray()).toArray()).toEqual([
+                [1, "1"],
+                [2, "2"],
+                [null, 0],
+                ["", false],
+                ["a"],
+                ["A"],
+            ]);
+        });
+
+        it("chunks an object-backed collection by a bare string key", () => {
+            // The obj path: a bare (non-dotted) key has to resolve on a plain object item, keys preserved.
+            const data = collect({
+                p: { parent: "a" },
+                q: { parent: "a" },
+                r: { parent: "b" },
+            }).chunkBy("parent");
+
+            expect(data.count()).toBe(2);
+            expect(data.get(0)!.toArray()).toEqual({
+                p: { parent: "a" },
+                q: { parent: "a" },
+            });
+            expect(data.get(1)!.toArray()).toEqual({ r: { parent: "b" } });
+        });
+
+        it("agrees between array-backed and object-backed collections", () => {
+            const fromArray = collect([1, 1, 2]).chunkBy((value) => value);
+            const fromObject = collect({ a: 1, b: 1, c: 2 }).chunkBy(
+                (value) => value,
+            );
+
+            expect(
+                fromArray.map((chunk) => chunk.values().toArray()).toArray(),
+            ).toEqual(
+                fromObject.map((chunk) => chunk.values().toArray()).toArray(),
+            );
+            expect(fromObject.get(0)!.toArray()).toEqual({ a: 1, b: 1 });
         });
     });
 

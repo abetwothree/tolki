@@ -187,4 +187,43 @@ describe("obj type tests", () => {
             });
         });
     });
+
+    describe("chunkWhile", () => {
+        it("returns a record of key-preserving chunks and types the callback", () => {
+            const result = Obj.chunkWhile(
+                { a: 1, b: 2 },
+                (value, key, chunk) => {
+                    expectTypeOf(value).toEqualTypeOf<number>();
+                    expectTypeOf(key).toEqualTypeOf<"a" | "b">();
+                    expectTypeOf(chunk).toEqualTypeOf<
+                        Record<"a" | "b", number>
+                    >();
+
+                    return true;
+                },
+            );
+
+            expectTypeOf(result).toEqualTypeOf<
+                Record<number, Record<"a" | "b", number>>
+            >();
+        });
+    });
+
+    describe("chunkBy", () => {
+        it("returns a record of key-preserving chunks for a callback and for a key", () => {
+            const byCallback = Obj.chunkBy({ a: { p: 1 } }, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<{ p: number }>();
+                expectTypeOf(key).toEqualTypeOf<"a">();
+
+                return value.p;
+            });
+
+            expectTypeOf(byCallback).toEqualTypeOf<
+                Record<number, Record<"a", { p: number }>>
+            >();
+            expectTypeOf(Obj.chunkBy({ a: { p: 1 } }, "p")).toEqualTypeOf<
+                Record<number, Record<"a", { p: number }>>
+            >();
+        });
+    });
 });

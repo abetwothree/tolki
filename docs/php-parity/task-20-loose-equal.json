@@ -1,0 +1,383 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-17-g5ba4bc5495"
+    },
+    "probes": [
+        {
+            "label": "null and undefined-as-null",
+            "php": "NULL == NULL",
+            "value": true
+        },
+        {
+            "label": "null and empty string",
+            "php": "NULL == ''",
+            "value": true
+        },
+        {
+            "label": "null and the string zero",
+            "php": "NULL == '0'",
+            "value": false
+        },
+        {
+            "label": "null and a letter",
+            "php": "NULL == 'a'",
+            "value": false
+        },
+        {
+            "label": "null and zero",
+            "php": "NULL == 0",
+            "value": true
+        },
+        {
+            "label": "null and five",
+            "php": "NULL == 5",
+            "value": false
+        },
+        {
+            "label": "null and an empty array",
+            "php": "NULL == array (\n)",
+            "value": true
+        },
+        {
+            "label": "null and a one-element array",
+            "php": "NULL == array (\n  0 => 1,\n)",
+            "value": false
+        },
+        {
+            "label": "null and false",
+            "php": "NULL == false",
+            "value": true
+        },
+        {
+            "label": "true and the string zero",
+            "php": "true == '0'",
+            "value": false
+        },
+        {
+            "label": "false and the string zero",
+            "php": "false == '0'",
+            "value": true
+        },
+        {
+            "label": "false and an empty array",
+            "php": "false == array (\n)",
+            "value": true
+        },
+        {
+            "label": "true and a one-element array",
+            "php": "true == array (\n  0 => 1,\n)",
+            "value": true
+        },
+        {
+            "label": "true and a letter",
+            "php": "true == 'a'",
+            "value": true
+        },
+        {
+            "label": "false and a letter",
+            "php": "false == 'a'",
+            "value": false
+        },
+        {
+            "label": "true and one",
+            "php": "true == 1",
+            "value": true
+        },
+        {
+            "label": "true and two",
+            "php": "true == 2",
+            "value": true
+        },
+        {
+            "label": "zero and false",
+            "php": "0 == false",
+            "value": true
+        },
+        {
+            "label": "zero and empty string",
+            "php": "0 == ''",
+            "value": false
+        },
+        {
+            "label": "zero and a letter",
+            "php": "0 == 'a'",
+            "value": false
+        },
+        {
+            "label": "zero and the string zero",
+            "php": "0 == '0'",
+            "value": true
+        },
+        {
+            "label": "one and its numeric string",
+            "php": "1 == '1'",
+            "value": true
+        },
+        {
+            "label": "one and a leading-numeric string",
+            "php": "1 == '1abc'",
+            "value": false
+        },
+        {
+            "label": "one and a space-padded string",
+            "php": "1 == ' 1'",
+            "value": true
+        },
+        {
+            "label": "one and a trailing-space string",
+            "php": "1 == '1 '",
+            "value": true
+        },
+        {
+            "label": "hundred and an exponent string",
+            "php": "100 == '1e2'",
+            "value": true
+        },
+        {
+            "label": "exponent string and plain string",
+            "php": "'1e1' == '10'",
+            "value": true
+        },
+        {
+            "label": "one and zero-padded one",
+            "php": "'1' == '01'",
+            "value": true
+        },
+        {
+            "label": "one and signed one",
+            "php": "'1' == '+1'",
+            "value": true
+        },
+        {
+            "label": "float past the int range and its integer string",
+            "php": "1.0E+23 == '100000000000000000000000'",
+            "value": true
+        },
+        {
+            "label": "larger float past the int range and its integer string",
+            "php": "1.0E+30 == '1000000000000000000000000000000'",
+            "value": true
+        },
+        {
+            "label": "negative float past the int range and its integer string",
+            "php": "-1.0E+23 == '-100000000000000000000000'",
+            "value": true
+        },
+        {
+            "label": "one and an integer string past the int range",
+            "php": "1 == '100000000000000000000000'",
+            "value": false
+        },
+        {
+            "label": "overflowing integer strings, one signed",
+            "php": "'9223372036854775808' == '+9223372036854775808'",
+            "value": false
+        },
+        {
+            "label": "overflowing integer strings, one zero-padded",
+            "php": "'9223372036854775808' == '09223372036854775808'",
+            "value": false
+        },
+        {
+            "label": "PHP_INT_MAX strings, one signed",
+            "php": "'9223372036854775807' == '+9223372036854775807'",
+            "value": true
+        },
+        {
+            "label": "PHP_INT_MIN strings, one zero-padded",
+            "php": "'-9223372036854775808' == '-09223372036854775808'",
+            "value": true
+        },
+        {
+            "label": "underflowing integer strings, one zero-padded",
+            "php": "'-9223372036854775809' == '-09223372036854775809'",
+            "value": false
+        },
+        {
+            "label": "overflowing integer strings on opposite sides",
+            "php": "'9223372036854775808' == '-9223372036854775808'",
+            "value": false
+        },
+        {
+            "label": "overflowing integer strings of different magnitude",
+            "php": "'9223372036854775808' == '99999999999999999999'",
+            "value": false
+        },
+        {
+            "label": "large integer strings one apart",
+            "php": "'9007199254740993' == '9007199254740992'",
+            "value": false
+        },
+        {
+            "label": "overflowing exponent strings one apart",
+            "php": "'1e999' == '1e1000'",
+            "value": false
+        },
+        {
+            "label": "large integer and the string one below it",
+            "php": "9007199254740993 == '9007199254740992'",
+            "value": false
+        },
+        {
+            "label": "large integer and the string one above it",
+            "php": "9007199254740992 == '9007199254740993'",
+            "value": false
+        },
+        {
+            "label": "large integers one apart",
+            "php": "9007199254740992 == 9007199254740993",
+            "value": false
+        },
+        {
+            "label": "two letters differing in case",
+            "php": "'abc' == 'ABC'",
+            "value": false
+        },
+        {
+            "label": "empty string and the string zero",
+            "php": "'' == '0'",
+            "value": false
+        },
+        {
+            "label": "float sum and its literal",
+            "php": "0.30000000000000004 == 0.3",
+            "value": false
+        },
+        {
+            "label": "negative zero float and \"-0\"",
+            "php": "-0.0 == '-0'",
+            "value": true
+        },
+        {
+            "label": "INF and the string INF",
+            "php": "INF == 'INF'",
+            "value": true
+        },
+        {
+            "label": "negative INF and the string -INF",
+            "php": "-INF == '-INF'",
+            "value": true
+        },
+        {
+            "label": "INF and an overflowing exponent string",
+            "php": "INF == '1e400'",
+            "value": true
+        },
+        {
+            "label": "negative INF and an overflowing exponent string",
+            "php": "-INF == '-1e999'",
+            "value": true
+        },
+        {
+            "label": "NAN and the string NAN",
+            "php": "NAN == 'NAN'",
+            "value": false
+        },
+        {
+            "label": "NAN and NAN",
+            "php": "NAN == NAN",
+            "value": false
+        },
+        {
+            "label": "empty array and zero",
+            "php": "array (\n) == 0",
+            "value": false
+        },
+        {
+            "label": "empty array and empty string",
+            "php": "array (\n) == ''",
+            "value": false
+        },
+        {
+            "label": "empty array and false",
+            "php": "array (\n) == false",
+            "value": true
+        },
+        {
+            "label": "empty array and true",
+            "php": "array (\n) == true",
+            "value": false
+        },
+        {
+            "label": "one-element array and one",
+            "php": "array (\n  0 => 1,\n) == 1",
+            "value": false
+        },
+        {
+            "label": "lists with equal loose values",
+            "php": "array (\n  0 => 1,\n  1 => '2',\n) == array (\n  0 => '1',\n  1 => 2,\n)",
+            "value": true
+        },
+        {
+            "label": "lists in a different order",
+            "php": "array (\n  0 => 1,\n  1 => 2,\n) == array (\n  0 => 2,\n  1 => 1,\n)",
+            "value": false
+        },
+        {
+            "label": "assoc arrays in a different order",
+            "php": "array (\n  'a' => 1,\n  'b' => 2,\n) == array (\n  'b' => 2,\n  'a' => 1,\n)",
+            "value": true
+        },
+        {
+            "label": "object with __toString and its own string",
+            "php": "$stringable == 'hello'",
+            "value": true
+        },
+        {
+            "label": "a string and an object with __toString",
+            "php": "'hello' == $stringable",
+            "value": true
+        },
+        {
+            "label": "object with __toString and a different string",
+            "php": "$stringable == 'world'",
+            "value": false
+        },
+        {
+            "label": "plain object and a string",
+            "php": "new stdClass() == 'hello'",
+            "value": false
+        },
+        {
+            "label": "array with a toString key and that string",
+            "php": "['toString' => fn () => 'hello'] == 'hello'",
+            "value": false
+        },
+        {
+            "label": "object with a toString property but no __toString",
+            "php": "$o->toString = 'hello'; $o == 'hello'",
+            "value": false
+        },
+        {
+            "label": "plain object and true",
+            "php": "new stdClass() == true",
+            "value": true
+        },
+        {
+            "label": "plain object and false",
+            "php": "new stdClass() == false",
+            "value": false
+        },
+        {
+            "label": "plain object and null",
+            "php": "new stdClass() == null",
+            "value": false
+        },
+        {
+            "label": "stateless object and true",
+            "php": "new DateTime('@0') == true",
+            "value": true
+        },
+        {
+            "label": "stateless object and false",
+            "php": "new DateTime('@0') == false",
+            "value": false
+        },
+        {
+            "label": "stateless object and null",
+            "php": "new DateTime('@0') == null",
+            "value": false
+        }
+    ]
+}

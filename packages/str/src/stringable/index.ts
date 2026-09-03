@@ -122,6 +122,100 @@ export function str(value: string = ""): Stringable {
     return new Stringable(value);
 }
 
+/**
+ * PHP's `basename()` for `/`-separated paths.
+ *
+ * @param path - The path
+ * @param suffix - Removed from the end of the name unless it is the whole name;
+ *      required, since the wrapper supplies the default
+ * @returns The trailing name component
+ */
+function basename(path: string, suffix: string): string {
+    const trimmed = withoutTrailingSlashes(path, 0);
+    const name = trimmed.slice(trimmed.lastIndexOf("/") + 1);
+
+    if (suffix !== "" && name !== suffix && name.endsWith(suffix)) {
+        return name.slice(0, -suffix.length);
+    }
+
+    return name;
+}
+
+/**
+ * PHP's `dirname()` for `/`-separated paths.
+ *
+ * @param path - The path
+ * @param levels - How many parent directories to go up, at least 1; required, the wrapper supplies the default
+ * @returns The parent directory's path
+ */
+function dirname(path: string, levels: number): string {
+    if (levels < 1) {
+        throw new RangeError(
+            "dirname(): Argument #2 ($levels) must be greater than or equal to 1",
+        );
+    }
+
+    let result = path;
+
+    for (let level = 0; level < levels; level += 1) {
+        const parent = parentOf(result);
+
+        // "", "." and "/" are fixed points, so further levels change nothing.
+        if (parent === result) {
+            return parent;
+        }
+
+        result = parent;
+    }
+
+    return result;
+}
+
+/**
+ * One `dirname()` level: the path with its last `/`-separated component removed.
+ *
+ * @param path - The path to walk up from
+ * @returns The parent path, or the fixed points "", "." and "/" unchanged
+ */
+function parentOf(path: string): string {
+    if (path === "") {
+        return "";
+    }
+
+    const trimmed = withoutTrailingSlashes(path, 1);
+
+    if (trimmed === "/") {
+        return "/";
+    }
+
+    const slash = trimmed.lastIndexOf("/");
+
+    if (slash === -1) {
+        return ".";
+    }
+
+    const parent = withoutTrailingSlashes(trimmed.slice(0, slash), 1);
+
+    return parent === "" ? "/" : parent;
+}
+
+/**
+ * Drops trailing slashes, keeping at least `keep` characters so "/" survives when asked to.
+ *
+ * @param path - The path to trim
+ * @param keep - The number of leading characters no trim may consume
+ * @returns The path without its trailing slashes
+ */
+function withoutTrailingSlashes(path: string, keep: number): string {
+    let end = path.length;
+
+    while (end > keep && path[end - 1] === "/") {
+        end -= 1;
+    }
+
+    return path.slice(0, end);
+}
+
 export class Stringable {
     /**
      * Create a new instance of the class.
@@ -177,6 +271,16 @@ export class Stringable {
      */
     ascii(): Stringable {
         return new Stringable(ascii(this._value));
+    }
+
+    /**
+     * Get the trailing name component of the path.
+     *
+     * @param suffix - Removed from the end of the name unless it is the whole name.
+     * @returns The trailing name component as a new Stringable instance.
+     */
+    basename(suffix: string = ""): Stringable {
+        return new Stringable(basename(this._value, suffix));
     }
 
     /**
@@ -324,6 +428,16 @@ export class Stringable {
      */
     deduplicate(character: string | string[] = " "): Stringable {
         return new Stringable(deduplicate(this._value, character));
+    }
+
+    /**
+     * Get the parent directory's path.
+     *
+     * @param levels - How many parent directories to go up. Defaults to 1.
+     * @returns The parent directory's path as a new Stringable instance.
+     */
+    dirname(levels: number = 1): Stringable {
+        return new Stringable(dirname(this._value, levels));
     }
 
     /**
@@ -1610,6 +1724,18 @@ export class Stringable {
     fromBase64(strict = false): Stringable | false {
         const decoded = fromBase64(this._value, strict);
         return decoded === false ? false : new Stringable(decoded);
+    }
+
+    /**
+     * Dump the string and the given arguments to the console.
+     *
+     * @param args - Extra values to log alongside the string.
+     * @returns The current instance.
+     */
+    dump(...args: unknown[]): this {
+        console.log(this._value, ...args);
+
+        return this;
     }
 
     /**

@@ -200,6 +200,120 @@ describe("Data", () => {
         });
     });
 
+    describe("dataChunkWhile", () => {
+        it("is object", () => {
+            const result = Data.dataChunkWhile(
+                { a: 1, b: 1, c: 2, d: 2, e: 3 },
+                (value, _key, chunk) => Object.values(chunk).at(-1) === value,
+            );
+
+            expect(result).toEqual({
+                0: { a: 1, b: 1 },
+                1: { c: 2, d: 2 },
+                2: { e: 3 },
+            });
+            expect(result).toEqual(
+                Obj.chunkWhile(
+                    { a: 1, b: 1, c: 2, d: 2, e: 3 },
+                    (value, _key, chunk) =>
+                        Object.values(chunk).at(-1) === value,
+                ),
+            );
+            assertType<
+                Record<number, Record<"a" | "b" | "c" | "d" | "e", number>>
+            >(result);
+        });
+
+        it("is array", () => {
+            const result = Data.dataChunkWhile(
+                ["A", "A", "B", "B", "C"],
+                (value, _index, chunk) => chunk.at(-1) === value,
+            );
+
+            expect(result).toEqual([["A", "A"], ["B", "B"], ["C"]]);
+            expect(result).toEqual(
+                Arr.chunkWhile(
+                    ["A", "A", "B", "B", "C"],
+                    (value, _index, chunk) => chunk.at(-1) === value,
+                ),
+            );
+            assertType<string[][]>(result);
+        });
+
+        it("is empty", () => {
+            expect(Data.dataChunkWhile([], () => true)).toEqual([]);
+            expect(Data.dataChunkWhile({}, () => true)).toEqual({});
+        });
+    });
+
+    describe("dataChunkBy", () => {
+        it("is object", () => {
+            const result = Data.dataChunkBy(
+                { a: 1, b: 1, c: 2, d: 2, e: 1 },
+                (value) => value,
+            );
+
+            expect(result).toEqual({
+                0: { a: 1, b: 1 },
+                1: { c: 2, d: 2 },
+                2: { e: 1 },
+            });
+            expect(result).toEqual(
+                Obj.chunkBy({ a: 1, b: 1, c: 2, d: 2, e: 1 }, (value) => value),
+            );
+            expect(
+                Data.dataChunkBy(
+                    {
+                        p: { address: { city: "NY" } },
+                        q: { address: { city: "LA" } },
+                    },
+                    "address.city",
+                ),
+            ).toEqual({
+                0: { p: { address: { city: "NY" } } },
+                1: { q: { address: { city: "LA" } } },
+            });
+            expect(
+                Data.dataChunkBy(
+                    {
+                        p: { parent: "a" },
+                        q: { parent: "a" },
+                        r: { parent: "b" },
+                    },
+                    "parent",
+                ),
+            ).toEqual({
+                0: { p: { parent: "a" }, q: { parent: "a" } },
+                1: { r: { parent: "b" } },
+            });
+        });
+
+        it("is array", () => {
+            const products = [
+                { parent: "a", name: "1" },
+                { parent: "a", name: "2" },
+                { parent: "b", name: "3" },
+            ];
+            const result = Data.dataChunkBy(products, "parent");
+
+            expect(result).toEqual([[products[0], products[1]], [products[2]]]);
+            expect(result).toEqual(Arr.chunkBy(products, "parent"));
+            expect(
+                Data.dataChunkBy([1, 1, 2, 2, 3, 3, 3], (value) => value),
+            ).toEqual([
+                [1, 1],
+                [2, 2],
+                [3, 3, 3],
+            ]);
+            assertType<{ parent: string; name: string }[][]>(result);
+        });
+
+        it("is empty", () => {
+            expect(Data.dataChunkBy([], "key")).toEqual([]);
+            expect(Data.dataChunkBy({}, "key")).toEqual({});
+        });
+    });
+
     describe("dataCollapse", () => {
         it("is object", () => {
             const obj = { a: { x: 1 }, b: { y: 2 }, c: { z: 3 } };

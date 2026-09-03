@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.25.0-10-g0015ce4753"
+        "laravel": "v13.30.1-17-g5ba4bc5495"
     },
     "probes": [
         {

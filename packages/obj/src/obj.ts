@@ -21,6 +21,7 @@ import {
     createSortSpecComparator,
     cssListItemToString,
     defineKey,
+    entriesKeyValue,
     isArray,
     isBoolean,
     isFalsy,
@@ -288,6 +289,147 @@ export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
     } else {
         return chunks as Record<number, Record<number, TValue>>;
     }
+}
+
+/**
+ * Chunk the object into chunks with a callback.
+ *
+ * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1541`, which runs
+ *      `LazyCollection::chunkWhile`. Keys are preserved inside each chunk.
+ *
+ * @param data - The record to chunk
+ * @param callback - Receives the value, its key and the chunk built so far; return true to keep appending
+ * @returns Chunked record
+ *
+ * @example
+ *
+ * chunkWhile({ a: 1, b: 1, c: 2 }, (value, key, chunk) => Object.values(chunk).at(-1) === value);
+ * -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
+ */
+export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    callback: (
+        value: TValue,
+        key: TKey,
+        chunk: Record<TKey, TValue>,
+    ) => boolean,
+): Record<number, Record<TKey, TValue>>;
+export function chunkWhile(
+    data: unknown,
+    callback: (
+        value: unknown,
+        key: PropertyKey,
+        chunk: Record<PropertyKey, unknown>,
+    ) => boolean,
+): Record<number, never>;
+export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    callback: (
+        value: TValue,
+        key: TKey,
+        chunk: Record<TKey, TValue>,
+    ) => boolean,
+): Record<number, Record<TKey, TValue>> {
+    const chunks: Record<number, Record<TKey, TValue>> = {};
+
+    if (!accessible(data)) {
+        return chunks;
+    }
+
+    let chunk = {} as Record<TKey, TValue>;
+    let size = 0;
+    let chunkIndex = 0;
+
+    for (const [rawKey, value] of Object.entries(data) as [string, TValue][]) {
+        const key = entriesKeyValue(rawKey) as TKey;
+
+        if (size > 0 && !callback(value, key, chunk)) {
+            chunks[chunkIndex] = chunk;
+            chunkIndex += 1;
+            chunk = {} as Record<TKey, TValue>;
+            size = 0;
+        }
+
+        // Write the raw key, not `key`: entriesKeyValue's Number()/parseFloat conversion is
+        // lossy for non-canonical numeric strings ("01", "1e3", " 1"), and writing the
+        // converted form would rename or collide keys that PHP keeps distinct.
+        defineKey(chunk as Record<string, TValue>, rawKey, value);
+        size += 1;
+    }
+
+    if (size > 0) {
+        chunks[chunkIndex] = chunk;
+    }
+
+    return chunks;
+}
+
+/**
+ * Chunk the object into chunks by comparing adjacent values using the given key or callback.
+ *
+ * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:937`.
+ *      Adjacent values compare with PHP's `==`, so `1` and `"1"` share a chunk.
+ *
+ * @param data - The record to chunk
+ * @param key - A path into each item, or a callback receiving the value and its key
+ * @returns Chunked record
+ *
+ * @example
+ *
+ * chunkBy({ a: 1, b: 1, c: 2 }, (value) => value); -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
+ */
+export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    key: PathKey | ((value: TValue, key: TKey) => unknown),
+): Record<number, Record<TKey, TValue>>;
+export function chunkBy(
+    data: unknown,
+    key: PathKey | ((value: unknown, key: PropertyKey) => unknown),
+): Record<number, never>;
+export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    key: PathKey | ((value: TValue, key: TKey) => unknown),
+): Record<number, Record<TKey, TValue>> {
+    // isFunction's predicate is generic, so name the retriever's type rather than let the guard narrow it.
+    const retrieve: (value: TValue, key: TKey) => unknown = isFunction(key)
+        ? (key as (value: TValue, key: TKey) => unknown)
+        : (value) =>
+              isNull(key) || isUndefined(key)
+                  ? value
+                  : getNestedValue(value, key as string);
+
+    // The entry chunkWhile handed us last time. Reading the previous item back out of
+    // `chunk` instead re-materializes every entry on every element, which is quadratic.
+    let previous: { key: TKey; value: TValue } | undefined;
+
+    // chunkWhile calls back before writing `value`, and even a reset writes within the
+    // same iteration, so `chunk` is never empty here; on the first call it holds exactly
+    // the one preceding entry, which is the only time it has to be read back.
+    return chunkWhile(
+        data as Record<TKey, TValue>,
+        (value, currentKey, chunk) => {
+            if (previous === undefined) {
+                const [lastKey, lastValue] = Object.entries(chunk).at(-1) as [
+                    string,
+                    TValue,
+                ];
+
+                previous = {
+                    key: entriesKeyValue(lastKey) as TKey,
+                    value: lastValue,
+                };
+            }
+
+            const prior = previous;
+
+            previous = { key: currentKey, value };
+
+            return looseEqual(
+                retrieve(value, currentKey),
+                retrieve(prior.value, prior.key),
+            );
+        },
+    );
 }
 
 /**
@@ -3084,7 +3226,7 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
  * `array_replace()` / `Collection::replace()`.
  *
  * Returns a new object rather than mutating `data`; a `null`/`undefined` replacer
- * is a no-op (`CollectionTest.php:1482`). Writes go through `defineKey` so a
+ * is a no-op (`CollectionTest.php:1490`). Writes go through `defineKey` so a
  * `__proto__` key on `replacerData` becomes a real own key (see `isUnsafeKey`,
  * AGENTS.md:189).
  *
@@ -3131,7 +3273,7 @@ export function replace<T1, T2>(
  * `array_replace_recursive()` / `Collection::replaceRecursive()`.
  *
  * Builds a new object at every recursion level rather than mutating `data`. A
- * `null`/`undefined` replacer is a no-op (`CollectionTest.php:1524`). Only
+ * `null`/`undefined` replacer is a no-op (`CollectionTest.php:1532`). Only
  * `__proto__` is skipped on `replacerData` — the sole prototype-pollution hazard
  * (see `isUnsafeKey`, AGENTS.md:189); `constructor`/`prototype` write normally.
  *
