@@ -196,12 +196,40 @@ describe("Stringable basic delegation", () => {
                 Str.of(input).chopStart("h"),
             );
         });
+
+        it("Laravel tests: literal cases", () => {
+            expect(
+                Str.of("http://laravel.com").chopStart("http://").toString(),
+            ).toBe("laravel.com");
+            expect(
+                Str.of("http://laravel.com").chopStart("https://").toString(),
+            ).toBe("http://laravel.com");
+            expect(
+                Str.of("http://laravel.com")
+                    .chopStart(["https://", "http://"])
+                    .toString(),
+            ).toBe("laravel.com");
+        });
     });
 
     describe("chopEnd", () => {
         it("Laravel tests", () => {
             const input = "hello";
             expectEqual(Str.chopEnd(input, "o"), Str.of(input).chopEnd("o"));
+        });
+
+        it("Laravel tests: literal cases", () => {
+            expect(Str.of("path/to/file.php").chopEnd(".php").toString()).toBe(
+                "path/to/file",
+            );
+            expect(Str.of("path/to/file.php").chopEnd(".html").toString()).toBe(
+                "path/to/file.php",
+            );
+            expect(
+                Str.of("path/to/file.php")
+                    .chopEnd([".html", ".php"])
+                    .toString(),
+            ).toBe("path/to/file");
         });
     });
 
@@ -220,6 +248,15 @@ describe("Stringable basic delegation", () => {
                 Str.convertCase(input, CaseTypes.upper),
                 Str.of(input).convertCase(CaseTypes.upper),
             );
+        });
+
+        it("Laravel tests: upper and lower modes", () => {
+            expect(
+                Str.of("hello").convertCase(CaseTypes.upper).toString(),
+            ).toBe("HELLO");
+            expect(
+                Str.of("HELLO").convertCase(CaseTypes.lower).toString(),
+            ).toBe("hello");
         });
     });
 
@@ -739,6 +776,11 @@ describe("Stringable basic delegation", () => {
             const input = "apples";
             expectEqual(Str.singular(input), Str.of(input).singular());
         });
+
+        it("Laravel tests: irregular plurals", () => {
+            expect(Str.of("children").singular().toString()).toBe("child");
+            expect(Str.of("mice").singular().toString()).toBe("mouse");
+        });
     });
 
     describe("substr", () => {
@@ -824,11 +866,25 @@ describe("Stringable basic delegation", () => {
         it("Laravel tests", () => {
             expectEqual(Str.lcfirst("FOO"), Str.of("FOO").lcfirst());
         });
+
+        it("Laravel tests: only the first character changes", () => {
+            expect(Str.of("Laravel").lcfirst().toString()).toBe("laravel");
+            expect(Str.of("Laravel framework").lcfirst().toString()).toBe(
+                "laravel framework",
+            );
+        });
     });
 
     describe("ucfirst", () => {
         it("Laravel tests", () => {
             expectEqual(Str.ucfirst("foo"), Str.of("foo").ucfirst());
+        });
+
+        it("Laravel tests: only the first character changes", () => {
+            expect(Str.of("laravel").ucfirst().toString()).toBe("Laravel");
+            expect(Str.of("laravel framework").ucfirst().toString()).toBe(
+                "Laravel framework",
+            );
         });
     });
 
@@ -1065,6 +1121,15 @@ describe("Stringable basic delegation", () => {
             const longString = "hello world";
             expect(Str.of(longString).wordWrap().toString()).toBe(longString);
         });
+
+        it("Laravel tests: custom break string, with and without cutting long words", () => {
+            expect(Str.of("Hello World").wordWrap(3, "<br />").toString()).toBe(
+                "Hello<br />World",
+            );
+            expect(
+                Str.of("Hello World").wordWrap(3, "<br />", true).toString(),
+            ).toBe("Hel<br />lo<br />Wor<br />ld");
+        });
     });
 
     describe("counted", () => {
@@ -1104,6 +1169,11 @@ describe("Stringable basic delegation", () => {
             expect(Str.of("apple").plural().toString()).toBe("apples");
             // Count of 1 should return singular
             expect(Str.of("apple").plural(1).toString()).toBe("apple");
+        });
+
+        it("Laravel tests: count of three and of one", () => {
+            expect(Str.of("Laracon").plural(3).toString()).toBe("Laracons");
+            expect(Str.of("Laracon").plural(1).toString()).toBe("Laracon");
         });
     });
 
@@ -1192,6 +1262,18 @@ describe("Stringable basic delegation", () => {
             const input = "foo bar baz";
             expectEqual(Str.headline(input), Str.of(input).headline());
         });
+
+        it("Laravel tests: spaces, underscores and mixed delimiters", () => {
+            expect(Str.of("jefferson costella").headline().toString()).toBe(
+                "Jefferson Costella",
+            );
+            expect(Str.of("laravel_php_framework").headline().toString()).toBe(
+                "Laravel Php Framework",
+            );
+            expect(Str.of("foo-barBaz").headline().toString()).toBe(
+                "Foo Bar Baz",
+            );
+        });
     });
 
     describe("initials", () => {
@@ -1213,6 +1295,13 @@ describe("Stringable basic delegation", () => {
         it("Laravel tests", () => {
             const input = "foo bar baz";
             expectEqual(Str.apa(input), Str.of(input).apa());
+        });
+
+        it("Laravel tests: minor words and hyphenated words", () => {
+            expect(Str.of("back to the future").apa().toString()).toBe(
+                "Back to the Future",
+            );
+            expect(Str.of("self-report").apa().toString()).toBe("Self-Report");
         });
     });
 
