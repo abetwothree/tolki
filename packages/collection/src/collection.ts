@@ -3,6 +3,8 @@ import {
     dataAfter,
     dataBefore,
     dataChunk,
+    dataChunkBy,
+    dataChunkWhile,
     dataCollapse,
     dataCombine,
     dataContains,
@@ -3169,29 +3171,77 @@ export class Collection<TValue, TKey extends PropertyKey> {
             >;
         }
 
-        const chunks: Collection<TValue, TKey>[] = [];
-
         const chunkedData = dataChunk(
             this.items as TValue[],
             size,
             preserveKeys,
         );
-        const chunkedValues = isArray(chunkedData)
-            ? chunkedData
-            : Object.values(chunkedData);
 
-        for (const chunk of chunkedValues) {
-            chunks.push(
-                this.newInstance(
-                    chunk as DataItems<TValue, TKey>,
-                ) as unknown as Collection<TValue, TKey>,
-            );
-        }
+        return this.wrapChunks(chunkedData);
+    }
 
-        return this.newInstance(chunks) as unknown as Collection<
-            Collection<TValue, TKey>,
-            number
-        >;
+    /**
+     * Chunk the collection into chunks with a callback.
+     *
+     * The callback's third argument is the chunk built so far, as a collection, so `chunk.last()` works
+     * exactly as it does in Laravel.
+     *
+     * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1541`, which delegates to
+     *      `LazyCollection::chunkWhile`.
+     *
+     * @param callback - Receives the value, its key and the chunk so far; return true to keep appending
+     * @returns A collection of chunk collections
+     *
+     * @example
+     *
+     * new Collection(['A', 'A', 'B']).chunkWhile((value, key, chunk) => chunk.last() === value); -> new Collection([new Collection(['A', 'A']), new Collection(['B'])])
+     */
+    chunkWhile(
+        callback: (
+            value: TValue,
+            key: TKey,
+            chunk: Collection<TValue, TKey>,
+        ) => boolean,
+    ): Collection<Collection<TValue, TKey>, number> {
+        const chunked = dataChunkWhile(
+            this.items as TValue[],
+            (value, key, chunk) =>
+                callback(
+                    value,
+                    key as unknown as TKey,
+                    this.newInstance(chunk) as unknown as Collection<
+                        TValue,
+                        TKey
+                    >,
+                ),
+        );
+
+        return this.wrapChunks(chunked);
+    }
+
+    /**
+     * Chunk the collection into chunks by comparing adjacent values using the given key or callback.
+     *
+     * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:937`.
+     *      Adjacent values compare with PHP's `==`, so `1` and `"1"` share a chunk.
+     *
+     * @param key - A path into each item, or a callback receiving the value and its key
+     * @returns A collection of chunk collections
+     *
+     * @example
+     *
+     * new Collection([1, 1, 2, 2, 1]).chunkBy((value) => value); -> new Collection([new Collection([1, 1]), new Collection([2, 2]), new Collection([1])])
+     * new Collection([{ p: 'a' }, { p: 'b' }]).chunkBy('p'); -> new Collection([new Collection([{ p: 'a' }]), new Collection([{ p: 'b' }])])
+     */
+    chunkBy(
+        key: PathKey | ((value: TValue, key: TKey) => unknown),
+    ): Collection<Collection<TValue, TKey>, number> {
+        const chunked = dataChunkBy(
+            this.items as TValue[],
+            key as PathKey | ((value: TValue, index: number) => unknown),
+        );
+
+        return this.wrapChunks(chunked);
     }
 
     /**
@@ -5566,6 +5616,27 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 null,
             );
         };
+    }
+
+    /**
+     * Wrap each plain chunk from `@tolki/data` in a collection, then wrap the list of them.
+     *
+     * @param chunked - The chunks as `dataChunk*` returned them
+     * @returns A collection of chunk collections
+     */
+    protected wrapChunks(
+        chunked: TValue[][] | Record<number, Record<PropertyKey, TValue>>,
+    ): Collection<Collection<TValue, TKey>, number> {
+        const chunks = isArray(chunked) ? chunked : Object.values(chunked);
+
+        return this.newInstance(
+            chunks.map(
+                (chunk) =>
+                    this.newInstance(
+                        chunk as DataItems<TValue, TKey>,
+                    ) as unknown as Collection<TValue, TKey>,
+            ),
+        ) as unknown as Collection<Collection<TValue, TKey>, number>;
     }
 
     /** Conditionable Trait Methods */
