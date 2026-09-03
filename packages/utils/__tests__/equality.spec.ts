@@ -220,14 +220,136 @@ describe("Utils", () => {
             expect(Utils.looseEqual(false, "hello")).toBe(false);
         });
 
-        it("should consider PHP falsy values as equal to each other", () => {
-            // null, false, 0, '', [] are loosely equal in PHP
-            expect(Utils.looseEqual(null, 0)).toBe(true);
+        it("compares null against a string as an empty string (PHP 8)", () => {
+            // docs/php-parity/task-20-loose-equal.json
             expect(Utils.looseEqual(null, "")).toBe(true);
-            expect(Utils.looseEqual(0, "")).toBe(true);
+            expect(Utils.looseEqual(null, "0")).toBe(false);
+            expect(Utils.looseEqual(null, "a")).toBe(false);
+            expect(Utils.looseEqual("", undefined)).toBe(true);
+        });
+
+        it("compares null against non-strings as booleans (PHP 8)", () => {
+            expect(Utils.looseEqual(null, 0)).toBe(true);
+            expect(Utils.looseEqual(null, 5)).toBe(false);
             expect(Utils.looseEqual([], null)).toBe(true);
-            expect(Utils.looseEqual([], 0)).toBe(true);
-            expect(Utils.looseEqual([], "")).toBe(true);
+            expect(Utils.looseEqual([1], null)).toBe(false);
+            expect(Utils.looseEqual(null, undefined)).toBe(true);
+        });
+
+        it("does not treat 0, '' and [] as equal to each other (PHP 8)", () => {
+            expect(Utils.looseEqual(0, "")).toBe(false);
+            expect(Utils.looseEqual([], 0)).toBe(false);
+            expect(Utils.looseEqual([], "")).toBe(false);
+            expect(Utils.looseEqual([1], 1)).toBe(false);
+            expect(Utils.looseEqual("", "0")).toBe(false);
+        });
+
+        it("compares two numeric strings, or a number and a numeric string, numerically", () => {
+            expect(Utils.looseEqual("1e1", "10")).toBe(true);
+            expect(Utils.looseEqual("1", "01")).toBe(true);
+            expect(Utils.looseEqual(100, "1e2")).toBe(true);
+            expect(Utils.looseEqual(1, " 1")).toBe(true);
+            expect(Utils.looseEqual(1, "1 ")).toBe(true);
+            expect(Utils.looseEqual(0, "0")).toBe(true);
+            expect(Utils.looseEqual(-0, "-0")).toBe(true);
+            expect(Utils.looseEqual(1n, "1")).toBe(true);
+            expect(Utils.looseEqual(1n, 1)).toBe(true);
+            // Rule 1, two strings: zendi_smart_strcmp, whose overflow fallback to a string
+            // compare is the only reason PHP says these two are different.
+            expect(Utils.looseEqual("1e999", "1e1000")).toBe(false);
+            expect(
+                Utils.looseEqual("9007199254740993", "9007199254740992"),
+            ).toBe(false);
+            // Rule 2, anything PHP holds as an int: exact BigInt compare. Number() collapses every
+            // one of these pairs onto the single double 9007199254740992.
+            expect(Utils.looseEqual(9007199254740992, "9007199254740993")).toBe(
+                false,
+            );
+            expect(
+                Utils.looseEqual("9007199254740992", 9007199254740993n),
+            ).toBe(false);
+            expect(Utils.looseEqual(9007199254740992, 9007199254740993n)).toBe(
+                false,
+            );
+            expect(
+                Utils.looseEqual(9007199254740993n, "9007199254740992"),
+            ).toBe(false);
+            // Rule 3, the float path: an infinity is not integral, so it never reaches BigInt().
+            expect(Utils.looseEqual(Number.POSITIVE_INFINITY, "1e400")).toBe(
+                true,
+            );
+            expect(Utils.looseEqual(Number.NEGATIVE_INFINITY, "-1e999")).toBe(
+                true,
+            );
+            expect(Utils.looseEqual(0.1 + 0.2, 0.3)).toBe(false);
+            expect(Utils.looseEqual(Number.NaN, Number.NaN)).toBe(false);
+            expect(
+                Utils.looseEqual(
+                    Number.POSITIVE_INFINITY,
+                    Number.POSITIVE_INFINITY,
+                ),
+            ).toBe(true);
+        });
+
+        it("compares a number against a non-numeric string as PHP would print the number", () => {
+            expect(Utils.looseEqual(0, "a")).toBe(false);
+            expect(Utils.looseEqual("abc", 0)).toBe(false);
+            expect(Utils.looseEqual(1, "1abc")).toBe(false);
+            expect(Utils.looseEqual(Number.POSITIVE_INFINITY, "INF")).toBe(
+                true,
+            );
+            expect(Utils.looseEqual(Number.NEGATIVE_INFINITY, "-INF")).toBe(
+                true,
+            );
+            // NaN is uncomparable in PHP before any cast, so it never reaches the string arm.
+            expect(Utils.looseEqual(Number.NaN, "NAN")).toBe(false);
+            expect(Utils.looseEqual("NAN", Number.NaN)).toBe(false);
+            expect(Utils.looseEqual("abc", "ABC")).toBe(false);
+        });
+
+        it("compares an object with a custom toString against a string, both ways", () => {
+            // PHP's __toString: $obj == "hello" is true. This is what collection.spec.ts:9284/:9291 rely on.
+            class HtmlString {
+                value: string;
+                constructor(value: string) {
+                    this.value = value;
+                }
+                toString() {
+                    return this.value;
+                }
+            }
+
+            expect(Utils.looseEqual(new HtmlString("hello"), "hello")).toBe(
+                true,
+            );
+            expect(Utils.looseEqual("hello", new HtmlString("hello"))).toBe(
+                true,
+            );
+            expect(Utils.looseEqual(new HtmlString("hello"), "world")).toBe(
+                false,
+            );
+            expect(Utils.looseEqual({ a: 1 }, "hello")).toBe(false);
+            // A plain object's toString IS Object.prototype.toString, so the arm never fires for it.
+            expect(Utils.looseEqual({}, "[object Object]")).toBe(false);
+            expect(Utils.looseEqual({ a: 1 }, "[object Object]")).toBe(false);
+        });
+
+        it("keeps boolean comparisons against bigint and empty objects", () => {
+            expect(Utils.looseEqual(true, 1n)).toBe(true);
+            expect(Utils.looseEqual(false, 0n)).toBe(true);
+            // A JS object models a PHP associative array, not a stdClass, so these follow the
+            // probed "empty array and false" (true) and "empty array and true" (false).
+            expect(Utils.looseEqual(false, {})).toBe(true);
+            expect(Utils.looseEqual(true, {})).toBe(false);
+            expect(Utils.looseEqual(true, { a: 1 })).toBe(true);
+        });
+
+        it("never equates an array or object with a non-null scalar", () => {
+            expect(Utils.looseEqual([1, 2], "1,2")).toBe(false);
+            expect(Utils.looseEqual({ a: 1 }, "a")).toBe(false);
+            expect(Utils.looseEqual({ a: 1 }, [1])).toBe(false);
+            expect(Utils.looseEqual([1, "2"], ["1", 2])).toBe(true);
+            expect(Utils.looseEqual([1, 2], [2, 1])).toBe(false);
         });
 
         it("should perform deep comparison for arrays", () => {

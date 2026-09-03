@@ -2,6 +2,8 @@ import {
     isArray,
     isBoolean,
     isNull,
+    isObject,
+    isPhpFalsy,
     isPhpNumeric,
     isString,
     isUndefined,
@@ -151,9 +153,12 @@ export function compareValues(a: unknown, b: unknown): number {
 }
 
 /**
- * PHP-like loose equality comparison.
- * Mimics PHP's == operator behavior where null, false, 0, '', and [] are considered loosely equal.
- * Also handles deep comparison for arrays and objects.
+ * PHP-like loose equality comparison, following PHP 8's `==` rules.
+ *
+ * A `null` against a string compares as `""`; a `null` or a boolean against
+ * anything else compares both sides as booleans; two numeric operands compare
+ * numerically; everything else scalar compares as strings. Arrays and objects
+ * compare deeply.
  *
  * @param a - First value to compare
  * @param b - Second value to compare
@@ -165,83 +170,85 @@ export function compareValues(a: unknown, b: unknown): number {
  * looseEqual(null, 0); -> true
  * looseEqual(null, ''); -> true
  * looseEqual(0, false); -> true
+ * looseEqual(0, ''); -> false
  * looseEqual(1, '1'); -> true
+ * looseEqual('1e1', '10'); -> true
  * looseEqual(['a'], ['a']); -> true
  */
 export function looseEqual(a: unknown, b: unknown): boolean {
-    // Use JavaScript's loose equality first
-    if (a == b) {
+    if (a === b) {
         return true;
     }
 
-    // PHP's boolean comparison rules:
-    // - true == any truthy value
-    // - false == any falsy value
-    if (typeof a === "boolean" || typeof b === "boolean") {
-        const boolValue = typeof a === "boolean" ? a : b;
-        const otherValue = typeof a === "boolean" ? b : a;
+    const aIsNull = isNullish(a);
+    const bIsNull = isNullish(b);
 
-        // In PHP, true == any truthy value, false == any falsy value
-        if (boolValue === true) {
-            // Check if otherValue is truthy in PHP terms
-            return !(
-                otherValue === null ||
-                otherValue === false ||
-                otherValue === 0 ||
-                otherValue === "" ||
-                (Array.isArray(otherValue) && otherValue.length === 0)
-            );
-        } else {
-            // boolValue === false
-            // Check if otherValue is falsy in PHP terms
-            // Note: otherValue === false and [] == false are already handled by JS loose equality above
-            return otherValue === null || otherValue === 0 || otherValue === "";
+    if (aIsNull && bIsNull) {
+        return true;
+    }
+
+    // PHP 8: null against a string compares "" with the string; null or a bool against anything else compares as bools.
+    if (aIsNull || bIsNull) {
+        const other = aIsNull ? b : a;
+
+        return isString(other) ? other === "" : !phpTruthy(other);
+    }
+
+    // A JS object models a PHP associative array here, not a stdClass: isPhpFalsy (guards.ts) makes
+    // {} falsy, so false == {} is true exactly as PHP's [] == false is. Probed as "empty array and false".
+    if (isBoolean(a) || isBoolean(b)) {
+        return phpTruthy(a) === phpTruthy(b);
+    }
+
+    // PHP refuses to compare NaN with anything, before any cast, so NAN == "NAN" is false too.
+    if (isNaNValue(a) || isNaNValue(b)) {
+        return false;
+    }
+
+    // PHP casts an object with __toString against a string operand. JS built-ins (Date, RegExp) carry a
+    // platform toString and so match here, where PHP's equivalents, lacking __toString, would not.
+    if (isString(a) !== isString(b)) {
+        const object = isString(a) ? b : a;
+
+        if (isObject(object) && hasCustomToString(object)) {
+            return String(object) === (isString(a) ? a : b);
         }
     }
 
-    // PHP considers these "falsy" values as loosely equal to each other:
-    // null, false, 0, '', []
-    const isFalsyA =
-        a === null ||
-        a === false ||
-        a === 0 ||
-        a === "" ||
-        (Array.isArray(a) && a.length === 0);
-    const isFalsyB =
-        b === null ||
-        b === false ||
-        b === 0 ||
-        b === "" ||
-        (Array.isArray(b) && b.length === 0);
+    const aScalar = isNumberLike(a) || isString(a);
+    const bScalar = isNumberLike(b) || isString(b);
 
-    if (isFalsyA && isFalsyB) {
-        return true;
+    if (aScalar && bScalar) {
+        if (isPhpNumericOrBigint(a) && isPhpNumericOrBigint(b)) {
+            // Two strings take zendi_smart_strcmp, its overflow fallback to a string compare
+            // included: that is the only reason PHP says "1e999" == "1e1000" is false.
+            if (isString(a) && isString(b)) {
+                return compareNumericStrings(a, b) === 0;
+            }
+
+            // Anything PHP would hold as an int compares exactly, where Number() collapses two
+            // spellings past 2^53 onto one double.
+            if (isPhpIntegral(a) && isPhpIntegral(b)) {
+                return BigInt(a) === BigInt(b);
+            }
+
+            // The float path, which is what makes INF == "1e400" true: String(INF) is "Infinity",
+            // a spelling PHP's numeric grammar does not accept.
+            return Number(a) === Number(b);
+        }
+
+        return phpScalarToString(a) === phpScalarToString(b);
     }
 
-    // Handle deep comparison for arrays
-    if (Array.isArray(a) && Array.isArray(b)) {
+    if (isArray(a) && isArray(b)) {
         if (a.length !== b.length) {
             return false;
         }
 
-        for (let i = 0; i < a.length; i++) {
-            if (!looseEqual(a[i], b[i])) {
-                return false;
-            }
-        }
-
-        return true;
+        return a.every((value, index) => looseEqual(value, b[index]));
     }
 
-    // Handle deep comparison for plain objects
-    if (
-        a !== null &&
-        b !== null &&
-        typeof a === "object" &&
-        typeof b === "object" &&
-        !Array.isArray(a) &&
-        !Array.isArray(b)
-    ) {
+    if (isObject(a) && isObject(b)) {
         const keysA = Object.keys(a as Record<string, unknown>);
         const keysB = Object.keys(b as Record<string, unknown>);
 
@@ -249,25 +256,114 @@ export function looseEqual(a: unknown, b: unknown): boolean {
             return false;
         }
 
-        for (const key of keysA) {
-            if (!keysB.includes(key)) {
-                return false;
-            }
-
-            if (
-                !looseEqual(
+        return keysA.every(
+            (key) =>
+                keysB.includes(key) &&
+                looseEqual(
                     (a as Record<string, unknown>)[key],
                     (b as Record<string, unknown>)[key],
-                )
-            ) {
-                return false;
-            }
-        }
-
-        return true;
+                ),
+        );
     }
 
     return false;
+}
+
+/**
+ * PHP truthiness with bigint folded in, since PHP has no bigint but JS callers may pass one.
+ *
+ * @param value - The value to cast
+ * @returns The value's PHP truthiness
+ */
+function phpTruthy(value: unknown): boolean {
+    if (typeof value === "bigint") {
+        return value !== 0n;
+    }
+
+    return !isPhpFalsy(value);
+}
+
+/**
+ * Check whether a value is one of the two types PHP would treat as a number.
+ *
+ * @param value - The value to check
+ * @returns True if the value is a number or a bigint
+ */
+function isNumberLike(value: unknown): value is number | bigint {
+    return typeof value === "number" || typeof value === "bigint";
+}
+
+/**
+ * Check whether a value takes `==`'s numeric arm, counting bigint as numeric.
+ *
+ * @param value - The value to check
+ * @returns True if the value is a bigint or PHP-numeric
+ */
+function isPhpNumericOrBigint(value: unknown): boolean {
+    return typeof value === "bigint" || isPhpNumeric(value);
+}
+
+/**
+ * Whether an operand is an exact integer PHP would hold as an `int`: an integral finite number, a
+ * bigint, or a PHP integer string. `Infinity` and `NaN` are not integral, so they take the float
+ * path rather than throwing in `BigInt()`.
+ *
+ * @param value - The numeric operand to check
+ * @returns True if the value compares exactly as a bigint
+ */
+function isPhpIntegral(value: number | bigint | string): boolean {
+    if (typeof value === "bigint") {
+        return true;
+    }
+
+    if (typeof value === "number") {
+        return Number.isInteger(value);
+    }
+
+    return PHP_INTEGER_STRING_PATTERN.test(value);
+}
+
+/**
+ * PHP treats NAN as uncomparable before any cast, so it needs a short-circuit of its own.
+ *
+ * @param value - The value to check
+ * @returns True if the value is the number NaN
+ */
+function isNaNValue(value: unknown): boolean {
+    return typeof value === "number" && Number.isNaN(value);
+}
+
+/**
+ * A `toString` that is not `Object.prototype`'s is what PHP's `__toString` looks like from JavaScript.
+ *
+ * @param value - The object to check
+ * @returns True if the object carries a `toString` of its own
+ */
+function hasCustomToString(value: object): boolean {
+    const cast = (value as { toString?: unknown }).toString;
+
+    return typeof cast === "function" && cast !== Object.prototype.toString;
+}
+
+/**
+ * The string PHP prints for a scalar on the non-numeric arm of `==`: INF by name, everything else as String().
+ * NaN never reaches here; it short-circuits to false above.
+ *
+ * @param value - The scalar to print
+ * @returns The value as PHP would render it in a string comparison
+ */
+function phpScalarToString(value: unknown): string {
+    if (typeof value === "number") {
+        if (value === Number.POSITIVE_INFINITY) {
+            return "INF";
+        }
+
+        if (value === Number.NEGATIVE_INFINITY) {
+            return "-INF";
+        }
+    }
+
+    return String(value);
 }
 
 /**
