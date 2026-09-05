@@ -49,8 +49,8 @@ By default, the plugin will work in the following way:
 2. It will look for the list of transformed PHP files here: `resources/js/types/data/laravel-ts-collected-files.json`.
 3. If that manifest file changes, it will reload the watched file list without calling the publish command again.
 4. It will reload the page after a successful publish triggered by a watched PHP file change.
-5. It will call the publish command on `vite build` before bundling, with `--only-functional` appended by default (since TypeScript interfaces are type-only and erased at compile time).
-6. It will throw an error if the publish command fails on `vite build`.
+5. It will call the publish command on `vite build` before bundling, with `--only-functional` appended by default — enums, [model metadata](./model-metadata.md) companions, routes, form requests, and broadcast channels/events are runtime output; model and resource interfaces are type-only and erased at compile time.
+6. It will throw an error if the publish command fails on `vite build` — including a model metadata provider failing for a model, which `ts:publish` reports on stderr and exits non-zero for.
 7. When a single PHP file changes during `vite dev`, it will use `--source` to republish only that file instead of running a full publish.
 8. It will append `--quiet` to every command by default, suppressing normal console output since the plugin determines success from the exit code. When the command fails, its captured error output is included in the plugin's error message.
 

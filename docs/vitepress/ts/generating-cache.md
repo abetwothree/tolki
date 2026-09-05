@@ -64,6 +64,8 @@ class RouteGenerator extends CoreGenerator implements ProvidesCacheSignature
 
 `RouteCacheSignature::for($controllerClass)` builds a deterministic signature by collecting every route mapped to that controller, encoding each one as `name|uri|methods|domain|actionMethod|middleware` (methods and middleware sorted for stability), sorting all of them, and hashing the result. `BaseRunner` checks `is_subclass_of($generatorClass, ProvidesCacheSignature::class, true)` and, when true, folds the returned signature into `Fingerprinter::fromPaths()` as the `$extra` argument — so adding, removing, or editing a route (even just its URI) busts exactly the controllers whose routes changed, without needing `--fresh`.
 
+`ModelMetadataGenerator` uses the same hook for [model metadata](./model-metadata.md): `cacheSignature()` hashes the provider class together with the payload `provide($model)` returns, so a morph-map alias set in a service provider or a new value busts exactly the affected companions even though no dependency file changed. An unserializable payload (a closure inside it) yields a fresh random signature every run — a deliberate permanent miss rather than a hash that cannot be trusted.
+
 A custom [`*.generator_class`](./customizing-the-pipeline.md) can implement the same interface to fold its own non-file signature (an API response, a database timestamp, anything else that affects output but isn't a file) into its cache fingerprint.
 
 ## Config Fingerprinting

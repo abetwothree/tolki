@@ -108,6 +108,7 @@
             "ts/index.md",
             "ts/enums.md",
             "ts/models.md",
+            "ts/model-metadata.md",
             "ts/api-resources.md",
             "ts/broadcast-channels.md",
             "ts/broadcast-events.md",

@@ -1,6 +1,6 @@
 # Customizing the Pipeline
 
-Every feature this package publishes — models, enums, resources, routes, form requests, broadcast channels, and broadcast events — runs through the same **Collector → Generator → Transformer → Writer → Template** pipeline, though not every feature uses all five stages. Each stage is swappable independently, per feature, via the config file: extend the built-in class, override the matching config key, and the rest of the pipeline keeps working unmodified.
+Every feature this package publishes — models, model metadata, enums, resources, routes, form requests, broadcast channels, and broadcast events — runs through the same **Collector → Generator → Transformer → Writer → Template** pipeline, though not every feature uses all five stages. Each stage is swappable independently, per feature, via the config file: extend the built-in class, override the matching config key, and the rest of the pipeline keeps working unmodified.
 
 ```php
 // config/ts-publish.php
@@ -25,6 +25,7 @@ Not every feature has all four swappable classes — broadcast channels, for exa
 | Feature            | Collector                    | Generator                 | Transformer                 | Writer                    |
 | ------------------ | ---------------------------- | ------------------------- | --------------------------- | ------------------------- |
 | Models             | `ModelsCollector`            | `ModelGenerator`          | `ModelTransformer`          | `ModelWriter`             |
+| Model Metadata     | `ModelMetadataCollector`     | `ModelMetadataGenerator`  | `ModelMetadataTransformer`  | `ModelMetadataWriter`     |
 | Enums              | `EnumsCollector`             | `EnumGenerator`           | `EnumTransformer`           | `EnumWriter`              |
 | Resources          | `ResourcesCollector`         | `ResourceGenerator`       | `ResourceTransformer`       | `ResourceWriter`          |
 | Routes             | `RoutesCollector`            | `RouteGenerator`          | `RouteTransformer`          | `RouteWriter`             |
@@ -33,6 +34,8 @@ Not every feature has all four swappable classes — broadcast channels, for exa
 | Broadcast Events   | `BroadcastEventsCollector`   | `BroadcastEventGenerator` | `BroadcastEventTransformer` | `BroadcastEventWriter`¹   |
 
 <sup>1</sup> Broadcast Events also has two additional writer stages beyond the table above: `index_writer_class` (writes the combined index file) and `echo_augmentation.writer_class` (writes the Echo module augmentation).
+
+Model Metadata adds two more extension points: `model_metadata.provider_class`, the class whose `provide($model)` supplies each companion's values (the one most apps customize), and `Analyzers\Metadata\ModelMetadataAnalyzer`, the [analyzer](./analyzer-api.md) consumer that resolves each key's TypeScript type from body inference, the `@return` docblock, and `#[TsCasts]` — a custom `transformer_class` calls it through the container. See [Model Metadata](./model-metadata.md).
 
 ::: warning `BroadcastEventTransformer` changed shape
 Its constructor used to take a second argument alongside `$findable` — an `Analyzer` instance from [Surveyor](https://github.com/laravel/surveyor), the library that typed broadcast events at the time. Events are now typed by the package's own [analyzer](./analyzer-api.md), and the constructor matches every other transformer:
@@ -155,6 +158,21 @@ public function collect(): Collection; // concrete — orchestrates the above
 ```
 
 `collect()` itself is concrete and already handles merging `additional_directories`, `included`, and the default directory, filtering by `classFilter()`, and excluding anything matched by `excluded` or marked `#[TsExclude]`. A custom collector typically only needs to implement the three abstract methods.
+
+::: warning Class maps are memoized per process
+
+`CoreCollector` scans each directory once per PHP process and reuses that class map for the rest of it. `ts:publish` is unaffected — `Runner::run()` and `RunnerForSource::run()` both flush the memo first, so every run reads the disk, and nothing in the package writes a `.php` file mid-run.
+
+It matters for host code that calls `collect()` or `allows()` on both sides of writing a PHP file — a custom collector, or a `tinker` session or test helper that generates a model and re-collects. The second call still returns the pre-write answer. Flush the memo between the write and the second call:
+
+```php
+use AbeTwoThree\LaravelTsPublish\Collectors\CoreCollector;
+
+CoreCollector::flushClassMapCache();
+```
+
+It is a static method on the base class, so one call clears the maps for every collector.
+:::
 
 ### `CoreGenerator<TGeneratable>`
 
