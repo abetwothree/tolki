@@ -177,6 +177,8 @@ import { InvoiceStatusType } from "@js/types/data/accounting/enums";
 > [!TIP]
 > Barrel files are generated per-feature — models, enums, resources, form requests, and broadcast events each get their own barrel per namespace directory. Running `ts:publish --preview` (or `-v`) prints each one separately, labeled e.g. `Model Barrel Files:` or `Enum Barrel Files:`, alongside the individual per-class file contents.
 
+Model barrels are shared by two phases: model interfaces and [model metadata](./model-metadata.md) companions (`_meta` files) live in the same namespace directory. Every export belongs to exactly one phase, and a run rebuilds the exports of each phase it publishes — a removed model's export disappears on the next run; a phase that is enabled in config but skipped by an `--only-*` flag keeps its existing exports; a phase disabled in config keeps none. Barrels are generated files: comments or hand-written lines in them are not preserved, and `--source` runs never touch them.
+
 ## Applies Across Every Feature
 
 Namespace-derived output isn't unique to models — it's the same mechanism used everywhere in this package:

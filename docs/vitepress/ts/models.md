@@ -8,6 +8,7 @@ As mentioned in [Installation & Usage](./index.md), models don't need the `@tolk
 
 - One `.ts` file is generated per model, at a modular, namespace-derived path (e.g. `App\Models\User` → `app/models/user.ts`).
 - Barrel `index.ts` files re-export everything (`export * from './user'`) per namespace directory, the same as [enums](./enums.md#how-enums-are-generated).
+- Optionally, a runtime companion `{model}_meta.ts` is published beside the interface, exporting `{Model}ModelMetadata` (the morph class by default). It is a separate, opt-in phase — see [Model Metadata](./model-metadata.md).
 - Each column's type is resolved through a waterfall: an explicit [`#[TsCasts]`](#tscasts) override first, then the model's cast (`casts()` method or `$casts` property, including a [`#[TsType]`](#tstype) on a custom cast class), then the raw database column type — see the [Type Mapping Reference](#type-mapping-reference) for the full default table.
 - Mutators (new-style `Attribute` accessors and old-style `getXAttribute()` methods) and relations are inspected the same way, and split into their own interfaces by default — see [Model Templates](#model-templates).
 
@@ -682,6 +683,8 @@ class User extends Model
 ```
 
 See [Excluding Content](./excluding-content.md) for the full attribute behavior shared across models, enums, resources, and routes.
+
+The [model metadata](./model-metadata.md) phase inherits these three settings unless the matching `model_metadata.*` key is set.
 
 ## Casing
 

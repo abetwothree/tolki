@@ -156,6 +156,12 @@ Add `ts:publish` to the `post-update-cmd` hook in `composer.json` so deployed an
 }
 ```
 
+### Publishing Only Some Output
+
+Every phase has an `enabled` key in `config/ts-publish.php` (`enums`, `models`, `model_metadata`, `resources`, `routes`, `form_requests`, `broadcast_channels`, `broadcast_events`), and one `--only-*` flag per phase limits a single run: `--only-enums`, `--only-models`, `--only-model-metadata`, `--only-resources`, `--only-routes`, `--only-form-requests`, `--only-broadcast-channels`, `--only-broadcast-events`. The flags cannot be combined. `--only-functional` publishes the runtime output only — enums, model metadata, routes, form requests, broadcast channels and events — skipping model and resource interfaces, and wins over any other `--only-*` flag.
+
+A flag that requests a phase disabled in config prompts for an override in an interactive shell and respects the config silently otherwise (CI, queued jobs, the post-migration hook). Barrel `index.ts` files are rebuilt for every phase a run publishes; a phase that is enabled but skipped by a flag keeps its existing exports — see [Modular Publishing](https://tolki.abe.dev/ts/modular-publishing.html#barrel-files).
+
 ### Analyzer API
 
 The same static analysis engine that powers `ts:publish` is also callable directly — hand `AstEngine` a class and a method name and get back a typed property list, without running the full publish pipeline or writing anything to disk. See the full [Analyzer API documentation](https://tolki.abe.dev/ts/analyzer-api.html).
@@ -168,7 +174,7 @@ If you need to run custom logic right before `ts:publish` executes — dynamical
 
 During development, run `vite dev` and the plugin will automatically watch for changes in your collected PHP files and call the publish command to keep your TypeScript files up to date.
 
-Run `vite build` to build your assets for production — the plugin calls the publish command (with `--only-functional` appended by default, since interfaces are erased at compile time) before bundling.
+Run `vite build` to build your assets for production — the plugin calls the publish command (with `--only-functional` appended by default, which publishes enums, model metadata, routes, form requests, and broadcast channels/events; model and resource interfaces are erased at compile time) before bundling.
 
 ## Enums
 
@@ -554,6 +560,7 @@ As mentioned in [Installation & Usage](https://tolki.abe.dev/ts/index.html), mod
 
 - One `.ts` file is generated per model, at a modular, namespace-derived path (e.g. `App\Models\User` → `app/models/user.ts`).
 - Barrel `index.ts` files re-export everything (`export * from './user'`) per namespace directory, the same as [enums](https://tolki.abe.dev/ts/enums.html#how-enums-are-generated).
+- Optionally, a runtime companion `{model}_meta.ts` is published beside the interface, exporting `{Model}ModelMetadata` (the morph class by default). It is a separate, opt-in phase — see [Model Metadata](https://tolki.abe.dev/ts/model-metadata.html).
 - Each column's type is resolved through a waterfall: an explicit [`#[TsCasts]`](#tscasts) override first, then the model's cast (`casts()` method or `$casts` property, including a [`#[TsType]`](#tstype) on a custom cast class), then the raw database column type — see the [Type Mapping Reference](#type-mapping-reference) for the full default table.
 - Mutators (new-style `Attribute` accessors and old-style `getXAttribute()` methods) and relations are inspected the same way, and split into their own interfaces by default — see [Model Templates](#model-templates).
 
@@ -1211,6 +1218,8 @@ class User extends Model
 
 See [Excluding Content](https://tolki.abe.dev/ts/excluding-content.html) for the full attribute behavior shared across models, enums, resources, and routes.
 
+The [model metadata](https://tolki.abe.dev/ts/model-metadata.html) phase inherits these three settings unless the matching `model_metadata.*` key is set.
+
 ### Casing
 
 `models.relationship_case` (`'snake'` (default), `'camel'`, or `'pascal'`) controls the casing of relation names and their generated `_count` / `_exists` properties:
@@ -1224,6 +1233,176 @@ See [Excluding Content](https://tolki.abe.dev/ts/excluding-content.html) for the
 ### Configuration Reference
 
 The full list of `models.*` config keys — including pipeline class overrides for advanced customization — lives in the [Configuration Reference](https://tolki.abe.dev/ts/configuration-reference.html).
+
+## Model Metadata
+
+The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) can publish a small runtime companion beside each generated model interface: `{model}_meta.ts`, exporting a `{Model}ModelMetadata` object whose values come from a provider class you control. The default provider publishes the model's morph class, so the frontend can build polymorphic payloads (`commentable_type`) without hard-coding PHP class names.
+
+Unlike [model interfaces](https://tolki.abe.dev/ts/models.html), which are type-only and erased at compile time, a companion is a real runtime module. It counts as _functional_ output — the [Vite plugin](https://tolki.abe.dev/ts/vite-plugin.html) regenerates it on `vite build` alongside enums and routes — and it needs no `@tolki/ts` runtime.
+
+### How Model Metadata Is Generated
+
+- Model metadata is its own publishing phase, configured under `model_metadata.*` and **disabled by default**. `models.enabled` and `--only-models` control model interfaces only; `model_metadata.enabled` and `--only-model-metadata` control companions; `--only-functional` includes them.
+- `ModelMetadataCollector` extends `ModelsCollector`, so it discovers the same classes and inherits `models.included`, `models.excluded`, and `models.additional_directories` unless the matching `model_metadata.*` key is set — an explicitly configured value wins, including an empty array.
+- For each model, the configured provider's `provide(Model $model)` receives a model instance (resolved through the container, not loaded from the database) and returns the payload. Values are normalized at runtime; types are resolved statically — see [Types](#types-body-inference-docblock-and-tscasts).
+- One `{model}_meta.ts` is written beside the model interface, and the namespace's barrel `index.ts` exports it — see [Barrels](#barrels).
+
+### Anatomy of a Generated Companion
+
+```php
+// config/ts-publish.php — the block ships with 'enabled' => false; this is the one key to flip
+'model_metadata' => [
+    'enabled' => true,
+],
+```
+
+```typescript
+// resources/js/types/data/app/models/user_meta.ts
+export const UserModelMetadata = {
+  morphClass: "App\\Models\\User",
+} as const satisfies {
+  morphClass: string;
+};
+```
+
+- The **export** is `{Model}ModelMetadata`; the **file** is `{kebab-model}_meta.ts`. The underscore is deliberate — `Str::kebab()` never produces one, so a companion can never collide with a model interface file (`UserMeta` → `user-meta.ts`; `User`'s companion → `user_meta.ts`).
+- `as const` keeps every value a literal type; `satisfies` checks it against the declared or inferred shape without widening it.
+- With a morph map (`Relation::morphMap(['user' => User::class])`) the value is the alias, `'user'`. A numeric alias is published as a string — the default provider casts `getMorphClass()` to `string`, so there is no integer mode. Under `Relation::enforceMorphMap()`, a model missing from the map fails its companion — see [Failures](#failures).
+
+```typescript
+import { UserModelMetadata } from "@js/types/data/app/models";
+
+form.commentable_type = UserModelMetadata.morphClass;
+```
+
+> [!NOTE]
+> The `model_metadata` block is new. Package defaults are merged one level deep, so when adding it to an already-published `config/ts-publish.php`, copy the **whole** block from the package config rather than a single key — every key has a fallback in code, but a partial block replaces the defaults it omits.
+
+### Writing a Provider
+
+A provider implements `AbeTwoThree\LaravelTsPublish\Metadata\Contracts\ModelMetadataProvider` and is resolved through Laravel's container, so constructor dependencies work. One provider serves every published model.
+
+```php
+use AbeTwoThree\LaravelTsPublish\Attributes\TsCasts;
+use AbeTwoThree\LaravelTsPublish\Metadata\Contracts\ModelMetadataProvider;
+use Illuminate\Database\Eloquent\Model;
+
+final class AppModelMetadataProvider implements ModelMetadataProvider
+{
+    /**
+     * @return array{
+     *     morphClass: string,
+     *     identifiers: array{primaryKey: string, routeKey: string},
+     *     flags: array<string, bool>,
+     * }
+     */
+    #[TsCasts([
+        'identifiers' => ['type' => 'ModelIdentifiers', 'import' => '@/types/model-identifiers'],
+    ])]
+    public function provide(Model $model): array
+    {
+        return [
+            'morphClass' => (string) $model->getMorphClass(),
+            'identifiers' => [
+                'primaryKey' => $model->getKeyName(),
+                'routeKey' => $model->getRouteKeyName(),
+            ],
+            'flags' => [],
+        ];
+    }
+}
+```
+
+```php
+// config/ts-publish.php — provider_class ships as a commented line; uncomment it with your class
+'model_metadata' => [
+    'enabled' => true,
+    'template' => 'laravel-ts-publish::model-meta',
+    'provider_class' => App\TypeScript\AppModelMetadataProvider::class,
+],
+```
+
+Prefer a precise `@return array{...}` shape: PHPStan or Psalm validates the contract, and the generator uses the same shape. The published config file names no classes of its own — every `*_class` key, `provider_class` included, is a commented line showing what you can swap, and the default is applied in code.
+
+### Types: Body Inference, Docblock, and `#[TsCasts]`
+
+For each returned key the TypeScript type is the first available of:
+
+1. **`#[TsCasts]` on `provide()`** — an explicit override, and the only way to point a key at an import path of your own. `['type' => 'X', 'import' => '@/types/x']` imports `X`; `'optional' => true` marks the key optional.
+2. **The `@return array{...}` docblock shape.** `key?:` marks an optional key; every non-optional key must be present in every payload. Scalars, containers (`array<string, T>` → `Record<string, T>`, `list<T>` → `T[]`), and nested shapes are supported.
+3. **Body inference.** The returned array literal is analyzed statically, with the `$model` parameter bound to its declared type, so no annotation is needed for:
+   - scalars, casts (`(string) …`), and nested inline arrays;
+   - calls on the model parameter whose Laravel signature or docblock declares a return type — `getTable()`, `getKeyName()`, `getRouteKeyName()`, and `getMorphClass()` all infer `string`;
+   - enum values — an enum returned from the body imports its `{Name}Type` alias from the generated enums, exactly as a `#[TsCasts]` import would.
+
+   A body-inferred type that still contains `unknown` is discarded, and the key then needs a docblock or `#[TsCasts]` type. A helper with no declared return type (`private function tableFor($model)`) is exactly that case.
+
+Optionality decides whether the payload has to return the key, not how the key is spelled once it is returned: the `satisfies` shape lists exactly the keys the payload produced, each of them required.
+
+Two shapes always need `#[TsCasts]`: a class or enum **named in the docblock** (a docblock string carries no import path), and any value typed as a **model** — a runtime metadata array need not satisfy the model's interface, so the generator refuses to import one.
+
+Every returned key must end up with a type, and every required key must be returned; otherwise generation fails naming the model and the keys.
+
+### Values
+
+A value may be `null`, a scalar, an array, an enum (backed → its value, pure → its name), a `stdClass`, or an object implementing `Arrayable` or `JsonSerializable`. Values are normalized recursively. Generation fails — naming the model and the property path, e.g. `property [limits.maximum]` — instead of emitting invalid TypeScript for: any other object or a resource; a non-finite float; an integer outside JavaScript's safe range (±2⁵³−1 — return those as strings); a circular object; more than 64 nested array levels. Floats are emitted at full round-trip precision.
+
+#### Empty containers
+
+PHP cannot tell an empty list from an empty object, and TypeScript rejects `[]` where a `Record<…>` or object shape is declared. Two rules cover it:
+
+- Return `(object) []` (or `new stdClass`) for an empty object.
+- A bare `[]` is emitted as `{}` wherever its resolved type is an object literal, index signature, or `Record<…>`, and as `[]` everywhere else — including under an imported `#[TsCasts]` alias, which cannot be inspected.
+
+### Barrels
+
+Companions live in the same namespace directory as model interfaces, so both phases share one barrel `index.ts`. Every export in it belongs to exactly one phase (`_meta` files are companions; nothing else is), and a run rebuilds the exports of each phase it publishes:
+
+| Phase this run                                   | Its exports in the barrel                                        |
+| ------------------------------------------------ | ---------------------------------------------------------------- |
+| Published                                        | Exactly what was generated — a removed model's export disappears |
+| Enabled in config, skipped by an `--only-*` flag | Kept from the existing file                                      |
+| Disabled in config                               | Dropped — turning metadata off prunes its companions             |
+| Published, but one model's provider failed       | That model's previous companion export is kept                   |
+
+Barrels are generated files: comments or hand-written lines in them are not preserved. `--source` runs never touch barrels — see [Modular Publishing](https://tolki.abe.dev/ts/modular-publishing.html#barrel-files).
+
+### Failures
+
+A provider that throws for one model — `Relation::enforceMorphMap()` with a model missing from the map is the common case — does **not** stop the run. Every other file is written, that model's previous `{model}_meta.ts` and barrel export are kept as last known good, and the command reports each failure and exits non-zero (on stderr under `--quiet`, so CI and the [Vite plugin](https://tolki.abe.dev/ts/vite-plugin.html) see it — a failing companion fails `vite build`). Use `model_metadata.excluded` for models you deliberately do not map. `--source` runs fail on the first exception.
+
+The provider and generator classes are validated before any file is written, so a misconfigured `provider_class` fails fast rather than leaving a half-published directory.
+
+### Filtering & Excluding
+
+```php
+// config/ts-publish.php
+'model_metadata' => [
+    'enabled' => true,
+    // Omitted finder settings inherit from models.*; an explicit value overrides, including [].
+    'included' => [App\Models\User::class],
+    'excluded' => [App\Models\Pivot::class],
+],
+```
+
+`#[TsExclude]` on a model class excludes its interface **and** its companion — the exclusion happens at collection, before either phase runs. See [Excluding Content](https://tolki.abe.dev/ts/excluding-content.html).
+
+### Cache
+
+Companions take part in [cache generation](https://tolki.abe.dev/ts/generating-cache.html). The provider's own file is recorded as a dependency, and a custom provider is added to the watched-file manifest too, so editing it republishes during `vite dev`. Beyond that, `ModelMetadataGenerator::cacheSignature()` hashes the provider's payload, so a morph-map change or a new value busts exactly the affected companions without `--fresh`. The hash covers the provider's _raw_ payload — an object value is fingerprinted by its own properties, so if its `toArray()` depends on anything else, return an array instead.
+
+### Limits
+
+- An enum a provider body returns is imported from the generated enums even when that enum is excluded from enum publishing; the companion then fails `tsc` with a missing module or member. Include the enum, or use an import-aware `#[TsCasts]`.
+- A model class whose name contains an underscore (`User_meta`) kebabs to the same filename as another model's companion. PSR-1 names do not carry underscores, so this is accepted rather than guarded.
+
+### Customizing the Pipeline
+
+`model_metadata.provider_class` is the intended extension point. The phase also exposes the standard swappable classes — `collector_class`, `generator_class`, `transformer_class`, `writer_class` — and `template` (`laravel-ts-publish::model-meta`), the Blade view receiving the companion's data. The static type side (body inference, docblock, `#[TsCasts]`, imports) lives in `ModelMetadataAnalyzer`, an [analyzer](https://tolki.abe.dev/ts/analyzer-api.html) consumer that a custom transformer calls through the container. See [Customizing the Pipeline](https://tolki.abe.dev/ts/customizing-the-pipeline.html).
+
+### Configuration Reference
+
+The full list of `model_metadata.*` keys lives in the [Configuration Reference](https://tolki.abe.dev/ts/configuration-reference.html#model-metadata-model-metadata).
 
 ## API Resources
 
@@ -3119,7 +3298,9 @@ It takes no parameters — applying it to a class or method is enough to exclude
 
 ### How It's Enforced
 
-Every collector for a per-class type (enums, models, resources, form requests, broadcast events, controllers) extends the shared `CoreCollector`, which filters out any class carrying `#[TsExclude]` **before** it's ever handed to a transformer — an excluded class is never analyzed, never written to disk, and never appears in a barrel `index.ts`. This is why class-level exclusion has no config equivalent: there's nothing partial about it.
+Every collector for a per-class type (enums, models, model metadata, resources, form requests, broadcast events, controllers) extends the shared `CoreCollector`, which filters out any class carrying `#[TsExclude]` **before** it's ever handed to a transformer — an excluded class is never analyzed, never written to disk, and never appears in a barrel `index.ts`. This is why class-level exclusion has no config equivalent: there's nothing partial about it.
+
+Because model metadata companions are collected from the same model classes, `#[TsExclude]` on a model excludes its interface and its companion together.
 
 Method/accessor/relation/action-level exclusion is checked independently by each transformer, on the specific reflected method — this is what allows the rest of the class to publish normally while one member is omitted.
 
@@ -4038,6 +4219,8 @@ class RouteGenerator extends CoreGenerator implements ProvidesCacheSignature
 
 `RouteCacheSignature::for($controllerClass)` builds a deterministic signature by collecting every route mapped to that controller, encoding each one as `name|uri|methods|domain|actionMethod|middleware` (methods and middleware sorted for stability), sorting all of them, and hashing the result. `BaseRunner` checks `is_subclass_of($generatorClass, ProvidesCacheSignature::class, true)` and, when true, folds the returned signature into `Fingerprinter::fromPaths()` as the `$extra` argument — so adding, removing, or editing a route (even just its URI) busts exactly the controllers whose routes changed, without needing `--fresh`.
 
+`ModelMetadataGenerator` uses the same hook for [model metadata](https://tolki.abe.dev/ts/model-metadata.html): `cacheSignature()` hashes the provider class together with the payload `provide($model)` returns, so a morph-map alias set in a service provider or a new value busts exactly the affected companions even though no dependency file changed. An unserializable payload (a closure inside it) yields a fresh random signature every run — a deliberate permanent miss rather than a hash that cannot be trusted.
+
 A custom [`*.generator_class`](https://tolki.abe.dev/ts/customizing-the-pipeline.html) can implement the same interface to fold its own non-file signature (an API response, a database timestamp, anything else that affects output but isn't a file) into its cache fingerprint.
 
 ### Config Fingerprinting
@@ -4473,6 +4656,8 @@ import { InvoiceStatusType } from "@js/types/data/accounting/enums";
 
 > [!TIP]
 > Barrel files are generated per-feature — models, enums, resources, form requests, and broadcast events each get their own barrel per namespace directory. Running `ts:publish --preview` (or `-v`) prints each one separately, labeled e.g. `Model Barrel Files:` or `Enum Barrel Files:`, alongside the individual per-class file contents.
+
+Model barrels are shared by two phases: model interfaces and [model metadata](https://tolki.abe.dev/ts/model-metadata.html) companions (`_meta` files) live in the same namespace directory. Every export belongs to exactly one phase, and a run rebuilds the exports of each phase it publishes — a removed model's export disappears on the next run; a phase that is enabled in config but skipped by an `--only-*` flag keeps its existing exports; a phase disabled in config keeps none. Barrels are generated files: comments or hand-written lines in them are not preserved, and `--source` runs never touch them.
 
 ### Applies Across Every Feature
 
@@ -5258,8 +5443,8 @@ By default, the plugin will work in the following way:
 2. It will look for the list of transformed PHP files here: `resources/js/types/data/laravel-ts-collected-files.json`.
 3. If that manifest file changes, it will reload the watched file list without calling the publish command again.
 4. It will reload the page after a successful publish triggered by a watched PHP file change.
-5. It will call the publish command on `vite build` before bundling, with `--only-functional` appended by default (since TypeScript interfaces are type-only and erased at compile time).
-6. It will throw an error if the publish command fails on `vite build`.
+5. It will call the publish command on `vite build` before bundling, with `--only-functional` appended by default — enums, [model metadata](https://tolki.abe.dev/ts/model-metadata.html) companions, routes, form requests, and broadcast channels/events are runtime output; model and resource interfaces are type-only and erased at compile time.
+6. It will throw an error if the publish command fails on `vite build` — including a model metadata provider failing for a model, which `ts:publish` reports on stderr and exits non-zero for.
 7. When a single PHP file changes during `vite dev`, it will use `--source` to republish only that file instead of running a full publish.
 8. It will append `--quiet` to every command by default, suppressing normal console output since the plugin determines success from the exit code. When the command fails, its captured error output is included in the plugin's error message.
 
@@ -5419,7 +5604,7 @@ export default defineConfig({
 
 ## Customizing the Pipeline
 
-Every feature this package publishes — models, enums, resources, routes, form requests, broadcast channels, and broadcast events — runs through the same **Collector → Generator → Transformer → Writer → Template** pipeline, though not every feature uses all five stages. Each stage is swappable independently, per feature, via the config file: extend the built-in class, override the matching config key, and the rest of the pipeline keeps working unmodified.
+Every feature this package publishes — models, model metadata, enums, resources, routes, form requests, broadcast channels, and broadcast events — runs through the same **Collector → Generator → Transformer → Writer → Template** pipeline, though not every feature uses all five stages. Each stage is swappable independently, per feature, via the config file: extend the built-in class, override the matching config key, and the rest of the pipeline keeps working unmodified.
 
 ```php
 // config/ts-publish.php
@@ -5444,6 +5629,7 @@ Not every feature has all four swappable classes — broadcast channels, for exa
 | Feature            | Collector                    | Generator                 | Transformer                 | Writer                    |
 | ------------------ | ---------------------------- | ------------------------- | --------------------------- | ------------------------- |
 | Models             | `ModelsCollector`            | `ModelGenerator`          | `ModelTransformer`          | `ModelWriter`             |
+| Model Metadata     | `ModelMetadataCollector`     | `ModelMetadataGenerator`  | `ModelMetadataTransformer`  | `ModelMetadataWriter`     |
 | Enums              | `EnumsCollector`             | `EnumGenerator`           | `EnumTransformer`           | `EnumWriter`              |
 | Resources          | `ResourcesCollector`         | `ResourceGenerator`       | `ResourceTransformer`       | `ResourceWriter`          |
 | Routes             | `RoutesCollector`            | `RouteGenerator`          | `RouteTransformer`          | `RouteWriter`             |
@@ -5452,6 +5638,8 @@ Not every feature has all four swappable classes — broadcast channels, for exa
 | Broadcast Events   | `BroadcastEventsCollector`   | `BroadcastEventGenerator` | `BroadcastEventTransformer` | `BroadcastEventWriter`¹   |
 
 <sup>1</sup> Broadcast Events also has two additional writer stages beyond the table above: `index_writer_class` (writes the combined index file) and `echo_augmentation.writer_class` (writes the Echo module augmentation).
+
+Model Metadata adds two more extension points: `model_metadata.provider_class`, the class whose `provide($model)` supplies each companion's values (the one most apps customize), and `Analyzers\Metadata\ModelMetadataAnalyzer`, the [analyzer](https://tolki.abe.dev/ts/analyzer-api.html) consumer that resolves each key's TypeScript type from body inference, the `@return` docblock, and `#[TsCasts]` — a custom `transformer_class` calls it through the container. See [Model Metadata](https://tolki.abe.dev/ts/model-metadata.html).
 
 Its constructor used to take a second argument alongside `$findable` — an `Analyzer` instance from [Surveyor](https://github.com/laravel/surveyor), the library that typed broadcast events at the time. Events are now typed by the package's own [analyzer](https://tolki.abe.dev/ts/analyzer-api.html), and the constructor matches every other transformer:
 
@@ -5559,6 +5747,18 @@ public function collect(): Collection; // concrete — orchestrates the above
 ```
 
 `collect()` itself is concrete and already handles merging `additional_directories`, `included`, and the default directory, filtering by `classFilter()`, and excluding anything matched by `excluded` or marked `#[TsExclude]`. A custom collector typically only needs to implement the three abstract methods.
+
+`CoreCollector` scans each directory once per PHP process and reuses that class map for the rest of it. `ts:publish` is unaffected — `Runner::run()` and `RunnerForSource::run()` both flush the memo first, so every run reads the disk, and nothing in the package writes a `.php` file mid-run.
+
+It matters for host code that calls `collect()` or `allows()` on both sides of writing a PHP file — a custom collector, or a `tinker` session or test helper that generates a model and re-collects. The second call still returns the pre-write answer. Flush the memo between the write and the second call:
+
+```php
+use AbeTwoThree\LaravelTsPublish\Collectors\CoreCollector;
+
+CoreCollector::flushClassMapCache();
+```
+
+It is a static method on the base class, so one call clears the maps for every collector.
 
 #### `CoreGenerator<TGeneratable>`
 
@@ -5745,6 +5945,8 @@ $analysis = resolve(AstEngine::class)->analyzeMethod(App\Http\Resources\PostReso
 
 Every pattern documented in [API Resources](https://tolki.abe.dev/ts/api-resources.html) resolves identically here — the `when()` conditional-method family, `EnumResource::make()`, nested and collection resources, `merge()` / `mergeWhen()`, and relation filters (`$this->author->only([...])`) all produce the same properties, FQCN channels, and optionality a full publish would. The only thing missing is the file: `analyzeMethod()` stops at the `MethodAnalysis` DTO, nothing is written to disk or folded into a barrel file.
 
+[Model metadata](https://tolki.abe.dev/ts/model-metadata.html) is the third consumer, and the one that shows the engine's parameter binding: its `ModelMetadataAnalyzer` locates a provider's `provide(Model $model)` on the class that declares it, binds `$model` to its declared type, and runs the same handlers over that scope — which is why `$model->getTable()` infers `string` there while a plain `analyzeMethod()` call, which binds nothing, leaves it `unknown`. It then layers the `@return` docblock and `#[TsCasts]` on top and imports body-inferred enums through `AnalysisImports::build()`. There is no public entry point for a bound analysis today; it is the recipe `InertiaPageAnalyzer` and `ModelMetadataAnalyzer` both inline.
+
 ### Imports
 
 A `MethodAnalysis`'s FQCN channels aren't import paths by themselves — `AnalysisImports` turns them into resolved import paths for one specific generated file:
@@ -5772,7 +5974,7 @@ The second argument is the _importing_ file's own namespace path — every path 
 
 **`unknown` is an honest floor, not a bug.** Every pattern this page documents is one the analyzer specifically recognizes; anything else — an expression it can't trace, a reassigned local, an unresolvable closure default — degrades to `unknown` rather than guessing. See [API Resources § Local Variables](https://tolki.abe.dev/ts/api-resources.html#local-variables) for what that looks like from the resource side.
 
-Every feature that infers a type now runs on this engine — resources, broadcast events, and both Inertia features. What each one adds on top of the analysis is on its own feature page, linked above.
+Every feature that infers a type now runs on this engine — resources, broadcast events, model metadata, and both Inertia features. What each one adds on top of the analysis is on its own feature page, linked above.
 
 ### Configuration Reference
 
@@ -5816,6 +6018,23 @@ A complete reference of every option in `config/ts-publish.php`, grouped by feat
 | `models.generator_class`          | `string` | `ModelGenerator`                  | Orchestrates transforming and writing                                                                                                                                                                                                                                                   |
 | `models.transformer_class`        | `string` | `ModelTransformer`                | Converts PHP class into TypeScript data                                                                                                                                                                                                                                                 |
 | `models.writer_class`             | `string` | `ModelWriter`                     | Writes TypeScript model files                                                                                                                                                                                                                                                           |
+
+### Model Metadata (`model_metadata.*`)
+
+Package defaults merge one level deep: add the whole block to an existing config file, not a single key.
+
+| Config Key                              | Type     | Default                                    | Description                                                                                                                                                                                                  |
+| --------------------------------------- | -------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `model_metadata.enabled`                | `bool`   | `false`                                    | Publish a runtime `{model}_meta.ts` companion beside each model interface                                                                                                                                    |
+| `model_metadata.provider_class`         | `string` | `DefaultModelMetadataProvider`             | `ModelMetadataProvider` whose `provide($model)` returns each companion's payload; the default is applied in code and the published config shows the key as a commented line to uncomment with your own class |
+| `model_metadata.template`               | `string` | `laravel-ts-publish::model-meta`           | Blade template for the companion                                                                                                                                                                             |
+| `model_metadata.included`               | `array`  | _inherits `models.included`_               | Only publish companions for these models (an explicit `[]` means all)                                                                                                                                        |
+| `model_metadata.excluded`               | `array`  | _inherits `models.excluded`_               | Never publish companions for these models                                                                                                                                                                    |
+| `model_metadata.additional_directories` | `array`  | _inherits `models.additional_directories`_ | Extra directories to search                                                                                                                                                                                  |
+| `model_metadata.collector_class`        | `string` | `ModelMetadataCollector`                   | Discovers models for this phase                                                                                                                                                                              |
+| `model_metadata.generator_class`        | `string` | `ModelMetadataGenerator`                   | Orchestrates transforming and writing; must extend the default                                                                                                                                               |
+| `model_metadata.transformer_class`      | `string` | `ModelMetadataTransformer`                 | Runs the provider, normalizes values, validates against the analyzed types                                                                                                                                   |
+| `model_metadata.writer_class`           | `string` | `ModelMetadataWriter`                      | Writes the companion file                                                                                                                                                                                    |
 
 ### Enums (`enums.*`)
 

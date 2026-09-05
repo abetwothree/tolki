@@ -87,6 +87,8 @@ $analysis = resolve(AstEngine::class)->analyzeMethod(App\Http\Resources\PostReso
 
 Every pattern documented in [API Resources](./api-resources.md) resolves identically here — the `when()` conditional-method family, `EnumResource::make()`, nested and collection resources, `merge()` / `mergeWhen()`, and relation filters (`$this->author->only([...])`) all produce the same properties, FQCN channels, and optionality a full publish would. The only thing missing is the file: `analyzeMethod()` stops at the `MethodAnalysis` DTO, nothing is written to disk or folded into a barrel file.
 
+[Model metadata](./model-metadata.md) is the third consumer, and the one that shows the engine's parameter binding: its `ModelMetadataAnalyzer` locates a provider's `provide(Model $model)` on the class that declares it, binds `$model` to its declared type, and runs the same handlers over that scope — which is why `$model->getTable()` infers `string` there while a plain `analyzeMethod()` call, which binds nothing, leaves it `unknown`. It then layers the `@return` docblock and `#[TsCasts]` on top and imports body-inferred enums through `AnalysisImports::build()`. There is no public entry point for a bound analysis today; it is the recipe `InertiaPageAnalyzer` and `ModelMetadataAnalyzer` both inline.
+
 ## Imports
 
 A `MethodAnalysis`'s FQCN channels aren't import paths by themselves — `AnalysisImports` turns them into resolved import paths for one specific generated file:
@@ -116,7 +118,7 @@ The second argument is the _importing_ file's own namespace path — every path 
 
 **`unknown` is an honest floor, not a bug.** Every pattern this page documents is one the analyzer specifically recognizes; anything else — an expression it can't trace, a reassigned local, an unresolvable closure default — degrades to `unknown` rather than guessing. See [API Resources § Local Variables](./api-resources.md#local-variables) for what that looks like from the resource side.
 
-Every feature that infers a type now runs on this engine — resources, broadcast events, and both Inertia features. What each one adds on top of the analysis is on its own feature page, linked above.
+Every feature that infers a type now runs on this engine — resources, broadcast events, model metadata, and both Inertia features. What each one adds on top of the analysis is on its own feature page, linked above.
 
 ## Configuration Reference
 

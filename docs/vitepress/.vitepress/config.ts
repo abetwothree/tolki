@@ -107,6 +107,10 @@ export default defineConfig({
                         link: "/ts/models",
                     },
                     {
+                        text: "Model Metadata",
+                        link: "/ts/model-metadata",
+                    },
+                    {
                         text: "API Resources",
                         link: "/ts/api-resources",
                     },

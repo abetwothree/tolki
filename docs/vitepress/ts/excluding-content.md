@@ -35,7 +35,9 @@ It takes no parameters — applying it to a class or method is enough to exclude
 
 ## How It's Enforced
 
-Every collector for a per-class type (enums, models, resources, form requests, broadcast events, controllers) extends the shared `CoreCollector`, which filters out any class carrying `#[TsExclude]` **before** it's ever handed to a transformer — an excluded class is never analyzed, never written to disk, and never appears in a barrel `index.ts`. This is why class-level exclusion has no config equivalent: there's nothing partial about it.
+Every collector for a per-class type (enums, models, model metadata, resources, form requests, broadcast events, controllers) extends the shared `CoreCollector`, which filters out any class carrying `#[TsExclude]` **before** it's ever handed to a transformer — an excluded class is never analyzed, never written to disk, and never appears in a barrel `index.ts`. This is why class-level exclusion has no config equivalent: there's nothing partial about it.
+
+Because model metadata companions are collected from the same model classes, `#[TsExclude]` on a model excludes its interface and its companion together.
 
 Method/accessor/relation/action-level exclusion is checked independently by each transformer, on the specific reflected method — this is what allows the rest of the class to publish normally while one member is omitted.
 
