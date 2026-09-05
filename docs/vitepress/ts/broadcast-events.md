@@ -9,7 +9,7 @@ As mentioned in [Installation & Usage](./index.md), broadcast events don't need 
 Unlike [broadcast channels](./broadcast-channels.md), broadcast events use the same modular, per-class pipeline as [enums](./enums.md), [models](./models.md), and [form requests](./form-requests.md):
 
 - `BroadcastEventsCollector` discovers every class implementing `ShouldBroadcast` or `ShouldBroadcastNow`, by default in `app/Events` (configurable, and it extends the shared `CoreCollector`, so it supports `included` / `excluded` / `additional_directories` and `#[TsExclude]` — see [Filtering & Excluding](#filtering--excluding)).
-- Each event class is statically analyzed (via [Surveyor](https://github.com/laravel/surveyor)) to resolve its payload shape — see [Property Resolution](#property-resolution-broadcastwith-vs-public-properties).
+- Each event class is statically analyzed by the package's own [analyzer](./analyzer-api.md) to resolve its payload shape — see [Property Resolution](#property-resolution-broadcastwith-vs-public-properties).
 - One `.ts` file is written per event, at a namespace-derived path mirroring the event's FQCN (just like models and enums).
 - After every event file is generated, `BroadcastEventsIndexWriter` combines them into a single `broadcast-events.ts` index — see [The Combined Index File](#the-combined-index-file-broadcast-eventsts).
 - Optionally, `BroadcastEventsEchoWriter` generates `echo-broadcast-events.d.ts`, a module augmentation for Laravel Echo — see [Echo Module Augmentation](#echo-module-augmentation).
@@ -49,12 +49,14 @@ export interface OrderShipped {
 
 - The **interface name** is always the event's short PHP class name.
 - A `@see` JSDoc comment links back to the fully-qualified PHP class.
-- Public constructor properties become required fields by default; a nullable property (`?array $metadata`) becomes optional.
-- Here, `trackingNumber`'s template-literal type and `metadata`'s `Record<string, unknown>` type come from a `#[TsCasts]` override on the class — see [`#[TsCasts]`](#tscasts-overriding-property-types) below; without it, both would simply be their raw inferred types (`string` and `unknown[] | null`).
+- Public properties become required fields. A nullable property is typed `| null`; nullability alone never makes a key optional.
+- Here, `trackingNumber`'s template-literal type, `metadata`'s `Record<string, unknown>` type, and the `?` on `metadata` all come from a `#[TsCasts]` override on the class — see [`#[TsCasts]`](#tscasts-overriding-property-types) below. Without it, both properties would be their raw inferred types (`string` and `unknown[] | null`), and `metadata` would be required.
 
 ## Property Resolution: `broadcastWith()` vs. Public Properties
 
-By default, every public constructor-promoted property becomes an interface field. Define `broadcastWith()` to send (and type) a different shape — commonly to exclude private/internal fields:
+By default, every public property becomes an interface field, in declaration order — constructor-promoted parameters and class-body declarations alike. A `@var` docblock wins over the native type, so `/** @var list<string> */ public array $tags` is typed `string[]` rather than `unknown[]`. Every trait-declared property is skipped, whatever the trait — reflection reports them as the event's own, so nothing distinguishes them, and a [`#[TsExtends]`](./extending-interfaces.md) trait's fields already arrive through the `extends` clause.
+
+Define `broadcastWith()` to send (and type) a different shape — commonly to exclude private/internal fields:
 
 ```php
 class TeamMessageSent implements ShouldBroadcast
@@ -91,7 +93,9 @@ export interface TeamMessageSent {
 }
 ```
 
-`senderToken` never appears in the generated interface. The `@return array{teamId: int, content: string}` PHPDoc shape is what drives the precise property types — without it, Surveyor can't statically infer types from an arbitrary array literal, so add a `@return array{...}` annotation whenever `broadcastWith()`'s shape isn't trivially inferable.
+`senderToken` never appears in the generated interface. The analyzer reads `broadcastWith()`'s body, resolving each `$this->…` reference against the event's own declared properties, so the `@return array{teamId: int, content: string}` docblock above is documentation rather than a requirement — the same interface comes out without it.
+
+When `broadcastWith()` exists it is the only source of the payload; the public properties are not consulted at all. A key it renames, computes, or drops is reflected exactly, so `['team' => $this->teamId, 'kind' => 'message', 'count' => count($this->items)]` becomes `{ team: number; kind: string; count: number }` with no `teamId` in sight.
 
 ## Model & Enum-Aware Properties
 
@@ -123,7 +127,7 @@ export interface MultiModelEvent {
 ```
 
 - An **Eloquent model** property resolves to `Partial<Model>` (partial, since a broadcast payload may not include every column) with an automatic import from the generated [models](./models.md) output.
-- A **PHP enum** property resolves to the enum's `{Name}Type` alias (its raw backing-value type) with an automatic import from the generated [enums](./enums.md) output:
+- A **PHP enum** property resolves to the enum's `{Name}Type` alias (its raw backing-value type) with an automatic import from the generated [enums](./enums.md) output. An enum renamed with [`#[TsEnum]`](./enums.md#tsenum) keeps that rename here, so the alias always names a type the enum output actually declares:
 
 ```php
 class EnumBroadcastEvent implements ShouldBroadcast
@@ -186,6 +190,8 @@ export interface ServerCreated extends BroadcastableEvent {
 ```
 
 The literal string returned by `broadcastAs()` (`'server.created'`) becomes this event's key everywhere it's referenced — the `BroadcastEvent` union member, the `BroadcastEvents` const value, and the Echo augmentation key. Without `broadcastAs()`, it would instead be `'.Workbench.App.Events.ServerCreated'`.
+
+`broadcastAs()` has to return one whole string literal for that to happen. A name built at runtime — `return 'order.'.$this->kind;` — has no single value to publish, so the event falls back to the `.Fully.Qualified.ClassName` convention. The alternative is shipping the literal prefix `'order.'` as a key Echo will never receive, which is worse than a key you can predict.
 
 (The `extends BroadcastableEvent` here comes from a per-class `#[TsExtends]` attribute — see [Extending Interfaces](#extending-interfaces-global-config-vs-tsextends) below.)
 

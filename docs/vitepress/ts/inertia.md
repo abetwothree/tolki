@@ -7,9 +7,14 @@ This page covers the shared-data analysis and module augmentation file. For per-
 ## How the Augmentation File Is Generated
 
 - The package searches `inertia.inertia_middleware_path` (or `app_path()` when not set) for a class extending `Inertia\Middleware`.
-- It statically analyzes that middleware's `share(Request $request): array` method — via [Surveyor](https://github.com/laravel/surveyor) — resolving every key's value to a TypeScript type without running the application.
+- It statically analyzes that middleware's `share(Request $request): array` method with the package's own AST engine, resolving every key's value to a TypeScript type without running the application.
+- Both composition forms are read, up the whole middleware inheritance chain: a `...parent::share($request)` spread and `array_merge(parent::share($request), [...])`. A later key overrides an earlier one and keeps the earlier one's position, exactly as PHP does.
+- `$request->user()` is typed through your live auth configuration — `auth.defaults.guard` → that guard's provider → the provider's `model` — so the prop becomes `User | null` and the model's type import is written into the file for you. `auth()->user()`, `auth()->id()`, `Auth::user()` and `Auth::id()` resolve the same way, and `$request->url()`, `->fullUrl()`, `->path()`, `->integer()`, `->boolean()`, `->string()`, `->cookie()` and `->hasCookie()` are typed from Laravel's own signatures.
+- `config('some.key')` with a literal key is typed from the live configuration value, since the package runs inside your booted application; a computed key stays `unknown`.
+- Inertia v2's prop wrappers — `Inertia::defer()`, `optional()`, `lazy()`, `always()`, `merge()`, `deepMerge()` — are typed as the value they wrap. The three a partial reload can omit (`defer`, `optional`, `lazy`) produce an optional key.
+- `errors` is deliberately left out of the inferred shape: `@inertiajs/core` already declares `page.props.errors` as `Errors & ErrorBag`, and `errorValueType` below is this package's channel for sharpening it. A `#[TsCasts]` or `@return` docblock entry named `errors` still wins if you want one.
 - The result is rendered into `inertia-config.d.ts` (filename configurable via `inertia.augmentation_filename`).
-- If no `Inertia\Middleware` subclass is found, or it returns no shared data, no file is generated.
+- If no `Inertia\Middleware` subclass is found, no file is generated.
 
 ## Anatomy of the Generated File
 
@@ -25,10 +30,8 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => ['user' => $request->user()],
-            'flash' => [
-                'success' => fn () => $request->session()->get('success'),
-                'error' => fn () => $request->session()->get('error'),
-            ],
+            'ziggy' => fn () => ['location' => $request->url()],
+            'sidebarOpen' => ! $request->hasCookie('sidebar_state'),
             'appName' => config('app.name'),
         ];
     }
@@ -38,11 +41,14 @@ class HandleInertiaRequests extends Middleware
 The package generates `inertia-config.d.ts`:
 
 ```typescript
+import type { User } from "./app/models";
+
 declare global {
   namespace Inertia {
     type SharedData = {
-      auth: { user: { id: number; name: string; email: string } | null };
-      flash: { success: string | null; error: string | null };
+      auth: { user: User | null };
+      ziggy: { location: string };
+      sidebarOpen: boolean;
       appName: string;
     };
   }
@@ -51,8 +57,9 @@ declare global {
 declare module "@inertiajs/core" {
   export interface InertiaConfig {
     sharedPageProps: {
-      auth: { user: { id: number; name: string; email: string } | null };
-      flash: { success: string | null; error: string | null };
+      auth: { user: User | null };
+      ziggy: { location: string };
+      sidebarOpen: boolean;
       appName: string;
     };
     errorValueType: string[];
@@ -62,9 +69,11 @@ declare module "@inertiajs/core" {
 export {};
 ```
 
+- **`import type { User } from './app/models';`** — every model, resource or enum an inferred prop type names gets its import written above the declarations, resolved relative to the output root. Imports supplied by `#[TsCasts(import: ...)]` are rendered below these. A key whose type an override replaces drops the import that type kept alive.
 - **`declare global { namespace Inertia { type SharedData = ...; } }`** makes `Inertia.SharedData` available by bare name in any `.ts` file in your project — including generated controller files that intersect it with page-specific props (see [Inertia Integration](./routing.md#inertia-integration)).
 - **`declare module '@inertiajs/core' { ... InertiaConfig ... }`** augments Inertia's own `usePage<T>()` / shared-data typing so `usePage().props` is typed correctly throughout your frontend, without you writing that augmentation by hand.
 - **`errorValueType: string[]`** is only added when the middleware has a `protected $withAllErrors = true;` property — it matches the shape Inertia uses for its validation error bag in that mode.
+- **A value the analyzer cannot read stays `unknown`.** `'flash' => ['success' => fn () => $request->session()->get('success')]` would emit `flash: { success: unknown }` — `session()` is not one of the typed request methods. Reach for [`#[TsCasts]` or a `@return` docblock](#type-resolution-priority) there.
 - **`export {};`** at the end is required — TypeScript only processes a `declare global` block inside a file that's an ES module (i.e., has at least one top-level `import` or `export`). Without it, the `declare global` block would be silently ignored.
 
 ## Type Resolution Priority
@@ -72,8 +81,8 @@ export {};
 Each key returned from `share()` resolves to a TypeScript type using this priority order (highest wins):
 
 1. **`#[TsCasts]`** on the middleware class or its `share()` method — the same attribute used by [models](./models.md#tscasts), [resources](./api-resources.md#tscasts-override-property-types), and [broadcast events](./broadcast-events.md#tscasts-overriding-property-types).
-2. **`@return array{...}` PHPDoc** on `share()` — a manually-written shape annotation, useful when a key's value can't be statically inferred (e.g. it comes from a closure or a method call Surveyor can't resolve).
-3. **Surveyor's static inference** — the default, covering plain values, nested arrays, conditionals, and spreads.
+2. **`@return array{...}` PHPDoc** on `share()` — a manually-written shape annotation, useful when a key's value can't be statically inferred (e.g. it comes from a method call whose return type says nothing).
+3. **The AST engine's inference** — the default, covering plain values, nested arrays, conditionals, closures, spreads, `array_merge()`, `config()`, the request/auth helpers, and Inertia's prop wrappers.
 
 ```php
 #[TsCasts(['appName' => 'string'])]
@@ -92,7 +101,7 @@ class HandleInertiaRequests extends Middleware
 }
 ```
 
-Here, `appName`'s type comes from `#[TsCasts]`, `flash`'s type comes from the `@return` docblock (since `resolveFlashMessages()` isn't itself analyzed), and every other key (like `auth`, from `...parent::share($request)`) falls back to Surveyor's own inference.
+Here, `appName`'s type comes from `#[TsCasts]`, `flash`'s type comes from the `@return` docblock (since `resolveFlashMessages()` isn't itself analyzed), and every other key (like `auth`, from `...parent::share($request)`) falls back to the engine's own inference.
 
 ## Preserve-Keys Resource Collections in Page Props
 

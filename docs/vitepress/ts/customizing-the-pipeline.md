@@ -34,6 +34,49 @@ Not every feature has all four swappable classes — broadcast channels, for exa
 
 <sup>1</sup> Broadcast Events also has two additional writer stages beyond the table above: `index_writer_class` (writes the combined index file) and `echo_augmentation.writer_class` (writes the Echo module augmentation).
 
+::: warning `BroadcastEventTransformer` changed shape
+Its constructor used to take a second argument alongside `$findable` — an `Analyzer` instance from [Surveyor](https://github.com/laravel/surveyor), the library that typed broadcast events at the time. Events are now typed by the package's own [analyzer](./analyzer-api.md), and the constructor matches every other transformer:
+
+```php
+public function __construct(string $findable);
+```
+
+The protected methods a subclass hooks into moved with it, so re-check any existing override:
+
+- **`convertType()` and `resolveArrayType()` are gone**, along with the `$analyzed` property, because all three took Surveyor types. This is the one that bites quietly: an override of a method the parent no longer calls is dead code, not an error, so a subclass that mapped a custom value object through `convertType()` keeps loading while its event types change underneath it.
+- **`runAnalysis()`, `resolveBroadcastName()`, `resolveProperties()`, `convertClassType()` and `collectPropertyFqcns()` take or return different types.** These fail loudly — PHP rejects the incompatible declaration when the subclass loads — so you'll know immediately.
+
+:::
+
+::: warning `ResourceTransformer` lost its model-resolution methods
+
+The four methods that decided which Eloquent model backs a resource have moved off the transformer into `AbeTwoThree\LaravelTsPublish\Ast\ModelClassResolver`, so the [analyzer](./analyzer-api.md) and the publish pipeline resolve a resource's model the same way. `resources.transformer_class` is still a supported override point; only these four names left it.
+
+**Fails quietly — this is the whole of it, so check by hand:**
+
+- **`modelFromDocblock()`, `modelFromAncestorDocblock()`, `guessModelFromConvention()` and `guessModelFromUseResourceAttribute()` are gone.** They were `protected` on `ResourceTransformer`; they are `private` on `ModelClassResolver`, which is `final`. A subclass that overrode any of them still compiles and still loads — the parent simply never calls it again. So a convention override that resolved, say, `App\Http\Resources\PostResource` to `App\Domain\Post` stops applying, every affected resource is silently typed against a different model, and nothing errors.
+
+Nothing on `ResourceTransformer` changed signature, so unlike the transformer above there is no loud half to warn you.
+
+**Migrating an override.** Two paths, in order of preference:
+
+1. **Override `resolveModelClass()`**, still `protected` on `ResourceTransformer` and the single seam all four methods now sit behind. Set `$this->modelClass` and return `$this`:
+
+```php
+protected function resolveModelClass(): self
+{
+    parent::resolveModelClass();
+
+    $this->modelClass ??= MyConvention::modelFor($this->reflectionResource);
+
+    return $this;
+}
+```
+
+2. **Bind a replacement for `ModelClassResolver`.** The pipeline resolves it from the container on every transform, so `$this->app->bind(ModelClassResolver::class, MyResolver::class)` in a service provider takes effect — but note it is auto-wired rather than registered, so there is no existing binding to decorate, and because the class is `final` a replacement cannot extend it. It must supply its own `resolve(ReflectionClass $resource): ?string`.
+
+:::
+
 Each feature also has its own `*.template` config key (`models.template`, `enums.template`, `routes.template`, `form_requests.template`, `broadcast_channels.template`, and `broadcast_events.template` / `index_template` / `echo_augmentation.template`) pointing at the Blade view responsible for that feature's output syntax — see [Publishing & Editing Templates](#publishing-editing-templates).
 
 ### Shared & Combined Writers
@@ -50,6 +93,49 @@ A few writers aren't tied to a single feature — they combine already-transform
 ### Features Without a Swappable Pipeline
 
 Inertia and Vite Env are **not** part of this swappable pipeline — they have their own dedicated analysis logic (reading the `HandleInertiaRequests` middleware, or parsing `.env`) and only expose filename/output-directory config, with no `*_class` override keys. See [Inertia](./inertia.md) and [Vite Env](./vite-env.md) for their configuration options.
+
+::: warning `InertiaSharedDataAnalyzer` changed shape
+There is no config key for it, but the class is resolved from the container, so a subclass bound in a service provider is a real (if undocumented) override point. [Shared data](./inertia.md) is now typed by the package's own [analyzer](./analyzer-api.md) instead of Surveyor/Ranger, and the class changed with it.
+
+**Fails quietly — check these by hand:**
+
+- **The constructor no longer takes a `Laravel\Ranger\Collectors\InertiaSharedData`.** PHP ignores extra arguments passed to a class with no declared constructor, so `new InertiaSharedDataAnalyzer($collector)` keeps working and silently discards the collector.
+- **`analyze()` returns `null` when no `Inertia\Middleware` subclass is discovered**, not when a collector came back empty.
+- **`setAppPaths()` keeps its signature but no longer forwards to a collector.** It only records the paths `discoverMiddlewareClass()` scans, so an override that decorated the forwarding call now decorates nothing.
+- **`buildTypeStringWithOverrides()` keeps its signature but not its argument shape.** Both parameters are now `array<string, array{type: string, optional: bool}>`; the first used to hold Surveyor `Type` objects, and the second plain type strings.
+- **The result array gained a required `typeImports` key.** Anything constructing that array by hand — a test double, a subclass that builds its own result — must supply it, or the Blade template renders against an undefined variable.
+
+**Fails loudly at class load:**
+
+- **`buildResult()` is now `buildResult(string $middlewareClass)`** — the `SharedDataComponent` argument is gone.
+
+New protected members a subclass can hook: `resolveWithAllErrors()`, `collectProps()`, `buildTypeImports()`, `forgetOverriddenChannels()`, and the `FRAMEWORK_OWNED_PROPS` constant that keeps `errors` out of the inferred shape.
+:::
+
+::: warning `InertiaPageAnalyzer` changed shape
+Same situation as the shared-data analyzer above: no config key, but it is resolved from the container, so a subclass bound in a service provider is a real (if undocumented) override point. Per-route [page props](./routing.md#inertia-integration) are now typed by the package's own [analyzer](./analyzer-api.md) instead of Surveyor/Ranger, and this class was rewritten around that.
+
+**Fails loudly:** the constructor no longer takes a `Laravel\Ranger\Collectors\Response`. Its single parameter is an optional `InertiaTableAnalyzer` override, so `new InertiaPageAnalyzer($collector)` raises a `TypeError` the moment it runs. Construct it with no arguments.
+
+**Fails quietly — check these by hand:**
+
+- **The four type-string rewrite passes are gone**: `rewritePaginatorGenerics()`, `rewritePaginatedResourceProps()`, `rewritePaginatedStaticCollectionProps()` and `rewriteResourceCollections()`, along with `buildPageType()` and `resolveSingularResourceFqcn()`. Paginators and resource collections are resolved from the props expression itself now, so an override of any of them is dead code rather than an error.
+- **`buildTypeStringWithOverrides()` keeps its signature but not its argument shape.** Its first parameter is now `array<string, array{type: string, optional: bool}>`, where it used to hold Surveyor `Type` objects.
+- **`buildPageData()` takes different arguments**: the per-component branch analyses, the analyzer they were produced by, and the `#[TsCasts]` overrides and import map — not a list of Ranger `InertiaResponse` objects and five prop-key maps.
+
+**Also removed:** `InertiaTableAnalyzer::isTainted()` and `resolveComponent()`, and the whole table-taint family behind them. A controller that renders an Inertia UI Table no longer loses page types on its sibling actions — see [Sibling Actions on a Table Controller](./routing.md#sibling-actions-on-a-table-controller).
+
+New protected members a subclass can hook: `analyzeAction()`, `analyzerFor()`, `collectComponentBranches()`, `analyzeProps()`, `propsArrayLiterals()`, `analyzeDelegatedProps()`, `collectProps()`, `usedFqcns()` and `forgetOverriddenChannels()`.
+:::
+
+::: warning Two classes were removed outright
+
+Neither had a config key, but both were `public` API in the loosest sense — importable, and referenced by at least one real integration. Both fail loudly, immediately.
+
+- **`Analyzers\Inertia\ControllerPaginatorAnalyzer` is deleted.** It existed to recover paginator and resource-collection shapes that the old type-string rewrite passes could not, and it became callerless once page props moved onto the engine — paginators are resolved from the props expression itself now. Any `use` of it is a fatal `Class "…\ControllerPaginatorAnalyzer" not found`.
+- **`Analyzers\SurveyorTypeMapper` is deleted, and its `TOLKI_TYPES_MAP` constant is renamed.** The map of PHP classes that `@tolki/types` declares TypeScript types for now lives at `Support\TolkiTypes::MAP`, on a class that does nothing else. Replace `SurveyorTypeMapper::TOLKI_TYPES_MAP` with `TolkiTypes::MAP`; the contents are unchanged. The rest of that class went with Surveyor.
+
+:::
 
 ## Abstract Base Classes
 
