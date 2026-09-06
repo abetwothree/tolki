@@ -1,5 +1,26 @@
 # @tolki/str
 
+## 1.5.0
+
+### Minor Changes
+
+- b506146: Three more fluent string methods from Laravel's `Stringable` are now available on `Str.of()`.
+  - `basename()` returns the last part of a path, and can strip a suffix such as a file extension: `Str.of("/app/Models/User.php").basename(".php")` gives `"User"`.
+  - `dirname()` returns the parent directory of a path, optionally climbing several levels: `Str.of("/app/Models/User.php").dirname(2)` gives `"/app"`. Asking for fewer than one level throws, as PHP does.
+  - `dump()` logs the string (plus any extra values you pass) to the console and returns the same instance, so it can be dropped into the middle of a chain while debugging.
+
+  Both path helpers work on `/`-separated paths the way PHP's `basename()` and `dirname()` do.
+
+### Patch Changes
+
+- Updated dependencies [635eb67]
+- Updated dependencies [72bafff]
+- Updated dependencies [c10a894]
+- Updated dependencies [87e0087]
+- Updated dependencies [6e25bc3]
+- Updated dependencies [9858cd0]
+  - @tolki/utils@1.3.0
+
 ## 1.4.0
 
 ### Minor Changes
