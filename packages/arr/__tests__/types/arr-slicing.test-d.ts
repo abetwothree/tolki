@@ -49,51 +49,6 @@ describe("arr slicing type tests", () => {
         });
     });
 
-    describe("splice", () => {
-        it("preserves string element type in value and removed", () => {
-            expectTypeOf(Arr.splice(["foo", "baz"], 1, 1)).toEqualTypeOf<{
-                value: string[];
-                removed: string[];
-            }>();
-        });
-
-        it("preserves string element type with a replacement", () => {
-            expectTypeOf(
-                Arr.splice(["foo", "baz"], 1, 1, "bar"),
-            ).toEqualTypeOf<{
-                value: string[];
-                removed: string[];
-            }>();
-        });
-
-        it("preserves number element type without a length", () => {
-            expectTypeOf(Arr.splice([1, 2, 3], 1)).toEqualTypeOf<{
-                value: number[];
-                removed: number[];
-            }>();
-        });
-
-        it("preserves object element type", () => {
-            expectTypeOf(Arr.splice(idObjects, 0, 1)).toEqualTypeOf<{
-                value: { id: number }[];
-                removed: { id: number }[];
-            }>();
-        });
-
-        it("destructures into typed value and removed", () => {
-            const { value, removed } = Arr.splice([1, 2], 0, 1);
-            expectTypeOf(value).toEqualTypeOf<number[]>();
-            expectTypeOf(removed).toEqualTypeOf<number[]>();
-        });
-
-        it("accepts a readonly array", () => {
-            expectTypeOf(Arr.splice(readonlyStrings, 0, 1)).toEqualTypeOf<{
-                value: string[];
-                removed: string[];
-            }>();
-        });
-    });
-
     describe("pad", () => {
         it("returns the array unchanged when already at the target size", () => {
             expectTypeOf(Arr.pad([1, 2, 3], 5, 0)).toEqualTypeOf<number[]>();

@@ -43,6 +43,17 @@ export default defineConfig([
         extends: ["json/recommended"],
     },
     {
+        // PHP's own JSON_PRETTY_PRINT transcripts, left byte-for-byte as emit() wrote
+        // them. Only json/no-empty-keys is disabled, not the whole ruleset, so JSON
+        // parse/duplicate-key checks still catch a corrupted transcript.
+        files: ["docs/php-parity/**/*.json"],
+        plugins: { json },
+        language: "json/json",
+        rules: {
+            "json/no-empty-keys": "off",
+        },
+    },
+    {
         files: ["**/*.jsonc"],
         plugins: { json },
         language: "json/jsonc",

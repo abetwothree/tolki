@@ -152,3 +152,5 @@ pnpm-publish-summary.json
 .codex
 skills-lock.json
 docs/superpowers
+# SDD execution scratch (ledger, briefs, review packages)
+.superpowers

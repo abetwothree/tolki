@@ -1,13 +1,17 @@
 import type { PropertyName, ProxyTarget } from "@tolki/types";
 
 export function initProxyHandler<TValue>() {
-    const handler: ProxyHandler<ProxyTarget> = {
+    // `ProxyTarget` only guarantees "some object" (a `Proxy` target must be
+    // one). This handler is written for a target that also carries the
+    // items collection it proxies through to, matching `Collection`'s
+    // internal `items: TValue[] | Record<TKey, TValue>` shape.
+    type Target = ProxyTarget & {
+        items: TValue[] | Record<PropertyName, TValue>;
+    };
+
+    const handler: ProxyHandler<Target> = {
         // Intercept property access
-        get: (
-            target: ProxyTarget,
-            property: PropertyName,
-            receiver: unknown,
-        ) => {
+        get: (target: Target, property: PropertyName, receiver: unknown) => {
             // Handle numeric/index access for arrays
             if (typeof property === "string" && !isNaN(Number(property))) {
                 // const index = Number(property);
@@ -55,7 +59,7 @@ export function initProxyHandler<TValue>() {
 
         // Intercept property assignment
         set: (
-            target: ProxyTarget,
+            target: Target,
             property: PropertyName,
             value: unknown,
             receiver: unknown,
@@ -102,7 +106,7 @@ export function initProxyHandler<TValue>() {
         },
 
         // Intercept 'in' operator
-        has: (target: ProxyTarget, property: PropertyName): boolean => {
+        has: (target: Target, property: PropertyName): boolean => {
             if (typeof property === "string") {
                 // Check numeric indices
                 if (!isNaN(Number(property))) {
@@ -123,7 +127,7 @@ export function initProxyHandler<TValue>() {
         },
 
         // Intercept Object.keys(), for...in, etc.
-        ownKeys: (target: ProxyTarget): Array<PropertyName> => {
+        ownKeys: (target: Target): Array<PropertyName> => {
             const itemKeys = Object.keys(target.items).map(
                 (key) => key as PropertyName,
             );
@@ -136,7 +140,7 @@ export function initProxyHandler<TValue>() {
 
         // Intercept property descriptor access
         getOwnPropertyDescriptor: (
-            target: ProxyTarget,
+            target: Target,
             property: PropertyName,
         ): PropertyDescriptor | undefined => {
             if (typeof property === "string") {

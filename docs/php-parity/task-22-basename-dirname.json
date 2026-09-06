@@ -1,0 +1,149 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-17-g5ba4bc5495"
+    },
+    "probes": [
+        {
+            "label": "basename: trailing name of a directory path",
+            "php": "Str::of('/framework/tests/Support')->basename('')",
+            "value": "Support"
+        },
+        {
+            "label": "basename: file name with extension",
+            "php": "Str::of('/framework/src/Str.php')->basename('')",
+            "value": "Str.php"
+        },
+        {
+            "label": "basename: file name with the suffix removed",
+            "php": "Str::of('/framework/src/Str.php')->basename('.php')",
+            "value": "Str"
+        },
+        {
+            "label": "basename: root alone is empty",
+            "php": "Str::of('/')->basename('')",
+            "value": ""
+        },
+        {
+            "label": "basename: empty path",
+            "php": "Str::of('')->basename('')",
+            "value": ""
+        },
+        {
+            "label": "basename: trailing slash is ignored",
+            "php": "Str::of('foo/')->basename('')",
+            "value": "foo"
+        },
+        {
+            "label": "basename: repeated trailing slashes ignored",
+            "php": "Str::of('/foo//')->basename('')",
+            "value": "foo"
+        },
+        {
+            "label": "basename: suffix equal to the whole name stays",
+            "php": "Str::of('.php')->basename('.php')",
+            "value": ".php"
+        },
+        {
+            "label": "basename: suffix equal to the whole file name stays",
+            "php": "Str::of('Str.php')->basename('Str.php')",
+            "value": "Str.php"
+        },
+        {
+            "label": "basename: dotfile is its own name",
+            "php": "Str::of('dir/.hidden')->basename('')",
+            "value": ".hidden"
+        },
+        {
+            "label": "basename: only the last suffix is removed",
+            "php": "Str::of('a/b/c.tar.gz')->basename('.gz')",
+            "value": "c.tar"
+        },
+        {
+            "label": "basename: suffix is case-sensitive",
+            "php": "Str::of('file.PHP')->basename('.php')",
+            "value": "file.PHP"
+        },
+        {
+            "label": "basename: suffix absent leaves the name",
+            "php": "Str::of('foo')->basename('.php')",
+            "value": "foo"
+        },
+        {
+            "label": "dirname: parent of a file",
+            "php": "Str::of('/framework/src/Str.php')->dirname(1)",
+            "value": "/framework/src"
+        },
+        {
+            "label": "dirname: parent of a directory",
+            "php": "Str::of('/framework/tests/Support')->dirname(1)",
+            "value": "/framework/tests"
+        },
+        {
+            "label": "dirname: two levels up",
+            "php": "Str::of('/framework/tests/Support')->dirname(2)",
+            "value": "/framework"
+        },
+        {
+            "label": "dirname: root stays root",
+            "php": "Str::of('/')->dirname(1)",
+            "value": "/"
+        },
+        {
+            "label": "dirname: empty path stays empty",
+            "php": "Str::of('')->dirname(1)",
+            "value": ""
+        },
+        {
+            "label": "dirname: bare name has dot parent",
+            "php": "Str::of('foo')->dirname(1)",
+            "value": "."
+        },
+        {
+            "label": "dirname: top-level file has root parent",
+            "php": "Str::of('/foo')->dirname(1)",
+            "value": "/"
+        },
+        {
+            "label": "dirname: dot stays dot",
+            "php": "Str::of('.')->dirname(1)",
+            "value": "."
+        },
+        {
+            "label": "dirname: dot-dot becomes dot",
+            "php": "Str::of('..')->dirname(1)",
+            "value": "."
+        },
+        {
+            "label": "dirname: trailing slash is ignored",
+            "php": "Str::of('/a/b/c/')->dirname(1)",
+            "value": "/a/b"
+        },
+        {
+            "label": "dirname: repeated slashes collapse",
+            "php": "Str::of('a//b')->dirname(1)",
+            "value": "a"
+        },
+        {
+            "label": "dirname: levels beyond the top stop at dot",
+            "php": "Str::of('a/b/c')->dirname(5)",
+            "value": "."
+        },
+        {
+            "label": "dirname: levels reach the root",
+            "php": "Str::of('/a/b/c')->dirname(3)",
+            "value": "/"
+        },
+        {
+            "label": "dirname: relative levels reach dot",
+            "php": "Str::of('a/b/c')->dirname(3)",
+            "value": "."
+        },
+        {
+            "label": "dirname: levels below one throws",
+            "php": "Str::of('a')->dirname(0)",
+            "threw": "ValueError",
+            "message": "dirname(): Argument #2 ($levels) must be greater than or equal to 1"
+        }
+    ]
+}

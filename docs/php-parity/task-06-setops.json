@@ -1,0 +1,165 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-17-g5ba4bc5495"
+    },
+    "probes": [
+        {
+            "label": "intersect \u2014 values only, left keys",
+            "php": "$c->intersect([...])",
+            "value": {
+                "first_word": "Hello"
+            }
+        },
+        {
+            "label": "diff \u2014 values only",
+            "php": "$c->diff([\"x\"=>\"Hello\"])",
+            "value": {
+                "id": 1
+            }
+        },
+        {
+            "label": "diff is case-sensitive",
+            "php": "$c->diff([...])",
+            "value": [
+                "en_GB",
+                "fr",
+                "HR"
+            ]
+        },
+        {
+            "label": "intersect(null)",
+            "php": "$c->intersect(null)",
+            "value": []
+        },
+        {
+            "label": "intersectAssoc \u2014 key AND value",
+            "php": "$c->intersectAssoc([...])",
+            "value": {
+                "a": "green"
+            }
+        },
+        {
+            "label": "intersectByKeys(null)",
+            "php": "$c->intersectByKeys(null)",
+            "value": []
+        },
+        {
+            "label": "intersectAssoc(null)",
+            "php": "$c->intersectAssoc(null)",
+            "value": []
+        },
+        {
+            "label": "intersectAssocUsing(null)",
+            "php": "$c->intersectAssocUsing(null, $cb)",
+            "value": []
+        },
+        {
+            "label": "diffAssoc \u2014 key AND value (must stay unchanged)",
+            "php": "$c->diffAssoc([...])",
+            "value": {
+                "id": 1,
+                "first_word": "Hello"
+            }
+        },
+        {
+            "label": "diffAssoc \u2014 case-sensitive keys (must stay unchanged)",
+            "php": "$c->diffAssoc([...])",
+            "value": {
+                "a": "green",
+                "b": "brown",
+                "c": "blue",
+                "0": "red"
+            }
+        },
+        {
+            "label": "diff(null) returns items unchanged",
+            "php": "$c->diff(null)",
+            "value": {
+                "id": 1,
+                "first_word": "Hello"
+            }
+        },
+        {
+            "label": "intersect on array-backed collection",
+            "php": "$c->intersect([2,4,6])",
+            "value": {
+                "1": 2,
+                "3": 4
+            }
+        },
+        {
+            "label": "diff on array-backed collection",
+            "php": "$c->diff([2,4])",
+            "value": {
+                "0": 1,
+                "2": 3
+            }
+        },
+        {
+            "label": "diffAssoc on array-backed collection",
+            "php": "$c->diffAssoc([1,9,3])",
+            "value": {
+                "1": 2
+            }
+        },
+        {
+            "label": "diff and intersect accept any array operand",
+            "php": "collect([\"a\"=>10,\"b\"=>20])->diff([20])",
+            "value": {
+                "assoc_diff_list": {
+                    "a": 10
+                },
+                "list_diff_assoc": [
+                    10
+                ],
+                "assoc_intersect_list": {
+                    "b": 2
+                },
+                "list_intersect_assoc": {
+                    "1": 20
+                },
+                "null_intersect": [],
+                "null_diff": []
+            }
+        },
+        {
+            "label": "intersectAssoc/intersectAssocUsing/intersectByKeys treat a nullish first operand as empty too",
+            "php": "collect(null)->intersectAssoc(...)",
+            "value": {
+                "null_intersect_assoc": [],
+                "null_intersect_assoc_using": [],
+                "null_intersect_by_keys": []
+            }
+        },
+        {
+            "label": "diff and intersect compare by string cast",
+            "php": "array_diff([0],[\"0\"])",
+            "value": {
+                "diff_int_string": [],
+                "diff_null_empty": [],
+                "diff_int_empty": [
+                    0
+                ],
+                "diff_int_exponential_string": [
+                    100
+                ],
+                "intersect_int_string": [
+                    0
+                ],
+                "intersect_int_empty": [],
+                "intersect_bool_one": [
+                    true
+                ],
+                "intersect_arrays": [
+                    {
+                        "id": 1
+                    },
+                    {
+                        "id": 2
+                    }
+                ]
+            }
+        }
+    ]
+}

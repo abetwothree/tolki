@@ -402,3 +402,14 @@ test("Full Model", () => {
 // const badTs: Timestamps = { created_at: 123, updated_at: null }; // wrong type
 // const badLink: PaginatorLink = { url: null, label: 1, active: false }; // label not string
 // const badAlias: AsSum<'price'> = 'price_total'; // wrong literal
+
+// -------------------------------------------------
+// ProxyTarget: a top-level `this` alias never type-checked
+// -------------------------------------------------
+
+import type { ProxyTarget } from "../src/collections";
+
+// A Proxy target must be an object; a top-level `this` alias never type-checked and skipLibCheck hid it.
+test("ProxyTarget", () => {
+    expectTypeOf<ProxyTarget>().toEqualTypeOf<object>();
+});

@@ -1,0 +1,330 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-17-g5ba4bc5495"
+    },
+    "probes": [
+        {
+            "label": "spaceship on two numeric strings, wider on the left",
+            "php": "\"10\" <=> \"9\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on numeric strings spelled differently",
+            "php": "\"1\" <=> \"01\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on an int and its numeric string",
+            "php": "1 <=> \"1\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on an int and a non-numeric string",
+            "php": "5 <=> \"abc\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on a non-numeric string and an int",
+            "php": "\"abc\" <=> 0",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a negative int and an empty string",
+            "php": "-1 <=> \"\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on null and a non-numeric string",
+            "php": "null <=> \"abc\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on null and the string zero",
+            "php": "null <=> \"0\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on null and a positive int",
+            "php": "null <=> 5",
+            "value": -1
+        },
+        {
+            "label": "spaceship on null and an empty array",
+            "php": "null <=> []",
+            "value": 0
+        },
+        {
+            "label": "spaceship on false and a non-numeric string",
+            "php": "false <=> \"abc\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on false and a negative int",
+            "php": "false <=> -1",
+            "value": -1
+        },
+        {
+            "label": "spaceship on true and a positive int",
+            "php": "true <=> 5",
+            "value": 0
+        },
+        {
+            "label": "spaceship on true and an empty string",
+            "php": "true <=> \"\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on true and the string zero",
+            "php": "true <=> \"0\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on null and zero",
+            "php": "null <=> 0",
+            "value": 0
+        },
+        {
+            "label": "spaceship on null and an empty string",
+            "php": "null <=> \"\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on null and a one-element array",
+            "php": "null <=> [1]",
+            "value": -1
+        },
+        {
+            "label": "spaceship on true and false",
+            "php": "true <=> false",
+            "value": 1
+        },
+        {
+            "label": "spaceship on false and an empty array",
+            "php": "false <=> []",
+            "value": 0
+        },
+        {
+            "label": "spaceship on an int and a one-element array",
+            "php": "5 <=> [1]",
+            "value": -1
+        },
+        {
+            "label": "spaceship on a one-element array and an int",
+            "php": "[1] <=> 5",
+            "value": 1
+        },
+        {
+            "label": "Arr::sort orders numeric strings numerically",
+            "php": "Arr::sort([\"9\",\"10\",\"1\",5])",
+            "value": [
+                "1",
+                5,
+                "9",
+                "10"
+            ]
+        },
+        {
+            "label": "Arr::sortDesc orders numeric strings numerically",
+            "php": "Arr::sortDesc([\"9\",\"10\",\"1\",5])",
+            "value": [
+                "10",
+                "9",
+                5,
+                "1"
+            ]
+        },
+        {
+            "label": "Collection::sort orders numeric strings numerically",
+            "php": "collect([\"9\",\"10\",\"1\",5])->sort()->values()",
+            "value": [
+                "1",
+                5,
+                "9",
+                "10"
+            ]
+        },
+        {
+            "label": "Collection::sortDesc orders numeric strings numerically",
+            "php": "collect([\"9\",\"10\",\"1\",5])->sortDesc()->values()",
+            "value": [
+                "10",
+                "9",
+                5,
+                "1"
+            ]
+        },
+        {
+            "label": "Collection::sortBy(null) orders numeric strings numerically",
+            "php": "collect([\"9\",\"10\",\"1\",5])->sortBy(null)->values()",
+            "value": [
+                "1",
+                5,
+                "9",
+                "10"
+            ]
+        },
+        {
+            "label": "Collection::sortByDesc(null) orders numeric strings numerically",
+            "php": "collect([\"9\",\"10\",\"1\",5])->sortByDesc(null)->values()",
+            "value": [
+                "10",
+                "9",
+                5,
+                "1"
+            ]
+        },
+        {
+            "label": "Arr::sort by key orders numeric strings numerically",
+            "php": "Arr::sort($rows, \"n\")",
+            "value": [
+                {
+                    "n": "1"
+                },
+                {
+                    "n": 5
+                },
+                {
+                    "n": "9"
+                },
+                {
+                    "n": "10"
+                }
+            ]
+        },
+        {
+            "label": "Collection::sortBy([key]) orders numeric strings numerically",
+            "php": "collect($rows)->sortBy([\"n\"])->pluck(\"n\")",
+            "value": [
+                "1",
+                5,
+                "9",
+                "10"
+            ]
+        },
+        {
+            "label": "asort ties zero and null, keeping insertion order",
+            "php": "asort([\"user1\"=>0,\"user2\"=>null,\"user3\"=>25])",
+            "value": [
+                "user1",
+                "user2",
+                "user3"
+            ]
+        },
+        {
+            "label": "asort ties null and an empty array, keeping insertion order",
+            "php": "asort([\"user2\"=>null,\"user4\"=>[],...])",
+            "value": [
+                "user2",
+                "user3",
+                "user1",
+                "user0",
+                "user4"
+            ]
+        },
+        {
+            "label": "arsort over the same null and empty-array fixture",
+            "php": "arsort([\"user2\"=>null,\"user4\"=>[],...])",
+            "value": [
+                "user0",
+                "user1",
+                "user3",
+                "user2",
+                "user4"
+            ]
+        },
+        {
+            "label": "spaceship on integer strings one apart past 2^53",
+            "php": "\"9007199254740993\" <=> \"9007199254740992\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on integer strings one apart past 2^53, ascending",
+            "php": "\"9007199254740993\" <=> \"9007199254740994\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on negative integer strings past 2^53",
+            "php": "\"-9007199254740993\" <=> \"-9007199254740992\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on integer strings past the int64 range",
+            "php": "\"99999999999999999999\" <=> \"99999999999999999998\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a leading-zero integer string that is larger",
+            "php": "\"0000123\" <=> \"99\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a leading-zero integer string that is smaller",
+            "php": "\"00001\" <=> \"99\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on a whitespace-padded integer string",
+            "php": "\" 42 \" <=> \"42\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on exponent strings that overflow to infinity",
+            "php": "\"1e400\" <=> \"1e401\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on identical exponent strings that overflow",
+            "php": "\"1e400\" <=> \"1e400\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on decimal strings spelled differently",
+            "php": "\"1.5\" <=> \"1.50\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on an integer string and a decimal string",
+            "php": "\"42\" <=> \"1.5\"",
+            "value": 1
+        },
+        {
+            "label": "asort over a keyed mix of numeric strings and an int",
+            "php": "asort([\"a\"=>\"9\",\"b\"=>\"10\",\"c\"=>\"1\",\"d\"=>5])",
+            "value": [
+                "1",
+                5,
+                "9",
+                "10"
+            ]
+        },
+        {
+            "label": "arsort over a keyed mix of numeric strings and an int",
+            "php": "arsort([\"a\"=>\"9\",\"b\"=>\"10\",\"c\"=>\"1\",\"d\"=>5])",
+            "value": [
+                "10",
+                "9",
+                5,
+                "1"
+            ]
+        },
+        {
+            "label": "whereNotBetween over numeric strings and falsy values",
+            "php": "collect($between)->whereNotBetween(\"v\",[\"1\",\"5\"])->pluck(\"v\")",
+            "value": [
+                "9",
+                "10",
+                null,
+                0
+            ]
+        },
+        {
+            "label": "whereBetween over the same items",
+            "php": "collect($between)->whereBetween(\"v\",[\"1\",\"5\"])->pluck(\"v\")",
+            "value": [
+                "1",
+                5
+            ]
+        }
+    ]
+}

@@ -7,3 +7,8 @@ dist/
 node_modules/# Ignore artifacts:
 build
 coverage
+
+# Captured PHP parity transcripts must stay byte-identical to PHP's own
+# JSON_PRETTY_PRINT output (see scripts/php-parity/README.md) so a Laravel
+# upgrade shows up as a real diff, not a Prettier reformat.
+docs/php-parity/

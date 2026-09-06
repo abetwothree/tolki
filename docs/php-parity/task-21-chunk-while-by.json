@@ -1,0 +1,419 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-17-g5ba4bc5495"
+    },
+    "probes": [
+        {
+            "label": "chunkWhile on equal adjacent elements",
+            "php": "['A','A','B','B','C','C','C'] chunkWhile(last === current)",
+            "value": [
+                [
+                    "A",
+                    "A"
+                ],
+                {
+                    "2": "B",
+                    "3": "B"
+                },
+                {
+                    "4": "C",
+                    "5": "C",
+                    "6": "C"
+                }
+            ]
+        },
+        {
+            "label": "chunkWhile on contiguously increasing integers",
+            "php": "[1,4,9,10,11,12,15,16,19,20,21] chunkWhile(last + 1 == current)",
+            "value": [
+                [
+                    1
+                ],
+                {
+                    "1": 4
+                },
+                {
+                    "2": 9,
+                    "3": 10,
+                    "4": 11,
+                    "5": 12
+                },
+                {
+                    "6": 15,
+                    "7": 16
+                },
+                {
+                    "8": 19,
+                    "9": 20,
+                    "10": 21
+                }
+            ]
+        },
+        {
+            "label": "chunkWhile preserving string keys",
+            "php": "['a'=>1,'b'=>1,'c'=>2,'d'=>2,'e'=>3,'f'=>3,'g'=>3] chunkWhile(last === current)",
+            "value": [
+                {
+                    "a": 1,
+                    "b": 1
+                },
+                {
+                    "c": 2,
+                    "d": 2
+                },
+                {
+                    "e": 3,
+                    "f": 3,
+                    "g": 3
+                }
+            ]
+        },
+        {
+            "label": "chunkWhile on an empty collection",
+            "php": "[] chunkWhile(true)",
+            "value": []
+        },
+        {
+            "label": "chunkWhile on a single item never calls back",
+            "php": "[5] chunkWhile(false)",
+            "value": [
+                [
+                    5
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile always false splits every item",
+            "php": "[1,2,3] chunkWhile(false)",
+            "value": [
+                [
+                    1
+                ],
+                {
+                    "1": 2
+                },
+                {
+                    "2": 3
+                }
+            ]
+        },
+        {
+            "label": "chunkWhile always true keeps one chunk",
+            "php": "[1,2,3] chunkWhile(true)",
+            "value": [
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile callback receives value, key and the chunk so far (list)",
+            "php": "[10,11,20] chunkWhile(record args)",
+            "value": [
+                [
+                    11,
+                    1,
+                    [
+                        10
+                    ]
+                ],
+                [
+                    20,
+                    2,
+                    [
+                        10,
+                        11
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile callback receives value, key and the chunk so far (assoc)",
+            "php": "['x'=>10,'y'=>11,'z'=>20] chunkWhile(record args)",
+            "value": [
+                [
+                    11,
+                    "y",
+                    {
+                        "x": 10
+                    }
+                ],
+                [
+                    20,
+                    "z",
+                    {
+                        "x": 10,
+                        "y": 11
+                    }
+                ]
+            ]
+        },
+        {
+            "label": "chunkBy with a callback",
+            "php": "[1,1,2,2,3,3,3] chunkBy(identity)",
+            "value": [
+                [
+                    1,
+                    1
+                ],
+                {
+                    "2": 2,
+                    "3": 2
+                },
+                {
+                    "4": 3,
+                    "5": 3,
+                    "6": 3
+                }
+            ]
+        },
+        {
+            "label": "chunkBy with a null key falls back to identity comparison, like a callback",
+            "php": "[1,1,2,2,3] chunkBy(null)",
+            "value": [
+                [
+                    1,
+                    1
+                ],
+                {
+                    "2": 2,
+                    "3": 2
+                },
+                {
+                    "4": 3
+                }
+            ]
+        },
+        {
+            "label": "chunkBy with a string key",
+            "php": "products chunkBy('parent')",
+            "value": [
+                [
+                    {
+                        "parent": "a",
+                        "name": "1"
+                    },
+                    {
+                        "parent": "a",
+                        "name": "2"
+                    }
+                ],
+                {
+                    "2": {
+                        "parent": "b",
+                        "name": "3"
+                    },
+                    "3": {
+                        "parent": "b",
+                        "name": "4"
+                    }
+                },
+                {
+                    "4": {
+                        "parent": "a",
+                        "name": "5"
+                    }
+                }
+            ]
+        },
+        {
+            "label": "chunkBy with a bare string key (assoc)",
+            "php": "['p'=>['parent'=>'a'],'q'=>['parent'=>'a'],'r'=>['parent'=>'b']] chunkBy('parent')",
+            "value": [
+                {
+                    "p": {
+                        "parent": "a"
+                    },
+                    "q": {
+                        "parent": "a"
+                    }
+                },
+                {
+                    "r": {
+                        "parent": "b"
+                    }
+                }
+            ]
+        },
+        {
+            "label": "chunkBy preserves keys",
+            "php": "['a'=>1,'b'=>1,'c'=>2,'d'=>2,'e'=>1] chunkBy(identity)",
+            "value": [
+                {
+                    "a": 1,
+                    "b": 1
+                },
+                {
+                    "c": 2,
+                    "d": 2
+                },
+                {
+                    "e": 1
+                }
+            ]
+        },
+        {
+            "label": "chunkBy with dot notation (list of objects)",
+            "php": "[{address:{city:NY}},{\u2026NY},{\u2026LA}] chunkBy('address.city')",
+            "value": [
+                2,
+                1
+            ]
+        },
+        {
+            "label": "chunkBy with dot notation (assoc of arrays)",
+            "php": "['p'=>\u2026NY,'q'=>\u2026NY,'r'=>\u2026LA] chunkBy('address.city')",
+            "value": [
+                {
+                    "p": {
+                        "address": {
+                            "city": "NY"
+                        }
+                    },
+                    "q": {
+                        "address": {
+                            "city": "NY"
+                        }
+                    }
+                },
+                {
+                    "r": {
+                        "address": {
+                            "city": "LA"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "label": "chunkBy on an empty collection",
+            "php": "[] chunkBy('key')",
+            "value": []
+        },
+        {
+            "label": "chunkBy with a single item",
+            "php": "[['key'=>'a']] chunkBy('key')",
+            "value": [
+                [
+                    {
+                        "key": "a"
+                    }
+                ]
+            ]
+        },
+        {
+            "label": "chunkBy compares with loose ==",
+            "php": "[1,\"1\",2,\"2\",null,0,\"\",false,\"a\",\"A\"] chunkBy(identity)",
+            "value": [
+                [
+                    1,
+                    "1"
+                ],
+                {
+                    "2": 2,
+                    "3": "2"
+                },
+                {
+                    "4": null,
+                    "5": 0
+                },
+                {
+                    "6": "",
+                    "7": false
+                },
+                {
+                    "8": "a"
+                },
+                {
+                    "9": "A"
+                }
+            ]
+        },
+        {
+            "label": "chunkBy compares with loose == (assoc)",
+            "php": "['a'=>1,'b'=>'1','c'=>2,'d'=>'2','e'=>null,'f'=>0,'g'=>'','h'=>false,'i'=>'a','j'=>'A'] chunkBy(identity)",
+            "value": [
+                {
+                    "a": 1,
+                    "b": "1"
+                },
+                {
+                    "c": 2,
+                    "d": "2"
+                },
+                {
+                    "e": null,
+                    "f": 0
+                },
+                {
+                    "g": "",
+                    "h": false
+                },
+                {
+                    "i": "a"
+                },
+                {
+                    "j": "A"
+                }
+            ]
+        },
+        {
+            "label": "chunkBy on a key none of the items have",
+            "php": "[['x'=>1],['y'=>2],['x'=>1]] chunkBy('key')",
+            "value": [
+                [
+                    {
+                        "x": 1
+                    },
+                    {
+                        "y": 2
+                    },
+                    {
+                        "x": 1
+                    }
+                ]
+            ]
+        },
+        {
+            "label": "chunkBy callback receives the key too (assoc)",
+            "php": "['a'=>1,'b'=>1,'c'=>1] chunkBy(key === 'b' ? 'x' : 'y')",
+            "value": [
+                {
+                    "a": 1
+                },
+                {
+                    "b": 1
+                },
+                {
+                    "c": 1
+                }
+            ]
+        },
+        {
+            "label": "chunkBy callback receives the index too (list)",
+            "php": "[1,1,1] chunkBy(index === 1 ? \"x\" : \"y\")",
+            "value": [
+                [
+                    1
+                ],
+                {
+                    "1": 1
+                },
+                {
+                    "2": 1
+                }
+            ]
+        },
+        {
+            "label": "chunkBy outer keys are a list",
+            "php": "['a'=>1,'b'=>2] chunkBy(identity) keys",
+            "value": [
+                0,
+                1
+            ]
+        }
+    ]
+}

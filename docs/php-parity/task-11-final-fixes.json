@@ -1,0 +1,250 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-17-g5ba4bc5495"
+    },
+    "probes": [
+        {
+            "label": "unshift renumbers existing integer keys",
+            "php": "array_unshift([10,20,30,40],1,2)",
+            "value": [
+                1,
+                2,
+                10,
+                20,
+                30,
+                40
+            ]
+        },
+        {
+            "label": "unshift keeps string keys, prepends at 0",
+            "php": "array_unshift(['x'=>1,'y'=>2],9)",
+            "value": {
+                "0": 9,
+                "x": 1,
+                "y": 2
+            }
+        },
+        {
+            "label": "unshift on mixed keys: integers renumber, strings stay",
+            "php": "array_unshift([0=>'a','x'=>1,1=>'b'],9)",
+            "value": {
+                "0": 9,
+                "1": "a",
+                "x": 1,
+                "2": "b"
+            }
+        },
+        {
+            "label": "unshift via Collection",
+            "php": "collect([10,20,30,40])->unshift(1,2)",
+            "value": [
+                1,
+                2,
+                10,
+                20,
+                30,
+                40
+            ]
+        },
+        {
+            "label": "pad appends after the original entries",
+            "php": "array_pad([10,20,30,40],6,0)",
+            "value": [
+                10,
+                20,
+                30,
+                40,
+                0,
+                0
+            ]
+        },
+        {
+            "label": "pad with string keys numbers the pad slots from 0",
+            "php": "array_pad(['a'=>1,'b'=>2],4,0)",
+            "value": {
+                "a": 1,
+                "b": 2,
+                "0": 0,
+                "1": 0
+            }
+        },
+        {
+            "label": "pad with mixed keys continues past the highest integer key",
+            "php": "array_pad([0=>'a','x'=>1],4,'p')",
+            "value": {
+                "0": "a",
+                "x": 1,
+                "1": "p",
+                "2": "p"
+            }
+        },
+        {
+            "label": "negative pad numbers the pad slots first",
+            "php": "array_pad([10,20,30,40],-6,0)",
+            "value": [
+                0,
+                0,
+                10,
+                20,
+                30,
+                40
+            ]
+        },
+        {
+            "label": "pad via Collection",
+            "php": "collect([10,20,30,40])->pad(6,0)",
+            "value": [
+                10,
+                20,
+                30,
+                40,
+                0,
+                0
+            ]
+        },
+        {
+            "label": "reverse preserves keys and reverses entry order",
+            "php": "collect([10,20,30,40])->reverse()",
+            "value": {
+                "3": 40,
+                "2": 30,
+                "1": 20,
+                "0": 10
+            }
+        },
+        {
+            "label": "reverse on string keys",
+            "php": "collect(['a'=>1,'b'=>2,'c'=>3])->reverse()",
+            "value": {
+                "c": 3,
+                "b": 2,
+                "a": 1
+            }
+        },
+        {
+            "label": "flatten at a finite depth descends exactly that many levels",
+            "php": "Arr::flatten([1,[2,[3]]],2)",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "flatten depth 1 stops one level down",
+            "php": "Arr::flatten([1,[2,[3]]],1)",
+            "value": [
+                1,
+                2,
+                [
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "flatten depth 0 keeps descending (only 1 stops it)",
+            "php": "Arr::flatten([1,[2,[3]]],0)",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "flatten ignores keys at every level",
+            "php": "Arr::flatten(['a'=>1,'b'=>['c'=>2,'d'=>['e'=>3]]],2)",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "add stores a string key on a list",
+            "php": "Arr::add(['a','b'],'length','X')",
+            "value": {
+                "0": "a",
+                "1": "b",
+                "length": "X"
+            }
+        },
+        {
+            "label": "add stores any other string key on a list",
+            "php": "Arr::add(['a','b'],'foo','X')",
+            "value": {
+                "0": "a",
+                "1": "b",
+                "foo": "X"
+            }
+        },
+        {
+            "label": "only accepts a bare scalar key",
+            "php": "Arr::only([10,20,30,40],1)",
+            "value": {
+                "1": 20
+            }
+        },
+        {
+            "label": "only casts a null key to an empty key list",
+            "php": "Arr::only([10,20,30,40],null)",
+            "value": []
+        },
+        {
+            "label": "union treats null as an empty operand",
+            "php": "collect([10,20])->union(null)",
+            "value": [
+                10,
+                20
+            ]
+        },
+        {
+            "label": "sortBy with no comparisons leaves the order alone",
+            "php": "collect([3,1,2])->sortBy([])",
+            "value": [
+                3,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "sort with no comparisons leaves the order alone",
+            "php": "Arr::sort([3,1,2],[])",
+            "value": [
+                3,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "splice inserts a scalar replacement as one element",
+            "php": "collect([10,20,30,40])->splice(1,2,99)",
+            "value": {
+                "removed": [
+                    20,
+                    30
+                ],
+                "remaining": [
+                    10,
+                    99,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "splice with a scalar replacement on string keys",
+            "php": "collect(['a'=>1,'b'=>2,'c'=>3,'d'=>4])->splice(1,2,99)",
+            "value": {
+                "removed": {
+                    "b": 2,
+                    "c": 3
+                },
+                "remaining": {
+                    "a": 1,
+                    "0": 99,
+                    "d": 4
+                }
+            }
+        }
+    ]
+}

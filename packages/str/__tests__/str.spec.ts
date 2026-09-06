@@ -204,84 +204,200 @@ describe("Str tests", () => {
     });
 
     describe("chopStart", () => {
-        it("Laravel tests", () => {
-            const data: [string, string | string[], string][] = [
-                // Empty string needle tests
-                ["", "", ""],
-                ["Laravel", "", "Laravel"],
-                ["Ship it", ["", "Ship "], "it"],
-                // Standard tests
-                ["http://laravel.com", "http://", "laravel.com"],
-                ["http://-http://", "http://", "-http://"],
-                ["http://laravel.com", "htp:/", "http://laravel.com"],
-                ["http://laravel.com", "http://www.", "http://laravel.com"],
-                ["http://laravel.com", "-http://", "http://laravel.com"],
-                ["http://laravel.com", ["https://", "http://"], "laravel.com"],
-                [
-                    "http://www.laravel.com",
-                    ["http://", "www."],
-                    "www.laravel.com",
-                ],
-                ["http://http-is-fun.test", "http://", "http-is-fun.test"],
-                // Multibyte emoji tests
-                ["🌊✋", "🌊", "✋"],
-                ["🌊✋", "✋", "🌊✋"],
-                ["🚀🌟💫", "🚀", "🌟💫"],
-                ["🚀🌟💫", "🚀🌟", "💫"],
-                // Multibyte character tests (Japanese, Chinese, Arabic, etc.)
-                ["こんにちは世界", "こんにちは", "世界"],
-                ["你好世界", "你好", "世界"],
-                ["مرحبا بك", "مرحبا ", "بك"],
-                // Mixed multibyte and ASCII
-                ["🎉Laravel", "🎉", "Laravel"],
-                ["Hello🌍World", "Hello🌍", "World"],
-                // Multiple needle array with multibyte
-                ["🌊✋🎉", ["🚀", "🌊"], "✋🎉"],
-                ["こんにちは世界", ["Hello", "こんにちは"], "世界"],
-            ];
-
-            data.forEach(([input, chop, expected]) => {
-                expect(Str.chopStart(input, chop)).toBe(expected);
-            });
+        it.each<[string, string, string | string[], string]>([
+            ["empty subject and needle", "", "", ""],
+            ["empty needle leaves subject", "Laravel", "", "Laravel"],
+            [
+                "first matching needle from array is removed",
+                "Ship it",
+                ["", "Ship "],
+                "it",
+            ],
+            [
+                "standard http prefix removed",
+                "http://laravel.com",
+                "http://",
+                "laravel.com",
+            ],
+            [
+                "prefix only removed once at start",
+                "http://-http://",
+                "http://",
+                "-http://",
+            ],
+            [
+                "non-matching partial prefix is ignored",
+                "http://laravel.com",
+                "htp:/",
+                "http://laravel.com",
+            ],
+            [
+                "different non-matching prefix is ignored",
+                "http://laravel.com",
+                "http://www.",
+                "http://laravel.com",
+            ],
+            [
+                "prefix not at start is ignored",
+                "http://laravel.com",
+                "-http://",
+                "http://laravel.com",
+            ],
+            [
+                "matching prefix selected from array",
+                "http://laravel.com",
+                ["https://", "http://"],
+                "laravel.com",
+            ],
+            [
+                "first matching prefix in ordered array used",
+                "http://www.laravel.com",
+                ["http://", "www."],
+                "www.laravel.com",
+            ],
+            [
+                "http removed from complex host",
+                "http://http-is-fun.test",
+                "http://",
+                "http-is-fun.test",
+            ],
+            ["emoji prefix removed", "🌊✋", "🌊", "✋"],
+            [
+                "emoji needle without prefix match is ignored",
+                "🌊✋",
+                "✋",
+                "🌊✋",
+            ],
+            ["first emoji removed from emoji sequence", "🚀🌟💫", "🚀", "🌟💫"],
+            ["multibyte emoji sequence prefix removed", "🚀🌟💫", "🚀🌟", "💫"],
+            ["japanese prefix removed", "こんにちは世界", "こんにちは", "世界"],
+            ["chinese prefix removed", "你好世界", "你好", "世界"],
+            ["arabic prefix removed", "مرحبا بك", "مرحبا ", "بك"],
+            [
+                "mixed emoji and ascii prefix removed",
+                "🎉Laravel",
+                "🎉",
+                "Laravel",
+            ],
+            [
+                "mixed ascii and emoji prefix removed",
+                "Hello🌍World",
+                "Hello🌍",
+                "World",
+            ],
+            [
+                "multibyte prefix selected from array",
+                "🌊✋🎉",
+                ["🚀", "🌊"],
+                "✋🎉",
+            ],
+            [
+                "multibyte prefix selected from mixed array",
+                "こんにちは世界",
+                ["Hello", "こんにちは"],
+                "世界",
+            ],
+        ])("%s", (_label, subject, needle, expected) => {
+            expect(Str.chopStart(subject, needle)).toBe(expected);
         });
     });
 
     describe("chopEnd", () => {
-        it("Laravel tests", () => {
-            const data: [string, string | string[], string][] = [
-                // Empty string needle tests
-                ["", "", ""],
-                ["Laravel", "", "Laravel"],
-                ["Ship it", ["", " it"], "Ship"],
-                // Standard tests
-                ["path/to/file.php", ".php", "path/to/file"],
-                [".php-.php", ".php", ".php-"],
-                ["path/to/file.php", ".ph", "path/to/file.php"],
-                ["path/to/file.php", "foo.php", "path/to/file.php"],
-                ["path/to/file.php", ".php-", "path/to/file.php"],
-                ["path/to/file.php", [".html", ".php"], "path/to/file"],
-                ["path/to/file.php", [".php", "file"], "path/to/file"],
-                ["path/to/php.php", ".php", "path/to/php"],
-                // Multibyte emoji tests
-                ["✋🌊", "🌊", "✋"],
-                ["✋🌊", "✋", "✋🌊"],
-                ["🌟💫🚀", "🚀", "🌟💫"],
-                ["🌟💫🚀", "💫🚀", "🌟"],
-                // Multibyte character tests (Japanese, Chinese, Arabic, etc.)
-                ["世界こんにちは", "こんにちは", "世界"],
-                ["世界你好", "你好", "世界"],
-                ["بك مرحبا", " مرحبا", "بك"],
-                // Mixed multibyte and ASCII
-                ["Laravel🎉", "🎉", "Laravel"],
-                ["Hello🌍World", "World", "Hello🌍"],
-                // Multiple needle array with multibyte
-                ["🎉✋🌊", ["🚀", "🌊"], "🎉✋"],
-                ["世界こんにちは", ["Hello", "こんにちは"], "世界"],
-            ];
-
-            data.forEach(([input, chop, expected]) => {
-                expect(Str.chopEnd(input, chop)).toBe(expected);
-            });
+        it.each<[string, string, string | string[], string]>([
+            ["empty string with empty needle", "", "", ""],
+            ["empty needle leaves subject unchanged", "Laravel", "", "Laravel"],
+            [
+                "matching needle selected from array",
+                "Ship it",
+                ["", " it"],
+                "Ship",
+            ],
+            [
+                "file extension removed",
+                "path/to/file.php",
+                ".php",
+                "path/to/file",
+            ],
+            [
+                "suffix removed from repeated extension segment",
+                ".php-.php",
+                ".php",
+                ".php-",
+            ],
+            [
+                "partial non-matching suffix is ignored",
+                "path/to/file.php",
+                ".ph",
+                "path/to/file.php",
+            ],
+            [
+                "different non-matching suffix is ignored",
+                "path/to/file.php",
+                "foo.php",
+                "path/to/file.php",
+            ],
+            [
+                "near-matching suffix is ignored",
+                "path/to/file.php",
+                ".php-",
+                "path/to/file.php",
+            ],
+            [
+                "matching suffix selected from array",
+                "path/to/file.php",
+                [".html", ".php"],
+                "path/to/file",
+            ],
+            [
+                "first matching suffix in ordered array used",
+                "path/to/file.php",
+                [".php", "file"],
+                "path/to/file",
+            ],
+            [
+                "suffix removed from complex path",
+                "path/to/php.php",
+                ".php",
+                "path/to/php",
+            ],
+            ["emoji suffix removed", "✋🌊", "🌊", "✋"],
+            [
+                "emoji needle without suffix match is ignored",
+                "✋🌊",
+                "✋",
+                "✋🌊",
+            ],
+            ["last emoji removed from emoji sequence", "🌟💫🚀", "🚀", "🌟💫"],
+            ["multibyte emoji sequence suffix removed", "🌟💫🚀", "💫🚀", "🌟"],
+            ["japanese suffix removed", "世界こんにちは", "こんにちは", "世界"],
+            ["chinese suffix removed", "世界你好", "你好", "世界"],
+            ["arabic suffix removed", "بك مرحبا", " مرحبا", "بك"],
+            [
+                "mixed ascii and emoji suffix removed",
+                "Laravel🎉",
+                "🎉",
+                "Laravel",
+            ],
+            [
+                "mixed emoji and ascii suffix removed",
+                "Hello🌍World",
+                "World",
+                "Hello🌍",
+            ],
+            [
+                "multibyte suffix selected from array",
+                "🎉✋🌊",
+                ["🚀", "🌊"],
+                "🎉✋",
+            ],
+            [
+                "multibyte suffix selected from mixed array",
+                "世界こんにちは",
+                ["Hello", "こんにちは"],
+                "世界",
+            ],
+        ])("%s", (_label, subject, needle, expected) => {
+            expect(Str.chopEnd(subject, needle)).toBe(expected);
         });
     });
 
@@ -937,6 +1053,14 @@ describe("Str tests", () => {
             expect(Str.isUlid(id.toLowerCase())).toBe(true); // ULIDs are case-insensitive per spec
             expect(Str.isUlid("invalid-ulid")).toBe(false);
             expect(Str.isUlid(4746392)).toBe(false);
+        });
+
+        it("Laravel tests: a fixed ULID, a 25-character string, null and an array", () => {
+            expect(Str.isUlid("01ARZ3NDEKTSV4RRFFQ69G5FAV")).toBe(true);
+            expect(Str.isUlid("not-a-ulid")).toBe(false);
+            expect(Str.isUlid("01ARZ3NDEKTSV4RRFFQ69G5FA")).toBe(false);
+            expect(Str.isUlid(null)).toBe(false);
+            expect(Str.isUlid(["not", "a", "ulid"])).toBe(false);
         });
     });
 
@@ -1845,6 +1969,13 @@ describe("Str tests", () => {
             expect(Str.pluralStudly("This is my Laracon", 3)).toBe(
                 "This is my Laracons",
             );
+        });
+
+        it("Laravel tests: pluralises the last word only and leaves uncountables alone", () => {
+            expect(Str.pluralStudly("VerifiedHuman")).toBe("VerifiedHumans");
+            expect(Str.pluralStudly("UserFeedback")).toBe("UserFeedback");
+            expect(Str.pluralStudly("VerifiedHuman", 1)).toBe("VerifiedHuman");
+            expect(Str.pluralStudly("VerifiedHuman", 2)).toBe("VerifiedHumans");
         });
     });
 
@@ -3140,6 +3271,7 @@ describe("Str tests", () => {
             expect(Str.singular("apples")).toBe("apple");
             expect(Str.singular("children")).toBe("child");
             expect(Str.singular("mice")).toBe("mouse");
+            expect(Str.singular("Laracons")).toBe("Laracon");
         });
     });
 
@@ -4103,6 +4235,23 @@ describe("Str tests", () => {
             expect(Str.random()).not.toBe("custom-random");
             expect(Str.uuid()).not.toBe("custom-uuid");
             expect(Str.ulid()).not.toBe("custom-ulid");
+        });
+
+        it("Laravel tests: factories receive their arguments and are all cleared together", () => {
+            Str.createRandomStringsUsing((length) => `random:${length}`);
+            Str.createUuidsUsing(() => "fixed-uuid");
+            Str.createUlidsUsing(() => "fixed-ulid");
+
+            expect(Str.random(7)).toBe("random:7");
+            expect(Str.uuid()).toBe("fixed-uuid");
+            expect(Str.ulid()).toBe("fixed-ulid");
+
+            Str.resetFactoryState();
+
+            expect(Str.random(7)).not.toBe("random:7");
+            expect(Str.random(7)).toHaveLength(7);
+            expect(Str.uuid()).not.toBe("fixed-uuid");
+            expect(Str.ulid()).not.toBe("fixed-ulid");
         });
     });
 });

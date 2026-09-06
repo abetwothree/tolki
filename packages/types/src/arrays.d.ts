@@ -65,6 +65,18 @@ export type UndotResult<
       : TValue[];
 
 /**
+ * Key shape accepted by `Arr.undot`: either a bare numeric index (`0`, `"0"`)
+ * or a dot-path whose first segment is numeric (`"0.1"`, `"12.foo"`). A
+ * string-first-segment key like `"user.languages.0"` belongs to `Obj.undot`
+ * instead — this type rejects it at compile time rather than at runtime.
+ *
+ * @example
+ * UndotArrayKey // matches: 0, "0", "1.2", "3.foo.bar"
+ * UndotArrayKey // rejects: "foo", "user.languages.0"
+ */
+export type UndotArrayKey = number | `${number}` | `${number}.${string}`;
+
+/**
  * Helper type to check if an array is mutable (not readonly)
  */
 type IsMutableArray<T> = T extends readonly unknown[]
@@ -111,17 +123,13 @@ export type TruthyArray<T extends readonly unknown[]> =
  * A single sort descriptor accepted by array sort helpers.
  *
  * - a dot-notated key path, sorted ascending
- * - a `[key, direction]` tuple. Mirrors Laravel's `Collection::sortByMany`,
- *   where `true`, `'asc'`, and the `"Ascending"` case of `@tolki/enum`'s
- *   `SortDirection` sort ascending, and every other direction value —
- *   `false`, `'desc'`, `"Descending"`, or anything unrecognized from an
- *   untyped caller — sorts descending, exactly like Laravel's default arm.
- *   The literal case names are inlined here rather than imported from
- *   `@tolki/enum`, which depends on this package — importing it back would
- *   create a circular dependency.
+ * - a `[key]` single-element tuple, identical to a bare key path, ascending
+ * - a `[key, direction]` tuple: `true`/`'asc'`/`"Ascending"` sorts ascending,
+ *   everything else descending, mirroring `Collection::sortByMany`
  * - a comparator returning a negative, zero, or positive number
  */
 export type SortSpec<TValue> =
     | string
+    | readonly [string]
     | readonly [string, boolean | "Ascending" | "Descending" | "asc" | "desc"]
     | ((a: TValue, b: TValue) => number);

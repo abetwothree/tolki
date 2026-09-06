@@ -108,6 +108,7 @@
             "ts/index.md",
             "ts/enums.md",
             "ts/models.md",
+            "ts/model-metadata.md",
             "ts/api-resources.md",
             "ts/broadcast-channels.md",
             "ts/broadcast-events.md",
@@ -124,6 +125,7 @@
             "ts/vite-env.md",
             "ts/vite-plugin.md",
             "ts/customizing-the-pipeline.md",
+            "ts/analyzer-api.md",
             "ts/configuration-reference.md"
         ]
     }

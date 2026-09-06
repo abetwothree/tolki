@@ -2,37 +2,62 @@ import { replaceRecursive as arrReplaceRecursive } from "@tolki/arr";
 import { SortDirection } from "@tolki/enum";
 import {
     dotFlatten,
+    explodePluckPath,
     forgetKeys,
+    getNestedValue,
     getObjectValue,
     hasMixed,
     hasObjectKey,
+    resolvePluckPath,
     setObjectValue,
     undotExpandObject,
 } from "@tolki/path";
 import { finish, randomInt } from "@tolki/str";
-import type { CaseValue, PathKey, PathKeys } from "@tolki/types";
+import type { CaseValue, PathKey, PathKeys, SortSpec } from "@tolki/types";
 import {
+    arrayableValues,
+    arrayValueMessage,
     compareValues,
+    createSortSpecComparator,
+    cssListItemToString,
     defineKey,
+    entriesKeyValue,
     isArray,
     isBoolean,
     isFalsy,
     isFunction,
     isInteger,
+    isIntegerLikeKey,
     isMap,
     isNull,
     isNumber,
     isObject,
     isPhpArrayKey,
-    isPositiveNumber,
+    isPhpFalsy,
+    isPhpNumeric,
+    isPrototypeObject,
     isString,
     isStringable,
     isUndefined,
-    isUnsafeKey,
     isWeakMap,
     looseEqual,
+    phpTypeName,
+    phpValueMatch,
+    phpValueMatcher,
+    reindexIntegerKeys,
+    resolveSliceRange,
     typeOf,
 } from "@tolki/utils";
+
+/**
+ * Mutation contract: pop, shift, splice and unshift mutate their first
+ * argument; every other function returns a new value. arr and obj agree
+ * on this — re-read Collection.php before "aligning" one to the other.
+ */
+
+const sortSpecComparator = createSortSpecComparator((item, key) =>
+    getNestedValue(item, key as PropertyKey),
+);
 
 /**
  * Determine whether the given value is object accessible.
@@ -181,7 +206,7 @@ export function boolean<
 
     if (!isBoolean(value)) {
         throw new Error(
-            `Object value for key [${key}] must be a boolean, ${typeOf(value)} found.`,
+            `Object value for key [${key}] must be a boolean, ${phpTypeName(value)} found.`,
         );
     }
 
@@ -191,9 +216,12 @@ export function boolean<
 /**
  * Chunk the object into chunks of the given size.
  *
+ * @see Collection::chunk — `packages/collection/stubs/Collection.php:1520`.
+ *      Wraps `array_chunk`; `preserveKeys` defaults to `true`.
+ *
  * @param data - The record to chunk
  * @param size - The size of each chunk
- * @param preserveKeys - Whether to preserve the original keys, defaults to false
+ * @param preserveKeys - Whether to preserve the original keys, defaults to true
  * @returns Chunked record
  */
 export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
@@ -264,6 +292,147 @@ export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
+ * Chunk the object into chunks with a callback.
+ *
+ * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1541`, which runs
+ *      `LazyCollection::chunkWhile`. Keys are preserved inside each chunk.
+ *
+ * @param data - The record to chunk
+ * @param callback - Receives the value, its key and the chunk built so far; return true to keep appending
+ * @returns Chunked record
+ *
+ * @example
+ *
+ * chunkWhile({ a: 1, b: 1, c: 2 }, (value, key, chunk) => Object.values(chunk).at(-1) === value);
+ * -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
+ */
+export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    callback: (
+        value: TValue,
+        key: TKey,
+        chunk: Record<TKey, TValue>,
+    ) => boolean,
+): Record<number, Record<TKey, TValue>>;
+export function chunkWhile(
+    data: unknown,
+    callback: (
+        value: unknown,
+        key: PropertyKey,
+        chunk: Record<PropertyKey, unknown>,
+    ) => boolean,
+): Record<number, never>;
+export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    callback: (
+        value: TValue,
+        key: TKey,
+        chunk: Record<TKey, TValue>,
+    ) => boolean,
+): Record<number, Record<TKey, TValue>> {
+    const chunks: Record<number, Record<TKey, TValue>> = {};
+
+    if (!accessible(data)) {
+        return chunks;
+    }
+
+    let chunk = {} as Record<TKey, TValue>;
+    let size = 0;
+    let chunkIndex = 0;
+
+    for (const [rawKey, value] of Object.entries(data) as [string, TValue][]) {
+        const key = entriesKeyValue(rawKey) as TKey;
+
+        if (size > 0 && !callback(value, key, chunk)) {
+            chunks[chunkIndex] = chunk;
+            chunkIndex += 1;
+            chunk = {} as Record<TKey, TValue>;
+            size = 0;
+        }
+
+        // Write the raw key, not `key`: entriesKeyValue's Number()/parseFloat conversion is
+        // lossy for non-canonical numeric strings ("01", "1e3", " 1"), and writing the
+        // converted form would rename or collide keys that PHP keeps distinct.
+        defineKey(chunk as Record<string, TValue>, rawKey, value);
+        size += 1;
+    }
+
+    if (size > 0) {
+        chunks[chunkIndex] = chunk;
+    }
+
+    return chunks;
+}
+
+/**
+ * Chunk the object into chunks by comparing adjacent values using the given key or callback.
+ *
+ * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:937`.
+ *      Adjacent values compare with PHP's `==`, so `1` and `"1"` share a chunk.
+ *
+ * @param data - The record to chunk
+ * @param key - A path into each item, or a callback receiving the value and its key
+ * @returns Chunked record
+ *
+ * @example
+ *
+ * chunkBy({ a: 1, b: 1, c: 2 }, (value) => value); -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
+ */
+export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue>,
+    key: PathKey | ((value: TValue, key: TKey) => unknown),
+): Record<number, Record<TKey, TValue>>;
+export function chunkBy(
+    data: unknown,
+    key: PathKey | ((value: unknown, key: PropertyKey) => unknown),
+): Record<number, never>;
+export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    key: PathKey | ((value: TValue, key: TKey) => unknown),
+): Record<number, Record<TKey, TValue>> {
+    // isFunction's predicate is generic, so name the retriever's type rather than let the guard narrow it.
+    const retrieve: (value: TValue, key: TKey) => unknown = isFunction(key)
+        ? (key as (value: TValue, key: TKey) => unknown)
+        : (value) =>
+              isNull(key) || isUndefined(key)
+                  ? value
+                  : getNestedValue(value, key as string);
+
+    // The entry chunkWhile handed us last time. Reading the previous item back out of
+    // `chunk` instead re-materializes every entry on every element, which is quadratic.
+    let previous: { key: TKey; value: TValue } | undefined;
+
+    // chunkWhile calls back before writing `value`, and even a reset writes within the
+    // same iteration, so `chunk` is never empty here; on the first call it holds exactly
+    // the one preceding entry, which is the only time it has to be read back.
+    return chunkWhile(
+        data as Record<TKey, TValue>,
+        (value, currentKey, chunk) => {
+            if (previous === undefined) {
+                const [lastKey, lastValue] = Object.entries(chunk).at(-1) as [
+                    string,
+                    TValue,
+                ];
+
+                previous = {
+                    key: entriesKeyValue(lastKey) as TKey,
+                    value: lastValue,
+                };
+            }
+
+            const prior = previous;
+
+            previous = { key: currentKey, value };
+
+            return looseEqual(
+                retrieve(value, currentKey),
+                retrieve(prior.value, prior.key),
+            );
+        },
+    );
+}
+
+/**
  * Collapse an object of objects into a single object.
  *
  * @param object - The object of objects to collapse.
@@ -281,7 +450,11 @@ export function collapse<
 
     for (const item of Object.values(object)) {
         if (isObject(item)) {
-            Object.assign(out, item);
+            // Object.assign uses [[Set]] like a plain bracket assignment
+            // would, so it is exposed to the same __proto__ setter risk.
+            for (const [key, value] of Object.entries(item)) {
+                defineKey(out as Record<string, unknown>, key, value);
+            }
         }
     }
 
@@ -289,31 +462,48 @@ export function collapse<
 }
 
 /**
- * Combine two objects into one, using the values from the first object as keys
+ * Combine two objects into one, using the values from the first object as
+ * keys, mirroring PHP's `array_combine()` / `Collection::combine()`
+ * (`Collection.php:933`).
+ *
+ * @see Collection::combine — `packages/collection/stubs/Collection.php:933`.
+ *      Wraps `array_combine`.
  *
  * @param keysObject - The object containing keys.
  * @param valuesObject - The object containing values.
  * @return A new object containing combined key-value pairs.
+ * @throws Error if `keysObject` and `valuesObject` do not have the same
+ * number of entries.
  */
 export function combine<TKeys, TValues, TCombineValue = TValues>(
     keysObject: Record<PropertyKey, TKeys>,
     valuesObject: Record<PropertyKey, TValues>,
 ): Record<PropertyKey, TCombineValue> {
-    const result: Record<PropertyKey, TCombineValue> = {};
     const maxLength = Object.keys(keysObject).length;
-    const keys = Object.values(keysObject).map((k) =>
-        isFunction(k) ? String(k()) : String(k),
-    );
+    // Plain String() coercion, not a function-calling one: PHP has no
+    // function-typed array keys, and arr.combine agrees on plain String().
+    const keys = Object.values(keysObject).map((k) => String(k));
     const values = Object.values(valuesObject);
 
+    if (maxLength !== values.length) {
+        throw new Error(
+            "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
+        );
+    }
+
+    const result: Record<PropertyKey, TCombineValue> = {};
+
     for (let i = 0; i < maxLength; i++) {
-        const key = keys[i];
-        // Key is always defined because we iterate up to keys.length
-        // but TypeScript needs the guard for type narrowing
-        /* istanbul ignore if -- @preserve TypeScript narrowing */
-        if (!isUndefined(key)) {
-            result[key] = values[i] as TCombineValue;
-        }
+        // Always defined: i only ever ranges up to keys.length.
+        const key = keys[i] as string;
+        // Writes go through `defineKey` so a `__proto__` key resolved from
+        // `keysObject` becomes a real own key instead of reparenting `result`
+        // through the `__proto__` setter (see `isUnsafeKey`, AGENTS.md:189).
+        defineKey(
+            result as Record<string, TCombineValue>,
+            key,
+            values[i] as TCombineValue,
+        );
     }
 
     return result;
@@ -402,12 +592,12 @@ export function dot<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Convert a flatten "dot" notation object into an expanded object.
  *
+ * A nested container with consecutive integer keys `0..n-1` becomes a real array;
+ * out-of-order numeric keys still promote to a list here (JS always enumerates
+ * integer-like keys ascending), unlike PHP's insertion-order-sensitive `array_is_list`.
+ *
  * @param map - The flat object with dot-notated keys.
  * @returns A new multi-dimensional object.
- *
- * @example
- *
- * undot({ name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }); -> { name: 'John', address: { city: 'NYC', zip: '10001' } }
  */
 export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
@@ -416,7 +606,12 @@ export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Union multiple objects into one.
+ * Union multiple objects into one, mirroring PHP's `+` array union
+ * operator: the left-most object to already hold a key wins that key's
+ * value, even `null`/`undefined` — the guard is presence, not truthiness.
+ *
+ * @see Collection::union — `packages/collection/stubs/Collection.php:944`.
+ *      Uses PHP's `+` operator (key union: left keys win), not `array_merge`.
  *
  * @param objects - The objects to union.
  * @return A new object containing all key-value pairs from the input objects.
@@ -431,8 +626,12 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
         ) => {
             if (accessible(obj)) {
                 for (const [key, value] of Object.entries(obj)) {
-                    if (isUndefined(acc[key])) {
-                        acc[key as TKey] = value as TValue;
+                    if (!Object.hasOwn(acc, key)) {
+                        defineKey(
+                            acc as Record<string, TValue>,
+                            key,
+                            value as TValue,
+                        );
                     }
                 }
             }
@@ -444,10 +643,17 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Prepend one or more items to the beginning of the object
+ * Prepend one or more items to the beginning of the object, mutating it in
+ * place, like PHP's array_unshift.
  *
- * @param items - The items to prepend. The first item is the target object.
- * @returns A new object with the items prepended
+ * A non-object, non-nullish item gets the next available integer key rather than
+ * being dropped; `null`/`undefined` items are skipped. Existing integer-like keys
+ * are renumbered upward to make room, exactly as `array_unshift` does.
+ *
+ * @see Collection::unshift — `packages/collection/stubs/Collection.php:1087`. Wraps `array_unshift`; mutates.
+ *
+ * @param items - The items to prepend. The first item is the target object, mutated in place when object-accessible.
+ * @returns The same object reference, mutated (or a new object when the first item isn't object-accessible).
  */
 export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
     ...items: Record<TKey, TValue>[] | unknown[]
@@ -457,19 +663,73 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     const data = items[0] as Record<TKey, TValue>;
+
+    // This rebuilds `data` in place: it clears the container before writing the
+    // merged keys back. On a target defineKey declines, that clear is data loss.
+    if (isPrototypeObject(data)) {
+        return data;
+    }
+
     const itemsObject = {} as Record<TKey, TValue>;
+    let nextIndex = 0;
 
     const itemsToPrepend = items.slice(1);
 
     for (const item of itemsToPrepend) {
         if (accessible(item)) {
             for (const [key, value] of Object.entries(item)) {
-                itemsObject[key as TKey] = value as TValue;
+                defineKey(
+                    itemsObject as Record<string, TValue>,
+                    key,
+                    value as TValue,
+                );
             }
+        } else if (!isNull(item) && !isUndefined(item)) {
+            while (Object.hasOwn(itemsObject, nextIndex)) {
+                nextIndex++;
+            }
+
+            itemsObject[nextIndex as TKey] = item as TValue;
+            nextIndex++;
         }
     }
 
-    return union(itemsObject, data);
+    if (!accessible(data)) {
+        return union(itemsObject, data);
+    }
+
+    const originalEntries = Object.entries(data);
+
+    for (const key of Object.keys(data)) {
+        delete data[key as TKey];
+    }
+
+    for (const [key, value] of Object.entries(itemsObject)) {
+        defineKey(data as Record<string, TValue>, key, value as TValue);
+    }
+
+    for (const [key, value] of originalEntries) {
+        if (isIntegerLikeKey(key)) {
+            while (Object.hasOwn(data, nextIndex)) {
+                nextIndex++;
+            }
+
+            defineKey(
+                data as Record<PropertyKey, TValue>,
+                nextIndex,
+                value as TValue,
+            );
+            nextIndex++;
+
+            continue;
+        }
+
+        if (!Object.hasOwn(itemsObject, key)) {
+            defineKey(data as Record<string, TValue>, key, value as TValue);
+        }
+    }
+
+    return data;
 }
 
 /**
@@ -519,7 +779,7 @@ export function exceptValues<TValue, TKey extends PropertyKey = PropertyKey>(
         );
 
         if (!shouldExclude) {
-            result[key] = value;
+            defineKey(result as Record<string, TValue>, key as string, value);
         }
     }
 
@@ -774,7 +1034,7 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
 
     const result: Record<string, unknown> = {};
     for (const [key, value] of selectedEntries) {
-        result[key] = value;
+        defineKey(result, key, value);
     }
 
     return result;
@@ -783,23 +1043,19 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
 /**
  * Flatten a multi-dimensional object into a single-level array.
  *
- * This mirrors Laravel's Arr::flatten behavior but for objects: it iterates over
- * the values, recursively flattening nested arrays and objects into a single
- * array of values, discarding keys.
+ * @see Arr::flatten — `packages/arr/stubs/Arr.php:366`.
  *
  * @param data - The object (or value) to flatten.
- * @param depth - Maximum depth to flatten. Use Infinity for full flattening.
+ * @param depth - Maximum depth to flatten. Defaults to Infinity; depth 1 stops after one level (Arr.php:368).
  * @returns A new flattened array of values.
  *
  * @example
  *
- * flatten({ a: [1, 2], b: [3, 4] }); -> [1, 2, 3, 4]
  * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }); -> [1, 2, 3]
- * flatten({ a: [1, [2, 3]], b: [4] }, 1); -> [1, [2, 3], 4]
  */
 export function flatten<TValue>(
     data: Record<PropertyKey, TValue> | TValue,
-    depth: number = 2,
+    depth: number = Infinity,
 ): unknown[] {
     if (!accessible(data)) {
         return [];
@@ -814,10 +1070,14 @@ export function flatten<TValue>(
         for (const item of values) {
             if (!isArray(item) && !isObject(item)) {
                 result.push(item);
-            } else if (currentDepth <= 1) {
-                // At boundary depth, push the immediate items themselves
-                // (objects or arrays) without descending further.
-                result.push(item);
+            } else if (currentDepth === 1) {
+                // Arr.php:373 spends the last level of depth on the
+                // container's own values, so depth 1 still unwraps once.
+                const nested = isArray(item) ? item : Object.values(item);
+
+                for (const value of nested) {
+                    result.push(value);
+                }
             } else {
                 flattenRecursive(item, currentDepth - 1);
             }
@@ -832,8 +1092,9 @@ export function flatten<TValue>(
 /**
  * Flatten a multi-dimensional object into dot-notation with depth control.
  *
- * Creates dot-notation keys up to the specified depth, with values being the
- * nodes at that depth boundary.
+ * One divergence from `Arr::dot`/`Obj.dot`: an empty nested container is dropped
+ * here, where PHP keeps it as a leaf value.
+ * @see probe row `Arr::dot keeps a "__proto__" array value`
  *
  * @param data - The object to flatten.
  * @param depth - Maximum depth for dot-notation keys.
@@ -842,7 +1103,6 @@ export function flatten<TValue>(
  * @example
  *
  * flattenDot({ users: { john: { name: 'John' } } }, 1); -> { 'users.john': { name: 'John' } }
- * flattenDot({ a: { b: { c: 1 } } }, 2); -> { 'a.b.c': 1 }
  */
 export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -866,7 +1126,7 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
         // Stop if node is scalar or we've reached the target segment length
         if ((!isObj && !isArr) || pathLen >= maxSegments) {
             if (pathLen > 0) {
-                out[pathParts.join(".")] = node as unknown;
+                defineKey(out, pathParts.join("."), node);
             }
             return;
         }
@@ -932,6 +1192,11 @@ export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
  * Get a float item from an object using "dot" notation.
  * Throws an error if the value is not a number.
  *
+ * Known divergence: PHP's `is_float()` rejects a whole-number int (`Arr::float`
+ * throws on `1`, see docs/php-parity/task-17-second-review.json, "Arr::float
+ * rejects a whole-number int"). JS has one number type, so `isNumber` accepts
+ * it — narrowing to reject whole numbers would also reject `1.0`.
+ *
  * @param data - The object to get the item from.
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
@@ -957,7 +1222,7 @@ export function float<
 
     if (!isNumber(value)) {
         throw new Error(
-            `Object value for key [${key}] must be a float, ${typeOf(value)} found.`,
+            `Object value for key [${key}] must be a float, ${phpTypeName(value)} found.`,
         );
     }
 
@@ -1008,7 +1273,7 @@ export function from(items: unknown): Record<string, unknown> {
         const out: Record<string, unknown> = {};
 
         for (const [k, v] of items as Map<PropertyKey, unknown>) {
-            out[String(k)] = v;
+            defineKey(out, String(k), v);
         }
 
         return out;
@@ -1040,6 +1305,9 @@ export function from(items: unknown): Record<string, unknown> {
 /**
  * Get an item from an object using "dot" notation.
  *
+ * A literal key wins over dot-path traversal even when it contains dots, and a
+ * literal key whose value is `undefined` still counts as found.
+ *
  * @param  data - The object to get the item from.
  * @param  key - The key or dot-notated path of the item to get.
  * @param  defaultValue - The default value if key is not found
@@ -1047,9 +1315,8 @@ export function from(items: unknown): Record<string, unknown> {
  *
  * @example
  *
- * get({ name: 'John', age: 30 }, 'name'); -> 'John'
  * get({ user: { name: 'John' } }, 'user.name'); -> 'John'
- * get({ name: 'John' }, 'email', 'default'); -> 'default'
+ * get({ "products.desk": { price: 100 } }, 'products.desk'); -> { price: 100 } (literal key wins over traversal)
  */
 export function get<
     TValue,
@@ -1074,24 +1341,25 @@ export function get<
             : defaultValue;
     }
 
-    // Handle simple key access
-    if (isString(key) && !key.includes(".")) {
-        const value = (object as Record<string, unknown>)[key];
-        return !isUndefined(value)
-            ? (value as TDefault)
+    // The literal key wins even when it contains dots. Presence, not
+    // definedness, decides: a literal key whose value is `undefined` is
+    // still "found" and does not fall through to dot-path traversal.
+    const keyStr = String(key);
+    if (Object.hasOwn(object as object, keyStr)) {
+        const literalValue = (object as Record<string, unknown>)[keyStr];
+        return !isUndefined(literalValue)
+            ? (literalValue as TDefault)
             : isFunction(defaultValue)
               ? (defaultValue as () => TDefault)()
               : defaultValue;
     }
 
-    if (isNumber(key)) {
-        const stringKey = String(key);
-        const value = (object as Record<string, unknown>)[stringKey];
-        return !isUndefined(value)
-            ? (value as TDefault)
-            : isFunction(defaultValue)
-              ? (defaultValue as () => TDefault)()
-              : defaultValue;
+    // A simple (dot-free) or numeric key that isn't present literally can't
+    // resolve via further traversal either.
+    if (isNumber(key) || !key.includes(".")) {
+        return isFunction(defaultValue)
+            ? (defaultValue as () => TDefault)()
+            : defaultValue;
     }
 
     // Handle dot notation for nested object access
@@ -1105,7 +1373,7 @@ export function get<
                 : defaultValue;
         }
 
-        if (!(segment in current)) {
+        if (!Object.hasOwn(current as object, segment)) {
             return isFunction(defaultValue)
                 ? (defaultValue as () => TDefault)()
                 : defaultValue;
@@ -1344,7 +1612,7 @@ export function integer<
 
     if (!isInteger(value)) {
         throw new Error(
-            `Object value for key [${key}] must be an integer, ${typeOf(value)} found.`,
+            `Object value for key [${key}] must be an integer, ${phpTypeName(value)} found.`,
         );
     }
 
@@ -1436,7 +1704,7 @@ export function keyBy<TValue extends Record<PropertyKey, unknown>>(
             key = "";
         }
 
-        results[key] = item;
+        defineKey(results as Record<string, TValue>, key as string, item);
     }
 
     return results;
@@ -1464,7 +1732,11 @@ export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
     const obj = data as Record<TKey, TValue>;
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
     for (const [key, value] of Object.entries(obj)) {
-        result[(prependWith + key) as TKey] = value as TValue;
+        defineKey(
+            result as Record<string, TValue>,
+            prependWith + key,
+            value as TValue,
+        );
     }
 
     return result;
@@ -1473,18 +1745,20 @@ export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get a subset of the items from the given object.
  *
+ * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:744): `null` becomes
+ * no keys, a bare string becomes a single-key selection.
+ *
  * @param data - The object to get items from.
- * @param keys - The keys to select.
+ * @param keys - The key, keys, or null to select.
  * @returns A new object with only the specified keys.
  *
  * @example
  *
  * only({ a: 1, b: 2, c: 3, d: 4 }, ['a', 'c']); -> { a: 1, c: 3 }
- * only({ name: 'John', age: 30, city: 'NYC' }, ['name']); -> { name: 'John' }
  */
 export function only<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    keys: string[],
+    keys: string | string[] | null,
 ): Record<PropertyKey, TValue> {
     if (!accessible(data)) {
         return {};
@@ -1492,10 +1766,15 @@ export function only<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const obj = data as Record<PropertyKey, TValue>;
     const result: Record<PropertyKey, TValue> = {};
+    const keyList = isNull(keys) ? [] : isArray(keys) ? keys : [keys];
 
-    for (const key of keys) {
-        if (key in obj) {
-            result[key] = obj[key] as TValue;
+    for (const key of keyList) {
+        if (Object.hasOwn(obj, key)) {
+            defineKey(
+                result as Record<string, TValue>,
+                key,
+                obj[key] as TValue,
+            );
         }
     }
 
@@ -1530,7 +1809,7 @@ export function onlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
         );
 
         if (shouldInclude) {
-            result[key] = value;
+            defineKey(result as Record<string, TValue>, key as string, value);
         }
     }
 
@@ -1567,12 +1846,20 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
         const selected: Record<PropertyKey, unknown> = {};
 
         for (const key of keyList) {
-            if (isObject(item) && key in item) {
-                selected[key] = item[key];
+            if (isObject(item) && Object.hasOwn(item, key)) {
+                defineKey(
+                    selected as Record<string, unknown>,
+                    key as string,
+                    item[key],
+                );
             }
         }
 
-        result[objKey] = selected;
+        defineKey(
+            result as Record<string, Record<PropertyKey, unknown>>,
+            objKey,
+            selected,
+        );
     }
 
     return result;
@@ -1582,26 +1869,33 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
  * Pluck an array of values from an object.
  *
  * @param data - The object to pluck from.
- * @param value - The key path to pluck, or a callback function.
- * @param key - Optional key path to use as keys in result, or callback function.
+ * @param value - The key path to pluck (dot-notated string, array of segments, or a
+ *   `*` wildcard path), a callback, or `null` to keep each whole item.
+ * @param key - Optional key path (string, array of segments, or callback) to use as keys in the result.
  * @returns A new array with plucked values or object with key-value pairs.
  *
  * @example
  *
  * pluck({ user1: { name: 'John' }, user2: { name: 'Jane' } }, 'name'); -> ['John', 'Jane']
- * pluck({ user1: { id: 1, name: 'John' }, user2: { id: 2, name: 'Jane' } }, 'name', 'id'); -> { 1: 'John', 2: 'Jane' }
  */
 export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    value: string | ((item: TValue) => unknown),
-    key: string | ((item: TValue) => string | number) | null = null,
+    value: string | readonly string[] | ((item: TValue) => unknown) | null,
+    key:
+        | string
+        | readonly string[]
+        | ((item: TValue) => string | number)
+        | null = null,
 ): unknown[] | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
-        return key ? {} : [];
+        return isNull(key) || isUndefined(key) ? [] : {};
     }
 
     const obj = data as Record<string, TValue>;
-    const results: unknown[] | Record<PropertyKey, unknown> = key ? {} : [];
+    // Same predicate as the write branch below — JS truthiness would send
+    // key = "" down the array path while the write branch does keyed writes.
+    const results: unknown[] | Record<PropertyKey, unknown> =
+        isNull(key) || isUndefined(key) ? [] : {};
 
     for (const [, item] of Object.entries(obj)) {
         let itemValue: unknown;
@@ -1611,23 +1905,39 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
         if (isFunction(value)) {
             itemValue = value(item);
         } else {
-            // Use dot notation to get nested value
-            itemValue = getObjectValue(item, value as PathKey);
+            itemValue = resolvePluckPath(
+                item,
+                explodePluckPath(value as string | readonly string[] | null),
+            );
         }
 
         // Get the key if specified
         if (!isNull(key) && !isUndefined(key)) {
             if (isFunction(key)) {
-                itemKey = key(item) as string | number;
+                itemKey = (key as (item: TValue) => string | number)(item);
             } else {
-                itemKey = getObjectValue(item, key as PathKey) as
-                    | string
-                    | number;
+                const nestedKey = resolvePluckPath(
+                    item,
+                    explodePluckPath(key as string | readonly string[]),
+                );
+
+                if (
+                    typeof nestedKey === "string" ||
+                    typeof nestedKey === "number"
+                ) {
+                    itemKey = nestedKey;
+                } else if (typeof nestedKey === "boolean") {
+                    // PHP casts a boolean array key to int (true -> 1,
+                    // false -> 0), not to the string "true"/"false".
+                    itemKey = nestedKey ? 1 : 0;
+                } else if (!isNull(nestedKey)) {
+                    itemKey = String(nestedKey) as string;
+                }
             }
 
             // Convert objects with toString to string
-            if (isStringable(itemKey)) {
-                itemKey = itemKey.toString();
+            if (!isUndefined(itemKey) && isStringable(itemKey)) {
+                itemKey = String(itemKey);
             }
         }
 
@@ -1635,9 +1945,13 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
         if (isNull(key) || isUndefined(key)) {
             (results as unknown[]).push(itemValue);
         } else {
-            (results as Record<string | number, unknown>)[
-                itemKey as string | number
-            ] = itemValue;
+            // PHP casts a null array key to "" — a key path that resolves
+            // to null/undefined files the value under "", not "undefined".
+            defineKey(
+                results as Record<string, unknown>,
+                String(isUndefined(itemKey) ? "" : itemKey),
+                itemValue,
+            );
         }
     }
 
@@ -1646,6 +1960,9 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Get and remove the last N items from the collection.
+ *
+ * @see Collection::pop — `packages/collection/stubs/Collection.php:1027`.
+ *      Mirrors `array_pop`, called `$count` times from the end; mutates.
  *
  * @param data - The object to pop items from.
  * @param count - The number of items to pop. Defaults to 1.
@@ -1667,14 +1984,8 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     if (count === 1) {
-        const lastEntry = entries[entries.length - 1];
-
-        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
-        if (!lastEntry) {
-            return null;
-        }
-
-        const [key, value] = lastEntry;
+        // Always defined: entries.length > 0 checked above.
+        const [key, value] = entries[entries.length - 1] as [string, TValue];
         delete obj[key];
         return value;
     }
@@ -1683,14 +1994,11 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
     const actualCount = Math.min(count, entries.length);
 
     for (let i = 0; i < actualCount; i++) {
-        const entry = entries[entries.length - 1 - i];
-
-        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
-        if (!entry) {
-            continue;
-        }
-
-        const [key, value] = entry;
+        // Always defined: `i < actualCount <= entries.length`.
+        const [key, value] = entries[entries.length - 1 - i] as [
+            string,
+            TValue,
+        ];
         delete obj[key];
 
         poppedValues.push(value);
@@ -1727,7 +2035,11 @@ export function map<
     const result: Record<PropertyKey, TMapValue> = {};
 
     for (const [key, value] of Object.entries(obj)) {
-        result[key] = callback(value as TValue, key as TKey);
+        defineKey(
+            result as Record<string, TMapValue>,
+            key,
+            callback(value as TValue, key as TKey),
+        );
     }
 
     return result;
@@ -1736,6 +2048,9 @@ export function map<
 /**
  * Run an associative map over each of the items.
  * The callback should return an object with key/value pairs.
+ *
+ * Always returns a plain object, even when every mapped key is numeric-like —
+ * there's no PHP `Map` concept to preserve here (Arr.php:880).
  *
  * @param data - The object to map.
  * @param callback - Function that returns an object with key/value pairs.
@@ -1757,9 +2072,7 @@ export function mapWithKeys<
         value: TValue,
         key: TKey,
     ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
-):
-    | Record<TMapWithKeysKey, TMapWithKeysValue>
-    | Map<TMapWithKeysKey, TMapWithKeysValue> {
+): Record<TMapWithKeysKey, TMapWithKeysValue> {
     if (!accessible(data)) {
         return {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
@@ -1769,29 +2082,20 @@ export function mapWithKeys<
         TMapWithKeysKey,
         TMapWithKeysValue
     >;
-    const resultMap = new Map<TMapWithKeysKey, TMapWithKeysValue>();
-    let hasNumericKeys = false;
 
     for (const [key, value] of Object.entries(obj)) {
         const mappedObject = callback(value, key as TKey);
 
         for (const [mapKey, mapValue] of Object.entries(mappedObject)) {
-            // Check if this is a numeric key
-            const numKey = Number(mapKey);
-            if (!Number.isNaN(numKey) && String(numKey) === mapKey) {
-                hasNumericKeys = true;
-            }
-
-            result[mapKey as TMapWithKeysKey] = mapValue as TMapWithKeysValue;
-            resultMap.set(
-                mapKey as TMapWithKeysKey,
+            defineKey(
+                result as Record<string, TMapWithKeysValue>,
+                mapKey,
                 mapValue as TMapWithKeysValue,
             );
         }
     }
 
-    // Return Map if we have numeric keys to preserve insertion order
-    return hasNumericKeys ? resultMap : result;
+    return result;
 }
 
 /**
@@ -1824,10 +2128,18 @@ export function mapSpread<
         if (isObject(item)) {
             // Spread the object values as arguments to the callback
             const values = Object.values(item);
-            result[key as PropertyKey] = callback(...values, key);
+            defineKey(
+                result as Record<string, TMapSpreadValue>,
+                key,
+                callback(...values, key),
+            );
         } else {
             // If item is not an object, pass it as single argument with key
-            result[key as PropertyKey] = callback(item, key);
+            defineKey(
+                result as Record<string, TMapSpreadValue>,
+                key,
+                callback(item, key),
+            );
         }
     }
 
@@ -1864,7 +2176,11 @@ export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
 
     // Add existing entries after the prepended one
     for (const [existingKey, existingValue] of Object.entries(obj)) {
-        result[existingKey as TKey] = existingValue as TValue;
+        defineKey(
+            result as Record<string, TValue>,
+            existingKey,
+            existingValue as TValue,
+        );
     }
 
     return result;
@@ -1930,6 +2246,8 @@ export function pull<
  * query({ name: 'John', age: 30 }); -> 'name=John&age=30'
  * query({ user: { name: 'John', age: 30 } }); -> 'user[name]=John&user[age]=30'
  * query({ tags: ['php', 'js'] }); -> 'tags[0]=php&tags[1]=js'
+ * query({ foo: 'bar', bar: true }); -> 'foo=bar&bar=1' (booleans cast like PHP's http_build_query)
+ * query({ foo: 'bar', bar: false }); -> 'foo=bar&bar=0'
  */
 export function query(data: unknown): string {
     if (isNull(data) || isUndefined(data)) {
@@ -1940,6 +2258,16 @@ export function query(data: unknown): string {
         return encodeURIComponent(key)
             .replace(/%5B/g, "[")
             .replace(/%5D/g, "]");
+    };
+
+    // Mirrors PHP's http_build_query scalar casting: booleans become "1"
+    // or "0" rather than JavaScript's "true"/"false".
+    const stringifyQueryValue = (value: unknown): string => {
+        if (isBoolean(value)) {
+            return value ? "1" : "0";
+        }
+
+        return String(value);
     };
 
     const buildQuery = (obj: unknown, prefix: string = ""): string[] => {
@@ -1956,7 +2284,7 @@ export function query(data: unknown): string {
                     } else {
                         const encodedKey = encodeKeyComponent(key);
                         parts.push(
-                            `${encodedKey}=${encodeURIComponent(String(value))}`,
+                            `${encodedKey}=${encodeURIComponent(stringifyQueryValue(value))}`,
                         );
                     }
                 }
@@ -1971,7 +2299,7 @@ export function query(data: unknown): string {
                     } else {
                         const encodedKey = encodeKeyComponent(key);
                         parts.push(
-                            `${encodedKey}=${encodeURIComponent(String(value))}`,
+                            `${encodedKey}=${encodeURIComponent(stringifyQueryValue(value))}`,
                         );
                     }
                 }
@@ -1980,7 +2308,9 @@ export function query(data: unknown): string {
             // Scalar value
             const key = prefix || "0";
             const encodedKey = encodeKeyComponent(key);
-            parts.push(`${encodedKey}=${encodeURIComponent(String(obj))}`);
+            parts.push(
+                `${encodedKey}=${encodeURIComponent(stringifyQueryValue(obj))}`,
+            );
         }
 
         return parts;
@@ -1994,22 +2324,14 @@ export function query(data: unknown): string {
  *
  * @param data - The object to get random values from.
  * @param number - The number of items to return. If null, returns a single item.
- * @param preserveKeys - Whether to preserve the original keys when returning multiple items.
+ * @param preserveKeys - Preserve original keys when returning multiple items. Defaults to `false` (Arr.php:971).
  * @returns A single random item, an object of random items, or null if object is empty.
- * @throws Error if more items are requested than available.
- *
- * @example
- *
- * random({ a: 1, b: 2, c: 3 }); -> 2 (single random value)
- * random({ a: 1, b: 2, c: 3 }, 2); -> { b: 2, c: 3 } (two random items)
- * random({ a: 1, b: 2, c: 3 }, 2, false); -> { 0: 2, 1: 3 } (without original keys)
- * random({}, 1); -> null
- * random({ a: 1, b: 2 }, 5); -> throws Error
+ * @throws Error if more items are requested than available, even against an empty object (Arr.php:977).
  */
 export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     number?: number | null,
-    preserveKeys: boolean = true,
+    preserveKeys: boolean = false,
 ): TValue | Record<TKey, TValue> | null {
     if (!accessible(data)) {
         return isNull(number) || isUndefined(number)
@@ -2022,16 +2344,17 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     const count = entries.length;
     const requested = isNull(number) || isUndefined(number) ? 1 : number;
 
-    if (count === 0 || requested <= 0) {
-        return isNull(number) || isUndefined(number)
-            ? null
-            : ({} as Record<TKey, TValue>);
-    }
-
     if (requested > count) {
         throw new Error(
             `You requested ${requested} items, but there are only ${count} items available.`,
         );
+    }
+
+    // Reaching this point with `number` null/undefined would mean requested === 1
+    // survived the throw guard above (which requires count >= 1), so `number` is
+    // always provided here — Arr.php:983's empty-or-non-positive short-circuit yields [].
+    if (requested <= 0) {
+        return {} as Record<TKey, TValue>;
     }
 
     // Generate random indices
@@ -2060,8 +2383,10 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
         const [key, value] = entries[entryIndex] as [TKey, TValue];
 
         if (preserveKeys) {
-            result[key] = value;
+            defineKey(result as Record<string, TValue>, key as string, value);
         } else {
+            // i is a plain loop counter (0..selectedIndices.length), never
+            // attacker-controlled, so a bracket assign here is safe.
             result[i as TKey] = value;
         }
     }
@@ -2070,16 +2395,27 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Get and remove the first N items from the object
+ * Get and remove the first N items from the object, mutating it in place,
+ * like PHP's array_shift.
  *
- * @param data - The object to shift items from.
+ * Survivors' integer-like keys are renumbered from 0, matching `array_shift`;
+ * string keys keep theirs.
+ *
+ * @see Collection::shift — `packages/collection/stubs/Collection.php:1268`. Mirrors `array_shift`; mutates.
+ *
+ * @param data - The object to shift items from. Mutated in place.
  * @param count - The number of items to shift. Defaults to 1.
- * @returns The shifted item(s) or null/empty array if none.
+ * @returns The shifted item(s), or null if the object had nothing to shift.
+ * @throws Error if count is negative.
  */
 export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     count: number = 1,
 ): TValue | TValue[] | null {
+    if (count < 0) {
+        throw new Error("Number of shifted items may not be less than zero.");
+    }
+
     if (!accessible(data)) {
         return count === 1 ? null : [];
     }
@@ -2088,33 +2424,30 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     const entries = Object.entries(obj);
 
     if (entries.length === 0) {
-        return count === 1 ? null : [];
+        return null;
+    }
+
+    const actualCount = count === 1 ? 1 : Math.min(count, entries.length);
+
+    if (actualCount === 0) {
+        return [];
+    }
+
+    const shiftedValues = entries
+        .slice(0, actualCount)
+        .map(([, value]) => value);
+
+    for (const key of Object.keys(obj)) {
+        delete obj[key];
+    }
+
+    for (const [key, value] of reindexIntegerKeys(entries.slice(actualCount))) {
+        defineKey(obj, key, value);
     }
 
     if (count === 1) {
-        const firstEntry = entries[0];
-        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
-        if (!firstEntry) {
-            return null;
-        }
-
-        const [key, value] = firstEntry;
-        delete obj[key];
-        return value;
-    }
-
-    const shiftedValues: TValue[] = [];
-    const actualCount = Math.min(count, entries.length);
-
-    for (let i = 0; i < actualCount; i++) {
-        const entry = entries[i];
-        /* istanbul ignore if -- @preserve TypeScript narrowing for strict null checks */
-        if (!entry) {
-            continue;
-        }
-        const [key, value] = entry;
-        delete obj[key];
-        shiftedValues.push(value);
+        // Always defined: entries.length > 0 checked above.
+        return shiftedValues[0] as TValue;
     }
 
     return shiftedValues;
@@ -2153,7 +2486,8 @@ export function set<TValue, TKey extends PropertyKey = PropertyKey>(
  * Push one or more items into an object at a nested path using dot notation.
  *
  * @param data - The object to push items into.
- * @param key - The key or dot-notated path of the array to push into. If null, not supported for objects.
+ * @param key - The key or dot-notated path of the array to push into. A null key appends
+ * to the object itself under the next integer-like key, mirroring Arr::push.
  * @param values - The values to push.
  * @returns A new object with the values pushed in.
  *
@@ -2161,6 +2495,7 @@ export function set<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * push({ items: ['a', 'b'] }, 'items', 'c', 'd'); -> { items: ['a', 'b', 'c', 'd'] }
  * push({ user: { tags: ['js'] } }, 'user.tags', 'ts', 'php'); -> { user: { tags: ['js', 'ts', 'php'] } }
+ * push({ a: 1 }, null, 9); -> { a: 1, 0: 9 }
  */
 export function push<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -2177,24 +2512,44 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
         return setObjectValue({} as Record<TKey, TValue>, key, values);
     }
 
+    const obj = data as Record<TKey, TValue>;
+
+    // Arr::push with a null key is Arr::get(null) (whole array) then array_push, so it
+    // appends after the highest existing integer-like key instead of throwing.
     if (isNull(key)) {
-        throw new Error(
-            "Cannot push to root of object without specifying a key (key is null)",
-        );
+        let nextIndex = 0;
+        // Ascending key order only holds inside the array-index range (0 to 2**32-2);
+        // isIntegerLikeKey has no such ceiling, so a PHP-scale key above it keeps
+        // insertion order instead - the >= comparison is load-bearing, not redundant.
+        for (const existing of Object.keys(obj)) {
+            if (isIntegerLikeKey(existing) && Number(existing) >= nextIndex) {
+                nextIndex = Number(existing) + 1;
+            }
+        }
+
+        const result = { ...obj } as Record<PropertyKey, TValue>;
+        for (const value of values) {
+            result[nextIndex] = value;
+            nextIndex++;
+        }
+
+        return result as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<TKey, TValue>;
     const existingValue = getObjectValue(obj, key);
 
     if (isArray(existingValue)) {
         const newArray = [...existingValue, ...values];
         return setObjectValue(obj, key, newArray) as Record<TKey, TValue>;
-    } else if (isNull(existingValue)) {
-        // Create new array if path doesn't exist
-        return setObjectValue(obj, key, [...values]) as Record<TKey, TValue>;
-    } else {
-        throw new Error(`Cannot push to non-array value at key [${key}]`);
     }
+
+    // A missing path defaults to [] like PHP's Arr::array(); an explicit null is a
+    // real value at the key, so it must fail the array check instead of being created over.
+    if (!hasMixed(obj, key)) {
+        return setObjectValue(obj, key, [...values]) as Record<TKey, TValue>;
+    }
+
+    throw new Error(arrayValueMessage(existingValue, key));
 }
 
 /**
@@ -2228,45 +2583,50 @@ export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
     for (const [key, value] of entries) {
-        result[key as TKey] = value as TValue;
+        defineKey(result as Record<string, TValue>, key, value as TValue);
     }
 
     return result;
 }
 
 /**
- * Slice the underlying object items
+ * Slice the underlying object items, preserving keys — `array_slice($items,
+ * $offset, $length, true)` (`Collection.php:1369`).
+ *
+ * @see Collection::slice — `packages/collection/stubs/Collection.php:1369`.
+ *      Wraps `array_slice($items, $offset, $length, preserveKeys: true)`.
  *
  * @param data - The object to slice
  * @param offset - The starting index
  * @param length - The number of items to include
  * @returns Sliced object
+ *
+ * @example
+ *
+ * slice({ a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8 }, -2, 5); -> { g: 7, h: 8 }
  */
 export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | unknown,
+    data: Record<TKey, TValue> | null | undefined,
     offset: number,
     length: number | null = null,
-) {
+): Record<TKey, TValue> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
     }
 
     const obj = data as Record<string, TValue>;
     const entries = Object.entries(obj);
+    const { start, end } = resolveSliceRange(entries.length, offset, length);
 
-    let slicedEntries;
-    if (isNull(length)) {
-        slicedEntries = entries.slice(offset);
-    } else if (isPositiveNumber(length)) {
-        slicedEntries = entries.slice(offset, offset + length);
-    } else {
-        slicedEntries = entries.slice(offset, length);
-    }
+    const slicedEntries = entries.slice(start, end);
 
     const result: Record<string, TValue> = {};
 
     for (const [key, value] of slicedEntries) {
-        result[key] = value;
+        // Writes go through `defineKey` so a `__proto__` entry becomes a real
+        // own key instead of reparenting `result` through the `__proto__`
+        // setter (see `isUnsafeKey`, AGENTS.md:189).
+        defineKey(result, key, value);
     }
 
     return result as Record<TKey, TValue>;
@@ -2332,206 +2692,193 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Sort the object using the given callback or "dot" notation.
+ * Sort the object using the given callback, "dot" notation, or an array of
+ * sort descriptors for multi-key sorting.
+ *
+ * Values are ordered by `compareValues`, never by falsiness (PHP's `asort` puts
+ * `-1` before `0`). Integer-like keys are renumbered over the sorted sequence.
+ *
+ * @see Collection::sort — `packages/collection/stubs/Collection.php:1554`. Wraps `uasort`/`asort`.
  *
  * @param data - The object to sort.
- * @param callback - The sorting callback, field name, or null for natural sorting.
+ * @param callback - The sorting callback, field name, an array of sort descriptors, or null for natural sorting.
  * @returns A new object with sorted entries.
- *
- * @example
- *
- * sort({ c: 3, a: 1, b: 4, d: 1, e: 5 }); -> { a: 1, d: 1, c: 3, b: 4, e: 5 } (sorted by values)
- * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, 'age'); -> sorted by age
- * sort({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name
  */
 export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
-    callback?: ((value: TValue, key: TKey) => unknown) | string | null,
+    callback?:
+        | ((value: TValue, key: TKey) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
 ): Record<TKey, TValue>;
 export function sort(
     data: unknown,
-    callback?: ((value: unknown, key: PropertyKey) => unknown) | string | null,
+    callback?:
+        | ((value: unknown, key: PropertyKey) => unknown)
+        | string
+        | readonly SortSpec<unknown>[]
+        | null,
 ): Record<PropertyKey, unknown>;
 export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback: ((value: TValue, key: TKey) => unknown) | string | null = null,
+    callback:
+        | ((value: TValue, key: TKey) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null = null,
 ): Record<TKey, TValue> | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
     }
 
     const obj = data as Record<TKey, TValue>;
-    const entries = Object.entries(obj);
+    let entries = Object.entries(obj);
 
-    if (isFalsy(callback)) {
-        // Natural sorting by values
+    if (isArray(callback)) {
+        // Multi-key sorting - mirrors Collection::sortByMany (Collection.php:1627);
+        // each descriptor keeps its own direction. Checked before isFalsy: an empty
+        // descriptor array is PHP-falsy too, but is a no-op here, not a value sort.
+        const comparators = (callback as readonly SortSpec<TValue>[]).map(
+            (spec) => sortSpecComparator<TValue>(spec, false),
+        );
+
         entries.sort(([, a], [, b]) => {
-            const aValue = a as TValue;
-            const bValue = b as TValue;
+            for (const comparator of comparators) {
+                const comparison = comparator(a as TValue, b as TValue);
 
-            if (isFalsy(aValue) && isFalsy(bValue)) {
-                return 0;
-            }
-
-            if (isFalsy(aValue)) {
-                return -1;
-            }
-
-            if (isFalsy(bValue)) {
-                return 1;
-            }
-
-            // Safe comparison for comparable types
-            if (aValue < bValue) {
-                return -1;
-            }
-
-            if (aValue > bValue) {
-                return 1;
+                if (comparison !== 0) {
+                    return comparison;
+                }
             }
 
             return 0;
         });
-    }
-
-    if (isString(callback)) {
+    } else if (isFalsy(callback)) {
+        // asort() on raw values: -1 sorts before 0, so falsiness must not
+        // pre-empt the comparison. Same predicate and comparator as
+        // Arr.sort, which is what keeps the two backings agreeing.
+        entries.sort(([, a], [, b]) => compareValues(a, b));
+    } else if (isString(callback)) {
         // Sort by field name using dot notation
-        entries.sort(([, a], [, b]) => {
-            const aValue = getObjectValue(
-                a as Record<string, unknown>,
-                callback,
-            );
-            const bValue = getObjectValue(
-                b as Record<string, unknown>,
-                callback,
-            );
-
-            if (isFalsy(aValue) && isFalsy(bValue)) {
-                return 0;
-            }
-
-            if (isFalsy(aValue)) {
-                return -1;
-            }
-
-            if (isFalsy(bValue)) {
-                return 1;
-            }
-
-            // Safe comparison for any comparable types
-            const aComparable = aValue as string | number | boolean;
-            const bComparable = bValue as string | number | boolean;
-
-            if (aComparable < bComparable) {
-                return -1;
-            }
-
-            if (aComparable > bComparable) {
-                return 1;
-            }
-
-            return 0;
-        });
-    }
-
-    if (isFunction(callback)) {
+        entries.sort(([, a], [, b]) =>
+            compareValues(
+                getObjectValue(a as Record<string, unknown>, callback),
+                getObjectValue(b as Record<string, unknown>, callback),
+            ),
+        );
+    } else if (isFunction(callback)) {
         // Extract sort values using callback, then sort by those values
-        const indexed = entries.map(([key, value]) => ({
-            key,
-            value,
-            sortKey: callback(value as TValue, key as TKey),
-        }));
-
-        indexed.sort((a, b) => compareValues(a.sortKey, b.sortKey));
-
-        const result: Record<string, TValue> = {};
-        for (const item of indexed) {
-            result[item.key] = item.value as TValue;
-        }
-
-        return result as Record<TKey, TValue>;
+        entries = entries
+            .map(([key, value]) => ({
+                key,
+                value,
+                sortKey: callback(value as TValue, key as TKey),
+            }))
+            .sort((a, b) => compareValues(a.sortKey, b.sortKey))
+            .map(({ key, value }) => [key, value] as [string, unknown]);
     }
 
     const result: Record<string, TValue> = {};
-    for (const [key, value] of entries) {
-        result[key] = value as TValue;
+    for (const [key, value] of reindexIntegerKeys(entries)) {
+        defineKey(result, key, value as TValue);
     }
 
     return result as Record<TKey, TValue>;
 }
 
 /**
- * Sort the object in descending order using the given callback or "dot" notation.
+ * Sort the object in descending order using the given callback, "dot"
+ * notation, or an array of sort descriptors for multi-key sorting.
  *
  * TODO: use the sort function with a "descending" parameter defined
  *
+ * Integer-like keys are renumbered over the sorted sequence.
+ *
+ * @see Collection::sortDesc — `packages/collection/stubs/Collection.php:1571`. Wraps `arsort`.
+ *
  * @param data - The object to sort.
- * @param callback - The value extractor callback, field name, or null for natural sorting.
+ * @param callback - The value extractor callback, field name, sort descriptors, or null for natural sorting.
  * @returns A new object with sorted entries in descending order.
- *
- * @example
- *
- * sortDesc({ c: 3, a: 1, b: 4, d: 1, e: 5 }); -> { e: 5, b: 4, c: 3, a: 1, d: 1 } (sorted by values desc)
- * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, 'age'); -> sorted by age desc
- * sortDesc({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (item) => item.name); -> sorted by name desc
  */
 export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue>,
-    callback?: ((value: TValue, key: TKey) => unknown) | string | null,
+    callback?:
+        | ((value: TValue, key: TKey) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
 ): Record<TKey, TValue>;
 export function sortDesc(
     data: unknown,
-    callback?: ((value: unknown, key: PropertyKey) => unknown) | string | null,
+    callback?:
+        | ((value: unknown, key: PropertyKey) => unknown)
+        | string
+        | readonly SortSpec<unknown>[]
+        | null,
 ): Record<PropertyKey, unknown>;
 export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback?: ((value: TValue, key: TKey) => unknown) | string | null,
+    callback?:
+        | ((value: TValue, key: TKey) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
 ): Record<TKey, TValue> | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
     }
 
     const obj = data as Record<TKey, TValue>;
-    const entries = Object.entries(obj);
+    let entries = Object.entries(obj);
 
-    if (isUndefined(callback) || isNull(callback)) {
-        // Natural sorting by values in descending order
+    if (isArray(callback)) {
+        // Multi-key sorting - mirrors Collection::sortByDesc: every
+        // descriptor's own direction is overridden to descending (a
+        // comparator function is unaffected - see sortSpecComparator).
+        const comparators = (callback as readonly SortSpec<TValue>[]).map(
+            (spec) => sortSpecComparator<TValue>(spec, true),
+        );
+
+        entries.sort(([, a], [, b]) => {
+            for (const comparator of comparators) {
+                const comparison = comparator(a as TValue, b as TValue);
+
+                if (comparison !== 0) {
+                    return comparison;
+                }
+            }
+
+            return 0;
+        });
+    } else if (isFalsy(callback)) {
+        // arsort() on raw values. Same predicate as Arr.sortDesc and as both
+        // packages' sort, which is what keeps the four in agreement — PHP
+        // cannot arbitrate, since Collection::sortDesc("") throws.
         entries.sort(([, a], [, b]) => compareValues(b, a));
     } else if (isString(callback)) {
         // Sort by field name using dot notation in descending order
-        entries.sort(([, a], [, b]) => {
-            const aValue = getObjectValue(
-                a as Record<string, unknown>,
-                callback,
-            );
-            const bValue = getObjectValue(
-                b as Record<string, unknown>,
-                callback,
-            );
-
-            return compareValues(bValue, aValue);
-        });
-    } else {
+        entries.sort(([, a], [, b]) =>
+            compareValues(
+                getObjectValue(b as Record<string, unknown>, callback),
+                getObjectValue(a as Record<string, unknown>, callback),
+            ),
+        );
+    } else if (isFunction(callback)) {
         // Extract sort values using callback, then sort by those values in descending order
-        const indexed = entries.map(([key, value]) => ({
-            key,
-            value,
-            sortKey: callback(value as TValue, key as TKey),
-        }));
-
-        indexed.sort((a, b) => compareValues(b.sortKey, a.sortKey));
-
-        const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
-        for (const item of indexed) {
-            result[item.key as TKey] = item.value as TValue;
-        }
-
-        return result;
+        entries = entries
+            .map(([key, value]) => ({
+                key,
+                value,
+                sortKey: callback(value as TValue, key as TKey),
+            }))
+            .sort((a, b) => compareValues(b.sortKey, a.sortKey))
+            .map(({ key, value }) => [key, value] as [string, unknown]);
     }
 
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
-    for (const [key, value] of entries) {
-        result[key as TKey] = value as TValue;
+    for (const [key, value] of reindexIntegerKeys(entries)) {
+        defineKey(result as Record<string, TValue>, key, value as TValue);
     }
 
     return result;
@@ -2602,7 +2949,7 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
     // Rebuild object with sorted keys
     const result: Record<PropertyKey, unknown> = {};
     for (const [key, value] of processedEntries) {
-        result[key] = value;
+        defineKey(result as Record<string, unknown>, key as string, value);
     }
 
     return result as T;
@@ -2630,65 +2977,84 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
 }
 
 /**
- * Splice a portion of the underlying object
+ * Splice a portion of the underlying object, mutating it in place, like PHP's
+ * `array_splice()`. String keys keep theirs; integer-like keys reindex from 0.
+ * Writes go through `defineKey` so a `__proto__` entry becomes a real own key
+ * (see `isUnsafeKey`, AGENTS.md:189).
  *
- * TODO: update return to be this: { value: TValue[]; removed: TValue[] }
+ * @see Collection::splice — `packages/collection/stubs/Collection.php:1755`. Wraps `array_splice`; mutates.
  *
- * @param data - The object to splice
- * @param offset - The starting index
- * @param length - The number of items to remove
- * @param replacement - The replacement object
- * @returns Spliced object
+ * @param data - The object to splice. Mutated in place.
+ * @param offset - The starting index, by entry order (not by key)
+ * @param length - The number of entries to remove. Defaults to everything from offset to the end.
+ * @param replacement - Object(s) whose values are spliced in at offset, renumbered from 0
+ * @returns The removed entries, keyed the same way they were in `data`.
  */
 export function splice<TValue, TKey extends PropertyKey, TReplacements>(
-    data: Record<TKey, TValue> | unknown,
+    data: Record<TKey, TValue> | null | undefined,
     offset: number,
-    length: number = 0,
+    length?: number,
     ...replacement: TReplacements[]
-): { value: Record<TKey, TValue>; removed: Record<TKey, TValue> } {
+): Record<TKey, TValue> {
     if (!accessible(data)) {
-        return {
-            value: {} as Record<TKey, TValue>,
-            removed: {} as Record<TKey, TValue>,
-        };
+        return {} as Record<TKey, TValue>;
     }
 
     const obj = data as Record<string, TValue>;
     const entries = Object.entries(obj);
+    const len = entries.length;
 
-    // Get removed entries
-    const removedEntries =
-        length > 0 ? entries.slice(offset, offset + length) : [];
-    const removed: TValue[] = removedEntries.map(([, value]) => value);
+    const start =
+        offset < 0 ? Math.max(len + offset, 0) : Math.min(offset, len);
+    // PHP's array_splice treats a negative length as counting back from the end.
+    const deleteCount = isUndefined(length)
+        ? len - start
+        : length < 0
+          ? Math.max(len + length - start, 0)
+          : length;
+
+    const beforeEntries = entries.slice(0, start);
+    const removedEntries = entries.slice(start, start + deleteCount);
+    const afterEntries = entries.slice(start + deleteCount);
 
     // Prepare replacement entries
     const replacementEntries: [string, TValue][] = [];
     for (const repObj of replacement) {
-        for (const [key, value] of Object.entries(
-            repObj as Record<string, TValue>,
-        )) {
-            replacementEntries.push([key, value as TValue]);
+        if (accessible(repObj) || isArray(repObj)) {
+            for (const value of Object.values(
+                repObj as Record<string, TValue>,
+            )) {
+                replacementEntries.push(["0", value as TValue]);
+            }
+
+            continue;
         }
+
+        // array_splice takes a bare scalar as one spliced-in element;
+        // reindexIntegerKeys renumbers this placeholder by position.
+        replacementEntries.push(["0", repObj as unknown as TValue]);
     }
 
-    // Build new array
-    const beforeEntries = entries.slice(0, offset);
+    for (const key of Object.keys(obj)) {
+        delete obj[key];
+    }
 
-    const afterEntries =
-        length > 0 ? entries.slice(offset + length) : entries.slice(offset);
-
-    const splicedEntries = [
+    const remainderEntries = reindexIntegerKeys([
         ...beforeEntries,
         ...replacementEntries,
         ...afterEntries,
-    ];
+    ]);
 
-    const value: TValue[] = splicedEntries.map(([, value]) => value);
+    for (const [key, value] of remainderEntries) {
+        defineKey(obj, key, value);
+    }
 
-    return {
-        value: value as unknown as Record<TKey, TValue>,
-        removed: removed as unknown as Record<TKey, TValue>,
-    };
+    const removed: Record<string, TValue> = {};
+    for (const [key, value] of reindexIntegerKeys(removedEntries)) {
+        defineKey(removed, key, value);
+    }
+
+    return removed as Record<TKey, TValue>;
 }
 
 /**
@@ -2720,7 +3086,7 @@ export function string<
 
     if (!isString(value)) {
         throw new Error(
-            `Object value for key [${key}] must be a string, ${typeOf(value)} found.`,
+            `Object value for key [${key}] must be a string, ${phpTypeName(value)} found.`,
         );
     }
 
@@ -2738,6 +3104,7 @@ export function string<
  * toCssClasses({ 'font-bold': true, 'mt-4': true }); -> 'font-bold mt-4'
  * toCssClasses({ 'font-bold': true, 'text-red': false, 'ml-2': true }); -> 'font-bold ml-2'
  * toCssClasses({ primary: true, secondary: false }); -> 'primary'
+ * toCssClasses({ 0: 'font-bold', 1: 'mt-4', 'ml-2': true, 'mr-2': false }); -> 'font-bold mt-4 ml-2'
  */
 export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -2750,8 +3117,14 @@ export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
     const classes: string[] = [];
 
     for (const [key, value] of Object.entries(obj)) {
-        // Use key as class name if value is truthy
-        if (value) {
+        // Numeric-like keys (Arr.php:1214's is_numeric($class)) push the value as
+        // the class name; other keys push the key when truthy. isPhpNumeric, not
+        // Number()/isNaN: hex, "", " ", and "Infinity" parse under Number() but aren't PHP-numeric.
+        if (isPhpNumeric(key)) {
+            // Numeric key: push the value as-is (PHP-cast), like PHP
+            // pushing $constraint straight into the array before implode().
+            classes.push(cssListItemToString(value));
+        } else if (!isPhpFalsy(value)) {
             classes.push(key);
         }
     }
@@ -2769,6 +3142,7 @@ export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * toCssStyles({ 'font-weight: bold': true, 'margin-top: 4px': true }); -> 'font-weight: bold; margin-top: 4px;'
  * toCssStyles({ 'font-weight: bold': true, 'color: red': false, 'margin-left: 2px': true }); -> 'font-weight: bold; margin-left: 2px;'
+ * toCssStyles({ 0: 'font-weight: bold', 'margin-left: 2px;': true }); -> 'font-weight: bold; margin-left: 2px;'
  */
 export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -2781,10 +3155,15 @@ export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
     const styles: string[] = [];
 
     for (const [key, value] of Object.entries(obj)) {
-        // Use key as style if value is truthy
-        if (value) {
-            const style = finish(key, ";");
-            styles.push(style);
+        // Numeric-like keys (Arr.php:1237's is_numeric($class)) push the value as
+        // the style; other keys push the key when truthy. isPhpNumeric, not
+        // Number()/isNaN: hex, "", " ", and "Infinity" parse under Number() but aren't PHP-numeric.
+        if (isPhpNumeric(key)) {
+            // Numeric key: push the value as-is (PHP-cast, then finished),
+            // like PHP's Str::finish($constraint, ';').
+            styles.push(finish(cssListItemToString(value), ";"));
+        } else if (!isPhpFalsy(value)) {
+            styles.push(finish(key, ";"));
         }
     }
 
@@ -2816,7 +3195,7 @@ export function where<TValue, TKey extends PropertyKey = PropertyKey>(
 
     for (const [key, value] of Object.entries(obj)) {
         if (callback(value as TValue, key as TKey)) {
-            result[key as TKey] = value as TValue;
+            defineKey(result as Record<string, TValue>, key, value as TValue);
         }
     }
 
@@ -2843,66 +3222,132 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Replace the data items with the given replacer items.
+ * Replace the data items with the given replacer items, like PHP's
+ * `array_replace()` / `Collection::replace()`.
  *
- * @param data - The original object to replace items in.
- * @param replacerData - The object containing items to replace.
- * @returns The modified original object with replaced items.
+ * Returns a new object rather than mutating `data`; a `null`/`undefined` replacer
+ * is a no-op (`CollectionTest.php:1490`). Writes go through `defineKey` so a
+ * `__proto__` key on `replacerData` becomes a real own key (see `isUnsafeKey`,
+ * AGENTS.md:189).
+ *
+ * @see Collection::replace — `packages/collection/stubs/Collection.php:1170`. Wraps `array_replace`.
+ *
+ * @param data - The original object to replace items in. Never mutated.
+ * @param replacerData - The object containing items to replace. `null`/`undefined` is a no-op.
+ * @returns A new object with the replaced items.
  */
+export function replace<T1>(
+    data: Record<PropertyKey, T1>,
+    replacerData: null | undefined,
+): Record<PropertyKey, T1>;
 export function replace<T1, T2>(
     data: Record<PropertyKey, T1>,
     replacerData: Record<PropertyKey, T2>,
-) {
-    for (const [key, value] of Object.entries(replacerData)) {
-        data[key as PropertyKey] = value as unknown as T1;
+): Record<PropertyKey, T1 | T2>;
+// A caller holding `Record<PropertyKey, T2> | null` matches neither
+// overload above: a call is resolved against declared overloads only,
+// never the implementation signature, so this third one is required.
+export function replace<T1, T2>(
+    data: Record<PropertyKey, T1>,
+    replacerData: Record<PropertyKey, T2> | null | undefined,
+): Record<PropertyKey, T1 | T2>;
+export function replace<T1, T2>(
+    data: Record<PropertyKey, T1>,
+    replacerData: Record<PropertyKey, T2> | null | undefined,
+): Record<PropertyKey, T1 | T2> {
+    const result: Record<PropertyKey, T1 | T2> = { ...data };
+
+    if (!accessible(replacerData)) {
+        return result;
     }
 
-    return data;
+    for (const [key, value] of Object.entries(replacerData)) {
+        defineKey(result as Record<string, T1 | T2>, key, value as T1 | T2);
+    }
+
+    return result;
 }
 
 /**
- * Recursively replace the data items with the given items.
+ * Recursively replace the data items with the given items, like PHP's
+ * `array_replace_recursive()` / `Collection::replaceRecursive()`.
  *
- * @param data - The original object to replace items in.
- * @param replacerData - The object containing items to replace.
- * @returns The modified original object with replaced items.
+ * Builds a new object at every recursion level rather than mutating `data`. A
+ * `null`/`undefined` replacer is a no-op (`CollectionTest.php:1532`). Only
+ * `__proto__` is skipped on `replacerData` — the sole prototype-pollution hazard
+ * (see `isUnsafeKey`, AGENTS.md:189); `constructor`/`prototype` write normally.
+ *
+ * @see Collection::replaceRecursive — `packages/collection/stubs/Collection.php:1181`. Wraps `array_replace_recursive`.
+ *
+ * @param data - The original object to replace items in. Never mutated.
+ * @param replacerData - The object containing items to replace. `null`/`undefined` is a no-op.
+ * @returns A new, recursively merged object.
  */
+export function replaceRecursive<T1>(
+    data: Record<PropertyKey, T1>,
+    replacerData: null | undefined,
+): Record<PropertyKey, T1>;
 export function replaceRecursive<T1, T2>(
     data: Record<PropertyKey, T1>,
     replacerData: Record<PropertyKey, T2>,
-) {
+): Record<PropertyKey, T1 | T2>;
+// See `replace`'s matching overload for why this third, concrete overload is
+// required rather than relying on the implementation signature below (TS2769
+// otherwise, for a caller holding `Record<PropertyKey, T2> | null`).
+export function replaceRecursive<T1, T2>(
+    data: Record<PropertyKey, T1>,
+    replacerData: Record<PropertyKey, T2> | null | undefined,
+): Record<PropertyKey, T1 | T2>;
+export function replaceRecursive<T1, T2>(
+    data: Record<PropertyKey, T1>,
+    replacerData: Record<PropertyKey, T2> | null | undefined,
+): Record<PropertyKey, T1 | T2> {
+    const result: Record<PropertyKey, T1 | T2> = { ...data };
+
+    if (!accessible(replacerData)) {
+        return result;
+    }
+
     for (const [key, value] of Object.entries(replacerData)) {
-        if (isUnsafeKey(key)) {
+        if (key === "__proto__") {
             continue;
         }
-        if (isObject(value) && isObject(data[key as PropertyKey])) {
-            data[key] = replaceRecursive(
-                data[key as PropertyKey] as Record<PropertyKey, T1>,
-                value as Record<PropertyKey, T2>,
-            ) as T1;
-        } else if (isArray(value) && isArray(data[key as PropertyKey])) {
-            data[key] = arrReplaceRecursive(
-                data[key] as T1[],
-                value as T2[],
-            ) as unknown as T1;
+
+        const existing = data[key as PropertyKey];
+
+        if (isObject(value) && isObject(existing)) {
+            defineKey(
+                result as Record<string, T1 | T2>,
+                key,
+                replaceRecursive(
+                    existing as Record<PropertyKey, T1>,
+                    value as Record<PropertyKey, T2>,
+                ) as T1 | T2,
+            );
+        } else if (isArray(value) && isArray(existing)) {
+            defineKey(
+                result as Record<string, T1 | T2>,
+                key,
+                arrReplaceRecursive(existing as T1[], value as T2[]) as T1 | T2,
+            );
         } else {
-            data[key] = value as unknown as T1;
+            defineKey(result as Record<string, T1 | T2>, key, value as T1 | T2);
         }
     }
 
-    return data;
+    return result;
 }
 
 /**
  * Reverse the order of the object's entries.
  *
+ * String keys keep theirs; integer-like keys are renumbered over the reversed
+ * sequence, since JS always re-sorts them ascending on write (ECMA-262).
+ *
+ * @see Collection::reverse — `packages/collection/stubs/Collection.php:1191`. Wraps `array_reverse($items, true)`.
+ *
  * @param data - The object to reverse.
  * @returns A new object with reversed entries.
- *
- * @example
- *
- * reverse({ a: 1, b: 2, c: 3 }); -> { c: 3, b: 2, a: 1 }
- * reverse({ name: 'John', age: 30, city: 'NYC' }); -> { city: 'NYC', age: 30, name: 'John' }
  */
 export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -2914,12 +3359,11 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
     const obj = data as Record<TKey, TValue>;
     const entries = Object.entries(obj);
 
-    // Reverse the entries array
     entries.reverse();
 
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
-    for (const [key, value] of entries) {
-        result[key as TKey] = value as TValue;
+    for (const [key, value] of reindexIntegerKeys(entries)) {
+        defineKey(result as Record<string, TValue>, key, value as TValue);
     }
 
     return result;
@@ -2928,7 +3372,11 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Pad object to the specified length with a value.
  *
- * TODO: implement proper padding and negative numbers
+ * Pad slots join the integer-key sequence rather than restarting it, matching
+ * `array_pad`'s numbering; string keys keep theirs. Only iteration order of a
+ * mixed-key object can differ, since JS enumerates integer-like keys first (ECMA-262).
+ *
+ * @see Collection::pad — `packages/collection/stubs/Collection.php:1904`. Wraps `array_pad`.
  *
  * @param data - The object to pad.
  * @param size - The desired size of the object after padding. Positive to pad at the end, negative to pad at the beginning.
@@ -2949,35 +3397,24 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     const currentLength = entries.length;
 
     if (Math.abs(size) <= currentLength) {
-        return data as Record<TKey, TValue | TPadValue>;
+        return { ...obj } as Record<TKey, TValue | TPadValue>;
     }
 
     const padCount = Math.abs(size) - currentLength;
     const padEntries: [string, TPadValue][] = [];
 
-    if (size >= 0) {
-        for (let i = 0; i < padCount; i++) {
-            padEntries.push([i.toString(), value]);
-        }
-    } else {
-        // Negative size: left padding with keys counting up to 0 (including negatives)
-        // Example: currentLength=2, size=-5 => padCount=3 => keys -2, -1, 0
-        const start = -(padCount - 1);
-        for (let k = start; k <= 0; k++) {
-            padEntries.push([k.toString(), value]);
-        }
+    for (let i = 0; i < padCount; i++) {
+        // Any integer-like key works here; reindexIntegerKeys below
+        // renumbers the whole sequence by position anyway.
+        padEntries.push(["0", value]);
     }
 
-    let resultEntries: [string, TValue | TPadValue][];
-    if (size > 0) {
-        resultEntries = [...entries, ...padEntries];
-    } else {
-        resultEntries = [...padEntries, ...entries];
-    }
+    const orderedEntries: [string, TValue | TPadValue][] =
+        size > 0 ? [...entries, ...padEntries] : [...padEntries, ...entries];
 
     const result: Record<string, TValue | TPadValue> = {};
-    for (const [key, val] of resultEntries) {
-        result[key] = val;
+    for (const [key, val] of reindexIntegerKeys(orderedEntries)) {
+        defineKey(result, key, val);
     }
 
     return result as Record<TKey, TValue | TPadValue>;
@@ -3009,9 +3446,9 @@ export function partition<TValue, TKey extends PropertyKey = PropertyKey>(
 
     for (const [key, value] of Object.entries(obj)) {
         if (callback(value as TValue, key as TKey)) {
-            passed[key as TKey] = value as TValue;
+            defineKey(passed as Record<string, TValue>, key, value as TValue);
         } else {
-            failed[key as TKey] = value as TValue;
+            defineKey(failed as Record<string, TValue>, key, value as TValue);
         }
     }
 
@@ -3040,6 +3477,9 @@ export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Determine if an object contains a given value.
+ *
+ * @see Collection::contains — `packages/collection/stubs/Collection.php:195`.
+ *      Value/callback/key-operator-value search; has no `Arr.php` counterpart at all.
  *
  * @param data - The object to search in.
  * @param value - The value to search for.
@@ -3101,6 +3541,9 @@ export function contains<TValue>(
 /**
  * Filter the object using the given callback.
  *
+ * @see Collection::filter — `packages/collection/stubs/Collection.php:424`.
+ *      With a callback, delegates to `Arr::where()`; without one, wraps `array_filter`.
+ *
  * @param data - The object to filter.
  * @param callback - The function to call for each item (value, key) => boolean.
  * @returns A new filtered object.
@@ -3109,9 +3552,11 @@ export function contains<TValue>(
  *
  * filter({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { c: 3, d: 4 }
  * filter({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> { name: 'John', city: 'NYC' }
+ * filter({ a: "0", b: "", c: 0, d: "x" }); -> { d: "x" }
+ * filter({ a: "00", b: "0.0" }); -> { a: "00", b: "0.0" }
  */
 export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | unknown,
+    data: Record<TKey, TValue> | null | undefined,
     callback?: (value: TValue, key: TKey) => boolean | null,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
@@ -3122,24 +3567,16 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
-        // If no callback, filter out falsy values (including empty arrays and empty objects)
+        // If no callback, filter out PHP-falsy values by default
         const shouldInclude = isFunction(callback)
             ? callback(value, key)
-            : (() => {
-                  // Empty arrays are falsy in PHP
-                  if (isArray(value) && value.length === 0) {
-                      return false;
-                  }
-                  // Empty objects are falsy in PHP
-                  if (isObject(value) && Object.keys(value).length === 0) {
-                      return false;
-                  }
-                  // Otherwise use standard JavaScript truthiness
-                  return Boolean(value);
-              })();
+            : !isPhpFalsy(value);
 
         if (shouldInclude) {
-            result[key] = value;
+            // Writes go through `defineKey` so a `__proto__` key in `data`
+            // becomes a real own key instead of reparenting `result` through
+            // the `__proto__` setter (see `isUnsafeKey`, AGENTS.md:189).
+            defineKey(result as Record<string, TValue>, String(key), value);
         }
     }
 
@@ -3174,13 +3611,13 @@ export function wrap<TValue>(
 /**
  * Get all keys from an object.
  *
+ * Uses `Object.keys()` — own enumerable string keys only — so its length always
+ * matches `values()`'s, which walks the same enumerable-own-string-keys set.
+ *
+ * @see Collection::keys — `packages/collection/stubs/Collection.php:790`. Wraps `array_keys`.
+ *
  * @param data - The object to get keys from.
  * @returns An array of all keys.
- *
- * @example
- *
- * keys({ name: 'John', age: 30, city: 'NYC' }); -> ['name', 'age', 'city']
- * keys({}); -> []
  */
 export function keys<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -3189,18 +3626,11 @@ export function keys<TValue, TKey extends PropertyKey = PropertyKey>(
         return [];
     }
 
-    // Use Reflect.ownKeys() to preserve insertion order for all key types
-    // Then convert numeric string keys back to numbers
+    // Convert numeric string keys back to numbers, matching PHP's array
+    // keys being ints when they look like ints.
     const result: (string | number)[] = [];
-    const allKeys = Reflect.ownKeys(data as Record<TKey, TValue>);
 
-    for (const key of allKeys) {
-        // Skip symbol keys
-        if (typeof key === "symbol") {
-            continue;
-        }
-
-        // Convert numeric string keys back to numbers
+    for (const key of Object.keys(data as Record<TKey, TValue>)) {
         const numericKey = Number(key);
 
         if (!Number.isNaN(numericKey) && String(numericKey) === key) {
@@ -3215,6 +3645,9 @@ export function keys<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Get all values from an object.
+ *
+ * @see Collection::values — `packages/collection/stubs/Collection.php:1870`.
+ *      Wraps `array_values`.
  *
  * @param data - The object to get values from.
  * @returns An array of all values.
@@ -3237,16 +3670,79 @@ export function values<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get the items that are not present in the given object.
  *
+ * Compares by value only, using PHP's `(string) $a === (string) $b` rule (see
+ * `phpValueMatch`); unlike `diffAssoc`, a matching key on `other` with a different
+ * value does not save the item. `other` is normalized by `arrayableValues`.
+ *
+ * @see Collection::diff — `packages/collection/stubs/Collection.php:276`. Wraps `array_diff`.
+ *
  * @param data - The original object.
- * @param other - The object to compare against.
- * @returns A new object containing items from data that are not in other.
- *
- * @example
- *
- * diff({ a: 1, b: 2, c: 3 }, { b: 2, d: 4 }); -> { a: 1, c: 3 }
- * diff({ name: 'John', age: 30 }, { age: 30, city: 'NYC' }); -> { name: 'John' }
+ * @param other - The object (or array) to compare against.
+ * @returns A new object containing items from data whose value is not present in other.
  */
-export function diff<TValue, TKey extends PropertyKey = PropertyKey>(
+// Overload: typed — TOtherKey lets a differently-shaped `other` unify without
+// failing, and `other` may be null/undefined (treated as empty) without falling
+// through to the unknown fallback below.
+export function diff<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TOtherKey extends PropertyKey = PropertyKey,
+>(
+    data: Record<TKey, TValue>,
+    other: Record<TOtherKey, TValue> | null | undefined,
+): Record<TKey, TValue>;
+// Overload: data typed, other opaque (e.g. Enumerable/Arrayable-like) — keys
+// widen to PropertyKey since other's shape is unknown, but TValue still comes
+// from data, so the result isn't a plain `unknown` record.
+export function diff<TValue>(
+    data: Record<PropertyKey, TValue>,
+    other: unknown,
+): Record<PropertyKey, TValue>;
+// Overload: unknown fallback
+export function diff(
+    data: unknown,
+    other: unknown,
+): Record<PropertyKey, unknown>;
+// Implementation
+export function diff<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+    TOtherKey extends PropertyKey = PropertyKey,
+>(
+    data: Record<TKey, TValue> | unknown,
+    other: Record<TOtherKey, TValue> | unknown,
+): Record<TKey, TValue> {
+    if (!accessible(data)) {
+        return {} as Record<TKey, TValue>;
+    }
+
+    const obj = data as Record<TKey, TValue>;
+    const otherValues = arrayableValues<TValue>(other);
+    const matches = phpValueMatcher(otherValues);
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+
+    for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
+        if (!matches(value)) {
+            defineKey(result as Record<string, TValue>, key as string, value);
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Diff the object with the given other object, comparing both keys and values.
+ *
+ * This is `array_diff_assoc` — unlike `diff`, matching by key+value, not by value
+ * alone. A non-accessible `other` is treated as empty, so every entry of `data` survives.
+ *
+ * @see Collection::diffAssoc — `packages/collection/stubs/Collection.php:299`. Wraps `array_diff_assoc`.
+ *
+ * @param data - The original object
+ * @param other - The object to diff against
+ * @returns A new object containing key-value pairs not present in other
+ */
+export function diffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     other: Record<TKey, TValue> | unknown,
 ): Record<TKey, TValue> {
@@ -3263,8 +3759,11 @@ export function diff<TValue, TKey extends PropertyKey = PropertyKey>(
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
-        if (!(key in otherObj) || otherObj[key] !== value) {
-            result[key] = value;
+        if (
+            !Object.hasOwn(otherObj, key) ||
+            !phpValueMatch(otherObj[key as TKey], value)
+        ) {
+            defineKey(result as Record<string, TValue>, key as string, value);
         }
     }
 
@@ -3273,7 +3772,10 @@ export function diff<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Diff the data object with the given other object using a callback for key comparison.
- * Compares keys using the callback and values using strict equality.
+ * Compares keys using the callback and values using PHP's `(string)` cast rule.
+ *
+ * @see Collection::diffAssocUsing — `packages/collection/stubs/Collection.php:311`.
+ *      Wraps `array_diff_uassoc`. Obj-only — `Arr.php` has no equivalent, so there is no `arr.diffAssocUsing`.
  *
  * @param data - The original object
  * @param other - The object to diff against
@@ -3311,8 +3813,11 @@ export function diffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
         );
 
         // Include if: no matching key found OR matching key has different value
-        if (matchingKey === undefined || otherObj[matchingKey] !== value) {
-            result[key] = value;
+        if (
+            matchingKey === undefined ||
+            !phpValueMatch(otherObj[matchingKey], value)
+        ) {
+            defineKey(result as Record<string, TValue>, key as string, value);
         }
     }
 
@@ -3322,6 +3827,9 @@ export function diffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Diff the data object with the given other object using a callback for key comparison only.
  * Compares keys using the callback and ignores values completely.
+ *
+ * @see Collection::diffKeysUsing — `packages/collection/stubs/Collection.php:334`.
+ *      Wraps `array_diff_ukey`. Obj-only — `Arr.php` has no equivalent, so there is no `arr.diffKeysUsing`.
  *
  * @param data - The original object
  * @param other - The object to diff against
@@ -3360,7 +3868,7 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
 
         // Include if: no matching key found (values are ignored)
         if (matchingKey === undefined) {
-            result[key] = value;
+            defineKey(result as Record<string, TValue>, key as string, value);
         }
     }
 
@@ -3368,34 +3876,81 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Intersect the data object with the given other object
+ * Intersect the data object with the given other object.
+ *
+ * Compares by value only, using PHP's `(string) $a === (string) $b` rule (see
+ * `phpValueMatch`); unlike `intersectAssoc`, `key in other` is not required.
+ * `callable`, when given, replaces the comparator (PHP's `array_uintersect()`
+ * style; folds Laravel's `intersectUsing()` into this parameter). `other` is
+ * normalized by `arrayableValues`.
+ *
+ * @see Collection::intersect — `packages/collection/stubs/Collection.php:660`. Wraps `array_intersect`.
  *
  * @param data - The original object
  * @param other - The object to intersect with
- * @param callable - Optional function to compare values
- * @returns A new object containing items present in both objects
+ * @param callable - Optional function to compare values (array_uintersect-style)
+ * @returns A new object containing data's items whose value is also present in other
  */
-export function intersect<T1, T2, TResponse>(
+// Overload: with callback — T1 and T2 inferred independently
+export function intersect<T1, T2>(
     data: Record<PropertyKey, T1>,
-    other: Record<PropertyKey, T2>,
+    other: Record<PropertyKey, T2> | null | undefined,
+    callable: (a: T1, b: T2) => boolean,
+): Record<PropertyKey, T1>;
+// Overload: without callback — same value type on both sides
+export function intersect<T1>(
+    data: Record<PropertyKey, T1>,
+    other: Record<PropertyKey, T1> | null | undefined,
+    callable?: null,
+): Record<PropertyKey, T1>;
+// Overload: data typed, other opaque (e.g. Enumerable/Arrayable-like) — mirrors
+// diff's equivalent overload above; T1 still comes from data instead of
+// collapsing to a plain `unknown` record.
+export function intersect<T1>(
+    data: Record<PropertyKey, T1>,
+    other: unknown,
+    callable?: null,
+): Record<PropertyKey, T1>;
+// Overload: unknown fallback
+export function intersect<T1, T2 = T1>(
+    data: unknown,
+    other: unknown,
+    callable?: ((a: T1, b: T2) => boolean) | null,
+): Record<PropertyKey, T1>;
+// Implementation
+export function intersect<T1, T2 = T1>(
+    data: Record<PropertyKey, T1> | unknown,
+    other: Record<PropertyKey, T2> | unknown,
     callable: ((a: T1, b: T2) => boolean) | null = null,
-) {
-    const result: Record<PropertyKey, TResponse> = {} as Record<
-        PropertyKey,
-        TResponse
-    >;
+): Record<PropertyKey, T1> {
+    const result: Record<PropertyKey, T1> = {};
 
-    for (const [key, value] of Object.entries(data)) {
-        if (key in other) {
-            const otherValue = other[key as PropertyKey];
+    if (!accessible(data)) {
+        return result;
+    }
 
-            const isEqual = isFunction(callable)
-                ? callable(value as T1, otherValue as T2)
-                : value === otherValue;
+    const otherValues = arrayableValues<T2>(other);
+    const entries = Object.entries(data as Record<PropertyKey, T1>);
 
-            if (isEqual) {
-                result[key as PropertyKey] = value as unknown as TResponse;
+    if (isFunction(callable)) {
+        for (const [key, value] of entries) {
+            if (
+                otherValues.some((otherValue) =>
+                    callable(value as T1, otherValue),
+                )
+            ) {
+                defineKey(result as Record<string, T1>, key, value as T1);
             }
+        }
+
+        return result;
+    }
+
+    const matches = phpValueMatcher(otherValues);
+
+    for (const [key, value] of entries) {
+        if (matches(value)) {
+            defineKey(result as Record<string, T1>, key, value as T1);
         }
     }
 
@@ -3406,27 +3961,49 @@ export function intersect<T1, T2, TResponse>(
  * Intersect the object with the given items with additional key check.
  * Returns items where both the key AND value match.
  *
+ * This is `array_intersect_assoc` — unlike `intersect`, `key in other` is required.
+ * A non-accessible `data` or `other` is treated as empty, so the result is `{}`.
+ *
+ * @see Collection::intersectAssoc — `packages/collection/stubs/Collection.php:683`. Wraps `array_intersect_assoc`.
+ *
  * @param data - The original object
  * @param other - The object to intersect with
  * @returns A new object containing items where both key and value match
- *
- * @example
- *
- * intersectAssoc({a: 'green', b: 'brown', c: 'blue'}, {a: 'green', b: 'yellow', c: 'blue'}); -> {a: 'green', c: 'blue'}
- * intersectAssoc({a: 1, b: 2}, {a: 1, c: 3}); -> {a: 1}
  */
-export function intersectAssoc<T1, T2, TResponse>(
+// Overload: typed
+export function intersectAssoc<T1, T2 = T1>(
     data: Record<PropertyKey, T1>,
-    other: Record<PropertyKey, T2>,
-) {
-    const result: Record<PropertyKey, TResponse> = {} as Record<
-        PropertyKey,
-        TResponse
-    >;
+    other: Record<PropertyKey, T2> | null | undefined,
+): Record<PropertyKey, T1>;
+// Overload: unknown fallback — agrees with intersect's null-data acceptance (R5)
+export function intersectAssoc<T1>(
+    data: unknown,
+    other: unknown,
+): Record<PropertyKey, T1>;
+// Implementation
+export function intersectAssoc<T1, T2 = T1>(
+    data: Record<PropertyKey, T1> | unknown,
+    other: Record<PropertyKey, T2> | unknown,
+): Record<PropertyKey, T1> {
+    const result: Record<PropertyKey, T1> = {};
 
-    for (const [key, value] of Object.entries(data)) {
-        if (key in other && value === other[key as PropertyKey]) {
-            result[key] = value as unknown as TResponse;
+    if (!accessible(data) || !accessible(other)) {
+        return result;
+    }
+
+    const otherObj = other as Record<PropertyKey, T2>;
+
+    for (const [key, value] of Object.entries(
+        data as Record<PropertyKey, T1>,
+    )) {
+        if (
+            Object.hasOwn(otherObj, key) &&
+            phpValueMatch(
+                value as unknown,
+                otherObj[key as PropertyKey] as unknown,
+            )
+        ) {
+            defineKey(result as Record<string, T1>, key, value as T1);
         }
     }
 
@@ -3435,35 +4012,56 @@ export function intersectAssoc<T1, T2, TResponse>(
 
 /**
  * Intersect the object with the given items with additional key check, using the callback.
- * The callback is used to compare keys, while values are compared strictly.
+ * Values are compared by PHP's `(string)` cast rule; `callback` compares keys.
+ *
+ * A non-accessible `data` or `other` is treated as empty, so the result is `{}`.
+ *
+ * @see Collection::intersectAssocUsing — `packages/collection/stubs/Collection.php:695`. Wraps `array_intersect_uassoc`
  *
  * @param data - The original object
  * @param other - The object to intersect with
  * @param callback - The callback function to compare keys (returns true if keys match)
  * @returns A new object containing items where both key (via callback) and value match
- *
- * @example
- *
- * const strcasecmpKeys = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
- * intersectAssocUsing({a: 'green', b: 'brown'}, {A: 'GREEN', B: 'brown'}, strcasecmpKeys); -> {b: 'brown'}
  */
-export function intersectAssocUsing<T1, T2, TResponse>(
+// Overload: typed
+export function intersectAssocUsing<T1, T2 = T1>(
     data: Record<PropertyKey, T1>,
-    other: Record<PropertyKey, T2>,
+    other: Record<PropertyKey, T2> | null | undefined,
     callback: (keyA: PropertyKey, keyB: PropertyKey) => boolean,
-) {
-    const result: Record<PropertyKey, TResponse> = {} as Record<
-        PropertyKey,
-        TResponse
-    >;
+): Record<PropertyKey, T1>;
+// Overload: unknown fallback — agrees with intersect's null-data acceptance (R5)
+export function intersectAssocUsing<T1>(
+    data: unknown,
+    other: unknown,
+    callback: (keyA: PropertyKey, keyB: PropertyKey) => boolean,
+): Record<PropertyKey, T1>;
+// Implementation
+export function intersectAssocUsing<T1, T2 = T1>(
+    data: Record<PropertyKey, T1> | unknown,
+    other: Record<PropertyKey, T2> | unknown,
+    callback: (keyA: PropertyKey, keyB: PropertyKey) => boolean,
+): Record<PropertyKey, T1> {
+    const result: Record<PropertyKey, T1> = {};
 
-    for (const [dataKey, dataValue] of Object.entries(data)) {
-        for (const [otherKey, otherValue] of Object.entries(other)) {
+    if (!accessible(data) || !accessible(other)) {
+        return result;
+    }
+
+    for (const [dataKey, dataValue] of Object.entries(
+        data as Record<PropertyKey, T1>,
+    )) {
+        for (const [otherKey, otherValue] of Object.entries(
+            other as Record<PropertyKey, T2>,
+        )) {
             if (
                 callback(dataKey, otherKey) &&
-                (dataValue as unknown) === (otherValue as unknown)
+                phpValueMatch(dataValue as unknown, otherValue as unknown)
             ) {
-                result[dataKey] = dataValue as unknown as TResponse;
+                defineKey(
+                    result as Record<string, T1>,
+                    dataKey,
+                    dataValue as T1,
+                );
                 break; // Only add once per dataKey
             }
         }
@@ -3475,22 +4073,42 @@ export function intersectAssocUsing<T1, T2, TResponse>(
 /**
  * Intersect the object with the given items by key.
  *
+ * A non-accessible `data` or `other` is treated as empty, so the result is `{}`.
+ *
+ * @see Collection::intersectByKeys — `packages/collection/stubs/Collection.php:706`. Wraps `array_intersect_key`.
+ *
  * @param data - The original object
  * @param other - The object to intersect with
  * @returns A new object containing items with keys present in both objects
  */
-export function intersectByKeys<T1, T2, TResponse>(
+// Overload: typed
+export function intersectByKeys<T1, T2 = T1>(
     data: Record<PropertyKey, T1>,
-    other: Record<PropertyKey, T2>,
-) {
-    const result: Record<PropertyKey, TResponse> = {} as Record<
-        PropertyKey,
-        TResponse
-    >;
+    other: Record<PropertyKey, T2> | null | undefined,
+): Record<PropertyKey, T1>;
+// Overload: unknown fallback — agrees with intersect's null-data acceptance (R5)
+export function intersectByKeys<T1>(
+    data: unknown,
+    other: unknown,
+): Record<PropertyKey, T1>;
+// Implementation
+export function intersectByKeys<T1, T2 = T1>(
+    data: Record<PropertyKey, T1> | unknown,
+    other: Record<PropertyKey, T2> | unknown,
+): Record<PropertyKey, T1> {
+    const result: Record<PropertyKey, T1> = {};
 
-    for (const [key, value] of Object.entries(data)) {
-        if (key in other) {
-            result[key] = value as unknown as TResponse;
+    if (!accessible(data) || !accessible(other)) {
+        return result;
+    }
+
+    const otherObj = other as Record<PropertyKey, T2>;
+
+    for (const [key, value] of Object.entries(
+        data as Record<PropertyKey, T1>,
+    )) {
+        if (Object.hasOwn(otherObj, key)) {
+            defineKey(result as Record<string, T1>, key, value as T1);
         }
     }
 

@@ -142,6 +142,16 @@ Add `ts:publish` to the `post-update-cmd` hook in `composer.json` so deployed an
 }
 ```
 
+## Publishing Only Some Output
+
+Every phase has an `enabled` key in `config/ts-publish.php` (`enums`, `models`, `model_metadata`, `resources`, `routes`, `form_requests`, `broadcast_channels`, `broadcast_events`), and one `--only-*` flag per phase limits a single run: `--only-enums`, `--only-models`, `--only-model-metadata`, `--only-resources`, `--only-routes`, `--only-form-requests`, `--only-broadcast-channels`, `--only-broadcast-events`. The flags cannot be combined. `--only-functional` skips model and resource interfaces, publishes every other enabled phase, and wins over any other `--only-*` flag.
+
+A flag that requests a phase disabled in config prompts for an override in an interactive shell and respects the config silently otherwise (CI, queued jobs, the post-migration hook). Barrel `index.ts` files are rebuilt for every phase a run publishes; a phase that is enabled but skipped by a flag keeps its existing exports — see [Modular Publishing](./modular-publishing.md#barrel-files).
+
+## Analyzer API
+
+The same static analysis engine that powers `ts:publish` is also callable directly — hand `AstEngine` a class and a method name and get back a typed property list, without running the full publish pipeline or writing anything to disk. See the full [Analyzer API documentation](./analyzer-api.md).
+
 ## Pre-Command Hook
 
 If you need to run custom logic right before `ts:publish` executes — dynamically configuring directories, swapping pipeline classes, or reacting to feature flags — register a closure with `LaravelTsPublish::callCommandUsing()` in a service provider's `boot()` method. See the full [Pre-Command Hook documentation](./pre-command-hook.md) for worked examples.
@@ -150,4 +160,4 @@ If you need to run custom logic right before `ts:publish` executes — dynamical
 
 During development, run `vite dev` and the plugin will automatically watch for changes in your collected PHP files and call the publish command to keep your TypeScript files up to date.
 
-Run `vite build` to build your assets for production — the plugin calls the publish command (with `--only-functional` appended by default, since interfaces are erased at compile time) before bundling.
+Run `vite build` to build your assets for production. The plugin calls the publish command before bundling, with `--only-functional` appended by default so it skips model and resource interfaces, which are erased at compile time.

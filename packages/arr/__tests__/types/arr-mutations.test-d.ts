@@ -210,18 +210,16 @@ describe("arr mutations type tests", () => {
             } | null>();
         });
 
-        it("accepts a readonly array", () => {
-            expectTypeOf(Arr.pop(readonlyNumbers)).toEqualTypeOf<
-                number | null
-            >();
+        it("rejects a readonly array — pop mutates, so the source must be a known-mutable array", () => {
+            // @ts-expect-error -- readonly arrays cannot be mutated by pop
+            Arr.pop(readonlyNumbers);
         });
 
-        it("collapses to unknown for unknown data", () => {
-            // TypeScript collapses `unknown | X` to `unknown`, so the
-            // fallback overload's `TValue | TValue[] | null` return type
-            // (with TValue defaulting to `unknown`) is unwritable as
-            // anything but a bare `unknown`.
-            expectTypeOf(Arr.pop(unknownArray)).toEqualTypeOf<unknown>();
+        it("rejects unknown-typed data — the fallback overload only serves TValue[] | Record<PropertyKey, unknown> | null | undefined, not a blanket `unknown`, so mutation safety isn't silently bypassed", () => {
+            // @ts-expect-error -- a value whose static type is `unknown`
+            // provides no proof it's actually a mutable array; narrow it
+            // before calling a mutating function
+            Arr.pop(unknownArray);
         });
     });
 
@@ -244,10 +242,38 @@ describe("arr mutations type tests", () => {
             } | null>();
         });
 
-        it("accepts a readonly array", () => {
-            expectTypeOf(Arr.shift(readonlyStrings)).toEqualTypeOf<
-                string | null
+        it("rejects a readonly array — shift mutates, so the source must be a known-mutable array", () => {
+            // @ts-expect-error -- readonly arrays cannot be mutated by shift
+            Arr.shift(readonlyStrings);
+        });
+    });
+
+    describe("splice", () => {
+        it("preserves string element type", () => {
+            expectTypeOf(Arr.splice(["foo", "baz"], 1, 1)).toEqualTypeOf<
+                string[]
             >();
+        });
+
+        it("preserves string element type with a replacement", () => {
+            expectTypeOf(Arr.splice(["foo", "baz"], 1, 1, "bar")).toEqualTypeOf<
+                string[]
+            >();
+        });
+
+        it("preserves number element type without a length", () => {
+            expectTypeOf(Arr.splice([1, 2, 3], 1)).toEqualTypeOf<number[]>();
+        });
+
+        it("preserves object element type", () => {
+            expectTypeOf(Arr.splice(idObjects, 0, 1)).toEqualTypeOf<
+                { id: number }[]
+            >();
+        });
+
+        it("rejects a readonly array — splice mutates, so the source must be a known-mutable array", () => {
+            // @ts-expect-error -- readonly arrays cannot be mutated by splice
+            Arr.splice(readonlyStrings, 0, 1);
         });
     });
 });

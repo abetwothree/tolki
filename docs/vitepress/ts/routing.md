@@ -274,7 +274,7 @@ An action that conditionally renders different Inertia components (e.g. based on
 
 ```typescript
 export type ConditionalAuthenticatedPageProps = Inertia.SharedData & {
-  user: unknown;
+  user: User | null;
 };
 export type ConditionalGuestPageProps = Inertia.SharedData & {
   message: string;
@@ -295,6 +295,48 @@ export const conditional = annotatePageProps<
 ```
 
 `route.component` gives you the whole map, and `route.withComponent(componentValue, ...args)` tags a call result with a specific variant (it accepts one of the _values_ from the map, e.g. `'Conditional/Authenticated'`, not the key) — useful for logging or for selecting which frontend component to render based on which variant a given call represents.
+
+Two renders of the **same** component are merged into one page-props type instead of a union, and a key that only one of them sets becomes optional — which is what you want, since a partial branch really can omit it.
+
+### What the props expression can be
+
+The props argument is read as an expression, not just as a literal array, so the common controller shapes type without an annotation:
+
+```php
+public function show(Post $post, Request $request): Response
+{
+    $comments = Comment::query()->latest()->get();
+
+    return Inertia::render('Posts/Show', [
+        ...compact('post', 'comments'),
+        'author'  => $request->user(),
+        'page'    => $request->integer('page'),
+        'related' => Post::query()->paginate(10),
+        'tally'   => Inertia::defer(fn () => Comment::query()->count()),
+    ]);
+}
+```
+
+```typescript
+export type ShowPageProps = Inertia.SharedData & {
+  post: Post;
+  comments: Comment[];
+  author: User | null;
+  page: number;
+  related: LengthAwarePaginator<Post>;
+  tally?: number;
+};
+```
+
+- **Eloquent finders and collections** from the model their chain is rooted at: `find()`, `first()` and `firstWhere()` are `Model | null`; `findOrFail()`, `sole()`, `create()` and friends are `Model`; `all()` and `get()` are `Model[]`; `paginate()`, `simplePaginate()` and `cursorPaginate()` are the matching paginator generic; `count()` and `exists()` are `number` and `boolean`.
+- **Route-bound model parameters** — a `Post $post` parameter is `Post` wherever the props name it.
+- **`$request->user()`**, resolved through your `auth` config the same way [shared data](./inertia.md) resolves it, plus the typed `Request` reads (`integer()`, `boolean()`, `string()`, `url()`, …).
+- **`compact('post', 'comments')`** and **`array_merge($base, [...])`**, each read as the array literal it is equivalent to.
+- **The Inertia v2 prop wrappers** — `defer()`, `optional()` and `lazy()` type as the value they wrap and mark the key optional, since a partial reload can omit it; `always()`, `merge()` and `deepMerge()` type as the value they wrap.
+- **API resources and resource collections**, typed from what they wrap, including a `#[PreserveKeys]` collection's keyed `data` member.
+- **A props array assigned from a ternary**, and props delegated whole to a collaborator (`Inertia::render('X', $this->service->build())`).
+
+An expression the analyzer cannot resolve types as `unknown` rather than failing the run; reach for `#[TsCasts]` when you want to say what it is.
 
 ## Inertia UI Table Props
 
@@ -333,30 +375,24 @@ Supported model inference (all read statically, never instantiating the table):
 
 Dynamic/stateful tables whose model only exists in runtime constructor state are not statically inferable; use `#[TsCasts]` on the controller method for fully custom prop typing.
 
-## Table-Tainted Controllers
+## Sibling Actions on a Table Controller
 
-When a controller (or the resource it delegates to) renders an Inertia UI Table in **any** of its actions — even a sibling action unrelated to the route being published — the entire controller is considered "table-tainted." To avoid autoloading optional export dependencies such as Excel/PhpSpreadsheet during `ts:publish`, deep static analysis is skipped for every action on that controller.
+A controller that renders a table needs no special handling, and neither do its other actions. Table
+props are read by reflection and AST alone — the table class's `$resource` default or its `query()`
+method — so `ts:publish` never instantiates a table or calls its `toArray()`, which is what builds the
+export definition that reaches the optional Excel/PhpSpreadsheet integration. Every action on the
+controller (`create`, `store`, `edit`, `update`) gets its page-prop type inferred from its own
+`Inertia::render()` call, exactly like a controller with no table in it.
 
-Affected routes still get their route helpers, but they receive no auto-generated page-prop type — the route appears as a helper function without a corresponding `PageProps` type export.
+Earlier releases were not able to do this. A controller that mentioned a table anywhere — even in an
+unrelated sibling action — had deep analysis skipped for all of its actions, so those routes got a
+route helper but no `PageProps` type. That fallback is gone.
 
-### Why This Happens (It Is Not the Inertia UI Table Package)
+### Overriding Props with `#[TsCasts]`
 
-This workaround exists because of a bug in [`phpoffice/phpspreadsheet`](https://github.com/PHPOffice/PhpSpreadsheet) — **not** the Inertia UI Table package, and not your code. The dependency chain is:
-
-- The Inertia UI Table package does **not** require any spreadsheet code. It only _optionally_ integrates with [`maatwebsite/excel`](https://github.com/SpartnerNL/Laravel-Excel) — a `suggest`/dev dependency ("To export tables to CSV, Excel, etc.") — so tables can export.
-- If your app installs `maatwebsite/excel` to enable those exports, that package requires `phpoffice/phpspreadsheet`.
-- `phpoffice/phpspreadsheet` ships a `SimpleCache1` cache shim whose `get()` signature is incompatible with the typed `Psr\SimpleCache\CacheInterface::get()` it implements under newer `psr/simple-cache` (v2/v3). The moment PHP _loads_ that class it raises an uncatchable compile-time (`E_COMPILE_ERROR`) fatal:
-
-  ```text
-  Declaration of PhpOffice\PhpSpreadsheet\Collection\Memory\SimpleCache1::get($key, $default = null)
-  must be compatible with Psr\SimpleCache\CacheInterface::get(string $key, mixed $default = null): mixed
-  ```
-
-A table's `toArray()` builds its `exports` definition, which reaches that Excel/PhpSpreadsheet code path. So when `ts:publish` statically evaluates a table to type a route, it triggers the class load and the fatal — even on a sibling route that has nothing to do with exports. The taint skip simply prevents `ts:publish` from evaluating tables at all, sidestepping the broken transitive dependency. Once `phpoffice/phpspreadsheet` is fixed for your PHP / `psr/simple-cache` version (or the optional Excel integration is not installed), none of this is necessary.
-
-### Opting Back In with `#[TsCasts]`
-
-To get precise page-prop types for a specific method on a table-tainted controller, annotate it with `#[TsCasts([...])]`. This short-circuits the deep analysis for that method and builds the page-prop type directly from your cast map:
+Whenever the analyzer cannot see the shape you want — a dynamic table whose model only exists in
+runtime constructor state, a prop assembled somewhere the static read cannot follow — annotate the
+method with `#[TsCasts([...])]` and the page-prop type is built from your cast map instead:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\Attributes\TsCasts;
@@ -382,83 +418,9 @@ export type CreatePageProps = Inertia.SharedData & {
 
 ### Removing the Route Entirely with `#[TsExclude]`
 
-If you don't want a route helper generated at all, annotate the method with `#[TsExclude]`. This removes the route from the published output entirely — no route helper and no page-prop type. Use this only when the route should not appear in the TypeScript output.
-
-### Known Limitation: Taint Detection Depth
-
-Taint is detected when a controller references a table through its own file, through a constructor parameter or typed property whose class file references a table, or through one level of `$this->property->method(...)` resources passed directly as the `Inertia::render()` data argument. Deeper indirection that still reaches a table — for example, a table reached only through `app(...)` / `resolve(...)` inside a method body, a trait method, a global helper, a nested array value, an `array_merge(...)`, or a variable-assigned render argument — may not be auto-detected. In those cases `ts:publish` could still fatal when it attempts to evaluate the table. Use `#[TsCasts]` or `#[TsExclude]` on the method as a manual escape hatch.
-
-### Automatic Taint Skip: The Common CRUD Case
-
-The most common pattern — a CRUD controller that injects a table-bearing resource through a constructor parameter or a typed property — is handled automatically without any restructuring. When `ts:publish` detects that a controller depends on a resource whose file references an Inertia UI Table, it skips deep analysis for every action on that controller. This means all sibling actions (`index`, `create`, `store`, `update`, `destroy`) are covered without annotating each method.
-
-### Dedicated-Controller Escape Hatch
-
-When taint detection cannot reach a table — for example, the table is obtained through `app(...)` / `resolve(...)` inside a method body, a trait method, or a global helper rather than through a typed constructor or property dependency — the **guaranteed fix** is to isolate the table in a dedicated single-action `__invoke` controller marked `#[TsExclude]`, and to remove the table from the shared CRUD resource so the rest of its routes are analyzed normally.
-
-**Example — before (table mixed into CRUD resource, detection may not reach it):**
-
-```php
-// app/Http/Resources/MerchandiseResource.php
-class MerchandiseResource
-{
-    public function index(Request $request): array
-    {
-        return [
-            'merchandise' => app(MerchandiseTable::class)->make(),
-        ];
-    }
-
-    public function store(Request $request): array
-    {
-        // store merchandise logic here
-
-        return [];
-    }
-}
-```
-
-**Example — after (table isolated, CRUD resource is table-free):**
-
-```php
-// app/Http/Controllers/Merchandise/MerchandiseIndexController.php
-use AbeTwoThree\LaravelTsPublish\Attributes\TsExclude;
-use App\Tables\MerchandiseTable;
-use Inertia\Inertia;
-
-#[TsExclude]
-class MerchandiseIndexController
-{
-    public function __invoke(Request $request): \Inertia\Response
-    {
-        return Inertia::render('Merchandise/MerchandiseIndex', [
-            'merchandise' => MerchandiseTable::make(),
-        ]);
-    }
-}
-
-// app/Http/Controllers/Merchandise/MerchandiseController.php
-// (resource no longer references the table)
-class MerchandiseResource
-{
-    public function store(Request $request): array
-    {
-        // store merchandise logic here
-
-        return [];
-    }
-}
-```
-
-```php
-// routes/web.php
-Route::get('/merchandise', MerchandiseIndexController::class)->name('merchandise.index');
-Route::resource('merchandise', MerchandiseController::class)->except('index');
-```
-
-With `#[TsExclude]` on the dedicated controller, `ts:publish` skips that route entirely (no route helper, no page-prop type). The remaining CRUD routes — now backed by a table-free resource — type normally. This is the 100% robust fallback: no table class appears in any file that `ts:publish` statically analyzes.
-
-The trade-off is a small per-table restructure: one extra single-action controller per table-rendered page. This is only necessary when the automatic taint skip cannot detect the table dependency. As explained in [Why This Happens](#why-this-happens-it-is-not-the-inertia-ui-table-package) above, the root cause is the `phpoffice/phpspreadsheet` declaration-compatibility fatal — not the Inertia UI Table package — so fixing it upstream (or not installing the optional Excel export integration) eliminates the need for any of this.
+If you don't want a route helper generated at all, annotate the method with `#[TsExclude]`. This
+removes the route from the published output entirely — no route helper and no page-prop type. Use this
+only when the route should not appear in the TypeScript output.
 
 ## Form Request Payload Types
 
