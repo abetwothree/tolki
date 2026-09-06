@@ -1,5 +1,5 @@
 ---
-"@tolki/utils": major
+"@tolki/utils": minor
 ---
 
 Add `isPrototypeObject(value)`, re-exported from the package root, and use it to close a prototype-pollution hole in `defineKey`.

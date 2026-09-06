@@ -1,5 +1,5 @@
 ---
-"@tolki/utils": major
+"@tolki/utils": minor
 ---
 
 Add five helpers and a type, widen one existing signature, and correct one existing helper's behaviour to match PHP.

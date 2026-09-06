@@ -1,5 +1,5 @@
 ---
-"@tolki/utils": major
+"@tolki/utils": minor
 ---
 
 `looseEqual()` now follows PHP 8's comparison rules instead of PHP 7's.
