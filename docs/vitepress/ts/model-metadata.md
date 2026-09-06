@@ -2,7 +2,7 @@
 
 The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) can publish a small runtime companion beside each generated model interface: `{model}_meta.ts`, exporting a `{Model}ModelMetadata` object whose values come from a provider class you control. The default provider publishes the model's morph class, so the frontend can build polymorphic payloads (`commentable_type`) without hard-coding PHP class names.
 
-Unlike [model interfaces](./models.md), which are type-only and erased at compile time, a companion is a real runtime module. It counts as _functional_ output — the [Vite plugin](./vite-plugin.md) regenerates it on `vite build` alongside enums and routes — and it needs no `@tolki/ts` runtime.
+Unlike [model interfaces](./models.md), which are type-only and erased at compile time, a companion is a real runtime module. It counts as _functional_ output, so the [Vite plugin](./vite-plugin.md) regenerates it on `vite build`, and it needs no `@tolki/ts` runtime.
 
 ## How Model Metadata Is Generated
 

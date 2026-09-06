@@ -144,7 +144,7 @@ Add `ts:publish` to the `post-update-cmd` hook in `composer.json` so deployed an
 
 ## Publishing Only Some Output
 
-Every phase has an `enabled` key in `config/ts-publish.php` (`enums`, `models`, `model_metadata`, `resources`, `routes`, `form_requests`, `broadcast_channels`, `broadcast_events`), and one `--only-*` flag per phase limits a single run: `--only-enums`, `--only-models`, `--only-model-metadata`, `--only-resources`, `--only-routes`, `--only-form-requests`, `--only-broadcast-channels`, `--only-broadcast-events`. The flags cannot be combined. `--only-functional` publishes the runtime output only — enums, model metadata, routes, form requests, broadcast channels and events — skipping model and resource interfaces, and wins over any other `--only-*` flag.
+Every phase has an `enabled` key in `config/ts-publish.php` (`enums`, `models`, `model_metadata`, `resources`, `routes`, `form_requests`, `broadcast_channels`, `broadcast_events`), and one `--only-*` flag per phase limits a single run: `--only-enums`, `--only-models`, `--only-model-metadata`, `--only-resources`, `--only-routes`, `--only-form-requests`, `--only-broadcast-channels`, `--only-broadcast-events`. The flags cannot be combined. `--only-functional` skips model and resource interfaces, publishes every other enabled phase, and wins over any other `--only-*` flag.
 
 A flag that requests a phase disabled in config prompts for an override in an interactive shell and respects the config silently otherwise (CI, queued jobs, the post-migration hook). Barrel `index.ts` files are rebuilt for every phase a run publishes; a phase that is enabled but skipped by a flag keeps its existing exports — see [Modular Publishing](./modular-publishing.md#barrel-files).
 
@@ -160,4 +160,4 @@ If you need to run custom logic right before `ts:publish` executes — dynamical
 
 During development, run `vite dev` and the plugin will automatically watch for changes in your collected PHP files and call the publish command to keep your TypeScript files up to date.
 
-Run `vite build` to build your assets for production — the plugin calls the publish command (with `--only-functional` appended by default, which publishes enums, model metadata, routes, form requests, and broadcast channels/events; model and resource interfaces are erased at compile time) before bundling.
+Run `vite build` to build your assets for production. The plugin calls the publish command before bundling, with `--only-functional` appended by default so it skips model and resource interfaces, which are erased at compile time.
