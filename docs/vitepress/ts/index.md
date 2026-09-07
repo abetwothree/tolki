@@ -150,7 +150,7 @@ A flag that requests a phase disabled in config prompts for an override in an in
 
 ## Analyzer API
 
-The same static analysis engine that powers `ts:publish` is also callable directly — hand `AstEngine` a class and a method name and get back a typed property list, without running the full publish pipeline or writing anything to disk. See the full [Analyzer API documentation](./analyzer-api.md).
+The same static analysis engine that powers `ts:publish` is also callable directly — hand `AstEngine::analyze()` a class and a method name and get back an `AnalysisResult`: the typed properties, the `import type` lines those types need, and the value imports an `AsEnum<typeof X>` wrapper needs, without running the full publish pipeline or writing anything to disk. `analyze()` and `AnalysisResult` are the engine's entire public surface — every other method on `AstEngine`, and every other class in the engine, is `@internal`. See the full [Analyzer API documentation](./analyzer-api.md).
 
 ## Pre-Command Hook
 

@@ -149,6 +149,9 @@ Package defaults merge one level deep: add the whole block to an existing config
 | `form_requests.generator_class`        | `string`  | `FormRequestGenerator`             | Orchestrates transforming and writing               |
 | `form_requests.transformer_class`      | `string`  | `FormRequestTransformer`           | Converts PHP FormRequest into TypeScript data       |
 | `form_requests.writer_class`           | `string`  | `FormRequestWriter`                | Writes TypeScript form request files                |
+| `form_requests.analyzer_class`         | `string`  | `FormRequestRulesAnalyzer`         | Resolves `rules()`; also types `validated('key')`   |
+
+`form_requests.analyzer_class` has no line in the published config file; add the key to the `form_requests` block to point it at your own class. It types more than the form request interface — [`$request->validated('key')`](./form-requests.md#reading-a-single-validated-field) in a route or page prop reads the same analyzer.
 
 ## Broadcast Channels (`broadcast_channels.*`)
 

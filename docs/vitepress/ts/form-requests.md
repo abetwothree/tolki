@@ -386,6 +386,48 @@ See [Excluding Content](./excluding-content.md) for the full attribute behavior 
 
 When a controller action type-hints a `FormRequest`, its generated interface is automatically attached to that action's route export via `annotateRequestPayload<T>()` — no configuration needed. See [Form Request Payload Types](./routing.md#form-request-payload-types) in the Routing docs for the full `annotateRequestPayload` / `InferRequestPayload` reference.
 
+### Reading a single validated field
+
+The same rules also type `$request->validated('key')` wherever that action builds an Inertia page prop, so a prop carrying one validated value gets that field's own type rather than `unknown`. A dotted path walks the same nested rules the interface composes, so the prop types exactly as that key types inside the generated shape:
+
+```php
+// StorePostRequest::rules() declares:
+//   'title' => ['required', 'string'],
+//   'options' => ['array'],
+//   'options.default' => ['string'],
+
+public function store(StorePostRequest $request): Response
+{
+    return Inertia::render('Posts/Success', [
+        'title' => $request->validated('title'),
+        'defaultOption' => $request->validated('options.default'),
+    ]);
+}
+```
+
+```typescript
+export type StorePageProps = Inertia.SharedData & {
+  title: string;
+  defaultOption?: string;
+};
+```
+
+The parameter has to be the `FormRequest` subclass itself — `validated()` read off a plain `Request` type-hint has no rules to consult. API resources opt out entirely: a resource's `toArray(Request $request)` is never seeded with the request's rules, so this covers route and page props only.
+
+A top-level key also picks up the request's own [`#[TsCasts]`](#tscasts-overriding-field-types) — the type, the `optional` flag in both directions, and the type named by an `'import' => …` entry, whose import line is written into the generated file for you — so the prop and the interface don't describe the same field two ways. A `nullable` rule still appends `| null` after the override, exactly as it does in the interface.
+
+The prop stays `unknown` wherever the rules can't answer confidently, each case deliberate:
+
+- a key your rules never declare, and the zero-argument `validated()`, which returns the whole payload rather than one field;
+- a key marked `prohibited`, or anything nested under one, since the interface drops that subtree entirely;
+- a path containing a `*` segment, because `validated()` delegates to `data_get()`, which expands a wildcard into a _list_ rather than returning the one element the wildcard rule describes;
+- an [escaped-dot key](#nested-edge-cases) (`'v1\.0'`) — `data_get()` splits on that dot too and can't reach the field either;
+- a non-literal key (`validated($column)`), a call that also passes a `default` argument, and any [dynamic request](#dynamic-requests) whose `rules()` can't be resolved statically.
+
+::: warning
+An override on an _ancestor_ is the one place the prop and the interface disagree. `#[TsCasts(['options' => 'MyOptions'])]` replaces the whole `options` shape in the generated interface, but `validated('options.default')` still composes `string` from the rule the override replaced — the handler can't index into a hand-written TypeScript type. Read `validated('options')` instead, or make the leaf's rule precise enough not to need the override. A _dotted_ override key (`'options.default'`) is ignored in both places alike, so those two never diverge.
+:::
+
 ## Configuration Reference
 
 The full list of `form_requests.*` config keys — including pipeline class overrides for advanced customization — lives in the [Configuration Reference](./configuration-reference.md).

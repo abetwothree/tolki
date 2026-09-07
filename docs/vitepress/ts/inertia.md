@@ -12,9 +12,13 @@ This page covers the shared-data analysis and module augmentation file. For per-
 - `$request->user()` is typed through your live auth configuration — `auth.defaults.guard` → that guard's provider → the provider's `model` — so the prop becomes `User | null` and the model's type import is written into the file for you. `auth()->user()`, `auth()->id()`, `Auth::user()` and `Auth::id()` resolve the same way, and `$request->url()`, `->fullUrl()`, `->path()`, `->integer()`, `->boolean()`, `->string()`, `->cookie()` and `->hasCookie()` are typed from Laravel's own signatures.
 - `config('some.key')` with a literal key is typed from the live configuration value, since the package runs inside your booted application; a computed key stays `unknown`.
 - Inertia v2's prop wrappers — `Inertia::defer()`, `optional()`, `lazy()`, `always()`, `merge()`, `deepMerge()` — are typed as the value they wrap. The three a partial reload can omit (`defer`, `optional`, `lazy`) produce an optional key.
+- A prop that wraps an enum in `EnumResource` (`'role' => EnumResource::make(Role::Admin)`) is rewritten to `AsEnum<typeof Role>` when `enums.use_tolki_package` is enabled (the default) — the same rewrite [API Resources](./api-resources.md#enum-properties-with-enumresource) get. When it's disabled, the key keeps the enum's `Type` alias (`role: RoleType`) instead. The rewrite is applied per key, so an enum a second key still reads bare keeps `RoleType` on that second key.
 - `errors` is deliberately left out of the inferred shape: `@inertiajs/core` already declares `page.props.errors` as `Errors & ErrorBag`, and `errorValueType` below is this package's channel for sharpening it. A `#[TsCasts]` or `@return` docblock entry named `errors` still wins if you want one.
 - The result is rendered into `inertia-config.d.ts` (filename configurable via `inertia.augmentation_filename`).
 - If no `Inertia\Middleware` subclass is found, no file is generated.
+
+> [!WARNING]
+> A key whose two ternary arms wrap **different** enums — `$cond ? EnumResource::make(Role::Admin) : EnumResource::make(Status::Draft)` — renders as `either: RoleType | StatusType` with no import lines at all, so the augmentation file spells two type names nothing brings into scope (`TS2304` twice in your build). Give both arms the same enum, or override that key with an import-aware `#[TsCasts]`.
 
 ## Anatomy of the Generated File
 
@@ -69,7 +73,7 @@ declare module "@inertiajs/core" {
 export {};
 ```
 
-- **`import type { User } from './app/models';`** — every model, resource or enum an inferred prop type names gets its import written above the declarations, resolved relative to the output root. Imports supplied by `#[TsCasts(import: ...)]` are rendered below these. A key whose type an override replaces drops the import that type kept alive.
+- **`import type { User } from './app/models';`** — every model, resource or enum an inferred prop type names gets its import written above the declarations, resolved relative to the output root. An enum a prop reads through `EnumResource` is the exception under the default `enums.use_tolki_package`: that prop renders as `AsEnum<typeof Role>`, so the enum's **const** is imported as a value — `import { Role } from './app/enums';`, beneath an `import { type AsEnum } from '@tolki/ts';` line — and both sit above the `import type` block. Imports supplied by `#[TsCasts(import: ...)]` join that `import type` block. Nothing is imported that the rendered type doesn't spell: a key whose type an override replaces drops the import that type kept alive, and so does an enum's `Type` alias once the `AsEnum` rewrite has taken its last bare mention.
 - **`declare global { namespace Inertia { type SharedData = ...; } }`** makes `Inertia.SharedData` available by bare name in any `.ts` file in your project — including generated controller files that intersect it with page-specific props (see [Inertia Integration](./routing.md#inertia-integration)).
 - **`declare module '@inertiajs/core' { ... InertiaConfig ... }`** augments Inertia's own `usePage<T>()` / shared-data typing so `usePage().props` is typed correctly throughout your frontend, without you writing that augmentation by hand.
 - **`errorValueType: string[]`** is only added when the middleware has a `protected $withAllErrors = true;` property — it matches the shape Inertia uses for its validation error bag in that mode.

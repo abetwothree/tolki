@@ -1,124 +1,80 @@
 # Analyzer API
 
-The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish)'s static analysis engine is also available directly, outside the `ts:publish` pipeline — hand it a class and a method name and get back the same typed property list the pipeline itself generates from. [Customizing the Pipeline](./customizing-the-pipeline.md) covers swapping out a Collector, Generator, Transformer, or Writer; that page swaps pipeline stages; this page calls the analyzer directly.
+The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish)'s static analysis engine is also available directly, outside the `ts:publish` pipeline — hand it a class and a method name and get back the same typed property list the pipeline itself generates from, along with the imports those types need. [Customizing the Pipeline](./customizing-the-pipeline.md) covers swapping out a Collector, Generator, Transformer, or Writer; that page swaps pipeline stages, this one calls the analyzer directly.
 
 ## Analyzing a Method
 
-`analyzeMethod()` walks a method's return value the same way it walks a `JsonResource`'s `toArray()` — nested array literals, conditionals, closures, and method calls are all understood, whether or not the class is a resource. `$method` defaults to `'toArray'`; pass any public method name to analyze a different one:
+`analyze()` walks a method's return value the same way it walks a `JsonResource`'s `toArray()` — nested array literals, conditionals, closures, and method calls are all understood, whether or not the class is a resource. `$method` defaults to `'toArray'`; pass any public method name to analyze a different one:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\Ast\AstEngine;
 
-$analysis = resolve(AstEngine::class)->analyzeMethod(App\Services\CartSummary::class, 'toPayload');
+$result = resolve(AstEngine::class)->analyze(App\Services\CartSummary::class, 'toPayload', null, 'app/services');
+
+// $result->properties   => list<{name, type, optional, description}>
+// $result->typeImports  => import path => list<type name>
+// $result->valueImports => import path => list<enum const name>
 ```
 
-### `MethodAnalysis`
+The third argument, `$modelClass`, is the Eloquent model that `$this->…` references resolve against; `null` skips the binding, or lets a `JsonResource` subclass resolve its own. The fourth is the _importing_ file's own namespace path — every path in the two import maps is already resolved relative to it, using the same algorithm [Modular Publishing](./modular-publishing.md) documents. Pass `''` for a file at your output root.
 
-Every analyzer entry point returns the same DTO:
+Nothing is written to disk. `analyze()` stops at the DTO, so the file, its formatting, and any barrel-file entry are yours to write.
+
+::: warning `analyze()` is the whole public surface
+`analyze()` and the `AnalysisResult` it returns are the only supported engine API. Every other class under `AbeTwoThree\LaravelTsPublish\Ast` — and `AstEngine`'s own remaining methods — is `@internal`: each traffics in a DTO whose shape tracks inference and changes without notice, so code reaching past `analyze()` is on its own.
+:::
+
+### `AnalysisResult`
+
+A readonly DTO with three fields:
 
 ```php
 public function __construct(
-    public array $properties = [],
-    public array $enumResources = [],
-    public array $nestedResources = [],
-    public array $customImports = [],
-    public array $directEnumFqcns = [],
-    public array $modelFqcns = [],
-    public array $inlineEnumFqcns = [],
-    public array $inlineModelFqcns = [],
-    public array $multiEnumResourceFqcns = [],
-    public array $inlineEnumResourceFqcns = [],
-    public ?string $flatTypeAlias = null,
-    public ?string $flatTypeAliasFqcn = null,
+    public array $properties,
+    public array $typeImports,
+    public array $valueImports,
 ) {}
 ```
 
 `properties` is what most callers actually want: a `list<{name, type, optional, description}>` — one entry per key the method returns, with `type` already rendered as a TypeScript type string and `optional` set wherever the source pattern (a conditional method, a `mergeWhen()`, and so on) makes the key possibly-absent.
 
-Everything else on the DTO is a bookkeeping channel, not something you read directly — `enumResources`, `directEnumFqcns`, `nestedResources`, `modelFqcns`, and their `inline*`/`multi*` siblings each record which property names reference which PHP class, so that class can be turned into an import. That's exactly what [`AnalysisImports`](#imports) below does with them. `flatTypeAlias` / `flatTypeAliasFqcn` are set only when the analyzed class collapses to a flat `export type X = Y[]` alias instead of an interface — a `ResourceCollection` with no extra keys beyond its wrapped items, for instance.
+`typeImports` and `valueImports` are both `import path => list<name>` maps. `typeImports` holds the `import type` lines the property types reference; `valueImports` holds the enum consts an `AsEnum<typeof X>` wrapper reads, so it is the one map you emit as a plain `import`, never an `import type`. Two classes that land on the same import path merge into one entry instead of one overwriting the other.
 
-## Analyzing Public Properties
-
-`analyzePublicProperties()` skips a method body entirely and reads a class's properties directly instead — every promoted constructor parameter, plus every public class-body property, `@var` docblock first and the reflected native type second. It's the shape a broadcast event or a plain DTO starts from:
-
-```php
-namespace App\Events;
-
-class OrderShipped implements ShouldBroadcast
-{
-    /** @var list<string> */
-    public array $tags = [];
-
-    public function __construct(
-        public int $orderId,
-        public ?string $trackingNumber = null,
-    ) {}
-
-    public function broadcastOn(): Channel
-    {
-        // ...
-    }
-}
-```
-
-```php
-$analysis = resolve(AstEngine::class)->analyzePublicProperties(App\Events\OrderShipped::class);
-
-// $analysis->properties:
-// [
-//     ['name' => 'tags', 'type' => 'string[]', 'optional' => false, 'description' => ''],
-//     ['name' => 'orderId', 'type' => 'number', 'optional' => false, 'description' => ''],
-//     ['name' => 'trackingNumber', 'type' => 'string | null', 'optional' => false, 'description' => ''],
-// ]
-```
-
-Two rules are worth calling out explicitly:
-
-- **Nullable is always `| null`, never `?`.** `trackingNumber` above is a nullable native type, and it comes back `string | null` with `optional: false`. Whether the _key_ itself is allowed to be missing is a separate concern this method never decides — that's a `#[TsCasts]`-level choice for whatever builds a template from the result.
-- **Trait-declared properties are excluded.** A property declared on a trait the class uses never appears in `properties` — including one supplied by a [`#[TsExtends]`](./extending-interfaces.md) trait, so its field isn't emitted both as a plain property here and again through the trait's own `extends` clause.
+The three fields agree with each other, which is the whole point of the DTO. Same-basename classes are aliased apart — two classes both named `User` come back as separate aliases, and the property types spell those aliases rather than the bare name. An `EnumResource::make()` property arrives already wrapped as `AsEnum<typeof X>` beside the value import that wrapper needs. And nothing is imported that no property type names. Render all three verbatim and the module compiles.
 
 ## Resources Get Resource Semantics
 
-Call `analyzeMethod()` with a `JsonResource` subclass and no third argument, and the default `$method` (`'toArray'`) plus automatic backing-model resolution turn it into exactly what a resource's collector run through `ts:publish` produces:
+Call `analyze()` with a `JsonResource` subclass and leave `$modelClass` null, and the default `$method` (`'toArray'`) plus automatic backing-model resolution turn it into exactly what a resource's collector run through `ts:publish` produces:
 
 ```php
-$analysis = resolve(AstEngine::class)->analyzeMethod(App\Http\Resources\PostResource::class);
+$result = resolve(AstEngine::class)->analyze(App\Http\Resources\PostResource::class);
 ```
 
-Every pattern documented in [API Resources](./api-resources.md) resolves identically here — the `when()` conditional-method family, `EnumResource::make()`, nested and collection resources, `merge()` / `mergeWhen()`, and relation filters (`$this->author->only([...])`) all produce the same properties, FQCN channels, and optionality a full publish would. The only thing missing is the file: `analyzeMethod()` stops at the `MethodAnalysis` DTO, nothing is written to disk or folded into a barrel file.
+Every pattern documented in [API Resources](./api-resources.md) resolves identically here — the `when()` conditional-method family, `EnumResource::make()`, nested and collection resources, `merge()` / `mergeWhen()`, and relation filters (`$this->author->only([...])`) all produce the same properties, imports, and optionality a full publish would. The two exceptions — a `morphTo` union and a `$wrap = null` collection — are [below](#what-it-cannot-do).
 
-[Model metadata](./model-metadata.md) is the third consumer, and the one that shows the engine's parameter binding: its `ModelMetadataAnalyzer` locates a provider's `provide(Model $model)` on the class that declares it, binds `$model` to its declared type, and runs the same handlers over that scope — which is why `$model->getTable()` infers `string` there while a plain `analyzeMethod()` call, which binds nothing, leaves it `unknown`. It then layers the `@return` docblock and `#[TsCasts]` on top and imports body-inferred enums through `AnalysisImports::build()`. There is no public entry point for a bound analysis today; it is the recipe `InertiaPageAnalyzer` and `ModelMetadataAnalyzer` both inline.
+Two other class kinds are worth calling out:
 
-## Imports
+**A model needs its own class as the third argument.** That automatic resolution only fires for a `JsonResource` subclass, and a model's `toArray()` is Laravel's own — there is nothing in that body to read. Pass the model twice, `analyze(App\Models\User::class, 'toArray', App\Models\User::class)`, and you get the attribute-and-relation shape [Models](./models.md) is built from; leave the third argument `null` and all three fields come back empty.
 
-A `MethodAnalysis`'s FQCN channels aren't import paths by themselves — `AnalysisImports` turns them into resolved import paths for one specific generated file:
+**A broadcast event is `analyze($event, 'broadcastWith')`.** Inherited or trait-supplied counts, the same as Laravel's own dispatch, and the result is the payload interface [Broadcast Events](./broadcast-events.md) publishes for that event. An event with no `broadcastWith()` anywhere in its hierarchy is typed from its public properties instead — a path `ts:publish` drives on its own, with no public entry point. `analyze()` never falls back to it, so on such an event it returns an empty result, imports included.
 
-```php
-use AbeTwoThree\LaravelTsPublish\Ast\AnalysisImports;
-
-$imports = new AnalysisImports()->build($analysis, 'app/services');
-
-// $imports['typeImports']  => import path => list<type name>
-// $imports['valueImports'] => import path => list<const name>  (enum-wrapping only)
-```
-
-The second argument is the _importing_ file's own namespace path — every path in the result is already resolved relative to it, using the same algorithm [Modular Publishing](./modular-publishing.md) documents. Two FQCN channels that land on the same import path are merged into one entry instead of one overwriting the other.
-
-::: warning A type token never outruns its import
-`build()` only resolves _what_ to import — never what to call it once it's imported. If two FQCNs feeding one `MethodAnalysis` share a bare type name across different namespaces (two classes both named `User`, say), both of their paths still come back in the result; turning that collision into two distinct aliases is the caller's job, not this method's.
-:::
+[Model metadata](./model-metadata.md) is the consumer that shows the engine's parameter binding: its `ModelMetadataAnalyzer` locates a provider's `provide(Model $model)` on the class that declares it, binds `$model` to its declared type, and runs the same handlers over that scope — which is why `$model->getTable()` infers `string` there while a plain `analyze()` call, which binds nothing, leaves it `unknown`. It then layers the `@return` docblock and `#[TsCasts]` on top and resolves the imports its body-inferred enums need. There is no public entry point for a bound analysis; it is the recipe `InertiaPageAnalyzer` and `ModelMetadataAnalyzer` both inline.
 
 ## What It Cannot Do
 
-**It analyzes a method, not an expression in a controller action.** [Inertia page props](./routing.md#inertia-integration) do run on this engine, but they come from an `Inertia::render()` call's _props argument_ rather than from a method's return shape, and they are resolved with a controller-tuned handler set over a scope seeded from the action's own signature — route-bound models, `Request` parameters, local variables. `analyzeMethod()` against a controller action therefore returns that method's return type analysis, not the action's page-prop type; there is no public entry point for the expression path. Inertia **shared data** is a plain `analyzeMethod()` call: `ts:publish` runs `analyzeMethod($middleware, 'share')`, so calling it on your `HandleInertiaRequests` returns exactly the shape `Inertia.SharedData` is built from. One presentation rule is applied on top of that analysis rather than by the engine: `analyzeMethod()` does return the `errors` key inherited from `Inertia\Middleware::share()`, and `InertiaSharedDataAnalyzer` drops it afterwards, since `@inertiajs/core` types `page.props.errors` itself.
+**It analyzes a method, not an expression in a controller action.** [Inertia page props](./routing.md#inertia-integration) do run on this engine, but they come from an `Inertia::render()` call's _props argument_ rather than from a method's return shape, and they are resolved with a controller-tuned handler set over a scope seeded from the action's own signature — route-bound models, `Request` parameters, local variables. `analyze()` against a controller action therefore returns that method's return type analysis, not the action's page-prop type; there is no public entry point for the expression path.
 
-[Broadcast Events](./broadcast-events.md) show the same split: `ts:publish` calls `analyzeMethod($event, 'broadcastWith')` when the event has that method — inherited or trait-supplied counts, the same as Laravel's own dispatch — and [`analyzePublicProperties()`](#analyzing-public-properties) when it doesn't, so both entry points return exactly the properties the published interface is built from. Two presentation rules are still applied on top of the analysis by the transformer rather than by the engine: `#[TsCasts]` overrides, and rendering a model property as `Partial<Model>`.
+**Inertia shared data is the raw method shape, not the published `SharedData`.** `analyze($middleware, 'share')` runs on the same engine, but `InertiaSharedDataAnalyzer` layers its own resolution on top — [`#[TsCasts]` first, then the `@return array{...}` docblock on `share()`, then AST inference](./inertia.md#type-resolution-priority) — and then drops the `errors` key your override merges in from `Inertia\Middleware::share()`, since `@inertiajs/core` types `page.props.errors` itself. That priority order is where the two diverge: a `share()` returning `$request->user()->id` and `(array) $request->query('filters', [])` comes back from `analyze()` as `id: unknown` and `filters: unknown[]`, while the published `Inertia.SharedData` reads `id: number` and `filters?: Record<string, string>` — both of those are the docblock, applied afterwards.
 
-**No form-request rule parsing.** A `FormRequest`'s `rules()` method is typed by its own dedicated analyzer, not this engine — see [Form Requests](./form-requests.md). Neither `analyzeMethod()` nor `analyzePublicProperties()` has any special handling for a validation rule array.
+**No form-request rule parsing.** A `FormRequest`'s published interface comes from its own dedicated runtime analyzer, not this engine — see [Form Requests](./form-requests.md). `analyze($request, 'rules')` types the rule array that method returns, not the validated payload.
+
+**A `morphTo` union is a publish-run product.** Its targets are normally found in reverse, by scanning every other model for a `morphOne` / `morphMany` pointing back — a map `ts:publish` builds up front and a direct call never does. Outside a publish the relation contributes nothing: it is dropped from a model's delegated shape, and comes back `unknown` where a `toArray()` names it explicitly. A [`@return MorphTo<A|B, $this>` generic](./models.md#typing-morphto-relations) on the relation method is read straight off the docblock and resolves either way.
+
+**A `$wrap = null` collection has nowhere to land.** A `ResourceCollection` with no extra keys beyond its wrapped items collapses to a flat `export type X = Y[]` alias rather than an interface, and an alias has no property list or import set for `AnalysisResult` to carry — so all three fields come back empty. `ts:publish` writes that alias; `analyze()` has no answer for the shape.
 
 **`unknown` is an honest floor, not a bug.** Every pattern this page documents is one the analyzer specifically recognizes; anything else — an expression it can't trace, a reassigned local, an unresolvable closure default — degrades to `unknown` rather than guessing. See [API Resources § Local Variables](./api-resources.md#local-variables) for what that looks like from the resource side.
 
-Every feature that infers a type now runs on this engine — resources, broadcast events, model metadata, and both Inertia features. What each one adds on top of the analysis is on its own feature page, linked above.
+Every feature that infers a type runs on this engine — resources, broadcast events, model metadata, and both Inertia features. What each one adds on top of the analysis is on its own feature page, linked above.
 
 ## Configuration Reference
 

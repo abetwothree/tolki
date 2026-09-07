@@ -43,6 +43,8 @@ class UserResource extends JsonResource
 
 > [!TIP]
 > Inside an API Resource's `toArray()`, you'll typically use the static `EnumResource::make($this->status)` form instead — this is also what generates the `AsEnum<typeof Status>` TypeScript property type automatically. See [Enum Properties with `EnumResource`](./api-resources.md#enum-properties-with-enumresource) in the API Resources docs.
+>
+> The same rewrite reaches [Inertia shared data](./inertia.md). When `enums.use_tolki_package` is enabled (the default), an `EnumResource::make()` returned from your middleware's `share()` is published as `AsEnum<typeof Role>` in `inertia-config.d.ts`, with `import { type AsEnum } from "@tolki/ts"` and the `Role` const import written above the declarations. A shared key whose value is a ternary across two different enums is the exception — it keeps the bare enum type names.
 
 `EnumResource` disables Laravel's default resource wrapping (`public static $wrap = ''`), so the response is the flat object shown below — not wrapped in a `data` key. If the enum is `null`, the resource resolves to `null` rather than an array.
 
