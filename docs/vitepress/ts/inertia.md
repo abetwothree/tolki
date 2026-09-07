@@ -18,7 +18,7 @@ This page covers the shared-data analysis and module augmentation file. For per-
 - If no `Inertia\Middleware` subclass is found, no file is generated.
 
 > [!WARNING]
-> A key whose two ternary arms wrap **different** enums — `$cond ? EnumResource::make(Role::Admin) : EnumResource::make(Status::Draft)` — renders as `either: RoleType | StatusType` with no import lines at all, so the augmentation file spells two type names nothing brings into scope (`TS2304` twice in your build). Give both arms the same enum, or override that key with an import-aware `#[TsCasts]`.
+> A key whose two ternary arms wrap **different** enums — `$cond ? EnumResource::make(Role::Admin) : EnumResource::make(Status::Draft)` — renders as `either: RoleType | StatusType` with no import lines at all, so the augmentation file spells two type names nothing brings into scope (a `TS2304` on each of them in your build). Give both arms the same enum, or override that key with an import-aware `#[TsCasts]`.
 
 ## Anatomy of the Generated File
 

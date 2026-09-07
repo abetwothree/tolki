@@ -185,7 +185,7 @@ reaches the property at all.
 ```
 
 Omitting the value argument is a different thing entirely: `whenHas('phone')` still types the column, and
-`whenExistsLoaded('user')` is still `boolean`. Only an explicitly-passed `null` collapses the arm.
+`whenExistsLoaded('user')` is still `boolean`. The arm collapses only when Laravel actually receives a `null` in that slot — a literal `null`, or a named `default:` that skips past it (`whenHas('phone', default: 0)` is `number | null`), since PHP fills the skipped slot with `null` and Laravel counts it as passed.
 
 `whenCounted()` and `whenAggregated()` substitute the `value()` helper themselves when their value argument
 is `null`, so the count still comes through — which is why `whenCounted('reviews', null, 'n/a')` above stays

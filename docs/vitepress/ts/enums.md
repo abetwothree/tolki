@@ -243,11 +243,11 @@ See [Runtime Utilities](#runtime-utilities) below for the full function referenc
 ::: warning
 `use_tolki_package` reaches past the enum files themselves — it gates every `AsEnum<>` the package emits:
 
-- **Models** — the `{Model}Resource` companion interfaces (and the `import { type AsEnum }` line) aren't generated at all; the base `{Model}` interface types enum columns as `{Enum}Type` either way. See [Enum-Typed Columns](./models.md#enum-typed-columns-modelresource).
+- **Models** — the `{Model}Resource` companion interfaces (and the `import { type AsEnum }` line) aren't generated at all; the base `{Model}` interface types enum columns as `{Enum}Type` either way. See [Enum-Typed Columns](./models.md#enum-typed-columns-model-resource).
 - **API resources** — an `EnumResource::make()` property is typed `StatusType` instead of `AsEnum<typeof Status>`, and the `import { Status }` value import gives way to `import type { StatusType }`. See [Enum Properties with `EnumResource`](./api-resources.md#enum-properties-with-enumresource).
 - **Inertia shared data** — an `EnumResource` prop shared from `HandleInertiaRequests::share()` stays `RoleType` behind a type import instead of `AsEnum<typeof Role>` behind a value import. See [Inertia](./inertia.md).
 
-Leave it on unless you're consuming the published types without `@tolki/ts`.
+Leave it on unless your enums must not depend on `@tolki/ts` at runtime — [routes](./routing.md) import `@tolki/ts` regardless of this setting.
 :::
 
 ## Auto-Including All Enum Methods

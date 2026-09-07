@@ -412,7 +412,7 @@ export type StorePageProps = Inertia.SharedData & {
 };
 ```
 
-The parameter has to be the `FormRequest` subclass itself — `validated()` read off a plain `Request` type-hint has no rules to consult. API resources opt out entirely: a resource's `toArray(Request $request)` is never seeded with the request's rules, so this covers route and page props only.
+The parameter has to be the `FormRequest` subclass itself — `validated()` read off a plain `Request` type-hint has no rules to consult. API resources opt out entirely: a resource's `toArray(Request $request)` is never seeded with the request's rules, so this covers Inertia page props only.
 
 A top-level key also picks up the request's own [`#[TsCasts]`](#tscasts-overriding-field-types) — the type, the `optional` flag in both directions, and the type named by an `'import' => …` entry, whose import line is written into the generated file for you — so the prop and the interface don't describe the same field two ways. A `nullable` rule still appends `| null` after the override, exactly as it does in the interface.
 
@@ -425,7 +425,7 @@ The prop stays `unknown` wherever the rules can't answer confidently, each case 
 - a non-literal key (`validated($column)`), a call that also passes a `default` argument, and any [dynamic request](#dynamic-requests) whose `rules()` can't be resolved statically.
 
 ::: warning
-An override on an _ancestor_ is the one place the prop and the interface disagree. `#[TsCasts(['options' => 'MyOptions'])]` replaces the whole `options` shape in the generated interface, but `validated('options.default')` still composes `string` from the rule the override replaced — the handler can't index into a hand-written TypeScript type. Read `validated('options')` instead, or make the leaf's rule precise enough not to need the override. A _dotted_ override key (`'options.default'`) is ignored in both places alike, so those two never diverge.
+An override on an _ancestor_ is the one place the prop and the interface disagree. `#[TsCasts(['options' => 'MyOptions'])]` replaces the whole `options` shape in the generated interface, but `validated('options.default')` still composes `string` from the rule the override replaced — the analyzer can't index into a hand-written TypeScript type. Read `validated('options')` instead, or make the leaf's rule precise enough not to need the override. A _dot-notation_ override key (`'options.default'`) is ignored in both places alike, so those two never diverge. (The escaped-dot field is the one dotted key the interface does honour — but `validated()` declines it before any override applies, as above.)
 :::
 
 ## Configuration Reference
