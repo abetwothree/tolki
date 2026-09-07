@@ -43,6 +43,8 @@ class UserResource extends JsonResource
 
 > [!TIP]
 > Inside an API Resource's `toArray()`, you'll typically use the static `EnumResource::make($this->status)` form instead — this is also what generates the `AsEnum<typeof Status>` TypeScript property type automatically. See [Enum Properties with `EnumResource`](./api-resources.md#enum-properties-with-enumresource) in the API Resources docs.
+>
+> The same rewrite reaches [Inertia shared data](./inertia.md). When `enums.use_tolki_package` is enabled (the default), an `EnumResource::make()` returned from your middleware's `share()` is published as `AsEnum<typeof Role>` in `inertia-config.d.ts`, with `import { type AsEnum } from '@tolki/ts'` and the `Role` const import written above the declarations. A shared key whose value is a ternary across two different enums is not rewritten: it is published as the bare `RoleType | StatusType` with neither enum imported, so the augmentation file spells two type names nothing brings into scope (`TS2304`). Give both arms the same enum — see the note under [Inertia shared data](./inertia.md).
 
 `EnumResource` disables Laravel's default resource wrapping (`public static $wrap = ''`), so the response is the flat object shown below — not wrapped in a `data` key. If the enum is `null`, the resource resolves to `null` rather than an array.
 
@@ -191,7 +193,7 @@ export interface PostMutatorsResource extends Omit<PostMutators, "due_notice"> {
 }
 ```
 
-Naming conflicts are handled automatically — if two enum FQCNs share the same base name, namespace-prefixed aliases are used for both the type and const imports (e.g. `AppStatus`, `CrmStatus`). See [Enum-Typed Columns](./models.md#enum-typed-columns-modelresource) in the Models docs for the base/resolved interface distinction in full detail.
+Naming conflicts are handled automatically — if two enum FQCNs share the same base name, namespace-prefixed aliases are used for both the type and const imports. `App\Enums\Status` and `App\Crm\Enums\Status` are imported as `EnumsStatus` and `CrmStatus`, with `EnumsStatusType` and `CrmStatusType` for the types. See [Enum-Typed Columns](./models.md#enum-typed-columns-modelresource) in the Models docs for the base/resolved interface distinction in full detail.
 
 ## Configuration Reference
 

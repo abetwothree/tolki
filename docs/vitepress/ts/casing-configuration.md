@@ -16,11 +16,13 @@ Controls relationship names in generated model TypeScript interfaces — see [Mo
 ],
 ```
 
-| Config Value | Relationship `hasMany(Post::class)` | Count         | Exists         |
-| ------------ | ----------------------------------- | ------------- | -------------- |
-| `'snake'`    | `posts: Post[]`                     | `posts_count` | `posts_exists` |
-| `'camel'`    | `posts: Post[]`                     | `postsCount`  | `postsExists`  |
-| `'pascal'`   | `Posts: Post[]`                     | `PostsCount`  | `PostsExists`  |
+| Config Value | Relationship `ownedTeams()` | Count               | Exists               |
+| ------------ | --------------------------- | ------------------- | -------------------- |
+| `'snake'`    | `owned_teams: Team[]`       | `owned_teams_count` | `owned_teams_exists` |
+| `'camel'`    | `ownedTeams: Team[]`        | `ownedTeams_count`  | `ownedTeams_exists`  |
+| `'pascal'`   | `OwnedTeams: Team[]`        | `OwnedTeams_count`  | `OwnedTeams_exists`  |
+
+Only the relation name is cased — the `_count` and `_exists` suffixes are appended literally, so `'camel'` gives you `ownedTeams_count`, not `ownedTeamsCount`.
 
 > [!NOTE]
 > For each relationship defined on a model, this package automatically generates `_count` and `_exists` properties alongside the relation itself. These correspond to [Laravel's `withCount` and `withExists`](https://laravel.com/docs/eloquent-relationships#counting-related-models) features and are included in every generated model interface.
@@ -44,7 +46,7 @@ Controls the casing of enum method and static method key names in the generated 
 | `'pascal'`   | `GetLabel`          | `AllLabels`                 |
 
 > [!TIP]
-> This setting applies to all enum methods — both instance methods (via `#[TsEnumMethod]` or `enums.auto_include_methods`) and static methods (via `#[TsEnumStaticMethod]` or `enums.auto_include_static_methods`). You can still override an individual method's name using the `name` parameter on the attribute, regardless of this setting.
+> This setting applies to all enum methods — both instance methods (via `#[TsEnumMethod]` or `enums.auto_include_methods`) and static methods (via `#[TsEnumStaticMethod]` or `enums.auto_include_static_methods`). You can still rename an individual method with the attribute's `name` parameter, but that name goes through this setting too — `#[TsEnumMethod(name: 'get_label')]` emits `getLabel` under the default `'camel'`. Write the override in your configured casing to keep it verbatim. Case renames via `#[TsCase(name:)]` are not affected and are emitted exactly as written.
 
 ## `routes.method_casing`
 
@@ -69,10 +71,10 @@ Controls the casing of each generated route action's exported identifier — see
 
 ## Configuration Reference
 
-| Config Key                 | Type     | Default   | Description                                                         |
-| -------------------------- | -------- | --------- | ------------------------------------------------------------------- |
-| `models.relationship_case` | `string` | `'snake'` | Casing for relation names and their `_count` / `_exists` properties |
-| `enums.method_case`        | `string` | `'camel'` | Casing for enum instance/static method key names                    |
-| `routes.method_casing`     | `string` | `'camel'` | Casing for each route action's exported identifier                  |
+| Config Key                 | Type     | Default   | Description                                                             |
+| -------------------------- | -------- | --------- | ----------------------------------------------------------------------- |
+| `models.relationship_case` | `string` | `'snake'` | Casing for relation names; the `_count` / `_exists` suffixes stay as-is |
+| `enums.method_case`        | `string` | `'camel'` | Casing for enum instance/static method key names                        |
+| `routes.method_casing`     | `string` | `'camel'` | Casing for each route action's exported identifier                      |
 
 The full list of `models.*`, `enums.*`, and `routes.*` config keys lives in the [Configuration Reference](./configuration-reference.md).

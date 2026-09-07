@@ -118,7 +118,7 @@ CustomRouteKeyController.show({ slugPost: "hello-world" });
 CustomRouteKeyController.show(post); // post = { slug: 'hello-world', ... }
 ```
 
-Because the binding is resolved structurally (via the `_routeKey` string), **the generated route file never imports the PHP model's TypeScript type** — you get full type inference (`string | number | { slug: string | number }`) without a single model import.
+Because the binding is resolved structurally (via the `_routeKey` string), **binding a model never pulls in that model's TypeScript type** — you get full type inference (`string | number | { slug: string | number }`) from the `args` metadata alone. A route file does import model types when an Inertia page prop names one (see [Inertia Integration](#inertia-integration)), but never on account of a bound parameter.
 
 The column named by `_routeKey` comes from whatever `getRouteKeyName()` returns for that model,
 whether that's the method itself overridden, `getKeyName()`/`$primaryKey` overridden, or (Laravel 13+)
@@ -330,6 +330,7 @@ export type ShowPageProps = Inertia.SharedData & {
 
 - **Eloquent finders and collections** from the model their chain is rooted at: `find()`, `first()` and `firstWhere()` are `Model | null`; `findOrFail()`, `sole()`, `create()` and friends are `Model`; `all()` and `get()` are `Model[]`; `paginate()`, `simplePaginate()` and `cursorPaginate()` are the matching paginator generic; `count()` and `exists()` are `number` and `boolean`.
 - **Route-bound model parameters** — a `Post $post` parameter is `Post` wherever the props name it.
+- **PHP enums** — a prop that resolves to an enum is the enum's `{Name}Type` alias, with an automatic import from the generated [enums](./enums.md) output; an enum renamed with [`#[TsEnum]`](./enums.md#tsenum) keeps that rename here, so `#[TsEnum(name: 'Size')] enum ShirtSize` gives you `size: SizeType`. Two enums whose generated names collide — the same class basename in two namespaces — emit two import lines under that one name, which TypeScript rejects as a duplicate identifier; rename one with `#[TsEnum]` to keep them apart.
 - **`$request->user()`**, resolved through your `auth` config the same way [shared data](./inertia.md) resolves it, plus the typed `Request` reads (`integer()`, `boolean()`, `string()`, `url()`, …).
 - **`compact('post', 'comments')`** and **`array_merge($base, [...])`**, each read as the array literal it is equivalent to.
 - **The Inertia v2 prop wrappers** — `defer()`, `optional()` and `lazy()` type as the value they wrap and mark the key optional, since a partial reload can omit it; `always()`, `merge()` and `deepMerge()` type as the value they wrap.

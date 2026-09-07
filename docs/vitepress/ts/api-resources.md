@@ -171,6 +171,26 @@ lets it widen the type:
 A parameter with its own default (`fn ($notes = '') => strlen($notes)`) still runs cleanly with zero
 arguments, so that arm keeps widening the type as usual.
 
+#### An explicit `null` in the value slot
+
+`whenHas()`, `whenAppended()`, and `whenExistsLoaded()` hand their value argument to Laravel's `value()`
+helper, which passes a plain `null` straight back instead of returning the attribute. So a literal `null`
+there collapses the value arm: the default still unions in as usual, but the attribute's own type never
+reaches the property at all.
+
+```php
+'address'  => $this->whenHas('full_address', null, 0),         // address: number | null
+'appended' => $this->whenAppended('full_address', null, 0),    // appended: number | null
+'exists'   => $this->whenExistsLoaded('user', null, 'absent'), // exists: string | null
+```
+
+Omitting the value argument is a different thing entirely: `whenHas('phone')` still types the column, and
+`whenExistsLoaded('user')` is still `boolean`. The arm collapses only when Laravel actually receives a `null` in that slot — a literal `null`, or a named `default:` that skips past it (`whenHas('phone', default: 0)` is `number | null`), since PHP fills the skipped slot with `null` and Laravel counts it as passed.
+
+`whenCounted()` and `whenAggregated()` substitute the `value()` helper themselves when their value argument
+is `null`, so the count still comes through — which is why `whenCounted('reviews', null, 'n/a')` above stays
+`number | string`.
+
 ### Enum Properties with `EnumResource`
 
 Use `EnumResource::make()` to expose enum-cast properties as rich enum objects:
@@ -181,6 +201,29 @@ Use `EnumResource::make()` to expose enum-cast properties as rich enum objects:
 ```
 
 When `enums.use_tolki_package` is enabled (the default), these generate `AsEnum<typeof EnumName>` types with automatic imports. When disabled, they generate the enum's `Type` alias (e.g., `StatusType`).
+
+`EnumResource::collection()` does the same for a list-shaped value, producing `AsEnum<typeof EnumName>[]`.
+
+Wrapping only one arm of a ternary keeps both arms. Wrap on one side, read the property directly on the other, and the two shapes come through as a union with the import each one needs — including nested inside an inline array:
+
+```php
+'audit' => [
+    'status' => $request->boolean('wrap')
+        ? EnumResource::collection($this->status_history)
+        : $this->status_history,
+],
+```
+
+```typescript
+import { type AsEnum } from "@tolki/ts";
+
+import { Status } from "../../enums";
+import type { StatusType } from "../../enums";
+
+export interface TeamStatusAuditResource {
+  audit: { status: AsEnum<typeof Status>[] | StatusType[] };
+}
+```
 
 ### Nested Resources
 

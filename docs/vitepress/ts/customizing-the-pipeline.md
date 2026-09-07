@@ -76,7 +76,7 @@ protected function resolveModelClass(): self
 }
 ```
 
-2. **Bind a replacement for `ModelClassResolver`.** The pipeline resolves it from the container on every transform, so `$this->app->bind(ModelClassResolver::class, MyResolver::class)` in a service provider takes effect — but note it is auto-wired rather than registered, so there is no existing binding to decorate, and because the class is `final` a replacement cannot extend it. It must supply its own `resolve(ReflectionClass $resource): ?string`.
+2. **Bind a replacement for `ModelClassResolver`** — an escape hatch, not a supported override point the way `resources.transformer_class` is. The class is tagged `@internal`: everything under `Ast` other than `AstEngine::analyze()` and the `AnalysisResult` it returns changes without notice, so this name and signature can move under you. The mechanics do work — the pipeline resolves it from the container on every transform, so `$this->app->bind(ModelClassResolver::class, MyResolver::class)` in a service provider takes effect — but note it is auto-wired rather than registered, so there is no existing binding to decorate, and because the class is `final` a replacement cannot extend it. It must supply its own `resolve(ReflectionClass $resource): ?string`. Reach for it only when overriding `resolveModelClass()` genuinely cannot express your convention.
 
 :::
 
@@ -106,13 +106,13 @@ There is no config key for it, but the class is resolved from the container, so 
 - **`analyze()` returns `null` when no `Inertia\Middleware` subclass is discovered**, not when a collector came back empty.
 - **`setAppPaths()` keeps its signature but no longer forwards to a collector.** It only records the paths `discoverMiddlewareClass()` scans, so an override that decorated the forwarding call now decorates nothing.
 - **`buildTypeStringWithOverrides()` keeps its signature but not its argument shape.** Both parameters are now `array<string, array{type: string, optional: bool}>`; the first used to hold Surveyor `Type` objects, and the second plain type strings.
-- **The result array gained a required `typeImports` key.** Anything constructing that array by hand — a test double, a subclass that builds its own result — must supply it, or the Blade template renders against an undefined variable.
+- **The result array gained a required `typeImports` key, and a `valueImports` key alongside it.** Anything constructing that array by hand — a test double, a subclass that builds its own result — must supply `typeImports`; omit it and the template throws when it renders (an undefined-variable `ErrorException`, or a `count(): null given` `TypeError` when `valueImports` is missing too), so that half you will see. `valueImports` is softer and therefore worse: the template defaults it to `[]`, so a hand-built result that omits it still renders — just without the `import { type AsEnum } from '@tolki/ts';` and `import { Role } from './app/enums';` lines that an `EnumResource` shared prop's `role: AsEnum<typeof Role>` needs. The published `inertia-config.d.ts` then spells names it never imports: a `TS2304 Cannot find name`, or a silent `any` wherever `skipLibCheck` hides it.
 
 **Fails loudly at class load:**
 
 - **`buildResult()` is now `buildResult(string $middlewareClass)`** — the `SharedDataComponent` argument is gone.
 
-New protected members a subclass can hook: `resolveWithAllErrors()`, `collectProps()`, `buildTypeImports()`, `forgetOverriddenChannels()`, and the `FRAMEWORK_OWNED_PROPS` constant that keeps `errors` out of the inferred shape.
+New protected members a subclass can hook: `resolveWithAllErrors()`, `collectProps()`, `rewriteEnumResourceTypes()`, `buildInferredImports()`, `keepSpelledNames()`, `forgetOverriddenChannels()`, and the `FRAMEWORK_OWNED_PROPS` constant that keeps `errors` out of the inferred shape.
 :::
 
 ::: warning `InertiaPageAnalyzer` changed shape
@@ -217,7 +217,7 @@ A `Writer` takes a `Transformer` instance and returns the rendered file content 
 
 ## Cache-Compatible Generators (`RehydratesFromCache`)
 
-The built-in generators (`ModelGenerator`, `EnumGenerator`, `ResourceGenerator`, `RouteGenerator`, `FormRequestGenerator`, `BroadcastEventGenerator`) all use the `AbeTwoThree\LaravelTsPublish\Generators\Concerns\RehydratesFromCache` trait to participate in the [generation cache](./generating-cache.md). It adds:
+The built-in generators (`ModelGenerator`, `ModelMetadataGenerator`, `EnumGenerator`, `ResourceGenerator`, `RouteGenerator`, `FormRequestGenerator`, `BroadcastEventGenerator`) all use the `AbeTwoThree\LaravelTsPublish\Generators\Concerns\RehydratesFromCache` trait to participate in the [generation cache](./generating-cache.md). It adds:
 
 ```php
 public static function fromCache(string $findable, CoreTransformer $transformer, string $filename): static;

@@ -49,7 +49,9 @@ export interface OrderShipped {
 
 - The **interface name** is always the event's short PHP class name.
 - A `@see` JSDoc comment links back to the fully-qualified PHP class.
-- Public properties become required fields. A nullable property is typed `| null`; nullability alone never makes a key optional.
+- A public property is **required** when it is constructor-promoted or declared with a default — every property on `OrderShipped` is promoted, so all four are required before `#[TsCasts]` is applied.
+- A class-body property with a declared type but no default — `public string $label;`, assigned inside the constructor — is **optional** (`label?: string`), since `json_encode()` omits a typed property that was never assigned. Reflection can't see a constructor assignment, so a property your constructor always sets still renders with the `?`; give it a declaration default, or promote it, to get a required key.
+- A nullable property is typed `| null`; nullability alone never makes a key optional.
 - Here, `trackingNumber`'s template-literal type, `metadata`'s `Record<string, unknown>` type, and the `?` on `metadata` all come from a `#[TsCasts]` override on the class — see [`#[TsCasts]`](#tscasts-overriding-property-types) below. Without it, both properties would be their raw inferred types (`string` and `unknown[] | null`), and `metadata` would be required.
 
 ## Property Resolution: `broadcastWith()` vs. Public Properties
