@@ -35,7 +35,7 @@ It takes no parameters — applying it to a class or method is enough to exclude
 
 ## How It's Enforced
 
-Every collector for a per-class type (enums, models, model metadata, resources, form requests, broadcast events, controllers) extends the shared `CoreCollector`, which filters out any class carrying `#[TsExclude]` **before** it's ever handed to a transformer — an excluded class is never analyzed, never written to disk, and never appears in a barrel `index.ts`. This is why class-level exclusion has no config equivalent: there's nothing partial about it.
+Every collector for a per-class type (enums, models, model metadata, resources, form requests, broadcast events) extends the shared `CoreCollector`, and the routes collector applies the same `#[TsExclude]` check to every controller it discovers, so either way a class carrying the attribute is filtered out **before** it's ever handed to a transformer — an excluded class is never analyzed, never written to disk, and never appears in a barrel `index.ts`. This is why class-level exclusion has no config equivalent: there's nothing partial about it.
 
 Because model metadata companions are collected from the same model classes, `#[TsExclude]` on a model excludes its interface and its companion together.
 
@@ -257,7 +257,7 @@ import { defineRoute } from "@tolki/ts";
 export const show = defineRoute({
   name: "excludable.show",
   url: "/excludable/{id}",
-  methods: ["get"] as const,
+  methods: ["get", "head"] as const,
   args: [{ name: "id", required: true }] as const,
 });
 

@@ -2,7 +2,7 @@
 
 The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) converts Eloquent models into TypeScript interfaces for their columns, mutators, and relations — resolved via a reflection + database-schema waterfall so the generated types stay accurate without you hand-maintaining them.
 
-As mentioned in [Installation & Usage](./index.md), models don't need the `@tolki/ts` runtime package at all (unlike [enums](./enums.md) and [routes](./routing.md)) — the output is plain TypeScript interfaces, with one exception: enum-typed columns optionally use the `AsEnum<>` type from `@tolki/types` (see [Enum-Typed Columns](#enum-typed-columns-modelresource)).
+As mentioned in [Installation & Usage](./index.md), models don't need the `@tolki/ts` runtime package at all (unlike [enums](./enums.md) and [routes](./routing.md)) — the output is plain TypeScript interfaces, with one exception: enum-typed columns optionally pull the `AsEnum<>` type from `@tolki/ts` itself, via a single `import { type AsEnum } from '@tolki/ts';` line in each model that has one (see [Enum-Typed Columns](#enum-typed-columns-modelresource)).
 
 ## How Models Are Generated
 
@@ -223,7 +223,7 @@ All attributes live under the `AbeTwoThree\LaravelTsPublish\Attributes` namespac
 
 ### `#[TsCasts]`
 
-Takes an array mapping property names to either a raw TypeScript type string, or `['type' => ..., 'import' => ...]` for a type that needs importing from your own files:
+Takes an array mapping property names to either a raw TypeScript type string, or an array — `['type' => ..., 'import' => ...]` for a type that needs importing from your own files, and `['type' => ..., 'optional' => true]` to mark the property optional (a `?` in the generated interface):
 
 ```php
 use AbeTwoThree\LaravelTsPublish\Attributes\TsCasts;
@@ -247,7 +247,7 @@ class User extends Model
 ```
 
 ```typescript
-import { ProductDimensions } from "@js/types/product";
+import type { ProductDimensions } from "@js/types/product";
 
 export interface User {
   metadata: { label: string; value: string }[];
@@ -287,7 +287,7 @@ class Product extends Model
 ```
 
 ```typescript
-import { ProductDimensions } from "@js/types/product";
+import type { ProductDimensions } from "@js/types/product";
 
 export interface Product {
   dimensions: ProductDimensions;
@@ -309,7 +309,7 @@ Laravel 13 shipped a set of native class attributes across Eloquent models (`Ill
 | `#[Connection('name')]`                                                                                                                                                                                                                                                                            | Yes      | Selects which database connection's schema the columns are read from, same as `protected $connection`.                                                                                                                                                             |
 | `#[Collects(SomeResource::class)]`                                                                                                                                                                                                                                                                 | Yes      | Which resource a collection collects — see [API Resources](./api-resources.md).                                                                                                                                                                                    |
 | `#[UseResource(...)]` / `#[UseResourceCollection(...)]`                                                                                                                                                                                                                                            | Yes      | Associates a model with its resource — see [API Resources](./api-resources.md). Available since Laravel 12.29, not just 13.                                                                                                                                        |
-| `#[PreserveKeys]`                                                                                                                                                                                                                                                                                  | Not yet  | Would make a resource collection emit a keyed object instead of an array. No effect on generated output currently.                                                                                                                                                 |
+| `#[PreserveKeys]`                                                                                                                                                                                                                                                                                  | Yes      | Types the collection's `data` as `Record<string, R>` instead of `R[]` — the keyed JSON object Laravel serializes. `public $preserveKeys = true;` also opts in — see [API Resources § Key-Preserving Collections](./api-resources.md#key-preserving-collections).   |
 | `#[RouteKey('slug')]`                                                                                                                                                                                                                                                                              | Yes      | A model-bound route argument now generates `_routeKey` from the attribute's key even when the model carries only `#[RouteKey]` and overrides none of `getRouteKeyName()`/`getKeyName()`/`$primaryKey` — see [Routing § Model Binding](./routing.md#model-binding). |
 | Everything else (`#[DateFormat]`, `#[WithoutTimestamps]`, `#[WithoutIncrementing]`, `#[Fillable]`, `#[Guarded]`, `#[Unguarded]`, `#[Scope]`, `#[ScopedBy]`, `#[ObservedBy]`, `#[Boot]`, `#[Initialize]`, `#[Touches]`, `#[CollectedBy]`, `#[UseEloquentBuilder]`, `#[UseFactory]`, `#[UsePolicy]`) | N/A      | These affect querying, events, mass assignment, or factories — not the serialized shape — so there's nothing for the TypeScript generator to do either way.                                                                                                        |
 
@@ -688,13 +688,13 @@ The [model metadata](./model-metadata.md) phase inherits these three settings un
 
 ## Casing
 
-`models.relationship_case` (`'snake'` (default), `'camel'`, or `'pascal'`) controls the casing of relation names and their generated `_count` / `_exists` properties:
+`models.relationship_case` (`'snake'` (default), `'camel'`, or `'pascal'`) controls the casing of relation names. The `_count` and `_exists` suffixes are appended literally to the cased name:
 
-| Config Value | Relation (`hasMany(Post::class)`) | Count         | Exists         |
-| ------------ | --------------------------------- | ------------- | -------------- |
-| `'snake'`    | `posts: Post[]`                   | `posts_count` | `posts_exists` |
-| `'camel'`    | `posts: Post[]`                   | `postsCount`  | `postsExists`  |
-| `'pascal'`   | `Posts: Post[]`                   | `PostsCount`  | `PostsExists`  |
+| Config Value | Relation (`hasMany(Post::class)`) | Count               | Exists               |
+| ------------ | --------------------------------- | ------------------- | -------------------- |
+| `'snake'`    | `owned_teams: Team[]`             | `owned_teams_count` | `owned_teams_exists` |
+| `'camel'`    | `ownedTeams: Team[]`              | `ownedTeams_count`  | `ownedTeams_exists`  |
+| `'pascal'`   | `OwnedTeams: Team[]`              | `OwnedTeams_count`  | `OwnedTeams_exists`  |
 
 ## Configuration Reference
 

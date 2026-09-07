@@ -204,7 +204,7 @@ export interface UserNotification extends HasTimestamps {
 
 ## Naming Conflicts & Aliasing
 
-Occasionally, two different `#[TsExtends]` entries (from any combination of attributes, traits, parent classes, or config) use the **same type name** but import it from **different paths**. Rather than silently colliding, the second occurrence is aliased using its import path's last segment as a prefix, and the extends clause is rewritten to use the alias:
+Occasionally, two different `#[TsExtends]` entries (from any combination of attributes, traits, parent classes, or config) use the **same type name** but import it from **different paths**. Rather than silently colliding, **every** occurrence of that name is aliased — each one prefixed with the PascalCase form of its own import path's last segment — and each affected extends clause is rewritten to use its alias:
 
 ```php
 // Both entries reference a type named "Routable", but from different import paths
@@ -214,17 +214,17 @@ class Example { /* ... */ }
 ```
 
 ```typescript
-import type { Routable } from "@/types/routing";
-import type { Routable as RoutingRoutable } from "@/types/legacy-routing";
+import type { Routable as LegacyRoutingRoutable } from "@/types/legacy-routing";
+import type { Routable as RoutingRoutable } from "@/types/routing";
 
-export interface Example extends Routable, RoutingRoutable {}
+export interface Example extends RoutingRoutable, LegacyRoutingRoutable {}
 ```
 
 The deduplication and conflict-resolution rules, in order:
 
 1. Identical `(extends, import)` pairs from any source (attribute, trait, parent class, or config) are kept once.
 2. The same type name imported from the same path — across different extends clauses — produces a single import statement.
-3. The same type name imported from two _different_ paths gets the second (and subsequent) occurrences aliased, and the affected extends clause(s) rewritten to reference the alias.
+3. The same type name imported from two _different_ paths gets **every** occurrence aliased (each with the prefix derived from its own import path), and every affected extends clause — even inside a generic like `Pick<>` — rewritten to reference its alias.
 
 ## Configuration Reference
 

@@ -9,7 +9,7 @@ As mentioned in [Installation & Usage](./index.md), the `@tolki/ts` package is n
 - One `.ts` file is generated per enum, at a modular, namespace-derived path (e.g. `App\Enums\Status` → `app/enums/status.ts`).
 - Barrel `index.ts` files re-export everything (`export * from './status'`) for each namespace directory — unlike [routes](./routing.md), enum names don't collide across files, so barrels use `export *` rather than default-only re-exports.
 - Both **backed** (`int`/`string`) and **unit** enums are supported. Unit enums use their case name as the value.
-- When `enums.metadata_enabled` is on (the default), each enum includes `_cases`, `_methods`, and `_static` arrays describing its own shape, and is wrapped in `defineEnum()` from `@tolki/ts` when `enums.use_tolki_package` is also on (the default).
+- When `enums.metadata_enabled` is on (the default), each enum includes a `_cases` array — plus a `_methods` array only if it publishes instance methods and a `_static` array only if it publishes static methods (see [`#[TsEnumMethod]`](#tsenummethod) / [`#[TsEnumStaticMethod]`](#tsenumstaticmethod)) — and is wrapped in `defineEnum()` from `@tolki/ts` when `enums.use_tolki_package` is also on (the default).
 
 ## Anatomy of a Generated Enum
 
@@ -212,7 +212,7 @@ function setStatusByKey(status: StatusKind) {} // only 'Active' | 'Inactive'
 
 ## Metadata & the `defineEnum()` Wrapper
 
-When `enums.metadata_enabled` is on, every enum carries `_cases`, `_methods`, and `_static` arrays describing its own shape. These aren't meant to be read directly — they're what `defineEnum()` (and the standalone `from` / `tryFrom` / `cases` functions) use to resolve a PHP-like "instance" from a raw case value:
+When `enums.metadata_enabled` is on, every enum carries a `_cases` array — and, if it publishes any instance or static methods, a `_methods` or `_static` array listing them. These aren't meant to be read directly — they're what `defineEnum()` (and the standalone `from` / `tryFrom` / `cases` functions) use to resolve a PHP-like "instance" from a raw case value:
 
 ```typescript
 import { Status } from "@js/types/data/enums";

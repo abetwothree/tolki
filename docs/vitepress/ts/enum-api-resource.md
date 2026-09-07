@@ -193,7 +193,7 @@ export interface PostMutatorsResource extends Omit<PostMutators, "due_notice"> {
 }
 ```
 
-Naming conflicts are handled automatically — if two enum FQCNs share the same base name, namespace-prefixed aliases are used for both the type and const imports (e.g. `AppStatus`, `CrmStatus`). See [Enum-Typed Columns](./models.md#enum-typed-columns-modelresource) in the Models docs for the base/resolved interface distinction in full detail.
+Naming conflicts are handled automatically — if two enum FQCNs share the same base name, namespace-prefixed aliases are used for both the type and const imports. `App\Enums\Status` and `App\Crm\Enums\Status` are imported as `EnumsStatus` and `CrmStatus`, with `EnumsStatusType` and `CrmStatusType` for the types. See [Enum-Typed Columns](./models.md#enum-typed-columns-modelresource) in the Models docs for the base/resolved interface distinction in full detail.
 
 ## Configuration Reference
 

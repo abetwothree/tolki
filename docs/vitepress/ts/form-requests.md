@@ -279,7 +279,7 @@ The one exception is a `prohibited` nested key: since it and its descendants are
 
 ## `#[TsCasts]` — Overriding Field Types
 
-Same attribute (and array shape) used by [models](./models.md#tscasts) and resources — place it on the `FormRequest` class to override a field's inferred type, mark it optional, or add a field with a custom imported type:
+Same attribute (and array shape) used by [models](./models.md#tscasts) and resources — place it on the `FormRequest` class to override a field's inferred type, mark it optional, or point a field at a custom imported type. Unlike a [resource's `#[TsCasts]`](./api-resources.md#tscasts-—-override-property-types), it never appends a brand-new field — it only rewrites fields that `rules()` already declares, and a key naming no rule adds nothing to the interface (its `import`, if any, is still written, leaving an unused import):
 
 ```php
 use AbeTwoThree\LaravelTsPublish\Attributes\TsCasts;

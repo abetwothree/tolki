@@ -93,9 +93,9 @@ Package defaults merge one level deep: add the whole block to an existing config
 
 | Config Key                 | Type      | Default                       | Description                                  |
 | -------------------------- | --------- | ----------------------------- | -------------------------------------------- |
-| `globals.enabled`          | `bool`    | `false`                       | Generate a `global.d.ts` namespace file      |
+| `globals.enabled`          | `bool`    | `false`                       | Generate a global namespace declaration file |
 | `globals.output_directory` | `?string` | `null`                        | Directory for the global declaration file    |
-| `globals.filename`         | `string`  | `laravel-ts-global.d.ts`      | Filename for the global declaration file     |
+| `globals.filename`         | `string`  | `laravel-ts-global.ts`        | Filename for the global declaration file     |
 | `globals.template`         | `string`  | `laravel-ts-publish::globals` | Blade template for global declaration output |
 | `globals.writer_class`     | `string`  | `GlobalsWriter`               | Writes global declaration file               |
 
@@ -123,7 +123,7 @@ Package defaults merge one level deep: add the whole block to an existing config
 | --------------------------- | --------- | --------------------------- | --------------------------------------- |
 | `routes.enabled`            | `bool`    | `true`                      | Enable or disable route publishing      |
 | `routes.method_casing`      | `string`  | `'camel'`                   | Case style for route method names       |
-| `routes.output_path`        | `?string` | `null`                      | Custom output path for route files      |
+| `routes.output_directory`   | `?string` | `null`                      | Custom output directory for route files |
 | `routes.only`               | `array`   | `[]`                        | Only publish these routes (empty = all) |
 | `routes.except`             | `array`   | `[]`                        | Exclude these routes from publishing    |
 | `routes.exclude_middleware` | `array`   | `[]`                        | Exclude routes with these middleware    |

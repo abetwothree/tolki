@@ -217,7 +217,7 @@ A `Writer` takes a `Transformer` instance and returns the rendered file content 
 
 ## Cache-Compatible Generators (`RehydratesFromCache`)
 
-The built-in generators (`ModelGenerator`, `EnumGenerator`, `ResourceGenerator`, `RouteGenerator`, `FormRequestGenerator`, `BroadcastEventGenerator`) all use the `AbeTwoThree\LaravelTsPublish\Generators\Concerns\RehydratesFromCache` trait to participate in the [generation cache](./generating-cache.md). It adds:
+The built-in generators (`ModelGenerator`, `ModelMetadataGenerator`, `EnumGenerator`, `ResourceGenerator`, `RouteGenerator`, `FormRequestGenerator`, `BroadcastEventGenerator`) all use the `AbeTwoThree\LaravelTsPublish\Generators\Concerns\RehydratesFromCache` trait to participate in the [generation cache](./generating-cache.md). It adds:
 
 ```php
 public static function fromCache(string $findable, CoreTransformer $transformer, string $filename): static;

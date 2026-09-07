@@ -118,7 +118,7 @@ CustomRouteKeyController.show({ slugPost: "hello-world" });
 CustomRouteKeyController.show(post); // post = { slug: 'hello-world', ... }
 ```
 
-Because the binding is resolved structurally (via the `_routeKey` string), **the generated route file never imports the PHP model's TypeScript type** — you get full type inference (`string | number | { slug: string | number }`) without a single model import.
+Because the binding is resolved structurally (via the `_routeKey` string), **binding a model never pulls in that model's TypeScript type** — you get full type inference (`string | number | { slug: string | number }`) from the `args` metadata alone. A route file does import model types when an Inertia page prop names one (see [Inertia Integration](#inertia-integration)), but never on account of a bound parameter.
 
 The column named by `_routeKey` comes from whatever `getRouteKeyName()` returns for that model,
 whether that's the method itself overridden, `getKeyName()`/`$primaryKey` overridden, or (Laravel 13+)
