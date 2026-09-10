@@ -20,6 +20,12 @@ describe("Obj", () => {
             expect(Obj.accessible(123)).toBe(false);
             expect(Obj.accessible(true)).toBe(false);
         });
+
+        it("returns false for a float and a closure", () => {
+            // ArrTest::testAccessible
+            expect(Obj.accessible(12.34)).toBe(false);
+            expect(Obj.accessible(() => null)).toBe(false);
+        });
     });
 
     describe("objectifiable", () => {
@@ -36,6 +42,12 @@ describe("Obj", () => {
             expect(Obj.objectifiable("string")).toBe(false);
             expect(Obj.objectifiable(123)).toBe(false);
             expect(Obj.objectifiable(true)).toBe(false);
+        });
+
+        it("returns false for a float and a closure", () => {
+            // ArrTest::testArrayable
+            expect(Obj.objectifiable(12.34)).toBe(false);
+            expect(Obj.objectifiable(() => null)).toBe(false);
         });
     });
 
@@ -79,6 +91,19 @@ describe("Obj", () => {
             expect(result).toEqual({ user: { name: "John", age: 25 } });
             // Type should remain unchanged when nested key exists
             assertType<{ user: { name: string; age: number } }>(result);
+        });
+
+        it("creates the parent when adding a dotted key to an empty object", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "add-empty-dotted"
+            expect(Obj.add({}, "developer.name", "Ferid")).toEqual({
+                developer: { name: "Ferid" },
+            });
+        });
+
+        it("adds under an integer key, and splits a float key on its dot", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "add-int-key", "add-float-key"
+            expect(Obj.add({}, 1, "hAz")).toEqual({ 1: "hAz" });
+            expect(Obj.add({}, 1.1, "hAz")).toEqual({ 1: { 1: "hAz" } });
         });
     });
 
@@ -535,6 +560,11 @@ describe("Obj", () => {
                 { a: 2, b: "x", c: "II" },
             ]);
         });
+
+        it("returns one empty product when called with no arguments", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-no-args"
+            expect(Obj.crossJoin()).toEqual([{}]);
+        });
     });
 
     describe("divide", () => {
@@ -696,6 +726,75 @@ describe("Obj", () => {
                 ).toBeUndefined();
             });
         });
+
+        it("keeps integer keys, top-level and nested", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-int-key", "dot-nested-int-key"
+            expect(Obj.dot({ 10: 100 })).toEqual({ 10: 100 });
+            expect(Obj.dot({ foo: { 10: 100 } })).toEqual({ "foo.10": 100 });
+        });
+
+        it("keeps an empty container as a leaf at full depth", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-empty-leaf", "dot-nested-empty-leaf"
+            expect(Obj.dot({ foo: [] })).toEqual({ foo: [] });
+            expect(Obj.dot({ foo: {} })).toEqual({ foo: {} });
+            expect(Obj.dot({ foo: { bar: [] } })).toEqual({ "foo.bar": [] });
+            expect(Obj.dot({ foo: { bar: {} } })).toEqual({ "foo.bar": {} });
+        });
+
+        it("flattens a nested list with numeric segments", () => {
+            // ArrTest::testDot
+            expect(
+                Obj.dot({
+                    user: { name: "Taylor", age: 25, languages: ["PHP", "C#"] },
+                }),
+            ).toEqual({
+                "user.name": "Taylor",
+                "user.age": 25,
+                "user.languages.0": "PHP",
+                "user.languages.1": "C#",
+            });
+        });
+
+        it("flattens an object with both integer and string keys", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-mixed-keys"
+            expect(
+                Obj.dot({ 0: "foo", foo: { bar: "baz", baz: { a: "b" } } }),
+            ).toEqual({
+                0: "foo",
+                "foo.bar": "baz",
+                "foo.baz.a": "b",
+            });
+        });
+
+        it("keeps an empty list in place and preserves key order", () => {
+            // ArrTest::testDot
+            const result = Obj.dot({
+                foo: "bar",
+                empty_array: [],
+                user: { name: "Taylor" },
+                key: "value",
+            });
+
+            expect(result).toEqual({
+                foo: "bar",
+                empty_array: [],
+                "user.name": "Taylor",
+                key: "value",
+            });
+            expect(Object.keys(result)).toEqual([
+                "foo",
+                "empty_array",
+                "user.name",
+                "key",
+            ]);
+        });
+
+        it("accepts a prepend that already ends in a dot", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-prepend-with-dot-depth"
+            expect(Obj.dot({ user: { name: "Taylor" } }, "prefix.", 1)).toEqual(
+                { "prefix.user.name": "Taylor" },
+            );
+        });
     });
 
     describe("undot", () => {
@@ -745,6 +844,20 @@ describe("Obj", () => {
                 (result["__proto__"] as Record<string, unknown>)["PWN"],
             ).toBe("yes");
             expect((result as { PWN?: unknown }).PWN).toBeUndefined();
+        });
+
+        it("expands an object with both integer and string keys", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "undot-mixed-keys"
+            expect(
+                Obj.undot({
+                    0: "foo",
+                    "foo.bar": "baz",
+                    "foo.baz": { a: "b" },
+                }),
+            ).toEqual({
+                0: "foo",
+                foo: { bar: "baz", baz: { a: "b" } },
+            });
         });
     });
 
@@ -965,6 +1078,29 @@ describe("Obj", () => {
                 user: { name: "John" },
             });
         });
+
+        it("removes a top-level key and a dotted key in one call", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "except-mixed-list"
+            const obj = {
+                name: "taylor",
+                framework: { language: "PHP", name: "Laravel" },
+            };
+
+            expect(Obj.except(obj, ["name", "framework.name"])).toEqual({
+                framework: { language: "PHP" },
+            });
+        });
+
+        it("removes by integer key, and follows a float key's dot into the nested object", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "except-int-key", "except-float-key"
+            const obj = { 1: "hAz", 2: { 5: "foo", 12: "baz" } };
+
+            expect(Obj.except(obj, 2)).toEqual({ 1: "hAz" });
+            expect(Obj.except(obj, 2.5)).toEqual({
+                1: "hAz",
+                2: { 12: "baz" },
+            });
+        });
     });
 
     describe("forget", () => {
@@ -1138,6 +1274,12 @@ describe("Obj", () => {
                 true,
             );
         });
+
+        it("finds a key holding null and misses an absent integer key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "exists-null-value", "exists-int-miss"
+            expect(Obj.exists({ a: null }, "a")).toBe(true);
+            expect(Obj.exists({ a: 1 }, 0)).toBe(false);
+        });
     });
 
     describe("first", () => {
@@ -1191,6 +1333,28 @@ describe("Obj", () => {
             );
             expect(Obj.first(new Map(), null, "default")).toBe("default");
         });
+
+        it("returns null or a lazy default when nothing matches, and can match a falsy value", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "first-assoc-no-match", "first-assoc-closure-default", "first-assoc-falsy-match"
+            const obj = { a: 100, b: 200, c: 300 };
+
+            // Annotated because first's callback parameter is still `unknown`; typed overloads remove this later.
+            expect(Obj.first(obj, (value: number) => value > 300)).toBe(null);
+            expect(
+                Obj.first(
+                    obj,
+                    (value: number) => value > 300,
+                    () => "baz",
+                ),
+            ).toBe("baz");
+            expect(
+                Obj.first(
+                    { a: 0, b: 10, c: 20 },
+                    (value: number) => value === 0,
+                ),
+            ).toBe(0);
+        });
     });
 
     describe("last", () => {
@@ -1238,6 +1402,20 @@ describe("Obj", () => {
             expect(Obj.last(items)).toBe(300);
             expect(Obj.last(items, (_value, key) => key !== "third")).toBe(200);
             expect(Obj.last(new Map(), null, "default")).toBe("default");
+        });
+
+        it("returns null or a lazy default when nothing matches", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "last-assoc-no-match", "last-assoc-closure-default"
+            const obj = { a: 100, b: 200, c: 300 };
+
+            expect(Obj.last(obj, (value: number) => value > 300)).toBe(null);
+            expect(
+                Obj.last(
+                    obj,
+                    (value: number) => value > 300,
+                    () => "baz",
+                ),
+            ).toBe("baz");
         });
     });
 
@@ -1374,6 +1552,31 @@ describe("Obj", () => {
             expect(Obj.get(data, "a.b", "default")).toBe("default");
             expect(Obj.has(data, "a.b")).toBe(true);
         });
+
+        it("returns a present null instead of the default", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-null-value", "get-nested-null-value"
+            const obj = { foo: null, bar: { baz: null } };
+
+            expect(Obj.get(obj, "foo", "default")).toBe(null);
+            expect(Obj.get(obj, "bar.baz", "default")).toBe(null);
+        });
+
+        it("returns the default when the data is false", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-false"
+            expect(Obj.get(false, "foo", "default")).toBe("default");
+        });
+
+        it("returns the empty object for a null key, ignoring the default", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-empty-null-key", "get-empty-null-key-default"
+            expect(Obj.get({}, null)).toEqual({});
+            expect(Obj.get({}, null, "default")).toEqual({});
+        });
+
+        it("reads an empty-string key directly and through a lone dot", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-empty-string-key", "get-dot-only-key"
+            expect(Obj.get({ "": "bar" }, "")).toBe("bar");
+            expect(Obj.get({ "": { "": "bar" } }, ".")).toBe("bar");
+        });
     });
 
     describe("has", () => {
@@ -1421,6 +1624,74 @@ describe("Obj", () => {
             // on a plain object was always false. PHP-verified in
             // docs/php-parity/task-09-paths.json.
             expect(Obj.has({ 123: "x" }, 123)).toBe(true);
+        });
+
+        it("counts a key holding null as present", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "has-null-value", "has-nested-null-value"
+            const obj = { foo: null, bar: { baz: null } };
+
+            expect(Obj.has(obj, "foo")).toBe(true);
+            expect(Obj.has(obj, "bar.baz")).toBe(true);
+        });
+
+        it("fails a path missing at the root or running through a scalar", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "has-plain-tens-bar", "has-plain-tens-bar.baz", "has-plain-tens-xxx.yyy", "has-plain-tens-foo.xxx"
+            // "has-plain-tens-bar.xxx"
+            const obj = { foo: 10, bar: { baz: 10 } };
+
+            expect(Obj.has(obj, "bar")).toBe(true);
+            expect(Obj.has(obj, "bar.baz")).toBe(true);
+            expect(Obj.has(obj, "xxx.yyy")).toBe(false);
+            expect(Obj.has(obj, "foo.xxx")).toBe(false);
+            expect(Obj.has(obj, "bar.xxx")).toBe(false);
+        });
+
+        it("returns false for false data or a bare null key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "has-false", "has-null-null", "has-empty-null", "has-assoc-null-key"
+            expect(Obj.has(false, "foo")).toBe(false);
+            expect(Obj.has(null, null)).toBe(false);
+            expect(Obj.has({}, null)).toBe(false);
+            expect(Obj.has({ a: 1 }, null)).toBe(false);
+        });
+
+        it("checks an array of dotted keys", () => {
+            // ArrTest::testHas
+            const obj = { products: { desk: { price: 100 } } };
+
+            expect(Obj.has(obj, ["products.desk"])).toBe(true);
+            expect(Obj.has(obj, ["products.desk", "products.desk.price"])).toBe(
+                true,
+            );
+            expect(Obj.has(obj, ["products", "products"])).toBe(true);
+            expect(Obj.has(obj, ["foo"])).toBe(false);
+            expect(Obj.has(obj, [])).toBe(false);
+            expect(Obj.has(obj, ["products.desk", "products.price"])).toBe(
+                false,
+            );
+        });
+
+        it("traverses a nested list with numeric segments", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "has-through-list", "has-through-list-miss"
+            const obj = { products: [{ name: "desk" }] };
+
+            expect(Obj.has(obj, "products.0.name")).toBe(true);
+            expect(Obj.has(obj, "products.0.price")).toBe(false);
+        });
+
+        it("returns false for a [null] key list on empty or null data", () => {
+            // ArrTest::testHas
+            expect(Obj.has({}, [null])).toBe(false);
+            expect(Obj.has(null, [null])).toBe(false);
+        });
+
+        it("finds an empty-string key only when it is present", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "has-empty-key", "has-empty-key-list"
+            expect(Obj.has({ "": "some" }, "")).toBe(true);
+            expect(Obj.has({ "": "some" }, [""])).toBe(true);
+            expect(Obj.has({}, "")).toBe(false);
+            expect(Obj.has({}, [""])).toBe(false);
         });
     });
 
@@ -1505,6 +1776,21 @@ describe("Obj", () => {
             expect(Obj.hasAll(obj, "name")).toBe(true);
             expect(Obj.hasAll(obj, "missing")).toBe(false);
         });
+
+        it("counts empty-string and null values as present", () => {
+            // ArrTest::testHasAllMethod
+            const obj = { name: "Taylor", age: "", city: null };
+
+            expect(Obj.hasAll(obj, "age")).toBe(true);
+            expect(Obj.hasAll(obj, "city")).toBe(true);
+            expect(Obj.hasAll(obj, ["age", "car"])).toBe(false);
+            expect(Obj.hasAll(obj, ["city", "some"])).toBe(false);
+            expect(Obj.hasAll(obj, ["name", "age", "city"])).toBe(true);
+            expect(Obj.hasAll(obj, ["name", "age", "city", "country"])).toBe(
+                false,
+            );
+            expect(Obj.hasAll(obj, ["foo", "bar", "baz", "bar"])).toBe(false);
+        });
     });
 
     describe("hasAny", () => {
@@ -1539,6 +1825,19 @@ describe("Obj", () => {
         it("should return false for empty keys array on non-empty object", () => {
             const obj = { name: "John" };
             expect(Obj.hasAny(obj, [])).toBe(false);
+        });
+
+        it("counts empty-string and null values as present, top-level and dotted", () => {
+            // ArrTest::testHasAnyMethod
+            const obj = { name: "Taylor", age: "", city: null };
+            const nested = { foo: { bar: null, baz: "" } };
+
+            expect(Obj.hasAny(obj, "age")).toBe(true);
+            expect(Obj.hasAny(obj, "city")).toBe(true);
+            expect(Obj.hasAny(nested, "foo.bar")).toBe(true);
+            expect(Obj.hasAny(nested, "foo.baz")).toBe(true);
+            expect(Obj.hasAny(nested, "foo.bax")).toBe(false);
+            expect(Obj.hasAny(nested, ["foo.bax", "foo.baz"])).toBe(true);
         });
     });
 
@@ -2563,6 +2862,13 @@ describe("Obj", () => {
             expect(Obj.flatten(42)).toEqual([]);
             expect(Obj.flatten(null)).toEqual([]);
         });
+
+        it("keeps null items", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "flatten-assoc-nulls"
+            expect(
+                Obj.flatten({ a: ["#foo", null], b: "#baz", c: null }),
+            ).toEqual(["#foo", null, "#baz", null]);
+        });
     });
 
     describe("flattenDot", () => {
@@ -2844,6 +3150,11 @@ describe("Obj", () => {
         it("should handle empty object", () => {
             const obj = {};
             expect(Obj.join(obj, ", ", " and ")).toBe("");
+        });
+
+        it("uses only the final glue for two items", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "join-assoc-two"
+            expect(Obj.join({ a: "a", b: "b" }, ", ", " and ")).toBe("a and b");
         });
     });
 
@@ -3466,6 +3777,27 @@ describe("Obj", () => {
                 "5000000000": "b",
                 "6000000001": "NEW",
             });
+        });
+
+        it("creates a dotted path from an empty object, then appends several values", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "push-dotted-chain"
+            const first = Obj.push({}, "office.furniture", "Desk");
+
+            expect(first).toEqual({ office: { furniture: ["Desk"] } });
+            expect(
+                Obj.push(first, "office.furniture", "Chair", "Lamp"),
+            ).toEqual({
+                office: { furniture: ["Desk", "Chair", "Lamp"] },
+            });
+        });
+
+        it("throws PHP's message for a boolean at a dotted key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "push-boolean-at-dotted"
+            expect(() =>
+                Obj.push({ foo: { bar: false } }, "foo.bar", "baz"),
+            ).toThrow(
+                "Array value for key [foo.bar] must be an array, boolean found.",
+            );
         });
     });
 
@@ -5198,6 +5530,20 @@ describe("Obj", () => {
             const result = Obj.whereNotNull(obj);
             expect(result).toEqual({ a: 1, c: 2, d: undefined, e: 3 });
         });
+
+        it("keeps falsy non-null values", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "whereNotNull-assoc-falsy"
+            expect(
+                Obj.whereNotNull({
+                    a: null,
+                    b: 0,
+                    c: false,
+                    d: "",
+                    e: null,
+                    f: [],
+                }),
+            ).toEqual({ b: 0, c: false, d: "", f: [] });
+        });
     });
 
     describe("wrap", () => {
@@ -5296,6 +5642,23 @@ describe("Obj", () => {
                 b: false,
             });
             expect(Obj.exceptValues(obj3, [1, 0])).toEqual({});
+        });
+
+        it("returns an empty object for empty input", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "exceptValues-empty"
+            expect(Obj.exceptValues({}, "foo")).toEqual({});
+        });
+
+        it("tells 1 and '1' apart only in strict mode", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "exceptValues-assoc-strict", "exceptValues-assoc-loose"
+            const obj = { a: 1, b: "1", c: 2, d: "2", e: 3 };
+
+            expect(Obj.exceptValues(obj, [1, 2, 3], true)).toEqual({
+                b: "1",
+                d: "2",
+            });
+            expect(Obj.exceptValues(obj, [1, 2, 3])).toEqual({});
         });
     });
 
