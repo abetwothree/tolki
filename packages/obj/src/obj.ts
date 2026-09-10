@@ -7,7 +7,6 @@ import {
     getNestedValue,
     getObjectValue,
     hasMixed,
-    hasObjectKey,
     resolvePluckPath,
     setObjectValue,
     undotExpandObject,
@@ -805,7 +804,6 @@ export function exceptValues<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * exists({ name: 'John', age: 30 }, 'name'); -> true
  * exists({ name: 'John', age: 30 }, 'email'); -> false
- * exists({ user: { name: 'John' } }, 'user.name'); -> true
  */
 export function exists<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
@@ -815,7 +813,11 @@ export function exists<TValue extends Record<PropertyKey, unknown>>(
         return false;
     }
 
-    return hasObjectKey(data, key);
+    // Arr::exists casts a null or float key to string and never walks a dot path.
+    return Object.hasOwn(
+        data,
+        isNull(key) || isUndefined(key) ? "" : String(key),
+    );
 }
 
 /**
@@ -1375,7 +1377,7 @@ export function get<
     let current: unknown = object;
 
     for (const segment of segments) {
-        if (isNull(current) || !isObject(current)) {
+        if (!isObject(current) && !isArray(current)) {
             return isFunction(defaultValue)
                 ? (defaultValue as () => TDefault)()
                 : defaultValue;
@@ -1415,17 +1417,19 @@ export function has<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     keys: PathKeys,
 ): boolean {
+    if (isNull(keys) || isUndefined(keys)) {
+        return false;
+    }
+
     const keyList = isArray(keys) ? keys : [keys];
+
     if (!accessible(data) || keyList.length === 0) {
         return false;
     }
 
     for (const k of keyList) {
-        if (isNull(k)) {
-            return false;
-        }
-
-        if (!hasMixed(data, k)) {
+        // A null inside a key list reaches Arr::exists, which casts it to "".
+        if (!hasMixed(data, isNull(k) || isUndefined(k) ? "" : k)) {
             return false;
         }
     }

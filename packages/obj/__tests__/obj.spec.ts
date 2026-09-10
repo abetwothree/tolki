@@ -1420,10 +1420,16 @@ describe("Obj", () => {
             expect(Obj.exists(obj, "age")).toBe(false);
         });
 
-        it("should handle dot notation", () => {
-            const obj = { user: { name: "John" } };
-            expect(Obj.exists(obj, "user.name")).toBe(true);
-            expect(Obj.exists(obj, "user.age")).toBe(false);
+        it("does not traverse dot paths", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "exists-no-dot-traversal", "exists-no-dot-traversal-miss", "exists-literal-dotted"
+            expect(Obj.exists({ user: { name: "John" } }, "user.name")).toBe(
+                false,
+            );
+            expect(Obj.exists({ user: { name: "John" } }, "user.age")).toBe(
+                false,
+            );
+            expect(Obj.exists({ "user.name": "John" }, "user.name")).toBe(true);
         });
 
         it("should return false for non-accessible data", () => {
@@ -1444,6 +1450,12 @@ describe("Obj", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "exists-null-value", "exists-int-miss"
             expect(Obj.exists({ a: null }, "a")).toBe(true);
             expect(Obj.exists({ a: 1 }, 0)).toBe(false);
+        });
+
+        it("casts a null key to the empty string and a float key to its string form", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "exists-null-key-empty-string", "exists-float-key"
+            expect(Obj.exists({ "": 1 }, null)).toBe(true);
+            expect(Obj.exists({ "1.5": 1 }, 1.5)).toBe(true);
         });
     });
 
@@ -1755,6 +1767,16 @@ describe("Obj", () => {
             expect(Obj.get({ "": "bar" }, "")).toBe("bar");
             expect(Obj.get({ "": { "": "bar" } }, ".")).toBe("bar");
         });
+
+        it("traverses a nested list with numeric segments", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "get-through-list", "get-through-list-2", "get-through-list-missing"
+            const obj = { products: [{ name: "desk" }, { name: "chair" }] };
+
+            expect(Obj.get(obj, "products.0.name")).toBe("desk");
+            expect(Obj.get(obj, "products.1.name")).toBe("chair");
+            expect(Obj.get(obj, "products.2.name", "none")).toBe("none");
+        });
     });
 
     describe("has", () => {
@@ -1870,6 +1892,13 @@ describe("Obj", () => {
             expect(Obj.has({ "": "some" }, [""])).toBe(true);
             expect(Obj.has({}, "")).toBe(false);
             expect(Obj.has({}, [""])).toBe(false);
+        });
+
+        it("looks up the empty-string key for a null inside a key list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "has-empty-string-key-null-in-list", "has-null-key-nonempty-assoc"
+            expect(Obj.has({ "": "some" }, [null])).toBe(true);
+            expect(Obj.has({ a: 1 }, [null, "a"])).toBe(false);
         });
     });
 

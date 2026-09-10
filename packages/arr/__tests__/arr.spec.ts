@@ -1252,6 +1252,16 @@ describe("Arr", () => {
             expect(Arr.get([1, 2], "length")).toBeNull();
             expect(Arr.has([1, 2], "length")).toBe(false);
         });
+
+        it("traverses an object nested in a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-through-list" (the list-shaped twin)
+            expect(
+                Arr.get(
+                    [{ products: [{ name: "desk" }] }],
+                    "0.products.0.name",
+                ),
+            ).toBe("desk");
+        });
     });
 
     describe("has", () => {
