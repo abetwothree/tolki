@@ -49,6 +49,7 @@ import {
     isFalsy,
     isFunction,
     isInteger,
+    isIntegerLikeKey,
     isIterable,
     isMap,
     isNull,
@@ -379,12 +380,17 @@ export function collapse<TValue extends ArrayItems<unknown>>(
     if (hasObjects) {
         // Merge objects together
         const result: Record<string, unknown> = {};
+        let nextIndex = 0;
         for (const item of data) {
             if (isObject(item) && !isArray(item)) {
-                // Object.assign uses [[Set]] like a plain bracket assignment
-                // would, so it is exposed to the same __proto__ setter risk.
                 for (const [key, value] of Object.entries(item)) {
-                    defineKey(result, key, value);
+                    // array_merge appends integer keys and lets a later string key win.
+                    if (isIntegerLikeKey(key)) {
+                        defineKey(result, nextIndex, value);
+                        nextIndex++;
+                    } else {
+                        defineKey(result, key, value);
+                    }
                 }
             }
         }

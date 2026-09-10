@@ -405,6 +405,25 @@ describe("Arr", () => {
             });
         });
 
+        it("appends integer keys instead of letting a later one overwrite, but string keys still let later win", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-int-keys", "collapse-string-keys"
+            expect(Arr.collapse([{ a: 1, 5: "x" }, { 5: "y" }])).toEqual({
+                a: 1,
+                0: "x",
+                1: "y",
+            });
+            expect(
+                Arr.collapse([
+                    { x: 1, y: 2 },
+                    { x: 3, z: 4 },
+                ]),
+            ).toEqual({
+                x: 3,
+                y: 2,
+                z: 4,
+            });
+        });
+
         it("does not reparent the result via a __proto__ entry (Object.assign is not sanctioned)", () => {
             // JSON.parse produces a real own enumerable "__proto__" key (a literal
             // `{ __proto__:... }` would set the prototype instead and never reach this code).
