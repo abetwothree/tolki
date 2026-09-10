@@ -72,6 +72,30 @@ export function isIntegerLikeKey(key: string): boolean {
 }
 
 /**
+ * The key PHP stores for an array key string: a canonical decimal integer
+ * becomes a number, and anything else stays the same string.
+ *
+ * @param key - The key as `Object.keys` reports it
+ * @returns The key PHP would report
+ *
+ * @example
+ * phpArrayKey("10"); -> 10
+ * phpArrayKey("01"); -> "01"
+ */
+export function phpArrayKey(key: string): string | number {
+    if (/^(0|-?[1-9]\d*)$/.test(key)) {
+        const value = Number(key);
+
+        // PHP holds up to 2^63 - 1; past 2^53 a JS number would silently change the key.
+        if (Number.isSafeInteger(value)) {
+            return value;
+        }
+    }
+
+    return key;
+}
+
+/**
  * Renumber the integer-like keys in `entries` to a fresh 0-based sequence, in
  * the order they appear; string keys pass through unchanged.
  *

@@ -175,4 +175,38 @@ describe("Utils", () => {
             expect(Object.getPrototypeOf(target)).toBe(Object.prototype);
         });
     });
+
+    describe("phpArrayKey", () => {
+        it("turns canonical decimal integer strings into numbers", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "K1 keys of numeric-looking string keys"
+            expect(Utils.phpArrayKey("10")).toBe(10);
+            expect(Utils.phpArrayKey("-1")).toBe(-1);
+            expect(Utils.phpArrayKey("0")).toBe(0);
+        });
+
+        it("keeps every other string as it is", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "K1 keys of numeric-looking string keys", "K2 chunkWhile callback key types"
+            for (const key of [
+                "01",
+                "1.5",
+                "1e3",
+                " 1",
+                "Infinity",
+                "1e+21",
+                "-0",
+                "abc",
+                "",
+            ]) {
+                expect(Utils.phpArrayKey(key)).toBe(key);
+            }
+        });
+
+        it("keeps an integer string JS can't hold exactly", () => {
+            // JS-only: no PHP analogue; pins that phpArrayKey keeps a string beyond safe-integer precision.
+            expect(Utils.phpArrayKey("9007199254740993")).toBe(
+                "9007199254740993",
+            );
+        });
+    });
 });
