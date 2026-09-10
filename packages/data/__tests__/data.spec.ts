@@ -1276,6 +1276,14 @@ describe("Data", () => {
             const result = Data.dataPrepend([2, 3], 1);
             expect(result).toEqual([1, 2, 3]);
         });
+        it("unshifts under key 0 when no key is given", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-assoc-no-key"
+            expect(Data.dataPrepend({ one: 1, two: 2 }, 0)).toEqual({
+                0: 0,
+                one: 1,
+                two: 2,
+            });
+        });
     });
 
     describe("dataPull", () => {
@@ -1652,14 +1660,22 @@ describe("Data", () => {
 
     describe("dataUnshift", () => {
         it("is object", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D1b unshift two assoc items onto assoc"
             const source = { b: 2 };
             const result = Data.dataUnshift(source, { a: 1 }, { d: "house" });
             expect(result).toEqual({
-                a: 1,
-                d: "house",
+                0: { a: 1 },
+                1: { d: "house" },
                 b: 2,
             });
-            expect(source).toEqual({ a: 1, d: "house", b: 2 });
+            expect(source).toEqual({ 0: { a: 1 }, 1: { d: "house" }, b: 2 });
+        });
+        it("prepends an object item as one element, like array_unshift", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D1 unshift assoc item onto assoc"
+            expect(Data.dataUnshift({ b: 2 }, { a: 1 })).toEqual({
+                0: { a: 1 },
+                b: 2,
+            });
         });
         it("mutates the source array in place, like array_unshift", () => {
             const data = [2];

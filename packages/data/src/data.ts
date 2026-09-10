@@ -1391,7 +1391,7 @@ export function dataMapSpread<U>(
  *
  * @param data - The data to prepend to
  * @param value - The value to prepend
- * @param key - Optional key for objects
+ * @param rest - The key for an object backing; omit it to unshift under key 0, as `Arr::prepend` does with two arguments
  * @returns Data with prepended value
  *
  * @example
@@ -1402,13 +1402,13 @@ export function dataMapSpread<U>(
 export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
     value: TValue,
-    key: PropertyKey | null = null,
+    ...rest: [key?: PropertyKey | null]
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objPrepend(
             data as Record<TKey, TValue>,
             value,
-            key as string,
+            ...(rest as [key?: TKey | null]),
         ) as DataItems<TValue, TKey>;
     }
 
