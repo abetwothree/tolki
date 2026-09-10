@@ -1383,13 +1383,20 @@ export function get<
                 : defaultValue;
         }
 
-        if (!Object.hasOwn(current as object, segment)) {
+        // A list only has canonical numeric indices; every JS array also owns
+        // "length", so a raw Object.hasOwn(current, "length") would wrongly hit.
+        const segmentKey = isArray(current) ? phpArrayKey(segment) : segment;
+
+        if (
+            (isArray(current) && !isNumber(segmentKey)) ||
+            !Object.hasOwn(current as object, segmentKey)
+        ) {
             return isFunction(defaultValue)
                 ? (defaultValue as () => TDefault)()
                 : defaultValue;
         }
 
-        current = (current as Record<string, unknown>)[segment];
+        current = (current as Record<string | number, unknown>)[segmentKey];
     }
 
     return !isUndefined(current)

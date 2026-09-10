@@ -361,6 +361,16 @@
             "value": "none"
         },
         {
+            "label": "get-through-list-length",
+            "php": "Arr::get(['products' => [1, 2, 3]], 'products.length', 'none')",
+            "value": "none"
+        },
+        {
+            "label": "get-through-list-leading-zero",
+            "php": "Arr::get(['products' => [1, 2, 3]], 'products.01', 'none')",
+            "value": "none"
+        },
+        {
             "label": "get-false",
             "php": "Arr::get(false, 'foo', 'default')",
             "value": "default"

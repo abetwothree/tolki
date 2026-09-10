@@ -1777,6 +1777,15 @@ describe("Obj", () => {
             expect(Obj.get(obj, "products.1.name")).toBe("chair");
             expect(Obj.get(obj, "products.2.name", "none")).toBe("none");
         });
+
+        it("does not resolve a JS array's own keys as list indices", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "get-through-list-length", "get-through-list-leading-zero"
+            const obj = { products: [1, 2, 3] };
+
+            expect(Obj.get(obj, "products.length", "none")).toBe("none");
+            expect(Obj.get(obj, "products.01", "none")).toBe("none");
+        });
     });
 
     describe("has", () => {
@@ -1854,6 +1863,9 @@ describe("Obj", () => {
             expect(Obj.has(null, null)).toBe(false);
             expect(Obj.has({}, null)).toBe(false);
             expect(Obj.has({ a: 1 }, null)).toBe(false);
+            // A literal undefined for the whole `keys` argument takes the
+            // same early-return path as null; not just null-coerced-to-"".
+            expect(Obj.has({ a: 1 }, undefined)).toBe(false);
         });
 
         it("checks an array of dotted keys", () => {
@@ -1899,6 +1911,9 @@ describe("Obj", () => {
             // "has-empty-string-key-null-in-list", "has-null-key-nonempty-assoc"
             expect(Obj.has({ "": "some" }, [null])).toBe(true);
             expect(Obj.has({ a: 1 }, [null, "a"])).toBe(false);
+            // A literal undefined element casts to "" the same way null does.
+            expect(Obj.has({ "": "some" }, [undefined])).toBe(true);
+            expect(Obj.has({ a: 1 }, [undefined, "a"])).toBe(false);
         });
     });
 

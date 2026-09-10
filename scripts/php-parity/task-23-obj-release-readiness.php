@@ -98,6 +98,8 @@ probe('get-nested-null-value', "Arr::get(['bar' => ['baz' => null]], 'bar.baz', 
 probe('get-through-list', "Arr::get(['products' => [['name' => 'desk'], ['name' => 'chair']]], 'products.0.name')", fn () => Arr::get(['products' => [['name' => 'desk'], ['name' => 'chair']]], 'products.0.name'));
 probe('get-through-list-2', "Arr::get(['products' => [['name' => 'desk'], ['name' => 'chair']]], 'products.1.name')", fn () => Arr::get(['products' => [['name' => 'desk'], ['name' => 'chair']]], 'products.1.name'));
 probe('get-through-list-missing', "Arr::get(['products' => [['name' => 'desk']]], 'products.2.name', 'none')", fn () => Arr::get(['products' => [['name' => 'desk']]], 'products.2.name', 'none'));
+probe('get-through-list-length', "Arr::get(['products' => [1, 2, 3]], 'products.length', 'none')", fn () => Arr::get(['products' => [1, 2, 3]], 'products.length', 'none'));
+probe('get-through-list-leading-zero', "Arr::get(['products' => [1, 2, 3]], 'products.01', 'none')", fn () => Arr::get(['products' => [1, 2, 3]], 'products.01', 'none'));
 probe('get-false', "Arr::get(false, 'foo', 'default')", fn () => Arr::get(false, 'foo', 'default'));
 probe('get-empty-null-key', 'Arr::get([], null)', fn () => Arr::get([], null));
 probe('get-empty-null-key-default', "Arr::get([], null, 'default')", fn () => Arr::get([], null, 'default'));
