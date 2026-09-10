@@ -7288,6 +7288,13 @@ describe("Collection", () => {
             });
         });
 
+        it("flattens objects inside an array backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-of-assoc"
+            expect(
+                new Collection([{ a: 1 }, { b: { c: 2 } }]).dot().all(),
+            ).toEqual({ "0.a": 1, "1.b.c": 2 });
+        });
+
         describe("Laravel Tests - dotWithDepth", () => {
             it("test dot with depth", () => {
                 const data = Collection.make({

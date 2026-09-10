@@ -561,6 +561,7 @@ describe("Obj", () => {
 
         it("should merge overlapping keys with later values winning", () => {
             const obj = { a: { x: 1, y: 2 }, b: { x: 3, z: 4 } };
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-string-keys"
             expect(Obj.collapse(obj)).toEqual({ x: 3, y: 2, z: 4 });
         });
 
@@ -575,6 +576,22 @@ describe("Obj", () => {
                     obj as unknown as Record<string, Record<string, unknown>>,
                 ),
             ).toEqual({ x: 1, y: 2 });
+        });
+
+        it("appends integer keys instead of letting a later one overwrite", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-int-keys"
+            expect(
+                Obj.collapse({ g1: { a: 1, 5: "x" }, g2: { 5: "y" } }),
+            ).toEqual({ a: 1, 0: "x", 1: "y" });
+        });
+
+        it("collapses list values, appending their elements", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-assoc-of-lists"
+            expect(Obj.collapse({ a: [1, 2], b: [3] })).toEqual({
+                0: 1,
+                1: 2,
+                2: 3,
+            });
         });
     });
 
@@ -620,6 +637,32 @@ describe("Obj", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-no-args"
             expect(Obj.crossJoin()).toEqual([{}]);
         });
+
+        it("multiplies every key of one argument, and of several", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "crossJoin-string-spread", "crossJoin-string-spread-3"
+            expect(
+                Obj.crossJoin({ size: ["S", "M"], color: ["red", "blue"] }),
+            ).toEqual([
+                { size: "S", color: "red" },
+                { size: "S", color: "blue" },
+                { size: "M", color: "red" },
+                { size: "M", color: "blue" },
+            ]);
+            expect(
+                Obj.crossJoin({ a: [1, 2] }, { b: ["x"], c: ["I", "II"] }),
+            ).toEqual([
+                { a: 1, b: "x", c: "I" },
+                { a: 1, b: "x", c: "II" },
+                { a: 2, b: "x", c: "I" },
+                { a: 2, b: "x", c: "II" },
+            ]);
+        });
+
+        it("returns no rows when any key has no values", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-string-spread-empty"
+            expect(Obj.crossJoin({ a: [], b: ["x"] })).toEqual([]);
+        });
     });
 
     describe("divide", () => {
@@ -664,9 +707,11 @@ describe("Obj", () => {
             });
         });
 
-        it("should handle prepend", () => {
-            const obj = { name: "John" };
-            expect(Obj.dot(obj, "user")).toEqual({ "user.name": "John" });
+        it("concatenates the prepend string without adding a dot", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-prepend-no-dot"
+            expect(Obj.dot({ name: "John" }, "user")).toEqual({
+                username: "John",
+            });
         });
 
         it("should handle empty objects", () => {
@@ -761,9 +806,9 @@ describe("Obj", () => {
                 },
             });
 
-            // Depth 1 with prepend
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-prepend-no-dot-depth"
             expect(Obj.dot({ user: { name: "Taylor" } }, "prefix", 1)).toEqual({
-                "prefix.user.name": "Taylor",
+                "prefixuser.name": "Taylor",
             });
         });
 

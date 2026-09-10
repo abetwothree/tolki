@@ -433,9 +433,10 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Collapse an object of objects into a single object.
+ * Collapse an object of objects or lists into a single object; integer keys
+ * are renumbered, as `array_merge` does.
  *
- * @param object - The object of objects to collapse.
+ * @param object - The object of objects or lists to collapse.
  * @return A new flattened object.
  *
  * @example
@@ -444,15 +445,29 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
  * collapse({ users: { john: { age: 30 } }, admins: { jane: { role: 'admin' } } }); -> { john: { age: 30 }, jane: { role: 'admin' } }
  */
 export function collapse<
-    TValue extends Record<PropertyKey, Record<PropertyKey, unknown>>,
+    TValue extends Record<
+        PropertyKey,
+        Record<PropertyKey, unknown> | readonly unknown[]
+    >,
 >(object: TValue): Record<string, TValue[keyof TValue]> {
     const out: Record<string, TValue[keyof TValue]> = {};
+    let nextIndex = 0;
 
     for (const item of Object.values(object)) {
-        if (isObject(item)) {
-            // Object.assign uses [[Set]] like a plain bracket assignment
-            // would, so it is exposed to the same __proto__ setter risk.
-            for (const [key, value] of Object.entries(item)) {
+        if (!isObject(item) && !isArray(item)) {
+            continue;
+        }
+
+        for (const [key, value] of Object.entries(item)) {
+            // array_merge appends integer keys and lets a later string key win.
+            if (isIntegerLikeKey(key)) {
+                defineKey(
+                    out as Record<PropertyKey, unknown>,
+                    nextIndex,
+                    value,
+                );
+                nextIndex++;
+            } else {
                 defineKey(out as Record<string, unknown>, key, value);
             }
         }
@@ -526,24 +541,29 @@ export function crossJoin<TValues, TCombineValue = TValues>(
     let results: Record<PropertyKey, TCombineValue>[] = [{}];
 
     for (const obj of objects) {
-        const next: Record<PropertyKey, TCombineValue>[] = [];
-
+        // Each key is its own dimension, as with Arr::crossJoin over a string-keyed spread.
         for (const [key, values] of Object.entries(obj)) {
             if (!isArray(values) || values.length === 0) {
                 return [];
             }
 
+            const next: Record<PropertyKey, TCombineValue>[] = [];
+
             for (const product of results) {
                 for (const value of values) {
-                    next.push({
-                        ...product,
-                        [key]: value as TCombineValue,
-                    });
+                    const row = { ...product };
+
+                    defineKey(
+                        row as Record<string, TCombineValue>,
+                        key,
+                        value as TCombineValue,
+                    );
+                    next.push(row);
                 }
             }
-        }
 
-        results = next;
+            results = next;
+        }
     }
 
     return results;

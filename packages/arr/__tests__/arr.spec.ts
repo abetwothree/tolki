@@ -1920,10 +1920,22 @@ describe("Arr", () => {
                 "1.1.0": "c",
             });
 
-            // Prepend prefix
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot"
             expect(Arr.dot(["a", ["b"]], "root")).toEqual({
-                "root.0": "a",
-                "root.1.0": "b",
+                root0: "a",
+                "root1.0": "b",
+            });
+        });
+
+        it("concatenates the prepend string and flattens objects inside a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot", "dot-list-of-assoc"
+            expect(Arr.dot(["x", ["y"]], "user")).toEqual({
+                user0: "x",
+                "user1.0": "y",
+            });
+            expect(Arr.dot([{ a: 1 }, { b: { c: 2 } }])).toEqual({
+                "0.a": 1,
+                "1.b.c": 2,
             });
         });
 
@@ -1957,10 +1969,10 @@ describe("Arr", () => {
                 "1": ["b"],
             });
 
-            // Depth 1 with prepend
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot", "dot-prepend-no-dot-depth"
             expect(Arr.dot(["a", [["b"]]], "prefix", 1)).toEqual({
-                "prefix.0": "a",
-                "prefix.1.0": ["b"],
+                prefix0: "a",
+                "prefix1.0": ["b"],
             });
         });
     });
