@@ -831,7 +831,7 @@ export function pushWithPath<TValue>(
  *
  * Flatten mixed structures
  * dotFlatten({a: {b: 1}, c: [2, 3]}); -> {'a.b': 1, 'c.0': 2, 'c.1': 3}
- * dotFlatten(['x', {y: 'z'}], 'prefix'); -> {'prefix.0': 'x', 'prefix.1': {y: 'z'}}
+ * dotFlatten(['x', {y: 'z'}], 'prefix'); -> {prefix0: 'x', 'prefix1.y': 'z'}
  */
 export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | ArrayItems<TValue> | unknown,
@@ -862,7 +862,7 @@ export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * Flatten nested objects
  * dotFlattenObject({a: {b: {c: 1}}}); -> {'a.b.c': 1}
- * dotFlattenObject({user: {name: 'John'}}, 'data'); -> {'data.user.name': 'John'}
+ * dotFlattenObject({user: {name: 'John'}}, 'data'); -> {'datauser.name': 'John'}
  */
 export function dotFlattenObject<
     TValue,
@@ -881,26 +881,19 @@ export function dotFlattenObject<
         TValue
     >;
 
-    // Normalize the initial prefix to avoid producing double dots in keys
-    let initialPrefix = prepend;
-    while (initialPrefix.endsWith(".")) {
-        initialPrefix = initialPrefix.slice(0, -1);
-    }
-
     const walk = (
         obj: Record<TKey, TValue>,
         prefix: string,
         currentDepth: number,
     ): void => {
         for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
-            const keyStr = String(key);
-            const newKey = prefix ? prefix + "." + keyStr : keyStr;
+            // Arr::dot builds `$prefix.$key`, so a caller's prepend is used exactly as given.
+            const newKey = `${prefix}${String(key)}`;
 
             if (currentDepth < depth && isArray(value) && value.length > 0) {
-                // Handle arrays within objects by flattening them with numeric indices
                 walk(
                     value as unknown as Record<TKey, TValue>,
-                    newKey,
+                    `${newKey}.`,
                     currentDepth + 1,
                 );
             } else if (
@@ -908,14 +901,18 @@ export function dotFlattenObject<
                 isObject(value) &&
                 Object.keys(value).length > 0
             ) {
-                walk(value as Record<TKey, TValue>, newKey, currentDepth + 1);
+                walk(
+                    value as Record<TKey, TValue>,
+                    `${newKey}.`,
+                    currentDepth + 1,
+                );
             } else {
                 defineKey(results as Record<string, TValue>, newKey, value);
             }
         }
     };
 
-    walk(data as Record<TKey, TValue>, initialPrefix, 0);
+    walk(data as Record<TKey, TValue>, prepend, 0);
 
     return results;
 }
@@ -933,7 +930,7 @@ export function dotFlattenObject<
  *
  * Flatten nested arrays
  * dotFlattenArray(['a', ['b', 'c']]); -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
- * dotFlattenArray([['x']], "prefix"); -> { 'prefix.0.0': 'x' }
+ * dotFlattenArray([['x']], "prefix"); -> { 'prefix0.0': 'x' }
  */
 export function dotFlattenArray<TValue>(
     data: ArrayItems<TValue> | unknown,
@@ -948,22 +945,41 @@ export function dotFlattenArray<TValue>(
     const out: Record<PropertyKey, TValue> = {};
     const walk = (arr: unknown[], path: string, currentDepth: number): void => {
         for (let i = 0; i < arr.length; i++) {
-            const nextPath = path ? `${path}.${i}` : String(i);
+            const item = arr[i];
+            const nextPath = `${path}${i}`;
 
-            if (
+            if (currentDepth < depth && isArray(item) && item.length > 0) {
+                walk(item, `${nextPath}.`, currentDepth + 1);
+            } else if (
                 currentDepth < depth &&
-                isArray(arr[i]) &&
-                (arr[i] as unknown[]).length > 0
+                isObject(item) &&
+                Object.keys(item).length > 0
             ) {
-                walk(arr[i] as unknown[], nextPath, currentDepth + 1);
+                // PHP's is_array covers assoc arrays too, so objects inside a list flatten as well.
+                for (const [key, value] of Object.entries(
+                    dotFlattenObject(
+                        item,
+                        `${nextPath}.`,
+                        depth - currentDepth - 1,
+                    ),
+                )) {
+                    defineKey(
+                        out as Record<string, TValue>,
+                        key,
+                        value as TValue,
+                    );
+                }
             } else {
-                const key = prepend ? `${prepend}.${nextPath}` : nextPath;
-                out[key] = arr[i] as TValue;
+                defineKey(
+                    out as Record<string, TValue>,
+                    nextPath,
+                    item as TValue,
+                );
             }
         }
     };
 
-    walk(root, "", 0);
+    walk(root, prepend, 0);
 
     return out;
 }

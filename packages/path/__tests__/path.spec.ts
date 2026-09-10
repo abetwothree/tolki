@@ -970,9 +970,8 @@ describe("Path Functions", () => {
         });
 
         it("uses prepend string when provided", () => {
-            expect(Path.dotFlatten(["a"], "prefix")).toEqual({
-                "prefix.0": "a",
-            });
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot"
+            expect(Path.dotFlatten(["a"], "prefix")).toEqual({ prefix0: "a" });
         });
 
         it("handles mixed array/non-array elements", () => {
@@ -2430,13 +2429,15 @@ describe("Path Functions", () => {
             );
         });
 
-        it("strips trailing dots from prepend to avoid double dots", () => {
+        it("concatenates a prepend that ends in dots as it is", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "dot-prepend-with-dot-depth", "dot-prepend-trailing-dots"
             expect(Path.dotFlattenObject({ a: 1, b: 2 }, "prefix.")).toEqual({
                 "prefix.a": 1,
                 "prefix.b": 2,
             });
             expect(Path.dotFlattenObject({ a: 1 }, "prefix...")).toEqual({
-                "prefix.a": 1,
+                "prefix...a": 1,
             });
         });
     });
@@ -2449,9 +2450,10 @@ describe("Path Functions", () => {
         });
 
         it("handles array with prepend but no nested items", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot"
             const data = ["a"];
             const result = Path.dotFlattenArray(data, "prefix");
-            expect(result).toEqual({ "prefix.0": "a" });
+            expect(result).toEqual({ prefix0: "a" });
         });
 
         it("dotFlattenArray with prepend and nested structure", () => {
@@ -2463,9 +2465,15 @@ describe("Path Functions", () => {
         });
 
         it("dotFlattenArray with prepend and empty path on scalar", () => {
-            // Tests the branch where prepend exists and path is empty
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot"
             const result = Path.dotFlattenArray([42], "data");
-            expect(result).toEqual({ "data.0": 42 });
+            expect(result).toEqual({ data0: 42 });
+        });
+
+        it("flattens a plain object element inside the array", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-of-assoc"
+            const result = Path.dotFlattenArray([{ a: 1 }, { b: { c: 2 } }]);
+            expect(result).toEqual({ "0.a": 1, "1.b.c": 2 });
         });
 
         it("respects depth parameter", () => {
