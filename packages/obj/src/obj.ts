@@ -673,9 +673,8 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
  * Prepend one or more items to the beginning of the object, mutating it in
  * place, like PHP's array_unshift.
  *
- * A non-object, non-nullish item gets the next available integer key rather than
- * being dropped; `null`/`undefined` items are skipped. Existing integer-like keys
- * are renumbered upward to make room, exactly as `array_unshift` does.
+ * Each item, including an object or `null`, is prepended as one element under the next integer key. Existing
+ * integer keys are renumbered after the items, even when there are none, as `array_unshift` does.
  *
  * @see Collection::unshift — `packages/collection/stubs/Collection.php:1087`. Wraps `array_unshift`; mutates.
  *
@@ -685,78 +684,47 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
 export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
     ...items: Record<TKey, TValue>[] | unknown[]
 ): Record<TKey, TValue> {
-    if (items.length <= 1) {
-        return (items[0] ?? {}) as Record<TKey, TValue>;
-    }
-
-    const data = items[0] as Record<TKey, TValue>;
-
-    // This rebuilds `data` in place: it clears the container before writing the
-    // merged keys back. On a target defineKey declines, that clear is data loss.
-    if (isPrototypeObject(data)) {
-        return data;
-    }
-
-    const itemsObject = {} as Record<TKey, TValue>;
-    let nextIndex = 0;
-
-    const itemsToPrepend = items.slice(1);
-
-    for (const item of itemsToPrepend) {
-        if (accessible(item)) {
-            for (const [key, value] of Object.entries(item)) {
-                defineKey(
-                    itemsObject as Record<string, TValue>,
-                    key,
-                    value as TValue,
-                );
-            }
-        } else if (!isNull(item) && !isUndefined(item)) {
-            while (Object.hasOwn(itemsObject, nextIndex)) {
-                nextIndex++;
-            }
-
-            itemsObject[nextIndex as TKey] = item as TValue;
-            nextIndex++;
-        }
-    }
+    const [data, ...values] = items as unknown[];
 
     if (!accessible(data)) {
-        return union(itemsObject, data);
+        const fresh: Record<number, unknown> = {};
+
+        values.forEach((value, index) => {
+            fresh[index] = value;
+        });
+
+        return fresh as Record<TKey, TValue>;
     }
 
-    const originalEntries = Object.entries(data);
-
-    for (const key of Object.keys(data)) {
-        delete data[key as TKey];
+    if (isPrototypeObject(data)) {
+        return data as Record<TKey, TValue>;
     }
 
-    for (const [key, value] of Object.entries(itemsObject)) {
-        defineKey(data as Record<string, TValue>, key, value as TValue);
+    const target = data as Record<string, unknown>;
+    const originalEntries = Object.entries(target);
+
+    for (const key of Object.keys(target)) {
+        delete target[key];
+    }
+
+    // array_unshift prepends each argument as one element, then renumbers the integer keys.
+    let nextIndex = 0;
+
+    for (const value of values) {
+        defineKey(target, nextIndex, value);
+        nextIndex++;
     }
 
     for (const [key, value] of originalEntries) {
         if (isIntegerLikeKey(key)) {
-            while (Object.hasOwn(data, nextIndex)) {
-                nextIndex++;
-            }
-
-            defineKey(
-                data as Record<PropertyKey, TValue>,
-                nextIndex,
-                value as TValue,
-            );
+            defineKey(target, nextIndex, value);
             nextIndex++;
-
-            continue;
-        }
-
-        if (!Object.hasOwn(itemsObject, key)) {
-            defineKey(data as Record<string, TValue>, key, value as TValue);
+        } else {
+            defineKey(target, key, value);
         }
     }
 
-    return data;
+    return data as Record<TKey, TValue>;
 }
 
 /**
@@ -2146,7 +2114,7 @@ export function mapWithKeys<
 }
 
 /**
- * Run a map over each nested object in the collection, spreading the object values as arguments to the callback.
+ * Run a map over each row, spreading a list row (or an object row's values) as arguments, followed by the key.
  *
  * @param data - The object to map over.
  * @param callback - The callback function that receives spread object values and the key.
@@ -2154,8 +2122,8 @@ export function mapWithKeys<
  *
  * @example
  *
- * mapSpread({ user1: { name: 'John', age: 25 }, user2: { name: 'Jane', age: 30 } }, (name, age) => `${name} is ${age}`); -> { user1: 'John is 25', user2: 'Jane is 30' }
- * mapSpread({ item1: { x: 1, y: 2 }, item2: { x: 3, y: 4 } }, (x, y) => x + y); -> { item1: 3, item2: 7 }
+ * mapSpread({ x: [1, 'a'], y: [2, 'b'] }, (n, c) => `${n}-${c}`); -> { x: '1-a', y: '2-b' }
+ * mapSpread({ x: [1, 'a'], y: [2, 'b'] }, (n, c, key) => `${n}-${c}-${key}`); -> { x: '1-a-x', y: '2-b-y' }
  */
 export function mapSpread<
     TValue extends Record<PropertyKey, unknown>,
@@ -2172,22 +2140,19 @@ export function mapSpread<
     const result: Record<PropertyKey, TMapSpreadValue> = {};
 
     for (const [key, item] of Object.entries(obj)) {
-        if (isObject(item)) {
-            // Spread the object values as arguments to the callback
-            const values = Object.values(item);
-            defineKey(
-                result as Record<string, TMapSpreadValue>,
-                key,
-                callback(...values, phpArrayKey(key)),
-            );
-        } else {
-            // If item is not an object, pass it as single argument with key
-            defineKey(
-                result as Record<string, TMapSpreadValue>,
-                key,
-                callback(item, phpArrayKey(key)),
-            );
-        }
+        // Arr::mapSpread spreads a list row; a plain-object row spreads its values and a scalar
+        // passes whole, which PHP rejects but is kept as JS leniency.
+        const args = isArray(item)
+            ? item
+            : isObject(item)
+              ? Object.values(item)
+              : [item];
+
+        defineKey(
+            result as Record<string, TMapSpreadValue>,
+            key,
+            callback(...args, phpArrayKey(key)),
+        );
     }
 
     return result;
@@ -2198,7 +2163,7 @@ export function mapSpread<
  *
  * @param data - The object to prepend to.
  * @param value - The value to prepend.
- * @param key - The key for the prepended value.
+ * @param key - The key for the prepended value; omit it to unshift under key 0, as `Arr::prepend` does with two arguments.
  * @returns A new object with the value prepended.
  *
  * @example
@@ -2209,28 +2174,32 @@ export function mapSpread<
 export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     value: TValue,
-    key: TKey,
+    ...rest: [key?: TKey | null]
 ): Record<TKey, TValue> {
-    if (!accessible(data)) {
-        return { [key]: value } as Record<TKey, TValue>;
+    // Arr::prepend with two arguments is array_unshift: the value takes key 0 and integer keys renumber.
+    if (rest.length === 0) {
+        return unshift({ ...(accessible(data) ? data : {}) }, value) as Record<
+            TKey,
+            TValue
+        >;
     }
 
-    const obj = data as Record<TKey, TValue>;
-    const result: Record<TKey, TValue> = { [key]: value } as Record<
-        TKey,
-        TValue
-    >;
+    const [key] = rest;
+    const prependKey = isNull(key) || isUndefined(key) ? "" : String(key);
+    const result: Record<string, TValue> = {};
 
-    // Add existing entries after the prepended one
-    for (const [existingKey, existingValue] of Object.entries(obj)) {
-        defineKey(
-            result as Record<string, TValue>,
-            existingKey,
-            existingValue as TValue,
-        );
+    defineKey(result, prependKey, value);
+
+    if (accessible(data)) {
+        for (const [existingKey, existingValue] of Object.entries(data)) {
+            // `[$key => $value] + $array`: the prepended entry wins its key.
+            if (existingKey !== prependKey) {
+                defineKey(result, existingKey, existingValue as TValue);
+            }
+        }
     }
 
-    return result;
+    return result as Record<TKey, TValue>;
 }
 
 /**
@@ -2463,8 +2432,9 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
         throw new Error("Number of shifted items may not be less than zero.");
     }
 
+    // Collection::shift checks isEmpty() before the count, so non-object data yields null for any count.
     if (!accessible(data)) {
-        return count === 1 ? null : [];
+        return null;
     }
 
     const obj = data as Record<string, TValue>;

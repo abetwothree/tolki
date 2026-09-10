@@ -1049,23 +1049,62 @@ describe("Obj", () => {
             expect(({} as Record<string, unknown>)["kept"]).toBeUndefined();
         });
 
-        it("prepends onto the source, like array_unshift", () => {
-            const data = { b: 2 };
-            Obj.unshift(data, { a: 1 });
-            expect(data).toEqual({ a: 1, b: 2 });
+        it("prepends an object item as one element, like array_unshift", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "D1 unshift assoc item onto assoc", "D1b unshift two assoc items onto assoc"
+            const one = { b: 2 };
+            const two = { b: 2 };
+
+            Obj.unshift(one, { a: 1 });
+            Obj.unshift(two, { a: 1 }, { d: "house" });
+
+            expect(one).toEqual({ 0: { a: 1 }, b: 2 });
+            expect(two).toEqual({ 0: { a: 1 }, 1: { d: "house" }, b: 2 });
         });
 
-        it("unshift objects", () => {
-            expect(Obj.unshift({ b: 2 }, { a: 1 }, { d: "house" })).toEqual({
-                a: 1,
-                d: "house",
-                b: 2,
+        it("renumbers existing integer keys after the prepended items", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "D1c testUnshiftWithOneItem sequence on assoc", "D1e unshift int-keyed item overlapping"
+            const data: Record<string | number, unknown> = { x: 4 };
+
+            Obj.unshift(data, ["a", "b", "c"]);
+            Obj.unshift(data, {
+                who: "Jonny",
+                preposition: "from",
+                where: "Laroe",
             });
+            Obj.unshift(data, "Jonny from Laroe");
+
+            expect(data).toEqual({
+                0: "Jonny from Laroe",
+                1: { who: "Jonny", preposition: "from", where: "Laroe" },
+                2: ["a", "b", "c"],
+                x: 4,
+            });
+
+            const overlap = { z: 3 };
+
+            Obj.unshift(overlap, ["zero"], 9);
+
+            expect(overlap).toEqual({ 0: ["zero"], 1: 9, z: 3 });
         });
 
-        it("test unshift null", () => {
-            expect(Obj.unshift(null, { a: 1 })).toEqual({ a: 1 });
-            expect(Obj.unshift({ a: 1 }, null)).toEqual({ a: 1 });
+        it("renumbers integer keys even with no items, like array_unshift", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D1f unshift with no items on assoc"
+            const data = { 5: "a", x: "b" };
+
+            Obj.unshift(data);
+
+            expect(data).toEqual({ 0: "a", x: "b" });
+        });
+
+        it("prepends null as an element", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "U1 unshift(null) onto assoc"
+            const data = { a: 1 };
+
+            Obj.unshift(data, null);
+
+            expect(data).toEqual({ 0: null, a: 1 });
         });
 
         it("unshift with one object or none", () => {
@@ -1073,43 +1112,11 @@ describe("Obj", () => {
             expect(Obj.unshift()).toEqual({});
         });
 
-        it("test order of keys", () => {
-            expect(Obj.unshift({ c: 3 }, { a: 1, b: 2 })).toEqual({
-                a: 1,
-                b: 2,
-                c: 3,
-            });
-            expect(Obj.unshift({ a: 10, b: 20 }, { a: 1, b: 2 })).toEqual({
-                a: 1,
-                b: 2,
-            });
-        });
-
         it("assigns a scalar prepend item the next integer key, like array_unshift", () => {
             expect(Obj.unshift({ x: 1, y: 2 }, 9)).toEqual({
                 0: 9,
                 x: 1,
                 y: 2,
-            });
-        });
-
-        it("skips an already-used integer key when assigning scalar prepend items", () => {
-            // The merged object item already claims key "0"; the scalar
-            // item that follows must not collide with it.
-            expect(Obj.unshift({ z: 3 }, { 0: "zero" }, 9)).toEqual({
-                0: "zero",
-                1: 9,
-                z: 3,
-            });
-        });
-
-        it("does not walk the prototype chain when checking for an existing key", () => {
-            // Object.hasOwn, not `in` — a plain object's inherited
-            // `toString` must not be treated as an already-used key.
-            expect(Obj.unshift({ toString: 1, b: 2 }, { a: 9 })).toEqual({
-                a: 9,
-                toString: 1,
-                b: 2,
             });
         });
 
@@ -1135,32 +1142,11 @@ describe("Obj", () => {
             });
         });
 
-        it("renumbers past an integer key a prepended object already claimed", () => {
-            expect(
-                Obj.unshift({ 0: "keep", 1: "also" }, { 0: "zero" }),
-            ).toEqual({ 0: "zero", 1: "keep", 2: "also" });
-        });
-
         it("keeps a negative-string key as-is instead of renumbering it", () => {
             // "-1" isn't a canonical JS array index (see the same case under
             // splice), so it's left alone rather than renumbered.
             const result = Obj.unshift({ "-1": "x", b: "y" }, 9);
             expect(result).toEqual({ 0: 9, "-1": "x", b: "y" });
-        });
-
-        it("keeps __proto__ as data when prepended, not reparenting the result", () => {
-            // PHP-verified: array_unshift keeps "__proto__" as an ordinary key.
-            const data = { b: 2 };
-            const hostile = JSON.parse('{"__proto__":{"polluted":true},"x":5}');
-
-            const result = Obj.unshift(data, hostile);
-
-            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
-            expect(Object.hasOwn(result, "__proto__")).toBe(true);
-            expect((result as Record<string, unknown>)["__proto__"]).toEqual({
-                polluted: true,
-            });
-            expect(Object.keys(result)).toEqual(["__proto__", "x", "b"]);
         });
 
         it("does not reparent a hostile target", () => {
@@ -3992,6 +3978,46 @@ describe("Obj", () => {
                 1: "two",
             });
         });
+
+        it("files a null key under the empty string", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-null-key"
+            const result = Obj.prepend({ one: 1, two: 2 }, 0, null);
+
+            expect(result).toEqual({ "": 0, one: 1, two: 2 });
+            expect(Object.keys(result)).toEqual(["", "one", "two"]);
+        });
+
+        it("keeps the prepended value when the key already exists", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "prepend-existing-key-assoc", "prepend-existing-key-assoc-keys", "prepend-existing-empty-key"
+            const moved = Obj.prepend({ a: 1, b: 2 }, 9, "b");
+
+            expect(moved).toEqual({ b: 9, a: 1 });
+            expect(Object.keys(moved)).toEqual(["b", "a"]);
+            expect(
+                Obj.prepend({ 0: "one", 1: "two", "": "three" }, ["zero"], ""),
+            ).toEqual({ "": ["zero"], 0: "one", 1: "two" });
+        });
+
+        it("unshifts under key 0 when no key is given", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-assoc-no-key", "prepend-mixed-no-key"
+            expect(Obj.prepend({ one: 1, two: 2 }, 0)).toEqual({
+                0: 0,
+                one: 1,
+                two: 2,
+            });
+            expect(Obj.prepend({ 5: "five", one: 1 }, 0)).toEqual({
+                0: 0,
+                1: "five",
+                one: 1,
+            });
+        });
+
+        it("treats non-object data as empty when no key is given", () => {
+            // JS-only: Arr::prepend(null, …) is a TypeError in PHP; the no-key form starts from an empty object.
+            expect(Obj.prepend(null, 1)).toEqual({ 0: 1 });
+            expect(Obj.prepend("ab", 1)).toEqual({ 0: 1 });
+        });
     });
 
     describe("pull", () => {
@@ -4242,11 +4268,11 @@ describe("Obj", () => {
     });
 
     describe("shift", () => {
-        it("should handle non-object data", () => {
+        it("returns null for non-object data, whatever the count", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D6 shift/pop on collect(null)"
+            expect(Obj.shift(null, 2)).toBeNull();
+            expect(Obj.shift([], 2)).toBeNull();
             expect(Obj.shift(null)).toBeNull();
-            expect(Obj.shift([])).toBeNull();
-            expect(Obj.shift(null, 2)).toEqual([]);
-            expect(Obj.shift([], 2)).toEqual([]);
         });
 
         it("should remove and return first item", () => {
@@ -6364,6 +6390,21 @@ describe("Obj", () => {
     });
 
     describe("mapSpread", () => {
+        it("spreads a list row and appends the key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "mapSpread-tuples", "mapSpread-tuples-key"
+            const data = { x: [1, "a"], y: [2, "b"] };
+
+            expect(
+                Obj.mapSpread(data, (n, c) => `${String(n)}-${String(c)}`),
+            ).toEqual({ x: "1-a", y: "2-b" });
+            expect(
+                Obj.mapSpread(
+                    data,
+                    (n, c, key) => `${String(n)}-${String(c)}-${String(key)}`,
+                ),
+            ).toEqual({ x: "1-a-x", y: "2-b-y" });
+        });
+
         it("should spread object values as arguments", () => {
             const obj = {
                 user1: { name: "John", age: 25 },
