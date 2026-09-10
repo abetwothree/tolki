@@ -52,6 +52,7 @@ import {
     dataSplice,
     dataUndot,
     dataUnion,
+    dataUnshift,
     dataValues,
 } from "@tolki/data";
 import { SortDirection } from "@tolki/enum";
@@ -2476,38 +2477,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([2, 3]).unshift(1); -> new Collection([1, 2, 3])
      * new Collection([3, 4]).unshift(1, 2); -> new Collection([1, 2, 3, 4])
      * new Collection([4, 5, 6]).unshift(['a', 'b', 'c']); -> new Collection([['a', 'b', 'c'], 4, 5, 6])
+     * new Collection({b: 2}).unshift({a: 1}); -> new Collection({0: {a: 1}, b: 2})
      */
     unshift<T>(...values: T[]) {
+        // Arrays stay on the built-in unshift, which keeps the undefined items Arr.unshift drops;
+        // dataUnshift rewrites an object backing in place, as array_unshift does by reference.
         if (isArray(this.items)) {
-            // For arrays, use built-in unshift
-            (this.items as TValue[]).unshift(
-                ...(values as unknown as TValue[]),
-            );
+            this.items.unshift(...(values as unknown as TValue[]));
         } else {
-            // For objects, we need to rebuild the entire object with new numeric indices
-            const oldItems = { ...this.items };
-            const newItems: Record<PropertyKey, T> = {};
-
-            // Add new values with numeric indices starting at 0
-            let index = 0;
-            for (const value of values) {
-                newItems[index] = value;
-                index++;
-            }
-
-            // Add old items, renumbering numeric keys and keeping string keys
-            for (const [key, value] of Object.entries(oldItems)) {
-                if (isIntegerLikeKey(key)) {
-                    // Renumber numeric keys
-                    newItems[index] = value as T;
-                    index++;
-                } else {
-                    // Keep string keys as-is
-                    defineKey(newItems as Record<string, T>, key, value as T);
-                }
-            }
-
-            this.items = newItems as unknown as DataItems<TValue, TKey>;
+            dataUnshift(this.items, ...values);
         }
 
         return this;

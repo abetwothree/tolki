@@ -1,6 +1,5 @@
 import * as Arr from "@tolki/arr";
 import { collect, Collection } from "@tolki/collection";
-import { dataUnshift } from "@tolki/data";
 import { SortDirection } from "@tolki/enum";
 import { Stringable } from "@tolki/str";
 import { afterEach, assertType, describe, expect, it } from "vitest";
@@ -4160,20 +4159,28 @@ describe("Collection", () => {
                 two: 2,
             });
 
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-null-key"
             const c3 = collect({ one: 1, two: 2 });
             expect(c3.prepend(0, null).all()).toEqual({
-                null: 0,
+                "": 0,
                 one: 1,
                 two: 2,
             });
 
-            // In JavaScript, empty strings are valid object keys (unlike PHP where they convert to null)
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-empty-key"
             const c4 = collect({ one: 1, two: 2 });
             expect(c4.prepend(0, "").all()).toEqual({
                 "": 0,
                 one: 1,
                 two: 2,
             });
+        });
+
+        it("unshifts under key 0 when no key is given", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-assoc-no-key"
+            expect(new Collection({ one: 1, two: 2 }).prepend(0).all()).toEqual(
+                { 0: 0, one: 1, two: 2 },
+            );
         });
     });
 
@@ -4468,6 +4475,23 @@ describe("Collection", () => {
             expect(original).toEqual([1, 2, 3]);
         });
 
+        it("prepends an object item as one element, like array_unshift", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D1 unshift assoc item onto assoc"
+            expect(new Collection({ b: 2 }).unshift({ a: 1 }).all()).toEqual({
+                0: { a: 1 },
+                b: 2,
+            });
+        });
+
+        it("mutates the caller's object in place, like the array backing", () => {
+            // JS-only: PHP arrays are values; a Collection shares the caller's object, as it already shares an array.
+            const original = { b: 2 };
+
+            new Collection(original).unshift(1);
+
+            expect(original).toEqual({ 0: 1, b: 2 });
+        });
+
         it("classifies keys like PHP, keeping non-canonical numeric strings", () => {
             // PHP-verified: array_unshift only renumbers canonical integer keys.
             expect(
@@ -4486,13 +4510,12 @@ describe("Collection", () => {
             });
         });
 
-        it("agrees with the data layer on the same input", () => {
-            const viaCollection = new Collection({ "1.5": "a", x: "b" })
-                .unshift(9)
-                .all();
-            const viaData = dataUnshift({ "1.5": "a", x: "b" }, 9);
-
-            expect(viaCollection).toEqual(viaData);
+        it("renumbers integer keys even with no items, like array_unshift", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D1f unshift with no items on assoc"
+            expect(new Collection({ 5: "a", x: "b" }).unshift().all()).toEqual({
+                0: "a",
+                x: "b",
+            });
         });
     });
 
