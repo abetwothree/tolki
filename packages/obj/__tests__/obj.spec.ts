@@ -82,7 +82,7 @@ describe("Obj", () => {
         });
     });
 
-    describe("array", () => {
+    describe("objectItem", () => {
         it("should return array values", () => {
             const obj = { items: { 0: "a", 1: "b", 2: "c" } };
             expect(Obj.objectItem(obj, "items")).toEqual({
@@ -100,7 +100,7 @@ describe("Obj", () => {
             });
         });
 
-        it("should throw error for non-array values", () => {
+        it("throws for list data, which has no object keys", () => {
             const obj = [{ name: "John" }];
             expect(() => Obj.objectItem(obj, "name")).toThrow(
                 "Object value for key [name] must be an object, null found.",
@@ -114,7 +114,7 @@ describe("Obj", () => {
             );
         });
 
-        it("should return default value if key not found and default is array", () => {
+        it("returns an object default for a missing key", () => {
             const obj = { name: "John" };
             expect(Obj.objectItem(obj, "missing", { default: 1 })).toEqual({
                 default: 1,
@@ -162,31 +162,38 @@ describe("Obj", () => {
         });
     });
 
-    it("chunk", () => {
+    describe("chunk", () => {
         const baseData = { a: 1, b: 2, c: 3, d: 4, e: 5 };
-        expect(Obj.chunk(baseData, 2)).toEqual({
-            0: { a: 1, b: 2 },
-            1: { c: 3, d: 4 },
-            2: { e: 5 },
+
+        it("keeps keys by default and when preserveKeys is true", () => {
+            const expected = {
+                0: { a: 1, b: 2 },
+                1: { c: 3, d: 4 },
+                2: { e: 5 },
+            };
+
+            expect(Obj.chunk(baseData, 2)).toEqual(expected);
+            expect(Obj.chunk(baseData, 2, true)).toEqual(expected);
         });
 
-        expect(Obj.chunk(baseData, 2, true)).toEqual({
-            0: { a: 1, b: 2 },
-            1: { c: 3, d: 4 },
-            2: { e: 5 },
+        it("renumbers each chunk's keys when preserveKeys is false", () => {
+            expect(Obj.chunk(baseData, 2, false)).toEqual({
+                0: { 0: 1, 1: 2 },
+                1: { 0: 3, 1: 4 },
+                2: { 0: 5 },
+            });
         });
 
-        expect(Obj.chunk(baseData, 2, false)).toEqual({
-            0: { 0: 1, 1: 2 },
-            1: { 0: 3, 1: 4 },
-            2: { 0: 5 },
+        it("returns no chunks for a size below 1", () => {
+            expect(Obj.chunk(baseData, 0)).toEqual({});
+            expect(Obj.chunk(baseData, -2)).toEqual({});
         });
 
-        expect(Obj.chunk(baseData, 0)).toEqual({});
-        expect(Obj.chunk(baseData, -2)).toEqual({});
-        expect(Obj.chunk(null, 4)).toEqual({});
-        expect(Obj.chunk("", 5)).toEqual({});
-        expect(Obj.chunk(false, 2)).toEqual({});
+        it("returns no chunks for non-object data", () => {
+            expect(Obj.chunk(null, 4)).toEqual({});
+            expect(Obj.chunk("", 5)).toEqual({});
+            expect(Obj.chunk(false, 2)).toEqual({});
+        });
     });
 
     describe("chunkWhile", () => {
@@ -792,14 +799,6 @@ describe("Obj", () => {
             expect(Object.hasOwn(result, "__proto__")).toBe(true);
             expect(Object.keys(result)).toEqual(["a", "__proto__", "c", "z"]);
         });
-
-        it("does not reparent through unshift, which delegates to union", () => {
-            const hostile = JSON.parse('{"a":1,"__proto__":{"polluted":true}}');
-
-            const result = Obj.unshift(hostile, 9);
-
-            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
-        });
     });
 
     describe("unshift", () => {
@@ -936,6 +935,14 @@ describe("Obj", () => {
             });
             expect(Object.keys(result)).toEqual(["__proto__", "x", "b"]);
         });
+
+        it("does not reparent a hostile target", () => {
+            const hostile = JSON.parse('{"a":1,"__proto__":{"polluted":true}}');
+
+            const result = Obj.unshift(hostile, 9);
+
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+        });
     });
 
     describe("except", () => {
@@ -1032,7 +1039,7 @@ describe("Obj", () => {
     });
 
     describe("from", () => {
-        it("should create object from callback results", () => {
+        it("converts a list to an index-keyed object", () => {
             const items = [1, 2, 3];
             const result = Obj.from(items);
             expect(result).toEqual({ 0: 1, 1: 2, 2: 3 });
@@ -1325,7 +1332,7 @@ describe("Obj", () => {
             );
         });
 
-        it("should return undefined value when key exists but is undefined", () => {
+        it("returns the default when a present key holds undefined", () => {
             const obj = { name: undefined };
             expect(Obj.get(obj, "name", "default")).toBe("default");
         });
@@ -2410,7 +2417,7 @@ describe("Obj", () => {
             expect(obj).toEqual({ a: 1 });
         });
 
-        it("should remove and return last items", () => {
+        it("returns every item when the count exceeds the length", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const result = Obj.pop(obj, 5);
             expect(result).toEqual([3, 2, 1]);
@@ -2743,7 +2750,7 @@ describe("Obj", () => {
             expect(Obj.every({}, () => false)).toBe(true);
         });
 
-        it("should return empty object when non-object value passed in", () => {
+        it("returns false for non-object data", () => {
             expect(Obj.every(false, () => false)).toBe(false);
             expect(Obj.every(null, () => false)).toBe(false);
             expect(Obj.every(undefined, () => false)).toBe(false);
@@ -3268,7 +3275,7 @@ describe("Obj", () => {
             expect(Obj.random(undefined, 3)).toEqual({});
         });
 
-        it("should return null when number is explicitly null", () => {
+        it("returns a single value when number is null", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const result = Obj.random(obj, null);
             expect([1, 2, 3]).toContain(result);
@@ -3382,7 +3389,7 @@ describe("Obj", () => {
     });
 
     describe("push", () => {
-        it("should push to nested array", () => {
+        it("pushes several values onto a top-level list", () => {
             const obj = { items: ["a", "b"] };
             const result = Obj.push(obj, "items", "c", "d");
             expect(result).toEqual({ items: ["a", "b", "c", "d"] });
@@ -5263,12 +5270,16 @@ describe("Obj", () => {
     });
 
     describe("exceptValues", () => {
-        it("test exceptValues", () => {
+        it("drops every entry equal to a value in the list", () => {
             const obj1 = { name: "taylor", age: 26, city: "austin" };
             expect(Obj.exceptValues(obj1, [26])).toEqual({
                 name: "taylor",
                 city: "austin",
             });
+        });
+
+        it("accepts a single value instead of a list", () => {
+            const obj1 = { name: "taylor", age: 26, city: "austin" };
             expect(Obj.exceptValues(obj1, 26)).toEqual({
                 name: "taylor",
                 city: "austin",
@@ -5276,7 +5287,9 @@ describe("Obj", () => {
 
             const obj2 = { a: 1, b: 2, c: 1, d: 3 };
             expect(Obj.exceptValues(obj2, 1)).toEqual({ b: 2, d: 3 });
+        });
 
+        it("compares loosely unless strict is true", () => {
             const obj3 = { a: true, b: false, c: 1, d: 0 };
             expect(Obj.exceptValues(obj3, [1, 0], true)).toEqual({
                 a: true,
@@ -5287,14 +5300,20 @@ describe("Obj", () => {
     });
 
     describe("onlyValues", () => {
-        it("test onlyValues", () => {
+        it("keeps only entries equal to a value in the list", () => {
             const obj1 = { name: "taylor", age: 26, city: "austin" };
             expect(Obj.onlyValues(obj1, [26])).toEqual({ age: 26 });
+        });
+
+        it("accepts a single value instead of a list", () => {
+            const obj1 = { name: "taylor", age: 26, city: "austin" };
             expect(Obj.onlyValues(obj1, 26)).toEqual({ age: 26 });
 
             const obj2 = { a: 1, b: 2, c: 1, d: 3 };
             expect(Obj.onlyValues(obj2, 1)).toEqual({ a: 1, c: 1 });
+        });
 
+        it("compares loosely unless strict is true", () => {
             const obj3 = { a: true, b: false, c: 1, d: 0 };
             expect(Obj.onlyValues(obj3, [1, 0], true)).toEqual({
                 c: 1,
