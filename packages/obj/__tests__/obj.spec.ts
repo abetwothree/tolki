@@ -445,6 +445,13 @@ describe("Obj", () => {
             expect(Obj.chunkBy({}, "key")).toEqual({});
             expect(Obj.chunkBy(null, "key")).toEqual({});
         });
+
+        it("puts a single entry in one chunk", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "L7 chunkBy single item assoc"
+            expect(Obj.chunkBy({ x: { key: "a" } }, "key")).toEqual({
+                0: { x: { key: "a" } },
+            });
+        });
     });
 
     describe("combine", () => {
@@ -495,6 +502,29 @@ describe("Obj", () => {
             expect(() => Obj.combine(keys, values)).toThrow(
                 "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
             );
+        });
+
+        it("pairs keys and values by position, ignoring both operands' own keys", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "C10 combine list keys, offset values", "C11 combine offset keys, list values", "C12 combine offset both"
+            expect(
+                Obj.combine(
+                    { 0: "name", 1: "family" },
+                    { 1: "taylor", 2: "otwell" },
+                ),
+            ).toEqual({ name: "taylor", family: "otwell" });
+            expect(
+                Obj.combine(
+                    { 1: "name", 2: "family" },
+                    { 0: "taylor", 1: "otwell" },
+                ),
+            ).toEqual({ name: "taylor", family: "otwell" });
+            expect(
+                Obj.combine(
+                    { 1: "name", 2: "family" },
+                    { 2: "taylor", 3: "otwell" },
+                ),
+            ).toEqual({ name: "taylor", family: "otwell" });
         });
     });
 
@@ -1994,6 +2024,15 @@ describe("Obj", () => {
             expect(Obj.values(null)).toEqual([]);
             expect(Obj.values([])).toEqual([]);
         });
+
+        it("drops sparse integer keys and returns a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C1 values resets int keys"
+            expect(Obj.values({ 1: "a", 2: "b", 3: "c" })).toEqual([
+                "a",
+                "b",
+                "c",
+            ]);
+        });
     });
 
     describe("map", () => {
@@ -2365,6 +2404,57 @@ describe("Obj", () => {
             expect(Obj.contains(obj, (x) => x > 2)).toBe(true);
             expect(Obj.contains(obj, (x) => x > 5)).toBe(false);
         });
+
+        it("compares with PHP loose equality", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "L8 contains loose (assoc)"
+            const odds = { a: 1, b: 3, c: 5 };
+
+            expect(Obj.contains(odds, 1)).toBe(true);
+            expect(Obj.contains(odds, "1")).toBe(true);
+            expect(Obj.contains(odds, 2)).toBe(false);
+            expect(Obj.contains(odds, "2")).toBe(false);
+            expect(Obj.contains({ a: "1" }, 1)).toBe(true);
+            for (const needle of [false, null, [], 0, ""]) {
+                expect(Obj.contains({ a: null }, needle)).toBe(true);
+            }
+            for (const needle of [0, "0", false, null]) {
+                expect(Obj.contains({ a: 0 }, needle)).toBe(true);
+            }
+            expect(Obj.contains({ a: 0 }, (value) => value < 5)).toBe(true);
+            expect(Obj.contains({ a: 0 }, (value) => value > 5)).toBe(false);
+            expect(
+                Obj.contains({ a: "date", b: "class", c: { foo: 50 } }, "foo"),
+            ).toBe(false);
+            expect(
+                Obj.contains(
+                    { a: null, b: 1, c: 2 },
+                    (value) => value === null,
+                ),
+            ).toBe(true);
+        });
+
+        it("compares with === when strict", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "L9 containsStrict (assoc)"
+            const items = { a: 1, b: 3, c: 5, d: "02" };
+
+            expect(Obj.contains(items, 1, true)).toBe(true);
+            expect(Obj.contains(items, "1", true)).toBe(false);
+            expect(Obj.contains(items, "02", true)).toBe(true);
+            expect(Obj.contains(items, true, true)).toBe(false);
+            expect(
+                Obj.contains(items, (value) => Number(value) < 5, true),
+            ).toBe(true);
+            expect(Obj.contains({ a: 0 }, "0", true)).toBe(false);
+            expect(Obj.contains({ a: 0 }, false, true)).toBe(false);
+            expect(Obj.contains({ a: 1, b: null }, null, true)).toBe(true);
+            expect(
+                Obj.contains(
+                    { a: "date", b: "class", c: { foo: 50 }, d: "" },
+                    "",
+                    true,
+                ),
+            ).toBe(true);
+        });
     });
 
     describe("diff", () => {
@@ -2631,6 +2721,20 @@ describe("Obj", () => {
                     (x, y) => x === y,
                 ),
             ).toEqual({ a: 0 });
+        });
+
+        it("matches keys via the callback but values case-sensitively", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C9 intersectAssocUsing strcasecmp"
+            const strcasecmpKeys = (a: PropertyKey, b: PropertyKey) =>
+                String(a).toLowerCase() === String(b).toLowerCase();
+
+            expect(
+                Obj.intersectAssocUsing(
+                    { a: "green", b: "brown", c: "blue", 0: "red" },
+                    { a: "GREEN", B: "brown", 0: "yellow", 1: "red" },
+                    strcasecmpKeys,
+                ),
+            ).toEqual({ b: "brown" });
         });
     });
 
@@ -3274,6 +3378,15 @@ describe("Obj", () => {
             expect(result["constructor"]).toBe("b");
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
             expect(({} as Record<string, unknown>)["a"]).toBeUndefined();
+        });
+
+        it("flips string values into keys", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C2 flip one", "C3 flip two"
+            expect(Obj.flip({ name: "taylor" })).toEqual({ taylor: "name" });
+            expect(Obj.flip({ name: "taylor", framework: "laravel" })).toEqual({
+                taylor: "name",
+                laravel: "framework",
+            });
         });
     });
 
@@ -4254,6 +4367,20 @@ describe("Obj", () => {
             const result = Obj.slice(src, 0, 3) as Record<string, unknown>;
             expect((result as { polluted?: boolean }).polluted).toBeUndefined();
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+        });
+
+        it("slices from a positive offset to the end, and between two negative bounds", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "L1 slice(3) assoc", "L6 slice(-6,-2) assoc"
+            const data = { a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8 };
+
+            expect(Obj.slice(data, 3)).toEqual({
+                d: 4,
+                e: 5,
+                f: 6,
+                g: 7,
+                h: 8,
+            });
+            expect(Obj.slice(data, -6, -2)).toEqual({ c: 3, d: 4, e: 5, f: 6 });
         });
     });
 
@@ -5467,6 +5594,14 @@ describe("Obj", () => {
             expect((src as { polluted?: boolean }).polluted).toBeUndefined();
             expect(Object.getPrototypeOf(src)).toBe(Object.prototype);
         });
+
+        it("splices a scalar replacement into string-keyed data under a fresh integer key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "S1 splice on assoc with scalar replacement mid"
+            const data: Record<string, number | string> = { a: 1, b: 2, c: 3 };
+
+            expect(Obj.splice(data, 1, 1, "bar")).toEqual({ b: 2 });
+            expect(data).toEqual({ a: 1, 0: "bar", c: 3 });
+        });
     });
 
     describe("toCssClasses", () => {
@@ -5968,6 +6103,18 @@ describe("Obj", () => {
             const result = Obj.reverse({ "-1": "x", b: "y", c: "z" });
             expect(result).toEqual({ c: "z", b: "y", "-1": "x" });
         });
+
+        it("reverses string-keyed entries and keeps each value on its key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C5 reverse assoc"
+            expect(
+                Object.entries(
+                    Obj.reverse({ name: "taylor", framework: "laravel" }),
+                ),
+            ).toEqual([
+                ["framework", "laravel"],
+                ["name", "taylor"],
+            ]);
+        });
     });
 
     describe("partition", () => {
@@ -6223,6 +6370,31 @@ describe("Obj", () => {
         it("casts a float the way PHP does", () => {
             expect(Obj.diffAssoc({ a: 1.0 }, { a: "1" } as never)).toEqual({});
         });
+
+        it("keeps an entry whose value appears in other only under a different key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C6 diffAssoc testDiffAssoc"
+            expect(
+                Obj.diffAssoc(
+                    { id: 1, first_word: "Hello", not_affected: "value" },
+                    { id: 123, foo_bar: "Hello", not_affected: "value" },
+                ),
+            ).toEqual({ id: 1, first_word: "Hello" });
+        });
+
+        it("compares keys case-sensitively and integer keys by key, not position", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C7 diffAssoc case keys"
+            expect(
+                Obj.diffAssoc(
+                    { a: "green", b: "brown", c: "blue", 0: "red" },
+                    { A: "green", 0: "yellow", 1: "red" },
+                ),
+            ).toEqual({
+                a: "green",
+                b: "brown",
+                c: "blue",
+                0: "red",
+            });
+        });
     });
 
     describe("diffAssocUsing", () => {
@@ -6272,6 +6444,24 @@ describe("Obj", () => {
             expect(
                 Obj.diffAssocUsing({ a: 0 }, { a: "0" } as never, strcasecmp),
             ).toEqual({});
+        });
+
+        it("drops only entries whose key matches via the callback and whose value matches", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C8 diffAssocUsing strcasecmp"
+            const strcasecmp = (a: unknown, b: unknown) =>
+                String(a).toLowerCase() === String(b).toLowerCase();
+
+            expect(
+                Obj.diffAssocUsing(
+                    { a: "green", b: "brown", c: "blue", 0: "red" },
+                    { A: "green", 0: "yellow", 1: "red" },
+                    strcasecmp,
+                ),
+            ).toEqual({
+                b: "brown",
+                c: "blue",
+                0: "red",
+            });
         });
     });
 
