@@ -2262,6 +2262,13 @@ describe("Data", () => {
                 c: 1,
             });
         });
+
+        it("hands an object backing's integer key to the callback as a number", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "F1 filter callback key type for int key"
+            expect(
+                Data.dataFilter({ 1: "a", x: "b" }, (_value, key) => key === 1),
+            ).toEqual({ 1: "a" });
+        });
     });
 
     describe("dataMap", () => {

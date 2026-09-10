@@ -333,6 +333,31 @@ describe("Obj", () => {
             expect(Object.getPrototypeOf(chunk)).toBe(Object.prototype);
             expect(Object.hasOwn(chunk, "__proto__")).toBe(true);
         });
+
+        it("hands the callback PHP's key types, converting only canonical integers", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "K2 chunkWhile callback key types"
+            const seen: unknown[] = [];
+
+            Obj.chunkWhile(
+                {
+                    a: 0,
+                    "01": "d",
+                    "1.5": "x",
+                    "1e3": "e",
+                    " 1": "g",
+                    "-1": "c",
+                    "10": "f",
+                },
+                (_value, key) => {
+                    seen.push(key);
+
+                    return true;
+                },
+            );
+
+            // The first entry never reaches the callback; JS hoists "10" to the front.
+            expect(seen).toEqual(["a", "01", "1.5", "1e3", " 1", -1]);
+        });
     });
 
     describe("chunkBy", () => {
@@ -609,6 +634,20 @@ describe("Obj", () => {
             const [keys, values] = Obj.divide({});
             expect(keys).toEqual([]);
             expect(values).toEqual([]);
+        });
+
+        it("reports an integer key as a number", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "divide-empty-and-int-key", "divide-int-key-types"
+            // JS hoists the integer key 1 to the front; PHP keeps insertion order.
+            expect(Obj.divide({ "": "Null", 1: "one" })).toEqual([
+                [1, ""],
+                ["one", "Null"],
+            ]);
+        });
+
+        it("returns two empty lists for non-object data", () => {
+            // JS leniency: Arr::divide(null) is a TypeError in PHP; obj returns empty halves like its other helpers.
+            expect(Obj.divide(null)).toEqual([[], []]);
         });
     });
 
@@ -1543,6 +1582,19 @@ describe("Obj", () => {
                 ),
             ).toBe("baz");
         });
+
+        it("hands last's callback the keys in reverse, the integer key as a number", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "callback-key last"
+            const seen: string[] = [];
+
+            Obj.last({ 1: "a", x: "b" }, (_value, key) => {
+                seen.push(typeof key);
+
+                return false;
+            });
+
+            expect(seen).toEqual(["string", "number"]);
+        });
     });
 
     describe("get", () => {
@@ -2008,6 +2060,22 @@ describe("Obj", () => {
             expect(Obj.keys(data)).toEqual(["a"]);
             expect(Obj.values(data)).toEqual([1]);
         });
+
+        it("reports canonical integer keys as numbers and keeps every other key a string", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "K1 keys of numeric-looking string keys"
+            // JS hoists the canonical index "10" to the front; PHP keeps insertion order.
+            expect(
+                Obj.keys({
+                    "1.5": "a",
+                    Infinity: "b",
+                    "-1": "c",
+                    "01": "d",
+                    "1e3": "e",
+                    "10": "f",
+                    "1e+21": "g",
+                }),
+            ).toEqual([10, "1.5", "Infinity", -1, "01", "1e3", "1e+21"]);
+        });
     });
 
     describe("values", () => {
@@ -2186,6 +2254,13 @@ describe("Obj", () => {
             const result = Obj.filter(src) as Record<string, unknown>;
             expect((result as { polluted?: boolean }).polluted).toBeUndefined();
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+        });
+
+        it("keeps a filter match on an integer key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "F1 filter callback key type for int key"
+            expect(
+                Obj.filter({ 1: "a", x: "b" }, (_value, key) => key === 1),
+            ).toEqual({ 1: "a" });
         });
     });
 
@@ -3388,6 +3463,14 @@ describe("Obj", () => {
                 laravel: "framework",
             });
         });
+
+        it("hands an integer key back as a number", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "flip-int-key-type"
+            const flipped = Obj.flip({ 0: "a", b: "c" });
+
+            expect(flipped).toEqual({ a: 0, c: "b" });
+            expect(typeof flipped["a"]).toBe("number");
+        });
     });
 
     describe("every", () => {
@@ -3574,6 +3657,13 @@ describe("Obj", () => {
                 1: { rating: 1, name: "1" },
                 "": { rating: 2 },
             });
+        });
+
+        it("passes keyBy's callback the item's key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy callback receives the key"
+            expect(
+                Obj.keyBy({ x: { id: 1 } }, (_item, key) => key as PropertyKey),
+            ).toEqual({ x: { id: 1 } });
         });
     });
 
@@ -6499,6 +6589,142 @@ describe("Obj", () => {
             expect(Obj.diffKeysUsing({ a: 1 }, [], callback)).toEqual({
                 a: 1,
             });
+        });
+    });
+
+    describe("callback keys", () => {
+        const intKeyed = { 1: "a", x: "b" };
+
+        it.each([
+            [
+                "every",
+                (cb: (v: unknown, k: unknown) => boolean) =>
+                    Obj.every(intKeyed, cb),
+                true,
+            ],
+            [
+                "some",
+                (cb: (v: unknown, k: unknown) => boolean) =>
+                    Obj.some(intKeyed, cb),
+                false,
+            ],
+            [
+                "first",
+                (cb: (v: unknown, k: unknown) => boolean) =>
+                    Obj.first(intKeyed, cb),
+                false,
+            ],
+            [
+                "map",
+                (cb: (v: unknown, k: unknown) => boolean) =>
+                    Obj.map(intKeyed, cb),
+                true,
+            ],
+            [
+                "where",
+                (cb: (v: unknown, k: unknown) => boolean) =>
+                    Obj.where(intKeyed, cb),
+                true,
+            ],
+            [
+                "reject",
+                (cb: (v: unknown, k: unknown) => boolean) =>
+                    Obj.reject(intKeyed, cb),
+                true,
+            ],
+            [
+                "partition",
+                (cb: (v: unknown, k: unknown) => boolean) =>
+                    Obj.partition(intKeyed, cb),
+                true,
+            ],
+            [
+                "filter",
+                (cb: (v: unknown, k: unknown) => boolean) =>
+                    Obj.filter(intKeyed, cb),
+                true,
+            ],
+            [
+                "contains",
+                (cb: (v: unknown, k: unknown) => boolean) =>
+                    Obj.contains(intKeyed, cb),
+                false,
+            ],
+        ])(
+            "hands %s's callback an integer key as a number",
+            (_name, run, result) => {
+                // docs/php-parity/task-23-obj-release-readiness.json,
+                // "callback-key every" … "callback-key partition", "F1 …", "F2 …"
+                const seen: string[] = [];
+
+                run((_value, key) => {
+                    seen.push(typeof key);
+
+                    return result;
+                });
+
+                expect(seen).toEqual(["number", "string"]);
+            },
+        );
+
+        it("hands mapWithKeys, sort, sortDesc, sole, keyBy and mapSpread callbacks integer keys as numbers", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "callback-key mapWithKeys", "callback-key sort", "callback-key sole", "callback-key keyBy"
+            // "callback-key mapSpread"
+            const seen: unknown[] = [];
+
+            Obj.mapWithKeys(intKeyed, (value, key) => {
+                seen.push(key);
+
+                return { [String(key)]: value };
+            });
+            Obj.sort(intKeyed, (_value, key) => {
+                seen.push(key);
+
+                return 0;
+            });
+            Obj.sortDesc(intKeyed, (_value, key) => {
+                seen.push(key);
+
+                return 0;
+            });
+            expect(() =>
+                Obj.sole(intKeyed, (_value, key) => {
+                    seen.push(key);
+
+                    return false;
+                }),
+            ).toThrow("No items found");
+            Obj.keyBy({ 1: { id: 1 }, x: { id: 2 } }, (_item, key) => {
+                seen.push(key);
+
+                return String(key);
+            });
+            Obj.mapSpread({ 1: ["a"], x: ["b"] }, (...args: unknown[]) => {
+                seen.push(args.at(-1));
+
+                return args.length;
+            });
+
+            expect(seen.filter((key) => key === 1)).toHaveLength(6);
+            expect(seen).not.toContain("1");
+        });
+
+        it("hands the key comparator integer keys as numbers", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "callback-key diffKeysUsing"
+            const seen: unknown[] = [];
+            const record = (a: unknown, b: unknown) => {
+                seen.push(a, b);
+
+                return a === b;
+            };
+
+            Obj.diffKeysUsing(intKeyed, { 1: "z" }, record);
+            Obj.diffAssocUsing(intKeyed, { 1: "a" }, record);
+            Obj.intersectAssocUsing(intKeyed, { 1: "a" }, record);
+
+            expect(seen).toContain(1);
+            expect(seen).not.toContain("1");
         });
     });
 });

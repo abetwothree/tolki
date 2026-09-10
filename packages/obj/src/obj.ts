@@ -21,7 +21,6 @@ import {
     createSortSpecComparator,
     cssListItemToString,
     defineKey,
-    entriesKeyValue,
     isArray,
     isBoolean,
     isFalsy,
@@ -41,6 +40,7 @@ import {
     isUndefined,
     isWeakMap,
     looseEqual,
+    phpArrayKey,
     phpTypeName,
     phpValueMatch,
     phpValueMatcher,
@@ -85,6 +85,7 @@ export function accessible(value: unknown): value is object {
  * @param data - The object or Map to read the entries from.
  * @returns The key/value pairs in iteration order.
  */
+// entriesOf: plain-object keys go through phpArrayKey; Map keys pass as they are.
 function entriesOf<TValue, TKey extends PropertyKey = PropertyKey>(
     data: object,
 ): [TKey, TValue][] {
@@ -92,7 +93,10 @@ function entriesOf<TValue, TKey extends PropertyKey = PropertyKey>(
         return [...data.entries()];
     }
 
-    return Object.entries(data) as [TKey, TValue][];
+    return Object.entries(data).map(([key, value]) => [
+        phpArrayKey(key) as TKey,
+        value as TValue,
+    ]);
 }
 
 /**
@@ -341,7 +345,7 @@ export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
     let chunkIndex = 0;
 
     for (const [rawKey, value] of Object.entries(data) as [string, TValue][]) {
-        const key = entriesKeyValue(rawKey) as TKey;
+        const key = phpArrayKey(rawKey) as TKey;
 
         if (size > 0 && !callback(value, key, chunk)) {
             chunks[chunkIndex] = chunk;
@@ -350,9 +354,6 @@ export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
             size = 0;
         }
 
-        // Write the raw key, not `key`: entriesKeyValue's Number()/parseFloat conversion is
-        // lossy for non-canonical numeric strings ("01", "1e3", " 1"), and writing the
-        // converted form would rename or collide keys that PHP keeps distinct.
         defineKey(chunk as Record<string, TValue>, rawKey, value);
         size += 1;
     }
@@ -415,7 +416,7 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
                 ];
 
                 previous = {
-                    key: entriesKeyValue(lastKey) as TKey,
+                    key: phpArrayKey(lastKey) as TKey,
                     value: lastValue,
                 };
             }
@@ -552,7 +553,7 @@ export function crossJoin<TValues, TCombineValue = TValues>(
 /**
  * Divide an object into two objects. One with keys and the other with values.
  *
- * @param object - The object to divide.
+ * @param object - The object to divide; `null` or `undefined` gives two empty lists.
  * @return A tuple with an array of keys and an array of values.
  *
  * @example
@@ -560,9 +561,16 @@ export function crossJoin<TValues, TCombineValue = TValues>(
  * divide({ name: "John", age: 30, city: "NYC" }); -> [['name', 'age', 'city'], ['John', 30, 'NYC']]
  */
 export function divide<TValue, TKey extends PropertyKey = PropertyKey>(
-    object: Record<TKey, TValue>,
+    object: Record<TKey, TValue> | null | undefined,
 ): [TKey[], TValue[]] {
-    return [Object.keys(object) as TKey[], Object.values(object)];
+    if (!accessible(object)) {
+        return [[], []];
+    }
+
+    return [
+        Object.keys(object).map(phpArrayKey) as TKey[],
+        Object.values(object),
+    ];
 }
 
 /**
@@ -1169,7 +1177,7 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-): Record<string, string> {
+): Record<string, string | number> {
     if (!accessible(data)) {
         return {};
     }
@@ -1177,11 +1185,11 @@ export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
     // flip the object keys as values and values as keys,
     // skipping values that are not valid PHP array keys
     // e.g {name: 'taylor'} -> {taylor: 'name'}
-    const result: Record<string, string> = {};
+    const result: Record<string, string | number> = {};
 
     for (const [key, value] of Object.entries(data)) {
         if (isPhpArrayKey(value)) {
-            defineKey(result, String(value), key);
+            defineKey(result, String(value), phpArrayKey(key));
         }
     }
 
@@ -1676,7 +1684,12 @@ export function join<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function keyBy<TValue extends Record<PropertyKey, unknown>>(
     data: Record<PropertyKey, TValue> | unknown,
-    keyBy: PathKey | ((item: TValue) => PropertyKey | null | undefined),
+    keyBy:
+        | PathKey
+        | ((
+              item: TValue,
+              key: string | number,
+          ) => PropertyKey | null | undefined),
 ): Record<PropertyKey, TValue> {
     if (!accessible(data)) {
         return {};
@@ -1685,11 +1698,14 @@ export function keyBy<TValue extends Record<PropertyKey, unknown>>(
     const obj = data as Record<PropertyKey, TValue>;
     const results: Record<PropertyKey, TValue> = {};
 
-    for (const item of Object.values(obj)) {
+    for (const [itemKey, item] of Object.entries(obj)) {
         let key: PropertyKey | null | undefined;
 
         if (isFunction(keyBy)) {
-            key = keyBy(item) as PropertyKey | null | undefined;
+            key = keyBy(item, phpArrayKey(itemKey)) as
+                | PropertyKey
+                | null
+                | undefined;
         } else {
             // Use dot notation to get the key value
             key = getObjectValue(item, keyBy as PathKey) as
@@ -2038,7 +2054,7 @@ export function map<
         defineKey(
             result as Record<string, TMapValue>,
             key,
-            callback(value as TValue, key as TKey),
+            callback(value as TValue, phpArrayKey(key) as TKey),
         );
     }
 
@@ -2084,7 +2100,7 @@ export function mapWithKeys<
     >;
 
     for (const [key, value] of Object.entries(obj)) {
-        const mappedObject = callback(value, key as TKey);
+        const mappedObject = callback(value, phpArrayKey(key) as TKey);
 
         for (const [mapKey, mapValue] of Object.entries(mappedObject)) {
             defineKey(
@@ -2131,14 +2147,14 @@ export function mapSpread<
             defineKey(
                 result as Record<string, TMapSpreadValue>,
                 key,
-                callback(...values, key),
+                callback(...values, phpArrayKey(key)),
             );
         } else {
             // If item is not an object, pass it as single argument with key
             defineKey(
                 result as Record<string, TMapSpreadValue>,
                 key,
-                callback(item, key),
+                callback(item, phpArrayKey(key)),
             );
         }
     }
@@ -2669,7 +2685,7 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
         // Filter using the callback
         filteredEntries = [];
         for (const [key, value] of entries) {
-            if (callback(value as TValue, key as TKey)) {
+            if (callback(value as TValue, phpArrayKey(key) as TKey)) {
                 filteredEntries.push([key as TKey, value as TValue]);
             }
         }
@@ -2773,7 +2789,7 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
             .map(([key, value]) => ({
                 key,
                 value,
-                sortKey: callback(value as TValue, key as TKey),
+                sortKey: callback(value as TValue, phpArrayKey(key) as TKey),
             }))
             .sort((a, b) => compareValues(a.sortKey, b.sortKey))
             .map(({ key, value }) => [key, value] as [string, unknown]);
@@ -2870,7 +2886,7 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
             .map(([key, value]) => ({
                 key,
                 value,
-                sortKey: callback(value as TValue, key as TKey),
+                sortKey: callback(value as TValue, phpArrayKey(key) as TKey),
             }))
             .sort((a, b) => compareValues(b.sortKey, a.sortKey))
             .map(({ key, value }) => [key, value] as [string, unknown]);
@@ -3194,7 +3210,7 @@ export function where<TValue, TKey extends PropertyKey = PropertyKey>(
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj)) {
-        if (callback(value as TValue, key as TKey)) {
+        if (callback(value as TValue, phpArrayKey(key) as TKey)) {
             defineKey(result as Record<string, TValue>, key, value as TValue);
         }
     }
@@ -3445,7 +3461,7 @@ export function partition<TValue, TKey extends PropertyKey = PropertyKey>(
     const failed: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj)) {
-        if (callback(value as TValue, key as TKey)) {
+        if (callback(value as TValue, phpArrayKey(key) as TKey)) {
             defineKey(passed as Record<string, TValue>, key, value as TValue);
         } else {
             defineKey(failed as Record<string, TValue>, key, value as TValue);
@@ -3513,7 +3529,7 @@ export function contains<TValue>(
     if (isFunction(value)) {
         const obj = data as Record<PropertyKey, TValue>;
         for (const [key, val] of Object.entries(obj)) {
-            if (value(val as TValue, key as PropertyKey)) {
+            if (value(val as TValue, phpArrayKey(key))) {
                 return true;
             }
         }
@@ -3569,7 +3585,7 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
         // If no callback, filter out PHP-falsy values by default
         const shouldInclude = isFunction(callback)
-            ? callback(value, key)
+            ? callback(value, phpArrayKey(String(key)) as TKey)
             : !isPhpFalsy(value);
 
         if (shouldInclude) {
@@ -3626,21 +3642,7 @@ export function keys<TValue, TKey extends PropertyKey = PropertyKey>(
         return [];
     }
 
-    // Convert numeric string keys back to numbers, matching PHP's array
-    // keys being ints when they look like ints.
-    const result: (string | number)[] = [];
-
-    for (const key of Object.keys(data as Record<TKey, TValue>)) {
-        const numericKey = Number(key);
-
-        if (!Number.isNaN(numericKey) && String(numericKey) === key) {
-            result.push(numericKey);
-        } else {
-            result.push(key);
-        }
-    }
-
-    return result;
+    return Object.keys(data as Record<TKey, TValue>).map(phpArrayKey);
 }
 
 /**
@@ -3809,7 +3811,10 @@ export function diffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
         // Find if there's a matching key in other object using callback
         const matchingKey = otherKeys.find((otherKey) =>
-            callback(key, otherKey),
+            callback(
+                phpArrayKey(String(key)) as TKey,
+                phpArrayKey(String(otherKey)) as TKey,
+            ),
         );
 
         // Include if: no matching key found OR matching key has different value
@@ -3863,7 +3868,10 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
         // Find if there's a matching key in other object using callback
         const matchingKey = otherKeys.find((otherKey) =>
-            callback(key, otherKey),
+            callback(
+                phpArrayKey(String(key)) as TKey,
+                phpArrayKey(String(otherKey)) as TKey,
+            ),
         );
 
         // Include if: no matching key found (values are ignored)
@@ -4054,7 +4062,7 @@ export function intersectAssocUsing<T1, T2 = T1>(
             other as Record<PropertyKey, T2>,
         )) {
             if (
-                callback(dataKey, otherKey) &&
+                callback(phpArrayKey(dataKey), phpArrayKey(otherKey)) &&
                 phpValueMatch(dataValue as unknown, otherValue as unknown)
             ) {
                 defineKey(

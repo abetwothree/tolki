@@ -1297,6 +1297,15 @@ describe("Collection", () => {
                 collect({ a: "00", b: "0.0", c: "0" }).filter().all(),
             ).toEqual({ a: "00", b: "0.0" });
         });
+
+        it("hands an object backing's integer key to the callback as a number", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "F1 filter callback key type for int key"
+            expect(
+                new Collection({ 1: "a", x: "b" })
+                    .filter((_value, key) => key === 1)
+                    .all(),
+            ).toEqual({ 1: "a" });
+        });
     });
 
     describe("first", () => {
