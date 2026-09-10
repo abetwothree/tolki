@@ -1172,6 +1172,93 @@ describe("Obj", () => {
                 ),
             ).toEqual({});
         });
+
+        it("is a no-op for a null key or an empty key list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "forget-null", "forget-empty-array"
+            const data = { products: { desk: { price: 100 } } };
+
+            expect(Obj.forget(data, null)).toEqual({
+                products: { desk: { price: 100 } },
+            });
+            expect(Obj.forget(data, [])).toEqual({
+                products: { desk: { price: 100 } },
+            });
+        });
+
+        it("leaves an emptied parent behind", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "forget-products.desk"
+            expect(
+                Obj.forget(
+                    { products: { desk: { price: 100 } } },
+                    "products.desk",
+                ),
+            ).toEqual({ products: {} });
+        });
+
+        it("skips a path whose intermediate segment is missing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "forget-missing-intermediate", "forget-shop", "forget-final-taxes"
+            expect(
+                Obj.forget(
+                    { products: { desk: { price: 100 } } },
+                    "products.final.price",
+                ),
+            ).toEqual({
+                products: { desk: { price: 100 } },
+            });
+            expect(
+                Obj.forget({ shop: { cart: { 150: 0 } } }, "shop.final.cart"),
+            ).toEqual({ shop: { cart: { 150: 0 } } });
+            expect(
+                Obj.forget(
+                    {
+                        products: {
+                            desk: { price: { original: 50, taxes: 60 } },
+                        },
+                    },
+                    "products.desk.final.taxes",
+                ),
+            ).toEqual({
+                products: { desk: { price: { original: 50, taxes: 60 } } },
+            });
+        });
+
+        it("keeps an empty-string sibling when one listed path is missing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "forget-empty-string-sibling"
+            expect(
+                Obj.forget(
+                    { products: { desk: { price: 50 }, "": "something" } },
+                    ["products.amount.all", "products.desk.price"],
+                ),
+            ).toEqual({
+                products: { desk: {}, "": "something" },
+            });
+        });
+
+        it("cannot reach a nested key that contains dots", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "forget-emails-nested"
+            expect(
+                Obj.forget(
+                    {
+                        emails: {
+                            "joe@example.com": { name: "Joe" },
+                            "jane@localhost": { name: "Jane" },
+                        },
+                    },
+                    ["emails.joe@example.com", "emails.jane@localhost"],
+                ),
+            ).toEqual({ emails: { "joe@example.com": { name: "Joe" } } });
+        });
+
+        it("accepts integer and float keys", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "forget-int-key", "forget-float"
+            expect(Obj.forget({ name: "hAz", 1: "test", 2: "bAz" }, 1)).toEqual(
+                { name: "hAz", 2: "bAz" },
+            );
+            expect(
+                Obj.forget({ 2: { 1: "products", 3: "users" } }, 2.3),
+            ).toEqual({ 2: { 1: "products" } });
+        });
     });
 
     describe("from", () => {
@@ -1240,6 +1327,15 @@ describe("Obj", () => {
             expect(() => Obj.from(false)).toThrow(
                 "Items cannot be represented by a scalar value.",
             );
+        });
+
+        it("copies a class instance's own properties", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "from-stdclass"
+            class Thing {
+                foo = "bar";
+            }
+
+            expect(Obj.from(new Thing())).toEqual({ foo: "bar" });
         });
     });
 
@@ -1925,6 +2021,35 @@ describe("Obj", () => {
             expect(Obj.map(null, (x) => x)).toEqual({});
             expect(Obj.map([], (x) => x)).toEqual({});
         });
+
+        it("passes the key and leaves the input untouched", () => {
+            // ArrTest::testMap, ArrTest::testMapByReference
+            const data = { first: "taylor", last: "otwell" };
+            const mapped = Obj.map(
+                data,
+                (value, key) =>
+                    `${String(key)}-${[...String(value)].reverse().join("")}`,
+            );
+
+            expect(mapped).toEqual({
+                first: "first-rolyat",
+                last: "last-llewto",
+            });
+            expect(data).toEqual({ first: "taylor", last: "otwell" });
+        });
+
+        it("still calls back for null values", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "map-null-values"
+            expect(
+                Obj.map(
+                    { first: "taylor", last: null },
+                    (value, key) => `${String(key)}-${String(value ?? "")}`,
+                ),
+            ).toEqual({
+                first: "first-taylor",
+                last: "last-",
+            });
+        });
     });
 
     describe("filter", () => {
@@ -2094,6 +2219,33 @@ describe("Obj", () => {
                 expect(
                     Object.getOwnPropertyNames(Object.prototype),
                 ).not.toContain("PWN");
+            });
+        });
+
+        it("overwrites a nested leaf and replaces a scalar on the path", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "set-overwrite-nested", "set-scalar-intermediate"
+            expect(
+                Obj.set(
+                    { products: { desk: { price: 100 } } },
+                    "products.desk.price",
+                    200,
+                ),
+            ).toEqual({
+                products: { desk: { price: 200 } },
+            });
+            expect(
+                Obj.set({ products: "desk" }, "products.desk.price", 200),
+            ).toEqual({ products: { desk: { price: 200 } } });
+        });
+
+        it("sets an integer key and adds a string branch beside one", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "set-int-key", "set-list-input"
+            expect(Obj.set({ 1: "test" }, 1, "hAz")).toEqual({ 1: "hAz" });
+            expect(
+                Obj.set({ 0: "products" }, "products.desk.price", 200),
+            ).toEqual({
+                0: "products",
+                products: { desk: { price: 200 } },
             });
         });
     });
@@ -2699,6 +2851,94 @@ describe("Obj", () => {
                 null,
             ]);
         });
+
+        it("plucks containers and dot paths from string-keyed posts", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "pluck-comments", "pluck-comments.tags", "pluck-foo", "pluck-foo.bar"
+            const data = {
+                "post-1": { comments: { tags: ["#foo", "#bar"] } },
+                "post-2": { comments: { tags: ["#baz"] } },
+            };
+
+            expect(Obj.pluck(data, "comments")).toEqual([
+                { tags: ["#foo", "#bar"] },
+                { tags: ["#baz"] },
+            ]);
+            expect(Obj.pluck(data, "comments.tags")).toEqual([
+                ["#foo", "#bar"],
+                ["#baz"],
+            ]);
+            expect(Obj.pluck(data, "foo")).toEqual([null, null]);
+            expect(Obj.pluck(data, "foo.bar")).toEqual([null, null]);
+        });
+
+        it("plucks through a numeric segment into a nested list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "pluck-nested-user.0", "pluck-nested-arr-user-0str", "pluck-nested-user.1-by-user.0"
+            // "pluck-nested-arr-1-by-0-str"
+            const data = {
+                a: { user: ["taylor", "otwell"] },
+                b: { user: ["dayle", "rees"] },
+            };
+
+            expect(Obj.pluck(data, "user.0")).toEqual(["taylor", "dayle"]);
+            expect(Obj.pluck(data, ["user", "0"])).toEqual(["taylor", "dayle"]);
+            expect(Obj.pluck(data, "user.1", "user.0")).toEqual({
+                taylor: "otwell",
+                dayle: "rees",
+            });
+            expect(Obj.pluck(data, ["user", "1"], ["user", "0"])).toEqual({
+                taylor: "otwell",
+                dayle: "rees",
+            });
+        });
+
+        it("yields null for each wildcard element missing the leaf", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "pluck-wildcard-email"
+            const data = {
+                x: {
+                    account: "a",
+                    users: [
+                        {
+                            first: "taylor",
+                            last: "otwell",
+                            email: "taylorotwell@gmail.com",
+                        },
+                    ],
+                },
+                y: {
+                    account: "b",
+                    users: [
+                        { first: "abigail", last: "otwell" },
+                        { first: "dayle", last: "rees" },
+                    ],
+                },
+            };
+
+            expect(Obj.pluck(data, "users.*.email")).toEqual([
+                ["taylorotwell@gmail.com"],
+                [null, null],
+            ]);
+        });
+
+        it("reads class-instance rows alongside plain-object rows", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "pluck-obj-and-array-rows-name", "pluck-obj-and-array-rows-email-by-name"
+            class Person {
+                name = "taylor";
+                email = "foo";
+            }
+            const data = {
+                a: new Person(),
+                b: { name: "dayle", email: "bar" },
+            };
+
+            expect(Obj.pluck(data, "name")).toEqual(["taylor", "dayle"]);
+            expect(Obj.pluck(data, "email", "name")).toEqual({
+                taylor: "foo",
+                dayle: "bar",
+            });
+        });
     });
 
     describe("pop", () => {
@@ -3242,6 +3482,26 @@ describe("Obj", () => {
             expect(Obj.prependKeysWith(undefined, "prefix_")).toEqual({});
             expect(Obj.prependKeysWith([], "prefix_")).toEqual({});
         });
+
+        it("prefixes only top-level keys and leaves nested values alone", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prependKeysWith-literal"
+            expect(
+                Obj.prependKeysWith(
+                    {
+                        id: "123",
+                        data: "456",
+                        list: [1, 2, 3],
+                        meta: { key: 1 },
+                    },
+                    "test.",
+                ),
+            ).toEqual({
+                "test.id": "123",
+                "test.data": "456",
+                "test.list": [1, 2, 3],
+                "test.meta": { key: 1 },
+            });
+        });
     });
 
     describe("only", () => {
@@ -3271,6 +3531,21 @@ describe("Obj", () => {
                 bar: "baz",
             });
             expect(Obj.only({ a: 1 }, null)).toEqual({});
+        });
+
+        it("returns an empty object when none of the keys exist", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "only-none-exist"
+            expect(
+                Obj.only({ name: "Desk", price: 100 }, ["nonExistingKey"]),
+            ).toEqual({});
+        });
+
+        it("selects from a mixed integer/string-keyed object", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "only-mixed-int-as-string", "only-mixed-string"
+            const data = { 0: "foo", bar: "baz" };
+
+            expect(Obj.only(data, "0")).toEqual({ 0: "foo" });
+            expect(Obj.only(data, "bar")).toEqual({ bar: "baz" });
         });
     });
 
@@ -3323,6 +3598,20 @@ describe("Obj", () => {
                 user1: { name: "John" },
                 user2: { name: "Jane" },
             });
+        });
+
+        it("yields empty rows for a missing or null key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "select-missing", "select-null"
+            const data = {
+                a: { name: "Taylor", role: "Developer", age: 1 },
+                b: { name: "Abigail", role: "Infrastructure", age: 2 },
+            };
+
+            expect(Obj.select(data, "nonExistingKey")).toEqual({
+                a: {},
+                b: {},
+            });
+            expect(Obj.select(data, null)).toEqual({ a: {}, b: {} });
         });
     });
 
@@ -3383,6 +3672,34 @@ describe("Obj", () => {
             expect(Obj.prepend([], 1, "a")).toEqual({ a: 1 });
             expect(Obj.prepend("string", 1, "a")).toEqual({ a: 1 });
         });
+
+        it("puts the prepended key first, including an empty-string key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-zero-key-order", "prepend-empty-key"
+            const zero = Obj.prepend({ one: 1, two: 2 }, 0, "zero");
+            const empty = Obj.prepend({ one: 1, two: 2 }, 0, "");
+
+            expect(Object.keys(zero)).toEqual(["zero", "one", "two"]);
+            expect(empty).toEqual({ "": 0, one: 1, two: 2 });
+            expect(Object.keys(empty)).toEqual(["", "one", "two"]);
+        });
+
+        it("prepends a keyed value onto an integer-keyed object", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "prepend-list-null-empty-key", "prepend-list-array-key", "prepend-list-array-empty-key"
+            expect(Obj.prepend({ 0: "one", 1: "two" }, null, "")).toEqual({
+                "": null,
+                0: "one",
+                1: "two",
+            });
+            expect(
+                Obj.prepend({ 0: "one", 1: "two" }, ["zero"], "key"),
+            ).toEqual({ key: ["zero"], 0: "one", 1: "two" });
+            expect(Obj.prepend({ 0: "one", 1: "two" }, ["zero"], "")).toEqual({
+                "": ["zero"],
+                0: "one",
+                1: "two",
+            });
+        });
     });
 
     describe("pull", () => {
@@ -3436,6 +3753,24 @@ describe("Obj", () => {
             );
             expect(result.value).toBe("Joe");
             expect(result.data).toEqual({ "jane@localhost": "Jane" });
+        });
+
+        it("cannot reach a nested key that itself contains dots", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "pull-nested-dotted-key"
+            const result = Obj.pull(
+                {
+                    emails: {
+                        "joe@example.com": "Joe",
+                        "jane@localhost": "Jane",
+                    },
+                },
+                "emails.joe@example.com",
+            );
+
+            expect(result.value).toBeNull();
+            expect(result.data).toEqual({
+                emails: { "joe@example.com": "Joe", "jane@localhost": "Jane" },
+            });
         });
     });
 
@@ -3590,6 +3925,27 @@ describe("Obj", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const result = Obj.random(obj, null);
             expect([1, 2, 3]).toContain(result);
+        });
+
+        it("pairs each preserved key with its original value", () => {
+            // ArrTest::testRandom (array_intersect_assoc)
+            const source = { one: "foo", two: "bar", three: "baz" };
+            const result = Obj.random(source, 2, true) as Record<
+                string,
+                string
+            >;
+
+            expect(Object.keys(result)).toHaveLength(2);
+            for (const [key, value] of Object.entries(result)) {
+                expect(source[key as keyof typeof source]).toBe(value);
+            }
+        });
+
+        it("throws when requesting two items from an empty object", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "random-empty-2"
+            expect(() => Obj.random({}, 2)).toThrow(
+                "You requested 2 items, but there are only 0 items available.",
+            );
         });
     });
 
@@ -3930,6 +4286,16 @@ describe("Obj", () => {
         it("should handle non-objects", () => {
             expect(() => Obj.sole(null)).toThrow("No items found");
             expect(() => Obj.sole([])).toThrow("No items found");
+        });
+
+        it("throws when the callback matches more than one item", () => {
+            // ArrTest::testSoleThrowsExceptionIfMoreThanOneItemExists; message wording stays JS's own, not PHP's.
+            expect(() =>
+                Obj.sole(
+                    { a: "baz", b: "foo", c: "baz" },
+                    (value) => value === "baz",
+                ),
+            ).toThrow("Multiple items found (2 items)");
         });
     });
 
@@ -4397,6 +4763,51 @@ describe("Obj", () => {
                 ]);
             });
         });
+
+        it("orders row objects naturally when no callback is given", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "sort-rows-natural-keys"
+            const sorted = Obj.sort({
+                a: { name: "Desk" },
+                b: { name: "Chair" },
+            });
+
+            expect(Object.keys(sorted)).toEqual(["b", "a"]);
+        });
+
+        it("sorts rows by keys, per-key directions, and chained comparators", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "sortByMany-keys-order", "sortByMany-order", "sortByMany-callable-keys"
+            type Row = { name: string; age: number; meta: { key: number } };
+            const unsorted: Record<string, Row> = {
+                a: { name: "John", age: 8, meta: { key: 3 } },
+                b: { name: "John", age: 10, meta: { key: 5 } },
+                c: { name: "Dave", age: 10, meta: { key: 3 } },
+                d: { name: "John", age: 8, meta: { key: 2 } },
+            };
+
+            expect(
+                Object.keys(Obj.sort(unsorted, ["name", "age", "meta.key"])),
+            ).toEqual(["c", "d", "a", "b"]);
+            expect(
+                Object.keys(
+                    Obj.sort(unsorted, [
+                        "name",
+                        ["age", false],
+                        ["meta.key", true],
+                    ]),
+                ),
+            ).toEqual(["c", "b", "d", "a"]);
+            expect(
+                Object.keys(
+                    Obj.sort(unsorted, [
+                        (x: Row, y: Row) =>
+                            x.name < y.name ? -1 : x.name > y.name ? 1 : 0,
+                        (x: Row, y: Row) => y.age - x.age,
+                        ["meta.key", true],
+                    ]),
+                ),
+            ).toEqual(["c", "b", "d", "a"]);
+        });
     });
 
     describe("sortDesc", () => {
@@ -4680,6 +5091,16 @@ describe("Obj", () => {
                 ]);
             });
         });
+
+        it("orders row objects naturally in descending order", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "sortDesc-rows-natural-keys"
+            const sorted = Obj.sortDesc({
+                a: { name: "Chair" },
+                b: { name: "Desk" },
+            });
+
+            expect(Object.keys(sorted)).toEqual(["b", "a"]);
+        });
     });
 
     describe("sortRecursive", () => {
@@ -4775,6 +5196,44 @@ describe("Obj", () => {
             const obj = { c: 1, a: 2, b: 3 };
             const result = Obj.sortRecursiveDesc(obj);
             expect(Object.keys(result)).toEqual(["c", "b", "a"]);
+        });
+
+        it("sorts keys and nested lists in descending order", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursiveDesc-literal"
+            const sorted = Obj.sortRecursiveDesc({
+                empty: [],
+                nested: {
+                    level1: {
+                        level2: { level3: [2, 3, 1] },
+                        values: [4, 5, 6],
+                    },
+                },
+                mixed: { a: 1, 2: "b", c: 3, 1: "d" },
+                numbered_index: { 1: "e", 3: "c", 4: "b", 5: "a", 2: "d" },
+            });
+
+            expect(sorted).toEqual({
+                empty: [],
+                mixed: { c: 3, a: 1, 2: "b", 1: "d" },
+                nested: {
+                    level1: {
+                        values: [6, 5, 4],
+                        level2: { level3: [3, 2, 1] },
+                    },
+                },
+                numbered_index: { 5: "a", 4: "b", 3: "c", 2: "d", 1: "e" },
+            });
+            // JS hoists integer-like keys, so only string-key order is asserted.
+            expect(Object.keys(sorted)).toEqual([
+                "numbered_index",
+                "nested",
+                "mixed",
+                "empty",
+            ]);
+            expect(Object.keys(sorted.nested.level1)).toEqual([
+                "values",
+                "level2",
+            ]);
         });
     });
 
@@ -5189,6 +5648,15 @@ describe("Obj", () => {
             const result = Obj.where(obj, (value) => value !== null);
             expect(result).toEqual({ name: "John", city: "NYC" });
         });
+
+        it("filters on the key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "whereKey-numeric"
+            expect(
+                Obj.where({ 10: 1, foo: 3, 20: 2 }, (_value, key) =>
+                    /^\d+$/.test(String(key)),
+                ),
+            ).toEqual({ 10: 1, 20: 2 });
+        });
     });
 
     describe("reject", () => {
@@ -5560,6 +6028,13 @@ describe("Obj", () => {
         it("should return empty object for null", () => {
             expect(Obj.wrap(null)).toEqual({});
         });
+
+        it("wraps falsy scalars instead of dropping them", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "wrap-empty-string", "wrap-false", "wrap-zero"
+            expect(Obj.wrap("")).toEqual({ 0: "" });
+            expect(Obj.wrap(false)).toEqual({ 0: false });
+            expect(Obj.wrap(0)).toEqual({ 0: 0 });
+        });
     });
 
     describe("mapSpread", () => {
@@ -5688,6 +6163,26 @@ describe("Obj", () => {
                 c: 1,
                 d: 0,
             });
+        });
+
+        it("returns an empty object for empty data or an empty value list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "onlyValues-empty-data", "onlyValues-empty-values-assoc"
+            expect(Obj.onlyValues({}, "foo")).toEqual({});
+            expect(Obj.onlyValues({ a: "foo", b: "bar" }, [])).toEqual({});
+        });
+
+        it("splits numeric strings from numbers only when strict", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "onlyValues-strict-numstr-assoc", "onlyValues-loose-numstr-assoc"
+            const data = { a: 1, b: "1", c: 2, d: "2", e: 3 };
+
+            expect(Obj.onlyValues(data, [1, 2, 3], true)).toEqual({
+                a: 1,
+                c: 2,
+                e: 3,
+            });
+            expect(Obj.onlyValues(data, [1, 2, 3])).toEqual(data);
         });
     });
 
