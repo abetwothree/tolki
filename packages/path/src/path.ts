@@ -16,6 +16,7 @@ import {
     isString,
     isUndefined,
     isUnsafeKey,
+    phpArrayKey,
 } from "@tolki/utils";
 
 /**
@@ -1219,8 +1220,10 @@ export function getNestedValue<TReturn>(
 
         // Handle array access with numeric indices
         if (isArray(current)) {
-            const index = parseInt(segment, 10);
-            if (isNaN(index) || index < 0 || index >= current.length) {
+            // A list only has canonical indices; parseInt("01") == 1 would wrongly
+            // accept a key no PHP array stores, unlike phpArrayKey's strict cast.
+            const index = phpArrayKey(segment);
+            if (!isNumber(index) || !Object.hasOwn(current, index)) {
                 return undefined;
             }
             current = current[index];

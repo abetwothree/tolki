@@ -1128,6 +1128,16 @@ describe("Path Functions", () => {
             expect(Path.getNestedValue(["a"], "-1")).toBeUndefined();
         });
 
+        it("rejects a list's own JS keys and non-canonical numeric strings", () => {
+            // PHP-verified in docs/php-parity/task-23-obj-release-readiness.json
+            // ("get-through-list-length", "get-through-list-leading-zero")
+            const data = { products: [1, 2, 3] };
+            expect(
+                Path.getNestedValue(data, "products.length"),
+            ).toBeUndefined();
+            expect(Path.getNestedValue(data, "products.01")).toBeUndefined();
+        });
+
         it("returns undefined when path traverses null/undefined", () => {
             const data = [null, { nested: null }];
             expect(Path.getNestedValue(data, "0.prop")).toBeUndefined();
