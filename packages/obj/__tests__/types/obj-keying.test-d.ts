@@ -144,6 +144,12 @@ describe("obj keying type tests", () => {
                 Record<string, UndotObjectValue<number>>
             >();
         });
+
+        it("types a list's entries under their indexes", () => {
+            expectTypeOf(Obj.undot(numberList)).toEqualTypeOf<
+                Record<number, unknown>
+            >();
+        });
     });
 
     describe("flattenDot", () => {
