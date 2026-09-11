@@ -884,6 +884,18 @@ describe("Collection", () => {
                 { size: "M", color: "red" },
                 { size: "M", color: "blue" },
             ]);
+
+            // A third argument multiplies every prior row again.
+            expect(
+                collect({ a: [1, 2] })
+                    .crossJoin({ b: ["x"] }, { c: ["I", "II"] })
+                    .all(),
+            ).toEqual([
+                { a: 1, b: "x", c: "I" },
+                { a: 1, b: "x", c: "II" },
+                { a: 2, b: "x", c: "I" },
+                { a: 2, b: "x", c: "II" },
+            ]);
         });
     });
 
@@ -1080,6 +1092,18 @@ describe("Collection", () => {
             expect(c1.diffKeysUsing(c2, strcasecmpKeys).all()).toEqual({
                 first_word: "Hello",
             });
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C22 diffKeysUsing"
+            expect(
+                collect({ id: 1, first_word: "Hello" })
+                    .diffKeysUsing(
+                        { all: () => ({ ID: 123, foo_bar: "Hello" }) } as never,
+                        strcasecmpKeys,
+                    )
+                    .all(),
+            ).toEqual({ first_word: "Hello" });
         });
     });
 
@@ -1721,6 +1745,7 @@ describe("Collection", () => {
             });
 
             expect(collection.get("products.0.name")).toBe("desk");
+            expect(collection.get("products.1.name")).toBe("chair");
             expect(collection.get("products.2.name", "none")).toBe("none");
         });
     });
@@ -2657,6 +2682,22 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({ a: 0 });
         });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssoc-collection"
+            expect(
+                collect({ a: "green", b: "brown", c: "blue", 0: "red" })
+                    .intersectAssoc({
+                        all: () => ({
+                            a: "green",
+                            b: "yellow",
+                            0: "blue",
+                            1: "red",
+                        }),
+                    } as never)
+                    .all(),
+            ).toEqual({ a: "green" });
+        });
     });
 
     describe("intersectAssocUsing", () => {
@@ -2745,6 +2786,25 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({ a: 0 });
         });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C9 intersectAssocUsing strcasecmp"
+            expect(
+                collect({ a: "green", b: "brown", c: "blue", 0: "red" })
+                    .intersectAssocUsing(
+                        {
+                            all: () => ({
+                                a: "GREEN",
+                                B: "brown",
+                                0: "yellow",
+                                1: "red",
+                            }),
+                        } as never,
+                        strcasecmpKeys,
+                    )
+                    .all(),
+            ).toEqual({ b: "brown" });
+        });
     });
 
     describe("intersectByKeys", () => {
@@ -2798,6 +2858,21 @@ describe("Collection", () => {
                     .intersectByKeys(map as never)
                     .all(),
             ).toEqual({ b: 2 });
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C19 intersectByKeys 2"
+            expect(
+                collect({ name: "taylor", family: "otwell", age: 26 })
+                    .intersectByKeys({
+                        all: () => ({
+                            height: 180,
+                            name: "amir",
+                            family: "moharami",
+                        }),
+                    } as never)
+                    .all(),
+            ).toEqual({ name: "taylor", family: "otwell" });
         });
     });
 
@@ -8891,6 +8966,16 @@ describe("Collection", () => {
                 (n, c) => `${String(n)}-${String(c)}`,
             );
             expect(result.all()).toEqual({ x: "1-a", y: "2-b" });
+
+            // The callback's third argument is the appended key.
+            const resultWithKey = collect({
+                x: [1, "a"],
+                y: [2, "b"],
+            }).mapSpread((n, c, k) => `${String(n)}-${String(c)}-${String(k)}`);
+            expect(resultWithKey.all()).toEqual({
+                x: "1-a-x",
+                y: "2-b-y",
+            });
         });
     });
 
