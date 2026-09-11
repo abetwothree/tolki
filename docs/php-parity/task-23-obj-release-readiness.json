@@ -491,6 +491,16 @@
             "value": true
         },
         {
+            "label": "has-empty-key-missing",
+            "php": "Arr::has([], '')",
+            "value": false
+        },
+        {
+            "label": "has-empty-key-list-missing",
+            "php": "Arr::has([], [''])",
+            "value": false
+        },
+        {
             "label": "hasAny-stray-arg-hit",
             "php": "Arr::hasAny(['name' => 'Taylor', 'email' => 'foo'], 'surname', 'email')",
             "value": false
@@ -3539,6 +3549,54 @@
                 "float": [
                     2
                 ]
+            }
+        },
+        {
+            "label": "chunkBy-noncanonical-key-type",
+            "php": "(new Collection(['01' => 'a', 'x' => 'b']))->chunkBy(fn ($v, $k) => [gettype($k), $k]): the key on each call",
+            "value": [
+                [
+                    "string",
+                    "x"
+                ],
+                [
+                    "string",
+                    "01"
+                ]
+            ]
+        },
+        {
+            "label": "combine-collection-values",
+            "php": "(new Collection(['a', 'b']))->combine(new Collection(['x', 'y']))",
+            "value": {
+                "a": "x",
+                "b": "y"
+            }
+        },
+        {
+            "label": "unshift-fresh-object-and-null-items",
+            "php": "(new Collection(null))->unshift(['a' => 1], null, 'x')",
+            "value": [
+                {
+                    "a": 1
+                },
+                null,
+                "x"
+            ]
+        },
+        {
+            "label": "has-empty-string-key-null-key",
+            "php": "Arr::has(['' => 'some'], null)",
+            "value": false
+        },
+        {
+            "label": "replaceRecursive-collection-operand",
+            "php": "(new Collection(['a' => ['x' => 1]]))->replaceRecursive(new Collection(['a' => ['y' => 2]]))",
+            "value": {
+                "a": {
+                    "x": 1,
+                    "y": 2
+                }
             }
         }
     ]

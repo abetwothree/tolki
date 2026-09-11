@@ -497,7 +497,7 @@ export function collapse<
  *
  * @param keysObject - The object or list whose values become the keys.
  * @param valuesObject - The object or list whose values become the values.
- * @return A new object containing combined key-value pairs.
+ * @returns A new object containing combined key-value pairs.
  * @throws Error if `keysObject` and `valuesObject` do not have the same
  * number of entries.
  */
@@ -541,7 +541,7 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
  * a Map or a Set gives its values, and a scalar gives none.
  *
  * @param objects - The objects to cross join.
- * @return A new array with all combinations of the input object values.
+ * @returns A new array with all combinations of the input object values.
  *
  * @example
  *
@@ -612,7 +612,7 @@ function foreachValues(value: unknown): unknown[] {
  * Divide an object into two objects. One with keys and the other with values.
  *
  * @param object - The object to divide; `null` or `undefined` gives two empty lists.
- * @return A tuple with an array of keys and an array of values.
+ * @returns A tuple with an array of keys and an array of values.
  *
  * @example
  *
@@ -680,7 +680,7 @@ export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
  *      Uses PHP's `+` operator (key union: left keys win), not `array_merge`.
  *
  * @param objects - The objects to union.
- * @return A new object containing all key-value pairs from the input objects.
+ * @returns A new object containing all key-value pairs from the input objects.
  */
 export function union<TValue, TKey extends PropertyKey = PropertyKey>(
     ...objects: Record<TKey, TValue>[] | unknown[]
@@ -1200,7 +1200,7 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
  * Flip the keys and values of an object.
  *
  * @param data - The object of items to flip
- * @return - the data items flipped
+ * @returns The data items flipped
  *
  * @example
  * flip({name: 'taylor'}); -> {taylor: 'name'}

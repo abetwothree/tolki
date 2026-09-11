@@ -122,6 +122,8 @@ probe('has-through-list-miss', "Arr::has(['products' => [['name' => 'desk']]], '
 probe('has-empty-string-key-null-in-list', "Arr::has(['' => 'some'], [null])", fn () => Arr::has(['' => 'some'], [null]));
 probe('has-empty-key', "Arr::has(['' => 'some'], '')", fn () => Arr::has(['' => 'some'], ''));
 probe('has-empty-key-list', "Arr::has(['' => 'some'], [''])", fn () => Arr::has(['' => 'some'], ['']));
+probe('has-empty-key-missing', "Arr::has([], '')", fn () => Arr::has([], ''));
+probe('has-empty-key-list-missing', "Arr::has([], [''])", fn () => Arr::has([], ['']));
 
 // --- hasAny: does the stray third argument count?
 probe('hasAny-stray-arg-hit', "Arr::hasAny(['name' => 'Taylor', 'email' => 'foo'], 'surname', 'email')", fn () => Arr::hasAny(['name' => 'Taylor', 'email' => 'foo'], 'surname', 'email'));
@@ -951,5 +953,21 @@ probe('collection-keyBy-scalar-key-cast', "(new Collection(['a' => ['k' => true]
     'field' => array_keys((new Collection(['a' => ['k' => true], 'b' => ['k' => false], 'c' => ['k' => null]]))->keyBy('k')->all()),
     'float' => array_keys(@(new Collection([['v' => 1]]))->keyBy(fn () => 2.5)->all()),
 ]);
+
+// ==== Task 11 fix group C: pins for behaviour changes nothing pinned yet
+probe('chunkBy-noncanonical-key-type', "(new Collection(['01' => 'a', 'x' => 'b']))->chunkBy(fn (\$v, \$k) => [gettype(\$k), \$k]): the key on each call", function () {
+    $seen = [];
+    (new Collection(['01' => 'a', 'x' => 'b']))->chunkBy(function ($v, $k) use (&$seen) {
+        $seen[] = [gettype($k), $k];
+
+        return $k;
+    });
+
+    return $seen;
+});
+probe('combine-collection-values', "(new Collection(['a', 'b']))->combine(new Collection(['x', 'y']))", fn () => (new Collection(['a', 'b']))->combine(new Collection(['x', 'y']))->all());
+probe('unshift-fresh-object-and-null-items', "(new Collection(null))->unshift(['a' => 1], null, 'x')", fn () => (new Collection(null))->unshift(['a' => 1], null, 'x')->all());
+probe('has-empty-string-key-null-key', "Arr::has(['' => 'some'], null)", fn () => Arr::has(['' => 'some'], null));
+probe('replaceRecursive-collection-operand', "(new Collection(['a' => ['x' => 1]]))->replaceRecursive(new Collection(['a' => ['y' => 2]]))", fn () => (new Collection(['a' => ['x' => 1]]))->replaceRecursive(new Collection(['a' => ['y' => 2]]))->all());
 
 emit();

@@ -448,6 +448,22 @@ describe("Obj", () => {
             ).toEqual({ 0: { a: 1 }, 1: { b: 1 }, 2: { c: 1 } });
         });
 
+        it("hands the callback a non-canonical key as PHP's string, not a canonicalized number", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "chunkBy-noncanonical-key-type"
+            const seen: [string, unknown][] = [];
+
+            Obj.chunkBy({ "01": "a", x: "b" }, (_value, key) => {
+                seen.push([typeof key, key]);
+
+                return key;
+            });
+
+            expect(seen).toEqual([
+                ["string", "x"],
+                ["string", "01"],
+            ]);
+        });
+
         it("compares adjacent values with PHP 8 loose equality", () => {
             // Same sequence as the arr case; `null == 0`, `"" == false` merge, `0 == ""` does not.
             expect(
@@ -614,6 +630,19 @@ describe("Obj", () => {
                     "otwell",
                 ]),
             ).toEqual({ name: "taylor", family: "otwell" });
+        });
+
+        it("unwraps a Collection-like values operand too", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "combine-collection-values"
+            expect(Obj.combine(["a", "b"], collectionLike(["x", "y"]))).toEqual(
+                { a: "x", b: "y" },
+            );
+        });
+
+        it("returns an empty object for a nullish values operand instead of throwing", () => {
+            // JS-only: array_combine() has no nullish operand to compare against;
+            // arrayableValues treats a nullish operand as empty, unlike Object.values.
+            expect(Obj.combine({}, null as never)).toEqual({});
         });
     });
 
@@ -801,7 +830,7 @@ describe("Obj", () => {
         });
 
         it("returns two empty lists for non-object data", () => {
-            // JS leniency: Arr::divide(null) is a TypeError in PHP; obj returns empty halves like its other helpers.
+            // JS-only: Arr::divide(null) is a TypeError in PHP; obj returns empty halves like its other helpers.
             expect(Obj.divide(null)).toEqual([[], []]);
         });
     });
@@ -969,7 +998,8 @@ describe("Obj", () => {
         });
 
         it("keeps an empty container as a leaf at full depth", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "dot-empty-leaf", "dot-nested-empty-leaf"
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-empty-leaf", "dot-nested-empty-leaf".
+            // PHP's [] is both an empty array and an empty list; {} pins the same case here.
             expect(Obj.dot({ foo: [] })).toEqual({ foo: [] });
             expect(Obj.dot({ foo: {} })).toEqual({ foo: {} });
             expect(Obj.dot({ foo: { bar: [] } })).toEqual({ "foo.bar": [] });
@@ -1248,6 +1278,15 @@ describe("Obj", () => {
             // JS-only: non-object data is treated as empty, the same branch the
             // zero-argument case above uses.
             expect(Obj.unshift(null, "a", "b")).toEqual({ 0: "a", 1: "b" });
+        });
+
+        it("prepends an object or null item as one element too, on that same branch", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "unshift-fresh-object-and-null-items"
+            expect(Obj.unshift(null, { a: 1 }, null, "x")).toEqual({
+                0: { a: 1 },
+                1: null,
+                2: "x",
+            });
         });
 
         it("assigns a scalar prepend item the next integer key, like array_unshift", () => {
@@ -1624,6 +1663,11 @@ describe("Obj", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "exists-null-key-empty-string", "exists-float-key"
             expect(Obj.exists({ "": 1 }, null)).toBe(true);
             expect(Obj.exists({ "1.5": 1 }, 1.5)).toBe(true);
+        });
+
+        it("casts an undefined key to the empty string too, same as null", () => {
+            // JS-only: PHP has no `undefined`; toPhpKeyString maps it to "" like null.
+            expect(Obj.exists({ "": 1 }, undefined)).toBe(true);
         });
 
         it("looks a float key up by PHP's (string) cast, so -0 is the key '-0'", () => {
@@ -2045,6 +2089,13 @@ describe("Obj", () => {
             expect(Obj.has({ a: 1 }, undefined)).toBe(false);
         });
 
+        it("returns false for a bare null keys argument, even when the empty-string key is present", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "has-empty-string-key-null-key"
+            expect(Obj.has({ "": "some" }, null)).toBe(false);
+            // JS-only: undefined takes the same (array) null -> [] early-return path.
+            expect(Obj.has({ "": "some" }, undefined)).toBe(false);
+        });
+
         it("checks an array of dotted keys", () => {
             // ArrTest::testHas
             const obj = { products: { desk: { price: 100 } } };
@@ -2076,7 +2127,8 @@ describe("Obj", () => {
         });
 
         it("finds an empty-string key only when it is present", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "has-empty-key", "has-empty-key-list"
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "has-empty-key", "has-empty-key-list", "has-empty-key-missing", "has-empty-key-list-missing"
             expect(Obj.has({ "": "some" }, "")).toBe(true);
             expect(Obj.has({ "": "some" }, [""])).toBe(true);
             expect(Obj.has({}, "")).toBe(false);
@@ -6441,12 +6493,6 @@ describe("Obj", () => {
                 family: "otwell",
                 age: 26,
             });
-            expect(
-                Obj.replaceRecursive(
-                    { a: { x: 1 } },
-                    collectionLike({ a: { y: 2 } }),
-                ),
-            ).toEqual({ a: { x: 1, y: 2 } });
         });
     });
 
@@ -6670,6 +6716,16 @@ describe("Obj", () => {
             expect(
                 Obj.replaceRecursive({ y: [1, 2] }, { y: [{ 1: "x" }] }),
             ).toEqual({ y: [{ 1: "x" }, 2] });
+        });
+
+        it("unwraps a Collection-like replacer", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-collection-operand"
+            expect(
+                Obj.replaceRecursive(
+                    { a: { x: 1 } },
+                    collectionLike({ a: { y: 2 } }),
+                ),
+            ).toEqual({ a: { x: 1, y: 2 } });
         });
 
         it("replaces a Date, a Map or a class instance whole, as PHP does an object", () => {
@@ -7310,8 +7366,9 @@ describe("Obj", () => {
         ])(
             "hands %s's callback an integer key as a number",
             (_name, run, result) => {
-                // docs/php-parity/task-23-obj-release-readiness.json,
-                // "callback-key every" … "callback-key partition", "F1 …", "F2 …"
+                // docs/php-parity/task-23-obj-release-readiness.json, "callback-key every" …
+                // "callback-key partition", "F1 filter callback key type for int key",
+                // "F2 contains callback key type for int key"
                 const seen: string[] = [];
 
                 run((_value, key) => {
