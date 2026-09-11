@@ -2681,11 +2681,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * `getRawItems` (which always returns `[]`) so it dispatches on `this.items`'s shape.
      *
      * @param items - The items to replace with
-     * @returns A new collection with the replaced items
+     * @returns A new collection with the replaced items; object-backed once its keys aren't `0..n-1`
      *
      * @example
      *
-     * new Collection([1, 2, 3]).replace([4, 5]); -> new Collection([4, 5])
+     * new Collection([1, 2, 3]).replace([4, 5]); -> new Collection([4, 5, 3])
+     * new Collection([1, 2, 3]).replace({1: 9, k: 'y'}); -> new Collection({0: 1, 1: 9, 2: 3, k: 'y'})
      */
     replace<T, K extends PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null,
@@ -2707,11 +2708,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * reason as `replace` above.
      *
      * @param items - The items to replace with
-     * @returns A new collection with the recursively replaced items
+     * @returns A new collection with the recursively replaced items; object-backed once its keys aren't `0..n-1`
      *
      * @example
      *
      * new Collection({a: {b: 1}}).replaceRecursive({a: {c: 2}}); -> new Collection({a: {b: 1, c: 2}})
+     * new Collection(['a']).replaceRecursive({3: 'x'}); -> new Collection({0: 'a', 3: 'x'})
      * new Collection([1, [2, 3]]).replaceRecursive([4, [5]]); -> new Collection([4, [5, 3]])
      * new Collection([1, {a: 2}]).replaceRecursive([{b: 3}, {a: 4}]); -> new Collection([{b: 3}, {a: 4}])
      */
