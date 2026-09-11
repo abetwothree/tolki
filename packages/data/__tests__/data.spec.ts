@@ -336,6 +336,10 @@ describe("Data", () => {
     });
 
     describe("dataCollapse", () => {
+        it("skips a Date item through the list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects"
+            expect(Data.dataCollapse([[1], new Date(0), [2]])).toEqual([1, 2]);
+        });
         it("skips a class instance item through the object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects"
             class Point {

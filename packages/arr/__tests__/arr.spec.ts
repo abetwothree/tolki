@@ -386,6 +386,21 @@ describe("Arr", () => {
     });
 
     describe("collapse", () => {
+        it("skips a Date, a Map or a class instance item, as Arr::collapse skips a PHP object", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects"
+            class Point {
+                x = 1;
+                y = 2;
+            }
+
+            expect(Arr.collapse([[1], new Date(0), [2]])).toEqual([1, 2]);
+            expect(Arr.collapse([[1], new Map([["x", 1]]), [2]])).toEqual([
+                1, 2,
+            ]);
+            expect(Arr.collapse([new Point()])).toEqual([]);
+            expect(Arr.collapse([{ a: 1 }, new Point()])).toEqual({ a: 1 });
+        });
+
         it("collapse", () => {
             type Mixed = string[] | number[] | [] | (string | number)[];
             let data: Mixed[] = [["foo", "bar"], ["baz"]];

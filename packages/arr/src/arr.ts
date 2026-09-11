@@ -363,9 +363,10 @@ export function chunkBy<TValue>(
 /**
  * Collapse an array of arrays into a single array, or an array of objects into a single object.
  *
- * Once any item is an object, the result is `array_merge`'s: list values append under the next
+ * Once any item is a plain object, the result is `array_merge`'s: list values append under the next
  * integer key, integer keys renumber and a later string key wins. A Collection-like item unwraps
- * through its `all()` method, and any other item that isn't an object or a list is skipped.
+ * through its `all()` method, and any other item that isn't a plain object or a list is skipped,
+ * as `Arr::collapse` skips a PHP object: a `Date`, a `Map` or a class instance.
  *
  * @param data - The array to collapse.
  * @returns A new flattened array or merged object.
@@ -393,8 +394,8 @@ export function collapse<TValue extends ArrayItems<unknown>>(
         isObject(item) && isFunction(item["all"]) ? item["all"]() : item,
     );
 
-    // A map among the items makes array_merge's result a map; obj.collapse runs that merge in item order.
-    if (items.some((item) => isObject(item))) {
+    // A plain object among the items is a PHP map, making array_merge's result one; obj.collapse runs that merge.
+    if (items.some((item) => isPlainObject(item))) {
         return objCollapse({ ...data } as Record<
             number,
             Record<PropertyKey, unknown> | unknown[]
