@@ -42,6 +42,13 @@ describe("Obj", () => {
             expect(Obj.accessible(12.34)).toBe(false);
             expect(Obj.accessible(() => null)).toBe(false);
         });
+
+        it("returns true for a Date or class instance, which PHP rejects", () => {
+            // JS-only: obj's analogue of a PHP array is any object that isn't a list, even a Date or class instance;
+            // PHP rejects a DateTime (docs/php-parity/task-23-obj-release-readiness.json, "accessible-datetime").
+            expect(Obj.accessible(new Date(0))).toBe(true);
+            expect(Obj.accessible(new Point())).toBe(true);
+        });
     });
 
     describe("objectifiable", () => {
@@ -64,6 +71,13 @@ describe("Obj", () => {
             // ArrTest::testArrayable
             expect(Obj.objectifiable(12.34)).toBe(false);
             expect(Obj.objectifiable(() => null)).toBe(false);
+        });
+
+        it("returns true for a Date or class instance, which PHP rejects", () => {
+            // JS-only: obj's analogue of a PHP array is any object that isn't a list, even a Date or class instance;
+            // PHP rejects a DateTime (docs/php-parity/task-23-obj-release-readiness.json, "arrayable-datetime").
+            expect(Obj.objectifiable(new Date(0))).toBe(true);
+            expect(Obj.objectifiable(new Point())).toBe(true);
         });
     });
 
