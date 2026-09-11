@@ -1009,9 +1009,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     flatten(depth: number = Infinity) {
         // Collection::flatten is Arr::flatten($this->items, $depth), which obj and arr flatten mirror.
-        return this.newInstance(
-            dataFlatten(this.items, depth) as DataItems<TValue, TKey>,
-        );
+        return this.newInstance(dataFlatten(this.items, depth));
     }
 
     /**
