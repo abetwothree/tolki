@@ -2771,12 +2771,25 @@ export function set<TValue, TSetValue>(
     key: string | number,
     value: TSetValue,
 ): (TValue | TSetValue)[];
+// Overload: a key that may be null or undefined → the value itself, or the array with it written.
+// NoInfer keeps TSetValue off the result's top level, where TypeScript would stop widening a literal value.
+export function set<TValue, TSetValue>(
+    array: ArrayItems<TValue>,
+    key: PathKey,
+    value: TSetValue,
+): (TValue | TSetValue)[] | NoInfer<TSetValue>;
 // Overload: generic fallback
 export function set<TValue>(
     array: unknown,
-    key: PathKey | null,
+    key: string | number,
     value: unknown,
 ): TValue[];
+// Overload: generic fallback, for a key that may be null or undefined
+export function set<TValue, TSetValue>(
+    array: unknown,
+    key: PathKey,
+    value: TSetValue,
+): TValue[] | NoInfer<TSetValue>;
 export function set(
     array: unknown,
     key: PathKey | null,
