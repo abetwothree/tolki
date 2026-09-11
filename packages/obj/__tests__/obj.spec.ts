@@ -978,10 +978,7 @@ describe("Obj", () => {
 
             // docs/php-parity/task-17-second-review.json, "Arr::dot keeps a \"__proto__\" key"
             it("dot keeps a __proto__ key as data instead of reparenting the result", () => {
-                const result = Obj.dot(hostile(), "", 0) as Record<
-                    string,
-                    unknown
-                >;
+                const result = Obj.dot(hostile(), "", 0);
                 expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
                 expect(Object.hasOwn(result, "__proto__")).toBe(true);
                 expect(
@@ -2541,7 +2538,7 @@ describe("Obj", () => {
             const src = JSON.parse(
                 '{"a":1,"__proto__":{"polluted":true},"c":3}',
             ) as Record<string, unknown>;
-            const result = Obj.filter(src) as Record<string, unknown>;
+            const result = Obj.filter(src);
             expect((result as { polluted?: boolean }).polluted).toBeUndefined();
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
         });
@@ -2613,9 +2610,7 @@ describe("Obj", () => {
             it.each(["constructor", "prototype", "__proto__"])(
                 "keeps a %s key as own data",
                 (key) => {
-                    expect(
-                        Object.hasOwn(Obj.set({}, key, 5) as object, key),
-                    ).toBe(true);
+                    expect(Object.hasOwn(Obj.set({}, key, 5), key)).toBe(true);
                 },
             );
 
@@ -4538,7 +4533,7 @@ describe("Obj", () => {
 
         it("should return multiple random values", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
-            const result = Obj.random(obj, 2) as Record<string, unknown>;
+            const result = Obj.random(obj, 2);
             expect(Object.keys(result)).toHaveLength(2);
         });
 
@@ -4547,13 +4542,13 @@ describe("Obj", () => {
             const result = Obj.random(
                 { one: "foo", two: "bar", three: "baz" },
                 2,
-            ) as Record<string, unknown>;
+            );
             expect(Object.keys(result)).toEqual(["0", "1"]);
         });
 
         it("preserves original keys when preserveKeys is explicitly true", () => {
             const obj = { one: "foo", two: "bar", three: "baz" };
-            const result = Obj.random(obj, 2, true) as Record<string, unknown>;
+            const result = Obj.random(obj, 2, true);
             expect(Object.keys(result)).toHaveLength(2);
             for (const key of Object.keys(result)) {
                 expect(obj).toHaveProperty(key);
@@ -4562,7 +4557,7 @@ describe("Obj", () => {
 
         it("should return multiple random values while not preserving keys", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
-            const result = Obj.random(obj, 2, false) as Record<string, unknown>;
+            const result = Obj.random(obj, 2, false);
             expect(Object.keys(result)).toHaveLength(2);
         });
 
@@ -4934,7 +4929,7 @@ describe("Obj", () => {
             const src = JSON.parse(
                 '{"a":1,"__proto__":{"polluted":true},"c":3}',
             ) as Record<string, unknown>;
-            const result = Obj.slice(src, 0, 3) as Record<string, unknown>;
+            const result = Obj.slice(src, 0, 3);
             expect((result as { polluted?: boolean }).polluted).toBeUndefined();
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
         });
@@ -6230,7 +6225,7 @@ describe("Obj", () => {
             const src = JSON.parse(
                 '{"a":1,"__proto__":{"polluted":true},"c":3}',
             ) as Record<string, unknown>;
-            const removed = Obj.splice(src, 1, 1) as Record<string, unknown>;
+            const removed = Obj.splice(src, 1, 1);
             expect(Object.getPrototypeOf(src)).toBe(Object.prototype);
             expect(
                 (removed as { polluted?: boolean }).polluted,
@@ -6481,10 +6476,7 @@ describe("Obj", () => {
             const replacer = JSON.parse(
                 '{"__proto__":{"polluted":true}}',
             ) as Record<string, unknown>;
-            const result = Obj.replace(obj, replacer) as Record<
-                string,
-                unknown
-            >;
+            const result = Obj.replace(obj, replacer);
             expect(result["polluted"]).toBeUndefined();
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
         });
@@ -6698,10 +6690,7 @@ describe("Obj", () => {
             const replacer = Object.create(null) as Record<string, unknown>;
             replacer["__proto__"] = { polluted: true };
 
-            const result = Obj.replaceRecursive(obj, replacer) as Record<
-                string,
-                unknown
-            >;
+            const result = Obj.replaceRecursive(obj, replacer);
 
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
             expect(
