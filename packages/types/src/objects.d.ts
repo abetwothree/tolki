@@ -301,14 +301,34 @@ type OverlayObjects<L, W> = L extends unknown
         : never
     : never;
 
+/** The entries a union's first operand, the data, holds itself: a list's indices or an object's own entries. */
+type OwnItems<T> = T extends object ? SpreadItems<T> : Record<never, never>;
+
+/** A union's operands after the first, each read the way `arrayableItems()` reads it; the left-most wins each key. */
+type UnionOperands<T extends readonly unknown[]> = T extends readonly [
+    infer First,
+    ...infer Rest,
+]
+    ? unknown extends First
+        ? Record<string, unknown>
+        : OverlayObjects<UnionOperands<Rest>, ArrayableItems<First>>
+    : T extends readonly (infer E)[]
+      ? number extends T["length"]
+          ? Partial<ArrayableItems<E>>
+          : Record<never, never>
+      : Record<never, never>;
+
 /**
  * Merges a tuple of operands with the left-most winning each key, the way
- * PHP's `+` array union does. Each operand is read the way `arrayableItems()`
- * reads it, so a list adds its indices and a `null` adds nothing.
+ * PHP's `+` array union does. The first operand is the data, read by its own
+ * entries as `$this->items` is; each later one is read the way
+ * `arrayableItems()` reads it, so a Collection-like unwraps, a list adds its
+ * indices and a `null` adds nothing.
  *
  * @example
  * MergeObjects<[{ a: 1 }, { a: 2; b: 3 }]> // { a: 1; b: 3 }
  * MergeObjects<[{ a: 1 }, number[]]>       // { [x: number]: number; a: 1 }
+ * MergeObjects<[{ all: () => 1 }, { b: 2 }]> // { all: () => 1; b: 2 }
  */
 export type MergeObjects<T extends readonly unknown[]> = T extends readonly [
     infer First,
@@ -316,10 +336,10 @@ export type MergeObjects<T extends readonly unknown[]> = T extends readonly [
 ]
     ? unknown extends First
         ? Record<string, unknown>
-        : OverlayObjects<MergeObjects<Rest>, ArrayableItems<First>>
+        : OverlayObjects<UnionOperands<Rest>, OwnItems<First>>
     : T extends readonly (infer E)[]
       ? number extends T["length"]
-          ? Partial<ArrayableItems<E>>
+          ? Partial<OwnItems<E> | ArrayableItems<E>>
           : Record<never, never>
       : Record<never, never>;
 

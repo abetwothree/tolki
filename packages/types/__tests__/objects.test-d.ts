@@ -153,6 +153,17 @@ describe("object helper types", () => {
             >().toEqualTypeOf<{ a: number | string }>();
         });
 
+        it("reads the first operand by its own entries and unwraps only the later ones", () => {
+            expectTypeOf<
+                MergeObjects<
+                    [{ all: () => "x"; b: 1 }, { all: () => { c: 2 } }]
+                >
+            >().toEqualTypeOf<{ all: () => "x"; b: 1; c: 2 }>();
+            expectTypeOf<
+                MergeObjects<[Map<string, 1>, null, { b: 2 }]>
+            >().toEqualTypeOf<{ b: 2 }>();
+        });
+
         it("merges nested objects by key and nested lists by index", () => {
             expectTypeOf<
                 DeepMergeObjects<
