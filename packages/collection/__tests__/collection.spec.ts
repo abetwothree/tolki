@@ -870,6 +870,21 @@ describe("Collection", () => {
                 [2, "b", "II"],
             ]);
         });
+
+        it("multiplies every key of the collection's own items and the given object", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "crossJoin-string-spread", "crossJoin-string-spread-3"
+            expect(
+                collect({ size: ["S", "M"] })
+                    .crossJoin({ color: ["red", "blue"] })
+                    .all(),
+            ).toEqual([
+                { size: "S", color: "red" },
+                { size: "S", color: "blue" },
+                { size: "M", color: "red" },
+                { size: "M", color: "blue" },
+            ]);
+        });
     });
 
     describe("diff", () => {
@@ -1002,6 +1017,31 @@ describe("Collection", () => {
             expect(
                 new Collection({ a: 0 }).diffAssoc({ a: "0" } as never).all(),
             ).toEqual({});
+        });
+
+        it("unwraps a Collection-like operand when matching keys and values", () => {
+            // C6's fixture shares no key+value pair with its operand either wrapped or
+            // raw, so this key-matching case is what actually pins the unwrap.
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-collection-matching-key"
+            expect(
+                collect({ id: 1, name: "a" })
+                    .diffAssoc({ all: () => ({ id: 1, name: "b" }) } as never)
+                    .all(),
+            ).toEqual({ name: "a" });
+        });
+
+        it("unwraps a Collection-like operand for diffAssocUsing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C8 diffAssocUsing strcasecmp"
+            expect(
+                collect({ a: "green", b: "brown", c: "blue", 0: "red" })
+                    .diffAssocUsing(
+                        {
+                            all: () => ({ A: "green", 0: "yellow", 1: "red" }),
+                        } as never,
+                        strcasecmpKeys,
+                    )
+                    .all(),
+            ).toEqual({ b: "brown", c: "blue", 0: "red" });
         });
     });
 
@@ -1672,6 +1712,17 @@ describe("Collection", () => {
             const collection = collect({ "products.desk": { price: 100 } });
             expect(collection.get("products.desk")).toEqual({ price: 100 });
         });
+
+        it("traverses a nested list with numeric segments, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "get-through-list", "get-through-list-2", "get-through-list-missing"
+            const collection = collect({
+                products: [{ name: "desk" }, { name: "chair" }],
+            });
+
+            expect(collection.get("products.0.name")).toBe("desk");
+            expect(collection.get("products.2.name", "none")).toBe("none");
+        });
     });
 
     describe("getOrPut", () => {
@@ -2289,6 +2340,13 @@ describe("Collection", () => {
             const collection = collect([1, 2]);
             expect(collection.has("length")).toBe(false);
             expect(collection.has("toString")).toBe(false);
+        });
+
+        it("looks up the empty-string key for a null inside a key list, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "has-empty-string-key-null-in-list"
+            const collection = collect({ "": "some" });
+            expect(collection.has([null])).toBe(true);
         });
     });
 
@@ -3742,6 +3800,13 @@ describe("Collection", () => {
                 "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
             );
         });
+
+        it("casts a null key to the empty string, matching array_combine", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
+            expect(collect({ k: null }).combine({ v: 1 }).all()).toEqual({
+                "": 1,
+            });
+        });
     });
 
     describe("union", () => {
@@ -3765,6 +3830,16 @@ describe("Collection", () => {
                     c.union(collect({ name: "World", id: 1 })).all(),
                 ).toEqual({ name: "Hello", id: 1 });
             });
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C18 union collection"
+            const c = collect({ name: "Hello" });
+            expect(
+                c
+                    .union({ all: () => ({ name: "World", id: 1 }) } as never)
+                    .all(),
+            ).toEqual({ name: "Hello", id: 1 });
         });
 
         it("lets the left operand win even when its value is undefined", () => {
@@ -5041,6 +5116,18 @@ describe("Collection", () => {
                     c3.replace(collect({ name: "taylor", age: 26 })).all(),
                 ).toEqual({ name: "taylor", family: "otwell", age: 26 });
             });
+
+            it("unwraps a Collection-like replacer", () => {
+                // docs/php-parity/task-23-obj-release-readiness.json, "C16 replace assoc"
+                const c = collect({ name: "amir", family: "otwell" });
+                expect(
+                    c
+                        .replace({
+                            all: () => ({ name: "taylor", age: 26 }),
+                        } as never)
+                        .all(),
+                ).toEqual({ name: "taylor", family: "otwell", age: 26 });
+            });
         });
 
         it("replaces without mutating, either backing", () => {
@@ -5121,6 +5208,16 @@ describe("Collection", () => {
             const fromObject = new Collection({ a: 1 });
             expect(fromArray.replaceRecursive(null).all()).toEqual([1]);
             expect(fromObject.replaceRecursive(null).all()).toEqual({ a: 1 });
+        });
+
+        it("merges a nested list with a nested object by key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "D7 replaceRecursive nested list replaced by offset map"
+            expect(
+                collect({ k: ["c", "d"] })
+                    .replaceRecursive({ k: { 1: "e" } })
+                    .all(),
+            ).toEqual({ k: ["c", "e"] });
         });
     });
 
@@ -5546,6 +5643,17 @@ describe("Collection", () => {
             expect(data.all()).toContain(shuffled.get(3));
             expect(data.all()).toContain(shuffled.get(4));
             expect(data.all()).toContain(shuffled.get(5));
+        });
+
+        it("returns integer keys for an object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "shuffle-assoc-keys", "shuffle-assoc-values-sorted"
+            const shuffled = collect({ a: 1, b: 2, c: 3, d: 4, e: 5 })
+                .shuffle()
+                .all();
+
+            expect(Object.values(shuffled).sort()).toEqual([1, 2, 3, 4, 5]);
+            expect(Object.keys(shuffled)).toEqual(["0", "1", "2", "3", "4"]);
         });
     });
 
@@ -8775,6 +8883,14 @@ describe("Collection", () => {
                 });
                 expect(result3.all()).toEqual(["1-a-0", "2-b-1"]);
             });
+        });
+
+        it("spreads a list row and appends the key, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "mapSpread-tuples", "mapSpread-tuples-key"
+            const result = collect({ x: [1, "a"], y: [2, "b"] }).mapSpread(
+                (n, c) => `${String(n)}-${String(c)}`,
+            );
+            expect(result.all()).toEqual({ x: "1-a", y: "2-b" });
         });
     });
 
