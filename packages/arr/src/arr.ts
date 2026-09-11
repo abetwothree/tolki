@@ -3708,10 +3708,9 @@ export function replaceRecursive<TValue, TReplace = TValue>(
     // A Collection-like operand (all()/toArray()/toJSON()) unwraps to its underlying
     // array or object before the numeric-key checks below run; a real array or plain
     // numeric-keyed object passes through arrayableItems unchanged.
-    const replacer =
-        isObject(replacerData) && !isArray(replacerData)
-            ? arrayableItems(replacerData)
-            : replacerData;
+    const replacer = isObject(replacerData)
+        ? arrayableItems(replacerData)
+        : replacerData;
 
     if (!isArray(replacer) && !isNumericKeyedObject(replacer)) {
         return values;

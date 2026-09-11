@@ -7,6 +7,14 @@ import { isArray } from "@tolki/utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 /**
+ * Wrap items in the smallest Collection-like operand, which arr unwraps through `all()` as Laravel does.
+ *
+ * @param items - The items `all()` returns
+ * @returns An object whose `all()` returns the items
+ */
+const collectionLike = <T>(items: T) => ({ all: () => items });
+
+/**
  * A class instance with own fields, which PHP's array helpers keep whole instead of walking.
  */
 class Point {
@@ -1074,7 +1082,6 @@ describe("Arr", () => {
 
         it("flattens a Collection-like item's items", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "flatten-collection-item"
-            const collectionLike = <T>(items: T) => ({ all: () => items });
 
             expect(Arr.flatten([collectionLike([1, [2, 3]]), 4])).toEqual([
                 1, 2, 3, 4,
@@ -2613,9 +2620,9 @@ describe("Arr", () => {
             );
         });
 
-        it("compares strictly by value, the way PHP's === does for arrays", () => {
+        it("compares strictly by value, the way PHP's === does", () => {
             // obj's sibling fix: docs/php-parity/task-23-obj-release-readiness.json,
-            // "D4 containsStrict array by value"
+            // "D3 containsStrict NAN", "D4 containsStrict array by value"
             expect(Arr.contains([NaN], NaN, true)).toBe(false);
             expect(Arr.contains([[1]], [1], true)).toBe(true);
             expect(Arr.contains([{ x: 1 }], { x: 1 }, true)).toBe(true);
@@ -2787,7 +2794,6 @@ describe("Arr", () => {
 
         it("unwraps a Collection-like replacer, the sibling of obj.replace's fix", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-collection-operand"
-            const collectionLike = <T>(items: T) => ({ all: () => items });
 
             expect(Arr.replace([1, 2, 3], collectionLike([9]))).toEqual([
                 9, 2, 3,
@@ -2885,7 +2891,6 @@ describe("Arr", () => {
 
         it("unwraps a Collection-like replacer, the sibling of obj.replaceRecursive's fix", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-list-collection-operand"
-            const collectionLike = <T>(items: T) => ({ all: () => items });
 
             expect(
                 Arr.replaceRecursive([{ a: 1 }], collectionLike([{ b: 2 }])),
@@ -3195,7 +3200,6 @@ describe("Arr", () => {
 
         it("unwraps a Collection-like operand, the sibling of obj.diffAssoc's fix", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-list-collection-operand"
-            const collectionLike = <T>(items: T) => ({ all: () => items });
 
             expect(Arr.diffAssoc([1, 2, 3], collectionLike([1, 9, 9]))).toEqual(
                 [2, 3],
@@ -3285,7 +3289,6 @@ describe("Arr", () => {
 
         it("unwraps a Collection-like operand, the sibling of obj.intersectByKeys's fix", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "intersectByKeys-list-collection-operand"
-            const collectionLike = <T>(items: T) => ({ all: () => items });
 
             expect(
                 Arr.intersectByKeys([1, 2, 3], collectionLike([9, 9])),
@@ -5844,7 +5847,6 @@ describe("Arr", () => {
 
         it("unwraps a Collection-like operand, the sibling of obj.intersectAssoc's fix", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssoc-list-collection-operand"
-            const collectionLike = <T>(items: T) => ({ all: () => items });
 
             expect(
                 Arr.intersectAssoc([1, 2, 3], collectionLike([1, 2, 9])),
@@ -5905,7 +5907,6 @@ describe("Arr", () => {
 
         it("unwraps a Collection-like operand, the sibling of obj.intersectAssocUsing's fix", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssocUsing-list-collection-operand"
-            const collectionLike = <T>(items: T) => ({ all: () => items });
 
             expect(
                 Arr.intersectAssocUsing(
