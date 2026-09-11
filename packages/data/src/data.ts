@@ -752,7 +752,11 @@ export function dataExceptValues<
     strict: boolean = false,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objExceptValues(data, values, strict);
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        return objExceptValues(data, values, strict) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrExceptValues(data, values, strict);
@@ -942,11 +946,12 @@ export function dataGet<
     defaultValue?: TGetDefault | (() => TGetDefault),
 ): TValue | TGetDefault | null {
     if (isObject(data)) {
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
         return objGet(
             data as Record<TKey, TValue>,
             key as string,
             defaultValue,
-        );
+        ) as TValue | TGetDefault | null;
     }
 
     return arrGet(arrWrap(data), key as number, defaultValue) as
@@ -1266,7 +1271,11 @@ export function dataOnlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
     strict: boolean = false,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objOnlyValues(data, values, strict);
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        return objOnlyValues(data, values, strict) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrOnlyValues(data, values, strict);
