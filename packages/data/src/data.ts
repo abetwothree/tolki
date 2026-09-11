@@ -2584,13 +2584,25 @@ export function dataDiffAssocUsing<
         return objDiffAssocUsing(
             data as Record<TKey, TValue>,
             other as Record<TKey, TValue>,
-            callback,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (
+                keyA: string | number,
+                keyB: string | number,
+            ) => boolean,
         ) as DataItems<TValue, TKey>;
     }
 
     // A list's keys are its indices, so array_diff_uassoc over an index-keyed copy is the list case.
     return Object.values(
-        objDiffAssocUsing({ ...arrWrap(data) }, other, callback),
+        objDiffAssocUsing(
+            { ...arrWrap(data) },
+            other,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (
+                keyA: string | number,
+                keyB: string | number,
+            ) => boolean,
+        ),
     ) as DataItems<TValue>;
 }
 
@@ -2622,13 +2634,25 @@ export function dataDiffKeysUsing<
         return objDiffKeysUsing(
             data as Record<TKey, TValue>,
             other as Record<TKey, TValue>,
-            callback,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (
+                keyA: string | number,
+                keyB: string | number,
+            ) => boolean,
         ) as DataItems<TValue, TKey>;
     }
 
     // A list's keys are its indices, so array_diff_ukey over an index-keyed copy is the list case.
     return Object.values(
-        objDiffKeysUsing({ ...arrWrap(data) }, other, callback),
+        objDiffKeysUsing(
+            { ...arrWrap(data) },
+            other,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (
+                keyA: string | number,
+                keyB: string | number,
+            ) => boolean,
+        ),
     ) as DataItems<TValue>;
 }
 
@@ -2715,7 +2739,12 @@ export function dataIntersect<
     callable: ((a: TValue, b: TValue) => boolean) | null = null,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objIntersect(data, other, callable);
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        return objIntersect(
+            data,
+            other,
+            callable as ((a: unknown, b: unknown) => boolean) | null,
+        ) as DataItems<TValue, TKey>;
     }
 
     return arrIntersect(data, other, callable);
