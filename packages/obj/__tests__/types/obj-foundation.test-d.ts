@@ -105,6 +105,22 @@ describe("obj foundation type tests", () => {
                 Record<0, number[]>
             >();
         });
+
+        it("returns a Map or a Set unchanged, as it returns any object", () => {
+            expectTypeOf(Obj.wrap(numberMap)).toEqualTypeOf<
+                Map<string, number>
+            >();
+            expectTypeOf(Obj.wrap(new Set([1]))).toEqualTypeOf<Set<number>>();
+        });
+
+        it("splits a union between the object it returns and the value it wraps", () => {
+            expectTypeOf(Obj.wrap(profile.boss)).toEqualTypeOf<
+                { name: string } | Record<string, never>
+            >();
+            expectTypeOf(Obj.wrap(profile.nick ?? profile)).toEqualTypeOf<
+                Record<0, string> | Profile
+            >();
+        });
     });
 
     describe("keys", () => {

@@ -354,6 +354,15 @@ type KeyComparator<T1, T2> = (
     keyA: ObjectKey<T1> | ObjectKey<ArrayableItems<T2>>,
     keyB: ObjectKey<T1> | ObjectKey<ArrayableItems<T2>>,
 ) => boolean;
+// wrap hands back any object isObject accepts, a Map or Set included; a list, a function or a scalar sits under 0.
+// Distributing lets a union member that is an object come back as itself.
+type WrapResult<T> = T extends null
+    ? Record<string, never>
+    : T extends readonly unknown[] | ((...args: never[]) => unknown)
+      ? Record<0, T>
+      : T extends object
+        ? T
+        : Record<0, T>;
 
 /**
  * Determine whether the given value is object accessible.
@@ -4833,7 +4842,7 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * If the given value is not an object and not null, wrap it in one.
  *
- * An object, including a `Date` or class instance, is returned as-is; PHP wraps every object.
+ * An object, including a `Date`, a `Map`, a `Set` or a class instance, is returned as-is; PHP wraps every object.
  *
  * @param value - The value to wrap.
  * @returns An object containing the value, or an empty object if null.
@@ -4846,9 +4855,7 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
  * wrap(undefined); -> { 0: undefined }
  */
 export function wrap(value: null): Record<string, never>;
-export function wrap<T extends NonObjectItems>(value: T): Record<0, T>;
-export function wrap<T extends object>(value: T): T;
-export function wrap<T>(value: T): Record<0, T>;
+export function wrap<T>(value: T): WrapResult<T>;
 export function wrap<TValue>(
     value: TValue | null,
 ): Record<PropertyKey, TValue> {

@@ -6940,6 +6940,15 @@ describe("Obj", () => {
             expect(Obj.wrap(null)).toEqual({});
         });
 
+        it("returns a Map or a Set as-is, as it returns any object", () => {
+            // JS-only: PHP has no Map or Set, and Arr::wrap wraps every object; obj returns any object it is given.
+            const map = new Map([["a", 1]]);
+            const set = new Set([1]);
+
+            expect(Obj.wrap(map)).toBe(map);
+            expect(Obj.wrap(set)).toBe(set);
+        });
+
         it("wraps falsy scalars instead of dropping them", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "wrap-empty-string", "wrap-false", "wrap-zero"
             expect(Obj.wrap("")).toEqual({ 0: "" });
