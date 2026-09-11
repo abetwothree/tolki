@@ -1993,21 +1993,26 @@ export function pluck<
     value: TPath,
     key: string | readonly string[] | ((item: TValue) => string | number),
 ): Record<string | number, PluckValue<TValue, TPath>>;
-// Overload: literal path, no key → array of the resolved value type
+// Overload: literal path, no key or a nullish one → array of the resolved value type
 export function pluck<
     TValue extends Record<string, unknown>,
     const TPath extends string,
->(data: ArrayItems<TValue>, value: TPath): PluckValue<TValue, TPath>[];
+>(
+    data: ArrayItems<TValue>,
+    value: TPath,
+    key?: null | undefined,
+): PluckValue<TValue, TPath>[];
 // Overload: closure value + key → record keyed by the key
 export function pluck<TValue extends Record<string, unknown>, TResult>(
     data: ArrayItems<TValue>,
     value: (item: TValue) => TResult,
     key: string | readonly string[] | ((item: TValue) => string | number),
 ): Record<string | number, TResult>;
-// Overload: closure value, no key → array of the closure return type
+// Overload: closure value, no key or a nullish one → array of the closure return type
 export function pluck<TValue extends Record<string, unknown>, TResult>(
     data: ArrayItems<TValue>,
     value: (item: TValue) => TResult,
+    key?: null | undefined,
 ): TResult[];
 // Overload: null/undefined value + key → record keyed by the key, whole items as values
 export function pluck<TValue extends Record<string, unknown>>(
@@ -2015,10 +2020,11 @@ export function pluck<TValue extends Record<string, unknown>>(
     value: null | undefined,
     key: string | readonly string[] | ((item: TValue) => string | number),
 ): Record<string | number, TValue>;
-// Overload: null/undefined value, no key → array of whole items, matching Arr::pluck($data, null)
+// Overload: null/undefined value, no key or a nullish one → array of whole items, matching Arr::pluck($data, null)
 export function pluck<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue>,
     value: null | undefined,
+    key?: null | undefined,
 ): TValue[];
 // Overload: with key → returns Record (keyed result)
 export function pluck<TValue extends Record<string, unknown>>(
@@ -2026,10 +2032,11 @@ export function pluck<TValue extends Record<string, unknown>>(
     value: string | readonly string[] | ((item: TValue) => unknown),
     key: string | readonly string[] | ((item: TValue) => string | number),
 ): Record<string | number, unknown>;
-// Overload: without key → returns array
+// Overload: without key or with a nullish one → returns array
 export function pluck<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue>,
     value: string | readonly string[] | ((item: TValue) => unknown),
+    key?: null | undefined,
 ): unknown[];
 // Overload: non-array fallback
 export function pluck<TValue extends Record<string, unknown>>(

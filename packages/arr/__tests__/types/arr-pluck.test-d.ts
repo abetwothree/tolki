@@ -155,6 +155,23 @@ describe("arr pluck type tests", () => {
                 number[]
             >();
         });
+
+        it("still types the item when the key is an explicit null", () => {
+            const result = Arr.pluck(
+                users,
+                (item) => {
+                    expectTypeOf(item).toEqualTypeOf<{
+                        id: number;
+                        name: string;
+                    }>();
+
+                    return item.id;
+                },
+                null,
+            );
+
+            expectTypeOf(result).toEqualTypeOf<number[]>();
+        });
     });
 
     describe("with a key argument", () => {
@@ -177,6 +194,21 @@ describe("arr pluck type tests", () => {
             expectTypeOf(
                 Arr.pluck(users, "name", (item) => item.id),
             ).toEqualTypeOf<Record<string | number, string>>();
+        });
+
+        it("returns a list for an explicit null or undefined key", () => {
+            expectTypeOf(Arr.pluck(users, "name", null)).toEqualTypeOf<
+                string[]
+            >();
+            expectTypeOf(Arr.pluck(users, "name", undefined)).toEqualTypeOf<
+                string[]
+            >();
+            expectTypeOf(Arr.pluck(users, null, null)).toEqualTypeOf<
+                { id: number; name: string }[]
+            >();
+            expectTypeOf(Arr.pluck(users, ["name"], undefined)).toEqualTypeOf<
+                unknown[]
+            >();
         });
     });
 
