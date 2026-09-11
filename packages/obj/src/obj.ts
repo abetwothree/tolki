@@ -1580,6 +1580,10 @@ export function forget<TValue extends Record<PropertyKey, unknown>>(
     data: TValue,
     keys: PathKeys,
 ): Record<PropertyKey, unknown> {
+    if (!accessible(data)) {
+        return {};
+    }
+
     return forgetKeys(data, keys) as Record<PropertyKey, unknown>;
 }
 

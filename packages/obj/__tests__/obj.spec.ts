@@ -1383,6 +1383,16 @@ describe("Obj", () => {
                 2: { 12: "baz" },
             });
         });
+
+        it("returns an empty object for non-accessible data", () => {
+            // JS-only: except delegates to forget, which used to hand non-object data straight
+            // to forgetKeys and either throw or return the input unchanged; accessible() rejects
+            // it first, matching only's guard.
+            expect(Obj.except([1, 2, 3], 0)).toEqual({});
+            expect(Obj.except(() => 1, "a")).toEqual({});
+            expect(Obj.except("str", "a")).toEqual({});
+            expect(Obj.except(42, "a")).toEqual({});
+        });
     });
 
     describe("forget", () => {
@@ -1540,6 +1550,14 @@ describe("Obj", () => {
             expect(
                 Obj.forget({ 2: { 1: "products", 3: "users" } }, 2.3),
             ).toEqual({ 2: { 1: "products" } });
+        });
+
+        it("returns an empty object for non-accessible data", () => {
+            // JS-only: forget used to hand non-object data straight to forgetKeys, whose
+            // array path threw on scalars/functions; accessible() rejects it first, like only.
+            expect(Obj.forget(42, "a")).toEqual({});
+            expect(Obj.forget(null, "a")).toEqual({});
+            expect(Obj.forget([1, 2, 3], 0)).toEqual({});
         });
     });
 
