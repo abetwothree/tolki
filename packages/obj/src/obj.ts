@@ -1046,6 +1046,10 @@ export function exceptValues<TValue, TKey extends PropertyKey = PropertyKey>(
     values: TValue | TValue[],
     strict: boolean = false,
 ): Record<TKey, TValue> {
+    if (isNull(data) || isUndefined(data)) {
+        return {} as Record<TKey, TValue>;
+    }
+
     const obj = data as Record<TKey, TValue>;
     const valueArray = isArray(values) ? values : [values];
     const result = {} as Record<TKey, TValue>;
@@ -2272,6 +2276,10 @@ export function onlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
     values: TValue | TValue[],
     strict: boolean = false,
 ): Record<TKey, TValue> {
+    if (isNull(data) || isUndefined(data)) {
+        return {} as Record<TKey, TValue>;
+    }
+
     const obj = data as Record<TKey, TValue>;
     const valueArray = isArray(values) ? values : [values];
     const result = {} as Record<TKey, TValue>;

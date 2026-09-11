@@ -6994,6 +6994,12 @@ describe("Obj", () => {
             });
             expect(Obj.exceptValues(obj, [1, 2, 3])).toEqual({});
         });
+
+        it("returns an empty object for null or undefined data", () => {
+            // JS-only: Arr::exceptValues(null, …) is a TypeError in PHP; obj returns {}, like divide(null).
+            expect(Obj.exceptValues(null, 1)).toEqual({});
+            expect(Obj.exceptValues(undefined, 1)).toEqual({});
+        });
     });
 
     describe("onlyValues", () => {
@@ -7042,6 +7048,12 @@ describe("Obj", () => {
                 e: 3,
             });
             expect(Obj.onlyValues(data, [1, 2, 3])).toEqual(data);
+        });
+
+        it("returns an empty object for null or undefined data", () => {
+            // JS-only: Arr::onlyValues(null, …) is a TypeError in PHP; obj returns {}, like divide(null).
+            expect(Obj.onlyValues(null, 1)).toEqual({});
+            expect(Obj.onlyValues(undefined, 1)).toEqual({});
         });
     });
 
