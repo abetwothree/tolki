@@ -1096,9 +1096,7 @@ describe("Obj", () => {
         // Object.assign uses [[Set]]; once setObjectValue returns "__proto__"
         // as real data, merging it via assign reparented the result instead.
         it("keeps a __proto__ key as own data instead of reparenting the result", () => {
-            const result = Obj.undot(
-                JSON.parse('{"__proto__.PWN":"yes"}'),
-            ) as Record<string, unknown>;
+            const result = Obj.undot(JSON.parse('{"__proto__.PWN":"yes"}'));
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
             expect(Object.hasOwn(result, "__proto__")).toBe(true);
             expect(
@@ -2616,11 +2614,7 @@ describe("Obj", () => {
 
             // docs/php-parity/task-17-second-review.json, "Arr::set writes a nested \"constructor.prototype\" path"
             it("builds a nested constructor.prototype path without polluting", () => {
-                const result = Obj.set(
-                    {},
-                    "constructor.prototype.polluted",
-                    5,
-                ) as Record<string, unknown>;
+                const result = Obj.set({}, "constructor.prototype.polluted", 5);
                 expect(result).toEqual({
                     constructor: { prototype: { polluted: 5 } },
                 });
