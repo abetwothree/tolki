@@ -188,6 +188,17 @@ describe("Obj", () => {
                 default: 1,
             });
         });
+
+        it("throws for a list value, which Arr::array returns", () => {
+            // JS-only: obj's analogue of a PHP array is an object, so a list is rejected where Arr::array returns it
+            // (docs/php-parity/task-23-obj-release-readiness.json, "array-list-value"); the type name is gettype's
+            // (docs/php-parity/task-17-second-review.json, "gettype of an array").
+            expect(() =>
+                Obj.objectItem({ items: ["a", "b"] }, "items"),
+            ).toThrow(
+                "Object value for key [items] must be an object, array found.",
+            );
+        });
     });
 
     describe("boolean", () => {
