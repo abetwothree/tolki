@@ -6,6 +6,14 @@ import type { UndotArrayKey } from "@tolki/types";
 import { isArray } from "@tolki/utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+/**
+ * A class instance with own fields, which PHP's array helpers keep whole instead of walking.
+ */
+class Point {
+    x = 1;
+    y = 2;
+}
+
 describe("Arr", () => {
     describe("accessible", () => {
         it("accessible", () => {
@@ -1342,6 +1350,15 @@ describe("Arr", () => {
                 expect(Arr.get([["x", "y"]], `0.${key}`, "d")).toBe("d");
             },
         );
+
+        it("looks an integer segment up as the own key of an object in a list, agreeing with has()", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-int-segment-into-map"
+            expect(Arr.get([{ 0: "x" }], "0.0", "d")).toBe("x");
+            expect(Arr.get([{ k: "v", 0: "x" }], "0.0", "d")).toBe("x");
+            expect(Arr.get([[{ 1: "z" }]], "0.0.1", "d")).toBe("z");
+            expect(Arr.get([{ 1: "z" }], "0.0", "d")).toBe("d");
+            expect(Arr.has([{ 0: "x" }], "0.0")).toBe(true);
+        });
     });
 
     describe("has", () => {
@@ -2024,6 +2041,17 @@ describe("Arr", () => {
                 "0.a": 1,
                 "1.b.c": 2,
             });
+        });
+
+        it("keeps a class instance inside a list as a leaf", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-object-leaf"
+            const point = new Point();
+            const list = Arr.dot([point]);
+            const nested = Arr.dot([{ p: point }]);
+            expect(Object.keys(list)).toEqual(["0"]);
+            expect(list["0"]).toBe(point);
+            expect(Object.keys(nested)).toEqual(["0.p"]);
+            expect(nested["0.p"]).toBe(point);
         });
 
         it("dot with depth", () => {

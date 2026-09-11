@@ -744,4 +744,34 @@ probe('callback-key *Using on a list', "(new Collection([1, 2]))->diffAssocUsing
     ];
 });
 
+// ---- Arr::dot recurses only into arrays: an object inside a list or a map stays a leaf
+probe('dot-object-leaf', "Arr::dot([\$o]), Arr::dot([['p' => \$o]]), Arr::dot(['p' => \$o, 'l' => [\$o]]), Arr::dot([new ArrayObject(['a' => 1])]) with \$o = (object) ['x' => 1, 'y' => 2]: keys, and whether \$o is kept", function () {
+    $o = (object) ['x' => 1, 'y' => 2];
+    $list = Arr::dot([$o]);
+    $nested = Arr::dot([['p' => $o]]);
+    $map = Arr::dot(['p' => $o, 'l' => [$o]]);
+
+    return [
+        'list' => ['keys' => array_keys($list), 'kept' => $list[0] === $o],
+        'nested' => ['keys' => array_keys($nested), 'kept' => $nested['0.p'] === $o],
+        'map' => ['keys' => array_keys($map), 'kept' => $map['p'] === $o && $map['l.0'] === $o],
+        'arrayObject' => array_keys(Arr::dot([new ArrayObject(['a' => 1])])),
+    ];
+});
+probe('collection-dot-collection-leaf', "(new Collection([new Collection(['a' => 1])]))->dot() and (new Collection(['c' => new Collection(['a' => 1])]))->dot(): keys", fn () => [
+    'list' => array_keys((new Collection([new Collection(['a' => 1])]))->dot()->all()),
+    'map' => array_keys((new Collection(['c' => new Collection(['a' => 1])]))->dot()->all()),
+]);
+
+// ---- Arr::get and Arr::has look an integer segment up as a key, so a map inside a list answers it too
+probe('get-list-int-segment-into-map', "Arr::get([[0 => 'x']], '0.0', 'd'), Arr::get([['k' => 'v', 0 => 'x']], '0.0', 'd'), Arr::get([[[1 => 'z']]], '0.0.1', 'd'), Arr::has(…), data_get([['k' => 'v', 0 => 'x']], '0.0', 'd')", fn () => [
+    'get' => Arr::get([[0 => 'x']], '0.0', 'd'),
+    'get-map' => Arr::get([['k' => 'v', 0 => 'x']], '0.0', 'd'),
+    'get-deep' => Arr::get([[[1 => 'z']]], '0.0.1', 'd'),
+    'get-missing' => Arr::get([[1 => 'z']], '0.0', 'd'),
+    'has' => Arr::has([[0 => 'x']], '0.0'),
+    'has-missing' => Arr::has([[1 => 'z']], '0.0'),
+    'data_get' => data_get([['k' => 'v', 0 => 'x']], '0.0', 'd'),
+]);
+
 emit();

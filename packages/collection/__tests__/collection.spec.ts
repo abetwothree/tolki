@@ -7588,6 +7588,17 @@ describe("Collection", () => {
             ).toEqual({ "0.a": 1, "1.b.c": 2 });
         });
 
+        it("keeps a nested Collection as a leaf on either backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collection-dot-collection-leaf"
+            const inner = collect({ a: 1 });
+            const list = new Collection([inner]).dot().all();
+            const map = new Collection({ c: inner }).dot().all();
+            expect(Object.keys(list)).toEqual(["0"]);
+            expect(list[0]).toBe(inner);
+            expect(Object.keys(map)).toEqual(["c"]);
+            expect(map["c"]).toBe(inner);
+        });
+
         describe("Laravel Tests - dotWithDepth", () => {
             it("test dot with depth", () => {
                 const data = Collection.make({

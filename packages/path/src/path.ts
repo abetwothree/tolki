@@ -12,6 +12,7 @@ import {
     isNumber,
     isObject,
     isObjectAny,
+    isPlainObject,
     isPrototypeObject,
     isString,
     isUndefined,
@@ -93,6 +94,7 @@ export function parseSegments(key: PathKey): (number | string)[] | null {
  * hasPath([{name: 'John', age: 30}], "0.name"); -> true
  * hasPath({user: {profile: {name: 'Jane'}}}, "user.profile.name"); -> true
  * hasPath({items: ['a', 'b']}, "items.1"); -> true
+ * hasPath([{0: 'x'}], "0.0"); -> true
  */
 export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
     root: TValue[] | Record<TKey, TValue>,
@@ -122,29 +124,18 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
 
     let cursor: unknown = root;
     for (const s of segs) {
-        if (isNull(cursor) || !isObjectAny(cursor)) {
-            return false;
-        }
-
-        if (isNumber(s)) {
-            // Numeric segment - check if cursor is an array
-            const arr = castableToArray(cursor);
-            if (!arr || s < 0 || s >= arr.length) {
+        if (isArray(cursor)) {
+            // A list holds only its indices, so a string segment never names one of its items.
+            if (!isNumber(s) || s >= cursor.length) {
                 return false;
             }
 
-            cursor = arr[s];
+            cursor = cursor[s];
+        } else if (isObject(cursor) && Object.hasOwn(cursor, String(s))) {
+            // An object stores an integer key as a string, so an index segment finds it as Arr::has does.
+            cursor = cursor[String(s)];
         } else {
-            // String segment - check if cursor is an object
-            if (isArray(cursor)) {
-                return false; // Arrays don't have string keys
-            }
-
-            if (!Object.hasOwn(cursor as object, s)) {
-                return false;
-            }
-
-            cursor = (cursor as Record<string, unknown>)[s];
+            return false;
         }
     }
     return true;
@@ -171,6 +162,7 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
  * getRaw([{name: 'John', age: 30}], "0.name"); -> { found: true, value: 'John' }
  * getRaw({user: {profile: {name: 'Jane'}}}, "user.profile.name"); -> { found: true, value: 'Jane' }
  * getRaw({items: ['a', 'b']}, "items.1"); -> { found: true, value: 'b' }
+ * getRaw([{0: 'x'}], "0.0"); -> { found: true, value: 'x' }
  */
 export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
     root: TValue[] | Record<TKey, TValue>,
@@ -206,30 +198,18 @@ export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
 
     let cursor: unknown = root;
     for (const s of segs) {
-        // Accept both arrays and objects
-        if (isNull(cursor) || isUndefined(cursor) || !isObjectAny(cursor)) {
-            return { found: false };
-        }
-
-        if (isNumber(s)) {
-            // Numeric segment - check if cursor is an array
-            const arr = castableToArray(cursor);
-            if (!arr || s < 0 || s >= arr.length) {
+        if (isArray(cursor)) {
+            // A list holds only its indices, so a string segment never names one of its items.
+            if (!isNumber(s) || s >= cursor.length) {
                 return { found: false };
             }
 
-            cursor = arr[s];
+            cursor = cursor[s];
+        } else if (isObject(cursor) && Object.hasOwn(cursor, String(s))) {
+            // An object stores an integer key as a string, so an index segment finds it as Arr::get does.
+            cursor = cursor[String(s)];
         } else {
-            // String segment - check if cursor is an object
-            if (isArray(cursor)) {
-                return { found: false }; // Arrays don't have string keys
-            }
-
-            if (!isObject(cursor) || !Object.hasOwn(cursor, s)) {
-                return { found: false };
-            }
-
-            cursor = (cursor as Record<string, unknown>)[s];
+            return { found: false };
         }
     }
     return { found: true, value: cursor };
@@ -817,7 +797,8 @@ export function pushWithPath<TValue>(
 
 /**
  * Flatten a nested structure into a flat object with dot notation keys.
- * Converts nested arrays and objects into a single-level object with path-based keys.
+ * Converts nested arrays and plain objects into a single-level object with path-based keys;
+ * any other object (a class instance, Date or Map) is kept whole as a value.
  *
  * @param data - The data to flatten.
  * @param prepend - Optional string to prepend to all keys.
@@ -895,7 +876,7 @@ export function dotFlattenObject<
                 );
             } else if (
                 currentDepth < depth &&
-                isObject(value) &&
+                isPlainObject(value) &&
                 Object.keys(value).length > 0
             ) {
                 walk(
@@ -949,10 +930,10 @@ export function dotFlattenArray<TValue>(
                 walk(item, `${nextPath}.`, currentDepth + 1);
             } else if (
                 currentDepth < depth &&
-                isObject(item) &&
+                isPlainObject(item) &&
                 Object.keys(item).length > 0
             ) {
-                // PHP's is_array covers assoc arrays too, so objects inside a list flatten as well.
+                // PHP's is_array covers assoc arrays, which a plain object models; a class instance stays a leaf.
                 for (const [key, value] of Object.entries(
                     dotFlattenObject(
                         item,

@@ -2948,6 +2948,59 @@
                     "integer"
                 ]
             }
+        },
+        {
+            "label": "dot-object-leaf",
+            "php": "Arr::dot([$o]), Arr::dot([['p' => $o]]), Arr::dot(['p' => $o, 'l' => [$o]]), Arr::dot([new ArrayObject(['a' => 1])]) with $o = (object) ['x' => 1, 'y' => 2]: keys, and whether $o is kept",
+            "value": {
+                "list": {
+                    "keys": [
+                        0
+                    ],
+                    "kept": true
+                },
+                "nested": {
+                    "keys": [
+                        "0.p"
+                    ],
+                    "kept": true
+                },
+                "map": {
+                    "keys": [
+                        "p",
+                        "l.0"
+                    ],
+                    "kept": true
+                },
+                "arrayObject": [
+                    0
+                ]
+            }
+        },
+        {
+            "label": "collection-dot-collection-leaf",
+            "php": "(new Collection([new Collection(['a' => 1])]))->dot() and (new Collection(['c' => new Collection(['a' => 1])]))->dot(): keys",
+            "value": {
+                "list": [
+                    0
+                ],
+                "map": [
+                    "c"
+                ]
+            }
+        },
+        {
+            "label": "get-list-int-segment-into-map",
+            "php": "Arr::get([[0 => 'x']], '0.0', 'd'), Arr::get([['k' => 'v', 0 => 'x']], '0.0', 'd'), Arr::get([[[1 => 'z']]], '0.0.1', 'd'), Arr::has(\u2026), data_get([['k' => 'v', 0 => 'x']], '0.0', 'd')",
+            "value": {
+                "get": "x",
+                "get-map": "x",
+                "get-deep": "z",
+                "get-missing": "d",
+                "has": true,
+                "has-missing": false,
+                "data_get": "x"
+            }
         }
     ]
 }

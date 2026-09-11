@@ -12,6 +12,14 @@ import { afterEach, assertType, describe, expect, it, vi } from "vitest";
  */
 const collectionLike = <T>(items: T) => ({ all: () => items });
 
+/**
+ * A class instance with own fields, which PHP's array helpers keep whole instead of walking.
+ */
+class Point {
+    x = 1;
+    y = 2;
+}
+
 describe("Obj", () => {
     describe("accessible", () => {
         it("should return true for objects", () => {
@@ -768,6 +776,15 @@ describe("Obj", () => {
             expect(Obj.dot({ name: "John" }, "user")).toEqual({
                 username: "John",
             });
+        });
+
+        it("keeps a class instance as a leaf, as a value or inside a nested list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-object-leaf"
+            const point = new Point();
+            const result = Obj.dot({ p: point, l: [point] });
+            expect(Object.keys(result)).toEqual(["p", "l.0"]);
+            expect(result["p"]).toBe(point);
+            expect(result["l.0"]).toBe(point);
         });
 
         it("should handle empty objects", () => {

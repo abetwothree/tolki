@@ -1,6 +1,14 @@
 import * as Path from "@tolki/path";
 import { afterEach, describe, expect, it } from "vitest";
 
+/**
+ * A class instance with own fields, which PHP's array helpers keep whole instead of walking.
+ */
+class Point {
+    x = 1;
+    y = 2;
+}
+
 describe("Path Functions", () => {
     describe("undotExpandObject", () => {
         it("undotExpandObject handles symbol-like keys", () => {
@@ -201,10 +209,15 @@ describe("Path Functions", () => {
         });
 
         it("handles object cursor during traversal with numeric segment", () => {
-            // When cursor is an object but segment is numeric
+            // The object has no own "0" key for the numeric segment to find.
             const data = [{ name: "John" }];
-            // Can't use numeric path segment on object without arrays
             expect(Path.hasPath(data, "0.0")).toBe(false);
+        });
+
+        it("finds an integer segment among an object's own keys", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-int-segment-into-map"
+            expect(Path.hasPath([{ 0: "x" }], "0.0")).toBe(true);
+            expect(Path.hasPath([{ 1: "z" }], "0.0")).toBe(false);
         });
 
         it("handles string segments on object cursors", () => {
@@ -327,9 +340,26 @@ describe("Path Functions", () => {
         });
 
         it("handles object cursor during numeric segment traversal", () => {
+            // The object has no own "0" key for the numeric segment to find.
             const data = [{ name: "John" }];
-            // Object doesn't have numeric array indices
             expect(Path.getRaw(data, "0.0")).toEqual({ found: false });
+        });
+
+        it("looks an integer segment up as an object's own key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-int-segment-into-map"
+            expect(Path.getRaw([{ 0: "x" }], "0.0")).toEqual({
+                found: true,
+                value: "x",
+            });
+            expect(Path.getRaw([{ k: "v", 0: "x" }], "0.0")).toEqual({
+                found: true,
+                value: "x",
+            });
+            expect(Path.getRaw([[{ 1: "z" }]], "0.0.1")).toEqual({
+                found: true,
+                value: "z",
+            });
+            expect(Path.getRaw([{ 1: "z" }], "0.0")).toEqual({ found: false });
         });
 
         it("handles string segments on arrays", () => {
@@ -2443,6 +2473,15 @@ describe("Path Functions", () => {
             });
         });
 
+        it("keeps a class instance as a leaf, as a value or inside a nested list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-object-leaf"
+            const point = new Point();
+            const result = Path.dotFlattenObject({ p: point, l: [point] });
+            expect(Object.keys(result)).toEqual(["p", "l.0"]);
+            expect(result["p"]).toBe(point);
+            expect(result["l.0"]).toBe(point);
+        });
+
         it("respects depth parameter", () => {
             expect(
                 Path.dotFlattenObject({ a: { b: { c: 1 } } }, "", 1),
@@ -2507,6 +2546,15 @@ describe("Path Functions", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-of-assoc"
             const result = Path.dotFlattenArray([{ a: 1 }, { b: { c: 2 } }]);
             expect(result).toEqual({ "0.a": 1, "1.b.c": 2 });
+        });
+
+        it("keeps a class instance inside the array as a leaf", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-object-leaf"
+            const point = new Point();
+            const result = Path.dotFlattenArray([point, { p: point }]);
+            expect(Object.keys(result)).toEqual(["0", "1.p"]);
+            expect(result[0]).toBe(point);
+            expect(result["1.p"]).toBe(point);
         });
 
         it("respects depth parameter", () => {

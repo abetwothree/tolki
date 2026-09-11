@@ -14,6 +14,14 @@ const strcasecmp = (a: unknown, b: unknown) =>
  */
 const collectionLike = <T>(items: T) => ({ all: () => items });
 
+/**
+ * A class instance with own fields, which PHP's array helpers keep whole instead of walking.
+ */
+class Point {
+    x = 1;
+    y = 2;
+}
+
 describe("Data", () => {
     describe("dataAdd", () => {
         it("is object", () => {
@@ -574,6 +582,17 @@ describe("Data", () => {
                 username: "John",
             });
         });
+
+        it("keeps a class instance as a leaf, through both backings", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-object-leaf"
+            const point = new Point();
+            const list = Data.dataDot([point]);
+            const map = Data.dataDot({ p: point });
+            expect(Object.keys(list)).toEqual(["0"]);
+            expect(list["0"]).toBe(point);
+            expect(Object.keys(map)).toEqual(["p"]);
+            expect(map["p"]).toBe(point);
+        });
     });
 
     describe("dataUndot", () => {
@@ -995,6 +1014,11 @@ describe("Data", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "get-list-non-canonical-index"
             expect(Data.dataGet(["x", "y"], "01", "d")).toBe("d");
             expect(Data.dataGet([["x", "y"]], "0.1e0", "d")).toBe("d");
+        });
+
+        it("looks an integer segment up as the own key of an object, through the list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-int-segment-into-map"
+            expect(Data.dataGet([{ k: "v", 0: "x" }], "0.0", "d")).toBe("x");
         });
     });
 
