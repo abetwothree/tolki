@@ -3244,7 +3244,7 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
     ...values: TValue[]
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
-        if (isNull(key)) {
+        if (isNull(key) || isUndefined(key)) {
             throw new Error(
                 "Cannot push to root of non-object data when key is null",
             );
@@ -3257,7 +3257,7 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
 
     // Arr::push with a null key is Arr::get(null) (whole array) then array_push, so it
     // appends after the highest existing integer-like key instead of throwing.
-    if (isNull(key)) {
+    if (isNull(key) || isUndefined(key)) {
         let nextIndex = 0;
         // Ascending key order only holds inside the array-index range (0 to 2**32-2);
         // isIntegerLikeKey has no such ceiling, so a PHP-scale key above it keeps

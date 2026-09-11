@@ -4760,6 +4760,14 @@ describe("Obj", () => {
             expect(Obj.push({ a: 1 }, null, 9)).toEqual({ a: 1, 0: 9 });
         });
 
+        it("appends under the next integer key for an undefined key, like null", () => {
+            // JS-only: undefined has no PHP analogue; push treats it like null.
+            expect(Obj.push({ a: "x" }, undefined, 1)).toEqual({
+                a: "x",
+                0: 1,
+            });
+        });
+
         it("agrees with the array backing on a null key", () => {
             // Integer-like keys always enumerate first, so compare values as sets.
             const objValues = Object.values(Obj.push({ a: 1, b: 2 }, null, 9));
