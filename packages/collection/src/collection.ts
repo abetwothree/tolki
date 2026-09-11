@@ -512,14 +512,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * Determine if an item exists in the collection using strict comparison.
+     * Given a value, each item's `key` path is compared with it the way PHP's `===` compares, even a `null` value.
      *
-     * @param key - The value to search for
+     * @param key - The value to search for, or the path to compare when `value` is given
+     * @param value - The value the path must strictly equal
      * @returns True if the item exists using strict comparison, false otherwise
      *
      * @example
      *
      * new Collection([1, 2, 3]).containsStrict(2); -> true
      * new Collection([1, 2, 3]).containsStrict('2'); -> false
+     * new Collection([{tags: ['a']}]).containsStrict('tags', ['a']); -> true
      */
     containsStrict(key: (value: TValue, index: TKey) => unknown): boolean;
     containsStrict(key: unknown, value?: unknown): boolean;
@@ -527,13 +530,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: ((value: TValue, index: TKey) => unknown) | unknown,
         value?: unknown,
     ): boolean {
-        if (!isNull(value) && !isUndefined(value)) {
+        // PHP takes the two-argument form whenever a second argument is passed, a null one included.
+        if (!isUndefined(value)) {
             return this.contains((item) => {
-                return (
+                return strictEqual(
                     dataGet(
                         item as DataItems<unknown, PropertyKey>,
                         key as PathKey,
-                    ) === value
+                    ),
+                    value,
                 );
             });
         }
@@ -605,6 +610,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * Cross join with the given lists, returning all possible permutations.
+     * The collection's values are one dimension and each list's values another, whatever their keys.
      *
      * @param items - The lists to cross join with
      * @returns A new collection with the cross joined items
@@ -612,15 +618,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection([1, 2]).crossJoin([3, 4]); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
-     * new Collection({a: 1, b: 2}).crossJoin({c: 3, d: 4}); -> new Collection([{a: 1, c: 3}, {a: 1, d: 4}, {b: 2, c: 3}, {b: 2, d: 4}])
+     * new Collection({a: 1, b: 2}).crossJoin({c: 3, d: 4}); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
      */
     crossJoin(
         // Note: Collection<any, any> is intentional here due to TypeScript contravariance.
         // Collection<unknown, PropertyKey> breaks when passing typed collections.
         ...items: Array<DataItems<unknown, PropertyKey> | Collection<any, any>>
     ) {
+        // Collection::crossJoin hands $this->items to Arr::crossJoin as one argument, so an object backing
+        // is one dimension too, never obj.crossJoin's dimension per key.
         const results = dataCrossJoin(
-            this.items,
+            this.getItemValues(this.items),
             ...items.map((item) => this.getRawItems(item)),
         ) as DataItems<TValue, TKey>[];
 
@@ -2225,7 +2233,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * operator: this collection's own keys win, the argument only fills
      * keys it doesn't already have.
      *
-     * @param items - The items to union with. Must share this collection's backing — `dataUnion` throws otherwise.
+     * @param items - The items to union with: a list or an object, whatever this collection's backing.
      * @returns A new collection with the union of items
      *
      * @example

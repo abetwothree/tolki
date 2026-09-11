@@ -916,4 +916,22 @@ probe('list-backing-keyed-operand', "(new Collection(['a', 'b']))->union([2 => '
 ]);
 probe('union-all-nullish', "(new Collection(null))->union(null)", fn () => (new Collection(null))->union(null)->all());
 
+// ---- containsStrict($key, $value) compares data_get($item, $key) === $value whenever two arguments are passed
+probe('containsStrict-two-args-by-value', "containsStrict('tags', ['a', 'b']), ('t', a reordered array), ('name', null) with the key null, missing or set", fn () => [
+    'array' => (new Collection([['tags' => ['a', 'b']]]))->containsStrict('tags', ['a', 'b']),
+    'reordered' => (new Collection([['t' => ['x' => 1, 'y' => 2]]]))->containsStrict('t', ['y' => 2, 'x' => 1]),
+    'null' => (new Collection([['name' => null], ['name' => 'x']]))->containsStrict('name', null),
+    'null-missing' => (new Collection([['a' => 1]]))->containsStrict('name', null),
+    'null-none' => (new Collection([['name' => 'x']]))->containsStrict('name', null),
+    'doesnt' => (new Collection([['tags' => ['a', 'b']]]))->doesntContainStrict('tags', ['a', 'b']),
+]);
+
+// ---- Collection::crossJoin is Arr::crossJoin($this->items, ...$lists): the items are one dimension, keys or not
+probe('collection-crossJoin-assoc-items', "(new Collection(['size' => ['S', 'M']]))->crossJoin(['color' => ['red', 'blue']]), (['a' => 1, 'b' => 2])->crossJoin(['x', 'y']), (['a' => [1, 2]])->crossJoin(['b' => ['x']], ['c' => ['I', 'II']]), (['a' => 1, 'b' => 2])->crossJoin(['c' => 3, 'd' => 4])", fn () => [
+    'nested' => (new Collection(['size' => ['S', 'M']]))->crossJoin(['color' => ['red', 'blue']])->all(),
+    'scalars' => (new Collection(['a' => 1, 'b' => 2]))->crossJoin(['x', 'y'])->all(),
+    'three' => (new Collection(['a' => [1, 2]]))->crossJoin(['b' => ['x']], ['c' => ['I', 'II']])->all(),
+    'keyed-operand' => (new Collection(['a' => 1, 'b' => 2]))->crossJoin(['c' => 3, 'd' => 4])->all(),
+]);
+
 emit();

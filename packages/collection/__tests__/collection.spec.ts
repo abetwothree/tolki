@@ -765,6 +765,38 @@ describe("Collection", () => {
             ).toBe(true);
         });
 
+        it("compares the two-argument form by value, an explicit null included", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-two-args-by-value"
+            expect(
+                collect([{ tags: ["a", "b"] }]).containsStrict("tags", [
+                    "a",
+                    "b",
+                ]),
+            ).toBe(true);
+            expect(
+                collect([{ t: { x: 1, y: 2 } }]).containsStrict("t", {
+                    y: 2,
+                    x: 1,
+                }),
+            ).toBe(false);
+            expect(
+                collect([{ name: null }, { name: "x" }]).containsStrict(
+                    "name",
+                    null,
+                ),
+            ).toBe(true);
+            expect(collect([{ a: 1 }]).containsStrict("name", null)).toBe(true);
+            expect(collect([{ name: "x" }]).containsStrict("name", null)).toBe(
+                false,
+            );
+            expect(
+                collect([{ tags: ["a", "b"] }]).doesntContainStrict("tags", [
+                    "a",
+                    "b",
+                ]),
+            ).toBe(false);
+        });
+
         it("misses an object with the same entries in another order, on either backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-key-order"
             expect(
@@ -923,30 +955,38 @@ describe("Collection", () => {
             ]);
         });
 
-        it("multiplies every key of the collection's own items and the given object", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json,
-            // "crossJoin-string-spread", "crossJoin-string-spread-3"
+        it("treats an object backing's values as one dimension, like a list's", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collection-crossJoin-assoc-items"
             expect(
                 collect({ size: ["S", "M"] })
                     .crossJoin({ color: ["red", "blue"] })
                     .all(),
             ).toEqual([
-                { size: "S", color: "red" },
-                { size: "S", color: "blue" },
-                { size: "M", color: "red" },
-                { size: "M", color: "blue" },
+                [
+                    ["S", "M"],
+                    ["red", "blue"],
+                ],
             ]);
-
-            // A third argument multiplies every prior row again.
+            expect(collect({ a: 1, b: 2 }).crossJoin(["x", "y"]).all()).toEqual(
+                [
+                    [1, "x"],
+                    [1, "y"],
+                    [2, "x"],
+                    [2, "y"],
+                ],
+            );
             expect(
                 collect({ a: [1, 2] })
                     .crossJoin({ b: ["x"] }, { c: ["I", "II"] })
                     .all(),
+            ).toEqual([[[1, 2], ["x"], ["I", "II"]]]);
+            expect(
+                collect({ a: 1, b: 2 }).crossJoin({ c: 3, d: 4 }).all(),
             ).toEqual([
-                { a: 1, b: "x", c: "I" },
-                { a: 1, b: "x", c: "II" },
-                { a: 2, b: "x", c: "I" },
-                { a: 2, b: "x", c: "II" },
+                [1, 3],
+                [1, 4],
+                [2, 3],
+                [2, 4],
             ]);
         });
     });
