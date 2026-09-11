@@ -519,6 +519,18 @@ describe("Data", () => {
                 { a: 2, b: "x", c: "II" },
             ]);
         });
+
+        it("walks a plain-object dimension's values, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-string-spread-map-dimension"
+            expect(
+                Data.dataCrossJoin({ a: [1, 2], b: { k: "x", j: "y" } }),
+            ).toEqual([
+                { a: 1, b: "x" },
+                { a: 1, b: "y" },
+                { a: 2, b: "x" },
+                { a: 2, b: "y" },
+            ]);
+        });
     });
 
     describe("dataDivide", () => {
@@ -2057,6 +2069,14 @@ describe("Data", () => {
                 expect(Data.dataSortRecursive({ a: [10, 9, 1] })).toEqual({
                     a: [1, 9, 10],
                 });
+            });
+
+            it("keeps a Date value whole, through the object backing", () => {
+                // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-object-leaf"
+                const date = new Date(0);
+                const sorted = Data.dataSortRecursive({ d: date, a: 1 });
+                expect(Object.keys(sorted)).toEqual(["a", "d"]);
+                expect(sorted["d"]).toBe(date);
             });
         });
 

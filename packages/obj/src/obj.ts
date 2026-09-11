@@ -26,6 +26,7 @@ import {
     isFunction,
     isInteger,
     isIntegerLikeKey,
+    isIterable,
     isMap,
     isNull,
     isNumber,
@@ -535,6 +536,8 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
 
 /**
  * Cross join the given objects, returning all possible permutations.
+ * Each key is one dimension, walked like PHP's `foreach`: an array, a plain object,
+ * a Map or a Set gives its values, and a scalar gives none.
  *
  * @param objects - The objects to cross join.
  * @return A new array with all combinations of the input object values.
@@ -543,6 +546,7 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
  *
  * crossJoin({ a: [1] }, { b: ["x"] }); -> [{ a: 1, b: "x" }]
  * crossJoin({ size: ['S', 'M'] }, { color: ['red', 'blue'] }); -> [{ size: 'S', color: 'red' }, { size: 'S', color: 'blue' }, { size: 'M', color: 'red' }, { size: 'M', color: 'blue' }]
+ * crossJoin({ a: [1], b: { k: "x", j: "y" } }); -> [{ a: 1, b: "x" }, { a: 1, b: "y" }]
  */
 export function crossJoin<TValues, TCombineValue = TValues>(
     ...objects: Record<PropertyKey, TValues>[]
@@ -551,8 +555,10 @@ export function crossJoin<TValues, TCombineValue = TValues>(
 
     for (const obj of objects) {
         // Each key is its own dimension, as with Arr::crossJoin over a string-keyed spread.
-        for (const [key, values] of Object.entries(obj)) {
-            if (!isArray(values) || values.length === 0) {
+        for (const [key, dimension] of Object.entries(obj)) {
+            const values = foreachValues(dimension);
+
+            if (values.length === 0) {
                 return [];
             }
 
@@ -576,6 +582,29 @@ export function crossJoin<TValues, TCombineValue = TValues>(
     }
 
     return results;
+}
+
+/**
+ * Get the values PHP's `foreach` visits in a value.
+ *
+ * @param value - The value to walk.
+ * @returns An array's items, a Map's or other iterable's values, an object's own values, or nothing for a scalar.
+ */
+function foreachValues(value: unknown): unknown[] {
+    if (isArray(value)) {
+        return value;
+    }
+
+    // A Map's iterator yields [key, value] pairs, where `foreach ($map as $value)` reads only the values.
+    if (isMap(value)) {
+        return [...value.values()];
+    }
+
+    if (isIterable(value)) {
+        return [...value];
+    }
+
+    return isObject(value) ? Object.values(value) : [];
 }
 
 /**
@@ -2907,6 +2936,7 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Recursively sort an object by keys and values.
+ * Only arrays and plain objects are sorted; any other object value (a class instance, Date or Map) is kept as it is.
  *
  * @param data - The object to sort recursively.
  * @param descending - Whether to sort in descending order.
@@ -2946,7 +2976,7 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
                 .sort((a, b) => direction(compareValues(a, b)));
         }
 
-        return isObject(value) ? sortRecursive(value, isDesc) : value;
+        return isPlainObject(value) ? sortRecursive(value, isDesc) : value;
     };
 
     const entries = Object.entries(data as T).map(

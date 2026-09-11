@@ -3001,6 +3001,76 @@
                 "has-missing": false,
                 "data_get": "x"
             }
+        },
+        {
+            "label": "sortRecursive-object-leaf",
+            "php": "Arr::sortRecursive(['d' => $date, 'a' => 1]), (['l' => [$date]]), (['o' => (object) ['b' => 1, 'a' => 2]]), (['m' => new ArrayObject(['b' => 1, 'a' => 2])]): keys, identity and the object's own key order",
+            "value": {
+                "map": {
+                    "keys": [
+                        "a",
+                        "d"
+                    ],
+                    "kept": true
+                },
+                "in-list": true,
+                "object": {
+                    "kept": true,
+                    "keys": [
+                        "b",
+                        "a"
+                    ]
+                },
+                "arrayObject": {
+                    "kept": true,
+                    "keys": [
+                        "b",
+                        "a"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "crossJoin-string-spread-map-dimension",
+            "php": "Arr::crossJoin(...['a' => [1, 2], 'b' => ['k' => 'x', 'j' => 'y']]) and Arr::crossJoin(...['a' => [1], 'b' => new ArrayIterator(['k' => 'x', 'j' => 'y'])])",
+            "value": {
+                "map": [
+                    {
+                        "a": 1,
+                        "b": "x"
+                    },
+                    {
+                        "a": 1,
+                        "b": "y"
+                    },
+                    {
+                        "a": 2,
+                        "b": "x"
+                    },
+                    {
+                        "a": 2,
+                        "b": "y"
+                    }
+                ],
+                "iterator": [
+                    {
+                        "a": 1,
+                        "b": "x"
+                    },
+                    {
+                        "a": 1,
+                        "b": "y"
+                    }
+                ]
+            }
+        },
+        {
+            "label": "crossJoin-string-spread-no-values",
+            "php": "@Arr::crossJoin(...['a' => [1], 'b' => 'x']) and Arr::crossJoin(...['a' => [1], 'b' => new DateTime('@0')])",
+            "value": {
+                "scalar": [],
+                "date": []
+            }
         }
     ]
 }

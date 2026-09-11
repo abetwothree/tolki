@@ -774,4 +774,32 @@ probe('get-list-int-segment-into-map', "Arr::get([[0 => 'x']], '0.0', 'd'), Arr:
     'data_get' => data_get([['k' => 'v', 0 => 'x']], '0.0', 'd'),
 ]);
 
+// ---- Arr::sortRecursive recurses only into arrays: an object value is kept whole and unsorted
+probe('sortRecursive-object-leaf', "Arr::sortRecursive(['d' => \$date, 'a' => 1]), (['l' => [\$date]]), (['o' => (object) ['b' => 1, 'a' => 2]]), (['m' => new ArrayObject(['b' => 1, 'a' => 2])]): keys, identity and the object's own key order", function () {
+    $date = new DateTime('@0');
+    $object = (object) ['b' => 1, 'a' => 2];
+    $arrayObject = new ArrayObject(['b' => 1, 'a' => 2]);
+    $map = Arr::sortRecursive(['d' => $date, 'a' => 1]);
+    $inList = Arr::sortRecursive(['l' => [$date]]);
+    $withObject = Arr::sortRecursive(['o' => $object]);
+    $withArrayObject = Arr::sortRecursive(['m' => $arrayObject]);
+
+    return [
+        'map' => ['keys' => array_keys($map), 'kept' => $map['d'] === $date],
+        'in-list' => $inList['l'][0] === $date,
+        'object' => ['kept' => $withObject['o'] === $object, 'keys' => array_keys((array) $object)],
+        'arrayObject' => ['kept' => $withArrayObject['m'] === $arrayObject, 'keys' => array_keys($arrayObject->getArrayCopy())],
+    ];
+});
+
+// ---- Arr::crossJoin's foreach walks any array's or object's values; a scalar or a DateTime visits none
+probe('crossJoin-string-spread-map-dimension', "Arr::crossJoin(...['a' => [1, 2], 'b' => ['k' => 'x', 'j' => 'y']]) and Arr::crossJoin(...['a' => [1], 'b' => new ArrayIterator(['k' => 'x', 'j' => 'y'])])", fn () => [
+    'map' => Arr::crossJoin(...['a' => [1, 2], 'b' => ['k' => 'x', 'j' => 'y']]),
+    'iterator' => Arr::crossJoin(...['a' => [1], 'b' => new ArrayIterator(['k' => 'x', 'j' => 'y'])]),
+]);
+probe('crossJoin-string-spread-no-values', "@Arr::crossJoin(...['a' => [1], 'b' => 'x']) and Arr::crossJoin(...['a' => [1], 'b' => new DateTime('@0')])", fn () => [
+    'scalar' => @Arr::crossJoin(...['a' => [1], 'b' => 'x']),
+    'date' => Arr::crossJoin(...['a' => [1], 'b' => new DateTime('@0')]),
+]);
+
 emit();

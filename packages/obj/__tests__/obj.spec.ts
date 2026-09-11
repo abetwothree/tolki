@@ -727,6 +727,40 @@ describe("Obj", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-string-spread-empty"
             expect(Obj.crossJoin({ a: [], b: ["x"] })).toEqual([]);
         });
+
+        it("walks the values of a plain object, Map or Set dimension", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-string-spread-map-dimension"
+            expect(Obj.crossJoin({ a: [1, 2], b: { k: "x", j: "y" } })).toEqual(
+                [
+                    { a: 1, b: "x" },
+                    { a: 1, b: "y" },
+                    { a: 2, b: "x" },
+                    { a: 2, b: "y" },
+                ],
+            );
+            expect(
+                Obj.crossJoin({
+                    a: [1],
+                    b: new Map([
+                        ["k", "x"],
+                        ["j", "y"],
+                    ]),
+                }),
+            ).toEqual([
+                { a: 1, b: "x" },
+                { a: 1, b: "y" },
+            ]);
+            expect(Obj.crossJoin({ a: [1], b: new Set(["x", "y"]) })).toEqual([
+                { a: 1, b: "x" },
+                { a: 1, b: "y" },
+            ]);
+        });
+
+        it("returns no rows for a scalar or Date dimension, where PHP's foreach visits nothing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-string-spread-no-values"
+            expect(Obj.crossJoin({ a: [1], b: "x" })).toEqual([]);
+            expect(Obj.crossJoin({ a: [1], b: new Date(0) })).toEqual([]);
+        });
     });
 
     describe("divide", () => {
@@ -5693,6 +5727,29 @@ describe("Obj", () => {
             expect(
                 Obj.sortRecursive({ r: [{ id: 2 }, { id: 10 }, { id: 1 }] }),
             ).toEqual({ r: [{ id: 10 }, { id: 1 }, { id: 2 }] });
+        });
+
+        it("keeps an object value that isn't a plain object whole, even inside a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-object-leaf"
+            const date = new Date(0);
+            const point = new Point();
+            const map = new Map([
+                ["b", 1],
+                ["a", 2],
+            ]);
+            const sorted = Obj.sortRecursive({
+                d: date,
+                p: point,
+                m: map,
+                l: [date],
+                a: 1,
+            });
+
+            expect(Object.keys(sorted)).toEqual(["a", "d", "l", "m", "p"]);
+            expect(sorted.d).toBe(date);
+            expect(sorted.p).toBe(point);
+            expect(sorted.m).toBe(map);
+            expect(sorted.l[0]).toBe(date);
         });
     });
 
