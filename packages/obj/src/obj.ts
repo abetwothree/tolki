@@ -83,6 +83,13 @@ import {
     toPhpKeyString,
 } from "@tolki/utils";
 
+// sort/sortDesc's callback slot: a value/key extractor, a dot-notated key, sort descriptors, or null.
+type SortCallback<T> =
+    | ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown)
+    | string
+    | readonly SortSpec<ObjectValue<T>>[]
+    | null;
+
 // ObjectWriteResult (set, add, push): a widened path key can't walk SetObjectPath literally, so
 // it falls back to a loose record. ObjectPullRest is pull's Omit/OmitObjectPath counterpart;
 // ArrayElementOf unwraps push's existing array element type for its appended-value union.
@@ -3632,22 +3639,26 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param callback - The sorting callback, field name, an array of sort descriptors, or null for natural sorting.
  * @returns A new object with sorted entries.
  */
-export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
-    callback?:
-        | ((value: TValue, key: TKey) => unknown)
-        | string
-        | readonly SortSpec<TValue>[]
-        | null,
-): Record<TKey, TValue>;
 export function sort(
-    data: unknown,
+    data: NonObjectItems,
     callback?:
-        | ((value: unknown, key: PropertyKey) => unknown)
+        | ((value: unknown, key: string | number) => unknown)
         | string
         | readonly SortSpec<unknown>[]
         | null,
-): Record<PropertyKey, unknown>;
+): Record<string, never>;
+export function sort<T extends object>(
+    data: T,
+    callback?: SortCallback<T>,
+): ReindexedObject<T>;
+export function sort(
+    data: unknown,
+    callback?:
+        | ((value: unknown, key: string | number) => unknown)
+        | string
+        | readonly SortSpec<unknown>[]
+        | null,
+): Record<string, unknown>;
 export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback:
@@ -3729,22 +3740,26 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param callback - The value extractor callback, field name, sort descriptors, or null for natural sorting.
  * @returns A new object with sorted entries in descending order.
  */
-export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
-    callback?:
-        | ((value: TValue, key: TKey) => unknown)
-        | string
-        | readonly SortSpec<TValue>[]
-        | null,
-): Record<TKey, TValue>;
 export function sortDesc(
-    data: unknown,
+    data: NonObjectItems,
     callback?:
-        | ((value: unknown, key: PropertyKey) => unknown)
+        | ((value: unknown, key: string | number) => unknown)
         | string
         | readonly SortSpec<unknown>[]
         | null,
-): Record<PropertyKey, unknown>;
+): Record<string, never>;
+export function sortDesc<T extends object>(
+    data: T,
+    callback?: SortCallback<T>,
+): ReindexedObject<T>;
+export function sortDesc(
+    data: unknown,
+    callback?:
+        | ((value: unknown, key: string | number) => unknown)
+        | string
+        | readonly SortSpec<unknown>[]
+        | null,
+): Record<string, unknown>;
 export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback?:
@@ -3825,14 +3840,18 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
  * sortRecursive({ b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }); -> { a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }
  * sortRecursive({ user1: { name: 'john', age: 30 }, user2: { name: 'jane', age: 25 } }); -> sorted objects with sorted keys
  */
-export function sortRecursive<T extends Record<PropertyKey, unknown>>(
+export function sortRecursive(
+    data: NonObjectItems,
+    descending?: CaseValue<typeof SortDirection> | boolean,
+): Record<string, never>;
+export function sortRecursive<T extends object>(
     data: T,
     descending?: CaseValue<typeof SortDirection> | boolean,
 ): T;
 export function sortRecursive(
     data: unknown,
     descending?: CaseValue<typeof SortDirection> | boolean,
-): Record<PropertyKey, unknown>;
+): Record<string, unknown>;
 export function sortRecursive<T extends Record<PropertyKey, unknown>>(
     data: T | unknown,
     descending: CaseValue<typeof SortDirection> | boolean = false,
@@ -3885,10 +3904,9 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
  *
  * sortRecursiveDesc({ a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }); -> { b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }
  */
-export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
-    data: T,
-): T;
-export function sortRecursiveDesc(data: unknown): Record<PropertyKey, unknown>;
+export function sortRecursiveDesc(data: NonObjectItems): Record<string, never>;
+export function sortRecursiveDesc<T extends object>(data: T): T;
+export function sortRecursiveDesc(data: unknown): Record<string, unknown>;
 export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
     data: T | unknown,
 ): T | Record<PropertyKey, unknown> {

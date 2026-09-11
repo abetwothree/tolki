@@ -5243,9 +5243,8 @@ describe("Obj", () => {
                     user1: { name: "John" },
                     user2: { name: "Jane", age: 25 },
                 };
-                const result = Obj.sort<{ name: string; age?: number }>(
-                    obj,
-                    (item) => item.age,
+                const result = Obj.sort(obj, (item) =>
+                    "age" in item ? item.age : undefined,
                 );
                 expect(Object.keys(result)).toEqual(["user1", "user2"]);
             });
@@ -5475,8 +5474,7 @@ describe("Obj", () => {
         it("sorts rows by keys, per-key directions, and chained comparators", () => {
             // docs/php-parity/task-23-obj-release-readiness.json,
             // "sortByMany-keys-order", "sortByMany-order", "sortByMany-callable-keys"
-            type Row = { name: string; age: number; meta: { key: number } };
-            const unsorted: Record<string, Row> = {
+            const unsorted = {
                 a: { name: "John", age: 8, meta: { key: 3 } },
                 b: { name: "John", age: 10, meta: { key: 5 } },
                 c: { name: "Dave", age: 10, meta: { key: 3 } },
@@ -5498,9 +5496,9 @@ describe("Obj", () => {
             expect(
                 Object.keys(
                     Obj.sort(unsorted, [
-                        (x: Row, y: Row) =>
+                        (x, y) =>
                             x.name < y.name ? -1 : x.name > y.name ? 1 : 0,
-                        (x: Row, y: Row) => y.age - x.age,
+                        (x, y) => y.age - x.age,
                         ["meta.key", true],
                     ]),
                 ),
@@ -5666,9 +5664,8 @@ describe("Obj", () => {
                     user1: { name: "John" },
                     user2: { name: "Jane", age: 25 },
                 };
-                const result = Obj.sortDesc<{ name: string; age?: number }>(
-                    obj,
-                    (item) => item.age,
+                const result = Obj.sortDesc(obj, (item) =>
+                    "age" in item ? item.age : undefined,
                 );
                 // Descending: highest value first, null/undefined last
                 expect(Object.keys(result)).toEqual(["user2", "user1"]);
