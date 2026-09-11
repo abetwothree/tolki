@@ -2398,6 +2398,25 @@ describe("Arr", () => {
             expect(Arr.contains(data10, 1)).toBe(true);
             expect(Arr.contains(data10, 1, true)).toBe(false);
         });
+
+        it("ignores a callback match holding null when strict", () => {
+            // obj's sibling fix: docs/php-parity/task-23-obj-release-readiness.json,
+            // "D2 containsStrict callback matching a null value"
+            expect(
+                Arr.contains([null, 1], (value) => value === null, true),
+            ).toBe(false);
+            expect(Arr.contains([null, 1], (value) => value === null)).toBe(
+                true,
+            );
+        });
+
+        it("compares strictly by value, the way PHP's === does for arrays", () => {
+            // obj's sibling fix: docs/php-parity/task-23-obj-release-readiness.json,
+            // "D4 containsStrict array by value"
+            expect(Arr.contains([NaN], NaN, true)).toBe(false);
+            expect(Arr.contains([[1]], [1], true)).toBe(true);
+            expect(Arr.contains([{ x: 1 }], { x: 1 }, true)).toBe(true);
+        });
     });
 
     describe("filter", () => {

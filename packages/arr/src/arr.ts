@@ -69,6 +69,7 @@ import {
     phpValueMatch,
     phpValueMatcher,
     resolveSliceRange,
+    strictEqual,
     toPhpKeyString,
 } from "@tolki/utils";
 
@@ -3932,16 +3933,20 @@ export function contains<TValue>(
     }
 
     if (isFunction(value)) {
-        return data.some((item, index) =>
-            (value as (value: TValue, key: number) => boolean)(
-                item as TValue,
-                index,
-            ),
-        );
+        const callback = value as (value: TValue, key: number) => boolean;
+
+        for (const [index, item] of data.entries()) {
+            if (callback(item as TValue, index)) {
+                // containsStrict(callback) is `! is_null($this->first($callback))`: a null match doesn't count.
+                return strict ? !isNull(item) : true;
+            }
+        }
+
+        return false;
     }
 
     if (strict) {
-        return data.some((item) => item === value);
+        return data.some((item) => strictEqual(item, value));
     }
 
     // Use PHP-like loose comparison
