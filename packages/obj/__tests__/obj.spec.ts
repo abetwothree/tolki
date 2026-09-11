@@ -4607,6 +4607,18 @@ describe("Obj", () => {
                 "You requested 2 items, but there are only 0 items available.",
             );
         });
+
+        it("returns null for a Map or Set without a count, matching the NonObjectItems row", () => {
+            // JS-only: Map/Set pass accessible() but have no own enumerable entries.
+            expect(Obj.random(new Map([["a", 1]]))).toBeNull();
+            expect(Obj.random(new Set([1, 2, 3]))).toBeNull();
+        });
+
+        it("returns an empty object for a Map or Set when a count is given", () => {
+            // JS-only: same NonObjectItems row as lists/functions, not a throw.
+            expect(Obj.random(new Map([["a", 1]]), 2)).toEqual({});
+            expect(Obj.random(new Set([1, 2, 3]), 2)).toEqual({});
+        });
     });
 
     describe("shift", () => {

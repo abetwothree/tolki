@@ -65,11 +65,13 @@ import {
     isPhpNumeric,
     isPlainObject,
     isPrototypeObject,
+    isSet,
     isString,
     isStringable,
     isSymbol,
     isUndefined,
     isWeakMap,
+    isWeakSet,
     looseEqual,
     phpArrayKey,
     phpTypeName,
@@ -3157,7 +3159,15 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     number?: number | null,
     preserveKeys: boolean = false,
 ): TValue | Record<TKey, TValue> | null {
-    if (!accessible(data)) {
+    // Map/Set/WeakMap/WeakSet pass accessible() (they are objects) but have no own
+    // enumerable entries, so they join the NonObjectItems row instead of throwing.
+    if (
+        !accessible(data) ||
+        isMap(data) ||
+        isSet(data) ||
+        isWeakMap(data) ||
+        isWeakSet(data)
+    ) {
         return isNull(number) || isUndefined(number)
             ? null
             : ({} as Record<TKey, TValue>);
