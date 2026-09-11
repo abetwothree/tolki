@@ -1659,7 +1659,7 @@ export function flatten<TValue>(
  *
  * One divergence from `Arr::dot`/`Obj.dot`: an empty nested container is dropped
  * here, where PHP keeps it as a leaf value.
- * @see probe row `Arr::dot keeps a "__proto__" array value`
+ * @see docs/php-parity/task-23-obj-release-readiness.json, "dot-empty-leaf" and "dot-nested-empty-leaf".
  *
  * @param data - The object to flatten.
  * @param depth - Maximum depth for dot-notation keys.

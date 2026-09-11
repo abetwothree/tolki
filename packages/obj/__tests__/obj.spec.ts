@@ -3821,6 +3821,16 @@ describe("Obj", () => {
             expect(Obj.flattenDot(obj, -1)).toEqual({});
         });
 
+        it("drops an empty nested container, which Arr::dot keeps as a leaf", () => {
+            // JS-only: flattenDot has no PHP source; Arr::dot gives {"foo": []} and {"foo.bar": []} here
+            // (docs/php-parity/task-23-obj-release-readiness.json, "dot-empty-leaf", "dot-nested-empty-leaf").
+            expect(Obj.flattenDot({ foo: [] })).toStrictEqual({});
+            expect(Obj.flattenDot({ foo: { bar: [] } })).toStrictEqual({});
+            expect(Obj.flattenDot({ foo: {}, bar: 1 })).toStrictEqual({
+                bar: 1,
+            });
+        });
+
         it("keeps an object that isn't a plain object as a leaf, like dot", () => {
             // JS-only: flattenDot has no PHP source; it follows dot's leaf rule ("dot-object-leaf").
             const point = new Point();
