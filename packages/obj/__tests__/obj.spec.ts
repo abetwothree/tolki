@@ -1158,6 +1158,17 @@ describe("Obj", () => {
             expect(Obj.undot(null)).toEqual({});
             expect(Obj.undot(undefined)).toEqual({});
         });
+
+        it("rebuilds a list from integer segments given out of order, which PHP keeps keyed", () => {
+            // JS-only: JS enumerates integer keys ascending, so it can't hold PHP's [1 => 'y', 0 => 'x'] in that order
+            // (docs/php-parity/task-23-obj-release-readiness.json, "undot-out-of-order-int-keys").
+            expect(Obj.undot({ "a.1": "y", "a.0": "x" })).toStrictEqual({
+                a: ["x", "y"],
+            });
+            expect(Obj.undot({ "a.0": "x", "a.1": "y" })).toStrictEqual({
+                a: ["x", "y"],
+            });
+        });
     });
 
     describe("union", () => {

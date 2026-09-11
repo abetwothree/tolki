@@ -235,6 +235,30 @@
             }
         },
         {
+            "label": "undot-out-of-order-int-keys",
+            "php": "Arr::undot(['a.1' => 'y', 'a.0' => 'x']) and Arr::undot(['a.0' => 'x', 'a.1' => 'y']): each result, and whether its 'a' is a list",
+            "value": {
+                "out of order": {
+                    "value": {
+                        "a": {
+                            "1": "y",
+                            "0": "x"
+                        }
+                    },
+                    "isList": false
+                },
+                "in order": {
+                    "value": {
+                        "a": [
+                            "x",
+                            "y"
+                        ]
+                    },
+                    "isList": true
+                }
+            }
+        },
+        {
             "label": "except-int-key",
             "php": "Arr::except([1 => 'hAz', 2 => [5 => 'foo', 12 => 'baz']], 2)",
             "value": {

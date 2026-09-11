@@ -62,6 +62,15 @@ probe('dot-list-of-assoc', "Arr::dot([['a' => 1], ['b' => ['c' => 2]]])", fn () 
 
 // --- undot
 probe('undot-mixed-keys', "Arr::undot(['foo', 'foo.bar' => 'baz', 'foo.baz' => ['a' => 'b']])", fn () => Arr::undot(['foo', 'foo.bar' => 'baz', 'foo.baz' => ['a' => 'b']]));
+probe('undot-out-of-order-int-keys', "Arr::undot(['a.1' => 'y', 'a.0' => 'x']) and Arr::undot(['a.0' => 'x', 'a.1' => 'y']): each result, and whether its 'a' is a list", function () {
+    $outOfOrder = Arr::undot(['a.1' => 'y', 'a.0' => 'x']);
+    $inOrder = Arr::undot(['a.0' => 'x', 'a.1' => 'y']);
+
+    return [
+        'out of order' => ['value' => $outOfOrder, 'isList' => array_is_list($outOfOrder['a'])],
+        'in order' => ['value' => $inOrder, 'isList' => array_is_list($inOrder['a'])],
+    ];
+});
 
 // --- except
 probe('except-int-key', "Arr::except([1 => 'hAz', 2 => [5 => 'foo', 12 => 'baz']], 2)", fn () => Arr::except([1 => 'hAz', 2 => [5 => 'foo', 12 => 'baz']], 2));
