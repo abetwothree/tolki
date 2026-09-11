@@ -462,6 +462,20 @@ describe("Data", () => {
                 { size: "M", color: "red" },
                 { size: "M", color: "blue" },
             ]);
+
+            // A third key ("c") multiplies every prior row again.
+            expect(
+                Data.dataCrossJoin({
+                    a: [1, 2],
+                    b: ["x"],
+                    c: ["I", "II"],
+                }),
+            ).toEqual([
+                { a: 1, b: "x", c: "I" },
+                { a: 1, b: "x", c: "II" },
+                { a: 2, b: "x", c: "I" },
+                { a: 2, b: "x", c: "II" },
+            ]);
         });
     });
 
@@ -932,6 +946,7 @@ describe("Data", () => {
             const obj = { products: [{ name: "desk" }, { name: "chair" }] };
 
             expect(Data.dataGet(obj, "products.0.name")).toBe("desk");
+            expect(Data.dataGet(obj, "products.1.name")).toBe("chair");
             expect(Data.dataGet(obj, "products.2.name", "none")).toBe("none");
         });
     });
@@ -1352,6 +1367,14 @@ describe("Data", () => {
             expect(
                 Data.dataMapSpread(data, (n, c) => `${String(n)}-${String(c)}`),
             ).toEqual({ x: "1-a", y: "2-b" });
+
+            // The callback's third argument is the appended key.
+            expect(
+                Data.dataMapSpread(
+                    data,
+                    (n, c, k) => `${String(n)}-${String(c)}-${String(k)}`,
+                ),
+            ).toEqual({ x: "1-a-x", y: "2-b-y" });
         });
     });
 
@@ -2761,6 +2784,19 @@ describe("Data", () => {
             expect(Data.dataIntersectByKeys({ name: "M" }, null)).toEqual({});
             expect(Data.dataIntersectByKeys([1, 2], null)).toEqual([]);
         });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C19 intersectByKeys 2"
+            const result = Data.dataIntersectByKeys(
+                { name: "taylor", family: "otwell", age: 26 },
+                collectionLike({
+                    height: 180,
+                    name: "amir",
+                    family: "moharami",
+                }) as never,
+            );
+            expect(result).toEqual({ name: "taylor", family: "otwell" });
+        });
     });
 
     describe("dataExceptValues", () => {
@@ -2899,6 +2935,16 @@ describe("Data", () => {
             );
             expect(result).toEqual([]);
         });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C22 diffKeysUsing"
+            const result = Data.dataDiffKeysUsing(
+                { id: 1, first_word: "Hello" },
+                collectionLike({ ID: 123, foo_bar: "Hello" }) as never,
+                strcasecmp,
+            );
+            expect(result).toEqual({ first_word: "Hello" });
+        });
     });
 
     describe("dataIntersectAssoc", () => {
@@ -2929,6 +2975,20 @@ describe("Data", () => {
         it("treats a null other as empty rather than throwing", () => {
             expect(Data.dataIntersectAssoc({ a: "green" }, null)).toEqual({});
             expect(Data.dataIntersectAssoc([1, 2], null)).toEqual([]);
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssoc-collection"
+            const result = Data.dataIntersectAssoc(
+                { a: "green", b: "brown", c: "blue", 0: "red" },
+                collectionLike({
+                    a: "green",
+                    b: "yellow",
+                    0: "blue",
+                    1: "red",
+                }) as never,
+            );
+            expect(result).toEqual({ a: "green" });
         });
     });
 
@@ -2985,6 +3045,21 @@ describe("Data", () => {
                     (a: number, b: number) => a === b,
                 ),
             ).toEqual([]);
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C9 intersectAssocUsing strcasecmp"
+            const result = Data.dataIntersectAssocUsing(
+                { a: "green", b: "brown", c: "blue", 0: "red" },
+                collectionLike({
+                    a: "GREEN",
+                    B: "brown",
+                    0: "yellow",
+                    1: "red",
+                }) as never,
+                strcasecmp,
+            );
+            expect(result).toEqual({ b: "brown" });
         });
     });
 
