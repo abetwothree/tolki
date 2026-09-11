@@ -90,6 +90,7 @@ describe("obj sorting type tests", () => {
 
     describe("SortSpec", () => {
         it("keeps CaseValue<typeof SortDirection> assignable to the direction slot", () => {
+            // The tuple's direction slot also accepts boolean and 'asc'/'desc', so the enum is a subset, not an exact match.
             expectTypeOf<CaseValue<typeof SortDirection>>().toExtend<
                 SortSpecTupleDirection<SortSpec<unknown>>
             >();
