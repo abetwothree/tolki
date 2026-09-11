@@ -2315,6 +2315,8 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
         | null
         | unknown = null,
 ): unknown[] | Record<PropertyKey, unknown> {
+    const valuePath = isUndefined(value) ? null : value;
+
     if (!accessible(data)) {
         return isNull(key) || isUndefined(key) ? [] : {};
     }
@@ -2330,12 +2332,14 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
         let itemKey: string | number | undefined;
 
         // Get the value
-        if (isFunction(value)) {
-            itemValue = value(item);
+        if (isFunction(valuePath)) {
+            itemValue = valuePath(item);
         } else {
             itemValue = resolvePluckPath(
                 item,
-                explodePluckPath(value as string | readonly string[] | null),
+                explodePluckPath(
+                    valuePath as string | readonly string[] | null,
+                ),
             );
         }
 

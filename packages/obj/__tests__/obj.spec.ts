@@ -3290,6 +3290,11 @@ describe("Obj", () => {
             });
         });
 
+        it("keeps whole rows for an undefined value path, like null", () => {
+            // JS-only: undefined has no PHP analogue; pluck treats it like null.
+            expect(Obj.pluck({ a: { n: 1 } }, undefined)).toEqual([{ n: 1 }]);
+        });
+
         it("yields null placeholders for a missing path", () => {
             const data = { a: { name: "x" }, b: { name: "y" } };
             // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
