@@ -481,9 +481,8 @@ describe("Obj", () => {
 
     describe("combine", () => {
         it("should combine two objects into an object", () => {
-            // Four keys, four values — equal counts, so this exercises an
-            // `undefined`-valued key without tripping the count-mismatch guard.
-            // Function-key resolution moved to its own test below.
+            // Four keys, four values, so the undefined-valued key doesn't trip the count-mismatch guard.
+            // JS-only: PHP has no undefined; toPhpKeyString keys it "" as array_combine keys null.
             const keys = {
                 1: "name",
                 2: "family",
@@ -495,8 +494,16 @@ describe("Obj", () => {
                 name: "John",
                 family: "Doe",
                 role: "admin",
-                undefined: "N/A",
+                "": "N/A",
             });
+        });
+
+        it("casts null, true and false keys the way array_combine does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
+            expect(Obj.combine({ k: null }, { v: 1 })).toEqual({ "": 1 });
+            expect(Obj.combine({ k: true }, { v: 1 })).toEqual({ 1: 1 });
+            expect(Obj.combine({ k: false }, { v: 1 })).toEqual({ "": 1 });
+            expect(Obj.combine({ k: 1.5 }, { v: 1 })).toEqual({ "1.5": 1 });
         });
 
         // obj.combine used to resolve a function-typed key by *calling* it
@@ -2610,6 +2617,38 @@ describe("Obj", () => {
                     true,
                 ),
             ).toBe(true);
+        });
+
+        it("ignores a callback match holding null when strict", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D2 containsStrict callback matching a null value"
+            expect(
+                Obj.contains(
+                    { a: null, b: 1 },
+                    (value: unknown) => value === null,
+                    true,
+                ),
+            ).toBe(false);
+            expect(
+                Obj.contains(
+                    { a: null, b: 1 },
+                    (value: unknown) => value === null,
+                ),
+            ).toBe(true);
+        });
+
+        it("compares strictly the way PHP's === does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "D3 containsStrict NAN", "D4 containsStrict array by value"
+            expect(Obj.contains({ a: NaN }, NaN, true)).toBe(false);
+            expect(Obj.contains({ a: [1] }, [1], true)).toBe(true);
+            expect(Obj.contains({ a: { x: 1 } }, { x: 1 }, true)).toBe(true);
+        });
+
+        it("compares loosely by default, the way PHP's == does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "D3 containsStrict NAN", "D4 containsStrict array by value"
+            expect(Obj.contains({ a: NaN }, NaN)).toBe(false);
+            expect(Obj.contains({ a: { x: 1 } }, { x: "1" })).toBe(true);
         });
     });
 
@@ -6270,6 +6309,51 @@ describe("Obj", () => {
                 prototype: "P",
                 normal: 1,
             });
+        });
+
+        it("merges a nested list with a nested object by key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "D7 replaceRecursive nested list replaced by offset map"
+            // "R1 replaceRecursive nested map replaced by list", "replaceRecursive-list-with-assoc"
+            expect(
+                Obj.replaceRecursive({ k: ["c", "d"] }, { k: { 1: "e" } }),
+            ).toEqual({ k: ["c", "e"] });
+            expect(
+                Obj.replaceRecursive({ k: { 0: "c", 1: "d" } }, { k: ["x"] }),
+            ).toEqual({ k: ["x", "d"] });
+            expect(Obj.replaceRecursive({ k: ["c"] }, { k: { x: 1 } })).toEqual(
+                { k: { 0: "c", x: 1 } },
+            );
+        });
+
+        it("keeps a replacer list's object element whole instead of spreading it into the list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-list-element-map"
+            expect(
+                Obj.replaceRecursive({ y: [1, 2] }, { y: [{ 1: "x" }] }),
+            ).toEqual({ y: [{ 1: "x" }, 2] });
+        });
+
+        it("replaces a Date, a Map or a class instance whole, as PHP does an object", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-object-leaf".
+            // JS-only: a Map has no PHP analogue; it is a leaf like any object.
+            class Point {
+                constructor(readonly x: number) {}
+            }
+            const date = new Date(1);
+            const map = new Map([["b", 2]]);
+            const point = new Point(2);
+
+            expect(
+                Obj.replaceRecursive(
+                    {
+                        d: new Date(0),
+                        m: new Map([["a", 1]]),
+                        p: new Point(1),
+                        q: { a: 1 },
+                    },
+                    { d: date, m: map, p: { y: 2 }, q: point },
+                ),
+            ).toEqual({ d: date, m: map, p: { y: 2 }, q: point });
         });
     });
 

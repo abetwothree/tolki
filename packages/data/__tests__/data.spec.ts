@@ -340,9 +340,8 @@ describe("Data", () => {
 
     describe("dataCombine", () => {
         it("is object", () => {
-            // Four keys, four values — equal counts. Plain String coercion, not
-            // function-calling — see obj.spec.ts's combine tests for the dedicated
-            // function-key case.
+            // Four keys, four values; obj.spec.ts's combine tests cover a function key.
+            // JS-only: PHP has no undefined; toPhpKeyString keys it "" as array_combine keys null.
             const keys = {
                 1: "name",
                 2: "family",
@@ -356,7 +355,7 @@ describe("Data", () => {
                 name: "John",
                 family: "Doe",
                 role: "admin",
-                undefined: "N/A",
+                "": "N/A",
             });
         });
 

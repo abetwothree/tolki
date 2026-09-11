@@ -1,4 +1,3 @@
-import { replaceRecursive as arrReplaceRecursive } from "@tolki/arr";
 import { SortDirection } from "@tolki/enum";
 import {
     dotFlatten,
@@ -33,6 +32,7 @@ import {
     isPhpArrayKey,
     isPhpFalsy,
     isPhpNumeric,
+    isPlainObject,
     isPrototypeObject,
     isString,
     isStringable,
@@ -45,6 +45,8 @@ import {
     phpValueMatcher,
     reindexIntegerKeys,
     resolveSliceRange,
+    strictEqual,
+    toPhpKeyString,
     typeOf,
 } from "@tolki/utils";
 
@@ -495,9 +497,7 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
     valuesObject: Record<PropertyKey, TValues>,
 ): Record<PropertyKey, TCombineValue> {
     const maxLength = Object.keys(keysObject).length;
-    // Plain String() coercion, not a function-calling one: PHP has no
-    // function-typed array keys, and arr.combine agrees on plain String().
-    const keys = Object.values(keysObject).map((k) => String(k));
+    const keys = Object.values(keysObject).map((key) => toPhpKeyString(key));
     const values = Object.values(valuesObject);
 
     if (maxLength !== values.length) {
@@ -3333,22 +3333,29 @@ export function replaceRecursive<T1, T2>(
 
         const existing = data[key as PropertyKey];
 
-        if (isObject(value) && isObject(existing)) {
-            defineKey(
-                result as Record<string, T1 | T2>,
-                key,
-                replaceRecursive(
-                    existing as Record<PropertyKey, T1>,
-                    value as Record<PropertyKey, T2>,
-                ) as T1 | T2,
+        if (
+            (isArray(value) || isPlainObject(value)) &&
+            (isArray(existing) || isPlainObject(existing))
+        ) {
+            // Lists and plain objects are PHP arrays, so they merge by key; if either was a list, the result is a
+            // list again while its keys stay 0..n-1.
+            const merged = replaceRecursive(
+                { ...(existing as object) } as Record<PropertyKey, T1>,
+                { ...(value as object) } as Record<PropertyKey, T2>,
             );
-        } else if (isArray(value) && isArray(existing)) {
+            const isList =
+                (isArray(existing) || isArray(value)) &&
+                Object.keys(merged).every(
+                    (mergedKey, index) => mergedKey === String(index),
+                );
+
             defineKey(
                 result as Record<string, T1 | T2>,
                 key,
-                arrReplaceRecursive(existing as T1[], value as T2[]) as T1 | T2,
+                (isList ? Object.values(merged) : merged) as T1 | T2,
             );
         } else {
+            // PHP recurses only into two arrays: a scalar, a Date, a Map or a class instance is replaced whole.
             defineKey(result as Record<string, T1 | T2>, key, value as T1 | T2);
         }
     }
@@ -3529,10 +3536,12 @@ export function contains<TValue>(
     }
 
     if (isFunction(value)) {
-        const obj = data as Record<PropertyKey, TValue>;
-        for (const [key, val] of Object.entries(obj)) {
+        for (const [key, val] of Object.entries(
+            data as Record<PropertyKey, TValue>,
+        )) {
             if (value(val as TValue, phpArrayKey(key))) {
-                return true;
+                // containsStrict(callback) is `! is_null($this->first($callback))`: a null match doesn't count.
+                return strict ? !isNull(val) : true;
             }
         }
 
@@ -3540,8 +3549,8 @@ export function contains<TValue>(
     }
 
     if (strict) {
-        return Object.values(data as Record<PropertyKey, TValue>).includes(
-            value as TValue,
+        return Object.values(data as Record<PropertyKey, TValue>).some((val) =>
+            strictEqual(val, value),
         );
     }
 
