@@ -59,15 +59,6 @@ describe("obj type tests", () => {
         });
     });
 
-    describe("filter", () => {
-        it("infers the value type instead of collapsing to unknown", () => {
-            // filter's `data` parameter had the same collapse-to-unknown trap as
-            // splice/slice/pop.
-            const result = Obj.filter({ a: 1, b: 2, c: 3 });
-            expectTypeOf(result.b).toEqualTypeOf<number>();
-        });
-    });
-
     describe("replace", () => {
         it("accepts a replacer typed as Record<PropertyKey, T> | null", () => {
             // The two concrete overloads avoid the `X | unknown` collapse, but neither

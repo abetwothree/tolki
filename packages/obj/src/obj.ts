@@ -15,6 +15,7 @@ import type {
     ArrayableItems,
     CaseValue,
     EnsureObject,
+    NonNullableObject,
     NonObjectItems,
     ObjectKey,
     ObjectResolvePath,
@@ -23,6 +24,7 @@ import type {
     PathKeys,
     SortSpec,
     SpreadItems,
+    TruthyObject,
 } from "@tolki/types";
 import {
     arrayableItems,
@@ -69,6 +71,36 @@ import {
  * argument; every other function returns a new value. arr and obj agree
  * on this — re-read Collection.php before "aligning" one to the other.
  */
+
+// Mirrors mapSpread's runtime: a list spreads its items, an object its values, and anything else (a function
+// included, which isObject rejects) passes whole. An unknown or bare `object` row may be a list of any length.
+type MapSpreadItems<V> = unknown extends V
+    ? unknown[]
+    : V extends readonly unknown[]
+      ? V
+      : V extends (...args: never[]) => unknown
+        ? [V]
+        : V extends object
+          ? [keyof V] extends [never]
+              ? unknown[]
+              : ObjectValue<V>[]
+          : [V];
+// Same-length tuple rows zip into one tuple so a callback may leave off the key;
+// rows of differing or open length give `false`, because the key's position then varies by row.
+type SpreadZip<
+    S extends readonly unknown[],
+    A extends unknown[] = [],
+> = S["length"] extends A["length"]
+    ? A
+    : A["length"] extends S["length"]
+      ? false
+      : SpreadZip<S, [...A, S[A["length"]]]>;
+type SpreadArgs<V, K> =
+    MapSpreadItems<V> extends infer S extends readonly unknown[]
+        ? SpreadZip<S> extends infer Z extends unknown[]
+            ? [...Z, K]
+            : (S[number] | K)[]
+        : never;
 
 // A default value, or a closure that produces one, as the guard helpers accept.
 type Default<TDefault> = TDefault | (() => TDefault);
@@ -2216,6 +2248,18 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
  * map({ a: 1, b: 2, c: 3 }, (value) => value * 2); -> { a: 2, b: 4, c: 6 }
  * map({ name: 'john', email: 'JOHN@EXAMPLE.COM' }, (value, key) => key === 'name' ? value.toUpperCase() : value.toLowerCase()); -> { name: 'JOHN', email: 'john@example.com' }
  */
+export function map<R>(
+    data: NonObjectItems,
+    callback: (value: unknown, key: string | number) => R,
+): Record<string, never>;
+export function map<T extends object, R>(
+    data: T,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => R,
+): { -readonly [K in keyof T]: R };
+export function map<R>(
+    data: unknown,
+    callback: (value: unknown, key: string | number) => R,
+): Record<string, R>;
 export function map<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -2258,6 +2302,31 @@ export function map<
  * mapWithKeys({ user1: { id: 1, name: 'John' } }, (item) => ({ [item.name]: item.id })); -> { John: 1 }
  * mapWithKeys({ a: 'x', b: 'y' }, (value, key) => ({ [value]: key })); -> { x: 'a', y: 'b' }
  */
+export function mapWithKeys(
+    data: NonObjectItems,
+    callback: (
+        value: unknown,
+        key: string | number,
+    ) => Record<PropertyKey, unknown>,
+): Record<string, never>;
+export function mapWithKeys<
+    T extends object,
+    TMapKey extends PropertyKey,
+    TMapValue,
+>(
+    data: T,
+    callback: (
+        value: ObjectValue<T>,
+        key: ObjectKey<T>,
+    ) => Record<TMapKey, TMapValue>,
+): Record<TMapKey, TMapValue>;
+export function mapWithKeys<TMapKey extends PropertyKey, TMapValue>(
+    data: unknown,
+    callback: (
+        value: unknown,
+        key: string | number,
+    ) => Record<TMapKey, TMapValue>,
+): Record<TMapKey, TMapValue>;
 export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
@@ -2307,6 +2376,18 @@ export function mapWithKeys<
  * mapSpread({ x: [1, 'a'], y: [2, 'b'] }, (n, c) => `${n}-${c}`); -> { x: '1-a', y: '2-b' }
  * mapSpread({ x: [1, 'a'], y: [2, 'b'] }, (n, c, key) => `${n}-${c}-${key}`); -> { x: '1-a-x', y: '2-b-y' }
  */
+export function mapSpread<R>(
+    data: NonObjectItems,
+    callback: (...args: unknown[]) => R,
+): Record<string, never>;
+export function mapSpread<T extends object, R>(
+    data: T,
+    callback: (...args: SpreadArgs<ObjectValue<T>, ObjectKey<T>>) => R,
+): { -readonly [K in keyof T]: R };
+export function mapSpread<R>(
+    data: unknown,
+    callback: (...args: unknown[]) => R,
+): Record<string, R>;
 export function mapSpread<
     TValue extends Record<PropertyKey, unknown>,
     TMapSpreadValue,
@@ -3389,6 +3470,18 @@ export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
  * where({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { c: 3, d: 4 }
  * where({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> { name: 'John', city: 'NYC' }
  */
+export function where(
+    data: NonObjectItems,
+    callback: (value: unknown, key: string | number) => boolean,
+): Record<string, never>;
+export function where<T extends object>(
+    data: T,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+): Partial<T>;
+export function where(
+    data: unknown,
+    callback: (value: unknown, key: string | number) => boolean,
+): Record<string, unknown>;
 export function where<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => boolean,
@@ -3421,11 +3514,26 @@ export function where<TValue, TKey extends PropertyKey = PropertyKey>(
  * reject({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { a: 1, b: 2 }
  * reject({ name: 'John', age: null, city: 'NYC' }, (value) => value === null); -> { name: 'John', city: 'NYC' }
  */
+export function reject(
+    data: NonObjectItems,
+    callback: (value: unknown, key: string | number) => boolean,
+): Record<string, never>;
+export function reject<T extends object>(
+    data: T,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+): Partial<T>;
+export function reject(
+    data: unknown,
+    callback: (value: unknown, key: string | number) => boolean,
+): Record<string, unknown>;
 export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => boolean,
 ): Record<TKey, TValue> {
-    return where(data, (value, key) => !callback(value, key));
+    return where(
+        data,
+        (value, key) => !callback(value as TValue, key as TKey),
+    ) as Record<TKey, TValue>;
 }
 
 /**
@@ -3658,6 +3766,18 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
  * partition({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> [{ c: 3, d: 4 }, { a: 1, b: 2 }]
  * partition({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> [{ name: 'John', city: 'NYC' }, { age: null }]
  */
+export function partition(
+    data: NonObjectItems,
+    callback: (value: unknown, key: string | number) => boolean,
+): [Record<string, never>, Record<string, never>];
+export function partition<T extends object>(
+    data: T,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+): [Partial<T>, Partial<T>];
+export function partition(
+    data: unknown,
+    callback: (value: unknown, key: string | number) => boolean,
+): [Record<string, unknown>, Record<string, unknown>];
 export function partition<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<string, TValue> | unknown,
     callback: (value: TValue, key: TKey) => boolean,
@@ -3692,13 +3812,16 @@ export function partition<TValue, TKey extends PropertyKey = PropertyKey>(
  * whereNotNull({ a: 1, b: null, c: 2, d: undefined, e: 3 }); -> { a: 1, c: 2, d: undefined, e: 3 }
  * whereNotNull({ name: 'John', age: null, city: 'NYC' }); -> { name: 'John', city: 'NYC' }
  */
+export function whereNotNull(data: NonObjectItems): Record<string, never>;
+export function whereNotNull<T extends object>(data: T): NonNullableObject<T>;
+export function whereNotNull(data: unknown): Record<string, unknown>;
 export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue | null> | unknown,
 ): Record<TKey, TValue> {
     return where(
         data as Record<TKey, TValue | null>,
         (value): value is TValue => !isNull(value),
-    );
+    ) as Record<TKey, TValue>;
 }
 
 /**
@@ -3788,9 +3911,25 @@ export function contains<TValue>(
  * filter({ a: "0", b: "", c: 0, d: "x" }); -> { d: "x" }
  * filter({ a: "00", b: "0.0" }); -> { a: "00", b: "0.0" }
  */
+export function filter(
+    data: NonObjectItems | null | undefined,
+    callback?: ((value: unknown, key: string | number) => boolean) | null,
+): Record<string, never>;
+export function filter<T extends object>(
+    data: T,
+    callback?: null | undefined,
+): TruthyObject<T>;
+export function filter<T extends object>(
+    data: T,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+): Partial<T>;
+export function filter(
+    data: unknown,
+    callback?: ((value: unknown, key: string | number) => boolean) | null,
+): Record<string, unknown>;
 export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | null | undefined,
-    callback?: (value: TValue, key: TKey) => boolean | null,
+    data: Record<TKey, TValue> | unknown,
+    callback?: ((value: TValue, key: TKey) => boolean | null) | unknown,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;

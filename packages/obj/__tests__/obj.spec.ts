@@ -2379,7 +2379,7 @@ describe("Obj", () => {
     describe("map", () => {
         it("should transform values", () => {
             const obj = { a: 1, b: 2, c: 3 };
-            const result = Obj.map(obj, (value) => (value as number) * 2);
+            const result = Obj.map(obj, (value) => value * 2);
             expect(result).toEqual({ a: 2, b: 4, c: 6 });
         });
 
@@ -6387,7 +6387,7 @@ describe("Obj", () => {
 
         it("should filter with callback", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
-            const result = Obj.where(obj, (value) => (value as number) > 2);
+            const result = Obj.where(obj, (value) => value > 2);
             expect(result).toEqual({ c: 3, d: 4 });
         });
 
@@ -6410,7 +6410,7 @@ describe("Obj", () => {
     describe("reject", () => {
         it("should reject items that pass test", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
-            const result = Obj.reject(obj, (value) => (value as number) > 2);
+            const result = Obj.reject(obj, (value) => value > 2);
             expect(result).toEqual({ a: 1, b: 2 });
         });
     });
@@ -6832,10 +6832,7 @@ describe("Obj", () => {
 
         it("should partition into passed and failed", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
-            const [passed, failed] = Obj.partition(
-                obj,
-                (value) => (value as number) > 2,
-            );
+            const [passed, failed] = Obj.partition(obj, (value) => value > 2);
             expect(passed).toEqual({ c: 3, d: 4 });
             expect(failed).toEqual({ a: 1, b: 2 });
         });
@@ -7403,7 +7400,7 @@ describe("Obj", () => {
 
                 return String(key);
             });
-            Obj.mapSpread({ 1: ["a"], x: ["b"] }, (...args: unknown[]) => {
+            Obj.mapSpread({ 1: ["a"], x: ["b"] }, (...args) => {
                 seen.push(args.at(-1));
 
                 return args.length;
