@@ -227,7 +227,7 @@ describe("Utils", () => {
                 10000000000000.5,
                 10000000000001.5,
                 5e-324,
-                99999999999999.99,
+                99999999999999.98,
             ];
 
             expect(floats.map((value) => Utils.toPhpKeyString(value))).toEqual([

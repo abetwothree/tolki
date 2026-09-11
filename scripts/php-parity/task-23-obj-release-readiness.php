@@ -835,16 +835,17 @@ probe('uniqueStrict-duplicatesStrict-key-order', "(new Collection([['x' => 1, 'y
 ]);
 
 // ---- array_combine keys a float by its (string) cast: INF, -0, 14 digits rounded half to even, E notation
-probe('combine-float-keys', "@(new Collection([INF, -INF, NAN, -0.0, 1.5, -1.5, 1e21, 1.5e300, 1.5e-7, 0.00001, 0.0001, 0.1 + 0.2, 1 / 3, 10000000000000.5, 10000000000001.5, 5e-324, 99999999999999.99]))->combine(range(1, 17)): the keys", fn () => @(new Collection([INF, -INF, NAN, -0.0, 1.5, -1.5, 1e21, 1.5e300, 1.5e-7, 0.00001, 0.0001, 0.1 + 0.2, 1 / 3, 10000000000000.5, 10000000000001.5, 5e-324, 99999999999999.99]))->combine(range(1, 17))->keys()->all());
-probe('combine-large-int-key', "(new Collection([4611686018427387904, -7]))->combine([1, 2]): the keys", fn () => (new Collection([4611686018427387904, -7]))->combine([1, 2])->keys()->all());
+probe('combine-float-keys', "@(new Collection([INF, -INF, NAN, -0.0, 1.5, -1.5, 1e21, 1.5e300, 1.5e-7, 0.00001, 0.0001, 0.1 + 0.2, 1 / 3, 10000000000000.5, 10000000000001.5, 5e-324, 99999999999999.98]))->combine(range(1, 17)): the keys", fn () => @(new Collection([INF, -INF, NAN, -0.0, 1.5, -1.5, 1e21, 1.5e300, 1.5e-7, 0.00001, 0.0001, 0.1 + 0.2, 1 / 3, 10000000000000.5, 10000000000001.5, 5e-324, 99999999999999.98]))->combine(range(1, 17))->keys()->all());
+probe('combine-large-int-key', "(new Collection([4611686018427387904, -7]))->combine([1, 2]): each key as [type, string]", fn () => array_map(fn ($key) => [gettype($key), (string) $key], (new Collection([4611686018427387904, -7]))->combine([1, 2])->keys()->all()));
 
 // ---- keyBy stores the resolved key as an array offset: a bool is 0/1, null is '', a float truncates (INF, NAN: 0)
-probe('keyBy-scalar-key-cast', "@Arr::keyBy([['v' => 1]], fn () => \$key) for true, false, null, 1.5, -1.5, -0.0, INF, NAN, 1e20, '05', '5': the key stored", function () {
+probe('keyBy-scalar-key-cast', "@Arr::keyBy([['v' => 1]], fn () => \$key) for true, false, null, 1.5, -1.5, -0.0, INF, NAN, 1e20, '05', '5': the key stored, as [type, string]", function () {
     $keys = ['true' => true, 'false' => false, 'null' => null, '1.5' => 1.5, '-1.5' => -1.5, '-0.0' => -0.0, 'INF' => INF, 'NAN' => NAN, '1e20' => 1e20, "'05'" => '05', "'5'" => '5'];
     $result = [];
 
     foreach ($keys as $label => $key) {
-        $result[$label] = array_keys(@Arr::keyBy([['v' => 1]], fn () => $key))[0];
+        $stored = array_keys(@Arr::keyBy([['v' => 1]], fn () => $key))[0];
+        $result[$label] = [gettype($stored), (string) $stored];
     }
 
     return $result + ['field' => array_keys(Arr::keyBy([['k' => true], ['k' => false], ['k' => null]], 'k'))];
