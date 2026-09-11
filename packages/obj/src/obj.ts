@@ -1591,10 +1591,11 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
  * Only arrays and plain objects are flattened, along with the items of a Collection-like item (one with an
  * `all()` method); any other object, a `Date`, `Map` or class instance included, is kept as a value.
  *
- * @see Arr::flatten — `packages/arr/stubs/Arr.php:366`.
+ * @see Arr::flatten — `packages/arr/stubs/Arr.php:368`.
  *
  * @param data - The object (or value) to flatten.
- * @param depth - Maximum depth to flatten. Defaults to Infinity; depth 1 stops after one level (Arr.php:368).
+ * @param depth - Maximum depth to flatten. Defaults to Infinity (Arr.php:368); depth 1 stops
+ *   after one level (Arr.php:378).
  * @returns A new flattened array of values.
  *
  * @example
@@ -1634,7 +1635,7 @@ export function flatten<TValue>(
             if (!isArray(item) && !isPlainObject(item)) {
                 result.push(item);
             } else if (currentDepth === 1) {
-                // Arr.php:373 spends the last level of depth on the
+                // Arr.php:378 spends the last level of depth on the
                 // container's own values, so depth 1 still unwraps once.
                 const nested = isArray(item) ? item : Object.values(item);
 
