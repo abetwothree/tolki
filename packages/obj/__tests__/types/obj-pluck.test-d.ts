@@ -78,6 +78,12 @@ describe("obj pluck type tests", () => {
                     unknown[] | Record<string | number, unknown>
                 >();
             });
+
+            it("returns an empty record for a list keyed by a second path", () => {
+                expectTypeOf(Obj.pluck(numberList, "name", "id")).toEqualTypeOf<
+                    Record<string | number, never>
+                >();
+            });
         });
     });
 

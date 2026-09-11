@@ -2238,7 +2238,7 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
  *
  * @param data - The object to pluck from.
  * @param value - The key path to pluck (dot-notated string, array of segments, or a
- *   `*` wildcard path), a callback, or `null` to keep each whole item.
+ *   `*` wildcard path), a callback, or `null`/`undefined` to keep each whole item.
  * @param key - Optional key path (string, array of segments, or callback) to use as keys in the result.
  * @returns A new array with plucked values or object with key-value pairs.
  *
@@ -2253,7 +2253,15 @@ export function pluck(
         | readonly (string | number)[]
         | ((item: unknown) => unknown)
         | null,
-    key?: PluckKey<unknown> | null,
+    key: PluckKey<unknown>,
+): Record<string | number, never>;
+export function pluck(
+    data: NonObjectItems,
+    value:
+        | string
+        | readonly (string | number)[]
+        | ((item: unknown) => unknown)
+        | null,
 ): never[];
 export function pluck<T extends object, const P extends string>(
     data: T,
