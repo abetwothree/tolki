@@ -20,6 +20,7 @@ import type {
     NonNullableObject,
     NonObjectItems,
     ObjectDeepPartial,
+    ObjectFlatValue,
     ObjectKey,
     ObjectPathValue,
     ObjectResolvePath,
@@ -218,6 +219,27 @@ type PluckKey<TItem> =
     | string
     | readonly (string | number)[]
     | ((item: TItem) => string | number);
+
+// At a depth, flatten() pushes a nested value as it is or reads it through all() first; ObjectPathValue (get()'s
+// reach) can't stand in, because it drops undefined and never unwraps all().
+type FlattenReach<T, D extends number = 5> = [D] extends [never]
+    ? unknown
+    :
+          | T
+          | FlattenReachOf<
+                T extends { all: (...args: never[]) => infer R } ? R : T,
+                D
+            >;
+type FlattenReachOf<T, D extends number> = T extends readonly (infer E)[]
+    ? FlattenReach<E, FlattenDepth[D]>
+    : T extends NonObjectItems | Date | RegExp | Promise<unknown>
+      ? T
+      : T extends object
+        ? [keyof T] extends [never]
+            ? unknown
+            : FlattenReach<ObjectValue<T>, FlattenDepth[D]>
+        : T;
+type FlattenDepth = [never, 0, 1, 2, 3, 4];
 
 /**
  * Determine whether the given value is object accessible.
@@ -431,21 +453,31 @@ export function boolean<
  * @param preserveKeys - Whether to preserve the original keys, defaults to true
  * @returns Chunked record
  */
-export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
+export function chunk(
+    data: NonObjectItems,
+    size: number,
+    preserveKeys?: boolean,
+): Record<number, never>;
+export function chunk<T extends object>(
+    data: T,
     size: number,
     preserveKeys?: true | undefined,
-): Record<number, Record<TKey, TValue>>;
-export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
+): Record<number, Partial<T>>;
+export function chunk<T extends object>(
+    data: T,
     size: number,
-    preserveKeys?: false,
-): Record<number, Record<number, TValue>>;
+    preserveKeys: false | undefined,
+): Record<number, Record<number, ObjectValue<T>>>;
+export function chunk<T extends object>(
+    data: T,
+    size: number,
+    preserveKeys: boolean,
+): Record<number, Partial<T> | Record<number, ObjectValue<T>>>;
 export function chunk(
     data: unknown,
     size: number,
-    preserveKeys?: false,
-): Record<PropertyKey, never>;
+    preserveKeys?: boolean,
+): Record<number, Record<string, unknown>>;
 export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     size: number,
@@ -513,22 +545,30 @@ export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
  * chunkWhile({ a: 1, b: 1, c: 2 }, (value, key, chunk) => Object.values(chunk).at(-1) === value);
  * -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
  */
-export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
+export function chunkWhile(
+    data: NonObjectItems,
     callback: (
-        value: TValue,
-        key: TKey,
-        chunk: Record<TKey, TValue>,
+        value: unknown,
+        key: string | number,
+        chunk: Record<string, unknown>,
     ) => boolean,
-): Record<number, Record<TKey, TValue>>;
+): Record<number, never>;
+export function chunkWhile<T extends object>(
+    data: T,
+    callback: (
+        value: ObjectValue<T>,
+        key: ObjectKey<T>,
+        chunk: Partial<T>,
+    ) => boolean,
+): Record<number, Partial<T>>;
 export function chunkWhile(
     data: unknown,
     callback: (
         value: unknown,
-        key: PropertyKey,
-        chunk: Record<PropertyKey, unknown>,
+        key: string | number,
+        chunk: Record<string, unknown>,
     ) => boolean,
-): Record<number, never>;
+): Record<number, Record<string, unknown>>;
 export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (
@@ -582,14 +622,18 @@ export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * chunkBy({ a: 1, b: 1, c: 2 }, (value) => value); -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
  */
-export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
-    key: PathKey | ((value: TValue, key: TKey) => unknown),
-): Record<number, Record<TKey, TValue>>;
+export function chunkBy(
+    data: NonObjectItems,
+    key: PathKey | ((value: unknown, key: string | number) => unknown),
+): Record<number, never>;
+export function chunkBy<T extends object>(
+    data: T,
+    key: PathKey | ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown),
+): Record<number, Partial<T>>;
 export function chunkBy(
     data: unknown,
-    key: PathKey | ((value: unknown, key: PropertyKey) => unknown),
-): Record<number, never>;
+    key: PathKey | ((value: unknown, key: string | number) => unknown),
+): Record<number, Record<string, unknown>>;
 export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey | ((value: TValue, key: TKey) => unknown),
@@ -626,14 +670,14 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
 
             const prior = previous;
 
-            previous = { key: currentKey, value };
+            previous = { key: currentKey as TKey, value };
 
             return looseEqual(
-                retrieve(value, currentKey),
+                retrieve(value, currentKey as TKey),
                 retrieve(prior.value, prior.key),
             );
         },
-    );
+    ) as Record<number, Record<TKey, TValue>>;
 }
 
 /**
@@ -1159,27 +1203,26 @@ export function exists<TValue extends Record<PropertyKey, unknown>>(
  * first({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  * first(new Map([['a', 1], ['b', 2]])); -> 1
  */
-// Overload: Map type for proper key and value inference
-export function first<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TFirstDefault = null,
->(
-    data: Map<TKey, TValue>,
+export function first<TValue, TKey, TDefault = null>(
+    data: ReadonlyMap<TKey, TValue>,
     callback?: ((value: TValue, key: TKey) => boolean) | null,
-    defaultValue?: TFirstDefault | (() => TFirstDefault),
-): TValue | TFirstDefault | null;
-// Overload: object and unknown fallback
-export function first<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TFirstDefault = null,
->(
-    data: Record<TKey, TValue> | unknown,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
-    defaultValue?: TFirstDefault | (() => TFirstDefault),
-): TValue | TFirstDefault | null;
-// Implementation
+    defaultValue?: Default<TDefault>,
+): TValue | TDefault;
+export function first<TDefault = null>(
+    data: NonObjectItems,
+    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    defaultValue?: Default<TDefault>,
+): TDefault;
+export function first<T extends object, TDefault = null>(
+    data: T,
+    callback?: ((value: ObjectValue<T>, key: ObjectKey<T>) => boolean) | null,
+    defaultValue?: Default<TDefault>,
+): ObjectValue<T> | TDefault;
+export function first<TDefault = null>(
+    data: unknown,
+    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    defaultValue?: Default<TDefault>,
+): unknown;
 export function first<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -1241,27 +1284,26 @@ export function first<
  * last({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  * last(new Map([['a', 1], ['b', 2]])); -> 2
  */
-// Overload: Map type for proper key and value inference
-export function last<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TDefault = null,
->(
-    data: Map<TKey, TValue>,
+export function last<TValue, TKey, TDefault = null>(
+    data: ReadonlyMap<TKey, TValue>,
     callback?: ((value: TValue, key: TKey) => boolean) | null,
-    defaultValue?: TDefault | (() => TDefault),
-): TValue | TDefault | null;
-// Overload: object and unknown fallback
-export function last<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TDefault = null,
->(
-    data: Record<TKey, TValue> | unknown,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
-    defaultValue?: TDefault | (() => TDefault),
-): TValue | TDefault | null;
-// Implementation
+    defaultValue?: Default<TDefault>,
+): TValue | TDefault;
+export function last<TDefault = null>(
+    data: NonObjectItems,
+    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    defaultValue?: Default<TDefault>,
+): TDefault;
+export function last<T extends object, TDefault = null>(
+    data: T,
+    callback?: ((value: ObjectValue<T>, key: ObjectKey<T>) => boolean) | null,
+    defaultValue?: Default<TDefault>,
+): ObjectValue<T> | TDefault;
+export function last<TDefault = null>(
+    data: unknown,
+    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    defaultValue?: Default<TDefault>,
+): unknown;
 export function last<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -1328,6 +1370,12 @@ export function last<
  * take({ a: 1, b: 2, c: 3, d: 4, e: 5 }, -2); -> { d: 4, e: 5 }
  * take({ a: 1, b: 2, c: 3 }, 5); -> { a: 1, b: 2, c: 3 }
  */
+export function take(
+    data: NonObjectItems,
+    limit: number,
+): Record<string, never>;
+export function take<T extends object>(data: T, limit: number): Partial<T>;
+export function take(data: unknown, limit: number): Record<string, unknown>;
 export function take<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     limit: number,
@@ -1387,6 +1435,15 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
  *
  * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }); -> [1, 2, 3]
  */
+export function flatten(data: NonObjectItems, depth?: number): unknown[];
+export function flatten<T extends object>(
+    data: T,
+): ObjectFlatValue<ObjectValue<T>>[];
+export function flatten<T extends object>(
+    data: T,
+    depth: number,
+): FlattenReach<ObjectValue<T>>[];
+export function flatten(data: unknown, depth?: number): unknown[];
 export function flatten<TValue>(
     data: Record<PropertyKey, TValue> | TValue,
     depth: number = Infinity,
@@ -3066,6 +3123,35 @@ export function query(data: unknown): string {
  * @returns A single random item, an object of random items, or null if object is empty.
  * @throws Error if more items are requested than available, even against an empty object (Arr.php:977).
  */
+export function random(
+    data: NonObjectItems,
+    number?: number | null,
+    preserveKeys?: boolean,
+): null | Record<string, never>;
+export function random<T extends object>(
+    data: T,
+    number?: null | undefined,
+): ObjectValue<T>;
+export function random<T extends object>(
+    data: T,
+    number: number,
+    preserveKeys?: false | undefined,
+): Record<number, ObjectValue<T>>;
+export function random<T extends object>(
+    data: T,
+    number: number,
+    preserveKeys: true | undefined,
+): Partial<T>;
+export function random<T extends object>(
+    data: T,
+    number: number,
+    preserveKeys: boolean,
+): Partial<T> | Record<number, ObjectValue<T>>;
+export function random(
+    data: unknown,
+    number?: number | null,
+    preserveKeys?: boolean,
+): unknown;
 export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     number?: number | null,
@@ -3364,6 +3450,11 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
  * shuffle({ a: 1, b: 2, c: 3, d: 4, e: 5 }); -> { 0: 3, 1: 1, 2: 5, 3: 2, 4: 4 } (random order)
  * shuffle({ x: 'hello', y: 'world', z: 'test' }); -> { 0: 'test', 1: 'hello', 2: 'world' } (random order)
  */
+export function shuffle(data: NonObjectItems): Record<number, never>;
+export function shuffle<T extends object>(
+    data: T,
+): Record<number, ObjectValue<T>>;
+export function shuffle(data: unknown): Record<number, unknown>;
 export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
 ): Record<TKey, TValue> {
@@ -3405,8 +3496,23 @@ export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * slice({ a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8 }, -2, 5); -> { g: 7, h: 8 }
  */
+export function slice(
+    data: NonObjectItems | null | undefined,
+    offset: number,
+    length?: number | null,
+): Record<string, never>;
+export function slice<T extends object>(
+    data: T,
+    offset: number,
+    length?: number | null,
+): Partial<T>;
+export function slice(
+    data: unknown,
+    offset: number,
+    length?: number | null,
+): Record<string, unknown>;
 export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | null | undefined,
+    data: Record<TKey, TValue> | unknown,
     offset: number,
     length: number | null = null,
 ): Record<TKey, TValue> {
@@ -4226,6 +4332,9 @@ function mergeRecursive(
  * @param data - The object to reverse.
  * @returns A new object with reversed entries.
  */
+export function reverse(data: NonObjectItems): Record<string, never>;
+export function reverse<T extends object>(data: T): ReindexedObject<T>;
+export function reverse(data: unknown): Record<string, unknown>;
 export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
 ): Record<TKey, TValue> {

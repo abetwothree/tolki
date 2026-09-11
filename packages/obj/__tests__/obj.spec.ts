@@ -1716,12 +1716,12 @@ describe("Obj", () => {
 
         it("should use predicate to find first matching value", () => {
             const obj = { a: 1, b: 2, c: 3 };
-            expect(Obj.first(obj, (x: number) => x > 1)).toBe(2);
+            expect(Obj.first(obj, (x) => x > 1)).toBe(2);
         });
 
         it("should return default when predicate finds no match", () => {
             const obj = { a: 1, b: 2, c: 3 };
-            expect(Obj.first(obj, (x: number) => x > 5, "none")).toBe("none");
+            expect(Obj.first(obj, (x) => x > 5, "none")).toBe("none");
         });
 
         it("should handle null/undefined data", () => {
@@ -1757,20 +1757,16 @@ describe("Obj", () => {
             // "first-assoc-no-match", "first-assoc-closure-default", "first-assoc-falsy-match"
             const obj = { a: 100, b: 200, c: 300 };
 
-            // Annotated because first's callback parameter is still `unknown`; typed overloads remove this later.
-            expect(Obj.first(obj, (value: number) => value > 300)).toBe(null);
+            expect(Obj.first(obj, (value) => value > 300)).toBe(null);
             expect(
                 Obj.first(
                     obj,
-                    (value: number) => value > 300,
+                    (value) => value > 300,
                     () => "baz",
                 ),
             ).toBe("baz");
             expect(
-                Obj.first(
-                    { a: 0, b: 10, c: 20 },
-                    (value: number) => value === 0,
-                ),
+                Obj.first({ a: 0, b: 10, c: 20 }, (value) => value === 0),
             ).toBe(0);
         });
     });
@@ -1791,12 +1787,12 @@ describe("Obj", () => {
 
         it("should use predicate to find last matching value", () => {
             const obj = { a: 1, b: 2, c: 3 };
-            expect(Obj.last(obj, (x: number) => x < 3)).toBe(2);
+            expect(Obj.last(obj, (x) => x < 3)).toBe(2);
         });
 
         it("should return default when predicate finds no match", () => {
             const obj = { a: 1, b: 2, c: 3 };
-            expect(Obj.last(obj, (x: number) => x > 5, "none")).toBe("none");
+            expect(Obj.last(obj, (x) => x > 5, "none")).toBe("none");
         });
 
         it("should handle null/undefined data", () => {
@@ -1826,11 +1822,11 @@ describe("Obj", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "last-assoc-no-match", "last-assoc-closure-default"
             const obj = { a: 100, b: 200, c: 300 };
 
-            expect(Obj.last(obj, (value: number) => value > 300)).toBe(null);
+            expect(Obj.last(obj, (value) => value > 300)).toBe(null);
             expect(
                 Obj.last(
                     obj,
-                    (value: number) => value > 300,
+                    (value) => value > 300,
                     () => "baz",
                 ),
             ).toBe("baz");
@@ -4597,10 +4593,7 @@ describe("Obj", () => {
         it("pairs each preserved key with its original value", () => {
             // ArrTest::testRandom (array_intersect_assoc)
             const source = { one: "foo", two: "bar", three: "baz" };
-            const result = Obj.random(source, 2, true) as Record<
-                string,
-                string
-            >;
+            const result = Obj.random(source, 2, true);
 
             expect(Object.keys(result)).toHaveLength(2);
             for (const [key, value] of Object.entries(result)) {

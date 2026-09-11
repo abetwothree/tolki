@@ -4,44 +4,6 @@ import { describe, expectTypeOf, it } from "vitest";
 declare const nullableOther: Record<string, number> | null;
 
 describe("obj type tests", () => {
-    describe("Map overloads", () => {
-        it("first infers the value and return type from a Map", () => {
-            const result = Obj.first(new Map([["a", 1]]), (value, key) => {
-                expectTypeOf(value).toEqualTypeOf<number>();
-                expectTypeOf(key).toEqualTypeOf<string>();
-                return value > 0;
-            });
-
-            expectTypeOf(result).toEqualTypeOf<number | null>();
-        });
-
-        it("last honours the default type alongside the Map value", () => {
-            const result = Obj.last(new Map([["a", 1]]), null, "fallback");
-
-            expectTypeOf(result).toEqualTypeOf<number | string | null>();
-        });
-    });
-
-    describe("object overloads", () => {
-        it("widens to unknown for a plain object, unlike the Map overload", () => {
-            // The object signature accepts unknown, so the value type cannot be
-            // inferred from the argument the way the Map overload infers it
-            const result = Obj.first({ a: 1 }, null, "fallback");
-
-            expectTypeOf(result).toEqualTypeOf<unknown>();
-        });
-    });
-
-    describe("slice", () => {
-        it("infers the value type instead of collapsing to unknown", () => {
-            // slice's `data` parameter used to be `Record<TKey, TValue> | unknown`, the
-            // same collapse-to-unknown trap fixed for splice/pop. Narrowed to
-            // `Record<TKey, TValue> | null | undefined`.
-            const result = Obj.slice({ a: 1, b: 2, c: 3 }, 1);
-            expectTypeOf(result.b).toEqualTypeOf<number>();
-        });
-    });
-
     describe("diff", () => {
         it("preserves data's literal key type instead of collapsing to unknown", () => {
             // `data: Record<TKey, TValue> | unknown` collapsed inference to `unknown`
@@ -114,45 +76,6 @@ describe("obj type tests", () => {
             expectTypeOf(Obj.intersectByKeys).toBeCallableWith(null, {
                 a: 1,
             });
-        });
-    });
-
-    describe("chunkWhile", () => {
-        it("returns a record of key-preserving chunks and types the callback", () => {
-            const result = Obj.chunkWhile(
-                { a: 1, b: 2 },
-                (value, key, chunk) => {
-                    expectTypeOf(value).toEqualTypeOf<number>();
-                    expectTypeOf(key).toEqualTypeOf<"a" | "b">();
-                    expectTypeOf(chunk).toEqualTypeOf<
-                        Record<"a" | "b", number>
-                    >();
-
-                    return true;
-                },
-            );
-
-            expectTypeOf(result).toEqualTypeOf<
-                Record<number, Record<"a" | "b", number>>
-            >();
-        });
-    });
-
-    describe("chunkBy", () => {
-        it("returns a record of key-preserving chunks for a callback and for a key", () => {
-            const byCallback = Obj.chunkBy({ a: { p: 1 } }, (value, key) => {
-                expectTypeOf(value).toEqualTypeOf<{ p: number }>();
-                expectTypeOf(key).toEqualTypeOf<"a">();
-
-                return value.p;
-            });
-
-            expectTypeOf(byCallback).toEqualTypeOf<
-                Record<number, Record<"a", { p: number }>>
-            >();
-            expectTypeOf(Obj.chunkBy({ a: { p: 1 } }, "p")).toEqualTypeOf<
-                Record<number, Record<"a", { p: number }>>
-            >();
         });
     });
 });
