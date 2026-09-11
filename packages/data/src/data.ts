@@ -561,7 +561,8 @@ export function dataCombine<TKeys, TValues>(
     itemsB: DataItems<TValues>,
 ) {
     if (isObject(itemsA)) {
-        return objCombine(itemsA, itemsB);
+        // Collection::combine keys by $this->all(), which never unwraps; handing obj a list keeps it from doing so.
+        return objCombine(Object.values(itemsA), itemsB);
     }
 
     return arrCombine(itemsA, itemsB);

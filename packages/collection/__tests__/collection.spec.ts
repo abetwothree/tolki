@@ -4124,6 +4124,21 @@ describe("Collection", () => {
                 .all();
             expect(keys).toEqual([10000000000000, 10000000000002, "1.0E+14"]);
         });
+
+        it("keys by its own values, without calling an all() its object backing inherits", () => {
+            // JS-only: Collection::combine keys by $this->all(), an array with no methods; JS objects inherit them.
+            class Repo {
+                name = "repo";
+
+                all() {
+                    return ["CALLED"];
+                }
+            }
+
+            expect(new Collection(new Repo()).combine([1]).all()).toEqual({
+                repo: 1,
+            });
+        });
     });
 
     describe("union", () => {

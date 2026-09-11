@@ -475,6 +475,21 @@ describe("Data", () => {
                 Object.keys(Data.dataCombine([1.5e300, 5e-324], [1, 2])),
             ).toEqual(["1.5E+300", "4.9406564584125E-324"]);
         });
+
+        it("reads an object backing's own values as the keys, without calling its all()", () => {
+            // JS-only: Collection::combine keys by $this->all(), an array with no methods; JS objects inherit them.
+            class Repo {
+                name = "repo";
+
+                all() {
+                    return ["CALLED"];
+                }
+            }
+
+            expect(Data.dataCombine(new Repo() as never, [1])).toEqual({
+                repo: 1,
+            });
+        });
     });
 
     describe("dataCount", () => {
