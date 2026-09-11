@@ -488,6 +488,13 @@ describe("Arr", () => {
             expect(result).toEqual({ [String(fn)]: 1 });
             expect(Object.keys(result)).not.toContain("callback");
         });
+
+        it("casts null, true and false keys the way array_combine does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
+            expect(Arr.combine([null], [1])).toEqual({ "": 1 });
+            expect(Arr.combine([true], [1])).toEqual({ 1: 1 });
+            expect(Arr.combine([false], [1])).toEqual({ "": 1 });
+        });
     });
 
     describe("crossJoin", () => {
@@ -2559,15 +2566,14 @@ describe("Arr", () => {
                 "b",
                 ["c", "d"],
             ]);
+            // CollectionTest::testReplaceRecursiveArray. PHP's ['z', 2 => [1 => 'e']] is the object
+            // { 0: "z", 2: { 1: "e" } } in JS, not a list holding an object.
             expect(
-                Arr.replaceRecursive(data, ["z", { 2: { 1: "e" } }]),
+                Arr.replaceRecursive(data, { 0: "z", 2: { 1: "e" } }),
             ).toEqual(["z", "b", ["c", "e"]]);
             expect(
-                Arr.replaceRecursive(data, ["z", { 2: { 1: "e" } }, "f"]),
+                Arr.replaceRecursive(data, { 0: "z", 2: { 1: "e" }, 3: "f" }),
             ).toEqual(["z", "b", ["c", "e"], "f"]);
-            expect(
-                Arr.replaceRecursive(data, ["z", { 2: { 1: "e" } }]),
-            ).toEqual(["z", "b", ["c", "e"]]);
             expect(Arr.replaceRecursive(data, { 2: { 1: "e" } })).toEqual([
                 "a",
                 "b",
@@ -2576,7 +2582,6 @@ describe("Arr", () => {
         });
 
         it("should handle nested objects with non-numeric keys", () => {
-            // This tests the objReplaceRecursive branch
             const data = [{ name: "John", details: { city: "NYC" } }];
             const replacer = [{ details: { city: "LA", country: "USA" } }];
             expect(Arr.replaceRecursive(data, replacer)).toEqual([
@@ -2584,15 +2589,34 @@ describe("Arr", () => {
             ]);
         });
 
-        it("should fill gaps with undefined when index exceeds length in array replacer", () => {
-            // Tests filling gaps with undefined
-            const data = ["a", "b"];
-            const replacer = [{ 5: "f" }];
-            const result = Arr.replaceRecursive(data, replacer);
-            expect(result[0]).toBe("a");
-            expect(result[1]).toBe("b");
-            expect(result[5]).toBe("f");
-            expect(result.length).toBe(6);
+        it("keeps a replacer list's object element whole instead of spreading it into the list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-list-elements-kept-whole"
+            expect(Arr.replaceRecursive([1, 2], [{ 1: "x" }])).toEqual([
+                { 1: "x" },
+                2,
+            ]);
+            expect(
+                Arr.replaceRecursive(["a", "b", "c"], ["x", { 4: "e" }, "z"]),
+            ).toEqual(["x", { 4: "e" }, "z"]);
+        });
+
+        it("merges two nested arrays or plain objects by key and replaces any other object whole", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-nested-list-meets-map",
+            // "replaceRecursive-object-leaf". JS-only: a Map has no PHP analogue; it is a leaf like any object.
+            const date = new Date(1);
+
+            expect(
+                Arr.replaceRecursive([["c"], { a: 1 }], [{ x: 1 }, ["x"]]),
+            ).toEqual([
+                { 0: "c", x: 1 },
+                { 0: "x", a: 1 },
+            ]);
+            expect(
+                Arr.replaceRecursive(
+                    [new Date(0), { a: 1 }],
+                    [date, new Map([["b", 2]])],
+                ),
+            ).toEqual([date, new Map([["b", 2]])]);
         });
 
         it("should fill gaps with undefined when using numeric keyed object replacer", () => {
@@ -2603,19 +2627,6 @@ describe("Arr", () => {
             expect(result[0]).toBe("a");
             expect(result[3]).toBe("d");
             expect(result.length).toBe(4);
-        });
-
-        it("should handle mixed sequential and sparse replacements", () => {
-            const data = ["a", "b", "c"];
-            // First item 'x' goes to index 0, sparse {4: 'e'} sets index 4,
-            // then 'z' goes to index 5 (currentIndex after 4+1)
-            const replacer = ["x", { 4: "e" }, "z"];
-            const result = Arr.replaceRecursive(data, replacer);
-            expect(result[0]).toBe("x");
-            expect(result[1]).toBe("b");
-            expect(result[2]).toBe("c");
-            expect(result[4]).toBe("e");
-            expect(result[5]).toBe("z");
         });
 
         // Same rationale as the "replace" pins above. Values pinned by
@@ -2657,26 +2668,6 @@ describe("Arr", () => {
         });
 
         describe("sparse indices edge cases", () => {
-            it("should handle sparse numeric keyed object in array replacer", () => {
-                // Tests sparse replacements with index >= currentIndex
-                const data = ["a", "b", "c"];
-                const replacer = [{ 5: "f" }];
-                const result = Arr.replaceRecursive(data, replacer);
-                expect(result[5]).toBe("f");
-            });
-
-            it("should handle sparse index less than currentIndex", () => {
-                // Tests the branch where index < currentIndex (condition false)
-                // First replacement at index 0 sets currentIndex to 1
-                // Then sparse object with index 0 should NOT update currentIndex
-                const data = ["a", "b", "c"];
-                const replacer = ["x", { 0: "y" }];
-                const result = Arr.replaceRecursive(data, replacer);
-                // 'x' goes to index 0 first, then {0: 'y'} overwrites index 0
-                expect(result[0]).toBe("y");
-                expect(result[1]).toBe("b");
-            });
-
             it("should handle numeric keyed object replacer directly", () => {
                 // Tests isNumericKeyedObject(replacerData) branch
                 const data = ["a", "b", "c"];

@@ -69,6 +69,7 @@ import {
     phpValueMatch,
     phpValueMatcher,
     resolveSliceRange,
+    toPhpKeyString,
 } from "@tolki/utils";
 
 /**
@@ -412,7 +413,7 @@ export function collapse<TValue extends ArrayItems<unknown>>(
  * Combine an array of keys with an array of values into an object, like PHP's
  * `array_combine()` / `Collection::combine()` (`Collection.php:933`).
  *
- * Each key is coerced with `String()`, matching `flip`/`keyBy`/`mapWithKeys`, so the
+ * Each key is cast with `toPhpKeyString()`, matching `array_combine`'s key rules, so the
  * result's key type is always `string` rather than `PropertyKey`.
  *
  * @see Collection::combine — `packages/collection/stubs/Collection.php:933`. Wraps `array_combine`.
@@ -435,7 +436,7 @@ export function combine<TKey, TValue>(
     const result: Record<string, TValue> = {};
 
     for (let i = 0; i < keys.length; i++) {
-        defineKey(result, String(keys[i]), values[i] as TValue);
+        defineKey(result, toPhpKeyString(keys[i]), values[i] as TValue);
     }
 
     return result;
@@ -3673,8 +3674,9 @@ export function replace<TValue, TReplace = TValue>(
 /**
  * Recursively replace the data items with the given items.
  *
- * Supports arrays and numeric-keyed objects as replacement values; a numeric-keyed
- * object nested in an array replaces by sparse index, same as a nested array.
+ * Supports arrays and numeric-keyed objects as replacement values. Each index merges the
+ * way `@tolki/obj`'s `replaceRecursive` merges a key: two arrays or plain objects merge,
+ * and anything else, a `Date` or class instance included, is replaced whole.
  *
  * @see Collection::replaceRecursive — `packages/collection/stubs/Collection.php:1181`. Wraps `array_replace_recursive`.
  *
@@ -3687,12 +3689,12 @@ export function replaceRecursive<TValue>(
     data: ArrayItems<TValue>,
     replacerData: null | undefined,
 ): TValue[];
-// Overload: array replacer with same type — sequential replacement, may fill gaps
+// Overload: array replacer with same type — replaces by index
 export function replaceRecursive<TValue>(
     data: ArrayItems<TValue>,
     replacerData: ArrayItems<TValue>,
 ): (TValue | undefined)[];
-// Overload: array replacer with different type — sequential replacement, may fill gaps
+// Overload: array replacer with different type — replaces by index
 export function replaceRecursive<TValue, TReplace>(
     data: ArrayItems<TValue>,
     replacerData: TReplace[],
@@ -3713,11 +3715,6 @@ export function replaceRecursive<TValue, TReplace = TValue>(
 ): (TValue | TReplace | undefined)[] {
     const values = getAccessibleValues(data) as TValue[];
 
-    // Handle null/undefined replacer
-    if (isNull(replacerData) || isUndefined(replacerData)) {
-        return values;
-    }
-
     // Helper function to check if an object is a numeric keyed object
     // TODO: move to utils
     const isNumericKeyedObject = (
@@ -3732,111 +3729,27 @@ export function replaceRecursive<TValue, TReplace = TValue>(
         );
     };
 
-    // Helper function to process a single replacement value
-    const processReplacement = (
-        originalValue: TValue,
-        replacementValue: unknown,
-    ): TValue => {
-        // Both are arrays or the replacement is a numeric keyed object that should be treated as array
-        if (
-            isArray(originalValue) &&
-            (isArray(replacementValue) ||
-                isNumericKeyedObject(replacementValue))
-        ) {
-            return replaceRecursive(
-                originalValue as unknown as ArrayItems<TValue>,
-                replacementValue as
-                    | ArrayItems<TValue>
-                    | Record<number, TReplace>,
-            ) as unknown as TValue;
-        }
-
-        // Both are objects (non-array, non-numeric-keyed)
-        if (
-            isObject(originalValue) &&
-            isObject(replacementValue) &&
-            !isNumericKeyedObject(replacementValue)
-        ) {
-            return objReplaceRecursive(
-                originalValue as unknown as Record<PropertyKey, TValue>,
-                replacementValue as unknown as Record<PropertyKey, TValue>,
-            ) as unknown as TValue;
-        }
-
-        // Otherwise, just replace
-        return replacementValue as TValue;
-    };
-
-    // If replacerData is an array
-    if (isArray(replacerData)) {
-        const replacerArray = replacerData as unknown[];
-
-        // Collect all replacements with their intended indices
-        const allReplacements: Map<number, unknown> = new Map();
-        let currentIndex = 0;
-
-        for (let i = 0; i < replacerArray.length; i++) {
-            const item = replacerArray[i];
-
-            // If this item is a numeric keyed object, it represents sparse replacements
-            if (isNumericKeyedObject(item)) {
-                const numericObj = item as Record<number, unknown>;
-                for (const key of Object.keys(numericObj)) {
-                    const index = parseInt(key, 10);
-                    allReplacements.set(index, numericObj[index]);
-                    // Update currentIndex to be after the highest sparse index
-                    if (index >= currentIndex) {
-                        currentIndex = index + 1;
-                    }
-                }
-            } else {
-                // Normal sequential replacement - use currentIndex
-                allReplacements.set(currentIndex, item);
-                currentIndex++;
-            }
-        }
-
-        // Apply all replacements
-        for (const [index, replacementValue] of allReplacements) {
-            if (index < values.length) {
-                values[index] = processReplacement(
-                    values[index]!,
-                    replacementValue,
-                );
-            } else {
-                // Fill gaps with undefined if necessary
-                while (values.length < index) {
-                    values.push(undefined as TValue);
-                }
-                values.push(replacementValue as TValue);
-            }
-        }
-
+    if (!isArray(replacerData) && !isNumericKeyedObject(replacerData)) {
         return values;
     }
 
-    // If replacerData is an object with numeric keys, replace by index
-    if (isNumericKeyedObject(replacerData)) {
-        const replacerObj = replacerData as Record<number, TReplace>;
-        for (const key of Object.keys(replacerObj)) {
-            const index = parseInt(key, 10);
-            if (index < values.length) {
-                values[index] = processReplacement(
-                    values[index]!,
-                    replacerObj[index],
-                );
-            } else {
-                // Fill gaps with undefined if necessary
-                while (values.length < index) {
-                    values.push(undefined as TValue);
-                }
-                values.push(replacerObj[index] as unknown as TValue);
-            }
+    // Each index merges exactly as obj.replaceRecursive merges a key, so the two backings can't drift apart;
+    // this only turns obj's index-keyed result back into a list, filling any gap with undefined.
+    const merged = objReplaceRecursive(
+        { ...(values as object) } as Record<PropertyKey, TValue>,
+        { ...(replacerData as object) } as Record<PropertyKey, TReplace>,
+    ) as Record<string, TValue | TReplace>;
+    const result: (TValue | TReplace | undefined)[] = [];
+
+    for (const [key, value] of Object.entries(merged)) {
+        while (result.length < Number(key)) {
+            result.push(undefined);
         }
-        return values;
+
+        result.push(value);
     }
 
-    return values;
+    return result;
 }
 
 /**
