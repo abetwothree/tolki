@@ -4521,20 +4521,24 @@ describe("Obj", () => {
     });
 
     describe("shuffle", () => {
-        it("should shuffle object keys", () => {
-            const obj = { a: 1, b: 2, c: 3, d: 4, e: 5 };
-            const result = Obj.shuffle(obj);
+        it("returns the values under keys 0..n-1, like Arr::shuffle", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "shuffle-assoc-keys", "shuffle-assoc-values-sorted"
+            const result = Obj.shuffle({ a: 1, b: 2, c: 3 });
 
-            // Should have same values
-            expect(Object.values(result).sort()).toEqual([1, 2, 3, 4, 5]);
-            // Should have same keys
-            expect(Object.keys(result).sort()).toEqual([
-                "a",
-                "b",
-                "c",
-                "d",
-                "e",
-            ]);
+            expect(Object.keys(result)).toEqual(["0", "1", "2"]);
+            expect(Object.values(result).sort()).toEqual([1, 2, 3]);
+        });
+
+        it("actually reorders the values", () => {
+            // JS-only: pins this repo's Fisher-Yates output for a mocked Math.random; PHP's shuffle isn't comparable.
+            const random = vi.spyOn(Math, "random").mockReturnValue(0);
+
+            expect(Obj.shuffle({ a: 1, b: 2, c: 3 })).toEqual({
+                0: 2,
+                1: 3,
+                2: 1,
+            });
+            random.mockRestore();
         });
 
         it("should handle empty objects", () => {
@@ -5541,6 +5545,69 @@ describe("Obj", () => {
             expect(Object.keys(resultDesc["a"])).toEqual(["f", "e"]);
             expect(Object.keys(resultDesc["b"])).toEqual(["d", "c"]);
             expect(resultDesc["b"]["d"]).toEqual([3, 3, 2, 1]);
+        });
+
+        it("sorts lists by value, recurses into them, and sorts keys", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-literal"
+            const sorted = Obj.sortRecursive({
+                users: [
+                    {
+                        name: "joe",
+                        mail: "joe@example.com",
+                        numbers: [2, 1, 0],
+                    },
+                    { name: "jane", age: 25 },
+                ],
+                repositories: [{ id: 1 }, { id: 0 }],
+                20: [2, 1, 0],
+                30: { 2: "a", 1: "b", 0: "c" },
+            });
+
+            expect(sorted).toEqual({
+                20: [0, 1, 2],
+                30: { 0: "c", 1: "b", 2: "a" },
+                repositories: [{ id: 0 }, { id: 1 }],
+                users: [
+                    { age: 25, name: "jane" },
+                    {
+                        mail: "joe@example.com",
+                        name: "joe",
+                        numbers: [0, 1, 2],
+                    },
+                ],
+            });
+            expect(Object.keys(sorted)).toEqual([
+                "20",
+                "30",
+                "repositories",
+                "users",
+            ]);
+        });
+
+        it("orders numbers numerically and strings byte-wise, in both directions", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "sortRecursive-numbers-lexical", "sortRecursiveDesc-numbers", "sortRecursive-key-case"
+            // "sortRecursive-list-strings-case"
+            expect(Obj.sortRecursive({ a: [10, 9, 1] })).toEqual({
+                a: [1, 9, 10],
+            });
+            expect(Obj.sortRecursiveDesc({ a: [1, 9, 10] })).toEqual({
+                a: [10, 9, 1],
+            });
+            expect(
+                Object.keys(Obj.sortRecursive({ b: 1, B: 2, a: 3, _x: 4 })),
+            ).toEqual(["B", "_x", "a", "b"]);
+            expect(Obj.sortRecursive({ l: ["b", "B", "a"] })).toEqual({
+                l: ["B", "a", "b"],
+            });
+        });
+
+        it("sorts a list of objects by comparing their JSON string form, not by id or PHP's array rule", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "sortRecursive-list-of-objects" — PHP gives [{id:1},{id:2},{id:10}]; obj sorts by JSON form, not PHP.
+            expect(
+                Obj.sortRecursive({ r: [{ id: 2 }, { id: 10 }, { id: 1 }] }),
+            ).toEqual({ r: [{ id: 10 }, { id: 1 }, { id: 2 }] });
         });
     });
 
@@ -7030,7 +7097,6 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
         ],
         ["prepend", () => Obj.prepend(HOSTILE(), "prepended", "z")],
         ["random", () => Obj.random(HOSTILE(), 3, true)],
-        ["shuffle", () => Obj.shuffle(HOSTILE())],
         ["sort", () => Obj.sort(HOSTILE())],
         ["sortDesc", () => Obj.sortDesc(HOSTILE())],
         ["sortRecursive", () => Obj.sortRecursive(HOSTILE())],
@@ -7091,6 +7157,16 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
             expect(Object.hasOwn(result as object, "__proto__")).toBe(true);
             expect((result as { polluted?: boolean }).polluted).toBeUndefined();
         });
+    });
+
+    it("shuffle renumbers a __proto__ key away and leaves Object.prototype untouched", () => {
+        // docs/php-parity/task-23-obj-release-readiness.json, "shuffle-assoc-keys"
+        const result = Obj.shuffle(HOSTILE());
+
+        expect(Object.keys(result)).toEqual(["0", "1", "2"]);
+        expect(Object.hasOwn(result, "__proto__")).toBe(false);
+        expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+        expect(({} as { polluted?: boolean }).polluted).toBeUndefined();
     });
 });
 

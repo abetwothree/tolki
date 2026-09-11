@@ -2571,15 +2571,15 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Shuffle the given object and return the result with shuffled key order.
+ * Shuffle the object's values and return them under keys `0..n-1`, as `Arr::shuffle` returns a list.
  *
  * @param data - The object to shuffle.
- * @returns A new object with shuffled key order.
+ * @returns A new object holding the shuffled values under keys `0..n-1`.
  *
  * @example
  *
- * shuffle({ a: 1, b: 2, c: 3, d: 4, e: 5 }); -> { c: 3, a: 1, e: 5, b: 2, d: 4 } (random order)
- * shuffle({ x: 'hello', y: 'world', z: 'test' }); -> { z: 'test', x: 'hello', y: 'world' } (random order)
+ * shuffle({ a: 1, b: 2, c: 3, d: 4, e: 5 }); -> { 0: 3, 1: 1, 2: 5, 3: 2, 4: 4 } (random order)
+ * shuffle({ x: 'hello', y: 'world', z: 'test' }); -> { 0: 'test', 1: 'hello', 2: 'world' } (random order)
  */
 export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -2588,23 +2588,22 @@ export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<TKey, TValue>;
-    const entries = Object.entries(obj);
+    const values = Object.values(data as Record<TKey, TValue>) as TValue[];
 
-    // Fisher-Yates shuffle algorithm
-    for (let i = entries.length - 1; i > 0; i--) {
+    // Fisher-Yates; Arr::shuffle returns a list, so keys become 0..n-1.
+    for (let i = values.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        const temp = entries[i];
-        entries[i] = entries[j] as [string, unknown];
-        entries[j] = temp as [string, unknown];
+
+        [values[i], values[j]] = [values[j] as TValue, values[i] as TValue];
     }
 
-    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
-    for (const [key, value] of entries) {
-        defineKey(result as Record<string, TValue>, key, value as TValue);
-    }
+    const result: Record<number, TValue> = {};
 
-    return result;
+    values.forEach((value, index) => {
+        result[index] = value;
+    });
+
+    return result as Record<TKey, TValue>;
 }
 
 /**
@@ -2928,46 +2927,36 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
 ): T | Record<PropertyKey, unknown> {
     const isDesc =
         descending === true || descending === SortDirection.Descending;
+
     if (!accessible(data)) {
         return {} as T;
     }
 
-    const obj = data as T;
-    const entries = Object.entries(obj) as [PropertyKey, unknown][];
-
-    // Recursively sort nested objects first
-    const processedEntries: [PropertyKey, unknown][] = [];
-    for (const [key, value] of entries) {
-        if (isObject(value)) {
-            processedEntries.push([key, sortRecursive(value, isDesc)]);
-        } else if (isArray(value)) {
-            // For arrays, sort them if they contain sortable items
-            const sortedArray = [...value].sort((a, b) => {
-                // Compare as strings for consistent ordering of unknown types
-                const strA = String(a);
-                const strB = String(b);
-                const comparison = strA.localeCompare(strB);
-                return isDesc ? -comparison : comparison;
-            });
-            processedEntries.push([key, sortedArray]);
-        } else {
-            processedEntries.push([key, value]);
+    const direction = (comparison: number): number =>
+        isDesc ? -comparison : comparison;
+    // Arr::sortRecursive sorts every list by value and every other array by key, recursing first.
+    const sortNested = (value: unknown): unknown => {
+        if (isArray(value)) {
+            return value
+                .map(sortNested)
+                .sort((a, b) => direction(compareValues(a, b)));
         }
-    }
 
-    // Sort object keys
-    processedEntries.sort(([keyA], [keyB]) => {
-        const strKeyA = String(keyA);
-        const strKeyB = String(keyB);
-        const comparison = strKeyA.localeCompare(strKeyB);
+        return isObject(value) ? sortRecursive(value, isDesc) : value;
+    };
 
-        return isDesc ? -comparison : comparison;
-    });
+    const entries = Object.entries(data as T).map(
+        ([key, value]) => [key, sortNested(value)] as [string, unknown],
+    );
 
-    // Rebuild object with sorted keys
-    const result: Record<PropertyKey, unknown> = {};
-    for (const [key, value] of processedEntries) {
-        defineKey(result as Record<string, unknown>, key as string, value);
+    entries.sort(([keyA], [keyB]) =>
+        direction(compareValues(phpArrayKey(keyA), phpArrayKey(keyB))),
+    );
+
+    const result: Record<string, unknown> = {};
+
+    for (const [key, value] of entries) {
+        defineKey(result, key, value);
     }
 
     return result as T;

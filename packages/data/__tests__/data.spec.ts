@@ -1702,31 +1702,11 @@ describe("Data", () => {
 
     describe("dataShuffle", () => {
         it("is object", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "shuffle-assoc-keys", "shuffle-assoc-values-sorted"
             const result = Data.dataShuffle({ a: 1, b: 2, c: 3, d: 4, e: 5 });
-            // Should have same values
+
             expect(Object.values(result).sort()).toEqual([1, 2, 3, 4, 5]);
-            // Should have same keys
-            expect(Object.keys(result).sort()).toEqual([
-                "a",
-                "b",
-                "c",
-                "d",
-                "e",
-            ]);
-
-            const obj = { a: 1, b: 2, c: 3, d: 4, e: 5 };
-            const shuffled = Data.dataShuffle(obj);
-
-            expect(Object.values(shuffled).length).toBe(5);
-            expect(Object.keys(shuffled).length).toBe(5);
-            expect(Object.values(shuffled).sort()).toEqual([1, 2, 3, 4, 5]);
-            expect(Object.keys(shuffled).sort()).toEqual([
-                "a",
-                "b",
-                "c",
-                "d",
-                "e",
-            ]);
+            expect(Object.keys(result)).toEqual(["0", "1", "2", "3", "4"]);
         });
         it("is array", () => {
             const result = Data.dataShuffle([1, 2, 3, 4]);

@@ -5130,6 +5130,14 @@ describe("Arr", () => {
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
             expect(result.polluted).toBeUndefined();
         });
+
+        it("sorts nested lists numerically and nested objects by key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-numbers-lexical" (list-shaped twin)
+            expect(Arr.sortRecursive([[10, 9, 1]])).toEqual([[1, 9, 10]]);
+            expect(Arr.sortRecursive([{ b: [3, 1], a: 1 }])).toEqual([
+                { a: 1, b: [1, 3] },
+            ]);
+        });
     });
 
     describe("sortRecursiveDesc", () => {
