@@ -1822,7 +1822,11 @@ export function dataSort<TValue, TKey extends PropertyKey = PropertyKey>(
         | null = null,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objSort(data, callback);
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        return objSort(data as Record<string, TValue>, callback) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrSort(arrWrap(data), callback);
@@ -1848,7 +1852,11 @@ export function dataSortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
         | null = null,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objSortDesc(data, callback);
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        return objSortDesc(
+            data as Record<string, TValue>,
+            callback,
+        ) as DataItems<TValue, TKey>;
     }
 
     return arrSortDesc(arrWrap(data), callback);
