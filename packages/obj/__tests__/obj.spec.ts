@@ -1124,6 +1124,12 @@ describe("Obj", () => {
                 foo: { bar: "baz", baz: { a: "b" } },
             });
         });
+
+        it("returns an empty object for null or undefined data", () => {
+            // JS-only: nullish data is treated as empty instead of throwing, like divide(null).
+            expect(Obj.undot(null)).toEqual({});
+            expect(Obj.undot(undefined)).toEqual({});
+        });
     });
 
     describe("union", () => {

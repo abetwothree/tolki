@@ -858,6 +858,10 @@ export function undot(data: unknown): Record<string, unknown>;
 export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue> | unknown,
 ): Record<TKey, TValue> {
+    if (isNull(map) || isUndefined(map)) {
+        return {} as Record<TKey, TValue>;
+    }
+
     return undotExpandObject(map as Record<TKey, TValue>);
 }
 
