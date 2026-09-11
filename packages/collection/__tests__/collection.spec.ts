@@ -1740,6 +1740,24 @@ describe("Collection", () => {
                     .all(),
             ).toEqual([1]);
         });
+
+        it("keeps an object that isn't a plain object whole, on either backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collection-flatten-object-leaf"
+            const date = new Date(0);
+            const list = collect([date, [1], collect([2, [3]])])
+                .flatten()
+                .all();
+            expect(list).toEqual([date, 1, 2, 3]);
+            expect(list[0]).toBe(date);
+
+            const map = new Map([["x", 1]]);
+            const fromObject = collect({ a: map, b: [date] })
+                .flatten()
+                .all();
+            expect(fromObject).toEqual([map, date]);
+            expect(fromObject[0]).toBe(map);
+            expect(fromObject[1]).toBe(date);
+        });
     });
 
     describe("flip", () => {
@@ -2452,6 +2470,30 @@ describe("Collection", () => {
             expect(data.keyBy("meta").all()).toEqual({
                 '{"value":null}': { id: 1, meta: keyObj },
             });
+        });
+
+        it("casts a bool, null or float key the way PHP stores an array offset", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collection-keyBy-scalar-key-cast"
+            expect(
+                collect({ a: { k: true }, b: { k: false }, c: { k: null } })
+                    .keyBy("k")
+                    .all(),
+            ).toEqual({ 1: { k: true }, 0: { k: false }, "": { k: null } });
+            expect(
+                collect([{ v: 1 }])
+                    .keyBy(() => 2.5)
+                    .keys()
+                    .all(),
+            ).toEqual([2]);
+        });
+
+        it("keys an item under a symbol the callback returns", () => {
+            // JS-only: PHP has no symbols; a symbol key is kept as it is, as arr and obj keyBy keep it.
+            const sym = Symbol("test");
+            const result = collect([{ v: 1 }])
+                .keyBy(() => sym)
+                .all() as Record<symbol, unknown>;
+            expect(result[sym]).toEqual({ v: 1 });
         });
     });
 

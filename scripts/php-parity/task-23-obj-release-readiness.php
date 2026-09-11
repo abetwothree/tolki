@@ -934,4 +934,21 @@ probe('collection-crossJoin-assoc-items', "(new Collection(['size' => ['S', 'M']
     'keyed-operand' => (new Collection(['a' => 1, 'b' => 2]))->crossJoin(['c' => 3, 'd' => 4])->all(),
 ]);
 
+// ---- Collection::flatten and ::keyBy follow Arr::flatten's leaf rule and the array-offset key cast
+probe('collection-flatten-object-leaf', "(new Collection([\$date, [1], new Collection([2, [3]])]))->flatten() and (new Collection(['a' => \$o, 'b' => [\$date]]))->flatten(): what is kept", function () {
+    $date = new DateTime('@0');
+    $object = (object) ['x' => 1, 'y' => 2];
+    $list = (new Collection([$date, [1], new Collection([2, [3]])]))->flatten()->all();
+    $map = (new Collection(['a' => $object, 'b' => [$date]]))->flatten()->all();
+
+    return [
+        'list' => ['count' => count($list), 'kept' => $list[0] === $date, 'rest' => array_slice($list, 1)],
+        'map' => ['count' => count($map), 'kept' => $map[0] === $object && $map[1] === $date],
+    ];
+});
+probe('collection-keyBy-scalar-key-cast', "(new Collection(['a' => ['k' => true], 'b' => ['k' => false], 'c' => ['k' => null]]))->keyBy('k') and @(new Collection([['v' => 1]]))->keyBy(fn () => 2.5): the keys", fn () => [
+    'field' => array_keys((new Collection(['a' => ['k' => true], 'b' => ['k' => false], 'c' => ['k' => null]]))->keyBy('k')->all()),
+    'float' => array_keys(@(new Collection([['v' => 1]]))->keyBy(fn () => 2.5)->all()),
+]);
+
 emit();

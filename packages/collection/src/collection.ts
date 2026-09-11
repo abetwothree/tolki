@@ -18,6 +18,7 @@ import {
     dataExcept,
     dataFilter,
     dataFirst,
+    dataFlatten,
     dataFlip,
     dataForget,
     dataGet,
@@ -79,11 +80,13 @@ import {
     isNumber,
     isObject,
     isString,
+    isSymbol,
     isTruthy,
     isUndefined,
     isUnsafeKey,
     looseEqual,
     objectToString,
+    phpArrayKey,
     reindexIntegerKeys,
     strictEqual,
     toArrayable,
@@ -991,7 +994,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Flatten a multi-dimensional collection into a single level.
      *
      * Laravel's flatten always returns an array-based collection, iterating over
-     * values and recursively flattening nested arrays.
+     * values and recursively flattening nested arrays. A nested collection's items
+     * are flattened too; any other object that isn't a plain object is kept whole.
      *
      * @param depth - The depth to flatten to, defaults to Infinity
      * @returns A new collection with flattened items (always array-based)
@@ -1004,42 +1008,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: [1, [2, 3]], b: [4]}).flatten(1); -> new Collection([1, [2, 3], 4])
      */
     flatten(depth: number = Infinity) {
-        const result: unknown[] = [];
-
-        const flattenRecursive = (items: unknown, currentDepth: number) => {
-            // Get the values to iterate over
-            const values = isArray(items)
-                ? items
-                : Object.values(items as Record<PropertyKey, unknown>);
-
-            for (let item of values) {
-                // Convert Collection instances to their items
-                if (item instanceof Collection) {
-                    item = item.all();
-                }
-
-                // If item is not an array/object, add it directly
-                if (!isArray(item) && !isObject(item)) {
-                    result.push(item);
-                } else if (currentDepth === 1) {
-                    // Arr.php:373 spends the last level of depth on the
-                    // container's own values, so depth 1 still unwraps once.
-                    const itemValues = isArray(item)
-                        ? item
-                        : Object.values(item);
-                    for (const value of itemValues) {
-                        result.push(value);
-                    }
-                } else {
-                    // Recursively flatten
-                    flattenRecursive(item, currentDepth - 1);
-                }
-            }
-        };
-
-        flattenRecursive(this.items, depth);
-
-        return this.newInstance(result as DataItems<TValue, TKey>);
+        // Collection::flatten is Arr::flatten($this->items, $depth), which obj and arr flatten mirror.
+        return this.newInstance(
+            dataFlatten(this.items, depth) as DataItems<TValue, TKey>,
+        );
     }
 
     /**
@@ -1325,7 +1297,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Key an array or object by a field or using a callback, array, or key/index
+     * Key an array or object by a field or using a callback, array, or key/index.
+     * Each resolved key is stored the way PHP stores an array key: `null` as `""`, a boolean as `0`/`1`,
+     * and a float truncated toward zero.
      *
      * @param keyByValue - The key to key by, or a callback function
      * @returns A new collection with keyed items
@@ -1379,13 +1353,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 resolvedKey = resolvedKey.join(".");
             }
 
-            // Key null/undefined results under an empty string key,
-            // mirroring PHP's (string) null cast in Laravel
-            if (isNull(resolvedKey) || isUndefined(resolvedKey)) {
-                resolvedKey = "";
-            }
-
-            defineKey(results, resolvedKey as PropertyKey, value as TValue);
+            defineKey(
+                results,
+                isSymbol(resolvedKey) ? resolvedKey : phpArrayKey(resolvedKey),
+                value as TValue,
+            );
         }
 
         return this.newInstance(results);

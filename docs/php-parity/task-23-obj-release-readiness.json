@@ -3468,6 +3468,39 @@
                     ]
                 ]
             }
+        },
+        {
+            "label": "collection-flatten-object-leaf",
+            "php": "(new Collection([$date, [1], new Collection([2, [3]])]))->flatten() and (new Collection(['a' => $o, 'b' => [$date]]))->flatten(): what is kept",
+            "value": {
+                "list": {
+                    "count": 4,
+                    "kept": true,
+                    "rest": [
+                        1,
+                        2,
+                        3
+                    ]
+                },
+                "map": {
+                    "count": 2,
+                    "kept": true
+                }
+            }
+        },
+        {
+            "label": "collection-keyBy-scalar-key-cast",
+            "php": "(new Collection(['a' => ['k' => true], 'b' => ['k' => false], 'c' => ['k' => null]]))->keyBy('k') and @(new Collection([['v' => 1]]))->keyBy(fn () => 2.5): the keys",
+            "value": {
+                "field": [
+                    1,
+                    0,
+                    ""
+                ],
+                "float": [
+                    2
+                ]
+            }
         }
     ]
 }
