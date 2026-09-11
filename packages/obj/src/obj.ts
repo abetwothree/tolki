@@ -436,10 +436,11 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Collapse an object of objects or lists into a single object; integer keys
- * are renumbered, as `array_merge` does.
+ * are renumbered, as `array_merge` does. A Collection-like item unwraps
+ * through its `all()` method, and any other item that isn't an object or a list is skipped.
  *
  * @param object - The object of objects or lists to collapse.
- * @return A new flattened object.
+ * @returns A new flattened object.
  *
  * @example
  *
@@ -455,14 +456,20 @@ export function collapse<
     const out: Record<string, TValue[keyof TValue]> = {};
     let nextIndex = 0;
 
-    for (const item of Object.values(object)) {
+    for (const group of Object.values(object)) {
+        // Arr::collapse merges a Collection item's items, never the Collection's own fields.
+        const item =
+            isObject(group) && isFunction(group["all"])
+                ? group["all"]()
+                : group;
+
         if (!isObject(item) && !isArray(item)) {
             continue;
         }
 
         for (const [key, value] of Object.entries(item)) {
-            // array_merge appends integer keys and lets a later string key win.
-            if (isIntegerLikeKey(key)) {
+            // array_merge appends every integer key, negative ones included, and lets a later string key win.
+            if (isNumber(phpArrayKey(key))) {
                 defineKey(
                     out as Record<PropertyKey, unknown>,
                     nextIndex,
@@ -704,7 +711,7 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
         delete target[key];
     }
 
-    // array_unshift prepends each argument as one element, then renumbers the integer keys.
+    // array_unshift prepends each argument as one element, then renumbers every integer key, negative ones included.
     let nextIndex = 0;
 
     for (const value of values) {
@@ -713,7 +720,7 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     for (const [key, value] of originalEntries) {
-        if (isIntegerLikeKey(key)) {
+        if (isNumber(phpArrayKey(key))) {
             defineKey(target, nextIndex, value);
             nextIndex++;
         } else {

@@ -635,6 +635,20 @@ describe("Obj", () => {
                 2: 3,
             });
         });
+
+        it("merges a Collection-like item's items instead of its own fields", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-assoc-collection-item"
+            expect(
+                Obj.collapse({ a: collectionLike({ x: 1 }), b: { y: 2 } }),
+            ).toEqual({ x: 1, y: 2 });
+        });
+
+        it("renumbers a negative integer key like any other integer key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-negative-int-keys"
+            expect(
+                Obj.collapse({ g1: { "-1": "a", k: "b" }, g2: { "-1": "c" } }),
+            ).toEqual({ 0: "a", 1: "c", k: "b" });
+        });
     });
 
     describe("crossJoin", () => {
@@ -1201,11 +1215,10 @@ describe("Obj", () => {
             });
         });
 
-        it("keeps a negative-string key as-is instead of renumbering it", () => {
-            // "-1" isn't a canonical JS array index (see the same case under
-            // splice), so it's left alone rather than renumbered.
-            const result = Obj.unshift({ "-1": "x", b: "y" }, 9);
-            expect(result).toEqual({ 0: 9, "-1": "x", b: "y" });
+        it("renumbers a negative integer key like any other integer key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "unshift-negative-int-key"
+            const result = Obj.unshift({ "-1": "a", x: "b" }, "z");
+            expect(result).toEqual({ 0: "z", 1: "a", x: "b" });
         });
 
         it("does not reparent a hostile target", () => {
@@ -4101,6 +4114,15 @@ describe("Obj", () => {
                 0: 0,
                 1: "five",
                 one: 1,
+            });
+        });
+
+        it("renumbers a negative integer key when no key is given", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-negative-int-key-no-key"
+            expect(Obj.prepend({ "-1": "a", x: "b" }, "z")).toEqual({
+                0: "z",
+                1: "a",
+                x: "b",
             });
         });
 

@@ -360,6 +360,23 @@ describe("Data", () => {
                 2: 3,
             });
         });
+
+        it("merges a Collection-like item's items through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-assoc-collection-item"
+            expect(
+                Data.dataCollapse({ a: collectionLike({ x: 1 }), b: { y: 2 } }),
+            ).toEqual({ x: 1, y: 2 });
+        });
+
+        it("renumbers a negative integer key through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-negative-int-keys"
+            expect(
+                Data.dataCollapse({
+                    g1: { "-1": "a", k: "b" },
+                    g2: { "-1": "c" },
+                }),
+            ).toEqual({ 0: "a", 1: "c", k: "b" });
+        });
     });
 
     describe("dataCombine", () => {
@@ -1399,6 +1416,14 @@ describe("Data", () => {
                 two: 2,
             });
         });
+        it("renumbers a negative integer key when no key is given", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-negative-int-key-no-key"
+            expect(Data.dataPrepend({ "-1": "a", x: "b" }, "z")).toEqual({
+                0: "z",
+                1: "a",
+                x: "b",
+            });
+        });
     });
 
     describe("dataPull", () => {
@@ -1790,6 +1815,14 @@ describe("Data", () => {
             expect(Data.dataUnshift({ b: 2 }, { a: 1 })).toEqual({
                 0: { a: 1 },
                 b: 2,
+            });
+        });
+        it("renumbers a negative integer key through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "unshift-negative-int-key"
+            expect(Data.dataUnshift({ "-1": "a", x: "b" }, "z")).toEqual({
+                0: "z",
+                1: "a",
+                x: "b",
             });
         });
         it("mutates the source array in place, like array_unshift", () => {

@@ -638,4 +638,13 @@ probe('intersectByKeys-list-collection-operand', "(new Collection([1, 2, 3]))->i
 // its operand either wrapped or raw, so it can't tell the fix apart from a still-broken diffAssoc.
 probe('diffAssoc-collection-matching-key', "(new Collection(['id' => 1, 'name' => 'a']))->diffAssoc(new Collection(['id' => 1, 'name' => 'b']))", fn () => (new Collection(['id' => 1, 'name' => 'a']))->diffAssoc(new Collection(['id' => 1, 'name' => 'b']))->all());
 
+// ---- Arr::collapse unwraps a Collection item; array_merge and array_unshift renumber negative integer keys too
+probe('collapse-assoc-collection-item', "Arr::collapse(['a' => new Collection(['x' => 1]), 'b' => ['y' => 2]])", fn () => Arr::collapse(['a' => new Collection(['x' => 1]), 'b' => ['y' => 2]]));
+probe('collapse-negative-int-keys', "Arr::collapse(['g1' => [-1 => 'a', 'k' => 'b'], 'g2' => [-1 => 'c']]) and the same groups as a list", fn () => [
+    'assoc' => Arr::collapse(['g1' => [-1 => 'a', 'k' => 'b'], 'g2' => [-1 => 'c']]),
+    'list' => Arr::collapse([[-1 => 'a', 'k' => 'b'], [-1 => 'c']]),
+]);
+probe('unshift-negative-int-key', "(new Collection([-1 => 'a', 'x' => 'b']))->unshift('z')", fn () => (new Collection([-1 => 'a', 'x' => 'b']))->unshift('z')->all());
+probe('prepend-negative-int-key-no-key', "Arr::prepend([-1 => 'a', 'x' => 'b'], 'z')", fn () => Arr::prepend([-1 => 'a', 'x' => 'b'], 'z'));
+
 emit();

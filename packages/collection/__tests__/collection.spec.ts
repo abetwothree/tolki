@@ -502,6 +502,25 @@ describe("Collection", () => {
                     .all(),
             ).toEqual([1, 2, "foo", "bar"]);
         });
+
+        it("merges a Collection-like item's items on an object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-assoc-collection-item"
+            // A duck-typed item isn't a Collection instance, so it reaches obj.collapse's own unwrap.
+            expect(
+                collect({ a: { all: () => ({ x: 1 }) }, b: { y: 2 } })
+                    .collapse()
+                    .all(),
+            ).toEqual({ x: 1, y: 2 });
+        });
+
+        it("renumbers a negative integer key on an object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-negative-int-keys"
+            expect(
+                collect({ g1: { "-1": "a", k: "b" }, g2: { "-1": "c" } })
+                    .collapse()
+                    .all(),
+            ).toEqual({ 0: "a", 1: "c", k: "b" });
+        });
     });
 
     describe("collapseWithKeys", () => {
@@ -4340,6 +4359,13 @@ describe("Collection", () => {
                 { 0: 0, one: 1, two: 2 },
             );
         });
+
+        it("renumbers a negative integer key when no key is given", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-negative-int-key-no-key"
+            expect(
+                new Collection({ "-1": "a", x: "b" }).prepend("z").all(),
+            ).toEqual({ 0: "z", 1: "a", x: "b" });
+        });
     });
 
     describe("push", () => {
@@ -4461,10 +4487,9 @@ describe("Collection", () => {
             });
 
             it("classifies keys the same way unshift does", () => {
-                // "5" is excluded: PHP push keeps it, unshift renumbers it. "-1" also diverges
-                // from PHP's unshift (array_unshift renumbers it too), but agrees here only
-                // because isIntegerLikeKey excludes negatives for both — see keys.ts's carve-out.
-                for (const key of ["01", "1e2", "-1", ""]) {
+                // "5" and "-1" are excluded: PHP push keeps an integer key, unshift renumbers it
+                // (docs/php-parity/task-23-obj-release-readiness.json, "unshift-negative-int-key").
+                for (const key of ["01", "1e2", ""]) {
                     const pushed = Object.keys(
                         new Collection({ [key]: "v" } as never)
                             .push(9 as never)
@@ -4674,6 +4699,13 @@ describe("Collection", () => {
                 0: "a",
                 x: "b",
             });
+        });
+
+        it("renumbers a negative integer key like any other integer key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "unshift-negative-int-key"
+            expect(
+                new Collection({ "-1": "a", x: "b" }).unshift("z").all(),
+            ).toEqual({ 0: "z", 1: "a", x: "b" });
         });
     });
 

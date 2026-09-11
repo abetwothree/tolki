@@ -2667,6 +2667,48 @@
             "value": {
                 "name": "a"
             }
+        },
+        {
+            "label": "collapse-assoc-collection-item",
+            "php": "Arr::collapse(['a' => new Collection(['x' => 1]), 'b' => ['y' => 2]])",
+            "value": {
+                "x": 1,
+                "y": 2
+            }
+        },
+        {
+            "label": "collapse-negative-int-keys",
+            "php": "Arr::collapse(['g1' => [-1 => 'a', 'k' => 'b'], 'g2' => [-1 => 'c']]) and the same groups as a list",
+            "value": {
+                "assoc": {
+                    "0": "a",
+                    "k": "b",
+                    "1": "c"
+                },
+                "list": {
+                    "0": "a",
+                    "k": "b",
+                    "1": "c"
+                }
+            }
+        },
+        {
+            "label": "unshift-negative-int-key",
+            "php": "(new Collection([-1 => 'a', 'x' => 'b']))->unshift('z')",
+            "value": {
+                "0": "z",
+                "1": "a",
+                "x": "b"
+            }
+        },
+        {
+            "label": "prepend-negative-int-key-no-key",
+            "php": "Arr::prepend([-1 => 'a', 'x' => 'b'], 'z')",
+            "value": {
+                "0": "z",
+                "1": "a",
+                "x": "b"
+            }
         }
     ]
 }
