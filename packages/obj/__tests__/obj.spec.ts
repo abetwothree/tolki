@@ -1625,6 +1625,15 @@ describe("Obj", () => {
             expect(Obj.exists({ "": 1 }, null)).toBe(true);
             expect(Obj.exists({ "1.5": 1 }, 1.5)).toBe(true);
         });
+
+        it("looks a float key up by PHP's (string) cast, so -0 is the key '-0'", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "exists-float-key-cast"
+            expect(Obj.exists({ 0: 1 }, -0)).toBe(false);
+            expect(Obj.exists({ "-0": 1 }, -0)).toBe(true);
+            expect(Obj.exists({ INF: 1 }, Infinity)).toBe(true);
+            expect(Obj.exists({ "1.0E+21": 1 }, 1e21)).toBe(true);
+            expect(Obj.exists({ "0.3": 1 }, 0.1 + 0.2)).toBe(true);
+        });
     });
 
     describe("first", () => {
@@ -3542,6 +3551,43 @@ describe("Obj", () => {
                 Obj.flatten({ a: ["#foo", null], b: "#baz", c: null }),
             ).toEqual(["#foo", null, "#baz", null]);
         });
+
+        it("keeps an object that isn't a plain object whole", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "flatten-object-leaf"
+            const point = new Point();
+            const date = new Date(0);
+            const map = new Map([["a", 1]]);
+            const result = Obj.flatten({
+                a: point,
+                b: { c: date, d: [2] },
+                m: map,
+            });
+
+            expect(result).toHaveLength(4);
+            expect(result[0]).toBe(point);
+            expect(result[1]).toBe(date);
+            expect(result[2]).toBe(2);
+            expect(result[3]).toBe(map);
+        });
+
+        it("flattens a Collection-like item's items", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "flatten-collection-item"
+            expect(
+                Obj.flatten({ a: collectionLike([1, [2, 3]]), b: 4 }),
+            ).toEqual([1, 2, 3, 4]);
+            expect(
+                Obj.flatten({
+                    a: collectionLike({ a: 1, b: collectionLike([2]) }),
+                }),
+            ).toEqual([1, 2]);
+            expect(Obj.flatten({ a: collectionLike([[1, 2], 3]) }, 1)).toEqual([
+                [1, 2],
+                3,
+            ]);
+
+            const kept = collectionLike([2, 3]);
+            expect(Obj.flatten({ a: [kept] }, 1)).toEqual([kept]);
+        });
     });
 
     describe("flattenDot", () => {
@@ -3641,6 +3687,22 @@ describe("Obj", () => {
             // depth=-1 means maxSegments=0, so pathLen (0) >= maxSegments (0) is true
             // at root level, but pathLen is 0, so nothing is output
             expect(Obj.flattenDot(obj, -1)).toEqual({});
+        });
+
+        it("keeps an object that isn't a plain object as a leaf, like dot", () => {
+            // JS-only: flattenDot has no PHP source; it follows dot's leaf rule ("dot-object-leaf").
+            const point = new Point();
+            const date = new Date(0);
+            const result = Obj.flattenDot({
+                a: point,
+                b: { c: date },
+                l: [point],
+            });
+
+            expect(Object.keys(result)).toEqual(["a", "b.c", "l.0"]);
+            expect(result["a"]).toBe(point);
+            expect(result["b.c"]).toBe(date);
+            expect(result["l.0"]).toBe(point);
         });
     });
 
@@ -3918,6 +3980,33 @@ describe("Obj", () => {
             expect(
                 Obj.keyBy({ x: { id: 1 } }, (_item, key) => key as PropertyKey),
             ).toEqual({ x: { id: 1 } });
+        });
+
+        it("casts a bool, null or float key the way PHP stores an array offset", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-scalar-key-cast"
+            const rows = { a: { k: true }, b: { k: false }, c: { k: null } };
+            expect(Obj.keyBy(rows, "k")).toEqual({
+                1: { k: true },
+                0: { k: false },
+                "": { k: null },
+            });
+
+            const keyOf = (key: number) =>
+                Object.keys(Obj.keyBy({ a: { v: 1 } }, () => key));
+            expect(keyOf(1.5)).toEqual(["1"]);
+            expect(keyOf(-1.5)).toEqual(["-1"]);
+            expect(keyOf(-0)).toEqual(["0"]);
+            expect(keyOf(Infinity)).toEqual(["0"]);
+            expect(keyOf(NaN)).toEqual(["0"]);
+            expect(keyOf(1e20)).toEqual(["7766279631452241920"]);
+        });
+
+        it("keys an item under a symbol the callback returns", () => {
+            // JS-only: PHP has no symbols; a symbol key is kept as it is, as arr.keyBy keeps it.
+            const sym = Symbol("test");
+            expect(Obj.keyBy({ a: { v: 1 } }, () => sym)[sym]).toEqual({
+                v: 1,
+            });
         });
     });
 

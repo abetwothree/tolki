@@ -38,6 +38,7 @@ import {
     isPrototypeObject,
     isString,
     isStringable,
+    isSymbol,
     isUndefined,
     isWeakMap,
     looseEqual,
@@ -835,10 +836,7 @@ export function exists<TValue extends Record<PropertyKey, unknown>>(
     }
 
     // Arr::exists casts a null or float key to string and never walks a dot path.
-    return Object.hasOwn(
-        data,
-        isNull(key) || isUndefined(key) ? "" : String(key),
-    );
+    return Object.hasOwn(data, toPhpKeyString(key));
 }
 
 /**
@@ -1074,6 +1072,9 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
 /**
  * Flatten a multi-dimensional object into a single-level array.
  *
+ * Only arrays and plain objects are flattened, along with the items of a Collection-like item (one with an
+ * `all()` method); any other object, a `Date`, `Map` or class instance included, is kept as a value.
+ *
  * @see Arr::flatten — `packages/arr/stubs/Arr.php:366`.
  *
  * @param data - The object (or value) to flatten.
@@ -1098,16 +1099,22 @@ export function flatten<TValue>(
         // items is always array or object when called recursively
         const values = isArray(items) ? items : Object.values(items as object);
 
-        for (const item of values) {
-            if (!isArray(item) && !isObject(item)) {
+        for (const value of values) {
+            // Arr::flatten flattens a Collection item's items, and only an array otherwise.
+            const item =
+                isObject(value) && isFunction(value["all"])
+                    ? value["all"]()
+                    : value;
+
+            if (!isArray(item) && !isPlainObject(item)) {
                 result.push(item);
             } else if (currentDepth === 1) {
                 // Arr.php:373 spends the last level of depth on the
                 // container's own values, so depth 1 still unwraps once.
                 const nested = isArray(item) ? item : Object.values(item);
 
-                for (const value of nested) {
-                    result.push(value);
+                for (const nestedValue of nested) {
+                    result.push(nestedValue);
                 }
             } else {
                 flattenRecursive(item, currentDepth - 1);
@@ -1122,6 +1129,7 @@ export function flatten<TValue>(
 
 /**
  * Flatten a multi-dimensional object into dot-notation with depth control.
+ * Like `dot`, it walks only arrays and plain objects below the root; any other object is a leaf.
  *
  * One divergence from `Arr::dot`/`Obj.dot`: an empty nested container is dropped
  * here, where PHP keeps it as a leaf value.
@@ -1151,7 +1159,7 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
         maxSegments: number,
     ): void => {
         const pathLen = pathParts.length;
-        const isObj = isObject(node);
+        const isObj = pathLen === 0 ? isObject(node) : isPlainObject(node);
         const isArr = isArray(node);
 
         // Stop if node is scalar or we've reached the target segment length
@@ -1704,6 +1712,8 @@ export function join<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Key an object by a field or using a callback.
+ * Each resolved key is stored the way PHP stores an array key: `null` as `""`, a boolean as `0`/`1`,
+ * and a float truncated toward zero.
  *
  * @param data - The object to key.
  * @param keyBy - The field name to key by, or a callback function.
@@ -1731,28 +1741,15 @@ export function keyBy<TValue extends Record<PropertyKey, unknown>>(
     const results: Record<PropertyKey, TValue> = {};
 
     for (const [itemKey, item] of Object.entries(obj)) {
-        let key: PropertyKey | null | undefined;
+        const key = isFunction(keyBy)
+            ? keyBy(item, phpArrayKey(itemKey))
+            : getObjectValue(item, keyBy as PathKey);
 
-        if (isFunction(keyBy)) {
-            key = keyBy(item, phpArrayKey(itemKey)) as
-                | PropertyKey
-                | null
-                | undefined;
-        } else {
-            // Use dot notation to get the key value
-            key = getObjectValue(item, keyBy as PathKey) as
-                | PropertyKey
-                | null
-                | undefined;
-        }
-
-        // Key null/undefined results under an empty string key,
-        // mirroring PHP's (string) null cast for array keys
-        if (isNull(key) || isUndefined(key)) {
-            key = "";
-        }
-
-        defineKey(results as Record<string, TValue>, key as string, item);
+        defineKey(
+            results as Record<string, TValue>,
+            isSymbol(key) ? key : phpArrayKey(key),
+            item,
+        );
     }
 
     return results;

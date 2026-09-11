@@ -3236,6 +3236,72 @@
                     ""
                 ]
             }
+        },
+        {
+            "label": "exists-float-key-cast",
+            "php": "Arr::exists([1], -0.0), (['-0' => 1], -0.0), (['INF' => 1], INF), (['1.0E+21' => 1], 1e21), (['0.3' => 1], 0.1 + 0.2)",
+            "value": {
+                "list -0": false,
+                "map -0": true,
+                "INF": true,
+                "1e21": true,
+                "0.1 + 0.2": true
+            }
+        },
+        {
+            "label": "flatten-object-leaf",
+            "php": "Arr::flatten([$date, [1]]), ([$o, [$date]]), (['a' => $o, 'b' => ['c' => $date, 'd' => [2]]]), ([new ArrayObject([1, 2])]): what is kept",
+            "value": {
+                "list": {
+                    "count": 2,
+                    "kept": true,
+                    "rest": [
+                        1
+                    ]
+                },
+                "nested": {
+                    "count": 2,
+                    "kept": true
+                },
+                "map": {
+                    "count": 3,
+                    "kept": true,
+                    "rest": [
+                        2
+                    ]
+                },
+                "arrayObject": {
+                    "count": 1,
+                    "kept": true
+                }
+            }
+        },
+        {
+            "label": "flatten-collection-item",
+            "php": "Arr::flatten([new Collection([1, [2, 3]]), 4]), ([new Collection(['a' => 1, 'b' => new Collection([2])])]), ([new Collection([[1, 2], 3])], 1), ([[new Collection([2, 3])]], 1)",
+            "value": {
+                "item": [
+                    1,
+                    2,
+                    3,
+                    4
+                ],
+                "nested": [
+                    1,
+                    2
+                ],
+                "depth-1-item": [
+                    [
+                        1,
+                        2
+                    ],
+                    3
+                ],
+                "depth-1-value": {
+                    "count": 1,
+                    "collection": true
+                }
+            }
         }
     ]
 }

@@ -850,4 +850,40 @@ probe('keyBy-scalar-key-cast', "@Arr::keyBy([['v' => 1]], fn () => \$key) for tr
     return $result + ['field' => array_keys(Arr::keyBy([['k' => true], ['k' => false], ['k' => null]], 'k'))];
 });
 
+// ---- Arr::exists looks a float key up by its (string) cast, so -0.0 is the key '-0', not 0
+probe('exists-float-key-cast', "Arr::exists([1], -0.0), (['-0' => 1], -0.0), (['INF' => 1], INF), (['1.0E+21' => 1], 1e21), (['0.3' => 1], 0.1 + 0.2)", fn () => [
+    'list -0' => Arr::exists([1], -0.0),
+    'map -0' => Arr::exists(['-0' => 1], -0.0),
+    'INF' => Arr::exists(['INF' => 1], INF),
+    '1e21' => Arr::exists(['1.0E+21' => 1], 1e21),
+    '0.1 + 0.2' => Arr::exists(['0.3' => 1], 0.1 + 0.2),
+]);
+
+// ---- Arr::flatten flattens only arrays, and a Collection item's items: any other object is kept whole
+probe('flatten-object-leaf', "Arr::flatten([\$date, [1]]), ([\$o, [\$date]]), (['a' => \$o, 'b' => ['c' => \$date, 'd' => [2]]]), ([new ArrayObject([1, 2])]): what is kept", function () {
+    $date = new DateTime('@0');
+    $object = (object) ['x' => 1, 'y' => 2];
+    $list = Arr::flatten([$date, [1]]);
+    $nested = Arr::flatten([$object, [$date]]);
+    $map = Arr::flatten(['a' => $object, 'b' => ['c' => $date, 'd' => [2]]]);
+    $arrayObject = Arr::flatten([new ArrayObject([1, 2])]);
+
+    return [
+        'list' => ['count' => count($list), 'kept' => $list[0] === $date, 'rest' => array_slice($list, 1)],
+        'nested' => ['count' => count($nested), 'kept' => $nested[0] === $object && $nested[1] === $date],
+        'map' => ['count' => count($map), 'kept' => $map[0] === $object && $map[1] === $date, 'rest' => array_slice($map, 2)],
+        'arrayObject' => ['count' => count($arrayObject), 'kept' => $arrayObject[0] instanceof ArrayObject],
+    ];
+});
+probe('flatten-collection-item', "Arr::flatten([new Collection([1, [2, 3]]), 4]), ([new Collection(['a' => 1, 'b' => new Collection([2])])]), ([new Collection([[1, 2], 3])], 1), ([[new Collection([2, 3])]], 1)", function () {
+    $kept = Arr::flatten([[new Collection([2, 3])]], 1);
+
+    return [
+        'item' => Arr::flatten([new Collection([1, [2, 3]]), 4]),
+        'nested' => Arr::flatten([new Collection(['a' => 1, 'b' => new Collection([2])])]),
+        'depth-1-item' => Arr::flatten([new Collection([[1, 2], 3])], 1),
+        'depth-1-value' => ['count' => count($kept), 'collection' => $kept[0] instanceof Collection],
+    ];
+});
+
 emit();
