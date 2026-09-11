@@ -4117,7 +4117,7 @@ describe("Collection", () => {
         it("keys a float by PHP's (string) cast", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "combine-float-keys"
             const keys = collect([
-                10000000000000.5, 10000000000001.5, 99999999999999.99,
+                10000000000000.5, 10000000000001.5, 99999999999999.98,
             ])
                 .combine([1, 2, 3])
                 .keys()
