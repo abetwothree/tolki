@@ -2206,12 +2206,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * keys it doesn't already have.
      *
      * @param items - The items to union with: a list or an object, whatever this collection's backing.
-     * @returns A new collection with the union of items
+     * @returns A new collection with the union of items; object-backed once its keys aren't `0..n-1`
      *
      * @example
      *
      * new Collection([1, 2, 3]).union([3, 4, 5]); -> new Collection([1, 2, 3])
      * new Collection([1, 2]).union([3, 4, 5]); -> new Collection([1, 2, 5])
+     * new Collection([1, 2]).union({a: 3}); -> new Collection({0: 1, 1: 2, a: 3})
      * new Collection({a: 1, b: 2}).union({b: 2, c: 3}); -> new Collection({a: 1, b: 2, c: 3})
      */
     union<T, K extends PropertyKey>(
