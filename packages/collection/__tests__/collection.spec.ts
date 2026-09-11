@@ -5503,6 +5503,17 @@ describe("Collection", () => {
     });
 
     describe("replace", () => {
+        it("becomes object-backed when a replacer leaves its list keys other than 0..n-1", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-keyed-replacer"
+            expect(
+                collect(["a", "b", "c"]).replace({ 1: "x", k: "y" }).all(),
+            ).toEqual({ 0: "a", 1: "x", 2: "c", k: "y" });
+            expect(collect(["a"]).replace({ 3: "x" }).all()).toEqual({
+                0: "a",
+                3: "x",
+            });
+        });
+
         describe("Laravel Tests", () => {
             it("test replace null", () => {
                 const c = collect(["a", "b", "c"]);
@@ -5592,6 +5603,15 @@ describe("Collection", () => {
     });
 
     describe("replaceRecursive", () => {
+        it("becomes object-backed when a replacer leaves its list keys other than 0..n-1", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-keyed-replacer"
+            expect(
+                collect(["a", "b", "c"])
+                    .replaceRecursive({ 1: "x", k: "y" })
+                    .all(),
+            ).toEqual({ 0: "a", 1: "x", 2: "c", k: "y" });
+        });
+
         describe("Laravel Tests", () => {
             it("test replace recursive null", () => {
                 const c = collect(["a", "b", ["c", "d"]]);

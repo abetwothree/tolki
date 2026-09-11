@@ -53,8 +53,6 @@ import {
     query as arrQuery,
     random as arrRandom,
     reject as arrReject,
-    replace as arrReplace,
-    replaceRecursive as arrReplaceRecursive,
     reverse as arrReverse,
     select as arrSelect,
     set as arrSet,
@@ -209,6 +207,21 @@ function isKeyedData(data: unknown): boolean {
     }
 
     return isObject(data) && !isIterable(data);
+}
+
+/**
+ * Hand back a result built from a list backing as a list while its keys are `0..n-1`, as PHP's
+ * `array_is_list` would accept it, and otherwise as the object that holds PHP's keyed array.
+ *
+ * @param items - The result, keyed as obj's helpers key a list's copy.
+ * @returns The result's values when its keys are `0..n-1`, otherwise the result itself.
+ */
+function listWhenIndexed<TValue>(
+    items: Record<string, TValue>,
+): TValue[] | Record<string, TValue> {
+    return Object.keys(items).every((key, index) => key === String(index))
+        ? Object.values(items)
+        : items;
 }
 
 /**
@@ -712,14 +725,9 @@ export function dataUnion<TValue>(
     return operands.reduce<TValue[] | Record<PropertyKey, TValue>>(
         (result, operand) => {
             const merged = objUnion(result, operand);
-            // Keys PHP inserted out of order after a gap can't be a list, even once later operands fill it.
-            const isList =
-                isArray(result) &&
-                Object.keys(merged).every(
-                    (key, index) => key === String(index),
-                );
 
-            return isList ? Object.values(merged) : merged;
+            // Keys PHP inserted out of order after a gap can't be a list, even once later operands fill it.
+            return isArray(result) ? listWhenIndexed(merged) : merged;
         },
         arrUnion(backing),
     );
@@ -2065,8 +2073,9 @@ export function dataWhere<TValue, TKey extends PropertyKey = PropertyKey>(
  * Replace the data items with the given items.
  *
  * `data`'s backing picks the helper, and `replacerData` may be a list or an object on either
- * backing, as `array_replace` takes any two arrays. A `null`/`undefined` `replacerData` is a
- * no-op (`EnumeratesValues.php:1121`).
+ * backing, as `array_replace` takes any two arrays. A list backing stays a list while the result's
+ * keys are `0..n-1`; a string key or a gap makes it an object, as PHP's result is keyed then.
+ * A `null`/`undefined` `replacerData` is a no-op (`EnumeratesValues.php:1121`).
  *
  * @param data - The original data
  * @param items - The items to replace with. `null`/`undefined` is a no-op.
@@ -2084,14 +2093,19 @@ export function dataReplace<
         return objReplace(data, replacerData) as DataItems<TValue, TKey>;
     }
 
-    return arrReplace(data, replacerData) as DataItems<TValue, TKey>;
+    // array_replace keeps a list only while the replacer's keys extend it as 0..n-1; otherwise PHP's result is keyed.
+    return listWhenIndexed(
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        objReplace({ ...data }, replacerData) as Record<string, TValue>,
+    ) as DataItems<TValue, TKey>;
 }
 
 /**
  * Recursively replace the data items with the given items recursively.
  *
- * `data`'s backing picks the helper and `replacerData` may take either shape, as for
- * `dataReplace` above. A `null`/`undefined` `replacerData` is a no-op.
+ * `data`'s backing picks the helper and `replacerData` may take either shape, and a list backing
+ * becomes an object for a keyed result, as for `dataReplace` above. A `null`/`undefined`
+ * `replacerData` is a no-op.
  *
  * @param data - The original data
  * @param items - The items to replace with. `null`/`undefined` is a no-op.
@@ -2112,7 +2126,14 @@ export function dataReplaceRecursive<
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrReplaceRecursive(data, replacerData) as DataItems<TValue, TKey>;
+    // As in dataReplace, a replacer key that leaves the list's keys other than 0..n-1 makes PHP's result keyed.
+    return listWhenIndexed(
+        objReplaceRecursive(
+            { ...data },
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            replacerData as Record<PropertyKey, TValue> | null | undefined,
+        ),
+    ) as DataItems<TValue, TKey>;
 }
 
 /**

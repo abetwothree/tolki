@@ -2437,6 +2437,22 @@ describe("Data", () => {
     });
 
     describe("dataReplace", () => {
+        it("returns the keyed result when a replacer leaves a list backing's keys other than 0..n-1", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-keyed-replacer"
+            expect(
+                Data.dataReplace(["a", "b", "c"], { 1: "x", k: "y" }),
+            ).toEqual({ 0: "a", 1: "x", 2: "c", k: "y" });
+            expect(Data.dataReplace(["a", "b", "c"], { "01": "x" })).toEqual({
+                0: "a",
+                1: "b",
+                2: "c",
+                "01": "x",
+            });
+            expect(Data.dataReplace(["a"], { 3: "x" })).toEqual({
+                0: "a",
+                3: "x",
+            });
+        });
         it("is object", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const replacements = { b: 20, c: 30, d: 40 };
@@ -2489,6 +2505,16 @@ describe("Data", () => {
     });
 
     describe("dataReplaceRecursive", () => {
+        it("returns the keyed result when a replacer leaves a list backing's keys other than 0..n-1", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-keyed-replacer"
+            expect(
+                Data.dataReplaceRecursive(["a", "b", "c"], { 1: "x", k: "y" }),
+            ).toEqual({ 0: "a", 1: "x", 2: "c", k: "y" });
+            expect(Data.dataReplaceRecursive(["a"], { 3: "x" })).toEqual({
+                0: "a",
+                3: "x",
+            });
+        });
         it("is object", () => {
             const obj = {
                 user: { name: "John", address: { city: "NYC", zip: "10001" } },
