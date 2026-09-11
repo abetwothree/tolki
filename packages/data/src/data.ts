@@ -672,7 +672,8 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
     asArray: boolean = false,
 ): DataItems<TValue, TKey> {
     if (isObject(data) && !asArray) {
-        return objUndot(data);
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        return objUndot(data) as DataItems<TValue, TKey>;
     }
 
     // Widen: `asArray` routes object-backed data to `Arr.undot`, which rejects
