@@ -692,4 +692,32 @@ probe('exists-list-null-and-float-keys', "Arr::exists([1, 2, 3], null), (…, 1.
 // ---- keyBy hands a list callback the item's index
 probe('keyBy-list-callback-key', "Arr::keyBy([['id' => 1], ['id' => 2]], fn (\$item, \$key) => 'k' . \$key)", fn () => Arr::keyBy([['id' => 1], ['id' => 2]], fn ($item, $key) => 'k' . $key));
 
+// ---- a non-canonical index string is a string key, so a list never holds it (get-through-list-leading-zero's key class)
+$nonCanonicalIndices = ['01', ' 1', '1e0', '+1', '0x1', '-0', '1 '];
+probe('get-list-non-canonical-index', "Arr::get(['x', 'y'], \$k, 'd') and Arr::get([['x', 'y']], \"0.\$k\", 'd')", function () use ($nonCanonicalIndices) {
+    $result = [];
+
+    foreach ($nonCanonicalIndices as $k) {
+        $result[$k] = ['top' => Arr::get(['x', 'y'], $k, 'd'), 'nested' => Arr::get([['x', 'y']], "0.{$k}", 'd')];
+    }
+
+    return $result;
+});
+probe('has-list-non-canonical-index', "Arr::has(['x', 'y'], \$k) and Arr::has([['x', 'y']], \"0.\$k\")", function () use ($nonCanonicalIndices) {
+    $result = [];
+
+    foreach ($nonCanonicalIndices as $k) {
+        $result[$k] = ['top' => Arr::has(['x', 'y'], $k), 'nested' => Arr::has([['x', 'y']], "0.{$k}")];
+    }
+
+    return $result;
+});
+probe('collection-get-list-non-canonical-index', "(new Collection(['x', 'y']))->get('01', 'd')", fn () => (new Collection(['x', 'y']))->get('01', 'd'));
+probe('pull-list-non-canonical-index', "\$a = ['x', 'y']; Arr::pull(\$a, '01', 'd')", function () {
+    $a = ['x', 'y'];
+    $value = Arr::pull($a, '01', 'd');
+
+    return ['value' => $value, 'array' => $a];
+});
+
 emit();

@@ -990,6 +990,12 @@ describe("Data", () => {
             expect(Data.dataGet(obj, "products.1.name")).toBe("chair");
             expect(Data.dataGet(obj, "products.2.name", "none")).toBe("none");
         });
+
+        it("returns the default for a non-canonical index, through the list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-non-canonical-index"
+            expect(Data.dataGet(["x", "y"], "01", "d")).toBe("d");
+            expect(Data.dataGet([["x", "y"]], "0.1e0", "d")).toBe("d");
+        });
     });
 
     describe("dataHas", () => {

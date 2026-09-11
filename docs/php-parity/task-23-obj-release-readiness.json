@@ -2824,6 +2824,90 @@
                     "id": 2
                 }
             }
+        },
+        {
+            "label": "get-list-non-canonical-index",
+            "php": "Arr::get(['x', 'y'], $k, 'd') and Arr::get([['x', 'y']], \"0.$k\", 'd')",
+            "value": {
+                "01": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                " 1": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "1e0": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "+1": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "0x1": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "-0": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "1 ": {
+                    "top": "d",
+                    "nested": "d"
+                }
+            }
+        },
+        {
+            "label": "has-list-non-canonical-index",
+            "php": "Arr::has(['x', 'y'], $k) and Arr::has([['x', 'y']], \"0.$k\")",
+            "value": {
+                "01": {
+                    "top": false,
+                    "nested": false
+                },
+                " 1": {
+                    "top": false,
+                    "nested": false
+                },
+                "1e0": {
+                    "top": false,
+                    "nested": false
+                },
+                "+1": {
+                    "top": false,
+                    "nested": false
+                },
+                "0x1": {
+                    "top": false,
+                    "nested": false
+                },
+                "-0": {
+                    "top": false,
+                    "nested": false
+                },
+                "1 ": {
+                    "top": false,
+                    "nested": false
+                }
+            }
+        },
+        {
+            "label": "collection-get-list-non-canonical-index",
+            "php": "(new Collection(['x', 'y']))->get('01', 'd')",
+            "value": "d"
+        },
+        {
+            "label": "pull-list-non-canonical-index",
+            "php": "$a = ['x', 'y']; Arr::pull($a, '01', 'd')",
+            "value": {
+                "value": "d",
+                "array": [
+                    "x",
+                    "y"
+                ]
+            }
         }
     ]
 }

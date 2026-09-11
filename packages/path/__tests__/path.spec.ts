@@ -116,6 +116,19 @@ describe("Path Functions", () => {
             expect(Path.parseSegments("1..2")).toBeNull(); // Empty segment between dots
             expect(Path.parseSegments("1.2.")).toBeNull(); // Trailing dot creates empty segment
         });
+
+        it("keeps a non-canonical index as a string segment", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-non-canonical-index":
+            // PHP stores these as string keys, so a list never holds them.
+            expect(Path.parseSegments("0.01")).toEqual([0, "01"]);
+            expect(Path.parseSegments(" 1.1e0.+1.0x1.-0")).toEqual([
+                " 1",
+                "1e0",
+                "+1",
+                "0x1",
+                "-0",
+            ]);
+        });
     });
 
     describe("hasPath", () => {
@@ -227,6 +240,12 @@ describe("Path Functions", () => {
             // `in` climbs the prototype chain; {} has no own "constructor".
             expect(Path.hasPath({ a: {} }, "a.constructor")).toBe(false);
         });
+
+        it("does not find a non-canonical index in a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "has-list-non-canonical-index"
+            expect(Path.hasPath(["x", "y"], "01")).toBe(false);
+            expect(Path.hasPath([["x", "y"]], "0.1e0")).toBe(false);
+        });
     });
 
     describe("getRaw", () => {
@@ -317,6 +336,12 @@ describe("Path Functions", () => {
             const data = [["a", "b"]];
             // String segment on array should fail
             expect(Path.getRaw(data, "0.name")).toEqual({ found: false });
+        });
+
+        it("does not find a non-canonical index in a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-non-canonical-index"
+            expect(Path.getRaw(["x", "y"], "01")).toEqual({ found: false });
+            expect(Path.getRaw([["x", "y"]], "0. 1")).toEqual({ found: false });
         });
 
         it("handles string segments on objects", () => {
@@ -662,6 +687,14 @@ describe("Path Functions", () => {
             expect(Path.pushWithPath("not-array", "invalid", "value")).toEqual(
                 [],
             );
+        });
+
+        it("skips a non-canonical index segment like any other string segment", () => {
+            // JS-only: PHP writes the string key "01" beside the list, which a list can't hold.
+            expect(Path.pushWithPath([["a"], ["b"]], "01", "c")).toEqual([
+                ["a"],
+                ["b"],
+            ]);
         });
 
         it("pushes into the array already at the key", () => {

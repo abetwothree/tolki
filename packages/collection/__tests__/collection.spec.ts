@@ -1785,6 +1785,11 @@ describe("Collection", () => {
             expect(collection.get("products.1.name")).toBe("chair");
             expect(collection.get("products.2.name", "none")).toBe("none");
         });
+
+        it("returns the default for a non-canonical index on a list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collection-get-list-non-canonical-index"
+            expect(collect(["x", "y"]).get("01", "d")).toBe("d");
+        });
     });
 
     describe("getOrPut", () => {

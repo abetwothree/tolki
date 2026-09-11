@@ -1333,6 +1333,15 @@ describe("Arr", () => {
                 ),
             ).toBe("desk");
         });
+
+        it.each(["01", " 1", "1e0", "+1", "0x1", "-0", "1 "])(
+            "returns the default for the non-canonical index %j, agreeing with has()",
+            (key) => {
+                // docs/php-parity/task-23-obj-release-readiness.json, "get-list-non-canonical-index"
+                expect(Arr.get(["x", "y"], key, "d")).toBe("d");
+                expect(Arr.get([["x", "y"]], `0.${key}`, "d")).toBe("d");
+            },
+        );
     });
 
     describe("has", () => {
@@ -1965,6 +1974,13 @@ describe("Arr", () => {
             const result = Arr.pull([1, 2, 3], null);
             expect(result.value).toBe(null);
             expect(result.data).toEqual([1, 2, 3]);
+        });
+
+        it("returns the default and keeps the list for a non-canonical index", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "pull-list-non-canonical-index"
+            const result = Arr.pull(["x", "y"], "01", "d");
+            expect(result.value).toBe("d");
+            expect(result.data).toEqual(["x", "y"]);
         });
     });
 

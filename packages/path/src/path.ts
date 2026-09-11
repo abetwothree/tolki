@@ -22,7 +22,8 @@ import {
 /**
  * Parse a key into segments for mixed array/object path traversal.
  * Converts dot notation strings and numbers into path segments that can be
- * either numeric indices (for arrays) or string keys (for objects).
+ * either numeric indices (for arrays) or string keys (for objects). A segment
+ * is an index only when PHP would store it as an integer key, so "01" stays a string.
  *
  * @param key - The key to parse (number, string, null, or undefined).
  * @returns Array of path segments, or null if invalid.
@@ -34,6 +35,7 @@ import {
  * parseSegments("1.2.3"); -> [1, 2, 3] (numeric segments)
  * parseSegments("user.name"); -> ["user", "name"] (string segments)
  * parseSegments("0.user.1.name"); -> [0, "user", 1, "name"] (mixed segments)
+ * parseSegments("0.01"); -> [0, "01"] (a non-canonical index is a string key)
  * parseSegments(null); -> []
  */
 export function parseSegments(key: PathKey): (number | string)[] | null {
@@ -62,14 +64,9 @@ export function parseSegments(key: PathKey): (number | string)[] | null {
             return null;
         }
 
-        // Try to parse as number first
-        const n = Number(p);
-        if (isInteger(n) && n >= 0) {
-            segs.push(n);
-        } else {
-            // Use as string key for object properties
-            segs.push(p);
-        }
+        // Number() would also accept "01", " 1" or "1e0", which PHP keeps as string keys.
+        const index = phpArrayKey(p);
+        segs.push(isNumber(index) && index >= 0 ? index : p);
     }
 
     return segs;
@@ -303,7 +300,7 @@ export function forgetKeysObject<
     /**
      * Check whether a path segment is a valid array index for the given array.
      * Segments are parsed with Number(), the same convention used by
-     * parseSegments and forgetKeysArray in this package.
+     * forgetKeysArray in this package.
      *
      * @param segment - The path segment to validate.
      * @param arr - The array the segment would index into.
