@@ -32,6 +32,15 @@ describe("obj pluck type tests", () => {
                     Obj.pluck(accounts, "users.*.email"),
                 ).toEqualTypeOf<(string | null)[][]>();
             });
+
+            it("returns a list for an explicit null or undefined key", () => {
+                expectTypeOf(Obj.pluck(rowsById, "name", null)).toEqualTypeOf<
+                    string[]
+                >();
+                expectTypeOf(
+                    Obj.pluck(rowsById, "name", undefined),
+                ).toEqualTypeOf<string[]>();
+            });
         });
 
         describe("wildcard paths", () => {
@@ -52,6 +61,20 @@ describe("obj pluck type tests", () => {
 
                 expectTypeOf(result).toEqualTypeOf<number[]>();
             });
+
+            it("still types the row when the key is an explicit null", () => {
+                const result = Obj.pluck(
+                    rowsById,
+                    (row) => {
+                        expectTypeOf(row).toEqualTypeOf<Row>();
+
+                        return row.id;
+                    },
+                    null,
+                );
+
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
         });
 
         describe("null and array paths", () => {
@@ -66,6 +89,18 @@ describe("obj pluck type tests", () => {
                 expectTypeOf(
                     Obj.pluck({ a: { user: ["taylor"] } }, ["user", 0]),
                 ).toEqualTypeOf<unknown[]>();
+            });
+
+            it("keeps whole rows and array paths on their list rows for an explicit null or undefined key", () => {
+                expectTypeOf(Obj.pluck(rowsById, null, null)).toEqualTypeOf<
+                    Row[]
+                >();
+                expectTypeOf(
+                    Obj.pluck(rowsById, undefined, undefined),
+                ).toEqualTypeOf<Row[]>();
+                expectTypeOf(Obj.pluck(rowsById, ["name"], null)).toEqualTypeOf<
+                    unknown[]
+                >();
             });
         });
 
@@ -94,6 +129,18 @@ describe("obj pluck type tests", () => {
                 expectTypeOf(
                     Obj.pluck(numberList, "id", undefined),
                 ).toEqualTypeOf<never[]>();
+            });
+
+            it("accepts an undefined value path for a list and for unknown data", () => {
+                expectTypeOf(Obj.pluck(numberList, undefined)).toEqualTypeOf<
+                    never[]
+                >();
+                expectTypeOf(
+                    Obj.pluck(numberList, undefined, "id"),
+                ).toEqualTypeOf<Record<string | number, never>>();
+                expectTypeOf(Obj.pluck(unknownObject, undefined)).toEqualTypeOf<
+                    unknown[] | Record<string | number, unknown>
+                >();
             });
         });
     });

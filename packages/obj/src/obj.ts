@@ -2689,7 +2689,8 @@ export function pluck(
         | string
         | readonly (string | number)[]
         | ((item: unknown) => unknown)
-        | null,
+        | null
+        | undefined,
     key: PluckKey<unknown>,
 ): Record<string | number, never>;
 // An explicit null/undefined third arg stays on the never[] row: the runtime
@@ -2700,7 +2701,8 @@ export function pluck(
         | string
         | readonly (string | number)[]
         | ((item: unknown) => unknown)
-        | null,
+        | null
+        | undefined,
     key: null | undefined,
 ): never[];
 export function pluck(
@@ -2709,7 +2711,8 @@ export function pluck(
         | string
         | readonly (string | number)[]
         | ((item: unknown) => unknown)
-        | null,
+        | null
+        | undefined,
 ): never[];
 export function pluck<T extends object, const P extends string>(
     data: T,
@@ -2719,6 +2722,7 @@ export function pluck<T extends object, const P extends string>(
 export function pluck<T extends object, const P extends string>(
     data: T,
     value: P,
+    key?: null | undefined,
 ): PluckValue<ObjectValue<T>, P>[];
 export function pluck<T extends object, R>(
     data: T,
@@ -2728,6 +2732,7 @@ export function pluck<T extends object, R>(
 export function pluck<T extends object, R>(
     data: T,
     value: (item: ObjectValue<T>) => R,
+    key?: null | undefined,
 ): R[];
 export function pluck<T extends object>(
     data: T,
@@ -2737,6 +2742,7 @@ export function pluck<T extends object>(
 export function pluck<T extends object>(
     data: T,
     value: null | undefined,
+    key?: null | undefined,
 ): ObjectValue<T>[];
 export function pluck<T extends object>(
     data: T,
@@ -2746,6 +2752,7 @@ export function pluck<T extends object>(
 export function pluck<T extends object>(
     data: T,
     value: readonly (string | number)[],
+    key?: null | undefined,
 ): unknown[];
 export function pluck(
     data: unknown,
@@ -2753,7 +2760,8 @@ export function pluck(
         | string
         | readonly (string | number)[]
         | ((item: unknown) => unknown)
-        | null,
+        | null
+        | undefined,
     key?: PluckKey<unknown> | null,
 ): unknown[] | Record<string | number, unknown>;
 export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
