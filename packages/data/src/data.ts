@@ -1060,7 +1060,8 @@ export function dataEvery<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isKeyedData(data)) {
         return objEvery(
             data as Record<TKey, TValue>,
-            callback as (value: TValue, key: TKey) => boolean,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (value: unknown, key: string | number) => boolean,
         );
     }
 
@@ -1107,7 +1108,8 @@ export function dataSome<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isKeyedData(data)) {
         return objSome(
             data as Record<TKey, TValue>,
-            callback as (value: TValue, key: TKey) => boolean,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (value: unknown, key: string | number) => boolean,
         );
     }
 
@@ -1780,8 +1782,9 @@ export function dataSole<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objSole(
             data as Record<TKey, TValue>,
-            callback as (value: TValue, key: TKey) => boolean,
-        );
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (value: unknown, key: string | number) => boolean,
+        ) as TValue;
     }
 
     return arrSole(
