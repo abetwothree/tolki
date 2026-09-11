@@ -3,6 +3,9 @@ import { describe, expectTypeOf, it } from "vitest";
 
 import { abc, numberList, profile, unknownObject, user } from "./fixtures";
 
+declare const maybeKey: string | null;
+declare const maybeAge: "age" | undefined;
+
 describe("obj write type tests", () => {
     describe("set", () => {
         it("adds a new top-level key", () => {
@@ -58,6 +61,29 @@ describe("obj write type tests", () => {
             >();
             expectTypeOf(Obj.set(unknownObject, "a", 1)).toEqualTypeOf<
                 Record<string, unknown>
+            >();
+        });
+
+        it("adds the value to the result for a key that may be null or undefined", () => {
+            expectTypeOf(Obj.set(user, maybeAge, 31)).toEqualTypeOf<
+                | {
+                      name: string;
+                      age: number;
+                      address: { city: string; zip: number };
+                  }
+                | number
+            >();
+            expectTypeOf(Obj.set(user, maybeKey, 5)).toEqualTypeOf<
+                Record<string, unknown> | number
+            >();
+        });
+
+        it("adds the value for a nullable key on a list or unknown data too", () => {
+            expectTypeOf(Obj.set(numberList, maybeKey, 1)).toEqualTypeOf<
+                Record<string, never> | number
+            >();
+            expectTypeOf(Obj.set(unknownObject, maybeKey, 1)).toEqualTypeOf<
+                Record<string, unknown> | number
             >();
         });
     });

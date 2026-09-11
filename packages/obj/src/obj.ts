@@ -103,6 +103,11 @@ type ObjectPullRest<T, P> = P extends keyof T
     ? Simplify<Omit<T, P>>
     : OmitObjectPath<T, `${P & (string | number)}`>;
 type ArrayElementOf<T> = T extends readonly (infer E)[] ? E : never;
+// set returns its value for a null or undefined key, so a key that may be nullish adds V to its result.
+// NoInfer keeps V off the result's top level, where TypeScript would stop widening a literal value.
+type NullishKeyValue<K, V> = [Extract<K, null | undefined>] extends [never]
+    ? never
+    : NoInfer<V>;
 
 /**
  * Mutation contract: pop, shift, splice and unshift mutate their first
@@ -3555,21 +3560,21 @@ function renumberPhpIntegerKeys<TValue>(
  * set({ user: { name: 'John' } }, 'user.age', 30); -> { user: { name: 'John', age: 30 } }
  */
 export function set<V>(data: unknown, key: null | undefined, value: V): V;
-export function set(
+export function set<K extends PathKey, V>(
     data: NonObjectItems,
-    key: PathKey,
-    value: unknown,
-): Record<string, never>;
-export function set<T extends object, P extends string | number, V>(
+    key: K,
+    value: V,
+): Record<string, never> | NullishKeyValue<K, V>;
+export function set<T extends object, P extends PathKey, V>(
     data: T,
     key: P,
     value: V,
-): ObjectWriteResult<T, P, V>;
-export function set(
+): ObjectWriteResult<T, NonNullable<P>, V> | NullishKeyValue<P, V>;
+export function set<K extends PathKey, V>(
     data: unknown,
-    key: PathKey,
-    value: unknown,
-): Record<string, unknown>;
+    key: K,
+    value: V,
+): Record<string, unknown> | NullishKeyValue<K, V>;
 export function set<TValue, TKey extends PropertyKey = PropertyKey>(
     object: Record<TKey, TValue> | unknown,
     key: PathKey | null,
