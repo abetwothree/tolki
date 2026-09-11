@@ -15,16 +15,20 @@ import type {
     ArrayableItems,
     CaseValue,
     EnsureObject,
+    FlipObject,
     NonNullableObject,
     NonObjectItems,
     ObjectKey,
+    ObjectPathValue,
     ObjectResolvePath,
     ObjectValue,
     PathKey,
     PathKeys,
+    PrefixKeys,
     SortSpec,
     SpreadItems,
     TruthyObject,
+    UndotObjectValue,
 } from "@tolki/types";
 import {
     arrayableItems,
@@ -165,6 +169,27 @@ type CombineOneKey<X, S = PhpKeyString<X>> = S extends unknown
         ? S
         : never
     : never;
+
+// A symbol key is optional: keyBy stores one only when some row resolves to it.
+type KeyByResult<V, S extends symbol> = [S] extends [never]
+    ? Record<string, V>
+    : Record<string, V> & { [K in S]?: V };
+// dot() and flattenDot() keep an undefined leaf, which ObjectPathValue (get()'s reach, where undefined means missing)
+// drops; a declared `| undefined` anywhere in T adds it back.
+type DotUndefined<T, D extends number = 5> = [D] extends [never]
+    ? undefined
+    : T extends readonly (infer E)[]
+      ? Extract<E, undefined> | DotUndefined<NonNullable<E>, DotDepth[D]>
+      : T extends (...args: never[]) => unknown
+        ? never
+        : T extends object
+          ? {
+                [K in keyof T]-?:
+                    | Extract<Required<T>[K], undefined>
+                    | DotUndefined<NonNullable<T[K]>, DotDepth[D]>;
+            }[keyof T]
+          : never;
+type DotDepth = [never, 0, 1, 2, 3, 4];
 
 /**
  * Determine whether the given value is object accessible.
@@ -788,6 +813,21 @@ export function divide<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * dot({ name: 'John', address: { city: 'NYC', zip: '10001' } }); -> { name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }
  */
+export function dot(
+    data: NonObjectItems,
+    prepend?: string,
+    depth?: number,
+): Record<string, never>;
+export function dot<T extends object>(
+    data: T,
+    prepend?: string,
+    depth?: number,
+): Record<string, ObjectPathValue<T> | DotUndefined<T>>;
+export function dot(
+    data: unknown,
+    prepend?: string,
+    depth?: number,
+): Record<string, unknown>;
 export function dot<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     prepend: string = "",
@@ -810,10 +850,15 @@ export function dot<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param map - The flat object with dot-notated keys.
  * @returns A new multi-dimensional object.
  */
+export function undot(data: NonObjectItems): Record<number, unknown>;
+export function undot<T extends object>(
+    data: T,
+): Record<string, UndotObjectValue<ObjectValue<T>>>;
+export function undot(data: unknown): Record<string, unknown>;
 export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
-    map: Record<TKey, TValue>,
+    map: Record<TKey, TValue> | unknown,
 ): Record<TKey, TValue> {
-    return undotExpandObject(map) as Record<TKey, TValue>;
+    return undotExpandObject(map as Record<TKey, TValue>);
 }
 
 /**
@@ -1289,6 +1334,18 @@ export function flatten<TValue>(
  *
  * flattenDot({ users: { john: { name: 'John' } } }, 1); -> { 'users.john': { name: 'John' } }
  */
+export function flattenDot(
+    data: NonObjectItems,
+    depth?: number,
+): Record<string, never>;
+export function flattenDot<T extends object>(
+    data: T,
+    depth?: number,
+): Record<string, ObjectPathValue<T> | DotUndefined<T>>;
+export function flattenDot(
+    data: unknown,
+    depth?: number,
+): Record<string, unknown>;
 export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     depth: number = Infinity,
@@ -1352,6 +1409,9 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
  * flip({name: 'taylor'}); -> {taylor: 'name'}
  * flip({string: 'taylor', integer: 1, null: null, float: 1.5}); -> {taylor: 'string', 1: 'integer'}
  */
+export function flip(data: NonObjectItems): Record<string, never>;
+export function flip<T extends object>(data: T): FlipObject<T>;
+export function flip(data: unknown): Record<string, string | number>;
 export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
 ): Record<string, string | number> {
@@ -1908,6 +1968,36 @@ export function join<TValue, TKey extends PropertyKey = PropertyKey>(
  * keyBy({ user1: { id: 1, name: 'John' }, user2: { id: 2, name: 'Jane' } }, 'name'); -> { John: { id: 1, name: 'John' }, Jane: { id: 2, name: 'Jane' } }
  * keyBy({ a: { name: 'John' }, b: { name: 'Jane' } }, (item) => item.name); -> { John: { name: 'John' }, Jane: { name: 'Jane' } }
  */
+export function keyBy(
+    data: NonObjectItems,
+    keyBy:
+        | PathKey
+        | ((
+              item: unknown,
+              key: string | number,
+          ) => PropertyKey | boolean | null | undefined),
+): Record<string, never>;
+// The runtime keeps a symbol the callback returns, or a path reaches, as a key, and casts a bool or float key the
+// way PHP does.
+export function keyBy<
+    T extends object,
+    R extends PropertyKey | boolean | null | undefined = never,
+>(
+    data: T,
+    keyBy: PathKey | ((item: ObjectValue<T>, key: ObjectKey<T>) => R),
+): KeyByResult<
+    ObjectValue<T>,
+    Extract<R | ObjectPathValue<ObjectValue<T>>, symbol>
+>;
+export function keyBy(
+    data: unknown,
+    keyBy:
+        | PathKey
+        | ((
+              item: unknown,
+              key: string | number,
+          ) => PropertyKey | boolean | null | undefined),
+): Record<string, unknown>;
 export function keyBy<TValue extends Record<PropertyKey, unknown>>(
     data: Record<PropertyKey, TValue> | unknown,
     keyBy:
@@ -1915,7 +2005,7 @@ export function keyBy<TValue extends Record<PropertyKey, unknown>>(
         | ((
               item: TValue,
               key: string | number,
-          ) => PropertyKey | null | undefined),
+          ) => PropertyKey | boolean | null | undefined),
 ): Record<PropertyKey, TValue> {
     if (!accessible(data)) {
         return {};
@@ -1950,6 +2040,18 @@ export function keyBy<TValue extends Record<PropertyKey, unknown>>(
  *
  * prependKeysWith({ a: 1, b: 2, c: 3 }, 'item_'); -> { item_a: 1, item_b: 2, item_c: 3 }
  */
+export function prependKeysWith(
+    data: NonObjectItems,
+    prependWith: string,
+): Record<string, never>;
+export function prependKeysWith<T extends object, const P extends string>(
+    data: T,
+    prependWith: P,
+): PrefixKeys<T, P>;
+export function prependKeysWith(
+    data: unknown,
+    prependWith: string,
+): Record<string, unknown>;
 export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     prependWith: string,

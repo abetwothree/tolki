@@ -3957,9 +3957,7 @@ describe("Obj", () => {
                 user1: { id: 10, name: "John" },
                 user2: { id: 20, name: "Jane" },
             };
-            const result = Obj.keyBy(obj, (item) =>
-                ((item as Record<string, unknown>)["id"] as number).toString(),
-            );
+            const result = Obj.keyBy(obj, (item) => item.id.toString());
             expect(result).toEqual({
                 10: { id: 10, name: "John" },
                 20: { id: 20, name: "Jane" },
@@ -3996,9 +3994,7 @@ describe("Obj", () => {
             });
 
             // Callback returning null behaves the same way
-            expect(
-                Obj.keyBy(obj, (item) => item["name"] as string | null),
-            ).toEqual({
+            expect(Obj.keyBy(obj, (item) => item["name"])).toEqual({
                 1: { rating: 1, name: "1" },
                 "": { rating: 2, name: null },
             });
@@ -4018,9 +4014,9 @@ describe("Obj", () => {
 
         it("passes keyBy's callback the item's key", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "keyBy callback receives the key"
-            expect(
-                Obj.keyBy({ x: { id: 1 } }, (_item, key) => key as PropertyKey),
-            ).toEqual({ x: { id: 1 } });
+            expect(Obj.keyBy({ x: { id: 1 } }, (_item, key) => key)).toEqual({
+                x: { id: 1 },
+            });
         });
 
         it("casts a bool, null or float key the way PHP stores an array offset", () => {
