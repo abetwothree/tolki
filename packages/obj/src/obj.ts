@@ -24,7 +24,9 @@ import type {
     ObjectValue,
     PathKey,
     PathKeys,
+    PluckValue,
     PrefixKeys,
+    Simplify,
     SortSpec,
     SpreadItems,
     TruthyObject,
@@ -190,6 +192,11 @@ type DotUndefined<T, D extends number = 5> = [D] extends [never]
             }[keyof T]
           : never;
 type DotDepth = [never, 0, 1, 2, 3, 4];
+
+type PluckKey<TItem> =
+    | string
+    | readonly (string | number)[]
+    | ((item: TItem) => string | number);
 
 /**
  * Determine whether the given value is object accessible.
@@ -2163,6 +2170,32 @@ export function onlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
  * select({ user1: { a: 1, b: 2, c: 3 }, user2: { a: 4, b: 5, c: 6 } }, 'a'); -> { user1: { a: 1 }, user2: { a: 4 } }
  * select({ user1: { a: 1, b: 2 }, user2: { a: 3, b: 4 } }, ['a', 'b']); -> { user1: { a: 1, b: 2 }, user2: { a: 3, b: 4 } }
  */
+export function select(
+    data: NonObjectItems,
+    keys: PathKeys,
+): Record<string, never>;
+export function select<
+    T extends object,
+    const K extends keyof ObjectValue<T> & string,
+>(
+    data: T,
+    keys: K,
+): { -readonly [R in keyof T]: Simplify<Pick<T[R], K & keyof T[R]>> };
+export function select<
+    T extends object,
+    const Ks extends readonly (keyof ObjectValue<T> & string)[],
+>(
+    data: T,
+    keys: Ks,
+): { -readonly [R in keyof T]: Simplify<Pick<T[R], Ks[number] & keyof T[R]>> };
+export function select<T extends object>(
+    data: T,
+    keys: PathKeys,
+): { -readonly [R in keyof T]: Partial<T[R]> };
+export function select(
+    data: unknown,
+    keys: PathKeys,
+): Record<string, Record<string, unknown>>;
 export function select<TValue extends Record<PropertyKey, unknown>>(
     data: Record<PropertyKey, TValue> | unknown,
     keys: PathKeys,
@@ -2213,14 +2246,74 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
  *
  * pluck({ user1: { name: 'John' }, user2: { name: 'Jane' } }, 'name'); -> ['John', 'Jane']
  */
+export function pluck(
+    data: NonObjectItems,
+    value:
+        | string
+        | readonly (string | number)[]
+        | ((item: unknown) => unknown)
+        | null,
+    key?: PluckKey<unknown> | null,
+): never[];
+export function pluck<T extends object, const P extends string>(
+    data: T,
+    value: P,
+    key: PluckKey<ObjectValue<T>>,
+): Record<string | number, PluckValue<ObjectValue<T>, P>>;
+export function pluck<T extends object, const P extends string>(
+    data: T,
+    value: P,
+): PluckValue<ObjectValue<T>, P>[];
+export function pluck<T extends object, R>(
+    data: T,
+    value: (item: ObjectValue<T>) => R,
+    key: PluckKey<ObjectValue<T>>,
+): Record<string | number, R>;
+export function pluck<T extends object, R>(
+    data: T,
+    value: (item: ObjectValue<T>) => R,
+): R[];
+export function pluck<T extends object>(
+    data: T,
+    value: null | undefined,
+    key: PluckKey<ObjectValue<T>>,
+): Record<string | number, ObjectValue<T>>;
+export function pluck<T extends object>(
+    data: T,
+    value: null | undefined,
+): ObjectValue<T>[];
+export function pluck<T extends object>(
+    data: T,
+    value: readonly (string | number)[],
+    key: PluckKey<ObjectValue<T>>,
+): Record<string | number, unknown>;
+export function pluck<T extends object>(
+    data: T,
+    value: readonly (string | number)[],
+): unknown[];
+export function pluck(
+    data: unknown,
+    value:
+        | string
+        | readonly (string | number)[]
+        | ((item: unknown) => unknown)
+        | null,
+    key?: PluckKey<unknown> | null,
+): unknown[] | Record<string | number, unknown>;
 export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    value: string | readonly string[] | ((item: TValue) => unknown) | null,
+    value:
+        | string
+        | readonly string[]
+        | ((item: TValue) => unknown)
+        | null
+        | unknown,
     key:
         | string
         | readonly string[]
         | ((item: TValue) => string | number)
-        | null = null,
+        | null
+        | unknown = null,
 ): unknown[] | Record<PropertyKey, unknown> {
     if (!accessible(data)) {
         return isNull(key) || isUndefined(key) ? [] : {};
