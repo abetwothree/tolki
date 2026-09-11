@@ -2163,7 +2163,8 @@ export function mapSpread<
  *
  * @param data - The object to prepend to.
  * @param value - The value to prepend.
- * @param key - The key for the prepended value; omit it to unshift under key 0, as `Arr::prepend` does with two arguments.
+ * @param key - The key for the prepended value; omit it to unshift under key 0, as `Arr::prepend`
+ * does with two arguments.
  * @returns A new object with the value prepended.
  *
  * @example

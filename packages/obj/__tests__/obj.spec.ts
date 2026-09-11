@@ -1112,6 +1112,12 @@ describe("Obj", () => {
             expect(Obj.unshift()).toEqual({});
         });
 
+        it("treats non-object data as empty, keying the items in order", () => {
+            // JS-only: non-object data is treated as empty, the same branch the
+            // zero-argument case above uses.
+            expect(Obj.unshift(null, "a", "b")).toEqual({ 0: "a", 1: "b" });
+        });
+
         it("assigns a scalar prepend item the next integer key, like array_unshift", () => {
             expect(Obj.unshift({ x: 1, y: 2 }, 9)).toEqual({
                 0: 9,
