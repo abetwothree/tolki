@@ -1857,6 +1857,13 @@ describe("Data", () => {
     });
 
     describe("dataShift", () => {
+        it("renumbers a negative integer key through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "shift-negative-int-keys"
+            const data = { x: "a", "-1": "b", y: "c" };
+
+            expect(Data.dataShift(data)).toBe("a");
+            expect(data).toEqual({ 0: "b", y: "c" });
+        });
         it("is object", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const result = Data.dataShift(obj);
@@ -2252,6 +2259,16 @@ describe("Data", () => {
     });
 
     describe("dataSplice", () => {
+        it("renumbers negative integer keys through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "splice-negative-int-keys"
+            const data = { x: "a", "-3": "b", "-7": "c" };
+
+            expect(Data.dataSplice(data, 0, 3)).toEqual({
+                x: "a",
+                0: "b",
+                1: "c",
+            });
+        });
         it("is object", () => {
             // An object-backed source stays object-backed and keeps its keys on the
             // removed portion; the replacement's own keys are discarded and renumbered
@@ -2536,6 +2553,15 @@ describe("Data", () => {
     });
 
     describe("dataPad", () => {
+        it("renumbers a negative integer key through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "pad-negative-int-key"
+            expect(Data.dataPad({ "-1": "a", x: "b" }, 4, 0)).toEqual({
+                0: "a",
+                x: "b",
+                1: 0,
+                2: 0,
+            });
+        });
         it("is object", () => {
             const result = Data.dataPad({ a: 1, b: 2 }, 4, 0);
             expect(Object.keys(result)).toEqual(["0", "1", "a", "b"]);

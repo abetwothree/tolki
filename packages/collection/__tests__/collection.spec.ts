@@ -5926,6 +5926,14 @@ describe("Collection", () => {
     });
 
     describe("shift", () => {
+        it("renumbers a negative integer key on an object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "shift-negative-int-keys"
+            const c = collect({ x: "a", "-1": "b", "-2": "c", y: "d" });
+
+            expect(c.shift(2).all()).toEqual(["a", "b"]);
+            expect(c.all()).toEqual({ 0: "c", y: "d" });
+        });
+
         describe("Laravel Tests", () => {
             it("test shift returns and removes first item in collection", () => {
                 const data = collect(["Taylor", "Otwell"]);
@@ -7702,6 +7710,14 @@ describe("Collection", () => {
     });
 
     describe("splice", () => {
+        it("renumbers negative integer keys on an object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "splice-negative-int-keys"
+            const c = collect({ "-1": "a", x: "b", "-5": "c" });
+
+            expect(c.splice(1, 1, ["z"]).all()).toEqual({ x: "b" });
+            expect(c.all()).toEqual({ 0: "a", 1: "z", 2: "c" });
+        });
+
         describe("Laravel Tests", () => {
             it("test splice", () => {
                 const data = collect(["foo", "baz"]);
@@ -8074,6 +8090,16 @@ describe("Collection", () => {
     });
 
     describe("pad", () => {
+        it("renumbers a negative integer key on an object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "pad-negative-int-key"
+            expect(collect({ "-1": "a", x: "b" }).pad(-4, 0).all()).toEqual({
+                0: 0,
+                1: 0,
+                2: "a",
+                x: "b",
+            });
+        });
+
         describe("Laravel Tests", () => {
             it("test pad", () => {
                 let c = collect([1, 2, 3]);

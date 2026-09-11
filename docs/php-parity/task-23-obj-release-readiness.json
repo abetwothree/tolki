@@ -2721,6 +2721,75 @@
             }
         },
         {
+            "label": "shift-negative-int-keys",
+            "php": "$c = new Collection(['x' => 'a', -1 => 'b', 'y' => 'c']); $c->shift(); and $d = new Collection(['x' => 'a', -1 => 'b', -2 => 'c', 'y' => 'd']); $d->shift(2)",
+            "value": {
+                "one": {
+                    "shifted": "a",
+                    "rest": {
+                        "0": "b",
+                        "y": "c"
+                    }
+                },
+                "two": {
+                    "shifted": [
+                        "a",
+                        "b"
+                    ],
+                    "rest": {
+                        "0": "c",
+                        "y": "d"
+                    }
+                }
+            }
+        },
+        {
+            "label": "splice-negative-int-keys",
+            "php": "$c = new Collection([-1 => 'a', 'x' => 'b', -5 => 'c']); $c->splice(1, 1, ['z']); and $d = new Collection(['x' => 'a', -3 => 'b', -7 => 'c']); $d->splice(0, 3)",
+            "value": {
+                "replaced": {
+                    "removed": {
+                        "x": "b"
+                    },
+                    "rest": [
+                        "a",
+                        "z",
+                        "c"
+                    ]
+                },
+                "emptied": {
+                    "removed": {
+                        "x": "a",
+                        "0": "b",
+                        "1": "c"
+                    },
+                    "rest": []
+                }
+            }
+        },
+        {
+            "label": "pad-negative-int-key",
+            "php": "(new Collection([-1 => 'a', 'x' => 'b']))->pad(4, 0), ->pad(-4, 0), ->pad(2, 0)",
+            "value": {
+                "right": {
+                    "0": "a",
+                    "x": "b",
+                    "1": 0,
+                    "2": 0
+                },
+                "left": {
+                    "0": 0,
+                    "1": 0,
+                    "2": "a",
+                    "x": "b"
+                },
+                "none": {
+                    "-1": "a",
+                    "x": "b"
+                }
+            }
+        },
+        {
             "label": "diffAssoc-list-keyed-operand",
             "php": "(new Collection([1, 2]))->diffAssoc(['a' => 1, 'b' => 2]); (new Collection(['a', 'b']))->diffAssoc([1 => 'b']); the first with a Collection operand",
             "value": {

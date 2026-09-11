@@ -3424,7 +3424,7 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
  * Get and remove the first N items from the object, mutating it in place,
  * like PHP's array_shift.
  *
- * Survivors' integer-like keys are renumbered from 0, matching `array_shift`;
+ * Survivors' integer keys, negative ones included, are renumbered from 0, matching `array_shift`;
  * string keys keep theirs.
  *
  * @see Collection::shift — `packages/collection/stubs/Collection.php:1268`. Mirrors `array_shift`; mutates.
@@ -3483,7 +3483,9 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
         delete obj[key];
     }
 
-    for (const [key, value] of reindexIntegerKeys(entries.slice(actualCount))) {
+    for (const [key, value] of renumberPhpIntegerKeys(
+        entries.slice(actualCount),
+    )) {
         defineKey(obj, key, value);
     }
 
@@ -3493,6 +3495,25 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     return shiftedValues;
+}
+
+/**
+ * Renumber every key PHP stores as an integer to a fresh 0-based sequence, in order, as `array_shift`,
+ * `array_splice` and `array_pad` do. Unlike `reindexIntegerKeys`, a negative key such as "-1" counts too.
+ *
+ * @param entries - The entries to renumber, in their intended order
+ * @returns The same entries with every integer key renumbered from 0
+ */
+function renumberPhpIntegerKeys<TValue>(
+    entries: [string, TValue][],
+): [string, TValue][] {
+    let nextIndex = 0;
+
+    return entries.map(([key, value]) =>
+        isNumber(phpArrayKey(key))
+            ? [String(nextIndex++), value]
+            : [key, value],
+    );
 }
 
 /**
@@ -4100,7 +4121,7 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
 
 /**
  * Splice a portion of the underlying object, mutating it in place, like PHP's
- * `array_splice()`. String keys keep theirs; integer-like keys reindex from 0.
+ * `array_splice()`. String keys keep theirs; integer keys, negative ones included, reindex from 0.
  * Writes go through `defineKey` so a `__proto__` entry becomes a real own key
  * (see `isUnsafeKey`, AGENTS.md:189).
  *
@@ -4171,7 +4192,7 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
         }
 
         // array_splice takes a bare scalar as one spliced-in element;
-        // reindexIntegerKeys renumbers this placeholder by position.
+        // renumberPhpIntegerKeys renumbers this placeholder by position.
         replacementEntries.push(["0", repObj as unknown as TValue]);
     }
 
@@ -4179,7 +4200,7 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
         delete obj[key];
     }
 
-    const remainderEntries = reindexIntegerKeys([
+    const remainderEntries = renumberPhpIntegerKeys([
         ...beforeEntries,
         ...replacementEntries,
         ...afterEntries,
@@ -4190,7 +4211,7 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
     }
 
     const removed: Record<string, TValue> = {};
-    for (const [key, value] of reindexIntegerKeys(removedEntries)) {
+    for (const [key, value] of renumberPhpIntegerKeys(removedEntries)) {
         defineKey(removed, key, value);
     }
 
@@ -4576,8 +4597,8 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
  * Pad object to the specified length with a value.
  *
  * Pad slots join the integer-key sequence rather than restarting it, matching
- * `array_pad`'s numbering; string keys keep theirs. Only iteration order of a
- * mixed-key object can differ, since JS enumerates integer-like keys first (ECMA-262).
+ * `array_pad`'s numbering, which renumbers negative keys too; string keys keep theirs.
+ * Only iteration order of a mixed-key object can differ, since JS enumerates integer-like keys first (ECMA-262).
  *
  * @see Collection::pad — `packages/collection/stubs/Collection.php:1904`. Wraps `array_pad`.
  *
@@ -4622,7 +4643,7 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     const padEntries: [string, TPadValue][] = [];
 
     for (let i = 0; i < padCount; i++) {
-        // Any integer-like key works here; reindexIntegerKeys below
+        // Any integer-like key works here; renumberPhpIntegerKeys below
         // renumbers the whole sequence by position anyway.
         padEntries.push(["0", value]);
     }
@@ -4631,7 +4652,7 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
         size > 0 ? [...entries, ...padEntries] : [...padEntries, ...entries];
 
     const result: Record<string, TValue | TPadValue> = {};
-    for (const [key, val] of reindexIntegerKeys(orderedEntries)) {
+    for (const [key, val] of renumberPhpIntegerKeys(orderedEntries)) {
         defineKey(result, key, val);
     }
 

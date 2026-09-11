@@ -648,6 +648,33 @@ probe('collapse-negative-int-keys', "Arr::collapse(['g1' => [-1 => 'a', 'k' => '
 ]);
 probe('unshift-negative-int-key', "(new Collection([-1 => 'a', 'x' => 'b']))->unshift('z')", fn () => (new Collection([-1 => 'a', 'x' => 'b']))->unshift('z')->all());
 probe('prepend-negative-int-key-no-key', "Arr::prepend([-1 => 'a', 'x' => 'b'], 'z')", fn () => Arr::prepend([-1 => 'a', 'x' => 'b'], 'z'));
+probe('shift-negative-int-keys', "\$c = new Collection(['x' => 'a', -1 => 'b', 'y' => 'c']); \$c->shift(); and \$d = new Collection(['x' => 'a', -1 => 'b', -2 => 'c', 'y' => 'd']); \$d->shift(2)", function () {
+    $one = new Collection(['x' => 'a', -1 => 'b', 'y' => 'c']);
+    $shifted = $one->shift();
+    $two = new Collection(['x' => 'a', -1 => 'b', -2 => 'c', 'y' => 'd']);
+    $shiftedTwo = $two->shift(2);
+
+    return [
+        'one' => ['shifted' => $shifted, 'rest' => $one->all()],
+        'two' => ['shifted' => $shiftedTwo->all(), 'rest' => $two->all()],
+    ];
+});
+probe('splice-negative-int-keys', "\$c = new Collection([-1 => 'a', 'x' => 'b', -5 => 'c']); \$c->splice(1, 1, ['z']); and \$d = new Collection(['x' => 'a', -3 => 'b', -7 => 'c']); \$d->splice(0, 3)", function () {
+    $one = new Collection([-1 => 'a', 'x' => 'b', -5 => 'c']);
+    $removed = $one->splice(1, 1, ['z']);
+    $two = new Collection(['x' => 'a', -3 => 'b', -7 => 'c']);
+    $removedTwo = $two->splice(0, 3);
+
+    return [
+        'replaced' => ['removed' => $removed->all(), 'rest' => $one->all()],
+        'emptied' => ['removed' => $removedTwo->all(), 'rest' => $two->all()],
+    ];
+});
+probe('pad-negative-int-key', "(new Collection([-1 => 'a', 'x' => 'b']))->pad(4, 0), ->pad(-4, 0), ->pad(2, 0)", fn () => [
+    'right' => (new Collection([-1 => 'a', 'x' => 'b']))->pad(4, 0)->all(),
+    'left' => (new Collection([-1 => 'a', 'x' => 'b']))->pad(-4, 0)->all(),
+    'none' => (new Collection([-1 => 'a', 'x' => 'b']))->pad(2, 0)->all(),
+]);
 
 // ---- list data against a keyed operand: the key-aware set operations match by key, never by position
 probe('diffAssoc-list-keyed-operand', "(new Collection([1, 2]))->diffAssoc(['a' => 1, 'b' => 2]); (new Collection(['a', 'b']))->diffAssoc([1 => 'b']); the first with a Collection operand", fn () => [

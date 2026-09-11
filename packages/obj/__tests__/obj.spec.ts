@@ -4652,6 +4652,17 @@ describe("Obj", () => {
     });
 
     describe("shift", () => {
+        it("renumbers a negative integer key among the survivors", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "shift-negative-int-keys"
+            const one = { x: "a", "-1": "b", y: "c" };
+            const two = { x: "a", "-1": "b", "-2": "c", y: "d" };
+
+            expect(Obj.shift(one)).toBe("a");
+            expect(one).toEqual({ 0: "b", y: "c" });
+            expect(Obj.shift(two, 2)).toEqual(["a", "b"]);
+            expect(two).toEqual({ 0: "c", y: "d" });
+        });
+
         it("returns null for non-object data, whatever the count", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "D6 shift/pop on collect(null)"
             expect(Obj.shift(null, 2)).toBeNull();
@@ -4745,15 +4756,6 @@ describe("Obj", () => {
                 ["0", 30],
                 ["1", 40],
             ]);
-        });
-
-        it("keeps a negative-string key as-is when reindexing the survivors", () => {
-            // "-1" isn't a canonical JS array index (see the same case under
-            // splice), so it survives instead of being swept into the renumbering.
-            const data: Record<string, string> = { b: "y", "-1": "x", c: "z" };
-
-            expect(Obj.shift(data)).toBe("y");
-            expect(data).toEqual({ "-1": "x", c: "z" });
         });
     });
 
@@ -6049,6 +6051,17 @@ describe("Obj", () => {
     });
 
     describe("splice", () => {
+        it("renumbers negative integer keys in what it keeps and what it removes", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "splice-negative-int-keys"
+            const one = { "-1": "a", x: "b", "-5": "c" };
+            const two = { x: "a", "-3": "b", "-7": "c" };
+
+            expect(Obj.splice(one, 1, 1, ["z"])).toEqual({ x: "b" });
+            expect(one).toEqual({ 0: "a", 1: "z", 2: "c" });
+            expect(Obj.splice(two, 0, 3)).toEqual({ x: "a", 0: "b", 1: "c" });
+            expect(two).toEqual({});
+        });
+
         it("should handle non-object data", () => {
             expect(Obj.splice(null, 0, 2)).toEqual({});
             expect(Obj.splice([], 0, 2)).toEqual({});
@@ -6173,18 +6186,9 @@ describe("Obj", () => {
             expect(obj).toEqual({ 0: "n2", x: "s" });
         });
 
-        it("keeps a negative-string key as-is instead of renumbering it", () => {
-            // "-1" isn't a canonical JS array index, so our grammar leaves it alone —
-            // unlike PHP, which casts "-1" to int(-1) and array_splice renumbers it too.
-            const obj: Record<string, string> = { "-1": "x", b: "y", c: "z" };
-            const removed = Obj.splice(obj, 1, 1);
-            expect(removed).toEqual({ b: "y" });
-            expect(obj).toEqual({ "-1": "x", c: "z" });
-        });
-
-        it("classifies keys by the array-index grammar, not by Number()'s notion of numeric", () => {
-            // "0"/"1"/"42" are canonical indices and reindex; none of the rest are
-            // (leading zero, sign, fraction, exponent, whitespace, hex, or empty).
+        it("classifies keys the way PHP casts an array key, not by Number()'s notion of numeric", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "splice-negative-int-keys": "0"/"1"/"42" and "-1"
+            // are integer keys and reindex; the rest aren't (leading zero, fraction, exponent, whitespace, hex, empty).
             const obj: Record<string, string> = {
                 "0": "A",
                 "1": "B",
@@ -6204,7 +6208,7 @@ describe("Obj", () => {
                 "0": "A",
                 "1": "B",
                 "2": "C",
-                "-1": "D",
+                "3": "D",
                 "1.5": "E",
                 "01": "F",
                 "": "G",
@@ -6554,6 +6558,20 @@ describe("Obj", () => {
     });
 
     describe("pad", () => {
+        it("renumbers a negative integer key when it pads, and keeps it when it doesn't", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "pad-negative-int-key"
+            const data = { "-1": "a", x: "b" };
+
+            expect(Obj.pad(data, 4, 0)).toEqual({ 0: "a", x: "b", 1: 0, 2: 0 });
+            expect(Obj.pad(data, -4, 0)).toEqual({
+                0: 0,
+                1: 0,
+                2: "a",
+                x: "b",
+            });
+            expect(Obj.pad(data, 2, 0)).toEqual({ "-1": "a", x: "b" });
+        });
+
         it("should handle non-object", () => {
             expect(Obj.pad(null, 3, 0)).toEqual({});
             expect(Obj.pad([], 2, "a")).toEqual({});
@@ -6671,16 +6689,6 @@ describe("Obj", () => {
             expect(Obj.pad({ 5: "a", 9: "b" }, 2, 0)).toEqual({
                 5: "a",
                 9: "b",
-            });
-        });
-
-        it("keeps a negative-string key as-is instead of folding it into the pad sequence", () => {
-            // "-1" isn't a canonical JS array index (see the same case under
-            // splice), so it never joins the integer sequence pad slots are numbered against.
-            expect(Obj.pad({ "-1": "x", b: "y" }, 3, "p")).toEqual({
-                "-1": "x",
-                b: "y",
-                "0": "p",
             });
         });
     });
@@ -6865,8 +6873,8 @@ describe("Obj", () => {
         });
 
         it("keeps a negative-string key as-is instead of renumbering it", () => {
-            // "-1" isn't a canonical JS array index (see the same case under
-            // splice), so it's left alone rather than renumbered.
+            // array_reverse($items, true) keeps every key; JS keeps "-1" in insertion order, so only
+            // non-negative integer keys, which JS sorts ascending, need renumbering.
             const result = Obj.reverse({ "-1": "x", b: "y", c: "z" });
             expect(result).toEqual({ c: "z", b: "y", "-1": "x" });
         });
