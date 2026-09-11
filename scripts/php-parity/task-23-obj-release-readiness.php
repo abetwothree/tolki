@@ -898,4 +898,22 @@ probe('combine-list-keyed-values', "(new Collection([1, 2]))->combine(['a' => 'x
     'collection' => (new Collection([1, 2]))->combine(new Collection(['a' => 'x', 'b' => 'y']))->all(),
 ]);
 
+// ---- an assoc-backed Collection reads a list operand by its indices, as the list-backed one reads a keyed operand by key
+probe('object-backing-list-operand', "\$c = new Collection([0 => 'a', 1 => 'b', 'x' => 'c']); \$c->replace(['z']), ->replaceRecursive(['z']), ->intersectByKeys(['z']), ->intersectAssoc(['a']), ->intersectAssocUsing(['a'], \$cmp)", function () {
+    $c = new Collection([0 => 'a', 1 => 'b', 'x' => 'c']);
+
+    return [
+        'replace' => $c->replace(['z'])->all(),
+        'replaceRecursive' => $c->replaceRecursive(['z'])->all(),
+        'intersectByKeys' => $c->intersectByKeys(['z'])->all(),
+        'intersectAssoc' => $c->intersectAssoc(['a'])->all(),
+        'intersectAssocUsing' => $c->intersectAssocUsing(['a'], fn ($a, $b) => $a <=> $b)->all(),
+    ];
+});
+probe('list-backing-keyed-operand', "(new Collection(['a', 'b']))->union([2 => 'z']) and (new Collection(['a', 'b', 'c']))->intersectByKeys([0 => 'x', 2 => 'y'])", fn () => [
+    'union' => (new Collection(['a', 'b']))->union([2 => 'z'])->all(),
+    'intersectByKeys' => (new Collection(['a', 'b', 'c']))->intersectByKeys([0 => 'x', 2 => 'y'])->values()->all(),
+]);
+probe('union-all-nullish', "(new Collection(null))->union(null)", fn () => (new Collection(null))->union(null)->all());
+
 emit();

@@ -2800,6 +2800,17 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({ a: "green" });
         });
+
+        it("takes an operand of the other shape, on either backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "object-backing-list-operand", "intersectAssoc-list-keyed-operand"
+            expect(
+                collect({ 0: "a", 1: "b", x: "c" }).intersectAssoc(["a"]).all(),
+            ).toEqual({ 0: "a" });
+            expect(
+                collect(["a", "b"]).intersectAssoc({ 1: "b" }).all(),
+            ).toEqual(["b"]);
+        });
     });
 
     describe("intersectAssocUsing", () => {
@@ -2907,6 +2918,21 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({ b: "brown" });
         });
+
+        it("takes an operand of the other shape, on either backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "object-backing-list-operand", "intersectAssocUsing-list-keyed-operand"
+            expect(
+                collect({ 0: "a", 1: "b", x: "c" })
+                    .intersectAssocUsing(["a"], (a, b) => a === b)
+                    .all(),
+            ).toEqual({ 0: "a" });
+            expect(
+                collect(["a", "b"])
+                    .intersectAssocUsing({ 1: "b" }, (a, b) => a === b)
+                    .all(),
+            ).toEqual(["b"]);
+        });
     });
 
     describe("intersectByKeys", () => {
@@ -2975,6 +3001,19 @@ describe("Collection", () => {
                     } as never)
                     .all(),
             ).toEqual({ name: "taylor", family: "otwell" });
+        });
+
+        it("takes an operand of the other shape, on either backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "object-backing-list-operand", "intersectByKeys-list-keyed-operand"
+            expect(
+                collect({ 0: "a", 1: "b", x: "c" })
+                    .intersectByKeys(["z"])
+                    .all(),
+            ).toEqual({ 0: "a" });
+            expect(
+                collect([1, 2, 3]).intersectByKeys({ 0: "x", 2: "y" }).all(),
+            ).toEqual([1, 3]);
         });
     });
 
@@ -3980,8 +4019,16 @@ describe("Collection", () => {
 
         it("casts a null key to the empty string, matching array_combine", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
-            expect(collect({ k: null }).combine({ v: 1 }).all()).toEqual({
+            expect(collect({ k: null }).combine([1]).all()).toEqual({
                 "": 1,
+            });
+        });
+
+        it("combines a list backing with a keyed operand's values", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "combine-list-keyed-values"
+            expect(collect([1, 2]).combine({ a: "x", b: "y" }).all()).toEqual({
+                1: "x",
+                2: "y",
             });
         });
 
@@ -4063,6 +4110,16 @@ describe("Collection", () => {
             expect(
                 Object.values(fromObject.union({ 0: 3, 1: 4, 2: 5 }).all()),
             ).toEqual([1, 2, 5]);
+        });
+
+        it("takes an operand of the other shape, on either backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-operand", "union-list-keyed-operand"
+            expect(collect({ a: 1 }).union([5]).all()).toEqual({ a: 1, 0: 5 });
+            expect(collect([1, 2]).union({ 2: "z" }).all()).toEqual([
+                1,
+                2,
+                "z",
+            ]);
         });
     });
 
@@ -5351,6 +5408,14 @@ describe("Collection", () => {
             expect(fromArray.replace(null).all()).toEqual([1, 2, 3]);
             expect(fromObject.replace(null).all()).toEqual({ a: 1, b: 2 });
         });
+
+        it("replaces an object backing's integer keys from a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-replacer"
+            expect(collect({ a: 1 }).replace(["x"]).all()).toEqual({
+                a: 1,
+                0: "x",
+            });
+        });
     });
 
     describe("replaceRecursive", () => {
@@ -5419,6 +5484,15 @@ describe("Collection", () => {
                     .replaceRecursive({ k: { 1: "e" } })
                     .all(),
             ).toEqual({ k: ["c", "e"] });
+        });
+
+        it("replaces an object backing's integer keys from a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "object-backing-list-operand"
+            expect(
+                collect({ 0: "a", 1: "b", x: "c" })
+                    .replaceRecursive(["z"])
+                    .all(),
+            ).toEqual({ 0: "z", 1: "b", x: "c" });
         });
     });
 

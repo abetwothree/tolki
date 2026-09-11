@@ -530,7 +530,8 @@ export function dataCollapse<TValue>(data: DataItems<TValue, PropertyKey>) {
 }
 
 /**
- * Combine two data sets.
+ * Combine two data sets: the first set's values become the keys, the second set's values the values.
+ * Either set may be a list or an object, as `array_combine` takes any two arrays.
  *
  * @param itemsA - The first data set
  * @param itemsB - The second data set
@@ -541,31 +542,25 @@ export function dataCombine<
     TValues extends Record<PropertyKey, unknown>,
 >(
     itemsA: Record<PropertyKey, TKeys>,
-    itemsB: Record<PropertyKey, TValues>,
+    itemsB: DataItems<TValues>,
 ): ReturnType<typeof objCombine>;
 export function dataCombine<TKeys, TValues>(
     itemsA: TKeys[],
-    itemsB: TValues[],
+    itemsB: DataItems<TValues>,
 ): ReturnType<typeof arrCombine>;
 export function dataCombine<TKeys, TValues>(
     itemsA: Record<PropertyKey, TKeys>,
-    itemsB: Record<PropertyKey, TValues>,
+    itemsB: DataItems<TValues>,
 ): ReturnType<typeof objCombine>;
 export function dataCombine<TKeys, TValues>(
     itemsA: DataItems<TKeys>,
     itemsB: DataItems<TValues>,
 ) {
-    if (isObject(itemsA) && isObject(itemsB)) {
+    if (isObject(itemsA)) {
         return objCombine(itemsA, itemsB);
     }
 
-    if (isArray(itemsA) && isArray(itemsB)) {
-        return arrCombine(itemsA, itemsB);
-    }
-
-    throw new Error(
-        "dataCombine requires both itemsA and itemsB to be of the same type (both objects or both arrays).",
-    );
+    return arrCombine(itemsA, itemsB);
 }
 
 /**
@@ -687,7 +682,8 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Union multiple objects or arrays items into one. Can only union items of the same type.
+ * Union multiple objects or arrays items into one, the way PHP's `+` does: the first
+ * item that isn't nullish is the backing, and each other item may be a list or an object.
  *
  * @param items - the data items to union
  * @return A new object or array containing all values
@@ -695,23 +691,16 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
 export function dataUnion<TValue>(
     ...items: (TValue[] | Record<PropertyKey, TValue> | null | undefined)[]
 ) {
-    // A nullish operand is `(array) null` in PHP — empty, and no evidence
-    // either way about the backing the rest of the operands share.
+    // A nullish operand is `(array) null` in PHP: empty, and no evidence about the backing.
     const present = items.filter(
         (item) => !isNull(item) && !isUndefined(item),
     ) as (TValue[] | Record<PropertyKey, TValue>)[];
 
-    if (present.every(isObject)) {
+    if (isObject(present[0])) {
         return objUnion(...present);
     }
 
-    if (present.every(isArray)) {
-        return arrUnion(...(present as TValue[][]));
-    }
-
-    throw new Error(
-        "dataUnion requires all provided items to be of the same type (all objects or all arrays).",
-    );
+    return arrUnion(...present);
 }
 
 /**
@@ -2023,9 +2012,9 @@ export function dataWhere<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Replace the data items with the given items.
  *
- * A `null`/`undefined` `replacerData` is a no-op regardless of `data`'s backing
- * (`EnumeratesValues.php:1121`), dispatched by `data`'s own shape since there's
- * no object-shaped spelling of "null" to satisfy a same-type check.
+ * `data`'s backing picks the helper, and `replacerData` may be a list or an object on either
+ * backing, as `array_replace` takes any two arrays. A `null`/`undefined` `replacerData` is a
+ * no-op (`EnumeratesValues.php:1121`).
  *
  * @param data - The original data
  * @param items - The items to replace with. `null`/`undefined` is a no-op.
@@ -2039,31 +2028,18 @@ export function dataReplace<
     data: DataItems<TValue, TKey>,
     replacerData: DataItems<TValue, TReplacerKey> | null | undefined,
 ): DataItems<TValue, TKey> {
-    const replacerIsNullish = isNull(replacerData) || isUndefined(replacerData);
-
-    if (isObject(data) && (replacerIsNullish || isObject(replacerData))) {
+    if (isObject(data)) {
         return objReplace(data, replacerData) as DataItems<TValue, TKey>;
     }
 
-    // arrReplace accepts an object-shaped (sparse, by-index) replacer too,
-    // not just an array one — require only that it isn't a bare scalar.
-    if (
-        isArray(data) &&
-        (replacerIsNullish || isArray(replacerData) || isObject(replacerData))
-    ) {
-        return arrReplace(data, replacerData) as DataItems<TValue, TKey>;
-    }
-
-    throw new Error(
-        "Data to replace and items must be of the same type (both array or both object).",
-    );
+    return arrReplace(data, replacerData) as DataItems<TValue, TKey>;
 }
 
 /**
  * Recursively replace the data items with the given items recursively.
  *
- * A `null`/`undefined` `replacerData` is a no-op regardless of `data`'s
- * backing, for the same reason as `dataReplace` above.
+ * `data`'s backing picks the helper and `replacerData` may take either shape, as for
+ * `dataReplace` above. A `null`/`undefined` `replacerData` is a no-op.
  *
  * @param data - The original data
  * @param items - The items to replace with. `null`/`undefined` is a no-op.
@@ -2076,29 +2052,15 @@ export function dataReplaceRecursive<
     data: DataItems<TValue, TKey>,
     replacerData: DataItems<TValue, TKey> | null | undefined,
 ): DataItems<TValue, TKey> {
-    const replacerIsNullish = isNull(replacerData) || isUndefined(replacerData);
-
-    if (isObject(data) && (replacerIsNullish || isObject(replacerData))) {
-        return objReplaceRecursive(data, replacerData) as DataItems<
-            TValue,
-            TKey
-        >;
+    if (isObject(data)) {
+        return objReplaceRecursive(
+            data,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            replacerData as Record<PropertyKey, TValue> | null | undefined,
+        ) as DataItems<TValue, TKey>;
     }
 
-    // Mirrors arrReplace: an object-shaped replacer is legal on the array branch.
-    if (
-        isArray(data) &&
-        (replacerIsNullish || isArray(replacerData) || isObject(replacerData))
-    ) {
-        return arrReplaceRecursive(data, replacerData) as DataItems<
-            TValue,
-            TKey
-        >;
-    }
-
-    throw new Error(
-        "Data to replace and items must be of the same type (both array or both object).",
-    );
+    return arrReplaceRecursive(data, replacerData) as DataItems<TValue, TKey>;
 }
 
 /**
@@ -2720,8 +2682,8 @@ export function dataIntersect<
  * Intersect the data with the given items with additional key check.
  * Returns items where both the key AND value match.
  *
- * A `null`/`undefined` `other` is treated as empty rather than
- * throwing the same-type error below.
+ * `data`'s backing picks the helper, and `other` may be a list or an object on either backing,
+ * as `array_intersect_assoc` takes any two arrays. A `null`/`undefined` `other` is treated as empty.
  *
  * @param data - The original data
  * @param items - The items to intersect with
@@ -2739,24 +2701,17 @@ export function dataIntersectAssoc<
     data: DataItems<TValue, TKey>,
     other: DataItems<TValue, TKey> | null | undefined,
 ): DataItems<TValue, TKey> {
-    const otherIsNullish = isNull(other) || isUndefined(other);
-
-    if (isObject(data) && (otherIsNullish || isObject(other))) {
+    if (isObject(data)) {
         return objIntersectAssoc(data, other) as DataItems<TValue, TKey>;
     }
 
-    if (isArray(data) && (otherIsNullish || isArray(other))) {
-        return arrIntersectAssoc(data, other) as DataItems<TValue, TKey>;
-    }
-
-    throw new Error(
-        "Data to intersect must be of the same type (both array or both object).",
-    );
+    return arrIntersectAssoc(data, other) as DataItems<TValue, TKey>;
 }
 
 /**
  * Intersect the data with the given items with additional key check, using the callback.
- * The callback is used to compare keys, while values are compared strictly.
+ * The callback is used to compare keys, while values are compared by PHP's `(string)` cast rule.
+ * `other` may be a list or an object on either backing.
  *
  * @param data - The original data
  * @param items - The items to intersect with
@@ -2776,9 +2731,7 @@ export function dataIntersectAssocUsing<
     other: DataItems<TValue, TKey> | null | undefined,
     callback: (keyA: TKey, keyB: TKey) => boolean,
 ) {
-    const otherIsNullish = isNull(other) || isUndefined(other);
-
-    if (isObject(data) && (otherIsNullish || isObject(other))) {
+    if (isObject(data)) {
         return objIntersectAssocUsing(
             data as Record<string, TValue>,
             other as Record<string, TValue> | null | undefined,
@@ -2786,21 +2739,16 @@ export function dataIntersectAssocUsing<
         ) as DataItems<TValue, TKey>;
     }
 
-    if (isArray(data) && (otherIsNullish || isArray(other))) {
-        return arrIntersectAssocUsing(
-            data,
-            other as TValue[] | null | undefined,
-            callback as (keyA: number, keyB: number) => boolean,
-        ) as DataItems<TValue>;
-    }
-
-    throw new Error(
-        "Data to intersect must be of the same type (both array or both object).",
-    );
+    return arrIntersectAssocUsing(
+        data,
+        other as unknown,
+        callback as (keyA: number, keyB: number | string) => boolean,
+    ) as DataItems<TValue>;
 }
 
 /**
  * Intersect the data with the given items by key.
+ * `other` may be a list or an object on either backing, as `array_intersect_key` takes any two arrays.
  *
  * @param data - The original data
  * @param items - The items to intersect with
@@ -2814,17 +2762,9 @@ export function dataIntersectByKeys<
     data: DataItems<TValue, TKey>,
     other: DataItems<TValue, TOtherKey> | null | undefined,
 ): DataItems<TValue, TKey> {
-    const otherIsNullish = isNull(other) || isUndefined(other);
-
-    if (isObject(data) && (otherIsNullish || isObject(other))) {
+    if (isObject(data)) {
         return objIntersectByKeys(data, other) as DataItems<TValue, TKey>;
     }
 
-    if (isArray(data) && (otherIsNullish || isArray(other))) {
-        return arrIntersectByKeys(data, other) as DataItems<TValue, TKey>;
-    }
-
-    throw new Error(
-        "Data to intersect by keys must be of the same type (both array or both object).",
-    );
+    return arrIntersectByKeys(data, other) as DataItems<TValue, TKey>;
 }

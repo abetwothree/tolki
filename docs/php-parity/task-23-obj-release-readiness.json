@@ -3342,6 +3342,51 @@
                     "2": "y"
                 }
             }
+        },
+        {
+            "label": "object-backing-list-operand",
+            "php": "$c = new Collection([0 => 'a', 1 => 'b', 'x' => 'c']); $c->replace(['z']), ->replaceRecursive(['z']), ->intersectByKeys(['z']), ->intersectAssoc(['a']), ->intersectAssocUsing(['a'], $cmp)",
+            "value": {
+                "replace": {
+                    "0": "z",
+                    "1": "b",
+                    "x": "c"
+                },
+                "replaceRecursive": {
+                    "0": "z",
+                    "1": "b",
+                    "x": "c"
+                },
+                "intersectByKeys": [
+                    "a"
+                ],
+                "intersectAssoc": [
+                    "a"
+                ],
+                "intersectAssocUsing": [
+                    "a"
+                ]
+            }
+        },
+        {
+            "label": "list-backing-keyed-operand",
+            "php": "(new Collection(['a', 'b']))->union([2 => 'z']) and (new Collection(['a', 'b', 'c']))->intersectByKeys([0 => 'x', 2 => 'y'])",
+            "value": {
+                "union": [
+                    "a",
+                    "b",
+                    "z"
+                ],
+                "intersectByKeys": [
+                    "a",
+                    "c"
+                ]
+            }
+        },
+        {
+            "label": "union-all-nullish",
+            "php": "(new Collection(null))->union(null)",
+            "value": []
         }
     ]
 }

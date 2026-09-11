@@ -435,11 +435,14 @@ describe("Data", () => {
             expect(result).toEqual({ 1: 4, 2: 5, 3: 6 });
         });
 
-        it("throws error on mismatched types", () => {
-            // @ts-expect-error Testing runtime error for mismatched types
-            expect(() => Data.dataCombine([1, 2, 3], { a: 1 })).toThrowError();
-            // @ts-expect-error Testing runtime error for mismatched types
-            expect(() => Data.dataCombine({ a: 1 }, [1, 2, 3])).toThrowError();
+        it("combines a list with a keyed operand, and an object with a list operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "combine-list-keyed-values", "D5 combine null/bool/float keys"
+            expect(Data.dataCombine([1, 2], { a: "x", b: "y" })).toEqual({
+                1: "x",
+                2: "y",
+            });
+            expect(Data.dataCombine({ k: null }, [1])).toEqual({ "": 1 });
         });
 
         // PHP raises a ValueError on a key/value count mismatch; PHP-verified message
@@ -458,7 +461,9 @@ describe("Data", () => {
 
         it("casts null, true and false keys the way array_combine does", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
-            expect(Data.dataCombine({ k: null }, { v: 1 })).toEqual({ "": 1 });
+            expect(Data.dataCombine({ k: null }, [1])).toEqual({ "": 1 });
+            expect(Data.dataCombine({ k: true }, [1])).toEqual({ 1: 1 });
+            expect(Data.dataCombine({ k: false }, [1])).toEqual({ "": 1 });
         });
 
         it("keys a float by PHP's (string) cast, through both backings", () => {
@@ -687,9 +692,19 @@ describe("Data", () => {
             expect(result).toEqual([1, 2, 5]);
         });
 
-        it("throws error on mismatched types", () => {
-            expect(() => Data.dataUnion({ a: 1 }, [1, 2])).toThrowError();
-            expect(() => Data.dataUnion([1, 2], { a: 1 })).toThrowError();
+        it("unions an object with a list operand, and a list with a keyed operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-operand", "list-backing-keyed-operand"
+            expect(Data.dataUnion({ a: 1 }, [5])).toEqual({ a: 1, 0: 5 });
+            expect(Data.dataUnion(["a", "b"], { 2: "z" })).toEqual([
+                "a",
+                "b",
+                "z",
+            ]);
+        });
+
+        it("returns an empty list when every operand is nullish", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-all-nullish"
+            expect(Data.dataUnion(null, undefined)).toEqual([]);
         });
 
         it("lets the left operand win even when its value is undefined", () => {
@@ -2324,11 +2339,14 @@ describe("Data", () => {
             expect(result).toEqual(["d", "e", "c"]);
         });
 
-        it("throws when values do not match type", () => {
-            expect(() => {
-                Data.dataReplace({ a: 1, b: 2 }, [3, 4]);
-            }).toThrowError(
-                "Data to replace and items must be of the same type (both array or both object).",
+        it("replaces an object's integer keys from a list operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "object-backing-list-operand"
+            expect(Data.dataReplace({ 0: "a", 1: "b", x: "c" }, ["z"])).toEqual(
+                {
+                    0: "z",
+                    1: "b",
+                    x: "c",
+                },
             );
         });
 
@@ -2394,12 +2412,11 @@ describe("Data", () => {
             expect(result).toEqual([{ a: 99 }, { b: 2 }]);
         });
 
-        it("throws when values do not match type", () => {
-            expect(() => {
-                Data.dataReplaceRecursive({ a: 1, b: 2 }, [3, 4]);
-            }).toThrowError(
-                "Data to replace and items must be of the same type (both array or both object).",
-            );
+        it("replaces an object's integer keys from a list operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "object-backing-list-operand"
+            expect(
+                Data.dataReplaceRecursive({ 0: "a", 1: "b", x: "c" }, ["z"]),
+            ).toEqual({ 0: "z", 1: "b", x: "c" });
         });
 
         it("treats a null/undefined replacer as a no-op, for either backing", () => {
@@ -2978,10 +2995,15 @@ describe("Data", () => {
             const result = Data.dataIntersectByKeys(data1, data2);
             expect(result).toEqual([1, 3]);
         });
-        it("throws when values do not match type", () => {
-            expect(() => {
-                Data.dataIntersectByKeys({ a: 1, b: 2 }, [2, 3]);
-            }).toThrowError();
+        it("intersects an object with a list operand, and a list with a keyed operand, by key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "object-backing-list-operand", "list-backing-keyed-operand"
+            expect(
+                Data.dataIntersectByKeys({ 0: "a", 1: "b", x: "c" }, ["z"]),
+            ).toEqual({ 0: "a" });
+            expect(
+                Data.dataIntersectByKeys(["a", "b", "c"], { 0: "x", 2: "y" }),
+            ).toEqual(["a", "c"]);
         });
 
         it("treats a null other as empty rather than throwing", () => {
@@ -3228,12 +3250,16 @@ describe("Data", () => {
             expect(result2).toEqual([]);
         });
 
-        it("throws when values do not match type", () => {
-            expect(() => {
-                Data.dataIntersectAssoc({ a: 1, b: 2 }, [2]);
-            }).toThrowError(
-                "Data to intersect must be of the same type (both array or both object).",
-            );
+        it("intersects an object with a list operand, and a list with a keyed operand, by key and value", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "object-backing-list-operand", "intersectAssoc-list-keyed-operand"
+            expect(
+                Data.dataIntersectAssoc({ 0: "a", 1: "b", x: "c" }, ["a"]),
+            ).toEqual({ 0: "a" });
+            expect(Data.dataIntersectAssoc(["a", "b"], { 1: "b" })).toEqual([
+                "b",
+            ]);
+            expect(Data.dataIntersectAssoc([1, 2], { a: 1, b: 2 })).toEqual([]);
         });
 
         it("treats a null other as empty rather than throwing", () => {
@@ -3278,18 +3304,23 @@ describe("Data", () => {
             expect(result).toEqual([1, 2]);
         });
 
-        it("throws when values do not match type", () => {
-            const strcasecmpKeys = (a: unknown, b: unknown) =>
-                String(a).toLowerCase() === String(b).toLowerCase();
-            expect(() => {
+        it("intersects an object with a list operand, and a list with a keyed operand, using the callback", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "object-backing-list-operand", "intersectAssocUsing-list-keyed-operand"
+            const sameKey = (a: unknown, b: unknown) => a === b;
+            expect(
                 Data.dataIntersectAssocUsing(
-                    { a: 1, b: 2 },
-                    [2],
-                    strcasecmpKeys,
-                );
-            }).toThrowError(
-                "Data to intersect must be of the same type (both array or both object).",
-            );
+                    { 0: "a", 1: "b", x: "c" },
+                    ["a"],
+                    sameKey,
+                ),
+            ).toEqual({ 0: "a" });
+            expect(
+                Data.dataIntersectAssocUsing(["a", "b"], { 1: "b" }, sameKey),
+            ).toEqual(["b"]);
+            expect(
+                Data.dataIntersectAssocUsing([1, 2], { a: 1, b: 2 }, sameKey),
+            ).toEqual([]);
         });
 
         it("treats a null other as empty rather than throwing", () => {
