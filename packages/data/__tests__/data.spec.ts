@@ -520,6 +520,16 @@ describe("Data", () => {
             ]);
         });
 
+        it("walks a plain-object argument's values, through the list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-list-map-dimension"
+            expect(Data.dataCrossJoin([1, 2], { a: "x", b: "y" })).toEqual([
+                [1, "x"],
+                [1, "y"],
+                [2, "x"],
+                [2, "y"],
+            ]);
+        });
+
         it("walks a plain-object dimension's values, through the object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-string-spread-map-dimension"
             expect(
@@ -2077,6 +2087,12 @@ describe("Data", () => {
                 const sorted = Data.dataSortRecursive({ d: date, a: 1 });
                 expect(Object.keys(sorted)).toEqual(["a", "d"]);
                 expect(sorted["d"]).toBe(date);
+            });
+
+            it("keeps a Date inside a nested list whole, through the list backing", () => {
+                // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-list-object-leaf"
+                const date = new Date(0);
+                expect(Data.dataSortRecursive([[date]])[0]?.[0]).toBe(date);
             });
         });
 

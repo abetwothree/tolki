@@ -3071,6 +3071,90 @@
                 "scalar": [],
                 "date": []
             }
+        },
+        {
+            "label": "sortRecursive-list-object-leaf",
+            "php": "Arr::sortRecursive([[$date]]), Arr::sortRecursive([$object]), Arr::sortRecursive([['o' => $object]]): whether each object is kept",
+            "value": {
+                "nested-list": true,
+                "list": true,
+                "map-in-list": true
+            }
+        },
+        {
+            "label": "crossJoin-list-map-dimension",
+            "php": "Arr::crossJoin([1, 2], ['a' => 'x', 'b' => 'y']), (\u2026, new ArrayIterator(['a' => 'x', 'b' => 'y'])), Arr::crossJoin([1], new Collection(['x', 'y'])), Arr::crossJoin([1], new DateTime('@0'))",
+            "value": {
+                "map": [
+                    [
+                        1,
+                        "x"
+                    ],
+                    [
+                        1,
+                        "y"
+                    ],
+                    [
+                        2,
+                        "x"
+                    ],
+                    [
+                        2,
+                        "y"
+                    ]
+                ],
+                "iterator": [
+                    [
+                        1,
+                        "x"
+                    ],
+                    [
+                        1,
+                        "y"
+                    ],
+                    [
+                        2,
+                        "x"
+                    ],
+                    [
+                        2,
+                        "y"
+                    ]
+                ],
+                "collection": [
+                    [
+                        1,
+                        "x"
+                    ],
+                    [
+                        1,
+                        "y"
+                    ]
+                ],
+                "date": []
+            }
+        },
+        {
+            "label": "collection-crossJoin-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->crossJoin(['k' => 'a', 'j' => 'b'])",
+            "value": [
+                [
+                    1,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    2,
+                    "a"
+                ],
+                [
+                    2,
+                    "b"
+                ]
+            ]
         }
     ]
 }

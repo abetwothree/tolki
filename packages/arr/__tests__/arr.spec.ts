@@ -587,6 +587,33 @@ describe("Arr", () => {
             // Not really a proper usage, still, test for preserving BC
             expect(Arr.crossJoin()).toEqual([[]]);
         });
+
+        it("walks the values of a plain object, Map or Set argument", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-list-map-dimension"
+            const rows = [
+                [1, "x"],
+                [1, "y"],
+                [2, "x"],
+                [2, "y"],
+            ];
+
+            expect(Arr.crossJoin([1, 2], { a: "x", b: "y" })).toEqual(rows);
+            expect(
+                Arr.crossJoin(
+                    [1, 2],
+                    new Map([
+                        ["a", "x"],
+                        ["b", "y"],
+                    ]),
+                ),
+            ).toEqual(rows);
+            expect(Arr.crossJoin([1, 2], new Set(["x", "y"]))).toEqual(rows);
+        });
+
+        it("returns no rows for a Date argument, where PHP's foreach visits nothing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-list-map-dimension"
+            expect(Arr.crossJoin([1], new Date(0))).toEqual([]);
+        });
     });
 
     describe("divide", () => {
@@ -5288,6 +5315,20 @@ describe("Arr", () => {
             expect(Arr.sortRecursive([{ b: [3, 1], a: 1 }])).toEqual([
                 { a: 1, b: [1, 3] },
             ]);
+        });
+
+        it("keeps an object that isn't a plain object whole, in a list or a map", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "sortRecursive-list-object-leaf", "sortRecursive-object-leaf"
+            const date = new Date(0);
+            const point = new Point();
+            const map = Arr.sortRecursive({ d: date, a: 1 });
+
+            expect(Arr.sortRecursive([[date]])[0]?.[0]).toBe(date);
+            expect(Arr.sortRecursive([point])[0]).toBe(point);
+            expect(Arr.sortRecursive([{ p: point }])[0]?.p).toBe(point);
+            expect(Object.keys(map)).toEqual(["a", "d"]);
+            expect(Object.values(map)[1]).toBe(date);
         });
     });
 

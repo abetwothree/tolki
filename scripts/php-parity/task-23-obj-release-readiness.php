@@ -802,4 +802,23 @@ probe('crossJoin-string-spread-no-values', "@Arr::crossJoin(...['a' => [1], 'b' 
     'date' => Arr::crossJoin(...['a' => [1], 'b' => new DateTime('@0')]),
 ]);
 
+// ---- the list twins: an object inside a list stays whole in sortRecursive; crossJoin walks a map argument's values
+probe('sortRecursive-list-object-leaf', "Arr::sortRecursive([[\$date]]), Arr::sortRecursive([\$object]), Arr::sortRecursive([['o' => \$object]]): whether each object is kept", function () {
+    $date = new DateTime('@0');
+    $object = (object) ['b' => 1, 'a' => 2];
+
+    return [
+        'nested-list' => Arr::sortRecursive([[$date]])[0][0] === $date,
+        'list' => Arr::sortRecursive([$object])[0] === $object,
+        'map-in-list' => Arr::sortRecursive([['o' => $object]])[0]['o'] === $object,
+    ];
+});
+probe('crossJoin-list-map-dimension', "Arr::crossJoin([1, 2], ['a' => 'x', 'b' => 'y']), (…, new ArrayIterator(['a' => 'x', 'b' => 'y'])), Arr::crossJoin([1], new Collection(['x', 'y'])), Arr::crossJoin([1], new DateTime('@0'))", fn () => [
+    'map' => Arr::crossJoin([1, 2], ['a' => 'x', 'b' => 'y']),
+    'iterator' => Arr::crossJoin([1, 2], new ArrayIterator(['a' => 'x', 'b' => 'y'])),
+    'collection' => Arr::crossJoin([1], new Collection(['x', 'y'])),
+    'date' => Arr::crossJoin([1], new DateTime('@0')),
+]);
+probe('collection-crossJoin-list-keyed-operand', "(new Collection([1, 2]))->crossJoin(['k' => 'a', 'j' => 'b'])", fn () => (new Collection([1, 2]))->crossJoin(['k' => 'a', 'j' => 'b'])->all());
+
 emit();

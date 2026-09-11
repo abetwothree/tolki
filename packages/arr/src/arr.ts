@@ -1,6 +1,7 @@
 import { SortDirection } from "@tolki/enum";
 import {
     collapse as objCollapse,
+    crossJoin as objCrossJoin,
     replaceRecursive as objReplaceRecursive,
 } from "@tolki/obj";
 import {
@@ -61,6 +62,7 @@ import {
     isPhpArrayKey,
     isPhpFalsy,
     isPhpNumeric,
+    isPlainObject,
     isPrototypeObject,
     isString,
     isStringable,
@@ -442,6 +444,8 @@ export function combine<TKey, TValue>(
 
 /**
  * Cross join the given arrays, returning all possible permutations.
+ * Each argument is one dimension, walked like PHP's `foreach`: a plain object,
+ * a Map or a Set gives its values.
  *
  * @param arrays - The arrays to cross join.
  * @return A new array with all combinations of the input arrays.
@@ -449,6 +453,7 @@ export function combine<TKey, TValue>(
  * @example
  *
  * crossJoin([1], ["a"]); -> [[1, 'a']]
+ * crossJoin([1, 2], { a: "x", b: "y" }); -> [[1, 'x'], [1, 'y'], [2, 'x'], [2, 'y']]
  */
 export function crossJoin(): unknown[][];
 export function crossJoin<A>(a: readonly A[]): [A][];
@@ -479,31 +484,12 @@ export function crossJoin<A, B, C, D, E, F>(
     e: readonly E[],
     f: readonly F[],
 ): [A, B, C, D, E, F][];
-export function crossJoin(
-    ...arrays: readonly (readonly unknown[])[]
-): unknown[][];
-export function crossJoin(
-    ...arrays: readonly (readonly unknown[])[]
-): unknown[][] {
-    let results: unknown[][] = [[]];
-
-    for (const array of arrays) {
-        if (!array.length) {
-            return [];
-        }
-
-        const next: unknown[][] = [];
-
-        for (const product of results) {
-            for (const item of array) {
-                next.push([...product, item]);
-            }
-        }
-
-        results = next;
-    }
-
-    return results;
+export function crossJoin(...arrays: readonly object[]): unknown[][];
+export function crossJoin(...arrays: readonly object[]): unknown[][] {
+    // Keying each argument by its position makes obj's rows list their values in argument order.
+    return objCrossJoin(
+        ...arrays.map((dimension, index) => ({ [index]: dimension })),
+    ).map((row) => Object.values(row));
 }
 
 /**
@@ -3200,6 +3186,7 @@ export function sortDesc<TValue>(
 
 /**
  * Recursively sort an array by keys and values.
+ * Only arrays and plain objects are sorted; any other object (a class instance, Date or Map) is kept as it is.
  *
  * @param data - The array to sort recursively.
  * @param options - Sort options (currently unused, for PHP compatibility).
@@ -3242,7 +3229,7 @@ export function sortRecursive<TValue>(
         // First recursively sort nested elements
         for (let i = 0; i < result.length; i++) {
             const item = result[i];
-            if (isArray(item) || isObject(item)) {
+            if (isArray(item) || isPlainObject(item)) {
                 result[i] = sortRecursive(item, isDesc) as TValue;
             }
         }
@@ -3258,7 +3245,7 @@ export function sortRecursive<TValue>(
 
         // Recursively sort nested values first
         for (const [key, value] of entries) {
-            if (isArray(value) || (isObject(value) && !isNull(value))) {
+            if (isArray(value) || isPlainObject(value)) {
                 defineKey(result, key, sortRecursive(value, isDesc));
             }
         }

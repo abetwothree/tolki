@@ -899,6 +899,17 @@ describe("Collection", () => {
             ]);
         });
 
+        it("walks a keyed operand's values on a list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collection-crossJoin-list-keyed-operand"
+            const rows = collect([1, 2]).crossJoin({ k: "a", j: "b" }).all();
+            expect(rows).toEqual([
+                [1, "a"],
+                [1, "b"],
+                [2, "a"],
+                [2, "b"],
+            ]);
+        });
+
         it("multiplies every key of the collection's own items and the given object", () => {
             // docs/php-parity/task-23-obj-release-readiness.json,
             // "crossJoin-string-spread", "crossJoin-string-spread-3"
