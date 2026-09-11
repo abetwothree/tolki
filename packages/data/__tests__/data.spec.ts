@@ -6,6 +6,14 @@ import { afterEach, assertType, describe, expect, it } from "vitest";
 const strcasecmp = (a: unknown, b: unknown) =>
     String(a).toLowerCase() === String(b).toLowerCase();
 
+/**
+ * Wrap items in the smallest Collection-like operand, which obj unwraps through `all()`.
+ *
+ * @param items - The items `all()` returns
+ * @returns An object whose `all()` returns the items
+ */
+const collectionLike = <T>(items: T) => ({ all: () => items });
+
 describe("Data", () => {
     describe("dataAdd", () => {
         it("is object", () => {
@@ -111,6 +119,13 @@ describe("Data", () => {
                     ["not found"],
                 ),
             ).toEqual(["not found"]);
+        });
+
+        it("names the found type the way PHP's gettype does, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "array-int-value"
+            expect(() => Data.dataItem({ a: 5 }, "a")).toThrow(
+                "Object value for key [a] must be an object, integer found.",
+            );
         });
     });
 
@@ -336,6 +351,15 @@ describe("Data", () => {
                 ]),
             ).toEqual([1, 2, 3, 4]);
         });
+
+        it("collapses list values, appending their elements, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-assoc-of-lists"
+            expect(Data.dataCollapse({ a: [1, 2], b: [3] })).toEqual({
+                0: 1,
+                1: 2,
+                2: 3,
+            });
+        });
     });
 
     describe("dataCombine", () => {
@@ -389,6 +413,11 @@ describe("Data", () => {
                 "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
             );
         });
+
+        it("casts null, true and false keys the way array_combine does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
+            expect(Data.dataCombine({ k: null }, { v: 1 })).toEqual({ "": 1 });
+        });
     });
 
     describe("dataCount", () => {
@@ -416,6 +445,22 @@ describe("Data", () => {
                 [1, "b"],
                 [2, "a"],
                 [2, "b"],
+            ]);
+        });
+
+        it("multiplies every key of one argument, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "crossJoin-string-spread", "crossJoin-string-spread-3"
+            expect(
+                Data.dataCrossJoin({
+                    size: ["S", "M"],
+                    color: ["red", "blue"],
+                }),
+            ).toEqual([
+                { size: "S", color: "red" },
+                { size: "S", color: "blue" },
+                { size: "M", color: "red" },
+                { size: "M", color: "blue" },
             ]);
         });
     });
@@ -472,6 +517,13 @@ describe("Data", () => {
                 "0": 1,
                 "1.0": 2,
                 "1.1": [3, [4]],
+            });
+        });
+
+        it("concatenates the prepend string without adding a dot", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-prepend-no-dot"
+            expect(Data.dataDot({ name: "John" }, "user")).toEqual({
+                username: "John",
             });
         });
     });
@@ -557,6 +609,16 @@ describe("Data", () => {
             expect(Data.dataUnion({ a: 1 }, undefined)).toEqual({ a: 1 });
             expect(Data.dataUnion(null, [10, 20])).toEqual([10, 20]);
         });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C18 union collection"
+            expect(
+                Data.dataUnion(
+                    { name: "Hello" },
+                    collectionLike({ name: "World", id: 1 }) as never,
+                ),
+            ).toEqual({ name: "Hello", id: 1 });
+        });
     });
 
     describe("dataExcept", () => {
@@ -594,6 +656,13 @@ describe("Data", () => {
             expect(
                 Data.dataExists({ "products.desk": {} }, "products.desk"),
             ).toBe(true);
+        });
+
+        it("finds a key holding null and casts a null key to the empty string", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "exists-null-value", "exists-null-key-empty-string"
+            expect(Data.dataExists({ a: null }, "a")).toBe(true);
+            expect(Data.dataExists({ "": 1 }, null)).toBe(true);
         });
     });
 
@@ -856,6 +925,15 @@ describe("Data", () => {
             );
             expect(result).toEqual({ price: 100 });
         });
+
+        it("traverses a nested list with numeric segments, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "get-through-list", "get-through-list-2", "get-through-list-missing"
+            const obj = { products: [{ name: "desk" }, { name: "chair" }] };
+
+            expect(Data.dataGet(obj, "products.0.name")).toBe("desk");
+            expect(Data.dataGet(obj, "products.2.name", "none")).toBe("none");
+        });
     });
 
     describe("dataHas", () => {
@@ -889,6 +967,12 @@ describe("Data", () => {
         it("does not leak Array.prototype through the array backing", () => {
             expect(Data.dataHas([1, 2], "length")).toBe(false);
             expect(Data.dataHas([1, 2], "toString")).toBe(false);
+        });
+
+        it("looks up the empty-string key for a null inside a key list, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "has-empty-string-key-null-in-list"
+            expect(Data.dataHas({ "": "some" }, [null])).toBe(true);
         });
     });
 
@@ -1259,6 +1343,15 @@ describe("Data", () => {
             ];
             const result = Data.dataMapSpread(data, (a, b) => a + b);
             expect(result).toEqual([3, 7]);
+        });
+
+        it("spreads a list row and appends the key, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "mapSpread-tuples", "mapSpread-tuples-key"
+            const data = { x: [1, "a"], y: [2, "b"] };
+
+            expect(
+                Data.dataMapSpread(data, (n, c) => `${String(n)}-${String(c)}`),
+            ).toEqual({ x: "1-a", y: "2-b" });
         });
     });
 
@@ -1837,6 +1930,13 @@ describe("Data", () => {
                     },
                 ]);
             });
+
+            it("orders numbers numerically inside a nested list, through the object backing", () => {
+                // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-numbers-lexical"
+                expect(Data.dataSortRecursive({ a: [10, 9, 1] })).toEqual({
+                    a: [1, 9, 10],
+                });
+            });
         });
 
         describe("dataSortRecursiveDesc", () => {
@@ -2030,6 +2130,16 @@ describe("Data", () => {
             expect(Data.dataReplace(["a", "b"], null)).toEqual(["a", "b"]);
             expect(Data.dataReplace(["a", "b"], undefined)).toEqual(["a", "b"]);
         });
+
+        it("unwraps a Collection-like replacer", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C16 replace assoc"
+            expect(
+                Data.dataReplace(
+                    { name: "amir", family: "otwell" },
+                    collectionLike({ name: "taylor", age: 26 }) as never,
+                ),
+            ).toEqual({ name: "taylor", family: "otwell", age: 26 });
+        });
     });
 
     describe("dataReplaceRecursive", () => {
@@ -2091,6 +2201,14 @@ describe("Data", () => {
                 "a",
                 "b",
             ]);
+        });
+
+        it("merges a nested list with a nested object by key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "D7 replaceRecursive nested list replaced by offset map"
+            expect(
+                Data.dataReplaceRecursive({ k: ["c", "d"] }, { k: { 1: "e" } }),
+            ).toEqual({ k: ["c", "e"] });
         });
     });
 
@@ -2464,6 +2582,11 @@ describe("Data", () => {
                 false,
             );
         });
+
+        it("compares an array or object item by value when strict, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D4 containsStrict array by value"
+            expect(Data.dataContains({ a: [1] }, [1], true)).toBe(true);
+        });
     });
 
     describe("dataDiff", () => {
@@ -2702,6 +2825,18 @@ describe("Data", () => {
         it("is array", () => {
             expect(Data.dataDiffAssoc([1, 2, 3], [1, 9, 3])).toEqual([2]);
         });
+
+        it("unwraps a Collection-like operand when matching keys and values", () => {
+            // C6's fixture shares no key+value pair with its operand either wrapped or
+            // raw, so this key-matching case is what actually pins the unwrap.
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-collection-matching-key"
+            expect(
+                Data.dataDiffAssoc(
+                    { id: 1, name: "a" },
+                    collectionLike({ id: 1, name: "b" }) as never,
+                ),
+            ).toEqual({ name: "a" });
+        });
     });
 
     describe("dataDiffAssocUsing", () => {
@@ -2712,6 +2847,23 @@ describe("Data", () => {
                 strcasecmp,
             );
             expect(result).toEqual({ b: "brown" });
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C8 diffAssocUsing strcasecmp"
+            const colors = { a: "green", b: "brown", c: "blue", 0: "red" };
+
+            expect(
+                Data.dataDiffAssocUsing(
+                    colors,
+                    collectionLike({
+                        A: "green",
+                        0: "yellow",
+                        1: "red",
+                    }) as never,
+                    strcasecmp,
+                ),
+            ).toEqual({ b: "brown", c: "blue", 0: "red" });
         });
 
         it("is array — compares by index (key) via the callback, then value", () => {
