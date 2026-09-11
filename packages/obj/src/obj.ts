@@ -77,8 +77,9 @@ import {
     toPhpKeyString,
 } from "@tolki/utils";
 
-// Shared by set, add, push and pull: a widened path key can't walk SetObjectPath/OmitObjectPath
-// literally, so it falls back to a loose record instead of a precise per-key shape.
+// ObjectWriteResult (set, add, push): a widened path key can't walk SetObjectPath literally, so
+// it falls back to a loose record. ObjectPullRest is pull's Omit/OmitObjectPath counterpart;
+// ArrayElementOf unwraps push's existing array element type for its appended-value union.
 type ObjectWriteResult<T, P, V> = string extends P
     ? Record<string, unknown>
     : number extends P
@@ -3193,6 +3194,12 @@ export function set<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
+    // setObjectValue only special-cases null; align undefined with it here so the
+    // `key: null | undefined` overload's `V` return type holds at runtime too.
+    if (isUndefined(key)) {
+        return value as Record<TKey, TValue>;
+    }
+
     return setObjectValue(object as Record<TKey, TValue>, key, value) as Record<
         TKey,
         TValue
@@ -3246,7 +3253,7 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
     if (!accessible(data)) {
         if (isNull(key) || isUndefined(key)) {
             throw new Error(
-                "Cannot push to root of non-object data when key is null",
+                "Cannot push to root of non-object data when key is null or undefined",
             );
         }
 
@@ -3256,7 +3263,8 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
     const obj = data as Record<TKey, TValue>;
 
     // Arr::push with a null key is Arr::get(null) (whole array) then array_push, so it
-    // appends after the highest existing integer-like key instead of throwing.
+    // appends after the highest existing integer-like key instead of throwing; an
+    // undefined key is treated the same way, JS-only (no PHP analogue for undefined).
     if (isNull(key) || isUndefined(key)) {
         let nextIndex = 0;
         // Ascending key order only holds inside the array-index range (0 to 2**32-2);

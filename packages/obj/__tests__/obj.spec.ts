@@ -2576,6 +2576,13 @@ describe("Obj", () => {
             expect(result).toEqual({ age: 30 });
         });
 
+        it("replaces the entire object for an undefined key, like null", () => {
+            // JS-only: undefined has no PHP analogue; set treats it like null.
+            expect(Obj.set({ name: "John" }, undefined, { age: 30 })).toEqual({
+                age: 30,
+            });
+        });
+
         it("should handle deep nesting creation", () => {
             const result = Obj.set({}, "a.b.c.d", "value");
             expect(result).toEqual({ a: { b: { c: { d: "value" } } } });
@@ -4751,7 +4758,7 @@ describe("Obj", () => {
             expect(result2).toEqual({ items: ["a"] });
 
             expect(() => Obj.push(null, null, "value")).toThrow(
-                "Cannot push to root of non-object data when key is null",
+                "Cannot push to root of non-object data when key is null or undefined",
             );
         });
 
