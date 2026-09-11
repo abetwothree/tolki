@@ -157,6 +157,41 @@ describe("Utils", () => {
         });
     });
 
+    describe("arrayableItems", () => {
+        it("unwraps Enumerable- and Arrayable-like operands", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C18 union collection"
+            expect(
+                Utils.arrayableItems({ all: () => ({ name: "World", id: 1 }) }),
+            ).toEqual({ name: "World", id: 1 });
+            expect(Utils.arrayableItems({ toArray: () => ["x"] })).toEqual({
+                0: "x",
+            });
+        });
+
+        it("keys a Map, a list and another iterable", () => {
+            // JS-only: Map/Set/iterable unwrapping has no PHP array analogue.
+            expect(Utils.arrayableItems(new Map([["a", 1]]))).toEqual({
+                a: 1,
+            });
+            expect(Utils.arrayableItems([5, 6])).toEqual({ 0: 5, 1: 6 });
+            expect(Utils.arrayableItems(new Set(["x"]))).toEqual({ 0: "x" });
+        });
+
+        it("treats nullish as empty and wraps a scalar", () => {
+            // JS-only: null/undefined-as-empty and scalar-wrapping are this helper's own contract.
+            expect(Utils.arrayableItems(null)).toEqual({});
+            expect(Utils.arrayableItems(undefined)).toEqual({});
+            expect(Utils.arrayableItems("x")).toEqual({ 0: "x" });
+        });
+
+        it("returns a plain object as it is", () => {
+            // JS-only: a plain object needs no unwrapping; asserts identity, not a ported PHP case.
+            const plain = { a: 1 };
+
+            expect(Utils.arrayableItems(plain)).toBe(plain);
+        });
+    });
+
     describe("toPhpKeyString", () => {
         it("casts null, undefined and false to the empty string and true to '1'", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"

@@ -8,6 +8,7 @@ import {
     isObject,
     isUndefined,
 } from "./guards";
+import { defineKey } from "./keys";
 
 /**
  * Cast a value to the string key PHP's `array_combine` stores it under:
@@ -146,6 +147,27 @@ export function getAccessibleValues<T>(data: ReadonlyArray<T> | unknown): T[] {
 }
 
 /**
+ * Unwrap an Enumerable/Arrayable-like operand the way Laravel's `getArrayableItems()` does:
+ * call `all()`, else `toArray()`, else `toJSON()`, and repeat on the result.
+ *
+ * @param items - The operand to unwrap
+ * @returns The first value in the chain that exposes none of those methods
+ */
+function unwrapArrayable(items: unknown): unknown {
+    if (!isObject(items)) {
+        return items;
+    }
+
+    for (const method of ["all", "toArray", "toJSON"] as const) {
+        if (isFunction(items[method])) {
+            return unwrapArrayable((items[method] as () => unknown)());
+        }
+    }
+
+    return items;
+}
+
+/**
  * Normalize a set-operation operand the way Laravel's
  * `EnumeratesValues::getArrayableItems()` does: nullish becomes an empty array,
  * an Enumerable/Arrayable-like object unwraps via `all()`/`toArray()`, an
@@ -159,43 +181,74 @@ export function getAccessibleValues<T>(data: ReadonlyArray<T> | unknown): T[] {
  * arrayableValues({ x: 20 }); -> [20]
  */
 export function arrayableValues<T>(items: unknown): T[] {
-    if (isNull(items) || isUndefined(items)) {
+    const unwrapped = unwrapArrayable(items);
+
+    if (isNull(unwrapped) || isUndefined(unwrapped)) {
         return [];
     }
 
-    if (isArray(items)) {
-        return items.slice() as T[];
+    if (isArray(unwrapped)) {
+        return unwrapped.slice() as T[];
     }
 
-    if (isObject(items)) {
-        const source = items as Record<string, unknown>;
-
-        if (isFunction(source["all"])) {
-            return arrayableValues<T>((source["all"] as () => unknown)());
-        }
-
-        if (isFunction(source["toArray"])) {
-            return arrayableValues<T>((source["toArray"] as () => unknown)());
-        }
-
-        if (isFunction(source["toJSON"])) {
-            return arrayableValues<T>((source["toJSON"] as () => unknown)());
-        }
-
+    if (isObject(unwrapped)) {
         // A Map's default iterator yields [key, value] pairs; PHP's foreach over a
         // Traversable yields values only, so unwrap via values() instead of spreading.
-        if (isMap(items)) {
-            return [...items.values()] as T[];
+        if (isMap(unwrapped)) {
+            return [...unwrapped.values()] as T[];
         }
 
-        if (isIterable(items)) {
-            return [...(items as Iterable<T>)];
+        if (isIterable(unwrapped)) {
+            return [...(unwrapped as Iterable<T>)];
         }
 
-        return Object.values(items) as T[];
+        return Object.values(unwrapped) as T[];
     }
 
-    return [items as T];
+    return [unwrapped as T];
+}
+
+/**
+ * Normalize a keyed operand the way Laravel's `getArrayableItems()` does:
+ * nullish becomes `{}`, an Enumerable/Arrayable-like object unwraps via `all()`/`toArray()`/`toJSON()`,
+ * a Map or other iterable becomes an object, and a list becomes an index-keyed object.
+ *
+ * @param items - The operand to normalize
+ * @returns The operand's entries as a plain object
+ *
+ * @example
+ * arrayableItems({ all: () => ({ a: 1 }) }); -> { a: 1 }
+ */
+export function arrayableItems(items: unknown): Record<string, unknown> {
+    const unwrapped = unwrapArrayable(items);
+
+    if (isNull(unwrapped) || isUndefined(unwrapped)) {
+        return {};
+    }
+
+    if (isArray(unwrapped)) {
+        return { ...unwrapped };
+    }
+
+    if (isObject(unwrapped)) {
+        if (isMap(unwrapped)) {
+            const out: Record<string, unknown> = {};
+
+            for (const [key, value] of unwrapped) {
+                defineKey(out, String(key), value);
+            }
+
+            return out;
+        }
+
+        if (isIterable(unwrapped)) {
+            return { ...[...(unwrapped as Iterable<unknown>)] };
+        }
+
+        return unwrapped;
+    }
+
+    return { 0: unwrapped };
 }
 
 /**
