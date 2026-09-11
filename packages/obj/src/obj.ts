@@ -29,6 +29,8 @@ import type {
     PathKeys,
     PluckValue,
     PrefixKeys,
+    RenumberedObject,
+    SetObjectPath,
     Simplify,
     SortSpec,
     SpreadItems,
@@ -74,6 +76,18 @@ import {
     strictEqual,
     toPhpKeyString,
 } from "@tolki/utils";
+
+// Shared by set, add, push and pull: a widened path key can't walk SetObjectPath/OmitObjectPath
+// literally, so it falls back to a loose record instead of a precise per-key shape.
+type ObjectWriteResult<T, P, V> = string extends P
+    ? Record<string, unknown>
+    : number extends P
+      ? Record<string, unknown>
+      : SetObjectPath<T, `${P & (string | number)}`, V>;
+type ObjectPullRest<T, P> = P extends keyof T
+    ? Simplify<Omit<T, P>>
+    : OmitObjectPath<T, `${P & (string | number)}`>;
+type ArrayElementOf<T> = T extends readonly (infer E)[] ? E : never;
 
 /**
  * Mutation contract: pop, shift, splice and unshift mutate their first
@@ -277,12 +291,27 @@ export function objectifiable(
  * add({ user: { name: 'John' } }, 'user.age', 30); -> { user: { name: 'John', age: 30 } }
  * add({ name: 'John' }, 'name', 'Jane'); -> { name: 'John' } (no change, key exists)
  */
+export function add(
+    data: NonObjectItems,
+    key: PathKey,
+    value: unknown,
+): Record<string, unknown>;
+export function add<T extends object, P extends string | number, V>(
+    data: T,
+    key: P,
+    value: V,
+): ObjectWriteResult<T, P, NonNullable<ObjectResolvePath<T, P, never>> | V>;
+export function add(
+    data: unknown,
+    key: PathKey,
+    value: unknown,
+): Record<string, unknown>;
 export function add<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
+    data: Record<TKey, TValue> | unknown,
     key: PathKey,
     value: unknown,
 ): Record<TKey, TValue> {
-    const mutableData = { ...data };
+    const mutableData = { ...(data as Record<TKey, TValue>) };
 
     if (isNull(getObjectValue(mutableData, key))) {
         return setObjectValue(mutableData, key, value);
@@ -2783,6 +2812,30 @@ export function mapSpread<
  * prepend({ b: 2, c: 3 }, 1, 'a'); -> { a: 1, b: 2, c: 3 }
  * prepend({ x: 1, y: 2 }, 0, 'z'); -> { z: 0, x: 1, y: 2 }
  */
+export function prepend(
+    data: NonObjectItems,
+    value: unknown,
+    key?: PropertyKey | null,
+): Record<string | number, unknown>;
+export function prepend<T extends object, V, const K extends string | number>(
+    data: T,
+    value: V,
+    key: K,
+): Simplify<{ [P in `${K}`]: V } & Omit<T, K | `${K}`>>;
+export function prepend<T extends object, V>(
+    data: T,
+    value: V,
+    key: null | undefined,
+): Simplify<{ "": V } & Omit<T, "">>;
+export function prepend<T extends object, V>(
+    data: T,
+    value: V,
+): RenumberedObject<T, V>;
+export function prepend(
+    data: unknown,
+    value: unknown,
+    key?: PropertyKey | null,
+): Record<string | number, unknown>;
 export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     value: TValue,
@@ -2828,6 +2881,25 @@ export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
  * pull({ user: { name: 'John', age: 30 } }, 'user.name'); -> { value: 'John', data: { user: { age: 30 } } }
  * pull({ a: 1, b: 2 }, 'x', 'default'); -> { value: 'default', data: { a: 1, b: 2 } }
  */
+export function pull<TDefault = null>(
+    data: NonObjectItems,
+    key: PathKey,
+    defaultValue?: Default<TDefault>,
+): { value: TDefault; data: Record<string, never> };
+export function pull<T extends object, P extends string | number, TDefault>(
+    data: T,
+    key: P,
+    defaultValue: Default<TDefault>,
+): { value: ObjectResolvePath<T, P, TDefault>; data: ObjectPullRest<T, P> };
+export function pull<T extends object, P extends string | number>(
+    data: T,
+    key: P,
+): { value: ObjectResolvePath<T, P, null>; data: ObjectPullRest<T, P> };
+export function pull(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: unknown,
+): { value: unknown; data: Record<string, unknown> };
 export function pull<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -3096,6 +3168,22 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
  * set({ name: 'John', age: 30 }, 'age', 31); -> { name: 'John', age: 31 }
  * set({ user: { name: 'John' } }, 'user.age', 30); -> { user: { name: 'John', age: 30 } }
  */
+export function set<V>(data: unknown, key: null | undefined, value: V): V;
+export function set(
+    data: NonObjectItems,
+    key: PathKey,
+    value: unknown,
+): Record<string, never>;
+export function set<T extends object, P extends string | number, V>(
+    data: T,
+    key: P,
+    value: V,
+): ObjectWriteResult<T, P, V>;
+export function set(
+    data: unknown,
+    key: PathKey,
+    value: unknown,
+): Record<string, unknown>;
 export function set<TValue, TKey extends PropertyKey = PropertyKey>(
     object: Record<TKey, TValue> | unknown,
     key: PathKey | null,
@@ -3126,6 +3214,30 @@ export function set<TValue, TKey extends PropertyKey = PropertyKey>(
  * push({ user: { tags: ['js'] } }, 'user.tags', 'ts', 'php'); -> { user: { tags: ['js', 'ts', 'php'] } }
  * push({ a: 1 }, null, 9); -> { a: 1, 0: 9 }
  */
+export function push<V>(
+    data: NonObjectItems,
+    key: PathKey,
+    ...values: V[]
+): Record<string, unknown>;
+export function push<T extends object, V>(
+    data: T,
+    key: null | undefined,
+    ...values: V[]
+): RenumberedObject<T, V>;
+export function push<T extends object, P extends string | number, V>(
+    data: T,
+    key: P,
+    ...values: V[]
+): ObjectWriteResult<
+    T,
+    P,
+    (ArrayElementOf<ObjectResolvePath<T, P, never>> | V)[]
+>;
+export function push(
+    data: unknown,
+    key: PathKey,
+    ...values: unknown[]
+): Record<string, unknown>;
 export function push<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,

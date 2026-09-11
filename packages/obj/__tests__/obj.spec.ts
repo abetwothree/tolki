@@ -73,7 +73,6 @@ describe("Obj", () => {
             const result = Obj.add(obj, "age", 30);
             expect(result).toEqual({ name: "John", age: 30 });
             expect(result).not.toBe(obj); // should be immutable
-            // @ts-expect-error - add() returns Record<TKey, TValue>, not the expanded shape
             assertType<{ name: string; age: number }>(result);
         });
 
@@ -81,7 +80,6 @@ describe("Obj", () => {
             const obj = { name: "John", age: 25 };
             const result = Obj.add(obj, "age", 30);
             expect(result).toEqual({ name: "John", age: 25 });
-            // @ts-expect-error - add() returns Record<TKey, TValue> with widened value union
             assertType<{ name: string; age: number }>(result);
         });
 
@@ -89,7 +87,6 @@ describe("Obj", () => {
             const obj = { user: { name: "John" } };
             const result = Obj.add(obj, "user.age", 30);
             expect(result).toEqual({ user: { name: "John", age: 30 } });
-            // @ts-expect-error - add() returns Record<TKey, TValue>, not the expanded nested shape
             assertType<{ user: { name: string; age: number } }>(result);
         });
 
@@ -97,7 +94,6 @@ describe("Obj", () => {
             const obj = {};
             const result = Obj.add(obj, "name", "John");
             expect(result).toEqual({ name: "John" });
-            // @ts-expect-error - add() returns Record<never, never> for empty object input
             assertType<{ name: string }>(result);
         });
 
