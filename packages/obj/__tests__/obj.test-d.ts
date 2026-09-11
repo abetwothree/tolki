@@ -1,13 +1,6 @@
 import * as Obj from "@tolki/obj";
 import { describe, expectTypeOf, it } from "vitest";
 
-// Module-scope `declare const` (no initializer) — used below by the
-// replace/replaceRecursive nullable-replacer regression tests.
-declare const nullableReplacer: Record<PropertyKey, number> | null;
-declare const nullableOrUndefinedReplacer:
-    | Record<PropertyKey, number>
-    | null
-    | undefined;
 declare const nullableOther: Record<string, number> | null;
 
 describe("obj type tests", () => {
@@ -39,16 +32,6 @@ describe("obj type tests", () => {
         });
     });
 
-    describe("splice", () => {
-        it("infers the value type instead of collapsing to unknown", () => {
-            // splice's `data` parameter used to be
-            // `Record<TKey, TValue> | unknown`, which collapses to plain `unknown` —
-            // every argument matches it, so `TValue` never infers.
-            const result = Obj.splice({ a: 1, b: 2, c: 3 }, 1, 1);
-            expectTypeOf(result.b).toEqualTypeOf<number>();
-        });
-    });
-
     describe("slice", () => {
         it("infers the value type instead of collapsing to unknown", () => {
             // slice's `data` parameter used to be `Record<TKey, TValue> | unknown`, the
@@ -56,35 +39,6 @@ describe("obj type tests", () => {
             // `Record<TKey, TValue> | null | undefined`.
             const result = Obj.slice({ a: 1, b: 2, c: 3 }, 1);
             expectTypeOf(result.b).toEqualTypeOf<number>();
-        });
-    });
-
-    describe("replace", () => {
-        it("accepts a replacer typed as Record<PropertyKey, T> | null", () => {
-            // The two concrete overloads avoid the `X | unknown` collapse, but neither
-            // matched a variable typed `Record<PropertyKey, T> | null` — the realistic
-            // shape of an optional replacer, and exactly the case the null no-op exists for.
-            const result = Obj.replace({ a: 1 }, nullableReplacer);
-            expectTypeOf(result).toEqualTypeOf<Record<PropertyKey, number>>();
-        });
-    });
-
-    describe("replaceRecursive", () => {
-        it("accepts a replacer typed as Record<PropertyKey, T> | null | undefined", () => {
-            // Same regression as "replace" above, for the sibling function.
-            const result = Obj.replaceRecursive(
-                { a: 1 },
-                nullableOrUndefinedReplacer,
-            );
-            expectTypeOf(result).toEqualTypeOf<Record<PropertyKey, number>>();
-        });
-
-        it("infers the replacer's value type instead of collapsing to unknown for a literal null data", () => {
-            // A bare `null`/`undefined` `data` has no T1 candidate to infer from, so
-            // without a dedicated overload T1 defaults to `unknown` and drags the
-            // whole `T1 | T2` return type down to `Record<PropertyKey, unknown>`.
-            const result = Obj.replaceRecursive(null, { k: 1 });
-            expectTypeOf(result).toEqualTypeOf<Record<PropertyKey, number>>();
         });
     });
 

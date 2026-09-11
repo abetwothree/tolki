@@ -14,6 +14,7 @@ import { finish, randomInt } from "@tolki/str";
 import type {
     ArrayableItems,
     CaseValue,
+    DeepMergeObjects,
     EnsureObject,
     FlipObject,
     NonNullableObject,
@@ -29,11 +30,13 @@ import type {
     PathKeys,
     PluckValue,
     PrefixKeys,
+    ReindexedObject,
     RenumberedObject,
     SetObjectPath,
     Simplify,
     SortSpec,
     SpreadItems,
+    SpreadObjects,
     TruthyObject,
     UndotObjectValue,
 } from "@tolki/types";
@@ -949,6 +952,25 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param items - The items to prepend. The first item is the target object, mutated in place when object-accessible.
  * @returns The same object reference, mutated (or a new object when the first item isn't object-accessible).
  */
+export function unshift(): Record<string, never>;
+export function unshift<TItems extends readonly unknown[]>(
+    data: NonObjectItems | null | undefined,
+    ...items: TItems
+): Record<number, TItems[number]>;
+// array_unshift renumbers integer keys even with no items, so only a T without them comes back unchanged.
+export function unshift<T extends object>(
+    data: T,
+): [Extract<keyof T, number | `${number}`>] extends [never]
+    ? T
+    : RenumberedObject<T, never>;
+export function unshift<T extends object, TItems extends readonly unknown[]>(
+    data: T,
+    ...items: TItems
+): RenumberedObject<T, TItems[number]>;
+export function unshift(
+    data: unknown,
+    ...items: unknown[]
+): Record<string | number, unknown>;
 export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
     ...items: Record<TKey, TValue>[] | unknown[]
 ): Record<TKey, TValue> {
@@ -2575,8 +2597,23 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param count - The number of items to pop. Defaults to 1.
  * @returns The popped item(s) or null/empty array if none.
  */
+export function pop(
+    data: NonObjectItems | null | undefined,
+    count?: number,
+): null | never[];
+export function pop<T extends object>(
+    data: T,
+    count?: 1 | undefined,
+): ObjectValue<T> | null;
+export function pop<T extends object, const N extends number>(
+    data: T,
+    count: N,
+): number extends N
+    ? ObjectValue<T> | ObjectValue<T>[] | null
+    : ObjectValue<T>[];
+export function pop(data: unknown, count?: number): unknown;
 export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | null | undefined,
+    data: Record<TKey, TValue> | unknown,
     count: number = 1,
 ): TValue | TValue[] | null {
     if (isNull(data) || !accessible(data)) {
@@ -3109,6 +3146,21 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
  * @returns The shifted item(s), or null if the object had nothing to shift.
  * @throws Error if count is negative.
  */
+export function shift(
+    data: NonObjectItems | null | undefined,
+    count?: number,
+): null;
+export function shift<T extends object>(
+    data: T,
+    count?: 1 | undefined,
+): ObjectValue<T> | null;
+export function shift<T extends object, const N extends number>(
+    data: T,
+    count: N,
+): number extends N
+    ? ObjectValue<T> | ObjectValue<T>[] | null
+    : ObjectValue<T>[] | null;
+export function shift(data: unknown, count?: number): unknown;
 export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     count: number = 1,
@@ -3741,8 +3793,26 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
  * @param replacement - Object(s) whose values are spliced in at offset, renumbered from 0
  * @returns The removed entries, keyed the same way they were in `data`.
  */
+export function splice(
+    data: NonObjectItems | null | undefined,
+    offset: number,
+    length?: number,
+    ...replacement: unknown[]
+): Record<string, never>;
+export function splice<T extends object>(
+    data: T,
+    offset: number,
+    length?: number,
+    ...replacement: unknown[]
+): Partial<ReindexedObject<T>>;
+export function splice(
+    data: unknown,
+    offset: number,
+    length?: number,
+    ...replacement: unknown[]
+): Record<string, unknown>;
 export function splice<TValue, TKey extends PropertyKey, TReplacements>(
-    data: Record<TKey, TValue> | null | undefined,
+    data: Record<TKey, TValue> | unknown,
     offset: number,
     length?: number,
     ...replacement: TReplacements[]
@@ -4019,27 +4089,34 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param replacerData - The object or list containing items to replace. `null`/`undefined` is a no-op.
  * @returns A new object with the replaced items.
  */
-export function replace<T1>(
-    data: Record<PropertyKey, T1>,
+export function replace<T2>(
+    data: NonObjectItems | null | undefined,
+    replacerData: T2,
+): SpreadObjects<Record<number, unknown>, ArrayableItems<T2>>;
+export function replace<T1 extends object>(
+    data: T1,
     replacerData: null | undefined,
-): Record<PropertyKey, T1>;
+): T1;
+export function replace<T1 extends object, T2 extends object>(
+    data: T1,
+    replacerData: T2,
+): SpreadObjects<T1, ArrayableItems<T2>>;
+export function replace<T1 extends object, T2 extends object>(
+    data: T1,
+    replacerData: T2 | null | undefined,
+): T1 | SpreadObjects<T1, ArrayableItems<T2>>;
+export function replace(
+    data: unknown,
+    replacerData: unknown,
+): Record<string, unknown>;
 export function replace<T1, T2>(
-    data: Record<PropertyKey, T1>,
-    replacerData: Record<PropertyKey, T2> | readonly T2[],
-): Record<PropertyKey, T1 | T2>;
-// A caller holding `Record<PropertyKey, T2> | null` matches neither
-// overload above: a call is resolved against declared overloads only,
-// never the implementation signature, so this third one is required.
-export function replace<T1, T2>(
-    data: Record<PropertyKey, T1>,
-    replacerData: Record<PropertyKey, T2> | readonly T2[] | null | undefined,
-): Record<PropertyKey, T1 | T2>;
-export function replace<T1, T2>(
-    data: Record<PropertyKey, T1>,
-    replacerData: Record<PropertyKey, T2> | readonly T2[] | null | undefined,
+    data: Record<PropertyKey, T1> | unknown,
+    replacerData: Record<PropertyKey, T2> | unknown,
 ): Record<PropertyKey, T1 | T2> {
+    const result: Record<PropertyKey, T1 | T2> = {
+        ...(data as Record<PropertyKey, T1>),
+    };
     const replacer = arrayableItems(replacerData);
-    const result: Record<PropertyKey, T1 | T2> = { ...data };
 
     for (const [key, value] of Object.entries(replacer)) {
         defineKey(result as Record<string, T1 | T2>, key, value as T1 | T2);
@@ -4063,37 +4140,35 @@ export function replace<T1, T2>(
  * @param replacerData - The object containing items to replace. `null`/`undefined` is a no-op.
  * @returns A new, recursively merged object.
  */
-export function replaceRecursive<T1>(
-    data: Record<PropertyKey, T1> | null | undefined,
-    replacerData: null | undefined,
-): Record<PropertyKey, T1>;
-// `data: null | undefined` alone has no T1 candidate to infer from, so this
-// dedicated overload drops T1 entirely — otherwise it defaults to `unknown`
-// and drags the `T1 | T2` return type down to `Record<PropertyKey, unknown>`.
 export function replaceRecursive<T2>(
-    data: null | undefined,
-    replacerData: Record<PropertyKey, T2> | readonly T2[],
-): Record<PropertyKey, T2>;
+    data: NonObjectItems | null | undefined,
+    replacerData: T2,
+): DeepMergeObjects<Record<number, unknown>, T2>;
+export function replaceRecursive<T1 extends object>(
+    data: T1,
+    replacerData: null | undefined,
+): T1;
+export function replaceRecursive<T1 extends object, T2 extends object>(
+    data: T1,
+    replacerData: T2,
+): DeepMergeObjects<T1, T2>;
+export function replaceRecursive<T1 extends object, T2 extends object>(
+    data: T1,
+    replacerData: T2 | null | undefined,
+): T1 | DeepMergeObjects<T1, T2>;
+export function replaceRecursive(
+    data: unknown,
+    replacerData: unknown,
+): Record<string, unknown>;
 export function replaceRecursive<T1, T2>(
-    data: Record<PropertyKey, T1> | null | undefined,
-    replacerData: Record<PropertyKey, T2>,
-): Record<PropertyKey, T1 | T2>;
-// See `replace`'s matching overload for why this third, concrete overload is
-// required rather than relying on the implementation signature below (TS2769
-// otherwise, for a caller holding `Record<PropertyKey, T2> | null`).
-export function replaceRecursive<T1, T2>(
-    data: Record<PropertyKey, T1> | null | undefined,
-    replacerData: Record<PropertyKey, T2> | null | undefined,
-): Record<PropertyKey, T1 | T2>;
-export function replaceRecursive<T1, T2>(
-    data: Record<PropertyKey, T1> | null | undefined,
-    replacerData: Record<PropertyKey, T2> | null | undefined,
+    data: Record<PropertyKey, T1> | unknown,
+    replacerData: Record<PropertyKey, T2> | unknown,
 ): Record<PropertyKey, T1 | T2> {
     // getArrayableItems() unwraps the operand once; the merge below never unwraps a nested value.
-    return mergeRecursive(data ?? {}, arrayableItems(replacerData)) as Record<
-        PropertyKey,
-        T1 | T2
-    >;
+    return mergeRecursive(
+        data as Record<PropertyKey, T1>,
+        arrayableItems(replacerData),
+    ) as Record<PropertyKey, T1 | T2>;
 }
 
 /**
@@ -4185,6 +4260,21 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param value - The value to use for padding.
  * @returns A new padded object.
  */
+export function pad<P>(
+    data: NonObjectItems,
+    size: number,
+    value: P,
+): Record<number, P>;
+export function pad<T extends object, P>(
+    data: T,
+    size: number,
+    value: P,
+): RenumberedObject<T, P>;
+export function pad<P>(
+    data: unknown,
+    size: number,
+    value: P,
+): Record<string | number, unknown>;
 export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     size: number,
