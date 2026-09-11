@@ -18,10 +18,13 @@ import type {
     FlipObject,
     NonNullableObject,
     NonObjectItems,
+    ObjectDeepPartial,
     ObjectKey,
     ObjectPathValue,
     ObjectResolvePath,
     ObjectValue,
+    OmitObjectPath,
+    OmitObjectPaths,
     PathKey,
     PathKeys,
     PluckValue,
@@ -974,6 +977,34 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
  * except({ name: 'John', age: 30, city: 'NYC' }, 'age'); -> { name: 'John', city: 'NYC' }
  * except({ name: 'John', age: 30, city: 'NYC' }, ['age', 'city']); -> { name: 'John' }
  */
+export function except(
+    data: NonObjectItems,
+    keys: PathKeys,
+): Record<string, never>;
+export function except<T extends object, const K extends keyof T>(
+    data: T,
+    keys: K,
+): Simplify<Omit<T, K>>;
+export function except<
+    T extends object,
+    const Ks extends readonly (keyof T)[],
+>(data: T, keys: Ks): Simplify<Omit<T, Ks[number]>>;
+export function except<T extends object, const P extends string>(
+    data: T,
+    keys: P,
+): OmitObjectPath<T, P>;
+export function except<T extends object, const Ps extends readonly string[]>(
+    data: T,
+    keys: Ps,
+): OmitObjectPaths<T, Ps>;
+export function except<T extends object>(
+    data: T,
+    keys: PathKeys,
+): ObjectDeepPartial<T>;
+export function except(
+    data: unknown,
+    keys: PathKeys,
+): Record<string, unknown>;
 export function except<TValue extends Record<PropertyKey, unknown>>(
     data: TValue,
     keys: PathKeys,
@@ -995,15 +1026,31 @@ export function except<TValue extends Record<PropertyKey, unknown>>(
  * exceptValues({ a: 1, b: 2, c: 1, d: 3 }, 1); -> { b: 2, d: 3 }
  * exceptValues({ a: true, b: false, c: 1, d: 0 }, [1, 0], true); -> { a: true, b: false }
  */
+export function exceptValues(
+    data: NonObjectItems,
+    values: unknown,
+    strict?: boolean,
+): Record<number, unknown>;
+export function exceptValues<T extends object>(
+    data: T,
+    values: unknown,
+    strict?: boolean,
+): Partial<T>;
+export function exceptValues(
+    data: unknown,
+    values: unknown,
+    strict?: boolean,
+): Record<string, unknown>;
 export function exceptValues<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
+    data: Record<TKey, TValue> | unknown,
     values: TValue | TValue[],
     strict: boolean = false,
 ): Record<TKey, TValue> {
+    const obj = data as Record<TKey, TValue>;
     const valueArray = isArray(values) ? values : [values];
     const result = {} as Record<TKey, TValue>;
 
-    for (const [key, value] of Object.entries(data) as [TKey, TValue][]) {
+    for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
         const shouldExclude = valueArray.some((v) =>
             strict ? value === v : looseEqual(value, v),
         );
@@ -1503,6 +1550,34 @@ export function float<
  * forget({ name: 'John', age: 30, city: 'NYC' }, ['age', 'city']); -> { name: 'John' }
  * forget({ user: { name: 'John', age: 30 } }, 'user.age'); -> { user: { name: 'John' } }
  */
+export function forget(
+    data: NonObjectItems,
+    keys: PathKeys,
+): Record<string, never>;
+export function forget<T extends object, const K extends keyof T>(
+    data: T,
+    keys: K,
+): Simplify<Omit<T, K>>;
+export function forget<
+    T extends object,
+    const Ks extends readonly (keyof T)[],
+>(data: T, keys: Ks): Simplify<Omit<T, Ks[number]>>;
+export function forget<T extends object, const P extends string>(
+    data: T,
+    keys: P,
+): OmitObjectPath<T, P>;
+export function forget<T extends object, const Ps extends readonly string[]>(
+    data: T,
+    keys: Ps,
+): OmitObjectPaths<T, Ps>;
+export function forget<T extends object>(
+    data: T,
+    keys: PathKeys,
+): ObjectDeepPartial<T>;
+export function forget(
+    data: unknown,
+    keys: PathKeys,
+): Record<string, unknown>;
 export function forget<TValue extends Record<PropertyKey, unknown>>(
     data: TValue,
     keys: PathKeys,
@@ -1594,6 +1669,26 @@ export function from(items: unknown): Record<string, unknown> {
  * get({ user: { name: 'John' } }, 'user.name'); -> 'John'
  * get({ "products.desk": { price: 100 } }, 'products.desk'); -> { price: 100 } (literal key wins over traversal)
  */
+export function get<TDefault = null>(
+    data: NonObjectItems,
+    key: PathKey,
+    defaultValue?: Default<TDefault>,
+): TDefault;
+export function get<T extends object>(data: T, key: null | undefined): T;
+export function get<T extends object, P extends string | number, TDefault>(
+    data: T,
+    key: P,
+    defaultValue: Default<TDefault>,
+): ObjectResolvePath<T, P, TDefault>;
+export function get<T extends object, P extends string | number>(
+    data: T,
+    key: P,
+): ObjectResolvePath<T, P, null>;
+export function get(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: unknown,
+): unknown;
 export function get<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -2098,9 +2193,27 @@ export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * only({ a: 1, b: 2, c: 3, d: 4 }, ['a', 'c']); -> { a: 1, c: 3 }
  */
+export function only(
+    data: NonObjectItems,
+    keys: PathKeys,
+): Record<string, never>;
+export function only<T extends object>(
+    data: T,
+    keys: null | undefined,
+): Record<string, never>;
+export function only<T extends object, const K extends keyof T>(
+    data: T,
+    keys: K,
+): Simplify<Pick<T, K>>;
+export function only<T extends object, const Ks extends readonly (keyof T)[]>(
+    data: T,
+    keys: Ks,
+): Simplify<Pick<T, Ks[number]>>;
+export function only<T extends object>(data: T, keys: PathKeys): Partial<T>;
+export function only(data: unknown, keys: PathKeys): Record<string, unknown>;
 export function only<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    keys: string | string[] | null,
+    keys: string | string[] | null | unknown,
 ): Record<PropertyKey, TValue> {
     if (!accessible(data)) {
         return {};
@@ -2108,7 +2221,9 @@ export function only<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const obj = data as Record<PropertyKey, TValue>;
     const result: Record<PropertyKey, TValue> = {};
-    const keyList = isNull(keys) ? [] : isArray(keys) ? keys : [keys];
+    const keyList = (
+        isNull(keys) ? [] : isArray(keys) ? keys : [keys]
+    ) as PropertyKey[];
 
     for (const key of keyList) {
         if (Object.hasOwn(obj, key)) {
@@ -2137,15 +2252,31 @@ export function only<TValue, TKey extends PropertyKey = PropertyKey>(
  * onlyValues({ a: 1, b: 2, c: 1, d: 3 }, 1); -> { a: 1, c: 1 }
  * onlyValues({ a: true, b: false, c: 1, d: 0 }, [1, 0], true); -> { c: 1, d: 0 }
  */
+export function onlyValues(
+    data: NonObjectItems,
+    values: unknown,
+    strict?: boolean,
+): Record<number, unknown>;
+export function onlyValues<T extends object>(
+    data: T,
+    values: unknown,
+    strict?: boolean,
+): Partial<T>;
+export function onlyValues(
+    data: unknown,
+    values: unknown,
+    strict?: boolean,
+): Record<string, unknown>;
 export function onlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
+    data: Record<TKey, TValue> | unknown,
     values: TValue | TValue[],
     strict: boolean = false,
 ): Record<TKey, TValue> {
+    const obj = data as Record<TKey, TValue>;
     const valueArray = isArray(values) ? values : [values];
     const result = {} as Record<TKey, TValue>;
 
-    for (const [key, value] of Object.entries(data) as [TKey, TValue][]) {
+    for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
         const shouldInclude = valueArray.some((v) =>
             strict ? value === v : looseEqual(value, v),
         );
