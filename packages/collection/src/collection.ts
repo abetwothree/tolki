@@ -2881,7 +2881,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection([1, 2, 3]).shuffle(); -> new Collection([3, 1, 2])
-     * new Collection({a: 1, b: 2, c: 3}).shuffle(); -> new Collection({b: 2, c: 3, a: 1})
+     * new Collection({a: 1, b: 2, c: 3}).shuffle(); -> new Collection({0: 2, 1: 3, 2: 1})
      */
     shuffle() {
         return this.newInstance(dataShuffle(this.items));
