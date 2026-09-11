@@ -1092,6 +1092,18 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({ b: "brown", c: "blue", 0: "red" });
         });
+
+        it("unwraps a Collection-like operand for diffAssocUsing on a list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssocUsing-list-collection-operand"
+            expect(
+                collect([1, 2, 3])
+                    .diffAssocUsing(
+                        { all: () => [1, 9, 3] } as never,
+                        strcasecmpKeys,
+                    )
+                    .all(),
+            ).toEqual([2]);
+        });
     });
 
     describe("diffKeys", () => {
@@ -1141,6 +1153,18 @@ describe("Collection", () => {
                     )
                     .all(),
             ).toEqual({ first_word: "Hello" });
+        });
+
+        it("unwraps a Collection-like operand on a list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffKeysUsing-list-collection-operand"
+            expect(
+                collect([1, 2, 3])
+                    .diffKeysUsing(
+                        { all: () => [9, 9] } as never,
+                        strcasecmpKeys,
+                    )
+                    .all(),
+            ).toEqual([3]);
         });
     });
 

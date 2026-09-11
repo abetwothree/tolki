@@ -2908,6 +2908,46 @@
                     "y"
                 ]
             }
+        },
+        {
+            "label": "diffAssocUsing-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->diffAssocUsing(new Collection([1, 9, 3]), 'strcasecmp')",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "diffKeysUsing-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->diffKeysUsing(new Collection([9, 9]), 'strcasecmp')",
+            "value": [
+                3
+            ]
+        },
+        {
+            "label": "diffKeysUsing-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->diffKeysUsing(['a' => 1, 1 => 5], 'strcasecmp')",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "diffAssocUsing-list-string-cast",
+            "php": "(new Collection([1, 2]))->diffAssocUsing(['1', '3'], 'strcasecmp')",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "callback-key *Using on a list",
+            "php": "(new Collection([1, 2]))->diffAssocUsing([1, 9], $cmp) / ->diffKeysUsing([1, 9], $cmp): every key type the comparator sees",
+            "value": {
+                "diffAssocUsing": [
+                    "integer"
+                ],
+                "diffKeysUsing": [
+                    "integer"
+                ]
+            }
         }
     ]
 }

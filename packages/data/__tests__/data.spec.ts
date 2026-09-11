@@ -1239,6 +1239,17 @@ describe("Data", () => {
             });
         });
 
+        it("hands the callback each item's key, a list's index included", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "keyBy-list-callback-key", "keyBy callback receives the key"
+            expect(
+                Data.dataKeyBy([{ id: 1 }, { id: 2 }], (_, key) => `k${key}`),
+            ).toEqual({ k0: { id: 1 }, k1: { id: 2 } });
+            expect(Data.dataKeyBy({ x: { id: 1 } }, (_, key) => key)).toEqual({
+                x: { id: 1 },
+            });
+        });
+
         it("keys array items with a null key value under an empty string key", () => {
             const users = [
                 { rating: 1, name: "1" },
@@ -2980,6 +2991,43 @@ describe("Data", () => {
             );
             expect(result).toEqual([1, 2, 3]);
         });
+
+        it("unwraps a Collection-like operand on a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssocUsing-list-collection-operand"
+            expect(
+                Data.dataDiffAssocUsing(
+                    [1, 2, 3],
+                    collectionLike([1, 9, 3]) as never,
+                    strcasecmp,
+                ),
+            ).toEqual([2]);
+        });
+
+        it("compares values by PHP's string cast on a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssocUsing-list-string-cast"
+            expect(
+                Data.dataDiffAssocUsing(
+                    [1, 2],
+                    ["1", "3"] as never,
+                    strcasecmp,
+                ),
+            ).toEqual([2]);
+        });
+
+        it("hands the callback a list's indices as numbers, for diffKeysUsing too", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "callback-key *Using on a list"
+            const seen = new Set<string>();
+            const record = (a: PropertyKey, b: PropertyKey) => {
+                seen.add(typeof a).add(typeof b);
+
+                return a === b;
+            };
+
+            Data.dataDiffAssocUsing([1, 2], [1, 9], record);
+            Data.dataDiffKeysUsing([1, 2], [1, 9], record);
+
+            expect([...seen]).toEqual(["number"]);
+        });
     });
 
     describe("dataDiffKeysUsing", () => {
@@ -3012,6 +3060,24 @@ describe("Data", () => {
                 strcasecmp,
             );
             expect(result).toEqual({ first_word: "Hello" });
+        });
+
+        it("unwraps a Collection-like operand on a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffKeysUsing-list-collection-operand"
+            expect(
+                Data.dataDiffKeysUsing(
+                    [1, 2, 3],
+                    collectionLike([9, 9]) as never,
+                    strcasecmp,
+                ),
+            ).toEqual([3]);
+        });
+
+        it("matches a keyed operand by key on a list, never by position", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffKeysUsing-list-keyed-operand"
+            expect(
+                Data.dataDiffKeysUsing([1, 2], { a: 1, 1: 5 }, strcasecmp),
+            ).toEqual([1]);
         });
     });
 

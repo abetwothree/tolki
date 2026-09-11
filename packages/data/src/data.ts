@@ -1182,7 +1182,7 @@ export function dataJoin<TValue, TKey extends PropertyKey = PropertyKey>(
  * Key data by a given key or callback.
  *
  * @param data - The data to key
- * @param keyBy - Key or callback to key by
+ * @param keyBy - Key or callback to key by; the callback receives each item and its key (a list's index)
  * @returns Keyed data
  *
  * @example
@@ -1192,7 +1192,12 @@ export function dataJoin<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function dataKeyBy(
     data: unknown,
-    keyBy: string | ((item: unknown) => string | number | null | undefined),
+    keyBy:
+        | string
+        | ((
+              item: unknown,
+              key: string | number,
+          ) => string | number | null | undefined),
 ): Record<string | number, unknown> {
     if (isObject(data)) {
         return objKeyBy(data, keyBy);
@@ -2545,46 +2550,10 @@ export function dataDiffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * A JS array's own keys are its indices, in the same shape
- * `Object.entries`/`Object.keys` produce for a plain object — so
- * `array_diff_uassoc`/`array_diff_ukey`'s key-comparison algorithm applies
- * unchanged. Reindexes the survivors, matching every other array-branch
- * diff/intersect function in this file.
- *
- * @param data - The source array.
- * @param other - The array to compare keys (and optionally values) against.
- * @param callback - The callback used to compare keys.
- * @param compareValues - Whether to also require the values to match (diffAssocUsing vs diffKeysUsing).
- * @returns The reindexed survivors.
- */
-function arrayDiffUsingKeys<TValue>(
-    data: readonly TValue[],
-    other: readonly unknown[],
-    callback: (keyA: PropertyKey, keyB: PropertyKey) => boolean,
-    compareValues: boolean,
-): TValue[] {
-    const otherEntries = Object.entries(other);
-
-    return Object.entries(data)
-        .filter(([key, value]) => {
-            const matchingKey = otherEntries.find(([otherKey]) =>
-                callback(key, otherKey),
-            );
-
-            if (matchingKey === undefined) {
-                return true;
-            }
-
-            return compareValues && matchingKey[1] !== value;
-        })
-        .map(([, value]) => value);
-}
-
-/**
  * Diff data with the given other data using a callback for key comparison.
- * For objects, compares keys using the callback and values using strict equality.
- * For arrays, the same algorithm runs over the arrays' own indices (their
- * only possible "keys"), reindexing the survivors.
+ * Compares keys using the callback and values using PHP's `(string)` cast rule.
+ * For arrays, obj's algorithm runs over the indices, so `other` is read through
+ * `arrayableItems` and the survivors are reindexed.
  *
  * @param data - The data to diff
  * @param other - The data to diff against
@@ -2612,19 +2581,17 @@ export function dataDiffAssocUsing<
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrayDiffUsingKeys(
-        arrWrap(data),
-        arrWrap(other),
-        callback as (keyA: PropertyKey, keyB: PropertyKey) => boolean,
-        true,
+    // A list's keys are its indices, so array_diff_uassoc over an index-keyed copy is the list case.
+    return Object.values(
+        objDiffAssocUsing({ ...arrWrap(data) }, other, callback),
     ) as DataItems<TValue>;
 }
 
 /**
  * Diff data keys with the given other data using a callback for key comparison only.
- * For objects, compares keys using the callback and ignores values completely.
- * For arrays, the same algorithm runs over the arrays' own indices (their
- * only possible "keys"), reindexing the survivors.
+ * Compares keys using the callback and ignores values completely.
+ * For arrays, obj's algorithm runs over the indices, so `other` is read through
+ * `arrayableItems` and the survivors are reindexed.
  *
  * @param data - The data to diff
  * @param other - The data to diff against
@@ -2652,11 +2619,9 @@ export function dataDiffKeysUsing<
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrayDiffUsingKeys(
-        arrWrap(data),
-        arrWrap(other),
-        callback as (keyA: PropertyKey, keyB: PropertyKey) => boolean,
-        false,
+    // A list's keys are its indices, so array_diff_ukey over an index-keyed copy is the list case.
+    return Object.values(
+        objDiffKeysUsing({ ...arrWrap(data) }, other, callback),
     ) as DataItems<TValue>;
 }
 

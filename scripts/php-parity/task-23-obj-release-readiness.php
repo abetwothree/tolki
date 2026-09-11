@@ -720,4 +720,28 @@ probe('pull-list-non-canonical-index', "\$a = ['x', 'y']; Arr::pull(\$a, '01', '
     return ['value' => $value, 'array' => $a];
 });
 
+// ---- a list-backed Collection's diffAssocUsing/diffKeysUsing: array_diff_uassoc/array_diff_ukey over the indices
+probe('diffAssocUsing-list-collection-operand', "(new Collection([1, 2, 3]))->diffAssocUsing(new Collection([1, 9, 3]), 'strcasecmp')", fn () => (new Collection([1, 2, 3]))->diffAssocUsing(new Collection([1, 9, 3]), 'strcasecmp')->values()->all());
+probe('diffKeysUsing-list-collection-operand', "(new Collection([1, 2, 3]))->diffKeysUsing(new Collection([9, 9]), 'strcasecmp')", fn () => (new Collection([1, 2, 3]))->diffKeysUsing(new Collection([9, 9]), 'strcasecmp')->values()->all());
+probe('diffKeysUsing-list-keyed-operand', "(new Collection([1, 2]))->diffKeysUsing(['a' => 1, 1 => 5], 'strcasecmp')", fn () => (new Collection([1, 2]))->diffKeysUsing(['a' => 1, 1 => 5], 'strcasecmp')->values()->all());
+probe('diffAssocUsing-list-string-cast', "(new Collection([1, 2]))->diffAssocUsing(['1', '3'], 'strcasecmp')", fn () => (new Collection([1, 2]))->diffAssocUsing(['1', '3'], 'strcasecmp')->values()->all());
+probe('callback-key *Using on a list', "(new Collection([1, 2]))->diffAssocUsing([1, 9], \$cmp) / ->diffKeysUsing([1, 9], \$cmp): every key type the comparator sees", function () {
+    $types = function (callable $run): array {
+        $seen = [];
+        $run(function ($a, $b) use (&$seen) {
+            $seen[gettype($a)] = true;
+            $seen[gettype($b)] = true;
+
+            return $a <=> $b;
+        });
+
+        return array_keys($seen);
+    };
+
+    return [
+        'diffAssocUsing' => $types(fn ($cmp) => (new Collection([1, 2]))->diffAssocUsing([1, 9], $cmp)),
+        'diffKeysUsing' => $types(fn ($cmp) => (new Collection([1, 2]))->diffKeysUsing([1, 9], $cmp)),
+    ];
+});
+
 emit();
