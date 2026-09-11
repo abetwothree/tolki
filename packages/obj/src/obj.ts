@@ -3288,6 +3288,13 @@ export function replaceRecursive<T1>(
     data: Record<PropertyKey, T1> | null | undefined,
     replacerData: null | undefined,
 ): Record<PropertyKey, T1>;
+// `data: null | undefined` alone has no T1 candidate to infer from, so this
+// dedicated overload drops T1 entirely — otherwise it defaults to `unknown`
+// and drags the `T1 | T2` return type down to `Record<PropertyKey, unknown>`.
+export function replaceRecursive<T2>(
+    data: null | undefined,
+    replacerData: Record<PropertyKey, T2> | readonly T2[],
+): Record<PropertyKey, T2>;
 export function replaceRecursive<T1, T2>(
     data: Record<PropertyKey, T1> | null | undefined,
     replacerData: Record<PropertyKey, T2>,

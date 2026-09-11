@@ -111,6 +111,14 @@ describe("obj type tests", () => {
             );
             expectTypeOf(result).toEqualTypeOf<Record<PropertyKey, number>>();
         });
+
+        it("infers the replacer's value type instead of collapsing to unknown for a literal null data", () => {
+            // A bare `null`/`undefined` `data` has no T1 candidate to infer from, so
+            // without a dedicated overload T1 defaults to `unknown` and drags the
+            // whole `T1 | T2` return type down to `Record<PropertyKey, unknown>`.
+            const result = Obj.replaceRecursive(null, { k: 1 });
+            expectTypeOf(result).toEqualTypeOf<Record<PropertyKey, number>>();
+        });
     });
 
     describe("diff", () => {
