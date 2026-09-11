@@ -2382,12 +2382,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Push an item onto the beginning of the collection.
      *
      * @param value - The value to prepend
-     * @param key - The key to prepend the value at, or null to append
+     * @param key - The key to prepend the value at, cast as PHP casts an array key (null files it under "");
+     *   a list backing given any key but 0 becomes object-backed, as PHP's keyed array does
      * @returns The collection instance for chaining
      *
      * @example
      *
      * new Collection([2, 3]).prepend(1); -> new Collection([1, 2, 3])
+     * new Collection([2, 3]).prepend(1, 'a'); -> new Collection({a: 1, 0: 2, 1: 3})
      * new Collection({b: 2, c: 3}).prepend(1, 'a'); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection([]).prepend(1); -> new Collection([1])
      * new Collection({}).prepend(1, 'a'); -> new Collection({a: 1})
