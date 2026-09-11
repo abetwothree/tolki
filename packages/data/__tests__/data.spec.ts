@@ -170,16 +170,14 @@ describe("Data", () => {
             assertType<
                 Record<
                     number,
-                    Record<
-                        number,
-                        {
-                            a: number;
-                            b: number;
-                            c: number;
-                            d: number;
-                            e: number;
-                        }
-                    >
+                    | Partial<{
+                          a: number;
+                          b: number;
+                          c: number;
+                          d: number;
+                          e: number;
+                      }>
+                    | Record<number, number>
                 >
             >(result);
 

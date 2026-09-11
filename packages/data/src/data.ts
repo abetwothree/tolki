@@ -445,12 +445,13 @@ export function dataChunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objChunkWhile(
             data as Record<TKey, TValue>,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             callback as (
-                value: TValue,
-                key: TKey,
-                chunk: Record<TKey, TValue>,
+                value: unknown,
+                key: string | number,
+                chunk: Record<string, unknown>,
             ) => boolean,
-        );
+        ) as Record<number, Record<TKey, TValue>>;
     }
 
     return arrChunkWhile(
@@ -489,8 +490,11 @@ export function dataChunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objChunkBy(
             data as Record<TKey, TValue>,
-            key as PathKey | ((value: TValue, key: TKey) => unknown),
-        );
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            key as
+                | PathKey
+                | ((value: unknown, key: string | number) => unknown),
+        ) as Record<number, Record<TKey, TValue>>;
     }
 
     return arrChunkBy(
@@ -2367,7 +2371,14 @@ export function dataFirst<
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
     if (isKeyedData(data)) {
-        return objFirst(data, callback, defaultValue);
+        return objFirst(
+            data as Record<TKey, TValue>,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as
+                | ((value: unknown, key: string | number) => boolean)
+                | null,
+            defaultValue,
+        ) as TValue | TFirstDefault | null;
     }
 
     return arrFirst(
@@ -2428,7 +2439,14 @@ export function dataLast<
     defaultValue?: TDefault | (() => TDefault),
 ): TValue | TDefault | null {
     if (isKeyedData(data)) {
-        return objLast(data, callback, defaultValue);
+        return objLast(
+            data as Record<TKey, TValue>,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as
+                | ((value: unknown, key: string | number) => boolean)
+                | null,
+            defaultValue,
+        ) as TValue | TDefault | null;
     }
 
     return arrLast(
