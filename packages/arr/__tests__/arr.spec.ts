@@ -3360,15 +3360,6 @@ describe("Arr", () => {
             // Empty array
             expect(Arr.prepend([], "first")).toEqual(["first"]);
 
-            // With key parameter
-            expect(Arr.prepend(["b", "c"], "a", 0)).toEqual(["a", "b", "c"]);
-            expect(Arr.prepend(["b", "c"], "a", 1)).toEqual([
-                undefined,
-                "a",
-                "b",
-                "c",
-            ]);
-
             // Non-accessible data
             expect(Arr.prepend(null, "first")).toEqual(["first"]);
             expect(Arr.prepend("abc", "first")).toEqual(["first"]);
@@ -3379,6 +3370,22 @@ describe("Arr", () => {
                 ["zero"],
                 "one",
                 "two",
+            ]);
+        });
+
+        it("reads a key the way union reads a keyed operand, so key 0 replaces the first item", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key": PHP's other results are
+            // keyed; a list holds each key by index, with undefined in a gap, as arr.union does.
+            expect(Arr.prepend(["b", "c"], "a", 0)).toEqual(["a", "c"]);
+            expect(Arr.prepend(["b", "c"], "a", 1)).toEqual(["b", "a"]);
+            expect(Arr.prepend(["b", "c"], "a", 1.5)).toEqual(["b", "a"]);
+            expect(Arr.prepend(["b", "c"], "a", 5)).toEqual([
+                "b",
+                "c",
+                undefined,
+                undefined,
+                undefined,
+                "a",
             ]);
         });
     });

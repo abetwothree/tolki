@@ -2370,13 +2370,15 @@ export function mapSpread<TMapReturn>(
  *
  * @param data - The array to prepend to.
  * @param value - The value to prepend.
- * @param key - Optional key for the prepended value (creates object with numeric keys).
+ * @param key - Optional key: `[$key => $value] + $array`, read by key as `union` reads it, so key 0 replaces the
+ * first item and another key holds the value at that index.
  * @returns A new array with the value prepended.
  *
  * @example
  *
  * prepend(['b', 'c'], 'a'); -> ['a', 'b', 'c']
  * prepend([1, 2, 3], 0); -> [0, 1, 2, 3]
+ * prepend(['b', 'c'], 'a', 0); -> ['a', 'c']
  */
 // Overload: typed array → array with the value prepended, element type preserved
 export function prepend<TValue>(
@@ -2399,12 +2401,8 @@ export function prepend<TValue>(
     const values = getAccessibleValues(data) as TValue[];
 
     if (!isUndefined(key)) {
-        // Creates a new array with the key-value pair first, mimicking PHP's `['key' =>
-        // 'value'] + $array`. `key` is always a `number` here (loop counter/parseInt'd
-        // index), so it can never stringify to "__proto__".
-        const result: TValue[] = [];
-        result[key] = value;
-        return result.concat(values);
+        // PHP's [$key => $value] + $array is a key union with the prepended entry winning its key.
+        return union({ [phpArrayKey(key)]: value }, values) as TValue[];
     }
 
     return [value, ...values];
