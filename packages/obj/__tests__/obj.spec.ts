@@ -660,11 +660,7 @@ describe("Obj", () => {
 
         it("should skip non-object values", () => {
             const obj = { a: { x: 1 }, b: "string", c: { y: 2 } };
-            expect(
-                Obj.collapse(
-                    obj as unknown as Record<string, Record<string, unknown>>,
-                ),
-            ).toEqual({ x: 1, y: 2 });
+            expect(Obj.collapse(obj)).toEqual({ x: 1, y: 2 });
         });
 
         it("appends integer keys instead of letting a later one overwrite", () => {
@@ -2951,14 +2947,14 @@ describe("Obj", () => {
         // docs/php-parity/task-17-second-review.json, "diff with a Collection operand"
         it("unwraps a Collection-like operand instead of reading its fields", () => {
             const enumerable = { all: () => [20] };
-            expect(Obj.diff({ a: 10, b: 20 }, enumerable as never)).toEqual({
+            expect(Obj.diff({ a: 10, b: 20 }, enumerable)).toEqual({
                 a: 10,
             });
         });
 
         // docs/php-parity/task-17-second-review.json, "diff with a Traversable operand"
         it("unwraps an iterable operand", () => {
-            expect(Obj.diff({ a: 10, b: 20 }, new Set([20]) as never)).toEqual({
+            expect(Obj.diff({ a: 10, b: 20 }, new Set([20]))).toEqual({
                 a: 10,
             });
         });
@@ -3032,9 +3028,9 @@ describe("Obj", () => {
         // docs/php-parity/task-17-second-review.json, "intersect with a Collection operand"
         it("intersects against a Collection-like operand's values", () => {
             const enumerable = { all: () => [20] };
-            expect(
-                Obj.intersect({ a: 10, b: 20 }, enumerable as never),
-            ).toEqual({ b: 20 });
+            expect(Obj.intersect({ a: 10, b: 20 }, enumerable)).toEqual({
+                b: 20,
+            });
         });
     });
 
@@ -3057,9 +3053,9 @@ describe("Obj", () => {
 
         // docs/php-parity/task-17-second-review.json, "array_intersect_key never compares values"
         it("still ignores values entirely, even PHP-matching ones", () => {
-            expect(
-                Obj.intersectByKeys({ a: 0 }, { a: "zzz" } as never),
-            ).toEqual({ a: 0 });
+            expect(Obj.intersectByKeys({ a: 0 }, { a: "zzz" })).toEqual({
+                a: 0,
+            });
         });
     });
 
@@ -3072,7 +3068,7 @@ describe("Obj", () => {
 
         // docs/php-parity/task-17-second-review.json, "array_intersect_assoc casts values to string"
         it("matches values by PHP's string cast", () => {
-            expect(Obj.intersectAssoc({ a: 0 }, { a: "0" } as never)).toEqual({
+            expect(Obj.intersectAssoc({ a: 0 }, { a: "0" })).toEqual({
                 a: 0,
             });
         });
@@ -3139,7 +3135,7 @@ describe("Obj", () => {
             expect(
                 Obj.intersectAssocUsing(
                     { a: 0 },
-                    { a: "0" } as never,
+                    { a: "0" },
                     (x, y) => x === y,
                 ),
             ).toEqual({ a: 0 });
@@ -7130,12 +7126,12 @@ describe("Obj", () => {
 
         // docs/php-parity/task-17-second-review.json, "array_diff_assoc casts values to string"
         it("matches values by PHP's string cast", () => {
-            expect(Obj.diffAssoc({ a: 0 }, { a: "0" } as never)).toEqual({});
+            expect(Obj.diffAssoc({ a: 0 }, { a: "0" })).toEqual({});
         });
 
         // docs/php-parity/task-17-second-review.json, "array_diff_assoc casts a float to string"
         it("casts a float the way PHP does", () => {
-            expect(Obj.diffAssoc({ a: 1.0 }, { a: "1" } as never)).toEqual({});
+            expect(Obj.diffAssoc({ a: 1.0 }, { a: "1" })).toEqual({});
         });
 
         it("keeps an entry whose value appears in other only under a different key", () => {
@@ -7284,7 +7280,7 @@ describe("Obj", () => {
             const strcasecmp = (a: unknown, b: unknown) =>
                 String(a).toLowerCase() === String(b).toLowerCase();
             expect(
-                Obj.diffAssocUsing({ a: 0 }, { a: "0" } as never, strcasecmp),
+                Obj.diffAssocUsing({ a: 0 }, { a: "0" }, strcasecmp),
             ).toEqual({});
         });
 
@@ -7607,14 +7603,7 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
                 return Obj.intersectByKeys(h, h);
             },
         ],
-        [
-            "collapse",
-            () =>
-                Obj.collapse({ group1: HOSTILE() } as Record<
-                    PropertyKey,
-                    Record<PropertyKey, unknown>
-                >),
-        ],
+        ["collapse", () => Obj.collapse({ group1: HOSTILE() })],
     ] as [string, () => unknown][])("%s", (_name, run) => {
         it("treats __proto__ as data, not as a prototype", () => {
             const result = run();

@@ -17,6 +17,7 @@ import type {
     DeepMergeObjects,
     EnsureObject,
     FlipObject,
+    MergeObjects,
     NonNullableObject,
     NonObjectItems,
     ObjectDeepPartial,
@@ -249,6 +250,110 @@ type FlattenReachOf<T, D extends number> = T extends readonly (infer E)[]
             : FlattenReach<ObjectValue<T>, FlattenDepth[D]>
         : T;
 type FlattenDepth = [never, 0, 1, 2, 3, 4];
+
+// collapse reads a Collection-like item through all(), as Arr::collapse unwraps a Collection.
+type CollapseItem<V> = V extends { all: (...args: never[]) => infer R } ? R : V;
+// The items whose own entries collapse copies: a Map, Set, Date, RegExp or Promise has none; a scalar is skipped.
+type CollapseEntries<V> = Extract<
+    Exclude<V, NonObjectItems | Date | RegExp | Promise<unknown>>,
+    object
+>;
+// An empty object fits Pick<I, K> only when K is optional in I; distributing checks each shape I may take.
+type CollapseRequired<I, K extends PropertyKey> = I extends unknown
+    ? Record<never, never> extends Pick<I, K & keyof I>
+        ? false
+        : true
+    : never;
+// A key is certain only when every shape I may take requires it; a Date, Map or scalar among them adds nothing.
+type CollapseAlwaysKeys<I> = [I] extends [CollapseEntries<I>]
+    ? {
+          [K in keyof I]-?: false extends CollapseRequired<I, K> ? never : K;
+      }[keyof I]
+    : never;
+// Only an item under a declared, required key of T is sure to be merged; an index signature may hold none.
+type CollapseGuaranteed<T> = {
+    [P in keyof T]-?: string extends P
+        ? never
+        : number extends P
+          ? never
+          : Record<never, never> extends Pick<T, P>
+            ? never
+            : CollapseAlwaysKeys<CollapseItem<T[P]>>;
+}[keyof T];
+// Object.entries skips symbol keys, so collapse never copies one.
+type CollapseKeys<U> = U extends unknown ? Exclude<keyof U, symbol> : never;
+// The last item holding a key wins it, and a union has no order, so the key may hold any of their values.
+type CollapseValue<U, K extends PropertyKey> = U extends unknown
+    ? K extends keyof U
+        ? Required<U>[K]
+        : never
+    : never;
+// A string index signature swallows the literal keys beside it, so that result holds any item's value at any key.
+type CollapseMerge<U, G> =
+    string extends CollapseKeys<U>
+        ? Record<string, CollapseAnyValue<U>>
+        : Simplify<
+              { [K in Extract<CollapseKeys<U>, G>]: CollapseValue<U, K> } & {
+                  [K in Exclude<CollapseKeys<U>, G>]?: CollapseValue<U, K>;
+              }
+          >;
+type CollapseAnyValue<U> = U extends unknown
+    ? Required<U>[CollapseKeys<U> & keyof U]
+    : never;
+type CollapseResult<T> = [
+    Extract<CollapseItem<ObjectValue<T>>, readonly unknown[]>,
+] extends [never]
+    ? ReindexedObject<
+          CollapseMerge<
+              CollapseEntries<CollapseItem<ObjectValue<T>>>,
+              CollapseGuaranteed<T>
+          >
+      >
+    : Record<string | number, unknown>;
+// crossJoin walks each dimension like PHP's foreach: a list's items, a Map's or other iterable's values, an object's
+// own values; a string or other scalar gives none.
+type ForeachValue<V> = unknown extends V
+    ? unknown
+    : V extends readonly (infer E)[]
+      ? E
+      : V extends string | ((...args: never[]) => unknown)
+        ? never
+        : V extends ReadonlyMap<unknown, infer M>
+          ? M
+          : V extends Iterable<infer I>
+            ? I
+            : V extends object
+              ? [keyof V] extends [never]
+                  ? unknown
+                  : ObjectValue<V>
+              : never;
+// crossJoin reads each argument through Object.entries: a list's rows gain index keys, a symbol key is skipped,
+// and a key whose dimension walks to no value (a scalar, or a class's prototype method) never reaches a row.
+type CrossJoinEntries<T> = T extends readonly unknown[]
+    ? Record<number, ForeachValue<T[number]>>
+    : {
+          [K in keyof T as K extends symbol
+              ? never
+              : [ForeachValue<T[K]>] extends [never]
+                ? never
+                : K]: ForeachValue<T[K]>;
+      };
+// Each argument's entries overwrite the row built so far, as the runtime's copy-then-defineKey does.
+// A spread of unknown length may hold no argument at all, so its keys are optional.
+type CrossJoinRow<
+    T extends readonly object[],
+    Row = Record<never, never>,
+> = T extends readonly [infer First, ...infer Rest extends readonly object[]]
+    ? CrossJoinRow<Rest, SpreadObjects<Row, CrossJoinEntries<First>>>
+    : T extends readonly []
+      ? Row
+      : SpreadObjects<Row, Partial<CrossJoinEntries<T[number]>>>;
+// PHP also calls the comparator while sorting each operand, so either argument may be a key of either operand;
+// `other`'s keys are the ones arrayableItems() reads from it.
+type KeyComparator<T1, T2> = (
+    keyA: ObjectKey<T1> | ObjectKey<ArrayableItems<T2>>,
+    keyB: ObjectKey<T1> | ObjectKey<ArrayableItems<T2>>,
+) => boolean;
 
 /**
  * Determine whether the given value is object accessible.
@@ -702,6 +807,13 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
  * collapse({ a: { x: 1 }, b: { y: 2 }, c: { z: 3 } }); -> { x: 1, y: 2, z: 3 }
  * collapse({ users: { john: { age: 30 } }, admins: { jane: { role: 'admin' } } }); -> { john: { age: 30 }, jane: { role: 'admin' } }
  */
+// A list's items collapse the way an object's values do, so it comes before the rejects-first row.
+export function collapse<T extends readonly unknown[]>(
+    data: T,
+): CollapseResult<Record<number, T[number]>>;
+export function collapse(data: NonObjectItems): Record<string, never>;
+export function collapse<T extends object>(data: T): CollapseResult<T>;
+export function collapse(data: unknown): Record<string | number, unknown>;
 export function collapse<
     TValue extends Record<
         PropertyKey,
@@ -810,6 +922,10 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
  * crossJoin({ size: ['S', 'M'] }, { color: ['red', 'blue'] }); -> [{ size: 'S', color: 'red' }, { size: 'S', color: 'blue' }, { size: 'M', color: 'red' }, { size: 'M', color: 'blue' }]
  * crossJoin({ a: [1], b: { k: "x", j: "y" } }); -> [{ a: 1, b: "x" }, { a: 1, b: "y" }]
  */
+export function crossJoin(): Record<string, never>[];
+export function crossJoin<T extends readonly object[]>(
+    ...objects: T
+): CrossJoinRow<T>[];
 export function crossJoin<TValues, TCombineValue = TValues>(
     ...objects: Record<PropertyKey, TValues>[]
 ): Record<PropertyKey, TCombineValue>[] {
@@ -972,6 +1088,9 @@ export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param objects - The objects to union.
  * @returns A new object containing all key-value pairs from the input objects.
  */
+export function union<T extends readonly unknown[]>(
+    ...objects: T
+): Simplify<MergeObjects<T>>;
 export function union<TValue, TKey extends PropertyKey = PropertyKey>(
     ...objects: Record<TKey, TValue>[] | unknown[]
 ): Record<TKey, TValue> {
@@ -4743,30 +4862,12 @@ export function values<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param other - The object (or array) to compare against.
  * @returns A new object containing items from data whose value is not present in other.
  */
-// Overload: typed — TOtherKey lets a differently-shaped `other` unify without
-// failing, and `other` may be null/undefined (treated as empty) without falling
-// through to the unknown fallback below.
-export function diff<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TOtherKey extends PropertyKey = PropertyKey,
->(
-    data: Record<TKey, TValue>,
-    other: Record<TOtherKey, TValue> | null | undefined,
-): Record<TKey, TValue>;
-// Overload: data typed, other opaque (e.g. Enumerable/Arrayable-like) — keys
-// widen to PropertyKey since other's shape is unknown, but TValue still comes
-// from data, so the result isn't a plain `unknown` record.
-export function diff<TValue>(
-    data: Record<PropertyKey, TValue>,
-    other: unknown,
-): Record<PropertyKey, TValue>;
-// Overload: unknown fallback
 export function diff(
-    data: unknown,
+    data: NonObjectItems,
     other: unknown,
-): Record<PropertyKey, unknown>;
-// Implementation
+): Record<string, never>;
+export function diff<T1 extends object>(data: T1, other: unknown): Partial<T1>;
+export function diff(data: unknown, other: unknown): Record<string, unknown>;
 export function diff<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -4805,6 +4906,18 @@ export function diff<
  * @param other - The object to diff against
  * @returns A new object containing key-value pairs not present in other
  */
+export function diffAssoc(
+    data: NonObjectItems,
+    other: unknown,
+): Record<string, never>;
+export function diffAssoc<T1 extends object>(
+    data: T1,
+    other: unknown,
+): Partial<T1>;
+export function diffAssoc(
+    data: unknown,
+    other: unknown,
+): Record<string, unknown>;
 export function diffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     other: Record<TKey, TValue> | unknown,
@@ -4847,6 +4960,21 @@ export function diffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
  * diffAssocUsing({a: 'green', b: 'brown'}, {A: 'green', c: 'blue'}, strcasecmp); -> {b: 'brown'}
  * diffAssocUsing({a: 'green', b: 'brown'}, {A: 'yellow'}, strcasecmp); -> {a: 'green', b: 'brown'}
  */
+export function diffAssocUsing(
+    data: NonObjectItems,
+    other: unknown,
+    callback: (keyA: string | number, keyB: string | number) => boolean,
+): Record<string, never>;
+export function diffAssocUsing<T1 extends object, T2 extends object>(
+    data: T1,
+    other: T2 | null | undefined,
+    callback: KeyComparator<T1, T2>,
+): Partial<T1>;
+export function diffAssocUsing(
+    data: unknown,
+    other: unknown,
+    callback: (keyA: string | number, keyB: string | number) => boolean,
+): Record<string, unknown>;
 export function diffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     other: Record<TKey, TValue> | unknown,
@@ -4900,6 +5028,21 @@ export function diffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
  * diffKeysUsing({id: 1, first_word: 'Hello'}, {ID: 123, foo_bar: 'Hello'}, strcasecmp); -> {first_word: 'Hello'}
  * diffKeysUsing({a: 1, b: 2}, {A: 999}, strcasecmp); -> {b: 2}
  */
+export function diffKeysUsing(
+    data: NonObjectItems,
+    other: unknown,
+    callback: (keyA: string | number, keyB: string | number) => boolean,
+): Record<string, never>;
+export function diffKeysUsing<T1 extends object, T2 extends object>(
+    data: T1,
+    other: T2 | null | undefined,
+    callback: KeyComparator<T1, T2>,
+): Partial<T1>;
+export function diffKeysUsing(
+    data: unknown,
+    other: unknown,
+    callback: (keyA: string | number, keyB: string | number) => boolean,
+): Record<string, unknown>;
 export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     other: Record<TKey, TValue> | unknown,
@@ -4948,33 +5091,29 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param callable - Optional function to compare values (array_uintersect-style)
  * @returns A new object containing data's items whose value is also present in other
  */
-// Overload: with callback — T1 and T2 inferred independently
-export function intersect<T1, T2>(
-    data: Record<PropertyKey, T1>,
-    other: Record<PropertyKey, T2> | null | undefined,
-    callable: (a: T1, b: T2) => boolean,
-): Record<PropertyKey, T1>;
-// Overload: without callback — same value type on both sides
-export function intersect<T1>(
-    data: Record<PropertyKey, T1>,
-    other: Record<PropertyKey, T1> | null | undefined,
-    callable?: null,
-): Record<PropertyKey, T1>;
-// Overload: data typed, other opaque (e.g. Enumerable/Arrayable-like) — mirrors
-// diff's equivalent overload above; T1 still comes from data instead of
-// collapsing to a plain `unknown` record.
-export function intersect<T1>(
-    data: Record<PropertyKey, T1>,
+export function intersect(
+    data: NonObjectItems,
     other: unknown,
-    callable?: null,
-): Record<PropertyKey, T1>;
-// Overload: unknown fallback
-export function intersect<T1, T2 = T1>(
+    callable?: ((a: unknown, b: unknown) => boolean) | null,
+): Record<string, never>;
+export function intersect<T1 extends object, T2 extends object>(
+    data: T1,
+    other: T2 | null | undefined,
+    callable: (
+        a: ObjectValue<T1>,
+        b: ObjectValue<ArrayableItems<T2>>,
+    ) => boolean,
+): Partial<T1>;
+export function intersect<T1 extends object>(
+    data: T1,
+    other: unknown,
+    callable?: null | undefined,
+): Partial<T1>;
+export function intersect(
     data: unknown,
     other: unknown,
-    callable?: ((a: T1, b: T2) => boolean) | null,
-): Record<PropertyKey, T1>;
-// Implementation
+    callable?: ((a: unknown, b: unknown) => boolean) | null,
+): Record<string, unknown>;
 export function intersect<T1, T2 = T1>(
     data: Record<PropertyKey, T1> | unknown,
     other: Record<PropertyKey, T2> | unknown,
@@ -5027,17 +5166,18 @@ export function intersect<T1, T2 = T1>(
  * @param other - The object to intersect with
  * @returns A new object containing items where both key and value match
  */
-// Overload: typed
-export function intersectAssoc<T1, T2 = T1>(
-    data: Record<PropertyKey, T1>,
-    other: Record<PropertyKey, T2> | null | undefined,
-): Record<PropertyKey, T1>;
-// Overload: unknown fallback — agrees with intersect's null-data acceptance (R5)
-export function intersectAssoc<T1>(
+export function intersectAssoc(
+    data: NonObjectItems,
+    other: unknown,
+): Record<string, never>;
+export function intersectAssoc<T1 extends object>(
+    data: T1,
+    other: unknown,
+): Partial<T1>;
+export function intersectAssoc(
     data: unknown,
     other: unknown,
-): Record<PropertyKey, T1>;
-// Implementation
+): Record<string, unknown>;
 export function intersectAssoc<T1, T2 = T1>(
     data: Record<PropertyKey, T1> | unknown,
     other: Record<PropertyKey, T2> | unknown,
@@ -5080,23 +5220,25 @@ export function intersectAssoc<T1, T2 = T1>(
  * @param callback - The callback function to compare keys (returns true if keys match)
  * @returns A new object containing items where both key (via callback) and value match
  */
-// Overload: typed
-export function intersectAssocUsing<T1, T2 = T1>(
-    data: Record<PropertyKey, T1>,
-    other: Record<PropertyKey, T2> | null | undefined,
-    callback: (keyA: PropertyKey, keyB: PropertyKey) => boolean,
-): Record<PropertyKey, T1>;
-// Overload: unknown fallback — agrees with intersect's null-data acceptance (R5)
-export function intersectAssocUsing<T1>(
+export function intersectAssocUsing(
+    data: NonObjectItems,
+    other: unknown,
+    callback: (keyA: string | number, keyB: string | number) => boolean,
+): Record<string, never>;
+export function intersectAssocUsing<T1 extends object, T2 extends object>(
+    data: T1,
+    other: T2 | null | undefined,
+    callback: KeyComparator<T1, T2>,
+): Partial<T1>;
+export function intersectAssocUsing(
     data: unknown,
     other: unknown,
-    callback: (keyA: PropertyKey, keyB: PropertyKey) => boolean,
-): Record<PropertyKey, T1>;
-// Implementation
+    callback: (keyA: string | number, keyB: string | number) => boolean,
+): Record<string, unknown>;
 export function intersectAssocUsing<T1, T2 = T1>(
     data: Record<PropertyKey, T1> | unknown,
     other: Record<PropertyKey, T2> | unknown,
-    callback: (keyA: PropertyKey, keyB: PropertyKey) => boolean,
+    callback: (keyA: string | number, keyB: string | number) => boolean,
 ): Record<PropertyKey, T1> {
     const result: Record<PropertyKey, T1> = {};
 
@@ -5138,17 +5280,18 @@ export function intersectAssocUsing<T1, T2 = T1>(
  * @param other - The object to intersect with
  * @returns A new object containing items with keys present in both objects
  */
-// Overload: typed
-export function intersectByKeys<T1, T2 = T1>(
-    data: Record<PropertyKey, T1>,
-    other: Record<PropertyKey, T2> | null | undefined,
-): Record<PropertyKey, T1>;
-// Overload: unknown fallback — agrees with intersect's null-data acceptance (R5)
-export function intersectByKeys<T1>(
+export function intersectByKeys(
+    data: NonObjectItems,
+    other: unknown,
+): Record<string, never>;
+export function intersectByKeys<T1 extends object>(
+    data: T1,
+    other: unknown,
+): Partial<T1>;
+export function intersectByKeys(
     data: unknown,
     other: unknown,
-): Record<PropertyKey, T1>;
-// Implementation
+): Record<string, unknown>;
 export function intersectByKeys<T1, T2 = T1>(
     data: Record<PropertyKey, T1> | unknown,
     other: Record<PropertyKey, T2> | unknown,
