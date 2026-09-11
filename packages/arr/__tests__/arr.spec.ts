@@ -3502,6 +3502,14 @@ describe("Arr", () => {
             });
         });
 
+        it("keeps the whole item for an undefined value path, like null", () => {
+            // JS-only: undefined has no PHP analogue; pluck treats it like null (Obj.pluck matches).
+            const data = [{ name: "Taylor", role: "dev" }];
+            expect(Arr.pluck(data, undefined)).toEqual([
+                { name: "Taylor", role: "dev" },
+            ]);
+        });
+
         it("should handle key with object having toString", () => {
             // Tests when nestedKey is stringable object
             const stringableObj = {

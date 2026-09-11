@@ -1968,7 +1968,7 @@ export function select<TValue extends Record<string, unknown>>(
  * @param data - The array to pluck from.
  * @param value - The key path to pluck (a dot-notated string, an array of
  *   segments, or a path containing a `*` wildcard segment), a callback, or
- *   `null` to keep each whole item.
+ *   `null`/`undefined` to keep each whole item.
  * @param key - Optional key path to use as keys in result, or callback function.
  * @returns A new array of plucked values, or a record keyed by the
  *   resolved `key` values when a key is given.
@@ -2008,16 +2008,16 @@ export function pluck<TValue extends Record<string, unknown>, TResult>(
     data: ArrayItems<TValue>,
     value: (item: TValue) => TResult,
 ): TResult[];
-// Overload: null value + key → record keyed by the key, whole items as values
+// Overload: null/undefined value + key → record keyed by the key, whole items as values
 export function pluck<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue>,
-    value: null,
+    value: null | undefined,
     key: string | readonly string[] | ((item: TValue) => string | number),
 ): Record<string | number, TValue>;
-// Overload: null value, no key → array of whole items, matching Arr::pluck($data, null)
+// Overload: null/undefined value, no key → array of whole items, matching Arr::pluck($data, null)
 export function pluck<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue>,
-    value: null,
+    value: null | undefined,
 ): TValue[];
 // Overload: with key → returns Record (keyed result)
 export function pluck<TValue extends Record<string, unknown>>(
@@ -2033,7 +2033,12 @@ export function pluck<TValue extends Record<string, unknown>>(
 // Overload: non-array fallback
 export function pluck<TValue extends Record<string, unknown>>(
     data: unknown,
-    value: string | readonly string[] | ((item: TValue) => unknown) | null,
+    value:
+        | string
+        | readonly string[]
+        | ((item: TValue) => unknown)
+        | null
+        | undefined,
     key?:
         | string
         | readonly string[]
@@ -2043,7 +2048,12 @@ export function pluck<TValue extends Record<string, unknown>>(
 // Implementation
 export function pluck<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue> | unknown,
-    value: string | readonly string[] | ((item: TValue) => unknown) | null,
+    value:
+        | string
+        | readonly string[]
+        | ((item: TValue) => unknown)
+        | null
+        | undefined,
     key:
         | string
         | readonly string[]
@@ -2054,6 +2064,8 @@ export function pluck<TValue extends Record<string, unknown>>(
         return [];
     }
 
+    // JS-only: undefined has no PHP analogue; pluck treats it like null (Obj.pluck matches).
+    const valuePath = isUndefined(value) ? null : value;
     const values = data as ArrayItems<TValue>;
     // Same predicate as the write branch below — JS truthiness would send
     // key = "" down the array path while the write branch does keyed writes.
@@ -2065,12 +2077,14 @@ export function pluck<TValue extends Record<string, unknown>>(
         let itemKey: string | number | undefined;
 
         // Get the value
-        if (isFunction(value)) {
-            itemValue = value(item);
+        if (isFunction(valuePath)) {
+            itemValue = valuePath(item);
         } else {
             itemValue = resolvePluckPath(
                 item,
-                explodePluckPath(value as string | readonly string[] | null),
+                explodePluckPath(
+                    valuePath as string | readonly string[] | null,
+                ),
             );
         }
 
