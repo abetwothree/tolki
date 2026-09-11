@@ -358,6 +358,8 @@ type KeyComparator<T1, T2> = (
 /**
  * Determine whether the given value is object accessible.
  *
+ * A `Date` or class instance counts as an object here; PHP's `accessible` rejects a `DateTime`.
+ *
  * @param value - The value to check.
  * @returns True if the value is a plain object, false otherwise.
  *
@@ -400,6 +402,8 @@ function entriesOf<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Determine whether the given value is objectifiable.
+ *
+ * A `Date` or class instance counts as an object here; PHP's `arrayable` rejects a `DateTime`.
  *
  * @param value - The value to check.
  * @returns True if the value can be treated as an object, false otherwise.
@@ -462,6 +466,8 @@ export function add<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Get an object item from an object using "dot" notation.
+ *
+ * A list value is rejected: obj's analogue of a PHP array is an object.
  *
  * @param data - The object to get the item from.
  * @param key - The key or dot-notated path of the item to get.
@@ -806,6 +812,7 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * collapse({ a: { x: 1 }, b: { y: 2 }, c: { z: 3 } }); -> { x: 1, y: 2, z: 3 }
  * collapse({ users: { john: { age: 30 } }, admins: { jane: { role: 'admin' } } }); -> { john: { age: 30 }, jane: { role: 'admin' } }
+ * collapse([[1, 2], [3, 4]]); -> { 0: 1, 1: 2, 2: 3, 3: 4 }
  */
 // A list's items collapse the way an object's values do, so it comes before the rejects-first row.
 export function collapse<T extends readonly unknown[]>(
@@ -1703,6 +1710,8 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Flip the keys and values of an object.
+ *
+ * @see Collection::flip — `packages/collection/stubs/Collection.php:463`.
  *
  * @param data - The object of items to flip
  * @returns The data items flipped
@@ -3687,6 +3696,8 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get the first item in the object, but only if exactly one item exists. Otherwise, throw an exception.
  *
+ * Throws `No items found` / `Multiple items found (N items)`; Laravel's exception messages differ.
+ *
  * @param data - The object to check.
  * @param callback - Optional callback to filter items.
  * @returns The single item in the object.
@@ -3762,7 +3773,7 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
  * Values are ordered by `compareValues`, never by falsiness (PHP's `asort` puts
  * `-1` before `0`). Integer-like keys are renumbered over the sorted sequence.
  *
- * @see Collection::sort — `packages/collection/stubs/Collection.php:1554`. Wraps `uasort`/`asort`.
+ * @see Arr::sort — `packages/arr/stubs/Arr.php:1114`. Delegates to `Collection::sortBy`.
  *
  * @param data - The object to sort.
  * @param callback - The sorting callback, field name, an array of sort descriptors, or null for natural sorting.
@@ -3859,11 +3870,9 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
  * Sort the object in descending order using the given callback, "dot"
  * notation, or an array of sort descriptors for multi-key sorting.
  *
- * TODO: use the sort function with a "descending" parameter defined
- *
  * Integer-like keys are renumbered over the sorted sequence.
  *
- * @see Collection::sortDesc — `packages/collection/stubs/Collection.php:1571`. Wraps `arsort`.
+ * @see Arr::sortDesc — `packages/arr/stubs/Arr.php:1129`. Delegates to `Collection::sortByDesc`.
  *
  * @param data - The object to sort.
  * @param callback - The value extractor callback, field name, sort descriptors, or null for natural sorting.
@@ -4785,6 +4794,8 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * If the given value is not an object and not null, wrap it in one.
+ *
+ * An object, including a `Date` or class instance, is returned as-is; PHP wraps every object.
  *
  * @param value - The value to wrap.
  * @returns An object containing the value, or an empty object if null.
