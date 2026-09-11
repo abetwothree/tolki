@@ -3569,15 +3569,16 @@ export function reject<TValue>(
 /**
  * Replace the data items with the given replacer items.
  *
- * Supports both arrays and numeric keyed objects as replacement values.
- * When using a numeric keyed object, keys determine positions to replace/add.
+ * The replacer is read the way `getArrayableItems()` reads it (a scalar as `[scalar]`), and each of
+ * its integer keys replaces or adds that index, an index none fills holding `undefined`. A string key,
+ * which a list can't hold, is dropped, as `union` drops one.
  *
  * @see Collection::replace — `packages/collection/stubs/Collection.php:1170`.
  *      Wraps `array_replace`.
  *
  * @param data - The array to replace items in.
- * @param replacerData - The array or numeric keyed object containing items to replace.
- * @returns The modified original array with replaced items.
+ * @param replacerData - The list, object or Collection-like operand holding the items to replace.
+ * @returns A new array with the replaced items.
  *
  * @example
  *
@@ -3613,48 +3614,19 @@ export function replace<TValue, TReplace = TValue>(
     data: ArrayItems<TValue> | unknown,
     replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
 ): (TValue | TReplace | undefined)[] {
-    const values = getAccessibleValues(data) as TValue[];
+    const values: (TValue | TReplace | undefined)[] = getAccessibleValues(data);
 
-    // Handle null/undefined replacer
-    if (isNull(replacerData) || isUndefined(replacerData)) {
-        return values;
-    }
-
-    // If replacerData is an array, use sequential replacement
-    if (isArray(replacerData)) {
-        const replacerValues = replacerData as TValue[];
-        for (let i = 0; i < replacerValues.length; i++) {
-            if (i < values.length) {
-                values[i] = replacerValues[i] as TValue;
-            } else {
-                values.push(replacerValues[i] as TValue);
-            }
+    for (const [key, value] of Object.entries(arrayableItems(replacerData))) {
+        // PHP keeps "k", "01", "-1" or "1.5" as a key of its keyed result; a list holds only integer keys, as in union.
+        if (!isIntegerLikeKey(key)) {
+            continue;
         }
-        return values;
-    }
 
-    // If replacerData is an object with numeric keys, replace by index. A
-    // Collection-like operand (all()/toArray()/toJSON()) unwraps to its entries first.
-    if (isObject(replacerData)) {
-        const replacerObj = arrayableItems(replacerData) as Record<
-            number,
-            TValue
-        >;
-        for (const key of Object.keys(replacerObj)) {
-            const index = parseInt(key, 10);
-            if (!isNaN(index)) {
-                if (index < values.length) {
-                    values[index] = replacerObj[index] as TValue;
-                } else {
-                    // Fill gaps with undefined if necessary
-                    while (values.length < index) {
-                        values.push(undefined as unknown as TValue);
-                    }
-                    values.push(replacerObj[index] as TValue);
-                }
-            }
+        while (values.length < Number(key)) {
+            values.push(undefined);
         }
-        return values;
+
+        values[Number(key)] = value as TReplace;
     }
 
     return values;

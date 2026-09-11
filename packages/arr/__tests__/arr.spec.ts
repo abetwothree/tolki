@@ -2770,11 +2770,28 @@ describe("Arr", () => {
             ]);
         });
 
-        it("should return values unchanged when replacerData is a primitive", () => {
-            // Tests final return when replacerData is not array or object
-            expect(Arr.replace(["a", "b"], 123)).toEqual(["a", "b"]);
-            expect(Arr.replace(["a", "b"], "string")).toEqual(["a", "b"]);
-            expect(Arr.replace(["a", "b"], true)).toEqual(["a", "b"]);
+        it("reads a scalar replacer as [scalar], as getArrayableItems() does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-scalar-operand"
+            expect(Arr.replace(["a", "b"], "z")).toEqual(["z", "b"]);
+            expect(Arr.replace(["a", "b"], 123)).toEqual([123, "b"]);
+            expect(Arr.replace(["a", "b"], true)).toEqual([true, "b"]);
+        });
+
+        it("drops a key a list can't hold instead of reading it as an index, as union does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-keyed-replacer": PHP keeps "k", "01",
+            // "-1" and "1.5" as keys of a keyed result; a list holds only its integer keys, as arr.union's does.
+            expect(Arr.replace(["a", "b", "c"], { 1: "x", k: "y" })).toEqual([
+                "a",
+                "x",
+                "c",
+            ]);
+
+            for (const key of ["01", "-1", "1.5"]) {
+                const result = Arr.replace(["a", "b", "c"], { [key]: "x" });
+
+                expect(result).toEqual(["a", "b", "c"]);
+                expect(Object.keys(result)).toEqual(["0", "1", "2"]);
+            }
         });
 
         describe("object edge cases", () => {
