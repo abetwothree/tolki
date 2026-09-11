@@ -461,9 +461,9 @@ export function dataChunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
             data as Record<TKey, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             callback as (
-                value: unknown,
+                value: TValue,
                 key: string | number,
-                chunk: Record<string, unknown>,
+                chunk: Partial<Record<TKey, TValue>>,
             ) => boolean,
         ) as Record<number, Record<TKey, TValue>>;
     }
@@ -505,9 +505,7 @@ export function dataChunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
         return objChunkBy(
             data as Record<TKey, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            key as
-                | PathKey
-                | ((value: unknown, key: string | number) => unknown),
+            key as PathKey | ((value: TValue, key: string | number) => unknown),
         ) as Record<number, Record<TKey, TValue>>;
     }
 
@@ -1093,7 +1091,7 @@ export function dataEvery<TValue, TKey extends PropertyKey = PropertyKey>(
         return objEvery(
             data as Record<TKey, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (value: unknown, key: string | number) => boolean,
+            callback as (value: TValue, key: string | number) => boolean,
         );
     }
 
@@ -1141,7 +1139,7 @@ export function dataSome<TValue, TKey extends PropertyKey = PropertyKey>(
         return objSome(
             data as Record<TKey, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (value: unknown, key: string | number) => boolean,
+            callback as (value: TValue, key: string | number) => boolean,
         );
     }
 
@@ -1377,7 +1375,7 @@ export function dataMapWithKeys<
             data as Record<string, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             normalizedCallback as (
-                value: unknown,
+                value: TValue,
                 key: string | number,
             ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
         );
@@ -1827,7 +1825,7 @@ export function dataSole<TValue, TKey extends PropertyKey = PropertyKey>(
         return objSole(
             data as Record<TKey, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (value: unknown, key: string | number) => boolean,
+            callback as (value: TValue, key: string | number) => boolean,
         ) as TValue;
     }
 
@@ -2059,7 +2057,7 @@ export function dataWhere<TValue, TKey extends PropertyKey = PropertyKey>(
         return objWhere(
             data as Record<TKey, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (value: unknown, key: string | number) => boolean,
+            callback as (value: TValue, key: string | number) => boolean,
         ) as DataItems<TValue, TKey>;
     }
 
@@ -2156,7 +2154,7 @@ export function dataReject<TValue, TKey extends PropertyKey = PropertyKey>(
         return objReject(
             data as Record<string, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (value: unknown, key: string | number) => boolean,
+            callback as (value: TValue, key: string | number) => boolean,
         ) as DataItems<TValue, TKey>;
     }
 
@@ -2229,7 +2227,7 @@ export function dataPartition<TValue, TKey extends PropertyKey = PropertyKey>(
         const [passing, failing] = objPartition(
             data as Record<TKey, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (value: unknown, key: string | number) => boolean,
+            callback as (value: TValue, key: string | number) => boolean,
         );
         return [
             passing as DataItems<TValue, TKey>,
@@ -2366,7 +2364,7 @@ export function dataMap<
         return objMap(
             data as Record<string, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (value: unknown, key: string | number) => TMapValue,
+            callback as (value: TValue, key: string | number) => TMapValue,
         ) as DataItems<TMapValue, TKey>;
     }
 
@@ -2431,7 +2429,7 @@ export function dataFirst<
             data as Record<TKey, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             callback as
-                | ((value: unknown, key: string | number) => boolean)
+                | ((value: TValue, key: string | number) => boolean)
                 | null,
             defaultValue,
         ) as TValue | TFirstDefault | null;
@@ -2499,7 +2497,7 @@ export function dataLast<
             data as Record<TKey, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             callback as
-                | ((value: unknown, key: string | number) => boolean)
+                | ((value: TValue, key: string | number) => boolean)
                 | null,
             defaultValue,
         ) as TValue | TDefault | null;
