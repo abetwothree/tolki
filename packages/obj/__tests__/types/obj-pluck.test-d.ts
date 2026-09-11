@@ -84,6 +84,17 @@ describe("obj pluck type tests", () => {
                     Record<string | number, never>
                 >();
             });
+
+            it("still returns an empty list for a list given an explicit null key", () => {
+                // Pin: an explicit null/undefined third arg must stay on the
+                // never[] row, not fall through to the unknown-key overload.
+                expectTypeOf(Obj.pluck(numberList, "id", null)).toEqualTypeOf<
+                    never[]
+                >();
+                expectTypeOf(
+                    Obj.pluck(numberList, "id", undefined),
+                ).toEqualTypeOf<never[]>();
+            });
         });
     });
 

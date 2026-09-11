@@ -2646,6 +2646,17 @@ export function pluck(
         | null,
     key: PluckKey<unknown>,
 ): Record<string | number, never>;
+// An explicit null/undefined third arg stays on the never[] row: the runtime
+// keys by array, not object, whenever key is nullish (see the body below).
+export function pluck(
+    data: NonObjectItems,
+    value:
+        | string
+        | readonly (string | number)[]
+        | ((item: unknown) => unknown)
+        | null,
+    key: null | undefined,
+): never[];
 export function pluck(
     data: NonObjectItems,
     value:
