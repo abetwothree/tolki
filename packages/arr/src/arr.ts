@@ -1,5 +1,8 @@
 import { SortDirection } from "@tolki/enum";
-import { replaceRecursive as objReplaceRecursive } from "@tolki/obj";
+import {
+    collapse as objCollapse,
+    replaceRecursive as objReplaceRecursive,
+} from "@tolki/obj";
 import {
     dotFlatten,
     explodePluckPath,
@@ -50,7 +53,6 @@ import {
     isFalsy,
     isFunction,
     isInteger,
-    isIntegerLikeKey,
     isIterable,
     isMap,
     isNull,
@@ -66,6 +68,7 @@ import {
     isUndefined,
     isWeakMap,
     looseEqual,
+    phpArrayKey,
     phpTypeName,
     phpValueMatch,
     phpValueMatcher,
@@ -356,13 +359,18 @@ export function chunkBy<TValue>(
 /**
  * Collapse an array of arrays into a single array, or an array of objects into a single object.
  *
+ * Once any item is an object, the result is `array_merge`'s: list values append under the next
+ * integer key, integer keys renumber and a later string key wins. A Collection-like item unwraps
+ * through its `all()` method, and any other item that isn't an object or a list is skipped.
+ *
  * @param data - The array to collapse.
- * @return A new flattened array or merged object.
+ * @returns A new flattened array or merged object.
  *
  * @example
  *
  * collapse([[1], [2], [3], ['foo', 'bar']]); -> [1, 2, 3, 'foo', 'bar']
  * collapse([{ a: 1, b: 2 }, { c: 3, d: 4 }]) -> { a: 1, b: 2, c: 3, d: 4 }
+ * collapse([[1, 2], { x: 1 }]) -> { 0: 1, 1: 2, x: 1 }
  */
 export function collapse<TValue>(data: TValue[][]): TValue[];
 export function collapse<TValue, TKey extends PropertyKey = PropertyKey>(
@@ -377,32 +385,20 @@ export function collapse<TValue extends ArrayItems<unknown>>(
 export function collapse<TValue extends ArrayItems<unknown>>(
     data: TValue,
 ): Record<string, unknown> | ArrayInnerValue<TValue[number]>[] | unknown[] {
-    // Check if all items are objects (but not arrays)
-    const hasObjects = data.some((item) => isObject(item) && !isArray(item));
+    const items = data.map((item) =>
+        isObject(item) && isFunction(item["all"]) ? item["all"]() : item,
+    );
 
-    if (hasObjects) {
-        // Merge objects together
-        const result: Record<string, unknown> = {};
-        let nextIndex = 0;
-        for (const item of data) {
-            if (isObject(item) && !isArray(item)) {
-                for (const [key, value] of Object.entries(item)) {
-                    // array_merge appends integer keys and lets a later string key win.
-                    if (isIntegerLikeKey(key)) {
-                        defineKey(result, nextIndex, value);
-                        nextIndex++;
-                    } else {
-                        defineKey(result, key, value);
-                    }
-                }
-            }
-        }
-        return result;
+    // A map among the items makes array_merge's result a map; obj.collapse runs that merge in item order.
+    if (items.some((item) => isObject(item))) {
+        return objCollapse({ ...data } as Record<
+            number,
+            Record<PropertyKey, unknown> | unknown[]
+        >);
     }
 
-    // Flatten arrays
     const out: unknown[] = [];
-    for (const item of data) {
+    for (const item of items) {
         if (isArray(item)) {
             out.push(...item);
         }
@@ -806,16 +802,15 @@ export function exceptValues<TValue>(
  *
  * exists([1, 2, 3], 0); -> true
  * exists([1, 2, 3], 3); -> false
+ * exists([1, 2, 3], '01'); -> false
  */
 export function exists<TValue>(data: readonly TValue[], key: PathKey): boolean {
-    // Array: only numeric keys are supported
-    const idx = isNumber(key) ? key : Number(key);
+    // Arr::exists casts a null or float key to string; a list holds only canonical integer keys, so "01" misses.
+    const index = phpArrayKey(
+        isNull(key) || isUndefined(key) ? "" : String(key),
+    );
 
-    if (Number.isNaN(idx)) {
-        return false;
-    }
-
-    return idx >= 0 && idx < data.length;
+    return isNumber(index) && Object.hasOwn(data, index);
 }
 
 /**
@@ -1771,28 +1766,35 @@ export function join<TValue>(
  * Key an associative array by a field or using a callback.
  *
  * @param data - The array to key.
- * @param keyBy - The field name to key by, or a callback function.
+ * @param keyBy - The field name to key by, or a callback function that receives each item and its index.
  * @returns A new object keyed by the specified field or callback result.
  *
  * @example
  *
  * keyBy([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'id'); -> {1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}}
  * keyBy([{name: 'John'}, {name: 'Jane'}], (item) => item.name); -> {John: {name: 'John'}, Jane: {name: 'Jane'}}
+ * keyBy([{name: 'John'}], (item, index) => `k${index}`); -> {k0: {name: 'John'}}
  */
 // Overload: array type with callback for proper type inference
 export function keyBy<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue>,
-    keyBy: ((item: TValue) => string | number | null | undefined) | string,
+    keyBy:
+        | ((item: TValue, key: number) => string | number | null | undefined)
+        | string,
 ): Record<string, TValue>;
 // Overload: non-array fallback
 export function keyBy<TValue extends Record<string, unknown>>(
     data: unknown,
-    keyBy: string | ((item: TValue) => string | number | null | undefined),
+    keyBy:
+        | string
+        | ((item: TValue, key: number) => string | number | null | undefined),
 ): Record<string, TValue>;
 // Implementation
 export function keyBy<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue> | unknown,
-    keyBy: string | ((item: TValue) => string | number | null | undefined),
+    keyBy:
+        | string
+        | ((item: TValue, key: number) => string | number | null | undefined),
 ): Record<string, TValue> {
     if (!accessible(data)) {
         return {};
@@ -1801,11 +1803,11 @@ export function keyBy<TValue extends Record<string, unknown>>(
     const values = data as ArrayItems<TValue>;
     const results: Record<PropertyKey, TValue> = {};
 
-    for (const item of values) {
+    for (const [index, item] of values.entries()) {
         let key: PropertyKey;
 
         if (isFunction(keyBy)) {
-            const result = keyBy(item);
+            const result = keyBy(item, index);
             key = isSymbol(result) ? result : stringifyKey(result);
         } else {
             // Use dot notation to get the key value
@@ -4140,7 +4142,8 @@ export function diff<TValue>(
  * Get the items whose index and value are not both present in the given other array.
  *
  * This is `array_diff_assoc` — unlike `diff`, matching by index+value, not by value
- * alone. A non-accessible `other` is treated as empty, so every item of `data` survives.
+ * alone. `other` is normalized by `arrayableItems`, so each index is looked up among
+ * its keys: a keyed operand matches by key, never by position, and a nullish one is empty.
  *
  * @see Collection::diffAssoc — `packages/collection/stubs/Collection.php:299`. Wraps `array_diff_assoc`.
  *
@@ -4161,20 +4164,13 @@ export function diffAssoc<TValue>(
         return [] as TValue[];
     }
 
-    const dataValues = getAccessibleValues(data) as TValue[];
-    const otherValues = arrayableValues<TValue>(other);
-    const result: TValue[] = [];
+    const otherItems = arrayableItems(other);
 
-    for (let index = 0; index < dataValues.length; index++) {
-        if (
-            index >= otherValues.length ||
-            !phpValueMatch(dataValues[index], otherValues[index])
-        ) {
-            result.push(dataValues[index] as TValue);
-        }
-    }
-
-    return result;
+    return (getAccessibleValues(data) as TValue[]).filter(
+        (value, index) =>
+            !Object.hasOwn(otherItems, index) ||
+            !phpValueMatch(value, otherItems[index]),
+    );
 }
 
 /**
@@ -4248,6 +4244,9 @@ export function intersect<TValue, TOther = TValue>(
  * Intersect the array with the given items with additional index check.
  * Returns items where both the index AND value match.
  *
+ * `other` is normalized by `arrayableItems`, so each index is looked up among its keys:
+ * a keyed operand matches by key, never by position.
+ *
  * @see Collection::intersectAssoc — `packages/collection/stubs/Collection.php:683`.
  *      Wraps `array_intersect_assoc`.
  *
@@ -4277,25 +4276,21 @@ export function intersectAssoc<TValue>(
         return [] as TValue[];
     }
 
-    const dataValues = getAccessibleValues(data) as TValue[];
-    const otherValues = arrayableValues<TValue>(other);
-    const result: TValue[] = [];
+    const otherItems = arrayableItems(other);
 
-    for (let index = 0; index < dataValues.length; index++) {
-        if (
-            index < otherValues.length &&
-            phpValueMatch(dataValues[index], otherValues[index])
-        ) {
-            result.push(dataValues[index] as TValue);
-        }
-    }
-
-    return result;
+    return (getAccessibleValues(data) as TValue[]).filter(
+        (value, index) =>
+            Object.hasOwn(otherItems, index) &&
+            phpValueMatch(value, otherItems[index]),
+    );
 }
 
 /**
  * Intersect the array with the given items with additional index check, using the callback.
  * The callback is used to compare indices, while values are compared by PHP's `(string)` cast rule.
+ *
+ * `other` is normalized by `arrayableItems`, so the callback receives each of its real keys: an
+ * index for a list, or the key PHP would store (a number for a canonical integer) for a keyed operand.
  *
  * @see Collection::intersectAssocUsing — `packages/collection/stubs/Collection.php:695`.
  *      Wraps `array_intersect_uassoc`.
@@ -4316,10 +4311,17 @@ export function intersectAssocUsing<TValue>(
     other: ArrayItems<TValue>,
     callback: (keyA: number, keyB: number) => boolean,
 ): TValue[];
+// Overload: a list, nullish or scalar operand only has integer keys
 export function intersectAssocUsing<TValue>(
     data: ArrayItems<TValue> | unknown,
-    other: ArrayItems<TValue> | unknown,
+    other: ArrayItems<unknown> | string | number | boolean | null | undefined,
     callback: (keyA: number, keyB: number) => boolean,
+): TValue[];
+// Overload: a keyed operand (object, Map, Collection-like) can hand the callback a string key
+export function intersectAssocUsing<TValue>(
+    data: ArrayItems<TValue> | unknown,
+    other: unknown,
+    callback: (keyA: number, keyB: number | string) => boolean,
 ): TValue[];
 export function intersectAssocUsing<TValue>(
     data: ArrayItems<TValue> | unknown,
@@ -4330,31 +4332,23 @@ export function intersectAssocUsing<TValue>(
         return [] as TValue[];
     }
 
-    const dataValues = getAccessibleValues(data) as TValue[];
-    const otherValues = arrayableValues<TValue>(other);
-    const result: TValue[] = [];
+    const otherEntries = Object.entries(arrayableItems(other));
 
-    for (let dataIndex = 0; dataIndex < dataValues.length; dataIndex++) {
-        for (
-            let otherIndex = 0;
-            otherIndex < otherValues.length;
-            otherIndex++
-        ) {
-            if (
-                callback(dataIndex, otherIndex) &&
-                phpValueMatch(dataValues[dataIndex], otherValues[otherIndex])
-            ) {
-                result.push(dataValues[dataIndex] as TValue);
-                break; // Only add once per dataIndex
-            }
-        }
-    }
-
-    return result;
+    return (getAccessibleValues(data) as TValue[]).filter((value, index) =>
+        otherEntries.some(
+            ([otherKey, otherValue]) =>
+                // Only the keyed overload's operand yields a string key, and its callback accepts one.
+                callback(index, phpArrayKey(otherKey) as number) &&
+                phpValueMatch(value, otherValue),
+        ),
+    );
 }
 
 /**
  * Intersect the array with the given items by key.
+ *
+ * `other` is normalized by `arrayableItems`, so an index survives only when it is one of
+ * `other`'s keys: a keyed operand matches by key, never by position.
  *
  * @see Collection::intersectByKeys — `packages/collection/stubs/Collection.php:706`.
  *      Wraps `array_intersect_key`.
@@ -4380,17 +4374,9 @@ export function intersectByKeys<TValue>(
         return [] as TValue[];
     }
 
-    const dataValues = getAccessibleValues(data) as TValue[];
-    const otherValues = arrayableValues<TValue>(other);
-    const result: TValue[] = [];
+    const otherItems = arrayableItems(other);
 
-    const otherKeys = new Set<number>(otherValues.map((_, index) => index));
-
-    for (let index = 0; index < dataValues.length; index++) {
-        if (otherKeys.has(index)) {
-            result.push(dataValues[index] as TValue);
-        }
-    }
-
-    return result;
+    return (getAccessibleValues(data) as TValue[]).filter((_, index) =>
+        Object.hasOwn(otherItems, index),
+    );
 }

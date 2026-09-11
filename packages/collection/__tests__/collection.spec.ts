@@ -503,6 +503,15 @@ describe("Collection", () => {
             ).toEqual([1, 2, "foo", "bar"]);
         });
 
+        it("keeps list items beside an object item on a list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-list-then-map"
+            expect(
+                collect([[1, 2], { x: 1, 0: "z" }])
+                    .collapse()
+                    .all(),
+            ).toEqual({ 0: 1, 1: 2, 2: "z", x: 1 });
+        });
+
         it("merges a Collection-like item's items on an object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "collapse-assoc-collection-item"
             // A duck-typed item isn't a Collection instance, so it reaches obj.collapse's own unwrap.
@@ -1041,6 +1050,15 @@ describe("Collection", () => {
             // `diffAssoc` delegates to `dataDiffAssoc`, whose array branch
             // pushes survivors into a fresh array, reindexing them.
             expect(collect([1, 2, 3]).diffAssoc([1, 9, 3]).all()).toEqual([2]);
+        });
+
+        it("matches an object-backed operand by key on a list backing, never by position", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-list-keyed-operand"
+            expect(
+                collect([1, 2])
+                    .diffAssoc(collect({ a: 1, b: 2 }))
+                    .all(),
+            ).toEqual([1, 2]);
         });
 
         // docs/php-parity/task-17-second-review.json, "array_diff_assoc casts values to string"

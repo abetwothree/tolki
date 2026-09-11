@@ -647,4 +647,49 @@ probe('collapse-negative-int-keys', "Arr::collapse(['g1' => [-1 => 'a', 'k' => '
 probe('unshift-negative-int-key', "(new Collection([-1 => 'a', 'x' => 'b']))->unshift('z')", fn () => (new Collection([-1 => 'a', 'x' => 'b']))->unshift('z')->all());
 probe('prepend-negative-int-key-no-key', "Arr::prepend([-1 => 'a', 'x' => 'b'], 'z')", fn () => Arr::prepend([-1 => 'a', 'x' => 'b'], 'z'));
 
+// ---- list data against a keyed operand: the key-aware set operations match by key, never by position
+probe('diffAssoc-list-keyed-operand', "(new Collection([1, 2]))->diffAssoc(['a' => 1, 'b' => 2]); (new Collection(['a', 'b']))->diffAssoc([1 => 'b']); the first with a Collection operand", fn () => [
+    'assoc' => (new Collection([1, 2]))->diffAssoc(['a' => 1, 'b' => 2])->values()->all(),
+    'offset' => (new Collection(['a', 'b']))->diffAssoc([1 => 'b'])->values()->all(),
+    'collection' => (new Collection([1, 2]))->diffAssoc(new Collection(['a' => 1, 'b' => 2]))->values()->all(),
+]);
+probe('intersectAssoc-list-keyed-operand', "(new Collection([1, 2]))->intersectAssoc(['a' => 1, 'b' => 2]); (new Collection(['a', 'b']))->intersectAssoc([1 => 'b'])", fn () => [
+    'assoc' => (new Collection([1, 2]))->intersectAssoc(['a' => 1, 'b' => 2])->values()->all(),
+    'offset' => (new Collection(['a', 'b']))->intersectAssoc([1 => 'b'])->values()->all(),
+]);
+probe('intersectAssocUsing-list-keyed-operand', "(new Collection([1, 2]))->intersectAssocUsing(['a' => 1, 'b' => 2], \$cmp); (new Collection(['a', 'b']))->intersectAssocUsing([1 => 'b'], \$cmp)", fn () => [
+    'assoc' => (new Collection([1, 2]))->intersectAssocUsing(['a' => 1, 'b' => 2], fn ($a, $b) => $a <=> $b)->values()->all(),
+    'offset' => (new Collection(['a', 'b']))->intersectAssocUsing([1 => 'b'], fn ($a, $b) => $a <=> $b)->values()->all(),
+]);
+probe('intersectByKeys-list-keyed-operand', "(new Collection([1, 2, 3]))->intersectByKeys(['a' => 'x', 'b' => 'y']), ->intersectByKeys([0 => 'x', 2 => 'y']), ->intersectByKeys(new ArrayIterator([2 => 'z']))", fn () => [
+    'assoc' => (new Collection([1, 2, 3]))->intersectByKeys(['a' => 'x', 'b' => 'y'])->values()->all(),
+    'offset' => (new Collection([1, 2, 3]))->intersectByKeys([0 => 'x', 2 => 'y'])->values()->all(),
+    'iterator' => (new Collection([1, 2, 3]))->intersectByKeys(new ArrayIterator([2 => 'z']))->values()->all(),
+]);
+
+// ---- Arr::collapse over mixed lists and maps is one array_merge; a Collection item unwraps, a scalar is skipped
+probe('collapse-list-then-map', "Arr::collapse([[1, 2], ['x' => 1, 0 => 'z']])", fn () => Arr::collapse([[1, 2], ['x' => 1, 0 => 'z']]));
+probe('collapse-map-then-list', "Arr::collapse([['a' => 3], [1, 2]])", fn () => Arr::collapse([['a' => 3], [1, 2]]));
+probe('collapse-collection-items', "Arr::collapse([new Collection([1, 2]), 5, new Collection([3])])", fn () => Arr::collapse([new Collection([1, 2]), 5, new Collection([3])]));
+
+// ---- Arr::exists on a list is array_key_exists: only a canonical integer key (or a float that casts to one) exists
+probe('exists-list-non-canonical-keys', "Arr::exists([1, 2, 3], \$k) for '', ' ', '01', ' 1', '1e0', '0x1', '-0', '1.0'", function () {
+    $result = [];
+
+    foreach (['', ' ', '01', ' 1', '1e0', '0x1', '-0', '1.0'] as $k) {
+        $result[$k] = Arr::exists([1, 2, 3], $k);
+    }
+
+    return $result;
+});
+probe('exists-list-null-and-float-keys', "Arr::exists([1, 2, 3], null), (…, 1.5), (…, 1.0), (…, '1')", fn () => [
+    'null' => Arr::exists([1, 2, 3], null),
+    'float 1.5' => Arr::exists([1, 2, 3], 1.5),
+    'float 1.0' => Arr::exists([1, 2, 3], 1.0),
+    'string 1' => Arr::exists([1, 2, 3], '1'),
+]);
+
+// ---- keyBy hands a list callback the item's index
+probe('keyBy-list-callback-key', "Arr::keyBy([['id' => 1], ['id' => 2]], fn (\$item, \$key) => 'k' . \$key)", fn () => Arr::keyBy([['id' => 1], ['id' => 2]], fn ($item, $key) => 'k' . $key));
+
 emit();

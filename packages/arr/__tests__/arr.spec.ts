@@ -424,6 +424,35 @@ describe("Arr", () => {
             });
         });
 
+        it("keeps list items when an object item is present, as array_merge does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-list-then-map", "collapse-map-then-list"
+            expect(Arr.collapse([[1, 2], { x: 1, 0: "z" }])).toEqual({
+                0: 1,
+                1: 2,
+                2: "z",
+                x: 1,
+            });
+            expect(Arr.collapse([{ a: 3 }, [1, 2]])).toEqual({
+                a: 3,
+                0: 1,
+                1: 2,
+            });
+        });
+
+        it("merges a Collection-like item's items and skips a scalar", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-collection-items"
+            expect(
+                Arr.collapse([{ all: () => [1, 2] }, 5, { all: () => [3] }]),
+            ).toEqual([1, 2, 3]);
+        });
+
+        it("renumbers a negative integer key like any other integer key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-negative-int-keys"
+            expect(
+                Arr.collapse([{ "-1": "a", k: "b" }, { "-1": "c" }]),
+            ).toEqual({ 0: "a", 1: "c", k: "b" });
+        });
+
         it("does not reparent the result via a __proto__ entry (Object.assign is not sanctioned)", () => {
             // JSON.parse produces a real own enumerable "__proto__" key (a literal
             // `{ __proto__:... }` would set the prototype instead and never reach this code).
@@ -623,6 +652,22 @@ describe("Arr", () => {
 
             // @ts-expect-error Testing non-array input should return false
             expect(Arr.exists(5, 4)).toBe(false);
+        });
+
+        it.each(["", " ", "01", " 1", "1e0", "0x1", "-0", "1.0"])(
+            "does not find the non-canonical key %j in a list",
+            (key) => {
+                // docs/php-parity/task-23-obj-release-readiness.json, "exists-list-non-canonical-keys"
+                expect(Arr.exists([1, 2, 3], key)).toBe(false);
+            },
+        );
+
+        it("casts a null key to the empty string and a float key to its string form", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "exists-list-null-and-float-keys"
+            expect(Arr.exists([1, 2, 3], null)).toBe(false);
+            expect(Arr.exists([1, 2, 3], 1.5)).toBe(false);
+            expect(Arr.exists([1, 2, 3], 1.0)).toBe(true);
+            expect(Arr.exists([1, 2, 3], "1")).toBe(true);
         });
     });
 
@@ -2991,6 +3036,12 @@ describe("Arr", () => {
                 [2, 3],
             );
         });
+
+        it("matches a keyed operand by key, never by position", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-list-keyed-operand"
+            expect(Arr.diffAssoc([1, 2], { a: 1, b: 2 })).toEqual([1, 2]);
+            expect(Arr.diffAssoc(["a", "b"], { 1: "b" })).toEqual(["a"]);
+        });
     });
 
     describe("intersect", () => {
@@ -3074,6 +3125,19 @@ describe("Arr", () => {
             expect(
                 Arr.intersectByKeys([1, 2, 3], collectionLike([9, 9])),
             ).toEqual([1, 2]);
+        });
+
+        it("keeps the indices that are keys of a keyed operand, never its positions", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectByKeys-list-keyed-operand"
+            expect(Arr.intersectByKeys([1, 2, 3], { a: "x", b: "y" })).toEqual(
+                [],
+            );
+            expect(Arr.intersectByKeys([1, 2, 3], { 0: "x", 2: "y" })).toEqual([
+                1, 3,
+            ]);
+            expect(Arr.intersectByKeys([1, 2, 3], new Map([[2, "z"]]))).toEqual(
+                [3],
+            );
         });
     });
 
@@ -3636,6 +3700,13 @@ describe("Arr", () => {
                 1: { rating: 1, name: "1" },
                 "": { rating: 2, name: null },
             });
+        });
+
+        it("hands the callback each item's index, like obj.keyBy hands it the key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-list-callback-key"
+            expect(
+                Arr.keyBy([{ id: 1 }, { id: 2 }], (_, key) => `k${key}`),
+            ).toEqual({ k0: { id: 1 }, k1: { id: 2 } });
         });
 
         it("should handle callback returning symbol", () => {
@@ -5581,6 +5652,12 @@ describe("Arr", () => {
                 Arr.intersectAssoc([1, 2, 3], collectionLike([1, 2, 9])),
             ).toEqual([1, 2]);
         });
+
+        it("matches a keyed operand by key, never by position", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssoc-list-keyed-operand"
+            expect(Arr.intersectAssoc([1, 2], { a: 1, b: 2 })).toEqual([]);
+            expect(Arr.intersectAssoc(["a", "b"], { 1: "b" })).toEqual(["b"]);
+        });
     });
 
     describe("intersectAssocUsing", () => {
@@ -5639,6 +5716,24 @@ describe("Arr", () => {
                     (a, b) => a === b,
                 ),
             ).toEqual([1, 2]);
+        });
+
+        it("hands the callback a keyed operand's own keys, never its positions", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssocUsing-list-keyed-operand"
+            expect(
+                Arr.intersectAssocUsing(
+                    [1, 2],
+                    { a: 1, b: 2 },
+                    (a, b) => a === b,
+                ),
+            ).toEqual([]);
+            expect(
+                Arr.intersectAssocUsing(
+                    ["a", "b"],
+                    { 1: "b" },
+                    (a, b) => a === b,
+                ),
+            ).toEqual(["b"]);
         });
     });
     // Array.prototype passes `isArray` and Object.prototype passes `isObjectAny`,

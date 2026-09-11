@@ -2709,6 +2709,121 @@
                 "1": "a",
                 "x": "b"
             }
+        },
+        {
+            "label": "diffAssoc-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->diffAssoc(['a' => 1, 'b' => 2]); (new Collection(['a', 'b']))->diffAssoc([1 => 'b']); the first with a Collection operand",
+            "value": {
+                "assoc": [
+                    1,
+                    2
+                ],
+                "offset": [
+                    "a"
+                ],
+                "collection": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "intersectAssoc-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->intersectAssoc(['a' => 1, 'b' => 2]); (new Collection(['a', 'b']))->intersectAssoc([1 => 'b'])",
+            "value": {
+                "assoc": [],
+                "offset": [
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "intersectAssocUsing-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->intersectAssocUsing(['a' => 1, 'b' => 2], $cmp); (new Collection(['a', 'b']))->intersectAssocUsing([1 => 'b'], $cmp)",
+            "value": {
+                "assoc": [],
+                "offset": [
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "intersectByKeys-list-keyed-operand",
+            "php": "(new Collection([1, 2, 3]))->intersectByKeys(['a' => 'x', 'b' => 'y']), ->intersectByKeys([0 => 'x', 2 => 'y']), ->intersectByKeys(new ArrayIterator([2 => 'z']))",
+            "value": {
+                "assoc": [],
+                "offset": [
+                    1,
+                    3
+                ],
+                "iterator": [
+                    3
+                ]
+            }
+        },
+        {
+            "label": "collapse-list-then-map",
+            "php": "Arr::collapse([[1, 2], ['x' => 1, 0 => 'z']])",
+            "value": {
+                "0": 1,
+                "1": 2,
+                "x": 1,
+                "2": "z"
+            }
+        },
+        {
+            "label": "collapse-map-then-list",
+            "php": "Arr::collapse([['a' => 3], [1, 2]])",
+            "value": {
+                "a": 3,
+                "0": 1,
+                "1": 2
+            }
+        },
+        {
+            "label": "collapse-collection-items",
+            "php": "Arr::collapse([new Collection([1, 2]), 5, new Collection([3])])",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "exists-list-non-canonical-keys",
+            "php": "Arr::exists([1, 2, 3], $k) for '', ' ', '01', ' 1', '1e0', '0x1', '-0', '1.0'",
+            "value": {
+                "": false,
+                " ": false,
+                "01": false,
+                " 1": false,
+                "1e0": false,
+                "0x1": false,
+                "-0": false,
+                "1.0": false
+            }
+        },
+        {
+            "label": "exists-list-null-and-float-keys",
+            "php": "Arr::exists([1, 2, 3], null), (\u2026, 1.5), (\u2026, 1.0), (\u2026, '1')",
+            "value": {
+                "null": false,
+                "float 1.5": false,
+                "float 1.0": true,
+                "string 1": true
+            }
+        },
+        {
+            "label": "keyBy-list-callback-key",
+            "php": "Arr::keyBy([['id' => 1], ['id' => 2]], fn ($item, $key) => 'k' . $key)",
+            "value": {
+                "k0": {
+                    "id": 1
+                },
+                "k1": {
+                    "id": 2
+                }
+            }
         }
     ]
 }

@@ -361,6 +361,23 @@ describe("Data", () => {
             });
         });
 
+        it("keeps list items beside an object item and unwraps Collection-like items on a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-list-then-map", "collapse-collection-items"
+            expect(Data.dataCollapse([[1, 2], { x: 1, 0: "z" }])).toEqual({
+                0: 1,
+                1: 2,
+                2: "z",
+                x: 1,
+            });
+            expect(
+                Data.dataCollapse([
+                    collectionLike([1, 2]),
+                    5,
+                    collectionLike([3]),
+                ]),
+            ).toEqual([1, 2, 3]);
+        });
+
         it("merges a Collection-like item's items through the object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "collapse-assoc-collection-item"
             expect(
@@ -694,6 +711,13 @@ describe("Data", () => {
             // "exists-null-value", "exists-null-key-empty-string"
             expect(Data.dataExists({ a: null }, "a")).toBe(true);
             expect(Data.dataExists({ "": 1 }, null)).toBe(true);
+        });
+
+        it("does not find a non-canonical or null key in a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "exists-list-non-canonical-keys", "exists-list-null-and-float-keys"
+            expect(Data.dataExists([1, 2, 3], "01")).toBe(false);
+            expect(Data.dataExists([1, 2, 3], null)).toBe(false);
         });
     });
 
@@ -2893,6 +2917,11 @@ describe("Data", () => {
 
         it("is array", () => {
             expect(Data.dataDiffAssoc([1, 2, 3], [1, 9, 3])).toEqual([2]);
+        });
+
+        it("matches a keyed operand by key on a list, never by position", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-list-keyed-operand"
+            expect(Data.dataDiffAssoc([1, 2], { a: 1, b: 2 })).toEqual([1, 2]);
         });
 
         it("unwraps a Collection-like operand when matching keys and values", () => {
