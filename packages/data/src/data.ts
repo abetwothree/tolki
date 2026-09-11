@@ -753,10 +753,7 @@ export function dataExceptValues<
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-        return objExceptValues(data, values, strict) as DataItems<
-            TValue,
-            TKey
-        >;
+        return objExceptValues(data, values, strict) as DataItems<TValue, TKey>;
     }
 
     return arrExceptValues(data, values, strict);
@@ -1272,10 +1269,7 @@ export function dataOnlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-        return objOnlyValues(data, values, strict) as DataItems<
-            TValue,
-            TKey
-        >;
+        return objOnlyValues(data, values, strict) as DataItems<TValue, TKey>;
     }
 
     return arrOnlyValues(data, values, strict);

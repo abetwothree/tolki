@@ -985,10 +985,10 @@ export function except<T extends object, const K extends keyof T>(
     data: T,
     keys: K,
 ): Simplify<Omit<T, K>>;
-export function except<
-    T extends object,
-    const Ks extends readonly (keyof T)[],
->(data: T, keys: Ks): Simplify<Omit<T, Ks[number]>>;
+export function except<T extends object, const Ks extends readonly (keyof T)[]>(
+    data: T,
+    keys: Ks,
+): Simplify<Omit<T, Ks[number]>>;
 export function except<T extends object, const P extends string>(
     data: T,
     keys: P,
@@ -1001,10 +1001,7 @@ export function except<T extends object>(
     data: T,
     keys: PathKeys,
 ): ObjectDeepPartial<T>;
-export function except(
-    data: unknown,
-    keys: PathKeys,
-): Record<string, unknown>;
+export function except(data: unknown, keys: PathKeys): Record<string, unknown>;
 export function except<TValue extends Record<PropertyKey, unknown>>(
     data: TValue,
     keys: PathKeys,
@@ -1562,10 +1559,10 @@ export function forget<T extends object, const K extends keyof T>(
     data: T,
     keys: K,
 ): Simplify<Omit<T, K>>;
-export function forget<
-    T extends object,
-    const Ks extends readonly (keyof T)[],
->(data: T, keys: Ks): Simplify<Omit<T, Ks[number]>>;
+export function forget<T extends object, const Ks extends readonly (keyof T)[]>(
+    data: T,
+    keys: Ks,
+): Simplify<Omit<T, Ks[number]>>;
 export function forget<T extends object, const P extends string>(
     data: T,
     keys: P,
@@ -1578,10 +1575,7 @@ export function forget<T extends object>(
     data: T,
     keys: PathKeys,
 ): ObjectDeepPartial<T>;
-export function forget(
-    data: unknown,
-    keys: PathKeys,
-): Record<string, unknown>;
+export function forget(data: unknown, keys: PathKeys): Record<string, unknown>;
 export function forget<TValue extends Record<PropertyKey, unknown>>(
     data: TValue,
     keys: PathKeys,
