@@ -1342,9 +1342,10 @@ export function dataMapWithKeys<
     if (isObject(data)) {
         return objMapWithKeys(
             data as Record<string, TValue>,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             normalizedCallback as (
-                value: TValue,
-                key: string,
+                value: unknown,
+                key: string | number,
             ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
         );
     }
@@ -2002,7 +2003,8 @@ export function dataWhere<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objWhere(
             data as Record<TKey, TValue>,
-            callback as (value: TValue, key: TKey) => boolean,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (value: unknown, key: string | number) => boolean,
         ) as DataItems<TValue, TKey>;
     }
 
@@ -2085,7 +2087,8 @@ export function dataReject<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objReject(
             data as Record<string, TValue>,
-            callback as (value: TValue, key: string) => boolean,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (value: unknown, key: string | number) => boolean,
         ) as DataItems<TValue, TKey>;
     }
 
@@ -2157,7 +2160,8 @@ export function dataPartition<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         const [passing, failing] = objPartition(
             data as Record<TKey, TValue>,
-            callback as (value: TValue, key: TKey) => boolean,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (value: unknown, key: string | number) => boolean,
         );
         return [
             passing as DataItems<TValue, TKey>,
@@ -2257,7 +2261,10 @@ export function dataFilter<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objFilter(
             data as Record<TKey, TValue>,
-            callback as (value: TValue, key: TKey) => boolean | null,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as
+                | ((value: unknown, key: string | number) => boolean)
+                | null,
         ) as DataItems<TValue, TKey>;
     }
 
@@ -2290,7 +2297,8 @@ export function dataMap<
     if (isObject(data)) {
         return objMap(
             data as Record<string, TValue>,
-            callback as (value: TValue, key: string) => TMapValue,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (value: unknown, key: string | number) => TMapValue,
         ) as DataItems<TMapValue, TKey>;
     }
 
