@@ -177,6 +177,17 @@ describe("Utils", () => {
             expect(Utils.arrayableItems(new Set(["x"]))).toEqual({ 0: "x" });
         });
 
+        it("empties a WeakMap or a WeakSet, whose entries can't be read", () => {
+            // JS-only: PHP has no WeakMap; ArrayableItems<T> already types both as Record<never, never>.
+            const weakMap = new WeakMap([[{}, 1]]);
+            const weakSet = new WeakSet([{}]);
+
+            expect(Utils.arrayableItems(weakMap)).not.toBe(weakMap);
+            expect(Utils.arrayableItems(weakMap)).toEqual({});
+            expect(Utils.arrayableItems(weakSet)).not.toBe(weakSet);
+            expect(Utils.arrayableItems(weakSet)).toEqual({});
+        });
+
         it("treats nullish as empty and wraps a scalar", () => {
             // JS-only: null/undefined-as-empty and scalar-wrapping are this helper's own contract.
             expect(Utils.arrayableItems(null)).toEqual({});

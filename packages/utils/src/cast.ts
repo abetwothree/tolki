@@ -8,6 +8,8 @@ import {
     isNumber,
     isObject,
     isUndefined,
+    isWeakMap,
+    isWeakSet,
 } from "./guards";
 import { defineKey, isPhpArrayKey } from "./keys";
 
@@ -309,7 +311,8 @@ export function arrayableValues<T>(items: unknown): T[] {
 /**
  * Normalize a keyed operand the way Laravel's `getArrayableItems()` does:
  * nullish becomes `{}`, an Enumerable/Arrayable-like object unwraps via `all()`/`toArray()`/`toJSON()`,
- * a Map or other iterable becomes an object, and a list becomes an index-keyed object.
+ * a Map or other iterable becomes an object, a list becomes an index-keyed object, and a WeakMap or
+ * WeakSet, whose entries can't be read, becomes `{}`.
  *
  * @param items - The operand to normalize
  * @returns The operand's entries as a plain object
@@ -337,6 +340,10 @@ export function arrayableItems(items: unknown): Record<string, unknown> {
             }
 
             return out;
+        }
+
+        if (isWeakMap(unwrapped) || isWeakSet(unwrapped)) {
+            return {};
         }
 
         if (isIterable(unwrapped)) {
