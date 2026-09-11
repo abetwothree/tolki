@@ -434,6 +434,20 @@ describe("Collection", () => {
     });
 
     describe("collapse", () => {
+        it("skips a class instance item on an object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects"
+            class Point {
+                x = 1;
+                y = 2;
+            }
+
+            expect(
+                collect({ g1: { a: 1 }, g2: new Point() })
+                    .collapse()
+                    .all(),
+            ).toEqual({ a: 1 });
+        });
+
         it("collapses nested arrays", () => {
             const collection = collect([
                 [1, 2],

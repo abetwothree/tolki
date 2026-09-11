@@ -646,6 +646,13 @@ probe('collapse-negative-int-keys', "Arr::collapse(['g1' => [-1 => 'a', 'k' => '
     'assoc' => Arr::collapse(['g1' => [-1 => 'a', 'k' => 'b'], 'g2' => [-1 => 'c']]),
     'list' => Arr::collapse([[-1 => 'a', 'k' => 'b'], [-1 => 'c']]),
 ]);
+probe('collapse-skips-objects', "Arr::collapse([[1], new DateTime('@0'), [2]]), ([[1], new ArrayObject(['x' => 1]), [2]]), ([['a' => 1], (object) ['b' => 2]]), ([(object) ['b' => 2]]), (['g1' => ['a' => 1], 'g2' => (object) ['b' => 2]])", fn () => [
+    'date' => Arr::collapse([[1], new DateTime('@0'), [2]]),
+    'array-object' => Arr::collapse([[1], new ArrayObject(['x' => 1]), [2]]),
+    'object-item' => Arr::collapse([['a' => 1], (object) ['b' => 2]]),
+    'only-object' => Arr::collapse([(object) ['b' => 2]]),
+    'assoc-object-item' => Arr::collapse(['g1' => ['a' => 1], 'g2' => (object) ['b' => 2]]),
+]);
 probe('unshift-negative-int-key', "(new Collection([-1 => 'a', 'x' => 'b']))->unshift('z')", fn () => (new Collection([-1 => 'a', 'x' => 'b']))->unshift('z')->all());
 probe('prepend-negative-int-key-no-key', "Arr::prepend([-1 => 'a', 'x' => 'b'], 'z')", fn () => Arr::prepend([-1 => 'a', 'x' => 'b'], 'z'));
 probe('prepend-key-cast', "@Arr::prepend(['a' => 1, 1 => 'x'], 'v', 1.5), @(['a' => 1], 'v', -2.7), (['a' => 1], 'v', true), (['a' => 1, 0 => 'x'], 'v', false)", fn () => [

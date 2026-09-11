@@ -260,7 +260,8 @@ type FlattenDepth = [never, 0, 1, 2, 3, 4];
 
 // collapse reads a Collection-like item through all(), as Arr::collapse unwraps a Collection.
 type CollapseItem<V> = V extends { all: (...args: never[]) => infer R } ? R : V;
-// The items whose own entries collapse copies: a Map, Set, Date, RegExp or Promise has none; a scalar is skipped.
+// The items whose own entries collapse copies; a Map, Set, Date, RegExp, Promise or scalar is skipped. The runtime
+// skips a class instance too, as PHP skips an object, but a type can't tell one from a plain object.
 type CollapseEntries<V> = Extract<
     Exclude<V, NonObjectItems | Date | RegExp | Promise<unknown>>,
     object
@@ -819,7 +820,8 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Collapse an object of objects or lists into a single object; integer keys
  * are renumbered, as `array_merge` does. A Collection-like item unwraps
- * through its `all()` method, and any other item that isn't an object or a list is skipped.
+ * through its `all()` method, and any other item that isn't a plain object or a list is skipped,
+ * as `Arr::collapse` skips a PHP object: a `Date`, a `Map` or a class instance.
  *
  * @param object - The object of objects or lists to collapse.
  * @returns A new flattened object.
@@ -859,7 +861,7 @@ export function collapse<
                 ? group["all"]()
                 : group;
 
-        if (!isObject(item) && !isArray(item)) {
+        if (!isPlainObject(item) && !isArray(item)) {
             continue;
         }
 

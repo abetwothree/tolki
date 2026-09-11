@@ -2703,6 +2703,27 @@
             }
         },
         {
+            "label": "collapse-skips-objects",
+            "php": "Arr::collapse([[1], new DateTime('@0'), [2]]), ([[1], new ArrayObject(['x' => 1]), [2]]), ([['a' => 1], (object) ['b' => 2]]), ([(object) ['b' => 2]]), (['g1' => ['a' => 1], 'g2' => (object) ['b' => 2]])",
+            "value": {
+                "date": [
+                    1,
+                    2
+                ],
+                "array-object": [
+                    1,
+                    2
+                ],
+                "object-item": {
+                    "a": 1
+                },
+                "only-object": [],
+                "assoc-object-item": {
+                    "a": 1
+                }
+            }
+        },
+        {
             "label": "unshift-negative-int-key",
             "php": "(new Collection([-1 => 'a', 'x' => 'b']))->unshift('z')",
             "value": {

@@ -643,6 +643,26 @@ describe("Obj", () => {
     });
 
     describe("collapse", () => {
+        it("skips a class instance, a Date or a Map item, as Arr::collapse skips a PHP object", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects"
+            class Point {
+                x = 1;
+                y = 2;
+            }
+
+            expect(Obj.collapse({ g1: { a: 1 }, g2: new Point() })).toEqual({
+                a: 1,
+            });
+            expect(
+                Obj.collapse({
+                    g1: [1],
+                    g2: new Date(0),
+                    g3: new Map([["x", 1]]),
+                    g4: [2],
+                }),
+            ).toEqual({ 0: 1, 1: 2 });
+        });
+
         it("should collapse object of objects into single object", () => {
             const obj = { a: { x: 1 }, b: { y: 2 }, c: { z: 3 } };
             expect(Obj.collapse(obj)).toEqual({ x: 1, y: 2, z: 3 });

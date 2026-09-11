@@ -336,6 +336,17 @@ describe("Data", () => {
     });
 
     describe("dataCollapse", () => {
+        it("skips a class instance item through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects"
+            class Point {
+                x = 1;
+                y = 2;
+            }
+
+            expect(
+                Data.dataCollapse({ g1: { a: 1 }, g2: new Point() }),
+            ).toEqual({ a: 1 });
+        });
         it("is object", () => {
             const obj = { a: { x: 1 }, b: { y: 2 }, c: { z: 3 } };
             expect(Data.dataCollapse(obj)).toEqual({ x: 1, y: 2, z: 3 });
