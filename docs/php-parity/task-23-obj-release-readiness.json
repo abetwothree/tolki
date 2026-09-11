@@ -3473,6 +3473,28 @@
             }
         },
         {
+            "label": "union-function-valued-member",
+            "php": "(new Collection(['all' => $fn, 'admin' => 'a']))->union(['guest' => 1]), (['toJSON' => fn () => 'J', 'b' => 2])->union(['c' => 3]), (['toArray' => fn () => [9], 'b' => 2])->union(['c' => 3]): the keys, and how often $fn ran",
+            "value": {
+                "all": [
+                    "all",
+                    "admin",
+                    "guest"
+                ],
+                "toJSON": [
+                    "toJSON",
+                    "b",
+                    "c"
+                ],
+                "toArray": [
+                    "toArray",
+                    "b",
+                    "c"
+                ],
+                "calls": 0
+            }
+        },
+        {
             "label": "containsStrict-two-args-by-value",
             "php": "containsStrict('tags', ['a', 'b']), ('t', a reordered array), ('name', null) with the key null, missing or set",
             "value": {

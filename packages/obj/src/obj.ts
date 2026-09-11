@@ -1095,6 +1095,9 @@ export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
  * operator: the left-most object to already hold a key wins that key's
  * value, even `null`/`undefined` — the guard is presence, not truthiness.
  *
+ * The first object is the data, read by its own entries (a list by its indices); each later
+ * one is read the way `arrayableItems` reads it, so a Collection-like operand unwraps.
+ *
  * @see Collection::union — `packages/collection/stubs/Collection.php:944`.
  *      Uses PHP's `+` operator (key union: left keys win), not `array_merge`.
  *
@@ -1107,22 +1110,23 @@ export function union<T extends readonly unknown[]>(
 export function union<TValue, TKey extends PropertyKey = PropertyKey>(
     ...objects: Record<TKey, TValue>[] | unknown[]
 ): Record<TKey, TValue> {
-    return objects.map(arrayableItems).reduce(
-        (acc: Record<PropertyKey, TValue>, obj: Record<string, unknown>) => {
-            for (const [key, value] of Object.entries(obj)) {
-                if (!Object.hasOwn(acc, key)) {
-                    defineKey(
-                        acc as Record<string, TValue>,
-                        key,
-                        value as TValue,
-                    );
-                }
-            }
+    const [data, ...operands] = objects as unknown[];
+    const result: Record<string, TValue> = {};
+    // PHP's union is $this->items + getArrayableItems($items): only the operands unwrap, never the data itself.
+    const sources = [
+        isArray(data) || isObject(data) ? data : {},
+        ...operands.map(arrayableItems),
+    ];
 
-            return acc;
-        },
-        {} as Record<TKey, TValue>,
-    );
+    for (const source of sources) {
+        for (const [key, value] of Object.entries(source)) {
+            if (!Object.hasOwn(result, key)) {
+                defineKey(result, key, value as TValue);
+            }
+        }
+    }
+
+    return result as Record<TKey, TValue>;
 }
 
 /**

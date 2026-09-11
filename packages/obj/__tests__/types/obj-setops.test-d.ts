@@ -41,6 +41,12 @@ describe("obj set-operation type tests", () => {
             }>();
         });
 
+        it("reads the first operand, the data, by its own entries", () => {
+            expectTypeOf(
+                Obj.union({ all: () => "x", b: 1 }, { c: true }),
+            ).toEqualTypeOf<{ all: () => "x"; b: number; c: boolean }>();
+        });
+
         it("widens to a loose record for an unknown operand", () => {
             expectTypeOf(Obj.union(unknownObject, { a: 1 })).toEqualTypeOf<
                 Record<string, unknown>

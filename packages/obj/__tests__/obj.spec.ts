@@ -1188,6 +1188,48 @@ describe("Obj", () => {
             ).toEqual({ name: "Hello", id: 1 });
             expect(Obj.union({ a: 1 }, [5])).toEqual({ a: 1, 0: 5 });
         });
+
+        it("reads the data by its own entries, never calling a function-valued all, toArray or toJSON member", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-function-valued-member"
+            const all = vi.fn(() => "X");
+            const toArray = vi.fn(() => [9]);
+            const toJSON = vi.fn(() => "J");
+
+            expect(Obj.union({ all, admin: "a" }, { guest: 1 })).toEqual({
+                all,
+                admin: "a",
+                guest: 1,
+            });
+            expect(Obj.union({ toArray, b: 2 }, { c: 3 })).toEqual({
+                toArray,
+                b: 2,
+                c: 3,
+            });
+            expect(Obj.union({ toJSON, b: 2 }, { c: 3 })).toEqual({
+                toJSON,
+                b: 2,
+                c: 3,
+            });
+            expect(all).not.toHaveBeenCalled();
+            expect(toArray).not.toHaveBeenCalled();
+            expect(toJSON).not.toHaveBeenCalled();
+        });
+
+        it("reads a class instance's own fields as the data, not its all() method's result", () => {
+            // JS-only: PHP's $this->items is an array, which has no methods; a JS object can inherit one.
+            class Repo {
+                name = "repo";
+
+                all() {
+                    return "CALLED";
+                }
+            }
+
+            expect(Obj.union(new Repo(), { x: 1 })).toEqual({
+                name: "repo",
+                x: 1,
+            });
+        });
     });
 
     describe("unshift", () => {

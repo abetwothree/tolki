@@ -926,6 +926,21 @@ probe('union-list-backing-keyed-result', "(new Collection())->union(['a' => 1]),
     'gap' => (new Collection([1]))->union([3 => 4])->all(),
     'gap-then-filled' => (new Collection([1]))->union([3 => 4])->union([9, 8, 7, 6])->all(),
 ]);
+probe('union-function-valued-member', "(new Collection(['all' => \$fn, 'admin' => 'a']))->union(['guest' => 1]), (['toJSON' => fn () => 'J', 'b' => 2])->union(['c' => 3]), (['toArray' => fn () => [9], 'b' => 2])->union(['c' => 3]): the keys, and how often \$fn ran", function () {
+    $calls = 0;
+    $fn = function () use (&$calls) {
+        $calls++;
+
+        return 'X';
+    };
+
+    return [
+        'all' => array_keys((new Collection(['all' => $fn, 'admin' => 'a']))->union(['guest' => 1])->all()),
+        'toJSON' => array_keys((new Collection(['toJSON' => fn () => 'J', 'b' => 2]))->union(['c' => 3])->all()),
+        'toArray' => array_keys((new Collection(['toArray' => fn () => [9], 'b' => 2]))->union(['c' => 3])->all()),
+        'calls' => $calls,
+    ];
+});
 
 // ---- containsStrict($key, $value) compares data_get($item, $key) === $value whenever two arguments are passed
 probe('containsStrict-two-args-by-value', "containsStrict('tags', ['a', 'b']), ('t', a reordered array), ('name', null) with the key null, missing or set", fn () => [

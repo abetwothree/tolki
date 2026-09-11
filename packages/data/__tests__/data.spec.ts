@@ -760,6 +760,21 @@ describe("Data", () => {
                 ),
             ).toEqual({ name: "Hello", id: 1 });
         });
+
+        it("reads the backing by its own entries, never calling a function-valued all member", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-function-valued-member"
+            let calls = 0;
+            const all = () => {
+                calls++;
+
+                return "X";
+            };
+
+            expect(Data.dataUnion({ all, admin: all }, { guest: all })).toEqual(
+                { all, admin: all, guest: all },
+            );
+            expect(calls).toBe(0);
+        });
     });
 
     describe("dataExcept", () => {

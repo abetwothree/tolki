@@ -4204,6 +4204,24 @@ describe("Collection", () => {
             ]);
         });
 
+        it("keeps its own items when one is a function stored under an all or toJSON key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-function-valued-member"
+            let calls = 0;
+            const fn = () => {
+                calls++;
+
+                return "X";
+            };
+
+            expect(
+                collect({ all: fn, admin: "a" }).union({ guest: 1 }).all(),
+            ).toEqual({ all: fn, admin: "a", guest: 1 });
+            expect(collect({ toJSON: fn, b: 2 }).union({ c: 3 }).all()).toEqual(
+                { toJSON: fn, b: 2, c: 3 },
+            );
+            expect(calls).toBe(0);
+        });
+
         it("becomes object-backed when a keyed operand leaves its list keys other than 0..n-1", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "union-list-backing-keyed-result"
             expect(new Collection().union({ a: 1 }).all()).toEqual({ a: 1 });
