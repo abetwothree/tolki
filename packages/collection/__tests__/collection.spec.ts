@@ -4596,6 +4596,13 @@ describe("Collection", () => {
     });
 
     describe("prepend", () => {
+        it("casts its key the way PHP casts an array key on an object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-key-cast"
+            expect(
+                new Collection({ a: 1, 1: "x" }).prepend("v", 1.5).all(),
+            ).toEqual({ 1: "v", a: 1 });
+        });
+
         it("Laravel Tests", () => {
             const c = collect(["one", "two", "three", "four"]);
             expect(c.prepend("zero").all()).toEqual([

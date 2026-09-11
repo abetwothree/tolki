@@ -2721,6 +2721,28 @@
             }
         },
         {
+            "label": "prepend-key-cast",
+            "php": "@Arr::prepend(['a' => 1, 1 => 'x'], 'v', 1.5), @(['a' => 1], 'v', -2.7), (['a' => 1], 'v', true), (['a' => 1, 0 => 'x'], 'v', false)",
+            "value": {
+                "float": {
+                    "1": "v",
+                    "a": 1
+                },
+                "negative-float": {
+                    "-2": "v",
+                    "a": 1
+                },
+                "true": {
+                    "1": "v",
+                    "a": 1
+                },
+                "false": {
+                    "0": "v",
+                    "a": 1
+                }
+            }
+        },
+        {
             "label": "shift-negative-int-keys",
             "php": "$c = new Collection(['x' => 'a', -1 => 'b', 'y' => 'c']); $c->shift(); and $d = new Collection(['x' => 'a', -1 => 'b', -2 => 'c', 'y' => 'd']); $d->shift(2)",
             "value": {

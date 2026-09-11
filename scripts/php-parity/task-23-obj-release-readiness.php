@@ -648,6 +648,12 @@ probe('collapse-negative-int-keys', "Arr::collapse(['g1' => [-1 => 'a', 'k' => '
 ]);
 probe('unshift-negative-int-key', "(new Collection([-1 => 'a', 'x' => 'b']))->unshift('z')", fn () => (new Collection([-1 => 'a', 'x' => 'b']))->unshift('z')->all());
 probe('prepend-negative-int-key-no-key', "Arr::prepend([-1 => 'a', 'x' => 'b'], 'z')", fn () => Arr::prepend([-1 => 'a', 'x' => 'b'], 'z'));
+probe('prepend-key-cast', "@Arr::prepend(['a' => 1, 1 => 'x'], 'v', 1.5), @(['a' => 1], 'v', -2.7), (['a' => 1], 'v', true), (['a' => 1, 0 => 'x'], 'v', false)", fn () => [
+    'float' => @Arr::prepend(['a' => 1, 1 => 'x'], 'v', 1.5),
+    'negative-float' => @Arr::prepend(['a' => 1], 'v', -2.7),
+    'true' => Arr::prepend(['a' => 1], 'v', true),
+    'false' => Arr::prepend(['a' => 1, 0 => 'x'], 'v', false),
+]);
 probe('shift-negative-int-keys', "\$c = new Collection(['x' => 'a', -1 => 'b', 'y' => 'c']); \$c->shift(); and \$d = new Collection(['x' => 'a', -1 => 'b', -2 => 'c', 'y' => 'd']); \$d->shift(2)", function () {
     $one = new Collection(['x' => 'a', -1 => 'b', 'y' => 'c']);
     $shifted = $one->shift();

@@ -112,6 +112,15 @@ describe("obj write type tests", () => {
             ).toEqualTypeOf<{ b: string; a: number }>();
         });
 
+        it("types a float key as the integer key PHP truncates it to, which it can't name", () => {
+            expectTypeOf(
+                Obj.prepend({ a: 1, 1: "x" }, "v", 1.5),
+            ).toEqualTypeOf<{
+                [x: `${number}`]: string;
+                a: number;
+            }>();
+        });
+
         it("files a null key under the empty string", () => {
             expectTypeOf(Obj.prepend({ one: 1 }, 0, null)).toEqualTypeOf<{
                 "": number;

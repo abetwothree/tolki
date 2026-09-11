@@ -1613,6 +1613,13 @@ describe("Data", () => {
     });
 
     describe("dataPrepend", () => {
+        it("casts its key the way PHP casts an array key on an object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-key-cast"
+            expect(Data.dataPrepend({ a: 1, 1: 5 }, 9, 1.5)).toEqual({
+                1: 9,
+                a: 1,
+            });
+        });
         it("is object", () => {
             const result = Data.dataPrepend({ b: 2, c: 3 }, 1, "a");
             expect(result).toEqual({

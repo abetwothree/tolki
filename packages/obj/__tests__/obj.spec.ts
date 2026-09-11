@@ -4393,6 +4393,35 @@ describe("Obj", () => {
             expect(Obj.prepend(null, 1)).toEqual({ 0: 1 });
             expect(Obj.prepend("ab", 1)).toEqual({ 0: 1 });
         });
+
+        it("casts its key the way PHP casts an array key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-key-cast"
+            expect(Obj.prepend({ a: 1, 1: "x" }, "v", 1.5)).toEqual({
+                1: "v",
+                a: 1,
+            });
+            expect(Obj.prepend({ a: 1 }, "v", -2.7)).toEqual({
+                "-2": "v",
+                a: 1,
+            });
+            expect(Obj.prepend({ a: 1 }, "v", true as never)).toEqual({
+                1: "v",
+                a: 1,
+            });
+            expect(Obj.prepend({ a: 1, 0: "x" }, "v", false as never)).toEqual({
+                0: "v",
+                a: 1,
+            });
+        });
+
+        it("keeps a symbol key as a symbol, as keyBy does", () => {
+            // JS-only: PHP has no symbol keys; String() used to store this one under "Symbol(k)".
+            const key = Symbol("k");
+            const result = Obj.prepend({ a: 1 }, "v", key);
+
+            expect(Object.getOwnPropertySymbols(result)).toEqual([key]);
+            expect(Object.keys(result)).toEqual(["a"]);
+        });
     });
 
     describe("pull", () => {

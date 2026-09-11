@@ -208,6 +208,13 @@ type CombineOneKey<X, S = PhpKeyString<X>> = S extends unknown
 type KeyByResult<V, S extends symbol> = [S] extends [never]
     ? Record<string, V>
     : Record<string, V> & { [K in S]?: V };
+// prepend casts its key as PHP casts an array key: a float truncates to an integer the type can't name, so it may
+// replace any integer key, as a key of type number may.
+type PrependKey<K extends string | number> = K extends number
+    ? `${K}` extends `${bigint}`
+        ? K
+        : number
+    : K;
 // dot() and flattenDot() keep an undefined leaf, which ObjectPathValue (get()'s reach, where undefined means missing)
 // drops; a declared `| undefined` anywhere in T adds it back.
 type DotUndefined<T, D extends number = 5> = [D] extends [never]
@@ -3090,8 +3097,8 @@ export function mapSpread<
  *
  * @param data - The object to prepend to.
  * @param value - The value to prepend.
- * @param key - The key for the prepended value; omit it to unshift under key 0, as `Arr::prepend`
- * does with two arguments.
+ * @param key - The key for the prepended value, cast as PHP casts an array key (a float truncates, a boolean
+ * becomes 0 or 1, null becomes ""); omit it to unshift under key 0, as `Arr::prepend` does with two arguments.
  * @returns A new object with the value prepended.
  *
  * @example
@@ -3108,7 +3115,12 @@ export function prepend<T extends object, V, const K extends string | number>(
     data: T,
     value: V,
     key: K,
-): Simplify<{ [P in `${K}`]: V } & Omit<T, K | `${K}`>>;
+): Simplify<
+    { [P in `${PrependKey<K>}`]: V } & Omit<
+        T,
+        PrependKey<K> | `${PrependKey<K>}`
+    >
+>;
 export function prepend<T extends object, V>(
     data: T,
     value: V,
@@ -3137,15 +3149,15 @@ export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     const [key] = rest;
-    const prependKey = isNull(key) || isUndefined(key) ? "" : String(key);
     const result: Record<string, TValue> = {};
 
-    defineKey(result, prependKey, value);
+    // `[$key => $value] + $array` casts the key as PHP casts an array key; a symbol stays one, as keyBy keeps it.
+    defineKey(result, isSymbol(key) ? key : phpArrayKey(key), value);
 
     if (accessible(data)) {
         for (const [existingKey, existingValue] of Object.entries(data)) {
-            // `[$key => $value] + $array`: the prepended entry wins its key.
-            if (existingKey !== prependKey) {
+            // The prepended entry wins its key.
+            if (!Object.hasOwn(result, existingKey)) {
                 defineKey(result, existingKey, existingValue as TValue);
             }
         }
