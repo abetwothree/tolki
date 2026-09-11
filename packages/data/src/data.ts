@@ -2623,11 +2623,9 @@ export function dataPluck<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objPluck(
             data as Record<TKey, TValue>,
-            value as string | ((item: Record<TKey, TValue>) => unknown),
-            key as
-                | string
-                | ((item: Record<TKey, TValue>) => string | number)
-                | null,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            value as string | ((item: unknown) => unknown),
+            key as string | ((item: unknown) => string | number) | null,
         ) as DataItems<TValue, TKey>;
     }
 
