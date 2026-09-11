@@ -2859,7 +2859,7 @@ export function dataIntersectAssocUsing<
 
     return arrIntersectAssocUsing(
         data,
-        other as unknown,
+        other,
         callback as (keyA: number, keyB: number | string) => boolean,
     ) as DataItems<TValue>;
 }
