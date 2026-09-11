@@ -1408,7 +1408,7 @@ export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
         return objPrepend(
             data as Record<TKey, TValue>,
             value,
-            ...(rest as [key?: TKey | null]),
+            ...rest,
         ) as DataItems<TValue, TKey>;
     }
 
