@@ -1914,7 +1914,11 @@ export function dataSplice<TValue, TKey extends PropertyKey, TReplacements>(
     ...replacement: TReplacements[]
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objSplice(data, offset, length, ...replacement);
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        return objSplice(data, offset, length, ...replacement) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrSplice(arrWrap(data), offset, length, ...replacement);
