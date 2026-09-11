@@ -209,7 +209,7 @@ type MapItems<K extends string | number, V> = string extends K
  * The own entries `{ ...value }` copies: a list's indices, and nothing from a Map, Set, Date, RegExp, Promise or
  * function, none of which keeps its data in own enumerable keys.
  */
-type SpreadItems<T> = T extends readonly unknown[]
+export type SpreadItems<T> = T extends readonly unknown[]
     ? Record<number, T[number]>
     : T extends
             | ReadonlyMap<unknown, unknown>

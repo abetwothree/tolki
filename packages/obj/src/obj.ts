@@ -20,6 +20,7 @@ import type {
     PathKey,
     PathKeys,
     SortSpec,
+    SpreadItems,
 } from "@tolki/types";
 import {
     arrayableItems,
@@ -1403,7 +1404,7 @@ export function from(
         | undefined
         | ((...args: never[]) => unknown),
 ): never;
-export function from<T extends object>(items: T): T;
+export function from<T extends object>(items: T): SpreadItems<T>;
 export function from(items: unknown): Record<string, unknown>;
 export function from(items: unknown): Record<string, unknown> {
     if (isMap(items)) {

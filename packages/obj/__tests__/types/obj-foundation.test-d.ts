@@ -75,6 +75,12 @@ describe("obj foundation type tests", () => {
                 Record<string, never>
             >();
         });
+
+        it("empties a Date, which keeps no data in own enumerable keys", () => {
+            expectTypeOf(Obj.from(new Date(0))).toEqualTypeOf<
+                Record<never, never>
+            >();
+        });
     });
 
     describe("wrap", () => {
