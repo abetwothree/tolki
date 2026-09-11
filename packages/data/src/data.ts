@@ -689,6 +689,8 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Union multiple objects or arrays items into one, the way PHP's `+` does: the first
  * item that isn't nullish is the backing, and each other item may be a list or an object.
+ * A list backing stays a list while every item extends its keys as `0..n-1`; once an item
+ * adds a string key or leaves a gap, the result is an object, as PHP's keyed array is.
  *
  * @param items - the data items to union
  * @return A new object or array containing all values
@@ -697,15 +699,28 @@ export function dataUnion<TValue>(
     ...items: (TValue[] | Record<PropertyKey, TValue> | null | undefined)[]
 ) {
     // A nullish operand is `(array) null` in PHP: empty, and no evidence about the backing.
-    const present = items.filter(
+    const [backing = [], ...operands] = items.filter(
         (item) => !isNull(item) && !isUndefined(item),
     ) as (TValue[] | Record<PropertyKey, TValue>)[];
 
-    if (isObject(present[0])) {
-        return objUnion(...present);
+    if (isObject(backing)) {
+        return objUnion(backing, ...operands);
     }
 
-    return arrUnion(...present);
+    return operands.reduce<TValue[] | Record<PropertyKey, TValue>>(
+        (result, operand) => {
+            const merged = objUnion(result, operand);
+            // Keys PHP inserted out of order after a gap can't be a list, even once later operands fill it.
+            const isList =
+                isArray(result) &&
+                Object.keys(merged).every(
+                    (key, index) => key === String(index),
+                );
+
+            return isList ? Object.values(merged) : merged;
+        },
+        arrUnion(backing),
+    );
 }
 
 /**

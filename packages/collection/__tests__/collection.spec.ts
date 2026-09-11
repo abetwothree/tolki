@@ -4203,6 +4203,17 @@ describe("Collection", () => {
                 "z",
             ]);
         });
+
+        it("becomes object-backed when a keyed operand leaves its list keys other than 0..n-1", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-backing-keyed-result"
+            expect(new Collection().union({ a: 1 }).all()).toEqual({ a: 1 });
+            expect(collect([1, 2]).union({ a: 1, 5: 9 }).all()).toEqual({
+                0: 1,
+                1: 2,
+                a: 1,
+                5: 9,
+            });
+        });
     });
 
     describe("nth", () => {

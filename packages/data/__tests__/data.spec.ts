@@ -700,6 +700,33 @@ describe("Data", () => {
             ]);
         });
 
+        it("returns the keyed result when a keyed operand leaves a list backing's keys other than 0..n-1", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-backing-keyed-result"
+            expect(Data.dataUnion([], { a: 1 })).toEqual({ a: 1 });
+            expect(Data.dataUnion([1, 2], { a: 1, 5: 9 })).toEqual({
+                0: 1,
+                1: 2,
+                a: 1,
+                5: 9,
+            });
+            expect(Data.dataUnion([1, 2], { "-1": 9 })).toEqual({
+                0: 1,
+                1: 2,
+                "-1": 9,
+            });
+            expect(Data.dataUnion([1], { 3: 4 })).toEqual({ 0: 1, 3: 4 });
+        });
+
+        it("stays keyed once an operand leaves a gap, even when a later one fills it", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-backing-keyed-result"
+            expect(Data.dataUnion([1], { 3: 4 }, [9, 8, 7, 6])).toEqual({
+                0: 1,
+                1: 8,
+                2: 7,
+                3: 4,
+            });
+        });
+
         it("returns an empty list when every operand is nullish", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "union-all-nullish"
             expect(Data.dataUnion(null, undefined)).toEqual([]);

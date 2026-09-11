@@ -919,6 +919,13 @@ probe('list-backing-keyed-operand', "(new Collection(['a', 'b']))->union([2 => '
     'intersectByKeys' => (new Collection(['a', 'b', 'c']))->intersectByKeys([0 => 'x', 2 => 'y'])->values()->all(),
 ]);
 probe('union-all-nullish', "(new Collection(null))->union(null)", fn () => (new Collection(null))->union(null)->all());
+probe('union-list-backing-keyed-result', "(new Collection())->union(['a' => 1]), (new Collection([1, 2]))->union(['a' => 1, 5 => 9]), ([1, 2])->union([-1 => 9]), ([1])->union([3 => 4]), ([1])->union([3 => 4])->union([9, 8, 7, 6])", fn () => [
+    'empty-string-key' => (new Collection())->union(['a' => 1])->all(),
+    'string-key-and-gap' => (new Collection([1, 2]))->union(['a' => 1, 5 => 9])->all(),
+    'negative-key' => (new Collection([1, 2]))->union([-1 => 9])->all(),
+    'gap' => (new Collection([1]))->union([3 => 4])->all(),
+    'gap-then-filled' => (new Collection([1]))->union([3 => 4])->union([9, 8, 7, 6])->all(),
+]);
 
 // ---- containsStrict($key, $value) compares data_get($item, $key) === $value whenever two arguments are passed
 probe('containsStrict-two-args-by-value', "containsStrict('tags', ['a', 'b']), ('t', a reordered array), ('name', null) with the key null, missing or set", fn () => [
