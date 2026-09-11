@@ -2405,9 +2405,7 @@ describe("Obj", () => {
         it("should pass key to callback", () => {
             const obj = { name: "john", email: "JOHN@EXAMPLE.COM" };
             const result = Obj.map(obj, (value, key) =>
-                key === "name"
-                    ? (value as string).toUpperCase()
-                    : (value as string).toLowerCase(),
+                key === "name" ? value.toUpperCase() : value.toLowerCase(),
             );
             expect(result).toEqual({ name: "JOHN", email: "john@example.com" });
         });
@@ -2454,7 +2452,7 @@ describe("Obj", () => {
     describe("filter", () => {
         it("should filter values with callback", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
-            const result = Obj.filter(obj, (value) => (value as number) > 2);
+            const result = Obj.filter(obj, (value) => value > 2);
             expect(result).toEqual({ c: 3, d: 4 });
         });
 
@@ -4236,7 +4234,7 @@ describe("Obj", () => {
         it("should map with new keys", () => {
             const obj = { user1: "John", user2: "Jane" };
             const result = Obj.mapWithKeys(obj, (value, key) => ({
-                [`name_${String(key)}`]: (value as string).toUpperCase(),
+                [`name_${String(key)}`]: value.toUpperCase(),
             }));
             expect(result).toEqual({ name_user1: "JOHN", name_user2: "JANE" });
         });
@@ -4247,9 +4245,7 @@ describe("Obj", () => {
                 jane: { name: "Jane", age: 25 },
             };
             const result = Obj.mapWithKeys(obj, (value) => ({
-                [(value as Record<string, unknown>)["name"] as string]: (
-                    value as Record<string, unknown>
-                )["age"],
+                [value.name]: value.age,
             }));
             expect(result).toEqual({ John: 30, Jane: 25 });
         });
@@ -5649,15 +5645,15 @@ describe("Obj", () => {
         describe("sort callback is function", () => {
             it("should handle when the callback is provided", () => {
                 const obj = { a: 1, c: 3, b: 2 };
-                const result = Obj.sortDesc(obj, (value) => -(value as number));
+                const result = Obj.sortDesc(obj, (value) => -value);
                 expect(Object.values(result)).toEqual([1, 2, 3]);
 
-                const result2 = Obj.sortDesc(obj, (value) => value as number);
+                const result2 = Obj.sortDesc(obj, (value) => value);
                 expect(Object.values(result2)).toEqual([3, 2, 1]);
 
                 const result3 = Obj.sortDesc(
                     { x: 100, a: 3, c: 3, b: 3, y: 100 },
-                    (value) => value as number,
+                    (value) => value,
                 );
                 expect(Object.values(result3)).toEqual([100, 100, 3, 3, 3]);
             });
