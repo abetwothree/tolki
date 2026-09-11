@@ -625,4 +625,17 @@ probe('replaceRecursive-nested-toArray-entry', "a nested 'toArray' closure entry
         'wrapped' => ['keys' => array_keys($wrapped['a']), 'kept' => $wrapped['a']['toArray'] === $toArray],
     ];
 });
+
+// ---- list-backed Collection with a Collection-like operand (arr sibling of the object-backed rows above)
+probe('replace-list-collection-operand', "(new Collection([1, 2, 3]))->replace(new Collection([9]))", fn () => (new Collection([1, 2, 3]))->replace(new Collection([9]))->all());
+probe('replaceRecursive-list-collection-operand', "(new Collection([['a' => 1]]))->replaceRecursive(new Collection([['b' => 2]]))", fn () => (new Collection([['a' => 1]]))->replaceRecursive(new Collection([['b' => 2]]))->all());
+probe('diffAssoc-list-collection-operand', "(new Collection([1, 2, 3]))->diffAssoc(new Collection([1, 9, 9]))", fn () => (new Collection([1, 2, 3]))->diffAssoc(new Collection([1, 9, 9]))->values()->all());
+probe('intersectAssoc-list-collection-operand', "(new Collection([1, 2, 3]))->intersectAssoc(new Collection([1, 2, 9]))", fn () => (new Collection([1, 2, 3]))->intersectAssoc(new Collection([1, 2, 9]))->values()->all());
+probe('intersectAssocUsing-list-collection-operand', "(new Collection([1, 2, 3]))->intersectAssocUsing(new Collection([1, 2, 9]), fn (\$a, \$b) => \$a <=> \$b)", fn () => (new Collection([1, 2, 3]))->intersectAssocUsing(new Collection([1, 2, 9]), fn ($a, $b) => $a <=> $b)->values()->all());
+probe('intersectByKeys-list-collection-operand', "(new Collection([1, 2, 3]))->intersectByKeys(new Collection([9, 9]))", fn () => (new Collection([1, 2, 3]))->intersectByKeys(new Collection([9, 9]))->values()->all());
+
+// ---- diffAssoc's own Collection-like-operand row: C6's fixture shares no key+value pair with
+// its operand either wrapped or raw, so it can't tell the fix apart from a still-broken diffAssoc.
+probe('diffAssoc-collection-matching-key', "(new Collection(['id' => 1, 'name' => 'a']))->diffAssoc(new Collection(['id' => 1, 'name' => 'b']))", fn () => (new Collection(['id' => 1, 'name' => 'a']))->diffAssoc(new Collection(['id' => 1, 'name' => 'b']))->all());
+
 emit();

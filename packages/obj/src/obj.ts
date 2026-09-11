@@ -13,6 +13,7 @@ import {
 import { finish, randomInt } from "@tolki/str";
 import type { CaseValue, PathKey, PathKeys, SortSpec } from "@tolki/types";
 import {
+    arrayableItems,
     arrayableValues,
     arrayValueMessage,
     compareValues,
@@ -47,7 +48,6 @@ import {
     resolveSliceRange,
     strictEqual,
     toPhpKeyString,
-    typeOf,
 } from "@tolki/utils";
 
 /**
@@ -157,8 +157,8 @@ export function add<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @example
  *
- * objectItem({ items: ['a', 'b'] }, 'items'); -> ['a', 'b']
- * objectItem({ user: { tags: ['js', 'ts'] } }, 'user.tags'); -> ['js', 'ts']
+ * objectItem({ items: { a: 1 } }, 'items'); -> { a: 1 }
+ * objectItem({ items: ['a', 'b'] }, 'items'); -> throws Error (a list is not an object)
  * objectItem({ user: { name: 'John' } }, 'user.name'); -> throws Error
  */
 export function objectItem<
@@ -173,7 +173,7 @@ export function objectItem<
     const value = getObjectValue(data, key, defaultValue);
 
     if (!isObject(value)) {
-        const typeName = isNull(value) ? "null" : typeOf(value);
+        const typeName = phpTypeName(value);
         throw new Error(
             `Object value for key [${key}] must be an object, ${typeName} found.`,
         );
@@ -486,19 +486,21 @@ export function collapse<
  * @see Collection::combine — `packages/collection/stubs/Collection.php:933`.
  *      Wraps `array_combine`.
  *
- * @param keysObject - The object containing keys.
- * @param valuesObject - The object containing values.
+ * @param keysObject - The object or list whose values become the keys.
+ * @param valuesObject - The object or list whose values become the values.
  * @return A new object containing combined key-value pairs.
  * @throws Error if `keysObject` and `valuesObject` do not have the same
  * number of entries.
  */
 export function combine<TKeys, TValues, TCombineValue = TValues>(
-    keysObject: Record<PropertyKey, TKeys>,
-    valuesObject: Record<PropertyKey, TValues>,
+    keysObject: Record<PropertyKey, TKeys> | readonly TKeys[],
+    valuesObject: Record<PropertyKey, TValues> | readonly TValues[],
 ): Record<PropertyKey, TCombineValue> {
-    const maxLength = Object.keys(keysObject).length;
-    const keys = Object.values(keysObject).map((key) => toPhpKeyString(key));
-    const values = Object.values(valuesObject);
+    const keys = arrayableValues<TKeys>(keysObject).map((key) =>
+        toPhpKeyString(key),
+    );
+    const values = arrayableValues<TValues>(valuesObject);
+    const maxLength = keys.length;
 
     if (maxLength !== values.length) {
         throw new Error(
@@ -646,20 +648,15 @@ export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
 export function union<TValue, TKey extends PropertyKey = PropertyKey>(
     ...objects: Record<TKey, TValue>[] | unknown[]
 ): Record<TKey, TValue> {
-    return objects.reduce(
-        (
-            acc: Record<PropertyKey, TValue>,
-            obj: Record<TKey, TValue> | unknown,
-        ) => {
-            if (accessible(obj)) {
-                for (const [key, value] of Object.entries(obj)) {
-                    if (!Object.hasOwn(acc, key)) {
-                        defineKey(
-                            acc as Record<string, TValue>,
-                            key,
-                            value as TValue,
-                        );
-                    }
+    return objects.map(arrayableItems).reduce(
+        (acc: Record<PropertyKey, TValue>, obj: Record<string, unknown>) => {
+            for (const [key, value] of Object.entries(obj)) {
+                if (!Object.hasOwn(acc, key)) {
+                    defineKey(
+                        acc as Record<string, TValue>,
+                        key,
+                        value as TValue,
+                    );
                 }
             }
 
@@ -3240,7 +3237,7 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
  * @see Collection::replace — `packages/collection/stubs/Collection.php:1170`. Wraps `array_replace`.
  *
  * @param data - The original object to replace items in. Never mutated.
- * @param replacerData - The object containing items to replace. `null`/`undefined` is a no-op.
+ * @param replacerData - The object or list containing items to replace. `null`/`undefined` is a no-op.
  * @returns A new object with the replaced items.
  */
 export function replace<T1>(
@@ -3249,26 +3246,23 @@ export function replace<T1>(
 ): Record<PropertyKey, T1>;
 export function replace<T1, T2>(
     data: Record<PropertyKey, T1>,
-    replacerData: Record<PropertyKey, T2>,
+    replacerData: Record<PropertyKey, T2> | readonly T2[],
 ): Record<PropertyKey, T1 | T2>;
 // A caller holding `Record<PropertyKey, T2> | null` matches neither
 // overload above: a call is resolved against declared overloads only,
 // never the implementation signature, so this third one is required.
 export function replace<T1, T2>(
     data: Record<PropertyKey, T1>,
-    replacerData: Record<PropertyKey, T2> | null | undefined,
+    replacerData: Record<PropertyKey, T2> | readonly T2[] | null | undefined,
 ): Record<PropertyKey, T1 | T2>;
 export function replace<T1, T2>(
     data: Record<PropertyKey, T1>,
-    replacerData: Record<PropertyKey, T2> | null | undefined,
+    replacerData: Record<PropertyKey, T2> | readonly T2[] | null | undefined,
 ): Record<PropertyKey, T1 | T2> {
+    const replacer = arrayableItems(replacerData);
     const result: Record<PropertyKey, T1 | T2> = { ...data };
 
-    if (!accessible(replacerData)) {
-        return result;
-    }
-
-    for (const [key, value] of Object.entries(replacerData)) {
+    for (const [key, value] of Object.entries(replacer)) {
         defineKey(result as Record<string, T1 | T2>, key, value as T1 | T2);
     }
 
@@ -3286,66 +3280,74 @@ export function replace<T1, T2>(
  *
  * @see Collection::replaceRecursive — `packages/collection/stubs/Collection.php:1181`. Wraps `array_replace_recursive`.
  *
- * @param data - The original object to replace items in. Never mutated.
+ * @param data - The original object to replace items in. Never mutated. `null`/`undefined` is treated as empty.
  * @param replacerData - The object containing items to replace. `null`/`undefined` is a no-op.
  * @returns A new, recursively merged object.
  */
 export function replaceRecursive<T1>(
-    data: Record<PropertyKey, T1>,
+    data: Record<PropertyKey, T1> | null | undefined,
     replacerData: null | undefined,
 ): Record<PropertyKey, T1>;
 export function replaceRecursive<T1, T2>(
-    data: Record<PropertyKey, T1>,
+    data: Record<PropertyKey, T1> | null | undefined,
     replacerData: Record<PropertyKey, T2>,
 ): Record<PropertyKey, T1 | T2>;
 // See `replace`'s matching overload for why this third, concrete overload is
 // required rather than relying on the implementation signature below (TS2769
 // otherwise, for a caller holding `Record<PropertyKey, T2> | null`).
 export function replaceRecursive<T1, T2>(
-    data: Record<PropertyKey, T1>,
+    data: Record<PropertyKey, T1> | null | undefined,
     replacerData: Record<PropertyKey, T2> | null | undefined,
 ): Record<PropertyKey, T1 | T2>;
 export function replaceRecursive<T1, T2>(
-    data: Record<PropertyKey, T1>,
+    data: Record<PropertyKey, T1> | null | undefined,
     replacerData: Record<PropertyKey, T2> | null | undefined,
 ): Record<PropertyKey, T1 | T2> {
-    const result: Record<PropertyKey, T1 | T2> = { ...data };
+    // getArrayableItems() unwraps the operand once; the merge below never unwraps a nested value.
+    return mergeRecursive(data ?? {}, arrayableItems(replacerData)) as Record<
+        PropertyKey,
+        T1 | T2
+    >;
+}
 
-    if (!accessible(replacerData)) {
-        return result;
-    }
+/**
+ * Merge replacer entries into a copy of the base, the way `array_replace_recursive` does.
+ *
+ * @param base - The list or object to merge into; never mutated
+ * @param replacer - The entries that replace or merge into the base's
+ * @returns A new object holding the merged entries
+ */
+function mergeRecursive(
+    base: object,
+    replacer: object,
+): Record<string, unknown> {
+    const source = base as Record<string, unknown>;
+    const result: Record<string, unknown> = { ...source };
 
-    for (const [key, value] of Object.entries(replacerData)) {
+    for (const [key, value] of Object.entries(replacer)) {
         if (key === "__proto__") {
             continue;
         }
 
-        const existing = data[key as PropertyKey];
+        const existing = result[key];
 
         if (
             (isArray(value) || isPlainObject(value)) &&
             (isArray(existing) || isPlainObject(existing))
         ) {
-            // Lists and plain objects are PHP arrays, so they merge by key; if either was a list, the result is a
-            // list again while its keys stay 0..n-1.
-            const merged = replaceRecursive(
-                { ...(existing as object) } as Record<PropertyKey, T1>,
-                { ...(value as object) } as Record<PropertyKey, T2>,
-            );
+            // Lists and plain objects are PHP arrays, so they merge by key; if either was a list,
+            // the result is a list again while its keys stay 0..n-1.
+            const merged = mergeRecursive(existing, value);
             const isList =
                 (isArray(existing) || isArray(value)) &&
                 Object.keys(merged).every(
                     (mergedKey, index) => mergedKey === String(index),
                 );
 
-            defineKey(
-                result as Record<string, T1 | T2>,
-                key,
-                (isList ? Object.values(merged) : merged) as T1 | T2,
-            );
+            defineKey(result, key, isList ? Object.values(merged) : merged);
         } else {
             // PHP recurses only into two arrays: a scalar, a Date, a Map or a class instance is replaced whole.
-            defineKey(result as Record<string, T1 | T2>, key, value as T1 | T2);
+            defineKey(result, key, value);
         }
     }
 
@@ -3752,18 +3754,14 @@ export function diffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    if (!accessible(other)) {
-        return { ...(data as Record<TKey, TValue>) };
-    }
-
     const obj = data as Record<TKey, TValue>;
-    const otherObj = other as Record<TKey, TValue>;
+    const otherItems = arrayableItems(other) as Record<TKey, TValue>;
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
         if (
-            !Object.hasOwn(otherObj, key) ||
-            !phpValueMatch(otherObj[key as TKey], value)
+            !Object.hasOwn(otherItems, key) ||
+            !phpValueMatch(otherItems[key as TKey], value)
         ) {
             defineKey(result as Record<string, TValue>, key as string, value);
         }
@@ -3799,14 +3797,10 @@ export function diffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    if (!accessible(other)) {
-        return { ...(data as Record<TKey, TValue>) };
-    }
-
     const obj = data as Record<TKey, TValue>;
-    const otherObj = other as Record<TKey, TValue>;
+    const otherItems = arrayableItems(other) as Record<TKey, TValue>;
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
-    const otherKeys = Object.keys(otherObj) as TKey[];
+    const otherKeys = Object.keys(otherItems) as TKey[];
 
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
         // Find if there's a matching key in other object using callback
@@ -3820,7 +3814,7 @@ export function diffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
         // Include if: no matching key found OR matching key has different value
         if (
             matchingKey === undefined ||
-            !phpValueMatch(otherObj[matchingKey], value)
+            !phpValueMatch(otherItems[matchingKey], value)
         ) {
             defineKey(result as Record<string, TValue>, key as string, value);
         }
@@ -3856,14 +3850,10 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    if (!accessible(other)) {
-        return { ...(data as Record<TKey, TValue>) };
-    }
-
     const obj = data as Record<TKey, TValue>;
-    const otherObj = other as Record<TKey, TValue>;
+    const otherItems = arrayableItems(other) as Record<TKey, TValue>;
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
-    const otherKeys = Object.keys(otherObj) as TKey[];
+    const otherKeys = Object.keys(otherItems) as TKey[];
 
     for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
         // Find if there's a matching key in other object using callback
@@ -3995,20 +3985,20 @@ export function intersectAssoc<T1, T2 = T1>(
 ): Record<PropertyKey, T1> {
     const result: Record<PropertyKey, T1> = {};
 
-    if (!accessible(data) || !accessible(other)) {
+    if (!accessible(data)) {
         return result;
     }
 
-    const otherObj = other as Record<PropertyKey, T2>;
+    const otherItems = arrayableItems(other) as Record<PropertyKey, T2>;
 
     for (const [key, value] of Object.entries(
         data as Record<PropertyKey, T1>,
     )) {
         if (
-            Object.hasOwn(otherObj, key) &&
+            Object.hasOwn(otherItems, key) &&
             phpValueMatch(
                 value as unknown,
-                otherObj[key as PropertyKey] as unknown,
+                otherItems[key as PropertyKey] as unknown,
             )
         ) {
             defineKey(result as Record<string, T1>, key, value as T1);
@@ -4051,16 +4041,16 @@ export function intersectAssocUsing<T1, T2 = T1>(
 ): Record<PropertyKey, T1> {
     const result: Record<PropertyKey, T1> = {};
 
-    if (!accessible(data) || !accessible(other)) {
+    if (!accessible(data)) {
         return result;
     }
+
+    const otherItems = arrayableItems(other) as Record<PropertyKey, T2>;
 
     for (const [dataKey, dataValue] of Object.entries(
         data as Record<PropertyKey, T1>,
     )) {
-        for (const [otherKey, otherValue] of Object.entries(
-            other as Record<PropertyKey, T2>,
-        )) {
+        for (const [otherKey, otherValue] of Object.entries(otherItems)) {
             if (
                 callback(phpArrayKey(dataKey), phpArrayKey(otherKey)) &&
                 phpValueMatch(dataValue as unknown, otherValue as unknown)
@@ -4106,16 +4096,16 @@ export function intersectByKeys<T1, T2 = T1>(
 ): Record<PropertyKey, T1> {
     const result: Record<PropertyKey, T1> = {};
 
-    if (!accessible(data) || !accessible(other)) {
+    if (!accessible(data)) {
         return result;
     }
 
-    const otherObj = other as Record<PropertyKey, T2>;
+    const otherItems = arrayableItems(other) as Record<PropertyKey, T2>;
 
     for (const [key, value] of Object.entries(
         data as Record<PropertyKey, T1>,
     )) {
-        if (Object.hasOwn(otherObj, key)) {
+        if (Object.hasOwn(otherItems, key)) {
             defineKey(result as Record<string, T1>, key, value as T1);
         }
     }

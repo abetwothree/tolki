@@ -2609,6 +2609,64 @@
                     "kept": true
                 }
             }
+        },
+        {
+            "label": "replace-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->replace(new Collection([9]))",
+            "value": [
+                9,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "replaceRecursive-list-collection-operand",
+            "php": "(new Collection([['a' => 1]]))->replaceRecursive(new Collection([['b' => 2]]))",
+            "value": [
+                {
+                    "a": 1,
+                    "b": 2
+                }
+            ]
+        },
+        {
+            "label": "diffAssoc-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->diffAssoc(new Collection([1, 9, 9]))",
+            "value": [
+                2,
+                3
+            ]
+        },
+        {
+            "label": "intersectAssoc-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->intersectAssoc(new Collection([1, 2, 9]))",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "intersectAssocUsing-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->intersectAssocUsing(new Collection([1, 2, 9]), fn ($a, $b) => $a <=> $b)",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "intersectByKeys-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->intersectByKeys(new Collection([9, 9]))",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "diffAssoc-collection-matching-key",
+            "php": "(new Collection(['id' => 1, 'name' => 'a']))->diffAssoc(new Collection(['id' => 1, 'name' => 'b']))",
+            "value": {
+                "name": "a"
+            }
         }
     ]
 }

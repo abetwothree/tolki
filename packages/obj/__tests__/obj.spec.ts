@@ -4,6 +4,14 @@ import * as Obj from "@tolki/obj";
 import { isString } from "@tolki/utils";
 import { afterEach, assertType, describe, expect, it, vi } from "vitest";
 
+/**
+ * Wrap items in the smallest Collection-like operand, which obj unwraps through `all()` as Laravel does.
+ *
+ * @param items - The items `all()` returns
+ * @returns An object whose `all()` returns the items
+ */
+const collectionLike = <T>(items: T) => ({ all: () => items });
+
 describe("Obj", () => {
     describe("accessible", () => {
         it("should return true for objects", () => {
@@ -128,7 +136,7 @@ describe("Obj", () => {
         it("throws for list data, which has no object keys", () => {
             const obj = [{ name: "John" }];
             expect(() => Obj.objectItem(obj, "name")).toThrow(
-                "Object value for key [name] must be an object, null found.",
+                "Object value for key [name] must be an object, NULL found.",
             );
         });
 
@@ -136,6 +144,23 @@ describe("Obj", () => {
             const obj = { name: "John" };
             expect(() => Obj.objectItem(obj, "name")).toThrow(
                 "Object value for key [name] must be an object, string found.",
+            );
+        });
+
+        it("names the found type the way PHP's gettype does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "array-int-value", "array-float-value", "array-bool-value", "array-null-value"
+            expect(() => Obj.objectItem({ a: 5 }, "a")).toThrow(
+                "Object value for key [a] must be an object, integer found.",
+            );
+            expect(() => Obj.objectItem({ a: 1.5 }, "a")).toThrow(
+                "Object value for key [a] must be an object, double found.",
+            );
+            expect(() => Obj.objectItem({ a: true }, "a")).toThrow(
+                "Object value for key [a] must be an object, boolean found.",
+            );
+            expect(() => Obj.objectItem({ a: null }, "a")).toThrow(
+                "Object value for key [a] must be an object, NULL found.",
             );
         });
 
@@ -556,6 +581,16 @@ describe("Obj", () => {
                     { 1: "name", 2: "family" },
                     { 2: "taylor", 3: "otwell" },
                 ),
+            ).toEqual({ name: "taylor", family: "otwell" });
+        });
+
+        it("unwraps Collection-like and list operands", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C10 combine list keys, offset values"
+            expect(
+                Obj.combine(collectionLike(["name", "family"]), [
+                    "taylor",
+                    "otwell",
+                ]),
             ).toEqual({ name: "taylor", family: "otwell" });
         });
     });
@@ -1032,6 +1067,17 @@ describe("Obj", () => {
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
             expect(Object.hasOwn(result, "__proto__")).toBe(true);
             expect(Object.keys(result)).toEqual(["a", "__proto__", "c", "z"]);
+        });
+
+        it("unwraps a Collection-like operand and adds a list operand's indices", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C18 union collection", "union-list-operand"
+            expect(
+                Obj.union(
+                    { name: "Hello" },
+                    collectionLike({ name: "World", id: 1 }),
+                ),
+            ).toEqual({ name: "Hello", id: 1 });
+            expect(Obj.union({ a: 1 }, [5])).toEqual({ a: 1, 0: 5 });
         });
     });
 
@@ -6169,12 +6215,29 @@ describe("Obj", () => {
             });
         });
 
-        it("silently ignores an array-shaped replacer forced past the type guard", () => {
-            // Pinned as deliberate: array_replace(['a'=>1],['x']) merges by numeric key
-            // in PHP, but Obj.replace's type surface only accepts a record or nullish
-            // replacer, so an array-shaped replacer is out of contract here.
-            const replacer = ["x"] as unknown as Record<PropertyKey, string>;
-            expect(Obj.replace({ a: 1 }, replacer)).toEqual({ a: 1 });
+        it("merges a list replacer by index, as array_replace does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-replacer"
+            expect(Obj.replace({ a: 1 }, ["x"])).toEqual({ 0: "x", a: 1 });
+        });
+
+        it("unwraps a Collection-like replacer", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C16 replace assoc"
+            expect(
+                Obj.replace(
+                    { name: "amir", family: "otwell" },
+                    collectionLike({ name: "taylor", age: 26 }),
+                ),
+            ).toEqual({
+                name: "taylor",
+                family: "otwell",
+                age: 26,
+            });
+            expect(
+                Obj.replaceRecursive(
+                    { a: { x: 1 } },
+                    collectionLike({ a: { y: 2 } }),
+                ),
+            ).toEqual({ a: { x: 1, y: 2 } });
         });
     });
 
@@ -6421,6 +6484,29 @@ describe("Obj", () => {
                     { d: date, m: map, p: { y: 2 }, q: point },
                 ),
             ).toEqual({ d: date, m: map, p: { y: 2 }, q: point });
+        });
+
+        it("unwraps only the replacer itself, merging a nested toArray entry as data", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-nested-toArray-entry"
+            const toArray = () => ["unwrapped"];
+
+            expect(
+                Obj.replaceRecursive({ a: { x: 1 } }, { a: { toArray } }),
+            ).toEqual({ a: { x: 1, toArray } });
+            expect(
+                Obj.replaceRecursive(
+                    { a: { x: 1 } },
+                    collectionLike({ a: { toArray } }),
+                ),
+            ).toEqual({ a: { x: 1, toArray } });
+        });
+
+        it("treats nullish data as empty", () => {
+            // JS-only: nullish data is treated as empty instead of throwing, like divide(null).
+            expect(Obj.replaceRecursive(null, { k: 1 })).toEqual({ k: 1 });
+            expect(Obj.replaceRecursive(undefined, { k: [1] })).toEqual({
+                k: [1],
+            });
         });
     });
 
@@ -6771,6 +6857,81 @@ describe("Obj", () => {
                 c: "blue",
                 0: "red",
             });
+        });
+
+        it("unwraps a Collection-like operand in every key-aware set operation", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "C6 diffAssoc testDiffAssoc", "C19 intersectByKeys 2", "C22 diffKeysUsing", "intersectAssoc-collection"
+            // "C8 diffAssocUsing strcasecmp", "C9 intersectAssocUsing strcasecmp"
+            const strcasecmp = (a: unknown, b: unknown) =>
+                String(a).toLowerCase() === String(b).toLowerCase();
+            const colors = { a: "green", b: "brown", c: "blue", 0: "red" };
+
+            expect(
+                Obj.diffAssoc(
+                    { id: 1, first_word: "Hello" },
+                    collectionLike({ id: 123, foo_bar: "Hello" }),
+                ),
+            ).toEqual({ id: 1, first_word: "Hello" });
+            // C6's fixture shares no key+value pair with its operand either wrapped or raw,
+            // so this key-matching case is what actually pins diffAssoc's own unwrap.
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-collection-matching-key"
+            expect(
+                Obj.diffAssoc(
+                    { id: 1, name: "a" },
+                    collectionLike({ id: 1, name: "b" }),
+                ),
+            ).toEqual({ name: "a" });
+            expect(
+                Obj.intersectByKeys(
+                    { name: "taylor", family: "otwell", age: 26 },
+                    collectionLike({
+                        height: 180,
+                        name: "amir",
+                        family: "moharami",
+                    }),
+                ),
+            ).toEqual({
+                name: "taylor",
+                family: "otwell",
+            });
+            expect(
+                Obj.diffKeysUsing(
+                    { id: 1, first_word: "Hello" },
+                    collectionLike({ ID: 123, foo_bar: "Hello" }),
+                    strcasecmp,
+                ),
+            ).toEqual({ first_word: "Hello" });
+            expect(
+                Obj.intersectAssoc(
+                    colors,
+                    collectionLike({
+                        a: "green",
+                        b: "yellow",
+                        0: "blue",
+                        1: "red",
+                    }),
+                ),
+            ).toEqual({ a: "green" });
+            expect(
+                Obj.diffAssocUsing(
+                    colors,
+                    collectionLike({ A: "green", 0: "yellow", 1: "red" }),
+                    strcasecmp,
+                ),
+            ).toEqual({ b: "brown", c: "blue", 0: "red" });
+            expect(
+                Obj.intersectAssocUsing(
+                    colors,
+                    collectionLike({
+                        a: "GREEN",
+                        B: "brown",
+                        0: "yellow",
+                        1: "red",
+                    }),
+                    strcasecmp,
+                ),
+            ).toEqual({ b: "brown" });
         });
     });
 
