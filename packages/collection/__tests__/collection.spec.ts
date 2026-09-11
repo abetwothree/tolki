@@ -1893,8 +1893,8 @@ describe("Collection", () => {
         });
 
         it("traverses a nested list with numeric segments, through the object backing", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json,
-            // "get-through-list", "get-through-list-2", "get-through-list-missing"
+            // JS-only (follow-up F-15): PHP's Collection::get is a literal array_key_exists
+            // lookup, not Arr::get's dot-path traversal; this pins the JS dot-path extension.
             const collection = collect({
                 products: [{ name: "desk" }, { name: "chair" }],
             });
