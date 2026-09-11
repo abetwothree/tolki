@@ -821,4 +821,33 @@ probe('crossJoin-list-map-dimension', "Arr::crossJoin([1, 2], ['a' => 'x', 'b' =
 ]);
 probe('collection-crossJoin-list-keyed-operand', "(new Collection([1, 2]))->crossJoin(['k' => 'a', 'j' => 'b'])", fn () => (new Collection([1, 2]))->crossJoin(['k' => 'a', 'j' => 'b'])->all());
 
+// ---- === on arrays needs the same pairs in the same order: strict contains, uniqueStrict and duplicatesStrict too
+probe('containsStrict-key-order', "['a' => 1, 'b' => 2] === ['b' => 2, 'a' => 1], and containsStrict / in_array(…, true) with a reordered array", fn () => [
+    'identical' => ['a' => 1, 'b' => 2] === ['b' => 2, 'a' => 1],
+    'same-order' => ['a' => 1, 'b' => 2] === ['a' => 1, 'b' => 2],
+    'map' => (new Collection(['a' => ['x' => 1, 'y' => 2]]))->containsStrict(['y' => 2, 'x' => 1]),
+    'list' => (new Collection([['x' => 1, 'y' => 2]]))->containsStrict(['y' => 2, 'x' => 1]),
+    'nested' => in_array(['n' => ['x' => 1, 'y' => 2]], [['n' => ['y' => 2, 'x' => 1]]], true),
+]);
+probe('uniqueStrict-duplicatesStrict-key-order', "(new Collection([['x' => 1, 'y' => 2], ['y' => 2, 'x' => 1]]))->uniqueStrict() and ->duplicatesStrict()", fn () => [
+    'uniqueStrict' => (new Collection([['x' => 1, 'y' => 2], ['y' => 2, 'x' => 1]]))->uniqueStrict()->all(),
+    'duplicatesStrict' => (new Collection([['x' => 1, 'y' => 2], ['y' => 2, 'x' => 1]]))->duplicatesStrict()->all(),
+]);
+
+// ---- array_combine keys a float by its (string) cast: INF, -0, 14 digits rounded half to even, E notation
+probe('combine-float-keys', "@(new Collection([INF, -INF, NAN, -0.0, 1.5, -1.5, 1e21, 1.5e300, 1.5e-7, 0.00001, 0.0001, 0.1 + 0.2, 1 / 3, 10000000000000.5, 10000000000001.5, 5e-324, 99999999999999.99]))->combine(range(1, 17)): the keys", fn () => @(new Collection([INF, -INF, NAN, -0.0, 1.5, -1.5, 1e21, 1.5e300, 1.5e-7, 0.00001, 0.0001, 0.1 + 0.2, 1 / 3, 10000000000000.5, 10000000000001.5, 5e-324, 99999999999999.99]))->combine(range(1, 17))->keys()->all());
+probe('combine-large-int-key', "(new Collection([4611686018427387904, -7]))->combine([1, 2]): the keys", fn () => (new Collection([4611686018427387904, -7]))->combine([1, 2])->keys()->all());
+
+// ---- keyBy stores the resolved key as an array offset: a bool is 0/1, null is '', a float truncates (INF, NAN: 0)
+probe('keyBy-scalar-key-cast', "@Arr::keyBy([['v' => 1]], fn () => \$key) for true, false, null, 1.5, -1.5, -0.0, INF, NAN, 1e20, '05', '5': the key stored", function () {
+    $keys = ['true' => true, 'false' => false, 'null' => null, '1.5' => 1.5, '-1.5' => -1.5, '-0.0' => -0.0, 'INF' => INF, 'NAN' => NAN, '1e20' => 1e20, "'05'" => '05', "'5'" => '5'];
+    $result = [];
+
+    foreach ($keys as $label => $key) {
+        $result[$label] = array_keys(@Arr::keyBy([['v' => 1]], fn () => $key))[0];
+    }
+
+    return $result + ['field' => array_keys(Arr::keyBy([['k' => true], ['k' => false], ['k' => null]], 'k'))];
+});
+
 emit();

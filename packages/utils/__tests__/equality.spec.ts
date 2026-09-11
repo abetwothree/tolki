@@ -573,6 +573,19 @@ describe("Utils", () => {
             expect(Utils.strictEqual({ a: 1 }, { a: 2 })).toBe(false);
         });
 
+        it("requires a plain object's keys in the same order, like PHP's === on arrays", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-key-order"
+            expect(Utils.strictEqual({ a: 1, b: 2 }, { b: 2, a: 1 })).toBe(
+                false,
+            );
+            expect(Utils.strictEqual({ a: 1, b: 2 }, { a: 1, b: 2 })).toBe(
+                true,
+            );
+            expect(
+                Utils.strictEqual({ n: { x: 1, y: 2 } }, { n: { y: 2, x: 1 } }),
+            ).toBe(false);
+        });
+
         it("should use reference equality for class instances", () => {
             class TestClass {
                 value: number;

@@ -460,6 +460,18 @@ describe("Data", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
             expect(Data.dataCombine({ k: null }, { v: 1 })).toEqual({ "": 1 });
         });
+
+        it("keys a float by PHP's (string) cast, through both backings", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "combine-float-keys"
+            expect(
+                Object.keys(
+                    Data.dataCombine({ a: NaN, b: 1 / 3 }, { a: 1, b: 2 }),
+                ),
+            ).toEqual(["NAN", "0.33333333333333"]);
+            expect(
+                Object.keys(Data.dataCombine([1.5e300, 5e-324], [1, 2])),
+            ).toEqual(["1.5E+300", "4.9406564584125E-324"]);
+        });
     });
 
     describe("dataCount", () => {
@@ -2743,6 +2755,16 @@ describe("Data", () => {
         it("compares an array or object item by value when strict, through the object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "D4 containsStrict array by value"
             expect(Data.dataContains({ a: [1] }, [1], true)).toBe(true);
+        });
+
+        it("misses an object with the same entries in another order when strict, through both backings", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-key-order"
+            expect(
+                Data.dataContains({ a: { x: 1, y: 2 } }, { y: 2, x: 1 }, true),
+            ).toBe(false);
+            expect(
+                Data.dataContains([{ x: 1, y: 2 }], { y: 2, x: 1 }, true),
+            ).toBe(false);
         });
     });
 

@@ -532,6 +532,15 @@ describe("Arr", () => {
             expect(Arr.combine([true], [1])).toEqual({ 1: 1 });
             expect(Arr.combine([false], [1])).toEqual({ "": 1 });
         });
+
+        it("keys a float by PHP's (string) cast", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "combine-float-keys"
+            expect(
+                Object.keys(
+                    Arr.combine([Infinity, -0, 1e21, 1.5e-7], [1, 2, 3, 4]),
+                ),
+            ).toEqual(["INF", "-0", "1.0E+21", "1.5E-7"]);
+        });
     });
 
     describe("crossJoin", () => {
@@ -2532,6 +2541,13 @@ describe("Arr", () => {
             expect(Arr.contains([NaN], NaN, true)).toBe(false);
             expect(Arr.contains([[1]], [1], true)).toBe(true);
             expect(Arr.contains([{ x: 1 }], { x: 1 }, true)).toBe(true);
+        });
+
+        it("misses an object with the same entries in another order when strict", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-key-order"
+            expect(Arr.contains([{ x: 1, y: 2 }], { y: 2, x: 1 }, true)).toBe(
+                false,
+            );
         });
     });
 

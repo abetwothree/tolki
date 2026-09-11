@@ -207,5 +207,54 @@ describe("Utils", () => {
             expect(Utils.toPhpKeyString(1.5)).toBe("1.5");
             expect(Utils.toPhpKeyString("7")).toBe("7");
         });
+
+        it("prints a float the way PHP's (string) cast does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "combine-float-keys"
+            const floats = [
+                Infinity,
+                -Infinity,
+                NaN,
+                -0,
+                1.5,
+                -1.5,
+                1e21,
+                1.5e300,
+                1.5e-7,
+                0.00001,
+                0.0001,
+                0.1 + 0.2,
+                1 / 3,
+                10000000000000.5,
+                10000000000001.5,
+                5e-324,
+                99999999999999.99,
+            ];
+
+            expect(floats.map((value) => Utils.toPhpKeyString(value))).toEqual([
+                "INF",
+                "-INF",
+                "NAN",
+                "-0",
+                "1.5",
+                "-1.5",
+                "1.0E+21",
+                "1.5E+300",
+                "1.5E-7",
+                "1.0E-5",
+                "0.0001",
+                "0.3",
+                "0.33333333333333",
+                "10000000000000",
+                "10000000000002",
+                "4.9406564584125E-324",
+                "1.0E+14",
+            ]);
+        });
+
+        it("prints an integer in PHP's int range exactly, even past 2^53", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "combine-large-int-key"
+            expect(Utils.toPhpKeyString(2 ** 62)).toBe("4611686018427387904");
+            expect(Utils.toPhpKeyString(-7)).toBe("-7");
+        });
     });
 });

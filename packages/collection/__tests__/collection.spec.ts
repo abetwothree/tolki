@@ -764,6 +764,19 @@ describe("Collection", () => {
                 new Collection({ a: { x: 1 } }).containsStrict({ x: 1 }),
             ).toBe(true);
         });
+
+        it("misses an object with the same entries in another order, on either backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-key-order"
+            expect(
+                new Collection({ a: { x: 1, y: 2 } }).containsStrict({
+                    y: 2,
+                    x: 1,
+                }),
+            ).toBe(false);
+            expect(
+                new Collection([{ x: 1, y: 2 }]).containsStrict({ y: 2, x: 1 }),
+            ).toBe(false);
+        });
     });
 
     describe("doesntContain", () => {
@@ -1311,6 +1324,18 @@ describe("Collection", () => {
                 .duplicatesStrict()
                 .all();
             expect(duplicates).toEqual({ 2: expected, 5: "2" });
+        });
+
+        it("tells apart objects with the same entries in another order", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "uniqueStrict-duplicatesStrict-key-order"
+            expect(
+                collect([
+                    { x: 1, y: 2 },
+                    { y: 2, x: 1 },
+                ])
+                    .duplicatesStrict()
+                    .all(),
+            ).toEqual({});
         });
     });
 
@@ -3958,6 +3983,17 @@ describe("Collection", () => {
             expect(collect({ k: null }).combine({ v: 1 }).all()).toEqual({
                 "": 1,
             });
+        });
+
+        it("keys a float by PHP's (string) cast", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "combine-float-keys"
+            const keys = collect([
+                10000000000000.5, 10000000000001.5, 99999999999999.99,
+            ])
+                .combine([1, 2, 3])
+                .keys()
+                .all();
+            expect(keys).toEqual([10000000000000, 10000000000002, "1.0E+14"]);
         });
     });
 
@@ -10622,6 +10658,19 @@ describe("Collection", () => {
             const c = collect([1, "1", 2, "2", 1]);
             const result = c.uniqueStrict();
             expect(result.all()).toEqual([1, "1", 2, "2"]);
+        });
+
+        it("keeps objects with the same entries in another order", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "uniqueStrict-duplicatesStrict-key-order"
+            const result = collect([
+                { x: 1, y: 2 },
+                { y: 2, x: 1 },
+            ]).uniqueStrict();
+            expect(result.all()).toEqual([
+                { x: 1, y: 2 },
+                { y: 2, x: 1 },
+            ]);
+            expect(Object.keys(result.all()[1] as object)).toEqual(["y", "x"]);
         });
     });
 

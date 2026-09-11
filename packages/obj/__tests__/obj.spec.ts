@@ -539,6 +539,20 @@ describe("Obj", () => {
             expect(Obj.combine({ k: 1.5 }, { v: 1 })).toEqual({ "1.5": 1 });
         });
 
+        it("keys a float by PHP's (string) cast", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "combine-float-keys"
+            const result = Obj.combine(
+                { a: -Infinity, b: -0, c: 0.1 + 0.2, d: 0.00001 },
+                { a: 1, b: 2, c: 3, d: 4 },
+            );
+            expect(Object.keys(result)).toEqual([
+                "-INF",
+                "-0",
+                "0.3",
+                "1.0E-5",
+            ]);
+        });
+
         // obj.combine used to resolve a function-typed key by *calling* it
         // (`isFunction(k) ? String(k)`); arr.combine always used plain `String(k)`.
         it("stringifies a function key instead of calling it", () => {
@@ -2752,6 +2766,16 @@ describe("Obj", () => {
             expect(Obj.contains({ a: NaN }, NaN, true)).toBe(false);
             expect(Obj.contains({ a: [1] }, [1], true)).toBe(true);
             expect(Obj.contains({ a: { x: 1 } }, { x: 1 }, true)).toBe(true);
+        });
+
+        it("misses an object with the same entries in another order when strict", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-key-order"
+            expect(
+                Obj.contains({ a: { x: 1, y: 2 } }, { y: 2, x: 1 }, true),
+            ).toBe(false);
+            expect(
+                Obj.contains({ a: { x: 1, y: 2 } }, { x: 1, y: 2 }, true),
+            ).toBe(true);
         });
 
         it("compares loosely by default, the way PHP's == does", () => {

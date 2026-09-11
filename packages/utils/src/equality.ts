@@ -440,7 +440,8 @@ function phpScalarToString(value: unknown): string {
 
 /**
  * PHP-like strict equality comparison (=== operator).
- * Performs strict type checking for primitives but value-based comparison for arrays and objects.
+ * Performs strict type checking for primitives but value-based comparison for arrays and objects:
+ * like PHP's `===` on arrays, two plain objects need the same key/value pairs in the same order.
  * NOTE: For class instances (objects with constructors other than Object), uses reference equality.
  *
  * @param a - First value to compare
@@ -453,6 +454,7 @@ function phpScalarToString(value: unknown): string {
  * strictEqual(1, '1'); -> false (different types)
  * strictEqual(['a'], ['a']); -> true (same array content)
  * strictEqual({a: 1}, {a: 1}); -> true (same object content)
+ * strictEqual({a: 1, b: 2}, {b: 2, a: 1}); -> false (same pairs, another order)
  */
 export function strictEqual(a: unknown, b: unknown): boolean {
     // Use JavaScript's strict equality first (handles primitives and same reference)
@@ -504,8 +506,8 @@ export function strictEqual(a: unknown, b: unknown): boolean {
             return false;
         }
 
-        for (const key of keysA) {
-            if (!keysB.includes(key)) {
+        for (const [index, key] of keysA.entries()) {
+            if (key !== keysB[index]) {
                 return false;
             }
 

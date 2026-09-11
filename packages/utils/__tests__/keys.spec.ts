@@ -208,5 +208,29 @@ describe("Utils", () => {
                 "9007199254740993",
             );
         });
+
+        it("casts a bool, null or float key the way PHP stores an array offset", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-scalar-key-cast"
+            expect(Utils.phpArrayKey(true)).toBe(1);
+            expect(Utils.phpArrayKey(false)).toBe(0);
+            expect(Utils.phpArrayKey(null)).toBe("");
+            expect(Utils.phpArrayKey(1.5)).toBe(1);
+            expect(Utils.phpArrayKey(-1.5)).toBe(-1);
+            expect(Utils.phpArrayKey(-0)).toBe(0);
+            expect(Utils.phpArrayKey(Infinity)).toBe(0);
+            expect(Utils.phpArrayKey(NaN)).toBe(0);
+            // JS-only: PHP has no undefined; it is cast like null.
+            expect(Utils.phpArrayKey(undefined)).toBe("");
+        });
+
+        it("wraps a float past PHP's int range into 64 bits, keeping digits JS can't hold as a string", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-scalar-key-cast"
+            expect(Utils.phpArrayKey(1e20)).toBe("7766279631452241920");
+        });
+
+        it("stringifies any other key, as a JS property key would be", () => {
+            // JS-only: PHP rejects an array or object offset; JS stores it under its string form.
+            expect(Utils.phpArrayKey({ toString: () => "k" })).toBe("k");
+        });
     });
 });
