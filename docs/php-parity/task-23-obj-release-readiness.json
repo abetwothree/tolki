@@ -3616,6 +3616,14 @@
                     "y": 2
                 }
             }
+        },
+        {
+            "label": "set-null-array-null-key",
+            "php": "$a = null; Arr::set($a, null, 5)",
+            "value": {
+                "value": 5,
+                "array": 5
+            }
         }
     ]
 }

@@ -972,4 +972,12 @@ probe('dot-depth-through-list', "Arr::dot([['a' => ['b' => ['c' => 1]]]], '', 2)
 probe('phpArrayKey-extra-string-keys', "array_keys(['-0' => 1, 'abc' => 2, '' => 3])", fn () => array_keys(['-0' => 1, 'abc' => 2, '' => 3]));
 probe('replaceRecursive-collection-operand', "(new Collection(['a' => ['x' => 1]]))->replaceRecursive(new Collection(['a' => ['y' => 2]]))", fn () => (new Collection(['a' => ['x' => 1]]))->replaceRecursive(new Collection(['a' => ['y' => 2]]))->all());
 
+// ---- set: is_null($key) is checked before $array is touched, even for a null array
+probe('set-null-array-null-key', "\$a = null; Arr::set(\$a, null, 5)", function () {
+    $a = null;
+    $v = Arr::set($a, null, 5);
+
+    return ['value' => $v, 'array' => $a];
+});
+
 emit();

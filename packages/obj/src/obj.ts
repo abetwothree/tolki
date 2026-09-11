@@ -3190,14 +3190,14 @@ export function set<TValue, TKey extends PropertyKey = PropertyKey>(
     key: PathKey | null,
     value: unknown,
 ): Record<TKey, TValue> {
-    if (!accessible(object)) {
-        return {} as Record<TKey, TValue>;
+    // Arr::set checks is_null($key) before touching $array, so a null/undefined key
+    // returns value even for non-object data; check this ahead of the accessible guard.
+    if (isNull(key) || isUndefined(key)) {
+        return value as Record<TKey, TValue>;
     }
 
-    // setObjectValue only special-cases null; align undefined with it here so the
-    // `key: null | undefined` overload's `V` return type holds at runtime too.
-    if (isUndefined(key)) {
-        return value as Record<TKey, TValue>;
+    if (!accessible(object)) {
+        return {} as Record<TKey, TValue>;
     }
 
     return setObjectValue(object as Record<TKey, TValue>, key, value) as Record<

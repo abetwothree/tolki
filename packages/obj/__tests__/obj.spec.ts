@@ -2583,6 +2583,18 @@ describe("Obj", () => {
             });
         });
 
+        // docs/php-parity/task-23-obj-release-readiness.json: "set-null-array-null-key"
+        // ($a = null; Arr::set($a, null, 5)) -> { value: 5, array: 5 }; is_null($key) is
+        // checked before $array is touched, so a null array still returns the value.
+        it("returns the value for a null key even when data is null", () => {
+            expect(Obj.set(null, null, 5)).toEqual(5);
+        });
+
+        it("returns the value for an undefined key even when data is null, like null", () => {
+            // JS-only: undefined has no PHP analogue; set treats it like null.
+            expect(Obj.set(null, undefined, 5)).toEqual(5);
+        });
+
         it("should handle deep nesting creation", () => {
             const result = Obj.set({}, "a.b.c.d", "value");
             expect(result).toEqual({ a: { b: { c: { d: "value" } } } });
