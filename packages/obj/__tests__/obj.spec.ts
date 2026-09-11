@@ -4681,6 +4681,21 @@ describe("Obj", () => {
     });
 
     describe("shift", () => {
+        it("leaves a prototype object untouched instead of clearing it", () => {
+            // JS-only: a PHP array has no prototype; defineKey won't write into one, so the survivors would be lost.
+            class Holder {}
+            Object.defineProperty(Holder.prototype, "kept", {
+                value: "str",
+                enumerable: true,
+                configurable: true,
+                writable: true,
+            });
+
+            expect(Obj.shift(Holder.prototype)).toBeNull();
+            expect(Obj.shift(Holder.prototype, 2)).toBeNull();
+            expect(Object.entries(Holder.prototype)).toEqual([["kept", "str"]]);
+        });
+
         it("renumbers a negative integer key among the survivors", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "shift-negative-int-keys"
             const one = { x: "a", "-1": "b", y: "c" };
@@ -6080,6 +6095,20 @@ describe("Obj", () => {
     });
 
     describe("splice", () => {
+        it("leaves a prototype object untouched instead of clearing it", () => {
+            // JS-only: a PHP array has no prototype; defineKey won't write into one, so the survivors would be lost.
+            class Holder {}
+            Object.defineProperty(Holder.prototype, "kept", {
+                value: "str",
+                enumerable: true,
+                configurable: true,
+                writable: true,
+            });
+
+            expect(Obj.splice(Holder.prototype, 0, 0)).toEqual({});
+            expect(Object.entries(Holder.prototype)).toEqual([["kept", "str"]]);
+        });
+
         it("renumbers negative integer keys in what it keeps and what it removes", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "splice-negative-int-keys"
             const one = { "-1": "a", x: "b", "-5": "c" };

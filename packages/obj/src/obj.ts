@@ -3470,7 +3470,8 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     // Collection::shift checks isEmpty() before the count, so non-object data yields null for any count.
-    if (!accessible(data)) {
+    // A prototype object is never written, and shift rewrites its whole container, so it shifts nothing.
+    if (!accessible(data) || isPrototypeObject(data)) {
         return null;
     }
 
@@ -4169,7 +4170,8 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
     length?: number,
     ...replacement: TReplacements[]
 ): Record<TKey, TValue> {
-    if (!accessible(data)) {
+    // A prototype object is never written, and splice rewrites its whole container, so it removes nothing.
+    if (!accessible(data) || isPrototypeObject(data)) {
         return {} as Record<TKey, TValue>;
     }
 
