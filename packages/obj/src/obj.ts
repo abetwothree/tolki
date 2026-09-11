@@ -14,8 +14,10 @@ import { finish, randomInt } from "@tolki/str";
 import type {
     ArrayableItems,
     CaseValue,
+    EnsureObject,
     NonObjectItems,
     ObjectKey,
+    ObjectResolvePath,
     ObjectValue,
     PathKey,
     PathKeys,
@@ -67,6 +69,9 @@ import {
  * argument; every other function returns a new value. arr and obj agree
  * on this — re-read Collection.php before "aligning" one to the other.
  */
+
+// A default value, or a closure that produces one, as the guard helpers accept.
+type Default<TDefault> = TDefault | (() => TDefault);
 
 const sortSpecComparator = createSortSpecComparator((item, key) =>
     getNestedValue(item, key as PropertyKey),
@@ -234,6 +239,25 @@ export function add<TValue, TKey extends PropertyKey = PropertyKey>(
  * objectItem({ items: ['a', 'b'] }, 'items'); -> throws Error (a list is not an object)
  * objectItem({ user: { name: 'John' } }, 'user.name'); -> throws Error
  */
+export function objectItem(
+    data: NonObjectItems,
+    key: PathKey,
+    defaultValue?: unknown,
+): Record<string, unknown>;
+export function objectItem<
+    T extends object,
+    P extends string | number,
+    TDefault = null,
+>(
+    data: T,
+    key: P,
+    defaultValue?: Default<TDefault> | null,
+): EnsureObject<ObjectResolvePath<T, P, TDefault>>;
+export function objectItem(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: unknown,
+): Record<string, unknown>;
 export function objectItem<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -271,6 +295,11 @@ export function objectItem<
  * boolean({ user: { verified: false } }, 'user.verified'); -> false
  * boolean({ user: { name: 'John' } }, 'user.name'); -> throws Error
  */
+export function boolean(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: Default<boolean> | null,
+): boolean;
 export function boolean<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -1332,6 +1361,11 @@ export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
  * float({ product: { price: 19.99 } }, 'product.price'); -> 19.99
  * float({ product: { name: 'Widget' } }, 'product.name'); -> throws Error
  */
+export function float(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: Default<number> | null,
+): number;
 export function float<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -1746,6 +1780,11 @@ export function some<TValue, TKey extends PropertyKey = PropertyKey>(
  * integer({ user: { age: 30 } }, 'user.age'); -> 30
  * integer({ user: { name: 'John' } }, 'user.name'); -> Error: The value is not an integer.
  */
+export function integer(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: Default<number> | null,
+): number;
 export function integer<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -3210,6 +3249,11 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
  * string({ user: { name: 'John' } }, 'user.name'); -> 'John'
  * string({ user: { age: 30 } }, 'user.age'); -> throws Error
  */
+export function string(
+    data: unknown,
+    key: PathKey,
+    defaultValue?: Default<string> | null,
+): string;
 export function string<
     TValue,
     TKey extends PropertyKey = PropertyKey,
