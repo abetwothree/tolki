@@ -7065,6 +7065,17 @@ describe("Obj", () => {
             expect(Obj.wrap(set)).toBe(set);
         });
 
+        it("returns a Date or class instance as-is, which Arr::wrap wraps", () => {
+            // JS-only: obj's analogue of a PHP array is any object that isn't a list, so wrap hands it back;
+            // PHP wraps every object (docs/php-parity/task-23-obj-release-readiness.json, "wrap-datetime",
+            // "wrap-stdclass-is-wrapped").
+            const date = new Date(0);
+            const point = new Point();
+
+            expect(Obj.wrap(date)).toBe(date);
+            expect(Obj.wrap(point)).toBe(point);
+        });
+
         it("wraps falsy scalars instead of dropping them", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "wrap-empty-string", "wrap-false", "wrap-zero"
             expect(Obj.wrap("")).toEqual({ 0: "" });
