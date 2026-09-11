@@ -719,7 +719,7 @@ export function pushWithPath<TValue>(
     const root: unknown[] =
         isArray(data) && !isPrototypeObject(data) ? (data as unknown[]) : [];
 
-    if (isNull(key)) {
+    if (isNull(key) || isUndefined(key)) {
         root.push(...(values as unknown[]));
 
         return root as TValue[];

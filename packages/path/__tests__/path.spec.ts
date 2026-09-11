@@ -702,6 +702,16 @@ describe("Path Functions", () => {
             ]);
         });
 
+        it("pushes to root array when key is undefined, like null", () => {
+            // JS-only: undefined has no PHP analogue; pushWithPath treats it like null.
+            const data = ["a"];
+            expect(Path.pushWithPath(data, undefined, "b", "c")).toEqual([
+                "a",
+                "b",
+                "c",
+            ]);
+        });
+
         it("creates nested structure for non-accessible data", () => {
             // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
             // into the array AT the key, never beside it").

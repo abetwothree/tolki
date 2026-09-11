@@ -1943,6 +1943,11 @@ describe("Arr", () => {
             );
         });
 
+        it("appends to the root array for an undefined key, like null", () => {
+            // JS-only: undefined has no PHP analogue; push treats it like null, matching Obj.push.
+            expect(Arr.push([1, 2], undefined, 3)).toEqual([1, 2, 3]);
+        });
+
         it("creates nested structure for deep paths and appends when a path segment does not exist", () => {
             // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
             // into the array AT the key, never beside it").
