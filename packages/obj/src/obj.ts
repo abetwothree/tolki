@@ -821,6 +821,12 @@ export function collapse<
     >,
 >(object: TValue): Record<string, TValue[keyof TValue]> {
     const out: Record<string, TValue[keyof TValue]> = {};
+
+    // Every other set-operation helper here returns {} for null/undefined; Object.values(null) would throw.
+    if (isNull(object) || isUndefined(object)) {
+        return out;
+    }
+
     let nextIndex = 0;
 
     for (const group of Object.values(object)) {

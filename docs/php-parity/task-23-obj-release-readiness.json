@@ -2800,6 +2800,11 @@
             ]
         },
         {
+            "label": "collapse-null",
+            "php": "collect(null)->collapse()->all()",
+            "value": []
+        },
+        {
             "label": "exists-list-non-canonical-keys",
             "php": "Arr::exists([1, 2, 3], $k) for '', ' ', '01', ' 1', '1e0', '0x1', '-0', '1.0'",
             "value": {

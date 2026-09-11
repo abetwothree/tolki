@@ -673,6 +673,7 @@ probe('intersectByKeys-list-keyed-operand', "(new Collection([1, 2, 3]))->inters
 probe('collapse-list-then-map', "Arr::collapse([[1, 2], ['x' => 1, 0 => 'z']])", fn () => Arr::collapse([[1, 2], ['x' => 1, 0 => 'z']]));
 probe('collapse-map-then-list', "Arr::collapse([['a' => 3], [1, 2]])", fn () => Arr::collapse([['a' => 3], [1, 2]]));
 probe('collapse-collection-items', "Arr::collapse([new Collection([1, 2]), 5, new Collection([3])])", fn () => Arr::collapse([new Collection([1, 2]), 5, new Collection([3])]));
+probe('collapse-null', 'collect(null)->collapse()->all()', fn () => collect(null)->collapse()->all());
 
 // ---- Arr::exists on a list is array_key_exists: only a canonical integer key (or a float that casts to one) exists
 probe('exists-list-non-canonical-keys', "Arr::exists([1, 2, 3], \$k) for '', ' ', '01', ' 1', '1e0', '0x1', '-0', '1.0'", function () {

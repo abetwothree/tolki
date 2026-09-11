@@ -692,6 +692,13 @@ describe("Obj", () => {
                 Obj.collapse({ g1: { "-1": "a", k: "b" }, g2: { "-1": "c" } }),
             ).toEqual({ 0: "a", 1: "c", k: "b" });
         });
+
+        it("returns an empty object for null or undefined data", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-null"
+            expect(Obj.collapse(null)).toEqual({});
+            // JS-only: PHP has no undefined; collapse treats it like null.
+            expect(Obj.collapse(undefined)).toEqual({});
+        });
     });
 
     describe("crossJoin", () => {
