@@ -2574,6 +2574,15 @@ describe("Arr", () => {
         it("treats a null replacer as a no-op", () => {
             expect(Arr.replace([1, 2, 3], null)).toEqual([1, 2, 3]);
         });
+
+        it("unwraps a Collection-like replacer, the sibling of obj.replace's fix", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-collection-operand"
+            const collectionLike = <T>(items: T) => ({ all: () => items });
+
+            expect(Arr.replace([1, 2, 3], collectionLike([9]))).toEqual([
+                9, 2, 3,
+            ]);
+        });
     });
 
     describe("replaceRecursive - edge cases", () => {
@@ -2662,6 +2671,15 @@ describe("Arr", () => {
 
         it("treats a null replacer as a no-op", () => {
             expect(Arr.replaceRecursive([1], null)).toEqual([1]);
+        });
+
+        it("unwraps a Collection-like replacer, the sibling of obj.replaceRecursive's fix", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-list-collection-operand"
+            const collectionLike = <T>(items: T) => ({ all: () => items });
+
+            expect(
+                Arr.replaceRecursive([{ a: 1 }], collectionLike([{ b: 2 }])),
+            ).toEqual([{ a: 1, b: 2 }]);
         });
 
         describe("final return", () => {
@@ -2964,6 +2982,15 @@ describe("Arr", () => {
         it("matches values by PHP's string cast", () => {
             expect(Arr.diffAssoc([0], ["0"] as never)).toEqual([]);
         });
+
+        it("unwraps a Collection-like operand, the sibling of obj.diffAssoc's fix", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-list-collection-operand"
+            const collectionLike = <T>(items: T) => ({ all: () => items });
+
+            expect(Arr.diffAssoc([1, 2, 3], collectionLike([1, 9, 9]))).toEqual(
+                [2, 3],
+            );
+        });
     });
 
     describe("intersect", () => {
@@ -3038,6 +3065,15 @@ describe("Arr", () => {
             expect(Arr.intersectByKeys(data, null)).toEqual([]);
             expect(Arr.intersectByKeys(null, data)).toEqual([]);
             expect(Arr.intersectByKeys(null, null)).toEqual([]);
+        });
+
+        it("unwraps a Collection-like operand, the sibling of obj.intersectByKeys's fix", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectByKeys-list-collection-operand"
+            const collectionLike = <T>(items: T) => ({ all: () => items });
+
+            expect(
+                Arr.intersectByKeys([1, 2, 3], collectionLike([9, 9])),
+            ).toEqual([1, 2]);
         });
     });
 
@@ -5536,6 +5572,15 @@ describe("Arr", () => {
         it("matches values by PHP's string cast", () => {
             expect(Arr.intersectAssoc([0], ["0"] as never)).toEqual([0]);
         });
+
+        it("unwraps a Collection-like operand, the sibling of obj.intersectAssoc's fix", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssoc-list-collection-operand"
+            const collectionLike = <T>(items: T) => ({ all: () => items });
+
+            expect(
+                Arr.intersectAssoc([1, 2, 3], collectionLike([1, 2, 9])),
+            ).toEqual([1, 2]);
+        });
     });
 
     describe("intersectAssocUsing", () => {
@@ -5581,6 +5626,19 @@ describe("Arr", () => {
             expect(
                 Arr.intersectAssocUsing([0], ["0"] as never, (a, b) => a === b),
             ).toEqual([0]);
+        });
+
+        it("unwraps a Collection-like operand, the sibling of obj.intersectAssocUsing's fix", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssocUsing-list-collection-operand"
+            const collectionLike = <T>(items: T) => ({ all: () => items });
+
+            expect(
+                Arr.intersectAssocUsing(
+                    [1, 2, 3],
+                    collectionLike([1, 2, 9]),
+                    (a, b) => a === b,
+                ),
+            ).toEqual([1, 2]);
         });
     });
     // Array.prototype passes `isArray` and Object.prototype passes `isObjectAny`,

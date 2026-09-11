@@ -36,6 +36,7 @@ import type {
     UndotResult,
 } from "@tolki/types";
 import {
+    arrayableItems,
     arrayableValues,
     arrayValueMessage,
     castableToArray,
@@ -3649,9 +3650,13 @@ export function replace<TValue, TReplace = TValue>(
         return values;
     }
 
-    // If replacerData is an object with numeric keys, replace by index
+    // If replacerData is an object with numeric keys, replace by index. A
+    // Collection-like operand (all()/toArray()/toJSON()) unwraps to its entries first.
     if (isObject(replacerData)) {
-        const replacerObj = replacerData as Record<number, TValue>;
+        const replacerObj = arrayableItems(replacerData) as Record<
+            number,
+            TValue
+        >;
         for (const key of Object.keys(replacerObj)) {
             const index = parseInt(key, 10);
             if (!isNaN(index)) {
@@ -3730,7 +3735,15 @@ export function replaceRecursive<TValue, TReplace = TValue>(
         );
     };
 
-    if (!isArray(replacerData) && !isNumericKeyedObject(replacerData)) {
+    // A Collection-like operand (all()/toArray()/toJSON()) unwraps to its underlying
+    // array or object before the numeric-key checks below run; a real array or plain
+    // numeric-keyed object passes through arrayableItems unchanged.
+    const replacer =
+        isObject(replacerData) && !isArray(replacerData)
+            ? arrayableItems(replacerData)
+            : replacerData;
+
+    if (!isArray(replacer) && !isNumericKeyedObject(replacer)) {
         return values;
     }
 
@@ -3738,7 +3751,7 @@ export function replaceRecursive<TValue, TReplace = TValue>(
     // this only turns obj's index-keyed result back into a list, filling any gap with undefined.
     const merged = objReplaceRecursive(
         { ...(values as object) } as Record<PropertyKey, TValue>,
-        { ...(replacerData as object) } as Record<PropertyKey, TReplace>,
+        { ...(replacer as object) } as Record<PropertyKey, TReplace>,
     ) as Record<string, TValue | TReplace>;
     const result: (TValue | TReplace | undefined)[] = [];
 
@@ -4149,12 +4162,7 @@ export function diffAssoc<TValue>(
     }
 
     const dataValues = getAccessibleValues(data) as TValue[];
-
-    if (!accessible(other)) {
-        return [...dataValues];
-    }
-
-    const otherValues = getAccessibleValues(other) as TValue[];
+    const otherValues = arrayableValues<TValue>(other);
     const result: TValue[] = [];
 
     for (let index = 0; index < dataValues.length; index++) {
@@ -4265,12 +4273,12 @@ export function intersectAssoc<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
 ): TValue[] {
-    if (!accessible(data) || !accessible(other)) {
+    if (!accessible(data)) {
         return [] as TValue[];
     }
 
     const dataValues = getAccessibleValues(data) as TValue[];
-    const otherValues = getAccessibleValues(other) as TValue[];
+    const otherValues = arrayableValues<TValue>(other);
     const result: TValue[] = [];
 
     for (let index = 0; index < dataValues.length; index++) {
@@ -4318,12 +4326,12 @@ export function intersectAssocUsing<TValue>(
     other: ArrayItems<TValue> | unknown,
     callback: (keyA: number, keyB: number) => boolean,
 ): TValue[] {
-    if (!accessible(data) || !accessible(other)) {
+    if (!accessible(data)) {
         return [] as TValue[];
     }
 
     const dataValues = getAccessibleValues(data) as TValue[];
-    const otherValues = getAccessibleValues(other) as TValue[];
+    const otherValues = arrayableValues<TValue>(other);
     const result: TValue[] = [];
 
     for (let dataIndex = 0; dataIndex < dataValues.length; dataIndex++) {
@@ -4368,12 +4376,12 @@ export function intersectByKeys<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
 ): TValue[] {
-    if (!accessible(data) || !accessible(other)) {
+    if (!accessible(data)) {
         return [] as TValue[];
     }
 
     const dataValues = getAccessibleValues(data) as TValue[];
-    const otherValues = getAccessibleValues(other) as TValue[];
+    const otherValues = arrayableValues<TValue>(other);
     const result: TValue[] = [];
 
     const otherKeys = new Set<number>(otherValues.map((_, index) => index));
