@@ -2794,6 +2794,12 @@ describe("Obj", () => {
             const obj = { name: "John" };
             expect(Obj.float(obj, "missing", 0.0)).toBe(0.0);
         });
+
+        it("returns a whole number, which PHP's is_float rejects", () => {
+            // JS-only: JS has one number type, so 1 and 1.0 are the same value; Arr::float throws on an int
+            // (docs/php-parity/task-17-second-review.json, "Arr::float rejects a whole-number int").
+            expect(Obj.float({ k: 1 }, "k")).toBe(1);
+        });
     });
 
     describe("integer", () => {
