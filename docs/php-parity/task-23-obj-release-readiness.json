@@ -3590,6 +3590,15 @@
             "value": false
         },
         {
+            "label": "dot-depth-through-list",
+            "php": "Arr::dot([['a' => ['b' => ['c' => 1]]]], '', 2)",
+            "value": {
+                "0.a.b": {
+                    "c": 1
+                }
+            }
+        },
+        {
             "label": "replaceRecursive-collection-operand",
             "php": "(new Collection(['a' => ['x' => 1]]))->replaceRecursive(new Collection(['a' => ['y' => 2]]))",
             "value": {

@@ -968,6 +968,7 @@ probe('chunkBy-noncanonical-key-type', "(new Collection(['01' => 'a', 'x' => 'b'
 probe('combine-collection-values', "(new Collection(['a', 'b']))->combine(new Collection(['x', 'y']))", fn () => (new Collection(['a', 'b']))->combine(new Collection(['x', 'y']))->all());
 probe('unshift-fresh-object-and-null-items', "(new Collection(null))->unshift(['a' => 1], null, 'x')", fn () => (new Collection(null))->unshift(['a' => 1], null, 'x')->all());
 probe('has-empty-string-key-null-key', "Arr::has(['' => 'some'], null)", fn () => Arr::has(['' => 'some'], null));
+probe('dot-depth-through-list', "Arr::dot([['a' => ['b' => ['c' => 1]]]], '', 2)", fn () => Arr::dot([['a' => ['b' => ['c' => 1]]]], '', 2));
 probe('replaceRecursive-collection-operand', "(new Collection(['a' => ['x' => 1]]))->replaceRecursive(new Collection(['a' => ['y' => 2]]))", fn () => (new Collection(['a' => ['x' => 1]]))->replaceRecursive(new Collection(['a' => ['y' => 2]]))->all());
 
 emit();

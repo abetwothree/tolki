@@ -2578,6 +2578,13 @@ describe("Path Functions", () => {
                 "1.1.1": [4],
             });
         });
+
+        it("threads the remaining depth into an object element inside the array", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-depth-through-list"
+            expect(
+                Path.dotFlattenArray([{ a: { b: { c: 1 } } }], "", 2),
+            ).toEqual({ "0.a.b": { c: 1 } });
+        });
     });
 
     describe("undotExpandArray", () => {
