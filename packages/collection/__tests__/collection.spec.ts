@@ -728,6 +728,14 @@ describe("Collection", () => {
             expect(collection.containsStrict(2)).toBe(true);
             expect(collection.containsStrict("2")).toBe(false);
         });
+
+        it("compares an array or object item by value, the way PHP's === does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D4 containsStrict array by value"
+            expect(new Collection({ a: [1] }).containsStrict([1])).toBe(true);
+            expect(
+                new Collection({ a: { x: 1 } }).containsStrict({ x: 1 }),
+            ).toBe(true);
+        });
     });
 
     describe("doesntContain", () => {

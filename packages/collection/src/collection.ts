@@ -544,7 +544,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        return dataContains(this.items, (value: unknown) => value === key);
+        // Routes through dataContains's strict flag rather than `===`, so an array or plain
+        // object key matches by value, the way PHP's `in_array($key, $items, true)` does.
+        return dataContains(this.items, key as TValue, true);
     }
 
     /**
