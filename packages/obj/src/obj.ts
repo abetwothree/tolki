@@ -11,7 +11,16 @@ import {
     undotExpandObject,
 } from "@tolki/path";
 import { finish, randomInt } from "@tolki/str";
-import type { CaseValue, PathKey, PathKeys, SortSpec } from "@tolki/types";
+import type {
+    ArrayableItems,
+    CaseValue,
+    NonObjectItems,
+    ObjectKey,
+    ObjectValue,
+    PathKey,
+    PathKeys,
+    SortSpec,
+} from "@tolki/types";
 import {
     arrayableItems,
     arrayableValues,
@@ -62,6 +71,63 @@ const sortSpecComparator = createSortSpecComparator((item, key) =>
     getNestedValue(item, key as PropertyKey),
 );
 
+// toPhpKeyString prints a float the way PHP does (1.0E+21, 14 digits), so only an integer literal keeps its JS text.
+type PhpKeyString<V> = V extends string
+    ? V
+    : V extends number
+      ? number extends V
+          ? `${number}` | "NAN" | "INF" | "-INF"
+          : `${V}` extends `${bigint}`
+            ? `${V}`
+            : string
+      : V extends true
+        ? "1"
+        : V extends false | null | undefined
+          ? ""
+          : string;
+// combine reads both operands through arrayableValues(), whose values are ArrayableItems' values.
+type OperandValues<X> = ObjectValue<ArrayableItems<X>>;
+// Record promises every key it names, so only a key one entry must print is required: a tuple element's, or a
+// required property's, of one literal type. A list, Set, Map, Collection-like or index signature holds any count.
+type CombineRecord<K, V> = CombineKeyed<
+    PhpKeyString<OperandValues<K>>,
+    CombineSureKeys<K>,
+    OperandValues<V>
+>;
+type CombineKeyed<All extends PropertyKey, Sure, V> = [
+    Exclude<All, Sure>,
+] extends [never]
+    ? Record<All, V>
+    : [Sure] extends [never]
+      ? Partial<Record<All, V>>
+      : Record<Sure & All, V> & Partial<Record<Exclude<All, Sure>, V>>;
+type CombineSureKeys<K> = K extends readonly unknown[]
+    ? number extends K["length"]
+        ? never
+        : { [I in keyof K]: CombineOneKey<K[I]> }[number]
+    : K extends
+            | NonObjectItems
+            | Iterable<unknown>
+            | { all: (...args: never[]) => unknown }
+            | { toArray: (...args: never[]) => unknown }
+            | { toJSON: (...args: never[]) => unknown }
+      ? never
+      : {
+            [P in keyof K]-?: string extends P
+                ? never
+                : number extends P
+                  ? never
+                  : Record<never, never> extends Pick<K, P>
+                    ? never
+                    : CombineOneKey<K[P]>;
+        }[keyof K];
+// The key an entry of type X prints, when it can print only that one.
+type CombineOneKey<X, S = PhpKeyString<X>> = S extends unknown
+    ? [PhpKeyString<X>] extends [S]
+        ? S
+        : never
+    : never;
+
 /**
  * Determine whether the given value is object accessible.
  *
@@ -75,6 +141,9 @@ const sortSpecComparator = createSortSpecComparator((item, key) =>
  * accessible([]); -> false
  * accessible(null); -> false
  */
+export function accessible(
+    value: unknown,
+): value is Record<PropertyKey, unknown>;
 export function accessible(value: unknown): value is object {
     return isObject(value);
 }
@@ -114,6 +183,7 @@ function entriesOf<TValue, TKey extends PropertyKey = PropertyKey>(
  * objectifiable({ a: 1, b: 2 }); -> true
  * objectifiable([]); -> false
  */
+export function objectifiable(value: unknown): value is Record<string, unknown>;
 export function objectifiable(
     value: unknown,
 ): value is Record<string, unknown> {
@@ -501,9 +571,17 @@ export function collapse<
  * @throws Error if `keysObject` and `valuesObject` do not have the same
  * number of entries.
  */
+export function combine<K extends object, V extends object>(
+    keys: K,
+    values: V,
+): CombineRecord<K, V>;
+export function combine(
+    keys: unknown,
+    values: unknown,
+): Record<string, unknown>;
 export function combine<TKeys, TValues, TCombineValue = TValues>(
-    keysObject: Record<PropertyKey, TKeys> | readonly TKeys[],
-    valuesObject: Record<PropertyKey, TValues> | readonly TValues[],
+    keysObject: Record<PropertyKey, TKeys> | readonly TKeys[] | unknown,
+    valuesObject: Record<PropertyKey, TValues> | readonly TValues[] | unknown,
 ): Record<PropertyKey, TCombineValue> {
     const keys = arrayableValues<TKeys>(keysObject).map((key) =>
         toPhpKeyString(key),
@@ -618,8 +696,13 @@ function foreachValues(value: unknown): unknown[] {
  *
  * divide({ name: "John", age: 30, city: "NYC" }); -> [['name', 'age', 'city'], ['John', 30, 'NYC']]
  */
+export function divide(data: NonObjectItems): [(string | number)[], unknown[]];
+export function divide<T extends object>(
+    data: T,
+): [ObjectKey<T>[], ObjectValue<T>[]];
+export function divide(data: unknown): [(string | number)[], unknown[]];
 export function divide<TValue, TKey extends PropertyKey = PropertyKey>(
-    object: Record<TKey, TValue> | null | undefined,
+    object: Record<TKey, TValue> | unknown,
 ): [TKey[], TValue[]] {
     if (!accessible(object)) {
         return [[], []];
@@ -627,7 +710,7 @@ export function divide<TValue, TKey extends PropertyKey = PropertyKey>(
 
     return [
         Object.keys(object).map(phpArrayKey) as TKey[],
-        Object.values(object),
+        Object.values(object) as TValue[],
     ];
 }
 
@@ -1301,12 +1384,27 @@ export function forget<TValue extends Record<PropertyKey, unknown>>(
  *
  * @throws Error if items cannot be converted to an object.
  */
-export function from(items: Record<string, unknown>): Record<string, unknown>;
-export function from<V>(items: Map<PropertyKey, V>): Record<string, V>;
+export function from<V>(items: ReadonlyMap<unknown, V>): Record<string, V>;
+export function from(items: WeakMap<object, unknown>): never;
+export function from<T extends readonly unknown[]>(
+    items: T,
+): Record<number, T[number]>;
 export function from(
-    items: number | string | boolean | symbol | null | undefined,
+    items: ReadonlySet<unknown> | WeakSet<object>,
+): Record<string, never>;
+export function from(
+    items:
+        | number
+        | string
+        | boolean
+        | symbol
+        | bigint
+        | null
+        | undefined
+        | ((...args: never[]) => unknown),
 ): never;
-export function from(items: object): Record<string, unknown>;
+export function from<T extends object>(items: T): T;
+export function from(items: unknown): Record<string, unknown>;
 export function from(items: unknown): Record<string, unknown> {
     if (isMap(items)) {
         const out: Record<string, unknown> = {};
@@ -3655,6 +3753,10 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
  * wrap(null); -> {}
  * wrap(undefined); -> { 0: undefined }
  */
+export function wrap(value: null): Record<string, never>;
+export function wrap<T extends NonObjectItems>(value: T): Record<0, T>;
+export function wrap<T extends object>(value: T): T;
+export function wrap<T>(value: T): Record<0, T>;
 export function wrap<TValue>(
     value: TValue | null,
 ): Record<PropertyKey, TValue> {
@@ -3678,6 +3780,9 @@ export function wrap<TValue>(
  * @param data - The object to get keys from.
  * @returns An array of all keys.
  */
+export function keys(data: NonObjectItems): [];
+export function keys<T extends object>(data: T): ObjectKey<T>[];
+export function keys(data: unknown): (string | number)[];
 export function keys<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
 ): (string | number)[] {
@@ -3702,6 +3807,9 @@ export function keys<TValue, TKey extends PropertyKey = PropertyKey>(
  * values({ name: 'John', age: 30, city: 'NYC' }); -> ['John', 30, 'NYC']
  * values({}); -> []
  */
+export function values(data: NonObjectItems): [];
+export function values<T extends object>(data: T): ObjectValue<T>[];
+export function values(data: unknown): unknown[];
 export function values<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
 ): TValue[] {
