@@ -778,6 +778,11 @@ describe("Data", () => {
             expect(Data.dataExists({ 0: 1 }, -0)).toBe(false);
             expect(Data.dataExists({ "-0": 1 }, -0)).toBe(true);
         });
+
+        it("looks -0 up as the key '-0', through the list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "exists-float-key-cast"
+            expect(Data.dataExists([1], -0)).toBe(false);
+        });
     });
 
     describe("dataTake", () => {
@@ -861,6 +866,17 @@ describe("Data", () => {
             expect(result).toHaveLength(2);
             expect(result[0]).toBe(point);
             expect(result[1]).toBe(date);
+        });
+
+        it("keeps a class instance or Date whole, through the list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "flatten-object-leaf"
+            const point = new Point();
+            const date = new Date(0);
+            const result = Data.dataFlatten([date, [point]]);
+
+            expect(result).toHaveLength(2);
+            expect(result[0]).toBe(date);
+            expect(result[1]).toBe(point);
         });
     });
 
@@ -1354,6 +1370,14 @@ describe("Data", () => {
             expect(
                 Data.dataKeyBy({ a: { k: true }, b: { k: false } }, "k"),
             ).toEqual({ 1: { k: true }, 0: { k: false } });
+        });
+
+        it("casts a bool key the way PHP stores an array offset, through the list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-scalar-key-cast"
+            expect(Data.dataKeyBy([{ k: true }, { k: false }], "k")).toEqual({
+                1: { k: true },
+                0: { k: false },
+            });
         });
     });
 

@@ -792,9 +792,7 @@ export function exceptValues<TValue>(
  */
 export function exists<TValue>(data: readonly TValue[], key: PathKey): boolean {
     // Arr::exists casts a null or float key to string; a list holds only canonical integer keys, so "01" misses.
-    const index = phpArrayKey(
-        isNull(key) || isUndefined(key) ? "" : String(key),
-    );
+    const index = phpArrayKey(toPhpKeyString(key));
 
     return isNumber(index) && Object.hasOwn(data, index);
 }
@@ -1087,6 +1085,9 @@ export function take<TValue>(
 /**
  * Flatten a multi-dimensional array into a single level.
  *
+ * Only arrays and plain objects are flattened, along with the items of a Collection-like item (one with an
+ * `all()` method); any other object, a `Date`, `Map` or class instance included, is kept as a value.
+ *
  * @param data The array to flatten.
  * @param depth Maximum depth to flatten. Use Infinity for full flattening.
  * @returns A new flattened array.
@@ -1118,35 +1119,23 @@ export function flatten<TValue>(
         return result;
     }
 
-    for (const item of data as ArrayItems<TValue>) {
-        // Convert objects to arrays of their values (ignoring keys)
-        // This matches Laravel's behavior where associative arrays are flattened to just values
-        if (isObject(item)) {
-            const objectValues = Object.values(item);
-            const values =
-                depth === 1
-                    ? objectValues
-                    : flatten(objectValues as ArrayItems<unknown>, depth - 1);
+    for (const entry of data as ArrayItems<unknown>) {
+        // Arr::flatten flattens a Collection item's items, and only an array otherwise.
+        const item =
+            isObject(entry) && isFunction(entry["all"])
+                ? entry["all"]()
+                : entry;
 
-            for (const value of values) {
-                result.push(value as TValue);
-            }
+        if (!isArray(item) && !isPlainObject(item)) {
+            result.push(item as TValue);
 
             continue;
         }
 
-        if (!isArray(item)) {
-            result.push(item);
+        // A plain object models a PHP associative array, which flattens to its values.
+        const values: unknown[] = isArray(item) ? item : Object.values(item);
 
-            continue;
-        }
-
-        const values =
-            depth === 1
-                ? (item.slice() as unknown[])
-                : flatten(item as ArrayItems<unknown>, depth - 1);
-
-        for (const value of values) {
+        for (const value of depth === 1 ? values : flatten(values, depth - 1)) {
             result.push(value as TValue);
         }
     }
@@ -1750,6 +1739,8 @@ export function join<TValue>(
 
 /**
  * Key an associative array by a field or using a callback.
+ * Each resolved key is stored the way PHP stores an array key: `null` as `""`, a boolean as `0`/`1`,
+ * and a float truncated toward zero.
  *
  * @param data - The array to key.
  * @param keyBy - The field name to key by, or a callback function that receives each item and its index.
@@ -1790,36 +1781,18 @@ export function keyBy<TValue extends Record<string, unknown>>(
     const results: Record<PropertyKey, TValue> = {};
 
     for (const [index, item] of values.entries()) {
-        let key: PropertyKey;
+        const key = isFunction(keyBy)
+            ? keyBy(item, index)
+            : getNestedValue(item, keyBy as string);
 
-        if (isFunction(keyBy)) {
-            const result = keyBy(item, index);
-            key = isSymbol(result) ? result : stringifyKey(result);
-        } else {
-            // Use dot notation to get the key value
-            const keyValue = getNestedValue(item, keyBy as string);
-            key = stringifyKey(keyValue);
-        }
-
-        defineKey(results as Record<string, TValue>, key as string, item);
+        defineKey(
+            results as Record<string, TValue>,
+            isSymbol(key) ? key : phpArrayKey(key),
+            item,
+        );
     }
 
     return results;
-}
-
-/**
- * Convert a resolved key value to a string key, casting null and undefined
- * to an empty string the way PHP casts null keys.
- *
- * @param keyValue - The resolved key value to convert.
- * @returns The string key.
- */
-function stringifyKey(keyValue: unknown): string {
-    if (isNull(keyValue) || isUndefined(keyValue)) {
-        return "";
-    }
-
-    return String(keyValue);
 }
 
 /**

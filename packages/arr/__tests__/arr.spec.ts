@@ -713,6 +713,12 @@ describe("Arr", () => {
             expect(Arr.exists([1, 2, 3], 1.0)).toBe(true);
             expect(Arr.exists([1, 2, 3], "1")).toBe(true);
         });
+
+        it("looks -0 up as the key '-0', which no list holds", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "exists-float-key-cast"
+            expect(Arr.exists([1], -0)).toBe(false);
+            expect(Arr.exists([1], 0)).toBe(true);
+        });
     });
 
     describe("first", () => {
@@ -1039,6 +1045,39 @@ describe("Arr", () => {
                 ["#baz"],
                 "#zap",
             ]);
+        });
+
+        it("keeps an object that isn't a plain object whole", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "flatten-object-leaf"
+            const point = new Point();
+            const date = new Date(0);
+            const map = new Map([["a", 1]]);
+            const result = Arr.flatten([date, [1], point, [{ c: map }]]);
+
+            expect(result).toHaveLength(4);
+            expect(result[0]).toBe(date);
+            expect(result[1]).toBe(1);
+            expect(result[2]).toBe(point);
+            expect(result[3]).toBe(map);
+        });
+
+        it("flattens a Collection-like item's items", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "flatten-collection-item"
+            const collectionLike = <T>(items: T) => ({ all: () => items });
+
+            expect(Arr.flatten([collectionLike([1, [2, 3]]), 4])).toEqual([
+                1, 2, 3, 4,
+            ]);
+            expect(
+                Arr.flatten([collectionLike({ a: 1, b: collectionLike([2]) })]),
+            ).toEqual([1, 2]);
+            expect(Arr.flatten([collectionLike([[1, 2], 3])], 1)).toEqual([
+                [1, 2],
+                3,
+            ]);
+
+            const kept = collectionLike([2, 3]);
+            expect(Arr.flatten([[kept]], 1)).toEqual([kept]);
         });
     });
 
@@ -3814,6 +3853,25 @@ describe("Arr", () => {
 
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
             expect(result.polluted).toBeUndefined();
+        });
+
+        it("casts a bool, null or float key the way PHP stores an array offset", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-scalar-key-cast"
+            const rows = [{ k: true }, { k: false }, { k: null }];
+            expect(Arr.keyBy(rows, "k")).toEqual({
+                1: { k: true },
+                0: { k: false },
+                "": { k: null },
+            });
+
+            const keyOf = (key: number) =>
+                Object.keys(Arr.keyBy([{ v: 1 }], () => key));
+            expect(keyOf(1.5)).toEqual(["1"]);
+            expect(keyOf(-1.5)).toEqual(["-1"]);
+            expect(keyOf(-0)).toEqual(["0"]);
+            expect(keyOf(Infinity)).toEqual(["0"]);
+            expect(keyOf(NaN)).toEqual(["0"]);
+            expect(keyOf(1e20)).toEqual(["7766279631452241920"]);
         });
     });
 
