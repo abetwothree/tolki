@@ -2706,8 +2706,9 @@ export function shift<TValue>(
         throw new Error("Number of shifted items may not be less than zero.");
     }
 
+    // Collection::shift checks isEmpty() before the count, so non-array data yields null for any count.
     if (!accessible(data)) {
-        return count === 1 ? null : [];
+        return null;
     }
 
     const values = data as TValue[];

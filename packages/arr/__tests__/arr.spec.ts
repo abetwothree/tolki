@@ -4165,7 +4165,8 @@ describe("Arr", () => {
             expect(Arr.shift(data)).toBeUndefined();
             expect(data).toEqual(["Otwell"]);
 
-            expect(Arr.shift({}, 2)).toEqual([]);
+            // docs/php-parity/task-23-obj-release-readiness.json, "D6 shift/pop on collect(null)"
+            expect(Arr.shift({}, 2)).toBeNull();
 
             expect(Arr.shift(null)).toBeNull();
             expect(Arr.shift(undefined)).toBeNull();
