@@ -2274,6 +2274,8 @@ export function integer<
  * join({ a: 'a', b: 'b', c: 'c' }, ', ') => 'a, b, c'
  * join({ a: 'a', b: 'b', c: 'c' }, ', ', ' and ') => 'a, b and c'
  */
+export function join(data: unknown, glue: string, finalGlue?: string): string;
+
 export function join<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     glue: string,
@@ -3178,6 +3180,8 @@ export function pull<
  * query({ foo: 'bar', bar: true }); -> 'foo=bar&bar=1' (booleans cast like PHP's http_build_query)
  * query({ foo: 'bar', bar: false }); -> 'foo=bar&bar=0'
  */
+export function query(data: unknown): string;
+
 export function query(data: unknown): string {
     if (isNull(data) || isUndefined(data)) {
         return "";
@@ -4191,6 +4195,8 @@ export function string<
  * toCssClasses({ primary: true, secondary: false }); -> 'primary'
  * toCssClasses({ 0: 'font-bold', 1: 'mt-4', 'ml-2': true, 'mr-2': false }); -> 'font-bold mt-4 ml-2'
  */
+export function toCssClasses(data: unknown): string;
+
 export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
 ): string {
@@ -4229,6 +4235,8 @@ export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
  * toCssStyles({ 'font-weight: bold': true, 'color: red': false, 'margin-left: 2px': true }); -> 'font-weight: bold; margin-left: 2px;'
  * toCssStyles({ 0: 'font-weight: bold', 'margin-left: 2px;': true }); -> 'font-weight: bold; margin-left: 2px;'
  */
+export function toCssStyles(data: unknown): string;
+
 export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
 ): string {
