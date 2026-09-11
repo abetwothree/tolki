@@ -182,6 +182,7 @@ import {
     isNull,
     isObject,
     isUndefined,
+    phpArrayKey,
 } from "@tolki/utils";
 
 /**
@@ -1412,8 +1413,8 @@ export function dataMapSpread<U>(
  *
  * @param data - The data to prepend to
  * @param value - The value to prepend
- * @param rest - The key for an object backing; omit it to unshift under key 0, as `Arr::prepend`
- * does with two arguments
+ * @param rest - The key; omit it to unshift under key 0, as `Arr::prepend` does with two arguments.
+ * A list given any key but 0 comes back as an object, as PHP's `[$key => $value] + $list` is keyed
  * @returns Data with prepended value
  *
  * @example
@@ -1434,7 +1435,16 @@ export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrPrepend(arrWrap(data), value) as DataItems<TValue>;
+    if (rest.length === 0) {
+        return arrPrepend(arrWrap(data), value) as DataItems<TValue>;
+    }
+
+    // [$key => $value] + $list starts with the key, so it stays a list only when the key casts to 0.
+    const prepended = objPrepend({ ...arrWrap(data) }, value, ...rest);
+
+    return (
+        phpArrayKey(rest[0]) === 0 ? Object.values(prepended) : prepended
+    ) as DataItems<TValue, TKey>;
 }
 
 /**

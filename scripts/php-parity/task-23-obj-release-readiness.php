@@ -654,6 +654,16 @@ probe('prepend-key-cast', "@Arr::prepend(['a' => 1, 1 => 'x'], 'v', 1.5), @(['a'
     'true' => Arr::prepend(['a' => 1], 'v', true),
     'false' => Arr::prepend(['a' => 1, 0 => 'x'], 'v', false),
 ]);
+probe('prepend-list-with-key', "Arr::prepend(['b', 'c'], 'a', 0), (..., 1), (..., 5), @(..., 1.5), (..., 'k'), (new Collection(['b', 'c']))->prepend('a', 0), ->prepend('a', 'k'), ->prepend('a', 1)", fn () => [
+    'zero' => Arr::prepend(['b', 'c'], 'a', 0),
+    'one' => Arr::prepend(['b', 'c'], 'a', 1),
+    'five' => Arr::prepend(['b', 'c'], 'a', 5),
+    'float' => @Arr::prepend(['b', 'c'], 'a', 1.5),
+    'string' => Arr::prepend(['b', 'c'], 'a', 'k'),
+    'collection-zero' => (new Collection(['b', 'c']))->prepend('a', 0)->all(),
+    'collection-string' => (new Collection(['b', 'c']))->prepend('a', 'k')->all(),
+    'collection-one' => (new Collection(['b', 'c']))->prepend('a', 1)->all(),
+]);
 probe('shift-negative-int-keys', "\$c = new Collection(['x' => 'a', -1 => 'b', 'y' => 'c']); \$c->shift(); and \$d = new Collection(['x' => 'a', -1 => 'b', -2 => 'c', 'y' => 'd']); \$d->shift(2)", function () {
     $one = new Collection(['x' => 'a', -1 => 'b', 'y' => 'c']);
     $shifted = $one->shift();

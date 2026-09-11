@@ -2743,6 +2743,47 @@
             }
         },
         {
+            "label": "prepend-list-with-key",
+            "php": "Arr::prepend(['b', 'c'], 'a', 0), (..., 1), (..., 5), @(..., 1.5), (..., 'k'), (new Collection(['b', 'c']))->prepend('a', 0), ->prepend('a', 'k'), ->prepend('a', 1)",
+            "value": {
+                "zero": [
+                    "a",
+                    "c"
+                ],
+                "one": {
+                    "1": "a",
+                    "0": "b"
+                },
+                "five": {
+                    "5": "a",
+                    "0": "b",
+                    "1": "c"
+                },
+                "float": {
+                    "1": "a",
+                    "0": "b"
+                },
+                "string": {
+                    "k": "a",
+                    "0": "b",
+                    "1": "c"
+                },
+                "collection-zero": [
+                    "a",
+                    "c"
+                ],
+                "collection-string": {
+                    "k": "a",
+                    "0": "b",
+                    "1": "c"
+                },
+                "collection-one": {
+                    "1": "a",
+                    "0": "b"
+                }
+            }
+        },
+        {
             "label": "shift-negative-int-keys",
             "php": "$c = new Collection(['x' => 'a', -1 => 'b', 'y' => 'c']); $c->shift(); and $d = new Collection(['x' => 'a', -1 => 'b', -2 => 'c', 'y' => 'd']); $d->shift(2)",
             "value": {

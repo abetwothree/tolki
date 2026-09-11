@@ -1648,6 +1648,23 @@ describe("Data", () => {
                 x: "b",
             });
         });
+        it("returns PHP's keyed result for a list given a key, which stays a list only for key 0", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key"
+            expect(Data.dataPrepend(["b", "c"], "a", 0)).toEqual(["a", "c"]);
+            expect(Data.dataPrepend(["b", "c"], "a", "k")).toEqual({
+                k: "a",
+                0: "b",
+                1: "c",
+            });
+            expect(Data.dataPrepend(["b", "c"], "a", 1)).toEqual({
+                1: "a",
+                0: "b",
+            });
+            expect(Data.dataPrepend(["b", "c"], "a", 1.5)).toEqual({
+                1: "a",
+                0: "b",
+            });
+        });
     });
 
     describe("dataPull", () => {

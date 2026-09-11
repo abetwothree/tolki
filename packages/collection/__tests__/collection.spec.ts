@@ -4650,6 +4650,23 @@ describe("Collection", () => {
                 new Collection({ "-1": "a", x: "b" }).prepend("z").all(),
             ).toEqual({ 0: "z", 1: "a", x: "b" });
         });
+
+        it("becomes object-backed when a list backing is given a key other than 0", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key"
+            expect(collect(["b", "c"]).prepend("a", 0).all()).toEqual([
+                "a",
+                "c",
+            ]);
+            expect(collect(["b", "c"]).prepend("a", "k").all()).toEqual({
+                k: "a",
+                0: "b",
+                1: "c",
+            });
+            expect(collect(["b", "c"]).prepend("a", 1).all()).toEqual({
+                1: "a",
+                0: "b",
+            });
+        });
     });
 
     describe("push", () => {
