@@ -161,8 +161,8 @@ describe("Utils", () => {
         it("unwraps Enumerable- and Arrayable-like operands", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "C18 union collection"
             expect(
-                Utils.arrayableItems({ all: () => ({ name: "World", id: 1 }) }),
-            ).toEqual({ name: "World", id: 1 });
+                Utils.arrayableItems({ all: () => ({ name: "Hello", id: 1 }) }),
+            ).toEqual({ name: "Hello", id: 1 });
             expect(Utils.arrayableItems({ toArray: () => ["x"] })).toEqual({
                 0: "x",
             });

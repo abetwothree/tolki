@@ -187,17 +187,14 @@ describe("Utils", () => {
         it("keeps every other string as it is", () => {
             // docs/php-parity/task-23-obj-release-readiness.json,
             // "K1 keys of numeric-looking string keys", "K2 chunkWhile callback key types"
-            for (const key of [
-                "01",
-                "1.5",
-                "1e3",
-                " 1",
-                "Infinity",
-                "1e+21",
-                "-0",
-                "abc",
-                "",
-            ]) {
+            for (const key of ["01", "1.5", "1e3", " 1", "Infinity", "1e+21"]) {
+                expect(Utils.phpArrayKey(key)).toBe(key);
+            }
+        });
+
+        it("keeps a negative-zero, alphabetic or empty string as it is too", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "phpArrayKey-extra-string-keys"
+            for (const key of ["-0", "abc", ""]) {
                 expect(Utils.phpArrayKey(key)).toBe(key);
             }
         });

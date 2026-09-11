@@ -3599,6 +3599,15 @@
             }
         },
         {
+            "label": "phpArrayKey-extra-string-keys",
+            "php": "array_keys(['-0' => 1, 'abc' => 2, '' => 3])",
+            "value": [
+                "-0",
+                "abc",
+                ""
+            ]
+        },
+        {
             "label": "replaceRecursive-collection-operand",
             "php": "(new Collection(['a' => ['x' => 1]]))->replaceRecursive(new Collection(['a' => ['y' => 2]]))",
             "value": {

@@ -969,6 +969,7 @@ probe('combine-collection-values', "(new Collection(['a', 'b']))->combine(new Co
 probe('unshift-fresh-object-and-null-items', "(new Collection(null))->unshift(['a' => 1], null, 'x')", fn () => (new Collection(null))->unshift(['a' => 1], null, 'x')->all());
 probe('has-empty-string-key-null-key', "Arr::has(['' => 'some'], null)", fn () => Arr::has(['' => 'some'], null));
 probe('dot-depth-through-list', "Arr::dot([['a' => ['b' => ['c' => 1]]]], '', 2)", fn () => Arr::dot([['a' => ['b' => ['c' => 1]]]], '', 2));
+probe('phpArrayKey-extra-string-keys', "array_keys(['-0' => 1, 'abc' => 2, '' => 3])", fn () => array_keys(['-0' => 1, 'abc' => 2, '' => 3]));
 probe('replaceRecursive-collection-operand', "(new Collection(['a' => ['x' => 1]]))->replaceRecursive(new Collection(['a' => ['y' => 2]]))", fn () => (new Collection(['a' => ['x' => 1]]))->replaceRecursive(new Collection(['a' => ['y' => 2]]))->all());
 
 emit();
