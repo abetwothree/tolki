@@ -19,6 +19,9 @@ const PHP_FLOAT_PRECISION = 14;
  * `null`, `undefined` and `false` become `""`, `true` becomes `"1"`, a number prints the way PHP's
  * `(string)` cast prints it (`INF`, `-0`, `1.0E+21`, 14 significant digits), anything else is stringified.
  *
+ * A whole-number JS number always prints as an integer: JS has one number type, so it can't tell
+ * PHP's float `123456789012345.0` from the integer `123456789012345`.
+ *
  * @param value - The value to use as a key
  * @returns The key string
  *
