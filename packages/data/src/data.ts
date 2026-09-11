@@ -1396,7 +1396,8 @@ export function dataMapSpread<U>(
  *
  * @param data - The data to prepend to
  * @param value - The value to prepend
- * @param rest - The key for an object backing; omit it to unshift under key 0, as `Arr::prepend` does with two arguments
+ * @param rest - The key for an object backing; omit it to unshift under key 0, as `Arr::prepend`
+ * does with two arguments
  * @returns Data with prepended value
  *
  * @example
@@ -1736,7 +1737,7 @@ export function dataUnshift<TValue, TKey extends PropertyKey = PropertyKey>(
  * @example
  *
  * dataShuffle([1, 2, 3, 4]); -> [3, 1, 4, 2] (random order)
- * dataShuffle({a: 1, b: 2, c: 3}); -> {c: 3, a: 1, b: 2} (random order)
+ * dataShuffle({a: 1, b: 2, c: 3}); -> {0: 3, 1: 1, 2: 2} (random order, reindexed 0..n-1)
  */
 export function dataShuffle<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
