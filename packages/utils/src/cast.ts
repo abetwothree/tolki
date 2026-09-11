@@ -10,6 +10,24 @@ import {
 } from "./guards";
 
 /**
+ * Cast a value to the string key PHP's `array_combine` stores it under:
+ * `null`, `undefined` and `false` become `""`, `true` becomes `"1"`, anything else is stringified.
+ *
+ * @param value - The value to use as a key
+ * @returns The key string
+ *
+ * @example
+ * toPhpKeyString(true); -> "1"
+ */
+export function toPhpKeyString(value: unknown): string {
+    if (isNull(value) || isUndefined(value) || value === false) {
+        return "";
+    }
+
+    return value === true ? "1" : String(value);
+}
+
+/**
  * Check if a value is arrayable (has a toArray method).
  *
  * @param value - The value to check

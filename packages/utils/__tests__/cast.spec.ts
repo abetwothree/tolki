@@ -156,4 +156,21 @@ describe("Utils", () => {
             expect(Utils.arrayableValues(new Box())).toEqual([1]);
         });
     });
+
+    describe("toPhpKeyString", () => {
+        it("casts null, undefined and false to the empty string and true to '1'", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
+            // JS-only: PHP has no undefined; toPhpKeyString casts it like null.
+            expect(Utils.toPhpKeyString(null)).toBe("");
+            expect(Utils.toPhpKeyString(undefined)).toBe("");
+            expect(Utils.toPhpKeyString(false)).toBe("");
+            expect(Utils.toPhpKeyString(true)).toBe("1");
+        });
+
+        it("stringifies numbers and strings", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
+            expect(Utils.toPhpKeyString(1.5)).toBe("1.5");
+            expect(Utils.toPhpKeyString("7")).toBe("7");
+        });
+    });
 });

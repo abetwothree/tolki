@@ -5,6 +5,7 @@ import {
     isObject,
     isPhpFalsy,
     isPhpNumeric,
+    isPlainObject,
     isString,
     isUndefined,
 } from "./guards";
@@ -322,19 +323,6 @@ export function looseEqual(a: unknown, b: unknown): boolean {
     }
 
     return false;
-}
-
-/**
- * Whether an object is the plain associative-array analogue this port models a PHP
- * array with: one whose prototype is `Object.prototype` or `null`.
- *
- * @param value - The object to check
- * @returns True if the object is a plain object
- */
-function isPlainObject(value: object): boolean {
-    const prototype: unknown = Object.getPrototypeOf(value);
-
-    return prototype === Object.prototype || prototype === null;
 }
 
 /**

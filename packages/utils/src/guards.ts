@@ -29,6 +29,32 @@ export function isObject<T, K extends PropertyKey = PropertyKey>(
 }
 
 /**
+ * Check if a value is a plain object: one whose prototype is `Object.prototype`
+ * or `null`, the shape this port models a PHP array with.
+ *
+ * @param value - The value to check
+ * @returns True if the value is a plain object
+ *
+ * @example
+ *
+ * isPlainObject({ a: 1 }); -> true
+ * isPlainObject(Object.create(null)); -> true
+ * isPlainObject(new Date()); -> false
+ * isPlainObject([1, 2]); -> false
+ */
+export function isPlainObject(
+    value: unknown,
+): value is Record<PropertyKey, unknown> {
+    if (!isObject(value)) {
+        return false;
+    }
+
+    const prototype: unknown = Object.getPrototypeOf(value);
+
+    return prototype === Object.prototype || prototype === null;
+}
+
+/**
  * Check if a value is any object (including arrays, null).
  *
  * @param value - The value to check
