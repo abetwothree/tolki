@@ -127,5 +127,29 @@ describe("obj pluck type tests", () => {
                 Record<string, Record<string, unknown>>
             >();
         });
+
+        it("empties a list for a readonly keys constant, and still picks typed rows' keys", () => {
+            const keys = ["id", "name"] as const;
+
+            expectTypeOf(Obj.select(numberList, keys)).toEqualTypeOf<
+                Record<string, never>
+            >();
+            expectTypeOf(Obj.select(rowsById, keys)).toEqualTypeOf<{
+                r1: Row;
+                r2: Row;
+            }>();
+        });
+
+        it("accepts a readonly key list it cannot verify", () => {
+            const keys: readonly string[] = ["name"];
+
+            expectTypeOf(Obj.select(rowsById, keys)).toEqualTypeOf<{
+                r1: Partial<Row>;
+                r2: Partial<Row>;
+            }>();
+            expectTypeOf(Obj.select(unknownObject, keys)).toEqualTypeOf<
+                Record<string, Record<string, unknown>>
+            >();
+        });
     });
 });

@@ -129,6 +129,36 @@ describe("obj subset type tests", () => {
                 }>
             >();
         });
+
+        it("empties a list or a Map for a readonly keys constant, and still picks typed data's keys", () => {
+            const indexes = [0] as const;
+            const names = ["name"] as const;
+
+            expectTypeOf(Obj.only(numberList, indexes)).toEqualTypeOf<
+                Record<string, never>
+            >();
+            expectTypeOf(Obj.only(numberMap, names)).toEqualTypeOf<
+                Record<string, never>
+            >();
+            expectTypeOf(Obj.only(user, names)).toEqualTypeOf<{
+                name: string;
+            }>();
+        });
+
+        it("accepts a readonly key list it cannot verify", () => {
+            const keys: readonly string[] = ["name"];
+
+            expectTypeOf(Obj.only(user, keys)).toEqualTypeOf<
+                Partial<{
+                    name: string;
+                    age: number;
+                    address: { city: string; zip: number };
+                }>
+            >();
+            expectTypeOf(Obj.only(unknownObject, keys)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+        });
     });
 
     describe("except and forget", () => {
@@ -175,6 +205,38 @@ describe("obj subset type tests", () => {
             >();
             expectTypeOf(Obj.forget(unknownObject, "a")).toEqualTypeOf<
                 Record<string, unknown>
+            >();
+        });
+
+        it("empty a list or a Map for a readonly keys constant, and still omit typed data's keys", () => {
+            const hidden = ["password", "token"] as const;
+            const account = { id: 1, password: "p", token: "t" };
+
+            expectTypeOf(Obj.except(numberList, hidden)).toEqualTypeOf<
+                Record<string, never>
+            >();
+            expectTypeOf(Obj.forget(numberMap, hidden)).toEqualTypeOf<
+                Record<string, never>
+            >();
+            expectTypeOf(Obj.except(account, hidden)).toEqualTypeOf<{
+                id: number;
+            }>();
+            expectTypeOf(Obj.forget(account, hidden)).toEqualTypeOf<{
+                id: number;
+            }>();
+        });
+
+        it("accept a readonly key list for nullable or unknown data", () => {
+            const hidden: readonly (string | number)[] = ["name", 0];
+
+            expectTypeOf(Obj.except(profile.boss, hidden)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(Obj.forget(unknownObject, hidden)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(Obj.except(abc, hidden)).toEqualTypeOf<
+                Partial<{ a: number; b: number; c: number }>
             >();
         });
     });

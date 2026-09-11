@@ -1220,7 +1220,7 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function except(
     data: NonObjectItems,
-    keys: PathKeys,
+    keys: PathKeys | readonly PathKey[],
 ): Record<string, never>;
 export function except<T extends object, const K extends keyof T>(
     data: T,
@@ -1240,12 +1240,15 @@ export function except<T extends object, const Ps extends readonly string[]>(
 ): OmitObjectPaths<T, Ps>;
 export function except<T extends object>(
     data: T,
-    keys: PathKeys,
+    keys: PathKeys | readonly PathKey[],
 ): ObjectDeepPartial<T>;
-export function except(data: unknown, keys: PathKeys): Record<string, unknown>;
+export function except(
+    data: unknown,
+    keys: PathKeys | readonly PathKey[],
+): Record<string, unknown>;
 export function except<TValue extends Record<PropertyKey, unknown>>(
     data: TValue,
-    keys: PathKeys,
+    keys: PathKeys | readonly PathKey[],
 ): Record<PropertyKey, unknown> {
     return forget(data, keys);
 }
@@ -1809,7 +1812,7 @@ export function float<
  */
 export function forget(
     data: NonObjectItems,
-    keys: PathKeys,
+    keys: PathKeys | readonly PathKey[],
 ): Record<string, never>;
 export function forget<T extends object, const K extends keyof T>(
     data: T,
@@ -1829,18 +1832,22 @@ export function forget<T extends object, const Ps extends readonly string[]>(
 ): OmitObjectPaths<T, Ps>;
 export function forget<T extends object>(
     data: T,
-    keys: PathKeys,
+    keys: PathKeys | readonly PathKey[],
 ): ObjectDeepPartial<T>;
-export function forget(data: unknown, keys: PathKeys): Record<string, unknown>;
+export function forget(
+    data: unknown,
+    keys: PathKeys | readonly PathKey[],
+): Record<string, unknown>;
 export function forget<TValue extends Record<PropertyKey, unknown>>(
     data: TValue,
-    keys: PathKeys,
+    keys: PathKeys | readonly PathKey[],
 ): Record<PropertyKey, unknown> {
     if (!accessible(data)) {
         return {};
     }
 
-    return forgetKeys(data, keys) as Record<PropertyKey, unknown>;
+    // forgetKeys only reads the key list, so a readonly one is safe to hand it.
+    return forgetKeys(data, keys as PathKeys) as Record<PropertyKey, unknown>;
 }
 
 /**
@@ -2039,16 +2046,20 @@ export function get<
  * has({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.city']); -> true
  * has({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.country']); -> false
  */
-export function has(data: unknown, keys: PathKeys): boolean;
+export function has(
+    data: unknown,
+    keys: PathKeys | readonly PathKey[],
+): boolean;
 export function has<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
-    keys: PathKeys,
+    keys: PathKeys | readonly PathKey[],
 ): boolean {
     if (isNull(keys) || isUndefined(keys)) {
         return false;
     }
 
-    const keyList = isArray(keys) ? keys : [keys];
+    // isArray's guard can't narrow a readonly list out of the other branch, though at runtime it is an array too.
+    const keyList = isArray(keys) ? keys : [keys as PathKey];
 
     if (!accessible(data) || keyList.length === 0) {
         return false;
@@ -2076,10 +2087,13 @@ export function has<TValue extends Record<PropertyKey, unknown>>(
  * hasAll({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.city']); -> true
  * hasAll({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.country']); -> false
  */
-export function hasAll(data: unknown, keys: PathKeys): boolean;
+export function hasAll(
+    data: unknown,
+    keys: PathKeys | readonly PathKey[],
+): boolean;
 export function hasAll<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
-    keys: PathKeys,
+    keys: PathKeys | readonly PathKey[],
 ): boolean {
     const keyList = isArray(keys) ? keys : [keys];
 
@@ -2108,10 +2122,13 @@ export function hasAll<TValue extends Record<PropertyKey, unknown>>(
  * hasAny({ name: 'John', address: { city: 'NYC' } }, ['name', 'email']); -> true
  * hasAny({ name: 'John', address: { city: 'NYC' } }, ['email', 'phone']); -> false
  */
-export function hasAny(data: unknown, keys: PathKeys): boolean;
+export function hasAny(
+    data: unknown,
+    keys: PathKeys | readonly PathKey[],
+): boolean;
 export function hasAny<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
-    keys: PathKeys,
+    keys: PathKeys | readonly PathKey[],
 ): boolean {
     if (isNull(keys)) {
         return false;
@@ -2455,7 +2472,7 @@ export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function only(
     data: NonObjectItems,
-    keys: PathKeys,
+    keys: PathKeys | readonly PathKey[],
 ): Record<string, never>;
 export function only<T extends object>(
     data: T,
@@ -2469,8 +2486,14 @@ export function only<T extends object, const Ks extends readonly (keyof T)[]>(
     data: T,
     keys: Ks,
 ): Simplify<Pick<T, Ks[number]>>;
-export function only<T extends object>(data: T, keys: PathKeys): Partial<T>;
-export function only(data: unknown, keys: PathKeys): Record<string, unknown>;
+export function only<T extends object>(
+    data: T,
+    keys: PathKeys | readonly PathKey[],
+): Partial<T>;
+export function only(
+    data: unknown,
+    keys: PathKeys | readonly PathKey[],
+): Record<string, unknown>;
 export function only<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     keys: string | string[] | null | unknown,
@@ -2567,7 +2590,7 @@ export function onlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function select(
     data: NonObjectItems,
-    keys: PathKeys,
+    keys: PathKeys | readonly PathKey[],
 ): Record<string, never>;
 export function select<
     T extends object,
@@ -2585,15 +2608,15 @@ export function select<
 ): { -readonly [R in keyof T]: Simplify<Pick<T[R], Ks[number] & keyof T[R]>> };
 export function select<T extends object>(
     data: T,
-    keys: PathKeys,
+    keys: PathKeys | readonly PathKey[],
 ): { -readonly [R in keyof T]: Partial<T[R]> };
 export function select(
     data: unknown,
-    keys: PathKeys,
+    keys: PathKeys | readonly PathKey[],
 ): Record<string, Record<string, unknown>>;
 export function select<TValue extends Record<PropertyKey, unknown>>(
     data: Record<PropertyKey, TValue> | unknown,
-    keys: PathKeys,
+    keys: PathKeys | readonly PathKey[],
 ): Record<PropertyKey, Record<PropertyKey, unknown>> {
     if (!accessible(data)) {
         return {};

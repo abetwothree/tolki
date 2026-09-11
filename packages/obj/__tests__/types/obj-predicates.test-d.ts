@@ -31,6 +31,14 @@ describe("obj predicate type tests", () => {
             expectTypeOf(Obj.has(user, null)).toEqualTypeOf<boolean>();
             expectTypeOf(Obj.exists(user, null)).toEqualTypeOf<boolean>();
         });
+
+        it("accept a readonly keys constant", () => {
+            const keys = ["name", "age"] as const;
+
+            expectTypeOf(Obj.has(user, keys)).toEqualTypeOf<boolean>();
+            expectTypeOf(Obj.hasAll(profile, keys)).toEqualTypeOf<boolean>();
+            expectTypeOf(Obj.hasAny(numberMap, keys)).toEqualTypeOf<boolean>();
+        });
     });
 
     describe("every", () => {
