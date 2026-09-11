@@ -940,6 +940,7 @@ export function exceptValues<TValue, TKey extends PropertyKey = PropertyKey>(
  * exists({ name: 'John', age: 30 }, 'name'); -> true
  * exists({ name: 'John', age: 30 }, 'email'); -> false
  */
+export function exists(data: unknown, key: PathKey): boolean;
 export function exists<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     key: PathKey,
@@ -1582,6 +1583,7 @@ export function get<
  * has({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.city']); -> true
  * has({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.country']); -> false
  */
+export function has(data: unknown, keys: PathKeys): boolean;
 export function has<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     keys: PathKeys,
@@ -1618,6 +1620,7 @@ export function has<TValue extends Record<PropertyKey, unknown>>(
  * hasAll({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.city']); -> true
  * hasAll({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.country']); -> false
  */
+export function hasAll(data: unknown, keys: PathKeys): boolean;
 export function hasAll<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     keys: PathKeys,
@@ -1649,6 +1652,7 @@ export function hasAll<TValue extends Record<PropertyKey, unknown>>(
  * hasAny({ name: 'John', address: { city: 'NYC' } }, ['name', 'email']); -> true
  * hasAny({ name: 'John', address: { city: 'NYC' } }, ['email', 'phone']); -> false
  */
+export function hasAny(data: unknown, keys: PathKeys): boolean;
 export function hasAny<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     keys: PathKeys,
@@ -1691,17 +1695,22 @@ export function hasAny<TValue extends Record<PropertyKey, unknown>>(
  * every({ a: 1, b: 2, c: 3 }, (n) => n % 2 === 0); -> false
  * every(new Map([['a', 2], ['b', 4]]), (n) => n % 2 === 0); -> true
  */
-// Overload: Map type for proper key and value inference
-export function every<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Map<TKey, TValue>,
+export function every<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
     callback: (value: TValue, key: TKey) => boolean,
 ): boolean;
-// Overload: object and unknown fallback
-export function every<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | unknown,
-    callback: (value: TValue, key: TKey) => boolean,
+export function every(
+    data: NonObjectItems,
+    callback: (value: unknown, key: string | number) => boolean,
 ): boolean;
-// Implementation
+export function every<T extends object>(
+    data: T,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+): boolean;
+export function every(
+    data: unknown,
+    callback: (value: unknown, key: string | number) => boolean,
+): boolean;
 export function every<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => boolean,
@@ -1735,17 +1744,22 @@ export function every<TValue, TKey extends PropertyKey = PropertyKey>(
  * some({ a: 1, b: 3, c: 5 }, (n) => n % 2 === 0); -> false
  * some(new Map([['a', 1], ['b', 2]]), (n) => n % 2 === 0); -> true
  */
-// Overload: Map type for proper key and value inference
-export function some<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Map<TKey, TValue>,
+export function some<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
     callback: (value: TValue, key: TKey) => boolean,
 ): boolean;
-// Overload: object and unknown fallback
-export function some<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | unknown,
-    callback: (value: TValue, key: TKey) => boolean,
+export function some(
+    data: NonObjectItems,
+    callback: (value: unknown, key: string | number) => boolean,
 ): boolean;
-// Implementation
+export function some<T extends object>(
+    data: T,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+): boolean;
+export function some(
+    data: unknown,
+    callback: (value: unknown, key: string | number) => boolean,
+): boolean;
 export function some<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => boolean,
@@ -2833,6 +2847,18 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
  * sole({ a: 1, b: 2 }); -> throws Error: Multiple items found (2 items)
  * sole({ a: 1, b: 2, c: 3 }, (value) => value > 1); -> throws Error: Multiple items found (2 items)
  */
+export function sole(
+    data: NonObjectItems,
+    callback?: (value: unknown, key: string | number) => boolean,
+): never;
+export function sole<T extends object>(
+    data: T,
+    callback?: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+): ObjectValue<T>;
+export function sole(
+    data: unknown,
+    callback?: (value: unknown, key: string | number) => boolean,
+): unknown;
 export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback?: (value: TValue, key: TKey) => boolean,
@@ -3691,9 +3717,14 @@ export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
  * contains({ name: 'John', age: 30, city: 'NYC' }, 'Jane'); -> false
  * contains({ users: { 1: 'John', 2: 'Jane' } }, 'John'); -> false (nested values)
  */
-export function contains<TValue>(
-    data: Record<PropertyKey, TValue>,
-    value: (value: TValue, key: PropertyKey) => boolean,
+export function contains(
+    data: NonObjectItems,
+    value: unknown,
+    strict?: boolean,
+): boolean;
+export function contains<T extends object>(
+    data: T,
+    value: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
     strict?: boolean,
 ): boolean;
 export function contains(

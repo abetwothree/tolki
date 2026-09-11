@@ -2809,15 +2809,12 @@ describe("Obj", () => {
             expect(
                 Obj.contains(
                     { a: null, b: 1 },
-                    (value: unknown) => value === null,
+                    (value) => value === null,
                     true,
                 ),
             ).toBe(false);
             expect(
-                Obj.contains(
-                    { a: null, b: 1 },
-                    (value: unknown) => value === null,
-                ),
+                Obj.contains({ a: null, b: 1 }, (value) => value === null),
             ).toBe(true);
         });
 
@@ -3844,16 +3841,12 @@ describe("Obj", () => {
     describe("every", () => {
         it("should return true if all items pass test", () => {
             const obj = { a: 2, b: 4, c: 6 };
-            expect(Obj.every(obj, (value) => (value as number) % 2 === 0)).toBe(
-                true,
-            );
+            expect(Obj.every(obj, (value) => value % 2 === 0)).toBe(true);
         });
 
         it("should return false if any item fails test", () => {
             const obj = { a: 2, b: 3, c: 6 };
-            expect(Obj.every(obj, (value) => (value as number) % 2 === 0)).toBe(
-                false,
-            );
+            expect(Obj.every(obj, (value) => value % 2 === 0)).toBe(false);
         });
 
         it("should return true for empty objects", () => {
@@ -3893,16 +3886,12 @@ describe("Obj", () => {
 
         it("should return true if any item passes test", () => {
             const obj = { a: 1, b: 2, c: 3 };
-            expect(Obj.some(obj, (value) => (value as number) % 2 === 0)).toBe(
-                true,
-            );
+            expect(Obj.some(obj, (value) => value % 2 === 0)).toBe(true);
         });
 
         it("should return false if no items pass test", () => {
             const obj = { a: 1, b: 3, c: 5 };
-            expect(Obj.some(obj, (value) => (value as number) % 2 === 0)).toBe(
-                false,
-            );
+            expect(Obj.some(obj, (value) => value % 2 === 0)).toBe(false);
         });
 
         it("should return false for empty objects", () => {
@@ -4941,11 +4930,11 @@ describe("Obj", () => {
 
         it("should work with callback", () => {
             const obj = { a: 1, b: 2, c: 3 };
-            expect(Obj.sole(obj, (value) => (value as number) > 2)).toBe(3);
+            expect(Obj.sole(obj, (value) => value > 2)).toBe(3);
 
-            expect(() =>
-                Obj.sole(obj, (value) => (value as number) > 3),
-            ).toThrow("No items found");
+            expect(() => Obj.sole(obj, (value) => value > 3)).toThrow(
+                "No items found",
+            );
         });
 
         it("should handle non-objects", () => {
