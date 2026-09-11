@@ -3663,15 +3663,16 @@ export function replace<TValue, TReplace = TValue>(
 /**
  * Recursively replace the data items with the given items.
  *
- * Supports arrays and numeric-keyed objects as replacement values. Each index merges the
- * way `@tolki/obj`'s `replaceRecursive` merges a key: two arrays or plain objects merge,
+ * The replacer is read the way `getArrayableItems()` reads it (a scalar as `[scalar]`), and only its
+ * integer keys apply: a string key, which a list can't hold, is dropped, as `union` drops one. Each index
+ * merges the way `@tolki/obj`'s `replaceRecursive` merges a key: two arrays or plain objects merge,
  * and anything else, a `Date` or class instance included, is replaced whole.
  *
  * @see Collection::replaceRecursive — `packages/collection/stubs/Collection.php:1181`. Wraps `array_replace_recursive`.
  *
  * @param data - The original array to replace items in.
- * @param replacerData - The array or numeric keyed object containing items to replace.
- * @returns The modified original array with replaced items.
+ * @param replacerData - The list, object or Collection-like operand holding the items to replace.
+ * @returns A new array with the replaced items.
  */
 // Overload: null/undefined replacer — returns original type unchanged
 export function replaceRecursive<TValue>(
@@ -3703,37 +3704,18 @@ export function replaceRecursive<TValue, TReplace = TValue>(
     replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
 ): (TValue | TReplace | undefined)[] {
     const values = getAccessibleValues(data) as TValue[];
-
-    // Helper function to check if an object is a numeric keyed object
-    // TODO: move to utils
-    const isNumericKeyedObject = (
-        obj: unknown,
-    ): obj is Record<number, unknown> => {
-        if (!isObject(obj) || isArray(obj)) {
-            return false;
-        }
-        const keys = Object.keys(obj);
-        return (
-            keys.length > 0 && keys.every((key) => !isNaN(parseInt(key, 10)))
-        );
-    };
-
-    // A Collection-like operand (all()/toArray()/toJSON()) unwraps to its underlying
-    // array or object before the numeric-key checks below run; a real array or plain
-    // numeric-keyed object passes through arrayableItems unchanged.
-    const replacer = isObject(replacerData)
-        ? arrayableItems(replacerData)
-        : replacerData;
-
-    if (!isArray(replacer) && !isNumericKeyedObject(replacer)) {
-        return values;
-    }
+    // PHP keeps "k", "01", "-1" or "1.5" as a key of its keyed result; a list holds only integer keys, as in union.
+    const replacer = Object.fromEntries(
+        Object.entries(arrayableItems(replacerData)).filter(([key]) =>
+            isIntegerLikeKey(key),
+        ),
+    ) as Record<number, TReplace>;
 
     // Each index merges exactly as obj.replaceRecursive merges a key, so the two backings can't drift apart;
     // this only turns obj's index-keyed result back into a list, filling any gap with undefined.
     const merged = objReplaceRecursive(
         { ...(values as object) } as Record<PropertyKey, TValue>,
-        { ...(replacer as object) } as Record<PropertyKey, TReplace>,
+        replacer,
     ) as Record<string, TValue | TReplace>;
     const result: (TValue | TReplace | undefined)[] = [];
 

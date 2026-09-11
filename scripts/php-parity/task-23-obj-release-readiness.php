@@ -671,6 +671,26 @@ probe('prepend-list-with-key', "Arr::prepend(['b', 'c'], 'a', 0), (..., 1), (...
     'collection-string' => (new Collection(['b', 'c']))->prepend('a', 'k')->all(),
     'collection-one' => (new Collection(['b', 'c']))->prepend('a', 1)->all(),
 ]);
+probe('replace-list-keyed-replacer', "(new Collection(['a', 'b', 'c']))->replace([1 => 'x', 'k' => 'y']), ->replace(['01' => 'x']), ->replace([-1 => 'x']), ->replace(['1.5' => 'x']), (new Collection(['a']))->replace([3 => 'x']), and each through ->replaceRecursive()", fn () => [
+    'replace' => [
+        'mixed' => (new Collection(['a', 'b', 'c']))->replace([1 => 'x', 'k' => 'y'])->all(),
+        'leading-zero' => (new Collection(['a', 'b', 'c']))->replace(['01' => 'x'])->all(),
+        'negative' => (new Collection(['a', 'b', 'c']))->replace([-1 => 'x'])->all(),
+        'float-string' => (new Collection(['a', 'b', 'c']))->replace(['1.5' => 'x'])->all(),
+        'gap' => (new Collection(['a']))->replace([3 => 'x'])->all(),
+    ],
+    'replaceRecursive' => [
+        'mixed' => (new Collection(['a', 'b', 'c']))->replaceRecursive([1 => 'x', 'k' => 'y'])->all(),
+        'leading-zero' => (new Collection(['a', 'b', 'c']))->replaceRecursive(['01' => 'x'])->all(),
+        'negative' => (new Collection(['a', 'b', 'c']))->replaceRecursive([-1 => 'x'])->all(),
+        'float-string' => (new Collection(['a', 'b', 'c']))->replaceRecursive(['1.5' => 'x'])->all(),
+        'gap' => (new Collection(['a']))->replaceRecursive([3 => 'x'])->all(),
+    ],
+]);
+probe('replace-scalar-operand', "(new Collection(['a', 'b']))->replace('z'), ->replaceRecursive('z')", fn () => [
+    'replace' => (new Collection(['a', 'b']))->replace('z')->all(),
+    'replaceRecursive' => (new Collection(['a', 'b']))->replaceRecursive('z')->all(),
+]);
 probe('shift-negative-int-keys', "\$c = new Collection(['x' => 'a', -1 => 'b', 'y' => 'c']); \$c->shift(); and \$d = new Collection(['x' => 'a', -1 => 'b', -2 => 'c', 'y' => 'd']); \$d->shift(2)", function () {
     $one = new Collection(['x' => 'a', -1 => 'b', 'y' => 'c']);
     $shifted = $one->shift();

@@ -2917,26 +2917,29 @@ describe("Arr", () => {
             ).toEqual([{ a: 1, b: 2 }]);
         });
 
-        describe("final return", () => {
-            it("should return values unchanged when replacerData is a primitive", () => {
-                // Tests final return when replacerData is not array or numeric keyed object
-                expect(Arr.replaceRecursive(["a", "b"], 123)).toEqual([
-                    "a",
-                    "b",
-                ]);
-                expect(Arr.replaceRecursive(["a", "b"], "string")).toEqual([
-                    "a",
-                    "b",
-                ]);
-                expect(Arr.replaceRecursive(["a", "b"], true)).toEqual([
-                    "a",
-                    "b",
-                ]);
-                // Non-numeric keyed object should also hit the final return
+        it("reads a scalar replacer as [scalar], as getArrayableItems() does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-scalar-operand"
+            expect(Arr.replaceRecursive(["a", "b"], "z")).toEqual(["z", "b"]);
+            expect(Arr.replaceRecursive(["a", "b"], 123)).toEqual([123, "b"]);
+            expect(Arr.replaceRecursive(["a", "b"], true)).toEqual([true, "b"]);
+        });
+
+        it("applies a keyed replacer's integer keys and drops the keys a list can't hold, as union does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-keyed-replacer": PHP keeps "k", "01",
+            // "-1" and "1.5" as keys of a keyed result; a list holds only its integer keys, as arr.union's does.
+            expect(
+                Arr.replaceRecursive(["a", "b", "c"], { 1: "x", k: "y" }),
+            ).toEqual(["a", "x", "c"]);
+            expect(Arr.replaceRecursive(["a", "b"], { foo: "bar" })).toEqual([
+                "a",
+                "b",
+            ]);
+
+            for (const key of ["01", "-1", "1.5"]) {
                 expect(
-                    Arr.replaceRecursive(["a", "b"], { foo: "bar" }),
-                ).toEqual(["a", "b"]);
-            });
+                    Arr.replaceRecursive(["a", "b", "c"], { [key]: "x" }),
+                ).toEqual(["a", "b", "c"]);
+            }
         });
 
         describe("sparse indices edge cases", () => {

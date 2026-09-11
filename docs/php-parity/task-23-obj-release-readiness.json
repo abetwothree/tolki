@@ -2805,6 +2805,86 @@
             }
         },
         {
+            "label": "replace-list-keyed-replacer",
+            "php": "(new Collection(['a', 'b', 'c']))->replace([1 => 'x', 'k' => 'y']), ->replace(['01' => 'x']), ->replace([-1 => 'x']), ->replace(['1.5' => 'x']), (new Collection(['a']))->replace([3 => 'x']), and each through ->replaceRecursive()",
+            "value": {
+                "replace": {
+                    "mixed": {
+                        "0": "a",
+                        "1": "x",
+                        "2": "c",
+                        "k": "y"
+                    },
+                    "leading-zero": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "01": "x"
+                    },
+                    "negative": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "-1": "x"
+                    },
+                    "float-string": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "1.5": "x"
+                    },
+                    "gap": {
+                        "0": "a",
+                        "3": "x"
+                    }
+                },
+                "replaceRecursive": {
+                    "mixed": {
+                        "0": "a",
+                        "1": "x",
+                        "2": "c",
+                        "k": "y"
+                    },
+                    "leading-zero": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "01": "x"
+                    },
+                    "negative": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "-1": "x"
+                    },
+                    "float-string": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "1.5": "x"
+                    },
+                    "gap": {
+                        "0": "a",
+                        "3": "x"
+                    }
+                }
+            }
+        },
+        {
+            "label": "replace-scalar-operand",
+            "php": "(new Collection(['a', 'b']))->replace('z'), ->replaceRecursive('z')",
+            "value": {
+                "replace": [
+                    "z",
+                    "b"
+                ],
+                "replaceRecursive": [
+                    "z",
+                    "b"
+                ]
+            }
+        },
+        {
             "label": "shift-negative-int-keys",
             "php": "$c = new Collection(['x' => 'a', -1 => 'b', 'y' => 'c']); $c->shift(); and $d = new Collection(['x' => 'a', -1 => 'b', -2 => 'c', 'y' => 'd']); $d->shift(2)",
             "value": {
