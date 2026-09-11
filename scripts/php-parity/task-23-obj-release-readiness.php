@@ -886,4 +886,16 @@ probe('flatten-collection-item', "Arr::flatten([new Collection([1, [2, 3]]), 4])
     ];
 });
 
+// ---- a list-backed union or combine reads a keyed operand by key (union) or by its values (combine)
+probe('union-list-keyed-operand', "(new Collection([1, 2]))->union([2 => 'z']), (new Collection([1]))->union([3 => 'd'])->union([9, 8, 7, 6])->sortKeys(), (new Collection([1]))->union([3 => 'd']), (new Collection([1, 2]))->union(['a' => 5])", fn () => [
+    'offset' => (new Collection([1, 2]))->union([2 => 'z'])->all(),
+    'gap-filled' => (new Collection([1]))->union([3 => 'd'])->union([9, 8, 7, 6])->sortKeys()->all(),
+    'gap' => (new Collection([1]))->union([3 => 'd'])->all(),
+    'string-key' => (new Collection([1, 2]))->union(['a' => 5])->all(),
+]);
+probe('combine-list-keyed-values', "(new Collection([1, 2]))->combine(['a' => 'x', 'b' => 'y']) and ->combine(new Collection(['a' => 'x', 'b' => 'y']))", fn () => [
+    'keyed' => (new Collection([1, 2]))->combine(['a' => 'x', 'b' => 'y'])->all(),
+    'collection' => (new Collection([1, 2]))->combine(new Collection(['a' => 'x', 'b' => 'y']))->all(),
+]);
+
 emit();

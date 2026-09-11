@@ -3,6 +3,7 @@ import {
     collapse as objCollapse,
     crossJoin as objCrossJoin,
     replaceRecursive as objReplaceRecursive,
+    union as objUnion,
 } from "@tolki/obj";
 import {
     dotFlatten,
@@ -54,6 +55,7 @@ import {
     isFalsy,
     isFunction,
     isInteger,
+    isIntegerLikeKey,
     isIterable,
     isMap,
     isNull,
@@ -414,7 +416,8 @@ export function collapse<TValue extends ArrayItems<unknown>>(
  * `array_combine()` / `Collection::combine()` (`Collection.php:933`).
  *
  * Each key is cast with `toPhpKeyString()`, matching `array_combine`'s key rules, so the
- * result's key type is always `string` rather than `PropertyKey`.
+ * result's key type is always `string` rather than `PropertyKey`. `values` is read by
+ * `arrayableValues`, so a keyed or Collection-like operand contributes its values in order.
  *
  * @see Collection::combine — `packages/collection/stubs/Collection.php:933`. Wraps `array_combine`.
  *
@@ -425,9 +428,11 @@ export function collapse<TValue extends ArrayItems<unknown>>(
  */
 export function combine<TKey, TValue>(
     keys: ArrayItems<TKey>,
-    values: ArrayItems<TValue>,
+    values: ArrayItems<TValue> | Record<PropertyKey, TValue>,
 ): Record<string, TValue> {
-    if (keys.length !== values.length) {
+    const valueList = arrayableValues<TValue>(values);
+
+    if (keys.length !== valueList.length) {
         throw new Error(
             "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
         );
@@ -436,7 +441,7 @@ export function combine<TKey, TValue>(
     const result: Record<string, TValue> = {};
 
     for (let i = 0; i < keys.length; i++) {
-        defineKey(result, toPhpKeyString(keys[i]), values[i] as TValue);
+        defineKey(result, toPhpKeyString(keys[i]), valueList[i] as TValue);
     }
 
     return result;
@@ -617,7 +622,10 @@ export function undot<TValue, TKey extends UndotArrayKey = number>(
  *      Uses PHP's `+` operator (key union: left keys win), not `array_merge`.
  *
  * A `null`/`undefined` operand contributes nothing, matching the
- * `(array) null` cast `getArrayableItems` performs before the `+`.
+ * `(array) null` cast `getArrayableItems` performs before the `+`. A keyed or
+ * Collection-like operand joins by key: each integer key fills that index if it
+ * is free, an index no operand fills holds `undefined`, and a string key, which
+ * a list can't hold, is dropped.
  *
  * @param arrays - The arrays to union.
  * @returns A new array combining each array's indices, left-most wins.
@@ -652,26 +660,26 @@ export function union<A, B, C, D, E, F>(
     f: readonly F[],
 ): (A | B | C | D | E | F)[];
 export function union(
-    ...arrays: (readonly unknown[] | null | undefined)[]
+    ...arrays: (readonly unknown[] | object | null | undefined)[]
 ): unknown[];
 export function union(
-    ...arrays: (readonly unknown[] | null | undefined)[]
+    ...arrays: (readonly unknown[] | object | null | undefined)[]
 ): unknown[] {
-    let result: unknown[] = [];
+    // Every operand joins by key exactly as obj.union joins it, so the two backings can't drift apart;
+    // this only turns obj's index-keyed result back into a list.
+    const merged = objUnion(...arrays) as Record<string, unknown>;
+    const result: unknown[] = [];
 
-    for (const array of arrays) {
-        // getArrayableItems casts a null operand to an empty array
-        // (EnumeratesValues.php:1121), so it contributes nothing.
-        if (isNull(array) || isUndefined(array)) {
+    for (const [key, value] of Object.entries(merged)) {
+        if (!isIntegerLikeKey(key)) {
             continue;
         }
 
-        // Every index below `result.length` is already occupied by an
-        // earlier (left-most-wins) array, so only the tail beyond that
-        // point can still contribute — mirroring PHP's `+` key union.
-        if (array.length > result.length) {
-            result = [...result, ...array.slice(result.length)];
+        while (result.length < Number(key)) {
+            result.push(undefined);
         }
+
+        result.push(value);
     }
 
     return result;

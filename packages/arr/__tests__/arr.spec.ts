@@ -533,6 +533,17 @@ describe("Arr", () => {
             expect(Arr.combine([false], [1])).toEqual({ "": 1 });
         });
 
+        it("takes the values of a keyed or Collection-like values operand, as array_combine does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "combine-list-keyed-values"
+            expect(Arr.combine([1, 2], { a: "x", b: "y" })).toEqual({
+                1: "x",
+                2: "y",
+            });
+            expect(
+                Arr.combine([1, 2], { all: () => ({ a: "x", b: "y" }) }),
+            ).toEqual({ 1: "x", 2: "y" });
+        });
+
         it("keys a float by PHP's (string) cast", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "combine-float-keys"
             expect(
@@ -2357,6 +2368,34 @@ describe("Arr", () => {
             expect(Arr.union([10, 20], null)).toEqual([10, 20]);
             expect(Arr.union([10, 20], undefined)).toEqual([10, 20]);
             expect(Arr.union(null, [10, 20])).toEqual([10, 20]);
+        });
+
+        it("reads a keyed or Collection-like operand by key, as PHP's + does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-keyed-operand"
+            expect(Arr.union([1, 2], { 2: "z" })).toEqual([1, 2, "z"]);
+            expect(Arr.union([1], { 3: "d" }, [9, 8, 7, 6])).toEqual([
+                1,
+                8,
+                7,
+                "d",
+            ]);
+            expect(Arr.union([1, 2], { all: () => ({ 2: "z" }) })).toEqual([
+                1,
+                2,
+                "z",
+            ]);
+        });
+
+        it("holds undefined at an index no operand fills, and has no place for a string key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-keyed-operand": PHP's "gap" and
+            // "string-key" results aren't lists; a list fills the gap with undefined, as replace does, and drops "a".
+            expect(Arr.union([1], { 3: "d" })).toEqual([
+                1,
+                undefined,
+                undefined,
+                "d",
+            ]);
+            expect(Arr.union([1, 2], { a: 5 })).toEqual([1, 2]);
         });
     });
 
