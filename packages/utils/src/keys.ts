@@ -156,6 +156,25 @@ export function reindexIntegerKeys<TValue>(
 }
 
 /**
+ * Renumber every key PHP stores as an integer to a fresh 0-based sequence, in order, as `array_shift`,
+ * `array_splice` and `array_unshift` do. Unlike `reindexIntegerKeys`, a negative key such as "-1" counts too.
+ *
+ * @param entries - The entries to renumber, in their intended order
+ * @returns The same entries with every integer key renumbered from 0
+ */
+export function renumberPhpIntegerKeys<TValue>(
+    entries: [string, TValue][],
+): [string, TValue][] {
+    let nextIndex = 0;
+
+    return entries.map(([key, value]) =>
+        isNumber(phpArrayKey(key))
+            ? [String(nextIndex++), value]
+            : [key, value],
+    );
+}
+
+/**
  * Define an own enumerable property on the target without going through a
  * setter, so a key such as `__proto__` becomes a real own key rather than
  * reaching `Object.prototype` through the inherited setter.

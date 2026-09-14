@@ -10,4 +10,6 @@ Fix `strictEqual(a, b)`: two plain objects holding the same entries in a differe
 
 Add `isPlainObject(value)`: whether a value is a plain object, one whose prototype is `Object.prototype` or `null`. Arrays, class instances and built-ins such as `Date` and `Map` are not.
 
+Add `renumberPhpIntegerKeys(entries)`: renumber every key PHP stores as an integer to a fresh 0-based sequence, in the order given, as `array_shift`, `array_splice` and `array_unshift` do. Unlike `reindexIntegerKeys`, a negative key such as `"-1"` counts too.
+
 Add `arrayableItems(items)`: the keyed twin of `arrayableValues`. It normalizes an operand the way Laravel's `getArrayableItems()` does, returning its entries as a plain object: nullish becomes `{}`, an Enumerable/Arrayable-like object unwraps via `all()`/`toArray()`/`toJSON()`, a Map, list or other iterable becomes an object, and a WeakMap or WeakSet, whose entries can't be read, becomes `{}`.

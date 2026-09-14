@@ -230,4 +230,61 @@ describe("Utils", () => {
             expect(Utils.phpArrayKey({ toString: () => "k" })).toBe("k");
         });
     });
+
+    describe("renumberPhpIntegerKeys", () => {
+        it("renumbers every key PHP stores as an integer, in order", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "unshift-numeric-key-order"
+            expect(
+                Utils.renumberPhpIntegerKeys([
+                    ["2", "c"],
+                    ["0", "a"],
+                    ["1", "b"],
+                ]),
+            ).toEqual([
+                ["0", "c"],
+                ["1", "a"],
+                ["2", "b"],
+            ]);
+        });
+
+        it("counts a negative key, which reindexIntegerKeys leaves alone", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "unshift-negative-int-key"
+            expect(
+                Utils.renumberPhpIntegerKeys([
+                    ["-1", "first"],
+                    ["5", "second"],
+                ]),
+            ).toEqual([
+                ["0", "first"],
+                ["1", "second"],
+            ]);
+            expect(
+                Utils.reindexIntegerKeys([
+                    ["-1", "first"],
+                    ["5", "second"],
+                ]),
+            ).toEqual([
+                ["-1", "first"],
+                ["0", "second"],
+            ]);
+        });
+
+        it("leaves a string key where it is", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "unshift-mixed-key-order"
+            expect(
+                Utils.renumberPhpIntegerKeys([
+                    ["2", "c"],
+                    ["x", "v"],
+                    ["0", "a"],
+                ]),
+            ).toEqual([
+                ["0", "c"],
+                ["x", "v"],
+                ["1", "a"],
+            ]);
+        });
+    });
 });
