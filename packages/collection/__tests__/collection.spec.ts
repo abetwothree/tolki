@@ -4847,6 +4847,59 @@ describe("Collection", () => {
     });
 
     describe("unshift", () => {
+        it("keeps a Map backing's own key order, as PHP's array does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "unshift-numeric-key-order"
+            const data = new Collection(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+            );
+
+            data.unshift("x");
+
+            expect(data.all()).toEqual({ 0: "x", 1: "c", 2: "a", 3: "b" });
+            expect(data.values().all()).toEqual(["x", "c", "a", "b"]);
+            expect(data.keys().all()).toEqual([0, 1, 2, 3]);
+        });
+
+        it("renumbers a Map backing's integer keys when given no items", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "unshift-no-items-numeric-key-order"
+            const data = new Collection(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+            );
+
+            data.unshift();
+
+            expect(data.all()).toEqual({ 0: "c", 1: "a", 2: "b" });
+            expect(data.values().all()).toEqual(["c", "a", "b"]);
+        });
+
+        it("leaves a Map backing's string keys where they are", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "unshift-mixed-key-order"
+            const data = new Collection(
+                new Map<number | string, string>([
+                    [2, "c"],
+                    ["x", "v"],
+                    [0, "a"],
+                ]),
+            );
+
+            data.unshift("n");
+
+            expect(data.all()).toEqual({ 0: "n", 1: "c", 2: "a", x: "v" });
+            expect(data.values().all()).toEqual(["n", "c", "v", "a"]);
+            expect(data.keys().all()).toEqual([0, 1, "x", 2]);
+        });
+
         describe("Laravel Tests", () => {
             it("test unshift with one item", () => {
                 const expected = [

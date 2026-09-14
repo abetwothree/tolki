@@ -1082,4 +1082,19 @@ probe('set-null-array-null-key', "\$a = null; Arr::set(\$a, null, 5)", function 
     return ['value' => $v, 'array' => $a];
 });
 
+// ---- unshift keeps the array's own order, which a Map-built Collection holds separately in JS
+probe('unshift-numeric-key-order', "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->unshift('x')", function () {
+    $c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']);
+    $c->unshift('x');
+
+    return ['all' => $c->all(), 'values' => $c->values()->all(), 'keys' => $c->keys()->all()];
+});
+probe('unshift-mixed-key-order', "(new Collection([2 => 'c', 'x' => 'v', 0 => 'a']))->unshift('n')", function () {
+    $c = new Collection([2 => 'c', 'x' => 'v', 0 => 'a']);
+    $c->unshift('n');
+
+    return ['all' => $c->all(), 'values' => $c->values()->all(), 'keys' => $c->keys()->all()];
+});
+probe('unshift-no-items-numeric-key-order', "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->unshift()", fn () => (new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->unshift()->all());
+
 emit();

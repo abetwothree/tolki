@@ -3938,6 +3938,63 @@
                 "value": 5,
                 "array": 5
             }
+        },
+        {
+            "label": "unshift-numeric-key-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->unshift('x')",
+            "value": {
+                "all": [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "unshift-mixed-key-order",
+            "php": "(new Collection([2 => 'c', 'x' => 'v', 0 => 'a']))->unshift('n')",
+            "value": {
+                "all": {
+                    "0": "n",
+                    "1": "c",
+                    "x": "v",
+                    "2": "a"
+                },
+                "values": [
+                    "n",
+                    "c",
+                    "v",
+                    "a"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    "x",
+                    2
+                ]
+            }
+        },
+        {
+            "label": "unshift-no-items-numeric-key-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->unshift()",
+            "value": [
+                "c",
+                "a",
+                "b"
+            ]
         }
     ]
 }

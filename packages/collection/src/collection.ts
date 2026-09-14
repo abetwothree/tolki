@@ -88,6 +88,7 @@ import {
     objectToString,
     phpArrayKey,
     reindexIntegerKeys,
+    renumberPhpIntegerKeys,
     strictEqual,
     toArrayable,
     toJsonable,
@@ -2467,6 +2468,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // dataUnshift rewrites an object backing in place, as array_unshift does by reference.
         if (isArray(this.items)) {
             this.items.unshift(...(values as unknown as TValue[]));
+        } else if (this.itemsWithOrder) {
+            this.unshiftOrdered(
+                this.itemsWithOrder,
+                values as unknown as TValue[],
+            );
         } else {
             dataUnshift(this.items, ...values);
         }
@@ -5776,6 +5782,41 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param items - The items to convert to an array or record
      * @returns The items preserving their original structure
      */
+    /**
+     * Prepend values to a backing that carries its own insertion order.
+     *
+     * @param ordered - The backing's entries, in insertion order
+     * @param values - The values to prepend
+     */
+    protected unshiftOrdered(
+        ordered: Array<[TKey, TValue]>,
+        values: TValue[],
+    ): void {
+        // A plain object re-sorts integer keys ascending, so delegating to dataUnshift would
+        // renumber the object's order, not the Map's that PHP keeps: [2 => c, 0 => a] unshifted
+        // gives [0 => x, 1 => c, 2 => a]. Renumber the ordered pairs, then rebuild both views.
+        const renumbered = renumberPhpIntegerKeys<TValue>([
+            ...values.map(
+                (value, index) => [String(index), value] as [string, TValue],
+            ),
+            ...ordered.map(
+                ([key, value]) => [String(key), value] as [string, TValue],
+            ),
+        ]);
+
+        const items = {} as Record<TKey, TValue>;
+
+        for (const [key, value] of renumbered) {
+            defineKey(items as Record<string, TValue>, key, value);
+        }
+
+        this.items = items;
+        this.itemsWithOrder = renumbered.map(([key, value]) => [
+            phpArrayKey(key) as TKey,
+            value,
+        ]);
+    }
+
     protected getRawItems(items: unknown): DataItems<TValue, TKey> {
         if (isNull(items) || isUndefined(items)) {
             return [] as DataItems<TValue, TKey>;
