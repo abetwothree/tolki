@@ -79,6 +79,7 @@ import {
     phpValueMatch,
     phpValueMatcher,
     reindexIntegerKeys,
+    renumberPhpIntegerKeys,
     resolveSliceRange,
     strictEqual,
     toPhpKeyString,
@@ -3524,25 +3525,6 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     return shiftedValues;
-}
-
-/**
- * Renumber every key PHP stores as an integer to a fresh 0-based sequence, in order, as `array_shift`,
- * `array_splice` and `array_pad` do. Unlike `reindexIntegerKeys`, a negative key such as "-1" counts too.
- *
- * @param entries - The entries to renumber, in their intended order
- * @returns The same entries with every integer key renumbered from 0
- */
-function renumberPhpIntegerKeys<TValue>(
-    entries: [string, TValue][],
-): [string, TValue][] {
-    let nextIndex = 0;
-
-    return entries.map(([key, value]) =>
-        isNumber(phpArrayKey(key))
-            ? [String(nextIndex++), value]
-            : [key, value],
-    );
 }
 
 /**
