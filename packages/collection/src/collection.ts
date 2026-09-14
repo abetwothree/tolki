@@ -18,6 +18,7 @@ import {
     dataExcept,
     dataFilter,
     dataFirst,
+    dataFlatten,
     dataFlip,
     dataForget,
     dataGet,
@@ -52,6 +53,7 @@ import {
     dataSplice,
     dataUndot,
     dataUnion,
+    dataUnshift,
     dataValues,
 } from "@tolki/data";
 import { SortDirection } from "@tolki/enum";
@@ -78,12 +80,15 @@ import {
     isNumber,
     isObject,
     isString,
+    isSymbol,
     isTruthy,
     isUndefined,
     isUnsafeKey,
     looseEqual,
     objectToString,
+    phpArrayKey,
     reindexIntegerKeys,
+    renumberPhpIntegerKeys,
     strictEqual,
     toArrayable,
     toJsonable,
@@ -511,14 +516,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * Determine if an item exists in the collection using strict comparison.
+     * Given a value, each item's `key` path is compared with it the way PHP's `===` compares, even a `null` value.
      *
-     * @param key - The value to search for
+     * @param key - The value to search for, or the path to compare when `value` is given
+     * @param value - The value the path must strictly equal
      * @returns True if the item exists using strict comparison, false otherwise
      *
      * @example
      *
      * new Collection([1, 2, 3]).containsStrict(2); -> true
      * new Collection([1, 2, 3]).containsStrict('2'); -> false
+     * new Collection([{tags: ['a']}]).containsStrict('tags', ['a']); -> true
      */
     containsStrict(key: (value: TValue, index: TKey) => unknown): boolean;
     containsStrict(key: unknown, value?: unknown): boolean;
@@ -526,13 +534,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: ((value: TValue, index: TKey) => unknown) | unknown,
         value?: unknown,
     ): boolean {
-        if (!isNull(value) && !isUndefined(value)) {
+        // PHP takes the two-argument form whenever a second argument is passed, a null one included.
+        if (!isUndefined(value)) {
             return this.contains((item) => {
-                return (
+                return strictEqual(
                     dataGet(
                         item as DataItems<unknown, PropertyKey>,
                         key as PathKey,
-                    ) === value
+                    ),
+                    value,
                 );
             });
         }
@@ -543,7 +553,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        return dataContains(this.items, (value: unknown) => value === key);
+        // Routes through dataContains's strict flag rather than `===`, so an array or plain
+        // object key matches by value, the way PHP's `in_array($key, $items, true)` does.
+        return dataContains(this.items, key as TValue, true);
     }
 
     /**
@@ -602,6 +614,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * Cross join with the given lists, returning all possible permutations.
+     * The collection's values are one dimension and each list's values another, whatever their keys.
      *
      * @param items - The lists to cross join with
      * @returns A new collection with the cross joined items
@@ -609,15 +622,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection([1, 2]).crossJoin([3, 4]); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
-     * new Collection({a: 1, b: 2}).crossJoin({c: 3, d: 4}); -> new Collection([{a: 1, c: 3}, {a: 1, d: 4}, {b: 2, c: 3}, {b: 2, d: 4}])
+     * new Collection({a: 1, b: 2}).crossJoin({c: 3, d: 4}); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
      */
     crossJoin(
         // Note: Collection<any, any> is intentional here due to TypeScript contravariance.
         // Collection<unknown, PropertyKey> breaks when passing typed collections.
         ...items: Array<DataItems<unknown, PropertyKey> | Collection<any, any>>
     ) {
+        // Collection::crossJoin hands $this->items to Arr::crossJoin as one argument, so an object backing
+        // is one dimension too, never obj.crossJoin's dimension per key.
         const results = dataCrossJoin(
-            this.items,
+            this.getItemValues(this.items),
             ...items.map((item) => this.getRawItems(item)),
         ) as DataItems<TValue, TKey>[];
 
@@ -980,7 +995,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Flatten a multi-dimensional collection into a single level.
      *
      * Laravel's flatten always returns an array-based collection, iterating over
-     * values and recursively flattening nested arrays.
+     * values and recursively flattening nested arrays. A nested collection's items
+     * are flattened too; any other object that isn't a plain object is kept whole.
      *
      * @param depth - The depth to flatten to, defaults to Infinity
      * @returns A new collection with flattened items (always array-based)
@@ -993,42 +1009,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: [1, [2, 3]], b: [4]}).flatten(1); -> new Collection([1, [2, 3], 4])
      */
     flatten(depth: number = Infinity) {
-        const result: unknown[] = [];
-
-        const flattenRecursive = (items: unknown, currentDepth: number) => {
-            // Get the values to iterate over
-            const values = isArray(items)
-                ? items
-                : Object.values(items as Record<PropertyKey, unknown>);
-
-            for (let item of values) {
-                // Convert Collection instances to their items
-                if (item instanceof Collection) {
-                    item = item.all();
-                }
-
-                // If item is not an array/object, add it directly
-                if (!isArray(item) && !isObject(item)) {
-                    result.push(item);
-                } else if (currentDepth === 1) {
-                    // Arr.php:373 spends the last level of depth on the
-                    // container's own values, so depth 1 still unwraps once.
-                    const itemValues = isArray(item)
-                        ? item
-                        : Object.values(item);
-                    for (const value of itemValues) {
-                        result.push(value);
-                    }
-                } else {
-                    // Recursively flatten
-                    flattenRecursive(item, currentDepth - 1);
-                }
-            }
-        };
-
-        flattenRecursive(this.items, depth);
-
-        return this.newInstance(result as DataItems<TValue, TKey>);
+        // Collection::flatten is Arr::flatten($this->items, $depth), which obj and arr flatten mirror.
+        return this.newInstance(dataFlatten(this.items, depth));
     }
 
     /**
@@ -1314,7 +1296,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Key an array or object by a field or using a callback, array, or key/index
+     * Key an array or object by a field or using a callback, array, or key/index.
+     * Each resolved key is stored the way PHP stores an array key: `null` as `""`, a boolean as `0`/`1`,
+     * and a float truncated toward zero.
      *
      * @param keyByValue - The key to key by, or a callback function
      * @returns A new collection with keyed items
@@ -1368,13 +1352,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 resolvedKey = resolvedKey.join(".");
             }
 
-            // Key null/undefined results under an empty string key,
-            // mirroring PHP's (string) null cast in Laravel
-            if (isNull(resolvedKey) || isUndefined(resolvedKey)) {
-                resolvedKey = "";
-            }
-
-            defineKey(results, resolvedKey as PropertyKey, value as TValue);
+            defineKey(
+                results,
+                isSymbol(resolvedKey) ? resolvedKey : phpArrayKey(resolvedKey),
+                value as TValue,
+            );
         }
 
         return this.newInstance(results);
@@ -2222,13 +2204,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * operator: this collection's own keys win, the argument only fills
      * keys it doesn't already have.
      *
-     * @param items - The items to union with. Must share this collection's backing — `dataUnion` throws otherwise.
-     * @returns A new collection with the union of items
+     * @param items - The items to union with: a list or an object, whatever this collection's backing.
+     * @returns A new collection with the union of items; object-backed once its keys aren't `0..n-1`
      *
      * @example
      *
      * new Collection([1, 2, 3]).union([3, 4, 5]); -> new Collection([1, 2, 3])
      * new Collection([1, 2]).union([3, 4, 5]); -> new Collection([1, 2, 5])
+     * new Collection([1, 2]).union({a: 3}); -> new Collection({0: 1, 1: 2, a: 3})
      * new Collection({a: 1, b: 2}).union({b: 2, c: 3}); -> new Collection({a: 1, b: 2, c: 3})
      */
     union<T, K extends PropertyKey>(
@@ -2398,12 +2381,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Push an item onto the beginning of the collection.
      *
      * @param value - The value to prepend
-     * @param key - The key to prepend the value at, or null to append
+     * @param key - The key to prepend the value at, cast as PHP casts an array key (null files it under "");
+     *   a list backing given any key but 0 becomes object-backed, as PHP's keyed array does
      * @returns The collection instance for chaining
      *
      * @example
      *
      * new Collection([2, 3]).prepend(1); -> new Collection([1, 2, 3])
+     * new Collection([2, 3]).prepend(1, 'a'); -> new Collection({a: 1, 0: 2, 1: 3})
      * new Collection({b: 2, c: 3}).prepend(1, 'a'); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection([]).prepend(1); -> new Collection([1])
      * new Collection({}).prepend(1, 'a'); -> new Collection({a: 1})
@@ -2476,38 +2461,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([2, 3]).unshift(1); -> new Collection([1, 2, 3])
      * new Collection([3, 4]).unshift(1, 2); -> new Collection([1, 2, 3, 4])
      * new Collection([4, 5, 6]).unshift(['a', 'b', 'c']); -> new Collection([['a', 'b', 'c'], 4, 5, 6])
+     * new Collection({b: 2}).unshift({a: 1}); -> new Collection({0: {a: 1}, b: 2})
      */
     unshift<T>(...values: T[]) {
+        // Arrays stay on the built-in unshift, which keeps the undefined items Arr.unshift drops;
+        // dataUnshift rewrites an object backing in place, as array_unshift does by reference.
         if (isArray(this.items)) {
-            // For arrays, use built-in unshift
-            (this.items as TValue[]).unshift(
-                ...(values as unknown as TValue[]),
+            this.items.unshift(...(values as unknown as TValue[]));
+        } else if (this.itemsWithOrder) {
+            this.unshiftOrdered(
+                this.itemsWithOrder,
+                values as unknown as TValue[],
             );
         } else {
-            // For objects, we need to rebuild the entire object with new numeric indices
-            const oldItems = { ...this.items };
-            const newItems: Record<PropertyKey, T> = {};
-
-            // Add new values with numeric indices starting at 0
-            let index = 0;
-            for (const value of values) {
-                newItems[index] = value;
-                index++;
-            }
-
-            // Add old items, renumbering numeric keys and keeping string keys
-            for (const [key, value] of Object.entries(oldItems)) {
-                if (isIntegerLikeKey(key)) {
-                    // Renumber numeric keys
-                    newItems[index] = value as T;
-                    index++;
-                } else {
-                    // Keep string keys as-is
-                    defineKey(newItems as Record<string, T>, key, value as T);
-                }
-            }
-
-            this.items = newItems as unknown as DataItems<TValue, TKey>;
+            dataUnshift(this.items, ...values);
         }
 
         return this;
@@ -2718,11 +2685,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * `getRawItems` (which always returns `[]`) so it dispatches on `this.items`'s shape.
      *
      * @param items - The items to replace with
-     * @returns A new collection with the replaced items
+     * @returns A new collection with the replaced items; object-backed once its keys aren't `0..n-1`
      *
      * @example
      *
-     * new Collection([1, 2, 3]).replace([4, 5]); -> new Collection([4, 5])
+     * new Collection([1, 2, 3]).replace([4, 5]); -> new Collection([4, 5, 3])
+     * new Collection([1, 2, 3]).replace({1: 9, k: 'y'}); -> new Collection({0: 1, 1: 9, 2: 3, k: 'y'})
      */
     replace<T, K extends PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null,
@@ -2744,12 +2712,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * reason as `replace` above.
      *
      * @param items - The items to replace with
-     * @returns A new collection with the recursively replaced items
+     * @returns A new collection with the recursively replaced items; object-backed once its keys aren't `0..n-1`
      *
      * @example
      *
-     * new Collection({a: {b: 1}}).replaceRecursive({a: {c: 2}}); -> new Collection({a: {c: 2}})
-     * new Collection([1, [2, 3]]).replaceRecursive([4, [5]]); -> new Collection([4, [5]])
+     * new Collection({a: {b: 1}}).replaceRecursive({a: {c: 2}}); -> new Collection({a: {b: 1, c: 2}})
+     * new Collection(['a']).replaceRecursive({3: 'x'}); -> new Collection({0: 'a', 3: 'x'})
+     * new Collection([1, [2, 3]]).replaceRecursive([4, [5]]); -> new Collection([4, [5, 3]])
      * new Collection([1, {a: 2}]).replaceRecursive([{b: 3}, {a: 4}]); -> new Collection([{b: 3}, {a: 4}])
      */
     replaceRecursive<T, K extends PropertyKey>(
@@ -2901,7 +2870,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection([1, 2, 3]).shuffle(); -> new Collection([3, 1, 2])
-     * new Collection({a: 1, b: 2, c: 3}).shuffle(); -> new Collection({b: 2, c: 3, a: 1})
+     * new Collection({a: 1, b: 2, c: 3}).shuffle(); -> new Collection({0: 2, 1: 3, 2: 1})
      */
     shuffle() {
         return this.newInstance(dataShuffle(this.items));
@@ -5813,6 +5782,41 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param items - The items to convert to an array or record
      * @returns The items preserving their original structure
      */
+    /**
+     * Prepend values to a backing that carries its own insertion order.
+     *
+     * @param ordered - The backing's entries, in insertion order
+     * @param values - The values to prepend
+     */
+    protected unshiftOrdered(
+        ordered: Array<[TKey, TValue]>,
+        values: TValue[],
+    ): void {
+        // A plain object re-sorts integer keys ascending, so delegating to dataUnshift would
+        // renumber the object's order, not the Map's that PHP keeps: [2 => c, 0 => a] unshifted
+        // gives [0 => x, 1 => c, 2 => a]. Renumber the ordered pairs, then rebuild both views.
+        const renumbered = renumberPhpIntegerKeys<TValue>([
+            ...values.map(
+                (value, index) => [String(index), value] as [string, TValue],
+            ),
+            ...ordered.map(
+                ([key, value]) => [String(key), value] as [string, TValue],
+            ),
+        ]);
+
+        const items = {} as Record<TKey, TValue>;
+
+        for (const [key, value] of renumbered) {
+            defineKey(items as Record<string, TValue>, key, value);
+        }
+
+        this.items = items;
+        this.itemsWithOrder = renumbered.map(([key, value]) => [
+            phpArrayKey(key) as TKey,
+            value,
+        ]);
+    }
+
     protected getRawItems(items: unknown): DataItems<TValue, TKey> {
         if (isNull(items) || isUndefined(items)) {
             return [] as DataItems<TValue, TKey>;

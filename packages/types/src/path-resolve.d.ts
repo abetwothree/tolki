@@ -310,3 +310,202 @@ export type PluckValue<TItem, TPath> =
                     : TResolved
                 : never
             : unknown;
+
+type ObjectPathDepth = [never, 0, 1, 2, 3, 4];
+
+/** `T`'s declared keys, without its string, number or symbol index signatures. */
+type KnownObjectKeys<T> = keyof {
+    [K in keyof T as string extends K
+        ? never
+        : number extends K
+          ? never
+          : symbol extends K
+            ? never
+            : K]: unknown;
+};
+
+/**
+ * Whether `T` is the bare `object` type: it names no key, yet any object's entries may sit behind it. `{}`, which a
+ * string also fits, is the type of an empty object literal, so it stays keyless.
+ */
+type IsBareObject<T> = [keyof T] extends [never]
+    ? string extends T
+        ? false
+        : T extends (...args: never[]) => unknown
+          ? false
+          : true
+    : false;
+
+/** One step through an index signature: always possibly missing. A numeric segment also reads a number index. */
+type ObjectIndexStep<T, K extends string> = K extends keyof T
+    ? [T[K & keyof T], true]
+    : K extends `${infer N extends number}`
+      ? N extends keyof T
+          ? [T[N & keyof T], true]
+          : [never, true]
+      : [never, true];
+
+/**
+ * Resolves one path segment to `[value, mayBeMissing]`. `get()` walks only objects and lists, so a scalar or function
+ * ends the path; a built-in object's members are mostly on its prototype, which `Object.hasOwn` doesn't see.
+ */
+type ObjectPathStep<T, K extends string> = T extends readonly unknown[]
+    ? K extends `${infer N extends number}`
+        ? N extends KnownObjectKeys<T>
+            ? [T[N], false]
+            : [T[number], true]
+        : [never, true]
+    : T extends
+            | string
+            | number
+            | boolean
+            | bigint
+            | symbol
+            | ((...args: never[]) => unknown)
+      ? [never, true]
+      : T extends
+              | Date
+              | RegExp
+              | Promise<unknown>
+              | ReadonlyMap<unknown, unknown>
+              | ReadonlySet<unknown>
+              | WeakMap<object, unknown>
+              | WeakSet<object>
+        ? [T[K & keyof T], true]
+        : IsBareObject<T> extends true
+          ? [unknown, true]
+          : ObjectKeyStep<T, K>;
+
+/** One segment through an object with declared keys or index signatures. */
+type ObjectKeyStep<T, K extends string> =
+    K extends KnownObjectKeys<T>
+        ? [T[K], false]
+        : K extends `${infer N extends number}`
+          ? N extends KnownObjectKeys<T>
+              ? [T[N & keyof T], false]
+              : ObjectIndexStep<T, K>
+          : ObjectIndexStep<T, K>;
+
+type ObjectSegmentMissing<V, M> = M extends true
+    ? true
+    : null extends V
+      ? true
+      : undefined extends V
+        ? true
+        : false;
+
+/** Walks a dot path to `[resolvedValue, mayBeMissing]`. */
+type ObjectPathWalk<
+    T,
+    P extends string,
+> = P extends `${infer Head}.${infer Rest}`
+    ? ObjectPathStep<T, Head> extends [infer V, infer M]
+        ? unknown extends V
+            ? [unknown, true]
+            : [NonNullable<V>] extends [never]
+              ? [never, true]
+              : ObjectPathWalk<NonNullable<V>, Rest> extends [
+                      infer RV,
+                      infer RM,
+                  ]
+                ? [RV, ObjectSegmentMissing<V, M> | RM]
+                : never
+        : never
+    : ObjectPathLeaf<T, P>;
+
+/** A path's last segment: `[value, mayBeMissing]`, where an `undefined` value counts as missing. */
+type ObjectPathLeaf<T, K extends string> =
+    ObjectPathStep<T, K> extends [infer V, infer M]
+        ? [
+              Exclude<V, undefined>,
+              M extends true ? true : undefined extends V ? true : false,
+          ]
+        : never;
+
+/**
+ * A path from the top, the way `get()` reads it, for each member of `T`: a number key is one literal key and never
+ * walks, and a dotted path is read as one literal key first whenever `T` may hold it.
+ */
+type ObjectPathTop<T, P> = T extends unknown
+    ? P extends number
+        ? ObjectPathLeaf<T, `${P}`>
+        : P extends `${string}.${string}`
+          ? ObjectPathLiteral<T, P> extends true
+              ? ObjectPathLeaf<T, P>
+              : ObjectPathLiteral<T, P> extends false
+                ? ObjectPathWalk<T, P>
+                : ObjectPathLeaf<T, P> | ObjectPathWalk<T, P>
+          : P extends string
+            ? ObjectPathWalk<T, P>
+            : never
+    : never;
+
+/** Whether `get()` reads dotted path `P` as one literal key of `T`: always, never, or maybe (then it walks). */
+type ObjectPathLiteral<T, P extends string> =
+    P extends KnownObjectKeys<T>
+        ? Record<never, never> extends Pick<T, P & keyof T>
+            ? boolean
+            : true
+        : string extends keyof T
+          ? boolean
+          : P extends `${number}`
+            ? number extends keyof T
+                ? boolean
+                : false
+            : false;
+
+/**
+ * Every value a dot path through `T` can reach, to a bounded depth. Used when
+ * a path is a widened `string`, so it may address any node; past the depth
+ * bound it widens to `unknown`.
+ *
+ * @example
+ * ObjectPathValue<{ a: { b: number } }> // { b: number } | number
+ */
+export type ObjectPathValue<T, D extends number = 5> = [D] extends [never]
+    ? unknown
+    : T extends readonly (infer E)[]
+      ?
+            | Exclude<E, undefined>
+            | ObjectPathValue<NonNullable<E>, ObjectPathDepth[D]>
+      : T extends (...args: never[]) => unknown
+        ? never
+        : T extends object
+          ? [keyof T] extends [never]
+              ? unknown
+              : {
+                    [K in keyof T]-?:
+                        | Exclude<T[K], undefined>
+                        | ObjectPathValue<
+                              NonNullable<T[K]>,
+                              ObjectPathDepth[D]
+                          >;
+                }[keyof T]
+          : never;
+
+/**
+ * Resolves the value at a dot path within an object, adding `TDefault`
+ * exactly when the path may not exist: an optional or nullable segment, an
+ * index-signature key, an array index, or a key the type does not declare.
+ * A `null` leaf is returned as `null`, not the default, like `Arr::get`.
+ *
+ * Unlike {@link ArrayResolvePath}, a literal path is only trusted through
+ * declared keys: arrays have no declared indices, objects usually do. As in
+ * `get()`, a top-level key is read literally first, and a number key never walks.
+ *
+ * @example
+ * ObjectResolvePath<{ a: { b: number } }, "a.b">          // number
+ * ObjectResolvePath<{ a?: { b: number } }, "a.b">         // number | null
+ * ObjectResolvePath<Record<string, number>, "x", 0>       // number | 0
+ * ObjectResolvePath<{ a: number }, null>                  // { a: number }
+ * ObjectResolvePath<{ a: { b: number } }, string>         // { b: number } | number | null
+ */
+export type ObjectResolvePath<T, P, TDefault = null> = P extends
+    | null
+    | undefined
+    ? T
+    : Record<never, never> extends Record<P & (string | number), unknown>
+      ? ObjectPathValue<T> | TDefault
+      : ObjectPathTop<T, P> extends [infer V, infer M]
+        ? V | (true extends M ? TDefault : never)
+        : TDefault;

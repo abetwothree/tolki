@@ -6,6 +6,22 @@ import { afterEach, assertType, describe, expect, it } from "vitest";
 const strcasecmp = (a: unknown, b: unknown) =>
     String(a).toLowerCase() === String(b).toLowerCase();
 
+/**
+ * Wrap items in the smallest Collection-like operand, which obj unwraps through `all()`.
+ *
+ * @param items - The items `all()` returns
+ * @returns An object whose `all()` returns the items
+ */
+const collectionLike = <T>(items: T) => ({ all: () => items });
+
+/**
+ * A class instance with own fields, which PHP's array helpers keep whole instead of walking.
+ */
+class Point {
+    x = 1;
+    y = 2;
+}
+
 describe("Data", () => {
     describe("dataAdd", () => {
         it("is object", () => {
@@ -112,6 +128,13 @@ describe("Data", () => {
                 ),
             ).toEqual(["not found"]);
         });
+
+        it("names the found type the way PHP's gettype does, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "array-int-value"
+            expect(() => Data.dataItem({ a: 5 }, "a")).toThrow(
+                "Object value for key [a] must be an object, integer found.",
+            );
+        });
     });
 
     describe("dataBoolean", () => {
@@ -147,16 +170,14 @@ describe("Data", () => {
             assertType<
                 Record<
                     number,
-                    Record<
-                        number,
-                        {
-                            a: number;
-                            b: number;
-                            c: number;
-                            d: number;
-                            e: number;
-                        }
-                    >
+                    | Partial<{
+                          a: number;
+                          b: number;
+                          c: number;
+                          d: number;
+                          e: number;
+                      }>
+                    | Record<number, number>
                 >
             >(result);
 
@@ -315,6 +336,21 @@ describe("Data", () => {
     });
 
     describe("dataCollapse", () => {
+        it("skips a Date item through the list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects"
+            expect(Data.dataCollapse([[1], new Date(0), [2]])).toEqual([1, 2]);
+        });
+        it("skips a class instance item through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects"
+            class Point {
+                x = 1;
+                y = 2;
+            }
+
+            expect(
+                Data.dataCollapse({ g1: { a: 1 }, g2: new Point() }),
+            ).toEqual({ a: 1 });
+        });
         it("is object", () => {
             const obj = { a: { x: 1 }, b: { y: 2 }, c: { z: 3 } };
             expect(Data.dataCollapse(obj)).toEqual({ x: 1, y: 2, z: 3 });
@@ -336,13 +372,55 @@ describe("Data", () => {
                 ]),
             ).toEqual([1, 2, 3, 4]);
         });
+
+        it("collapses list values, appending their elements, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-assoc-of-lists"
+            expect(Data.dataCollapse({ a: [1, 2], b: [3] })).toEqual({
+                0: 1,
+                1: 2,
+                2: 3,
+            });
+        });
+
+        it("keeps list items beside an object item and unwraps Collection-like items on a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-list-then-map", "collapse-collection-items"
+            expect(Data.dataCollapse([[1, 2], { x: 1, 0: "z" }])).toEqual({
+                0: 1,
+                1: 2,
+                2: "z",
+                x: 1,
+            });
+            expect(
+                Data.dataCollapse([
+                    collectionLike([1, 2]),
+                    5,
+                    collectionLike([3]),
+                ]),
+            ).toEqual([1, 2, 3]);
+        });
+
+        it("merges a Collection-like item's items through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-assoc-collection-item"
+            expect(
+                Data.dataCollapse({ a: collectionLike({ x: 1 }), b: { y: 2 } }),
+            ).toEqual({ x: 1, y: 2 });
+        });
+
+        it("renumbers a negative integer key through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-negative-int-keys"
+            expect(
+                Data.dataCollapse({
+                    g1: { "-1": "a", k: "b" },
+                    g2: { "-1": "c" },
+                }),
+            ).toEqual({ 0: "a", 1: "c", k: "b" });
+        });
     });
 
     describe("dataCombine", () => {
         it("is object", () => {
-            // Four keys, four values — equal counts. Plain String coercion, not
-            // function-calling — see obj.spec.ts's combine tests for the dedicated
-            // function-key case.
+            // Four keys, four values; obj.spec.ts's combine tests cover a function key.
+            // JS-only: PHP has no undefined; toPhpKeyString keys it "" as array_combine keys null.
             const keys = {
                 1: "name",
                 2: "family",
@@ -356,7 +434,7 @@ describe("Data", () => {
                 name: "John",
                 family: "Doe",
                 role: "admin",
-                undefined: "N/A",
+                "": "N/A",
             });
         });
 
@@ -370,11 +448,14 @@ describe("Data", () => {
             expect(result).toEqual({ 1: 4, 2: 5, 3: 6 });
         });
 
-        it("throws error on mismatched types", () => {
-            // @ts-expect-error Testing runtime error for mismatched types
-            expect(() => Data.dataCombine([1, 2, 3], { a: 1 })).toThrowError();
-            // @ts-expect-error Testing runtime error for mismatched types
-            expect(() => Data.dataCombine({ a: 1 }, [1, 2, 3])).toThrowError();
+        it("combines a list with a keyed operand, and an object with a list operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "combine-list-keyed-values", "D5 combine null/bool/float keys"
+            expect(Data.dataCombine([1, 2], { a: "x", b: "y" })).toEqual({
+                1: "x",
+                2: "y",
+            });
+            expect(Data.dataCombine({ k: null }, [1])).toEqual({ "": 1 });
         });
 
         // PHP raises a ValueError on a key/value count mismatch; PHP-verified message
@@ -389,6 +470,40 @@ describe("Data", () => {
             ).toThrow(
                 "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
             );
+        });
+
+        it("casts null, true and false keys the way array_combine does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
+            expect(Data.dataCombine({ k: null }, [1])).toEqual({ "": 1 });
+            expect(Data.dataCombine({ k: true }, [1])).toEqual({ 1: 1 });
+            expect(Data.dataCombine({ k: false }, [1])).toEqual({ "": 1 });
+        });
+
+        it("keys a float by PHP's (string) cast, through both backings", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "combine-float-keys"
+            expect(
+                Object.keys(
+                    Data.dataCombine({ a: NaN, b: 1 / 3 }, { a: 1, b: 2 }),
+                ),
+            ).toEqual(["NAN", "0.33333333333333"]);
+            expect(
+                Object.keys(Data.dataCombine([1.5e300, 5e-324], [1, 2])),
+            ).toEqual(["1.5E+300", "4.9406564584125E-324"]);
+        });
+
+        it("reads an object backing's own values as the keys, without calling its all()", () => {
+            // JS-only: Collection::combine keys by $this->all(), an array with no methods; JS objects inherit them.
+            class Repo {
+                name = "repo";
+
+                all() {
+                    return ["CALLED"];
+                }
+            }
+
+            expect(Data.dataCombine(new Repo() as never, [1])).toEqual({
+                repo: 1,
+            });
         });
     });
 
@@ -417,6 +532,58 @@ describe("Data", () => {
                 [1, "b"],
                 [2, "a"],
                 [2, "b"],
+            ]);
+        });
+
+        it("multiplies every key of one argument, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "crossJoin-string-spread", "crossJoin-string-spread-3"
+            expect(
+                Data.dataCrossJoin({
+                    size: ["S", "M"],
+                    color: ["red", "blue"],
+                }),
+            ).toEqual([
+                { size: "S", color: "red" },
+                { size: "S", color: "blue" },
+                { size: "M", color: "red" },
+                { size: "M", color: "blue" },
+            ]);
+
+            // A third key ("c") multiplies every prior row again.
+            expect(
+                Data.dataCrossJoin({
+                    a: [1, 2],
+                    b: ["x"],
+                    c: ["I", "II"],
+                }),
+            ).toEqual([
+                { a: 1, b: "x", c: "I" },
+                { a: 1, b: "x", c: "II" },
+                { a: 2, b: "x", c: "I" },
+                { a: 2, b: "x", c: "II" },
+            ]);
+        });
+
+        it("walks a plain-object argument's values, through the list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-list-map-dimension"
+            expect(Data.dataCrossJoin([1, 2], { a: "x", b: "y" })).toEqual([
+                [1, "x"],
+                [1, "y"],
+                [2, "x"],
+                [2, "y"],
+            ]);
+        });
+
+        it("walks a plain-object dimension's values, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-string-spread-map-dimension"
+            expect(
+                Data.dataCrossJoin({ a: [1, 2], b: { k: "x", j: "y" } }),
+            ).toEqual([
+                { a: 1, b: "x" },
+                { a: 1, b: "y" },
+                { a: 2, b: "x" },
+                { a: 2, b: "y" },
             ]);
         });
     });
@@ -474,6 +641,24 @@ describe("Data", () => {
                 "1.0": 2,
                 "1.1": [3, [4]],
             });
+        });
+
+        it("concatenates the prepend string without adding a dot", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-prepend-no-dot"
+            expect(Data.dataDot({ name: "John" }, "user")).toEqual({
+                username: "John",
+            });
+        });
+
+        it("keeps a class instance as a leaf, through both backings", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-object-leaf"
+            const point = new Point();
+            const list = Data.dataDot([point]);
+            const map = Data.dataDot({ p: point });
+            expect(Object.keys(list)).toEqual(["0"]);
+            expect(list["0"]).toBe(point);
+            expect(Object.keys(map)).toEqual(["p"]);
+            expect(map["p"]).toBe(point);
         });
     });
 
@@ -535,9 +720,46 @@ describe("Data", () => {
             expect(result).toEqual([1, 2, 5]);
         });
 
-        it("throws error on mismatched types", () => {
-            expect(() => Data.dataUnion({ a: 1 }, [1, 2])).toThrowError();
-            expect(() => Data.dataUnion([1, 2], { a: 1 })).toThrowError();
+        it("unions an object with a list operand, and a list with a keyed operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-operand", "list-backing-keyed-operand"
+            expect(Data.dataUnion({ a: 1 }, [5])).toEqual({ a: 1, 0: 5 });
+            expect(Data.dataUnion(["a", "b"], { 2: "z" })).toEqual([
+                "a",
+                "b",
+                "z",
+            ]);
+        });
+
+        it("returns the keyed result when a keyed operand leaves a list backing's keys other than 0..n-1", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-backing-keyed-result"
+            expect(Data.dataUnion([], { a: 1 })).toEqual({ a: 1 });
+            expect(Data.dataUnion([1, 2], { a: 1, 5: 9 })).toEqual({
+                0: 1,
+                1: 2,
+                a: 1,
+                5: 9,
+            });
+            expect(Data.dataUnion([1, 2], { "-1": 9 })).toEqual({
+                0: 1,
+                1: 2,
+                "-1": 9,
+            });
+            expect(Data.dataUnion([1], { 3: 4 })).toEqual({ 0: 1, 3: 4 });
+        });
+
+        it("stays keyed once an operand leaves a gap, even when a later one fills it", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-backing-keyed-result"
+            expect(Data.dataUnion([1], { 3: 4 }, [9, 8, 7, 6])).toEqual({
+                0: 1,
+                1: 8,
+                2: 7,
+                3: 4,
+            });
+        });
+
+        it("returns an empty list when every operand is nullish", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-all-nullish"
+            expect(Data.dataUnion(null, undefined)).toEqual([]);
         });
 
         it("lets the left operand win even when its value is undefined", () => {
@@ -557,6 +779,31 @@ describe("Data", () => {
             expect(Data.dataUnion([10, 20], null)).toEqual([10, 20]);
             expect(Data.dataUnion({ a: 1 }, undefined)).toEqual({ a: 1 });
             expect(Data.dataUnion(null, [10, 20])).toEqual([10, 20]);
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C18 union collection"
+            expect(
+                Data.dataUnion(
+                    { name: "Hello" },
+                    collectionLike({ name: "World", id: 1 }) as never,
+                ),
+            ).toEqual({ name: "Hello", id: 1 });
+        });
+
+        it("reads the backing by its own entries, never calling a function-valued all member", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-function-valued-member"
+            let calls = 0;
+            const all = () => {
+                calls++;
+
+                return "X";
+            };
+
+            expect(Data.dataUnion({ all, admin: all }, { guest: all })).toEqual(
+                { all, admin: all, guest: all },
+            );
+            expect(calls).toBe(0);
         });
     });
 
@@ -595,6 +842,31 @@ describe("Data", () => {
             expect(
                 Data.dataExists({ "products.desk": {} }, "products.desk"),
             ).toBe(true);
+        });
+
+        it("finds a key holding null and casts a null key to the empty string", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "exists-null-value", "exists-null-key-empty-string"
+            expect(Data.dataExists({ a: null }, "a")).toBe(true);
+            expect(Data.dataExists({ "": 1 }, null)).toBe(true);
+        });
+
+        it("does not find a non-canonical or null key in a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "exists-list-non-canonical-keys", "exists-list-null-and-float-keys"
+            expect(Data.dataExists([1, 2, 3], "01")).toBe(false);
+            expect(Data.dataExists([1, 2, 3], null)).toBe(false);
+        });
+
+        it("looks -0 up as the key '-0', through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "exists-float-key-cast"
+            expect(Data.dataExists({ 0: 1 }, -0)).toBe(false);
+            expect(Data.dataExists({ "-0": 1 }, -0)).toBe(true);
+        });
+
+        it("looks -0 up as the key '-0', through the list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "exists-float-key-cast"
+            expect(Data.dataExists([1], -0)).toBe(false);
         });
     });
 
@@ -668,6 +940,28 @@ describe("Data", () => {
                 "#baz",
                 "#zap",
             ]);
+        });
+
+        it("keeps a class instance or Date whole, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "flatten-object-leaf"
+            const point = new Point();
+            const date = new Date(0);
+            const result = Data.dataFlatten({ a: point, b: [date] });
+
+            expect(result).toHaveLength(2);
+            expect(result[0]).toBe(point);
+            expect(result[1]).toBe(date);
+        });
+
+        it("keeps a class instance or Date whole, through the list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "flatten-object-leaf"
+            const point = new Point();
+            const date = new Date(0);
+            const result = Data.dataFlatten([date, [point]]);
+
+            expect(result).toHaveLength(2);
+            expect(result[0]).toBe(date);
+            expect(result[1]).toBe(point);
         });
     });
 
@@ -857,6 +1151,27 @@ describe("Data", () => {
             );
             expect(result).toEqual({ price: 100 });
         });
+
+        it("traverses a nested list with numeric segments, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "get-through-list", "get-through-list-2", "get-through-list-missing"
+            const obj = { products: [{ name: "desk" }, { name: "chair" }] };
+
+            expect(Data.dataGet(obj, "products.0.name")).toBe("desk");
+            expect(Data.dataGet(obj, "products.1.name")).toBe("chair");
+            expect(Data.dataGet(obj, "products.2.name", "none")).toBe("none");
+        });
+
+        it("returns the default for a non-canonical index, through the list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-non-canonical-index"
+            expect(Data.dataGet(["x", "y"], "01", "d")).toBe("d");
+            expect(Data.dataGet([["x", "y"]], "0.1e0", "d")).toBe("d");
+        });
+
+        it("looks an integer segment up as the own key of an object, through the list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-int-segment-into-map"
+            expect(Data.dataGet([{ k: "v", 0: "x" }], "0.0", "d")).toBe("x");
+        });
     });
 
     describe("dataHas", () => {
@@ -890,6 +1205,12 @@ describe("Data", () => {
         it("does not leak Array.prototype through the array backing", () => {
             expect(Data.dataHas([1, 2], "length")).toBe(false);
             expect(Data.dataHas([1, 2], "toString")).toBe(false);
+        });
+
+        it("looks up the empty-string key for a null inside a key list, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "has-empty-string-key-null-in-list"
+            expect(Data.dataHas({ "": "some" }, [null])).toBe(true);
         });
     });
 
@@ -1094,6 +1415,17 @@ describe("Data", () => {
             });
         });
 
+        it("hands the callback each item's key, a list's index included", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "keyBy-list-callback-key", "keyBy callback receives the key"
+            expect(
+                Data.dataKeyBy([{ id: 1 }, { id: 2 }], (_, key) => `k${key}`),
+            ).toEqual({ k0: { id: 1 }, k1: { id: 2 } });
+            expect(Data.dataKeyBy({ x: { id: 1 } }, (_, key) => key)).toEqual({
+                x: { id: 1 },
+            });
+        });
+
         it("keys array items with a null key value under an empty string key", () => {
             const users = [
                 { rating: 1, name: "1" },
@@ -1115,6 +1447,21 @@ describe("Data", () => {
             expect(result).toEqual({
                 1: { rating: 1, name: "1" },
                 "": { rating: 2, name: null },
+            });
+        });
+
+        it("casts a bool key the way PHP stores an array offset, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-scalar-key-cast"
+            expect(
+                Data.dataKeyBy({ a: { k: true }, b: { k: false } }, "k"),
+            ).toEqual({ 1: { k: true }, 0: { k: false } });
+        });
+
+        it("casts a bool key the way PHP stores an array offset, through the list backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-scalar-key-cast"
+            expect(Data.dataKeyBy([{ k: true }, { k: false }], "k")).toEqual({
+                1: { k: true },
+                0: { k: false },
             });
         });
     });
@@ -1261,9 +1608,33 @@ describe("Data", () => {
             const result = Data.dataMapSpread(data, (a, b) => a + b);
             expect(result).toEqual([3, 7]);
         });
+
+        it("spreads a list row and appends the key, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "mapSpread-tuples", "mapSpread-tuples-key"
+            const data = { x: [1, "a"], y: [2, "b"] };
+
+            expect(
+                Data.dataMapSpread(data, (n, c) => `${String(n)}-${String(c)}`),
+            ).toEqual({ x: "1-a", y: "2-b" });
+
+            // The callback's third argument is the appended key.
+            expect(
+                Data.dataMapSpread(
+                    data,
+                    (n, c, k) => `${String(n)}-${String(c)}-${String(k)}`,
+                ),
+            ).toEqual({ x: "1-a-x", y: "2-b-y" });
+        });
     });
 
     describe("dataPrepend", () => {
+        it("casts its key the way PHP casts an array key on an object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-key-cast"
+            expect(Data.dataPrepend({ a: 1, 1: 5 }, 9, 1.5)).toEqual({
+                1: 9,
+                a: 1,
+            });
+        });
         it("is object", () => {
             const result = Data.dataPrepend({ b: 2, c: 3 }, 1, "a");
             expect(result).toEqual({
@@ -1275,6 +1646,39 @@ describe("Data", () => {
         it("is array", () => {
             const result = Data.dataPrepend([2, 3], 1);
             expect(result).toEqual([1, 2, 3]);
+        });
+        it("unshifts under key 0 when no key is given", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-assoc-no-key"
+            expect(Data.dataPrepend({ one: 1, two: 2 }, 0)).toEqual({
+                0: 0,
+                one: 1,
+                two: 2,
+            });
+        });
+        it("renumbers a negative integer key when no key is given", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-negative-int-key-no-key"
+            expect(Data.dataPrepend({ "-1": "a", x: "b" }, "z")).toEqual({
+                0: "z",
+                1: "a",
+                x: "b",
+            });
+        });
+        it("returns PHP's keyed result for a list given a key, which stays a list only for key 0", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key"
+            expect(Data.dataPrepend(["b", "c"], "a", 0)).toEqual(["a", "c"]);
+            expect(Data.dataPrepend(["b", "c"], "a", "k")).toEqual({
+                k: "a",
+                0: "b",
+                1: "c",
+            });
+            expect(Data.dataPrepend(["b", "c"], "a", 1)).toEqual({
+                1: "a",
+                0: "b",
+            });
+            expect(Data.dataPrepend(["b", "c"], "a", 1.5)).toEqual({
+                1: "a",
+                0: "b",
+            });
         });
     });
 
@@ -1492,6 +1896,13 @@ describe("Data", () => {
     });
 
     describe("dataShift", () => {
+        it("renumbers a negative integer key through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "shift-negative-int-keys"
+            const data = { x: "a", "-1": "b", y: "c" };
+
+            expect(Data.dataShift(data)).toBe("a");
+            expect(data).toEqual({ 0: "b", y: "c" });
+        });
         it("is object", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const result = Data.dataShift(obj);
@@ -1652,14 +2063,30 @@ describe("Data", () => {
 
     describe("dataUnshift", () => {
         it("is object", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D1b unshift two assoc items onto assoc"
             const source = { b: 2 };
             const result = Data.dataUnshift(source, { a: 1 }, { d: "house" });
             expect(result).toEqual({
-                a: 1,
-                d: "house",
+                0: { a: 1 },
+                1: { d: "house" },
                 b: 2,
             });
-            expect(source).toEqual({ a: 1, d: "house", b: 2 });
+            expect(source).toEqual({ 0: { a: 1 }, 1: { d: "house" }, b: 2 });
+        });
+        it("prepends an object item as one element, like array_unshift", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D1 unshift assoc item onto assoc"
+            expect(Data.dataUnshift({ b: 2 }, { a: 1 })).toEqual({
+                0: { a: 1 },
+                b: 2,
+            });
+        });
+        it("renumbers a negative integer key through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "unshift-negative-int-key"
+            expect(Data.dataUnshift({ "-1": "a", x: "b" }, "z")).toEqual({
+                0: "z",
+                1: "a",
+                x: "b",
+            });
         });
         it("mutates the source array in place, like array_unshift", () => {
             const data = [2];
@@ -1687,31 +2114,11 @@ describe("Data", () => {
 
     describe("dataShuffle", () => {
         it("is object", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "shuffle-assoc-keys", "shuffle-assoc-values-sorted"
             const result = Data.dataShuffle({ a: 1, b: 2, c: 3, d: 4, e: 5 });
-            // Should have same values
+
             expect(Object.values(result).sort()).toEqual([1, 2, 3, 4, 5]);
-            // Should have same keys
-            expect(Object.keys(result).sort()).toEqual([
-                "a",
-                "b",
-                "c",
-                "d",
-                "e",
-            ]);
-
-            const obj = { a: 1, b: 2, c: 3, d: 4, e: 5 };
-            const shuffled = Data.dataShuffle(obj);
-
-            expect(Object.values(shuffled).length).toBe(5);
-            expect(Object.keys(shuffled).length).toBe(5);
-            expect(Object.values(shuffled).sort()).toEqual([1, 2, 3, 4, 5]);
-            expect(Object.keys(shuffled).sort()).toEqual([
-                "a",
-                "b",
-                "c",
-                "d",
-                "e",
-            ]);
+            expect(Object.keys(result)).toEqual(["0", "1", "2", "3", "4"]);
         });
         it("is array", () => {
             const result = Data.dataShuffle([1, 2, 3, 4]);
@@ -1842,6 +2249,27 @@ describe("Data", () => {
                     },
                 ]);
             });
+
+            it("orders numbers numerically inside a nested list, through the object backing", () => {
+                // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-numbers-lexical"
+                expect(Data.dataSortRecursive({ a: [10, 9, 1] })).toEqual({
+                    a: [1, 9, 10],
+                });
+            });
+
+            it("keeps a Date value whole, through the object backing", () => {
+                // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-object-leaf"
+                const date = new Date(0);
+                const sorted = Data.dataSortRecursive({ d: date, a: 1 });
+                expect(Object.keys(sorted)).toEqual(["a", "d"]);
+                expect(sorted["d"]).toBe(date);
+            });
+
+            it("keeps a Date inside a nested list whole, through the list backing", () => {
+                // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-list-object-leaf"
+                const date = new Date(0);
+                expect(Data.dataSortRecursive([[date]])[0]?.[0]).toBe(date);
+            });
         });
 
         describe("dataSortRecursiveDesc", () => {
@@ -1870,6 +2298,16 @@ describe("Data", () => {
     });
 
     describe("dataSplice", () => {
+        it("renumbers negative integer keys through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "splice-negative-int-keys"
+            const data = { x: "a", "-3": "b", "-7": "c" };
+
+            expect(Data.dataSplice(data, 0, 3)).toEqual({
+                x: "a",
+                0: "b",
+                1: "c",
+            });
+        });
         it("is object", () => {
             // An object-backed source stays object-backed and keeps its keys on the
             // removed portion; the replacement's own keys are discarded and renumbered
@@ -1999,6 +2437,22 @@ describe("Data", () => {
     });
 
     describe("dataReplace", () => {
+        it("returns the keyed result when a replacer leaves a list backing's keys other than 0..n-1", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-keyed-replacer"
+            expect(
+                Data.dataReplace(["a", "b", "c"], { 1: "x", k: "y" }),
+            ).toEqual({ 0: "a", 1: "x", 2: "c", k: "y" });
+            expect(Data.dataReplace(["a", "b", "c"], { "01": "x" })).toEqual({
+                0: "a",
+                1: "b",
+                2: "c",
+                "01": "x",
+            });
+            expect(Data.dataReplace(["a"], { 3: "x" })).toEqual({
+                0: "a",
+                3: "x",
+            });
+        });
         it("is object", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const replacements = { b: 20, c: 30, d: 40 };
@@ -2012,11 +2466,14 @@ describe("Data", () => {
             expect(result).toEqual(["d", "e", "c"]);
         });
 
-        it("throws when values do not match type", () => {
-            expect(() => {
-                Data.dataReplace({ a: 1, b: 2 }, [3, 4]);
-            }).toThrowError(
-                "Data to replace and items must be of the same type (both array or both object).",
+        it("replaces an object's integer keys from a list operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "object-backing-list-operand"
+            expect(Data.dataReplace({ 0: "a", 1: "b", x: "c" }, ["z"])).toEqual(
+                {
+                    0: "z",
+                    1: "b",
+                    x: "c",
+                },
             );
         });
 
@@ -2035,9 +2492,29 @@ describe("Data", () => {
             expect(Data.dataReplace(["a", "b"], null)).toEqual(["a", "b"]);
             expect(Data.dataReplace(["a", "b"], undefined)).toEqual(["a", "b"]);
         });
+
+        it("unwraps a Collection-like replacer", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C16 replace assoc"
+            expect(
+                Data.dataReplace(
+                    { name: "amir", family: "otwell" },
+                    collectionLike({ name: "taylor", age: 26 }) as never,
+                ),
+            ).toEqual({ name: "taylor", family: "otwell", age: 26 });
+        });
     });
 
     describe("dataReplaceRecursive", () => {
+        it("returns the keyed result when a replacer leaves a list backing's keys other than 0..n-1", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-keyed-replacer"
+            expect(
+                Data.dataReplaceRecursive(["a", "b", "c"], { 1: "x", k: "y" }),
+            ).toEqual({ 0: "a", 1: "x", 2: "c", k: "y" });
+            expect(Data.dataReplaceRecursive(["a"], { 3: "x" })).toEqual({
+                0: "a",
+                3: "x",
+            });
+        });
         it("is object", () => {
             const obj = {
                 user: { name: "John", address: { city: "NYC", zip: "10001" } },
@@ -2072,12 +2549,11 @@ describe("Data", () => {
             expect(result).toEqual([{ a: 99 }, { b: 2 }]);
         });
 
-        it("throws when values do not match type", () => {
-            expect(() => {
-                Data.dataReplaceRecursive({ a: 1, b: 2 }, [3, 4]);
-            }).toThrowError(
-                "Data to replace and items must be of the same type (both array or both object).",
-            );
+        it("replaces an object's integer keys from a list operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "object-backing-list-operand"
+            expect(
+                Data.dataReplaceRecursive({ 0: "a", 1: "b", x: "c" }, ["z"]),
+            ).toEqual({ 0: "z", 1: "b", x: "c" });
         });
 
         it("treats a null/undefined replacer as a no-op, for either backing", () => {
@@ -2096,6 +2572,14 @@ describe("Data", () => {
                 "a",
                 "b",
             ]);
+        });
+
+        it("merges a nested list with a nested object by key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "D7 replaceRecursive nested list replaced by offset map"
+            expect(
+                Data.dataReplaceRecursive({ k: ["c", "d"] }, { k: { 1: "e" } }),
+            ).toEqual({ k: ["c", "e"] });
         });
     });
 
@@ -2134,6 +2618,15 @@ describe("Data", () => {
     });
 
     describe("dataPad", () => {
+        it("renumbers a negative integer key through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "pad-negative-int-key"
+            expect(Data.dataPad({ "-1": "a", x: "b" }, 4, 0)).toEqual({
+                0: "a",
+                x: "b",
+                1: 0,
+                2: 0,
+            });
+        });
         it("is object", () => {
             const result = Data.dataPad({ a: 1, b: 2 }, 4, 0);
             expect(Object.keys(result)).toEqual(["0", "1", "a", "b"]);
@@ -2261,6 +2754,13 @@ describe("Data", () => {
                 a: NaN,
                 c: 1,
             });
+        });
+
+        it("hands an object backing's integer key to the callback as a number", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "F1 filter callback key type for int key"
+            expect(
+                Data.dataFilter({ 1: "a", x: "b" }, (_value, key) => key === 1),
+            ).toEqual({ 1: "a" });
         });
     });
 
@@ -2462,6 +2962,21 @@ describe("Data", () => {
                 false,
             );
         });
+
+        it("compares an array or object item by value when strict, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D4 containsStrict array by value"
+            expect(Data.dataContains({ a: [1] }, [1], true)).toBe(true);
+        });
+
+        it("misses an object with the same entries in another order when strict, through both backings", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-key-order"
+            expect(
+                Data.dataContains({ a: { x: 1, y: 2 } }, { y: 2, x: 1 }, true),
+            ).toBe(false);
+            expect(
+                Data.dataContains([{ x: 1, y: 2 }], { y: 2, x: 1 }, true),
+            ).toBe(false);
+        });
     });
 
     describe("dataDiff", () => {
@@ -2626,15 +3141,33 @@ describe("Data", () => {
             const result = Data.dataIntersectByKeys(data1, data2);
             expect(result).toEqual([1, 3]);
         });
-        it("throws when values do not match type", () => {
-            expect(() => {
-                Data.dataIntersectByKeys({ a: 1, b: 2 }, [2, 3]);
-            }).toThrowError();
+        it("intersects an object with a list operand, and a list with a keyed operand, by key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "object-backing-list-operand", "list-backing-keyed-operand"
+            expect(
+                Data.dataIntersectByKeys({ 0: "a", 1: "b", x: "c" }, ["z"]),
+            ).toEqual({ 0: "a" });
+            expect(
+                Data.dataIntersectByKeys(["a", "b", "c"], { 0: "x", 2: "y" }),
+            ).toEqual(["a", "c"]);
         });
 
         it("treats a null other as empty rather than throwing", () => {
             expect(Data.dataIntersectByKeys({ name: "M" }, null)).toEqual({});
             expect(Data.dataIntersectByKeys([1, 2], null)).toEqual([]);
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C19 intersectByKeys 2"
+            const result = Data.dataIntersectByKeys(
+                { name: "taylor", family: "otwell", age: 26 },
+                collectionLike({
+                    height: 180,
+                    name: "amir",
+                    family: "moharami",
+                }) as never,
+            );
+            expect(result).toEqual({ name: "taylor", family: "otwell" });
         });
     });
 
@@ -2700,6 +3233,23 @@ describe("Data", () => {
         it("is array", () => {
             expect(Data.dataDiffAssoc([1, 2, 3], [1, 9, 3])).toEqual([2]);
         });
+
+        it("matches a keyed operand by key on a list, never by position", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-list-keyed-operand"
+            expect(Data.dataDiffAssoc([1, 2], { a: 1, b: 2 })).toEqual([1, 2]);
+        });
+
+        it("unwraps a Collection-like operand when matching keys and values", () => {
+            // C6's fixture shares no key+value pair with its operand either wrapped or
+            // raw, so this key-matching case is what actually pins the unwrap.
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-collection-matching-key"
+            expect(
+                Data.dataDiffAssoc(
+                    { id: 1, name: "a" },
+                    collectionLike({ id: 1, name: "b" }) as never,
+                ),
+            ).toEqual({ name: "a" });
+        });
     });
 
     describe("dataDiffAssocUsing", () => {
@@ -2712,6 +3262,23 @@ describe("Data", () => {
             expect(result).toEqual({ b: "brown" });
         });
 
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C8 diffAssocUsing strcasecmp"
+            const colors = { a: "green", b: "brown", c: "blue", 0: "red" };
+
+            expect(
+                Data.dataDiffAssocUsing(
+                    colors,
+                    collectionLike({
+                        A: "green",
+                        0: "yellow",
+                        1: "red",
+                    }) as never,
+                    strcasecmp,
+                ),
+            ).toEqual({ b: "brown", c: "blue", 0: "red" });
+        });
+
         it("is array — compares by index (key) via the callback, then value", () => {
             // PHP-verified directly : array_diff_uassoc([1,2,3],[2,3,4],strcasecmp) ->
             // [1,2,3].
@@ -2721,6 +3288,43 @@ describe("Data", () => {
                 strcasecmp,
             );
             expect(result).toEqual([1, 2, 3]);
+        });
+
+        it("unwraps a Collection-like operand on a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssocUsing-list-collection-operand"
+            expect(
+                Data.dataDiffAssocUsing(
+                    [1, 2, 3],
+                    collectionLike([1, 9, 3]) as never,
+                    strcasecmp,
+                ),
+            ).toEqual([2]);
+        });
+
+        it("compares values by PHP's string cast on a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssocUsing-list-string-cast"
+            expect(
+                Data.dataDiffAssocUsing(
+                    [1, 2],
+                    ["1", "3"] as never,
+                    strcasecmp,
+                ),
+            ).toEqual([2]);
+        });
+
+        it("hands the callback a list's indices as numbers, for diffKeysUsing too", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "callback-key *Using on a list"
+            const seen = new Set<string>();
+            const record = (a: PropertyKey, b: PropertyKey) => {
+                seen.add(typeof a).add(typeof b);
+
+                return a === b;
+            };
+
+            Data.dataDiffAssocUsing([1, 2], [1, 9], record);
+            Data.dataDiffKeysUsing([1, 2], [1, 9], record);
+
+            expect([...seen]).toEqual(["number"]);
         });
     });
 
@@ -2745,6 +3349,34 @@ describe("Data", () => {
             );
             expect(result).toEqual([]);
         });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C22 diffKeysUsing"
+            const result = Data.dataDiffKeysUsing(
+                { id: 1, first_word: "Hello" },
+                collectionLike({ ID: 123, foo_bar: "Hello" }) as never,
+                strcasecmp,
+            );
+            expect(result).toEqual({ first_word: "Hello" });
+        });
+
+        it("unwraps a Collection-like operand on a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffKeysUsing-list-collection-operand"
+            expect(
+                Data.dataDiffKeysUsing(
+                    [1, 2, 3],
+                    collectionLike([9, 9]) as never,
+                    strcasecmp,
+                ),
+            ).toEqual([3]);
+        });
+
+        it("matches a keyed operand by key on a list, never by position", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffKeysUsing-list-keyed-operand"
+            expect(
+                Data.dataDiffKeysUsing([1, 2], { a: 1, 1: 5 }, strcasecmp),
+            ).toEqual([1]);
+        });
     });
 
     describe("dataIntersectAssoc", () => {
@@ -2764,17 +3396,35 @@ describe("Data", () => {
             expect(result2).toEqual([]);
         });
 
-        it("throws when values do not match type", () => {
-            expect(() => {
-                Data.dataIntersectAssoc({ a: 1, b: 2 }, [2]);
-            }).toThrowError(
-                "Data to intersect must be of the same type (both array or both object).",
-            );
+        it("intersects an object with a list operand, and a list with a keyed operand, by key and value", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "object-backing-list-operand", "intersectAssoc-list-keyed-operand"
+            expect(
+                Data.dataIntersectAssoc({ 0: "a", 1: "b", x: "c" }, ["a"]),
+            ).toEqual({ 0: "a" });
+            expect(Data.dataIntersectAssoc(["a", "b"], { 1: "b" })).toEqual([
+                "b",
+            ]);
+            expect(Data.dataIntersectAssoc([1, 2], { a: 1, b: 2 })).toEqual([]);
         });
 
         it("treats a null other as empty rather than throwing", () => {
             expect(Data.dataIntersectAssoc({ a: "green" }, null)).toEqual({});
             expect(Data.dataIntersectAssoc([1, 2], null)).toEqual([]);
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssoc-collection"
+            const result = Data.dataIntersectAssoc(
+                { a: "green", b: "brown", c: "blue", 0: "red" },
+                collectionLike({
+                    a: "green",
+                    b: "yellow",
+                    0: "blue",
+                    1: "red",
+                }) as never,
+            );
+            expect(result).toEqual({ a: "green" });
         });
     });
 
@@ -2800,18 +3450,23 @@ describe("Data", () => {
             expect(result).toEqual([1, 2]);
         });
 
-        it("throws when values do not match type", () => {
-            const strcasecmpKeys = (a: unknown, b: unknown) =>
-                String(a).toLowerCase() === String(b).toLowerCase();
-            expect(() => {
+        it("intersects an object with a list operand, and a list with a keyed operand, using the callback", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "object-backing-list-operand", "intersectAssocUsing-list-keyed-operand"
+            const sameKey = (a: unknown, b: unknown) => a === b;
+            expect(
                 Data.dataIntersectAssocUsing(
-                    { a: 1, b: 2 },
-                    [2],
-                    strcasecmpKeys,
-                );
-            }).toThrowError(
-                "Data to intersect must be of the same type (both array or both object).",
-            );
+                    { 0: "a", 1: "b", x: "c" },
+                    ["a"],
+                    sameKey,
+                ),
+            ).toEqual({ 0: "a" });
+            expect(
+                Data.dataIntersectAssocUsing(["a", "b"], { 1: "b" }, sameKey),
+            ).toEqual(["b"]);
+            expect(
+                Data.dataIntersectAssocUsing([1, 2], { a: 1, b: 2 }, sameKey),
+            ).toEqual([]);
         });
 
         it("treats a null other as empty rather than throwing", () => {
@@ -2831,6 +3486,21 @@ describe("Data", () => {
                     (a: number, b: number) => a === b,
                 ),
             ).toEqual([]);
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C9 intersectAssocUsing strcasecmp"
+            const result = Data.dataIntersectAssocUsing(
+                { a: "green", b: "brown", c: "blue", 0: "red" },
+                collectionLike({
+                    a: "GREEN",
+                    B: "brown",
+                    0: "yellow",
+                    1: "red",
+                }) as never,
+                strcasecmp,
+            );
+            expect(result).toEqual({ b: "brown" });
         });
     });
 

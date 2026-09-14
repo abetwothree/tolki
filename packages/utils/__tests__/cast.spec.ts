@@ -156,4 +156,116 @@ describe("Utils", () => {
             expect(Utils.arrayableValues(new Box())).toEqual([1]);
         });
     });
+
+    describe("arrayableItems", () => {
+        it("unwraps Enumerable- and Arrayable-like operands", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C18 union collection"
+            expect(
+                Utils.arrayableItems({ all: () => ({ name: "Hello", id: 1 }) }),
+            ).toEqual({ name: "Hello", id: 1 });
+            expect(Utils.arrayableItems({ toArray: () => ["x"] })).toEqual({
+                0: "x",
+            });
+        });
+
+        it("keys a Map, a list and another iterable", () => {
+            // JS-only: Map/Set/iterable unwrapping has no PHP array analogue.
+            expect(Utils.arrayableItems(new Map([["a", 1]]))).toEqual({
+                a: 1,
+            });
+            expect(Utils.arrayableItems([5, 6])).toEqual({ 0: 5, 1: 6 });
+            expect(Utils.arrayableItems(new Set(["x"]))).toEqual({ 0: "x" });
+        });
+
+        it("empties a WeakMap or a WeakSet, whose entries can't be read", () => {
+            // JS-only: PHP has no WeakMap; ArrayableItems<T> already types both as Record<never, never>.
+            const weakMap = new WeakMap([[{}, 1]]);
+            const weakSet = new WeakSet([{}]);
+
+            expect(Utils.arrayableItems(weakMap)).not.toBe(weakMap);
+            expect(Utils.arrayableItems(weakMap)).toEqual({});
+            expect(Utils.arrayableItems(weakSet)).not.toBe(weakSet);
+            expect(Utils.arrayableItems(weakSet)).toEqual({});
+        });
+
+        it("treats nullish as empty and wraps a scalar", () => {
+            // JS-only: null/undefined-as-empty and scalar-wrapping are this helper's own contract.
+            expect(Utils.arrayableItems(null)).toEqual({});
+            expect(Utils.arrayableItems(undefined)).toEqual({});
+            expect(Utils.arrayableItems("x")).toEqual({ 0: "x" });
+        });
+
+        it("returns a plain object as it is", () => {
+            // JS-only: a plain object needs no unwrapping; asserts identity, not a ported PHP case.
+            const plain = { a: 1 };
+
+            expect(Utils.arrayableItems(plain)).toBe(plain);
+        });
+    });
+
+    describe("toPhpKeyString", () => {
+        it("casts null, undefined and false to the empty string and true to '1'", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
+            // JS-only: PHP has no undefined; toPhpKeyString casts it like null.
+            expect(Utils.toPhpKeyString(null)).toBe("");
+            expect(Utils.toPhpKeyString(undefined)).toBe("");
+            expect(Utils.toPhpKeyString(false)).toBe("");
+            expect(Utils.toPhpKeyString(true)).toBe("1");
+        });
+
+        it("stringifies numbers and strings", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
+            expect(Utils.toPhpKeyString(1.5)).toBe("1.5");
+            expect(Utils.toPhpKeyString("7")).toBe("7");
+        });
+
+        it("prints a float the way PHP's (string) cast does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "combine-float-keys"
+            const floats = [
+                Infinity,
+                -Infinity,
+                NaN,
+                -0,
+                1.5,
+                -1.5,
+                1e21,
+                1.5e300,
+                1.5e-7,
+                0.00001,
+                0.0001,
+                0.1 + 0.2,
+                1 / 3,
+                10000000000000.5,
+                10000000000001.5,
+                5e-324,
+                99999999999999.98,
+            ];
+
+            expect(floats.map((value) => Utils.toPhpKeyString(value))).toEqual([
+                "INF",
+                "-INF",
+                "NAN",
+                "-0",
+                "1.5",
+                "-1.5",
+                "1.0E+21",
+                "1.5E+300",
+                "1.5E-7",
+                "1.0E-5",
+                "0.0001",
+                "0.3",
+                "0.33333333333333",
+                "10000000000000",
+                "10000000000002",
+                "4.9406564584125E-324",
+                "1.0E+14",
+            ]);
+        });
+
+        it("prints an integer in PHP's int range exactly, even past 2^53", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "combine-large-int-key"
+            expect(Utils.toPhpKeyString(2 ** 62)).toBe("4611686018427387904");
+            expect(Utils.toPhpKeyString(-7)).toBe("-7");
+        });
+    });
 });

@@ -32,6 +32,26 @@ describe("Utils", () => {
         });
     });
 
+    describe("isPlainObject", () => {
+        it("returns true for an object literal and a null-prototype object", () => {
+            // JS-only: a prototype check; PHP has no plain-object type to compare against.
+            expect(Utils.isPlainObject({ a: 1 })).toBe(true);
+            expect(Utils.isPlainObject(Object.create(null))).toBe(true);
+        });
+
+        it("returns false for arrays, class instances, built-ins and non-objects", () => {
+            // JS-only: a prototype check; PHP has no plain-object type to compare against.
+            class Point {}
+
+            expect(Utils.isPlainObject([1, 2])).toBe(false);
+            expect(Utils.isPlainObject(new Point())).toBe(false);
+            expect(Utils.isPlainObject(new Date())).toBe(false);
+            expect(Utils.isPlainObject(new Map())).toBe(false);
+            expect(Utils.isPlainObject(null)).toBe(false);
+            expect(Utils.isPlainObject("a")).toBe(false);
+        });
+    });
+
     describe("isObjectAny", () => {
         it("returns true for types that return typeof as 'object'", () => {
             expect(Utils.isObjectAny({})).toBe(true);

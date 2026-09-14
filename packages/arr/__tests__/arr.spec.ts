@@ -6,6 +6,22 @@ import type { UndotArrayKey } from "@tolki/types";
 import { isArray } from "@tolki/utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+/**
+ * Wrap items in the smallest Collection-like operand, which arr unwraps through `all()` as Laravel does.
+ *
+ * @param items - The items `all()` returns
+ * @returns An object whose `all()` returns the items
+ */
+const collectionLike = <T>(items: T) => ({ all: () => items });
+
+/**
+ * A class instance with own fields, which PHP's array helpers keep whole instead of walking.
+ */
+class Point {
+    x = 1;
+    y = 2;
+}
+
 describe("Arr", () => {
     describe("accessible", () => {
         it("accessible", () => {
@@ -370,6 +386,21 @@ describe("Arr", () => {
     });
 
     describe("collapse", () => {
+        it("skips a Date, a Map or a class instance item, as Arr::collapse skips a PHP object", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects"
+            class Point {
+                x = 1;
+                y = 2;
+            }
+
+            expect(Arr.collapse([[1], new Date(0), [2]])).toEqual([1, 2]);
+            expect(Arr.collapse([[1], new Map([["x", 1]]), [2]])).toEqual([
+                1, 2,
+            ]);
+            expect(Arr.collapse([new Point()])).toEqual([]);
+            expect(Arr.collapse([{ a: 1 }, new Point()])).toEqual({ a: 1 });
+        });
+
         it("collapse", () => {
             type Mixed = string[] | number[] | [] | (string | number)[];
             let data: Mixed[] = [["foo", "bar"], ["baz"]];
@@ -403,6 +434,54 @@ describe("Arr", () => {
                 c: 3,
                 d: 4,
             });
+        });
+
+        it("appends integer keys instead of letting a later one overwrite, but string keys still let later win", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-int-keys", "collapse-string-keys"
+            expect(Arr.collapse([{ a: 1, 5: "x" }, { 5: "y" }])).toEqual({
+                a: 1,
+                0: "x",
+                1: "y",
+            });
+            expect(
+                Arr.collapse([
+                    { x: 1, y: 2 },
+                    { x: 3, z: 4 },
+                ]),
+            ).toEqual({
+                x: 3,
+                y: 2,
+                z: 4,
+            });
+        });
+
+        it("keeps list items when an object item is present, as array_merge does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-list-then-map", "collapse-map-then-list"
+            expect(Arr.collapse([[1, 2], { x: 1, 0: "z" }])).toEqual({
+                0: 1,
+                1: 2,
+                2: "z",
+                x: 1,
+            });
+            expect(Arr.collapse([{ a: 3 }, [1, 2]])).toEqual({
+                a: 3,
+                0: 1,
+                1: 2,
+            });
+        });
+
+        it("merges a Collection-like item's items and skips a scalar", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-collection-items"
+            expect(
+                Arr.collapse([{ all: () => [1, 2] }, 5, { all: () => [3] }]),
+            ).toEqual([1, 2, 3]);
+        });
+
+        it("renumbers a negative integer key like any other integer key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-negative-int-keys"
+            expect(
+                Arr.collapse([{ "-1": "a", k: "b" }, { "-1": "c" }]),
+            ).toEqual({ 0: "a", 1: "c", k: "b" });
         });
 
         it("does not reparent the result via a __proto__ entry (Object.assign is not sanctioned)", () => {
@@ -469,6 +548,33 @@ describe("Arr", () => {
             expect(result).toEqual({ [String(fn)]: 1 });
             expect(Object.keys(result)).not.toContain("callback");
         });
+
+        it("casts null, true and false keys the way array_combine does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
+            expect(Arr.combine([null], [1])).toEqual({ "": 1 });
+            expect(Arr.combine([true], [1])).toEqual({ 1: 1 });
+            expect(Arr.combine([false], [1])).toEqual({ "": 1 });
+        });
+
+        it("takes the values of a keyed or Collection-like values operand, as array_combine does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "combine-list-keyed-values"
+            expect(Arr.combine([1, 2], { a: "x", b: "y" })).toEqual({
+                1: "x",
+                2: "y",
+            });
+            expect(
+                Arr.combine([1, 2], { all: () => ({ a: "x", b: "y" }) }),
+            ).toEqual({ 1: "x", 2: "y" });
+        });
+
+        it("keys a float by PHP's (string) cast", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "combine-float-keys"
+            expect(
+                Object.keys(
+                    Arr.combine([Infinity, -0, 1e21, 1.5e-7], [1, 2, 3, 4]),
+                ),
+            ).toEqual(["INF", "-0", "1.0E+21", "1.5E-7"]);
+        });
     });
 
     describe("crossJoin", () => {
@@ -523,6 +629,33 @@ describe("Arr", () => {
 
             // Not really a proper usage, still, test for preserving BC
             expect(Arr.crossJoin()).toEqual([[]]);
+        });
+
+        it("walks the values of a plain object, Map or Set argument", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-list-map-dimension"
+            const rows = [
+                [1, "x"],
+                [1, "y"],
+                [2, "x"],
+                [2, "y"],
+            ];
+
+            expect(Arr.crossJoin([1, 2], { a: "x", b: "y" })).toEqual(rows);
+            expect(
+                Arr.crossJoin(
+                    [1, 2],
+                    new Map([
+                        ["a", "x"],
+                        ["b", "y"],
+                    ]),
+                ),
+            ).toEqual(rows);
+            expect(Arr.crossJoin([1, 2], new Set(["x", "y"]))).toEqual(rows);
+        });
+
+        it("returns no rows for a Date argument, where PHP's foreach visits nothing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-list-map-dimension"
+            expect(Arr.crossJoin([1], new Date(0))).toEqual([]);
         });
     });
 
@@ -597,6 +730,28 @@ describe("Arr", () => {
 
             // @ts-expect-error Testing non-array input should return false
             expect(Arr.exists(5, 4)).toBe(false);
+        });
+
+        it.each(["", " ", "01", " 1", "1e0", "0x1", "-0", "1.0"])(
+            "does not find the non-canonical key %j in a list",
+            (key) => {
+                // docs/php-parity/task-23-obj-release-readiness.json, "exists-list-non-canonical-keys"
+                expect(Arr.exists([1, 2, 3], key)).toBe(false);
+            },
+        );
+
+        it("casts a null key to the empty string and a float key to its string form", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "exists-list-null-and-float-keys"
+            expect(Arr.exists([1, 2, 3], null)).toBe(false);
+            expect(Arr.exists([1, 2, 3], 1.5)).toBe(false);
+            expect(Arr.exists([1, 2, 3], 1.0)).toBe(true);
+            expect(Arr.exists([1, 2, 3], "1")).toBe(true);
+        });
+
+        it("looks -0 up as the key '-0', which no list holds", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "exists-float-key-cast"
+            expect(Arr.exists([1], -0)).toBe(false);
+            expect(Arr.exists([1], 0)).toBe(true);
         });
     });
 
@@ -925,6 +1080,38 @@ describe("Arr", () => {
                 "#zap",
             ]);
         });
+
+        it("keeps an object that isn't a plain object whole", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "flatten-object-leaf"
+            const point = new Point();
+            const date = new Date(0);
+            const map = new Map([["a", 1]]);
+            const result = Arr.flatten([date, [1], point, [{ c: map }]]);
+
+            expect(result).toHaveLength(4);
+            expect(result[0]).toBe(date);
+            expect(result[1]).toBe(1);
+            expect(result[2]).toBe(point);
+            expect(result[3]).toBe(map);
+        });
+
+        it("flattens a Collection-like item's items", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "flatten-collection-item"
+
+            expect(Arr.flatten([collectionLike([1, [2, 3]]), 4])).toEqual([
+                1, 2, 3, 4,
+            ]);
+            expect(
+                Arr.flatten([collectionLike({ a: 1, b: collectionLike([2]) })]),
+            ).toEqual([1, 2]);
+            expect(Arr.flatten([collectionLike([[1, 2], 3])], 1)).toEqual([
+                [1, 2],
+                3,
+            ]);
+
+            const kept = collectionLike([2, 3]);
+            expect(Arr.flatten([[kept]], 1)).toEqual([kept]);
+        });
     });
 
     describe("flip", () => {
@@ -1251,6 +1438,34 @@ describe("Arr", () => {
             // together so a future change can't make them disagree again.
             expect(Arr.get([1, 2], "length")).toBeNull();
             expect(Arr.has([1, 2], "length")).toBe(false);
+        });
+
+        it("traverses an object nested in a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-through-list" (the list-shaped twin)
+            expect(
+                Arr.get(
+                    [{ products: [{ name: "desk" }] }],
+                    "0.products.0.name",
+                ),
+            ).toBe("desk");
+        });
+
+        it.each(["01", " 1", "1e0", "+1", "0x1", "-0", "1 "])(
+            "returns the default for the non-canonical index %j, agreeing with has()",
+            (key) => {
+                // docs/php-parity/task-23-obj-release-readiness.json, "get-list-non-canonical-index"
+                expect(Arr.get(["x", "y"], key, "d")).toBe("d");
+                expect(Arr.get([["x", "y"]], `0.${key}`, "d")).toBe("d");
+            },
+        );
+
+        it("looks an integer segment up as the own key of an object in a list, agreeing with has()", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-int-segment-into-map"
+            expect(Arr.get([{ 0: "x" }], "0.0", "d")).toBe("x");
+            expect(Arr.get([{ k: "v", 0: "x" }], "0.0", "d")).toBe("x");
+            expect(Arr.get([[{ 1: "z" }]], "0.0.1", "d")).toBe("z");
+            expect(Arr.get([{ 1: "z" }], "0.0", "d")).toBe("d");
+            expect(Arr.has([{ 0: "x" }], "0.0")).toBe(true);
         });
     });
 
@@ -1743,6 +1958,11 @@ describe("Arr", () => {
             );
         });
 
+        it("appends to the root array for an undefined key, like null", () => {
+            // JS-only: undefined has no PHP analogue; push treats it like null, matching Obj.push.
+            expect(Arr.push([1, 2], undefined, 3)).toEqual([1, 2, 3]);
+        });
+
         it("creates nested structure for deep paths and appends when a path segment does not exist", () => {
             // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
             // into the array AT the key, never beside it").
@@ -1885,6 +2105,13 @@ describe("Arr", () => {
             expect(result.value).toBe(null);
             expect(result.data).toEqual([1, 2, 3]);
         });
+
+        it("returns the default and keeps the list for a non-canonical index", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "pull-list-non-canonical-index"
+            const result = Arr.pull(["x", "y"], "01", "d");
+            expect(result.value).toBe("d");
+            expect(result.data).toEqual(["x", "y"]);
+        });
     });
 
     describe("join", () => {
@@ -1910,11 +2137,34 @@ describe("Arr", () => {
                 "1.1.0": "c",
             });
 
-            // Prepend prefix
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot"
             expect(Arr.dot(["a", ["b"]], "root")).toEqual({
-                "root.0": "a",
-                "root.1.0": "b",
+                root0: "a",
+                "root1.0": "b",
             });
+        });
+
+        it("concatenates the prepend string and flattens objects inside a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot", "dot-list-of-assoc"
+            expect(Arr.dot(["x", ["y"]], "user")).toEqual({
+                user0: "x",
+                "user1.0": "y",
+            });
+            expect(Arr.dot([{ a: 1 }, { b: { c: 2 } }])).toEqual({
+                "0.a": 1,
+                "1.b.c": 2,
+            });
+        });
+
+        it("keeps a class instance inside a list as a leaf", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-object-leaf"
+            const point = new Point();
+            const list = Arr.dot([point]);
+            const nested = Arr.dot([{ p: point }]);
+            expect(Object.keys(list)).toEqual(["0"]);
+            expect(list["0"]).toBe(point);
+            expect(Object.keys(nested)).toEqual(["0.p"]);
+            expect(nested["0.p"]).toBe(point);
         });
 
         it("dot with depth", () => {
@@ -1947,10 +2197,10 @@ describe("Arr", () => {
                 "1": ["b"],
             });
 
-            // Depth 1 with prepend
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot", "dot-prepend-no-dot-depth"
             expect(Arr.dot(["a", [["b"]]], "prefix", 1)).toEqual({
-                "prefix.0": "a",
-                "prefix.1.0": ["b"],
+                prefix0: "a",
+                "prefix1.0": ["b"],
             });
         });
     });
@@ -2145,6 +2395,34 @@ describe("Arr", () => {
             expect(Arr.union([10, 20], null)).toEqual([10, 20]);
             expect(Arr.union([10, 20], undefined)).toEqual([10, 20]);
             expect(Arr.union(null, [10, 20])).toEqual([10, 20]);
+        });
+
+        it("reads a keyed or Collection-like operand by key, as PHP's + does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-keyed-operand"
+            expect(Arr.union([1, 2], { 2: "z" })).toEqual([1, 2, "z"]);
+            expect(Arr.union([1], { 3: "d" }, [9, 8, 7, 6])).toEqual([
+                1,
+                8,
+                7,
+                "d",
+            ]);
+            expect(Arr.union([1, 2], { all: () => ({ 2: "z" }) })).toEqual([
+                1,
+                2,
+                "z",
+            ]);
+        });
+
+        it("holds undefined at an index no operand fills, and has no place for a string key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-keyed-operand": PHP's "gap" and
+            // "string-key" results aren't lists; a list fills the gap with undefined, as replace does, and drops "a".
+            expect(Arr.union([1], { 3: "d" })).toEqual([
+                1,
+                undefined,
+                undefined,
+                "d",
+            ]);
+            expect(Arr.union([1, 2], { a: 5 })).toEqual([1, 2]);
         });
     });
 
@@ -2350,6 +2628,32 @@ describe("Arr", () => {
             expect(Arr.contains(data10, 1)).toBe(true);
             expect(Arr.contains(data10, 1, true)).toBe(false);
         });
+
+        it("ignores a callback match holding null when strict", () => {
+            // obj's sibling fix: docs/php-parity/task-23-obj-release-readiness.json,
+            // "D2 containsStrict callback matching a null value"
+            expect(
+                Arr.contains([null, 1], (value) => value === null, true),
+            ).toBe(false);
+            expect(Arr.contains([null, 1], (value) => value === null)).toBe(
+                true,
+            );
+        });
+
+        it("compares strictly by value, the way PHP's === does", () => {
+            // obj's sibling fix: docs/php-parity/task-23-obj-release-readiness.json,
+            // "D3 containsStrict NAN", "D4 containsStrict array by value"
+            expect(Arr.contains([NaN], NaN, true)).toBe(false);
+            expect(Arr.contains([[1]], [1], true)).toBe(true);
+            expect(Arr.contains([{ x: 1 }], { x: 1 }, true)).toBe(true);
+        });
+
+        it("misses an object with the same entries in another order when strict", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-key-order"
+            expect(Arr.contains([{ x: 1, y: 2 }], { y: 2, x: 1 }, true)).toBe(
+                false,
+            );
+        });
     });
 
     describe("filter", () => {
@@ -2466,11 +2770,28 @@ describe("Arr", () => {
             ]);
         });
 
-        it("should return values unchanged when replacerData is a primitive", () => {
-            // Tests final return when replacerData is not array or object
-            expect(Arr.replace(["a", "b"], 123)).toEqual(["a", "b"]);
-            expect(Arr.replace(["a", "b"], "string")).toEqual(["a", "b"]);
-            expect(Arr.replace(["a", "b"], true)).toEqual(["a", "b"]);
+        it("reads a scalar replacer as [scalar], as getArrayableItems() does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-scalar-operand"
+            expect(Arr.replace(["a", "b"], "z")).toEqual(["z", "b"]);
+            expect(Arr.replace(["a", "b"], 123)).toEqual([123, "b"]);
+            expect(Arr.replace(["a", "b"], true)).toEqual([true, "b"]);
+        });
+
+        it("drops a key a list can't hold instead of reading it as an index, as union does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-keyed-replacer": PHP keeps "k", "01",
+            // "-1" and "1.5" as keys of a keyed result; a list holds only its integer keys, as arr.union's does.
+            expect(Arr.replace(["a", "b", "c"], { 1: "x", k: "y" })).toEqual([
+                "a",
+                "x",
+                "c",
+            ]);
+
+            for (const key of ["01", "-1", "1.5"]) {
+                const result = Arr.replace(["a", "b", "c"], { [key]: "x" });
+
+                expect(result).toEqual(["a", "b", "c"]);
+                expect(Object.keys(result)).toEqual(["0", "1", "2"]);
+            }
         });
 
         describe("object edge cases", () => {
@@ -2507,6 +2828,14 @@ describe("Arr", () => {
         it("treats a null replacer as a no-op", () => {
             expect(Arr.replace([1, 2, 3], null)).toEqual([1, 2, 3]);
         });
+
+        it("unwraps a Collection-like replacer, the sibling of obj.replace's fix", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-collection-operand"
+
+            expect(Arr.replace([1, 2, 3], collectionLike([9]))).toEqual([
+                9, 2, 3,
+            ]);
+        });
     });
 
     describe("replaceRecursive - edge cases", () => {
@@ -2518,15 +2847,14 @@ describe("Arr", () => {
                 "b",
                 ["c", "d"],
             ]);
+            // CollectionTest::testReplaceRecursiveArray. PHP's ['z', 2 => [1 => 'e']] is the object
+            // { 0: "z", 2: { 1: "e" } } in JS, not a list holding an object.
             expect(
-                Arr.replaceRecursive(data, ["z", { 2: { 1: "e" } }]),
+                Arr.replaceRecursive(data, { 0: "z", 2: { 1: "e" } }),
             ).toEqual(["z", "b", ["c", "e"]]);
             expect(
-                Arr.replaceRecursive(data, ["z", { 2: { 1: "e" } }, "f"]),
+                Arr.replaceRecursive(data, { 0: "z", 2: { 1: "e" }, 3: "f" }),
             ).toEqual(["z", "b", ["c", "e"], "f"]);
-            expect(
-                Arr.replaceRecursive(data, ["z", { 2: { 1: "e" } }]),
-            ).toEqual(["z", "b", ["c", "e"]]);
             expect(Arr.replaceRecursive(data, { 2: { 1: "e" } })).toEqual([
                 "a",
                 "b",
@@ -2535,7 +2863,6 @@ describe("Arr", () => {
         });
 
         it("should handle nested objects with non-numeric keys", () => {
-            // This tests the objReplaceRecursive branch
             const data = [{ name: "John", details: { city: "NYC" } }];
             const replacer = [{ details: { city: "LA", country: "USA" } }];
             expect(Arr.replaceRecursive(data, replacer)).toEqual([
@@ -2543,15 +2870,34 @@ describe("Arr", () => {
             ]);
         });
 
-        it("should fill gaps with undefined when index exceeds length in array replacer", () => {
-            // Tests filling gaps with undefined
-            const data = ["a", "b"];
-            const replacer = [{ 5: "f" }];
-            const result = Arr.replaceRecursive(data, replacer);
-            expect(result[0]).toBe("a");
-            expect(result[1]).toBe("b");
-            expect(result[5]).toBe("f");
-            expect(result.length).toBe(6);
+        it("keeps a replacer list's object element whole instead of spreading it into the list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-list-elements-kept-whole"
+            expect(Arr.replaceRecursive([1, 2], [{ 1: "x" }])).toEqual([
+                { 1: "x" },
+                2,
+            ]);
+            expect(
+                Arr.replaceRecursive(["a", "b", "c"], ["x", { 4: "e" }, "z"]),
+            ).toEqual(["x", { 4: "e" }, "z"]);
+        });
+
+        it("merges two nested arrays or plain objects by key and replaces any other object whole", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-nested-list-meets-map",
+            // "replaceRecursive-object-leaf". JS-only: a Map has no PHP analogue; it is a leaf like any object.
+            const date = new Date(1);
+
+            expect(
+                Arr.replaceRecursive([["c"], { a: 1 }], [{ x: 1 }, ["x"]]),
+            ).toEqual([
+                { 0: "c", x: 1 },
+                { 0: "x", a: 1 },
+            ]);
+            expect(
+                Arr.replaceRecursive(
+                    [new Date(0), { a: 1 }],
+                    [date, new Map([["b", 2]])],
+                ),
+            ).toEqual([date, new Map([["b", 2]])]);
         });
 
         it("should fill gaps with undefined when using numeric keyed object replacer", () => {
@@ -2562,19 +2908,6 @@ describe("Arr", () => {
             expect(result[0]).toBe("a");
             expect(result[3]).toBe("d");
             expect(result.length).toBe(4);
-        });
-
-        it("should handle mixed sequential and sparse replacements", () => {
-            const data = ["a", "b", "c"];
-            // First item 'x' goes to index 0, sparse {4: 'e'} sets index 4,
-            // then 'z' goes to index 5 (currentIndex after 4+1)
-            const replacer = ["x", { 4: "e" }, "z"];
-            const result = Arr.replaceRecursive(data, replacer);
-            expect(result[0]).toBe("x");
-            expect(result[1]).toBe("b");
-            expect(result[2]).toBe("c");
-            expect(result[4]).toBe("e");
-            expect(result[5]).toBe("z");
         });
 
         // Same rationale as the "replace" pins above. Values pinned by
@@ -2593,49 +2926,40 @@ describe("Arr", () => {
             expect(Arr.replaceRecursive([1], null)).toEqual([1]);
         });
 
-        describe("final return", () => {
-            it("should return values unchanged when replacerData is a primitive", () => {
-                // Tests final return when replacerData is not array or numeric keyed object
-                expect(Arr.replaceRecursive(["a", "b"], 123)).toEqual([
-                    "a",
-                    "b",
-                ]);
-                expect(Arr.replaceRecursive(["a", "b"], "string")).toEqual([
-                    "a",
-                    "b",
-                ]);
-                expect(Arr.replaceRecursive(["a", "b"], true)).toEqual([
-                    "a",
-                    "b",
-                ]);
-                // Non-numeric keyed object should also hit the final return
+        it("unwraps a Collection-like replacer, the sibling of obj.replaceRecursive's fix", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-list-collection-operand"
+
+            expect(
+                Arr.replaceRecursive([{ a: 1 }], collectionLike([{ b: 2 }])),
+            ).toEqual([{ a: 1, b: 2 }]);
+        });
+
+        it("reads a scalar replacer as [scalar], as getArrayableItems() does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-scalar-operand"
+            expect(Arr.replaceRecursive(["a", "b"], "z")).toEqual(["z", "b"]);
+            expect(Arr.replaceRecursive(["a", "b"], 123)).toEqual([123, "b"]);
+            expect(Arr.replaceRecursive(["a", "b"], true)).toEqual([true, "b"]);
+        });
+
+        it("applies a keyed replacer's integer keys and drops the keys a list can't hold, as union does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-keyed-replacer": PHP keeps "k", "01",
+            // "-1" and "1.5" as keys of a keyed result; a list holds only its integer keys, as arr.union's does.
+            expect(
+                Arr.replaceRecursive(["a", "b", "c"], { 1: "x", k: "y" }),
+            ).toEqual(["a", "x", "c"]);
+            expect(Arr.replaceRecursive(["a", "b"], { foo: "bar" })).toEqual([
+                "a",
+                "b",
+            ]);
+
+            for (const key of ["01", "-1", "1.5"]) {
                 expect(
-                    Arr.replaceRecursive(["a", "b"], { foo: "bar" }),
-                ).toEqual(["a", "b"]);
-            });
+                    Arr.replaceRecursive(["a", "b", "c"], { [key]: "x" }),
+                ).toEqual(["a", "b", "c"]);
+            }
         });
 
         describe("sparse indices edge cases", () => {
-            it("should handle sparse numeric keyed object in array replacer", () => {
-                // Tests sparse replacements with index >= currentIndex
-                const data = ["a", "b", "c"];
-                const replacer = [{ 5: "f" }];
-                const result = Arr.replaceRecursive(data, replacer);
-                expect(result[5]).toBe("f");
-            });
-
-            it("should handle sparse index less than currentIndex", () => {
-                // Tests the branch where index < currentIndex (condition false)
-                // First replacement at index 0 sets currentIndex to 1
-                // Then sparse object with index 0 should NOT update currentIndex
-                const data = ["a", "b", "c"];
-                const replacer = ["x", { 0: "y" }];
-                const result = Arr.replaceRecursive(data, replacer);
-                // 'x' goes to index 0 first, then {0: 'y'} overwrites index 0
-                expect(result[0]).toBe("y");
-                expect(result[1]).toBe("b");
-            });
-
             it("should handle numeric keyed object replacer directly", () => {
                 // Tests isNumericKeyedObject(replacerData) branch
                 const data = ["a", "b", "c"];
@@ -2913,6 +3237,20 @@ describe("Arr", () => {
         it("matches values by PHP's string cast", () => {
             expect(Arr.diffAssoc([0], ["0"] as never)).toEqual([]);
         });
+
+        it("unwraps a Collection-like operand, the sibling of obj.diffAssoc's fix", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-list-collection-operand"
+
+            expect(Arr.diffAssoc([1, 2, 3], collectionLike([1, 9, 9]))).toEqual(
+                [2, 3],
+            );
+        });
+
+        it("matches a keyed operand by key, never by position", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-list-keyed-operand"
+            expect(Arr.diffAssoc([1, 2], { a: 1, b: 2 })).toEqual([1, 2]);
+            expect(Arr.diffAssoc(["a", "b"], { 1: "b" })).toEqual(["a"]);
+        });
     });
 
     describe("intersect", () => {
@@ -2988,6 +3326,27 @@ describe("Arr", () => {
             expect(Arr.intersectByKeys(null, data)).toEqual([]);
             expect(Arr.intersectByKeys(null, null)).toEqual([]);
         });
+
+        it("unwraps a Collection-like operand, the sibling of obj.intersectByKeys's fix", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectByKeys-list-collection-operand"
+
+            expect(
+                Arr.intersectByKeys([1, 2, 3], collectionLike([9, 9])),
+            ).toEqual([1, 2]);
+        });
+
+        it("keeps the indices that are keys of a keyed operand, never its positions", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectByKeys-list-keyed-operand"
+            expect(Arr.intersectByKeys([1, 2, 3], { a: "x", b: "y" })).toEqual(
+                [],
+            );
+            expect(Arr.intersectByKeys([1, 2, 3], { 0: "x", 2: "y" })).toEqual([
+                1, 3,
+            ]);
+            expect(Arr.intersectByKeys([1, 2, 3], new Map([[2, "z"]]))).toEqual(
+                [3],
+            );
+        });
     });
 
     describe("only", () => {
@@ -3036,15 +3395,6 @@ describe("Arr", () => {
             // Empty array
             expect(Arr.prepend([], "first")).toEqual(["first"]);
 
-            // With key parameter
-            expect(Arr.prepend(["b", "c"], "a", 0)).toEqual(["a", "b", "c"]);
-            expect(Arr.prepend(["b", "c"], "a", 1)).toEqual([
-                undefined,
-                "a",
-                "b",
-                "c",
-            ]);
-
             // Non-accessible data
             expect(Arr.prepend(null, "first")).toEqual(["first"]);
             expect(Arr.prepend("abc", "first")).toEqual(["first"]);
@@ -3055,6 +3405,22 @@ describe("Arr", () => {
                 ["zero"],
                 "one",
                 "two",
+            ]);
+        });
+
+        it("reads a key the way union reads a keyed operand, so key 0 replaces the first item", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key": PHP's other results are
+            // keyed; a list holds each key by index, with undefined in a gap, as arr.union does.
+            expect(Arr.prepend(["b", "c"], "a", 0)).toEqual(["a", "c"]);
+            expect(Arr.prepend(["b", "c"], "a", 1)).toEqual(["b", "a"]);
+            expect(Arr.prepend(["b", "c"], "a", 1.5)).toEqual(["b", "a"]);
+            expect(Arr.prepend(["b", "c"], "a", 5)).toEqual([
+                "b",
+                "c",
+                undefined,
+                undefined,
+                undefined,
+                "a",
             ]);
         });
     });
@@ -3181,6 +3547,14 @@ describe("Arr", () => {
             expect(Arr.pluck(data, null, "name")).toEqual({
                 Taylor: { name: "Taylor", role: "dev" },
             });
+        });
+
+        it("keeps the whole item for an undefined value path, like null", () => {
+            // JS-only: undefined has no PHP analogue; pluck treats it like null (Obj.pluck matches).
+            const data = [{ name: "Taylor", role: "dev" }];
+            expect(Arr.pluck(data, undefined)).toEqual([
+                { name: "Taylor", role: "dev" },
+            ]);
         });
 
         it("should handle key with object having toString", () => {
@@ -3551,6 +3925,13 @@ describe("Arr", () => {
             });
         });
 
+        it("hands the callback each item's index, like obj.keyBy hands it the key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-list-callback-key"
+            expect(
+                Arr.keyBy([{ id: 1 }, { id: 2 }], (_, key) => `k${key}`),
+            ).toEqual({ k0: { id: 1 }, k1: { id: 2 } });
+        });
+
         it("should handle callback returning symbol", () => {
             // Tests when keyBy function returns a symbol
             const sym = Symbol("test");
@@ -3569,6 +3950,25 @@ describe("Arr", () => {
 
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
             expect(result.polluted).toBeUndefined();
+        });
+
+        it("casts a bool, null or float key the way PHP stores an array offset", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-scalar-key-cast"
+            const rows = [{ k: true }, { k: false }, { k: null }];
+            expect(Arr.keyBy(rows, "k")).toEqual({
+                1: { k: true },
+                0: { k: false },
+                "": { k: null },
+            });
+
+            const keyOf = (key: number) =>
+                Object.keys(Arr.keyBy([{ v: 1 }], () => key));
+            expect(keyOf(1.5)).toEqual(["1"]);
+            expect(keyOf(-1.5)).toEqual(["-1"]);
+            expect(keyOf(-0)).toEqual(["0"]);
+            expect(keyOf(Infinity)).toEqual(["0"]);
+            expect(keyOf(NaN)).toEqual(["0"]);
+            expect(keyOf(1e20)).toEqual(["7766279631452241920"]);
         });
     });
 
@@ -4124,7 +4524,8 @@ describe("Arr", () => {
             expect(Arr.shift(data)).toBeUndefined();
             expect(data).toEqual(["Otwell"]);
 
-            expect(Arr.shift({}, 2)).toEqual([]);
+            // docs/php-parity/task-23-obj-release-readiness.json, "D6 shift/pop on collect(null)"
+            expect(Arr.shift({}, 2)).toBeNull();
 
             expect(Arr.shift(null)).toBeNull();
             expect(Arr.shift(undefined)).toBeNull();
@@ -5078,6 +5479,28 @@ describe("Arr", () => {
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
             expect(result.polluted).toBeUndefined();
         });
+
+        it("sorts nested lists numerically and nested objects by key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-numbers-lexical" (list-shaped twin)
+            expect(Arr.sortRecursive([[10, 9, 1]])).toEqual([[1, 9, 10]]);
+            expect(Arr.sortRecursive([{ b: [3, 1], a: 1 }])).toEqual([
+                { a: 1, b: [1, 3] },
+            ]);
+        });
+
+        it("keeps an object that isn't a plain object whole, in a list or a map", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "sortRecursive-list-object-leaf", "sortRecursive-object-leaf"
+            const date = new Date(0);
+            const point = new Point();
+            const map = Arr.sortRecursive({ d: date, a: 1 });
+
+            expect(Arr.sortRecursive([[date]])[0]?.[0]).toBe(date);
+            expect(Arr.sortRecursive([point])[0]).toBe(point);
+            expect(Arr.sortRecursive([{ p: point }])[0]?.p).toBe(point);
+            expect(Object.keys(map)).toEqual(["a", "d"]);
+            expect(Object.values(map)[1]).toBe(date);
+        });
     });
 
     describe("sortRecursiveDesc", () => {
@@ -5476,6 +5899,20 @@ describe("Arr", () => {
         it("matches values by PHP's string cast", () => {
             expect(Arr.intersectAssoc([0], ["0"] as never)).toEqual([0]);
         });
+
+        it("unwraps a Collection-like operand, the sibling of obj.intersectAssoc's fix", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssoc-list-collection-operand"
+
+            expect(
+                Arr.intersectAssoc([1, 2, 3], collectionLike([1, 2, 9])),
+            ).toEqual([1, 2]);
+        });
+
+        it("matches a keyed operand by key, never by position", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssoc-list-keyed-operand"
+            expect(Arr.intersectAssoc([1, 2], { a: 1, b: 2 })).toEqual([]);
+            expect(Arr.intersectAssoc(["a", "b"], { 1: "b" })).toEqual(["b"]);
+        });
     });
 
     describe("intersectAssocUsing", () => {
@@ -5521,6 +5958,36 @@ describe("Arr", () => {
             expect(
                 Arr.intersectAssocUsing([0], ["0"] as never, (a, b) => a === b),
             ).toEqual([0]);
+        });
+
+        it("unwraps a Collection-like operand, the sibling of obj.intersectAssocUsing's fix", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssocUsing-list-collection-operand"
+
+            expect(
+                Arr.intersectAssocUsing(
+                    [1, 2, 3],
+                    collectionLike([1, 2, 9]),
+                    (a, b) => a === b,
+                ),
+            ).toEqual([1, 2]);
+        });
+
+        it("hands the callback a keyed operand's own keys, never its positions", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssocUsing-list-keyed-operand"
+            expect(
+                Arr.intersectAssocUsing(
+                    [1, 2],
+                    { a: 1, b: 2 },
+                    (a, b) => a === b,
+                ),
+            ).toEqual([]);
+            expect(
+                Arr.intersectAssocUsing(
+                    ["a", "b"],
+                    { 1: "b" },
+                    (a, b) => a === b,
+                ),
+            ).toEqual(["b"]);
         });
     });
     // Array.prototype passes `isArray` and Object.prototype passes `isObjectAny`,

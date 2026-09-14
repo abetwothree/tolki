@@ -222,7 +222,7 @@ This explains when to write comments in the code base and how to write comments.
 
 ### Mostly avoid comments
 
-For the most part, comments can be avoided if the logic isn't complicated or the code is self explanatory.
+For the most part, comments can be avoided if the logic isn't complicated or the code is self explanatory. Only when the logic is non-obvious or requires additional context should comments be added.
 
 ### How to write comments
 

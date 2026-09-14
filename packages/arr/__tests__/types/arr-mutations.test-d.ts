@@ -8,6 +8,9 @@ import {
     unknownArray,
 } from "./fixtures";
 
+declare const maybeKey: string | null;
+declare const maybeIndex: number | undefined;
+
 describe("arr mutations type tests", () => {
     describe("set", () => {
         it("returns the value type when key is null", () => {
@@ -78,6 +81,21 @@ describe("arr mutations type tests", () => {
                 return x + 1;
             });
             expectTypeOf(result).toEqualTypeOf<((n: number) => number)[]>();
+        });
+
+        it("adds the value to the result for a key that may be null or undefined", () => {
+            expectTypeOf(Arr.set(["a", "b"], maybeIndex, "x")).toEqualTypeOf<
+                string[] | string
+            >();
+            expectTypeOf(Arr.set([1, 2], maybeKey, "x")).toEqualTypeOf<
+                (number | string)[] | string
+            >();
+            expectTypeOf(Arr.set(unknownArray, maybeKey, 5)).toEqualTypeOf<
+                unknown[] | number
+            >();
+            expectTypeOf(Arr.set(unknownArray, "a", 5)).toEqualTypeOf<
+                unknown[]
+            >();
         });
     });
 

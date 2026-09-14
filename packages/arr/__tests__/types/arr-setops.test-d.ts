@@ -155,6 +155,21 @@ describe("arr set operation type tests", () => {
             });
         });
 
+        it("keeps a nullish operand's key a number", () => {
+            Arr.intersectAssocUsing([1, 2], null, (keyA, keyB) => {
+                expectTypeOf(keyB).toEqualTypeOf<number>();
+                return keyA === keyB;
+            });
+        });
+
+        it("types a keyed operand's key as number | string", () => {
+            Arr.intersectAssocUsing([1, 2], { a: 1 }, (keyA, keyB) => {
+                expectTypeOf(keyA).toEqualTypeOf<number>();
+                expectTypeOf(keyB).toEqualTypeOf<number | string>();
+                return keyA === keyB;
+            });
+        });
+
         it("preserves string element type", () => {
             expectTypeOf(
                 Arr.intersectAssocUsing(["a"], ["a"], (a, b) => a === b),

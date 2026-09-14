@@ -1,4 +1,12 @@
-import { isInteger, isPrototypeObject, isString } from "./guards";
+import {
+    isBoolean,
+    isInteger,
+    isNull,
+    isNumber,
+    isPrototypeObject,
+    isString,
+    isUndefined,
+} from "./guards";
 
 /**
  * The first magnitude beyond PHP's 64-bit integer range. `PHP_INT_MAX`
@@ -72,6 +80,56 @@ export function isIntegerLikeKey(key: string): boolean {
 }
 
 /**
+ * The key PHP stores for an array key: a canonical decimal integer string
+ * becomes a number and any other string stays the same string; `null` becomes
+ * `""`, a boolean `0` or `1`, and a float is truncated toward zero (INF and NAN become `0`).
+ *
+ * @param key - The key, as `Object.keys` reports it or as a value used as an array offset
+ * @returns The key PHP would report
+ *
+ * @example
+ * phpArrayKey("10"); -> 10
+ * phpArrayKey("01"); -> "01"
+ * phpArrayKey(true); -> 1
+ * phpArrayKey(1.5); -> 1
+ */
+export function phpArrayKey(key: unknown): string | number {
+    if (isString(key)) {
+        if (/^(0|-?[1-9]\d*)$/.test(key)) {
+            const value = Number(key);
+
+            // PHP holds up to 2^63 - 1; past 2^53 a JS number would silently change the key.
+            if (Number.isSafeInteger(value)) {
+                return value;
+            }
+        }
+
+        return key;
+    }
+
+    if (isNull(key) || isUndefined(key)) {
+        return "";
+    }
+
+    if (isBoolean(key)) {
+        return key ? 1 : 0;
+    }
+
+    if (isNumber(key) || Number.isNaN(key)) {
+        // PHP wraps a float past its int range into 64 bits; digits a JS number can't hold stay a string.
+        const integer = Number.isFinite(key)
+            ? BigInt.asIntN(64, BigInt(Math.trunc(key as number)))
+            : 0n;
+
+        return Number.isSafeInteger(Number(integer))
+            ? Number(integer)
+            : String(integer);
+    }
+
+    return String(key);
+}
+
+/**
  * Renumber the integer-like keys in `entries` to a fresh 0-based sequence, in
  * the order they appear; string keys pass through unchanged.
  *
@@ -95,6 +153,25 @@ export function reindexIntegerKeys<TValue>(
 
         return [key, value] as [string, TValue];
     });
+}
+
+/**
+ * Renumber every key PHP stores as an integer to a fresh 0-based sequence, in order, as `array_shift`,
+ * `array_splice` and `array_unshift` do. Unlike `reindexIntegerKeys`, a negative key such as "-1" counts too.
+ *
+ * @param entries - The entries to renumber, in their intended order
+ * @returns The same entries with every integer key renumbered from 0
+ */
+export function renumberPhpIntegerKeys<TValue>(
+    entries: [string, TValue][],
+): [string, TValue][] {
+    let nextIndex = 0;
+
+    return entries.map(([key, value]) =>
+        isNumber(phpArrayKey(key))
+            ? [String(nextIndex++), value]
+            : [key, value],
+    );
 }
 
 /**

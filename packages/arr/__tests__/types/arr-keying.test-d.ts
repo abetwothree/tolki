@@ -32,6 +32,13 @@ describe("arr keying type tests", () => {
             >();
         });
 
+        it("hands a callback the item's index as a number", () => {
+            Arr.keyBy(users, (item, key) => {
+                expectTypeOf(key).toEqualTypeOf<number>();
+                return item.name;
+            });
+        });
+
         it("preserves nested object element types", () => {
             const result = Arr.keyBy(metaTagItems, "id");
             expectTypeOf(result).toEqualTypeOf<

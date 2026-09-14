@@ -1,5 +1,10 @@
 import { SortDirection } from "@tolki/enum";
-import { replaceRecursive as objReplaceRecursive } from "@tolki/obj";
+import {
+    collapse as objCollapse,
+    crossJoin as objCrossJoin,
+    replaceRecursive as objReplaceRecursive,
+    union as objUnion,
+} from "@tolki/obj";
 import {
     dotFlatten,
     explodePluckPath,
@@ -36,6 +41,7 @@ import type {
     UndotResult,
 } from "@tolki/types";
 import {
+    arrayableItems,
     arrayableValues,
     arrayValueMessage,
     castableToArray,
@@ -49,6 +55,7 @@ import {
     isFalsy,
     isFunction,
     isInteger,
+    isIntegerLikeKey,
     isIterable,
     isMap,
     isNull,
@@ -57,6 +64,7 @@ import {
     isPhpArrayKey,
     isPhpFalsy,
     isPhpNumeric,
+    isPlainObject,
     isPrototypeObject,
     isString,
     isStringable,
@@ -64,10 +72,13 @@ import {
     isUndefined,
     isWeakMap,
     looseEqual,
+    phpArrayKey,
     phpTypeName,
     phpValueMatch,
     phpValueMatcher,
     resolveSliceRange,
+    strictEqual,
+    toPhpKeyString,
 } from "@tolki/utils";
 
 /**
@@ -352,13 +363,19 @@ export function chunkBy<TValue>(
 /**
  * Collapse an array of arrays into a single array, or an array of objects into a single object.
  *
+ * Once any item is a plain object, the result is `array_merge`'s: list values append under the next
+ * integer key, integer keys renumber and a later string key wins. A Collection-like item unwraps
+ * through its `all()` method, and any other item that isn't a plain object or a list is skipped,
+ * as `Arr::collapse` skips a PHP object: a `Date`, a `Map` or a class instance.
+ *
  * @param data - The array to collapse.
- * @return A new flattened array or merged object.
+ * @returns A new flattened array or merged object.
  *
  * @example
  *
  * collapse([[1], [2], [3], ['foo', 'bar']]); -> [1, 2, 3, 'foo', 'bar']
  * collapse([{ a: 1, b: 2 }, { c: 3, d: 4 }]) -> { a: 1, b: 2, c: 3, d: 4 }
+ * collapse([[1, 2], { x: 1 }]) -> { 0: 1, 1: 2, x: 1 }
  */
 export function collapse<TValue>(data: TValue[][]): TValue[];
 export function collapse<TValue, TKey extends PropertyKey = PropertyKey>(
@@ -373,27 +390,20 @@ export function collapse<TValue extends ArrayItems<unknown>>(
 export function collapse<TValue extends ArrayItems<unknown>>(
     data: TValue,
 ): Record<string, unknown> | ArrayInnerValue<TValue[number]>[] | unknown[] {
-    // Check if all items are objects (but not arrays)
-    const hasObjects = data.some((item) => isObject(item) && !isArray(item));
+    const items = data.map((item) =>
+        isObject(item) && isFunction(item["all"]) ? item["all"]() : item,
+    );
 
-    if (hasObjects) {
-        // Merge objects together
-        const result: Record<string, unknown> = {};
-        for (const item of data) {
-            if (isObject(item) && !isArray(item)) {
-                // Object.assign uses [[Set]] like a plain bracket assignment
-                // would, so it is exposed to the same __proto__ setter risk.
-                for (const [key, value] of Object.entries(item)) {
-                    defineKey(result, key, value);
-                }
-            }
-        }
-        return result;
+    // A plain object among the items is a PHP map, making array_merge's result one; obj.collapse runs that merge.
+    if (items.some((item) => isPlainObject(item))) {
+        return objCollapse({ ...data } as Record<
+            number,
+            Record<PropertyKey, unknown> | unknown[]
+        >);
     }
 
-    // Flatten arrays
     const out: unknown[] = [];
-    for (const item of data) {
+    for (const item of items) {
         if (isArray(item)) {
             out.push(...item);
         }
@@ -406,8 +416,9 @@ export function collapse<TValue extends ArrayItems<unknown>>(
  * Combine an array of keys with an array of values into an object, like PHP's
  * `array_combine()` / `Collection::combine()` (`Collection.php:933`).
  *
- * Each key is coerced with `String()`, matching `flip`/`keyBy`/`mapWithKeys`, so the
- * result's key type is always `string` rather than `PropertyKey`.
+ * Each key is cast with `toPhpKeyString()`, matching `array_combine`'s key rules, so the
+ * result's key type is always `string` rather than `PropertyKey`. `values` is read by
+ * `arrayableValues`, so a keyed or Collection-like operand contributes its values in order.
  *
  * @see Collection::combine — `packages/collection/stubs/Collection.php:933`. Wraps `array_combine`.
  *
@@ -418,9 +429,11 @@ export function collapse<TValue extends ArrayItems<unknown>>(
  */
 export function combine<TKey, TValue>(
     keys: ArrayItems<TKey>,
-    values: ArrayItems<TValue>,
+    values: ArrayItems<TValue> | Record<PropertyKey, TValue>,
 ): Record<string, TValue> {
-    if (keys.length !== values.length) {
+    const valueList = arrayableValues<TValue>(values);
+
+    if (keys.length !== valueList.length) {
         throw new Error(
             "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
         );
@@ -429,7 +442,7 @@ export function combine<TKey, TValue>(
     const result: Record<string, TValue> = {};
 
     for (let i = 0; i < keys.length; i++) {
-        defineKey(result, String(keys[i]), values[i] as TValue);
+        defineKey(result, toPhpKeyString(keys[i]), valueList[i] as TValue);
     }
 
     return result;
@@ -437,6 +450,8 @@ export function combine<TKey, TValue>(
 
 /**
  * Cross join the given arrays, returning all possible permutations.
+ * Each argument is one dimension, walked like PHP's `foreach`: a plain object,
+ * a Map or a Set gives its values.
  *
  * @param arrays - The arrays to cross join.
  * @return A new array with all combinations of the input arrays.
@@ -444,6 +459,7 @@ export function combine<TKey, TValue>(
  * @example
  *
  * crossJoin([1], ["a"]); -> [[1, 'a']]
+ * crossJoin([1, 2], { a: "x", b: "y" }); -> [[1, 'x'], [1, 'y'], [2, 'x'], [2, 'y']]
  */
 export function crossJoin(): unknown[][];
 export function crossJoin<A>(a: readonly A[]): [A][];
@@ -474,31 +490,12 @@ export function crossJoin<A, B, C, D, E, F>(
     e: readonly E[],
     f: readonly F[],
 ): [A, B, C, D, E, F][];
-export function crossJoin(
-    ...arrays: readonly (readonly unknown[])[]
-): unknown[][];
-export function crossJoin(
-    ...arrays: readonly (readonly unknown[])[]
-): unknown[][] {
-    let results: unknown[][] = [[]];
-
-    for (const array of arrays) {
-        if (!array.length) {
-            return [];
-        }
-
-        const next: unknown[][] = [];
-
-        for (const product of results) {
-            for (const item of array) {
-                next.push([...product, item]);
-            }
-        }
-
-        results = next;
-    }
-
-    return results;
+export function crossJoin(...arrays: readonly object[]): unknown[][];
+export function crossJoin(...arrays: readonly object[]): unknown[][] {
+    // Keying each argument by its position makes obj's rows list their values in argument order.
+    return objCrossJoin(
+        ...arrays.map((dimension, index) => ({ [index]: dimension })),
+    ).map((row) => Object.values(row));
 }
 
 /**
@@ -626,7 +623,10 @@ export function undot<TValue, TKey extends UndotArrayKey = number>(
  *      Uses PHP's `+` operator (key union: left keys win), not `array_merge`.
  *
  * A `null`/`undefined` operand contributes nothing, matching the
- * `(array) null` cast `getArrayableItems` performs before the `+`.
+ * `(array) null` cast `getArrayableItems` performs before the `+`. A keyed or
+ * Collection-like operand joins by key: each integer key fills that index if it
+ * is free, an index no operand fills holds `undefined`, and a string key, which
+ * a list can't hold, is dropped.
  *
  * @param arrays - The arrays to union.
  * @returns A new array combining each array's indices, left-most wins.
@@ -661,26 +661,26 @@ export function union<A, B, C, D, E, F>(
     f: readonly F[],
 ): (A | B | C | D | E | F)[];
 export function union(
-    ...arrays: (readonly unknown[] | null | undefined)[]
+    ...arrays: (readonly unknown[] | object | null | undefined)[]
 ): unknown[];
 export function union(
-    ...arrays: (readonly unknown[] | null | undefined)[]
+    ...arrays: (readonly unknown[] | object | null | undefined)[]
 ): unknown[] {
-    let result: unknown[] = [];
+    // Every operand joins by key exactly as obj.union joins it, so the two backings can't drift apart;
+    // this only turns obj's index-keyed result back into a list.
+    const merged = objUnion(...arrays) as Record<string, unknown>;
+    const result: unknown[] = [];
 
-    for (const array of arrays) {
-        // getArrayableItems casts a null operand to an empty array
-        // (EnumeratesValues.php:1121), so it contributes nothing.
-        if (isNull(array) || isUndefined(array)) {
+    for (const [key, value] of Object.entries(merged)) {
+        if (!isIntegerLikeKey(key)) {
             continue;
         }
 
-        // Every index below `result.length` is already occupied by an
-        // earlier (left-most-wins) array, so only the tail beyond that
-        // point can still contribute — mirroring PHP's `+` key union.
-        if (array.length > result.length) {
-            result = [...result, ...array.slice(result.length)];
+        while (result.length < Number(key)) {
+            result.push(undefined);
         }
+
+        result.push(value);
     }
 
     return result;
@@ -797,16 +797,13 @@ export function exceptValues<TValue>(
  *
  * exists([1, 2, 3], 0); -> true
  * exists([1, 2, 3], 3); -> false
+ * exists([1, 2, 3], '01'); -> false
  */
 export function exists<TValue>(data: readonly TValue[], key: PathKey): boolean {
-    // Array: only numeric keys are supported
-    const idx = isNumber(key) ? key : Number(key);
+    // Arr::exists casts a null or float key to string; a list holds only canonical integer keys, so "01" misses.
+    const index = phpArrayKey(toPhpKeyString(key));
 
-    if (Number.isNaN(idx)) {
-        return false;
-    }
-
-    return idx >= 0 && idx < data.length;
+    return isNumber(index) && Object.hasOwn(data, index);
 }
 
 /**
@@ -1097,6 +1094,9 @@ export function take<TValue>(
 /**
  * Flatten a multi-dimensional array into a single level.
  *
+ * Only arrays and plain objects are flattened, along with the items of a Collection-like item (one with an
+ * `all()` method); any other object, a `Date`, `Map` or class instance included, is kept as a value.
+ *
  * @param data The array to flatten.
  * @param depth Maximum depth to flatten. Use Infinity for full flattening.
  * @returns A new flattened array.
@@ -1128,35 +1128,23 @@ export function flatten<TValue>(
         return result;
     }
 
-    for (const item of data as ArrayItems<TValue>) {
-        // Convert objects to arrays of their values (ignoring keys)
-        // This matches Laravel's behavior where associative arrays are flattened to just values
-        if (isObject(item)) {
-            const objectValues = Object.values(item);
-            const values =
-                depth === 1
-                    ? objectValues
-                    : flatten(objectValues as ArrayItems<unknown>, depth - 1);
+    for (const entry of data as ArrayItems<unknown>) {
+        // Arr::flatten flattens a Collection item's items, and only an array otherwise.
+        const item =
+            isObject(entry) && isFunction(entry["all"])
+                ? entry["all"]()
+                : entry;
 
-            for (const value of values) {
-                result.push(value as TValue);
-            }
+        if (!isArray(item) && !isPlainObject(item)) {
+            result.push(item as TValue);
 
             continue;
         }
 
-        if (!isArray(item)) {
-            result.push(item);
+        // A plain object models a PHP associative array, which flattens to its values.
+        const values: unknown[] = isArray(item) ? item : Object.values(item);
 
-            continue;
-        }
-
-        const values =
-            depth === 1
-                ? (item.slice() as unknown[])
-                : flatten(item as ArrayItems<unknown>, depth - 1);
-
-        for (const value of values) {
+        for (const value of depth === 1 ? values : flatten(values, depth - 1)) {
             result.push(value as TValue);
         }
     }
@@ -1760,30 +1748,39 @@ export function join<TValue>(
 
 /**
  * Key an associative array by a field or using a callback.
+ * Each resolved key is stored the way PHP stores an array key: `null` as `""`, a boolean as `0`/`1`,
+ * and a float truncated toward zero.
  *
  * @param data - The array to key.
- * @param keyBy - The field name to key by, or a callback function.
+ * @param keyBy - The field name to key by, or a callback function that receives each item and its index.
  * @returns A new object keyed by the specified field or callback result.
  *
  * @example
  *
  * keyBy([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'id'); -> {1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}}
  * keyBy([{name: 'John'}, {name: 'Jane'}], (item) => item.name); -> {John: {name: 'John'}, Jane: {name: 'Jane'}}
+ * keyBy([{name: 'John'}], (item, index) => `k${index}`); -> {k0: {name: 'John'}}
  */
 // Overload: array type with callback for proper type inference
 export function keyBy<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue>,
-    keyBy: ((item: TValue) => string | number | null | undefined) | string,
+    keyBy:
+        | ((item: TValue, key: number) => string | number | null | undefined)
+        | string,
 ): Record<string, TValue>;
 // Overload: non-array fallback
 export function keyBy<TValue extends Record<string, unknown>>(
     data: unknown,
-    keyBy: string | ((item: TValue) => string | number | null | undefined),
+    keyBy:
+        | string
+        | ((item: TValue, key: number) => string | number | null | undefined),
 ): Record<string, TValue>;
 // Implementation
 export function keyBy<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue> | unknown,
-    keyBy: string | ((item: TValue) => string | number | null | undefined),
+    keyBy:
+        | string
+        | ((item: TValue, key: number) => string | number | null | undefined),
 ): Record<string, TValue> {
     if (!accessible(data)) {
         return {};
@@ -1792,37 +1789,19 @@ export function keyBy<TValue extends Record<string, unknown>>(
     const values = data as ArrayItems<TValue>;
     const results: Record<PropertyKey, TValue> = {};
 
-    for (const item of values) {
-        let key: PropertyKey;
+    for (const [index, item] of values.entries()) {
+        const key = isFunction(keyBy)
+            ? keyBy(item, index)
+            : getNestedValue(item, keyBy as string);
 
-        if (isFunction(keyBy)) {
-            const result = keyBy(item);
-            key = isSymbol(result) ? result : stringifyKey(result);
-        } else {
-            // Use dot notation to get the key value
-            const keyValue = getNestedValue(item, keyBy as string);
-            key = stringifyKey(keyValue);
-        }
-
-        defineKey(results as Record<string, TValue>, key as string, item);
+        defineKey(
+            results as Record<string, TValue>,
+            isSymbol(key) ? key : phpArrayKey(key),
+            item,
+        );
     }
 
     return results;
-}
-
-/**
- * Convert a resolved key value to a string key, casting null and undefined
- * to an empty string the way PHP casts null keys.
- *
- * @param keyValue - The resolved key value to convert.
- * @returns The string key.
- */
-function stringifyKey(keyValue: unknown): string {
-    if (isNull(keyValue) || isUndefined(keyValue)) {
-        return "";
-    }
-
-    return String(keyValue);
 }
 
 /**
@@ -1990,7 +1969,7 @@ export function select<TValue extends Record<string, unknown>>(
  * @param data - The array to pluck from.
  * @param value - The key path to pluck (a dot-notated string, an array of
  *   segments, or a path containing a `*` wildcard segment), a callback, or
- *   `null` to keep each whole item.
+ *   `null`/`undefined` to keep each whole item.
  * @param key - Optional key path to use as keys in result, or callback function.
  * @returns A new array of plucked values, or a record keyed by the
  *   resolved `key` values when a key is given.
@@ -2014,32 +1993,38 @@ export function pluck<
     value: TPath,
     key: string | readonly string[] | ((item: TValue) => string | number),
 ): Record<string | number, PluckValue<TValue, TPath>>;
-// Overload: literal path, no key → array of the resolved value type
+// Overload: literal path, no key or a nullish one → array of the resolved value type
 export function pluck<
     TValue extends Record<string, unknown>,
     const TPath extends string,
->(data: ArrayItems<TValue>, value: TPath): PluckValue<TValue, TPath>[];
+>(
+    data: ArrayItems<TValue>,
+    value: TPath,
+    key?: null | undefined,
+): PluckValue<TValue, TPath>[];
 // Overload: closure value + key → record keyed by the key
 export function pluck<TValue extends Record<string, unknown>, TResult>(
     data: ArrayItems<TValue>,
     value: (item: TValue) => TResult,
     key: string | readonly string[] | ((item: TValue) => string | number),
 ): Record<string | number, TResult>;
-// Overload: closure value, no key → array of the closure return type
+// Overload: closure value, no key or a nullish one → array of the closure return type
 export function pluck<TValue extends Record<string, unknown>, TResult>(
     data: ArrayItems<TValue>,
     value: (item: TValue) => TResult,
+    key?: null | undefined,
 ): TResult[];
-// Overload: null value + key → record keyed by the key, whole items as values
+// Overload: null/undefined value + key → record keyed by the key, whole items as values
 export function pluck<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue>,
-    value: null,
+    value: null | undefined,
     key: string | readonly string[] | ((item: TValue) => string | number),
 ): Record<string | number, TValue>;
-// Overload: null value, no key → array of whole items, matching Arr::pluck($data, null)
+// Overload: null/undefined value, no key or a nullish one → array of whole items, matching Arr::pluck($data, null)
 export function pluck<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue>,
-    value: null,
+    value: null | undefined,
+    key?: null | undefined,
 ): TValue[];
 // Overload: with key → returns Record (keyed result)
 export function pluck<TValue extends Record<string, unknown>>(
@@ -2047,15 +2032,21 @@ export function pluck<TValue extends Record<string, unknown>>(
     value: string | readonly string[] | ((item: TValue) => unknown),
     key: string | readonly string[] | ((item: TValue) => string | number),
 ): Record<string | number, unknown>;
-// Overload: without key → returns array
+// Overload: without key or with a nullish one → returns array
 export function pluck<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue>,
     value: string | readonly string[] | ((item: TValue) => unknown),
+    key?: null | undefined,
 ): unknown[];
 // Overload: non-array fallback
 export function pluck<TValue extends Record<string, unknown>>(
     data: unknown,
-    value: string | readonly string[] | ((item: TValue) => unknown) | null,
+    value:
+        | string
+        | readonly string[]
+        | ((item: TValue) => unknown)
+        | null
+        | undefined,
     key?:
         | string
         | readonly string[]
@@ -2065,7 +2056,12 @@ export function pluck<TValue extends Record<string, unknown>>(
 // Implementation
 export function pluck<TValue extends Record<string, unknown>>(
     data: ArrayItems<TValue> | unknown,
-    value: string | readonly string[] | ((item: TValue) => unknown) | null,
+    value:
+        | string
+        | readonly string[]
+        | ((item: TValue) => unknown)
+        | null
+        | undefined,
     key:
         | string
         | readonly string[]
@@ -2076,6 +2072,8 @@ export function pluck<TValue extends Record<string, unknown>>(
         return [];
     }
 
+    // JS-only: undefined has no PHP analogue; pluck treats it like null (Obj.pluck matches).
+    const valuePath = isUndefined(value) ? null : value;
     const values = data as ArrayItems<TValue>;
     // Same predicate as the write branch below — JS truthiness would send
     // key = "" down the array path while the write branch does keyed writes.
@@ -2087,12 +2085,14 @@ export function pluck<TValue extends Record<string, unknown>>(
         let itemKey: string | number | undefined;
 
         // Get the value
-        if (isFunction(value)) {
-            itemValue = value(item);
+        if (isFunction(valuePath)) {
+            itemValue = valuePath(item);
         } else {
             itemValue = resolvePluckPath(
                 item,
-                explodePluckPath(value as string | readonly string[] | null),
+                explodePluckPath(
+                    valuePath as string | readonly string[] | null,
+                ),
             );
         }
 
@@ -2378,13 +2378,15 @@ export function mapSpread<TMapReturn>(
  *
  * @param data - The array to prepend to.
  * @param value - The value to prepend.
- * @param key - Optional key for the prepended value (creates object with numeric keys).
+ * @param key - Optional key: `[$key => $value] + $array`, read by key as `union` reads it, so key 0 replaces the
+ * first item and another key holds the value at that index.
  * @returns A new array with the value prepended.
  *
  * @example
  *
  * prepend(['b', 'c'], 'a'); -> ['a', 'b', 'c']
  * prepend([1, 2, 3], 0); -> [0, 1, 2, 3]
+ * prepend(['b', 'c'], 'a', 0); -> ['a', 'c']
  */
 // Overload: typed array → array with the value prepended, element type preserved
 export function prepend<TValue>(
@@ -2407,12 +2409,8 @@ export function prepend<TValue>(
     const values = getAccessibleValues(data) as TValue[];
 
     if (!isUndefined(key)) {
-        // Creates a new array with the key-value pair first, mimicking PHP's `['key' =>
-        // 'value'] + $array`. `key` is always a `number` here (loop counter/parseInt'd
-        // index), so it can never stringify to "__proto__".
-        const result: TValue[] = [];
-        result[key] = value;
-        return result.concat(values);
+        // PHP's [$key => $value] + $array is a key union with the prepended entry winning its key.
+        return union({ [phpArrayKey(key)]: value }, values) as TValue[];
     }
 
     return [value, ...values];
@@ -2700,8 +2698,9 @@ export function shift<TValue>(
         throw new Error("Number of shifted items may not be less than zero.");
     }
 
+    // Collection::shift checks isEmpty() before the count, so non-array data yields null for any count.
     if (!accessible(data)) {
-        return count === 1 ? null : [];
+        return null;
     }
 
     const values = data as TValue[];
@@ -2772,12 +2771,25 @@ export function set<TValue, TSetValue>(
     key: string | number,
     value: TSetValue,
 ): (TValue | TSetValue)[];
+// Overload: a key that may be null or undefined → the value itself, or the array with it written.
+// NoInfer keeps TSetValue off the result's top level, where TypeScript would stop widening a literal value.
+export function set<TValue, TSetValue>(
+    array: ArrayItems<TValue>,
+    key: PathKey,
+    value: TSetValue,
+): (TValue | TSetValue)[] | NoInfer<TSetValue>;
 // Overload: generic fallback
 export function set<TValue>(
     array: unknown,
-    key: PathKey | null,
+    key: string | number,
     value: unknown,
 ): TValue[];
+// Overload: generic fallback, for a key that may be null or undefined
+export function set<TValue, TSetValue>(
+    array: unknown,
+    key: PathKey,
+    value: TSetValue,
+): TValue[] | NoInfer<TSetValue>;
 export function set(
     array: unknown,
     key: PathKey | null,
@@ -3188,6 +3200,7 @@ export function sortDesc<TValue>(
 
 /**
  * Recursively sort an array by keys and values.
+ * Only arrays and plain objects are sorted; any other object (a class instance, Date or Map) is kept as it is.
  *
  * @param data - The array to sort recursively.
  * @param options - Sort options (currently unused, for PHP compatibility).
@@ -3230,7 +3243,7 @@ export function sortRecursive<TValue>(
         // First recursively sort nested elements
         for (let i = 0; i < result.length; i++) {
             const item = result[i];
-            if (isArray(item) || isObject(item)) {
+            if (isArray(item) || isPlainObject(item)) {
                 result[i] = sortRecursive(item, isDesc) as TValue;
             }
         }
@@ -3246,7 +3259,7 @@ export function sortRecursive<TValue>(
 
         // Recursively sort nested values first
         for (const [key, value] of entries) {
-            if (isArray(value) || (isObject(value) && !isNull(value))) {
+            if (isArray(value) || isPlainObject(value)) {
                 defineKey(result, key, sortRecursive(value, isDesc));
             }
         }
@@ -3576,15 +3589,16 @@ export function reject<TValue>(
 /**
  * Replace the data items with the given replacer items.
  *
- * Supports both arrays and numeric keyed objects as replacement values.
- * When using a numeric keyed object, keys determine positions to replace/add.
+ * The replacer is read the way `getArrayableItems()` reads it (a scalar as `[scalar]`), and each of
+ * its integer keys replaces or adds that index, an index none fills holding `undefined`. A string key,
+ * which a list can't hold, is dropped, as `union` drops one.
  *
  * @see Collection::replace — `packages/collection/stubs/Collection.php:1170`.
  *      Wraps `array_replace`.
  *
  * @param data - The array to replace items in.
- * @param replacerData - The array or numeric keyed object containing items to replace.
- * @returns The modified original array with replaced items.
+ * @param replacerData - The list, object or Collection-like operand holding the items to replace.
+ * @returns A new array with the replaced items.
  *
  * @example
  *
@@ -3620,44 +3634,19 @@ export function replace<TValue, TReplace = TValue>(
     data: ArrayItems<TValue> | unknown,
     replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
 ): (TValue | TReplace | undefined)[] {
-    const values = getAccessibleValues(data) as TValue[];
+    const values: (TValue | TReplace | undefined)[] = getAccessibleValues(data);
 
-    // Handle null/undefined replacer
-    if (isNull(replacerData) || isUndefined(replacerData)) {
-        return values;
-    }
-
-    // If replacerData is an array, use sequential replacement
-    if (isArray(replacerData)) {
-        const replacerValues = replacerData as TValue[];
-        for (let i = 0; i < replacerValues.length; i++) {
-            if (i < values.length) {
-                values[i] = replacerValues[i] as TValue;
-            } else {
-                values.push(replacerValues[i] as TValue);
-            }
+    for (const [key, value] of Object.entries(arrayableItems(replacerData))) {
+        // PHP keeps "k", "01", "-1" or "1.5" as a key of its keyed result; a list holds only integer keys, as in union.
+        if (!isIntegerLikeKey(key)) {
+            continue;
         }
-        return values;
-    }
 
-    // If replacerData is an object with numeric keys, replace by index
-    if (isObject(replacerData)) {
-        const replacerObj = replacerData as Record<number, TValue>;
-        for (const key of Object.keys(replacerObj)) {
-            const index = parseInt(key, 10);
-            if (!isNaN(index)) {
-                if (index < values.length) {
-                    values[index] = replacerObj[index] as TValue;
-                } else {
-                    // Fill gaps with undefined if necessary
-                    while (values.length < index) {
-                        values.push(undefined as unknown as TValue);
-                    }
-                    values.push(replacerObj[index] as TValue);
-                }
-            }
+        while (values.length < Number(key)) {
+            values.push(undefined);
         }
-        return values;
+
+        values[Number(key)] = value as TReplace;
     }
 
     return values;
@@ -3666,26 +3655,28 @@ export function replace<TValue, TReplace = TValue>(
 /**
  * Recursively replace the data items with the given items.
  *
- * Supports arrays and numeric-keyed objects as replacement values; a numeric-keyed
- * object nested in an array replaces by sparse index, same as a nested array.
+ * The replacer is read the way `getArrayableItems()` reads it (a scalar as `[scalar]`), and only its
+ * integer keys apply: a string key, which a list can't hold, is dropped, as `union` drops one. Each index
+ * merges the way `@tolki/obj`'s `replaceRecursive` merges a key: two arrays or plain objects merge,
+ * and anything else, a `Date` or class instance included, is replaced whole.
  *
  * @see Collection::replaceRecursive — `packages/collection/stubs/Collection.php:1181`. Wraps `array_replace_recursive`.
  *
  * @param data - The original array to replace items in.
- * @param replacerData - The array or numeric keyed object containing items to replace.
- * @returns The modified original array with replaced items.
+ * @param replacerData - The list, object or Collection-like operand holding the items to replace.
+ * @returns A new array with the replaced items.
  */
 // Overload: null/undefined replacer — returns original type unchanged
 export function replaceRecursive<TValue>(
     data: ArrayItems<TValue>,
     replacerData: null | undefined,
 ): TValue[];
-// Overload: array replacer with same type — sequential replacement, may fill gaps
+// Overload: array replacer with same type — replaces by index
 export function replaceRecursive<TValue>(
     data: ArrayItems<TValue>,
     replacerData: ArrayItems<TValue>,
 ): (TValue | undefined)[];
-// Overload: array replacer with different type — sequential replacement, may fill gaps
+// Overload: array replacer with different type — replaces by index
 export function replaceRecursive<TValue, TReplace>(
     data: ArrayItems<TValue>,
     replacerData: TReplace[],
@@ -3705,131 +3696,30 @@ export function replaceRecursive<TValue, TReplace = TValue>(
     replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
 ): (TValue | TReplace | undefined)[] {
     const values = getAccessibleValues(data) as TValue[];
+    // PHP keeps "k", "01", "-1" or "1.5" as a key of its keyed result; a list holds only integer keys, as in union.
+    const replacer = Object.fromEntries(
+        Object.entries(arrayableItems(replacerData)).filter(([key]) =>
+            isIntegerLikeKey(key),
+        ),
+    ) as Record<number, TReplace>;
 
-    // Handle null/undefined replacer
-    if (isNull(replacerData) || isUndefined(replacerData)) {
-        return values;
+    // Each index merges exactly as obj.replaceRecursive merges a key, so the two backings can't drift apart;
+    // this only turns obj's index-keyed result back into a list, filling any gap with undefined.
+    const merged = objReplaceRecursive(
+        { ...(values as object) } as Record<PropertyKey, TValue>,
+        replacer,
+    ) as Record<string, TValue | TReplace>;
+    const result: (TValue | TReplace | undefined)[] = [];
+
+    for (const [key, value] of Object.entries(merged)) {
+        while (result.length < Number(key)) {
+            result.push(undefined);
+        }
+
+        result.push(value);
     }
 
-    // Helper function to check if an object is a numeric keyed object
-    // TODO: move to utils
-    const isNumericKeyedObject = (
-        obj: unknown,
-    ): obj is Record<number, unknown> => {
-        if (!isObject(obj) || isArray(obj)) {
-            return false;
-        }
-        const keys = Object.keys(obj);
-        return (
-            keys.length > 0 && keys.every((key) => !isNaN(parseInt(key, 10)))
-        );
-    };
-
-    // Helper function to process a single replacement value
-    const processReplacement = (
-        originalValue: TValue,
-        replacementValue: unknown,
-    ): TValue => {
-        // Both are arrays or the replacement is a numeric keyed object that should be treated as array
-        if (
-            isArray(originalValue) &&
-            (isArray(replacementValue) ||
-                isNumericKeyedObject(replacementValue))
-        ) {
-            return replaceRecursive(
-                originalValue as unknown as ArrayItems<TValue>,
-                replacementValue as
-                    | ArrayItems<TValue>
-                    | Record<number, TReplace>,
-            ) as unknown as TValue;
-        }
-
-        // Both are objects (non-array, non-numeric-keyed)
-        if (
-            isObject(originalValue) &&
-            isObject(replacementValue) &&
-            !isNumericKeyedObject(replacementValue)
-        ) {
-            return objReplaceRecursive(
-                originalValue as unknown as Record<PropertyKey, TValue>,
-                replacementValue as unknown as Record<PropertyKey, TValue>,
-            ) as unknown as TValue;
-        }
-
-        // Otherwise, just replace
-        return replacementValue as TValue;
-    };
-
-    // If replacerData is an array
-    if (isArray(replacerData)) {
-        const replacerArray = replacerData as unknown[];
-
-        // Collect all replacements with their intended indices
-        const allReplacements: Map<number, unknown> = new Map();
-        let currentIndex = 0;
-
-        for (let i = 0; i < replacerArray.length; i++) {
-            const item = replacerArray[i];
-
-            // If this item is a numeric keyed object, it represents sparse replacements
-            if (isNumericKeyedObject(item)) {
-                const numericObj = item as Record<number, unknown>;
-                for (const key of Object.keys(numericObj)) {
-                    const index = parseInt(key, 10);
-                    allReplacements.set(index, numericObj[index]);
-                    // Update currentIndex to be after the highest sparse index
-                    if (index >= currentIndex) {
-                        currentIndex = index + 1;
-                    }
-                }
-            } else {
-                // Normal sequential replacement - use currentIndex
-                allReplacements.set(currentIndex, item);
-                currentIndex++;
-            }
-        }
-
-        // Apply all replacements
-        for (const [index, replacementValue] of allReplacements) {
-            if (index < values.length) {
-                values[index] = processReplacement(
-                    values[index]!,
-                    replacementValue,
-                );
-            } else {
-                // Fill gaps with undefined if necessary
-                while (values.length < index) {
-                    values.push(undefined as TValue);
-                }
-                values.push(replacementValue as TValue);
-            }
-        }
-
-        return values;
-    }
-
-    // If replacerData is an object with numeric keys, replace by index
-    if (isNumericKeyedObject(replacerData)) {
-        const replacerObj = replacerData as Record<number, TReplace>;
-        for (const key of Object.keys(replacerObj)) {
-            const index = parseInt(key, 10);
-            if (index < values.length) {
-                values[index] = processReplacement(
-                    values[index]!,
-                    replacerObj[index],
-                );
-            } else {
-                // Fill gaps with undefined if necessary
-                while (values.length < index) {
-                    values.push(undefined as TValue);
-                }
-                values.push(replacerObj[index] as unknown as TValue);
-            }
-        }
-        return values;
-    }
-
-    return values;
+    return result;
 }
 
 /**
@@ -4012,16 +3902,20 @@ export function contains<TValue>(
     }
 
     if (isFunction(value)) {
-        return data.some((item, index) =>
-            (value as (value: TValue, key: number) => boolean)(
-                item as TValue,
-                index,
-            ),
-        );
+        const callback = value as (value: TValue, key: number) => boolean;
+
+        for (const [index, item] of data.entries()) {
+            if (callback(item as TValue, index)) {
+                // containsStrict(callback) is `! is_null($this->first($callback))`: a null match doesn't count.
+                return strict ? !isNull(item) : true;
+            }
+        }
+
+        return false;
     }
 
     if (strict) {
-        return data.some((item) => item === value);
+        return data.some((item) => strictEqual(item, value));
     }
 
     // Use PHP-like loose comparison
@@ -4202,7 +4096,8 @@ export function diff<TValue>(
  * Get the items whose index and value are not both present in the given other array.
  *
  * This is `array_diff_assoc` — unlike `diff`, matching by index+value, not by value
- * alone. A non-accessible `other` is treated as empty, so every item of `data` survives.
+ * alone. `other` is normalized by `arrayableItems`, so each index is looked up among
+ * its keys: a keyed operand matches by key, never by position, and a nullish one is empty.
  *
  * @see Collection::diffAssoc — `packages/collection/stubs/Collection.php:299`. Wraps `array_diff_assoc`.
  *
@@ -4223,25 +4118,13 @@ export function diffAssoc<TValue>(
         return [] as TValue[];
     }
 
-    const dataValues = getAccessibleValues(data) as TValue[];
+    const otherItems = arrayableItems(other);
 
-    if (!accessible(other)) {
-        return [...dataValues];
-    }
-
-    const otherValues = getAccessibleValues(other) as TValue[];
-    const result: TValue[] = [];
-
-    for (let index = 0; index < dataValues.length; index++) {
-        if (
-            index >= otherValues.length ||
-            !phpValueMatch(dataValues[index], otherValues[index])
-        ) {
-            result.push(dataValues[index] as TValue);
-        }
-    }
-
-    return result;
+    return (getAccessibleValues(data) as TValue[]).filter(
+        (value, index) =>
+            !Object.hasOwn(otherItems, index) ||
+            !phpValueMatch(value, otherItems[index]),
+    );
 }
 
 /**
@@ -4315,6 +4198,9 @@ export function intersect<TValue, TOther = TValue>(
  * Intersect the array with the given items with additional index check.
  * Returns items where both the index AND value match.
  *
+ * `other` is normalized by `arrayableItems`, so each index is looked up among its keys:
+ * a keyed operand matches by key, never by position.
+ *
  * @see Collection::intersectAssoc — `packages/collection/stubs/Collection.php:683`.
  *      Wraps `array_intersect_assoc`.
  *
@@ -4340,29 +4226,25 @@ export function intersectAssoc<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
 ): TValue[] {
-    if (!accessible(data) || !accessible(other)) {
+    if (!accessible(data)) {
         return [] as TValue[];
     }
 
-    const dataValues = getAccessibleValues(data) as TValue[];
-    const otherValues = getAccessibleValues(other) as TValue[];
-    const result: TValue[] = [];
+    const otherItems = arrayableItems(other);
 
-    for (let index = 0; index < dataValues.length; index++) {
-        if (
-            index < otherValues.length &&
-            phpValueMatch(dataValues[index], otherValues[index])
-        ) {
-            result.push(dataValues[index] as TValue);
-        }
-    }
-
-    return result;
+    return (getAccessibleValues(data) as TValue[]).filter(
+        (value, index) =>
+            Object.hasOwn(otherItems, index) &&
+            phpValueMatch(value, otherItems[index]),
+    );
 }
 
 /**
  * Intersect the array with the given items with additional index check, using the callback.
  * The callback is used to compare indices, while values are compared by PHP's `(string)` cast rule.
+ *
+ * `other` is normalized by `arrayableItems`, so the callback receives each of its real keys: an
+ * index for a list, or the key PHP would store (a number for a canonical integer) for a keyed operand.
  *
  * @see Collection::intersectAssocUsing — `packages/collection/stubs/Collection.php:695`.
  *      Wraps `array_intersect_uassoc`.
@@ -4383,45 +4265,44 @@ export function intersectAssocUsing<TValue>(
     other: ArrayItems<TValue>,
     callback: (keyA: number, keyB: number) => boolean,
 ): TValue[];
+// Overload: a list, nullish or scalar operand only has integer keys
 export function intersectAssocUsing<TValue>(
     data: ArrayItems<TValue> | unknown,
-    other: ArrayItems<TValue> | unknown,
+    other: ArrayItems<unknown> | string | number | boolean | null | undefined,
     callback: (keyA: number, keyB: number) => boolean,
+): TValue[];
+// Overload: a keyed operand (object, Map, Collection-like) can hand the callback a string key
+export function intersectAssocUsing<TValue>(
+    data: ArrayItems<TValue> | unknown,
+    other: unknown,
+    callback: (keyA: number, keyB: number | string) => boolean,
 ): TValue[];
 export function intersectAssocUsing<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
     callback: (keyA: number, keyB: number) => boolean,
 ): TValue[] {
-    if (!accessible(data) || !accessible(other)) {
+    if (!accessible(data)) {
         return [] as TValue[];
     }
 
-    const dataValues = getAccessibleValues(data) as TValue[];
-    const otherValues = getAccessibleValues(other) as TValue[];
-    const result: TValue[] = [];
+    const otherEntries = Object.entries(arrayableItems(other));
 
-    for (let dataIndex = 0; dataIndex < dataValues.length; dataIndex++) {
-        for (
-            let otherIndex = 0;
-            otherIndex < otherValues.length;
-            otherIndex++
-        ) {
-            if (
-                callback(dataIndex, otherIndex) &&
-                phpValueMatch(dataValues[dataIndex], otherValues[otherIndex])
-            ) {
-                result.push(dataValues[dataIndex] as TValue);
-                break; // Only add once per dataIndex
-            }
-        }
-    }
-
-    return result;
+    return (getAccessibleValues(data) as TValue[]).filter((value, index) =>
+        otherEntries.some(
+            ([otherKey, otherValue]) =>
+                // Only the keyed overload's operand yields a string key, and its callback accepts one.
+                callback(index, phpArrayKey(otherKey) as number) &&
+                phpValueMatch(value, otherValue),
+        ),
+    );
 }
 
 /**
  * Intersect the array with the given items by key.
+ *
+ * `other` is normalized by `arrayableItems`, so an index survives only when it is one of
+ * `other`'s keys: a keyed operand matches by key, never by position.
  *
  * @see Collection::intersectByKeys — `packages/collection/stubs/Collection.php:706`.
  *      Wraps `array_intersect_key`.
@@ -4443,21 +4324,13 @@ export function intersectByKeys<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
 ): TValue[] {
-    if (!accessible(data) || !accessible(other)) {
+    if (!accessible(data)) {
         return [] as TValue[];
     }
 
-    const dataValues = getAccessibleValues(data) as TValue[];
-    const otherValues = getAccessibleValues(other) as TValue[];
-    const result: TValue[] = [];
+    const otherItems = arrayableItems(other);
 
-    const otherKeys = new Set<number>(otherValues.map((_, index) => index));
-
-    for (let index = 0; index < dataValues.length; index++) {
-        if (otherKeys.has(index)) {
-            result.push(dataValues[index] as TValue);
-        }
-    }
-
-    return result;
+    return (getAccessibleValues(data) as TValue[]).filter((_, index) =>
+        Object.hasOwn(otherItems, index),
+    );
 }

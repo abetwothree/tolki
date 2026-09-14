@@ -2360,6 +2360,20 @@ describe("arr type tests", () => {
             });
         });
 
+        describe("a plain object, Map or Set argument (variadic fallback)", () => {
+            it("falls back to unknown[][]", () => {
+                const fromObject = Arr.crossJoin([1, 2], { a: "x", b: "y" });
+                const fromSet = Arr.crossJoin([1], new Set(["x"]));
+                expectTypeOf(fromObject).toEqualTypeOf<unknown[][]>();
+                expectTypeOf(fromSet).toEqualTypeOf<unknown[][]>();
+            });
+
+            it("still rejects a scalar argument", () => {
+                // @ts-expect-error a scalar has no values for crossJoin to walk
+                Arr.crossJoin([1], "x");
+            });
+        });
+
         describe("single nested array argument", () => {
             it("treats nested array as single dimension", () => {
                 const result = Arr.crossJoin([

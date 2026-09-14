@@ -1,6 +1,14 @@
 import * as Path from "@tolki/path";
 import { afterEach, describe, expect, it } from "vitest";
 
+/**
+ * A class instance with own fields, which PHP's array helpers keep whole instead of walking.
+ */
+class Point {
+    x = 1;
+    y = 2;
+}
+
 describe("Path Functions", () => {
     describe("undotExpandObject", () => {
         it("undotExpandObject handles symbol-like keys", () => {
@@ -116,6 +124,19 @@ describe("Path Functions", () => {
             expect(Path.parseSegments("1..2")).toBeNull(); // Empty segment between dots
             expect(Path.parseSegments("1.2.")).toBeNull(); // Trailing dot creates empty segment
         });
+
+        it("keeps a non-canonical index as a string segment", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-non-canonical-index":
+            // PHP stores these as string keys, so a list never holds them.
+            expect(Path.parseSegments("0.01")).toEqual([0, "01"]);
+            expect(Path.parseSegments(" 1.1e0.+1.0x1.-0")).toEqual([
+                " 1",
+                "1e0",
+                "+1",
+                "0x1",
+                "-0",
+            ]);
+        });
     });
 
     describe("hasPath", () => {
@@ -188,10 +209,15 @@ describe("Path Functions", () => {
         });
 
         it("handles object cursor during traversal with numeric segment", () => {
-            // When cursor is an object but segment is numeric
+            // The object has no own "0" key for the numeric segment to find.
             const data = [{ name: "John" }];
-            // Can't use numeric path segment on object without arrays
             expect(Path.hasPath(data, "0.0")).toBe(false);
+        });
+
+        it("finds an integer segment among an object's own keys", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-int-segment-into-map"
+            expect(Path.hasPath([{ 0: "x" }], "0.0")).toBe(true);
+            expect(Path.hasPath([{ 1: "z" }], "0.0")).toBe(false);
         });
 
         it("handles string segments on object cursors", () => {
@@ -226,6 +252,12 @@ describe("Path Functions", () => {
         it("does not see an inherited key via a dotted object path", () => {
             // `in` climbs the prototype chain; {} has no own "constructor".
             expect(Path.hasPath({ a: {} }, "a.constructor")).toBe(false);
+        });
+
+        it("does not find a non-canonical index in a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "has-list-non-canonical-index"
+            expect(Path.hasPath(["x", "y"], "01")).toBe(false);
+            expect(Path.hasPath([["x", "y"]], "0.1e0")).toBe(false);
         });
     });
 
@@ -308,15 +340,38 @@ describe("Path Functions", () => {
         });
 
         it("handles object cursor during numeric segment traversal", () => {
+            // The object has no own "0" key for the numeric segment to find.
             const data = [{ name: "John" }];
-            // Object doesn't have numeric array indices
             expect(Path.getRaw(data, "0.0")).toEqual({ found: false });
+        });
+
+        it("looks an integer segment up as an object's own key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-int-segment-into-map"
+            expect(Path.getRaw([{ 0: "x" }], "0.0")).toEqual({
+                found: true,
+                value: "x",
+            });
+            expect(Path.getRaw([{ k: "v", 0: "x" }], "0.0")).toEqual({
+                found: true,
+                value: "x",
+            });
+            expect(Path.getRaw([[{ 1: "z" }]], "0.0.1")).toEqual({
+                found: true,
+                value: "z",
+            });
+            expect(Path.getRaw([{ 1: "z" }], "0.0")).toEqual({ found: false });
         });
 
         it("handles string segments on arrays", () => {
             const data = [["a", "b"]];
             // String segment on array should fail
             expect(Path.getRaw(data, "0.name")).toEqual({ found: false });
+        });
+
+        it("does not find a non-canonical index in a list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-non-canonical-index"
+            expect(Path.getRaw(["x", "y"], "01")).toEqual({ found: false });
+            expect(Path.getRaw([["x", "y"]], "0. 1")).toEqual({ found: false });
         });
 
         it("handles string segments on objects", () => {
@@ -647,6 +702,16 @@ describe("Path Functions", () => {
             ]);
         });
 
+        it("pushes to root array when key is undefined, like null", () => {
+            // JS-only: undefined has no PHP analogue; pushWithPath treats it like null.
+            const data = ["a"];
+            expect(Path.pushWithPath(data, undefined, "b", "c")).toEqual([
+                "a",
+                "b",
+                "c",
+            ]);
+        });
+
         it("creates nested structure for non-accessible data", () => {
             // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
             // into the array AT the key, never beside it").
@@ -662,6 +727,14 @@ describe("Path Functions", () => {
             expect(Path.pushWithPath("not-array", "invalid", "value")).toEqual(
                 [],
             );
+        });
+
+        it("skips a non-canonical index segment like any other string segment", () => {
+            // JS-only: PHP writes the string key "01" beside the list, which a list can't hold.
+            expect(Path.pushWithPath([["a"], ["b"]], "01", "c")).toEqual([
+                ["a"],
+                ["b"],
+            ]);
         });
 
         it("pushes into the array already at the key", () => {
@@ -970,9 +1043,8 @@ describe("Path Functions", () => {
         });
 
         it("uses prepend string when provided", () => {
-            expect(Path.dotFlatten(["a"], "prefix")).toEqual({
-                "prefix.0": "a",
-            });
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot"
+            expect(Path.dotFlatten(["a"], "prefix")).toEqual({ prefix0: "a" });
         });
 
         it("handles mixed array/non-array elements", () => {
@@ -1126,6 +1198,16 @@ describe("Path Functions", () => {
         it("handles invalid array indices", () => {
             expect(Path.getNestedValue(["a"], "invalid")).toBeUndefined();
             expect(Path.getNestedValue(["a"], "-1")).toBeUndefined();
+        });
+
+        it("rejects a list's own JS keys and non-canonical numeric strings", () => {
+            // PHP-verified in docs/php-parity/task-23-obj-release-readiness.json
+            // ("get-through-list-length", "get-through-list-leading-zero")
+            const data = { products: [1, 2, 3] };
+            expect(
+                Path.getNestedValue(data, "products.length"),
+            ).toBeUndefined();
+            expect(Path.getNestedValue(data, "products.01")).toBeUndefined();
         });
 
         it("returns undefined when path traverses null/undefined", () => {
@@ -2401,6 +2483,15 @@ describe("Path Functions", () => {
             });
         });
 
+        it("keeps a class instance as a leaf, as a value or inside a nested list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-object-leaf"
+            const point = new Point();
+            const result = Path.dotFlattenObject({ p: point, l: [point] });
+            expect(Object.keys(result)).toEqual(["p", "l.0"]);
+            expect(result["p"]).toBe(point);
+            expect(result["l.0"]).toBe(point);
+        });
+
         it("respects depth parameter", () => {
             expect(
                 Path.dotFlattenObject({ a: { b: { c: 1 } } }, "", 1),
@@ -2420,13 +2511,15 @@ describe("Path Functions", () => {
             );
         });
 
-        it("strips trailing dots from prepend to avoid double dots", () => {
+        it("concatenates a prepend that ends in dots as it is", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "dot-prepend-with-dot-depth", "dot-prepend-trailing-dots"
             expect(Path.dotFlattenObject({ a: 1, b: 2 }, "prefix.")).toEqual({
                 "prefix.a": 1,
                 "prefix.b": 2,
             });
             expect(Path.dotFlattenObject({ a: 1 }, "prefix...")).toEqual({
-                "prefix.a": 1,
+                "prefix...a": 1,
             });
         });
     });
@@ -2439,9 +2532,10 @@ describe("Path Functions", () => {
         });
 
         it("handles array with prepend but no nested items", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot"
             const data = ["a"];
             const result = Path.dotFlattenArray(data, "prefix");
-            expect(result).toEqual({ "prefix.0": "a" });
+            expect(result).toEqual({ prefix0: "a" });
         });
 
         it("dotFlattenArray with prepend and nested structure", () => {
@@ -2453,9 +2547,24 @@ describe("Path Functions", () => {
         });
 
         it("dotFlattenArray with prepend and empty path on scalar", () => {
-            // Tests the branch where prepend exists and path is empty
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot"
             const result = Path.dotFlattenArray([42], "data");
-            expect(result).toEqual({ "data.0": 42 });
+            expect(result).toEqual({ data0: 42 });
+        });
+
+        it("flattens a plain object element inside the array", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-of-assoc"
+            const result = Path.dotFlattenArray([{ a: 1 }, { b: { c: 2 } }]);
+            expect(result).toEqual({ "0.a": 1, "1.b.c": 2 });
+        });
+
+        it("keeps a class instance inside the array as a leaf", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-object-leaf"
+            const point = new Point();
+            const result = Path.dotFlattenArray([point, { p: point }]);
+            expect(Object.keys(result)).toEqual(["0", "1.p"]);
+            expect(result[0]).toBe(point);
+            expect(result["1.p"]).toBe(point);
         });
 
         it("respects depth parameter", () => {
@@ -2478,6 +2587,13 @@ describe("Path Functions", () => {
                 "1.1.0": 3,
                 "1.1.1": [4],
             });
+        });
+
+        it("threads the remaining depth into an object element inside the array", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "dot-depth-through-list"
+            expect(
+                Path.dotFlattenArray([{ a: { b: { c: 1 } } }], "", 2),
+            ).toEqual({ "0.a.b": { c: 1 } });
         });
     });
 

@@ -1,0 +1,4000 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-47-g0aa8d7ecd7"
+    },
+    "probes": [
+        {
+            "label": "add-empty-dotted",
+            "php": "Arr::add([], 'developer.name', 'Ferid')",
+            "value": {
+                "developer": {
+                    "name": "Ferid"
+                }
+            }
+        },
+        {
+            "label": "add-int-key",
+            "php": "Arr::add([], 1, 'hAz')",
+            "value": {
+                "1": "hAz"
+            }
+        },
+        {
+            "label": "add-float-key",
+            "php": "Arr::add([], 1.1, 'hAz')",
+            "value": {
+                "1": {
+                    "1": "hAz"
+                }
+            }
+        },
+        {
+            "label": "push-dotted-chain",
+            "php": "push office.furniture Desk; then Chair, Lamp",
+            "value": {
+                "first": {
+                    "office": {
+                        "furniture": [
+                            "Desk"
+                        ]
+                    }
+                },
+                "second": {
+                    "office": {
+                        "furniture": [
+                            "Desk",
+                            "Chair",
+                            "Lamp"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "label": "push-boolean-at-dotted",
+            "php": "Arr::push(['foo' => ['bar' => false]], 'foo.bar', 'baz')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [foo.bar] must be an array, boolean found."
+        },
+        {
+            "label": "collapse-int-keys",
+            "php": "Arr::collapse(['g1' => ['a' => 1, 5 => 'x'], 'g2' => [5 => 'y']])",
+            "value": {
+                "a": 1,
+                "0": "x",
+                "1": "y"
+            }
+        },
+        {
+            "label": "collapse-string-keys",
+            "php": "Arr::collapse(['a' => ['x' => 1, 'y' => 2], 'b' => ['x' => 3, 'z' => 4]])",
+            "value": {
+                "x": 3,
+                "y": 2,
+                "z": 4
+            }
+        },
+        {
+            "label": "collapse-assoc-of-lists",
+            "php": "Arr::collapse(['a' => [1, 2], 'b' => [3]])",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "crossJoin-no-args",
+            "php": "Arr::crossJoin()",
+            "value": [
+                []
+            ]
+        },
+        {
+            "label": "crossJoin-string-spread",
+            "php": "Arr::crossJoin(...['size' => ['S','M'], 'color' => ['red','blue']])",
+            "value": [
+                {
+                    "size": "S",
+                    "color": "red"
+                },
+                {
+                    "size": "S",
+                    "color": "blue"
+                },
+                {
+                    "size": "M",
+                    "color": "red"
+                },
+                {
+                    "size": "M",
+                    "color": "blue"
+                }
+            ]
+        },
+        {
+            "label": "crossJoin-string-spread-empty",
+            "php": "Arr::crossJoin(...['a' => [], 'b' => ['x']])",
+            "value": []
+        },
+        {
+            "label": "divide-empty-and-int-key",
+            "php": "Arr::divide(['' => 'Null', 1 => 'one'])",
+            "value": [
+                [
+                    "",
+                    1
+                ],
+                [
+                    "Null",
+                    "one"
+                ]
+            ]
+        },
+        {
+            "label": "divide-int-key-types",
+            "php": "array_map('gettype', Arr::divide(['' => 'Null', 1 => 'one'])[0])",
+            "value": [
+                "string",
+                "integer"
+            ]
+        },
+        {
+            "label": "dot-int-key",
+            "php": "Arr::dot([10 => 100])",
+            "value": {
+                "10": 100
+            }
+        },
+        {
+            "label": "dot-nested-int-key",
+            "php": "Arr::dot(['foo' => [10 => 100]])",
+            "value": {
+                "foo.10": 100
+            }
+        },
+        {
+            "label": "dot-empty-leaf",
+            "php": "Arr::dot(['foo' => []])",
+            "value": {
+                "foo": []
+            }
+        },
+        {
+            "label": "dot-nested-empty-leaf",
+            "php": "Arr::dot(['foo' => ['bar' => []]])",
+            "value": {
+                "foo.bar": []
+            }
+        },
+        {
+            "label": "dot-mixed-keys",
+            "php": "Arr::dot(['foo', 'foo' => ['bar' => 'baz', 'baz' => ['a' => 'b']]])",
+            "value": {
+                "0": "foo",
+                "foo.bar": "baz",
+                "foo.baz.a": "b"
+            }
+        },
+        {
+            "label": "dot-prepend-no-dot",
+            "php": "Arr::dot(['name' => 'John'], 'user')",
+            "value": {
+                "username": "John"
+            }
+        },
+        {
+            "label": "dot-prepend-no-dot-depth",
+            "php": "Arr::dot(['user' => ['name' => 'Taylor']], 'prefix', 1)",
+            "value": {
+                "prefixuser.name": "Taylor"
+            }
+        },
+        {
+            "label": "dot-prepend-with-dot-depth",
+            "php": "Arr::dot(['user' => ['name' => 'Taylor']], 'prefix.', 1)",
+            "value": {
+                "prefix.user.name": "Taylor"
+            }
+        },
+        {
+            "label": "dot-prepend-trailing-dots",
+            "php": "Arr::dot(['a' => 1], 'prefix...')",
+            "value": {
+                "prefix...a": 1
+            }
+        },
+        {
+            "label": "dot-list-prepend-no-dot",
+            "php": "Arr::dot(['x', ['y']], 'user')",
+            "value": {
+                "user0": "x",
+                "user1.0": "y"
+            }
+        },
+        {
+            "label": "dot-list-of-assoc",
+            "php": "Arr::dot([['a' => 1], ['b' => ['c' => 2]]])",
+            "value": {
+                "0.a": 1,
+                "1.b.c": 2
+            }
+        },
+        {
+            "label": "undot-mixed-keys",
+            "php": "Arr::undot(['foo', 'foo.bar' => 'baz', 'foo.baz' => ['a' => 'b']])",
+            "value": {
+                "0": "foo",
+                "foo": {
+                    "bar": "baz",
+                    "baz": {
+                        "a": "b"
+                    }
+                }
+            }
+        },
+        {
+            "label": "undot-out-of-order-int-keys",
+            "php": "Arr::undot(['a.1' => 'y', 'a.0' => 'x']) and Arr::undot(['a.0' => 'x', 'a.1' => 'y']): each result, and whether its 'a' is a list",
+            "value": {
+                "out of order": {
+                    "value": {
+                        "a": {
+                            "1": "y",
+                            "0": "x"
+                        }
+                    },
+                    "isList": false
+                },
+                "in order": {
+                    "value": {
+                        "a": [
+                            "x",
+                            "y"
+                        ]
+                    },
+                    "isList": true
+                }
+            }
+        },
+        {
+            "label": "except-int-key",
+            "php": "Arr::except([1 => 'hAz', 2 => [5 => 'foo', 12 => 'baz']], 2)",
+            "value": {
+                "1": "hAz"
+            }
+        },
+        {
+            "label": "except-float-key",
+            "php": "Arr::except([1 => 'hAz', 2 => [5 => 'foo', 12 => 'baz']], 2.5)",
+            "value": {
+                "1": "hAz",
+                "2": {
+                    "12": "baz"
+                }
+            }
+        },
+        {
+            "label": "except-mixed-list",
+            "php": "Arr::except(fw, ['name', 'framework.name'])",
+            "value": {
+                "framework": {
+                    "language": "PHP"
+                }
+            }
+        },
+        {
+            "label": "exceptValues-empty",
+            "php": "Arr::exceptValues([], 'foo')",
+            "value": []
+        },
+        {
+            "label": "exists-null-value",
+            "php": "Arr::exists(['a' => null], 'a')",
+            "value": true
+        },
+        {
+            "label": "exists-int-miss",
+            "php": "Arr::exists(['a' => 1], 0)",
+            "value": false
+        },
+        {
+            "label": "exists-no-dot-traversal",
+            "php": "Arr::exists(['user' => ['name' => 'John']], 'user.name')",
+            "value": false
+        },
+        {
+            "label": "exists-no-dot-traversal-miss",
+            "php": "Arr::exists(['user' => ['name' => 'John']], 'user.age')",
+            "value": false
+        },
+        {
+            "label": "exists-null-key-empty-string",
+            "php": "Arr::exists(['' => 1], null)",
+            "value": true
+        },
+        {
+            "label": "exists-float-key",
+            "php": "Arr::exists(['1.5' => 1], 1.5)",
+            "value": true
+        },
+        {
+            "label": "exists-literal-dotted",
+            "php": "Arr::exists(['user.name' => 'John'], 'user.name')",
+            "value": true
+        },
+        {
+            "label": "whereNotNull-assoc-falsy",
+            "php": "Arr::whereNotNull(['a' => null, 'b' => 0, 'c' => false, 'd' => '', 'e' => null, 'f' => []])",
+            "value": {
+                "b": 0,
+                "c": false,
+                "d": "",
+                "f": []
+            }
+        },
+        {
+            "label": "first-assoc-no-match",
+            "php": "Arr::first(['a' => 100, 'b' => 200, 'c' => 300], fn ($v) => $v > 300)",
+            "value": null
+        },
+        {
+            "label": "first-assoc-closure-default",
+            "php": "Arr::first(assoc, fn > 300, fn () => 'baz')",
+            "value": "baz"
+        },
+        {
+            "label": "first-assoc-falsy-match",
+            "php": "Arr::first(['a' => 0, 'b' => 10, 'c' => 20], fn ($v) => $v === 0)",
+            "value": 0
+        },
+        {
+            "label": "last-assoc-key-callback",
+            "php": "Arr::last(['first' => 100, 'second' => 200, 'third' => 300], fn ($v, $k) => $k !== 'third')",
+            "value": 200
+        },
+        {
+            "label": "join-assoc-two",
+            "php": "Arr::join(['a' => 'a', 'b' => 'b'], ', ', ' and ')",
+            "value": "a and b"
+        },
+        {
+            "label": "get-null-value",
+            "php": "Arr::get(['foo' => null], 'foo', 'default')",
+            "value": null
+        },
+        {
+            "label": "get-nested-null-value",
+            "php": "Arr::get(['bar' => ['baz' => null]], 'bar.baz', 'default')",
+            "value": null
+        },
+        {
+            "label": "get-through-list",
+            "php": "Arr::get(['products' => [['name' => 'desk'], ['name' => 'chair']]], 'products.0.name')",
+            "value": "desk"
+        },
+        {
+            "label": "get-through-list-2",
+            "php": "Arr::get(['products' => [['name' => 'desk'], ['name' => 'chair']]], 'products.1.name')",
+            "value": "chair"
+        },
+        {
+            "label": "get-through-list-missing",
+            "php": "Arr::get(['products' => [['name' => 'desk']]], 'products.2.name', 'none')",
+            "value": "none"
+        },
+        {
+            "label": "get-through-list-length",
+            "php": "Arr::get(['products' => [1, 2, 3]], 'products.length', 'none')",
+            "value": "none"
+        },
+        {
+            "label": "get-through-list-leading-zero",
+            "php": "Arr::get(['products' => [1, 2, 3]], 'products.01', 'none')",
+            "value": "none"
+        },
+        {
+            "label": "get-false",
+            "php": "Arr::get(false, 'foo', 'default')",
+            "value": "default"
+        },
+        {
+            "label": "get-empty-null-key",
+            "php": "Arr::get([], null)",
+            "value": []
+        },
+        {
+            "label": "get-empty-null-key-default",
+            "php": "Arr::get([], null, 'default')",
+            "value": []
+        },
+        {
+            "label": "get-empty-string-key",
+            "php": "Arr::get(['' => 'bar'], '')",
+            "value": "bar"
+        },
+        {
+            "label": "get-dot-only-key",
+            "php": "Arr::get(['' => ['' => 'bar']], '.')",
+            "value": "bar"
+        },
+        {
+            "label": "get-through-null",
+            "php": "Arr::get(['parent' => ['products' => ['desk' => null]]], 'parent.products.desk.price')",
+            "value": null
+        },
+        {
+            "label": "has-null-value",
+            "php": "Arr::has(['foo' => null, 'bar' => ['baz' => null]], 'foo')",
+            "value": true
+        },
+        {
+            "label": "has-nested-null-value",
+            "php": "Arr::has(['foo' => null, 'bar' => ['baz' => null]], 'bar.baz')",
+            "value": true
+        },
+        {
+            "label": "has-plain-tens-foo",
+            "php": "Arr::has(['foo' => 10, 'bar' => ['baz' => 10]], 'foo')",
+            "value": true
+        },
+        {
+            "label": "has-plain-tens-bar",
+            "php": "Arr::has(['foo' => 10, 'bar' => ['baz' => 10]], 'bar')",
+            "value": true
+        },
+        {
+            "label": "has-plain-tens-bar.baz",
+            "php": "Arr::has(['foo' => 10, 'bar' => ['baz' => 10]], 'bar.baz')",
+            "value": true
+        },
+        {
+            "label": "has-plain-tens-xxx",
+            "php": "Arr::has(['foo' => 10, 'bar' => ['baz' => 10]], 'xxx')",
+            "value": false
+        },
+        {
+            "label": "has-plain-tens-xxx.yyy",
+            "php": "Arr::has(['foo' => 10, 'bar' => ['baz' => 10]], 'xxx.yyy')",
+            "value": false
+        },
+        {
+            "label": "has-plain-tens-foo.xxx",
+            "php": "Arr::has(['foo' => 10, 'bar' => ['baz' => 10]], 'foo.xxx')",
+            "value": false
+        },
+        {
+            "label": "has-plain-tens-bar.xxx",
+            "php": "Arr::has(['foo' => 10, 'bar' => ['baz' => 10]], 'bar.xxx')",
+            "value": false
+        },
+        {
+            "label": "has-assoc-null-key",
+            "php": "Arr::has(['a' => 1], null)",
+            "value": false
+        },
+        {
+            "label": "has-false",
+            "php": "Arr::has(false, 'foo')",
+            "value": false
+        },
+        {
+            "label": "has-null-null",
+            "php": "Arr::has(null, null)",
+            "value": false
+        },
+        {
+            "label": "has-empty-null",
+            "php": "Arr::has([], null)",
+            "value": false
+        },
+        {
+            "label": "has-through-list",
+            "php": "Arr::has(['products' => [['name' => 'desk']]], 'products.0.name')",
+            "value": true
+        },
+        {
+            "label": "has-through-list-miss",
+            "php": "Arr::has(['products' => [['name' => 'desk']]], 'products.0.price')",
+            "value": false
+        },
+        {
+            "label": "has-empty-string-key-null-in-list",
+            "php": "Arr::has(['' => 'some'], [null])",
+            "value": true
+        },
+        {
+            "label": "has-empty-key",
+            "php": "Arr::has(['' => 'some'], '')",
+            "value": true
+        },
+        {
+            "label": "has-empty-key-list",
+            "php": "Arr::has(['' => 'some'], [''])",
+            "value": true
+        },
+        {
+            "label": "has-empty-key-missing",
+            "php": "Arr::has([], '')",
+            "value": false
+        },
+        {
+            "label": "has-empty-key-list-missing",
+            "php": "Arr::has([], [''])",
+            "value": false
+        },
+        {
+            "label": "hasAny-stray-arg-hit",
+            "php": "Arr::hasAny(['name' => 'Taylor', 'email' => 'foo'], 'surname', 'email')",
+            "value": false
+        },
+        {
+            "label": "array-list-value",
+            "php": "Arr::array(['string' => 'foo bar', 'array' => ['foo', 'bar']], 'array')",
+            "value": [
+                "foo",
+                "bar"
+            ]
+        },
+        {
+            "label": "array-null-value",
+            "php": "Arr::array(['a' => null], 'a')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [a] must be an array, NULL found."
+        },
+        {
+            "label": "array-int-value",
+            "php": "Arr::array(['a' => 5], 'a')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [a] must be an array, integer found."
+        },
+        {
+            "label": "array-float-value",
+            "php": "Arr::array(['a' => 1.5], 'a')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [a] must be an array, double found."
+        },
+        {
+            "label": "array-bool-value",
+            "php": "Arr::array(['a' => true], 'a')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [a] must be an array, boolean found."
+        },
+        {
+            "label": "array-missing-on-list",
+            "php": "Arr::array([['name' => 'John']], 'name')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [name] must be an array, NULL found."
+        },
+        {
+            "label": "string-int-value",
+            "php": "Arr::string(['string' => 'foo bar', 'integer' => 1234], 'integer')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [integer] must be a string, integer found."
+        },
+        {
+            "label": "accessible-datetime",
+            "php": "Arr::accessible(new DateTime)",
+            "value": false
+        },
+        {
+            "label": "arrayable-datetime",
+            "php": "Arr::arrayable(new DateTime)",
+            "value": false
+        },
+        {
+            "label": "exceptValues-assoc-strict",
+            "php": "Arr::exceptValues(['a' => 1, 'b' => '1', 'c' => 2, 'd' => '2', 'e' => 3], [1, 2, 3], true)",
+            "value": {
+                "b": "1",
+                "d": "2"
+            }
+        },
+        {
+            "label": "exceptValues-assoc-loose",
+            "php": "Arr::exceptValues(['a' => 1, 'b' => '1', 'c' => 2, 'd' => '2', 'e' => 3], [1, 2, 3])",
+            "value": []
+        },
+        {
+            "label": "flatten-assoc-nulls",
+            "php": "Arr::flatten(['a' => ['#foo', null], 'b' => '#baz', 'c' => null])",
+            "value": [
+                "#foo",
+                null,
+                "#baz",
+                null
+            ]
+        },
+        {
+            "label": "last-assoc-no-match",
+            "php": "Arr::last(['a' => 100, 'b' => 200, 'c' => 300], fn ($v) => $v > 300)",
+            "value": null
+        },
+        {
+            "label": "last-assoc-closure-default",
+            "php": "Arr::last(assoc, fn > 300, fn () => 'baz')",
+            "value": "baz"
+        },
+        {
+            "label": "first-assoc-key-callback",
+            "php": "Arr::first(['a' => 100, 'b' => 200, 'c' => 300], fn ($v, $k) => $k !== 'a')",
+            "value": 200
+        },
+        {
+            "label": "crossJoin-string-spread-3",
+            "php": "Arr::crossJoin(...['a' => [1, 2], 'b' => ['x'], 'c' => ['I', 'II']])",
+            "value": [
+                {
+                    "a": 1,
+                    "b": "x",
+                    "c": "I"
+                },
+                {
+                    "a": 1,
+                    "b": "x",
+                    "c": "II"
+                },
+                {
+                    "a": 2,
+                    "b": "x",
+                    "c": "I"
+                },
+                {
+                    "a": 2,
+                    "b": "x",
+                    "c": "II"
+                }
+            ]
+        },
+        {
+            "label": "has-null-key-nonempty-assoc",
+            "php": "Arr::has(['a' => 1], [null, 'a'])",
+            "value": false
+        },
+        {
+            "label": "only-none-exist",
+            "php": "Arr::only(['name'=>'Desk','price'=>100], ['nonExistingKey'])",
+            "value": []
+        },
+        {
+            "label": "only-mixed-int-as-string",
+            "php": "Arr::only([0=>'foo','bar'=>'baz'], '0')",
+            "value": [
+                "foo"
+            ]
+        },
+        {
+            "label": "only-mixed-string",
+            "php": "Arr::only([0=>'foo','bar'=>'baz'], 'bar')",
+            "value": {
+                "bar": "baz"
+            }
+        },
+        {
+            "label": "onlyValues-empty-data",
+            "php": "Arr::onlyValues([], 'foo')",
+            "value": []
+        },
+        {
+            "label": "onlyValues-empty-values-assoc",
+            "php": "Arr::onlyValues(['a'=>'foo','b'=>'bar'], [])",
+            "value": []
+        },
+        {
+            "label": "onlyValues-strict-numstr-assoc",
+            "php": "Arr::onlyValues(['a'=>1,'b'=>'1','c'=>2,'d'=>'2','e'=>3], [1,2,3], true)",
+            "value": {
+                "a": 1,
+                "c": 2,
+                "e": 3
+            }
+        },
+        {
+            "label": "onlyValues-loose-numstr-assoc",
+            "php": "Arr::onlyValues(['a'=>1,'b'=>'1','c'=>2,'d'=>'2','e'=>3], [1,2,3])",
+            "value": {
+                "a": 1,
+                "b": "1",
+                "c": 2,
+                "d": "2",
+                "e": 3
+            }
+        },
+        {
+            "label": "pluck-comments",
+            "php": "Arr::pluck($data, 'comments')",
+            "value": [
+                {
+                    "tags": [
+                        "#foo",
+                        "#bar"
+                    ]
+                },
+                {
+                    "tags": [
+                        "#baz"
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "pluck-comments.tags",
+            "php": "Arr::pluck($data, 'comments.tags')",
+            "value": [
+                [
+                    "#foo",
+                    "#bar"
+                ],
+                [
+                    "#baz"
+                ]
+            ]
+        },
+        {
+            "label": "pluck-foo",
+            "php": "Arr::pluck($data, 'foo')",
+            "value": [
+                null,
+                null
+            ]
+        },
+        {
+            "label": "pluck-foo.bar",
+            "php": "Arr::pluck($data, 'foo.bar')",
+            "value": [
+                null,
+                null
+            ]
+        },
+        {
+            "label": "pluck-nested-user.0",
+            "php": "Arr::pluck($nk, 'user.0')",
+            "value": [
+                "taylor",
+                "dayle"
+            ]
+        },
+        {
+            "label": "pluck-nested-arr-user-0str",
+            "php": "Arr::pluck($nk, ['user', '0'])",
+            "value": [
+                "taylor",
+                "dayle"
+            ]
+        },
+        {
+            "label": "pluck-nested-user.1-by-user.0",
+            "php": "Arr::pluck($nk, 'user.1', 'user.0')",
+            "value": {
+                "taylor": "otwell",
+                "dayle": "rees"
+            }
+        },
+        {
+            "label": "pluck-nested-arr-1-by-0-str",
+            "php": "Arr::pluck($nk, ['user', '1'], ['user', '0'])",
+            "value": {
+                "taylor": "otwell",
+                "dayle": "rees"
+            }
+        },
+        {
+            "label": "pluck-wildcard-email",
+            "php": "Arr::pluck($na, 'users.*.email')",
+            "value": [
+                [
+                    "taylorotwell@gmail.com"
+                ],
+                [
+                    null,
+                    null
+                ]
+            ]
+        },
+        {
+            "label": "pluck-obj-and-array-rows-name",
+            "php": "Arr::pluck($ao, 'name')",
+            "value": [
+                "taylor",
+                "dayle"
+            ]
+        },
+        {
+            "label": "pluck-obj-and-array-rows-email-by-name",
+            "php": "Arr::pluck($ao, 'email', 'name')",
+            "value": {
+                "taylor": "foo",
+                "dayle": "bar"
+            }
+        },
+        {
+            "label": "mapSpread-tuples",
+            "php": "Arr::mapSpread($ms, fn($n,$c) => \"$n-$c\")",
+            "value": {
+                "x": "1-a",
+                "y": "2-b"
+            }
+        },
+        {
+            "label": "mapSpread-tuples-key",
+            "php": "Arr::mapSpread($ms, fn($n,$c,$k) => \"$n-$c-$k\")",
+            "value": {
+                "x": "1-a-x",
+                "y": "2-b-y"
+            }
+        },
+        {
+            "label": "prepend-empty-key",
+            "php": "Arr::prepend(['one'=>1,'two'=>2], 0, '')",
+            "value": {
+                "": 0,
+                "one": 1,
+                "two": 2
+            }
+        },
+        {
+            "label": "prepend-null-key",
+            "php": "Arr::prepend(['one'=>1,'two'=>2], 0, null)",
+            "value": {
+                "": 0,
+                "one": 1,
+                "two": 2
+            }
+        },
+        {
+            "label": "prepend-existing-empty-key",
+            "php": "Arr::prepend(['one','two',''=>'three'], ['zero'], '')",
+            "value": {
+                "": [
+                    "zero"
+                ],
+                "0": "one",
+                "1": "two"
+            }
+        },
+        {
+            "label": "prepend-existing-empty-key-null",
+            "php": "Arr::prepend(['one','two',''=>'three'], ['zero'], null)",
+            "value": {
+                "": [
+                    "zero"
+                ],
+                "0": "one",
+                "1": "two"
+            }
+        },
+        {
+            "label": "prepend-existing-key-assoc",
+            "php": "Arr::prepend(['a'=>1,'b'=>2], 9, 'b')",
+            "value": {
+                "b": 9,
+                "a": 1
+            }
+        },
+        {
+            "label": "prepend-existing-key-assoc-keys",
+            "php": "array_keys(Arr::prepend(['a'=>1,'b'=>2], 9, 'b'))",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "pull-nested-dotted-key",
+            "php": "Arr::pull($a=['emails'=>['joe@example.com'=>'Joe','jane@localhost'=>'Jane']], 'emails.joe@example.com')",
+            "value": {
+                "value": null,
+                "array": {
+                    "emails": {
+                        "joe@example.com": "Joe",
+                        "jane@localhost": "Jane"
+                    }
+                }
+            }
+        },
+        {
+            "label": "random-empty-2",
+            "php": "Arr::random([], 2)",
+            "threw": "InvalidArgumentException",
+            "message": "You requested 2 items, but there are only 0 items available."
+        },
+        {
+            "label": "set-overwrite-nested",
+            "php": "set(['products'=>['desk'=>['price'=>100]]], 'products.desk.price', 200)",
+            "value": {
+                "products": {
+                    "desk": {
+                        "price": 200
+                    }
+                }
+            }
+        },
+        {
+            "label": "set-scalar-intermediate",
+            "php": "set(['products'=>'desk'], 'products.desk.price', 200)",
+            "value": {
+                "products": {
+                    "desk": {
+                        "price": 200
+                    }
+                }
+            }
+        },
+        {
+            "label": "set-int-key",
+            "php": "set([1=>'test'], 1, 'hAz')",
+            "value": {
+                "1": "hAz"
+            }
+        },
+        {
+            "label": "set-int-key-string",
+            "php": "set([1=>'test'], '1', 'hAz')",
+            "value": {
+                "1": "hAz"
+            }
+        },
+        {
+            "label": "set-list-input",
+            "php": "set([0=>'products'], 'products.desk.price', 200)",
+            "value": {
+                "0": "products",
+                "products": {
+                    "desk": {
+                        "price": 200
+                    }
+                }
+            }
+        },
+        {
+            "label": "shuffle-assoc-keys",
+            "php": "array_keys(Arr::shuffle(['a'=>1,'b'=>2,'c'=>3]))",
+            "value": [
+                0,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "shuffle-assoc-values-sorted",
+            "php": "sorted values",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "sole-rows-callback",
+            "php": "Arr::sole(['a'=>['name'=>'foo'],'b'=>['name'=>'bar']], fn($v)=>$v['name']==='foo')",
+            "value": {
+                "name": "foo"
+            }
+        },
+        {
+            "label": "sole-assoc-multi-callback",
+            "php": "Arr::sole(['a'=>'baz','b'=>'foo','c'=>'baz'], fn($v)=>$v==='baz')",
+            "threw": "Illuminate\\Support\\MultipleItemsFoundException",
+            "message": "2 items were found."
+        },
+        {
+            "label": "sort-rows-natural",
+            "php": "Arr::sort(['a'=>['name'=>'Desk'],'b'=>['name'=>'Chair']])",
+            "value": {
+                "b": {
+                    "name": "Chair"
+                },
+                "a": {
+                    "name": "Desk"
+                }
+            }
+        },
+        {
+            "label": "sort-rows-natural-keys",
+            "php": "array_keys(...)",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sortDesc-rows-natural",
+            "php": "Arr::sortDesc(['a'=>['name'=>'Chair'],'b'=>['name'=>'Desk']])",
+            "value": {
+                "b": {
+                    "name": "Desk"
+                },
+                "a": {
+                    "name": "Chair"
+                }
+            }
+        },
+        {
+            "label": "sortDesc-rows-natural-keys",
+            "php": "array_keys(...)",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sortByMany-keys",
+            "php": "Arr::sort($sbm, ['name','age','meta.key'])",
+            "value": {
+                "c": {
+                    "name": "Dave",
+                    "age": 10,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                "d": {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 2
+                    }
+                },
+                "a": {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                "b": {
+                    "name": "John",
+                    "age": 10,
+                    "meta": {
+                        "key": 5
+                    }
+                }
+            }
+        },
+        {
+            "label": "sortByMany-keys-order",
+            "php": "array_keys",
+            "value": [
+                "c",
+                "d",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "sortByMany-order",
+            "php": "Arr::sort($sbm, ['name',['age',false],['meta.key',true]])",
+            "value": [
+                "c",
+                "b",
+                "d",
+                "a"
+            ]
+        },
+        {
+            "label": "sortByMany-callable",
+            "php": "Arr::sort($sbm, [cmp name, cmp age desc, ['meta.key', true]])",
+            "value": {
+                "c": {
+                    "name": "Dave",
+                    "age": 10,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                "b": {
+                    "name": "John",
+                    "age": 10,
+                    "meta": {
+                        "key": 5
+                    }
+                },
+                "d": {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 2
+                    }
+                },
+                "a": {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 3
+                    }
+                }
+            }
+        },
+        {
+            "label": "sortByMany-callable-keys",
+            "php": "array_keys",
+            "value": [
+                "c",
+                "b",
+                "d",
+                "a"
+            ]
+        },
+        {
+            "label": "sortRecursive-literal",
+            "php": "Arr::sortRecursive($sr)",
+            "value": {
+                "20": [
+                    0,
+                    1,
+                    2
+                ],
+                "30": [
+                    "c",
+                    "b",
+                    "a"
+                ],
+                "repositories": [
+                    {
+                        "id": 0
+                    },
+                    {
+                        "id": 1
+                    }
+                ],
+                "users": [
+                    {
+                        "age": 25,
+                        "name": "jane"
+                    },
+                    {
+                        "mail": "joe@example.com",
+                        "name": "joe",
+                        "numbers": [
+                            0,
+                            1,
+                            2
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "label": "sortRecursive-numbers-lexical",
+            "php": "Arr::sortRecursive(['a'=>[10,9,1]])",
+            "value": {
+                "a": [
+                    1,
+                    9,
+                    10
+                ]
+            }
+        },
+        {
+            "label": "sortRecursive-list-of-objects",
+            "php": "Arr::sortRecursive(['r'=>[['id'=>2],['id'=>10],['id'=>1]]])",
+            "value": {
+                "r": [
+                    {
+                        "id": 1
+                    },
+                    {
+                        "id": 2
+                    },
+                    {
+                        "id": 10
+                    }
+                ]
+            }
+        },
+        {
+            "label": "sortRecursiveDesc-literal",
+            "php": "Arr::sortRecursiveDesc($srd)",
+            "value": {
+                "numbered_index": {
+                    "5": "a",
+                    "4": "b",
+                    "3": "c",
+                    "2": "d",
+                    "1": "e"
+                },
+                "nested": {
+                    "level1": {
+                        "values": [
+                            6,
+                            5,
+                            4
+                        ],
+                        "level2": {
+                            "level3": [
+                                3,
+                                2,
+                                1
+                            ]
+                        }
+                    }
+                },
+                "mixed": {
+                    "c": 3,
+                    "a": 1,
+                    "2": "b",
+                    "1": "d"
+                },
+                "empty": []
+            }
+        },
+        {
+            "label": "sortRecursiveDesc-numbers",
+            "php": "Arr::sortRecursiveDesc(['a'=>[1,9,10]])",
+            "value": {
+                "a": [
+                    10,
+                    9,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "whereKey-numeric",
+            "php": "Arr::where(['10'=>1,'foo'=>3,20=>2], fn($v,$k)=>is_numeric($k))",
+            "value": {
+                "10": 1,
+                "20": 2
+            }
+        },
+        {
+            "label": "forget-null",
+            "php": "forget(products, null)",
+            "value": {
+                "products": {
+                    "desk": {
+                        "price": 100
+                    }
+                }
+            }
+        },
+        {
+            "label": "forget-empty-array",
+            "php": "forget(products, [])",
+            "value": {
+                "products": {
+                    "desk": {
+                        "price": 100
+                    }
+                }
+            }
+        },
+        {
+            "label": "forget-products.desk",
+            "php": "forget(products, 'products.desk')",
+            "value": {
+                "products": []
+            }
+        },
+        {
+            "label": "forget-products.desk.price",
+            "php": "forget(products, 'products.desk.price')",
+            "value": {
+                "products": {
+                    "desk": []
+                }
+            }
+        },
+        {
+            "label": "forget-missing-intermediate",
+            "php": "forget(products, 'products.final.price')",
+            "value": {
+                "products": {
+                    "desk": {
+                        "price": 100
+                    }
+                }
+            }
+        },
+        {
+            "label": "forget-shop",
+            "php": "forget(['shop'=>['cart'=>[150=>0]]], 'shop.final.cart')",
+            "value": {
+                "shop": {
+                    "cart": {
+                        "150": 0
+                    }
+                }
+            }
+        },
+        {
+            "label": "forget-taxes",
+            "php": "forget(..., 'products.desk.price.taxes')",
+            "value": {
+                "products": {
+                    "desk": {
+                        "price": {
+                            "original": 50
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "label": "forget-final-taxes",
+            "php": "forget(..., 'products.desk.final.taxes')",
+            "value": {
+                "products": {
+                    "desk": {
+                        "price": {
+                            "original": 50,
+                            "taxes": 60
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "label": "forget-empty-string-sibling",
+            "php": "forget(['products'=>['desk'=>['price'=>50],''=>'something']], ['products.amount.all','products.desk.price'])",
+            "value": {
+                "products": {
+                    "desk": [],
+                    "": "something"
+                }
+            }
+        },
+        {
+            "label": "forget-emails-nested",
+            "php": "forget(emails, ['emails.joe@example.com','emails.jane@localhost'])",
+            "value": {
+                "emails": {
+                    "joe@example.com": {
+                        "name": "Joe"
+                    }
+                }
+            }
+        },
+        {
+            "label": "forget-int-key",
+            "php": "forget(['name'=>'hAz','1'=>'test',2=>'bAz'], 1)",
+            "value": {
+                "name": "hAz",
+                "2": "bAz"
+            }
+        },
+        {
+            "label": "forget-int-key-string",
+            "php": "forget(['name'=>'hAz','1'=>'test',2=>'bAz'], '1')",
+            "value": {
+                "name": "hAz",
+                "2": "bAz"
+            }
+        },
+        {
+            "label": "forget-float",
+            "php": "forget([2=>[1=>'products',3=>'users']], 2.3)",
+            "value": {
+                "2": {
+                    "1": "products"
+                }
+            }
+        },
+        {
+            "label": "forget-float-string",
+            "php": "forget([2=>[1=>'products',3=>'users']], '2.3')",
+            "value": {
+                "2": {
+                    "1": "products"
+                }
+            }
+        },
+        {
+            "label": "forget-joe-top",
+            "php": "forget(['joe@example.com'=>'Joe','jane@example.com'=>'Jane'], 'joe@example.com')",
+            "value": {
+                "jane@example.com": "Jane"
+            }
+        },
+        {
+            "label": "from-stdclass",
+            "php": "Arr::from((object)['foo'=>'bar'])",
+            "value": {
+                "foo": "bar"
+            }
+        },
+        {
+            "label": "wrap-empty-string",
+            "php": "Arr::wrap('')",
+            "value": [
+                ""
+            ]
+        },
+        {
+            "label": "wrap-false",
+            "php": "Arr::wrap(false)",
+            "value": [
+                false
+            ]
+        },
+        {
+            "label": "wrap-zero",
+            "php": "Arr::wrap(0)",
+            "value": [
+                0
+            ]
+        },
+        {
+            "label": "select-name-age",
+            "php": "Arr::select($sel, ['name','age'])",
+            "value": {
+                "a": {
+                    "name": "Taylor",
+                    "age": 1
+                },
+                "b": {
+                    "name": "Abigail",
+                    "age": 2
+                }
+            }
+        },
+        {
+            "label": "select-missing",
+            "php": "Arr::select($sel, 'nonExistingKey')",
+            "value": {
+                "a": [],
+                "b": []
+            }
+        },
+        {
+            "label": "select-null",
+            "php": "Arr::select($sel, null)",
+            "value": {
+                "a": [],
+                "b": []
+            }
+        },
+        {
+            "label": "prependKeysWith-literal",
+            "php": "Arr::prependKeysWith([...], 'test.')",
+            "value": {
+                "test.id": "123",
+                "test.data": "456",
+                "test.list": [
+                    1,
+                    2,
+                    3
+                ],
+                "test.meta": {
+                    "key": 1
+                }
+            }
+        },
+        {
+            "label": "keyBy-assoc-rows",
+            "php": "Arr::keyBy(['x'=>['id'=>'123','data'=>'abc'],'y'=>['id'=>'345','data'=>'def'],'z'=>['id'=>'498','data'=>'hgi']], 'id')",
+            "value": {
+                "123": {
+                    "id": "123",
+                    "data": "abc"
+                },
+                "345": {
+                    "id": "345",
+                    "data": "def"
+                },
+                "498": {
+                    "id": "498",
+                    "data": "hgi"
+                }
+            }
+        },
+        {
+            "label": "map-null-values",
+            "php": "Arr::map(['first'=>'taylor','last'=>null], fn($v,$k)=>$k.'-'.$v)",
+            "value": {
+                "first": "first-taylor",
+                "last": "last-"
+            }
+        },
+        {
+            "label": "sole-none",
+            "php": "Arr::sole(['a'=>'foo'], fn($v)=>$v==='baz')",
+            "threw": "Illuminate\\Support\\ItemNotFoundException",
+            "message": ""
+        },
+        {
+            "label": "sole-multi-list",
+            "php": "Arr::sole(['baz','foo','baz'], fn($v)=>$v==='baz')",
+            "threw": "Illuminate\\Support\\MultipleItemsFoundException",
+            "message": "2 items were found."
+        },
+        {
+            "label": "mapSpread-assoc-rows",
+            "php": "Arr::mapSpread(['user1'=>['name'=>'John','age'=>25]], fn($n,$a)=>\"$n is $a\")",
+            "threw": "Error",
+            "message": "Unknown named parameter $name"
+        },
+        {
+            "label": "mapSpread-scalar-row",
+            "php": "Arr::mapSpread(['item2'=>'simple_value'], fn(...$a)=>count($a))",
+            "threw": "Error",
+            "message": "[] operator not supported for strings"
+        },
+        {
+            "label": "shuffle-empty",
+            "php": "Arr::shuffle([])",
+            "value": []
+        },
+        {
+            "label": "prepend-zero-key-order",
+            "php": "array_keys(Arr::prepend(['one'=>1,'two'=>2], 0, 'zero'))",
+            "value": [
+                "zero",
+                "one",
+                "two"
+            ]
+        },
+        {
+            "label": "wrap-stdclass-is-wrapped",
+            "php": "Arr::wrap(new stdClass) is list",
+            "value": true
+        },
+        {
+            "label": "wrap-datetime",
+            "php": "Arr::wrap(new DateTime) count",
+            "value": 1
+        },
+        {
+            "label": "map-by-reference-strrev",
+            "php": "Arr::map(['first'=>'taylor','last'=>'otwell'], 'strrev')",
+            "value": {
+                "first": "rolyat",
+                "last": "llewto"
+            }
+        },
+        {
+            "label": "mapWithKeys-assoc-rows",
+            "php": "Arr::mapWithKeys(['b'=>[...],'c'=>[...],'d'=>[...]], fn($p)=>[$p['name']=>$p['type']])",
+            "value": {
+                "Blastoise": "Water",
+                "Charmander": "Fire",
+                "Dragonair": "Dragon"
+            }
+        },
+        {
+            "label": "pluck-with-keys-null-assoc",
+            "php": "Arr::pluck(['a'=>['name'=>'Taylor','role'=>'developer'],'b'=>['name'=>'Abigail','role'=>'developer']], null, 'name')",
+            "value": {
+                "Taylor": {
+                    "name": "Taylor",
+                    "role": "developer"
+                },
+                "Abigail": {
+                    "name": "Abigail",
+                    "role": "developer"
+                }
+            }
+        },
+        {
+            "label": "prepend-list-null-empty-key",
+            "php": "prepend(['one','two'], null, '')",
+            "value": {
+                "": null,
+                "0": "one",
+                "1": "two"
+            }
+        },
+        {
+            "label": "prepend-list-array-key",
+            "php": "prepend(['one','two'], ['zero'], 'key')",
+            "value": {
+                "key": [
+                    "zero"
+                ],
+                "0": "one",
+                "1": "two"
+            }
+        },
+        {
+            "label": "prepend-list-array-empty-key",
+            "php": "prepend(['one','two'], ['zero'], '')",
+            "value": {
+                "": [
+                    "zero"
+                ],
+                "0": "one",
+                "1": "two"
+            }
+        },
+        {
+            "label": "sortRecursive-key-case",
+            "php": "array_keys(Arr::sortRecursive(['b'=>1,'B'=>2,'a'=>3,'_x'=>4]))",
+            "value": [
+                "B",
+                "_x",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "sortRecursive-list-strings-case",
+            "php": "Arr::sortRecursive(['l'=>['b','B','a']])",
+            "value": {
+                "l": [
+                    "B",
+                    "a",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "C1 values resets int keys",
+            "php": "C1 values resets int keys",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "C2 flip one",
+            "php": "C2 flip one",
+            "value": {
+                "taylor": "name"
+            }
+        },
+        {
+            "label": "C3 flip two",
+            "php": "C3 flip two",
+            "value": {
+                "taylor": "name",
+                "laravel": "framework"
+            }
+        },
+        {
+            "label": "C4 flip empty",
+            "php": "C4 flip empty",
+            "value": []
+        },
+        {
+            "label": "C5 reverse assoc",
+            "php": "C5 reverse assoc",
+            "value": {
+                "framework": "laravel",
+                "name": "taylor"
+            }
+        },
+        {
+            "label": "C6 diffAssoc testDiffAssoc",
+            "php": "C6 diffAssoc testDiffAssoc",
+            "value": {
+                "id": 1,
+                "first_word": "Hello"
+            }
+        },
+        {
+            "label": "C7 diffAssoc case keys",
+            "php": "C7 diffAssoc case keys",
+            "value": {
+                "a": "green",
+                "b": "brown",
+                "c": "blue",
+                "0": "red"
+            }
+        },
+        {
+            "label": "C8 diffAssocUsing strcasecmp",
+            "php": "C8 diffAssocUsing strcasecmp",
+            "value": {
+                "b": "brown",
+                "c": "blue",
+                "0": "red"
+            }
+        },
+        {
+            "label": "C9 intersectAssocUsing strcasecmp",
+            "php": "C9 intersectAssocUsing strcasecmp",
+            "value": {
+                "b": "brown"
+            }
+        },
+        {
+            "label": "C10 combine list keys, offset values",
+            "php": "C10 combine list keys, offset values",
+            "value": {
+                "name": "taylor",
+                "family": "otwell"
+            }
+        },
+        {
+            "label": "C11 combine offset keys, list values",
+            "php": "C11 combine offset keys, list values",
+            "value": {
+                "name": "taylor",
+                "family": "otwell"
+            }
+        },
+        {
+            "label": "C12 combine offset both",
+            "php": "C12 combine offset both",
+            "value": {
+                "name": "taylor",
+                "family": "otwell"
+            }
+        },
+        {
+            "label": "C13 combine lists -> int keys",
+            "php": "C13 combine lists -> int keys",
+            "value": {
+                "1": 4,
+                "2": 5,
+                "3": 6
+            }
+        },
+        {
+            "label": "C14 filter by key",
+            "php": "C14 filter by key",
+            "value": {
+                "first": "Hello",
+                "second": "World"
+            }
+        },
+        {
+            "label": "C15 keys assoc",
+            "php": "C15 keys assoc",
+            "value": [
+                "name",
+                "framework"
+            ]
+        },
+        {
+            "label": "C16 replace assoc",
+            "php": "C16 replace assoc",
+            "value": {
+                "name": "taylor",
+                "family": "otwell",
+                "age": 26
+            }
+        },
+        {
+            "label": "C17 union array",
+            "php": "C17 union array",
+            "value": {
+                "name": "Hello",
+                "id": 1
+            }
+        },
+        {
+            "label": "C18 union collection",
+            "php": "C18 union collection",
+            "value": {
+                "name": "Hello",
+                "id": 1
+            }
+        },
+        {
+            "label": "union-list-operand",
+            "php": "(new Collection(['a' => 1]))->union([5])",
+            "value": {
+                "a": 1,
+                "0": 5
+            }
+        },
+        {
+            "label": "C19 intersectByKeys 2",
+            "php": "C19 intersectByKeys 2",
+            "value": {
+                "name": "taylor",
+                "family": "otwell"
+            }
+        },
+        {
+            "label": "C20 intersectByKeys 1",
+            "php": "C20 intersectByKeys 1",
+            "value": {
+                "name": "Mateus"
+            }
+        },
+        {
+            "label": "intersectAssoc-collection",
+            "php": "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->intersectAssoc(new Collection(['a' => 'green', 'b' => 'yellow', 'blue', 'red']))",
+            "value": {
+                "a": "green"
+            }
+        },
+        {
+            "label": "C21 diff collection",
+            "php": "C21 diff collection",
+            "value": {
+                "id": 1
+            }
+        },
+        {
+            "label": "C22 diffKeysUsing",
+            "php": "C22 diffKeysUsing",
+            "value": {
+                "first_word": "Hello"
+            }
+        },
+        {
+            "label": "C23 replace int-keyed replacer on int-keyed",
+            "php": "C23 replace int-keyed replacer on int-keyed",
+            "value": [
+                "a",
+                "d",
+                "e",
+                "f",
+                "g"
+            ]
+        },
+        {
+            "label": "C24 replaceRecursive list fixture",
+            "php": "C24 replaceRecursive list fixture",
+            "value": [
+                "z",
+                "b",
+                [
+                    "c",
+                    "e"
+                ],
+                "f"
+            ]
+        },
+        {
+            "label": "L1 slice(3) assoc",
+            "php": "L1 slice(3) assoc",
+            "value": {
+                "d": 4,
+                "e": 5,
+                "f": 6,
+                "g": 7,
+                "h": 8
+            }
+        },
+        {
+            "label": "L2 slice(-3) assoc",
+            "php": "L2 slice(-3) assoc",
+            "value": {
+                "f": 6,
+                "g": 7,
+                "h": 8
+            }
+        },
+        {
+            "label": "L3 slice(3,3) assoc",
+            "php": "L3 slice(3,3) assoc",
+            "value": {
+                "d": 4,
+                "e": 5,
+                "f": 6
+            }
+        },
+        {
+            "label": "L4 slice(3,-1) assoc",
+            "php": "L4 slice(3,-1) assoc",
+            "value": {
+                "d": 4,
+                "e": 5,
+                "f": 6,
+                "g": 7
+            }
+        },
+        {
+            "label": "L5 slice(-5,3) assoc",
+            "php": "L5 slice(-5,3) assoc",
+            "value": {
+                "d": 4,
+                "e": 5,
+                "f": 6
+            }
+        },
+        {
+            "label": "L6 slice(-6,-2) assoc",
+            "php": "L6 slice(-6,-2) assoc",
+            "value": {
+                "c": 3,
+                "d": 4,
+                "e": 5,
+                "f": 6
+            }
+        },
+        {
+            "label": "L7 chunkBy single item assoc",
+            "php": "L7 chunkBy single item assoc",
+            "value": [
+                {
+                    "x": {
+                        "key": "a"
+                    }
+                }
+            ]
+        },
+        {
+            "label": "L8 contains loose (assoc)",
+            "php": "L8 contains loose (assoc)",
+            "value": {
+                "135": [
+                    true,
+                    true,
+                    false,
+                    false
+                ],
+                "str1": [
+                    true,
+                    true
+                ],
+                "null": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ],
+                "zero": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    false
+                ],
+                "date": [
+                    true,
+                    true,
+                    false
+                ],
+                "cbnull": [
+                    true
+                ]
+            }
+        },
+        {
+            "label": "L9 containsStrict (assoc)",
+            "php": "L9 containsStrict (assoc)",
+            "value": {
+                "mixed": [
+                    true,
+                    false,
+                    false,
+                    true,
+                    false,
+                    true,
+                    false
+                ],
+                "zero": [
+                    true,
+                    false,
+                    false,
+                    false
+                ],
+                "onenull": [
+                    true,
+                    false,
+                    false
+                ],
+                "date": [
+                    true,
+                    true,
+                    false,
+                    false,
+                    true
+                ]
+            }
+        },
+        {
+            "label": "D1 unshift assoc item onto assoc",
+            "php": "D1 unshift assoc item onto assoc",
+            "value": {
+                "0": {
+                    "a": 1
+                },
+                "b": 2
+            }
+        },
+        {
+            "label": "D1b unshift two assoc items onto assoc",
+            "php": "D1b unshift two assoc items onto assoc",
+            "value": {
+                "0": {
+                    "a": 1
+                },
+                "1": {
+                    "d": "house"
+                },
+                "b": 2
+            }
+        },
+        {
+            "label": "D1c testUnshiftWithOneItem sequence on assoc",
+            "php": "D1c testUnshiftWithOneItem sequence on assoc",
+            "value": {
+                "0": "Jonny from Laroe",
+                "1": {
+                    "who": "Jonny",
+                    "preposition": "from",
+                    "where": "Laroe"
+                },
+                "2": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "x": 4
+            }
+        },
+        {
+            "label": "D1d unshift spread string-keyed",
+            "php": "D1d unshift spread string-keyed",
+            "threw": "ArgumentCountError",
+            "message": "array_unshift() does not accept unknown named parameters"
+        },
+        {
+            "label": "D1e unshift int-keyed item overlapping",
+            "php": "D1e unshift int-keyed item overlapping",
+            "value": {
+                "0": [
+                    "zero"
+                ],
+                "1": 9,
+                "z": 3
+            }
+        },
+        {
+            "label": "D1f unshift with no items on assoc",
+            "php": "D1f unshift with no items on assoc",
+            "value": {
+                "0": "a",
+                "x": "b"
+            }
+        },
+        {
+            "label": "D2 containsStrict callback matching a null value",
+            "php": "D2 containsStrict callback matching a null value",
+            "value": {
+                "strict": false,
+                "loose": true
+            }
+        },
+        {
+            "label": "D3 containsStrict NAN",
+            "php": "D3 containsStrict NAN",
+            "value": {
+                "strict": false,
+                "loose": false
+            }
+        },
+        {
+            "label": "D4 containsStrict array by value",
+            "php": "D4 containsStrict array by value",
+            "value": {
+                "strict_list": true,
+                "strict_assoc": true,
+                "loose_assoc": true
+            }
+        },
+        {
+            "label": "D5 combine null/bool/float keys",
+            "php": "D5 combine null/bool/float keys",
+            "value": {
+                "null": {
+                    "": 1
+                },
+                "true": {
+                    "1": 1
+                },
+                "false": {
+                    "": 1
+                },
+                "float": {
+                    "1.5": 1
+                },
+                "numstr": {
+                    "7": 1
+                }
+            }
+        },
+        {
+            "label": "D6 shift/pop on collect(null)",
+            "php": "D6 shift/pop on collect(null)",
+            "value": {
+                "shift2": null,
+                "shift1": null,
+                "pop3": []
+            }
+        },
+        {
+            "label": "D7 replaceRecursive nested list replaced by offset map",
+            "php": "D7 replaceRecursive nested list replaced by offset map",
+            "value": {
+                "k": [
+                    "c",
+                    "e"
+                ]
+            }
+        },
+        {
+            "label": "D8 pop(2) on assoc returns list",
+            "php": "D8 pop(2) on assoc returns list",
+            "value": {
+                "returned": [
+                    3,
+                    2
+                ],
+                "remaining": {
+                    "a": 1
+                }
+            }
+        },
+        {
+            "label": "D9 flip numeric-string value",
+            "php": "D9 flip numeric-string value",
+            "value": {
+                "1": "a",
+                "01": "b",
+                "-0": "c"
+            }
+        },
+        {
+            "label": "D10 contains strict vs loose -0/0",
+            "php": "D10 contains strict vs loose -0/0",
+            "value": {
+                "s": true
+            }
+        },
+        {
+            "label": "K1 keys of numeric-looking string keys",
+            "php": "K1 keys of numeric-looking string keys",
+            "value": [
+                [
+                    "string",
+                    "1.5"
+                ],
+                [
+                    "string",
+                    "Infinity"
+                ],
+                [
+                    "integer",
+                    -1
+                ],
+                [
+                    "string",
+                    "01"
+                ],
+                [
+                    "string",
+                    "1e3"
+                ],
+                [
+                    "integer",
+                    10
+                ],
+                [
+                    "string",
+                    "1e+21"
+                ]
+            ]
+        },
+        {
+            "label": "K2 chunkWhile callback key types",
+            "php": "K2 chunkWhile callback key types",
+            "value": [
+                [
+                    "string",
+                    "01"
+                ],
+                [
+                    "string",
+                    "1.5"
+                ],
+                [
+                    "string",
+                    "1e3"
+                ],
+                [
+                    "string",
+                    " 1"
+                ],
+                [
+                    "integer",
+                    -1
+                ],
+                [
+                    "integer",
+                    10
+                ]
+            ]
+        },
+        {
+            "label": "R1 replaceRecursive nested map replaced by list",
+            "php": "R1 replaceRecursive nested map replaced by list",
+            "value": {
+                "k": [
+                    "x",
+                    "d"
+                ]
+            }
+        },
+        {
+            "label": "replaceRecursive-list-with-assoc",
+            "php": "(new Collection(['k' => ['c']]))->replaceRecursive(['k' => ['x' => 1]])",
+            "value": {
+                "k": {
+                    "0": "c",
+                    "x": 1
+                }
+            }
+        },
+        {
+            "label": "S1 splice on assoc with scalar replacement mid",
+            "php": "S1 splice on assoc with scalar replacement mid",
+            "value": {
+                "removed": {
+                    "b": 2
+                },
+                "after": {
+                    "a": 1,
+                    "0": "bar",
+                    "c": 3
+                }
+            }
+        },
+        {
+            "label": "S2 splice assoc insert scalar, length 0",
+            "php": "S2 splice assoc insert scalar, length 0",
+            "value": {
+                "removed": [],
+                "after": {
+                    "foo": "f",
+                    "0": "bar",
+                    "baz": "z"
+                }
+            }
+        },
+        {
+            "label": "S3 splice assoc insert array",
+            "php": "S3 splice assoc insert array",
+            "value": {
+                "foo": "f",
+                "0": "bar",
+                "baz": "z"
+            }
+        },
+        {
+            "label": "S4 splice assoc (1,1) no replacement",
+            "php": "S4 splice assoc (1,1) no replacement",
+            "value": {
+                "removed": {
+                    "baz": "z"
+                },
+                "after": {
+                    "foo": "f"
+                }
+            }
+        },
+        {
+            "label": "P1 pop on assoc",
+            "php": "P1 pop on assoc",
+            "value": {
+                "popped": "b",
+                "first": "f",
+                "all": {
+                    "foo": "f"
+                }
+            }
+        },
+        {
+            "label": "P2 pop(2)/pop(6) on assoc",
+            "php": "P2 pop(2)/pop(6) on assoc",
+            "value": {
+                "two": [
+                    "z",
+                    "b"
+                ],
+                "first": "f",
+                "six": [
+                    "z",
+                    "b",
+                    "f"
+                ]
+            }
+        },
+        {
+            "label": "SH1 shift sequence on assoc",
+            "php": "SH1 shift sequence on assoc",
+            "value": [
+                "Taylor",
+                "Otwell",
+                "Otwell",
+                null
+            ]
+        },
+        {
+            "label": "SH2 shift(2), shift(6), shift(0) on assoc",
+            "php": "SH2 shift(2), shift(6), shift(0) on assoc",
+            "value": {
+                "two": [
+                    "foo",
+                    "bar"
+                ],
+                "first": "baz",
+                "rem": {
+                    "c": "baz"
+                },
+                "six": [
+                    "foo",
+                    "bar",
+                    "baz"
+                ],
+                "zero": [],
+                "after0": {
+                    "a": "foo",
+                    "b": "bar",
+                    "c": "baz"
+                }
+            }
+        },
+        {
+            "label": "SH3 shift(-2) throws",
+            "php": "SH3 shift(-2) throws",
+            "threw": "InvalidArgumentException",
+            "message": "Number of shifted items may not be less than zero."
+        },
+        {
+            "label": "PAD1 pad on assoc (list fixture shapes)",
+            "php": "PAD1 pad on assoc (list fixture shapes)",
+            "value": {
+                "p4": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3,
+                    "0": 0
+                },
+                "p4big": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3,
+                    "d": 4,
+                    "e": 5
+                },
+                "n4": {
+                    "0": 0,
+                    "a": 1,
+                    "b": 2,
+                    "c": 3
+                },
+                "n4big": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3,
+                    "d": 4,
+                    "e": 5
+                }
+            }
+        },
+        {
+            "label": "U1 unshift(null) onto assoc",
+            "php": "U1 unshift(null) onto assoc",
+            "value": {
+                "0": null,
+                "a": 1
+            }
+        },
+        {
+            "label": "F1 filter callback key type for int key",
+            "php": "F1 filter callback key type for int key",
+            "value": {
+                "result": {
+                    "1": "a"
+                },
+                "seen": [
+                    [
+                        "integer",
+                        1
+                    ],
+                    [
+                        "string",
+                        "x"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "F2 contains callback key type for int key",
+            "php": "F2 contains callback key type for int key",
+            "value": {
+                "result": true,
+                "seen": [
+                    [
+                        "integer",
+                        1
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "callback-key every",
+            "php": "Arr::every([1 => \"a\", \"x\" => \"b\"], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "callback-key some",
+            "php": "Arr::some([1 => \"a\", \"x\" => \"b\"], $cb returning false)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "callback-key first",
+            "php": "Arr::first([1 => \"a\", \"x\" => \"b\"], $cb returning false)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "callback-key last",
+            "php": "Arr::last([1 => \"a\", \"x\" => \"b\"], $cb returning false)",
+            "value": [
+                "string",
+                "integer"
+            ]
+        },
+        {
+            "label": "callback-key map",
+            "php": "Arr::map([1 => \"a\", \"x\" => \"b\"], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "callback-key mapWithKeys",
+            "php": "Arr::mapWithKeys([1 => \"a\", \"x\" => \"b\"], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "callback-key where",
+            "php": "Arr::where([1 => \"a\", \"x\" => \"b\"], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "callback-key reject",
+            "php": "Arr::reject([1 => \"a\", \"x\" => \"b\"], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "callback-key partition",
+            "php": "Arr::partition([1 => \"a\", \"x\" => \"b\"], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "callback-key sole",
+            "php": "Arr::sole([1 => \"a\", \"x\" => \"b\"], $cb returning false)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "callback-key sort",
+            "php": "Arr::sort([1 => \"a\", \"x\" => \"b\"], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "callback-key keyBy",
+            "php": "Arr::keyBy([1 => [\"id\" => 1], \"x\" => [\"id\" => 2]], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "callback-key mapSpread",
+            "php": "Arr::mapSpread([1 => [\"a\"], \"x\" => [\"b\"]], fn ($v, $k) => ...)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "callback-key diffKeysUsing",
+            "php": "Collection([1 => \"a\", \"x\" => \"b\"])->diffKeysUsing([1 => \"z\"], $cmp)",
+            "value": [
+                [
+                    "integer",
+                    "string"
+                ],
+                [
+                    "integer",
+                    "integer"
+                ],
+                [
+                    "string",
+                    "integer"
+                ]
+            ]
+        },
+        {
+            "label": "keyBy callback receives the key",
+            "php": "Arr::keyBy([\"x\" => [\"id\" => 1]], fn ($item, $key) => $key)",
+            "value": {
+                "x": {
+                    "id": 1
+                }
+            }
+        },
+        {
+            "label": "prepend-assoc-no-key",
+            "php": "Arr::prepend(['one' => 1, 'two' => 2], 0)",
+            "value": {
+                "0": 0,
+                "one": 1,
+                "two": 2
+            }
+        },
+        {
+            "label": "prepend-mixed-no-key",
+            "php": "Arr::prepend([5 => 'five', 'one' => 1], 0)",
+            "value": {
+                "0": 0,
+                "1": "five",
+                "one": 1
+            }
+        },
+        {
+            "label": "flip-int-key-type",
+            "php": "array_map('gettype', (new Collection([0 => 'a', 'b' => 'c']))->flip()->all())",
+            "value": {
+                "a": "integer",
+                "c": "string"
+            }
+        },
+        {
+            "label": "replaceRecursive-list-element-map",
+            "php": "(new Collection(['y' => [1, 2]]))->replaceRecursive(['y' => [[1 => 'x']]])",
+            "value": {
+                "y": [
+                    {
+                        "1": "x"
+                    },
+                    2
+                ]
+            }
+        },
+        {
+            "label": "replaceRecursive-list-elements-kept-whole",
+            "php": "(new Collection([1, 2]))->replaceRecursive([[1 => 'x']]); (new Collection(['a', 'b', 'c']))->replaceRecursive(['x', [4 => 'e'], 'z'])",
+            "value": {
+                "pair": [
+                    {
+                        "1": "x"
+                    },
+                    2
+                ],
+                "three": [
+                    "x",
+                    {
+                        "4": "e"
+                    },
+                    "z"
+                ]
+            }
+        },
+        {
+            "label": "replaceRecursive-nested-list-meets-map",
+            "php": "(new Collection([['c'], ['a' => 1]]))->replaceRecursive([['x' => 1], ['x']])",
+            "value": [
+                {
+                    "0": "c",
+                    "x": 1
+                },
+                {
+                    "a": 1,
+                    "0": "x"
+                }
+            ]
+        },
+        {
+            "label": "replaceRecursive-object-leaf",
+            "php": "replaceRecursive with a DateTime or stdClass on either side: d and q are the replacer instances",
+            "value": {
+                "d": true,
+                "p": {
+                    "y": 2
+                },
+                "q": true
+            }
+        },
+        {
+            "label": "replace-list-replacer",
+            "php": "(new Collection(['a' => 1]))->replace(['x'])",
+            "value": {
+                "a": 1,
+                "0": "x"
+            }
+        },
+        {
+            "label": "replaceRecursive-nested-toArray-entry",
+            "php": "a nested 'toArray' closure entry merges as data, with an array or a Collection operand",
+            "value": {
+                "plain": {
+                    "keys": [
+                        "x",
+                        "toArray"
+                    ],
+                    "kept": true
+                },
+                "wrapped": {
+                    "keys": [
+                        "x",
+                        "toArray"
+                    ],
+                    "kept": true
+                }
+            }
+        },
+        {
+            "label": "replace-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->replace(new Collection([9]))",
+            "value": [
+                9,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "replaceRecursive-list-collection-operand",
+            "php": "(new Collection([['a' => 1]]))->replaceRecursive(new Collection([['b' => 2]]))",
+            "value": [
+                {
+                    "a": 1,
+                    "b": 2
+                }
+            ]
+        },
+        {
+            "label": "diffAssoc-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->diffAssoc(new Collection([1, 9, 9]))",
+            "value": [
+                2,
+                3
+            ]
+        },
+        {
+            "label": "intersectAssoc-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->intersectAssoc(new Collection([1, 2, 9]))",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "intersectAssocUsing-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->intersectAssocUsing(new Collection([1, 2, 9]), fn ($a, $b) => $a <=> $b)",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "intersectByKeys-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->intersectByKeys(new Collection([9, 9]))",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "diffAssoc-collection-matching-key",
+            "php": "(new Collection(['id' => 1, 'name' => 'a']))->diffAssoc(new Collection(['id' => 1, 'name' => 'b']))",
+            "value": {
+                "name": "a"
+            }
+        },
+        {
+            "label": "collapse-assoc-collection-item",
+            "php": "Arr::collapse(['a' => new Collection(['x' => 1]), 'b' => ['y' => 2]])",
+            "value": {
+                "x": 1,
+                "y": 2
+            }
+        },
+        {
+            "label": "collapse-negative-int-keys",
+            "php": "Arr::collapse(['g1' => [-1 => 'a', 'k' => 'b'], 'g2' => [-1 => 'c']]) and the same groups as a list",
+            "value": {
+                "assoc": {
+                    "0": "a",
+                    "k": "b",
+                    "1": "c"
+                },
+                "list": {
+                    "0": "a",
+                    "k": "b",
+                    "1": "c"
+                }
+            }
+        },
+        {
+            "label": "collapse-skips-objects",
+            "php": "Arr::collapse([[1], new DateTime('@0'), [2]]), ([[1], new ArrayObject(['x' => 1]), [2]]), ([['a' => 1], (object) ['b' => 2]]), ([(object) ['b' => 2]]), (['g1' => ['a' => 1], 'g2' => (object) ['b' => 2]])",
+            "value": {
+                "date": [
+                    1,
+                    2
+                ],
+                "array-object": [
+                    1,
+                    2
+                ],
+                "object-item": {
+                    "a": 1
+                },
+                "only-object": [],
+                "assoc-object-item": {
+                    "a": 1
+                }
+            }
+        },
+        {
+            "label": "unshift-negative-int-key",
+            "php": "(new Collection([-1 => 'a', 'x' => 'b']))->unshift('z')",
+            "value": {
+                "0": "z",
+                "1": "a",
+                "x": "b"
+            }
+        },
+        {
+            "label": "prepend-negative-int-key-no-key",
+            "php": "Arr::prepend([-1 => 'a', 'x' => 'b'], 'z')",
+            "value": {
+                "0": "z",
+                "1": "a",
+                "x": "b"
+            }
+        },
+        {
+            "label": "prepend-key-cast",
+            "php": "@Arr::prepend(['a' => 1, 1 => 'x'], 'v', 1.5), @(['a' => 1], 'v', -2.7), (['a' => 1], 'v', true), (['a' => 1, 0 => 'x'], 'v', false)",
+            "value": {
+                "float": {
+                    "1": "v",
+                    "a": 1
+                },
+                "negative-float": {
+                    "-2": "v",
+                    "a": 1
+                },
+                "true": {
+                    "1": "v",
+                    "a": 1
+                },
+                "false": {
+                    "0": "v",
+                    "a": 1
+                }
+            }
+        },
+        {
+            "label": "prepend-list-with-key",
+            "php": "Arr::prepend(['b', 'c'], 'a', 0), (..., 1), (..., 5), @(..., 1.5), (..., 'k'), (new Collection(['b', 'c']))->prepend('a', 0), ->prepend('a', 'k'), ->prepend('a', 1)",
+            "value": {
+                "zero": [
+                    "a",
+                    "c"
+                ],
+                "one": {
+                    "1": "a",
+                    "0": "b"
+                },
+                "five": {
+                    "5": "a",
+                    "0": "b",
+                    "1": "c"
+                },
+                "float": {
+                    "1": "a",
+                    "0": "b"
+                },
+                "string": {
+                    "k": "a",
+                    "0": "b",
+                    "1": "c"
+                },
+                "collection-zero": [
+                    "a",
+                    "c"
+                ],
+                "collection-string": {
+                    "k": "a",
+                    "0": "b",
+                    "1": "c"
+                },
+                "collection-one": {
+                    "1": "a",
+                    "0": "b"
+                }
+            }
+        },
+        {
+            "label": "replace-list-keyed-replacer",
+            "php": "(new Collection(['a', 'b', 'c']))->replace([1 => 'x', 'k' => 'y']), ->replace(['01' => 'x']), ->replace([-1 => 'x']), ->replace(['1.5' => 'x']), (new Collection(['a']))->replace([3 => 'x']), and each through ->replaceRecursive()",
+            "value": {
+                "replace": {
+                    "mixed": {
+                        "0": "a",
+                        "1": "x",
+                        "2": "c",
+                        "k": "y"
+                    },
+                    "leading-zero": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "01": "x"
+                    },
+                    "negative": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "-1": "x"
+                    },
+                    "float-string": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "1.5": "x"
+                    },
+                    "gap": {
+                        "0": "a",
+                        "3": "x"
+                    }
+                },
+                "replaceRecursive": {
+                    "mixed": {
+                        "0": "a",
+                        "1": "x",
+                        "2": "c",
+                        "k": "y"
+                    },
+                    "leading-zero": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "01": "x"
+                    },
+                    "negative": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "-1": "x"
+                    },
+                    "float-string": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "1.5": "x"
+                    },
+                    "gap": {
+                        "0": "a",
+                        "3": "x"
+                    }
+                }
+            }
+        },
+        {
+            "label": "replace-scalar-operand",
+            "php": "(new Collection(['a', 'b']))->replace('z'), ->replaceRecursive('z')",
+            "value": {
+                "replace": [
+                    "z",
+                    "b"
+                ],
+                "replaceRecursive": [
+                    "z",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "shift-negative-int-keys",
+            "php": "$c = new Collection(['x' => 'a', -1 => 'b', 'y' => 'c']); $c->shift(); and $d = new Collection(['x' => 'a', -1 => 'b', -2 => 'c', 'y' => 'd']); $d->shift(2)",
+            "value": {
+                "one": {
+                    "shifted": "a",
+                    "rest": {
+                        "0": "b",
+                        "y": "c"
+                    }
+                },
+                "two": {
+                    "shifted": [
+                        "a",
+                        "b"
+                    ],
+                    "rest": {
+                        "0": "c",
+                        "y": "d"
+                    }
+                }
+            }
+        },
+        {
+            "label": "splice-negative-int-keys",
+            "php": "$c = new Collection([-1 => 'a', 'x' => 'b', -5 => 'c']); $c->splice(1, 1, ['z']); and $d = new Collection(['x' => 'a', -3 => 'b', -7 => 'c']); $d->splice(0, 3)",
+            "value": {
+                "replaced": {
+                    "removed": {
+                        "x": "b"
+                    },
+                    "rest": [
+                        "a",
+                        "z",
+                        "c"
+                    ]
+                },
+                "emptied": {
+                    "removed": {
+                        "x": "a",
+                        "0": "b",
+                        "1": "c"
+                    },
+                    "rest": []
+                }
+            }
+        },
+        {
+            "label": "pad-negative-int-key",
+            "php": "(new Collection([-1 => 'a', 'x' => 'b']))->pad(4, 0), ->pad(-4, 0), ->pad(2, 0)",
+            "value": {
+                "right": {
+                    "0": "a",
+                    "x": "b",
+                    "1": 0,
+                    "2": 0
+                },
+                "left": {
+                    "0": 0,
+                    "1": 0,
+                    "2": "a",
+                    "x": "b"
+                },
+                "none": {
+                    "-1": "a",
+                    "x": "b"
+                }
+            }
+        },
+        {
+            "label": "diffAssoc-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->diffAssoc(['a' => 1, 'b' => 2]); (new Collection(['a', 'b']))->diffAssoc([1 => 'b']); the first with a Collection operand",
+            "value": {
+                "assoc": [
+                    1,
+                    2
+                ],
+                "offset": [
+                    "a"
+                ],
+                "collection": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "intersectAssoc-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->intersectAssoc(['a' => 1, 'b' => 2]); (new Collection(['a', 'b']))->intersectAssoc([1 => 'b'])",
+            "value": {
+                "assoc": [],
+                "offset": [
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "intersectAssocUsing-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->intersectAssocUsing(['a' => 1, 'b' => 2], $cmp); (new Collection(['a', 'b']))->intersectAssocUsing([1 => 'b'], $cmp)",
+            "value": {
+                "assoc": [],
+                "offset": [
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "intersectByKeys-list-keyed-operand",
+            "php": "(new Collection([1, 2, 3]))->intersectByKeys(['a' => 'x', 'b' => 'y']), ->intersectByKeys([0 => 'x', 2 => 'y']), ->intersectByKeys(new ArrayIterator([2 => 'z']))",
+            "value": {
+                "assoc": [],
+                "offset": [
+                    1,
+                    3
+                ],
+                "iterator": [
+                    3
+                ]
+            }
+        },
+        {
+            "label": "collapse-list-then-map",
+            "php": "Arr::collapse([[1, 2], ['x' => 1, 0 => 'z']])",
+            "value": {
+                "0": 1,
+                "1": 2,
+                "x": 1,
+                "2": "z"
+            }
+        },
+        {
+            "label": "collapse-map-then-list",
+            "php": "Arr::collapse([['a' => 3], [1, 2]])",
+            "value": {
+                "a": 3,
+                "0": 1,
+                "1": 2
+            }
+        },
+        {
+            "label": "collapse-collection-items",
+            "php": "Arr::collapse([new Collection([1, 2]), 5, new Collection([3])])",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "collapse-null",
+            "php": "collect(null)->collapse()->all()",
+            "value": []
+        },
+        {
+            "label": "exists-list-non-canonical-keys",
+            "php": "Arr::exists([1, 2, 3], $k) for '', ' ', '01', ' 1', '1e0', '0x1', '-0', '1.0'",
+            "value": {
+                "": false,
+                " ": false,
+                "01": false,
+                " 1": false,
+                "1e0": false,
+                "0x1": false,
+                "-0": false,
+                "1.0": false
+            }
+        },
+        {
+            "label": "exists-list-null-and-float-keys",
+            "php": "Arr::exists([1, 2, 3], null), (\u2026, 1.5), (\u2026, 1.0), (\u2026, '1')",
+            "value": {
+                "null": false,
+                "float 1.5": false,
+                "float 1.0": true,
+                "string 1": true
+            }
+        },
+        {
+            "label": "keyBy-list-callback-key",
+            "php": "Arr::keyBy([['id' => 1], ['id' => 2]], fn ($item, $key) => 'k' . $key)",
+            "value": {
+                "k0": {
+                    "id": 1
+                },
+                "k1": {
+                    "id": 2
+                }
+            }
+        },
+        {
+            "label": "get-list-non-canonical-index",
+            "php": "Arr::get(['x', 'y'], $k, 'd') and Arr::get([['x', 'y']], \"0.$k\", 'd')",
+            "value": {
+                "01": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                " 1": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "1e0": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "+1": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "0x1": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "-0": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "1 ": {
+                    "top": "d",
+                    "nested": "d"
+                }
+            }
+        },
+        {
+            "label": "has-list-non-canonical-index",
+            "php": "Arr::has(['x', 'y'], $k) and Arr::has([['x', 'y']], \"0.$k\")",
+            "value": {
+                "01": {
+                    "top": false,
+                    "nested": false
+                },
+                " 1": {
+                    "top": false,
+                    "nested": false
+                },
+                "1e0": {
+                    "top": false,
+                    "nested": false
+                },
+                "+1": {
+                    "top": false,
+                    "nested": false
+                },
+                "0x1": {
+                    "top": false,
+                    "nested": false
+                },
+                "-0": {
+                    "top": false,
+                    "nested": false
+                },
+                "1 ": {
+                    "top": false,
+                    "nested": false
+                }
+            }
+        },
+        {
+            "label": "collection-get-list-non-canonical-index",
+            "php": "(new Collection(['x', 'y']))->get('01', 'd')",
+            "value": "d"
+        },
+        {
+            "label": "pull-list-non-canonical-index",
+            "php": "$a = ['x', 'y']; Arr::pull($a, '01', 'd')",
+            "value": {
+                "value": "d",
+                "array": [
+                    "x",
+                    "y"
+                ]
+            }
+        },
+        {
+            "label": "diffAssocUsing-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->diffAssocUsing(new Collection([1, 9, 3]), 'strcasecmp')",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "diffKeysUsing-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->diffKeysUsing(new Collection([9, 9]), 'strcasecmp')",
+            "value": [
+                3
+            ]
+        },
+        {
+            "label": "diffKeysUsing-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->diffKeysUsing(['a' => 1, 1 => 5], 'strcasecmp')",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "diffAssocUsing-list-string-cast",
+            "php": "(new Collection([1, 2]))->diffAssocUsing(['1', '3'], 'strcasecmp')",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "callback-key *Using on a list",
+            "php": "(new Collection([1, 2]))->diffAssocUsing([1, 9], $cmp) / ->diffKeysUsing([1, 9], $cmp): every key type the comparator sees",
+            "value": {
+                "diffAssocUsing": [
+                    "integer"
+                ],
+                "diffKeysUsing": [
+                    "integer"
+                ]
+            }
+        },
+        {
+            "label": "dot-object-leaf",
+            "php": "Arr::dot([$o]), Arr::dot([['p' => $o]]), Arr::dot(['p' => $o, 'l' => [$o]]), Arr::dot([new ArrayObject(['a' => 1])]) with $o = (object) ['x' => 1, 'y' => 2]: keys, and whether $o is kept",
+            "value": {
+                "list": {
+                    "keys": [
+                        0
+                    ],
+                    "kept": true
+                },
+                "nested": {
+                    "keys": [
+                        "0.p"
+                    ],
+                    "kept": true
+                },
+                "map": {
+                    "keys": [
+                        "p",
+                        "l.0"
+                    ],
+                    "kept": true
+                },
+                "arrayObject": [
+                    0
+                ]
+            }
+        },
+        {
+            "label": "collection-dot-collection-leaf",
+            "php": "(new Collection([new Collection(['a' => 1])]))->dot() and (new Collection(['c' => new Collection(['a' => 1])]))->dot(): keys",
+            "value": {
+                "list": [
+                    0
+                ],
+                "map": [
+                    "c"
+                ]
+            }
+        },
+        {
+            "label": "get-list-int-segment-into-map",
+            "php": "Arr::get([[0 => 'x']], '0.0', 'd'), Arr::get([['k' => 'v', 0 => 'x']], '0.0', 'd'), Arr::get([[[1 => 'z']]], '0.0.1', 'd'), Arr::has(\u2026), data_get([['k' => 'v', 0 => 'x']], '0.0', 'd')",
+            "value": {
+                "get": "x",
+                "get-map": "x",
+                "get-deep": "z",
+                "get-missing": "d",
+                "has": true,
+                "has-missing": false,
+                "data_get": "x"
+            }
+        },
+        {
+            "label": "sortRecursive-object-leaf",
+            "php": "Arr::sortRecursive(['d' => $date, 'a' => 1]), (['l' => [$date]]), (['o' => (object) ['b' => 1, 'a' => 2]]), (['m' => new ArrayObject(['b' => 1, 'a' => 2])]): keys, identity and the object's own key order",
+            "value": {
+                "map": {
+                    "keys": [
+                        "a",
+                        "d"
+                    ],
+                    "kept": true
+                },
+                "in-list": true,
+                "object": {
+                    "kept": true,
+                    "keys": [
+                        "b",
+                        "a"
+                    ]
+                },
+                "arrayObject": {
+                    "kept": true,
+                    "keys": [
+                        "b",
+                        "a"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "crossJoin-string-spread-map-dimension",
+            "php": "Arr::crossJoin(...['a' => [1, 2], 'b' => ['k' => 'x', 'j' => 'y']]) and Arr::crossJoin(...['a' => [1], 'b' => new ArrayIterator(['k' => 'x', 'j' => 'y'])])",
+            "value": {
+                "map": [
+                    {
+                        "a": 1,
+                        "b": "x"
+                    },
+                    {
+                        "a": 1,
+                        "b": "y"
+                    },
+                    {
+                        "a": 2,
+                        "b": "x"
+                    },
+                    {
+                        "a": 2,
+                        "b": "y"
+                    }
+                ],
+                "iterator": [
+                    {
+                        "a": 1,
+                        "b": "x"
+                    },
+                    {
+                        "a": 1,
+                        "b": "y"
+                    }
+                ]
+            }
+        },
+        {
+            "label": "crossJoin-string-spread-no-values",
+            "php": "@Arr::crossJoin(...['a' => [1], 'b' => 'x']) and Arr::crossJoin(...['a' => [1], 'b' => new DateTime('@0')])",
+            "value": {
+                "scalar": [],
+                "date": []
+            }
+        },
+        {
+            "label": "sortRecursive-list-object-leaf",
+            "php": "Arr::sortRecursive([[$date]]), Arr::sortRecursive([$object]), Arr::sortRecursive([['o' => $object]]): whether each object is kept",
+            "value": {
+                "nested-list": true,
+                "list": true,
+                "map-in-list": true
+            }
+        },
+        {
+            "label": "crossJoin-list-map-dimension",
+            "php": "Arr::crossJoin([1, 2], ['a' => 'x', 'b' => 'y']), (\u2026, new ArrayIterator(['a' => 'x', 'b' => 'y'])), Arr::crossJoin([1], new Collection(['x', 'y'])), Arr::crossJoin([1], new DateTime('@0'))",
+            "value": {
+                "map": [
+                    [
+                        1,
+                        "x"
+                    ],
+                    [
+                        1,
+                        "y"
+                    ],
+                    [
+                        2,
+                        "x"
+                    ],
+                    [
+                        2,
+                        "y"
+                    ]
+                ],
+                "iterator": [
+                    [
+                        1,
+                        "x"
+                    ],
+                    [
+                        1,
+                        "y"
+                    ],
+                    [
+                        2,
+                        "x"
+                    ],
+                    [
+                        2,
+                        "y"
+                    ]
+                ],
+                "collection": [
+                    [
+                        1,
+                        "x"
+                    ],
+                    [
+                        1,
+                        "y"
+                    ]
+                ],
+                "date": []
+            }
+        },
+        {
+            "label": "collection-crossJoin-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->crossJoin(['k' => 'a', 'j' => 'b'])",
+            "value": [
+                [
+                    1,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    2,
+                    "a"
+                ],
+                [
+                    2,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "containsStrict-key-order",
+            "php": "['a' => 1, 'b' => 2] === ['b' => 2, 'a' => 1], and containsStrict / in_array(\u2026, true) with a reordered array",
+            "value": {
+                "identical": false,
+                "same-order": true,
+                "map": false,
+                "list": false,
+                "nested": false
+            }
+        },
+        {
+            "label": "uniqueStrict-duplicatesStrict-key-order",
+            "php": "(new Collection([['x' => 1, 'y' => 2], ['y' => 2, 'x' => 1]]))->uniqueStrict() and ->duplicatesStrict()",
+            "value": {
+                "uniqueStrict": [
+                    {
+                        "x": 1,
+                        "y": 2
+                    },
+                    {
+                        "y": 2,
+                        "x": 1
+                    }
+                ],
+                "duplicatesStrict": []
+            }
+        },
+        {
+            "label": "combine-float-keys",
+            "php": "@(new Collection([INF, -INF, NAN, -0.0, 1.5, -1.5, 1e21, 1.5e300, 1.5e-7, 0.00001, 0.0001, 0.1 + 0.2, 1 / 3, 10000000000000.5, 10000000000001.5, 5e-324, 99999999999999.98]))->combine(range(1, 17)): the keys",
+            "value": [
+                "INF",
+                "-INF",
+                "NAN",
+                "-0",
+                "1.5",
+                "-1.5",
+                "1.0E+21",
+                "1.5E+300",
+                "1.5E-7",
+                "1.0E-5",
+                "0.0001",
+                "0.3",
+                "0.33333333333333",
+                10000000000000,
+                10000000000002,
+                "4.9406564584125E-324",
+                "1.0E+14"
+            ]
+        },
+        {
+            "label": "combine-large-int-key",
+            "php": "(new Collection([4611686018427387904, -7]))->combine([1, 2]): each key as [type, string]",
+            "value": [
+                [
+                    "integer",
+                    "4611686018427387904"
+                ],
+                [
+                    "integer",
+                    "-7"
+                ]
+            ]
+        },
+        {
+            "label": "keyBy-scalar-key-cast",
+            "php": "@Arr::keyBy([['v' => 1]], fn () => $key) for true, false, null, 1.5, -1.5, -0.0, INF, NAN, 1e20, '05', '5': the key stored, as [type, string]",
+            "value": {
+                "true": [
+                    "integer",
+                    "1"
+                ],
+                "false": [
+                    "integer",
+                    "0"
+                ],
+                "null": [
+                    "string",
+                    ""
+                ],
+                "1.5": [
+                    "integer",
+                    "1"
+                ],
+                "-1.5": [
+                    "integer",
+                    "-1"
+                ],
+                "-0.0": [
+                    "integer",
+                    "0"
+                ],
+                "INF": [
+                    "integer",
+                    "0"
+                ],
+                "NAN": [
+                    "integer",
+                    "0"
+                ],
+                "1e20": [
+                    "integer",
+                    "7766279631452241920"
+                ],
+                "'05'": [
+                    "string",
+                    "05"
+                ],
+                "'5'": [
+                    "integer",
+                    "5"
+                ],
+                "field": [
+                    1,
+                    0,
+                    ""
+                ]
+            }
+        },
+        {
+            "label": "exists-float-key-cast",
+            "php": "Arr::exists([1], -0.0), (['-0' => 1], -0.0), (['INF' => 1], INF), (['1.0E+21' => 1], 1e21), (['0.3' => 1], 0.1 + 0.2)",
+            "value": {
+                "list -0": false,
+                "map -0": true,
+                "INF": true,
+                "1e21": true,
+                "0.1 + 0.2": true
+            }
+        },
+        {
+            "label": "flatten-object-leaf",
+            "php": "Arr::flatten([$date, [1]]), ([$o, [$date]]), (['a' => $o, 'b' => ['c' => $date, 'd' => [2]]]), ([new ArrayObject([1, 2])]): what is kept",
+            "value": {
+                "list": {
+                    "count": 2,
+                    "kept": true,
+                    "rest": [
+                        1
+                    ]
+                },
+                "nested": {
+                    "count": 2,
+                    "kept": true
+                },
+                "map": {
+                    "count": 3,
+                    "kept": true,
+                    "rest": [
+                        2
+                    ]
+                },
+                "arrayObject": {
+                    "count": 1,
+                    "kept": true
+                }
+            }
+        },
+        {
+            "label": "flatten-collection-item",
+            "php": "Arr::flatten([new Collection([1, [2, 3]]), 4]), ([new Collection(['a' => 1, 'b' => new Collection([2])])]), ([new Collection([[1, 2], 3])], 1), ([[new Collection([2, 3])]], 1)",
+            "value": {
+                "item": [
+                    1,
+                    2,
+                    3,
+                    4
+                ],
+                "nested": [
+                    1,
+                    2
+                ],
+                "depth-1-item": [
+                    [
+                        1,
+                        2
+                    ],
+                    3
+                ],
+                "depth-1-value": {
+                    "count": 1,
+                    "collection": true
+                }
+            }
+        },
+        {
+            "label": "union-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->union([2 => 'z']), (new Collection([1]))->union([3 => 'd'])->union([9, 8, 7, 6])->sortKeys(), (new Collection([1]))->union([3 => 'd']), (new Collection([1, 2]))->union(['a' => 5])",
+            "value": {
+                "offset": [
+                    1,
+                    2,
+                    "z"
+                ],
+                "gap-filled": [
+                    1,
+                    8,
+                    7,
+                    "d"
+                ],
+                "gap": {
+                    "0": 1,
+                    "3": "d"
+                },
+                "string-key": {
+                    "0": 1,
+                    "1": 2,
+                    "a": 5
+                }
+            }
+        },
+        {
+            "label": "combine-list-keyed-values",
+            "php": "(new Collection([1, 2]))->combine(['a' => 'x', 'b' => 'y']) and ->combine(new Collection(['a' => 'x', 'b' => 'y']))",
+            "value": {
+                "keyed": {
+                    "1": "x",
+                    "2": "y"
+                },
+                "collection": {
+                    "1": "x",
+                    "2": "y"
+                }
+            }
+        },
+        {
+            "label": "object-backing-list-operand",
+            "php": "$c = new Collection([0 => 'a', 1 => 'b', 'x' => 'c']); $c->replace(['z']), ->replaceRecursive(['z']), ->intersectByKeys(['z']), ->intersectAssoc(['a']), ->intersectAssocUsing(['a'], $cmp)",
+            "value": {
+                "replace": {
+                    "0": "z",
+                    "1": "b",
+                    "x": "c"
+                },
+                "replaceRecursive": {
+                    "0": "z",
+                    "1": "b",
+                    "x": "c"
+                },
+                "intersectByKeys": [
+                    "a"
+                ],
+                "intersectAssoc": [
+                    "a"
+                ],
+                "intersectAssocUsing": [
+                    "a"
+                ]
+            }
+        },
+        {
+            "label": "list-backing-keyed-operand",
+            "php": "(new Collection(['a', 'b']))->union([2 => 'z']) and (new Collection(['a', 'b', 'c']))->intersectByKeys([0 => 'x', 2 => 'y'])",
+            "value": {
+                "union": [
+                    "a",
+                    "b",
+                    "z"
+                ],
+                "intersectByKeys": [
+                    "a",
+                    "c"
+                ]
+            }
+        },
+        {
+            "label": "union-all-nullish",
+            "php": "(new Collection(null))->union(null)",
+            "value": []
+        },
+        {
+            "label": "union-list-backing-keyed-result",
+            "php": "(new Collection())->union(['a' => 1]), (new Collection([1, 2]))->union(['a' => 1, 5 => 9]), ([1, 2])->union([-1 => 9]), ([1])->union([3 => 4]), ([1])->union([3 => 4])->union([9, 8, 7, 6])",
+            "value": {
+                "empty-string-key": {
+                    "a": 1
+                },
+                "string-key-and-gap": {
+                    "0": 1,
+                    "1": 2,
+                    "a": 1,
+                    "5": 9
+                },
+                "negative-key": {
+                    "0": 1,
+                    "1": 2,
+                    "-1": 9
+                },
+                "gap": {
+                    "0": 1,
+                    "3": 4
+                },
+                "gap-then-filled": {
+                    "0": 1,
+                    "3": 4,
+                    "1": 8,
+                    "2": 7
+                }
+            }
+        },
+        {
+            "label": "union-function-valued-member",
+            "php": "(new Collection(['all' => $fn, 'admin' => 'a']))->union(['guest' => 1]), (['toJSON' => fn () => 'J', 'b' => 2])->union(['c' => 3]), (['toArray' => fn () => [9], 'b' => 2])->union(['c' => 3]): the keys, and how often $fn ran",
+            "value": {
+                "all": [
+                    "all",
+                    "admin",
+                    "guest"
+                ],
+                "toJSON": [
+                    "toJSON",
+                    "b",
+                    "c"
+                ],
+                "toArray": [
+                    "toArray",
+                    "b",
+                    "c"
+                ],
+                "calls": 0
+            }
+        },
+        {
+            "label": "containsStrict-two-args-by-value",
+            "php": "containsStrict('tags', ['a', 'b']), ('t', a reordered array), ('name', null) with the key null, missing or set",
+            "value": {
+                "array": true,
+                "reordered": false,
+                "null": true,
+                "null-missing": true,
+                "null-none": false,
+                "doesnt": false
+            }
+        },
+        {
+            "label": "collection-crossJoin-assoc-items",
+            "php": "(new Collection(['size' => ['S', 'M']]))->crossJoin(['color' => ['red', 'blue']]), (['a' => 1, 'b' => 2])->crossJoin(['x', 'y']), (['a' => [1, 2]])->crossJoin(['b' => ['x']], ['c' => ['I', 'II']]), (['a' => 1, 'b' => 2])->crossJoin(['c' => 3, 'd' => 4])",
+            "value": {
+                "nested": [
+                    [
+                        [
+                            "S",
+                            "M"
+                        ],
+                        [
+                            "red",
+                            "blue"
+                        ]
+                    ]
+                ],
+                "scalars": [
+                    [
+                        1,
+                        "x"
+                    ],
+                    [
+                        1,
+                        "y"
+                    ],
+                    [
+                        2,
+                        "x"
+                    ],
+                    [
+                        2,
+                        "y"
+                    ]
+                ],
+                "three": [
+                    [
+                        [
+                            1,
+                            2
+                        ],
+                        [
+                            "x"
+                        ],
+                        [
+                            "I",
+                            "II"
+                        ]
+                    ]
+                ],
+                "keyed-operand": [
+                    [
+                        1,
+                        3
+                    ],
+                    [
+                        1,
+                        4
+                    ],
+                    [
+                        2,
+                        3
+                    ],
+                    [
+                        2,
+                        4
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "collection-flatten-object-leaf",
+            "php": "(new Collection([$date, [1], new Collection([2, [3]])]))->flatten() and (new Collection(['a' => $o, 'b' => [$date]]))->flatten(): what is kept",
+            "value": {
+                "list": {
+                    "count": 4,
+                    "kept": true,
+                    "rest": [
+                        1,
+                        2,
+                        3
+                    ]
+                },
+                "map": {
+                    "count": 2,
+                    "kept": true
+                }
+            }
+        },
+        {
+            "label": "collection-keyBy-scalar-key-cast",
+            "php": "(new Collection(['a' => ['k' => true], 'b' => ['k' => false], 'c' => ['k' => null]]))->keyBy('k') and @(new Collection([['v' => 1]]))->keyBy(fn () => 2.5): the keys",
+            "value": {
+                "field": [
+                    1,
+                    0,
+                    ""
+                ],
+                "float": [
+                    2
+                ]
+            }
+        },
+        {
+            "label": "chunkBy-noncanonical-key-type",
+            "php": "(new Collection(['01' => 'a', 'x' => 'b']))->chunkBy(fn ($v, $k) => [gettype($k), $k]): the key on each call",
+            "value": [
+                [
+                    "string",
+                    "x"
+                ],
+                [
+                    "string",
+                    "01"
+                ]
+            ]
+        },
+        {
+            "label": "combine-collection-values",
+            "php": "(new Collection(['a', 'b']))->combine(new Collection(['x', 'y']))",
+            "value": {
+                "a": "x",
+                "b": "y"
+            }
+        },
+        {
+            "label": "unshift-fresh-object-and-null-items",
+            "php": "(new Collection(null))->unshift(['a' => 1], null, 'x')",
+            "value": [
+                {
+                    "a": 1
+                },
+                null,
+                "x"
+            ]
+        },
+        {
+            "label": "has-empty-string-key-null-key",
+            "php": "Arr::has(['' => 'some'], null)",
+            "value": false
+        },
+        {
+            "label": "dot-depth-through-list",
+            "php": "Arr::dot([['a' => ['b' => ['c' => 1]]]], '', 2)",
+            "value": {
+                "0.a.b": {
+                    "c": 1
+                }
+            }
+        },
+        {
+            "label": "phpArrayKey-extra-string-keys",
+            "php": "array_keys(['-0' => 1, 'abc' => 2, '' => 3])",
+            "value": [
+                "-0",
+                "abc",
+                ""
+            ]
+        },
+        {
+            "label": "replaceRecursive-collection-operand",
+            "php": "(new Collection(['a' => ['x' => 1]]))->replaceRecursive(new Collection(['a' => ['y' => 2]]))",
+            "value": {
+                "a": {
+                    "x": 1,
+                    "y": 2
+                }
+            }
+        },
+        {
+            "label": "set-null-array-null-key",
+            "php": "$a = null; Arr::set($a, null, 5)",
+            "value": {
+                "value": 5,
+                "array": 5
+            }
+        },
+        {
+            "label": "unshift-numeric-key-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->unshift('x')",
+            "value": {
+                "all": [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "unshift-mixed-key-order",
+            "php": "(new Collection([2 => 'c', 'x' => 'v', 0 => 'a']))->unshift('n')",
+            "value": {
+                "all": {
+                    "0": "n",
+                    "1": "c",
+                    "x": "v",
+                    "2": "a"
+                },
+                "values": [
+                    "n",
+                    "c",
+                    "v",
+                    "a"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    "x",
+                    2
+                ]
+            }
+        },
+        {
+            "label": "unshift-no-items-numeric-key-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->unshift()",
+            "value": [
+                "c",
+                "a",
+                "b"
+            ]
+        }
+    ]
+}

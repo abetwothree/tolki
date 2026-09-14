@@ -53,8 +53,6 @@ import {
     query as arrQuery,
     random as arrRandom,
     reject as arrReject,
-    replace as arrReplace,
-    replaceRecursive as arrReplaceRecursive,
     reverse as arrReverse,
     select as arrSelect,
     set as arrSet,
@@ -182,6 +180,7 @@ import {
     isNull,
     isObject,
     isUndefined,
+    phpArrayKey,
 } from "@tolki/utils";
 
 /**
@@ -208,6 +207,21 @@ function isKeyedData(data: unknown): boolean {
     }
 
     return isObject(data) && !isIterable(data);
+}
+
+/**
+ * Hand back a result built from a list backing as a list while its keys are `0..n-1`, as PHP's
+ * `array_is_list` would accept it, and otherwise as the object that holds PHP's keyed array.
+ *
+ * @param items - The result, keyed as obj's helpers key a list's copy.
+ * @returns The result's values when its keys are `0..n-1`, otherwise the result itself.
+ */
+function listWhenIndexed<TValue>(
+    items: Record<string, TValue>,
+): TValue[] | Record<string, TValue> {
+    return Object.keys(items).every((key, index) => key === String(index))
+        ? Object.values(items)
+        : items;
 }
 
 /**
@@ -445,12 +459,13 @@ export function dataChunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objChunkWhile(
             data as Record<TKey, TValue>,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             callback as (
                 value: TValue,
-                key: TKey,
-                chunk: Record<TKey, TValue>,
+                key: string | number,
+                chunk: Partial<Record<TKey, TValue>>,
             ) => boolean,
-        );
+        ) as Record<number, Record<TKey, TValue>>;
     }
 
     return arrChunkWhile(
@@ -489,8 +504,9 @@ export function dataChunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objChunkBy(
             data as Record<TKey, TValue>,
-            key as PathKey | ((value: TValue, key: TKey) => unknown),
-        );
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            key as PathKey | ((value: TValue, key: string | number) => unknown),
+        ) as Record<number, Record<TKey, TValue>>;
     }
 
     return arrChunkBy(
@@ -530,7 +546,8 @@ export function dataCollapse<TValue>(data: DataItems<TValue, PropertyKey>) {
 }
 
 /**
- * Combine two data sets.
+ * Combine two data sets: the first set's values become the keys, the second set's values the values.
+ * Either set may be a list or an object, as `array_combine` takes any two arrays.
  *
  * @param itemsA - The first data set
  * @param itemsB - The second data set
@@ -541,31 +558,26 @@ export function dataCombine<
     TValues extends Record<PropertyKey, unknown>,
 >(
     itemsA: Record<PropertyKey, TKeys>,
-    itemsB: Record<PropertyKey, TValues>,
+    itemsB: DataItems<TValues>,
 ): ReturnType<typeof objCombine>;
 export function dataCombine<TKeys, TValues>(
     itemsA: TKeys[],
-    itemsB: TValues[],
+    itemsB: DataItems<TValues>,
 ): ReturnType<typeof arrCombine>;
 export function dataCombine<TKeys, TValues>(
     itemsA: Record<PropertyKey, TKeys>,
-    itemsB: Record<PropertyKey, TValues>,
+    itemsB: DataItems<TValues>,
 ): ReturnType<typeof objCombine>;
 export function dataCombine<TKeys, TValues>(
     itemsA: DataItems<TKeys>,
     itemsB: DataItems<TValues>,
 ) {
-    if (isObject(itemsA) && isObject(itemsB)) {
-        return objCombine(itemsA, itemsB);
+    if (isObject(itemsA)) {
+        // Collection::combine keys by $this->all(), which never unwraps; handing obj a list keeps it from doing so.
+        return objCombine(Object.values(itemsA), itemsB);
     }
 
-    if (isArray(itemsA) && isArray(itemsB)) {
-        return arrCombine(itemsA, itemsB);
-    }
-
-    throw new Error(
-        "dataCombine requires both itemsA and itemsB to be of the same type (both objects or both arrays).",
-    );
+    return arrCombine(itemsA, itemsB);
 }
 
 /**
@@ -677,7 +689,8 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
     asArray: boolean = false,
 ): DataItems<TValue, TKey> {
     if (isObject(data) && !asArray) {
-        return objUndot(data);
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        return objUndot(data) as DataItems<TValue, TKey>;
     }
 
     // Widen: `asArray` routes object-backed data to `Arr.undot`, which rejects
@@ -687,7 +700,10 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Union multiple objects or arrays items into one. Can only union items of the same type.
+ * Union multiple objects or arrays items into one, the way PHP's `+` does: the first
+ * item that isn't nullish is the backing, and each other item may be a list or an object.
+ * A list backing stays a list while every item extends its keys as `0..n-1`; once an item
+ * adds a string key or leaves a gap, the result is an object, as PHP's keyed array is.
  *
  * @param items - the data items to union
  * @return A new object or array containing all values
@@ -695,22 +711,23 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
 export function dataUnion<TValue>(
     ...items: (TValue[] | Record<PropertyKey, TValue> | null | undefined)[]
 ) {
-    // A nullish operand is `(array) null` in PHP — empty, and no evidence
-    // either way about the backing the rest of the operands share.
-    const present = items.filter(
+    // A nullish operand is `(array) null` in PHP: empty, and no evidence about the backing.
+    const [backing = [], ...operands] = items.filter(
         (item) => !isNull(item) && !isUndefined(item),
     ) as (TValue[] | Record<PropertyKey, TValue>)[];
 
-    if (present.every(isObject)) {
-        return objUnion(...present);
+    if (isObject(backing)) {
+        return objUnion(backing, ...operands);
     }
 
-    if (present.every(isArray)) {
-        return arrUnion(...(present as TValue[][]));
-    }
+    return operands.reduce<TValue[] | Record<PropertyKey, TValue>>(
+        (result, operand) => {
+            const merged = objUnion(result, operand);
 
-    throw new Error(
-        "dataUnion requires all provided items to be of the same type (all objects or all arrays).",
+            // Keys PHP inserted out of order after a gap can't be a list, even once later operands fill it.
+            return isArray(result) ? listWhenIndexed(merged) : merged;
+        },
+        arrUnion(backing),
     );
 }
 
@@ -762,7 +779,8 @@ export function dataExceptValues<
     strict: boolean = false,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objExceptValues(data, values, strict);
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        return objExceptValues(data, values, strict) as DataItems<TValue, TKey>;
     }
 
     return arrExceptValues(data, values, strict);
@@ -952,11 +970,12 @@ export function dataGet<
     defaultValue?: TGetDefault | (() => TGetDefault),
 ): TValue | TGetDefault | null {
     if (isObject(data)) {
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
         return objGet(
             data as Record<TKey, TValue>,
             key as string,
             defaultValue,
-        );
+        ) as TValue | TGetDefault | null;
     }
 
     return arrGet(arrWrap(data), key as number, defaultValue) as
@@ -1071,7 +1090,8 @@ export function dataEvery<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isKeyedData(data)) {
         return objEvery(
             data as Record<TKey, TValue>,
-            callback as (value: TValue, key: TKey) => boolean,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (value: TValue, key: string | number) => boolean,
         );
     }
 
@@ -1118,7 +1138,8 @@ export function dataSome<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isKeyedData(data)) {
         return objSome(
             data as Record<TKey, TValue>,
-            callback as (value: TValue, key: TKey) => boolean,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (value: TValue, key: string | number) => boolean,
         );
     }
 
@@ -1182,7 +1203,7 @@ export function dataJoin<TValue, TKey extends PropertyKey = PropertyKey>(
  * Key data by a given key or callback.
  *
  * @param data - The data to key
- * @param keyBy - Key or callback to key by
+ * @param keyBy - Key or callback to key by; the callback receives each item and its key (a list's index)
  * @returns Keyed data
  *
  * @example
@@ -1192,7 +1213,12 @@ export function dataJoin<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function dataKeyBy(
     data: unknown,
-    keyBy: string | ((item: unknown) => string | number | null | undefined),
+    keyBy:
+        | string
+        | ((
+              item: unknown,
+              key: string | number,
+          ) => string | number | null | undefined),
 ): Record<string | number, unknown> {
     if (isObject(data)) {
         return objKeyBy(data, keyBy);
@@ -1269,7 +1295,8 @@ export function dataOnlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
     strict: boolean = false,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objOnlyValues(data, values, strict);
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        return objOnlyValues(data, values, strict) as DataItems<TValue, TKey>;
     }
 
     return arrOnlyValues(data, values, strict);
@@ -1346,9 +1373,10 @@ export function dataMapWithKeys<
     if (isObject(data)) {
         return objMapWithKeys(
             data as Record<string, TValue>,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             normalizedCallback as (
                 value: TValue,
-                key: string,
+                key: string | number,
             ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
         );
     }
@@ -1391,7 +1419,8 @@ export function dataMapSpread<U>(
  *
  * @param data - The data to prepend to
  * @param value - The value to prepend
- * @param key - Optional key for objects
+ * @param rest - The key; omit it to unshift under key 0, as `Arr::prepend` does with two arguments.
+ * A list given any key but 0 comes back as an object, as PHP's `[$key => $value] + $list` is keyed
  * @returns Data with prepended value
  *
  * @example
@@ -1402,17 +1431,26 @@ export function dataMapSpread<U>(
 export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
     value: TValue,
-    key: PropertyKey | null = null,
+    ...rest: [key?: PropertyKey | null]
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objPrepend(
             data as Record<TKey, TValue>,
             value,
-            key as string,
+            ...rest,
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrPrepend(arrWrap(data), value) as DataItems<TValue>;
+    if (rest.length === 0) {
+        return arrPrepend(arrWrap(data), value) as DataItems<TValue>;
+    }
+
+    // [$key => $value] + $list starts with the key, so it stays a list only when the key casts to 0.
+    const prepended = objPrepend({ ...arrWrap(data) }, value, ...rest);
+
+    return (
+        phpArrayKey(rest[0]) === 0 ? Object.values(prepended) : prepended
+    ) as DataItems<TValue, TKey>;
 }
 
 /**
@@ -1731,7 +1769,7 @@ export function dataUnshift<TValue, TKey extends PropertyKey = PropertyKey>(
  * @example
  *
  * dataShuffle([1, 2, 3, 4]); -> [3, 1, 4, 2] (random order)
- * dataShuffle({a: 1, b: 2, c: 3}); -> {c: 3, a: 1, b: 2} (random order)
+ * dataShuffle({a: 1, b: 2, c: 3}); -> {0: 3, 1: 1, 2: 2} (random order, reindexed 0..n-1)
  */
 export function dataShuffle<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
@@ -1786,8 +1824,9 @@ export function dataSole<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objSole(
             data as Record<TKey, TValue>,
-            callback as (value: TValue, key: TKey) => boolean,
-        );
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (value: TValue, key: string | number) => boolean,
+        ) as TValue;
     }
 
     return arrSole(
@@ -1816,7 +1855,11 @@ export function dataSort<TValue, TKey extends PropertyKey = PropertyKey>(
         | null = null,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objSort(data, callback);
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        return objSort(data as Record<string, TValue>, callback) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrSort(arrWrap(data), callback);
@@ -1842,7 +1885,11 @@ export function dataSortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
         | null = null,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objSortDesc(data, callback);
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        return objSortDesc(
+            data as Record<string, TValue>,
+            callback,
+        ) as DataItems<TValue, TKey>;
     }
 
     return arrSortDesc(arrWrap(data), callback);
@@ -1912,7 +1959,11 @@ export function dataSplice<TValue, TKey extends PropertyKey, TReplacements>(
     ...replacement: TReplacements[]
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objSplice(data, offset, length, ...replacement);
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        return objSplice(data, offset, length, ...replacement) as DataItems<
+            TValue,
+            TKey
+        >;
     }
 
     return arrSplice(arrWrap(data), offset, length, ...replacement);
@@ -2005,7 +2056,8 @@ export function dataWhere<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objWhere(
             data as Record<TKey, TValue>,
-            callback as (value: TValue, key: TKey) => boolean,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (value: TValue, key: string | number) => boolean,
         ) as DataItems<TValue, TKey>;
     }
 
@@ -2018,9 +2070,10 @@ export function dataWhere<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Replace the data items with the given items.
  *
- * A `null`/`undefined` `replacerData` is a no-op regardless of `data`'s backing
- * (`EnumeratesValues.php:1121`), dispatched by `data`'s own shape since there's
- * no object-shaped spelling of "null" to satisfy a same-type check.
+ * `data`'s backing picks the helper, and `replacerData` may be a list or an object on either
+ * backing, as `array_replace` takes any two arrays. A list backing stays a list while the result's
+ * keys are `0..n-1`; a string key or a gap makes it an object, as PHP's result is keyed then.
+ * A `null`/`undefined` `replacerData` is a no-op (`EnumeratesValues.php:1121`).
  *
  * @param data - The original data
  * @param items - The items to replace with. `null`/`undefined` is a no-op.
@@ -2034,31 +2087,23 @@ export function dataReplace<
     data: DataItems<TValue, TKey>,
     replacerData: DataItems<TValue, TReplacerKey> | null | undefined,
 ): DataItems<TValue, TKey> {
-    const replacerIsNullish = isNull(replacerData) || isUndefined(replacerData);
-
-    if (isObject(data) && (replacerIsNullish || isObject(replacerData))) {
+    if (isObject(data)) {
         return objReplace(data, replacerData) as DataItems<TValue, TKey>;
     }
 
-    // arrReplace accepts an object-shaped (sparse, by-index) replacer too,
-    // not just an array one — require only that it isn't a bare scalar.
-    if (
-        isArray(data) &&
-        (replacerIsNullish || isArray(replacerData) || isObject(replacerData))
-    ) {
-        return arrReplace(data, replacerData) as DataItems<TValue, TKey>;
-    }
-
-    throw new Error(
-        "Data to replace and items must be of the same type (both array or both object).",
-    );
+    // array_replace keeps a list only while the replacer's keys extend it as 0..n-1; otherwise PHP's result is keyed.
+    return listWhenIndexed(
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        objReplace({ ...data }, replacerData) as Record<string, TValue>,
+    ) as DataItems<TValue, TKey>;
 }
 
 /**
  * Recursively replace the data items with the given items recursively.
  *
- * A `null`/`undefined` `replacerData` is a no-op regardless of `data`'s
- * backing, for the same reason as `dataReplace` above.
+ * `data`'s backing picks the helper and `replacerData` may take either shape, and a list backing
+ * becomes an object for a keyed result, as for `dataReplace` above. A `null`/`undefined`
+ * `replacerData` is a no-op.
  *
  * @param data - The original data
  * @param items - The items to replace with. `null`/`undefined` is a no-op.
@@ -2071,29 +2116,22 @@ export function dataReplaceRecursive<
     data: DataItems<TValue, TKey>,
     replacerData: DataItems<TValue, TKey> | null | undefined,
 ): DataItems<TValue, TKey> {
-    const replacerIsNullish = isNull(replacerData) || isUndefined(replacerData);
-
-    if (isObject(data) && (replacerIsNullish || isObject(replacerData))) {
-        return objReplaceRecursive(data, replacerData) as DataItems<
-            TValue,
-            TKey
-        >;
+    if (isObject(data)) {
+        return objReplaceRecursive(
+            data,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            replacerData as Record<PropertyKey, TValue> | null | undefined,
+        ) as DataItems<TValue, TKey>;
     }
 
-    // Mirrors arrReplace: an object-shaped replacer is legal on the array branch.
-    if (
-        isArray(data) &&
-        (replacerIsNullish || isArray(replacerData) || isObject(replacerData))
-    ) {
-        return arrReplaceRecursive(data, replacerData) as DataItems<
-            TValue,
-            TKey
-        >;
-    }
-
-    throw new Error(
-        "Data to replace and items must be of the same type (both array or both object).",
-    );
+    // As in dataReplace, a replacer key that leaves the list's keys other than 0..n-1 makes PHP's result keyed.
+    return listWhenIndexed(
+        objReplaceRecursive(
+            { ...data },
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            replacerData as Record<PropertyKey, TValue> | null | undefined,
+        ),
+    ) as DataItems<TValue, TKey>;
 }
 
 /**
@@ -2115,7 +2153,8 @@ export function dataReject<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objReject(
             data as Record<string, TValue>,
-            callback as (value: TValue, key: string) => boolean,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (value: TValue, key: string | number) => boolean,
         ) as DataItems<TValue, TKey>;
     }
 
@@ -2187,7 +2226,8 @@ export function dataPartition<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         const [passing, failing] = objPartition(
             data as Record<TKey, TValue>,
-            callback as (value: TValue, key: TKey) => boolean,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (value: TValue, key: string | number) => boolean,
         );
         return [
             passing as DataItems<TValue, TKey>,
@@ -2287,7 +2327,10 @@ export function dataFilter<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objFilter(
             data as Record<TKey, TValue>,
-            callback as (value: TValue, key: TKey) => boolean | null,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as
+                | ((value: unknown, key: string | number) => boolean)
+                | null,
         ) as DataItems<TValue, TKey>;
     }
 
@@ -2320,7 +2363,8 @@ export function dataMap<
     if (isObject(data)) {
         return objMap(
             data as Record<string, TValue>,
-            callback as (value: TValue, key: string) => TMapValue,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (value: TValue, key: string | number) => TMapValue,
         ) as DataItems<TMapValue, TKey>;
     }
 
@@ -2381,7 +2425,14 @@ export function dataFirst<
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
     if (isKeyedData(data)) {
-        return objFirst(data, callback, defaultValue);
+        return objFirst(
+            data as Record<TKey, TValue>,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as
+                | ((value: TValue, key: string | number) => boolean)
+                | null,
+            defaultValue,
+        ) as TValue | TFirstDefault | null;
     }
 
     return arrFirst(
@@ -2442,7 +2493,14 @@ export function dataLast<
     defaultValue?: TDefault | (() => TDefault),
 ): TValue | TDefault | null {
     if (isKeyedData(data)) {
-        return objLast(data, callback, defaultValue);
+        return objLast(
+            data as Record<TKey, TValue>,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as
+                | ((value: TValue, key: string | number) => boolean)
+                | null,
+            defaultValue,
+        ) as TValue | TDefault | null;
     }
 
     return arrLast(
@@ -2545,46 +2603,10 @@ export function dataDiffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * A JS array's own keys are its indices, in the same shape
- * `Object.entries`/`Object.keys` produce for a plain object — so
- * `array_diff_uassoc`/`array_diff_ukey`'s key-comparison algorithm applies
- * unchanged. Reindexes the survivors, matching every other array-branch
- * diff/intersect function in this file.
- *
- * @param data - The source array.
- * @param other - The array to compare keys (and optionally values) against.
- * @param callback - The callback used to compare keys.
- * @param compareValues - Whether to also require the values to match (diffAssocUsing vs diffKeysUsing).
- * @returns The reindexed survivors.
- */
-function arrayDiffUsingKeys<TValue>(
-    data: readonly TValue[],
-    other: readonly unknown[],
-    callback: (keyA: PropertyKey, keyB: PropertyKey) => boolean,
-    compareValues: boolean,
-): TValue[] {
-    const otherEntries = Object.entries(other);
-
-    return Object.entries(data)
-        .filter(([key, value]) => {
-            const matchingKey = otherEntries.find(([otherKey]) =>
-                callback(key, otherKey),
-            );
-
-            if (matchingKey === undefined) {
-                return true;
-            }
-
-            return compareValues && matchingKey[1] !== value;
-        })
-        .map(([, value]) => value);
-}
-
-/**
  * Diff data with the given other data using a callback for key comparison.
- * For objects, compares keys using the callback and values using strict equality.
- * For arrays, the same algorithm runs over the arrays' own indices (their
- * only possible "keys"), reindexing the survivors.
+ * Compares keys using the callback and values using PHP's `(string)` cast rule.
+ * For arrays, obj's algorithm runs over the indices, so `other` is read through
+ * `arrayableItems` and the survivors are reindexed.
  *
  * @param data - The data to diff
  * @param other - The data to diff against
@@ -2608,23 +2630,33 @@ export function dataDiffAssocUsing<
         return objDiffAssocUsing(
             data as Record<TKey, TValue>,
             other as Record<TKey, TValue>,
-            callback,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (
+                keyA: string | number,
+                keyB: string | number,
+            ) => boolean,
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrayDiffUsingKeys(
-        arrWrap(data),
-        arrWrap(other),
-        callback as (keyA: PropertyKey, keyB: PropertyKey) => boolean,
-        true,
+    // A list's keys are its indices, so array_diff_uassoc over an index-keyed copy is the list case.
+    return Object.values(
+        objDiffAssocUsing(
+            { ...arrWrap(data) },
+            other,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (
+                keyA: string | number,
+                keyB: string | number,
+            ) => boolean,
+        ),
     ) as DataItems<TValue>;
 }
 
 /**
  * Diff data keys with the given other data using a callback for key comparison only.
- * For objects, compares keys using the callback and ignores values completely.
- * For arrays, the same algorithm runs over the arrays' own indices (their
- * only possible "keys"), reindexing the survivors.
+ * Compares keys using the callback and ignores values completely.
+ * For arrays, obj's algorithm runs over the indices, so `other` is read through
+ * `arrayableItems` and the survivors are reindexed.
  *
  * @param data - The data to diff
  * @param other - The data to diff against
@@ -2648,15 +2680,25 @@ export function dataDiffKeysUsing<
         return objDiffKeysUsing(
             data as Record<TKey, TValue>,
             other as Record<TKey, TValue>,
-            callback,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (
+                keyA: string | number,
+                keyB: string | number,
+            ) => boolean,
         ) as DataItems<TValue, TKey>;
     }
 
-    return arrayDiffUsingKeys(
-        arrWrap(data),
-        arrWrap(other),
-        callback as (keyA: PropertyKey, keyB: PropertyKey) => boolean,
-        false,
+    // A list's keys are its indices, so array_diff_ukey over an index-keyed copy is the list case.
+    return Object.values(
+        objDiffKeysUsing(
+            { ...arrWrap(data) },
+            other,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            callback as (
+                keyA: string | number,
+                keyB: string | number,
+            ) => boolean,
+        ),
     ) as DataItems<TValue>;
 }
 
@@ -2684,11 +2726,9 @@ export function dataPluck<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isObject(data)) {
         return objPluck(
             data as Record<TKey, TValue>,
-            value as string | ((item: Record<TKey, TValue>) => unknown),
-            key as
-                | string
-                | ((item: Record<TKey, TValue>) => string | number)
-                | null,
+            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+            value as string | ((item: unknown) => unknown),
+            key as string | ((item: unknown) => string | number) | null,
         ) as DataItems<TValue, TKey>;
     }
 
@@ -2745,7 +2785,12 @@ export function dataIntersect<
     callable: ((a: TValue, b: TValue) => boolean) | null = null,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
-        return objIntersect(data, other, callable);
+        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
+        return objIntersect(
+            data,
+            other,
+            callable as ((a: unknown, b: unknown) => boolean) | null,
+        ) as DataItems<TValue, TKey>;
     }
 
     return arrIntersect(data, other, callable);
@@ -2755,8 +2800,8 @@ export function dataIntersect<
  * Intersect the data with the given items with additional key check.
  * Returns items where both the key AND value match.
  *
- * A `null`/`undefined` `other` is treated as empty rather than
- * throwing the same-type error below.
+ * `data`'s backing picks the helper, and `other` may be a list or an object on either backing,
+ * as `array_intersect_assoc` takes any two arrays. A `null`/`undefined` `other` is treated as empty.
  *
  * @param data - The original data
  * @param items - The items to intersect with
@@ -2774,24 +2819,17 @@ export function dataIntersectAssoc<
     data: DataItems<TValue, TKey>,
     other: DataItems<TValue, TKey> | null | undefined,
 ): DataItems<TValue, TKey> {
-    const otherIsNullish = isNull(other) || isUndefined(other);
-
-    if (isObject(data) && (otherIsNullish || isObject(other))) {
+    if (isObject(data)) {
         return objIntersectAssoc(data, other) as DataItems<TValue, TKey>;
     }
 
-    if (isArray(data) && (otherIsNullish || isArray(other))) {
-        return arrIntersectAssoc(data, other) as DataItems<TValue, TKey>;
-    }
-
-    throw new Error(
-        "Data to intersect must be of the same type (both array or both object).",
-    );
+    return arrIntersectAssoc(data, other) as DataItems<TValue, TKey>;
 }
 
 /**
  * Intersect the data with the given items with additional key check, using the callback.
- * The callback is used to compare keys, while values are compared strictly.
+ * The callback is used to compare keys, while values are compared by PHP's `(string)` cast rule.
+ * `other` may be a list or an object on either backing.
  *
  * @param data - The original data
  * @param items - The items to intersect with
@@ -2811,9 +2849,7 @@ export function dataIntersectAssocUsing<
     other: DataItems<TValue, TKey> | null | undefined,
     callback: (keyA: TKey, keyB: TKey) => boolean,
 ) {
-    const otherIsNullish = isNull(other) || isUndefined(other);
-
-    if (isObject(data) && (otherIsNullish || isObject(other))) {
+    if (isObject(data)) {
         return objIntersectAssocUsing(
             data as Record<string, TValue>,
             other as Record<string, TValue> | null | undefined,
@@ -2821,21 +2857,16 @@ export function dataIntersectAssocUsing<
         ) as DataItems<TValue, TKey>;
     }
 
-    if (isArray(data) && (otherIsNullish || isArray(other))) {
-        return arrIntersectAssocUsing(
-            data,
-            other as TValue[] | null | undefined,
-            callback as (keyA: number, keyB: number) => boolean,
-        ) as DataItems<TValue>;
-    }
-
-    throw new Error(
-        "Data to intersect must be of the same type (both array or both object).",
-    );
+    return arrIntersectAssocUsing(
+        data,
+        other,
+        callback as (keyA: number, keyB: number | string) => boolean,
+    ) as DataItems<TValue>;
 }
 
 /**
  * Intersect the data with the given items by key.
+ * `other` may be a list or an object on either backing, as `array_intersect_key` takes any two arrays.
  *
  * @param data - The original data
  * @param items - The items to intersect with
@@ -2849,17 +2880,9 @@ export function dataIntersectByKeys<
     data: DataItems<TValue, TKey>,
     other: DataItems<TValue, TOtherKey> | null | undefined,
 ): DataItems<TValue, TKey> {
-    const otherIsNullish = isNull(other) || isUndefined(other);
-
-    if (isObject(data) && (otherIsNullish || isObject(other))) {
+    if (isObject(data)) {
         return objIntersectByKeys(data, other) as DataItems<TValue, TKey>;
     }
 
-    if (isArray(data) && (otherIsNullish || isArray(other))) {
-        return arrIntersectByKeys(data, other) as DataItems<TValue, TKey>;
-    }
-
-    throw new Error(
-        "Data to intersect by keys must be of the same type (both array or both object).",
-    );
+    return arrIntersectByKeys(data, other) as DataItems<TValue, TKey>;
 }

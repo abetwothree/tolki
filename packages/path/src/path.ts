@@ -12,16 +12,19 @@ import {
     isNumber,
     isObject,
     isObjectAny,
+    isPlainObject,
     isPrototypeObject,
     isString,
     isUndefined,
     isUnsafeKey,
+    phpArrayKey,
 } from "@tolki/utils";
 
 /**
  * Parse a key into segments for mixed array/object path traversal.
  * Converts dot notation strings and numbers into path segments that can be
- * either numeric indices (for arrays) or string keys (for objects).
+ * either numeric indices (for arrays) or string keys (for objects). A segment
+ * is an index only when PHP would store it as an integer key, so "01" stays a string.
  *
  * @param key - The key to parse (number, string, null, or undefined).
  * @returns Array of path segments, or null if invalid.
@@ -33,6 +36,7 @@ import {
  * parseSegments("1.2.3"); -> [1, 2, 3] (numeric segments)
  * parseSegments("user.name"); -> ["user", "name"] (string segments)
  * parseSegments("0.user.1.name"); -> [0, "user", 1, "name"] (mixed segments)
+ * parseSegments("0.01"); -> [0, "01"] (a non-canonical index is a string key)
  * parseSegments(null); -> []
  */
 export function parseSegments(key: PathKey): (number | string)[] | null {
@@ -61,14 +65,9 @@ export function parseSegments(key: PathKey): (number | string)[] | null {
             return null;
         }
 
-        // Try to parse as number first
-        const n = Number(p);
-        if (isInteger(n) && n >= 0) {
-            segs.push(n);
-        } else {
-            // Use as string key for object properties
-            segs.push(p);
-        }
+        // Number() would also accept "01", " 1" or "1e0", which PHP keeps as string keys.
+        const index = phpArrayKey(p);
+        segs.push(isNumber(index) && index >= 0 ? index : p);
     }
 
     return segs;
@@ -95,6 +94,7 @@ export function parseSegments(key: PathKey): (number | string)[] | null {
  * hasPath([{name: 'John', age: 30}], "0.name"); -> true
  * hasPath({user: {profile: {name: 'Jane'}}}, "user.profile.name"); -> true
  * hasPath({items: ['a', 'b']}, "items.1"); -> true
+ * hasPath([{0: 'x'}], "0.0"); -> true
  */
 export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
     root: TValue[] | Record<TKey, TValue>,
@@ -124,29 +124,18 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
 
     let cursor: unknown = root;
     for (const s of segs) {
-        if (isNull(cursor) || !isObjectAny(cursor)) {
-            return false;
-        }
-
-        if (isNumber(s)) {
-            // Numeric segment - check if cursor is an array
-            const arr = castableToArray(cursor);
-            if (!arr || s < 0 || s >= arr.length) {
+        if (isArray(cursor)) {
+            // A list holds only its indices, so a string segment never names one of its items.
+            if (!isNumber(s) || s >= cursor.length) {
                 return false;
             }
 
-            cursor = arr[s];
+            cursor = cursor[s];
+        } else if (isObject(cursor) && Object.hasOwn(cursor, String(s))) {
+            // An object stores an integer key as a string, so an index segment finds it as Arr::has does.
+            cursor = cursor[String(s)];
         } else {
-            // String segment - check if cursor is an object
-            if (isArray(cursor)) {
-                return false; // Arrays don't have string keys
-            }
-
-            if (!Object.hasOwn(cursor as object, s)) {
-                return false;
-            }
-
-            cursor = (cursor as Record<string, unknown>)[s];
+            return false;
         }
     }
     return true;
@@ -173,6 +162,7 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
  * getRaw([{name: 'John', age: 30}], "0.name"); -> { found: true, value: 'John' }
  * getRaw({user: {profile: {name: 'Jane'}}}, "user.profile.name"); -> { found: true, value: 'Jane' }
  * getRaw({items: ['a', 'b']}, "items.1"); -> { found: true, value: 'b' }
+ * getRaw([{0: 'x'}], "0.0"); -> { found: true, value: 'x' }
  */
 export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
     root: TValue[] | Record<TKey, TValue>,
@@ -208,30 +198,18 @@ export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
 
     let cursor: unknown = root;
     for (const s of segs) {
-        // Accept both arrays and objects
-        if (isNull(cursor) || isUndefined(cursor) || !isObjectAny(cursor)) {
-            return { found: false };
-        }
-
-        if (isNumber(s)) {
-            // Numeric segment - check if cursor is an array
-            const arr = castableToArray(cursor);
-            if (!arr || s < 0 || s >= arr.length) {
+        if (isArray(cursor)) {
+            // A list holds only its indices, so a string segment never names one of its items.
+            if (!isNumber(s) || s >= cursor.length) {
                 return { found: false };
             }
 
-            cursor = arr[s];
+            cursor = cursor[s];
+        } else if (isObject(cursor) && Object.hasOwn(cursor, String(s))) {
+            // An object stores an integer key as a string, so an index segment finds it as Arr::get does.
+            cursor = cursor[String(s)];
         } else {
-            // String segment - check if cursor is an object
-            if (isArray(cursor)) {
-                return { found: false }; // Arrays don't have string keys
-            }
-
-            if (!isObject(cursor) || !Object.hasOwn(cursor, s)) {
-                return { found: false };
-            }
-
-            cursor = (cursor as Record<string, unknown>)[s];
+            return { found: false };
         }
     }
     return { found: true, value: cursor };
@@ -302,7 +280,7 @@ export function forgetKeysObject<
     /**
      * Check whether a path segment is a valid array index for the given array.
      * Segments are parsed with Number(), the same convention used by
-     * parseSegments and forgetKeysArray in this package.
+     * forgetKeysArray in this package.
      *
      * @param segment - The path segment to validate.
      * @param arr - The array the segment would index into.
@@ -741,7 +719,7 @@ export function pushWithPath<TValue>(
     const root: unknown[] =
         isArray(data) && !isPrototypeObject(data) ? (data as unknown[]) : [];
 
-    if (isNull(key)) {
+    if (isNull(key) || isUndefined(key)) {
         root.push(...(values as unknown[]));
 
         return root as TValue[];
@@ -819,7 +797,8 @@ export function pushWithPath<TValue>(
 
 /**
  * Flatten a nested structure into a flat object with dot notation keys.
- * Converts nested arrays and objects into a single-level object with path-based keys.
+ * Converts nested arrays and plain objects into a single-level object with path-based keys;
+ * any other object (a class instance, Date or Map) is kept whole as a value.
  *
  * @param data - The data to flatten.
  * @param prepend - Optional string to prepend to all keys.
@@ -830,7 +809,7 @@ export function pushWithPath<TValue>(
  *
  * Flatten mixed structures
  * dotFlatten({a: {b: 1}, c: [2, 3]}); -> {'a.b': 1, 'c.0': 2, 'c.1': 3}
- * dotFlatten(['x', {y: 'z'}], 'prefix'); -> {'prefix.0': 'x', 'prefix.1': {y: 'z'}}
+ * dotFlatten(['x', {y: 'z'}], 'prefix'); -> {prefix0: 'x', 'prefix1.y': 'z'}
  */
 export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | ArrayItems<TValue> | unknown,
@@ -861,7 +840,7 @@ export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * Flatten nested objects
  * dotFlattenObject({a: {b: {c: 1}}}); -> {'a.b.c': 1}
- * dotFlattenObject({user: {name: 'John'}}, 'data'); -> {'data.user.name': 'John'}
+ * dotFlattenObject({user: {name: 'John'}}, 'data'); -> {'datauser.name': 'John'}
  */
 export function dotFlattenObject<
     TValue,
@@ -880,41 +859,38 @@ export function dotFlattenObject<
         TValue
     >;
 
-    // Normalize the initial prefix to avoid producing double dots in keys
-    let initialPrefix = prepend;
-    while (initialPrefix.endsWith(".")) {
-        initialPrefix = initialPrefix.slice(0, -1);
-    }
-
     const walk = (
         obj: Record<TKey, TValue>,
         prefix: string,
         currentDepth: number,
     ): void => {
         for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
-            const keyStr = String(key);
-            const newKey = prefix ? prefix + "." + keyStr : keyStr;
+            // Arr::dot builds `$prefix.$key`, so a caller's prepend is used exactly as given.
+            const newKey = `${prefix}${String(key)}`;
 
             if (currentDepth < depth && isArray(value) && value.length > 0) {
-                // Handle arrays within objects by flattening them with numeric indices
                 walk(
                     value as unknown as Record<TKey, TValue>,
-                    newKey,
+                    `${newKey}.`,
                     currentDepth + 1,
                 );
             } else if (
                 currentDepth < depth &&
-                isObject(value) &&
+                isPlainObject(value) &&
                 Object.keys(value).length > 0
             ) {
-                walk(value as Record<TKey, TValue>, newKey, currentDepth + 1);
+                walk(
+                    value as Record<TKey, TValue>,
+                    `${newKey}.`,
+                    currentDepth + 1,
+                );
             } else {
                 defineKey(results as Record<string, TValue>, newKey, value);
             }
         }
     };
 
-    walk(data as Record<TKey, TValue>, initialPrefix, 0);
+    walk(data as Record<TKey, TValue>, prepend, 0);
 
     return results;
 }
@@ -932,7 +908,7 @@ export function dotFlattenObject<
  *
  * Flatten nested arrays
  * dotFlattenArray(['a', ['b', 'c']]); -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
- * dotFlattenArray([['x']], "prefix"); -> { 'prefix.0.0': 'x' }
+ * dotFlattenArray([['x']], "prefix"); -> { 'prefix0.0': 'x' }
  */
 export function dotFlattenArray<TValue>(
     data: ArrayItems<TValue> | unknown,
@@ -947,22 +923,41 @@ export function dotFlattenArray<TValue>(
     const out: Record<PropertyKey, TValue> = {};
     const walk = (arr: unknown[], path: string, currentDepth: number): void => {
         for (let i = 0; i < arr.length; i++) {
-            const nextPath = path ? `${path}.${i}` : String(i);
+            const item = arr[i];
+            const nextPath = `${path}${i}`;
 
-            if (
+            if (currentDepth < depth && isArray(item) && item.length > 0) {
+                walk(item, `${nextPath}.`, currentDepth + 1);
+            } else if (
                 currentDepth < depth &&
-                isArray(arr[i]) &&
-                (arr[i] as unknown[]).length > 0
+                isPlainObject(item) &&
+                Object.keys(item).length > 0
             ) {
-                walk(arr[i] as unknown[], nextPath, currentDepth + 1);
+                // PHP's is_array covers assoc arrays, which a plain object models; a class instance stays a leaf.
+                for (const [key, value] of Object.entries(
+                    dotFlattenObject(
+                        item,
+                        `${nextPath}.`,
+                        depth - currentDepth - 1,
+                    ),
+                )) {
+                    defineKey(
+                        out as Record<string, TValue>,
+                        key,
+                        value as TValue,
+                    );
+                }
             } else {
-                const key = prepend ? `${prepend}.${nextPath}` : nextPath;
-                out[key] = arr[i] as TValue;
+                defineKey(
+                    out as Record<string, TValue>,
+                    nextPath,
+                    item as TValue,
+                );
             }
         }
     };
 
-    walk(root, "", 0);
+    walk(root, prepend, 0);
 
     return out;
 }
@@ -1219,8 +1214,10 @@ export function getNestedValue<TReturn>(
 
         // Handle array access with numeric indices
         if (isArray(current)) {
-            const index = parseInt(segment, 10);
-            if (isNaN(index) || index < 0 || index >= current.length) {
+            // A list only has canonical indices; parseInt("01") == 1 would wrongly
+            // accept a key no PHP array stores, unlike phpArrayKey's strict cast.
+            const index = phpArrayKey(segment);
+            if (!isNumber(index) || !Object.hasOwn(current, index)) {
                 return undefined;
             }
             current = current[index];

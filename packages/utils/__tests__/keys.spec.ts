@@ -175,4 +175,116 @@ describe("Utils", () => {
             expect(Object.getPrototypeOf(target)).toBe(Object.prototype);
         });
     });
+
+    describe("phpArrayKey", () => {
+        it("turns canonical decimal integer strings into numbers", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "K1 keys of numeric-looking string keys"
+            expect(Utils.phpArrayKey("10")).toBe(10);
+            expect(Utils.phpArrayKey("-1")).toBe(-1);
+            expect(Utils.phpArrayKey("0")).toBe(0);
+        });
+
+        it("keeps every other string as it is", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "K1 keys of numeric-looking string keys", "K2 chunkWhile callback key types"
+            for (const key of ["01", "1.5", "1e3", " 1", "Infinity", "1e+21"]) {
+                expect(Utils.phpArrayKey(key)).toBe(key);
+            }
+        });
+
+        it("keeps a negative-zero, alphabetic or empty string as it is too", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "phpArrayKey-extra-string-keys"
+            for (const key of ["-0", "abc", ""]) {
+                expect(Utils.phpArrayKey(key)).toBe(key);
+            }
+        });
+
+        it("keeps an integer string JS can't hold exactly", () => {
+            // JS-only: no PHP analogue; pins that phpArrayKey keeps a string beyond safe-integer precision.
+            expect(Utils.phpArrayKey("9007199254740993")).toBe(
+                "9007199254740993",
+            );
+        });
+
+        it("casts a bool, null or float key the way PHP stores an array offset", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-scalar-key-cast"
+            expect(Utils.phpArrayKey(true)).toBe(1);
+            expect(Utils.phpArrayKey(false)).toBe(0);
+            expect(Utils.phpArrayKey(null)).toBe("");
+            expect(Utils.phpArrayKey(1.5)).toBe(1);
+            expect(Utils.phpArrayKey(-1.5)).toBe(-1);
+            expect(Utils.phpArrayKey(-0)).toBe(0);
+            expect(Utils.phpArrayKey(Infinity)).toBe(0);
+            expect(Utils.phpArrayKey(NaN)).toBe(0);
+            // JS-only: PHP has no undefined; it is cast like null.
+            expect(Utils.phpArrayKey(undefined)).toBe("");
+        });
+
+        it("wraps a float past PHP's int range into 64 bits, keeping digits JS can't hold as a string", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-scalar-key-cast"
+            expect(Utils.phpArrayKey(1e20)).toBe("7766279631452241920");
+        });
+
+        it("stringifies any other key, as a JS property key would be", () => {
+            // JS-only: PHP rejects an array or object offset; JS stores it under its string form.
+            expect(Utils.phpArrayKey({ toString: () => "k" })).toBe("k");
+        });
+    });
+
+    describe("renumberPhpIntegerKeys", () => {
+        it("renumbers every key PHP stores as an integer, in order", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "unshift-numeric-key-order"
+            expect(
+                Utils.renumberPhpIntegerKeys([
+                    ["2", "c"],
+                    ["0", "a"],
+                    ["1", "b"],
+                ]),
+            ).toEqual([
+                ["0", "c"],
+                ["1", "a"],
+                ["2", "b"],
+            ]);
+        });
+
+        it("counts a negative key, which reindexIntegerKeys leaves alone", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "unshift-negative-int-key"
+            expect(
+                Utils.renumberPhpIntegerKeys([
+                    ["-1", "first"],
+                    ["5", "second"],
+                ]),
+            ).toEqual([
+                ["0", "first"],
+                ["1", "second"],
+            ]);
+            expect(
+                Utils.reindexIntegerKeys([
+                    ["-1", "first"],
+                    ["5", "second"],
+                ]),
+            ).toEqual([
+                ["-1", "first"],
+                ["0", "second"],
+            ]);
+        });
+
+        it("leaves a string key where it is", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "unshift-mixed-key-order"
+            expect(
+                Utils.renumberPhpIntegerKeys([
+                    ["2", "c"],
+                    ["x", "v"],
+                    ["0", "a"],
+                ]),
+            ).toEqual([
+                ["0", "c"],
+                ["x", "v"],
+                ["1", "a"],
+            ]);
+        });
+    });
 });
