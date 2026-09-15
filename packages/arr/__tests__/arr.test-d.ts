@@ -1697,12 +1697,6 @@ describe("arr type tests", () => {
         });
 
         describe("function signature", () => {
-            it("has correct parameter types", () => {
-                expectTypeOf(Arr.chunk).parameters.toExtend<
-                    [readonly unknown[], number]
-                >();
-            });
-
             it("first parameter accepts arrays", () => {
                 expectTypeOf(Arr.chunk)
                     .parameter(0)
@@ -1713,8 +1707,16 @@ describe("arr type tests", () => {
                 expectTypeOf(Arr.chunk).parameter(1).toEqualTypeOf<number>();
             });
 
-            it("return type extends unknown[][]", () => {
-                expectTypeOf(Arr.chunk).returns.toExtend<unknown[][]>();
+            it("third parameter is an optional boolean", () => {
+                expectTypeOf(Arr.chunk)
+                    .parameter(2)
+                    .toExtend<boolean | undefined>();
+            });
+
+            it("return type extends unknown[][] or a preserved-keys chunk", () => {
+                expectTypeOf(Arr.chunk).returns.toExtend<
+                    unknown[][] | Record<number, unknown>[]
+                >();
             });
         });
     });

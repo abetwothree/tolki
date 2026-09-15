@@ -260,19 +260,50 @@ export function boolean<TValue, TDefault = null>(
 /**
  * Chunk the array into chunks of the given size.
  *
- * @see Collection::chunk — `packages/collection/stubs/Collection.php:1520`.
- *      Wraps `array_chunk`; no `preserveKeys` param here (always reindexes).
+ * @see Collection::chunk — `packages/collection/stubs/Collection.php:1520`. Wraps `array_chunk`.
  *
  * @param data - The array to chunk
  * @param size - The size of each chunk
+ * @param preserveKeys - Whether to key each chunk by its source index instead of reindexing it;
+ *   defaults to false, since a JS array's own keys are already just its indices
  * @returns Chunked array
  */
 export function chunk<TValue>(
     data: ArrayItems<TValue>,
     size: number,
-): TValue[][] {
+    preserveKeys?: false | undefined,
+): TValue[][];
+export function chunk<TValue>(
+    data: ArrayItems<TValue>,
+    size: number,
+    preserveKeys: true | undefined,
+): Record<number, TValue>[];
+export function chunk<TValue>(
+    data: ArrayItems<TValue>,
+    size: number,
+    preserveKeys: boolean | undefined,
+): TValue[][] | Record<number, TValue>[];
+export function chunk<TValue>(
+    data: ArrayItems<TValue>,
+    size: number,
+    preserveKeys?: boolean,
+): TValue[][] | Record<number, TValue>[] {
     if (size <= 0) {
         return [];
+    }
+
+    if (preserveKeys) {
+        const chunks: Record<number, TValue>[] = [];
+
+        for (let i = 0; i < data.length; i += size) {
+            const entries = data
+                .slice(i, i + size)
+                .map((value, index): [number, TValue] => [i + index, value]);
+
+            chunks.push(Object.fromEntries(entries) as Record<number, TValue>);
+        }
+
+        return chunks;
     }
 
     const chunks: TValue[][] = [];

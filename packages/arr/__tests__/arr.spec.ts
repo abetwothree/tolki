@@ -212,6 +212,18 @@ describe("Arr", () => {
             expect(Arr.chunk(baseData, 0)).toEqual([]);
             expect(Arr.chunk(baseData, -1)).toEqual([]);
         });
+
+        it("keys each chunk by its source offset when preserveKeys is true", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "collection-chunk-last-chunk-keys"
+            const result = Arr.chunk([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3, true);
+
+            expect(result).toEqual([
+                { 0: 1, 1: 2, 2: 3 },
+                { 3: 4, 4: 5, 5: 6 },
+                { 6: 7, 7: 8, 8: 9 },
+                { 9: 10 },
+            ]);
+        });
     });
 
     describe("chunkWhile", () => {
