@@ -147,6 +147,56 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.add(numberMap, key, nine);
     });
 
+    // `item` pairs arr's `arrayItem` with obj's `objectItem`; the naming is why Part B's
+    // arrX/objX sweep missed it, leaving arr's catch-all wide enough to swallow a record.
+    it("routes a record to obj for item", () => {
+        expectTypeOf(
+            dispatch(Arr.arrayItem, Obj.objectItem)(recOfRecords, key),
+        ).toEqualTypeOf(Obj.objectItem(recOfRecords, key));
+    });
+
+    it("routes an interface-typed object to obj for item", () => {
+        expectTypeOf(
+            dispatch(Arr.arrayItem, Obj.objectItem)(recordsSettings, key),
+        ).toEqualTypeOf(Obj.objectItem(recordsSettings, key));
+    });
+
+    it("routes a class instance to obj for item", () => {
+        expectTypeOf(
+            dispatch(Arr.arrayItem, Obj.objectItem)(recordsBox, key),
+        ).toEqualTypeOf(Obj.objectItem(recordsBox, key));
+    });
+
+    it("routes a Map to obj for item", () => {
+        const widest = Obj.objectItem(opaque, key);
+        expectTypeOf(
+            dispatch(Arr.arrayItem, Obj.objectItem)(recordMap, key),
+        ).toEqualTypeOf<typeof widest>();
+    });
+
+    it("keeps a list on arr for item", () => {
+        expectTypeOf(
+            dispatch(Arr.arrayItem, Obj.objectItem)(nestedList, idx),
+        ).toEqualTypeOf(Arr.arrayItem(nestedList, idx));
+    });
+
+    it("rejects a record on arr for item", () => {
+        // @ts-expect-error - arr must be ineligible for the dispatched call
+        Arr.arrayItem(recOfRecords, key);
+    });
+
+    it("rejects a Map on arr for item", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.arrayItem(recordMap, key);
+    });
+
+    it("rejects an interface and a class on arr for item", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.arrayItem(recordsSettings, key);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.arrayItem(recordsBox, key);
+    });
+
     it("routes a record to obj for boolean", () => {
         expectTypeOf(
             dispatch(Arr.boolean, Obj.boolean)(rec, key),

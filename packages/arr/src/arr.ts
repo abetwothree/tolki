@@ -192,9 +192,9 @@ export function arrayItem<
     key: TPath,
     defaultValue: TDefault | (() => TDefault) | null,
 ): EnsureArray<ArrayResolvePath<TData, TPath>>;
-// Overload: generic fallback
-export function arrayItem<TValue, TDefault = null>(
-    data: TValue[] | unknown,
+// Overload: untyped array or nullish fallback
+export function arrayItem<TDefault = null>(
+    data: readonly unknown[] | null | undefined,
     key: PathKey,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): unknown[];

@@ -1000,9 +1000,11 @@ describe("arr type tests", () => {
         });
 
         describe("Falls back to unknown[] when data is untyped or unknown", () => {
-            it("returns unknown[] when data is typed as unknown", () => {
+            it("rejects unknown data and returns unknown[] once narrowed", () => {
                 const data: unknown = [["a", "b"]];
-                const result = Arr.arrayItem(data, 0);
+                // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+                Arr.arrayItem(data, 0);
+                const result = Arr.arrayItem(data as unknown[], 0);
                 expectTypeOf(result).toEqualTypeOf<unknown[]>();
             });
         });
@@ -1095,7 +1097,7 @@ describe("arr type tests", () => {
 
             it("generic fallback overload returns unknown[] for untyped calls", () => {
                 const data: unknown = [];
-                const result = Arr.arrayItem(data, 0);
+                const result = Arr.arrayItem(data as unknown[], 0);
                 expectTypeOf(result).toEqualTypeOf<unknown[]>();
             });
         });
