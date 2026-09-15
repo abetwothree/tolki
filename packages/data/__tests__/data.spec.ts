@@ -4011,6 +4011,36 @@ describe("Data", () => {
             expect(result2).toBe(30);
             expect(arr2).toEqual([10, 20]);
         });
+
+        it("pops a count greater than the length, CollectionTest::testPopReturnsAndRemovesLastXItemsInCollection", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "pop-list-count-exceeds-length"
+            const arr = ["foo", "bar", "baz"];
+            expect(Data.dataPop(arr, 2)).toEqual(["baz", "bar"]);
+            expect(arr).toEqual(["foo"]);
+
+            const arr2 = ["foo", "bar", "baz"];
+            expect(Data.dataPop(arr2, 6)).toEqual(["baz", "bar", "foo"]);
+            expect(arr2).toEqual([]);
+
+            // docs/php-parity/task-23-obj-release-readiness.json, "P2 pop(2)/pop(6) on assoc"
+            const obj = { foo: "f", bar: "b", baz: "z" };
+            expect(Data.dataPop(obj, 2)).toEqual(["z", "b"]);
+            expect(obj).toEqual({ foo: "f" });
+
+            const obj2 = { foo: "f", bar: "b", baz: "z" };
+            expect(Data.dataPop(obj2, 6)).toEqual(["z", "b", "f"]);
+            expect(obj2).toEqual({});
+        });
+
+        it("pops from an empty backing", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "pop-empty-default-count"
+            expect(Data.dataPop([])).toBeNull();
+            expect(Data.dataPop({})).toBeNull();
+
+            // docs/php-parity/task-23-obj-release-readiness.json, "D6 shift/pop on collect(null)" (pop3)
+            expect(Data.dataPop([], 3)).toEqual([]);
+            expect(Data.dataPop({}, 3)).toEqual([]);
+        });
     });
 
     describe("dataIntersect", () => {
@@ -4144,6 +4174,22 @@ describe("Data", () => {
 
             const result7 = Data.dataExceptValues(arr5, [1, 2, 3]);
             expect(result7).toEqual([]);
+        });
+
+        it("preserves the surviving keys, ArrTest::testExceptValues", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "exceptValues-list-keeps-gap"
+            // PHP: Arr::exceptValues(['foo','bar','baz','qux'], ['foo','baz']) -> [1 => 'bar', 3 => 'qux']
+            const obj = { 0: "foo", 1: "bar", 2: "baz", 3: "qux" };
+            const objResult = Data.dataExceptValues(obj, ["foo", "baz"]);
+            expect(Object.keys(objResult)).toEqual(["1", "3"]);
+            expect(objResult).toEqual({ 1: "bar", 3: "qux" });
+
+            // JS-only: a JS array can't hold a sparse integer key, so the list
+            // backing reindexes to [0, 1] instead of preserving PHP's [1, 3] gap.
+            const arr = ["foo", "bar", "baz", "qux"];
+            const arrResult = Data.dataExceptValues(arr, ["foo", "baz"]);
+            expect(Object.keys(arrResult)).toEqual(["0", "1"]);
+            expect(arrResult).toEqual(["bar", "qux"]);
         });
     });
 
@@ -4477,6 +4523,22 @@ describe("Data", () => {
 
             const result7 = Data.dataOnlyValues(arr5, [1, 2, 3]);
             expect(result7).toEqual([1, "1", 2, "2", 3]);
+        });
+
+        it("preserves the surviving keys, ArrTest::testOnlyValues", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "onlyValues-list-keeps-gap"
+            // PHP: Arr::onlyValues(['foo','bar','baz','qux'], ['foo','baz']) -> [0 => 'foo', 2 => 'baz']
+            const obj = { 0: "foo", 1: "bar", 2: "baz", 3: "qux" };
+            const objResult = Data.dataOnlyValues(obj, ["foo", "baz"]);
+            expect(Object.keys(objResult)).toEqual(["0", "2"]);
+            expect(objResult).toEqual({ 0: "foo", 2: "baz" });
+
+            // JS-only: a JS array can't hold a sparse integer key, so the list
+            // backing reindexes to [0, 1] instead of preserving PHP's [0, 2] gap.
+            const arr = ["foo", "bar", "baz", "qux"];
+            const arrResult = Data.dataOnlyValues(arr, ["foo", "baz"]);
+            expect(Object.keys(arrResult)).toEqual(["0", "1"]);
+            expect(arrResult).toEqual(["foo", "baz"]);
         });
     });
 
