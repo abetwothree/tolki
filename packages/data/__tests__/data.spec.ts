@@ -1533,9 +1533,10 @@ describe("Data", () => {
                 ["second", 4],
             ]);
 
-            expect(Data.dataEvery(items, (value) => value % 2 === 0)).toBe(
-                true,
-            );
+            // A Map reaches obj's widest row, whose callback takes `unknown`.
+            expect(
+                Data.dataEvery(items, (value) => Number(value) % 2 === 0),
+            ).toBe(true);
             expect(
                 Data.dataEvery(items, (_value, key) => key === "first"),
             ).toBe(false);
@@ -1587,7 +1588,10 @@ describe("Data", () => {
                     (value, key) => key === "second" && value === 2,
                 ),
             ).toBe(true);
-            expect(Data.dataSome(items, (value) => value > 5)).toBe(false);
+            // A Map reaches obj's widest row, whose callback takes `unknown`.
+            expect(Data.dataSome(items, (value) => Number(value) > 5)).toBe(
+                false,
+            );
         });
 
         it("is an iterable", () => {
@@ -6005,22 +6009,19 @@ describe("Data", () => {
             );
         });
 
-        it.fails("dataHas checks a Map like the record it mirrors", () => {
-            // Task C9 (predicates family) converts this to dispatch().
+        it("dataHas checks a Map like the record it mirrors", () => {
             expect(Data.dataHas(asMap, ["a"])).toBe(
                 Data.dataHas(asRecord, ["a"]),
             );
         });
 
-        it.fails("dataHasAll checks a Map like the record it mirrors", () => {
-            // Task C9 (predicates family) converts this to dispatch().
+        it("dataHasAll checks a Map like the record it mirrors", () => {
             expect(Data.dataHasAll(asMap, ["a", "b"])).toBe(
                 Data.dataHasAll(asRecord, ["a", "b"]),
             );
         });
 
-        it.fails("dataHasAny checks a Map like the record it mirrors", () => {
-            // Task C9 (predicates family) converts this to dispatch().
+        it("dataHasAny checks a Map like the record it mirrors", () => {
             expect(Data.dataHasAny(asMap, ["z", "a"])).toBe(
                 Data.dataHasAny(asRecord, ["z", "a"]),
             );
@@ -6029,19 +6030,21 @@ describe("Data", () => {
         it("dataEvery tests a Map like the record it mirrors", () => {
             // objEvery/objSome already walk a Map through entriesOf, so this
             // agrees today rather than staying red.
-            expect(Data.dataEvery(asMap, (value) => value > 0)).toBe(
+            const mapAsRecord = asMap as unknown as Record<string, number>;
+            expect(Data.dataEvery(mapAsRecord, (value) => value > 0)).toBe(
                 Data.dataEvery(asRecord, (value) => value > 0),
             );
-            expect(Data.dataEvery(asMap, (value) => value > 100)).toBe(
+            expect(Data.dataEvery(mapAsRecord, (value) => value > 100)).toBe(
                 Data.dataEvery(asRecord, (value) => value > 100),
             );
         });
 
         it("dataSome tests a Map like the record it mirrors", () => {
-            expect(Data.dataSome(asMap, (value) => value > 2)).toBe(
+            const mapAsRecord = asMap as unknown as Record<string, number>;
+            expect(Data.dataSome(mapAsRecord, (value) => value > 2)).toBe(
                 Data.dataSome(asRecord, (value) => value > 2),
             );
-            expect(Data.dataSome(asMap, (value) => value > 100)).toBe(
+            expect(Data.dataSome(mapAsRecord, (value) => value > 100)).toBe(
                 Data.dataSome(asRecord, (value) => value > 100),
             );
         });
@@ -6230,15 +6233,11 @@ describe("Data", () => {
             );
         });
 
-        it.fails(
-            "dataSole reads the sole match off a Map like the record it mirrors",
-            () => {
-                // Task C9 (predicates family) converts this to dispatch().
-                expect(Data.dataSole(asMap, (value) => value === 2)).toBe(
-                    Data.dataSole(asRecord, (value) => value === 2),
-                );
-            },
-        );
+        it("dataSole reads the sole match off a Map like the record it mirrors", () => {
+            expect(Data.dataSole(asMap, (value) => value === 2)).toBe(
+                Data.dataSole(asRecord, (value) => value === 2),
+            );
+        });
 
         it.fails("dataSort sorts a Map like the record it mirrors", () => {
             // Task C12 (sorting family) converts this to dispatch().
@@ -6411,8 +6410,7 @@ describe("Data", () => {
             expect(Data.dataLast(asMap)).toBe(Data.dataLast(asRecord));
         });
 
-        it.fails("dataContains checks a Map like the record it mirrors", () => {
-            // Task C9 (predicates family) converts this to dispatch().
+        it("dataContains checks a Map like the record it mirrors", () => {
             expect(Data.dataContains(asMap, 2)).toBe(
                 Data.dataContains(asRecord, 2),
             );

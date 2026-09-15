@@ -846,16 +846,7 @@ export function dataGet<
  * dataHas([1, 2, 3], [0, 1]); -> true
  * dataHas({a: 1, b: 2}, ['a', 'c']); -> false
  */
-export function dataHas<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    keys: PathKeys,
-): boolean {
-    if (isObject(data)) {
-        return objHas(data, keys);
-    }
-
-    return arrHas(arrWrap(data), keys);
-}
+export const dataHas = dispatch(arrHas, objHas);
 
 /**
  * Check if data has all specified keys.
@@ -869,16 +860,7 @@ export function dataHas<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataHasAll([1, 2, 3], [0, 1]); -> true
  * dataHasAll({a: 1, b: 2}, ['a', 'c']); -> false
  */
-export function dataHasAll<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    keys: PathKeys,
-): boolean {
-    if (isObject(data)) {
-        return objHasAll(data, keys);
-    }
-
-    return arrHasAll(arrWrap(data), keys);
-}
+export const dataHasAll = dispatch(arrHasAll, objHasAll);
 
 /**
  * Check if data has any of the specified keys.
@@ -892,16 +874,7 @@ export function dataHasAll<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataHasAny([1, 2, 3], [0, 5]); -> true
  * dataHasAny({a: 1, b: 2}, ['c', 'd']); -> false
  */
-export function dataHasAny<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    keys: PathKeys,
-): boolean {
-    if (isObject(data)) {
-        return objHasAny(data, keys);
-    }
-
-    return arrHasAny(arrWrap(data), keys);
-}
+export const dataHasAny = dispatch(arrHasAny, objHasAny);
 
 /**
  * Test if every item in data passes a test.
@@ -917,39 +890,9 @@ export function dataHasAny<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataEvery(new Map([['a', 2]]), (value) => value % 2 === 0); -> true
  * dataEvery(new Set([2, 4]), (value) => value % 2 === 0); -> true
  */
-// Overload: Map, keyed by its own keys
-export function dataEvery<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Map<TKey, TValue>,
-    callback: (value: TValue, key: TKey) => boolean,
-): boolean;
-// Overload: array or any other iterable, keyed by position
-export function dataEvery<TValue>(
-    data: TValue[] | Iterable<TValue>,
-    callback: (value: TValue, key: number) => boolean,
-): boolean;
-// Overload: object and general fallback
-export function dataEvery<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataIterableItems<TValue, TKey>,
-    callback: (value: TValue, key: TKey) => boolean,
-): boolean;
-// Implementation
-export function dataEvery<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataIterableItems<TValue, TKey>,
-    callback: (value: TValue, key: TKey) => boolean,
-): boolean {
-    if (isKeyedData(data)) {
-        return objEvery(
-            data as Record<TKey, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (value: TValue, key: string | number) => boolean,
-        );
-    }
-
-    return arrEvery(
-        toPositionalData<TValue>(data),
-        callback as (value: TValue, index: number) => boolean,
-    );
-}
+// A Set or generator must reach `arrEvery` whole, so this normalises with
+// `toPositionalData` rather than `dispatch`'s `arrWrap` default.
+export const dataEvery = dispatch(arrEvery, objEvery, toPositionalData);
 
 /**
  * Test if some items in data pass a test.
@@ -965,39 +908,9 @@ export function dataEvery<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataSome(new Map([['a', 1], ['b', 3]]), (value) => value > 2); -> true
  * dataSome(new Set([1, 3]), (value) => value > 2); -> true
  */
-// Overload: Map, keyed by its own keys
-export function dataSome<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Map<TKey, TValue>,
-    callback: (value: TValue, key: TKey) => boolean,
-): boolean;
-// Overload: array or any other iterable, keyed by position
-export function dataSome<TValue>(
-    data: TValue[] | Iterable<TValue>,
-    callback: (value: TValue, key: number) => boolean,
-): boolean;
-// Overload: object and general fallback
-export function dataSome<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataIterableItems<TValue, TKey>,
-    callback: (value: TValue, key: TKey) => boolean,
-): boolean;
-// Implementation
-export function dataSome<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataIterableItems<TValue, TKey>,
-    callback: (value: TValue, key: TKey) => boolean,
-): boolean {
-    if (isKeyedData(data)) {
-        return objSome(
-            data as Record<TKey, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (value: TValue, key: string | number) => boolean,
-        );
-    }
-
-    return arrSome(
-        toPositionalData<TValue>(data),
-        callback as (value: TValue, index: number) => boolean,
-    );
-}
+// A Set or generator must reach `arrSome` whole, so this normalises with
+// `toPositionalData` rather than `dispatch`'s `arrWrap` default.
+export const dataSome = dispatch(arrSome, objSome, toPositionalData);
 
 /**
  * Get an integer value from data.
@@ -1582,23 +1495,7 @@ export function dataSlice<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataSole([1, 2, 3], (value) => value > 2); -> 3
  * dataSole({a: 1, b: 2, c: 3}, (value) => value === 2); -> 2
  */
-export function dataSole<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    callback?: (value: TValue, key: TKey) => boolean,
-): TValue {
-    if (isObject(data)) {
-        return objSole(
-            data as Record<TKey, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (value: TValue, key: string | number) => boolean,
-        ) as TValue;
-    }
-
-    return arrSole(
-        arrWrap(data),
-        callback as (value: TValue, index: number) => boolean,
-    );
-}
+export const dataSole = dispatch(arrSole, objSole);
 
 /**
  * Sort data using a callback.
@@ -2126,17 +2023,7 @@ export function dataLast<
  * Data.contains([1, 2, 3], 2); -> true
  * Data.contains({a: 1, b: 2}, (value) => value > 1); -> true
  */
-export function dataContains<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    value: TValue | ((value: TValue, key: TKey) => boolean),
-    strict = false,
-): boolean {
-    if (isObject(data)) {
-        return objContains(data, value, strict);
-    }
-
-    return arrContains(arrWrap(data), value, strict);
-}
+export const dataContains = dispatch(arrContains, objContains);
 
 /**
  * Get the differences between data collections.
