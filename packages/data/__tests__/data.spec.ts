@@ -921,6 +921,7 @@ describe("Data", () => {
 
         it("removes a numeric key given as a number or as its string form", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "except-int-key"
+            // docs/php-parity/task-24-data-release-readiness.json, "except-string-key"
             expect(
                 Data.dataExcept({ 1: "hAz", 2: { 5: "foo", 12: "baz" } }, 2),
             ).toEqual({
@@ -1019,7 +1020,8 @@ describe("Data", () => {
 
         it("returns everything when the limit exceeds the size, in either sign", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
-            // "take-over-size", "take-negative-over-size"
+            // "take-over-size", "take-negative-over-size", "take-assoc-over-size",
+            // "take-assoc-negative-over-size"
             expect(Data.dataTake([1, 2, 3, 4, 5, 6], 10)).toEqual([
                 1, 2, 3, 4, 5, 6,
             ]);
@@ -1796,7 +1798,7 @@ describe("Data", () => {
         });
 
         it("prefixes a list's indices, returning a keyed result", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "prependKeysWith-list"
+            // docs/php-parity/task-24-data-release-readiness.json, "prependKeysWith-two-item-list"
             expect(Data.dataPrependKeysWith(["a", "b"], "p.")).toEqual({
                 "p.0": "a",
                 "p.1": "b",
@@ -1866,7 +1868,8 @@ describe("Data", () => {
         });
 
         it("accepts a bare string key", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "select-bare-existing-key"
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "select-bare-existing-key", "select-bare-key-list"
             expect(
                 Data.dataSelect(
                     {
