@@ -3085,6 +3085,38 @@ describe("Data", () => {
                 3, 4,
             ]);
         });
+
+        it("preserves the original keys, through the object backing", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "where-preserves-int-keys"
+            // JS-only: the list backing renumbers (a JS array cannot hold sparse integer
+            // keys), so the PHP key shape [1=>'200', 3=>'400'] is asserted on the object.
+            expect(
+                Data.dataWhere(
+                    { 0: "100", 1: "200", 2: "300", 3: "400" },
+                    (value) => value === "200" || value === "400",
+                ),
+            ).toEqual({ 1: "200", 3: "400" });
+            expect(
+                Data.dataWhere([1, 2, 3, 4], (value) => value > 2),
+            ).toEqual([3, 4]);
+        });
+
+        it("passes the key to the callback", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "whereKey-numeric", "callback-key where"
+            expect(
+                Data.dataWhere(
+                    { 10: 1, foo: 3, 20: 2 },
+                    (_value, key) => typeof key === "number",
+                ),
+            ).toEqual({ 10: 1, 20: 2 });
+            expect(
+                Data.dataWhere<string, number>(
+                    ["a", "b", "c"],
+                    (_value, key) => key > 0,
+                ),
+            ).toEqual(["b", "c"]);
+        });
     });
 
     describe("dataReplace", () => {
@@ -3245,6 +3277,38 @@ describe("Data", () => {
                 [1, 2],
             );
         });
+
+        it("preserves the original keys, through the object backing", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "reject-preserves-int-keys"
+            // JS-only: the list backing renumbers; see the object case for the PHP key shape.
+            expect(
+                Data.dataReject(
+                    { 0: 1, 1: 2, 2: 3, 3: 4, 4: 5 },
+                    (value) => value % 2 === 0,
+                ),
+            ).toEqual({ 0: 1, 2: 3, 4: 5 });
+        });
+
+        it("passes the key to the callback", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "callback-key reject"
+            expect(
+                Data.dataReject(
+                    { a: 1, b: 2 },
+                    (_value, key) => key === "a",
+                ),
+            ).toEqual({ b: 2 });
+        });
+
+        it("requires a callback rather than dropping truthy values", () => {
+            // JS-only: Laravel's Collection::reject() with no argument removes truthy
+            // values (docs/php-parity/task-24-data-release-readiness.json,
+            // "reject-no-callback"). The port has no no-argument overload; calling it
+            // without one is a TypeError, which this pins so the divergence is visible.
+            // @ts-expect-error - dataReject requires a callback
+            expect(() => Data.dataReject([1, null, 2, false, 3])).toThrow(
+                TypeError,
+            );
+        });
     });
 
     describe("dataReverse", () => {
@@ -3340,6 +3404,34 @@ describe("Data", () => {
             expect(passing).toEqual([3, 4]);
             expect(failing).toEqual([1, 2]);
         });
+
+        it("preserves the original keys in both halves, through the object backing", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "partition-preserves-keys", "partition-assoc-preserves-keys"
+            // JS-only: the list backing renumbers both halves.
+            const [passing, failing] = Data.dataPartition(
+                { 0: "John", 1: "Jane", 2: "Greg" },
+                (value) => value !== "Greg",
+            );
+            expect(passing).toEqual({ 0: "John", 1: "Jane" });
+            expect(failing).toEqual({ 2: "Greg" });
+        });
+
+        it("returns two empty halves for an empty backing", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "partition-empty"
+            expect(Data.dataPartition({}, () => true)).toEqual([{}, {}]);
+            expect(Data.dataPartition([], () => true)).toEqual([[], []]);
+        });
+
+        it("passes the key to the callback", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "callback-key partition"
+            const [passing, failing] = Data.dataPartition(
+                { 1: "a", x: "b" },
+                (_value, key) => typeof key === "number",
+            );
+            expect(passing).toEqual({ 1: "a" });
+            expect(failing).toEqual({ x: "b" });
+        });
     });
 
     describe("dataWhereNotNull", () => {
@@ -3353,6 +3445,34 @@ describe("Data", () => {
             expect(Data.dataWhereNotNull([1, null, 2, null, 3])).toEqual([
                 1, 2, 3,
             ]);
+        });
+
+        it("keeps falsy values that are not null", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "whereNotNull-assoc-falsy"
+            expect(
+                Data.dataWhereNotNull({
+                    a: null,
+                    b: 0,
+                    c: false,
+                    d: "",
+                    e: null,
+                    f: [],
+                }),
+            ).toEqual({ b: 0, c: false, d: "", f: [] });
+        });
+
+        it("returns an empty result when every value is null", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "whereNotNull-all-null"
+            expect(Data.dataWhereNotNull({ a: null, b: null })).toEqual({});
+            expect(Data.dataWhereNotNull([null, null])).toEqual([]);
+        });
+
+        it("drops undefined alongside null", () => {
+            // JS-only: PHP has a single null. The port treats `undefined` as the same
+            // absence, so it is dropped too; there is no probe for this distinction.
+            expect(
+                Data.dataWhereNotNull({ a: 1, b: undefined, c: null }),
+            ).toEqual({ a: 1 });
         });
     });
 
@@ -3463,6 +3583,36 @@ describe("Data", () => {
             expect(Data.dataMap([1, 2, 3], (value) => value * 2)).toEqual([
                 2, 4, 6,
             ]);
+        });
+
+        it("passes the key to the callback and stringifies a null value", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "map-null-values"
+            // docs/php-parity/task-24-data-release-readiness.json, "map-list-index-key"
+            expect(
+                Data.dataMap(
+                    { first: "taylor", last: null },
+                    (value, key) => `${String(key)}-${value ?? ""}`,
+                ),
+            ).toEqual({ first: "first-taylor", last: "last-" });
+            expect(
+                Data.dataMap(["a", "b"], (value, key) => `${String(key)}-${value}`),
+            ).toEqual(["0-a", "1-b"]);
+        });
+
+        it("leaves the source untouched", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "map-source-unchanged"
+            const source = { a: 1, b: 2 };
+            expect(Data.dataMap(source, (value) => value * 2)).toEqual({
+                a: 2,
+                b: 4,
+            });
+            expect(source).toEqual({ a: 1, b: 2 });
+        });
+
+        it("maps an empty backing to an empty result of the same shape", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "map-empty"
+            expect(Data.dataMap({}, (value) => value)).toEqual({});
+            expect(Data.dataMap([], (value) => value)).toEqual([]);
         });
     });
 
