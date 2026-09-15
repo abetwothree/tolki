@@ -60,10 +60,12 @@ describe("arr predicate type tests", () => {
             ).toEqualTypeOf<boolean>();
         });
 
-        it("accepts unknown data", () => {
+        it("rejects unknown data and returns boolean once narrowed", () => {
             const data: unknown = [1];
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.every(data, (v: number) => v > 0);
             expectTypeOf(
-                Arr.every(data, (v: number) => v > 0),
+                Arr.every(data as unknown[], (v: number) => v > 0),
             ).toEqualTypeOf<boolean>();
         });
     });
@@ -217,9 +219,13 @@ describe("arr predicate type tests", () => {
             expectTypeOf(Arr.whereNotNull(data)).toEqualTypeOf<string[]>();
         });
 
-        it("returns unknown[] for unknown data", () => {
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
             const data: unknown = [1, null];
-            expectTypeOf(Arr.whereNotNull(data)).toEqualTypeOf<unknown[]>();
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.whereNotNull(data);
+            expectTypeOf(Arr.whereNotNull(data as unknown[])).toEqualTypeOf<
+                unknown[]
+            >();
         });
     });
 

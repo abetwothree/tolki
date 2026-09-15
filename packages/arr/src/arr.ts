@@ -1594,9 +1594,9 @@ export function every<TValue>(
     data: Iterable<TValue>,
     callback: (value: TValue, key: number) => boolean,
 ): boolean;
-// Overload: non-array fallback
+// Overload: untyped array or nullish fallback
 export function every<TValue>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     callback: (value: TValue, key: number) => boolean,
 ): boolean;
 // Implementation
@@ -1657,9 +1657,9 @@ export function some<TValue>(
     data: Iterable<TValue>,
     callback: (value: TValue, key: number) => boolean,
 ): boolean;
-// Overload: non-array fallback
+// Overload: untyped array or nullish fallback
 export function some<TValue>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     callback: (value: TValue, key: number) => boolean,
 ): boolean;
 // Implementation
@@ -3579,9 +3579,9 @@ export function where<TValue>(
     data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => boolean,
 ): TValue[];
-// Overload: non-array fallback
+// Overload: untyped array or nullish fallback
 export function where<TValue>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     callback: (value: TValue, index: number) => boolean,
 ): TValue[];
 // Implementation
@@ -3619,14 +3619,14 @@ export function reject<TValue>(
     data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => boolean,
 ): TValue[];
-// Overload: non-array fallback
+// Overload: untyped array or nullish fallback
 export function reject<TValue>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     callback: (value: TValue, index: number) => boolean,
 ): TValue[];
 // Implementation
 export function reject<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: ArrayItems<TValue> | null | undefined,
     callback: (value: TValue, index: number) => boolean,
 ): TValue[] {
     return where(data, (value, index) => !callback(value, index));
@@ -3852,9 +3852,9 @@ export function partition<TValue>(
     data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => boolean,
 ): [TValue[], TValue[]];
-// Overload: non-array fallback
+// Overload: untyped array or nullish fallback
 export function partition<TValue>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     callback: (value: TValue, index: number) => boolean,
 ): [TValue[], TValue[]];
 // Implementation
@@ -3893,11 +3893,13 @@ export function partition<TValue>(
 export function whereNotNull<TData extends readonly unknown[]>(
     data: TData,
 ): NonNullableArray<TData>;
-// Overload: unknown fallback
-export function whereNotNull(data: unknown): unknown[];
+// Overload: untyped array or nullish fallback
+export function whereNotNull(
+    data: readonly unknown[] | null | undefined,
+): unknown[];
 // Implementation
 export function whereNotNull<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: ArrayItems<TValue> | null | undefined,
 ): TValue[] {
     return where(data, (value) => !isNull(value));
 }
@@ -3931,9 +3933,9 @@ export function contains<TValue>(
     value: TValue,
     strict?: boolean,
 ): boolean;
-// Overload: non-array fallback
+// Overload: untyped array or nullish fallback
 export function contains<TValue>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     value: TValue | ((value: TValue, key: number) => boolean),
     strict?: boolean,
 ): boolean;
@@ -3994,9 +3996,9 @@ export function filter<TValue>(
     data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => boolean,
 ): TValue[];
-// Overload: unknown fallback
+// Overload: untyped array or nullish fallback
 export function filter<TValue>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     callback?: (value: TValue, index: number) => boolean,
 ): TValue[];
 // Implementation

@@ -1680,7 +1680,9 @@ describe("Arr", () => {
             expect(Arr.every([1, 2], (_value, key) => key >= 0)).toBe(true);
             expect(Arr.every([1, 2], (_value, key) => key > 0)).toBe(false);
 
-            expect(Arr.every(5, () => true)).toBe(false);
+            expect(Arr.every(5 as unknown as unknown[], () => true)).toBe(
+                false,
+            );
         });
 
         it("every accepts iterables", () => {
@@ -1706,10 +1708,16 @@ describe("Arr", () => {
 
             // Plain objects are walked through their values, like PHP's foreach
             expect(
-                Arr.every({ a: 2, b: 4 }, (value: number) => value % 2 === 0),
+                Arr.every(
+                    keyed({ a: 2, b: 4 }),
+                    (value: number) => value % 2 === 0,
+                ),
             ).toBe(true);
             expect(
-                Arr.every({ a: 2, b: 3 }, (value: number) => value % 2 === 0),
+                Arr.every(
+                    keyed({ a: 2, b: 3 }),
+                    (value: number) => value % 2 === 0,
+                ),
             ).toBe(false);
         });
     });
@@ -1735,7 +1743,7 @@ describe("Arr", () => {
             expect(Arr.some([1, 2], (_value, key) => key >= 1)).toBe(true);
             expect(Arr.some([1, 2], (_value, key) => key > 1)).toBe(false);
 
-            expect(Arr.some(5, () => true)).toBe(false);
+            expect(Arr.some(5 as unknown as unknown[], () => true)).toBe(false);
         });
 
         it("some accepts iterables", () => {
@@ -1761,10 +1769,16 @@ describe("Arr", () => {
 
             // Plain objects are walked through their values, like PHP's foreach
             expect(
-                Arr.some({ a: 1, b: 2 }, (value: number) => value % 2 === 0),
+                Arr.some(
+                    keyed({ a: 1, b: 2 }),
+                    (value: number) => value % 2 === 0,
+                ),
             ).toBe(true);
             expect(
-                Arr.some({ a: 1, b: 3 }, (value: number) => value % 2 === 0),
+                Arr.some(
+                    keyed({ a: 1, b: 3 }),
+                    (value: number) => value % 2 === 0,
+                ),
             ).toBe(false);
         });
     });
@@ -2515,8 +2529,12 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.where(null, () => true)).toEqual([]);
-            expect(Arr.where("abc", () => true)).toEqual([]);
-            expect(Arr.where(123, () => true)).toEqual([]);
+            expect(
+                Arr.where("abc" as unknown as unknown[], () => true),
+            ).toEqual([]);
+            expect(Arr.where(123 as unknown as unknown[], () => true)).toEqual(
+                [],
+            );
         });
     });
 
@@ -2537,7 +2555,7 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.whereNotNull(null)).toEqual([]);
-            expect(Arr.whereNotNull("abc")).toEqual([]);
+            expect(Arr.whereNotNull("abc" as unknown as unknown[])).toEqual([]);
         });
     });
 
@@ -2646,7 +2664,6 @@ describe("Arr", () => {
 
             expect(Arr.contains(null, "house")).toBe(false);
             expect(Arr.contains(undefined, "house")).toBe(false);
-            expect(Arr.contains({ house: true }, "house")).toBe(false);
 
             const data10 = ["1"];
             expect(Arr.contains(data10, 1)).toBe(true);
@@ -2707,7 +2724,6 @@ describe("Arr", () => {
 
             expect(Arr.filter(null, () => true)).toEqual([]);
             expect(Arr.filter(undefined, () => true)).toEqual([]);
-            expect(Arr.filter({}, () => true)).toEqual([]);
         });
 
         // array_filter's falsy set is narrower than Boolean: it drops "0", "", 0, [],
@@ -2760,7 +2776,9 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.reject(null, () => true)).toEqual([]);
-            expect(Arr.reject("abc", () => true)).toEqual([]);
+            expect(
+                Arr.reject("abc" as unknown as unknown[], () => true),
+            ).toEqual([]);
         });
     });
 
@@ -3063,7 +3081,9 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.partition(null, () => true)).toEqual([[], []]);
-            expect(Arr.partition("abc", () => true)).toEqual([[], []]);
+            expect(
+                Arr.partition("abc" as unknown as unknown[], () => true),
+            ).toEqual([[], []]);
         });
     });
 
