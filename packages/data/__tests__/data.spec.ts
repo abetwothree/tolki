@@ -3981,10 +3981,7 @@ describe("Data", () => {
     describe("dataDiff", () => {
         it("is object", () => {
             expect(
-                Data.dataDiff<number, string>(
-                    { a: 1, b: 2, c: 3 },
-                    { b: 2, c: 3, d: 4 },
-                ),
+                Data.dataDiff({ a: 1, b: 2, c: 3 }, { b: 2, c: 3, d: 4 }),
             ).toEqual({ a: 1 });
         });
         it("is array", () => {
@@ -4186,6 +4183,13 @@ describe("Data", () => {
             expect(Data.dataIntersectByKeys([1, 2], null)).toEqual([]);
         });
 
+        it("wraps a scalar backing as a one item list", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "intersectByKeys-scalar-backing"
+            expect(
+                Data.dataIntersectByKeys(5 as unknown as number[], [1]),
+            ).toEqual([5]);
+        });
+
         it("unwraps a Collection-like operand", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "C19 intersectByKeys 2"
             const result = Data.dataIntersectByKeys(
@@ -4282,6 +4286,13 @@ describe("Data", () => {
         it("matches a keyed operand by key on a list, never by position", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-list-keyed-operand"
             expect(Data.dataDiffAssoc([1, 2], { a: 1, b: 2 })).toEqual([1, 2]);
+        });
+
+        it("wraps a scalar backing as a one item list", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "diffAssoc-scalar-backing"
+            expect(
+                Data.dataDiffAssoc(5 as unknown as number[], [1, 99, 3]),
+            ).toEqual([5]);
         });
 
         it("unwraps a Collection-like operand when matching keys and values", () => {
@@ -4456,6 +4467,13 @@ describe("Data", () => {
         it("treats a null other as empty rather than throwing", () => {
             expect(Data.dataIntersectAssoc({ a: "green" }, null)).toEqual({});
             expect(Data.dataIntersectAssoc([1, 2], null)).toEqual([]);
+        });
+
+        it("wraps a scalar backing as a one item list", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "intersectAssoc-scalar-backing"
+            expect(
+                Data.dataIntersectAssoc(5 as unknown as number[], [5]),
+            ).toEqual([5]);
         });
 
         it("unwraps a Collection-like operand", () => {
@@ -5866,20 +5884,16 @@ describe("Data", () => {
             ).toEqual(Data.dataChunkBy(repeatRecord, key));
         });
 
-        it.fails(
-            "dataCollapse collapses a Map like the record it mirrors",
-            () => {
-                // Task C10 (set-operations family) converts this to dispatch().
-                expect(
-                    Data.dataCollapse(
-                        nestedMap as unknown as Record<
-                            string,
-                            Record<string, number>
-                        >,
-                    ),
-                ).toEqual(Data.dataCollapse(nestedRecord));
-            },
-        );
+        it("dataCollapse collapses a Map like the record it mirrors", () => {
+            expect(
+                Data.dataCollapse(
+                    nestedMap as unknown as Record<
+                        string,
+                        Record<string, number>
+                    >,
+                ),
+            ).toEqual(Data.dataCollapse(nestedRecord));
+        });
 
         it.fails(
             "dataCombine combines a Map's values as keys like the record it mirrors",
@@ -5898,18 +5912,14 @@ describe("Data", () => {
             expect(Data.dataCount(asMap)).toBe(Data.dataCount(asRecord));
         });
 
-        it.fails(
-            "dataCrossJoin cross joins a Map like the record it mirrors",
-            () => {
-                // Task C10 (set-operations family) converts this to dispatch(). Each
-                // key is its own dimension, so the other operand is keyed too.
-                const dimensionMap = new Map<string, number[]>([["a", [1, 2]]]);
-                const dimensionRecord = { a: [1, 2] };
-                expect(Data.dataCrossJoin(dimensionMap, { b: [3, 4] })).toEqual(
-                    Data.dataCrossJoin(dimensionRecord, { b: [3, 4] }),
-                );
-            },
-        );
+        it("dataCrossJoin cross joins a Map like the record it mirrors", () => {
+            // Each key is its own dimension, so the other operand is keyed too.
+            const dimensionMap = new Map<string, number[]>([["a", [1, 2]]]);
+            const dimensionRecord = { a: [1, 2] };
+            expect(Data.dataCrossJoin(dimensionMap, { b: [3, 4] })).toEqual(
+                Data.dataCrossJoin(dimensionRecord, { b: [3, 4] }),
+            );
+        });
 
         it("dataDivide divides a Map like the record it mirrors", () => {
             expect(Data.dataDivide(asMap)).toEqual(Data.dataDivide(asRecord));
@@ -6416,15 +6426,13 @@ describe("Data", () => {
             );
         });
 
-        it.fails("dataDiff diffs a Map like the record it mirrors", () => {
-            // Task C10 (set-operations family) converts this to dispatch().
+        it("dataDiff diffs a Map like the record it mirrors", () => {
             expect(Data.dataDiff(asMap, { b: 2 })).toEqual(
                 Data.dataDiff(asRecord, { b: 2 }),
             );
         });
 
-        it.fails("dataDiffAssoc diffs a Map like the record it mirrors", () => {
-            // Task C10 (set-operations family) converts this to dispatch().
+        it("dataDiffAssoc diffs a Map like the record it mirrors", () => {
             expect(
                 Data.dataDiffAssoc(asMap as unknown as Record<string, number>, {
                     a: 1,
@@ -6466,30 +6474,20 @@ describe("Data", () => {
             expect(Data.dataPop(mapCopy)).toBe(Data.dataPop(recordCopy));
         });
 
-        it.fails(
-            "dataIntersect intersects a Map like the record it mirrors",
-            () => {
-                // Task C10 (set-operations family) converts this to dispatch().
-                expect(Data.dataIntersect(asMap, [1, 2])).toEqual(
-                    Data.dataIntersect(asRecord, [1, 2]),
-                );
-            },
-        );
+        it("dataIntersect intersects a Map like the record it mirrors", () => {
+            expect(Data.dataIntersect(asMap, [1, 2])).toEqual(
+                Data.dataIntersect(asRecord, [1, 2]),
+            );
+        });
 
-        it.fails(
-            "dataIntersectAssoc intersects a Map like the record it mirrors",
-            () => {
-                // Task C10 (set-operations family) converts this to dispatch().
-                expect(
-                    Data.dataIntersectAssoc(
-                        asMap as unknown as Record<string, number>,
-                        { a: 1, b: 99, c: 3 },
-                    ),
-                ).toEqual(
-                    Data.dataIntersectAssoc(asRecord, { a: 1, b: 99, c: 3 }),
-                );
-            },
-        );
+        it("dataIntersectAssoc intersects a Map like the record it mirrors", () => {
+            expect(
+                Data.dataIntersectAssoc(
+                    asMap as unknown as Record<string, number>,
+                    { a: 1, b: 99, c: 3 },
+                ),
+            ).toEqual(Data.dataIntersectAssoc(asRecord, { a: 1, b: 99, c: 3 }));
+        });
 
         it.fails(
             "dataIntersectAssocUsing intersects a Map like the record it mirrors",
@@ -6511,14 +6509,10 @@ describe("Data", () => {
             },
         );
 
-        it.fails(
-            "dataIntersectByKeys intersects a Map like the record it mirrors",
-            () => {
-                // Task C10 (set-operations family) converts this to dispatch().
-                expect(Data.dataIntersectByKeys(asMap, { a: 1 })).toEqual(
-                    Data.dataIntersectByKeys(asRecord, { a: 1 }),
-                );
-            },
-        );
+        it("dataIntersectByKeys intersects a Map like the record it mirrors", () => {
+            expect(Data.dataIntersectByKeys(asMap, { a: 1 })).toEqual(
+                Data.dataIntersectByKeys(asRecord, { a: 1 }),
+            );
+        });
     });
 });

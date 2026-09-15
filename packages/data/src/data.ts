@@ -422,24 +422,7 @@ export function dataChunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataCollapse([[1, 2], [3, 4]]); -> [1, 2, 3, 4]
  * dataCollapse({a: {x: 1, y: 2}, b: {z: 3}}); -> {x: 1, y: 2, z: 3}
  */
-export function dataCollapse<TValue extends Record<PropertyKey, unknown>>(
-    data: TValue,
-): ReturnType<typeof objCollapse>;
-export function dataCollapse<TValue>(
-    data: TValue[],
-): ReturnType<typeof arrCollapse>;
-export function dataCollapse<TValue>(data: DataItems<TValue, PropertyKey>) {
-    if (isObject(data)) {
-        // Widen: objCollapse requires nested-record values, but the
-        // dispatch signature's TValue is unconstrained (the overloads above
-        // are what actually enforce the nested shape for callers).
-        return objCollapse(
-            data as Record<PropertyKey, Record<PropertyKey, TValue>>,
-        );
-    }
-
-    return arrCollapse(arrWrap(data));
-}
+export const dataCollapse = dispatch(arrCollapse, objCollapse);
 
 /**
  * Combine two data sets: the first set's values become the keys, the second set's values the values.
@@ -508,22 +491,7 @@ export function dataCount<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * dataCrossJoin([1, 2], [3, 4]); -> [[1, 3], [1, 4], [2, 3], [2, 4]]
  */
-export function dataCrossJoin(data: unknown, ...others: unknown[]): unknown[] {
-    // Widen (both branches): `dataCrossJoin` has no generics; only `data` is
-    // runtime-checked, `others` is trusted to share its shape, exactly as
-    // PHP's `Arr::crossJoin()` trusts its variadic arguments to all be arrays.
-    if (isObject(data)) {
-        // For objects, convert to format expected by objCrossJoin
-        const objData = data as Record<string, readonly unknown[]>;
-        const objOthers = others.map(
-            (other) => other as Record<string, readonly unknown[]>,
-        );
-        return objCrossJoin(objData, ...objOthers);
-    }
-
-    // For arrays
-    return arrCrossJoin(arrWrap(data) as unknown[], ...(others as unknown[][]));
-}
+export const dataCrossJoin = dispatch(arrCrossJoin, objCrossJoin);
 
 /**
  * Divide data into keys and values.
@@ -586,6 +554,10 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
  * item that isn't nullish is the backing, and each other item may be a list or an object.
  * A list backing stays a list while every item extends its keys as `0..n-1`; once an item
  * adds a string key or leaves a gap, the result is an object, as PHP's keyed array is.
+ *
+ * Not a `dispatch` pair: `arr.union` drops a non-integer-like key and fills a gap with
+ * `undefined` to keep its `unknown[]` return, which PHP's `+` does not, so obj serves the
+ * list backing too. It is also variadic, so no single argument picks the backing.
  *
  * @param items - the data items to union
  * @return A new object or array containing all values
@@ -2040,26 +2012,7 @@ export const dataContains = dispatch(arrContains, objContains);
  *
  * Data.diff([1, 2, 3, 4], [2, 4]); -> [1, 3]
  */
-export function dataDiff<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TOtherKey extends PropertyKey = PropertyKey,
->(
-    data: DataItems<TValue, TKey>,
-    other: DataItems<TValue, TOtherKey> | null | undefined,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        // `other`'s shape is left unnarrowed on purpose (no cast to
-        // Record<TOtherKey, TValue>) — both branches normalize it themselves,
-        // so laundering it here would hide a real mismatch.
-        return objDiff(data as Record<TKey, TValue>, other) as DataItems<
-            TValue,
-            TKey
-        >;
-    }
-
-    return arrDiff(arrWrap(data), other) as DataItems<TValue>;
-}
+export const dataDiff = dispatch(arrDiff, objDiff);
 
 /**
  * Get the items whose key and value are not both present in the given other data.
@@ -2076,22 +2029,7 @@ export function dataDiff<
  *
  * dataDiffAssoc({a: 1, b: 2, c: 3}, {b: 2}); -> {a: 1, c: 3}
  */
-export function dataDiffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    other: DataItems<TValue, TKey>,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objDiffAssoc(
-            data as Record<TKey, TValue>,
-            other as Record<TKey, TValue>,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    return arrDiffAssoc(
-        data as TValue[],
-        other as TValue[],
-    ) as DataItems<TValue>;
-}
+export const dataDiffAssoc = dispatch(arrDiffAssoc, objDiffAssoc);
 
 /**
  * Diff data with the given other data using a callback for key comparison.
@@ -2232,26 +2170,7 @@ export const dataPop = dispatch(arrPop, objPop);
  * @param callable - Optional comparison function
  * @returns The intersected data
  */
-export function dataIntersect<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TOtherKey extends PropertyKey = PropertyKey,
->(
-    data: DataItems<TValue, TKey>,
-    other: DataItems<TValue, TOtherKey> | null | undefined,
-    callable: ((a: TValue, b: TValue) => boolean) | null = null,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-        return objIntersect(
-            data,
-            other,
-            callable as ((a: unknown, b: unknown) => boolean) | null,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    return arrIntersect(data, other, callable);
-}
+export const dataIntersect = dispatch(arrIntersect, objIntersect);
 
 /**
  * Intersect the data with the given items with additional key check.
@@ -2269,19 +2188,10 @@ export function dataIntersect<
  * dataIntersectAssoc({a: 'green', b: 'brown'}, {a: 'green', b: 'yellow'}); -> {a: 'green'}
  * dataIntersectAssoc([1, 2, 3], [2, 3, 4]); -> []
  */
-export function dataIntersectAssoc<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
->(
-    data: DataItems<TValue, TKey>,
-    other: DataItems<TValue, TKey> | null | undefined,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objIntersectAssoc(data, other) as DataItems<TValue, TKey>;
-    }
-
-    return arrIntersectAssoc(data, other) as DataItems<TValue, TKey>;
-}
+export const dataIntersectAssoc = dispatch(
+    arrIntersectAssoc,
+    objIntersectAssoc,
+);
 
 /**
  * Intersect the data with the given items with additional key check, using the callback.
@@ -2329,17 +2239,7 @@ export function dataIntersectAssocUsing<
  * @param items - The items to intersect with
  * @returns The intersected data
  */
-export function dataIntersectByKeys<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TOtherKey extends PropertyKey = PropertyKey,
->(
-    data: DataItems<TValue, TKey>,
-    other: DataItems<TValue, TOtherKey> | null | undefined,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objIntersectByKeys(data, other) as DataItems<TValue, TKey>;
-    }
-
-    return arrIntersectByKeys(data, other) as DataItems<TValue, TKey>;
-}
+export const dataIntersectByKeys = dispatch(
+    arrIntersectByKeys,
+    objIntersectByKeys,
+);
