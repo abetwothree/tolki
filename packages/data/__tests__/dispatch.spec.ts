@@ -29,21 +29,20 @@ describe("dispatch", () => {
     });
 
     it("wraps a scalar into a list", () => {
-        expect(dCollapse(5 as unknown as number[][])).toEqual(
-            arrCollapse([5] as unknown as number[][]),
-        );
+        expect(dCollapse(5)).toEqual(arrCollapse([5]));
     });
 });
 
 describe("dispatch with a positional normalizer", () => {
     const dFirst = dispatch(arrFirst, objFirst, toPositionalData);
+    const dFirstDefault = dispatch(arrFirst, objFirst);
 
     it("walks a Set's elements instead of wrapping the Set", () => {
-        expect(dFirst(new Set([7, 8]) as unknown as number[])).toBe(7);
+        expect(dFirst(new Set([7, 8]))).toBe(7);
     });
 
     it("treats missing data as nothing to walk", () => {
-        expect(dFirst(undefined as unknown as number[])).toBeNull();
+        expect(dFirst(undefined)).toBeNull();
     });
 
     it("still sends a record to the object helper", () => {
@@ -53,15 +52,17 @@ describe("dispatch with a positional normalizer", () => {
     });
 
     it("wraps a scalar the default normalizer would also wrap", () => {
-        expect(dFirst(7 as unknown as number[])).toBe(7);
+        expect(dFirst(7)).toBe(7);
     });
 
     it("differs from the default normalizer on a Set", () => {
         const set = new Set([7, 8]);
 
-        expect(dispatch(arrFirst, objFirst)(set as unknown as number[])).toBe(
-            set,
-        );
+        expect(dFirstDefault(set)).toBe(set);
+    });
+
+    it("differs from the default normalizer on missing data", () => {
+        expect(dFirstDefault(undefined)).toBeUndefined();
     });
 });
 
