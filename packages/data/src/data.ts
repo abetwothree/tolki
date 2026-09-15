@@ -1027,17 +1027,7 @@ export const dataInteger = dispatch(arrInteger, objInteger);
  * dataJoin([1, 2, 3], ', '); -> '1, 2, 3'
  * dataJoin(['a', 'b', 'c'], ', ', ' and '); -> 'a, b and c'
  */
-export function dataJoin<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    glue: string,
-    finalGlue = "",
-): string {
-    if (isObject(data)) {
-        return objJoin(data, glue, finalGlue);
-    }
-
-    return arrJoin(arrWrap(data), glue, finalGlue);
-}
+export const dataJoin = dispatch(arrJoin, objJoin);
 
 /**
  * Key data by a given key or callback.
@@ -1314,15 +1304,7 @@ export function dataPull<
  * dataQuery({name: 'John', age: 30}); -> 'name=John&age=30'
  * dataQuery([1, 2, 3]); -> '0=1&1=2&2=3'
  */
-export function dataQuery<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-): string {
-    if (isObject(data)) {
-        return objQuery(data);
-    }
-
-    return arrQuery(arrWrap(data));
-}
+export const dataQuery = dispatch(arrQuery, objQuery);
 
 /**
  * Get random elements from data.
@@ -1772,16 +1754,7 @@ export const dataString = dispatch(arrString, objString);
  * dataToCssClasses(['btn', 'btn-primary']); -> 'btn btn-primary'
  * dataToCssClasses({btn: true, 'btn-primary': true, disabled: false}); -> 'btn btn-primary'
  */
-export function dataToCssClasses<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
->(data: DataItems<TValue, TKey>): string {
-    if (isObject(data)) {
-        return objToCssClasses(data);
-    }
-
-    return arrToCssClasses(arrWrap(data));
-}
+export const dataToCssClasses = dispatch(arrToCssClasses, objToCssClasses);
 
 /**
  * Convert data to CSS styles string.
@@ -1794,15 +1767,7 @@ export function dataToCssClasses<
  * dataToCssStyles({color: 'red', 'font-size': '14px'}); -> 'color:red;font-size:14px'
  * dataToCssStyles(['color:red', 'font-size:14px']); -> 'color:red;font-size:14px'
  */
-export function dataToCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-): string {
-    if (isObject(data)) {
-        return objToCssStyles(data);
-    }
-
-    return arrToCssStyles(arrWrap(data));
-}
+export const dataToCssStyles = dispatch(arrToCssStyles, objToCssStyles);
 
 /**
  * Filter data where callback returns true.

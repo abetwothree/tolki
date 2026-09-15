@@ -6052,8 +6052,7 @@ describe("Data", () => {
             );
         });
 
-        it.fails("dataJoin joins a Map like the record it mirrors", () => {
-            // Task C7 (output family) converts this to dispatch().
+        it("dataJoin joins a Map like the record it mirrors", () => {
             expect(Data.dataJoin(asMap, ", ")).toBe(
                 Data.dataJoin(asRecord, ", "),
             );
@@ -6147,13 +6146,9 @@ describe("Data", () => {
             },
         );
 
-        it.fails(
-            "dataQuery builds a query string from a Map like the record it mirrors",
-            () => {
-                // Task C7 (output family) converts this to dispatch().
-                expect(Data.dataQuery(asMap)).toBe(Data.dataQuery(asRecord));
-            },
-        );
+        it("dataQuery builds a query string from a Map like the record it mirrors", () => {
+            expect(Data.dataQuery(asMap)).toBe(Data.dataQuery(asRecord));
+        });
 
         it.fails(
             "dataRandom reads a Map's elements like the record it mirrors",
@@ -6297,25 +6292,17 @@ describe("Data", () => {
             );
         });
 
-        it.fails(
-            "dataToCssClasses reads a Map like the record it mirrors",
-            () => {
-                // Task C7 (output family) converts this to dispatch().
-                expect(Data.dataToCssClasses(cssClassMap)).toBe(
-                    Data.dataToCssClasses(cssClassRecord),
-                );
-            },
-        );
+        it("dataToCssClasses reads a Map like the record it mirrors", () => {
+            expect(Data.dataToCssClasses(cssClassMap)).toBe(
+                Data.dataToCssClasses(cssClassRecord),
+            );
+        });
 
-        it.fails(
-            "dataToCssStyles reads a Map like the record it mirrors",
-            () => {
-                // Task C7 (output family) converts this to dispatch().
-                expect(Data.dataToCssStyles(cssStyleMap)).toBe(
-                    Data.dataToCssStyles(cssStyleRecord),
-                );
-            },
-        );
+        it("dataToCssStyles reads a Map like the record it mirrors", () => {
+            expect(Data.dataToCssStyles(cssStyleMap)).toBe(
+                Data.dataToCssStyles(cssStyleRecord),
+            );
+        });
 
         it("dataWhere filters a Map like the record it mirrors", () => {
             expect(
