@@ -33,4 +33,66 @@ describe("arr rows leave keyed data to obj", () => {
             Obj.reverse(rec),
         );
     });
+
+    it("routes a record to obj for union", () => {
+        expectTypeOf(
+            dispatch(Arr.union, Obj.union)({ a: 1 }, { b: 2 }),
+        ).toEqualTypeOf(Obj.union({ a: 1 }, { b: 2 }));
+    });
+
+    it("routes a record to obj for from", () => {
+        expectTypeOf(dispatch(Arr.from, Obj.from)({ a: 1 })).toEqualTypeOf(
+            Obj.from({ a: 1 }),
+        );
+    });
+
+    it("routes keyed dimensions to obj for crossJoin", () => {
+        expectTypeOf(
+            dispatch(Arr.crossJoin, Obj.crossJoin)({ a: [1] }, { b: ["x"] }),
+        ).toEqualTypeOf(Obj.crossJoin({ a: [1] }, { b: ["x"] }));
+    });
+
+    it("keeps array dimensions on arr for crossJoin", () => {
+        // Bound first: as a direct argument the literal `["x"]` widens differently
+        // on each side, which is an inference artifact, not a dispatch difference.
+        const dispatched = dispatch(Arr.crossJoin, Obj.crossJoin)(
+            [1, 2],
+            ["x"],
+        );
+        const direct = Arr.crossJoin([1, 2], ["x"]);
+        expectTypeOf(dispatched).toEqualTypeOf(direct);
+    });
+
+    it("routes a record to obj for pop", () => {
+        expectTypeOf(dispatch(Arr.pop, Obj.pop)(rec)).toEqualTypeOf(
+            Obj.pop(rec),
+        );
+    });
+
+    it("keeps a list on arr for pop", () => {
+        expectTypeOf(dispatch(Arr.pop, Obj.pop)(list)).toEqualTypeOf(
+            Arr.pop(list),
+        );
+    });
+
+    it("routes a record to obj for shift", () => {
+        expectTypeOf(dispatch(Arr.shift, Obj.shift)(rec)).toEqualTypeOf(
+            Obj.shift(rec),
+        );
+    });
+
+    it("keeps a list on arr for shift", () => {
+        expectTypeOf(dispatch(Arr.shift, Obj.shift)(list)).toEqualTypeOf(
+            Arr.shift(list),
+        );
+    });
+
+    it("keeps a list on arr for union and from", () => {
+        expectTypeOf(dispatch(Arr.union, Obj.union)(list, list)).toEqualTypeOf(
+            Arr.union(list, list),
+        );
+        expectTypeOf(dispatch(Arr.from, Obj.from)(list)).toEqualTypeOf(
+            Arr.from(list),
+        );
+    });
 });

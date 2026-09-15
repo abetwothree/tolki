@@ -481,8 +481,8 @@ export function combine<TKey, TValue>(
 
 /**
  * Cross join the given arrays, returning all possible permutations.
- * Each argument is one dimension, walked like PHP's `foreach`: a plain object,
- * a Map or a Set gives its values.
+ * Each argument is one dimension. The rows are array-shaped so keyed dimensions
+ * fall through to `objCrossJoin`, which walks them like PHP's `foreach`.
  *
  * @param arrays - The arrays to cross join.
  * @return A new array with all combinations of the input arrays.
@@ -490,7 +490,7 @@ export function combine<TKey, TValue>(
  * @example
  *
  * crossJoin([1], ["a"]); -> [[1, 'a']]
- * crossJoin([1, 2], { a: "x", b: "y" }); -> [[1, 'x'], [1, 'y'], [2, 'x'], [2, 'y']]
+ * crossJoin([1, 2], ["x", "y"]); -> [[1, 'x'], [1, 'y'], [2, 'x'], [2, 'y']]
  */
 export function crossJoin(): unknown[][];
 export function crossJoin<A>(a: readonly A[]): [A][];
@@ -521,7 +521,9 @@ export function crossJoin<A, B, C, D, E, F>(
     e: readonly E[],
     f: readonly F[],
 ): [A, B, C, D, E, F][];
-export function crossJoin(...arrays: readonly object[]): unknown[][];
+export function crossJoin(
+    ...arrays: readonly (readonly unknown[])[]
+): unknown[][];
 export function crossJoin(...arrays: readonly object[]): unknown[][] {
     // Keying each argument by its position makes obj's rows list their values in argument order.
     return objCrossJoin(
@@ -654,10 +656,11 @@ export function undot<TValue, TKey extends UndotArrayKey = number>(
  *      Uses PHP's `+` operator (key union: left keys win), not `array_merge`.
  *
  * A `null`/`undefined` operand contributes nothing, matching the
- * `(array) null` cast `getArrayableItems` performs before the `+`. A keyed or
- * Collection-like operand joins by key: each integer key fills that index if it
- * is free, an index no operand fills holds `undefined`, and a string key, which
- * a list can't hold, is dropped.
+ * `(array) null` cast `getArrayableItems` performs before the `+`. The rows are
+ * array-shaped so keyed operands fall through to `objUnion`; at runtime such an
+ * operand still joins by key — each integer key fills that index if it is free,
+ * an index no operand fills holds `undefined`, and a string key, which a list
+ * can't hold, is dropped.
  *
  * @param arrays - The arrays to union.
  * @returns A new array combining each array's indices, left-most wins.
@@ -692,9 +695,22 @@ export function union<A, B, C, D, E, F>(
     f: readonly F[],
 ): (A | B | C | D | E | F)[];
 export function union(
-    ...arrays: (readonly unknown[] | object | null | undefined)[]
+    ...arrays: (readonly unknown[] | null | undefined)[]
 ): unknown[];
 export function union(
+    ...arrays: (readonly unknown[] | object | null | undefined)[]
+): unknown[] {
+    return unionValues(...arrays);
+}
+
+/**
+ * The body of `union`, reachable from inside `arr` with a keyed operand —
+ * `prepend` builds one to mirror PHP's `[$key => $value] + $array`.
+ *
+ * @param arrays - The operands to union.
+ * @returns A new array combining each operand's indices, left-most wins.
+ */
+function unionValues(
     ...arrays: (readonly unknown[] | object | null | undefined)[]
 ): unknown[] {
     // Every operand joins by key exactly as obj.union joins it, so the two backings can't drift apart;
@@ -937,7 +953,7 @@ export function first<TValue, TFirstDefault = null>(
     }
 
     // Convert to array to ensure we can iterate properly with callback
-    const array = from(data as object);
+    const array = fromItems(data);
 
     if (!isArray(array)) {
         // If from() returns an object, iterate over values
@@ -1317,14 +1333,15 @@ export function forget<TValue>(
 
 /**
  * Get the underlying array or object of items from the given argument.
+ * The rows are array- and iterable-shaped so a plain object falls through to
+ * `objFrom`, which is the backing that keeps its keys.
  *
- * @param items The array, Map, or object to extract from.
+ * @param items The array, Map, or iterable to extract from.
  * @returns The underlying array or object.
  *
  * @example
  *
  * from([1, 2, 3]); -> [1, 2, 3]
- * from({ foo: 'bar' }); -> { foo: 'bar' }
  * from(new Map([['foo', 'bar']])); -> { foo: 'bar' }
  * from(new Set([1, 2])); -> [1, 2]
  *
@@ -1338,8 +1355,21 @@ export function from(
     items: number | string | boolean | symbol | null | undefined,
 ): never;
 export function from<TValue>(items: Iterable<TValue>): TValue[];
-export function from(items: object): Record<string, unknown>;
+export function from(
+    items: readonly unknown[] | Iterable<unknown> | null | undefined,
+): unknown[];
 export function from(items: unknown): unknown {
+    return fromItems(items);
+}
+
+/**
+ * The body of `from`, reachable from inside `arr` with any shape — the public
+ * rows are array- and iterable-shaped, but `first` normalizes keyed data too.
+ *
+ * @param items - The value to convert.
+ * @returns The underlying array, or the object itself when it is keyed.
+ */
+function fromItems(items: unknown): unknown[] | Record<string, unknown> {
     // Arrays
     if (isArray(items)) {
         return items.slice();
@@ -2225,7 +2255,7 @@ export function pluck<TValue extends Record<string, unknown>>(
 export function pop<TValue>(data: TValue[]): TValue | null;
 export function pop<TValue>(data: TValue[], count: number): TValue[];
 export function pop<TValue>(
-    data: TValue[] | Record<PropertyKey, unknown> | null | undefined,
+    data: TValue[] | null | undefined,
     count?: number,
 ): TValue | TValue[] | null;
 export function pop<TValue>(
@@ -2478,7 +2508,7 @@ export function prepend<TValue>(
 
     if (!isUndefined(key)) {
         // PHP's [$key => $value] + $array is a key union with the prepended entry winning its key.
-        return union({ [phpArrayKey(key)]: value }, values) as TValue[];
+        return unionValues({ [phpArrayKey(key)]: value }, values) as TValue[];
     }
 
     return [value, ...values];
@@ -2755,7 +2785,7 @@ export function random<TValue>(
 export function shift<TValue>(data: TValue[]): TValue | null;
 export function shift<TValue>(data: TValue[], count: number): TValue[];
 export function shift<TValue>(
-    data: TValue[] | Record<PropertyKey, unknown> | null | undefined,
+    data: TValue[] | null | undefined,
     count?: number,
 ): TValue | TValue[] | null;
 export function shift<TValue>(

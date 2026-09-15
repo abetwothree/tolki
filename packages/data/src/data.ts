@@ -965,8 +965,8 @@ export function dataFrom(items: unknown): unknown[] | Record<string, unknown> {
         return objFrom(items as Record<string, unknown>);
     }
 
-    // arrFrom expects the items to be convertible to an array
-    return arrFrom(items as object);
+    // arrFrom's rows are array-shaped; keyed items already went to objFrom above.
+    return arrFrom(items as readonly unknown[]);
 }
 
 /**

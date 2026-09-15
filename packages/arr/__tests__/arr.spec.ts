@@ -664,22 +664,28 @@ describe("Arr", () => {
                 [2, "y"],
             ];
 
-            expect(Arr.crossJoin([1, 2], { a: "x", b: "y" })).toEqual(rows);
+            expect(Arr.crossJoin([1, 2], keyed({ a: "x", b: "y" }))).toEqual(
+                rows,
+            );
             expect(
                 Arr.crossJoin(
                     [1, 2],
-                    new Map([
-                        ["a", "x"],
-                        ["b", "y"],
-                    ]),
+                    keyed(
+                        new Map([
+                            ["a", "x"],
+                            ["b", "y"],
+                        ]),
+                    ),
                 ),
             ).toEqual(rows);
-            expect(Arr.crossJoin([1, 2], new Set(["x", "y"]))).toEqual(rows);
+            expect(Arr.crossJoin([1, 2], keyed(new Set(["x", "y"])))).toEqual(
+                rows,
+            );
         });
 
         it("returns no rows for a Date argument, where PHP's foreach visits nothing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-list-map-dimension"
-            expect(Arr.crossJoin([1], new Date(0))).toEqual([]);
+            expect(Arr.crossJoin([1], keyed(new Date(0)))).toEqual([]);
         });
     });
 
@@ -1314,8 +1320,8 @@ describe("Arr", () => {
 
     describe("from", () => {
         it("from", () => {
-            expect(Arr.from({ foo: "bar" })).toEqual({ foo: "bar" });
-            expect(Arr.from(new Object({ foo: "bar" }))).toEqual({
+            expect(Arr.from(keyed({ foo: "bar" }))).toEqual({ foo: "bar" });
+            expect(Arr.from(keyed(new Object({ foo: "bar" })))).toEqual({
                 foo: "bar",
             });
             expect(Arr.from(new Map([["foo", "bar"]]))).toEqual({ foo: "bar" });
@@ -1327,7 +1333,7 @@ describe("Arr", () => {
             const temp = {};
             const weakMap = new WeakMap();
             weakMap.set(temp, "bar");
-            expect(() => Arr.from(weakMap)).toThrow(Error);
+            expect(() => Arr.from(keyed(weakMap))).toThrow(Error);
 
             expect(() => Arr.from(123)).toThrow(Error);
             expect(() => Arr.from("string")).toThrow(Error);
@@ -2448,30 +2454,28 @@ describe("Arr", () => {
 
         it("reads a keyed or Collection-like operand by key, as PHP's + does", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "union-list-keyed-operand"
-            expect(Arr.union([1, 2], { 2: "z" })).toEqual([1, 2, "z"]);
-            expect(Arr.union([1], { 3: "d" }, [9, 8, 7, 6])).toEqual([
+            expect(Arr.union([1, 2], keyed({ 2: "z" }))).toEqual([1, 2, "z"]);
+            expect(Arr.union([1], keyed({ 3: "d" }), [9, 8, 7, 6])).toEqual([
                 1,
                 8,
                 7,
                 "d",
             ]);
-            expect(Arr.union([1, 2], { all: () => ({ 2: "z" }) })).toEqual([
-                1,
-                2,
-                "z",
-            ]);
+            expect(
+                Arr.union([1, 2], keyed({ all: () => ({ 2: "z" }) })),
+            ).toEqual([1, 2, "z"]);
         });
 
         it("holds undefined at an index no operand fills, and has no place for a string key", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "union-list-keyed-operand": PHP's "gap" and
             // "string-key" results aren't lists; a list fills the gap with undefined, as replace does, and drops "a".
-            expect(Arr.union([1], { 3: "d" })).toEqual([
+            expect(Arr.union([1], keyed({ 3: "d" }))).toEqual([
                 1,
                 undefined,
                 undefined,
                 "d",
             ]);
-            expect(Arr.union([1, 2], { a: 5 })).toEqual([1, 2]);
+            expect(Arr.union([1, 2], keyed({ a: 5 }))).toEqual([1, 2]);
         });
     });
 
@@ -4605,7 +4609,7 @@ describe("Arr", () => {
             expect(data).toEqual(["Otwell"]);
 
             // docs/php-parity/task-23-obj-release-readiness.json, "D6 shift/pop on collect(null)"
-            expect(Arr.shift({}, 2)).toBeNull();
+            expect(Arr.shift(null, 2)).toBeNull();
 
             expect(Arr.shift(null)).toBeNull();
             expect(Arr.shift(undefined)).toBeNull();

@@ -2364,12 +2364,14 @@ describe("arr type tests", () => {
             });
         });
 
-        describe("a plain object, Map or Set argument (variadic fallback)", () => {
-            it("falls back to unknown[][]", () => {
-                const fromObject = Arr.crossJoin([1, 2], { a: "x", b: "y" });
-                const fromSet = Arr.crossJoin([1], new Set(["x"]));
-                expectTypeOf(fromObject).toEqualTypeOf<unknown[][]>();
-                expectTypeOf(fromSet).toEqualTypeOf<unknown[][]>();
+        describe("a non-array dimension", () => {
+            it("rejects a plain object, Map or Set dimension", () => {
+                // @ts-expect-error - keyed dimensions belong to Obj.crossJoin
+                Arr.crossJoin([1, 2], { a: "x", b: "y" });
+                // @ts-expect-error - a Map dimension belongs to Obj.crossJoin
+                Arr.crossJoin([1], new Map([["a", "x"]]));
+                // @ts-expect-error - a Set dimension belongs to Obj.crossJoin
+                Arr.crossJoin([1], new Set(["x"]));
             });
 
             it("still rejects a scalar argument", () => {
@@ -7240,29 +7242,29 @@ describe("arr type tests", () => {
             });
         });
 
-        describe("object input returns Record<string, unknown>", () => {
-            it("returns Record<string, unknown> for plain object literal", () => {
-                const result = Arr.from({ foo: "bar" });
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+        describe("a non-iterable object is left to Obj.from", () => {
+            it("rejects a plain object literal", () => {
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from({ foo: "bar" });
             });
 
-            it("returns Record<string, unknown> for constructed Object", () => {
-                const result = Arr.from(new Object({ foo: "bar" }));
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            it("rejects a constructed Object", () => {
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from(new Object({ foo: "bar" }));
             });
 
-            it("returns Record<string, unknown> for object with mixed value types", () => {
+            it("rejects an object with mixed value types", () => {
                 const obj = {
                     name: "Alice",
                     age: 30,
                     active: true,
                     scores: [95, 88],
                 };
-                const result = Arr.from(obj);
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from(obj);
             });
 
-            it("returns Record<string, unknown> for deeply nested object", () => {
+            it("rejects a deeply nested object", () => {
                 const obj = {
                     level1: {
                         level2: {
@@ -7272,33 +7274,33 @@ describe("arr type tests", () => {
                         },
                     },
                 };
-                const result = Arr.from(obj);
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from(obj);
             });
 
-            it("returns Record<string, unknown> for class instance", () => {
+            it("rejects a class instance", () => {
                 class User {
                     name = "Alice";
                     age = 30;
                 }
-                const result = Arr.from(new User());
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from(new User());
             });
 
-            it("returns Record<string, unknown> for Date object", () => {
-                const result = Arr.from(new Date());
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            it("rejects a Date object", () => {
+                // @ts-expect-error - a Date has no values to walk
+                Arr.from(new Date());
             });
 
-            it("returns Record<string, unknown> for RegExp object", () => {
-                const result = Arr.from(/test/);
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            it("rejects a RegExp object", () => {
+                // @ts-expect-error - a RegExp has no values to walk
+                Arr.from(/test/);
             });
 
-            it("returns Record<string, unknown> for WeakMap", () => {
+            it("rejects a WeakMap, which cannot be enumerated", () => {
                 const weakMap = new WeakMap();
-                const result = Arr.from(weakMap);
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+                // @ts-expect-error - a WeakMap is neither array- nor iterable-shaped
+                Arr.from(weakMap);
             });
 
             it("returns the values as an array for Set", () => {
@@ -7316,15 +7318,15 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<number[]>();
             });
 
-            it("returns Record<string, unknown> for empty plain object", () => {
-                const result = Arr.from({});
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            it("rejects an empty plain object", () => {
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from({});
             });
 
-            it("returns Record<string, unknown> for object typed as Record", () => {
+            it("rejects an object typed as Record", () => {
                 const obj: Record<string, number> = { a: 1, b: 2 };
-                const result = Arr.from(obj);
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from(obj);
             });
         });
 
@@ -7480,12 +7482,12 @@ describe("arr type tests", () => {
                 >();
             });
 
-            it("returns Record<string, unknown> for generic object wrapper", () => {
+            it("rejects a generic object wrapper", () => {
                 function fromObjWrapper(items: object) {
+                    // @ts-expect-error - `object` covers keyed data, which is Obj.from's
                     return Arr.from(items);
                 }
-                const result = fromObjWrapper({ a: 1 });
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+                expectTypeOf(fromObjWrapper).toBeCallableWith({ a: 1 });
             });
 
             it("handles array of Date objects", () => {
@@ -7540,9 +7542,9 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toExtend<Record<PropertyKey, unknown>>();
             });
 
-            it("object overload result extends Record<string, unknown>", () => {
-                const result = Arr.from({ a: 1 });
-                expectTypeOf(result).toExtend<Record<string, unknown>>();
+            it("has no object overload left for Obj.from's shape", () => {
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from({ a: 1 });
             });
 
             it("scalar overloads result is assignable to never", () => {
